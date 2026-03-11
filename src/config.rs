@@ -11,6 +11,8 @@ const DEFAULT_TEMPERATURE: f32 = 0.2;
 pub struct Config {
     pub llm: LlmConfig,
     pub docs: DocsConfig,
+    #[serde(default)]
+    pub license: LicenseConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,6 +41,16 @@ pub struct DocsConfig {
     pub auto_update: bool,
 }
 
+/// License configuration for dual academic/commercial licensing
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LicenseConfig {
+    /// Optional commercial license key (format: OXO-XXXX-XXXX-XXXX)
+    pub license_key: Option<String>,
+    /// Whether the first-run license notice has been shown
+    #[serde(default)]
+    pub notice_shown: bool,
+}
+
 impl Default for Config {
     fn default() -> Self {
         Config {
@@ -55,6 +67,7 @@ impl Default for Config {
                 remote_sources: Vec::new(),
                 auto_update: true,
             },
+            license: LicenseConfig::default(),
         }
     }
 }
@@ -64,11 +77,15 @@ impl Config {
         ProjectDirs::from("io", "traitome", "oxo-call")
     }
 
-    pub fn config_path() -> Result<PathBuf> {
+    pub fn config_dir() -> Result<PathBuf> {
         let dirs = Self::project_dirs().ok_or_else(|| {
             OxoError::ConfigError("Cannot determine config directory".to_string())
         })?;
-        Ok(dirs.config_dir().join("config.toml"))
+        Ok(dirs.config_dir().to_path_buf())
+    }
+
+    pub fn config_path() -> Result<PathBuf> {
+        Ok(Self::config_dir()?.join("config.toml"))
     }
 
     pub fn data_dir() -> Result<PathBuf> {
@@ -118,9 +135,12 @@ impl Config {
                     OxoError::ConfigError(format!("Invalid auto_update value: {value}"))
                 })?
             }
+            "license.license_key" => {
+                self.license.license_key = Some(value.to_string());
+            }
             _ => {
                 return Err(OxoError::ConfigError(format!(
-                    "Unknown config key: {key}. Valid keys: llm.provider, llm.api_token, llm.api_base, llm.model, llm.max_tokens, llm.temperature, docs.auto_update"
+                    "Unknown config key: {key}. Valid keys: llm.provider, llm.api_token, llm.api_base, llm.model, llm.max_tokens, llm.temperature, docs.auto_update, license.license_key"
                 )));
             }
         }
@@ -136,6 +156,7 @@ impl Config {
             "llm.max_tokens" => Ok(self.llm.max_tokens.to_string()),
             "llm.temperature" => Ok(self.llm.temperature.to_string()),
             "docs.auto_update" => Ok(self.docs.auto_update.to_string()),
+            "license.license_key" => Ok(self.license.license_key.clone().unwrap_or_default()),
             _ => Err(OxoError::ConfigError(format!("Unknown config key: {key}"))),
         }
     }

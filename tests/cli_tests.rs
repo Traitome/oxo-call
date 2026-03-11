@@ -250,3 +250,143 @@ fn test_docs_fetch_non_http_url_fails() {
         "Expected error for non-http URL, got: {stderr}"
     );
 }
+
+// ─── Skill command tests ───────────────────────────────────────────────────────
+
+#[test]
+fn test_skill_list() {
+    let output = oxo_call()
+        .args(["skill", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    // Should list the built-in skills
+    assert!(
+        stdout.contains("samtools"),
+        "Expected samtools in skill list, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("bwa"),
+        "Expected bwa in skill list, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("built-in"),
+        "Expected 'built-in' label, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_skill_show_builtin() {
+    let output = oxo_call()
+        .args(["skill", "show", "samtools"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("samtools"),
+        "Expected skill content, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("Expert"),
+        "Expected expert knowledge section, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("Example"),
+        "Expected worked examples, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_skill_show_unknown_tool() {
+    let output = oxo_call()
+        .args(["skill", "show", "nonexistent_tool_xyz"])
+        .output()
+        .expect("failed to run oxo-call");
+    // Should succeed (just shows "no skill found" message)
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("No skill") || stdout.contains("install"),
+        "Expected helpful message, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_skill_create_template() {
+    let output = oxo_call()
+        .args(["skill", "create", "mytool"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("mytool"),
+        "Expected tool name in template, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("[meta]"),
+        "Expected TOML structure, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("[[examples]]"),
+        "Expected examples section, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_skill_path() {
+    let output = oxo_call()
+        .args(["skill", "path"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("skills"),
+        "Expected skills path, got: {stdout}"
+    );
+}
+
+// ─── License command tests ────────────────────────────────────────────────────
+
+#[test]
+fn test_license_command() {
+    let output = oxo_call()
+        .args(["license"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Business Source License"),
+        "Expected license info, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("academic"),
+        "Expected academic use mention, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("commercial"),
+        "Expected commercial info, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_help_includes_skill_and_license() {
+    let output = oxo_call()
+        .arg("--help")
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("skill") || stdout.contains("Skill"),
+        "Expected skill subcommand in help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("license") || stdout.contains("License"),
+        "Expected license subcommand in help, got: {stdout}"
+    );
+}

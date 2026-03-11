@@ -5,8 +5,8 @@ use clap::{Parser, Subcommand};
     name = "oxo-call",
     version,
     about = "Model-intelligent orchestration for CLI bioinformatics",
-    long_about = r#"oxo-call uses LLM intelligence to help you call bioinformatics tools
-without memorizing every flag and parameter.
+    long_about = r#"oxo-call uses LLM intelligence + expert Skills to help you call bioinformatics
+tools without memorizing every flag and parameter.
 
 Quick start:
   1. Set up your API token:
@@ -20,7 +20,15 @@ Quick start:
        oxo-call run samtools "sort input.bam by coordinate and output to sorted.bam"
        oxo-call dry-run bwa "align reads.fastq to reference.fa with 8 threads"
 
-Supported LLM providers: github-copilot (default), openai, anthropic, ollama"#
+Skills — expert knowledge for reliable LLM output even with small models:
+  oxo-call skill list               # see all built-in skills (samtools, bwa, gatk, ...)
+  oxo-call skill show samtools      # inspect the samtools skill
+  oxo-call skill install <tool>     # install a community skill from the registry
+  oxo-call skill create <tool>      # generate a skill template for a new tool
+
+Supported LLM providers: github-copilot (default), openai, anthropic, ollama
+License: BUSL-1.1 — free for academic/research use; commercial license required otherwise.
+         Run 'oxo-call license' for details."#
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -77,6 +85,17 @@ pub enum Commands {
         #[command(subcommand)]
         command: HistoryCommands,
     },
+
+    /// Manage bioinformatics tool skills (expert knowledge for LLM prompts)
+    #[command(visible_alias = "sk")]
+    Skill {
+        #[command(subcommand)]
+        command: SkillCommands,
+    },
+
+    /// Show license information
+    #[command(visible_alias = "lic")]
+    License,
 }
 
 #[derive(Subcommand, Debug)]
@@ -164,4 +183,38 @@ pub enum HistoryCommands {
         #[arg(short, long)]
         yes: bool,
     },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum SkillCommands {
+    /// List all available skills (built-in, community, and user-defined)
+    List,
+    /// Show the content of a skill
+    Show {
+        /// Tool name
+        tool: String,
+    },
+    /// Install a skill from the community registry or a custom URL
+    Install {
+        /// Tool name
+        tool: String,
+        /// Custom URL to a skill TOML file (optional; defaults to community registry)
+        #[arg(long)]
+        url: Option<String>,
+    },
+    /// Remove a community or user-installed skill
+    Remove {
+        /// Tool name
+        tool: String,
+    },
+    /// Generate a skill template for a new tool
+    Create {
+        /// Tool name
+        tool: String,
+        /// Write template to this file (defaults to stdout)
+        #[arg(short, long)]
+        output: Option<std::path::PathBuf>,
+    },
+    /// Show the path to the user skills directory
+    Path,
 }

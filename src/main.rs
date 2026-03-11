@@ -4,11 +4,15 @@ mod docs;
 mod error;
 mod history;
 mod index;
+mod license;
 mod llm;
 mod runner;
+mod skill;
 
 use clap::Parser;
-use cli::{Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands};
+use cli::{
+    Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, SkillCommands,
+};
 use colored::Colorize;
 
 #[tokio::main]
@@ -21,6 +25,16 @@ async fn main() {
 }
 
 async fn run(cli: Cli) -> error::Result<()> {
+    // Show the first-run license notice (only once, then mark as seen)
+    if !matches!(cli.command, Commands::License) {
+        let mut cfg = config::Config::load()?;
+        if !cfg.license.notice_shown {
+            eprintln!("{}", license::FIRST_RUN_NOTICE);
+            cfg.license.notice_shown = true;
+            let _ = cfg.save(); // Best-effort — don't fail if config can't be saved
+        }
+    }
+
     match cli.command {
         Commands::Run { tool, task, yes } => {
             let cfg = config::Config::load()?;
@@ -325,6 +339,136 @@ async fn run(cli: Cli) -> error::Result<()> {
                 println!("{} History cleared.", "✓".green().bold());
             }
         },
+
+        Commands::Skill { command } => {
+            let cfg = config::Config::load()?;
+            let mgr = skill::SkillManager::new(cfg);
+
+            match command {
+                SkillCommands::List => {
+                    let skills = mgr.list_all();
+                    if skills.is_empty() {
+                        println!("{}", "No skills found.".yellow());
+                        return Ok(());
+                    }
+                    println!(
+                        "{:<20} {:<12} {}",
+                        "Tool".bold(),
+                        "Source".bold(),
+                        "Description".bold()
+                    );
+                    println!("{}", "─".repeat(70).dimmed());
+                    for (name, source) in &skills {
+                        let desc = mgr
+                            .load(name)
+                            .map(|s| s.meta.description)
+                            .unwrap_or_default();
+                        let source_colored = match source.as_str() {
+                            "built-in" => source.dimmed().to_string(),
+                            "community" => source.cyan().to_string(),
+                            "user" => source.green().bold().to_string(),
+                            _ => source.clone(),
+                        };
+                        println!("{:<20} {:<12} {}", name.cyan(), source_colored, desc);
+                    }
+                    println!(
+                        "\n{} skills available. Use 'oxo-call skill show <tool>' to inspect one.",
+                        skills.len()
+                    );
+                }
+
+                SkillCommands::Show { tool } => {
+                    if let Some(skill) = mgr.load(&tool) {
+                        println!("{}", format!("# Skill: {}", skill.meta.name).bold());
+                        println!("Category: {}", skill.meta.category.cyan());
+                        println!("Description: {}", skill.meta.description);
+                        if !skill.meta.tags.is_empty() {
+                            println!("Tags: {}", skill.meta.tags.join(", ").dimmed());
+                        }
+                        if let Some(url) = &skill.meta.source_url {
+                            println!("Source: {}", url.dimmed());
+                        }
+                        println!();
+                        print!("{}", skill.to_prompt_section());
+                    } else {
+                        println!(
+                            "{} No skill found for '{}'. Use 'oxo-call skill install {}' to install one.",
+                            "ℹ".blue().bold(),
+                            tool.cyan(),
+                            tool
+                        );
+                    }
+                }
+
+                SkillCommands::Install { tool, url } => {
+                    let spinner =
+                        runner::make_spinner(&format!("Installing skill for '{tool}'..."));
+                    let result = match url {
+                        Some(u) => mgr.install_from_url(&tool, &u).await,
+                        None => mgr.install_from_registry(&tool).await,
+                    };
+                    spinner.finish_and_clear();
+                    match result {
+                        Ok(skill) => println!(
+                            "{} Installed skill for '{}' ({})",
+                            "✓".green().bold(),
+                            tool.cyan(),
+                            skill.meta.category
+                        ),
+                        Err(e) => {
+                            return Err(e);
+                        }
+                    }
+                }
+
+                SkillCommands::Remove { tool } => {
+                    mgr.remove(&tool)?;
+                    println!("{} Removed skill for '{}'", "✓".green().bold(), tool.cyan());
+                }
+
+                SkillCommands::Create { tool, output } => {
+                    let template = skill::SkillManager::create_template(&tool);
+                    match output {
+                        Some(path) => {
+                            std::fs::write(&path, &template)?;
+                            println!(
+                                "{} Template written to '{}'",
+                                "✓".green().bold(),
+                                path.display()
+                            );
+                        }
+                        None => print!("{template}"),
+                    }
+                }
+
+                SkillCommands::Path => {
+                    let path = mgr.user_skill_dir()?;
+                    println!("{}", path.display());
+                }
+            }
+        }
+
+        Commands::License => {
+            let cfg = config::Config::load()?;
+            print!("{}", license::LICENSE_INFO);
+            let key_ref = cfg.license.license_key.as_deref();
+            let status = license::license_status(key_ref);
+            println!(
+                "  Current license status: {}",
+                if status.starts_with("commercial") {
+                    status.green().to_string()
+                } else {
+                    status.yellow().to_string()
+                }
+            );
+            if cfg.license.license_key.is_none() {
+                println!();
+                println!(
+                    "  To register a commercial license key:\n  {}",
+                    "oxo-call config set license.license_key OXO-XXXX-XXXX-XXXX".dimmed()
+                );
+            }
+        }
     }
 
     Ok(())

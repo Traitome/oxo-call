@@ -1,5 +1,6 @@
 use crate::config::Config;
 use crate::error::{OxoError, Result};
+use crate::skill::Skill;
 use serde::{Deserialize, Serialize};
 
 /// A parsed LLM response with command arguments and explanation
@@ -35,42 +36,84 @@ struct ChatChoice {
     message: ChatMessage,
 }
 
-/// Shared system prompt for bioinformatics tool orchestration
+// ─── System prompt ────────────────────────────────────────────────────────────
+
 fn system_prompt() -> &'static str {
-    "You are an expert bioinformatics tool orchestrator. \
-     Your job is to translate a user's natural-language task description into \
-     the exact command-line arguments for a specific bioinformatics tool. \
-     You are precise, concise, and only suggest arguments that are explicitly \
-     supported by the provided documentation. \
-     When generating arguments, use the most appropriate flags and values based \
-     on the task description. \
-     If input files, output files, or other required parameters are mentioned in \
-     the task description but not in the documentation, include them verbatim. \
-     Never hallucinate flags or options that are not in the documentation."
+    "You are an expert bioinformatics command-line assistant. \
+     Your task is to translate a plain-English task description into the \
+     exact command-line arguments for the specified bioinformatics tool. \
+     Rules: \
+     (1) Only use flags/options explicitly present in the provided documentation or examples. \
+     (2) Never include the tool name itself in ARGS — it is prepended automatically. \
+     (3) Always include any file names or paths mentioned in the task description. \
+     (4) Prefer complete, runnable commands over minimal ones. \
+     (5) If the task is ambiguous, choose the most common bioinformatics convention. \
+     (6) Never hallucinate flags that are not in the documentation."
 }
 
-/// Build the user prompt for command generation
-fn build_prompt(tool: &str, documentation: &str, task: &str) -> String {
+// ─── User prompt ─────────────────────────────────────────────────────────────
+
+/// Build the enriched user prompt, injecting skill knowledge when available.
+fn build_prompt(tool: &str, documentation: &str, task: &str, skill: Option<&Skill>) -> String {
+    let mut prompt = String::new();
+
+    prompt.push_str(&format!("# Tool: `{tool}`\n\n"));
+
+    // Inject skill knowledge (concepts, pitfalls, examples) before the raw docs.
+    // This primes the LLM with expert knowledge before it reads the potentially
+    // noisy --help output — especially important for small/weak models.
+    if let Some(skill) = skill {
+        let section = skill.to_prompt_section();
+        if !section.is_empty() {
+            prompt.push_str(&section);
+        }
+    }
+
+    // Raw tool documentation (--help output and/or cached docs)
+    prompt.push_str("## Tool Documentation\n");
+    prompt.push_str(documentation);
+    prompt.push_str("\n\n");
+
+    // The user's task
+    prompt.push_str(&format!("## Task\n{task}\n\n"));
+
+    // Strict format instructions — critical for reliable parsing with weak LLMs
+    prompt.push_str(
+        "## Output Format (STRICT — do not add any other text)\n\
+         Respond with EXACTLY two lines:\n\
+         \n\
+         ARGS: <all command-line arguments, space-separated, WITHOUT the tool name itself>\n\
+         EXPLANATION: <one concise sentence explaining what the command does>\n\
+         \n\
+         RULES:\n\
+         - ARGS must NOT start with the tool name\n\
+         - Include every file path mentioned in the task\n\
+         - Use only flags documented above\n\
+         - If no arguments are needed, write: ARGS: (none)\n",
+    );
+
+    prompt
+}
+
+/// Build a corrective retry prompt when the first attempt had an invalid response.
+fn build_retry_prompt(
+    tool: &str,
+    documentation: &str,
+    task: &str,
+    skill: Option<&Skill>,
+    prev_raw: &str,
+) -> String {
+    let base = build_prompt(tool, documentation, task, skill);
     format!(
-        r#"## Tool: {tool}
-
-## Documentation:
-{documentation}
-
-## Task Description:
-{task}
-
-## Instructions:
-Based on the documentation above, generate the command-line arguments for `{tool}` to accomplish the task.
-
-Respond in EXACTLY this format (no other text):
-ARGS: <arguments for {tool}, space-separated, without the tool name itself>
-EXPLANATION: <one or two sentences explaining what these arguments do and why they were chosen>
-
-If the task cannot be accomplished with the available flags, explain why in the EXPLANATION field and leave ARGS empty.
-If input/output files are mentioned in the task but not reflected in flags, include them as positional arguments."#
+        "{base}\n\
+         ## Correction Note\n\
+         Your previous response was not in the required format:\n\
+         {prev_raw}\n\
+         Please respond again with EXACTLY two lines starting with 'ARGS:' and 'EXPLANATION:'.\n"
     )
 }
+
+// ─── Client ───────────────────────────────────────────────────────────────────
 
 pub struct LlmClient {
     config: Config,
@@ -85,21 +128,54 @@ impl LlmClient {
         }
     }
 
-    /// Generate command arguments for a tool given its documentation and task description
+    /// Generate command arguments, using skill knowledge for better prompts.
+    /// Retries up to `MAX_RETRIES` times when the response format is invalid.
     pub async fn suggest_command(
         &self,
         tool: &str,
         documentation: &str,
         task: &str,
+        skill: Option<&Skill>,
     ) -> Result<LlmCommandSuggestion> {
-        let token = self
-            .config
-            .effective_api_token()
-            .ok_or_else(|| OxoError::LlmError(
+        const MAX_RETRIES: usize = 2;
+
+        let mut last_raw = String::new();
+
+        for attempt in 0..=MAX_RETRIES {
+            let user_prompt = if attempt == 0 {
+                build_prompt(tool, documentation, task, skill)
+            } else {
+                build_retry_prompt(tool, documentation, task, skill, &last_raw)
+            };
+
+            let raw = self.call_api(&user_prompt).await?;
+            let suggestion = Self::parse_response(&raw)?;
+
+            if is_valid_suggestion(&suggestion) {
+                return Ok(suggestion);
+            }
+
+            last_raw = raw;
+            // If this was the last attempt, return whatever we got
+            if attempt == MAX_RETRIES {
+                return Ok(suggestion);
+            }
+        }
+
+        // Unreachable — the loop always returns
+        unreachable!()
+    }
+
+    /// Make the raw API call and return the assistant message content.
+    async fn call_api(&self, user_prompt: &str) -> Result<String> {
+        let token = self.config.effective_api_token().ok_or_else(|| {
+            OxoError::LlmError(
                 "No API token configured. Set it with:\n  oxo-call config set llm.api_token <token>\n\
-                    Or set the environment variable GITHUB_TOKEN (for GitHub Copilot), \
-                    OPENAI_API_KEY (for OpenAI), or ANTHROPIC_API_KEY (for Anthropic).".to_string()
-            ))?;
+                Or set the environment variable GITHUB_TOKEN (for GitHub Copilot), \
+                OPENAI_API_KEY (for OpenAI), or ANTHROPIC_API_KEY (for Anthropic)."
+                    .to_string(),
+            )
+        })?;
 
         let api_base = self.config.effective_api_base();
 
@@ -124,12 +200,12 @@ impl LlmClient {
             },
             ChatMessage {
                 role: "user".to_string(),
-                content: build_prompt(tool, documentation, task),
+                content: user_prompt.to_string(),
             },
         ];
 
         let request = ChatRequest {
-            model: model.clone(),
+            model,
             messages,
             max_tokens: self.config.llm.max_tokens,
             temperature: self.config.llm.temperature,
@@ -140,7 +216,6 @@ impl LlmClient {
             .post(&url)
             .header("Content-Type", "application/json");
 
-        // Set authorization header based on provider
         req_builder = match self.config.llm.provider.as_str() {
             "anthropic" => req_builder
                 .header("x-api-key", &token)
@@ -165,13 +240,11 @@ impl LlmClient {
             .await
             .map_err(|e| OxoError::LlmError(format!("Failed to parse API response: {e}")))?;
 
-        let raw_response = chat_response
+        Ok(chat_response
             .choices
             .first()
             .map(|c| c.message.content.clone())
-            .unwrap_or_default();
-
-        Self::parse_response(&raw_response)
+            .unwrap_or_default())
     }
 
     fn parse_response(raw: &str) -> Result<LlmCommandSuggestion> {
@@ -186,7 +259,11 @@ impl LlmClient {
             }
         }
 
-        // Parse args string into a Vec<String>, respecting quoted strings
+        // Treat "(none)" as empty args
+        if args_line == "(none)" {
+            args_line.clear();
+        }
+
         let args = parse_shell_args(&args_line);
 
         Ok(LlmCommandSuggestion {
@@ -197,7 +274,15 @@ impl LlmClient {
     }
 }
 
-/// Simple shell-like argument parser that handles quoted strings
+/// Check whether a suggestion looks valid enough to return without retrying.
+fn is_valid_suggestion(suggestion: &LlmCommandSuggestion) -> bool {
+    // At minimum we need an explanation (ARGS can legitimately be empty)
+    !suggestion.explanation.is_empty()
+}
+
+// ─── Shell argument parser ────────────────────────────────────────────────────
+
+/// Simple shell-like argument tokenizer that handles single and double quotes.
 fn parse_shell_args(input: &str) -> Vec<String> {
     let trimmed = input.trim();
     if trimmed.is_empty() {

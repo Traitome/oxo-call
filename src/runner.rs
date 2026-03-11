@@ -3,6 +3,7 @@ use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
 use crate::history::{HistoryEntry, HistoryStore};
 use crate::llm::{LlmClient, LlmCommandSuggestion};
+use crate::skill::SkillManager;
 use chrono::Utc;
 use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -13,13 +14,15 @@ use uuid::Uuid;
 pub struct Runner {
     fetcher: DocsFetcher,
     llm: LlmClient,
+    skill_manager: SkillManager,
 }
 
 impl Runner {
     pub fn new(config: Config) -> Self {
         Runner {
             fetcher: DocsFetcher::new(config.clone()),
-            llm: LlmClient::new(config),
+            llm: LlmClient::new(config.clone()),
+            skill_manager: SkillManager::new(config),
         }
     }
 
@@ -29,7 +32,7 @@ impl Runner {
         Ok(docs.combined())
     }
 
-    /// Core logic: fetch docs → call LLM → return suggestion
+    /// Core logic: fetch docs → load skill → call LLM → return suggestion
     async fn prepare(&self, tool: &str, task: &str) -> Result<LlmCommandSuggestion> {
         let spinner = make_spinner(&format!("Fetching documentation for '{tool}'..."));
         let docs = match self.resolve_docs(tool).await {
@@ -43,8 +46,21 @@ impl Runner {
             }
         };
 
-        let spinner = make_spinner("Asking LLM to generate command arguments...");
-        let suggestion = match self.llm.suggest_command(tool, &docs, task).await {
+        let skill = self.skill_manager.load(tool);
+        let skill_label = if skill.is_some() {
+            format!(" (skill: {})", tool)
+        } else {
+            String::new()
+        };
+
+        let spinner = make_spinner(&format!(
+            "Asking LLM to generate command arguments{skill_label}..."
+        ));
+        let suggestion = match self
+            .llm
+            .suggest_command(tool, &docs, task, skill.as_ref())
+            .await
+        {
             Ok(s) => {
                 spinner.finish_and_clear();
                 s

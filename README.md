@@ -228,4 +228,15 @@ cargo test
 
 ## License
 
-MIT
+**Dual License — [Business Source License 1.1 (BUSL-1.1)](LICENSE)**
+
+| Use case | License |
+|----------|---------|
+| Academic research, education, personal non-commercial | **Free** |
+| Commercial / production use | **Commercial license required** |
+
+After 4 years from each version's release date, the code converts to the MIT License.
+
+For commercial licensing: <license@traitome.com> · <https://github.com/Traitome/oxo-call#licensing>
+
+> **Skill files** contributed to the community registry are licensed under **CC-BY-4.0** and remain freely usable by everyone.
