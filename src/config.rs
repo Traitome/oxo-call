@@ -65,8 +65,9 @@ impl Config {
     }
 
     pub fn config_path() -> Result<PathBuf> {
-        let dirs = Self::project_dirs()
-            .ok_or_else(|| OxoError::ConfigError("Cannot determine config directory".to_string()))?;
+        let dirs = Self::project_dirs().ok_or_else(|| {
+            OxoError::ConfigError("Cannot determine config directory".to_string())
+        })?;
         Ok(dirs.config_dir().join("config.toml"))
     }
 
@@ -135,18 +136,17 @@ impl Config {
             "llm.max_tokens" => Ok(self.llm.max_tokens.to_string()),
             "llm.temperature" => Ok(self.llm.temperature.to_string()),
             "docs.auto_update" => Ok(self.docs.auto_update.to_string()),
-            _ => Err(OxoError::ConfigError(format!(
-                "Unknown config key: {key}"
-            ))),
+            _ => Err(OxoError::ConfigError(format!("Unknown config key: {key}"))),
         }
     }
 
     /// Resolve the effective API token from config or environment variables
     pub fn effective_api_token(&self) -> Option<String> {
         if let Some(token) = &self.llm.api_token
-            && !token.is_empty() {
-                return Some(token.clone());
-            }
+            && !token.is_empty()
+        {
+            return Some(token.clone());
+        }
         // Fallback to environment variables
         match self.llm.provider.as_str() {
             "github-copilot" => std::env::var("GITHUB_TOKEN")
@@ -161,9 +161,10 @@ impl Config {
     /// Resolve the effective API base URL for the current provider
     pub fn effective_api_base(&self) -> String {
         if let Some(base) = &self.llm.api_base
-            && !base.is_empty() {
-                return base.clone();
-            }
+            && !base.is_empty()
+        {
+            return base.clone();
+        }
         match self.llm.provider.as_str() {
             "github-copilot" => "https://api.githubcopilot.com".to_string(),
             "openai" => "https://api.openai.com/v1".to_string(),
@@ -176,9 +177,10 @@ impl Config {
     /// Resolve the effective model name for the current provider
     pub fn effective_model(&self) -> String {
         if let Some(model) = &self.llm.model
-            && !model.is_empty() {
-                return model.clone();
-            }
+            && !model.is_empty()
+        {
+            return model.clone();
+        }
         match self.llm.provider.as_str() {
             "github-copilot" => "gpt-4o".to_string(),
             "openai" => "gpt-4o".to_string(),

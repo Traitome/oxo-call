@@ -7,7 +7,10 @@ fn oxo_call() -> Command {
 
 #[test]
 fn test_help_output() {
-    let output = oxo_call().arg("--help").output().expect("failed to run oxo-call");
+    let output = oxo_call()
+        .arg("--help")
+        .output()
+        .expect("failed to run oxo-call");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("oxo-call"));
@@ -21,7 +24,10 @@ fn test_help_output() {
 
 #[test]
 fn test_version_output() {
-    let output = oxo_call().arg("--version").output().expect("failed to run oxo-call");
+    let output = oxo_call()
+        .arg("--version")
+        .output()
+        .expect("failed to run oxo-call");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("oxo-call"));
@@ -200,10 +206,10 @@ fn test_dry_run_requires_llm_token() {
     // Either an error about token or about network
     let combined = format!("{stdout}{stderr}");
     assert!(
-        combined.contains("token") ||
-        combined.contains("API") ||
-        combined.contains("error") ||
-        combined.contains("Fetching"),
+        combined.contains("token")
+            || combined.contains("API")
+            || combined.contains("error")
+            || combined.contains("Fetching"),
         "Expected some output from dry-run, got: {combined}"
     );
 }
@@ -244,4 +250,3 @@ fn test_docs_fetch_non_http_url_fails() {
         "Expected error for non-http URL, got: {stderr}"
     );
 }
-

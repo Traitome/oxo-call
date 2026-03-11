@@ -5,7 +5,9 @@ use crate::history::{HistoryEntry, HistoryStore};
 use crate::llm::{LlmClient, LlmCommandSuggestion};
 use chrono::Utc;
 use colored::Colorize;
+use indicatif::{ProgressBar, ProgressStyle};
 use std::process::Command;
+use std::time::Duration;
 use uuid::Uuid;
 
 pub struct Runner {
@@ -21,28 +23,44 @@ impl Runner {
         }
     }
 
-    /// Resolve documentation for the tool
+    /// Resolve documentation for the tool, showing a spinner while fetching
     async fn resolve_docs(&self, tool: &str) -> Result<String> {
         let docs = self.fetcher.fetch(tool).await?;
         Ok(docs.combined())
     }
 
     /// Core logic: fetch docs → call LLM → return suggestion
-    async fn prepare(
-        &self,
-        tool: &str,
-        task: &str,
-    ) -> Result<LlmCommandSuggestion> {
-        let docs = self.resolve_docs(tool).await?;
-        let suggestion = self.llm.suggest_command(tool, &docs, task).await?;
+    async fn prepare(&self, tool: &str, task: &str) -> Result<LlmCommandSuggestion> {
+        let spinner = make_spinner(&format!("Fetching documentation for '{tool}'..."));
+        let docs = match self.resolve_docs(tool).await {
+            Ok(d) => {
+                spinner.finish_and_clear();
+                d
+            }
+            Err(e) => {
+                spinner.finish_and_clear();
+                return Err(e);
+            }
+        };
+
+        let spinner = make_spinner("Asking LLM to generate command arguments...");
+        let suggestion = match self.llm.suggest_command(tool, &docs, task).await {
+            Ok(s) => {
+                spinner.finish_and_clear();
+                s
+            }
+            Err(e) => {
+                spinner.finish_and_clear();
+                return Err(e);
+            }
+        };
+
         Ok(suggestion)
     }
 
     /// dry-run: show the command that would be executed without running it
     pub async fn dry_run(&self, tool: &str, task: &str) -> Result<()> {
-        println!("{}", "Fetching documentation...".dimmed());
         let suggestion = self.prepare(tool, task).await?;
-
         let full_cmd = build_command_string(tool, &suggestion.args);
 
         println!();
@@ -54,25 +72,23 @@ impl Runner {
         println!("  {}", "Command (dry-run):".bold().yellow());
         println!("  {}", full_cmd.green().bold());
         println!();
-        println!("  {}", "Explanation:".bold());
-        println!("  {}", suggestion.explanation);
-        println!();
+        if !suggestion.explanation.is_empty() {
+            println!("  {}", "Explanation:".bold());
+            println!("  {}", suggestion.explanation);
+            println!();
+        }
         println!("{}", "─".repeat(60).dimmed());
-        println!("  {}", "Use 'oxo-call run' to execute this command.".dimmed());
+        println!(
+            "  {}",
+            "Use 'oxo-call run' to execute this command.".dimmed()
+        );
 
         Ok(())
     }
 
     /// run: execute the command for real
-    pub async fn run(
-        &self,
-        tool: &str,
-        task: &str,
-        yes: bool,
-    ) -> Result<()> {
-        println!("{}", "Fetching documentation...".dimmed());
+    pub async fn run(&self, tool: &str, task: &str, yes: bool) -> Result<()> {
         let suggestion = self.prepare(tool, task).await?;
-
         let full_cmd = build_command_string(tool, &suggestion.args);
 
         println!();
@@ -84,9 +100,11 @@ impl Runner {
         println!("  {}", "Generated command:".bold().green());
         println!("  {}", full_cmd.green().bold());
         println!();
-        println!("  {}", "Explanation:".bold());
-        println!("  {}", suggestion.explanation);
-        println!();
+        if !suggestion.explanation.is_empty() {
+            println!("  {}", "Explanation:".bold());
+            println!("  {}", suggestion.explanation);
+            println!();
+        }
 
         if !yes {
             print!("  {} [y/N] ", "Execute this command?".bold().yellow());
@@ -164,4 +182,16 @@ fn build_command_string(tool: &str, args: &[String]) -> String {
         })
         .collect();
     format!("{tool} {}", args_str.join(" "))
+}
+
+/// Create a styled progress spinner for long-running operations.
+pub fn make_spinner(msg: &str) -> ProgressBar {
+    let pb = ProgressBar::new_spinner();
+    pb.set_style(
+        ProgressStyle::with_template("{spinner:.cyan} {msg}")
+            .unwrap_or_else(|_| ProgressStyle::default_spinner()),
+    );
+    pb.set_message(msg.to_string());
+    pb.enable_steady_tick(Duration::from_millis(80));
+    pb
 }

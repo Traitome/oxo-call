@@ -157,9 +157,7 @@ impl LlmClient {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            return Err(OxoError::LlmError(format!(
-                "API returned {status}: {body}"
-            )));
+            return Err(OxoError::LlmError(format!("API returned {status}: {body}")));
         }
 
         let chat_response: ChatResponse = response

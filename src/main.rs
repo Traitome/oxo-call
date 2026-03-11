@@ -38,7 +38,6 @@ async fn run(cli: Cli) -> error::Result<()> {
             IndexCommands::Add { tool, url } => {
                 let cfg = config::Config::load()?;
                 let mgr = index::IndexManager::new(cfg);
-                print_step(&format!("Indexing documentation for '{tool}'..."));
                 let entry = mgr.add(&tool, url.as_deref()).await?;
                 println!(
                     "{} Indexed '{}' ({} bytes from: {})",
@@ -55,14 +54,17 @@ async fn run(cli: Cli) -> error::Result<()> {
                 let cfg = config::Config::load()?;
                 let mgr = index::IndexManager::new(cfg);
                 mgr.remove(&tool)?;
-                println!("{} Removed '{}' from index", "✓".green().bold(), tool.cyan());
+                println!(
+                    "{} Removed '{}' from index",
+                    "✓".green().bold(),
+                    tool.cyan()
+                );
             }
             IndexCommands::Update { tool, url } => {
                 let cfg = config::Config::load()?;
                 let mgr = index::IndexManager::new(cfg);
                 match tool {
                     Some(t) => {
-                        print_step(&format!("Updating documentation for '{t}'..."));
                         let entry = mgr.add(&t, url.as_deref()).await?;
                         println!(
                             "{} Updated '{}' ({} bytes)",
@@ -75,15 +77,21 @@ async fn run(cli: Cli) -> error::Result<()> {
                         // Update all indexed tools
                         let entries = mgr.list()?;
                         if entries.is_empty() {
-                            println!("{}", "No tools in index. Use 'oxo-call index add <tool>' first.".yellow());
+                            println!(
+                                "{}",
+                                "No tools in index. Use 'oxo-call index add <tool>' first."
+                                    .yellow()
+                            );
                             return Ok(());
                         }
-                        let tools: Vec<String> = entries.iter().map(|e| e.tool_name.clone()).collect();
+                        let tools: Vec<String> =
+                            entries.iter().map(|e| e.tool_name.clone()).collect();
                         println!("Updating {} tool(s)...", tools.len());
                         for t in &tools {
-                            print_step(&format!("  Updating '{t}'..."));
                             match mgr.add(t, None).await {
-                                Ok(e) => println!("  {} '{}'", "✓".green().bold(), e.tool_name.cyan()),
+                                Ok(e) => {
+                                    println!("  {} '{}'", "✓".green().bold(), e.tool_name.cyan())
+                                }
                                 Err(e) => println!("  {} '{}': {}", "✗".red().bold(), t.cyan(), e),
                             }
                         }
@@ -95,7 +103,11 @@ async fn run(cli: Cli) -> error::Result<()> {
                 let mgr = index::IndexManager::new(cfg);
                 let entries = mgr.list()?;
                 if entries.is_empty() {
-                    println!("{}", "No tools indexed yet. Use 'oxo-call index add <tool>' to index a tool.".yellow());
+                    println!(
+                        "{}",
+                        "No tools indexed yet. Use 'oxo-call index add <tool>' to index a tool."
+                            .yellow()
+                    );
                     return Ok(());
                 }
                 println!(
@@ -137,8 +149,18 @@ async fn run(cli: Cli) -> error::Result<()> {
             DocsCommands::Fetch { tool, url } => {
                 let cfg = config::Config::load()?;
                 let fetcher = docs::DocsFetcher::new(cfg);
-                print_step(&format!("Fetching remote documentation for '{tool}'..."));
-                let content = fetcher.fetch_remote(&tool, &url).await?;
+                let spinner =
+                    runner::make_spinner(&format!("Fetching remote documentation for '{tool}'..."));
+                let content = match fetcher.fetch_remote(&tool, &url).await {
+                    Ok(c) => {
+                        spinner.finish_and_clear();
+                        c
+                    }
+                    Err(e) => {
+                        spinner.finish_and_clear();
+                        return Err(e);
+                    }
+                };
                 fetcher.save_cache(&tool, &content)?;
                 println!(
                     "{} Saved {} bytes of documentation for '{}'",
@@ -173,7 +195,11 @@ async fn run(cli: Cli) -> error::Result<()> {
 
                 println!("{}", "oxo-call configuration".bold());
                 println!("{}", "─".repeat(50).dimmed());
-                println!("  {} {}", "Config file:".bold(), path.display().to_string().dimmed());
+                println!(
+                    "  {} {}",
+                    "Config file:".bold(),
+                    path.display().to_string().dimmed()
+                );
                 println!();
                 println!("  {} ", "[llm]".bold().cyan());
                 println!("  {:<25} {}", "provider", cfg.llm.provider);
@@ -207,7 +233,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                     if cfg.docs.local_paths.is_empty() {
                         "(none)".to_string()
                     } else {
-                        cfg.docs.local_paths
+                        cfg.docs
+                            .local_paths
                             .iter()
                             .map(|p| p.display().to_string())
                             .collect::<Vec<_>>()
@@ -222,7 +249,11 @@ async fn run(cli: Cli) -> error::Result<()> {
                     "not set".red().to_string()
                 };
                 println!("  {:<25} {}", "effective api_token", token_status);
-                println!("  {:<25} {}", "effective api_base", cfg.effective_api_base());
+                println!(
+                    "  {:<25} {}",
+                    "effective api_base",
+                    cfg.effective_api_base()
+                );
                 println!("  {:<25} {}", "effective model", cfg.effective_model());
             }
             ConfigCommands::Path => {
@@ -297,8 +328,4 @@ async fn run(cli: Cli) -> error::Result<()> {
     }
 
     Ok(())
-}
-
-fn print_step(msg: &str) {
-    println!("{} {}", "→".bold().blue(), msg.dimmed());
 }

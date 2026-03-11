@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
+use crate::runner::make_spinner;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -52,7 +53,11 @@ impl DocIndex {
     }
 
     pub fn upsert(&mut self, entry: IndexEntry) {
-        if let Some(pos) = self.entries.iter().position(|e| e.tool_name == entry.tool_name) {
+        if let Some(pos) = self
+            .entries
+            .iter()
+            .position(|e| e.tool_name == entry.tool_name)
+        {
             self.entries[pos] = entry;
         } else {
             self.entries.push(entry);
@@ -79,6 +84,8 @@ impl IndexManager {
 
     /// Add or update a tool in the documentation index
     pub async fn add(&self, tool: &str, url: Option<&str>) -> Result<IndexEntry> {
+        let spinner = make_spinner(&format!("Fetching documentation for '{tool}'..."));
+
         let mut sources: Vec<String> = Vec::new();
         let mut combined_doc = String::new();
         let mut version: Option<String> = None;
@@ -108,17 +115,30 @@ impl IndexManager {
             Err(OxoError::DocFetchError(_, _)) => {
                 // No help output available, continue with URL
             }
-            Err(e) => return Err(e),
+            Err(e) => {
+                spinner.finish_and_clear();
+                return Err(e);
+            }
         }
 
         // Optionally fetch from a remote URL
         if let Some(url) = url {
-            let remote_content = self.fetcher.fetch_remote(tool, url).await?;
-            sources.push(format!("remote:{url}"));
-            combined_doc.push_str("# Remote Documentation\n\n");
-            combined_doc.push_str(&remote_content);
-            combined_doc.push_str("\n\n");
+            spinner.set_message(format!("Fetching remote docs from {url}..."));
+            match self.fetcher.fetch_remote(tool, url).await {
+                Ok(remote_content) => {
+                    sources.push(format!("remote:{url}"));
+                    combined_doc.push_str("# Remote Documentation\n\n");
+                    combined_doc.push_str(&remote_content);
+                    combined_doc.push_str("\n\n");
+                }
+                Err(e) => {
+                    spinner.finish_and_clear();
+                    return Err(e);
+                }
+            }
         }
+
+        spinner.finish_and_clear();
 
         if combined_doc.is_empty() {
             return Err(OxoError::IndexError(format!(

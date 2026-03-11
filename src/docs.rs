@@ -3,6 +3,12 @@ use crate::error::{OxoError, Result};
 use std::path::PathBuf;
 use std::process::Command;
 
+// Minimum useful help text length – anything shorter than this is likely an error message
+const MIN_HELP_LEN: usize = 80;
+
+// Maximum chars to store per help section to keep LLM prompts reasonable
+const MAX_HELP_LEN: usize = 16_000;
+
 /// Validate that a tool name is safe to use in file paths and command execution.
 /// Tool names must consist of alphanumeric characters, hyphens, underscores, or dots.
 pub fn validate_tool_name(tool: &str) -> Result<()> {
@@ -24,7 +30,8 @@ pub fn validate_tool_name(tool: &str) -> Result<()> {
     {
         return Err(OxoError::DocFetchError(
             tool.to_string(),
-            "Tool name contains invalid characters (allowed: alphanumeric, '-', '_', '.')".to_string(),
+            "Tool name contains invalid characters (allowed: alphanumeric, '-', '_', '.')"
+                .to_string(),
         ));
     }
     Ok(())
@@ -46,7 +53,8 @@ pub struct ToolDocs {
 }
 
 impl ToolDocs {
-    /// Return the best available documentation, preferring cached full docs
+    /// Return the best available documentation, preferring cached full docs but always
+    /// including fresh `--help` output when available.
     pub fn combined(&self) -> String {
         let mut parts: Vec<String> = Vec::new();
 
@@ -54,10 +62,22 @@ impl ToolDocs {
             parts.push(format!("Version: {version}"));
         }
 
+        // Prefer cached docs (they may contain more detail from remote sources),
+        // but always append fresh help so the LLM sees current flags too.
         if let Some(cached) = &self.cached_docs {
             parts.push(cached.clone());
-        } else if let Some(help) = &self.help_output {
-            parts.push(help.clone());
+        }
+        if let Some(help) = &self.help_output {
+            // Only add if we don't already have it embedded in cached docs
+            if self.cached_docs.is_none()
+                || !self
+                    .cached_docs
+                    .as_deref()
+                    .unwrap_or("")
+                    .contains(help.as_str())
+            {
+                parts.push(help.clone());
+            }
         }
 
         parts.join("\n\n")
@@ -89,7 +109,7 @@ impl DocsFetcher {
             docs.cached_docs = Some(cached);
         }
 
-        // 2. Try --help / -h (always refresh from live tool)
+        // 2. Try to get help text and version from the live tool
         match self.fetch_help(tool) {
             Ok((help, version)) => {
                 docs.help_output = Some(help);
@@ -102,9 +122,10 @@ impl DocsFetcher {
 
         // 3. Try local documentation paths from config
         if docs.cached_docs.is_none()
-            && let Some(local_doc) = self.search_local_docs(tool) {
-                docs.cached_docs = Some(local_doc);
-            }
+            && let Some(local_doc) = self.search_local_docs(tool)
+        {
+            docs.cached_docs = Some(local_doc);
+        }
 
         if docs.is_empty() {
             return Err(OxoError::DocFetchError(
@@ -116,29 +137,60 @@ impl DocsFetcher {
         Ok(docs)
     }
 
-    /// Fetch --help / -h output from a tool
+    /// Fetch --help / -h output from a tool, with multiple fallback strategies.
+    ///
+    /// Strategy (in order):
+    ///  1. `--help`  
+    ///  2. `-h`  
+    ///  3. `help` (as a subcommand)  
+    ///  4. No arguments (many bioinformatics tools print usage when invoked bare)
     fn fetch_help(&self, tool: &str) -> Result<(String, Option<String>)> {
-        // Try --help first
         let help = self
             .run_help_flag(tool, "--help")
             .or_else(|_| self.run_help_flag(tool, "-h"))
             .or_else(|_| self.run_help_flag(tool, "help"))
+            .or_else(|_| self.run_no_args(tool))
             .map_err(|_| {
                 OxoError::DocFetchError(
                     tool.to_string(),
-                    "Tool not found or does not support --help/-h".to_string(),
+                    "Tool not found or does not support --help/-h and produced no output when called with no arguments".to_string(),
                 )
             })?;
 
-        // Try to get version
-        let version = self
-            .run_help_flag(tool, "--version")
-            .or_else(|_| self.run_help_flag(tool, "-V"))
-            .ok()
-            .map(|v| v.lines().next().unwrap_or("").trim().to_string())
-            .filter(|v| !v.is_empty());
+        // Try to detect the version with multiple strategies
+        let version = self.detect_version(tool, &help);
 
         Ok((help, version))
+    }
+
+    /// Try to detect the tool version using multiple strategies.
+    fn detect_version(&self, tool: &str, help_text: &str) -> Option<String> {
+        // 1. Try --version flag
+        let from_flag = self
+            .run_help_flag(tool, "--version")
+            .or_else(|_| self.run_help_flag(tool, "-V"))
+            .or_else(|_| self.run_help_flag(tool, "-v"))
+            .or_else(|_| self.run_help_flag(tool, "version"))
+            .ok()
+            .map(|v| clean_version_string(v.lines().next().unwrap_or("").trim()))
+            .filter(|v| !v.is_empty() && looks_like_version(v));
+
+        if from_flag.is_some() {
+            return from_flag;
+        }
+
+        // 2. Try to extract version from the help text (first 20 lines)
+        for line in help_text.lines().take(20) {
+            let line = line.trim();
+            // Look for patterns like "Version: 1.2.3", "v1.2.3", "1.2.3"
+            if (line.to_lowercase().contains("version") || line.starts_with('v'))
+                && looks_like_version(line)
+            {
+                return Some(clean_version_string(line));
+            }
+        }
+
+        None
     }
 
     fn run_help_flag(&self, tool: &str, flag: &str) -> Result<String> {
@@ -147,31 +199,17 @@ impl DocsFetcher {
             .output()
             .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
 
-        // Many tools print help to stderr
-        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        extract_useful_output(tool, &output.stdout, &output.stderr)
+    }
 
-        let combined = if stdout.len() >= stderr.len() {
-            stdout
-        } else {
-            stderr
-        };
+    /// Run the tool with no arguments – many bioinformatics tools (bwa, samtools, etc.)
+    /// print their usage/help when called without any arguments.
+    fn run_no_args(&self, tool: &str) -> Result<String> {
+        let output = Command::new(tool)
+            .output()
+            .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
 
-        if combined.trim().is_empty() {
-            return Err(OxoError::DocFetchError(
-                tool.to_string(),
-                "Empty help output".to_string(),
-            ));
-        }
-
-        // Limit to 8000 chars to avoid overly long prompts
-        let truncated = if combined.len() > 8000 {
-            format!("{}\n...[truncated]", &combined[..8000])
-        } else {
-            combined
-        };
-
-        Ok(truncated)
+        extract_useful_output(tool, &output.stdout, &output.stderr)
     }
 
     /// Load documentation from local cache
@@ -218,9 +256,10 @@ impl DocsFetcher {
             let entry = entry?;
             let path = entry.path();
             if path.extension().is_some_and(|e| e == "md" || e == "txt")
-                && let Some(stem) = path.file_stem() {
-                    tools.push(stem.to_string_lossy().to_string());
-                }
+                && let Some(stem) = path.file_stem()
+            {
+                tools.push(stem.to_string_lossy().to_string());
+            }
         }
         tools.sort();
         Ok(tools)
@@ -234,7 +273,13 @@ impl DocsFetcher {
         // Sanitize tool name for filesystem use
         let safe_name: String = tool
             .chars()
-            .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+            .map(|c| {
+                if c.is_alphanumeric() || c == '-' || c == '_' {
+                    c
+                } else {
+                    '_'
+                }
+            })
             .collect();
         Ok(self.cache_dir()?.join(format!("{safe_name}.md")))
     }
@@ -246,7 +291,13 @@ impl DocsFetcher {
         // Sanitize tool name to prevent path traversal
         let safe_name: String = tool
             .chars()
-            .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+            .map(|c| {
+                if c.is_alphanumeric() || c == '-' || c == '_' {
+                    c
+                } else {
+                    '_'
+                }
+            })
             .collect();
 
         for base_path in &self.config.docs.local_paths {
@@ -261,13 +312,15 @@ impl DocsFetcher {
                 // Extra check: resolved path must be within base_path
                 if let Ok(canonical_base) = base_path.canonicalize()
                     && let Ok(canonical_candidate) = candidate.canonicalize()
-                        && !canonical_candidate.starts_with(&canonical_base) {
-                            continue;
-                        }
+                    && !canonical_candidate.starts_with(&canonical_base)
+                {
+                    continue;
+                }
                 if candidate.exists()
-                    && let Ok(content) = std::fs::read_to_string(candidate) {
-                        return Some(content);
-                    }
+                    && let Ok(content) = std::fs::read_to_string(candidate)
+                {
+                    return Some(content);
+                }
             }
         }
         None
@@ -293,11 +346,109 @@ impl DocsFetcher {
         }
         let content = response.text().await?;
         // Limit size
-        let truncated = if content.len() > 50000 {
-            format!("{}\n...[truncated]", &content[..50000])
+        let truncated = if content.len() > 50_000 {
+            format!("{}\n...[truncated]", &content[..50_000])
         } else {
             content
         };
         Ok(truncated)
     }
+}
+
+/// Extract useful text from combined stdout + stderr of a process.
+/// Returns an error if the result is empty or too short to be actual help.
+fn extract_useful_output(tool: &str, stdout: &[u8], stderr: &[u8]) -> Result<String> {
+    let stdout_str = String::from_utf8_lossy(stdout).to_string();
+    let stderr_str = String::from_utf8_lossy(stderr).to_string();
+
+    // Prefer whichever stream has more content, but also concatenate both
+    // because some tools split output across both streams.
+    let combined = if stdout_str.len() >= stderr_str.len() {
+        if !stderr_str.trim().is_empty() && !stdout_str.contains(stderr_str.trim()) {
+            format!("{stdout_str}\n{stderr_str}")
+        } else {
+            stdout_str
+        }
+    } else if !stdout_str.trim().is_empty() && !stderr_str.contains(stdout_str.trim()) {
+        format!("{stderr_str}\n{stdout_str}")
+    } else {
+        stderr_str
+    };
+
+    let trimmed = combined.trim();
+
+    if trimmed.is_empty() {
+        return Err(OxoError::DocFetchError(
+            tool.to_string(),
+            "Empty output".to_string(),
+        ));
+    }
+
+    // Reject responses that look like error messages rather than help text
+    if trimmed.len() < MIN_HELP_LEN && is_likely_error(trimmed) {
+        return Err(OxoError::DocFetchError(
+            tool.to_string(),
+            format!("Output looks like an error rather than help text: {trimmed}"),
+        ));
+    }
+
+    // Truncate to keep LLM prompts manageable
+    let output = if trimmed.len() > MAX_HELP_LEN {
+        format!("{}\n...[truncated]", &trimmed[..MAX_HELP_LEN])
+    } else {
+        trimmed.to_string()
+    };
+
+    Ok(output)
+}
+
+/// Check whether a short string looks like a command-line error message rather
+/// than useful help text.
+fn is_likely_error(text: &str) -> bool {
+    let lower = text.to_lowercase();
+    lower.contains("unrecognized command")
+        || lower.contains("unknown command")
+        || lower.contains("invalid option")
+        || lower.contains("unrecognized option")
+        || lower.contains("no such")
+        || (lower.starts_with("error") && !lower.contains("usage"))
+}
+
+/// Rough heuristic: does a string look like a version identifier?
+fn looks_like_version(s: &str) -> bool {
+    if s.len() > 120 {
+        return false; // Too long to be just a version line
+    }
+    // Must contain at least one digit and a dot
+    let has_digit = s.chars().any(|c| c.is_ascii_digit());
+    let has_dot = s.contains('.');
+    let lower = s.to_lowercase();
+    // Reject strings that look like error messages
+    if lower.contains("error")
+        || lower.contains("unrecognized")
+        || lower.contains("unknown")
+        || lower.contains("usage")
+        || lower.contains("invalid")
+    {
+        return false;
+    }
+    has_digit && has_dot
+}
+
+/// Clean up a raw version string by stripping common prefixes like "Version:", "v", etc.
+fn clean_version_string(raw: &str) -> String {
+    let s = raw.trim();
+    // Strip leading "version:" or "Version " prefix (case-insensitive, 8 chars each)
+    let s = if s.to_lowercase().starts_with("version:") || s.to_lowercase().starts_with("version ")
+    {
+        s[8..].trim()
+    } else {
+        s
+    };
+    // Take only the first "word group" that looks like an actual version (e.g. stop at parentheses)
+    let s = s
+        .split_once(" (")
+        .map(|(before, _)| before.trim())
+        .unwrap_or(s);
+    s.to_string()
 }
