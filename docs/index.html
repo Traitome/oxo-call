@@ -548,6 +548,7 @@
     <li><a href="#tools">Skills</a></li>
     <li><a href="#benchmarks">Benchmarks</a></li>
     <li><a href="#install">Install</a></li>
+    <li><a href="documentation/index.html">Docs</a></li>
     <li><a href="https://github.com/Traitome/oxo-call" target="_blank" rel="noopener">GitHub</a></li>
   </ul>
   <a href="https://github.com/Traitome/oxo-call" class="btn btn-primary btn-sm" target="_blank" rel="noopener">
@@ -572,6 +573,7 @@
     </p>
     <div class="hero-actions">
       <a href="#install" class="btn btn-primary">Get started</a>
+      <a href="documentation/index.html" class="btn btn-secondary">Documentation</a>
       <a href="#demo"    class="btn btn-secondary">Try the demo</a>
       <a href="https://github.com/Traitome/oxo-call" class="btn btn-secondary" target="_blank" rel="noopener">GitHub →</a>
     </div>
@@ -853,15 +855,35 @@
 
   <div class="code-block">
     <div class="code-block-header">
-      <span>Install from crates.io</span>
+      <span>Install from crates.io (recommended)</span>
       <button class="copy-btn" data-copy="cargo install oxo-call">copy</button>
     </div>
-    <pre><span class="c"># Install the latest release</span>
-cargo install oxo-call
+    <pre><span class="c"># Install the latest release from crates.io</span>
+cargo install oxo-call</pre>
+  </div>
 
-<span class="c"># Or build from source</span>
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>Install from GitHub Releases (pre-built binaries)</span>
+      <button class="copy-btn" data-copy="curl -LO https://github.com/Traitome/oxo-call/releases/latest">copy</button>
+    </div>
+    <pre><span class="c"># Download pre-built binary (Linux x86_64 example)</span>
+curl -LO https://github.com/Traitome/oxo-call/releases/latest/download/oxo-call-<span class="s">VERSION</span>-x86_64-unknown-linux-gnu.tar.gz
+tar xzf oxo-call-*-x86_64-unknown-linux-gnu.tar.gz
+sudo mv oxo-call /usr/local/bin/
+
+<span class="c"># Available for: Linux (x86_64/aarch64), macOS (Intel/Apple Silicon), Windows, WASM</span></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>Install from source (git clone)</span>
+      <button class="copy-btn" data-copy="git clone https://github.com/Traitome/oxo-call && cd oxo-call && cargo install --path .">copy</button>
+    </div>
+    <pre><span class="c"># Clone and build from source (latest development version)</span>
 git clone https://github.com/Traitome/oxo-call
-cargo install --path oxo-call</pre>
+cd oxo-call
+cargo install --path .</pre>
   </div>
 
   <div class="code-block">
