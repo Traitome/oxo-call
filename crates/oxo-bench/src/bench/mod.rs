@@ -8,5 +8,5 @@
 pub mod llm;
 pub mod workflow;
 
-pub use llm::{ModelBenchConfig, ModelBenchResult, run_model_bench};
+pub use llm::{ModelBenchConfig, ModelBenchResult, ablation_eval_tasks, run_model_bench};
 pub use workflow::{BenchWorkflowResult, bench_workflow_expand, bench_workflow_parse};

@@ -3,6 +3,7 @@
 #
 # Usage:
 #   snakemake --cores 16 --use-conda
+#   snakemake --cores 16 --use-singularity  # use container images
 #
 # Required config (config.yaml):
 #   samples: [sample1, sample2, ...]
@@ -37,6 +38,7 @@ rule fastp_qc:
         json = "results/qc/{sample}_fastp.json",
     threads: config.get("threads", 8)
     log: "logs/fastp/{sample}.log"
+    container: "docker://quay.io/biocontainers/fastp:0.24.0--heae3180_1"
     shell:
         "fastp "
         "--in1 {input.r1} --in2 {input.r2} "
@@ -58,6 +60,7 @@ rule bwa_mem2_align:
         bam = temp("results/aligned/{sample}.unsorted.bam"),
     threads: config.get("threads", 8)
     log: "logs/bwa_mem2/{sample}.log"
+    container: "docker://quay.io/biocontainers/bwa-mem2:2.2.1--hd03093a_5"
     shell:
         "bwa-mem2 mem "
         "-t {threads} "
@@ -75,6 +78,7 @@ rule sort_bam:
         bam = "results/aligned/{sample}.sorted.bam",
     threads: 4
     log: "logs/samtools_sort/{sample}.log"
+    container: "docker://quay.io/biocontainers/samtools:1.21--h50ea8bc_1"
     shell:
         "samtools sort -@ {threads} -o {output.bam} {input.bam} > {log} 2>&1"
 
@@ -85,6 +89,7 @@ rule mark_duplicates:
         bam     = "results/aligned/{sample}.markdup.bam",
         metrics = "results/qc/{sample}.markdup_metrics.txt",
     log: "logs/markdup/{sample}.log"
+    container: "docker://broadinstitute/gatk:4.6.1.0"
     shell:
         "gatk MarkDuplicates "
         "-I {input.bam} "
@@ -99,6 +104,7 @@ rule index_bam:
         bai = "results/aligned/{sample}.markdup.bam.bai",
     threads: 4
     log: "logs/samtools_index/{sample}.log"
+    container: "docker://quay.io/biocontainers/samtools:1.21--h50ea8bc_1"
     shell:
         "samtools index -@ {threads} {input.bam} > {log} 2>&1"
 
@@ -114,6 +120,7 @@ rule base_quality_score_recalibration:
     output:
         table = "results/aligned/{sample}.recal.table",
     log: "logs/bqsr/{sample}.log"
+    container: "docker://broadinstitute/gatk:4.6.1.0"
     shell:
         "gatk BaseRecalibrator "
         "-I {input.bam} "
@@ -132,6 +139,7 @@ rule apply_bqsr:
     output:
         bam = "results/aligned/{sample}.recal.bam",
     log: "logs/apply_bqsr/{sample}.log"
+    container: "docker://broadinstitute/gatk:4.6.1.0"
     shell:
         "gatk ApplyBQSR "
         "-I {input.bam} "
@@ -150,6 +158,7 @@ rule haplotype_caller:
         gvcf = "results/vcf/{sample}.g.vcf.gz",
     threads: config.get("threads", 8)
     log: "logs/haplotype_caller/{sample}.log"
+    container: "docker://broadinstitute/gatk:4.6.1.0"
     shell:
         "gatk HaplotypeCaller "
         "-R {input.ref} "
@@ -168,5 +177,6 @@ rule multiqc:
     output:
         "results/multiqc/multiqc_report.html",
     log: "logs/multiqc.log"
+    container: "docker://quay.io/biocontainers/multiqc:1.25.1--pyhdfd78af_0"
     shell:
         "multiqc results/qc/ results/aligned/ -o results/multiqc/ > {log} 2>&1"

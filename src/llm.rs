@@ -20,6 +20,31 @@ pub struct LlmVerificationResult {
     pub response_preview: String,
 }
 
+// ─── Provider trait ──────────────────────────────────────────────────────────
+
+/// Trait that all LLM provider backends must implement.
+///
+/// This enables a plugin-style architecture where new providers can be added
+/// without modifying the core `LlmClient` logic.  The built-in
+/// `OpenAiCompatibleProvider` covers OpenAI, GitHub Copilot, Anthropic, and
+/// Ollama; custom implementations can override it for providers with different
+/// API shapes.
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(async_fn_in_trait, dead_code)]
+pub trait LlmProvider {
+    /// Send a chat completion request and return the assistant's raw text.
+    async fn chat_completion(
+        &self,
+        system: &str,
+        user_prompt: &str,
+        max_tokens: u32,
+        temperature: f32,
+    ) -> Result<String>;
+
+    /// Human-readable provider name (e.g. "openai", "anthropic").
+    fn name(&self) -> &str;
+}
+
 #[derive(Debug, Serialize)]
 struct ChatRequest {
     model: String,

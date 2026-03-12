@@ -3,6 +3,7 @@
 #
 # Usage:
 #   snakemake --cores 16 --use-conda
+#   snakemake --cores 16 --use-singularity  # use container images
 #
 # Required config (config.yaml):
 #   samples: [sample1, sample2, ...]
@@ -37,6 +38,7 @@ rule fastp_qc:
         json = "results/qc/{sample}_fastp.json",
     threads: config.get("threads", 8)
     log: "logs/fastp/{sample}.log"
+    container: "docker://quay.io/biocontainers/fastp:0.24.0--heae3180_1"
     shell:
         "fastp "
         "--in1 {input.r1} --in2 {input.r2} "
@@ -60,6 +62,7 @@ rule star_align:
         log = "results/aligned/{sample}/Log.final.out",
     threads: config.get("threads", 8)
     log: "logs/star/{sample}.log"
+    container: "docker://quay.io/biocontainers/star:2.7.11b--h5ca1c30_5"
     shell:
         "STAR "
         "--runMode alignReads "
@@ -83,6 +86,7 @@ rule samtools_index:
         bai = "results/aligned/{sample}/Aligned.sortedByCoord.out.bam.bai",
     threads: 4
     log: "logs/samtools_index/{sample}.log"
+    container: "docker://quay.io/biocontainers/samtools:1.21--h50ea8bc_1"
     shell:
         "samtools index -@ {threads} {input.bam} > {log} 2>&1"
 
@@ -96,6 +100,7 @@ rule featurecounts:
         counts = "results/counts/{sample}_counts.txt",
     threads: config.get("threads", 8)
     log: "logs/featurecounts/{sample}.log"
+    container: "docker://quay.io/biocontainers/subread:2.0.8--h5ca1c30_0"
     shell:
         "featureCounts "
         "-T {threads} "
@@ -114,5 +119,6 @@ rule multiqc:
     output:
         "results/multiqc/multiqc_report.html",
     log: "logs/multiqc.log"
+    container: "docker://quay.io/biocontainers/multiqc:1.25.1--pyhdfd78af_0"
     shell:
         "multiqc results/qc/ results/aligned/ -o results/multiqc/ > {log} 2>&1"

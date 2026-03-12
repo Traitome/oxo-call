@@ -12,22 +12,25 @@ oxo-call is a Rust workspace with three crates:
 
 ## Module Structure
 
-The main CLI crate contains 13 modules with clear separation of concerns:
+The main CLI crate contains the following modules with clear separation of concerns:
 
 ```text
-main.rs (1089 lines)
-  ├─→ cli.rs (385)      — Command definitions (Clap)
-  ├─→ license.rs (531)  — Ed25519 offline verification
-  ├─→ runner.rs (246)   — Core orchestration pipeline
-  │     ├─→ docs.rs (695)     — Documentation resolver
-  │     ├─→ skill.rs (495)    — Skill loading system
-  │     ├─→ llm.rs (404)      — LLM client & prompt builder
-  │     └─→ history.rs (66)   — Command history tracker
-  ├─→ workflow.rs (773) — Templates & registry
-  │     └─→ engine.rs (759)   — DAG execution engine
-  ├─→ config.rs (383)   — Configuration management
-  ├─→ index.rs (244)    — Documentation index
-  └─→ error.rs (41)     — Error type definitions
+main.rs             — Command dispatcher & license gate
+  ├─→ cli.rs        — Command definitions (Clap)
+  ├─→ handlers.rs   — Extracted command-handler helpers (formatting, suggestions)
+  ├─→ license.rs    — Ed25519 offline verification
+  ├─→ runner.rs     — Core orchestration pipeline + provenance tracking
+  │     ├─→ docs.rs        — Documentation resolver
+  │     ├─→ skill.rs       — Skill loading system + depth validation
+  │     ├─→ llm.rs         — LLM client, prompt builder & provider trait
+  │     └─→ history.rs     — Command history tracker with provenance
+  ├─→ sanitize.rs   — Data anonymization for LLM contexts
+  ├─→ workflow.rs   — Templates & registry
+  │     └─→ engine.rs      — DAG execution engine
+  ├─→ config.rs     — Configuration management
+  ├─→ index.rs      — Documentation index
+  └─→ error.rs      — Error type definitions
+lib.rs              — Programmatic API surface (re-exports all modules)
 ```
 
 ## Execution Flow

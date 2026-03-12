@@ -37,6 +37,7 @@ Channel
 process FASTP {
     tag "${sample_id}"
     publishDir "${params.outdir}/qc", mode: 'copy'
+    container 'quay.io/biocontainers/fastp:0.24.0--heae3180_1'
 
     input:
     tuple val(sample_id), path(r1), path(r2)
@@ -62,6 +63,7 @@ process FASTP {
 process STAR_ALIGN {
     tag "${sample_id}"
     publishDir "${params.outdir}/aligned", mode: 'copy'
+    container 'quay.io/biocontainers/star:2.7.11b--h5ca1c30_5'
 
     input:
     tuple val(sample_id), path(r1), path(r2)
@@ -89,6 +91,7 @@ process STAR_ALIGN {
 
 process SAMTOOLS_INDEX {
     tag "${sample_id}"
+    container 'quay.io/biocontainers/samtools:1.21--h50ea8bc_1'
 
     input:
     tuple val(sample_id), path(bam)
@@ -105,6 +108,7 @@ process SAMTOOLS_INDEX {
 process FEATURECOUNTS {
     tag "${sample_id}"
     publishDir "${params.outdir}/counts", mode: 'copy'
+    container 'quay.io/biocontainers/subread:2.0.8--h5ca1c30_0'
 
     input:
     tuple val(sample_id), path(bam), path(bai)
@@ -126,6 +130,7 @@ process FEATURECOUNTS {
 
 process MULTIQC {
     publishDir "${params.outdir}/multiqc", mode: 'copy'
+    container 'quay.io/biocontainers/multiqc:1.25.1--pyhdfd78af_0'
 
     input:
     path "*"

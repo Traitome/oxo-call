@@ -4,6 +4,23 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+/// Provenance metadata recorded alongside each command to enable reproducibility.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CommandProvenance {
+    /// Version string reported by the tool (e.g. from `tool --version`), if available.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_version: Option<String>,
+    /// SHA-256 hash of the documentation text used to build the LLM prompt.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub docs_hash: Option<String>,
+    /// Name of the skill file used (e.g. "samtools"), if any.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub skill_name: Option<String>,
+    /// LLM model identifier that generated the command.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HistoryEntry {
     pub id: String,
@@ -13,6 +30,9 @@ pub struct HistoryEntry {
     pub exit_code: i32,
     pub executed_at: DateTime<Utc>,
     pub dry_run: bool,
+    /// Command provenance for reproducibility (tool version, docs hash, skill, model).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provenance: Option<CommandProvenance>,
 }
 
 pub struct HistoryStore;

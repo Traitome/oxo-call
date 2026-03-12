@@ -3,11 +3,13 @@ mod config;
 mod docs;
 mod engine;
 mod error;
+mod handlers;
 mod history;
 mod index;
 mod license;
 mod llm;
 mod runner;
+mod sanitize;
 mod skill;
 mod workflow;
 
@@ -17,6 +19,7 @@ use cli::{
     SkillCommands, WorkflowCommands,
 };
 use colored::Colorize;
+use handlers::{config_verify_suggestions, print_index_table, with_source};
 
 #[cfg_attr(not(target_arch = "wasm32"), tokio::main)]
 #[cfg_attr(target_arch = "wasm32", tokio::main(flavor = "current_thread"))]
@@ -541,6 +544,25 @@ async fn run(cli: Cli) -> error::Result<()> {
                         e.executed_at.format("%Y-%m-%d %H:%M:%S").to_string(),
                         cmd_short
                     );
+                    // Show provenance info when available
+                    if let Some(ref prov) = e.provenance {
+                        let mut parts = Vec::new();
+                        if let Some(ref v) = prov.tool_version {
+                            parts.push(format!("ver={v}"));
+                        }
+                        if let Some(ref m) = prov.model {
+                            parts.push(format!("model={m}"));
+                        }
+                        if let Some(ref s) = prov.skill_name {
+                            parts.push(format!("skill={s}"));
+                        }
+                        if let Some(ref h) = prov.docs_hash {
+                            parts.push(format!("docs={}", &h[..8.min(h.len())]));
+                        }
+                        if !parts.is_empty() {
+                            println!("         {}", format!("[{}]", parts.join(", ")).dimmed());
+                        }
+                    }
                 }
             }
             HistoryCommands::Clear { yes } => {
@@ -1036,89 +1058,4 @@ async fn run(cli: Cli) -> error::Result<()> {
     }
 
     Ok(())
-}
-
-fn with_source(value: &str, source: &str) -> String {
-    format!("{value} [{}]", source.dimmed())
-}
-
-/// Print a formatted table of index entries.
-fn print_index_table(entries: &[index::IndexEntry]) {
-    println!(
-        "{:<20} {:<15} {:<12} {}",
-        "Tool".bold(),
-        "Version".bold(),
-        "Size".bold(),
-        "Indexed At".bold()
-    );
-    println!("{}", "─".repeat(70).dimmed());
-    for e in entries {
-        println!(
-            "{:<20} {:<15} {:<12} {}",
-            e.tool_name.cyan(),
-            e.version.as_deref().unwrap_or("-"),
-            format!("{} B", e.doc_size_bytes),
-            e.indexed_at.format("%Y-%m-%d %H:%M:%S UTC")
-        );
-    }
-}
-
-fn config_verify_suggestions(cfg: &config::Config, message: &str) -> Vec<String> {
-    let provider = cfg.effective_provider();
-    let api_base = cfg.effective_api_base();
-    let mut suggestions = Vec::new();
-
-    if message.contains("No API token configured") {
-        suggestions.push(
-            "Set `llm.api_token` with `oxo-call config set llm.api_token <token>` or export `OXO_CALL_LLM_API_TOKEN`."
-                .to_string(),
-        );
-        suggestions.push(format!(
-            "Current provider is `{provider}`. If that is not what you intended, change it with `oxo-call config set llm.provider <provider>` or `OXO_CALL_LLM_PROVIDER`."
-        ));
-    }
-    if message.contains("Personal Access Tokens are not supported") {
-        suggestions.push(
-            "The selected endpoint rejected a personal access token. For `github-copilot`, use a Copilot-compatible authentication flow/token, or switch to `openai`, `anthropic`, or `ollama`."
-                .to_string(),
-        );
-    }
-    if message.contains("401") || message.contains("403") {
-        suggestions.push(
-            "The token was rejected. Verify that the token matches the selected provider and that the provider setting is correct."
-                .to_string(),
-        );
-    }
-    if message.contains("404") {
-        suggestions.push(format!(
-            "The endpoint `{api_base}` did not expose the expected `/chat/completions` API. Check `llm.api_base`."
-        ));
-    }
-    if message.contains("API base URL must use HTTPS") {
-        suggestions.push(
-            "Use an `https://` API base for remote providers, or `http://localhost...` / `http://127.0.0.1...` for local Ollama-compatible endpoints."
-                .to_string(),
-        );
-    }
-    if message.contains("HTTP request failed") {
-        suggestions.push(
-            "Check network connectivity, proxy settings, DNS, and whether the configured `llm.api_base` is reachable from this machine."
-                .to_string(),
-        );
-    }
-    if message.contains("Failed to parse API response") {
-        suggestions.push(
-            "The endpoint responded, but not with the expected OpenAI-compatible chat completions JSON. Check the selected provider and `llm.api_base`."
-                .to_string(),
-        );
-    }
-
-    if suggestions.is_empty() {
-        suggestions.push(
-            "Run `oxo-call config show` to inspect stored vs effective values, then verify the provider, token source, model, and API base."
-                .to_string(),
-        );
-    }
-
-    suggestions
 }
