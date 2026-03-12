@@ -25,3 +25,6 @@ target
 
 /target
 **/.DS_Store
+
+# mdBook build output
+docs/guide/book/
