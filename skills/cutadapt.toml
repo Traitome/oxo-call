@@ -1,0 +1,52 @@
+[meta]
+name = "cutadapt"
+category = "qc"
+description = "Finds and removes adapter sequences, primers, poly-A tails and other unwanted sequences from sequencing reads"
+tags = ["trimming", "adapter", "quality-control", "fastq", "ngs", "illumina", "single-cell"]
+author = "oxo-call built-in"
+source_url = "https://cutadapt.readthedocs.io/"
+
+[context]
+concepts = [
+    "cutadapt removes known adapter sequences; use -a for 3' adapter (read 1), -A for 3' adapter of read 2 in paired-end mode.",
+    "For paired-end reads, use -o for output read 1 and -p for output read 2; both input files come as positional args at the end.",
+    "Quality trimming is done with -q: -q 20 trims bases below Phred 20 from the 3' end; -q 20,20 trims both ends.",
+    "Use --minimum-length (-m) to discard reads shorter than N bases after trimming.",
+    "Use -j N for multi-core processing (0 = auto-detect all cores); gzipped output by specifying .gz output filenames.",
+    "Common adapter sequences: Illumina universal: AGATCGGAAGAGC; Nextera: CTGTCTCTTATA; polyA: AAAAAAAAAAAAAAA.",
+    "Use --discard-trimmed to remove any read where an adapter was found (useful for amplicon decontamination).",
+]
+
+pitfalls = [
+    "For paired-end, omitting -p (second output) processes only read 1 — both outputs must be specified for proper PE handling.",
+    "Adapter sequences are case-insensitive but IUPAC ambiguity codes (N, R, Y) are supported in adapter sequences.",
+    "Without --minimum-length, very short reads after trimming (1-2 bp) can be passed through causing issues downstream.",
+    "cutadapt does NOT auto-detect adapters — you must specify the adapter sequence explicitly (unlike fastp).",
+    "For linked adapters (5'+3'), use -a FRONT...BACK notation rather than specifying separately.",
+    "The -u option unconditionally removes N bases from the 5' (-u N) or 3' end (-u -N) without adapter matching.",
+]
+
+[[examples]]
+task = "remove Illumina TruSeq adapters from paired-end reads"
+args = "-a AGATCGGAAGAGCACACGTCTGAACTCCAGTCA -A AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT -o R1_trimmed.fastq.gz -p R2_trimmed.fastq.gz R1.fastq.gz R2.fastq.gz"
+explanation = "-a/-A specify 3' adapters for R1/R2; -o/-p specify output files; input files are positional arguments at the end"
+
+[[examples]]
+task = "trim adapters and quality-filter, discarding short reads"
+args = "-a AGATCGGAAGAGC -A AGATCGGAAGAGC -q 20 --minimum-length 36 -j 8 -o R1_trimmed.fastq.gz -p R2_trimmed.fastq.gz R1.fastq.gz R2.fastq.gz"
+explanation = "-q 20 quality trimming; --minimum-length 36 discards short reads; -j 8 uses 8 cores"
+
+[[examples]]
+task = "remove polyA tail from single-end RNA-seq reads"
+args = "-a A{20} -q 20 --minimum-length 30 -j 4 -o trimmed.fastq.gz reads.fastq.gz"
+explanation = "A{20} matches a polyA stretch of 20+ As; -q 20 quality trims; useful for 3'-seq or poly-A selected RNA"
+
+[[examples]]
+task = "trim Nextera transposase adapters from paired-end ATAC-seq data"
+args = "-a CTGTCTCTTATA -A CTGTCTCTTATA -q 20 --minimum-length 20 -j 8 -o R1_trimmed.fastq.gz -p R2_trimmed.fastq.gz R1.fastq.gz R2.fastq.gz"
+explanation = "Nextera adapter sequence for ATAC-seq; minimum length 20 allows short ATAC fragments"
+
+[[examples]]
+task = "remove 5' primer from single-end amplicon reads"
+args = "-g ACACTGACGACATGGTTCTACA --discard-untrimmed -o trimmed.fastq.gz reads.fastq.gz"
+explanation = "-g specifies 5' adapter/primer; --discard-untrimmed removes reads without the primer (amplicon decontamination)"

@@ -1,0 +1,53 @@
+[meta]
+name = "mafft"
+category = "phylogenetics"
+description = "Fast and accurate multiple sequence alignment tool for nucleotide and protein sequences"
+tags = ["alignment", "multiple-sequence-alignment", "msa", "phylogenetics", "protein", "nucleotide"]
+author = "oxo-call built-in"
+source_url = "https://mafft.cbrc.jp/alignment/software/"
+
+[context]
+concepts = [
+    "MAFFT has multiple algorithms: FFT-NS-2 (fast, less accurate), L-INS-i (accurate, iterative), G-INS-i (global), E-INS-i (for highly gapped).",
+    "Use --auto to automatically select the best algorithm based on data size; --thread N for parallelism.",
+    "MAFFT outputs aligned FASTA to stdout — always redirect to a file.",
+    "For large datasets (>200 sequences): use --auto or --retree 2; for high accuracy (<200 seqs): use --localpair.",
+    "--localpair is equivalent to L-INS-i (most accurate for sequences with conserved core regions).",
+    "--globalpair is G-INS-i for global alignments (whole sequence aligns); --genafpair for E-INS-i.",
+    "Add --adjustdirectionaccurately to handle mixed-strand nucleotide sequences.",
+    "Use --clustalout for Clustal-format output; --phylipout for PHYLIP format.",
+]
+
+pitfalls = [
+    "MAFFT outputs to stdout — always redirect to a file: mafft --auto sequences.fasta > aligned.fasta.",
+    "--localpair and --globalpair cannot be used together — choose one based on alignment type.",
+    "For more than 200 sequences, --localpair becomes slow — use --auto or --retree 2 instead.",
+    "MAFFT does not handle very long sequences (>50kb) well — use MUSCLE or specialized tools for genomic alignment.",
+    "Mixed DNA/RNA input requires --adjustdirectionaccurately for sequences on different strands.",
+    "MAFFT alignment quality depends on sequence identity — below 20% identity, alignments may be unreliable.",
+]
+
+[[examples]]
+task = "align multiple protein sequences with automatic algorithm selection"
+args = "--auto --thread 8 proteins.fasta > aligned_proteins.fasta"
+explanation "--auto selects algorithm based on data size; output to stdout redirected to aligned_proteins.fasta"
+
+[[examples]]
+task = "highly accurate multiple sequence alignment for fewer than 200 sequences"
+args = "--localpair --maxiterate 1000 --thread 8 sequences.fasta > aligned_localpair.fasta"
+explanation "--localpair (L-INS-i) most accurate for conserved core sequences; --maxiterate 1000 maximum iterations"
+
+[[examples]]
+task = "align RNA sequences adjusting for strand orientation"
+args = "--auto --adjustdirectionaccurately --thread 8 rna_sequences.fasta > aligned_rna.fasta"
+explanation "--adjustdirectionaccurately handles sequences on different strands by reverse complementing as needed"
+
+[[examples]]
+task = "align sequences and output in PHYLIP format for phylogenetic analysis"
+args = "--auto --thread 8 --phylipout sequences.fasta > aligned.phy"
+explanation "--phylipout generates PHYLIP format suitable for RAxML, IQ-TREE phylogenetic tools"
+
+[[examples]]
+task = "add new sequences to existing alignment"
+args = "--add new_sequences.fasta --thread 8 existing_alignment.fasta > updated_alignment.fasta"
+explanation "--add incorporates new sequences into an existing alignment without re-aligning the original"

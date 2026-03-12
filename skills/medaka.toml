@@ -1,0 +1,48 @@
+[meta]
+name = "medaka"
+category = "variant-calling"
+description = "Sequence correction and variant calling for Oxford Nanopore sequencing using neural network models"
+tags = ["nanopore", "long-read", "polishing", "variant-calling", "consensus", "ont", "neural-network"]
+author = "oxo-call built-in"
+source_url = "https://github.com/nanoporetech/medaka"
+
+[context]
+concepts = [
+    "Medaka polishes Oxford Nanopore assemblies and calls variants using neural network models trained by Oxford Nanopore.",
+    "Use 'medaka consensus' for per-read consensus; 'medaka stitch' to merge; or use 'medaka_consensus' pipeline.",
+    "The medaka_consensus pipeline (all-in-one) is easiest: medaka_consensus -i reads.fastq -d draft.fasta -o output/ -t N.",
+    "Model selection is critical: match the model to the basecalling model used (e.g., r941_min_hac_g507).",
+    "Use 'medaka tools list_models' to see available models; models are named by flow cell, chemistry, and basecaller version.",
+    "Medaka requires minimap2 for alignment; the medaka_consensus pipeline handles alignment automatically.",
+    "For variant calling: medaka_haploid_variant (haploid) or medaka_variant (diploid) pipelines.",
+    "GPU acceleration is supported with CUDA — dramatically speeds up medaka.",
+]
+
+pitfalls = [
+    "Using the wrong model (-m) gives inaccurate polishing — always match the model to your basecaller and chemistry.",
+    "Medaka requires conda installation with tensorflow dependencies — environment conflicts are common.",
+    "For diploid variant calling, use medaka_variant, not medaka_consensus.",
+    "The medaka_consensus pipeline overwrites the output directory — use a fresh directory each run.",
+    "Medaka polishing is CPU/GPU intensive — use -t 8 or more threads and consider GPU for large assemblies.",
+    "Running too many polishing rounds (>2) with Medaka does not improve quality and may introduce errors.",
+]
+
+[[examples]]
+task = "polish an ONT assembly with Medaka (all-in-one pipeline)"
+args = "medaka_consensus -i reads.fastq.gz -d draft_assembly.fasta -o medaka_output/ -t 8 -m r941_min_hac_g507"
+explanation "-i ONT reads; -d draft assembly; -o output directory; -m model matching your basecaller version"
+
+[[examples]]
+task = "call variants from ONT reads (haploid)"
+args = "medaka_haploid_variant -i reads.fastq.gz -r reference.fasta -o medaka_variants/ -t 8 -m r941_min_hac_g507"
+explanation "medaka_haploid_variant for haploid variant calling (bacteria, viruses); -r reference FASTA"
+
+[[examples]]
+task = "list available Medaka models"
+args = "tools list_models"
+explanation "lists all available models; select the appropriate model for your flowcell and basecaller version"
+
+[[examples]]
+task = "run Medaka consensus with GPU acceleration"
+args = "medaka_consensus -i reads.fastq.gz -d draft.fasta -o medaka_gpu/ -t 2 -m r1041_e82_400bps_hac_v4.2.0 --gpu"
+explanation "--gpu uses CUDA for faster neural network inference; reduce -t when using GPU"

@@ -1,0 +1,53 @@
+[meta]
+name = "snpeff"
+category = "variant-annotation"
+description = "Genetic variant annotation and functional effect prediction tool"
+tags = ["variant-annotation", "vcf", "effect-prediction", "snp", "indel", "functional", "gene-annotation"]
+author = "oxo-call built-in"
+source_url = "https://pcingola.github.io/SnpEff/"
+
+[context]
+concepts = [
+    "SnpEff annotates variants with predicted effects (synonymous, missense, stop-gained, splice-site, etc.) using gene models.",
+    "SnpEff requires a genome database; list available databases with 'snpeff databases | grep hg38'.",
+    "Download databases with 'snpeff download hg38' or 'snpeff download GRCh38.105'.",
+    "snpeff annotates VCF in-place, adding ANN INFO field with pipe-delimited effect annotations.",
+    "SnpSift (bundled with SnpEff) filters and extracts fields from annotated VCF files.",
+    "Use -v for verbose mode; -noLog to disable usage reporting; -stats to generate HTML statistics report.",
+    "ANN field format: Allele|Effect|Impact|GeneName|GeneID|FeatureType|FeatureID|TranscriptBiotype|Rank|HGVS.c|HGVS.p|...",
+    "Impact levels: HIGH (stop, frameshift), MODERATE (missense), LOW (synonymous), MODIFIER (intergenic, intronic).",
+]
+
+pitfalls = [
+    "Genome database name must exactly match: use 'snpeff databases' to find the correct identifier.",
+    "Without -v, SnpEff may silently fail on certain inputs — always check stderr for warnings.",
+    "SnpEff adds ANN field to INFO column — do not confuse with older EFF field from SnpEff v4.0.",
+    "SnpEff requires Java — set heap size with -Xmx: java -Xmx8g -jar snpeff.jar or use JAVA_OPTS.",
+    "For custom genomes, build the database first with 'snpeff build -gff3 -v MyGenome'.",
+    "Multi-allelic VCF sites get multiple ANN entries separated by commas — normalize with bcftools before annotation.",
+]
+
+[[examples]]
+task = "annotate variants in a VCF file using the GRCh38 human genome database"
+args = "ann -v GRCh38.105 variants.vcf > annotated.vcf"
+explanation = "GRCh38.105 is the Ensembl genome database name; -v verbose; output to annotated.vcf"
+
+[[examples]]
+task = "annotate variants and generate an HTML statistics report"
+args = "ann -v -stats snpeff_summary.html GRCh38.105 variants.vcf > annotated.vcf"
+explanation = "-stats generates HTML report with variant effect distribution; useful for QC"
+
+[[examples]]
+task = "annotate variants from hg19/GRCh37 genome"
+args = "ann -v hg19 variants.vcf > annotated_hg19.vcf"
+explanation = "hg19 is the UCSC genome database identifier; use GRCh37.75 for Ensembl equivalent"
+
+[[examples]]
+task = "filter annotated VCF to keep only HIGH impact variants using SnpSift"
+args = "filter \"ANN[0].IMPACT = 'HIGH'\" annotated.vcf > high_impact.vcf"
+explanation = "SnpSift filter expression; ANN[0] is the first annotation; IMPACT = HIGH selects stopgain/frameshift"
+
+[[examples]]
+task = "extract specific fields from annotated VCF using SnpSift extractFields"
+args = "extractFields annotated.vcf CHROM POS REF ALT \"ANN[0].GENE\" \"ANN[0].EFFECT\" \"ANN[0].IMPACT\" > variants_table.txt"
+explanation = "extractFields outputs tab-delimited table; ANN[0].GENE, EFFECT, IMPACT from first annotation per variant"
