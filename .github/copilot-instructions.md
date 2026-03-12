@@ -16,8 +16,8 @@ Run all commands from the repository root.
 
 Maintainer-only license tooling lives in the workspace too:
 
-- Generate a signing keypair: `cargo run --bin license-issuer -- generate-keypair`
-- Issue a license file: `cargo run --bin license-issuer -- issue --org "Example Org" --type academic --output license.oxo.json`
+- Generate a signing keypair: `cargo run -p license-issuer --bin license-issuer -- generate-keypair`
+- Issue a license file: `cargo run -p license-issuer --bin license-issuer -- issue --org "Example Org" --type academic --output license.oxo.json`
 
 ## High-level architecture
 

@@ -14,12 +14,11 @@
 /// License file search order:
 ///   1. `--license <path>` CLI argument
 ///   2. `OXO_CALL_LICENSE` environment variable
-///   3. Platform default config directory:
-///      - Linux/macOS: `~/.config/oxo-call/license.oxo.json`
-///      - Windows:     `%APPDATA%\oxo-call\license.oxo.json`
+///   3. Platform config directory from `directories::ProjectDirs`
+///   4. Legacy Unix path: `~/.config/oxo-call/license.oxo.json`
 ///
 /// To obtain a license:
-///   Academic : <https://github.com/Traitome/oxo-call#licensing>
+///   Academic : <https://github.com/Traitome/oxo-call#license>
 ///   Commercial: license@traitome.com
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
@@ -31,16 +30,12 @@ pub const SCHEMA_VERSION: &str = "oxo-call-license-v1";
 
 /// Ed25519 public key embedded in the binary (Base64-encoded 32 bytes).
 ///
-/// **IMPORTANT — DEMO KEY**: This is a non-production test key included for
-/// CI / development purposes.  Before publishing a production release, replace
-/// this constant with your actual issuer public key and regenerate all licenses.
-///
-/// Corresponding private key seed (keep secret — never commit):
-///   `CdVv3sR4lH3hH8gjzEk4O6IytWc27yQlidzpUY7nt44=`
-///
-/// Generate a fresh production key pair:
-///   `cargo run --bin license-issuer -- generate-keypair`
-pub const EMBEDDED_PUBLIC_KEY_BASE64: &str = "Qq6kljCpL8GeCZT8k8m+HDjgSnf8OHLk9YyVA+MLse4=";
+/// Rotate this key only when you are intentionally changing the license trust
+/// root (for example, after a private-key compromise or a planned key
+/// rotation). When this value changes, regenerate any signed fixture licenses
+/// used by tests so CI continues to verify against the embedded public key
+/// without needing the private issuer key.
+pub const EMBEDDED_PUBLIC_KEY_BASE64: &str = "SOTbyPWS8fSF+XS9dqEg9cFyag0wPO/YMA5LhI4PXw4=";
 
 // ── Data structures ──────────────────────────────────────────────────────────
 
@@ -108,14 +103,16 @@ pub enum LicenseError {
         "No license file found.\n\
          Academic use is free but requires a signed license file.\n\
          \n\
-         • Apply for an academic license : https://github.com/Traitome/oxo-call#licensing\n\
+         • Apply for an academic license : https://github.com/Traitome/oxo-call#license\n\
          • Purchase a commercial license : license@traitome.com\n\
          \n\
          Once you have a license file, place it at one of:\n\
          \t1. Pass --license <path> on the command line\n\
          \t2. Set OXO_CALL_LICENSE=<path> in your environment\n\
-         \t3. ~/.config/oxo-call/license.oxo.json  (Linux/macOS)\n\
-         \t   %APPDATA%\\oxo-call\\license.oxo.json  (Windows)"
+         \t3. Platform config dir (macOS example):\n\
+         \t   ~/Library/Application Support/io.traitome.oxo-call/license.oxo.json\n\
+         \t4. Legacy Unix fallback:\n\
+         \t   ~/.config/oxo-call/license.oxo.json"
     )]
     NotFound,
 
@@ -208,11 +205,42 @@ pub fn verify_license_with_key(
 
 // ── Discovery ────────────────────────────────────────────────────────────────
 
+fn legacy_unix_license_path_from_home(home_dir: Option<PathBuf>) -> Option<PathBuf> {
+    home_dir.map(|home| home.join(".config/oxo-call/license.oxo.json"))
+}
+
+fn default_license_candidates_from(
+    projectdirs_path: Option<PathBuf>,
+    home_dir: Option<PathBuf>,
+) -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
+
+    if let Some(path) = projectdirs_path {
+        candidates.push(path);
+    }
+
+    if let Some(path) = legacy_unix_license_path_from_home(home_dir)
+        && !candidates.contains(&path)
+    {
+        candidates.push(path);
+    }
+
+    candidates
+}
+
+fn default_license_candidates() -> Vec<PathBuf> {
+    let projectdirs_path = directories::ProjectDirs::from("io", "traitome", "oxo-call")
+        .map(|dirs| dirs.config_dir().join("license.oxo.json"));
+    let home_dir = std::env::var_os("HOME").map(PathBuf::from);
+    default_license_candidates_from(projectdirs_path, home_dir)
+}
+
 /// Return the first candidate license file path, following this priority:
 ///
 /// 1. `cli_path` (from `--license <path>`)
 /// 2. `OXO_CALL_LICENSE` environment variable
-/// 3. Platform default: `<config_dir>/oxo-call/license.oxo.json`
+/// 3. First existing path among the platform config dir and the legacy Unix
+///    fallback `~/.config/oxo-call/license.oxo.json`
 pub fn find_license_path(cli_path: Option<&Path>) -> Option<PathBuf> {
     if let Some(p) = cli_path {
         return Some(p.to_path_buf());
@@ -220,8 +248,12 @@ pub fn find_license_path(cli_path: Option<&Path>) -> Option<PathBuf> {
     if let Ok(p) = std::env::var("OXO_CALL_LICENSE") {
         return Some(PathBuf::from(p));
     }
-    directories::ProjectDirs::from("io", "traitome", "oxo-call")
-        .map(|dirs| dirs.config_dir().join("license.oxo.json"))
+    let candidates = default_license_candidates();
+    candidates
+        .iter()
+        .find(|path| path.exists())
+        .cloned()
+        .or_else(|| candidates.into_iter().next())
 }
 
 /// Load the license file from `cli_path` (or the default search path) and
@@ -267,7 +299,7 @@ REQUIREMENTS FOR ALL USERS
 ───────────────────────────
   • A valid signed license file must be present before running any core commands.
   • License files are issued by Traitome and verified offline using Ed25519 signatures.
-  • Academic licenses are free; apply at: https://github.com/Traitome/oxo-call#licensing
+  • Academic licenses are free; apply at: https://github.com/Traitome/oxo-call#license
   • Commercial licenses are per-organization, one-time fee; contact: license@traitome.com
 
 HOW TO PLACE YOUR LICENSE FILE
@@ -275,8 +307,9 @@ HOW TO PLACE YOUR LICENSE FILE
   Option 1 — CLI flag:          oxo-call --license /path/to/license.oxo.json <command>
   Option 2 — Environment var:   export OXO_CALL_LICENSE=/path/to/license.oxo.json
   Option 3 — Default location:
-    Linux/macOS:  ~/.config/oxo-call/license.oxo.json
-    Windows:      %APPDATA%\oxo-call\license.oxo.json
+    macOS default: ~/Library/Application Support/io.traitome.oxo-call/license.oxo.json
+    Legacy Unix:   ~/.config/oxo-call/license.oxo.json
+    Windows:       %APPDATA%\oxo-call\license.oxo.json
 
 LICENSE VERIFICATION
 ─────────────────────
@@ -460,5 +493,36 @@ pub mod tests {
             signature: lic_no_email.signature.clone(),
         };
         assert!(verify_license_with_key(&lic_tampered, &pubkey_b64).is_err());
+    }
+
+    #[test]
+    fn test_default_license_candidates_include_legacy_unix_fallback() {
+        let candidates = default_license_candidates_from(
+            Some(PathBuf::from(
+                "/Users/example/Library/Application Support/io.traitome.oxo-call/license.oxo.json",
+            )),
+            Some(PathBuf::from("/Users/example")),
+        );
+
+        assert_eq!(
+            candidates,
+            vec![
+                PathBuf::from(
+                    "/Users/example/Library/Application Support/io.traitome.oxo-call/license.oxo.json",
+                ),
+                PathBuf::from("/Users/example/.config/oxo-call/license.oxo.json"),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_default_license_candidates_deduplicate_same_path() {
+        let path = PathBuf::from("/home/example/.config/oxo-call/license.oxo.json");
+        let candidates = default_license_candidates_from(
+            Some(path.clone()),
+            Some(PathBuf::from("/home/example")),
+        );
+
+        assert_eq!(candidates, vec![path]);
     }
 }

@@ -243,14 +243,17 @@ an Ed25519 signature.
 
 #### Academic License (free)
 
-1. Apply via: <https://github.com/Traitome/oxo-call#licensing>  *(← apply link placeholder)*
+1. Apply via: <https://github.com/Traitome/oxo-call#license>
 2. You will receive a `license.oxo.json` file by email.
-3. Place the file at `~/.config/oxo-call/license.oxo.json` (Linux/macOS) or
-   `%APPDATA%\oxo-call\license.oxo.json` (Windows).
+3. Place the file at:
+   - Linux: `~/.config/oxo-call/license.oxo.json`
+   - macOS: `~/Library/Application Support/io.traitome.oxo-call/license.oxo.json`
+   - Windows: `%APPDATA%\oxo-call\license.oxo.json`
+   - Legacy Unix fallback also accepted: `~/.config/oxo-call/license.oxo.json`
 
 #### Commercial License (per-organization, one-time fee)
 
-1. Contact: <w_shixiang@163.com>  *(← contact placeholder)*
+1. Contact: <w_shixiang@163.com>
 2. You will receive a `license.oxo.json` signed for your organization.
 3. Place it in the same location as the academic license (see above).
 4. One license covers all employees/contractors within your organization.
@@ -259,7 +262,11 @@ an Ed25519 signature.
 
 ```bash
 # Option 1 — Place in the default location
+# Linux:
 cp license.oxo.json ~/.config/oxo-call/license.oxo.json
+
+# macOS:
+cp license.oxo.json ~/Library/Application\\ Support/io.traitome.oxo-call/license.oxo.json
 
 # Option 2 — CLI flag
 oxo-call --license /path/to/license.oxo.json run samtools "..."
@@ -280,20 +287,21 @@ oxo-call license verify
 
 The `crates/license-issuer` workspace member provides an offline signing tool.
 
-### Generate a key pair (once per deployment)
+### Generate a key pair (once per trust root / deployment)
 
 ```bash
-cargo run --bin license-issuer -- generate-keypair
+cargo run -p license-issuer --bin license-issuer -- generate-keypair
 # Prints: PRIVATE_KEY_SEED=<base64>  PUBLIC_KEY=<base64>
 # Store the private key securely (password manager / offline vault).
 # Update EMBEDDED_PUBLIC_KEY_BASE64 in src/license.rs with the public key.
+# You do NOT need to regenerate keys for every code change or release.
 ```
 
 ### Issue an academic license
 
 ```bash
 export OXO_LICENSE_PRIVATE_KEY="<your-base64-private-key-seed>"
-cargo run --bin license-issuer -- issue \
+cargo run -p license-issuer --bin license-issuer -- issue \
     --org "Recipient University" \
     --email researcher@uni.edu \
     --type academic \
@@ -305,7 +313,7 @@ cargo run --bin license-issuer -- issue \
 
 ```bash
 export OXO_LICENSE_PRIVATE_KEY="<your-base64-private-key-seed>"
-cargo run --bin license-issuer -- issue \
+cargo run -p license-issuer --bin license-issuer -- issue \
     --org "Example Corp" \
     --email admin@example.com \
     --type commercial \
@@ -315,3 +323,9 @@ cargo run --bin license-issuer -- issue \
 > **Never commit your private key.**  The private key should only ever exist on
 > an air-gapped machine or in a secure secret store.
 
+For local development and GitHub Actions, the private key is not needed for
+normal `cargo build` / `cargo test` runs. The repository keeps a pre-signed
+test fixture at `tests/fixtures/test_license.oxo.json`, and the runtime verifies
+that fixture using the embedded public key in `src/license.rs`. If you rotate
+the embedded public key, regenerate that fixture license with the new private
+key and commit the updated fixture; CI still does not need the private key.
