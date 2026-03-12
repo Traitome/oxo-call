@@ -55,10 +55,17 @@ async fn run(cli: Cli) -> error::Result<()> {
         }
 
         Commands::Index { command } => match command {
-            IndexCommands::Add { tool, url } => {
+            IndexCommands::Add {
+                tool,
+                url,
+                file,
+                dir,
+            } => {
                 let cfg = config::Config::load()?;
                 let mgr = index::IndexManager::new(cfg);
-                let entry = mgr.add(&tool, url.as_deref()).await?;
+                let entry = mgr
+                    .add(&tool, url.as_deref(), file.as_deref(), dir.as_deref())
+                    .await?;
                 println!(
                     "{} Indexed '{}' ({} bytes from: {})",
                     "✓".green().bold(),
@@ -85,7 +92,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 let mgr = index::IndexManager::new(cfg);
                 match tool {
                     Some(t) => {
-                        let entry = mgr.add(&t, url.as_deref()).await?;
+                        let entry = mgr.add(&t, url.as_deref(), None, None).await?;
                         println!(
                             "{} Updated '{}' ({} bytes)",
                             "✓".green().bold(),
@@ -99,8 +106,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                         if entries.is_empty() {
                             println!(
                                 "{}",
-                                "No tools in index. Use 'oxo-call index add <tool>' first."
-                                    .yellow()
+                                "No tools in index. Use 'oxo-call docs add <tool>' first.".yellow()
                             );
                             return Ok(());
                         }
@@ -108,7 +114,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                             entries.iter().map(|e| e.tool_name.clone()).collect();
                         println!("Updating {} tool(s)...", tools.len());
                         for t in &tools {
-                            match mgr.add(t, None).await {
+                            match mgr.add(t, None, None, None).await {
                                 Ok(e) => {
                                     println!("  {} '{}'", "✓".green().bold(), e.tool_name.cyan())
                                 }
@@ -125,32 +131,99 @@ async fn run(cli: Cli) -> error::Result<()> {
                 if entries.is_empty() {
                     println!(
                         "{}",
-                        "No tools indexed yet. Use 'oxo-call index add <tool>' to index a tool."
+                        "No tools indexed yet. Use 'oxo-call docs add <tool>' to index a tool."
                             .yellow()
                     );
                     return Ok(());
                 }
-                println!(
-                    "{:<20} {:<15} {:<12} {}",
-                    "Tool".bold(),
-                    "Version".bold(),
-                    "Size".bold(),
-                    "Indexed At".bold()
-                );
-                println!("{}", "─".repeat(70).dimmed());
-                for e in &entries {
-                    println!(
-                        "{:<20} {:<15} {:<12} {}",
-                        e.tool_name.cyan(),
-                        e.version.as_deref().unwrap_or("-"),
-                        format!("{} B", e.doc_size_bytes),
-                        e.indexed_at.format("%Y-%m-%d %H:%M:%S UTC")
-                    );
-                }
+                print_index_table(&entries);
             }
         },
 
         Commands::Docs { command } => match command {
+            DocsCommands::Add {
+                tool,
+                url,
+                file,
+                dir,
+            } => {
+                let cfg = config::Config::load()?;
+                let mgr = index::IndexManager::new(cfg);
+                let entry = mgr
+                    .add(&tool, url.as_deref(), file.as_deref(), dir.as_deref())
+                    .await?;
+                println!(
+                    "{} Indexed '{}' ({} bytes from: {})",
+                    "✓".green().bold(),
+                    entry.tool_name.cyan(),
+                    entry.doc_size_bytes,
+                    entry.sources.join(", ")
+                );
+                if let Some(version) = entry.version {
+                    println!("  {} {}", "Version:".bold(), version);
+                }
+            }
+            DocsCommands::Remove { tool } => {
+                let cfg = config::Config::load()?;
+                let mgr = index::IndexManager::new(cfg);
+                mgr.remove(&tool)?;
+                println!(
+                    "{} Removed '{}' from documentation index",
+                    "✓".green().bold(),
+                    tool.cyan()
+                );
+            }
+            DocsCommands::Update { tool, url } => {
+                let cfg = config::Config::load()?;
+                let mgr = index::IndexManager::new(cfg);
+                match tool {
+                    Some(t) => {
+                        let entry = mgr.add(&t, url.as_deref(), None, None).await?;
+                        println!(
+                            "{} Updated '{}' ({} bytes)",
+                            "✓".green().bold(),
+                            entry.tool_name.cyan(),
+                            entry.doc_size_bytes
+                        );
+                    }
+                    None => {
+                        let entries = mgr.list()?;
+                        if entries.is_empty() {
+                            println!(
+                                "{}",
+                                "No tools indexed yet. Use 'oxo-call docs add <tool>' first."
+                                    .yellow()
+                            );
+                            return Ok(());
+                        }
+                        let tools: Vec<String> =
+                            entries.iter().map(|e| e.tool_name.clone()).collect();
+                        println!("Updating {} tool(s)...", tools.len());
+                        for t in &tools {
+                            match mgr.add(t, None, None, None).await {
+                                Ok(e) => {
+                                    println!("  {} '{}'", "✓".green().bold(), e.tool_name.cyan())
+                                }
+                                Err(e) => println!("  {} '{}': {}", "✗".red().bold(), t.cyan(), e),
+                            }
+                        }
+                    }
+                }
+            }
+            DocsCommands::List => {
+                let cfg = config::Config::load()?;
+                let mgr = index::IndexManager::new(cfg);
+                let entries = mgr.list()?;
+                if entries.is_empty() {
+                    println!(
+                        "{}",
+                        "No tools indexed yet. Use 'oxo-call docs add <tool>' to index a tool."
+                            .yellow()
+                    );
+                    return Ok(());
+                }
+                print_index_table(&entries);
+            }
             DocsCommands::Show { tool } => {
                 let cfg = config::Config::load()?;
                 let fetcher = docs::DocsFetcher::new(cfg);
@@ -168,24 +241,23 @@ async fn run(cli: Cli) -> error::Result<()> {
             }
             DocsCommands::Fetch { tool, url } => {
                 let cfg = config::Config::load()?;
-                let fetcher = docs::DocsFetcher::new(cfg);
+                let mgr = index::IndexManager::new(cfg);
                 let spinner =
                     runner::make_spinner(&format!("Fetching remote documentation for '{tool}'..."));
-                let content = match fetcher.fetch_remote(&tool, &url).await {
-                    Ok(c) => {
+                let entry = match mgr.add(&tool, Some(&url), None, None).await {
+                    Ok(e) => {
                         spinner.finish_and_clear();
-                        c
+                        e
                     }
                     Err(e) => {
                         spinner.finish_and_clear();
                         return Err(e);
                     }
                 };
-                fetcher.save_cache(&tool, &content)?;
                 println!(
                     "{} Saved {} bytes of documentation for '{}'",
                     "✓".green().bold(),
-                    content.len(),
+                    entry.doc_size_bytes,
                     tool.cyan()
                 );
             }
@@ -821,6 +893,27 @@ async fn run(cli: Cli) -> error::Result<()> {
 
 fn with_source(value: &str, source: &str) -> String {
     format!("{value} [{}]", source.dimmed())
+}
+
+/// Print a formatted table of index entries.
+fn print_index_table(entries: &[index::IndexEntry]) {
+    println!(
+        "{:<20} {:<15} {:<12} {}",
+        "Tool".bold(),
+        "Version".bold(),
+        "Size".bold(),
+        "Indexed At".bold()
+    );
+    println!("{}", "─".repeat(70).dimmed());
+    for e in entries {
+        println!(
+            "{:<20} {:<15} {:<12} {}",
+            e.tool_name.cyan(),
+            e.version.as_deref().unwrap_or("-"),
+            format!("{} B", e.doc_size_bytes),
+            e.indexed_at.format("%Y-%m-%d %H:%M:%S UTC")
+        );
+    }
 }
 
 fn config_verify_suggestions(cfg: &config::Config, message: &str) -> Vec<String> {

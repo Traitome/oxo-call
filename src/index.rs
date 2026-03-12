@@ -87,8 +87,20 @@ impl IndexManager {
         }
     }
 
-    /// Add or update a tool in the documentation index
-    pub async fn add(&self, tool: &str, url: Option<&str>) -> Result<IndexEntry> {
+    /// Add or update a tool in the documentation index.
+    ///
+    /// Documentation sources (all optional, combined in order):
+    /// - Live `--help` output from the installed tool
+    /// - `url`: remote documentation page (HTTP/HTTPS)
+    /// - `file`: path to a local documentation file (.md/.txt/.rst/.html)
+    /// - `dir`: directory containing documentation files (non-recursive)
+    pub async fn add(
+        &self,
+        tool: &str,
+        url: Option<&str>,
+        file: Option<&std::path::Path>,
+        dir: Option<&std::path::Path>,
+    ) -> Result<IndexEntry> {
         let spinner = make_spinner(&format!("Fetching documentation for '{tool}'..."));
 
         let mut sources: Vec<String> = Vec::new();
@@ -118,7 +130,7 @@ impl IndexManager {
                 // Tool may not be installed; try remote if URL provided
             }
             Err(OxoError::DocFetchError(_, _)) => {
-                // No help output available, continue with URL
+                // No help output available, continue with URL/file/dir
             }
             Err(e) => {
                 spinner.finish_and_clear();
@@ -143,12 +155,46 @@ impl IndexManager {
             }
         }
 
+        // Optionally read from a local file
+        if let Some(file_path) = file {
+            spinner.set_message(format!("Reading docs from {}...", file_path.display()));
+            match self.fetcher.fetch_from_file(tool, file_path) {
+                Ok(file_content) => {
+                    sources.push(format!("file:{}", file_path.display()));
+                    combined_doc.push_str("# Local File Documentation\n\n");
+                    combined_doc.push_str(&file_content);
+                    combined_doc.push_str("\n\n");
+                }
+                Err(e) => {
+                    spinner.finish_and_clear();
+                    return Err(e);
+                }
+            }
+        }
+
+        // Optionally scan a local directory
+        if let Some(dir_path) = dir {
+            spinner.set_message(format!("Scanning docs from {}...", dir_path.display()));
+            match self.fetcher.fetch_from_dir(tool, dir_path) {
+                Ok(dir_content) => {
+                    sources.push(format!("dir:{}", dir_path.display()));
+                    combined_doc.push_str("# Directory Documentation\n\n");
+                    combined_doc.push_str(&dir_content);
+                    combined_doc.push_str("\n\n");
+                }
+                Err(e) => {
+                    spinner.finish_and_clear();
+                    return Err(e);
+                }
+            }
+        }
+
         spinner.finish_and_clear();
 
         if combined_doc.is_empty() {
             return Err(OxoError::IndexError(format!(
                 "Could not retrieve any documentation for '{tool}'. \
-                Make sure the tool is installed or provide a --url."
+                Make sure the tool is installed or provide --url/--file/--dir."
             )));
         }
 

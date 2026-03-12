@@ -18,13 +18,15 @@ Quick start:
   2. Set up your API token:
        oxo-call config set llm.api_token <your-github-token>
 
-  3. Build a documentation index for a tool:
-       oxo-call index add bwa
-       oxo-call index add samtools
-
-  4. Run a tool with a natural-language task:
+  3. Run a tool with a natural-language task (documentation is auto-indexed):
        oxo-call run samtools "sort input.bam by coordinate and output to sorted.bam"
        oxo-call dry-run bwa "align reads.fastq to reference.fa with 8 threads"
+
+  4. Optionally pre-build the documentation index or add extra sources:
+       oxo-call docs add samtools
+       oxo-call docs add samtools --url https://www.htslib.org/doc/samtools.html
+       oxo-call docs add myapp --file /path/to/manual.md
+       oxo-call docs add myapp --dir /path/to/docs/
 
 Skills — expert knowledge for reliable LLM output even with small models:
   oxo-call skill list               # see all built-in skills (samtools, bwa, gatk, ...)
@@ -33,6 +35,7 @@ Skills — expert knowledge for reliable LLM output even with small models:
   oxo-call skill create <tool>      # generate a skill template for a new tool
 
 Supported LLM providers: github-copilot (default), openai, anthropic, ollama
+Task descriptions may be written in any language (English, Chinese, etc.).
 License: Dual (Academic free / Commercial per-org) — run 'oxo-call license' for details."#
 )]
 pub struct Cli {
@@ -51,7 +54,7 @@ pub enum Commands {
     Run {
         /// The tool to run (must be in PATH)
         tool: String,
-        /// Natural-language description of the task
+        /// Natural-language description of the task (any language supported)
         task: String,
         /// Ask for confirmation before executing the generated command
         #[arg(short, long)]
@@ -63,22 +66,22 @@ pub enum Commands {
     DryRun {
         /// The tool to preview
         tool: String,
-        /// Natural-language description of the task
+        /// Natural-language description of the task (any language supported)
         task: String,
     },
 
-    /// Manage the local documentation index
-    #[command(visible_alias = "i")]
-    Index {
-        #[command(subcommand)]
-        command: IndexCommands,
-    },
-
-    /// View or fetch documentation for a tool
+    /// Manage tool documentation (add, remove, update, list, show)
     #[command(visible_alias = "doc")]
     Docs {
         #[command(subcommand)]
         command: DocsCommands,
+    },
+
+    /// [Deprecated] Manage the local documentation index — use 'docs' instead
+    #[command(visible_alias = "i", hide = true)]
+    Index {
+        #[command(subcommand)]
+        command: IndexCommands,
     },
 
     /// Manage oxo-call configuration
@@ -118,23 +121,29 @@ pub enum Commands {
 }
 
 #[derive(Subcommand, Debug)]
-pub enum IndexCommands {
-    /// Add a tool to the documentation index (fetches --help and optionally a remote URL)
+pub enum DocsCommands {
+    /// Add (or re-index) a tool's documentation from any combination of sources
     Add {
-        /// Tool name (must be in PATH, or --url must be provided)
+        /// Tool name (must be in PATH unless --url/--file/--dir is provided)
         tool: String,
-        /// Optional remote documentation URL to include
+        /// Remote documentation URL to include (http:// or https://)
         #[arg(long)]
         url: Option<String>,
+        /// Local documentation file to include (.md, .txt, .rst, .html)
+        #[arg(long, value_name = "PATH")]
+        file: Option<PathBuf>,
+        /// Local directory containing documentation files to include
+        #[arg(long, value_name = "DIR")]
+        dir: Option<PathBuf>,
     },
-    /// Remove a tool from the documentation index
+    /// Remove a tool's cached documentation
     Remove {
         /// Tool name to remove
         tool: String,
     },
-    /// Update (re-index) documentation for a tool
+    /// Update (re-index) documentation for a tool or all indexed tools
     Update {
-        /// Tool name to update, or omit to update all
+        /// Tool name to update, or omit to update all indexed tools
         tool: Option<String>,
         /// Optional remote documentation URL
         #[arg(long)]
@@ -142,16 +151,12 @@ pub enum IndexCommands {
     },
     /// List all indexed tools
     List,
-}
-
-#[derive(Subcommand, Debug)]
-pub enum DocsCommands {
     /// Show the cached documentation for a tool
     Show {
         /// Tool name
         tool: String,
     },
-    /// Fetch and cache documentation for a tool from a URL
+    /// Fetch and cache documentation for a tool from a URL (alias for 'add --url')
     Fetch {
         /// Tool name
         tool: String,
@@ -163,6 +168,40 @@ pub enum DocsCommands {
         /// Tool name
         tool: String,
     },
+}
+
+/// Deprecated index subcommands — these now mirror the 'docs' equivalents.
+#[derive(Subcommand, Debug)]
+pub enum IndexCommands {
+    /// Add a tool to the documentation index (use 'docs add' instead)
+    Add {
+        /// Tool name (must be in PATH, or --url must be provided)
+        tool: String,
+        /// Optional remote documentation URL to include
+        #[arg(long)]
+        url: Option<String>,
+        /// Local documentation file to include (.md, .txt, .rst, .html)
+        #[arg(long, value_name = "PATH")]
+        file: Option<PathBuf>,
+        /// Local directory containing documentation files
+        #[arg(long, value_name = "DIR")]
+        dir: Option<PathBuf>,
+    },
+    /// Remove a tool from the documentation index (use 'docs remove' instead)
+    Remove {
+        /// Tool name to remove
+        tool: String,
+    },
+    /// Update (re-index) documentation for a tool (use 'docs update' instead)
+    Update {
+        /// Tool name to update, or omit to update all
+        tool: Option<String>,
+        /// Optional remote documentation URL
+        #[arg(long)]
+        url: Option<String>,
+    },
+    /// List all indexed tools (use 'docs list' instead)
+    List,
 }
 
 #[derive(Subcommand, Debug)]

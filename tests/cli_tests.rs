@@ -281,18 +281,24 @@ fn test_index_add_real_tool() {
 
 #[test]
 fn test_index_add_and_list() {
-    // Index a tool
-    let _ = oxo_call().args(["index", "add", "cat"]).output();
+    // Index a tool via the legacy 'index add' command
+    let add_output = oxo_call()
+        .args(["index", "add", "cat"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(add_output.status.success(), "index add cat should succeed");
 
-    // List should contain the tool
+    // List should contain the indexed tool
     let output = oxo_call()
         .args(["index", "list"])
         .output()
         .expect("failed to run oxo-call");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    // Either we see "cat" or the list header
-    assert!(stdout.contains("cat") || stdout.contains("Tool"));
+    assert!(
+        stdout.contains("cat"),
+        "Expected 'cat' in index list output, got: {stdout}"
+    );
 }
 
 #[test]
@@ -673,6 +679,189 @@ fn test_license_verify_with_valid_fixture() {
     assert!(
         stdout.contains("academic"),
         "Expected license type in output, got: {stdout}"
+    );
+}
+
+// ─── Docs subcommand management tests (add/remove/update/list) ────────────────
+
+#[test]
+fn test_docs_add_real_tool() {
+    // 'ls' is always available
+    let output = oxo_call()
+        .args(["docs", "add", "ls"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Indexed") || stdout.contains("ls"));
+}
+
+#[test]
+fn test_docs_list_empty_or_filled() {
+    let output = oxo_call()
+        .args(["docs", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+}
+
+#[test]
+fn test_docs_add_and_list() {
+    // Index a tool via 'docs add'
+    let add_output = oxo_call()
+        .args(["docs", "add", "date"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(add_output.status.success(), "docs add date should succeed");
+
+    // List must show the tool that was just indexed
+    let output = oxo_call()
+        .args(["docs", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("date"),
+        "Expected 'date' in docs list output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_docs_remove_nonexistent() {
+    let output = oxo_call()
+        .args(["docs", "remove", "nonexistent_tool_xyz_docs"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("error") || stderr.contains("not in the index"),
+        "Expected error for missing tool, got: {stderr}"
+    );
+}
+
+#[test]
+fn test_docs_add_from_file() {
+    use std::io::Write;
+    let dir = tempfile::tempdir().expect("tempdir");
+    let file_path = dir.path().join("mytool.md");
+    let mut f = std::fs::File::create(&file_path).expect("create file");
+    writeln!(
+        f,
+        "# mytool\n\nUsage: mytool [options]\n\nOptions:\n  --help   Show this help"
+    )
+    .expect("write");
+    drop(f);
+
+    let output = oxo_call()
+        .args([
+            "docs",
+            "add",
+            "mytool",
+            "--file",
+            file_path.to_str().unwrap(),
+        ])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        output.status.success(),
+        "docs add --file should succeed. stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Indexed") || stdout.contains("mytool"),
+        "Expected success output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_docs_add_from_dir() {
+    use std::io::Write;
+    let dir = tempfile::tempdir().expect("tempdir");
+    let file_path = dir.path().join("usage.md");
+    let mut f = std::fs::File::create(&file_path).expect("create file");
+    writeln!(f, "# dirtool\n\nUsage: dirtool [options]\n\nOptions:\n  --help   Show help\n  --version  Show version").expect("write");
+    drop(f);
+
+    let output = oxo_call()
+        .args([
+            "docs",
+            "add",
+            "dirtool",
+            "--dir",
+            dir.path().to_str().unwrap(),
+        ])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        output.status.success(),
+        "docs add --dir should succeed. stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Indexed") || stdout.contains("dirtool"),
+        "Expected success output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_docs_add_unsupported_file_type_fails() {
+    use std::io::Write;
+    let dir = tempfile::tempdir().expect("tempdir");
+    let file_path = dir.path().join("manual.pdf");
+    let mut f = std::fs::File::create(&file_path).expect("create file");
+    writeln!(f, "fake pdf content").expect("write");
+    drop(f);
+
+    let output = oxo_call()
+        .args([
+            "docs",
+            "add",
+            "sometool",
+            "--file",
+            file_path.to_str().unwrap(),
+        ])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        !output.status.success(),
+        "docs add --file with unsupported type should fail"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("error") || stderr.contains("Unsupported"),
+        "Expected unsupported file type error, got: {stderr}"
+    );
+}
+
+#[test]
+fn test_docs_add_path_traversal_fails() {
+    let output = oxo_call()
+        .args(["docs", "add", "../etc/passwd"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("error") || stderr.contains("invalid") || stderr.contains("path"),
+        "Expected error for path traversal tool name, got: {stderr}"
+    );
+}
+
+#[test]
+fn test_docs_fetch_non_http_url_via_add_fails() {
+    let output = oxo_call()
+        .args(["docs", "add", "sometool", "--url", "file:///etc/passwd"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("error") || stderr.contains("https"),
+        "Expected error for non-http URL, got: {stderr}"
     );
 }
 
