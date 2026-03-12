@@ -542,7 +542,7 @@ All users — academic and commercial — must have a **signed `license.oxo.json
 #### Commercial License (per-organization, one-time fee)
 
 1. Contact: <w_shixiang@163.com>
-2. Pay the **USD 100** authorization fee.
+2. Pay the **USD 200** authorization fee.
 3. You will receive a `license.oxo.json` signed for your organization.
 4. One license covers all employees/contractors within your organization.
 
@@ -578,7 +578,7 @@ The published test license content is:
 
 > **Test use only.** This public academic license is published for evaluation and testing.
 > Academic users are still encouraged to apply for a formal academic license.
-> Commercial users should contact <w_shixiang@163.com>, pay the **USD 100**
+> Commercial users should contact <w_shixiang@163.com>, pay the **USD 200**
 > authorization fee, and obtain a formal commercial license.
 
 #### License file locations
