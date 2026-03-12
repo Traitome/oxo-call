@@ -1,0 +1,47 @@
+[meta]
+name = "star"
+category = "alignment"
+description = "Spliced Transcripts Alignment to a Reference — ultrafast RNA-seq aligner"
+tags = ["rna-seq", "alignment", "splicing", "transcriptome", "junction", "star", "ngs"]
+author = "oxo-call built-in"
+source_url = "https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf"
+
+[context]
+concepts = [
+    "STAR requires a genome index directory built with 'STAR --runMode genomeGenerate'; this step uses ~30 GB RAM for human.",
+    "The genome index is built from the reference FASTA and a GTF annotation file; always use the matching GTF for your genome build.",
+    "STAR outputs Aligned.sortedByCoord.out.bam (sorted BAM), Log.final.out (mapping stats), SJ.out.tab (splice junctions) by default.",
+    "Use --runThreadN to specify threads; --outSAMtype BAM SortedByCoordinate for sorted BAM output.",
+    "For paired-end, provide two FASTQ files separated by a space after --readFilesIn.",
+    "For gzipped FASTQ input, add --readFilesCommand zcat (Linux) or --readFilesCommand 'gzip -dc'.",
+    "--outSAMattributes NH HI AS NM for standard attributes needed by downstream tools like featureCounts.",
+]
+
+pitfalls = [
+    "STAR requires the genome index to be pre-built; the index directory (--genomeDir) must exist.",
+    "For gzipped input, you MUST add --readFilesCommand zcat — otherwise STAR reads the binary gzip data.",
+    "STAR uses 30+ GB RAM for human genome alignment — ensure enough memory is available.",
+    "The default output prefix is the current directory; always set --outFileNamePrefix to a unique prefix.",
+    "--outSAMtype BAM Unsorted is faster but downstream tools usually need sorted BAM.",
+    "Two-pass mode (--twopassMode Basic) improves splice junction detection for novel junctions — use for discovery projects.",
+]
+
+[[examples]]
+task = "build genome index for STAR alignment"
+args = "--runMode genomeGenerate --genomeDir /path/to/star_index --genomeFastaFiles genome.fa --sjdbGTFfile genes.gtf --runThreadN 8"
+explanation = "genomeGenerate builds the index; --sjdbGTFfile adds splice junctions; index is reusable"
+
+[[examples]]
+task = "align paired-end RNA-seq gzipped FASTQ files to the genome"
+args = "--runMode alignReads --genomeDir /path/to/star_index --readFilesIn R1.fastq.gz R2.fastq.gz --readFilesCommand zcat --runThreadN 8 --outSAMtype BAM SortedByCoordinate --outFileNamePrefix sample1/ --outSAMattributes NH HI AS NM"
+explanation = "--readFilesCommand zcat handles gzipped input; --outSAMtype BAM SortedByCoordinate outputs sorted BAM"
+
+[[examples]]
+task = "align single-end RNA-seq reads with two-pass mode for better junction detection"
+args = "--runMode alignReads --genomeDir /star_index --readFilesIn reads.fastq.gz --readFilesCommand zcat --twopassMode Basic --runThreadN 8 --outSAMtype BAM SortedByCoordinate --outFileNamePrefix sample/"
+explanation = "--twopassMode Basic improves junction detection; recommended for RNA-seq discovery projects"
+
+[[examples]]
+task = "align reads and output unmapped reads to a FASTQ file"
+args = "--runMode alignReads --genomeDir /star_index --readFilesIn R1.fq.gz R2.fq.gz --readFilesCommand zcat --runThreadN 8 --outSAMtype BAM SortedByCoordinate --outFileNamePrefix sample/ --outReadsUnmapped Fastx"
+explanation = "--outReadsUnmapped Fastx writes unmapped reads to Unmapped.out.mate1/mate2 files"

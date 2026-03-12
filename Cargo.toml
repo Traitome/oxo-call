@@ -1,0 +1,34 @@
+[package]
+name = "oxo-call"
+version = "0.1.0"
+edition = "2024"
+description = "Model-intelligent orchestration for CLI bioinformatics — call any tool with LLM intelligence"
+authors = ["Traitome <https://github.com/Traitome>"]
+license-file = "LICENSE"
+keywords = ["bioinformatics", "llm", "cli", "automation", "ngs"]
+categories = ["command-line-utilities", "science"]
+readme = "README.md"
+repository = "https://github.com/Traitome/oxo-call"
+homepage = "https://github.com/Traitome/oxo-call"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive", "env"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+tokio = { version = "1", features = ["full"] }
+anyhow = "1.0"
+thiserror = "2.0"
+directories = "6.0"
+colored = "2.2"
+chrono = { version = "0.4", features = ["serde"] }
+indicatif = "0.17"
+uuid = { version = "1", features = ["v4"] }
+which = "7.0"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
