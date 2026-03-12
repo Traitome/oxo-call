@@ -55,7 +55,7 @@ pub struct ToolDocs {
 
 impl ToolDocs {
     /// Return the best available documentation, preferring cached full docs but always
-    /// including fresh `--help` output when available.
+    /// including fresh `--help` output when available. Deduplicates content between sources.
     pub fn combined(&self) -> String {
         let mut parts: Vec<String> = Vec::new();
 
@@ -66,17 +66,18 @@ impl ToolDocs {
         // Prefer cached docs (they may contain more detail from remote sources),
         // but always append fresh help so the LLM sees current flags too.
         if let Some(cached) = &self.cached_docs {
-            parts.push(cached.clone());
+            // Strip any embedded help section to avoid duplication when we append
+            // the live --help below. This keeps the combined output lean.
+            let stripped = strip_embedded_help_section(cached);
+            parts.push(stripped);
         }
         if let Some(help) = &self.help_output {
-            // Only add if we don't already have it embedded in cached docs
-            if self.cached_docs.is_none()
-                || !self
-                    .cached_docs
-                    .as_deref()
-                    .unwrap_or("")
-                    .contains(help.as_str())
-            {
+            // Only add live --help if it isn't already embedded verbatim in cached docs
+            let already_present = self
+                .cached_docs
+                .as_deref()
+                .is_some_and(|c| deduplicate_check(c, help));
+            if !already_present {
                 parts.push(help.clone());
             }
         }
@@ -131,8 +132,16 @@ impl DocsFetcher {
         if docs.is_empty() {
             return Err(OxoError::DocFetchError(
                 tool.to_string(),
-                "No documentation found. Try 'oxo-call index add <tool>' to build the index, or ensure the tool is installed.".to_string(),
+                "No documentation found. Try 'oxo-call docs add <tool>' to build the index, or ensure the tool is installed.".to_string(),
             ));
+        }
+
+        // 4. Auto-cache: if we got live help output but have no cached docs yet,
+        //    silently persist the help text so future calls are instant.
+        if docs.cached_docs.is_none()
+            && let Some(help) = &docs.help_output
+        {
+            let _ = self.save_cache(tool, help);
         }
 
         Ok(docs)
@@ -383,6 +392,99 @@ impl DocsFetcher {
             Ok(truncated)
         }
     }
+
+    /// Read documentation from a single local file.
+    ///
+    /// Supported file types: `.md`, `.txt`, `.rst`, `.html`.
+    /// HTML files are stripped of tags before use.
+    /// The path must exist and be a regular file.
+    pub fn fetch_from_file(&self, tool: &str, path: &std::path::Path) -> Result<String> {
+        if !path.exists() {
+            return Err(OxoError::DocFetchError(
+                tool.to_string(),
+                format!("File not found: {}", path.display()),
+            ));
+        }
+        if !path.is_file() {
+            return Err(OxoError::DocFetchError(
+                tool.to_string(),
+                format!("Path is not a regular file: {}", path.display()),
+            ));
+        }
+        let ext = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+        match ext.as_str() {
+            "md" | "txt" | "rst" => {
+                let content = std::fs::read_to_string(path)?;
+                Ok(truncate_doc(&content))
+            }
+            "html" | "htm" => {
+                let raw = std::fs::read_to_string(path)?;
+                Ok(truncate_doc(&strip_html_tags(&raw)))
+            }
+            other => Err(OxoError::DocFetchError(
+                tool.to_string(),
+                format!(
+                    "Unsupported file type '.{other}'. Supported: .md, .txt, .rst, .html, .htm"
+                ),
+            )),
+        }
+    }
+
+    /// Collect documentation from all supported files inside a directory (non-recursive).
+    ///
+    /// Files with extensions `.md`, `.txt`, `.rst`, `.html`, `.htm` are included.
+    /// The combined content is truncated to `MAX_HELP_LEN` characters.
+    pub fn fetch_from_dir(&self, tool: &str, dir: &std::path::Path) -> Result<String> {
+        if !dir.exists() {
+            return Err(OxoError::DocFetchError(
+                tool.to_string(),
+                format!("Directory not found: {}", dir.display()),
+            ));
+        }
+        if !dir.is_dir() {
+            return Err(OxoError::DocFetchError(
+                tool.to_string(),
+                format!("Path is not a directory: {}", dir.display()),
+            ));
+        }
+        let supported = ["md", "txt", "rst", "html", "htm"];
+        let mut parts: Vec<String> = Vec::new();
+        let mut entries: Vec<_> = std::fs::read_dir(dir)?
+            .filter_map(|e| e.ok())
+            .filter(|e| {
+                let p = e.path();
+                p.is_file()
+                    && p.extension()
+                        .and_then(|x| x.to_str())
+                        .is_some_and(|x| supported.contains(&x.to_lowercase().as_str()))
+            })
+            .collect();
+        entries.sort_by_key(|e| e.file_name());
+        for entry in &entries {
+            match self.fetch_from_file(tool, &entry.path()) {
+                Ok(content) => {
+                    let name = entry.file_name();
+                    parts.push(format!("## {}\n\n{}", name.to_string_lossy(), content));
+                }
+                Err(_) => continue,
+            }
+        }
+        if parts.is_empty() {
+            return Err(OxoError::DocFetchError(
+                tool.to_string(),
+                format!(
+                    "No supported documentation files found in: {}",
+                    dir.display()
+                ),
+            ));
+        }
+        let combined = parts.join("\n\n");
+        Ok(truncate_doc(&combined))
+    }
 }
 
 /// Extract useful text from combined stdout + stderr of a process.
@@ -481,4 +583,95 @@ fn clean_version_string(raw: &str) -> String {
         .map(|(before, _)| before.trim())
         .unwrap_or(s);
     s.to_string()
+}
+
+/// Truncate a documentation string to `MAX_HELP_LEN` characters, appending a
+/// notice when the content is cut short.
+fn truncate_doc(s: &str) -> String {
+    let trimmed = s.trim();
+    if trimmed.len() > MAX_HELP_LEN {
+        format!("{}\n...[truncated]", &trimmed[..MAX_HELP_LEN])
+    } else {
+        trimmed.to_string()
+    }
+}
+
+/// Return `true` when `help` is substantially contained within `cached`, so
+/// we can skip re-appending identical content.
+fn deduplicate_check(cached: &str, help: &str) -> bool {
+    // Use 80 % of help length as the significant overlap threshold — exact
+    // containment is too strict because the cache may have reformatted whitespace.
+    let significant_len = (help.len() * 4) / 5;
+    if significant_len == 0 {
+        return false;
+    }
+    // Check for verbatim inclusion first (fast path)
+    if cached.contains(help) {
+        return true;
+    }
+    // Sliding-window check: does any 80%-length prefix of `help` appear in `cached`?
+    let probe = &help[..significant_len.min(help.len())];
+    cached.contains(probe)
+}
+
+/// Strip HTML tags from a string, leaving only plain text.
+/// Also collapses multiple blank lines into a single blank line.
+fn strip_html_tags(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let mut in_tag = false;
+    for ch in html.chars() {
+        match ch {
+            '<' => in_tag = true,
+            '>' => in_tag = false,
+            _ if !in_tag => result.push(ch),
+            _ => {}
+        }
+    }
+    // Collapse runs of blank lines
+    let mut out = String::new();
+    let mut prev_blank = false;
+    for line in result.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            if !prev_blank {
+                out.push('\n');
+            }
+            prev_blank = true;
+        } else {
+            out.push_str(trimmed);
+            out.push('\n');
+            prev_blank = false;
+        }
+    }
+    out
+}
+
+/// Remove an embedded "# Help Output" section from a cached doc string.
+/// This prevents duplicate display when fresh --help is appended alongside
+/// a cache that was built by `docs add` (which includes `# Help Output`).
+fn strip_embedded_help_section(cached: &str) -> String {
+    // Find the first occurrence of the well-known section header added by IndexManager
+    let markers = ["# Help Output\n", "# Help Output\r\n"];
+    for marker in &markers {
+        if let Some(start) = cached.find(marker) {
+            // Find where this section ends — either at the next top-level heading or EOF
+            let after_marker = start + marker.len();
+            let rest = &cached[after_marker..];
+            let section_end = rest
+                .find("\n# ")
+                .map(|p| after_marker + p)
+                .unwrap_or(cached.len());
+            // Rebuild without the Help Output section
+            let before = cached[..start].trim_end();
+            let after = cached[section_end..].trim_start();
+            return if before.is_empty() {
+                after.to_string()
+            } else if after.is_empty() {
+                before.to_string()
+            } else {
+                format!("{before}\n\n{after}")
+            };
+        }
+    }
+    cached.to_string()
 }
