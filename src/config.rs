@@ -127,11 +127,16 @@ impl Config {
 
     pub fn save(&self) -> Result<()> {
         let path = Self::config_path()?;
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
+        let dir = path.parent().ok_or_else(|| {
+            OxoError::ConfigError("Config path has no parent directory".to_string())
+        })?;
+        std::fs::create_dir_all(dir)?;
         let content = toml::to_string_pretty(self)?;
-        std::fs::write(&path, content)?;
+        // Write to a sibling temp file first, then atomically rename into place.
+        // This prevents concurrent readers from observing a half-written config.
+        let tmp_path = path.with_extension("tmp");
+        std::fs::write(&tmp_path, &content)?;
+        std::fs::rename(&tmp_path, &path)?;
         Ok(())
     }
 

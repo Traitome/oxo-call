@@ -243,10 +243,17 @@ impl DocsFetcher {
     /// Save documentation to local cache
     pub fn save_cache(&self, tool: &str, content: &str) -> Result<()> {
         let cache_path = self.cache_path(tool)?;
-        if let Some(parent) = cache_path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        std::fs::write(&cache_path, content)?;
+        let dir = cache_path.parent().ok_or_else(|| {
+            crate::error::OxoError::DocFetchError(
+                tool.to_string(),
+                "Cache path has no parent directory".to_string(),
+            )
+        })?;
+        std::fs::create_dir_all(dir)?;
+        // Write to a sibling temp file first, then atomically rename into place.
+        let tmp_path = cache_path.with_extension("tmp");
+        std::fs::write(&tmp_path, content)?;
+        std::fs::rename(&tmp_path, &cache_path)?;
         Ok(())
     }
 
