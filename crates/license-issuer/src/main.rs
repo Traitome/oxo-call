@@ -31,7 +31,7 @@
 //!     --output license.oxo.json
 //! ```
 
-use base64::{engine::general_purpose::STANDARD, Engine as _};
+use base64::{Engine as _, engine::general_purpose::STANDARD};
 use chrono::Local;
 use clap::{Parser, Subcommand};
 use ed25519_dalek::{Signer, SigningKey};
@@ -163,9 +163,7 @@ fn main() -> anyhow::Result<()> {
             let private_b64 = STANDARD.encode(signing_key.as_bytes());
             let public_b64 = STANDARD.encode(signing_key.verifying_key().as_bytes());
 
-            let text = format!(
-                "PRIVATE_KEY_SEED={private_b64}\nPUBLIC_KEY={public_b64}\n"
-            );
+            let text = format!("PRIVATE_KEY_SEED={private_b64}\nPUBLIC_KEY={public_b64}\n");
 
             eprintln!("─── Ed25519 key pair generated ───────────────────────────────────────");
             eprintln!("Public key  (embed in src/license.rs): {public_b64}");
@@ -191,11 +189,14 @@ fn main() -> anyhow::Result<()> {
             let license_type = match r#type.to_lowercase().as_str() {
                 "academic" => LicenseType::Academic,
                 "commercial" => LicenseType::Commercial,
-                other => anyhow::bail!("Unknown license type '{}'. Use 'academic' or 'commercial'.", other),
+                other => anyhow::bail!(
+                    "Unknown license type '{}'. Use 'academic' or 'commercial'.",
+                    other
+                ),
             };
 
-            let issued_at_str = issued_at
-                .unwrap_or_else(|| Local::now().format("%Y-%m-%d").to_string());
+            let issued_at_str =
+                issued_at.unwrap_or_else(|| Local::now().format("%Y-%m-%d").to_string());
 
             let payload = LicensePayload {
                 schema: SCHEMA_VERSION.to_string(),

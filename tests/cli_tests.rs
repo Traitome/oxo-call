@@ -401,7 +401,12 @@ fn test_license_command() {
 fn test_license_verify_no_file() {
     // Verify command with a non-existent license file should exit non-zero
     let output = oxo_call()
-        .args(["--license", "/tmp/nonexistent-oxo-license-12345.json", "license", "verify"])
+        .args([
+            "--license",
+            "/tmp/nonexistent-oxo-license-12345.json",
+            "license",
+            "verify",
+        ])
         .output()
         .expect("failed to run oxo-call");
     assert!(!output.status.success());
@@ -436,7 +441,10 @@ fn test_help_includes_skill_and_license() {
 fn test_core_command_blocked_without_license() {
     // Run a core command (config show) without any license file — should fail.
     let output = oxo_call_no_license()
-        .env("OXO_CALL_LICENSE", "/tmp/nonexistent-license-enforcement-test.json")
+        .env(
+            "OXO_CALL_LICENSE",
+            "/tmp/nonexistent-license-enforcement-test.json",
+        )
         .args(["config", "show"])
         .output()
         .expect("failed to run oxo-call");
@@ -455,7 +463,10 @@ fn test_core_command_blocked_without_license() {
 fn test_help_allowed_without_license() {
     // --help must work even without a license
     let output = oxo_call_no_license()
-        .env("OXO_CALL_LICENSE", "/tmp/nonexistent-license-enforcement-test.json")
+        .env(
+            "OXO_CALL_LICENSE",
+            "/tmp/nonexistent-license-enforcement-test.json",
+        )
         .arg("--help")
         .output()
         .expect("failed to run oxo-call");
@@ -469,7 +480,10 @@ fn test_help_allowed_without_license() {
 fn test_version_allowed_without_license() {
     // --version must work even without a license
     let output = oxo_call_no_license()
-        .env("OXO_CALL_LICENSE", "/tmp/nonexistent-license-enforcement-test.json")
+        .env(
+            "OXO_CALL_LICENSE",
+            "/tmp/nonexistent-license-enforcement-test.json",
+        )
         .arg("--version")
         .output()
         .expect("failed to run oxo-call");
@@ -483,7 +497,10 @@ fn test_version_allowed_without_license() {
 fn test_license_command_allowed_without_license() {
     // `oxo-call license` must work even without a license
     let output = oxo_call_no_license()
-        .env("OXO_CALL_LICENSE", "/tmp/nonexistent-license-enforcement-test.json")
+        .env(
+            "OXO_CALL_LICENSE",
+            "/tmp/nonexistent-license-enforcement-test.json",
+        )
         .arg("license")
         .output()
         .expect("failed to run oxo-call");

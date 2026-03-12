@@ -472,8 +472,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                             );
                             println!(
                                 "  Issued at: {}  |  Perpetual: {}",
-                                lic.payload.issued_at,
-                                lic.payload.perpetual
+                                lic.payload.issued_at, lic.payload.perpetual
                             );
                         }
                         Err(license::LicenseError::NotFound) => {
