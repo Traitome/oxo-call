@@ -125,6 +125,7 @@ fn build_retry_prompt(
 
 pub struct LlmClient {
     config: Config,
+    #[cfg(not(target_arch = "wasm32"))]
     client: reqwest::Client,
 }
 
@@ -132,6 +133,7 @@ impl LlmClient {
     pub fn new(config: Config) -> Self {
         LlmClient {
             config,
+            #[cfg(not(target_arch = "wasm32"))]
             client: reqwest::Client::new(),
         }
     }
@@ -145,50 +147,66 @@ impl LlmClient {
         task: &str,
         skill: Option<&Skill>,
     ) -> Result<LlmCommandSuggestion> {
-        const MAX_RETRIES: usize = 2;
+        #[cfg(target_arch = "wasm32")]
+        return Err(OxoError::LlmError(
+            "LLM API calls are not supported in WebAssembly".to_string(),
+        ));
 
-        let mut last_raw = String::new();
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            const MAX_RETRIES: usize = 2;
 
-        for attempt in 0..=MAX_RETRIES {
-            let user_prompt = if attempt == 0 {
-                build_prompt(tool, documentation, task, skill)
-            } else {
-                build_retry_prompt(tool, documentation, task, skill, &last_raw)
-            };
+            let mut last_raw = String::new();
 
-            let raw = self.call_api(&user_prompt).await?;
-            let suggestion = Self::parse_response(&raw)?;
+            for attempt in 0..=MAX_RETRIES {
+                let user_prompt = if attempt == 0 {
+                    build_prompt(tool, documentation, task, skill)
+                } else {
+                    build_retry_prompt(tool, documentation, task, skill, &last_raw)
+                };
 
-            if is_valid_suggestion(&suggestion) {
-                return Ok(suggestion);
+                let raw = self.call_api(&user_prompt).await?;
+                let suggestion = Self::parse_response(&raw)?;
+
+                if is_valid_suggestion(&suggestion) {
+                    return Ok(suggestion);
+                }
+
+                last_raw = raw;
+                // If this was the last attempt, return whatever we got
+                if attempt == MAX_RETRIES {
+                    return Ok(suggestion);
+                }
             }
 
-            last_raw = raw;
-            // If this was the last attempt, return whatever we got
-            if attempt == MAX_RETRIES {
-                return Ok(suggestion);
-            }
+            // Unreachable — the loop always returns
+            unreachable!()
         }
-
-        // Unreachable — the loop always returns
-        unreachable!()
     }
 
     pub async fn verify_configuration(&self) -> Result<LlmVerificationResult> {
-        let provider = self.config.effective_provider();
-        let api_base = self.config.effective_api_base();
-        let model = self.config.effective_model();
-        let raw = self
-            .request_text("Reply with exactly OK.", Some(16), Some(0.0))
-            .await?;
-        let response_preview = raw.lines().next().unwrap_or("").trim().to_string();
+        #[cfg(target_arch = "wasm32")]
+        return Err(OxoError::LlmError(
+            "LLM API calls are not supported in WebAssembly".to_string(),
+        ));
 
-        Ok(LlmVerificationResult {
-            provider,
-            api_base,
-            model,
-            response_preview,
-        })
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let provider = self.config.effective_provider();
+            let api_base = self.config.effective_api_base();
+            let model = self.config.effective_model();
+            let raw = self
+                .request_text("Reply with exactly OK.", Some(16), Some(0.0))
+                .await?;
+            let response_preview = raw.lines().next().unwrap_or("").trim().to_string();
+
+            Ok(LlmVerificationResult {
+                provider,
+                api_base,
+                model,
+                response_preview,
+            })
+        }
     }
 
     /// Make the raw API call and return the assistant message content.
@@ -202,8 +220,15 @@ impl LlmClient {
         max_tokens_override: Option<u32>,
         temperature_override: Option<f32>,
     ) -> Result<String> {
-        let provider = self.config.effective_provider();
-        let token = self.config.effective_api_token().ok_or_else(|| {
+        #[cfg(target_arch = "wasm32")]
+        return Err(OxoError::LlmError(
+            "LLM API calls are not supported in WebAssembly".to_string(),
+        ));
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let provider = self.config.effective_provider();
+            let token = self.config.effective_api_token().ok_or_else(|| {
             OxoError::LlmError(
                 "No API token configured. Set it with:\n  oxo-call config set llm.api_token <token>\n\
                 Or set the environment variable OXO_CALL_LLM_API_TOKEN.\n\
@@ -213,74 +238,75 @@ impl LlmClient {
             )
         })?;
 
-        let api_base = self.config.effective_api_base();
+            let api_base = self.config.effective_api_base();
 
-        // Enforce HTTPS for remote API endpoints (allow HTTP for local Ollama)
-        if !api_base.starts_with("https://")
-            && !api_base.starts_with("http://localhost")
-            && !api_base.starts_with("http://127.0.0.1")
-            && !api_base.starts_with("http://[::1]")
-        {
-            return Err(OxoError::LlmError(format!(
-                "API base URL must use HTTPS for remote endpoints: {api_base}"
-            )));
+            // Enforce HTTPS for remote API endpoints (allow HTTP for local Ollama)
+            if !api_base.starts_with("https://")
+                && !api_base.starts_with("http://localhost")
+                && !api_base.starts_with("http://127.0.0.1")
+                && !api_base.starts_with("http://[::1]")
+            {
+                return Err(OxoError::LlmError(format!(
+                    "API base URL must use HTTPS for remote endpoints: {api_base}"
+                )));
+            }
+
+            let model = self.config.effective_model();
+            let url = format!("{api_base}/chat/completions");
+
+            let messages = vec![
+                ChatMessage {
+                    role: "system".to_string(),
+                    content: system_prompt().to_string(),
+                },
+                ChatMessage {
+                    role: "user".to_string(),
+                    content: user_prompt.to_string(),
+                },
+            ];
+
+            let request = ChatRequest {
+                model,
+                messages,
+                max_tokens: max_tokens_override.unwrap_or(self.config.effective_max_tokens()?),
+                temperature: temperature_override.unwrap_or(self.config.effective_temperature()?),
+            };
+
+            let mut req_builder = self
+                .client
+                .post(&url)
+                .header("Content-Type", "application/json");
+
+            req_builder = match provider.as_str() {
+                "anthropic" => req_builder
+                    .header("x-api-key", &token)
+                    .header("anthropic-version", "2023-06-01"),
+                _ => req_builder.header("Authorization", format!("Bearer {token}")),
+            };
+
+            let response = req_builder
+                .json(&request)
+                .send()
+                .await
+                .map_err(|e| OxoError::LlmError(format!("HTTP request failed: {e}")))?;
+
+            if !response.status().is_success() {
+                let status = response.status();
+                let body = response.text().await.unwrap_or_default();
+                return Err(OxoError::LlmError(format!("API returned {status}: {body}")));
+            }
+
+            let chat_response: ChatResponse = response
+                .json()
+                .await
+                .map_err(|e| OxoError::LlmError(format!("Failed to parse API response: {e}")))?;
+
+            Ok(chat_response
+                .choices
+                .first()
+                .map(|c| c.message.content.clone())
+                .unwrap_or_default())
         }
-
-        let model = self.config.effective_model();
-        let url = format!("{api_base}/chat/completions");
-
-        let messages = vec![
-            ChatMessage {
-                role: "system".to_string(),
-                content: system_prompt().to_string(),
-            },
-            ChatMessage {
-                role: "user".to_string(),
-                content: user_prompt.to_string(),
-            },
-        ];
-
-        let request = ChatRequest {
-            model,
-            messages,
-            max_tokens: max_tokens_override.unwrap_or(self.config.effective_max_tokens()?),
-            temperature: temperature_override.unwrap_or(self.config.effective_temperature()?),
-        };
-
-        let mut req_builder = self
-            .client
-            .post(&url)
-            .header("Content-Type", "application/json");
-
-        req_builder = match provider.as_str() {
-            "anthropic" => req_builder
-                .header("x-api-key", &token)
-                .header("anthropic-version", "2023-06-01"),
-            _ => req_builder.header("Authorization", format!("Bearer {token}")),
-        };
-
-        let response = req_builder
-            .json(&request)
-            .send()
-            .await
-            .map_err(|e| OxoError::LlmError(format!("HTTP request failed: {e}")))?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response.text().await.unwrap_or_default();
-            return Err(OxoError::LlmError(format!("API returned {status}: {body}")));
-        }
-
-        let chat_response: ChatResponse = response
-            .json()
-            .await
-            .map_err(|e| OxoError::LlmError(format!("Failed to parse API response: {e}")))?;
-
-        Ok(chat_response
-            .choices
-            .first()
-            .map(|c| c.message.content.clone())
-            .unwrap_or_default())
     }
 
     fn parse_response(raw: &str) -> Result<LlmCommandSuggestion> {

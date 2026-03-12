@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::error::{OxoError, Result};
 use std::path::PathBuf;
+#[cfg(not(target_arch = "wasm32"))]
 use std::process::Command;
 
 // Minimum useful help text length – anything shorter than this is likely an error message
@@ -194,22 +195,36 @@ impl DocsFetcher {
     }
 
     fn run_help_flag(&self, tool: &str, flag: &str) -> Result<String> {
-        let output = Command::new(tool)
-            .arg(flag)
-            .output()
-            .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let output = Command::new(tool)
+                .arg(flag)
+                .output()
+                .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
 
-        extract_useful_output(tool, &output.stdout, &output.stderr)
+            extract_useful_output(tool, &output.stdout, &output.stderr)
+        }
+        #[cfg(target_arch = "wasm32")]
+        Err(OxoError::ToolNotFound(format!(
+            "{tool}: process execution is not supported in WebAssembly"
+        )))
     }
 
     /// Run the tool with no arguments – many bioinformatics tools (bwa, samtools, etc.)
     /// print their usage/help when called without any arguments.
     fn run_no_args(&self, tool: &str) -> Result<String> {
-        let output = Command::new(tool)
-            .output()
-            .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let output = Command::new(tool)
+                .output()
+                .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
 
-        extract_useful_output(tool, &output.stdout, &output.stderr)
+            extract_useful_output(tool, &output.stdout, &output.stderr)
+        }
+        #[cfg(target_arch = "wasm32")]
+        Err(OxoError::ToolNotFound(format!(
+            "{tool}: process execution is not supported in WebAssembly"
+        )))
     }
 
     /// Load documentation from local cache
@@ -336,22 +351,30 @@ impl DocsFetcher {
                 "Only http:// and https:// URLs are accepted".to_string(),
             ));
         }
-        let client = reqwest::Client::new();
-        let response = client.get(url).send().await?;
-        if !response.status().is_success() {
-            return Err(OxoError::DocFetchError(
-                tool.to_string(),
-                format!("HTTP {}", response.status()),
-            ));
+        #[cfg(target_arch = "wasm32")]
+        return Err(OxoError::DocFetchError(
+            tool.to_string(),
+            "Remote documentation fetching is not supported in WebAssembly".to_string(),
+        ));
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let client = reqwest::Client::new();
+            let response = client.get(url).send().await?;
+            if !response.status().is_success() {
+                return Err(OxoError::DocFetchError(
+                    tool.to_string(),
+                    format!("HTTP {}", response.status()),
+                ));
+            }
+            let content = response.text().await?;
+            // Limit size
+            let truncated = if content.len() > 50_000 {
+                format!("{}\n...[truncated]", &content[..50_000])
+            } else {
+                content
+            };
+            Ok(truncated)
         }
-        let content = response.text().await?;
-        // Limit size
-        let truncated = if content.len() > 50_000 {
-            format!("{}\n...[truncated]", &content[..50_000])
-        } else {
-            content
-        };
-        Ok(truncated)
     }
 }
 

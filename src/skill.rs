@@ -244,22 +244,29 @@ impl SkillManager {
                 "Only http:// and https:// URLs are accepted".to_string(),
             ));
         }
-        let client = reqwest::Client::new();
-        let response = client.get(url).send().await?;
-        if !response.status().is_success() {
-            return Err(OxoError::IndexError(format!(
-                "HTTP {} fetching skill from {url}",
-                response.status()
-            )));
-        }
-        let content = response.text().await?;
-        let skill: Skill = toml::from_str(&content)
-            .map_err(|e| OxoError::IndexError(format!("Invalid skill TOML: {e}")))?;
+        #[cfg(target_arch = "wasm32")]
+        return Err(OxoError::IndexError(
+            "Skill installation from URL is not supported in WebAssembly".to_string(),
+        ));
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let client = reqwest::Client::new();
+            let response = client.get(url).send().await?;
+            if !response.status().is_success() {
+                return Err(OxoError::IndexError(format!(
+                    "HTTP {} fetching skill from {url}",
+                    response.status()
+                )));
+            }
+            let content = response.text().await?;
+            let skill: Skill = toml::from_str(&content)
+                .map_err(|e| OxoError::IndexError(format!("Invalid skill TOML: {e}")))?;
 
-        let dir = self.community_skill_dir()?;
-        std::fs::create_dir_all(&dir)?;
-        std::fs::write(dir.join(format!("{tool}.toml")), &content)?;
-        Ok(skill)
+            let dir = self.community_skill_dir()?;
+            std::fs::create_dir_all(&dir)?;
+            std::fs::write(dir.join(format!("{tool}.toml")), &content)?;
+            Ok(skill)
+        }
     }
 
     /// Install a skill from the official oxo-call community registry on GitHub.

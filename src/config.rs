@@ -1,4 +1,5 @@
 use crate::error::{OxoError, Result};
+#[cfg(not(target_arch = "wasm32"))]
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -81,15 +82,21 @@ impl Default for Config {
 }
 
 impl Config {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn project_dirs() -> Option<ProjectDirs> {
         ProjectDirs::from("io", "traitome", "oxo-call")
     }
 
     pub fn config_dir() -> Result<PathBuf> {
-        let dirs = Self::project_dirs().ok_or_else(|| {
-            OxoError::ConfigError("Cannot determine config directory".to_string())
-        })?;
-        Ok(dirs.config_dir().to_path_buf())
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let dirs = Self::project_dirs().ok_or_else(|| {
+                OxoError::ConfigError("Cannot determine config directory".to_string())
+            })?;
+            Ok(dirs.config_dir().to_path_buf())
+        }
+        #[cfg(target_arch = "wasm32")]
+        Ok(PathBuf::from("/config/oxo-call"))
     }
 
     pub fn config_path() -> Result<PathBuf> {
@@ -97,9 +104,15 @@ impl Config {
     }
 
     pub fn data_dir() -> Result<PathBuf> {
-        let dirs = Self::project_dirs()
-            .ok_or_else(|| OxoError::ConfigError("Cannot determine data directory".to_string()))?;
-        Ok(dirs.data_dir().to_path_buf())
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let dirs = Self::project_dirs().ok_or_else(|| {
+                OxoError::ConfigError("Cannot determine data directory".to_string())
+            })?;
+            Ok(dirs.data_dir().to_path_buf())
+        }
+        #[cfg(target_arch = "wasm32")]
+        Ok(PathBuf::from("/data/oxo-call"))
     }
 
     pub fn load() -> Result<Self> {

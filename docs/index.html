@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>oxo-call — Model-intelligent orchestration for CLI bioinformatics</title>
+  <meta name="description" content="Describe your bioinformatics task in plain language. oxo-call fetches tool documentation, grounds it with a built-in skill, and asks your LLM backend to generate the exact flags you need." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #30363d;
+      --accent:    #58a6ff;
+      --accent2:   #3fb950;
+      --accent3:   #f78166;
+      --accent4:   #d2a8ff;
+      --muted:     #8b949e;
+      --text:      #e6edf3;
+      --text-dim:  #c9d1d9;
+      --header-h:  56px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Nav ───────────────────────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-decoration: none;
+      letter-spacing: -0.5px;
+    }
+    .nav-logo span { color: var(--accent2); }
+
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+      align-items: center;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.15s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 1rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: opacity 0.15s, transform 0.1s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    .btn-primary  { background: var(--accent);  color: #0d1117; }
+    .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-sm { padding: 0.3rem 0.75rem; font-size: 0.8rem; }
+
+    /* ── Hero ──────────────────────────────────────────────────────────── */
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: center;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 5rem 2rem 4rem;
+    }
+
+    .hero-text h1 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+      margin-bottom: 1.25rem;
+    }
+    .hero-text h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-text p {
+      color: var(--text-dim);
+      font-size: 1.05rem;
+      margin-bottom: 2rem;
+      max-width: 480px;
+    }
+    .hero-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+    /* ── Terminal Window ───────────────────────────────────────────────── */
+    .term-window {
+      background: #010409;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+    }
+    .term-titlebar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.6rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+    .term-title {
+      flex: 1;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+    .term-body {
+      padding: 1.2rem 1.4rem;
+      min-height: 280px;
+      line-height: 1.7;
+    }
+
+    .term-line { display: block; }
+    .prompt  { color: var(--accent2); }
+    .cmd     { color: var(--text); }
+    .output  { color: var(--muted); }
+    .flag    { color: var(--accent4); }
+    .tool    { color: var(--accent); }
+    .success { color: var(--accent2); }
+    .warn    { color: #e3b341; }
+    .cursor  {
+      display: inline-block;
+      width: 8px;
+      height: 1.1em;
+      background: var(--accent);
+      vertical-align: text-bottom;
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ── Badges ────────────────────────────────────────────────────────── */
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-family: 'JetBrains Mono', monospace;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    /* ── Section wrapper ───────────────────────────────────────────────── */
+    section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 4rem 2rem;
+    }
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+    .section-title {
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    .section-body {
+      color: var(--text-dim);
+      max-width: 560px;
+      margin-bottom: 2.5rem;
+    }
+    hr.divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    /* ── Features grid ─────────────────────────────────────────────────── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.4rem;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .feature-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .feature-icon { font-size: 1.5rem; margin-bottom: 0.75rem; }
+    .feature-card h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .feature-card p { font-size: 0.85rem; color: var(--muted); line-height: 1.5; }
+
+    /* ── Tools grid ─────────────────────────────────────────────────────── */
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .tool-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .tool-card:hover, .tool-card.active {
+      border-color: var(--accent);
+      background: rgba(88,166,255,0.08);
+    }
+    .tool-name { font-size: 0.95rem; font-weight: 700; color: var(--accent); margin-bottom: 0.3rem; }
+    .tool-desc { font-size: 0.75rem; color: var(--muted); font-family: 'Inter', sans-serif; }
+
+    /* ── Interactive Demo ──────────────────────────────────────────────── */
+    .demo-wrapper {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    .demo-sidebar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .demo-sidebar-title {
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .demo-example {
+      padding: 0.8rem 1rem;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .demo-example:last-child { border-bottom: none; }
+    .demo-example:hover { background: rgba(88,166,255,0.05); }
+    .demo-example.active { background: rgba(88,166,255,0.1); border-left: 2px solid var(--accent); }
+    .demo-ex-tool { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--accent); font-weight: 600; }
+    .demo-ex-task { font-size: 0.78rem; color: var(--muted); margin-top: 0.25rem; }
+
+    .demo-terminal {
+      background: #010409;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .demo-term-body {
+      padding: 1.25rem 1.5rem;
+      min-height: 320px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.8;
+    }
+
+    /* ── Install / Quick start ─────────────────────────────────────────── */
+    .code-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+    .code-block-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    pre {
+      margin: 0;
+      padding: 1rem 1.25rem;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      color: var(--text-dim);
+    }
+    pre .c { color: var(--muted); font-style: italic; }
+    pre .k { color: var(--accent4); }
+    pre .s { color: var(--accent2); }
+
+    /* ── Footer ────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── Copy button ────────────────────────────────────────────────────── */
+    .copy-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0.2rem 0.5rem;
+      font-size: 0.72rem;
+      font-family: 'JetBrains Mono', monospace;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .copy-btn.copied { border-color: var(--accent2); color: var(--accent2); }
+
+    /* ── Responsive ─────────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; gap: 2rem; }
+      .demo-wrapper { grid-template-columns: 1fr; }
+      .demo-sidebar { display: none; }
+    }
+    @media (max-width: 600px) {
+      nav { padding: 0 1rem; }
+      section { padding: 2.5rem 1rem; }
+      .hero { padding: 3rem 1rem 2rem; }
+      .nav-links { display: none; }
+    }
+
+    /* ── Wasm note ──────────────────────────────────────────────────────── */
+    .wasm-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.2rem 0.7rem;
+      background: rgba(88,166,255,0.1);
+      border: 1px solid rgba(88,166,255,0.3);
+      border-radius: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+    .pulse {
+      width: 6px; height: 6px;
+      background: var(--accent2);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    /* ── Arch diagram ───────────────────────────────────────────────────── */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .arch-step {
+      padding: 1.25rem;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .arch-step:last-child { border-right: none; }
+    .arch-step-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .arch-step-title { font-size: 0.78rem; font-weight: 600; color: var(--text); margin-bottom: 0.3rem; }
+    .arch-step-desc  { font-size: 0.7rem; color: var(--muted); }
+    @media (max-width: 800px) {
+      .arch-grid { grid-template-columns: 1fr 1fr; }
+      .arch-step { border-right: none; border-bottom: 1px solid var(--border); }
+      .arch-step:last-child { border-bottom: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ──────────────────────────────────────────────────────── -->
+<nav>
+  <a class="nav-logo" href="#">oxo<span>-call</span></a>
+  <ul class="nav-links">
+    <li><a href="#demo">Demo</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#tools">Skills</a></li>
+    <li><a href="#install">Install</a></li>
+    <li><a href="https://github.com/Traitome/oxo-call" target="_blank" rel="noopener">GitHub</a></li>
+  </ul>
+  <a href="https://github.com/Traitome/oxo-call" class="btn btn-primary btn-sm" target="_blank" rel="noopener">
+    ★ Star on GitHub
+  </a>
+</nav>
+
+<!-- ── Hero ────────────────────────────────────────────────────────────── -->
+<div class="hero">
+  <div class="hero-text">
+    <div class="badges">
+      <span class="badge">🦀 Rust 2024</span>
+      <span class="badge">🧬 Bioinformatics</span>
+      <span class="badge">🤖 LLM-powered</span>
+      <span class="badge">⚡ WebAssembly</span>
+    </div>
+    <h1>Model-intelligent<br/>orchestration for<br/><em>CLI bioinformatics</em></h1>
+    <p>
+      Describe your task in plain language —&nbsp;oxo-call fetches the tool's
+      documentation, grounds the request with a built-in skill, and asks your
+      LLM backend to generate the exact flags you need.
+    </p>
+    <div class="hero-actions">
+      <a href="#install" class="btn btn-primary">Get started</a>
+      <a href="#demo"    class="btn btn-secondary">Try the demo</a>
+      <a href="https://github.com/Traitome/oxo-call" class="btn btn-secondary" target="_blank" rel="noopener">GitHub →</a>
+    </div>
+  </div>
+
+  <!-- Hero terminal: auto-playing animation -->
+  <div class="term-window" id="hero-term">
+    <div class="term-titlebar">
+      <span class="dot dot-r"></span>
+      <span class="dot dot-y"></span>
+      <span class="dot dot-g"></span>
+      <span class="term-title">bash — oxo-call</span>
+    </div>
+    <div class="term-body" id="hero-term-body">
+      <span class="term-line"><span class="prompt">$ </span><span id="hero-typing"></span><span class="cursor" id="hero-cursor"></span></span>
+    </div>
+  </div>
+</div>
+
+<hr class="divider" />
+
+<!-- ── Architecture ─────────────────────────────────────────────────────── -->
+<section>
+  <div class="section-label">// architecture</div>
+  <div class="arch-grid">
+    <div class="arch-step">
+      <div class="arch-step-icon">💬</div>
+      <div class="arch-step-title">Natural Language</div>
+      <div class="arch-step-desc">Describe your task</div>
+    </div>
+    <div class="arch-step">
+      <div class="arch-step-icon">📚</div>
+      <div class="arch-step-title">Docs Layer</div>
+      <div class="arch-step-desc">--help · index · remote URL</div>
+    </div>
+    <div class="arch-step">
+      <div class="arch-step-icon">🎯</div>
+      <div class="arch-step-title">Skill System</div>
+      <div class="arch-step-desc">built-in → community → user</div>
+    </div>
+    <div class="arch-step">
+      <div class="arch-step-icon">🤖</div>
+      <div class="arch-step-title">LLM Backend</div>
+      <div class="arch-step-desc">Copilot · OpenAI · Ollama</div>
+    </div>
+    <div class="arch-step">
+      <div class="arch-step-icon">⚙️</div>
+      <div class="arch-step-title">Command</div>
+      <div class="arch-step-desc">run · dry-run · --ask</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Features ─────────────────────────────────────────────────────────── -->
+<section id="features">
+  <div class="section-label">// features</div>
+  <h2 class="section-title">Everything you need to stop<br/>remembering flags</h2>
+  <p class="section-body">
+    oxo-call wraps the full command-generation workflow — from fetching live
+    documentation to grounding the LLM with expert skills — into a single
+    two-word command.
+  </p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🧠</div>
+      <h3>LLM-powered parameter generation</h3>
+      <p>Describe what you want in plain English. The model generates the right flags, grounded in the actual tool documentation.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📚</div>
+      <h3>Automatic documentation fetching</h3>
+      <p>Grabs <code>--help</code> output and optionally fetches remote docs or man pages. Works even if the tool isn't installed locally.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <h3>Dry-run mode</h3>
+      <p>Preview the exact command that would be executed before committing. Never accidentally overwrite files again.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎯</div>
+      <h3>Built-in skill system</h3>
+      <p>Expert knowledge for 10+ bioinformatics tools baked in as <code>.toml</code> skill files — concepts, pitfalls, and worked examples.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔧</div>
+      <h3>Flexible LLM backends</h3>
+      <p>GitHub Copilot (default), OpenAI, Anthropic, or a local Ollama instance — switch with one config key.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📜</div>
+      <h3>Command history</h3>
+      <p>Every run is logged as JSONL with exit code, timestamp, and generated command. Filter by tool for quick lookup.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🗂️</div>
+      <h3>Local documentation index</h3>
+      <p>Pre-index tools for instant, repeated lookups. The index persists across sessions and can be updated in bulk.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>WebAssembly / WASI</h3>
+      <p>Ships a <code>wasm32-wasip1</code> binary for portable execution in WASI runtimes like Wasmtime without native installation.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Interactive Demo ─────────────────────────────────────────────────── -->
+<section id="demo">
+  <div class="section-label">// interactive demo</div>
+  <h2 class="section-title">See it in action</h2>
+  <p class="section-body">
+    Click an example to watch oxo-call ground the task in documentation,
+    load the matching skill, and produce the exact command arguments.
+  </p>
+
+  <div class="wasm-badge">
+    <span class="pulse"></span>
+    JS simulation · powered by the same prompt logic as the WASI binary
+  </div>
+
+  <div class="demo-wrapper">
+    <!-- Sidebar with examples -->
+    <div class="demo-sidebar">
+      <div class="demo-sidebar-title">// examples</div>
+
+      <div class="demo-example active" data-idx="0">
+        <div class="demo-ex-tool">samtools sort</div>
+        <div class="demo-ex-task">sort BAM by coordinate → sorted.bam</div>
+      </div>
+      <div class="demo-example" data-idx="1">
+        <div class="demo-ex-tool">bwa mem</div>
+        <div class="demo-ex-task">align paired reads, 16 threads</div>
+      </div>
+      <div class="demo-example" data-idx="2">
+        <div class="demo-ex-tool">bcftools call</div>
+        <div class="demo-ex-task">call variants from BAM</div>
+      </div>
+      <div class="demo-example" data-idx="3">
+        <div class="demo-ex-tool">fastp</div>
+        <div class="demo-ex-task">trim adapters, paired-end</div>
+      </div>
+      <div class="demo-example" data-idx="4">
+        <div class="demo-ex-tool">minimap2</div>
+        <div class="demo-ex-task">long-read genome alignment</div>
+      </div>
+      <div class="demo-example" data-idx="5">
+        <div class="demo-ex-tool">seqkit stats</div>
+        <div class="demo-ex-task">basic stats on a FASTQ file</div>
+      </div>
+    </div>
+
+    <!-- Terminal output -->
+    <div class="demo-terminal">
+      <div class="term-titlebar">
+        <span class="dot dot-r"></span>
+        <span class="dot dot-y"></span>
+        <span class="dot dot-g"></span>
+        <span class="term-title" id="demo-term-title">oxo-call dry-run</span>
+      </div>
+      <div class="demo-term-body" id="demo-body">
+        <!-- filled by JS -->
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Supported Tools ──────────────────────────────────────────────────── -->
+<section id="tools">
+  <div class="section-label">// built-in skills</div>
+  <h2 class="section-title">Expert knowledge for 10+ tools</h2>
+  <p class="section-body">
+    Each built-in skill encodes domain-specific concepts, common pitfalls, and
+    worked examples so the LLM is guided beyond a raw <code>--help</code> dump.
+  </p>
+  <div class="tools-grid">
+    <div class="tool-card"><div class="tool-name">samtools</div><div class="tool-desc">SAM/BAM/CRAM manipulation</div></div>
+    <div class="tool-card"><div class="tool-name">bwa</div><div class="tool-desc">Burrows-Wheeler short-read aligner</div></div>
+    <div class="tool-card"><div class="tool-name">bcftools</div><div class="tool-desc">VCF/BCF variant calling & filtering</div></div>
+    <div class="tool-card"><div class="tool-name">bedtools</div><div class="tool-desc">Genomic interval arithmetic</div></div>
+    <div class="tool-card"><div class="tool-name">gatk</div><div class="tool-desc">Genome Analysis Toolkit</div></div>
+    <div class="tool-card"><div class="tool-name">minimap2</div><div class="tool-desc">Long-read / splice-aware aligner</div></div>
+    <div class="tool-card"><div class="tool-name">fastp</div><div class="tool-desc">Adapter trimming & QC</div></div>
+    <div class="tool-card"><div class="tool-name">bowtie2</div><div class="tool-desc">Fast short-read aligner</div></div>
+    <div class="tool-card"><div class="tool-name">seqkit</div><div class="tool-desc">FASTA/Q toolkit</div></div>
+    <div class="tool-card"><div class="tool-name">star</div><div class="tool-desc">RNA-seq spliced aligner</div></div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Install ──────────────────────────────────────────────────────────── -->
+<section id="install">
+  <div class="section-label">// install</div>
+  <h2 class="section-title">Get started in 60 seconds</h2>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>Install from crates.io</span>
+      <button class="copy-btn" data-copy="cargo install oxo-call">copy</button>
+    </div>
+    <pre><span class="c"># Install the latest release</span>
+cargo install oxo-call
+
+<span class="c"># Or build from source</span>
+git clone https://github.com/Traitome/oxo-call
+cargo install --path oxo-call</pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>Configure your LLM token</span>
+      <button class="copy-btn" data-copy="oxo-call config set llm.api_token YOUR_TOKEN">copy</button>
+    </div>
+    <pre><span class="c"># GitHub Copilot (default — free for Copilot subscribers)</span>
+oxo-call config set llm.api_token YOUR_GITHUB_TOKEN
+
+<span class="c"># OpenAI</span>
+oxo-call config set llm.provider openai
+oxo-call config set llm.api_token sk-...
+
+<span class="c"># Local Ollama (no token needed)</span>
+oxo-call config set llm.provider ollama
+oxo-call config set llm.model llama3.2</pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>Your first command</span>
+      <button class="copy-btn" data-copy='oxo-call dry-run samtools "sort input.bam by coordinate and output to sorted.bam"'>copy</button>
+    </div>
+    <pre><span class="c"># Preview — no execution</span>
+oxo-call dry-run samtools <span class="s">"sort input.bam by coordinate and output to sorted.bam"</span>
+
+<span class="c"># Execute immediately</span>
+oxo-call run bwa <span class="s">"align reads.fastq to reference.fa using 8 threads, output SAM"</span>
+
+<span class="c"># Confirm before running</span>
+oxo-call run --ask bcftools <span class="s">"call variants from my.bam against ref.fa"</span></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>WASI binary (requires wasmtime)</span>
+      <button class="copy-btn" data-copy="wasmtime oxo-call.wasm -- dry-run samtools &quot;sort input.bam by coordinate&quot;">copy</button>
+    </div>
+    <pre><span class="c"># Download the .wasm binary from the GitHub Releases page, then:</span>
+wasmtime oxo-call.wasm -- dry-run samtools <span class="s">"sort input.bam by coordinate"</span></pre>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Footer ───────────────────────────────────────────────────────────── -->
+<footer>
+  <p>
+    <strong>oxo-call</strong> is dual-licensed: free for academic use, commercial license available.
+    &nbsp;·&nbsp;
+    <a href="https://github.com/Traitome/oxo-call" target="_blank" rel="noopener">GitHub</a>
+    &nbsp;·&nbsp;
+    <a href="https://crates.io/crates/oxo-call" target="_blank" rel="noopener">crates.io</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/Traitome/oxo-call/blob/main/LICENSE-ACADEMIC" target="_blank" rel="noopener">License</a>
+  </p>
+</footer>
+
+<!-- ── Scripts ──────────────────────────────────────────────────────────── -->
+<script>
+/* ─── Hero auto-type animation ─────────────────────────────────────────── */
+(function () {
+  const lines = [
+    {
+      cmd:  'oxo-call dry-run samtools "sort input.bam by coordinate → sorted.bam"',
+      out: [
+        '  ⠋ Fetching samtools documentation…',
+        '  ⠙ Loading built-in skill: samtools',
+        '  ✔ Skill loaded (v1.0)',
+        '  ⠸ Asking LLM backend…',
+        '',
+        '  EXPLANATION: samtools sort takes an input BAM and writes',
+        '               coordinate-sorted output. -o sets the output path.',
+        '',
+        '  $ samtools sort -o sorted.bam input.bam',
+        '',
+      ],
+    },
+    {
+      cmd:  'oxo-call run bwa "align paired reads R1.fastq R2.fastq to hg38.fa, 16 threads"',
+      out: [
+        '  ⠋ Fetching bwa documentation…',
+        '  ⠙ Loading built-in skill: bwa',
+        '  ✔ Skill loaded (v1.0)',
+        '  ⠸ Asking LLM backend…',
+        '',
+        '  EXPLANATION: bwa mem handles paired-end reads with -t for threads.',
+        '               Redirect stdout to SAM output file.',
+        '',
+        '  $ bwa mem -t 16 hg38.fa R1.fastq R2.fastq > aligned.sam',
+        '',
+      ],
+    },
+  ];
+
+  let lineIdx = 0;
+  const typingEl = document.getElementById('hero-typing');
+  const cursorEl = document.getElementById('hero-cursor');
+  const bodyEl   = document.getElementById('hero-term-body');
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function typeString(el, str, speed = 28) {
+    for (const ch of str) {
+      el.textContent += ch;
+      await sleep(speed + Math.random() * 20);
+    }
+  }
+
+  async function runLine(entry) {
+    typingEl.textContent = '';
+    cursorEl.style.display = 'inline-block';
+    await sleep(600);
+    await typeString(typingEl, entry.cmd, 22);
+    cursorEl.style.display = 'none';
+    await sleep(300);
+
+    // append output
+    for (const o of entry.out) {
+      const span = document.createElement('span');
+      span.className = 'term-line';
+      if (o.includes('$')) {
+        span.innerHTML = o.replace(/\$ (.*)/, '  <span class="prompt">$</span> <span class="success">$1</span>');
+      } else if (o.includes('✔')) {
+        span.innerHTML = `<span class="success">${escHtml(o)}</span>`;
+      } else if (o.includes('EXPLANATION')) {
+        span.innerHTML = `<span class="warn">${escHtml(o)}</span>`;
+      } else {
+        span.innerHTML = `<span class="output">${escHtml(o)}</span>`;
+      }
+      bodyEl.appendChild(span);
+      await sleep(80);
+    }
+
+    await sleep(2200);
+
+    // clear output lines (keep first prompt line)
+    while (bodyEl.children.length > 1) bodyEl.removeChild(bodyEl.lastChild);
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  async function loop() {
+    while (true) {
+      await runLine(lines[lineIdx % lines.length]);
+      lineIdx++;
+    }
+  }
+
+  loop();
+})();
+
+/* ─── Interactive demo ─────────────────────────────────────────────────── */
+(function () {
+  const examples = [
+    {
+      tool:  'samtools',
+      task:  'sort input.bam by coordinate and output to sorted.bam',
+      subcmd:'dry-run',
+      steps: [
+        { t: 'output', s: '  ⠋ Fetching samtools documentation…' },
+        { t: 'output', s: '  ⠙ Loading built-in skill: samtools' },
+        { t: 'success',s: '  ✔ Skill loaded' },
+        { t: 'output', s: '  ⠸ Querying LLM…' },
+        { t: 'blank',  s: '' },
+        { t: 'warn',   s: '  EXPLANATION: samtools sort reorders reads by leftmost coordinate.' },
+        { t: 'warn',   s: '               -o sets the output path. No -n flag for name sort.' },
+        { t: 'blank',  s: '' },
+        { t: 'cmd',    s: '  $ samtools sort -o sorted.bam input.bam' },
+      ],
+    },
+    {
+      tool:  'bwa',
+      task:  'align paired reads R1.fastq R2.fastq to hg38.fa using 16 threads, output SAM',
+      subcmd:'dry-run',
+      steps: [
+        { t: 'output', s: '  ⠋ Fetching bwa documentation…' },
+        { t: 'output', s: '  ⠙ Loading built-in skill: bwa' },
+        { t: 'success',s: '  ✔ Skill loaded' },
+        { t: 'output', s: '  ⠸ Querying LLM…' },
+        { t: 'blank',  s: '' },
+        { t: 'warn',   s: '  EXPLANATION: bwa mem is recommended for reads >70 bp.' },
+        { t: 'warn',   s: '               -t sets the number of threads.' },
+        { t: 'blank',  s: '' },
+        { t: 'cmd',    s: '  $ bwa mem -t 16 hg38.fa R1.fastq R2.fastq > aligned.sam' },
+      ],
+    },
+    {
+      tool:  'bcftools',
+      task:  'call variants from my.bam against ref.fa and output to variants.vcf',
+      subcmd:'dry-run',
+      steps: [
+        { t: 'output', s: '  ⠋ Fetching bcftools documentation…' },
+        { t: 'output', s: '  ⠙ Loading built-in skill: bcftools' },
+        { t: 'success',s: '  ✔ Skill loaded' },
+        { t: 'output', s: '  ⠸ Querying LLM…' },
+        { t: 'blank',  s: '' },
+        { t: 'warn',   s: '  EXPLANATION: bcftools mpileup + call pipeline. -Ou pipes BCF' },
+        { t: 'warn',   s: '               uncompressed. -mv calls multiallelic variants.' },
+        { t: 'blank',  s: '' },
+        { t: 'cmd',    s: '  $ bcftools mpileup -f ref.fa my.bam | bcftools call -mv -o variants.vcf' },
+      ],
+    },
+    {
+      tool:  'fastp',
+      task:  'trim adapters from paired-end reads R1.fastq R2.fastq and output trimmed reads',
+      subcmd:'dry-run',
+      steps: [
+        { t: 'output', s: '  ⠋ Fetching fastp documentation…' },
+        { t: 'output', s: '  ⠙ Loading built-in skill: fastp' },
+        { t: 'success',s: '  ✔ Skill loaded' },
+        { t: 'output', s: '  ⠸ Querying LLM…' },
+        { t: 'blank',  s: '' },
+        { t: 'warn',   s: '  EXPLANATION: fastp auto-detects adapters. -i/-I for input pairs,' },
+        { t: 'warn',   s: '               -o/-O for output. -j/-h for JSON/HTML reports.' },
+        { t: 'blank',  s: '' },
+        { t: 'cmd',    s: '  $ fastp -i R1.fastq -I R2.fastq -o R1_trimmed.fastq -O R2_trimmed.fastq -j report.json -h report.html' },
+      ],
+    },
+    {
+      tool:  'minimap2',
+      task:  'align long reads ONT.fastq to reference.fa and output PAF',
+      subcmd:'dry-run',
+      steps: [
+        { t: 'output', s: '  ⠋ Fetching minimap2 documentation…' },
+        { t: 'output', s: '  ⠙ Loading built-in skill: minimap2' },
+        { t: 'success',s: '  ✔ Skill loaded' },
+        { t: 'output', s: '  ⠸ Querying LLM…' },
+        { t: 'blank',  s: '' },
+        { t: 'warn',   s: '  EXPLANATION: -x map-ont selects the ONT long-read preset.' },
+        { t: 'warn',   s: '               Without -a the default output format is PAF.' },
+        { t: 'blank',  s: '' },
+        { t: 'cmd',    s: '  $ minimap2 -x map-ont reference.fa ONT.fastq > aligned.paf' },
+      ],
+    },
+    {
+      tool:  'seqkit',
+      task:  'get basic stats on sample.fastq.gz',
+      subcmd:'dry-run',
+      steps: [
+        { t: 'output', s: '  ⠋ Fetching seqkit documentation…' },
+        { t: 'output', s: '  ⠙ Loading built-in skill: seqkit' },
+        { t: 'success',s: '  ✔ Skill loaded' },
+        { t: 'output', s: '  ⠸ Querying LLM…' },
+        { t: 'blank',  s: '' },
+        { t: 'warn',   s: '  EXPLANATION: seqkit stats reports read counts, lengths, and GC%.' },
+        { t: 'warn',   s: '               -a reports all extended statistics.' },
+        { t: 'blank',  s: '' },
+        { t: 'cmd',    s: '  $ seqkit stats -a sample.fastq.gz' },
+      ],
+    },
+  ];
+
+  const demoBody  = document.getElementById('demo-body');
+  const demoTitle = document.getElementById('demo-term-title');
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  let running = false;
+
+  async function renderExample(idx) {
+    if (running) return;
+    running = true;
+    const ex = examples[idx];
+    demoTitle.textContent = `oxo-call ${ex.subcmd} ${ex.tool}`;
+
+    demoBody.innerHTML = '';
+
+    // Show the prompt line
+    const promptLine = document.createElement('div');
+    promptLine.className = 'term-line';
+    promptLine.innerHTML =
+      `<span class="prompt">$ </span>` +
+      `<span class="tool">oxo-call</span>` +
+      ` <span class="flag">${ex.subcmd}</span>` +
+      ` <span class="tool">${escHtml(ex.tool)}</span>` +
+      ` <span class="output">"${escHtml(ex.task)}"</span>`;
+    demoBody.appendChild(promptLine);
+
+    await sleep(400);
+
+    for (const step of ex.steps) {
+      await sleep(120);
+      const line = document.createElement('div');
+      line.className = 'term-line';
+      if (step.t === 'cmd') {
+        line.innerHTML = step.s.replace(
+          /\$ (.*)/,
+          '<span class="prompt">  $</span> <span class="success">$1</span>'
+        );
+      } else if (step.t === 'success') {
+        line.innerHTML = `<span class="success">${escHtml(step.s)}</span>`;
+      } else if (step.t === 'warn') {
+        line.innerHTML = `<span class="warn">${escHtml(step.s)}</span>`;
+      } else {
+        line.innerHTML = `<span class="output">${escHtml(step.s)}</span>`;
+      }
+      demoBody.appendChild(line);
+    }
+
+    running = false;
+  }
+
+  // Wire up sidebar clicks
+  document.querySelectorAll('.demo-example').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.demo-example').forEach(e => e.classList.remove('active'));
+      el.classList.add('active');
+      renderExample(parseInt(el.dataset.idx, 10));
+    });
+  });
+
+  // Render first example on load
+  renderExample(0);
+})();
+
+/* ─── Copy buttons ─────────────────────────────────────────────────────── */
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const text = btn.dataset.copy;
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = 'copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'copy';
+        btn.classList.remove('copied');
+      }, 1800);
+    } catch (_) {}
+  });
+});
+</script>
+</body>
+</html>
