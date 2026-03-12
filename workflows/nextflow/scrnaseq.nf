@@ -143,9 +143,7 @@ workflow {
     STARSOLO(FASTP.out.trimmed)
     CELL_QC(STARSOLO.out.matrix)
 
-    qc_files = FASTP.out.json
-        .mix(CELL_QC.out)
-        .collect()
+    qc_files = FASTP.out.json.collect()
     MULTIQC(qc_files)
 }
 

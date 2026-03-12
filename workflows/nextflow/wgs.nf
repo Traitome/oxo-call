@@ -195,10 +195,7 @@ workflow {
     BQSR(MARK_DUPLICATES.out.bam, genome_ch, dbsnp_ch, known_indels_ch)
     HAPLOTYPE_CALLER(BQSR.out, genome_ch)
 
-    qc_files = FASTP.out.json
-        .mix(MARK_DUPLICATES.out.metrics)
-        .mix(HAPLOTYPE_CALLER.out)
-        .collect()
+    qc_files = FASTP.out.json.collect()
     MULTIQC(qc_files)
 }
 

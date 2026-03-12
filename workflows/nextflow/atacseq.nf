@@ -172,10 +172,7 @@ workflow {
     FILTER_BLACKLIST(SORT_AND_MARKDUP.out.bam, blacklist_ch)
     MACS3_PEAKS(FILTER_BLACKLIST.out)
 
-    qc_files = FASTP.out.json
-        .mix(SORT_AND_MARKDUP.out.metrics)
-        .mix(MACS3_PEAKS.out[0])
-        .collect()
+    qc_files = FASTP.out.json.collect()
     MULTIQC(qc_files)
 }
 

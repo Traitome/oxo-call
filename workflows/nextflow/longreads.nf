@@ -169,7 +169,7 @@ workflow {
     MEDAKA_POLISH(polish_input)
     QUAST_EVALUATE(MEDAKA_POLISH.out.consensus)
 
-    qc_files = NANOSTAT.out.stats.mix(QUAST_EVALUATE.out.report).collect()
+    qc_files = NANOSTAT.out.stats.collect()
     MULTIQC(qc_files)
 }
 
