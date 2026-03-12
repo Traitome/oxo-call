@@ -127,7 +127,6 @@ rule quast_evaluate:
 rule multiqc:
     input:
         expand("results/qc/{sample}NanoStats.txt", sample=SAMPLES),
-        expand("results/qc/quast_{sample}/report.txt", sample=SAMPLES),
     output:
         "results/multiqc/multiqc_report.html",
     log: "logs/multiqc.log"

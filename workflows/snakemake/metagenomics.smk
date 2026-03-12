@@ -121,10 +121,8 @@ rule bracken_abundance:
 rule multiqc:
     input:
         expand("results/qc/{sample}_fastp.json", sample=SAMPLES),
-        expand("results/kraken2/{sample}.report", sample=SAMPLES),
-        expand("results/bracken/{sample}.bracken", sample=SAMPLES),
     output:
         "results/multiqc/multiqc_report.html",
     log: "logs/multiqc.log"
     shell:
-        "multiqc results/qc/ results/kraken2/ results/bracken/ -o results/multiqc/ --force > {log} 2>&1"
+        "multiqc results/qc/ -o results/multiqc/ --force > {log} 2>&1"

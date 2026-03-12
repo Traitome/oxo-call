@@ -141,10 +141,8 @@ rule macs3_call_peaks:
 rule multiqc:
     input:
         expand("results/qc/{sample}_fastp.json", sample=SAMPLES),
-        expand("results/qc/{sample}.markdup_metrics.txt", sample=SAMPLES),
-        expand("results/peaks/{sample}_peaks.narrowPeak", sample=SAMPLES),
     output:
         "results/multiqc/multiqc_report.html",
     log: "logs/multiqc.log"
     shell:
-        "multiqc results/qc/ results/aligned/ results/peaks/ -o results/multiqc/ --force > {log} 2>&1"
+        "multiqc results/qc/ -o results/multiqc/ --force > {log} 2>&1"

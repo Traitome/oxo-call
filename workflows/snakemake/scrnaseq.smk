@@ -102,10 +102,8 @@ rule cell_qc:
 rule multiqc:
     input:
         expand("results/qc/{sample}_fastp.json", sample=SAMPLES),
-        expand("results/starsolo/{sample}/Aligned.sortedByCoord.out.bam", sample=SAMPLES),
-        expand("results/qc/{sample}_cell_stats.json", sample=SAMPLES),
     output:
         "results/multiqc/multiqc_report.html",
     log: "logs/multiqc.log"
     shell:
-        "multiqc results/qc/ results/starsolo/ -o results/multiqc/ --force > {log} 2>&1"
+        "multiqc results/qc/ -o results/multiqc/ --force > {log} 2>&1"

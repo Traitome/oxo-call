@@ -115,11 +115,9 @@ rule featurecounts:
 rule multiqc:
     input:
         expand("results/qc/{sample}_fastp.json", sample=SAMPLES),
-        expand("results/aligned/{sample}/Log.final.out", sample=SAMPLES),
-        expand("results/counts/{sample}_counts.txt", sample=SAMPLES),
     output:
         "results/multiqc/multiqc_report.html",
     log: "logs/multiqc.log"
     container: "docker://quay.io/biocontainers/multiqc:1.25.1--pyhdfd78af_0"
     shell:
-        "multiqc results/qc/ results/aligned/ results/counts/ -o results/multiqc/ --force > {log} 2>&1"
+        "multiqc results/qc/ -o results/multiqc/ --force > {log} 2>&1"
