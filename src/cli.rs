@@ -108,6 +108,13 @@ pub enum Commands {
         #[command(subcommand)]
         command: Option<LicenseCommands>,
     },
+
+    /// Generate bioinformatics workflow files (Snakemake / Nextflow)
+    #[command(visible_alias = "wf")]
+    Workflow {
+        #[command(subcommand)]
+        command: WorkflowCommands,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -237,6 +244,59 @@ pub enum SkillCommands {
 pub enum LicenseCommands {
     /// Verify the license file and display its details
     Verify,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum WorkflowCommands {
+    /// Run a workflow file with the oxo-call native engine
+    #[command(name = "run", visible_alias = "r")]
+    RunWorkflow {
+        /// Path to an .oxo.toml workflow file (or a built-in template name)
+        file: String,
+    },
+
+    /// Preview a workflow without executing any steps (dry-run)
+    #[command(name = "dry-run", visible_alias = "d")]
+    DryRunWorkflow {
+        /// Path to an .oxo.toml workflow file (or a built-in template name)
+        file: String,
+    },
+
+    /// Export a native .oxo.toml workflow to Snakemake or Nextflow format
+    Export {
+        /// Path to an .oxo.toml workflow file (or a built-in template name)
+        file: String,
+        /// Target format: snakemake or nextflow
+        #[arg(long, default_value = "snakemake", value_parser = ["snakemake", "nextflow"])]
+        to: String,
+        /// Write output to this file (defaults to stdout)
+        #[arg(short, long)]
+        output: Option<std::path::PathBuf>,
+    },
+
+    /// Generate a workflow with LLM from a natural-language description
+    Generate {
+        /// Plain-English description of the bioinformatics workflow
+        task: String,
+        /// Output format: native (default), snakemake, or nextflow
+        #[arg(short, long, default_value = "native", value_parser = ["native", "snakemake", "nextflow"])]
+        engine: String,
+        /// Write the generated workflow to this file (defaults to stdout)
+        #[arg(short, long)]
+        output: Option<std::path::PathBuf>,
+    },
+
+    /// List built-in workflow templates
+    List,
+
+    /// Show a built-in workflow template
+    Show {
+        /// Template name (see 'workflow list')
+        name: String,
+        /// Format to show: native (default), snakemake, or nextflow
+        #[arg(short, long, default_value = "native", value_parser = ["native", "snakemake", "nextflow"])]
+        engine: String,
+    },
 }
 
 #[cfg(test)]
