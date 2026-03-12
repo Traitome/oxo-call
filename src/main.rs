@@ -763,6 +763,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 println!("{content}");
             }
 
+            #[cfg(not(target_arch = "wasm32"))]
             WorkflowCommands::RunWorkflow { file } => {
                 let path = std::path::Path::new(&file);
                 let source = if path.exists() {
@@ -786,6 +787,16 @@ async fn run(cli: Cli) -> error::Result<()> {
                 engine::execute(tasks, false).await?;
             }
 
+            #[cfg(target_arch = "wasm32")]
+            WorkflowCommands::RunWorkflow { .. } => {
+                eprintln!(
+                    "{} 'workflow run' is not supported on WebAssembly.",
+                    "error:".red().bold()
+                );
+                std::process::exit(1);
+            }
+
+            #[cfg(not(target_arch = "wasm32"))]
             WorkflowCommands::DryRunWorkflow { file } => {
                 let path = std::path::Path::new(&file);
                 let source = if path.exists() {
@@ -806,6 +817,15 @@ async fn run(cli: Cli) -> error::Result<()> {
                 let def = engine::WorkflowDef::from_str_content(&source)?;
                 let tasks = engine::expand(&def)?;
                 engine::execute(tasks, true).await?;
+            }
+
+            #[cfg(target_arch = "wasm32")]
+            WorkflowCommands::DryRunWorkflow { .. } => {
+                eprintln!(
+                    "{} 'workflow dry-run' is not supported on WebAssembly.",
+                    "error:".red().bold()
+                );
+                std::process::exit(1);
             }
 
             WorkflowCommands::Export { file, to, output } => {
@@ -842,6 +862,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
             }
 
+            #[cfg(not(target_arch = "wasm32"))]
             WorkflowCommands::Generate {
                 task,
                 engine: engine_name,
@@ -886,6 +907,16 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
             }
 
+            #[cfg(target_arch = "wasm32")]
+            WorkflowCommands::Generate { .. } => {
+                eprintln!(
+                    "{} 'workflow generate' is not supported on WebAssembly.",
+                    "error:".red().bold()
+                );
+                std::process::exit(1);
+            }
+
+            #[cfg(not(target_arch = "wasm32"))]
             WorkflowCommands::Infer {
                 task,
                 data,
@@ -991,6 +1022,15 @@ async fn run(cli: Cli) -> error::Result<()> {
                         workflow::print_generated_workflow(&wf);
                     }
                 }
+            }
+
+            #[cfg(target_arch = "wasm32")]
+            WorkflowCommands::Infer { .. } => {
+                eprintln!(
+                    "{} 'workflow infer' is not supported on WebAssembly.",
+                    "error:".red().bold()
+                );
+                std::process::exit(1);
             }
         },
     }
