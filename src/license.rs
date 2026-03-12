@@ -21,7 +21,7 @@
 /// To obtain a license:
 ///   Academic : <https://github.com/Traitome/oxo-call#licensing>
 ///   Commercial: license@traitome.com
-use base64::{engine::general_purpose::STANDARD, Engine as _};
+use base64::{Engine as _, engine::general_purpose::STANDARD};
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -126,7 +126,9 @@ pub enum LicenseError {
         source: std::io::Error,
     },
 
-    #[error("Failed to parse license file as JSON: {0}\n  Ensure the file is a valid oxo-call license.")]
+    #[error(
+        "Failed to parse license file as JSON: {0}\n  Ensure the file is a valid oxo-call license."
+    )]
     ParseError(serde_json::Error),
 
     #[error(
@@ -178,9 +180,9 @@ pub fn verify_license_with_key(
     let pubkey_bytes = STANDARD
         .decode(pubkey_base64)
         .map_err(|e| LicenseError::InvalidPublicKey(e.to_string()))?;
-    let pubkey_array: [u8; 32] = pubkey_bytes.try_into().map_err(|_| {
-        LicenseError::InvalidPublicKey("expected exactly 32 bytes".to_string())
-    })?;
+    let pubkey_array: [u8; 32] = pubkey_bytes
+        .try_into()
+        .map_err(|_| LicenseError::InvalidPublicKey("expected exactly 32 bytes".to_string()))?;
     let verifying_key = VerifyingKey::from_bytes(&pubkey_array)
         .map_err(|e| LicenseError::InvalidPublicKey(e.to_string()))?;
 
@@ -194,8 +196,7 @@ pub fn verify_license_with_key(
     let signature = Signature::from_bytes(&sig_array);
 
     // 4. Canonical payload bytes (field order defined by LicensePayload declaration)
-    let payload_bytes =
-        serde_json::to_vec(&license.payload).map_err(LicenseError::ParseError)?;
+    let payload_bytes = serde_json::to_vec(&license.payload).map_err(LicenseError::ParseError)?;
 
     // 5. Verify
     verifying_key
@@ -238,8 +239,7 @@ pub fn load_and_verify(cli_path: Option<&Path>) -> Result<LicenseFile, LicenseEr
         source: e,
     })?;
 
-    let license: LicenseFile =
-        serde_json::from_str(&content).map_err(LicenseError::ParseError)?;
+    let license: LicenseFile = serde_json::from_str(&content).map_err(LicenseError::ParseError)?;
 
     verify_license(&license)?;
 
@@ -297,8 +297,8 @@ pub mod tests {
     pub fn make_test_keypair() -> (SigningKey, String) {
         // Use a fixed seed for deterministic tests
         let seed: [u8; 32] = [
-            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
-            24, 25, 26, 27, 28, 29, 30, 31, 32,
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+            25, 26, 27, 28, 29, 30, 31, 32,
         ];
         let signing_key = SigningKey::from_bytes(&seed);
         let pubkey_b64 = STANDARD.encode(signing_key.verifying_key().as_bytes());
