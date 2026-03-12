@@ -57,8 +57,8 @@ Describe your task in plain language — `oxo-call` fetches the tool's documenta
 ## Features
 
 - 🧠 **LLM-powered parameter generation** — describe what you want to do, get the right flags
-- 📚 **Automatic documentation fetching** — grabs `--help` output and optionally remote docs
-- 🗂️ **Local documentation index** — pre-index tools for faster repeated use
+- 📚 **Auto documentation** — `--help` output is cached transparently on first use; enrich with remote URLs, local files, or directories
+- 🗂️ **Unified docs management** — `oxo-call docs add/list/show/remove/update` manages the documentation index
 - 🔍 **Dry-run mode** — preview commands before executing
 - 📜 **Command history** — track every run with exit codes and timestamps
 - 🔧 **Flexible LLM backend** — GitHub Copilot (default), OpenAI, Anthropic, Ollama
@@ -120,15 +120,9 @@ oxo-call config set llm.model llama3.2
 # Or: export OXO_CALL_LLM_PROVIDER=ollama OXO_CALL_LLM_MODEL=llama3.2
 ```
 
-### 4. Build a documentation index (optional but recommended)
+### 4. Run with natural language — documentation is fetched automatically
 
-```bash
-oxo-call index add samtools
-oxo-call index add bwa
-oxo-call index add bcftools
-```
-
-### 5. Run with natural language
+`--help` output is cached on first use, so you can run immediately without a separate indexing step:
 
 ```bash
 # Preview the command without executing (dry-run)
@@ -152,13 +146,12 @@ oxo-call run --ask bcftools "call variants from my.bam against ref.fa and output
 |:-------:|:-----:|:-----------:|
 | `run` | `r` | Generate parameters with LLM and execute the tool |
 | `dry-run` | `d` | Generate parameters and print the command — no execution |
-| `index` | — | Add, remove, update, or list locally indexed tool docs |
-| `docs` | — | Show, fetch, or locate cached tool documentation |
-| `config` | — | Read and write LLM/behavior settings |
-| `history` | — | Browse past command runs with exit codes and timestamps |
-| `skill` | — | List, show, or manage prompting skill files |
-| `workflow` | `wf` | Generate Snakemake / Nextflow workflows from natural language |
-| `license` | — | Verify your signed license file |
+| `docs` | `doc` | Add, remove, update, list, show, or search cached documentation |
+| `config` | `cfg` | Read and write LLM/behavior settings |
+| `history` | `hist` | Browse past command runs with exit codes and timestamps |
+| `skill` | `sk` | List, show, or manage prompting skill files |
+| `workflow` | `wf` | Native workflow engine + Snakemake / Nextflow export |
+| `license` | `lic` | Verify your signed license file |
 
 </div>
 
@@ -195,44 +188,43 @@ oxo-call dry-run bwa "align paired reads R1.fastq R2.fastq to hg38.fa using 16 t
 
 ---
 
-### `index` — Manage the local documentation index
+### `docs` — Manage tool documentation
 
-Pre-indexing speeds up repeated use and works even when the tool is not installed locally.
+Documentation is **fetched and cached automatically** on first use — you rarely need to
+run `docs add` manually.  Use `docs add` when you want to enrich the cache with remote
+web documentation, a local manual file, or a directory of docs files.
 
 ```
-oxo-call index add    <TOOL> [--url <URL>]   # Index a tool (--help + optional remote URL)
-oxo-call index remove <TOOL>                 # Remove a tool from the index
-oxo-call index update [TOOL] [--url <URL>]   # Refresh one or all indexed tools
-oxo-call index list                          # List all indexed tools
+oxo-call docs add    <TOOL> [--url <URL>] [--file <PATH>] [--dir <DIR>]
+oxo-call docs remove <TOOL>
+oxo-call docs update [TOOL] [--url <URL>]   # omit TOOL to refresh all
+oxo-call docs list
+oxo-call docs show   <TOOL>
+oxo-call docs path   <TOOL>
 ```
 
 ```bash
-# Index from --help output only
-oxo-call index add samtools
+# Index from --help output (usually not needed — done automatically on first run)
+oxo-call docs add samtools
 
-# Index from --help + a remote man page / docs site
-oxo-call index add bwa --url https://bio-bwa.sourceforge.net/bwa.shtml
+# Enrich with a remote man page or docs site
+oxo-call docs add bwa --url https://bio-bwa.sourceforge.net/bwa.shtml
 
 # Index a tool that is not installed locally (remote URL only)
-oxo-call index add gatk --url https://gatk.broadinstitute.org/hc/en-us/articles/...
+oxo-call docs add gatk --url https://gatk.broadinstitute.org/hc/en-us/articles/...
+
+# Add from a local Markdown or text manual
+oxo-call docs add mytool --file /path/to/manual.md
+
+# Add all .md/.txt/.rst/.html files from a local docs directory
+oxo-call docs add mytool --dir /path/to/docs/
 
 # Refresh all indexed tools
-oxo-call index update
-```
+oxo-call docs update
 
----
-
-### `docs` — View or fetch documentation
-
-```
-oxo-call docs show  <TOOL>           # Print cached documentation for a tool
-oxo-call docs fetch <TOOL> <URL>     # Fetch and cache docs from a remote URL
-oxo-call docs path  <TOOL>           # Print the path to the cached docs file
-```
-
-```bash
+# Inspect what is cached
 oxo-call docs show samtools
-oxo-call docs fetch bwa https://bio-bwa.sourceforge.net/bwa.shtml
+oxo-call docs list
 ```
 
 ---
@@ -453,7 +445,7 @@ oxo-call uses **two complementary knowledge sources** when building the LLM prom
 | **Created by** | Automatically fetched at runtime from the tool itself or a URL | Written by domain experts; built-ins are compiled into the binary |
 | **Content** | Exhaustive flag reference — everything the tool can do | Selective expert commentary on the most important patterns and gotchas |
 | **LLM role** | Provides factual grounding so the LLM knows valid flags | Provides reasoning scaffolding so the LLM applies flags correctly |
-| **Managed with** | `oxo-call docs`, `oxo-call index` | `oxo-call skill` |
+| **Managed with** | `oxo-call docs` | `oxo-call skill` |
 | **Stored at** | `~/.local/share/oxo-call/docs/` | `~/.local/share/oxo-call/skills/` (community) or `~/.config/oxo-call/skills/` (user) |
 
 In practice, `docs` answer *"what flags exist?"* while `skills` answer *"which flags should I use for this task, and what mistakes should I avoid?"*  Both are injected into the prompt together for best results.
