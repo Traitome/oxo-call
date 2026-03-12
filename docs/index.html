@@ -723,6 +723,46 @@ oxo-call run --ask bcftools <span class="s">"call variants from my.bam against r
     <pre><span class="c"># Download the .wasm binary from the GitHub Releases page, then:</span>
 wasmtime oxo-call.wasm -- dry-run samtools <span class="s">"sort input.bam by coordinate"</span></pre>
   </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>Public academic test license (test use only)</span>
+      <button class="copy-btn" data-copy='{
+  "schema": "oxo-call-license-v1",
+  "license_id": "6548e181-e352-402a-ab72-4da51f49e7b5",
+  "issued_to_org": "Public Academic Test License (any academic user)",
+  "license_type": "academic",
+  "scope": "org",
+  "perpetual": true,
+  "issued_at": "2026-03-12",
+  "signature": "duKJcISYPdyZkw1PbyVil5zTjvLhAYsmbzRpH0n6eRYJET90p1b0rYiHO0cJ7IGR6NLEJWqkY1wBXUkfvUvECw=="
+}'>copy</button>
+    </div>
+    <pre><span class="c"># Public academic test license — publish for testing only</span>
+{
+  "schema": "oxo-call-license-v1",
+  "license_id": "6548e181-e352-402a-ab72-4da51f49e7b5",
+  "issued_to_org": "Public Academic Test License (any academic user)",
+  "license_type": "academic",
+  "scope": "org",
+  "perpetual": true,
+  "issued_at": "2026-03-12",
+  "signature": "duKJcISYPdyZkw1PbyVil5zTjvLhAYsmbzRpH0n6eRYJET90p1b0rYiHO0cJ7IGR6NLEJWqkY1wBXUkfvUvECw=="
+}
+
+<span class="c"># Save it locally (Linux)</span>
+mkdir -p ~/.config/oxo-call &amp;&amp; cp docs/public-academic-test-license.oxo.json ~/.config/oxo-call/license.oxo.json
+
+<span class="c"># Save it locally (macOS)</span>
+mkdir -p ~/Library/Application\ Support/io.traitome.oxo-call &amp;&amp; cp docs/public-academic-test-license.oxo.json ~/Library/Application\ Support/io.traitome.oxo-call/license.oxo.json</pre>
+  </div>
+
+  <p class="section-body">
+    <strong>Test use only.</strong> This public academic license is published for evaluation and testing.
+    Academic users should still apply for a formal academic license for real use.
+    Commercial users should contact the maintainer, pay the <strong>USD 100</strong>
+    authorization fee, and obtain a formal commercial license.
+  </p>
 </section>
 
 <hr class="divider" />
@@ -730,7 +770,7 @@ wasmtime oxo-call.wasm -- dry-run samtools <span class="s">"sort input.bam by co
 <!-- ── Footer ───────────────────────────────────────────────────────────── -->
 <footer>
   <p>
-    <strong>oxo-call</strong> is dual-licensed: free for academic use, commercial license available.
+    <strong>oxo-call</strong> is dual-licensed: free for academic use, formal commercial license available for <strong>USD 100</strong>.
     &nbsp;·&nbsp;
     <a href="https://github.com/Traitome/oxo-call" target="_blank" rel="noopener">GitHub</a>
     &nbsp;·&nbsp;

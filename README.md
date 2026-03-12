@@ -351,7 +351,7 @@ cargo fmt -- --check
 | Use case | License | Cost |
 |:--------:|:-------:|:----:|
 | Academic research, education, personal non-commercial | [LICENSE-ACADEMIC](LICENSE-ACADEMIC) | **Free** — signed license file required |
-| Commercial / production (any organization) | [LICENSE-COMMERCIAL](LICENSE-COMMERCIAL) | Paid — per-org, one-time fee |
+| Commercial / production (any organization) | [LICENSE-COMMERCIAL](LICENSE-COMMERCIAL) | **USD 100** — per-org, one-time fee |
 
 </div>
 
@@ -368,8 +368,44 @@ All users — academic and commercial — must have a **signed `license.oxo.json
 #### Commercial License (per-organization, one-time fee)
 
 1. Contact: <w_shixiang@163.com>
-2. You will receive a `license.oxo.json` signed for your organization.
-3. One license covers all employees/contractors within your organization.
+2. Pay the **USD 100** authorization fee.
+3. You will receive a `license.oxo.json` signed for your organization.
+4. One license covers all employees/contractors within your organization.
+
+#### Public academic test license
+
+For quick evaluation and CI-style smoke testing, this repository publishes a public
+academic test license at `docs/public-academic-test-license.oxo.json`.
+
+You can copy it into place with:
+
+```bash
+# Linux
+cp docs/public-academic-test-license.oxo.json ~/.config/oxo-call/license.oxo.json
+
+# macOS
+cp docs/public-academic-test-license.oxo.json ~/Library/Application\\ Support/io.traitome.oxo-call/license.oxo.json
+```
+
+The published test license content is:
+
+```json
+{
+  "schema": "oxo-call-license-v1",
+  "license_id": "6548e181-e352-402a-ab72-4da51f49e7b5",
+  "issued_to_org": "Public Academic Test License (any academic user)",
+  "license_type": "academic",
+  "scope": "org",
+  "perpetual": true,
+  "issued_at": "2026-03-12",
+  "signature": "duKJcISYPdyZkw1PbyVil5zTjvLhAYsmbzRpH0n6eRYJET90p1b0rYiHO0cJ7IGR6NLEJWqkY1wBXUkfvUvECw=="
+}
+```
+
+> **Test use only.** This public academic license is published for evaluation and testing.
+> Academic users are still encouraged to apply for a formal academic license.
+> Commercial users should contact <w_shixiang@163.com>, pay the **USD 100**
+> authorization fee, and obtain a formal commercial license.
 
 #### License file locations
 

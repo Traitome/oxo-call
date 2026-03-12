@@ -1,0 +1,10 @@
+{
+  "schema": "oxo-call-license-v1",
+  "license_id": "6548e181-e352-402a-ab72-4da51f49e7b5",
+  "issued_to_org": "Public Academic Test License (any academic user)",
+  "license_type": "academic",
+  "scope": "org",
+  "perpetual": true,
+  "issued_at": "2026-03-12",
+  "signature": "duKJcISYPdyZkw1PbyVil5zTjvLhAYsmbzRpH0n6eRYJET90p1b0rYiHO0cJ7IGR6NLEJWqkY1wBXUkfvUvECw=="
+}
