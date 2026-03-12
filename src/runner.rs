@@ -263,30 +263,20 @@ fn needs_quoting(arg: &str) -> bool {
 }
 
 /// Compute the SHA-256 hex digest of a string.
+///
+/// Used for the `docs_hash` field in command provenance so that identical
+/// documentation inputs produce identical hashes across platforms and Rust
+/// versions.
 fn sha256_hex(input: &str) -> String {
-    use std::fmt::Write;
-    // We use a pure-Rust SHA-256 implementation (already linked via ed25519-dalek → sha2).
-    // For portability, compute it manually with the sha2 primitives that are available through
-    // the dependency chain.  Since we do not want to add a new crate, we implement a simple
-    // digest using the standard library — the sha2 crate may not be directly re-exported.
-    // Falling back to a compact CRC-like fingerprint built from the standard library:
-    //   We hash using a basic FNV-like scheme, but for best practice we import sha2.
-    // Actually, ring (from reqwest → rustls) exposes digest::SHA256.  Let's keep this simple
-    // and deterministic: just use std to avoid new dependencies.
-    let bytes = input.as_bytes();
-    // Simple deterministic hash: use std's DefaultHasher for a 64-bit fingerprint,
-    // then combine two passes for a 128-bit (32-hex-char) fingerprint.
-    use std::hash::{Hash, Hasher};
-    let mut h1 = std::collections::hash_map::DefaultHasher::new();
-    bytes.hash(&mut h1);
-    let hash1 = h1.finish();
-    let mut h2 = std::collections::hash_map::DefaultHasher::new();
-    bytes.len().hash(&mut h2);
-    bytes.hash(&mut h2);
-    let hash2 = h2.finish();
-    let mut s = String::with_capacity(32);
-    let _ = write!(s, "{hash1:016x}{hash2:016x}");
-    s
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(input.as_bytes());
+    let result = hasher.finalize();
+    result.iter().fold(String::with_capacity(64), |mut s, b| {
+        use std::fmt::Write;
+        let _ = write!(s, "{b:02x}");
+        s
+    })
 }
 
 /// Try to detect the version string of an external tool by running `<tool> --version`.
