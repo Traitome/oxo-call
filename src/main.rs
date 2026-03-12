@@ -9,6 +9,7 @@ mod index;
 mod license;
 mod llm;
 mod runner;
+mod sanitize;
 mod skill;
 mod workflow;
 

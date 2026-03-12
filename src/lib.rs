@@ -24,5 +24,6 @@ pub mod index;
 pub mod license;
 pub mod llm;
 pub mod runner;
+pub mod sanitize;
 pub mod skill;
 pub mod workflow;

@@ -45,6 +45,18 @@ Each history entry includes:
 - **Exit code**: The process exit code
 - **Timestamp**: When the command was executed
 - **Dry-run flag**: Whether it was a dry-run or real execution
+- **Provenance** (new): Reproducibility metadata recorded alongside each command:
+  - `tool_version`: Version string from `<tool> --version`
+  - `docs_hash`: Fingerprint of the documentation used in the LLM prompt
+  - `skill_name`: Name of the matched skill file (if any)
+  - `model`: LLM model identifier that generated the command
+
+Provenance fields are displayed below each history entry when available:
+
+```
+ok       samtools     0        2025-06-01 12:00:00          samtools sort -o sorted.bam input.bam
+         [ver=samtools 1.21, model=gpt-4o-mini, skill=samtools, docs=a1b2c3d4]
+```
 
 ## Storage
 
