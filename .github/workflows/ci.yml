@@ -51,6 +51,20 @@ jobs:
           cargo install cargo-audit --quiet
           cargo audit
 
+      - name: Code coverage
+        run: |
+          cargo install cargo-tarpaulin --quiet
+          cargo tarpaulin --verbose --workspace --timeout 120 --out xml
+        continue-on-error: true
+
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v5
+        with:
+          files: cobertura.xml
+          fail_ci_if_error: false
+        continue-on-error: true
+
   # ─── Cross-compile Linux binaries (only on version tags) ──────────────────
   build-linux:
     name: Build Linux (${{ matrix.target }})

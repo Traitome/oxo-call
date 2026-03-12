@@ -493,3 +493,135 @@ explanation = ""
         Ok(Config::data_dir()?.join("skills"))
     }
 }
+
+// ─── Skill depth validation ───────────────────────────────────────────────────
+
+/// Minimum quality thresholds for skill files.  Validation is not enforced at
+/// runtime (so that partial community skills are still usable) but is exercised
+/// by tests to surface skill files that fall below the recommended depth.
+#[allow(dead_code)]
+pub const MIN_EXAMPLES: usize = 5;
+#[allow(dead_code)]
+pub const MIN_CONCEPTS: usize = 3;
+#[allow(dead_code)]
+pub const MIN_PITFALLS: usize = 3;
+
+/// Validate that a parsed skill meets the minimum quality thresholds.
+/// Returns a list of human-readable issues; an empty list means the skill passes.
+#[allow(dead_code)]
+pub fn validate_skill_depth(skill: &Skill) -> Vec<String> {
+    let mut issues = Vec::new();
+    if skill.examples.len() < MIN_EXAMPLES {
+        issues.push(format!(
+            "{}: has {} examples (minimum {})",
+            skill.meta.name,
+            skill.examples.len(),
+            MIN_EXAMPLES
+        ));
+    }
+    if skill.context.concepts.len() < MIN_CONCEPTS {
+        issues.push(format!(
+            "{}: has {} concepts (minimum {})",
+            skill.meta.name,
+            skill.context.concepts.len(),
+            MIN_CONCEPTS
+        ));
+    }
+    if skill.context.pitfalls.len() < MIN_PITFALLS {
+        issues.push(format!(
+            "{}: has {} pitfalls (minimum {})",
+            skill.meta.name,
+            skill.context.pitfalls.len(),
+            MIN_PITFALLS
+        ));
+    }
+    issues
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_all_builtin_skills_parse() {
+        for (name, toml_str) in BUILTIN_SKILLS {
+            let skill: Skill = toml::from_str(toml_str)
+                .unwrap_or_else(|e| panic!("built-in skill '{name}' failed to parse: {e}"));
+            assert!(
+                !skill.meta.name.is_empty(),
+                "built-in skill '{name}' has an empty meta.name"
+            );
+        }
+    }
+
+    #[test]
+    fn test_builtin_skill_depth_report() {
+        // This test does NOT fail on individual skills — it reports a summary so
+        // contributors can see which skills need attention.  The test only fails
+        // if *no* built-in skills pass validation, which would indicate a systemic
+        // problem rather than a single missing example.
+        let mut passing = 0usize;
+        let mut total = 0usize;
+
+        for (name, toml_str) in BUILTIN_SKILLS {
+            if let Ok(skill) = toml::from_str::<Skill>(toml_str) {
+                total += 1;
+                let issues = validate_skill_depth(&skill);
+                if issues.is_empty() {
+                    passing += 1;
+                } else {
+                    eprintln!("skill depth gaps for '{name}':");
+                    for issue in &issues {
+                        eprintln!("  - {issue}");
+                    }
+                }
+            }
+        }
+
+        assert!(
+            passing > 0,
+            "no built-in skills pass minimum depth validation ({total} total)"
+        );
+        eprintln!("\nskill depth summary: {passing}/{total} skills meet minimum depth thresholds");
+    }
+
+    #[test]
+    fn test_validate_skill_depth_pass() {
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "test-tool".into(),
+                ..Default::default()
+            },
+            context: SkillContext {
+                concepts: vec!["c1".into(), "c2".into(), "c3".into()],
+                pitfalls: vec!["p1".into(), "p2".into(), "p3".into()],
+            },
+            examples: (0..5)
+                .map(|i| SkillExample {
+                    task: format!("task {i}"),
+                    args: format!("--flag{i}"),
+                    explanation: format!("explanation {i}"),
+                })
+                .collect(),
+        };
+        let issues = validate_skill_depth(&skill);
+        assert!(issues.is_empty(), "expected no issues, got: {issues:?}");
+    }
+
+    #[test]
+    fn test_validate_skill_depth_fail() {
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "shallow".into(),
+                ..Default::default()
+            },
+            context: SkillContext {
+                concepts: vec!["c1".into()],
+                pitfalls: vec![],
+            },
+            examples: vec![],
+        };
+        let issues = validate_skill_depth(&skill);
+        assert_eq!(issues.len(), 3);
+    }
+}
