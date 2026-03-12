@@ -112,7 +112,7 @@ outputs = ["dada2/asv_table.csv", "dada2/taxonomy_table.csv",
 [[step]]
 name       = "multiqc"
 gather     = true
-depends_on = ["fastp"]
-cmd        = "multiqc qc/ -o results/multiqc/"
+depends_on = ["dada2"]
+cmd        = "multiqc qc/ dada2/ -o results/multiqc/ --force"
 inputs     = []
 outputs    = ["results/multiqc/multiqc_report.html"]

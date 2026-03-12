@@ -127,7 +127,7 @@ outputs = ["methyl/{sample}.CpG.bedGraph.gz.bismark.zero.cov"]
 [[step]]
 name       = "multiqc"
 gather     = true
-depends_on = ["trim_galore", "bismark_align", "bismark_dedup", "methylation_extract"]
-cmd        = "multiqc trimmed/ aligned/ deduped/ methyl/ -o results/multiqc/"
+depends_on = ["bismark2bedgraph"]
+cmd        = "multiqc trimmed/ aligned/ deduped/ methyl/ -o results/multiqc/ --force"
 inputs     = []
 outputs    = ["results/multiqc/multiqc_report.html"]

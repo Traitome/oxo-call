@@ -50,7 +50,7 @@ use colored::Colorize;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
-use std::time::SystemTime;
+use std::time::{Instant, SystemTime};
 
 // ─── Workflow definition (parsed from TOML) ───────────────────────────────────
 
@@ -356,6 +356,108 @@ fn is_up_to_date(task: &ConcreteTask) -> bool {
         .all(|i| mtime(i).is_none_or(|t| t <= oldest_output))
 }
 
+// ─── DAG phase computation ────────────────────────────────────────────────────
+
+/// Compute execution phases: groups of tasks that can run in parallel.
+///
+/// Each phase contains tasks whose dependencies are all satisfied by
+/// earlier phases.  Within a phase, all tasks are independent and can
+/// execute concurrently.
+pub fn compute_phases(tasks: &[ConcreteTask]) -> Vec<Vec<&ConcreteTask>> {
+    let mut phases: Vec<Vec<&ConcreteTask>> = Vec::new();
+    let mut assigned: HashSet<&str> = HashSet::new();
+    let mut remaining: Vec<&ConcreteTask> = tasks.iter().collect();
+
+    while !remaining.is_empty() {
+        let (ready, rest): (Vec<&ConcreteTask>, Vec<&ConcreteTask>) = remaining
+            .into_iter()
+            .partition(|t| t.deps.iter().all(|d| assigned.contains(d.as_str())));
+
+        if ready.is_empty() {
+            // All remaining tasks have unsatisfied deps — cycle or error.
+            break;
+        }
+
+        for t in &ready {
+            assigned.insert(&t.id);
+        }
+        phases.push(ready);
+        remaining = rest;
+    }
+
+    phases
+}
+
+/// Format elapsed time as human-readable string.
+fn format_elapsed(elapsed: std::time::Duration) -> String {
+    let secs = elapsed.as_secs();
+    if secs < 60 {
+        format!("{:.1}s", elapsed.as_secs_f64())
+    } else if secs < 3600 {
+        format!("{}m {:02}s", secs / 60, secs % 60)
+    } else {
+        format!("{}h {:02}m {:02}s", secs / 3600, (secs % 3600) / 60, secs % 60)
+    }
+}
+
+/// Print the DAG phase diagram for a set of tasks.
+fn print_dag_phases(tasks: &[ConcreteTask]) {
+    let phases = compute_phases(tasks);
+    if phases.is_empty() {
+        return;
+    }
+
+    println!();
+    println!(
+        "  {} {}",
+        "Pipeline DAG".bold(),
+        format!("({} phases, {} tasks)", phases.len(), tasks.len()).dimmed()
+    );
+    println!();
+
+    for (i, phase) in phases.iter().enumerate() {
+        let phase_num = format!("Phase {}", i + 1);
+
+        // Group by step_name to show compact per-sample expansion.
+        let mut groups: Vec<(String, Vec<String>)> = Vec::new();
+        for t in phase.iter() {
+            let label = if t.gather {
+                format!("{} [gather]", t.id)
+            } else {
+                t.id.clone()
+            };
+            if let Some(g) = groups.last_mut().filter(|(name, _)| name == &t.step_name) {
+                g.1.push(label);
+            } else {
+                groups.push((t.step_name.clone(), vec![label]));
+            }
+        }
+
+        let mut group_strs: Vec<String> = Vec::new();
+        for (_, items) in &groups {
+            if items.len() <= 3 {
+                group_strs.extend(items.iter().cloned());
+            } else {
+                // Show first two and a count.
+                group_strs.push(items[0].clone());
+                group_strs.push(format!("… +{} more", items.len() - 1));
+            }
+        }
+
+        println!(
+            "  {:>9}  {}",
+            phase_num.cyan(),
+            group_strs.join("  │  ")
+        );
+
+        if i + 1 < phases.len() {
+            println!("  {:>9}  {}", "", "↓".dimmed());
+        }
+    }
+
+    println!();
+}
+
 // ─── Async executor ────────────────────────────────────────────────────────────
 
 /// Execute a task graph with maximum parallelism.
@@ -373,6 +475,8 @@ pub async fn execute(tasks: Vec<ConcreteTask>, dry_run: bool) -> Result<()> {
     }
 
     let total = tasks.len();
+    let start_time = Instant::now();
+
     println!();
     println!(
         "{} {} — {} task(s){}",
@@ -383,12 +487,18 @@ pub async fn execute(tasks: Vec<ConcreteTask>, dry_run: bool) -> Result<()> {
     );
     println!("{}", "─".repeat(60).dimmed());
 
+    // Print DAG phase diagram.
+    print_dag_phases(&tasks);
+
+    println!("{}", "─".repeat(60).dimmed());
+
     // Set of completed task IDs (includes both run and skipped).
     let mut done: HashSet<String> = HashSet::new();
     // Tasks that have been dispatched (to avoid double-dispatch).
     let mut started: HashSet<String> = HashSet::new();
     // Separately track which tasks were skipped (up-to-date).
     let mut skipped_count: usize = 0;
+    let mut completed_count: usize = 0;
     let mut join_set: JoinSet<Result<(String, bool /*skipped*/)>> = JoinSet::new();
 
     let mut iterations_without_progress = 0usize;
@@ -403,8 +513,9 @@ pub async fn execute(tasks: Vec<ConcreteTask>, dry_run: bool) -> Result<()> {
         for task in newly_ready {
             started.insert(task.id.clone());
             if dry_run {
-                print_task_dry_run(task);
+                print_task_dry_run(task, completed_count + 1, total);
                 done.insert(task.id.clone());
+                completed_count += 1;
             } else {
                 let t = task.clone();
                 join_set.spawn(async move { run_single_task(t).await });
@@ -442,36 +553,48 @@ pub async fn execute(tasks: Vec<ConcreteTask>, dry_run: bool) -> Result<()> {
             Some(result) => {
                 let (id, skipped) = result
                     .map_err(|e| OxoError::ExecutionError(format!("Task join error: {e}")))??;
+                completed_count += 1;
                 if skipped {
                     skipped_count += 1;
                     println!(
-                        "  {} {} {}",
+                        "  {} [{}/{}] {} {}",
                         "↷".dimmed(),
+                        completed_count,
+                        total,
                         id.dimmed(),
                         "(up to date)".dimmed()
                     );
                 } else {
-                    println!("  {} {}", "✓".green().bold(), id.green());
+                    println!(
+                        "  {} [{}/{}] {}",
+                        "✓".green().bold(),
+                        completed_count,
+                        total,
+                        id.green()
+                    );
                 }
                 done.insert(id);
             }
         }
     }
 
+    let elapsed = start_time.elapsed();
     println!("{}", "─".repeat(60).dimmed());
     let run_count = started.len();
     if dry_run {
         println!(
-            "\n{} {} task(s) would execute",
+            "\n{} {} task(s) would execute across {} phase(s)",
             "◆".cyan().bold(),
-            run_count
+            run_count,
+            compute_phases(&tasks).len()
         );
     } else {
         println!(
-            "\n{} Workflow complete ({} task(s) run, {} up to date)",
+            "\n{} Workflow complete — {} task(s) run, {} up to date  ({})",
             "✓".green().bold(),
             run_count.saturating_sub(skipped_count),
-            skipped_count
+            skipped_count,
+            format_elapsed(elapsed)
         );
     }
 
@@ -519,10 +642,12 @@ async fn run_single_task(task: ConcreteTask) -> Result<(String, bool)> {
 }
 
 /// Print a dry-run preview for a single task.
-fn print_task_dry_run(task: &ConcreteTask) {
+fn print_task_dry_run(task: &ConcreteTask, current: usize, total: usize) {
     println!(
-        "  {} {}",
+        "  {} [{}/{}] {}",
         "▷".cyan(),
+        current,
+        total,
         if task.gather {
             format!("{} [gather]", task.id).cyan().bold().to_string()
         } else {

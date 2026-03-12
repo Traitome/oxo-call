@@ -98,7 +98,7 @@ outputs = ["results/{sample}_counts.txt"]
 [[step]]
 name       = "multiqc"
 gather     = true
-depends_on = ["fastp", "star"]
-cmd        = "multiqc qc/ aligned/ -o results/multiqc/"
+depends_on = ["featurecounts"]
+cmd        = "multiqc qc/ aligned/ results/ -o results/multiqc/ --force"
 inputs     = []
 outputs    = ["results/multiqc/multiqc_report.html"]

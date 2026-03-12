@@ -112,7 +112,7 @@ outputs = ["qc/{sample}_cell_stats.json"]
 [[step]]
 name       = "multiqc"
 gather     = true
-depends_on = ["fastp", "starsolo"]
-cmd        = "multiqc qc/ starsolo/ -o results/multiqc/"
+depends_on = ["cell_qc", "samtools_index"]
+cmd        = "multiqc qc/ starsolo/ -o results/multiqc/ --force"
 inputs     = []
 outputs    = ["results/multiqc/multiqc_report.html"]

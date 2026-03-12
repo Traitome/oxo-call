@@ -102,7 +102,7 @@ outputs = ["peaks/{sample}_peaks.narrowPeak", "peaks/{sample}_summits.bed"]
 [[step]]
 name       = "multiqc"
 gather     = true
-depends_on = ["fastp", "mark_duplicates"]
-cmd        = "multiqc qc/ aligned/ -o results/multiqc/"
+depends_on = ["macs3"]
+cmd        = "multiqc qc/ aligned/ peaks/ -o results/multiqc/ --force"
 inputs     = []
 outputs    = ["results/multiqc/multiqc_report.html"]

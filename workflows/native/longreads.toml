@@ -106,6 +106,6 @@ outputs = ["qc/quast_{sample}/report.txt", "qc/quast_{sample}/report.html"]
 name       = "multiqc"
 gather     = true
 depends_on = ["nanostat", "quast"]
-cmd        = "multiqc qc/ -o results/multiqc/"
+cmd        = "multiqc qc/ -o results/multiqc/ --force"
 inputs     = []
 outputs    = ["results/multiqc/multiqc_report.html"]

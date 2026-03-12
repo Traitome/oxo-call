@@ -115,7 +115,7 @@ outputs = ["vcf/{sample}.g.vcf.gz"]
 [[step]]
 name       = "multiqc"
 gather     = true
-depends_on = ["fastp", "mark_duplicates"]
-cmd        = "multiqc qc/ aligned/ -o results/multiqc/"
+depends_on = ["haplotype_caller"]
+cmd        = "multiqc qc/ aligned/ vcf/ -o results/multiqc/ --force"
 inputs     = []
 outputs    = ["results/multiqc/multiqc_report.html"]

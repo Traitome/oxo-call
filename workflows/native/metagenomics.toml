@@ -94,7 +94,7 @@ outputs = ["bracken/{sample}.bracken"]
 [[step]]
 name       = "multiqc"
 gather     = true
-depends_on = ["fastp", "kraken2"]
-cmd        = "multiqc qc/ kraken2/ -o results/multiqc/"
+depends_on = ["bracken"]
+cmd        = "multiqc qc/ kraken2/ bracken/ -o results/multiqc/ --force"
 inputs     = []
 outputs    = ["results/multiqc/multiqc_report.html"]
