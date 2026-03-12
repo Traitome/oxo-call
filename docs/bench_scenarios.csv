@@ -1,0 +1,10 @@
+scenario_id,assay,n_samples,read_len_bp,reads_per_sample,error_rate,total_reads
+rnaseq_3s_pe150,rnaseq,3,150,5000,0.010,15000
+rnaseq_10s_pe150,rnaseq,10,150,5000,0.010,50000
+wgs_2s_pe150,wgs,2,150,50000,0.005,100000
+atacseq_3s_pe50,atacseq,3,50,20000,0.010,60000
+metagenomics_4s_pe150,metagenomics,4,150,10000,0.015,40000
+chipseq_3s_pe75,chipseq,3,75,15000,0.010,45000
+methylseq_2s_pe150,methylseq,2,150,30000,0.010,60000
+scrnaseq_2s_10xv3,scrnaseq,2,150,25000,0.010,50000
+16s_6s_pe250,amplicon16s,6,250,8000,0.020,48000

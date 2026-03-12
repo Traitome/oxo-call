@@ -1,10 +1,12 @@
 //! Benchmark report generation.
 //!
 //! Formats results from workflow and LLM benchmarks into human-readable
-//! tables and machine-readable JSON for integration with CI/reporting pipelines.
+//! tables, machine-readable JSON, and CSV files for integration with
+//! CI/reporting pipelines and the docs/ landing page.
 
-use crate::bench::llm::ModelBenchResult;
+use crate::bench::llm::{EvalTask, ModelBenchResult};
 use crate::bench::workflow::BenchWorkflowResult;
+use crate::sim::omics::OmicsScenario;
 use std::io::Write;
 
 /// Print a Markdown table of workflow benchmark results.
@@ -186,10 +188,86 @@ pub fn print_model_summary<W: Write>(
     Ok(())
 }
 
+// ── CSV export ────────────────────────────────────────────────────────────────
+
+/// Write workflow benchmark results as a CSV file.
+///
+/// Columns: `workflow,expanded_tasks,parse_us,expand_us,cycle_free`
+pub fn write_workflow_csv<W: Write>(
+    writer: &mut W,
+    results: &[BenchWorkflowResult],
+) -> std::io::Result<()> {
+    writeln!(writer, "workflow,expanded_tasks,parse_us,expand_us,cycle_free")?;
+    for r in results {
+        writeln!(
+            writer,
+            "{},{},{:.1},{:.1},{}",
+            r.workflow_name,
+            r.expanded_tasks,
+            r.parse_ns as f64 / 1_000.0,
+            r.expand_ns as f64 / 1_000.0,
+            !r.has_cycle,
+        )?;
+    }
+    Ok(())
+}
+
+/// Write omics simulation scenario statistics as a CSV file.
+///
+/// Columns: `scenario_id,assay,n_samples,read_len_bp,reads_per_sample,error_rate,total_reads`
+pub fn write_scenarios_csv<W: Write>(
+    writer: &mut W,
+    scenarios: &[OmicsScenario],
+) -> std::io::Result<()> {
+    writeln!(
+        writer,
+        "scenario_id,assay,n_samples,read_len_bp,reads_per_sample,error_rate,total_reads"
+    )?;
+    for s in scenarios {
+        let total = s.samples.len() * s.reads_per_sample;
+        writeln!(
+            writer,
+            "{},{},{},{},{},{:.3},{}",
+            s.id,
+            s.assay,
+            s.samples.len(),
+            s.read_len,
+            s.reads_per_sample,
+            s.error_rate,
+            total,
+        )?;
+    }
+    Ok(())
+}
+
+/// Write the canonical LLM evaluation task catalog as a CSV file.
+///
+/// Columns: `category,tool,task_description,required_patterns`
+pub fn write_eval_tasks_csv<W: Write>(
+    writer: &mut W,
+    tasks: &[EvalTask],
+) -> std::io::Result<()> {
+    writeln!(writer, "category,tool,task_description,required_patterns")?;
+    for t in tasks {
+        // Escape double-quotes inside fields by doubling them (RFC 4180).
+        let task_esc = t.task.replace('"', "\"\"");
+        let patterns_esc = t.required_patterns.join(";").replace('"', "\"\"");
+        writeln!(
+            writer,
+            "{},{},\"{}\",\"{}\"",
+            t.category, t.tool, task_esc, patterns_esc,
+        )?;
+    }
+    Ok(())
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bench::llm::canonical_eval_tasks;
     use crate::bench::workflow::bench_workflow_expand;
+    use crate::sim::omics::canonical_scenarios;
 
     #[test]
     fn test_print_workflow_report() {
@@ -199,6 +277,61 @@ mod tests {
         let text = String::from_utf8(buf).unwrap();
         assert!(text.contains("Workflow benchmark results"));
         assert!(text.contains("rnaseq"));
+    }
+
+    #[test]
+    fn test_write_workflow_csv_header_and_rows() {
+        let results = bench_workflow_expand(1);
+        let mut buf = Vec::new();
+        write_workflow_csv(&mut buf, &results).unwrap();
+        let text = String::from_utf8(buf).unwrap();
+        // Header
+        assert!(text.starts_with("workflow,expanded_tasks,parse_us,expand_us,cycle_free"));
+        // One row per workflow
+        let data_lines: Vec<&str> = text.lines().skip(1).filter(|l| !l.is_empty()).collect();
+        assert_eq!(data_lines.len(), results.len());
+        // Each row has 5 comma-separated fields
+        for line in &data_lines {
+            assert_eq!(line.split(',').count(), 5, "bad CSV row: {line}");
+        }
+        // rnaseq row should contain "true" for cycle_free
+        assert!(text.contains("rnaseq,"), "rnaseq missing from workflow CSV");
+        assert!(text.contains(",true"), "all workflows should be cycle-free");
+    }
+
+    #[test]
+    fn test_write_scenarios_csv_header_and_rows() {
+        let scenarios = canonical_scenarios();
+        let mut buf = Vec::new();
+        write_scenarios_csv(&mut buf, &scenarios).unwrap();
+        let text = String::from_utf8(buf).unwrap();
+        // Header
+        assert!(text.starts_with(
+            "scenario_id,assay,n_samples,read_len_bp,reads_per_sample,error_rate,total_reads"
+        ));
+        // One data row per scenario
+        let data_lines: Vec<&str> = text.lines().skip(1).filter(|l| !l.is_empty()).collect();
+        assert_eq!(data_lines.len(), scenarios.len());
+        // Each row has 7 fields
+        for line in &data_lines {
+            assert_eq!(line.split(',').count(), 7, "bad CSV row: {line}");
+        }
+    }
+
+    #[test]
+    fn test_write_eval_tasks_csv_header_and_rows() {
+        let tasks = canonical_eval_tasks();
+        let mut buf = Vec::new();
+        write_eval_tasks_csv(&mut buf, &tasks).unwrap();
+        let text = String::from_utf8(buf).unwrap();
+        // Header
+        assert!(text.starts_with("category,tool,task_description,required_patterns"));
+        // Correct number of data lines
+        let data_lines: Vec<&str> = text.lines().skip(1).filter(|l| !l.is_empty()).collect();
+        assert_eq!(data_lines.len(), tasks.len());
+        // Quoted task descriptions are present
+        assert!(text.contains("alignment"), "category 'alignment' missing from eval CSV");
+        assert!(text.contains("samtools"), "tool 'samtools' missing from eval CSV");
     }
 
     #[test]
