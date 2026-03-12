@@ -147,8 +147,10 @@ rule multiqc:
     input:
         expand("results/qc/{sample}_fastp.json", sample=SAMPLES),
         expand("results/qc/{sample}.markdup_metrics.txt", sample=SAMPLES),
+        expand("results/peaks/{sample}_peaks.narrowPeak", sample=SAMPLES),
+        expand("results/bigwig/{sample}.bw", sample=SAMPLES),
     output:
         "results/multiqc/multiqc_report.html",
     log: "logs/multiqc.log"
     shell:
-        "multiqc results/qc/ results/aligned/ -o results/multiqc/ > {log} 2>&1"
+        "multiqc results/qc/ results/aligned/ results/peaks/ results/bigwig/ -o results/multiqc/ --force > {log} 2>&1"

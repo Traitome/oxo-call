@@ -135,4 +135,4 @@ rule multiqc:
     log: "logs/multiqc.log"
     shell:
         "multiqc results/trimmed/ results/aligned/ results/deduped/ results/methyl/ "
-        "-o results/multiqc/ > {log} 2>&1"
+        "-o results/multiqc/ --force > {log} 2>&1"

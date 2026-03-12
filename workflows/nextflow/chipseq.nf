@@ -188,8 +188,12 @@ workflow {
     MACS3_CALLPEAK(FILTER_READS.out.bam)
     BAMCOVERAGE(FILTER_READS.out.bam)
 
-    // Collect all QC files for MultiQC
-    qc_files = FASTP.out.json.mix(MARK_DUPLICATES.out.metrics).collect()
+    // Collect all QC files for MultiQC (after all steps complete)
+    qc_files = FASTP.out.json
+        .mix(MARK_DUPLICATES.out.metrics)
+        .mix(MACS3_CALLPEAK.out[0])
+        .mix(BAMCOVERAGE.out)
+        .collect()
     MULTIQC(qc_files)
 }
 

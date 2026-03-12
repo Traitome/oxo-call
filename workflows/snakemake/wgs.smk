@@ -174,9 +174,10 @@ rule multiqc:
     input:
         expand("results/qc/{sample}_fastp.json", sample=SAMPLES),
         expand("results/qc/{sample}.markdup_metrics.txt", sample=SAMPLES),
+        expand("results/vcf/{sample}.g.vcf.gz", sample=SAMPLES),
     output:
         "results/multiqc/multiqc_report.html",
     log: "logs/multiqc.log"
     container: "docker://quay.io/biocontainers/multiqc:1.25.1--pyhdfd78af_0"
     shell:
-        "multiqc results/qc/ results/aligned/ -o results/multiqc/ > {log} 2>&1"
+        "multiqc results/qc/ results/aligned/ results/vcf/ -o results/multiqc/ --force > {log} 2>&1"

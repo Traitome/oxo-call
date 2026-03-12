@@ -152,7 +152,11 @@ workflow {
         .flatten()
     DADA2(all_filtered, silva_ch)
 
-    qc_files = FASTP.out.json.mix(CUTADAPT.out.log).collect()
+    // Collect QC files for MultiQC (after DADA2 completes)
+    qc_files = FASTP.out.json
+        .mix(CUTADAPT.out.log)
+        .mix(DADA2.out[0])
+        .collect()
     MULTIQC(qc_files)
 }
 

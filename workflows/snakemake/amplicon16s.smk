@@ -117,8 +117,9 @@ rule multiqc:
     input:
         expand("results/qc/{sample}_fastp.json", sample=SAMPLES),
         expand("results/qc/{sample}_cutadapt.txt", sample=SAMPLES),
+        "results/dada2/asv_table.csv",
     output:
         "results/multiqc/multiqc_report.html",
     log: "logs/multiqc.log"
     shell:
-        "multiqc results/qc/ -o results/multiqc/ > {log} 2>&1"
+        "multiqc results/qc/ results/dada2/ -o results/multiqc/ --force > {log} 2>&1"
