@@ -911,11 +911,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                     "→".cyan().bold(),
                     data.display().to_string().cyan()
                 );
-                println!(
-                    "  {} {}",
-                    "Data type:".bold(),
-                    ctx.data_type_hint
-                );
+                println!("  {} {}", "Data type:".bold(), ctx.data_type_hint);
                 if ctx.samples.is_empty() {
                     println!(
                         "  {} {}",
@@ -940,17 +936,16 @@ async fn run(cli: Cli) -> error::Result<()> {
                 let spinner = runner::make_spinner(&format!(
                     "Generating {label} workflow from data context with LLM..."
                 ));
-                let wf =
-                    match workflow::infer_workflow(&cfg, &task, &data, &engine_name).await {
-                        Ok(w) => {
-                            spinner.finish_and_clear();
-                            w
-                        }
-                        Err(e) => {
-                            spinner.finish_and_clear();
-                            return Err(e);
-                        }
-                    };
+                let wf = match workflow::infer_workflow(&cfg, &task, &data, &engine_name).await {
+                    Ok(w) => {
+                        spinner.finish_and_clear();
+                        w
+                    }
+                    Err(e) => {
+                        spinner.finish_and_clear();
+                        return Err(e);
+                    }
+                };
 
                 match output {
                     Some(ref path) => {

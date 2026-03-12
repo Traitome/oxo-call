@@ -13,7 +13,6 @@
 //!    - Self-consistency (do repeated calls produce the same flags?).
 //! 3. Aggregate metrics: accuracy@1, consistency, avg_latency_ms, avg_tokens.
 
-
 /// Configuration for a model evaluation run.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ModelBenchConfig {
@@ -231,7 +230,8 @@ pub fn run_model_bench(
                 }
 
                 if let Some(ref a) = args
-                    && check_correctness(a, &task.required_patterns) {
+                    && check_correctness(a, &task.required_patterns)
+                {
                     correct_count += 1;
                 }
                 args_responses.push(args);

@@ -275,7 +275,10 @@ impl DocsFetcher {
         // on the subsequent rename.
         let tmp_path = dir.join(format!(
             "{}.{}.tmp",
-            cache_path.file_stem().and_then(|s| s.to_str()).unwrap_or("doc"),
+            cache_path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("doc"),
             Uuid::new_v4().simple()
         ));
         std::fs::write(&tmp_path, content)?;

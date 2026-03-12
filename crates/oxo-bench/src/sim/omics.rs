@@ -35,9 +35,7 @@ impl OmicsScenario {
             id: format!("rnaseq_{n_samples}s_pe150"),
             description: format!("Bulk RNA-seq with {n_samples} paired-end samples (150 bp)"),
             assay: "rnaseq".to_string(),
-            samples: (1..=n_samples)
-                .map(|i| format!("sample{i:02}"))
-                .collect(),
+            samples: (1..=n_samples).map(|i| format!("sample{i:02}")).collect(),
             read_len: 150,
             reads_per_sample: 5_000,
             error_rate: 0.01,
@@ -49,11 +47,11 @@ impl OmicsScenario {
     pub fn wgs(n_samples: usize) -> Self {
         Self {
             id: format!("wgs_{n_samples}s_pe150"),
-            description: format!("Whole-genome sequencing with {n_samples} paired-end samples (150 bp)"),
+            description: format!(
+                "Whole-genome sequencing with {n_samples} paired-end samples (150 bp)"
+            ),
             assay: "wgs".to_string(),
-            samples: (1..=n_samples)
-                .map(|i| format!("sample{i:02}"))
-                .collect(),
+            samples: (1..=n_samples).map(|i| format!("sample{i:02}")).collect(),
             read_len: 150,
             reads_per_sample: 50_000,
             error_rate: 0.005,
@@ -67,9 +65,7 @@ impl OmicsScenario {
             id: format!("atacseq_{n_samples}s_pe50"),
             description: format!("ATAC-seq with {n_samples} paired-end samples (50 bp)"),
             assay: "atacseq".to_string(),
-            samples: (1..=n_samples)
-                .map(|i| format!("sample{i:02}"))
-                .collect(),
+            samples: (1..=n_samples).map(|i| format!("sample{i:02}")).collect(),
             read_len: 50,
             reads_per_sample: 20_000,
             error_rate: 0.01,
@@ -81,11 +77,11 @@ impl OmicsScenario {
     pub fn metagenomics(n_samples: usize) -> Self {
         Self {
             id: format!("metagenomics_{n_samples}s_pe150"),
-            description: format!("Shotgun metagenomics with {n_samples} paired-end samples (150 bp)"),
+            description: format!(
+                "Shotgun metagenomics with {n_samples} paired-end samples (150 bp)"
+            ),
             assay: "metagenomics".to_string(),
-            samples: (1..=n_samples)
-                .map(|i| format!("sample{i:02}"))
-                .collect(),
+            samples: (1..=n_samples).map(|i| format!("sample{i:02}")).collect(),
             read_len: 150,
             reads_per_sample: 10_000,
             error_rate: 0.015,
@@ -99,9 +95,7 @@ impl OmicsScenario {
             id: format!("chipseq_{n_samples}s_pe75"),
             description: format!("ChIP-seq with {n_samples} paired-end samples (75 bp)"),
             assay: "chipseq".to_string(),
-            samples: (1..=n_samples)
-                .map(|i| format!("H3K27ac_rep{i}"))
-                .collect(),
+            samples: (1..=n_samples).map(|i| format!("H3K27ac_rep{i}")).collect(),
             read_len: 75,
             reads_per_sample: 15_000,
             error_rate: 0.01,
@@ -115,9 +109,7 @@ impl OmicsScenario {
             id: format!("methylseq_{n_samples}s_pe150"),
             description: format!("WGBS methylation with {n_samples} paired-end samples (150 bp)"),
             assay: "methylseq".to_string(),
-            samples: (1..=n_samples)
-                .map(|i| format!("sample{i:02}"))
-                .collect(),
+            samples: (1..=n_samples).map(|i| format!("sample{i:02}")).collect(),
             read_len: 150,
             reads_per_sample: 30_000,
             error_rate: 0.01,
@@ -131,9 +123,7 @@ impl OmicsScenario {
             id: format!("scrnaseq_{n_samples}s_10xv3"),
             description: format!("scRNA-seq 10x Chromium v3 with {n_samples} libraries"),
             assay: "scrnaseq".to_string(),
-            samples: (1..=n_samples)
-                .map(|i| format!("lib{i:02}"))
-                .collect(),
+            samples: (1..=n_samples).map(|i| format!("lib{i:02}")).collect(),
             read_len: 150,
             reads_per_sample: 25_000,
             error_rate: 0.01,
@@ -147,9 +137,7 @@ impl OmicsScenario {
             id: format!("16s_{n_samples}s_pe250"),
             description: format!("16S V4 amplicon with {n_samples} paired-end samples (250 bp)"),
             assay: "amplicon16s".to_string(),
-            samples: (1..=n_samples)
-                .map(|i| format!("sample{i:02}"))
-                .collect(),
+            samples: (1..=n_samples).map(|i| format!("sample{i:02}")).collect(),
             read_len: 250,
             reads_per_sample: 8_000,
             error_rate: 0.02,

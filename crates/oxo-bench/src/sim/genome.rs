@@ -91,7 +91,14 @@ mod tests {
             ..Default::default()
         };
         write_fasta(&mut buf, &params).unwrap();
-        let header_count = buf.lines().filter(|l| l.as_ref().map(|s: &String| s.starts_with('>')).unwrap_or(false)).count();
+        let header_count = buf
+            .lines()
+            .filter(|l| {
+                l.as_ref()
+                    .map(|s: &String| s.starts_with('>'))
+                    .unwrap_or(false)
+            })
+            .count();
         assert_eq!(header_count, 3);
     }
 

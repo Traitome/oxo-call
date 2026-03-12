@@ -68,8 +68,7 @@ pub fn print_model_report<W: Write>(
 
 /// Summarise LLM results by model (aggregate across tools).
 pub fn summarise_by_model(results: &[ModelBenchResult]) -> Vec<ModelSummary> {
-    let mut map: std::collections::HashMap<String, ModelSummary> =
-        std::collections::HashMap::new();
+    let mut map: std::collections::HashMap<String, ModelSummary> = std::collections::HashMap::new();
 
     for r in results {
         let entry = map
@@ -197,7 +196,10 @@ pub fn write_workflow_csv<W: Write>(
     writer: &mut W,
     results: &[BenchWorkflowResult],
 ) -> std::io::Result<()> {
-    writeln!(writer, "workflow,expanded_tasks,parse_us,expand_us,cycle_free")?;
+    writeln!(
+        writer,
+        "workflow,expanded_tasks,parse_us,expand_us,cycle_free"
+    )?;
     for r in results {
         writeln!(
             writer,
@@ -243,10 +245,7 @@ pub fn write_scenarios_csv<W: Write>(
 /// Write the canonical LLM evaluation task catalog as a CSV file.
 ///
 /// Columns: `category,tool,task_description,required_patterns`
-pub fn write_eval_tasks_csv<W: Write>(
-    writer: &mut W,
-    tasks: &[EvalTask],
-) -> std::io::Result<()> {
+pub fn write_eval_tasks_csv<W: Write>(writer: &mut W, tasks: &[EvalTask]) -> std::io::Result<()> {
     writeln!(writer, "category,tool,task_description,required_patterns")?;
     for t in tasks {
         // Escape double-quotes inside fields by doubling them (RFC 4180).
@@ -260,7 +259,6 @@ pub fn write_eval_tasks_csv<W: Write>(
     }
     Ok(())
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -330,8 +328,14 @@ mod tests {
         let data_lines: Vec<&str> = text.lines().skip(1).filter(|l| !l.is_empty()).collect();
         assert_eq!(data_lines.len(), tasks.len());
         // Quoted task descriptions are present
-        assert!(text.contains("alignment"), "category 'alignment' missing from eval CSV");
-        assert!(text.contains("samtools"), "tool 'samtools' missing from eval CSV");
+        assert!(
+            text.contains("alignment"),
+            "category 'alignment' missing from eval CSV"
+        );
+        assert!(
+            text.contains("samtools"),
+            "tool 'samtools' missing from eval CSV"
+        );
     }
 
     #[test]

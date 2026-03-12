@@ -1202,12 +1202,18 @@ fn test_workflow_list_shows_new_templates() {
     assert!(stdout.contains("rnaseq"), "rnaseq missing from list");
     assert!(stdout.contains("wgs"), "wgs missing from list");
     assert!(stdout.contains("atacseq"), "atacseq missing from list");
-    assert!(stdout.contains("metagenomics"), "metagenomics missing from list");
+    assert!(
+        stdout.contains("metagenomics"),
+        "metagenomics missing from list"
+    );
     // New templates.
     assert!(stdout.contains("chipseq"), "chipseq missing from list");
     assert!(stdout.contains("methylseq"), "methylseq missing from list");
     assert!(stdout.contains("scrnaseq"), "scrnaseq missing from list");
-    assert!(stdout.contains("amplicon16s"), "amplicon16s missing from list");
+    assert!(
+        stdout.contains("amplicon16s"),
+        "amplicon16s missing from list"
+    );
     assert!(stdout.contains("longreads"), "longreads missing from list");
 }
 
@@ -1348,7 +1354,13 @@ fn test_workflow_infer_help() {
 #[test]
 fn test_workflow_infer_missing_data_dir_fails() {
     let output = oxo_call()
-        .args(["workflow", "infer", "RNA-seq analysis", "--data", "/nonexistent/path/xyz"])
+        .args([
+            "workflow",
+            "infer",
+            "RNA-seq analysis",
+            "--data",
+            "/nonexistent/path/xyz",
+        ])
         .output()
         .expect("failed to run oxo-call");
     assert!(
@@ -1371,23 +1383,19 @@ fn test_workflow_infer_scans_data_dir() {
 
     // Create fake paired-end FASTQ files.
     for sample in &["ctrl_rep1", "treat_rep1", "treat_rep2"] {
-        std::fs::write(
-            data_dir.join(format!("{sample}_R1.fastq.gz")),
-            b"fake",
-        ).unwrap();
-        std::fs::write(
-            data_dir.join(format!("{sample}_R2.fastq.gz")),
-            b"fake",
-        ).unwrap();
+        std::fs::write(data_dir.join(format!("{sample}_R1.fastq.gz")), b"fake").unwrap();
+        std::fs::write(data_dir.join(format!("{sample}_R2.fastq.gz")), b"fake").unwrap();
     }
 
     // Run infer — it will scan the directory and try to call LLM.
     // Without a real LLM token it should fail after printing data context.
     let output = oxo_call()
         .args([
-            "workflow", "infer",
+            "workflow",
+            "infer",
             "ChIP-seq analysis for H3K27ac mark",
-            "--data", data_dir.to_str().unwrap(),
+            "--data",
+            data_dir.to_str().unwrap(),
         ])
         .env_remove("OXO_CALL_LLM_API_TOKEN")
         .output()

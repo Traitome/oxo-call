@@ -7,6 +7,6 @@ pub mod fastq;
 pub mod genome;
 pub mod omics;
 
-pub use fastq::{simulate_paired_fastq, FastqSimParams};
-pub use genome::{simulate_fasta, FastaSimParams};
+pub use fastq::{FastqSimParams, simulate_paired_fastq};
+pub use genome::{FastaSimParams, simulate_fasta};
 pub use omics::{OmicsScenario, simulate_scenario};
