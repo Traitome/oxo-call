@@ -1,0 +1,29 @@
+# This CITATION.cff file was generated for the oxo-call project.
+# See https://citation-file-format.github.io/ for the specification.
+
+cff-version: 1.2.0
+title: "oxo-call: Model-intelligent orchestration for CLI bioinformatics"
+message: >-
+  If you use this software in your research, please cite it using
+  the metadata from this file.
+type: software
+authors:
+  - family-names: Traitome
+    affiliation: Traitome
+version: 0.1.2
+date-released: "2025-01-01"
+license: LicenseRef-oxo-call-dual
+url: https://github.com/Traitome/oxo-call
+repository-code: https://github.com/Traitome/oxo-call
+keywords:
+  - bioinformatics
+  - command-line
+  - LLM
+  - natural-language
+  - workflow
+  - genomics
+abstract: >-
+  oxo-call transforms CLI bioinformatics by using LLM-powered parameter
+  generation grounded in tool documentation and expert knowledge skills.
+  Users describe tasks in natural language and receive exact command-line
+  flags for 150+ bioinformatics tools.
