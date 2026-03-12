@@ -342,23 +342,75 @@ oxo-call skill create mytool -o ~/.config/oxo-call/skills/mytool.toml
 
 ---
 
-### `workflow` — Generate bioinformatics workflow files
+### `workflow` — Native workflow engine + compatibility export
 
-The `workflow` command bridges individual `oxo-call run` invocations into
-complete, runnable **Snakemake** or **Nextflow** pipeline files.  It combines
-built-in production-tested templates for the most common assay types with an
-LLM-powered generator for custom pipelines.
+The `workflow` command ships a **lightweight native Rust workflow engine** that
+executes `.oxo.toml` pipeline files directly — no Snakemake, Nextflow, or Conda
+required.  Snakemake and Nextflow are supported as **compatibility export targets**
+for environments that need those formats (e.g., HPC clusters with existing Nextflow
+infrastructure).
+
+#### Native engine features
+
+- **DAG-based execution** — steps run in dependency order with full parallelism
+  across independent tasks via `tokio::task::JoinSet`
+- **Wildcard expansion** — `{sample}` automatically expands per sample; `{params.KEY}` for shared parameters
+- **Output caching** — steps whose outputs are newer than their inputs are skipped automatically
+- **Gather steps** — `gather = true` aggregates across all samples (e.g., MultiQC)
+- **Zero external dependencies** — only the bioinformatics tools themselves need to be installed
+
+#### Workflow file format (`.oxo.toml`)
+
+```toml
+[workflow]
+name        = "rnaseq"
+description = "Bulk RNA-seq pipeline"
+
+[wildcards]
+sample = ["sample1", "sample2", "sample3"]   # {sample} expands for each
+
+[params]
+threads    = "8"
+star_index = "/data/star_hg38"
+gtf        = "/data/gencode.v44.gtf"
+
+[[step]]
+name    = "fastp"
+cmd     = "fastp --in1 data/{sample}_R1.fq.gz --in2 data/{sample}_R2.fq.gz ..."
+inputs  = ["data/{sample}_R1.fq.gz", "data/{sample}_R2.fq.gz"]
+outputs = ["trimmed/{sample}_R1.fq.gz", "trimmed/{sample}_R2.fq.gz"]
+
+[[step]]
+name       = "star"
+depends_on = ["fastp"]
+cmd        = "STAR --genomeDir {params.star_index} ..."
+outputs    = ["aligned/{sample}/Aligned.sortedByCoord.out.bam"]
+
+[[step]]
+name       = "multiqc"
+gather     = true           # runs once after all {sample} instances of deps
+depends_on = ["fastp", "star"]
+cmd        = "multiqc qc/ aligned/ -o results/multiqc/"
+outputs    = ["results/multiqc/multiqc_report.html"]
+```
+
+#### Commands
 
 ```
-oxo-call workflow list                            # List built-in workflow templates
-oxo-call workflow show  <NAME>                    # Print a built-in Snakemake template
+oxo-call workflow list                            # List built-in templates
+oxo-call workflow show  <NAME>                    # Print native .oxo.toml template
+oxo-call workflow show  <NAME> --engine snakemake # Print the Snakemake version
 oxo-call workflow show  <NAME> --engine nextflow  # Print the Nextflow version
-oxo-call workflow generate "<TASK>"               # Generate a custom workflow with LLM
-oxo-call workflow generate "<TASK>" -e nextflow   # Generate a Nextflow workflow
-oxo-call workflow generate "<TASK>" -o wf.smk     # Save workflow to a file
+oxo-call workflow dry-run <FILE|NAME>             # Preview all steps (no execution)
+oxo-call workflow run     <FILE|NAME>             # Execute the workflow
+oxo-call workflow export  <FILE|NAME> --to snakemake  # Export as Snakefile
+oxo-call workflow export  <FILE|NAME> --to nextflow   # Export as Nextflow DSL2
+oxo-call workflow generate "<TASK>"               # LLM-generated native workflow
+oxo-call workflow generate "<TASK>" -e snakemake  # LLM-generated Snakemake workflow
+oxo-call workflow generate "<TASK>" -o wf.toml    # Save to file
 ```
 
-**Built-in templates:**
+**Built-in templates (native + Snakemake + Nextflow DSL2):**
 
 | Template | Assay | Steps |
 |----------|-------|-------|
@@ -367,26 +419,26 @@ oxo-call workflow generate "<TASK>" -o wf.smk     # Save workflow to a file
 | `atacseq` | ATAC-seq / chromatin accessibility | fastp → Bowtie2 → Picard → MACS3 |
 | `metagenomics` | Shotgun metagenomics | fastp → host removal → Kraken2 → Bracken |
 
-Both Snakemake and Nextflow (DSL2) formats are available for every template.
-
 Examples:
 ```bash
-# Inspect the RNA-seq Snakemake template
-oxo-call workflow show rnaseq
+# Dry-run the RNA-seq pipeline to preview all steps
+oxo-call workflow dry-run rnaseq
 
-# Get the WGS pipeline as a Nextflow file
-oxo-call workflow show wgs --engine nextflow > wgs.nf
+# Run the metagenomics workflow from a customised TOML file
+cp $(oxo-call workflow show metagenomics > metagenomics.toml && echo metagenomics.toml)
+# edit wildcards/params in metagenomics.toml, then:
+oxo-call workflow run metagenomics.toml
 
-# Generate a custom chip-seq workflow with LLM and save to file
+# Export native workflow to Snakemake for HPC submission
+oxo-call workflow export wgs.toml --to snakemake -o Snakefile
+
+# Generate a custom ChIP-seq workflow with LLM (native format by default)
 oxo-call workflow generate \
-  "ChIP-seq for H3K27ac from paired-end Illumina reads, peak calling against input control" \
-  --engine snakemake \
-  --output chipseq_h3k27ac.smk
+  "ChIP-seq for H3K27ac, paired-end, peak calling against input control" \
+  -o chipseq_h3k27ac.toml
 
-# Generate a metagenomics de-novo assembly workflow
-oxo-call workflow generate \
-  "assemble shotgun metagenomics reads with MEGAHIT and then bin contigs with MetaBAT2" \
-  -e nextflow -o assembly.nf
+# Preview the generated workflow before running
+oxo-call workflow dry-run chipseq_h3k27ac.toml
 ```
 
 ---

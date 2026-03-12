@@ -557,8 +557,8 @@
     </div>
     <div class="feature-card">
       <div class="feature-icon">🔗</div>
-      <h3>Workflow generation</h3>
-      <p>Generate complete <strong>Snakemake</strong> or <strong>Nextflow</strong> pipelines from a plain-English description. Built-in templates for RNA-seq, WGS, ATAC-seq, and metagenomics.</p>
+      <h3>Native workflow engine</h3>
+      <p>Run <code>.oxo.toml</code> pipelines natively — DAG parallelism, wildcard expansion, output caching. Export to <strong>Snakemake</strong> or <strong>Nextflow</strong> for HPC compatibility.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🔧</div>
@@ -673,20 +673,24 @@
 
 <!-- ── Workflow Generation ──────────────────────────────────────────────────── -->
 <section id="workflow">
-  <div class="section-label">// workflow generation</div>
-  <h2 class="section-title">From single commands to<br/>complete pipelines</h2>
+  <div class="section-label">// workflow engine</div>
+  <h2 class="section-title">Native Rust pipeline execution —<br/>Snakemake &amp; Nextflow as export formats</h2>
   <p class="section-body">
-    <code>oxo-call workflow</code> bridges individual tool invocations into
-    full, runnable <strong>Snakemake</strong> or <strong>Nextflow</strong>
-    pipeline files — with built-in production-tested templates for the most
-    common omics assay types.
+    <code>oxo-call workflow</code> runs bioinformatics pipelines directly with a
+    lightweight built-in engine.  No Snakemake, Nextflow, or Conda needed.
+    Export to either format for HPC environments that require them.
   </p>
 
   <div class="features-grid" style="margin-top:2rem">
     <div class="feature-card">
+      <div class="feature-icon">⚙️</div>
+      <h3>Native Rust engine</h3>
+      <p>Run <code>.oxo.toml</code> workflows directly — no Snakemake or Nextflow required. DAG-based parallelism, wildcard expansion, output caching.</p>
+    </div>
+    <div class="feature-card">
       <div class="feature-icon">🔬</div>
       <h3>RNA-seq</h3>
-      <p>fastp QC → STAR alignment → featureCounts quantification → MultiQC report. Supports both Snakemake and Nextflow DSL2.</p>
+      <p>fastp QC → STAR alignment → featureCounts quantification → MultiQC report. Run natively or export to Snakemake/Nextflow DSL2.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🧬</div>
@@ -706,12 +710,12 @@
     <div class="feature-card">
       <div class="feature-icon">✨</div>
       <h3>LLM-generated custom workflows</h3>
-      <p>Describe any pipeline in plain language and get a complete, runnable workflow file. One prompt → one deployable script.</p>
+      <p>Describe any pipeline in plain language and get a complete, runnable <code>.oxo.toml</code>. One prompt → one deployable workflow.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🔄</div>
-      <h3>Snakemake &amp; Nextflow</h3>
-      <p>Every built-in template ships in both formats. Switch with <code>--engine nextflow</code>. Save directly to a file with <code>-o</code>.</p>
+      <h3>Snakemake &amp; Nextflow export</h3>
+      <p>Every template can be exported with <code>workflow export --to snakemake</code> or <code>--to nextflow</code> for HPC environments.</p>
     </div>
   </div>
 
@@ -722,17 +726,19 @@
     <pre class="code-block-body"><span class="c"># List all built-in templates</span>
 <span class="prompt">$</span> oxo-call workflow list
 
-<span class="c"># Show the WGS Snakemake template</span>
-<span class="prompt">$</span> oxo-call workflow show wgs
+<span class="c"># Preview the RNA-seq pipeline (no execution)</span>
+<span class="prompt">$</span> oxo-call workflow dry-run rnaseq
 
-<span class="c"># Get the RNA-seq Nextflow pipeline</span>
-<span class="prompt">$</span> oxo-call workflow show rnaseq --engine nextflow &gt; rnaseq.nf
+<span class="c"># Run a workflow (native engine — no Snakemake/Nextflow needed)</span>
+<span class="prompt">$</span> oxo-call workflow run my_rnaseq.toml
+
+<span class="c"># Export to Snakemake for HPC submission</span>
+<span class="prompt">$</span> oxo-call workflow export wgs.toml --to snakemake -o Snakefile
 
 <span class="c"># Generate a custom ChIP-seq workflow with LLM</span>
 <span class="prompt">$</span> oxo-call workflow generate \
     "ChIP-seq H3K27ac: QC → Bowtie2 → MACS3 peaks vs input control" \
-    --engine snakemake \
-    --output chipseq.smk</pre>
+    -o chipseq.toml</pre>
   </div>
 </section>
 

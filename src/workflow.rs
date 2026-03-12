@@ -1,17 +1,15 @@
-/// Workflow generation for oxo-call.
-///
-/// The `workflow` subcommand bridges individual `oxo-call run` invocations into
-/// complete, runnable bioinformatics pipelines expressed as Snakemake or Nextflow
-/// workflow files.
+/// Workflow registry and LLM-based generator for oxo-call.
 ///
 /// ## Architecture
-/// 1. **Built-in templates** — curated, production-tested Snakemake/Nextflow
-///    workflows for the most common omics assay types (RNA-seq, WGS, ATAC-seq,
-///    metagenomics, …).  Users can list and inspect these directly.
-/// 2. **LLM-generated workflows** — for tasks without a matching built-in
-///    template the LLM is prompted with the task description and a rich system
-///    prompt that includes workflow-engine syntax rules and common bioinformatics
-///    conventions.  The structured response is a complete, ready-to-run file.
+/// 1. **Native engine** (`src/engine.rs`) — the primary executor.  Workflows are
+///    described in `.oxo.toml` files and run directly by oxo-call with no
+///    external workflow manager needed.
+/// 2. **Built-in templates** — curated, production-tested `.oxo.toml` workflows
+///    compiled into the binary for the most common omics assay types.
+/// 3. **LLM-generated workflows** — the LLM produces native `.oxo.toml` output;
+///    users can then export to Snakemake / Nextflow via `workflow export`.
+/// 4. **Compatibility export** — existing Snakemake / Nextflow templates are
+///    available for HPC environments that require those formats.
 use crate::config::Config;
 use crate::error::{OxoError, Result};
 use colored::Colorize;
@@ -19,13 +17,17 @@ use serde::{Deserialize, Serialize};
 
 // ─── Built-in template registry ───────────────────────────────────────────────
 
-/// A single built-in workflow template.
+/// A single built-in workflow template (all three formats compiled in).
 #[derive(Debug, Clone)]
 pub struct WorkflowTemplate {
     pub name: &'static str,
     pub description: &'static str,
     pub assay: &'static str,
+    /// Native `.oxo.toml` format — the primary format used by the built-in engine.
+    pub native: &'static str,
+    /// Snakemake compatibility export.
     pub snakemake: &'static str,
+    /// Nextflow DSL2 compatibility export.
     pub nextflow: &'static str,
 }
 
@@ -33,29 +35,33 @@ pub struct WorkflowTemplate {
 pub static BUILTIN_TEMPLATES: &[WorkflowTemplate] = &[
     WorkflowTemplate {
         name: "rnaseq",
-        description: "Bulk RNA-seq: QC → trimming → STAR alignment → featureCounts quantification",
+        description: "Bulk RNA-seq: fastp QC → STAR alignment → featureCounts → MultiQC",
         assay: "transcriptomics",
+        native: include_str!("../workflows/native/rnaseq.toml"),
         snakemake: include_str!("../workflows/snakemake/rnaseq.smk"),
         nextflow: include_str!("../workflows/nextflow/rnaseq.nf"),
     },
     WorkflowTemplate {
         name: "wgs",
-        description: "Whole-genome sequencing: QC → BWA-MEM2 alignment → GATK HaplotypeCaller variant calling",
+        description: "Whole-genome sequencing: fastp → BWA-MEM2 → GATK BQSR → HaplotypeCaller",
         assay: "genomics",
+        native: include_str!("../workflows/native/wgs.toml"),
         snakemake: include_str!("../workflows/snakemake/wgs.smk"),
         nextflow: include_str!("../workflows/nextflow/wgs.nf"),
     },
     WorkflowTemplate {
         name: "atacseq",
-        description: "ATAC-seq: QC → Bowtie2 alignment → peak calling with MACS3 → annotation",
+        description: "ATAC-seq: fastp → Bowtie2 → Picard dedup → blacklist filter → MACS3",
         assay: "epigenomics",
+        native: include_str!("../workflows/native/atacseq.toml"),
         snakemake: include_str!("../workflows/snakemake/atacseq.smk"),
         nextflow: include_str!("../workflows/nextflow/atacseq.nf"),
     },
     WorkflowTemplate {
         name: "metagenomics",
-        description: "Shotgun metagenomics: QC → host removal → Kraken2 classification → Bracken abundance estimation",
+        description: "Shotgun metagenomics: fastp → host removal → Kraken2 → Bracken",
         assay: "metagenomics",
+        native: include_str!("../workflows/native/metagenomics.toml"),
         snakemake: include_str!("../workflows/snakemake/metagenomics.smk"),
         nextflow: include_str!("../workflows/nextflow/metagenomics.nf"),
     },
@@ -68,11 +74,12 @@ pub fn find_template(name: &str) -> Option<&'static WorkflowTemplate> {
         .find(|t| t.name.eq_ignore_ascii_case(name))
 }
 
-// ─── LLM-based workflow generator ────────────────────────────────────────────
+// ─── LLM-based generator ──────────────────────────────────────────────────────
 
 /// A parsed LLM-generated workflow response.
 #[derive(Debug, Clone)]
 pub struct GeneratedWorkflow {
+    /// The format that was produced ("native", "snakemake", or "nextflow").
     pub engine: String,
     pub content: String,
     pub explanation: String,
@@ -102,47 +109,69 @@ struct ChatChoice {
     message: ChatMessage,
 }
 
-fn workflow_system_prompt(engine: &str) -> String {
-    let engine_rules = match engine {
-        "nextflow" => {
-            "You generate Nextflow (DSL2) workflow files (.nf).  Rules:\n\
-             - Use DSL2 syntax: `nextflow.enable.dsl=2`\n\
-             - Define each step as a `process` with `input:`, `output:`, and `script:` blocks.\n\
-             - Compose processes in a `workflow` block using channels.\n\
-             - Use `params` for all configurable values (threads, paths, references).\n\
-             - Output actual file paths in `publishDir`.\n\
-             - Include a `nextflow.config` snippet at the bottom as a comment block."
-        }
-        _ => {
-            // Default: snakemake
-            "You generate Snakemake workflow files (Snakefile).  Rules:\n\
-             - Use Snakemake ≥7.0 syntax.\n\
-             - Define a `rule all` that lists all final output files.\n\
-             - Each rule must have `input:`, `output:`, `threads:`, `shell:` or `run:` blocks.\n\
-             - Use `config` dict and a `config.yaml` comment block at the bottom for all parameters.\n\
-             - Use `expand()` for sample wildcards.\n\
-             - Include `log:` directives for every rule.\n\
-             - Prefer `shell:` with actual tool commands over `run:` blocks."
-        }
-    };
+fn native_system_prompt() -> &'static str {
+    r#"You are an expert bioinformatics workflow engineer.
+Generate workflows in the oxo-call native TOML format (.oxo.toml).
 
-    format!(
-        "You are an expert bioinformatics workflow engineer.\n\
-         {engine_rules}\n\n\
-         General rules for all workflows:\n\
-         - Always include QC (FastQC/fastp) as the first step.\n\
-         - Handle both paired-end and single-end reads unless the task specifies otherwise.\n\
-         - Use production best practices: read groups for GATK, sorted BAMs, etc.\n\
-         - Include reasonable default thread counts (e.g., 8 threads for alignment steps).\n\
-         - Never hallucinate tool flags not present in common documentation.\n\
-         - The workflow must be complete and directly runnable with minimal user edits.\n\n\
-         Respond with EXACTLY this format (nothing before or after):\n\
-         WORKFLOW:\n\
-         <complete workflow file content here>\n\
-         END_WORKFLOW\n\
-         EXPLANATION:\n\
-         <one-paragraph explanation of the pipeline steps and design choices>\n"
-    )
+Format rules:
+- [workflow] block with name, description, version fields.
+- [wildcards] block: keys are wildcard names (e.g. sample), values are example lists.
+- [params] block: string key-value pairs for configurable paths and settings.
+- [[step]] entries: name, cmd (shell command), depends_on (list of step names),
+  inputs (list of file patterns), outputs (list of file patterns), gather (bool).
+- Use {wildcard} for wildcard substitution in cmd/inputs/outputs.
+- Use {params.KEY} for parameter substitution in cmd.
+- A step with gather = true runs ONCE after all wildcard instances of its deps complete.
+- Always include fastp as the first QC step.
+- Use realistic default param values in [params].
+
+Respond with EXACTLY this format (nothing before or after):
+WORKFLOW:
+<complete .oxo.toml content here>
+END_WORKFLOW
+EXPLANATION:
+<one-paragraph explanation of the pipeline steps and design choices>
+"#
+}
+
+fn snakemake_system_prompt() -> &'static str {
+    r#"You are an expert bioinformatics workflow engineer.
+Generate Snakemake workflow files (Snakefile, version ≥7.0).
+
+Rules:
+- Define a `rule all` listing all final outputs.
+- Each rule must have input:, output:, threads:, log:, and shell: blocks.
+- Use configfile: "config.yaml" and a config.yaml comment at the bottom.
+- Use expand() for sample wildcards.
+- Always include fastp as the first QC step.
+
+Respond with EXACTLY this format (nothing before or after):
+WORKFLOW:
+<complete Snakefile content here>
+END_WORKFLOW
+EXPLANATION:
+<one-paragraph explanation>
+"#
+}
+
+fn nextflow_system_prompt() -> &'static str {
+    r#"You are an expert bioinformatics workflow engineer.
+Generate Nextflow DSL2 workflow files (.nf).
+
+Rules:
+- Use nextflow.enable.dsl = 2.
+- Define each step as a process with input:, output:, and script: blocks.
+- Compose processes in a workflow block using channels.
+- Use params for all configurable values.
+- Always include fastp as the first QC step.
+
+Respond with EXACTLY this format (nothing before or after):
+WORKFLOW:
+<complete .nf file content here>
+END_WORKFLOW
+EXPLANATION:
+<one-paragraph explanation>
+"#
 }
 
 fn parse_workflow_response(raw: &str, engine: &str) -> Option<GeneratedWorkflow> {
@@ -172,7 +201,12 @@ fn parse_workflow_response(raw: &str, engine: &str) -> Option<GeneratedWorkflow>
     })
 }
 
-/// Calls the configured LLM to generate a workflow for the given task.
+/// Call the configured LLM to generate a workflow for the given task.
+///
+/// The `engine` parameter controls the output format:
+///   - `"native"` (default) → `.oxo.toml` for the built-in oxo engine
+///   - `"snakemake"` → Snakefile
+///   - `"nextflow"` → Nextflow DSL2 `.nf`
 #[cfg(not(target_arch = "wasm32"))]
 pub async fn generate_workflow(
     config: &Config,
@@ -181,7 +215,11 @@ pub async fn generate_workflow(
 ) -> Result<GeneratedWorkflow> {
     use reqwest::Client;
 
-    let system = workflow_system_prompt(engine);
+    let system = match engine {
+        "snakemake" => snakemake_system_prompt().to_string(),
+        "nextflow" => nextflow_system_prompt().to_string(),
+        _ => native_system_prompt().to_string(),
+    };
 
     let messages = vec![
         ChatMessage {
@@ -190,9 +228,7 @@ pub async fn generate_workflow(
         },
         ChatMessage {
             role: "user".to_string(),
-            content: format!(
-                "Generate a complete, production-ready {engine} workflow for the following task:\n\n{task}"
-            ),
+            content: format!("Generate a complete, production-ready workflow for:\n\n{task}"),
         },
     ];
 
@@ -262,12 +298,11 @@ pub async fn generate_workflow(
         .map(|c| c.message.content.clone())
         .unwrap_or_default();
 
-    // Retry once with a stricter reminder if parsing fails
     if let Some(wf) = parse_workflow_response(&raw, engine) {
         return Ok(wf);
     }
 
-    // Second attempt: re-prompt with format reminder
+    // Second attempt: re-prompt with format reminder.
     let mut messages2 = request.messages.clone();
     messages2.push(ChatMessage {
         role: "assistant".to_string(),
@@ -326,7 +361,11 @@ pub fn print_template_list() {
     println!();
     println!(
         "{}",
-        "Use 'oxo-call workflow show <name>' to inspect a template.".dimmed()
+        "Use 'oxo-call workflow show <name>' to view the native template.".dimmed()
+    );
+    println!(
+        "{}",
+        "Use 'oxo-call workflow run <file.toml>' to execute a workflow.".dimmed()
     );
     println!(
         "{}",
@@ -334,11 +373,11 @@ pub fn print_template_list() {
     );
 }
 
-/// Display a generated workflow result (to stdout).
+/// Display a generated or shown workflow (to stdout or file).
 pub fn print_generated_workflow(wf: &GeneratedWorkflow) {
     println!();
     println!("{}", "─".repeat(70).dimmed());
-    println!("  {} {}", "Engine:".bold(), wf.engine.cyan());
+    println!("  {} {}", "Format:".bold(), wf.engine.cyan());
     println!("{}", "─".repeat(70).dimmed());
     println!();
     println!("{}", wf.content);
