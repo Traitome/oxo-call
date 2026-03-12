@@ -1,0 +1,56 @@
+[meta]
+name = "verkko"
+category = "assembly"
+description = "Graph-based telomere-to-telomere genome assembler combining HiFi and Oxford Nanopore reads"
+tags = ["assembly", "hifi", "ont", "pacbio", "long-read", "genome", "graph", "telomere-to-telomere"]
+author = "oxo-call built-in"
+source_url = "https://github.com/marbl/verkko"
+
+[context]
+concepts = [
+    "Verkko builds a consensus De Bruijn graph from HiFi reads, then uses long ONT reads to resolve tangles and phase haplotypes.",
+    "Both --hifi and --ont inputs are optional individually, but combining them yields the most complete assemblies.",
+    "Haplotype-resolved (phased) assembly requires trio binning data (--hap-kmers maternal.meryl paternal.meryl) or Hi-C reads.",
+    "Verkko is a Snakemake workflow internally; use --snakeopts to pass Snakemake flags like --cores or cluster submission options.",
+    "Output is written to the directory specified with -d; key outputs are assembly.fasta (unphased) or haplotype1.fasta / haplotype2.fasta (phased).",
+    "Verkko requires substantial RAM; a human genome assembly typically needs 256-512 GB RAM and many CPU hours.",
+]
+
+pitfalls = [
+    "Running without --threads causes Verkko to use only 1 thread; always set --threads to the number of available cores.",
+    "Mixing HiFi reads below 99% accuracy with Verkko degrades the initial graph quality — filter low-quality reads beforehand.",
+    "The -d output directory must not contain a previous partial run unless --resume is used; stale intermediate files cause errors.",
+    "ONT reads shorter than 10 kb contribute little to tangle resolution; pre-filter with NanoFilt or equivalent if median length is low.",
+    "Trio-binning requires Meryl k-mer databases from parental Illumina reads; using raw FASTQs directly in --hap-kmers will fail.",
+    "Verkko writes large intermediate graph files; ensure the output filesystem has at least 10x the input data size free.",
+]
+
+[[examples]]
+task = "assemble a genome using only HiFi reads"
+args = "--hifi hifi_reads.fastq.gz -d assembly_out --threads 64"
+explanation = "HiFi-only assembly; -d sets output directory; --threads should match available CPUs"
+
+[[examples]]
+task = "assemble a genome with both HiFi and ONT reads for maximum continuity"
+args = "--hifi hifi_reads.fastq.gz --ont ont_reads.fastq.gz -d hybrid_assembly --threads 64"
+explanation = "combined HiFi+ONT mode; ONT reads resolve complex repeats and improve contig length"
+
+[[examples]]
+task = "perform haplotype-resolved assembly with trio binning"
+args = "--hifi hifi_reads.fastq.gz --ont ont_reads.fastq.gz --hap-kmers maternal.meryl paternal.meryl -d trio_assembly --threads 64"
+explanation = "--hap-kmers takes Meryl databases built from parental short reads for phasing into hap1/hap2"
+
+[[examples]]
+task = "run Verkko on a cluster using Slurm via Snakemake"
+args = "--hifi hifi_reads.fastq.gz --ont ont_reads.fastq.gz -d assembly_out --threads 4 --snakeopts \"--cluster 'sbatch -c {threads} --mem {resources.mem_gb}G' --jobs 50\""
+explanation = "--snakeopts passes Snakemake arguments for cluster execution; --threads here sets the local thread count"
+
+[[examples]]
+task = "resume an interrupted Verkko assembly"
+args = "--hifi hifi_reads.fastq.gz --ont ont_reads.fastq.gz -d assembly_out --threads 64 --resume"
+explanation = "--resume continues from the last completed Snakemake checkpoint; reuses existing intermediate files"
+
+[[examples]]
+task = "assemble with ONT reads only (no HiFi)"
+args = "--ont ont_reads.fastq.gz -d ont_assembly --threads 64"
+explanation = "ONT-only mode uses a longer k-mer graph; quality is lower than HiFi+ONT but works without PacBio data"
