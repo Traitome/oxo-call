@@ -24,5 +24,4 @@ target
 # Added by cargo
 
 /target
-.DS_Store
 **/.DS_Store
