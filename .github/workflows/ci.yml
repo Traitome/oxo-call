@@ -277,11 +277,14 @@ jobs:
         shell: bash
         run: |
           mkdir -p artifacts/checksums
-          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) \
-            -exec sha256sum {} + | sed 's|artifacts/[^/]*/||' \
-            > artifacts/checksums/SHA256SUMS.txt
+          cd artifacts
+          find . -type f \( -name '*.tar.gz' -o -name '*.zip' \) -print0 \
+            | while IFS= read -r -d '' f; do
+                sha256sum "$f" | awk -v name="$(basename "$f")" '{print $1 "  " name}'
+              done \
+            | sort -k2 > checksums/SHA256SUMS.txt
           echo "=== SHA256SUMS ==="
-          cat artifacts/checksums/SHA256SUMS.txt
+          cat checksums/SHA256SUMS.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
