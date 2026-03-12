@@ -1,0 +1,56 @@
+[meta]
+name = "angsd"
+category = "population-genomics"
+description = "Population genomics analyses from genotype likelihoods, avoiding hard genotype calling"
+tags = ["population-genomics", "genotype-likelihoods", "bam", "fst", "thetas", "sfs", "snp"]
+author = "oxo-call built-in"
+source_url = "http://www.popgen.dk/angsd/index.php/ANGSD"
+
+[context]
+concepts = [
+    "ANGSD works directly from BAM files using genotype likelihoods (-GL) rather than called genotypes, which is better for low-coverage data.",
+    "-GL 1 uses the SAMtools model; -GL 2 uses GATK; -GL 1 is sufficient for most analyses and is faster.",
+    "The site allele frequency spectrum (SFS) workflow requires two steps: -doSaf to compute per-site allele frequencies, then realSFS to fold/unfold the SFS.",
+    "Fst and theta statistics are computed per-population: run -doSaf for each population, compute 1D SFS per population, then use realSFS to compute 2D SFS and thetaStat for sliding-window thetas.",
+    "-doGlf 2 outputs binary BEAGLE genotype likelihood format for downstream phasing tools (BEAGLE, PCAngsd).",
+    "Quality filters should always be applied: -minQ 20 (base quality), -minMapQ 30 (mapping quality), -remove_bads 1 to exclude improper pairs.",
+]
+
+pitfalls = [
+    "Not filtering by mapping quality (-minMapQ) allows reads mapped to repetitive regions to bias allele frequency estimates.",
+    "Using -doSaf without setting -anc (ancestral FASTA) computes a folded SFS by default; specify -anc for unfolded polarized analyses.",
+    "ANGSD does not check that BAM files are sorted and indexed — unsorted BAMs produce incorrect or empty output silently.",
+    "-SNP_pval threshold matters: too lenient includes invariant sites in SFS; too strict removes low-frequency variants.",
+    "The -nThreads flag sets ANGSD threads; also set -P for samtools threads; forgetting both makes analysis very slow.",
+    "When using -bam bam_list.txt, all BAMs must have the same read group or -uniqueOnly must be set to avoid double-counting.",
+]
+
+[[examples]]
+task = "compute genotype likelihoods and allele frequencies for a set of BAMs"
+args = "-bam bam_list.txt -GL 1 -doGlf 2 -doMaf 1 -SNP_pval 1e-6 -minMapQ 30 -minQ 20 -nThreads 16 -out output"
+explanation = "-doGlf 2 outputs BEAGLE format; -doMaf 1 outputs allele frequencies; -SNP_pval filters to variable sites"
+
+[[examples]]
+task = "compute per-site allele frequency spectrum for a single population"
+args = "-bam pop1_bams.txt -GL 1 -doSaf 1 -anc ancestral.fasta -minMapQ 30 -minQ 20 -nThreads 16 -out pop1"
+explanation = "-doSaf 1 computes per-site allele frequency likelihoods; -anc provides ancestral allele state for unfolded SFS"
+
+[[examples]]
+task = "estimate 1D site frequency spectrum from doSaf output"
+args = "realSFS pop1.saf.idx -P 16 > pop1.sfs"
+explanation = "realSFS uses EM algorithm to estimate the SFS from .saf.idx files; -P 16 sets parallel threads"
+
+[[examples]]
+task = "estimate Watterson's theta and Tajima's D in sliding windows"
+args = "-bam pop1_bams.txt -GL 1 -doSaf 1 -doThetas 1 -pest pop1.sfs -anc ancestral.fasta -minMapQ 30 -minQ 20 -out pop1_thetas"
+explanation = "-doThetas 1 requires -pest (prior SFS from realSFS); outputs .thetas.idx for thetaStat sliding window analysis"
+
+[[examples]]
+task = "compute Fst between two populations using 2D SFS"
+args = "realSFS pop1.saf.idx pop2.saf.idx -P 16 > pop1_pop2.2dsfs && realSFS fst index pop1.saf.idx pop2.saf.idx -sfs pop1_pop2.2dsfs -fstout pop1_pop2"
+explanation = "two-step: compute 2D SFS with realSFS, then index Fst; use realSFS fst stats for genome-wide Fst"
+
+[[examples]]
+task = "call SNPs and compute principal component analysis input"
+args = "-bam bam_list.txt -GL 1 -doGlf 2 -doMaf 1 -SNP_pval 1e-6 -minMapQ 30 -minQ 20 -nInd 50 -minInd 40 -nThreads 16 -out snps_for_pca"
+explanation = "-nInd total individuals; -minInd 40 requires genotype data in at least 40 individuals; output used with PCAngsd"

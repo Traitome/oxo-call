@@ -1,0 +1,48 @@
+[meta]
+name = "kraken2"
+category = "metagenomics"
+description = "Ultrafast and highly accurate taxonomic classification of sequencing reads using exact k-mer matches"
+tags = ["metagenomics", "taxonomy", "classification", "kraken", "microbiome", "ngs", "k-mer"]
+author = "oxo-call built-in"
+source_url = "https://github.com/DerrickWood/kraken2"
+
+[context]
+concepts = [
+    "Kraken2 classifies sequencing reads by matching k-mers against a pre-built taxonomic database.",
+    "Use --db to specify the database path; databases include Standard, PlusPF, nt, and custom builds.",
+    "Kraken2 outputs a report (--report) and a per-read classification file (standard output or --output).",
+    "The report file has 6 columns: percentage, reads covered, reads directly, rank code, NCBI taxon ID, name.",
+    "Use --paired for paired-end reads; pass R1 and R2 as positional arguments after all options.",
+    "Use --threads N for parallel classification; --confidence 0.1 adds a confidence threshold to reduce false positives.",
+    "Bracken uses Kraken2's report to re-estimate species-level abundances more accurately.",
+    "Use --classified-out and --unclassified-out to save classified/unclassified reads to FASTQ files.",
+]
+
+pitfalls = [
+    "The database path must contain hash.k2d, opts.k2d, and taxo.k2d files — check database integrity.",
+    "Without --report, Kraken2 only outputs per-read assignments, not the taxonomic summary needed for Bracken.",
+    "Kraken2 databases can be very large (>50 GB for Standard) — ensure sufficient disk space.",
+    "For paired-end data, use --paired AND pass BOTH files — omitting --paired treats R1 and R2 as unrelated reads.",
+    "--confidence threshold (0.0-1.0) is a fraction of k-mers that must match; higher = more specific, lower = more sensitive.",
+    "The Kraken2 database must be kept in RAM (uses mmap) — performance degrades severely without sufficient memory.",
+]
+
+[[examples]]
+task = "classify paired-end metagenomic reads against the standard database"
+args = "--db /path/to/kraken2_db --paired --threads 8 --output kraken_output.txt --report kraken_report.txt R1.fastq.gz R2.fastq.gz"
+explanation = "--paired for PE; --output per-read classifications; --report summary for Bracken"
+
+[[examples]]
+task = "classify reads with confidence threshold and save unclassified reads"
+args = "--db /path/to/kraken2_db --paired --confidence 0.1 --threads 8 --output kraken_out.txt --report kraken_report.txt --unclassified-out unclassified#.fastq R1.fastq.gz R2.fastq.gz"
+explanation = "--confidence 0.1 reduces false positives; --unclassified-out saves unclassified reads (# → _1/_2 for PE)"
+
+[[examples]]
+task = "classify single-end reads and generate report"
+args = "--db /path/to/kraken2_db --threads 8 --output kraken_out.txt --report kraken_report.txt reads.fastq.gz"
+explanation = "single-end classification; omit --paired for single-end reads"
+
+[[examples]]
+task = "classify reads and extract classified reads for downstream analysis"
+args = "--db /path/to/kraken2_db --paired --threads 8 --output kraken_out.txt --report kraken_report.txt --classified-out classified#.fastq R1.fastq.gz R2.fastq.gz"
+explanation = "--classified-out saves reads that were classified; useful for host decontamination (keep unclassified)"

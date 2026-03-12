@@ -1,0 +1,52 @@
+[meta]
+name = "vcftools"
+category = "variant-calling"
+description = "Tool for working with VCF and BCF files — filtering, statistics, format conversion, and population genetics"
+tags = ["vcf", "filtering", "population-genetics", "statistics", "format-conversion", "snp", "ngs"]
+author = "oxo-call built-in"
+source_url = "https://vcftools.github.io/"
+
+[context]
+concepts = [
+    "VCFtools processes VCF/BCF files; use --vcf for VCF input or --gzvcf for gzipped VCF; --bcf for BCF.",
+    "VCFtools always requires an output prefix (--out) — output files are named <prefix>.ext based on operation.",
+    "Key filtering options: --maf (minor allele frequency), --max-missing (genotype missingness), --minQ (QUAL filter), --min-meanDP.",
+    "Use --recode --recode-INFO-all to output a filtered VCF; default output is statistics only.",
+    "Hardy-Weinberg filtering: --hwe 0.001 removes sites deviating from HWE with p-value < 0.001.",
+    "Use --keep/--remove with sample lists to include/exclude specific samples.",
+    "VCFtools can compute FST between populations: --weir-fst-pop pop1.txt --weir-fst-pop pop2.txt.",
+]
+
+pitfalls = [
+    "Without --recode, VCFtools outputs statistics but does NOT write a filtered VCF file.",
+    "--recode --recode-INFO-all is needed to include INFO fields in the output VCF.",
+    "--out specifies a prefix, not a filename — VCFtools appends the appropriate extension.",
+    "VCFtools removes multi-allelic sites without warning when using --min-alleles 2 --max-alleles 2.",
+    "VCFtools is slower than bcftools for large files — use bcftools view for simple filtering when possible.",
+    "The --max-missing parameter is the proportion of genotypes that CAN be missing (0=no missing allowed, 1=all missing allowed).",
+]
+
+[[examples]]
+task = "filter VCF by minor allele frequency and missingness"
+args = "--vcf variants.vcf --maf 0.05 --max-missing 0.9 --recode --recode-INFO-all --out filtered_variants"
+explanation = "--maf 0.05 keeps variants with ≥5% minor allele frequency; --max-missing 0.9 requires 90% genotype completeness"
+
+[[examples]]
+task = "calculate per-site nucleotide diversity and Tajima's D statistics"
+args = "--vcf variants.vcf --site-pi --TajimaD 10000 --out popgen_stats"
+explanation = "--site-pi per-site nucleotide diversity; --TajimaD 10000 calculates Tajima's D in 10kb windows"
+
+[[examples]]
+task = "filter VCF to biallelic SNPs with minimum depth"
+args = "--vcf variants.vcf --remove-indels --min-alleles 2 --max-alleles 2 --minDP 10 --recode --recode-INFO-all --out snps_only"
+explanation = "--remove-indels keeps only SNPs; --min/max-alleles 2 keeps biallelic only; --minDP 10 minimum depth filter"
+
+[[examples]]
+task = "compute pairwise FST between two populations"
+args = "--vcf variants.vcf --weir-fst-pop pop1_samples.txt --weir-fst-pop pop2_samples.txt --fst-window-size 50000 --out fst_results"
+explanation = "population files list one sample ID per line; --fst-window-size for windowed FST calculation"
+
+[[examples]]
+task = "convert VCF to PLINK format for downstream analysis"
+args = "--vcf variants.vcf --plink --out plink_dataset"
+explanation = "--plink creates .ped and .map files; use --plink-tped for transposed PLINK format"

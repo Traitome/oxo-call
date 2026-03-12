@@ -39,11 +39,16 @@ impl DocIndex {
 
     pub fn save(&self) -> Result<()> {
         let path = Self::index_path()?;
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
+        let dir = path
+            .parent()
+            .ok_or_else(|| OxoError::IndexError("Index path has no parent directory".into()))?;
+        std::fs::create_dir_all(dir)?;
         let content = serde_json::to_string_pretty(self)?;
-        std::fs::write(&path, content)?;
+        // Write to a sibling temp file first, then atomically rename into place.
+        // This prevents concurrent readers from observing a half-written file.
+        let tmp_path = path.with_extension("tmp");
+        std::fs::write(&tmp_path, &content)?;
+        std::fs::rename(&tmp_path, &path)?;
         Ok(())
     }
 

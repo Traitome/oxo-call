@@ -85,6 +85,7 @@ macro_rules! builtin {
 /// All skills compiled into the binary.  Community and user skills are loaded at
 /// runtime and take priority over these.
 pub static BUILTIN_SKILLS: &[(&str, &str)] = &[
+    // ── Original 10 core tools ──────────────────────────────────────────────
     builtin!("samtools"),
     builtin!("bwa"),
     builtin!("bcftools"),
@@ -95,6 +96,150 @@ pub static BUILTIN_SKILLS: &[(&str, &str)] = &[
     builtin!("gatk"),
     builtin!("bowtie2"),
     builtin!("minimap2"),
+    // ── QC & preprocessing ──────────────────────────────────────────────────
+    builtin!("trimmomatic"),
+    builtin!("cutadapt"),
+    builtin!("fastqc"),
+    builtin!("multiqc"),
+    builtin!("trim_galore"),
+    builtin!("picard"),
+    // ── Short-read alignment ─────────────────────────────────────────────────
+    builtin!("hisat2"),
+    builtin!("bwa-mem2"),
+    builtin!("chromap"),
+    // ── RNA-seq quantification & assembly ───────────────────────────────────
+    builtin!("salmon"),
+    builtin!("kallisto"),
+    builtin!("stringtie"),
+    builtin!("rsem"),
+    builtin!("featurecounts"),
+    builtin!("trinity"),
+    builtin!("arriba"),
+    // ── Variant calling ──────────────────────────────────────────────────────
+    builtin!("freebayes"),
+    builtin!("deepvariant"),
+    builtin!("strelka2"),
+    builtin!("varscan2"),
+    builtin!("longshot"),
+    // ── Structural variant calling ───────────────────────────────────────────
+    builtin!("manta"),
+    builtin!("delly"),
+    builtin!("sniffles"),
+    builtin!("pbsv"),
+    // ── CNV calling ─────────────────────────────────────────────────────────
+    builtin!("cnvkit"),
+    // ── Variant annotation ───────────────────────────────────────────────────
+    builtin!("snpeff"),
+    builtin!("vep"),
+    builtin!("vcftools"),
+    // ── Variant benchmarking & phasing ──────────────────────────────────────
+    builtin!("whatshap"),
+    builtin!("hap_py"),
+    builtin!("shapeit4"),
+    // ── Epigenomics ──────────────────────────────────────────────────────────
+    builtin!("macs2"),
+    builtin!("deeptools"),
+    builtin!("bismark"),
+    builtin!("methyldackel"),
+    builtin!("pairtools"),
+    // ── Metagenomics ─────────────────────────────────────────────────────────
+    builtin!("kraken2"),
+    builtin!("bracken"),
+    builtin!("metaphlan"),
+    builtin!("diamond"),
+    builtin!("prokka"),
+    builtin!("bakta"),
+    builtin!("metabat2"),
+    builtin!("checkm2"),
+    builtin!("gtdbtk"),
+    builtin!("humann3"),
+    // ── Single-cell ──────────────────────────────────────────────────────────
+    builtin!("cellranger"),
+    builtin!("starsolo"),
+    builtin!("kb"),
+    // ── Long-read QC & basecalling ───────────────────────────────────────────
+    builtin!("dorado"),
+    builtin!("nanoplot"),
+    builtin!("nanostat"),
+    builtin!("chopper"),
+    builtin!("porechop"),
+    // ── Long-read alignment & polishing ─────────────────────────────────────
+    builtin!("pbmm2"),
+    builtin!("medaka"),
+    builtin!("racon"),
+    // ── Long-read variant & fusion calling ──────────────────────────────────
+    builtin!("pbccs"),
+    builtin!("pbfusion"),
+    // ── De novo assembly ─────────────────────────────────────────────────────
+    builtin!("spades"),
+    builtin!("megahit"),
+    builtin!("flye"),
+    builtin!("hifiasm"),
+    builtin!("canu"),
+    builtin!("miniasm"),
+    builtin!("wtdbg2"),
+    // ── Assembly QC ──────────────────────────────────────────────────────────
+    builtin!("quast"),
+    builtin!("busco"),
+    // ── Genome annotation ────────────────────────────────────────────────────
+    builtin!("prodigal"),
+    builtin!("augustus"),
+    builtin!("agat"),
+    builtin!("repeatmasker"),
+    builtin!("annot8r"),
+    // ── Sequence utilities ───────────────────────────────────────────────────
+    builtin!("seqtk"),
+    builtin!("blast"),
+    builtin!("hmmer"),
+    builtin!("tabix"),
+    builtin!("bamtools"),
+    builtin!("sra-tools"),
+    builtin!("mosdepth"),
+    builtin!("crossmap"),
+    builtin!("igvtools"),
+    // ── Sequence search & clustering ─────────────────────────────────────────
+    builtin!("mmseqs2"),
+    // ── Sequence sketching & comparison ──────────────────────────────────────
+    builtin!("mash"),
+    builtin!("sourmash"),
+    // ── Multiple sequence alignment ──────────────────────────────────────────
+    builtin!("mafft"),
+    builtin!("muscle"),
+    // ── Phylogenetics ────────────────────────────────────────────────────────
+    builtin!("iqtree2"),
+    builtin!("fasttree"),
+    // ── Population genomics ──────────────────────────────────────────────────
+    builtin!("plink2"),
+    builtin!("admixture"),
+    builtin!("angsd"),
+    // ── Comparative & functional genomics ───────────────────────────────────
+    builtin!("orthofinder"),
+    builtin!("eggnog-mapper"),
+    // ── Genome annotation transfer ───────────────────────────────────────────
+    builtin!("liftoff"),
+    // ── Assembly polishing ───────────────────────────────────────────────────
+    builtin!("pilon"),
+    // ── Hybrid assembly ──────────────────────────────────────────────────────
+    builtin!("verkko"),
+    // ── Epigenomics (motif & ChIP-seq) ───────────────────────────────────────
+    builtin!("homer"),
+    // ── ONT base modification ────────────────────────────────────────────────
+    builtin!("modkit"),
+    // ── Metagenomics (additional) ────────────────────────────────────────────
+    builtin!("centrifuge"),
+    // ── Single-cell (additional) ─────────────────────────────────────────────
+    builtin!("velocyto"),
+    builtin!("cellsnp-lite"),
+    // ── QC (additional) ──────────────────────────────────────────────────────
+    builtin!("fastq-screen"),
+    builtin!("nanocomp"),
+    // ── Variant annotation (additional) ──────────────────────────────────────
+    builtin!("vcfanno"),
+    // ── Structural variant merging & benchmarking ────────────────────────────
+    builtin!("survivor"),
+    builtin!("truvari"),
+    // ── Genomic arithmetic ───────────────────────────────────────────────────
+    builtin!("bedops"),
 ];
 
 // ─── Prompt generation ────────────────────────────────────────────────────────

@@ -9,11 +9,13 @@ source_url = "https://github.com/lh3/minimap2"
 [context]
 concepts = [
     "minimap2 uses presets (-x) to set alignment parameters; always use the right preset for your data type.",
-    "Key presets: map-ont (Oxford Nanopore), map-pb (PacBio CLR), map-hifi (PacBio HiFi/CCS), sr (short reads), splice/splice:hq (RNA-seq).",
+    "Key presets: map-ont (Oxford Nanopore), map-pb (PacBio CLR), map-hifi (PacBio HiFi/CCS), sr (short reads), splice/splice:hq (RNA-seq), asm5/asm20 (assembly-to-assembly).",
     "minimap2 outputs PAF by default; use -a to output SAM (pipe to samtools); -c adds CIGAR to PAF.",
     "For RNA-seq long reads, use -x splice (nanopore cDNA) or -x splice:hq (PacBio Iso-Seq); these enable spliced alignment.",
     "Use -t N for multi-threading; the output is to stdout — always redirect or pipe.",
-    "For assembly-to-reference alignment, use -x asm5 (≤5% divergence) or -x asm20 (≤20% divergence).",
+    "For all-vs-all overlap detection (de novo assembly), use -x ava-ont or -x ava-pb; output PAF to miniasm or hifiasm.",
+    "Build a reusable index with 'minimap2 -d ref.mmi ref.fa'; then align with 'minimap2 -a ref.mmi reads.fa'. Saves time for repeated runs.",
+    "Use --MD flag to add MD string to SAM — required by downstream tools like Medaka and Sniffles for correct operation.",
 ]
 
 pitfalls = [
@@ -22,6 +24,8 @@ pitfalls = [
     "minimap2 with -a outputs SAM to stdout — pipe to samtools: minimap2 -a -x preset ref.fa reads.fq | samtools sort -o out.bam.",
     "For human genome, minimap2 uses ~14 GB RAM for long-read alignment.",
     "The reference can be a FASTA file — minimap2 indexes it on the fly (no separate index step needed for single runs).",
+    "A pre-built .mmi index is preset-specific — a map-ont index cannot be reused for map-hifi alignment.",
+    "Secondary alignments are reported by default (-N 5) — use --secondary=no to suppress them for uniquely mapping analyses.",
 ]
 
 [[examples]]
@@ -48,3 +52,13 @@ explanation = "-x asm5 for assemblies with ≤5% sequence divergence from refere
 task = "map long reads and output in PAF format for structural variant analysis"
 args = "-x map-ont -t 8 -c reference.fa reads.fastq.gz > aligned.paf"
 explanation = "PAF format is preferred by SV callers like Sniffles2; -c includes CIGAR in PAF"
+
+[[examples]]
+task = "compute all-vs-all overlaps for de novo ONT assembly"
+args = "-x ava-ont -t 16 reads.fastq.gz reads.fastq.gz | gzip > overlaps.paf.gz"
+explanation = "-x ava-ont for all-vs-all ONT overlaps; used as input to miniasm; -x ava-pb for PacBio CLR"
+
+[[examples]]
+task = "build a reusable minimap2 index for repeated ONT alignments"
+args = "-d reference_ont.mmi -x map-ont reference.fa"
+explanation = "-d creates a .mmi index file tied to the map-ont preset; reuse with: minimap2 -a reference_ont.mmi reads.fq"

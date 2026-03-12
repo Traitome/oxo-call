@@ -1,0 +1,35 @@
+[meta]
+name = "pbfusion"
+category = "rna-seq"
+description = "PacBio's RNA fusion gene detector for long-read IsoSeq data"
+tags = ["rna-seq", "fusion", "pacbio", "isoseq", "long-read", "transcript", "cancer"]
+author = "oxo-call built-in"
+source_url = "https://github.com/PacificBiosciences/pbfusion"
+
+[context]
+concepts = [
+    "pbfusion detects gene fusions from PacBio IsoSeq full-length RNA-seq data.",
+    "Input: aligned IsoSeq BAM (aligned with pbmm2 using ISOSEQ preset) and a GTF annotation.",
+    "pbfusion uses full-length read coverage to detect fusion breakpoints with base-pair resolution.",
+    "Requires sorted, indexed, aligned IsoSeq BAM from pbmm2 --preset ISOSEQ.",
+    "Output: fusions.tsv with fusion gene pairs, breakpoints, and supporting read counts.",
+    "Long-read fusions are more precise than short-read fusions (full spanning reads).",
+    "Use --threads for parallel processing; --output-dir for results.",
+]
+
+pitfalls = [
+    "pbfusion requires IsoSeq data, not regular RNA-seq — it needs full-length transcripts.",
+    "Input BAM must be aligned with IsoSeq-specific parameters (pbmm2 --preset ISOSEQ).",
+    "pbfusion requires a Gencode or Ensembl GTF annotation file.",
+    "Low-coverage fusions may be missed — deeper IsoSeq sequencing improves sensitivity.",
+]
+
+[[examples]]
+task = "detect gene fusions from PacBio IsoSeq aligned data"
+args = "--bam isoseq_aligned.bam --gtf genes.gtf --output-dir fusion_output/ --threads 8"
+explanation = "--bam aligned IsoSeq BAM; --gtf gene annotation; --output-dir for results"
+
+[[examples]]
+task = "detect fusions with minimum supporting reads"
+args = "--bam isoseq_aligned.bam --gtf genes.gtf --output-dir fusion_output/ --min-support 3 --threads 8"
+explanation = "--min-support 3 requires at least 3 reads supporting each fusion; reduces false positives"

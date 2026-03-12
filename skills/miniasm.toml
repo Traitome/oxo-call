@@ -1,0 +1,41 @@
+[meta]
+name = "miniasm"
+category = "assembly"
+description = "Ultrafast de novo long-read assembler using overlap-layout-consensus approach without error correction"
+tags = ["assembly", "long-read", "nanopore", "pacbio", "de-novo", "draft-assembly", "fast"]
+author = "oxo-call built-in"
+source_url = "https://github.com/lh3/miniasm"
+
+[context]
+concepts = [
+    "Miniasm is an ultrafast long-read assembler (OLC approach); it skips error correction so output has high error rate (~5-10%).",
+    "Miniasm requires pre-computed overlaps from minimap2: minimap2 -x ava-ont reads.fq reads.fq > overlaps.paf",
+    "Two-step pipeline: (1) minimap2 for all-vs-all overlaps; (2) miniasm for assembly.",
+    "Output is in GFA format; convert to FASTA: awk '/^S/ {print \">\"$2; print $3}' assembly.gfa > assembly.fasta",
+    "Miniasm assembly MUST be polished with Racon or Medaka before use — raw assembly is too noisy.",
+    "Miniasm is much faster than Flye/Hifiasm but produces lower quality initial assemblies.",
+    "Use -f parameter to filter reads shorter than a threshold; -I for minimum overlap score.",
+]
+
+pitfalls = [
+    "Miniasm output is NOT ready to use without polishing — always run Racon + Medaka afterward.",
+    "Miniasm GFA output requires conversion to FASTA for downstream tools.",
+    "Without minimap2 overlaps first, miniasm cannot run — the overlap step is mandatory.",
+    "Miniasm is best for quick draft assemblies or when speed is more important than accuracy.",
+    "For high-quality assemblies, use Flye or Hifiasm instead of miniasm.",
+]
+
+[[examples]]
+task = "compute all-vs-all overlaps for ONT reads with minimap2"
+args = "-x ava-ont -t 16 reads.fastq.gz reads.fastq.gz | gzip > overlaps.paf.gz"
+explanation = "-x ava-ont preset for ONT all-vs-all overlap; -t 16 threads; gzip output overlaps"
+
+[[examples]]
+task = "assemble ONT reads from precomputed overlaps"
+args = "-f reads.fastq.gz overlaps.paf.gz > assembly.gfa"
+explanation = "-f reads FASTQ; overlaps PAF (can be gzipped); outputs GFA assembly"
+
+[[examples]]
+task = "convert miniasm GFA output to FASTA"
+args = "/^S/ {print \">\"$2\"\\n\"$3}"
+explanation = "awk command: awk '/^S/ {print \">\"$2\"\\n\"$3}' assembly.gfa > assembly.fasta"

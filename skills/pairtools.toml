@@ -1,0 +1,47 @@
+[meta]
+name = "pairtools"
+category = "epigenomics"
+description = "Processing and analysis of Hi-C and similar chromosome conformation capture paired-end data"
+tags = ["hi-c", "chromatin-conformation", "3d-genome", "pairs", "contact-matrix", "epigenomics"]
+author = "oxo-call built-in"
+source_url = "https://pairtools.readthedocs.io/"
+
+[context]
+concepts = [
+    "pairtools is a workflow for Hi-C data processing: parsing alignments → sorting → deduplication → stats.",
+    "pairtools parse: extracts chromatin contacts from bwa-mem aligned BAM; outputs .pairs format.",
+    "pairtools sort: sorts .pairs file by chromosome for downstream analysis.",
+    "pairtools dedup: removes PCR duplicates from sorted .pairs file.",
+    "pairtools select: filters pairs by type (e.g., keep only trans pairs, or pairs with MAPQ>30).",
+    "Use cooler to bin pairs into contact matrices (.cool format) for visualization with Higlass/cooler.",
+    "distiller-nf is a Nextflow pipeline that wraps pairtools for end-to-end Hi-C processing.",
+    "Hi-C pipeline: bwa mem → pairtools parse → pairtools sort → pairtools dedup → cooler cload.",
+]
+
+pitfalls = [
+    "pairtools parse requires BWA-MEM aligned SAM/BAM — with -p flag for Hi-C specific parsing.",
+    "Pairs files must be sorted before deduplication — run pairtools sort first.",
+    "Without --output-stats in pairtools dedup, no statistics are generated for QC.",
+    "pairtools generates .pairs.gz (bgzipped) files — use pairtools merge for combining multiple files.",
+    "Hi-C alignment requires specific BWA flags: bwa mem -SP5M for Hi-C ligations.",
+]
+
+[[examples]]
+task = "parse Hi-C BWA alignments to pairs format"
+args = "parse --min-mapq 30 --walks-policy mask --max-inter-align-gap 30 -N sample --chroms-path chromsizes.txt sorted.bam > sample.pairs.gz"
+explanation = "--min-mapq 30 quality filter; --walks-policy for multi-mapper handling; outputs .pairs.gz"
+
+[[examples]]
+task = "sort pairs file for deduplication"
+args = "sort sample.pairs.gz --nproc 16 --tmpdir /tmp/ > sample_sorted.pairs.gz"
+explanation = "--nproc 16 parallel sorting; --tmpdir for temporary files"
+
+[[examples]]
+task = "deduplicate sorted pairs file"
+args = "dedup --nproc 16 --output-stats dedup_stats.txt sample_sorted.pairs.gz > sample_dedup.pairs.gz"
+explanation = "--output-stats generates deduplication statistics; required for Hi-C QC"
+
+[[examples]]
+task = "bin pairs into contact matrix using cooler"
+args = "cload pairs --chrom1 2 --pos1 3 --chrom2 4 --pos2 5 chromsizes.txt:5000 sample_dedup.pairs.gz sample_5kb.cool"
+explanation = "cooler cload pairs; 5000 = bin size in bp; creates .cool matrix for visualization"

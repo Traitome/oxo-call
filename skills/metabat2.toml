@@ -1,0 +1,47 @@
+[meta]
+name = "metabat2"
+category = "metagenomics"
+description = "Metagenome binning tool that clusters contigs into draft genomes using tetranucleotide frequency and coverage"
+tags = ["metagenomics", "binning", "mag", "assembly", "contigs", "clustering", "genome"]
+author = "oxo-call built-in"
+source_url = "https://bitbucket.org/berkeleylab/metabat"
+
+[context]
+concepts = [
+    "MetaBAT2 bins assembled contigs into metagenome-assembled genomes (MAGs) using tetranucleotide frequency + coverage.",
+    "Coverage information is generated from BAM files using jgi_summarize_bam_contig_depths (bundled with MetaBAT2).",
+    "Two-step workflow: (1) compute contig depths from BAMs; (2) run metabat2 with contigs + depth file.",
+    "Use -i for input assembly FASTA; -a for coverage depth file; -o for output bin prefix.",
+    "MetaBAT2 outputs bins as FASTA files named <prefix>.N.fa where N is the bin number.",
+    "Use -m for minimum contig length (default 2500bp); shorter contigs are excluded from binning.",
+    "After binning, assess bin quality with CheckM2 or BUSCO.",
+]
+
+pitfalls = [
+    "Coverage depth file must be generated from BAMs aligned to the SAME assembly used for binning.",
+    "jgi_summarize_bam_contig_depths is part of MetaBAT2 — use this specific script, not other coverage tools.",
+    "Without coverage information, MetaBAT2 bins only on tetranucleotide frequency (less accurate).",
+    "Minimum contig length (-m 2500) is appropriate for most assemblies — reducing it adds noise.",
+    "MetaBAT2 does not evaluate bin quality — always run CheckM2 or BUSCO after binning.",
+    "Multiple BAMs (different samples/conditions) provide better coverage variation for binning accuracy.",
+]
+
+[[examples]]
+task = "compute contig depths from BAM files for MetaBAT2"
+args = "jgi_summarize_bam_contig_depths --outputDepth contig_depths.txt sample1.bam sample2.bam sample3.bam"
+explanation = "jgi_summarize_bam_contig_depths from multiple samples; creates depth table for MetaBAT2"
+
+[[examples]]
+task = "bin metagenomic assembly contigs into MAGs"
+args = "metabat2 -i assembly.fasta -a contig_depths.txt -o bins/bin -m 2500 -t 8"
+explanation = "-i assembly; -a depth file from jgi_summarize; -o output prefix for bin FASTA files; -m min contig length"
+
+[[examples]]
+task = "run MetaBAT2 binning without coverage information (tetranucleotide only)"
+args = "metabat2 -i assembly.fasta -o bins/bin -m 1500 -t 8"
+explanation = "without -a coverage file, MetaBAT2 uses only tetranucleotide frequency; less accurate but usable"
+
+[[examples]]
+task = "bin with custom sensitivity settings"
+args = "metabat2 -i assembly.fasta -a contig_depths.txt -o bins/bin --sensitive -m 2000 -t 8"
+explanation = "--sensitive mode for more permissive binning; may produce more bins with lower purity"

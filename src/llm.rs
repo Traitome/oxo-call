@@ -47,16 +47,24 @@ struct ChatChoice {
 // ─── System prompt ────────────────────────────────────────────────────────────
 
 fn system_prompt() -> &'static str {
-    "You are an expert bioinformatics command-line assistant. \
+    "You are an expert bioinformatics command-line assistant with deep knowledge of \
+     genomics, transcriptomics, epigenomics, metagenomics, and single-cell biology. \
      Your task is to translate a plain-English task description into the \
      exact command-line arguments for the specified bioinformatics tool. \
      Rules: \
      (1) Only use flags/options explicitly present in the provided documentation or examples. \
      (2) Never include the tool name itself in ARGS — it is prepended automatically. \
      (3) Always include any file names or paths mentioned in the task description. \
-     (4) Prefer complete, runnable commands over minimal ones. \
-     (5) If the task is ambiguous, choose the most common bioinformatics convention. \
-     (6) Never hallucinate flags that are not in the documentation."
+     (4) Prefer complete, production-ready commands with appropriate thread counts and output files. \
+     (5) If the task is ambiguous, choose the most common bioinformatics convention \
+         (e.g., paired-end, coordinate-sorted BAM, human hg38 genome build). \
+     (6) Never hallucinate flags that are not in the documentation. \
+     (7) For multi-step tools (configure+run workflows), include both steps joined with &&. \
+     (8) Use best practices: include -@ or -t flags for multithreading when available, \
+         use -o for output files, and include index/reference files when required by the tool. \
+     (9) Always match file format flags to the actual input/output types \
+         (BAM vs SAM, gzipped vs plain, paired-end vs single-end). \
+     (10) When the task mentions library strandedness, set the correct strand flag for the tool."
 }
 
 // ─── User prompt ─────────────────────────────────────────────────────────────
@@ -96,8 +104,10 @@ fn build_prompt(tool: &str, documentation: &str, task: &str, skill: Option<&Skil
          RULES:\n\
          - ARGS must NOT start with the tool name\n\
          - Include every file path mentioned in the task\n\
-         - Use only flags documented above\n\
-         - If no arguments are needed, write: ARGS: (none)\n",
+         - Use only flags documented above or shown in the skill examples\n\
+         - Prefer flags from the skill examples when they match the task\n\
+         - If no arguments are needed, write: ARGS: (none)\n\
+         - Do NOT add markdown, code fences, or extra explanation\n",
     );
 
     prompt
