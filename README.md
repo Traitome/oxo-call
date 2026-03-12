@@ -62,7 +62,7 @@ Describe your task in plain language — `oxo-call` fetches the tool's documenta
 - 🔍 **Dry-run mode** — preview commands before executing
 - 📜 **Command history** — track every run with exit codes and timestamps
 - 🔧 **Flexible LLM backend** — GitHub Copilot (default), OpenAI, Anthropic, Ollama
-- 🎯 **Skill system** — built-in expert knowledge for 10+ bioinformatics tools
+- 🎯 **Skill system** — built-in expert knowledge for 100+ bioinformatics tools
 
 ---
 
