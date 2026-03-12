@@ -1,0 +1,133 @@
+# =============================================================================
+# WGBS / Methylation sequencing workflow — oxo-call native format
+#
+# Usage:
+#   1. Edit [wildcards] and [params] sections below
+#   2. Run:  oxo-call workflow run methylseq.toml
+#   3. Or preview first:  oxo-call workflow dry-run methylseq.toml
+#   4. Export to Snakemake:  oxo-call workflow export methylseq.toml --to snakemake
+#   5. Export to Nextflow:   oxo-call workflow export methylseq.toml --to nextflow
+#
+# Expected input layout:
+#   data/{sample}_R1.fastq.gz
+#   data/{sample}_R2.fastq.gz
+#
+# Required reference files:
+#   bismark_index — directory containing bismark-prepared genome (bismark_genome_preparation)
+# =============================================================================
+
+[workflow]
+name        = "methylseq"
+description = "WGBS methylation: Trim Galore QC → Bismark alignment → deduplication → methylation extraction → bismark2bedGraph → MultiQC"
+version     = "1.0"
+
+[wildcards]
+sample = ["sample1", "sample2", "sample3"]
+
+# ── Configurable parameters ───────────────────────────────────────────────────
+# REQUIRED: update paths before running.
+[params]
+threads       = "8"
+bismark_index = "/path/to/bismark_genome"   # REQUIRED: directory with bismark genome preparation output
+genome_fasta  = "/path/to/genome.fa"        # REQUIRED: reference genome FASTA (for coverage calc)
+
+# =============================================================================
+
+[[step]]
+name    = "trim_galore"
+cmd     = """\
+trim_galore \
+  --paired \
+  --cores {params.threads} \
+  --fastqc \
+  --illumina \
+  --output_dir trimmed/ \
+  data/{sample}_R1.fastq.gz \
+  data/{sample}_R2.fastq.gz\
+"""
+inputs  = ["data/{sample}_R1.fastq.gz", "data/{sample}_R2.fastq.gz"]
+outputs = ["trimmed/{sample}_R1_val_1.fq.gz", "trimmed/{sample}_R2_val_2.fq.gz",
+           "trimmed/{sample}_R1_val_1_fastqc.zip"]
+
+[[step]]
+name       = "bismark_align"
+depends_on = ["trim_galore"]
+cmd        = """\
+bismark \
+  --genome {params.bismark_index} \
+  -1 trimmed/{sample}_R1_val_1.fq.gz \
+  -2 trimmed/{sample}_R2_val_2.fq.gz \
+  --output_dir aligned/ \
+  --prefix {sample} \
+  --parallel {params.threads} \
+  --non_directional\
+"""
+inputs  = ["trimmed/{sample}_R1_val_1.fq.gz", "trimmed/{sample}_R2_val_2.fq.gz"]
+outputs = ["aligned/{sample}_bismark_bt2_pe.bam",
+           "aligned/{sample}_bismark_bt2_PE_report.txt"]
+
+[[step]]
+name       = "bismark_dedup"
+depends_on = ["bismark_align"]
+cmd        = """\
+deduplicate_bismark \
+  --paired \
+  --output_dir deduped/ \
+  aligned/{sample}_bismark_bt2_pe.bam\
+"""
+inputs  = ["aligned/{sample}_bismark_bt2_pe.bam"]
+outputs = ["deduped/{sample}_bismark_bt2_pe.deduplicated.bam",
+           "deduped/{sample}_bismark_bt2_pe.deduplication_report.txt"]
+
+[[step]]
+name       = "sort_index"
+depends_on = ["bismark_dedup"]
+cmd        = """\
+samtools sort -@ {params.threads} \
+  -o deduped/{sample}.sorted.bam \
+  deduped/{sample}_bismark_bt2_pe.deduplicated.bam && \
+samtools index deduped/{sample}.sorted.bam\
+"""
+inputs  = ["deduped/{sample}_bismark_bt2_pe.deduplicated.bam"]
+outputs = ["deduped/{sample}.sorted.bam", "deduped/{sample}.sorted.bam.bai"]
+
+[[step]]
+name       = "methylation_extract"
+depends_on = ["sort_index"]
+cmd        = """\
+bismark_methylation_extractor \
+  --paired-end \
+  --comprehensive \
+  --CX_context \
+  --cytosine_report \
+  --genome_folder {params.bismark_index} \
+  --output methyl/ \
+  --parallel {params.threads} \
+  deduped/{sample}.sorted.bam\
+"""
+inputs  = ["deduped/{sample}.sorted.bam"]
+outputs = ["methyl/{sample}.sorted_CpG.bedGraph",
+           "methyl/{sample}.sorted.bismark.cov.gz",
+           "methyl/{sample}.sorted_splitting_report.txt"]
+
+[[step]]
+name       = "bismark2bedgraph"
+depends_on = ["methylation_extract"]
+cmd        = """\
+bismark2bedGraph \
+  --CX_context \
+  --output {sample}.CpG.bedGraph \
+  --dir methyl/ \
+  methyl/CpG_OT_{sample}.sorted.txt \
+  methyl/CpG_OB_{sample}.sorted.txt\
+"""
+inputs  = ["methyl/{sample}.sorted_CpG.bedGraph"]
+outputs = ["methyl/{sample}.CpG.bedGraph.gz.bismark.zero.cov"]
+
+[[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["trim_galore", "bismark_align", "bismark_dedup", "methylation_extract"]
+cmd        = "multiqc trimmed/ aligned/ deduped/ methyl/ -o results/multiqc/"
+inputs     = []
+outputs    = ["results/multiqc/multiqc_report.html"]

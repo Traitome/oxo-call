@@ -885,6 +885,118 @@ async fn run(cli: Cli) -> error::Result<()> {
                     }
                 }
             }
+
+            WorkflowCommands::Infer {
+                task,
+                data,
+                engine: engine_name,
+                output,
+                run,
+            } => {
+                let cfg = config::Config::load()?;
+
+                if !data.exists() || !data.is_dir() {
+                    eprintln!(
+                        "{} Data directory '{}' does not exist or is not a directory.",
+                        "error:".red().bold(),
+                        data.display()
+                    );
+                    std::process::exit(1);
+                }
+
+                // Print discovered data context to the user.
+                let ctx = workflow::scan_data_directory(&data);
+                println!(
+                    "{} Scanning data directory: {}",
+                    "→".cyan().bold(),
+                    data.display().to_string().cyan()
+                );
+                println!(
+                    "  {} {}",
+                    "Data type:".bold(),
+                    ctx.data_type_hint
+                );
+                if ctx.samples.is_empty() {
+                    println!(
+                        "  {} {}",
+                        "Samples:".bold(),
+                        "(none detected — LLM will use placeholder names)".dimmed()
+                    );
+                } else {
+                    println!(
+                        "  {} {} detected: {}",
+                        "Samples:".bold(),
+                        ctx.samples.len(),
+                        ctx.samples.join(", ").cyan()
+                    );
+                }
+                println!();
+
+                let label = match engine_name.as_str() {
+                    "snakemake" => "Snakemake",
+                    "nextflow" => "Nextflow DSL2",
+                    _ => "native (.oxo.toml)",
+                };
+                let spinner = runner::make_spinner(&format!(
+                    "Generating {label} workflow from data context with LLM..."
+                ));
+                let wf =
+                    match workflow::infer_workflow(&cfg, &task, &data, &engine_name).await {
+                        Ok(w) => {
+                            spinner.finish_and_clear();
+                            w
+                        }
+                        Err(e) => {
+                            spinner.finish_and_clear();
+                            return Err(e);
+                        }
+                    };
+
+                match output {
+                    Some(ref path) => {
+                        std::fs::write(path, &wf.content)?;
+                        println!(
+                            "{} Workflow written to {}",
+                            "✓".green().bold(),
+                            path.display().to_string().cyan()
+                        );
+                        if !wf.explanation.is_empty() {
+                            println!();
+                            println!("  {}", "Pipeline explanation:".bold());
+                            println!("  {}", wf.explanation);
+                        }
+
+                        if run {
+                            if engine_name != "native" {
+                                eprintln!(
+                                    "{} --run is only supported for native (.oxo.toml) workflows.",
+                                    "error:".red().bold()
+                                );
+                                std::process::exit(1);
+                            }
+                            println!();
+                            println!(
+                                "{} Running generated workflow: {}",
+                                "→".cyan().bold(),
+                                path.display().to_string().cyan()
+                            );
+                            let def = engine::WorkflowDef::from_file(path)?;
+                            let tasks = engine::expand(&def)?;
+                            engine::execute(tasks, false).await?;
+                        }
+                    }
+                    None => {
+                        if run {
+                            eprintln!(
+                                "{} --run requires --output <file> to save the workflow first.",
+                                "error:".red().bold()
+                            );
+                            std::process::exit(1);
+                        }
+                        workflow::print_generated_workflow(&wf);
+                    }
+                }
+            }
         },
     }
 

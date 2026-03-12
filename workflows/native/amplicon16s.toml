@@ -1,0 +1,118 @@
+# =============================================================================
+# 16S rRNA amplicon sequencing workflow — oxo-call native format
+#
+# Uses DADA2 (via R) for denoising and ASV table generation.
+# Requires paired-end reads with overlapping amplicons.
+#
+# Usage:
+#   1. Edit [wildcards] and [params] sections below
+#   2. Run:  oxo-call workflow run amplicon16s.toml
+#   3. Or preview first:  oxo-call workflow dry-run amplicon16s.toml
+#   4. Export to Snakemake:  oxo-call workflow export amplicon16s.toml --to snakemake
+#
+# Expected input layout:
+#   data/{sample}_R1.fastq.gz
+#   data/{sample}_R2.fastq.gz
+#
+# Primer references used by default:
+#   515F/806R (V4 hypervariable region)
+# =============================================================================
+
+[workflow]
+name        = "amplicon16s"
+description = "16S amplicon: cutadapt primer trimming → fastp QC → DADA2 denoising/ASV → taxonomy (SILVA) → phyloseq import"
+version     = "1.0"
+
+[wildcards]
+sample = ["sample1", "sample2", "sample3", "sample4"]
+
+# ── Configurable parameters ───────────────────────────────────────────────────
+# REQUIRED: update paths before running.
+[params]
+threads       = "8"
+primer_f      = "GTGYCAGCMGCCGCGGTAA"    # 515F primer sequence (V4)
+primer_r      = "GGACTACNVGGGTWTCTAAT"   # 806R primer sequence (V4)
+silva_db      = "/path/to/silva_nr99_v138.1_train_set.fa.gz"   # REQUIRED: SILVA taxonomy reference
+silva_species = "/path/to/silva_species_assignment_v138.1.fa.gz"  # Optional species assignment
+
+# =============================================================================
+
+[[step]]
+name    = "cutadapt"
+cmd     = """\
+cutadapt \
+  -g {params.primer_f} \
+  -G {params.primer_r} \
+  --discard-untrimmed \
+  -j {params.threads} \
+  --minimum-length 100 \
+  -o trimmed/{sample}_R1.fastq.gz \
+  -p trimmed/{sample}_R2.fastq.gz \
+  data/{sample}_R1.fastq.gz \
+  data/{sample}_R2.fastq.gz \
+  > qc/{sample}_cutadapt.txt\
+"""
+inputs  = ["data/{sample}_R1.fastq.gz", "data/{sample}_R2.fastq.gz"]
+outputs = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz",
+           "qc/{sample}_cutadapt.txt"]
+
+[[step]]
+name       = "fastp"
+depends_on = ["cutadapt"]
+cmd        = """\
+fastp \
+  --in1  trimmed/{sample}_R1.fastq.gz \
+  --in2  trimmed/{sample}_R2.fastq.gz \
+  --out1 filtered/{sample}_R1.fastq.gz \
+  --out2 filtered/{sample}_R2.fastq.gz \
+  --html qc/{sample}_fastp.html \
+  --json qc/{sample}_fastp.json \
+  --thread {params.threads} \
+  --qualified_quality_phred 20 \
+  --length_required 100\
+"""
+inputs  = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz"]
+outputs = ["filtered/{sample}_R1.fastq.gz", "filtered/{sample}_R2.fastq.gz",
+           "qc/{sample}_fastp.json"]
+
+[[step]]
+name       = "dada2"
+gather     = true
+depends_on = ["fastp"]
+cmd        = """\
+Rscript - <<'REOF'
+library(dada2)
+path_filt <- "filtered"
+samples   <- list.files(path_filt, pattern="_R1.fastq.gz", full.names=FALSE)
+samples   <- sub("_R1.fastq.gz", "", samples)
+fns_f <- file.path(path_filt, paste0(samples, "_R1.fastq.gz"))
+fns_r <- file.path(path_filt, paste0(samples, "_R2.fastq.gz"))
+names(fns_f) <- samples
+names(fns_r) <- samples
+err_f <- learnErrors(fns_f, multithread=TRUE)
+err_r <- learnErrors(fns_r, multithread=TRUE)
+dadaFs <- dada(fns_f, err=err_f, multithread=TRUE)
+dadaRs <- dada(fns_r, err=err_r, multithread=TRUE)
+mergers <- mergePairs(dadaFs, fns_f, dadaRs, fns_r, verbose=TRUE)
+seqtab  <- makeSequenceTable(mergers)
+seqtab_nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE)
+taxa <- assignTaxonomy(seqtab_nochim, "{params.silva_db}", multithread=TRUE)
+dir.create("dada2", showWarnings=FALSE)
+saveRDS(seqtab_nochim, "dada2/seqtab_nochim.rds")
+saveRDS(taxa,          "dada2/taxonomy.rds")
+write.csv(t(seqtab_nochim), "dada2/asv_table.csv")
+write.csv(taxa,              "dada2/taxonomy_table.csv")
+cat("ASVs:", ncol(seqtab_nochim), "\n")
+REOF\
+"""
+inputs  = []
+outputs = ["dada2/asv_table.csv", "dada2/taxonomy_table.csv",
+           "dada2/seqtab_nochim.rds"]
+
+[[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["fastp"]
+cmd        = "multiqc qc/ -o results/multiqc/"
+inputs     = []
+outputs    = ["results/multiqc/multiqc_report.html"]

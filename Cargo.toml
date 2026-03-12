@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "crates/license-issuer"]
+members = [".", "crates/license-issuer", "crates/oxo-bench"]
 
 [package]
 name = "oxo-call"

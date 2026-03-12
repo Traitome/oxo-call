@@ -65,6 +65,46 @@ pub static BUILTIN_TEMPLATES: &[WorkflowTemplate] = &[
         snakemake: include_str!("../workflows/snakemake/metagenomics.smk"),
         nextflow: include_str!("../workflows/nextflow/metagenomics.nf"),
     },
+    WorkflowTemplate {
+        name: "chipseq",
+        description: "ChIP-seq: fastp → Bowtie2 → Picard MarkDup → blacklist filter → MACS3 → bigWig",
+        assay: "epigenomics",
+        native: include_str!("../workflows/native/chipseq.toml"),
+        snakemake: include_str!("../workflows/snakemake/chipseq.smk"),
+        nextflow: include_str!("../workflows/nextflow/chipseq.nf"),
+    },
+    WorkflowTemplate {
+        name: "methylseq",
+        description: "WGBS methylation: Trim Galore → Bismark alignment → dedup → methylation extraction",
+        assay: "epigenomics",
+        native: include_str!("../workflows/native/methylseq.toml"),
+        snakemake: include_str!("../workflows/snakemake/methylseq.smk"),
+        nextflow: include_str!("../workflows/nextflow/methylseq.nf"),
+    },
+    WorkflowTemplate {
+        name: "scrnaseq",
+        description: "scRNA-seq: fastp QC → STARsolo (10x v3) → EmptyDrops cell filtering → QC metrics",
+        assay: "single-cell",
+        native: include_str!("../workflows/native/scrnaseq.toml"),
+        snakemake: include_str!("../workflows/snakemake/scrnaseq.smk"),
+        nextflow: include_str!("../workflows/nextflow/scrnaseq.nf"),
+    },
+    WorkflowTemplate {
+        name: "amplicon16s",
+        description: "16S amplicon: cutadapt primer trim → fastp QC → DADA2 ASV denoising → SILVA taxonomy",
+        assay: "metagenomics",
+        native: include_str!("../workflows/native/amplicon16s.toml"),
+        snakemake: include_str!("../workflows/snakemake/amplicon16s.smk"),
+        nextflow: include_str!("../workflows/nextflow/amplicon16s.nf"),
+    },
+    WorkflowTemplate {
+        name: "longreads",
+        description: "Long-read assembly: NanoQ QC → Flye assembly → Medaka polishing → QUAST evaluation",
+        assay: "genomics",
+        native: include_str!("../workflows/native/longreads.toml"),
+        snakemake: include_str!("../workflows/snakemake/longreads.smk"),
+        nextflow: include_str!("../workflows/nextflow/longreads.nf"),
+    },
 ];
 
 /// Find a built-in template by name (case-insensitive).
@@ -354,7 +394,7 @@ pub fn print_template_list() {
         "Assay".bold(),
         "Description".bold()
     );
-    println!("{}", "─".repeat(78).dimmed());
+    println!("{}", "─".repeat(90).dimmed());
     for t in BUILTIN_TEMPLATES {
         println!("{:<16} {:<18} {}", t.name.cyan(), t.assay, t.description);
     }
@@ -370,6 +410,10 @@ pub fn print_template_list() {
     println!(
         "{}",
         "Use 'oxo-call workflow generate \"<task>\"' to generate a custom workflow.".dimmed()
+    );
+    println!(
+        "{}",
+        "Use 'oxo-call workflow infer --data <dir> \"<task>\"' to auto-generate from data.".dimmed()
     );
 }
 
@@ -388,4 +432,342 @@ pub fn print_generated_workflow(wf: &GeneratedWorkflow) {
         println!("  {}", wf.explanation);
         println!("{}", "─".repeat(70).dimmed());
     }
+}
+
+// ─── Data context discovery ────────────────────────────────────────────────
+
+/// Summary of files discovered in a data directory for LLM prompt enrichment.
+#[derive(Debug, Clone, Default)]
+pub struct DataContext {
+    /// Inferred sample names (without read-pair suffix and extension).
+    pub samples: Vec<String>,
+    /// Representative file paths observed.
+    pub files: Vec<String>,
+    /// Detected data type hint based on file patterns.
+    pub data_type_hint: String,
+}
+
+/// Scan a directory for bioinformatics input files (FASTQ, BAM, etc.) and
+/// infer sample names and data type from the file naming patterns.
+///
+/// Returns a [`DataContext`] that can be injected into the LLM prompt to
+/// produce a workflow with real sample names and paths already filled in.
+pub fn scan_data_directory(dir: &std::path::Path) -> DataContext {
+    use std::collections::BTreeSet;
+
+    let mut ctx = DataContext::default();
+    let mut sample_set: BTreeSet<String> = BTreeSet::new();
+    let mut file_list: Vec<String> = Vec::new();
+    let mut has_fastq = false;
+    let mut has_bam = false;
+    let mut has_fast5 = false;
+    let mut has_pod5 = false;
+    let mut looks_single_end = false;
+
+    let read_dir = match std::fs::read_dir(dir) {
+        Ok(d) => d,
+        Err(_) => return ctx,
+    };
+
+    for entry in read_dir.flatten() {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let fname = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("")
+            .to_string();
+        let path_str = path.to_string_lossy().to_string();
+
+        // Collect representative files (cap at 20 for prompt brevity).
+        if file_list.len() < 20 {
+            file_list.push(path_str.clone());
+        }
+
+        // Detect file types.
+        let lower = fname.to_lowercase();
+        if lower.ends_with(".fastq.gz")
+            || lower.ends_with(".fastq")
+            || lower.ends_with(".fq.gz")
+            || lower.ends_with(".fq")
+        {
+            has_fastq = true;
+            // Extract sample name by stripping common read-pair suffixes:
+            // _R1.fastq.gz, _R2.fastq.gz, _1.fastq.gz, _2.fastq.gz,
+            // _R1_001.fastq.gz, etc.
+            let stem = lower
+                .trim_end_matches(".gz")
+                .trim_end_matches(".fastq")
+                .trim_end_matches(".fq");
+            let sample = strip_read_pair_suffix(stem);
+            if !sample.is_empty() {
+                sample_set.insert(sample);
+            }
+            // Check for single-end pattern (no R1/R2).
+            if !lower.contains("_r1")
+                && !lower.contains("_r2")
+                && !lower.contains("_1.")
+                && !lower.contains("_2.")
+            {
+                looks_single_end = true;
+            }
+        } else if lower.ends_with(".bam") {
+            has_bam = true;
+            let stem = fname.trim_end_matches(".bam");
+            let sample = strip_bam_suffix(stem);
+            if !sample.is_empty() {
+                sample_set.insert(sample);
+            }
+        } else if lower.ends_with(".fast5") || lower.ends_with(".fast5.gz") {
+            has_fast5 = true;
+        } else if lower.ends_with(".pod5") {
+            has_pod5 = true;
+        }
+    }
+
+    ctx.samples = sample_set.into_iter().collect();
+    ctx.files = file_list;
+
+    // Determine data type hint.
+    ctx.data_type_hint = if has_fast5 || has_pod5 {
+        "Oxford Nanopore long-read (raw signal files detected)".to_string()
+    } else if has_fastq && !has_bam {
+        if looks_single_end {
+            "Illumina short-read FASTQ (single-end)".to_string()
+        } else {
+            "Illumina short-read FASTQ (paired-end)".to_string()
+        }
+    } else if has_bam {
+        "Pre-aligned BAM files".to_string()
+    } else {
+        "Unknown — no recognised bioinformatics files detected".to_string()
+    };
+
+    ctx
+}
+
+fn strip_read_pair_suffix(stem: &str) -> String {
+    // Remove common trailing patterns: _R1, _R2, _1, _2, _R1_001, _R2_001.
+    let patterns = [
+        "_r1_001", "_r2_001", "_r1", "_r2", "_1", "_2",
+    ];
+    let lower = stem.to_lowercase();
+    for pat in &patterns {
+        if let Some(pos) = lower.rfind(pat) {
+            let candidate = &stem[..pos];
+            if !candidate.is_empty() {
+                return candidate.to_string();
+            }
+        }
+    }
+    stem.to_string()
+}
+
+fn strip_bam_suffix(stem: &str) -> String {
+    // Strip common BAM suffixes: .sorted, .markdup, .recal, etc.
+    let patterns = [".sorted", ".markdup", ".recal", ".dedup"];
+    let mut s = stem.to_string();
+    for pat in &patterns {
+        if let Some(pos) = s.rfind(pat) {
+            s = s[..pos].to_string();
+        }
+    }
+    s
+}
+
+/// Build the enriched user prompt for `workflow infer`, incorporating discovered
+/// data context (sample names, file paths, data type).
+pub fn build_infer_prompt(task: &str, ctx: &DataContext, data_dir: &str) -> String {
+    let sample_list = if ctx.samples.is_empty() {
+        "  (no samples auto-detected — please specify in [wildcards])".to_string()
+    } else {
+        ctx.samples
+            .iter()
+            .map(|s| format!("  - {s}"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+
+    let file_preview = if ctx.files.is_empty() {
+        "  (directory is empty or contains no recognised files)".to_string()
+    } else {
+        ctx.files
+            .iter()
+            .map(|f| format!("  {f}"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+
+    format!(
+        "Generate a complete, production-ready workflow for the following task:\n\n\
+         TASK:\n{task}\n\n\
+         DATA DIRECTORY: {data_dir}\n\
+         DATA TYPE: {dtype}\n\n\
+         AUTO-DETECTED SAMPLES ({n}):\n{sample_list}\n\n\
+         REPRESENTATIVE FILES (first {nf}):\n{file_preview}\n\n\
+         INSTRUCTIONS:\n\
+         - Use the exact data directory path '{data_dir}' as the input data location.\n\
+         - Use the auto-detected sample names in the [wildcards] section.\n\
+         - Substitute realistic paths for all reference files (mark with # REQUIRED comments).\n\
+         - Ensure the workflow is runnable with the oxo-call native engine.\n\
+         - Include all necessary steps for a complete, publication-ready analysis.",
+        task = task,
+        data_dir = data_dir,
+        dtype = ctx.data_type_hint,
+        n = ctx.samples.len(),
+        sample_list = sample_list,
+        nf = ctx.files.len(),
+        file_preview = file_preview,
+    )
+}
+
+/// Call the LLM to infer and generate a workflow from a task description and
+/// a scanned data directory context.
+///
+/// Unlike [`generate_workflow`], this function:
+/// 1. Scans the data directory to discover sample names and file patterns.
+/// 2. Builds an enriched prompt that includes real paths and sample names.
+/// 3. Uses the native TOML system prompt so the output is immediately runnable.
+#[cfg(not(target_arch = "wasm32"))]
+pub async fn infer_workflow(
+    config: &Config,
+    task: &str,
+    data_dir: &std::path::Path,
+    engine: &str,
+) -> Result<GeneratedWorkflow> {
+    use reqwest::Client;
+
+    let ctx = scan_data_directory(data_dir);
+    let data_dir_str = data_dir.to_string_lossy();
+    let user_prompt = build_infer_prompt(task, &ctx, &data_dir_str);
+
+    let system = match engine {
+        "snakemake" => snakemake_system_prompt().to_string(),
+        "nextflow" => nextflow_system_prompt().to_string(),
+        _ => native_system_prompt().to_string(),
+    };
+
+    let messages = vec![
+        ChatMessage {
+            role: "system".to_string(),
+            content: system,
+        },
+        ChatMessage {
+            role: "user".to_string(),
+            content: user_prompt,
+        },
+    ];
+
+    let token = config.effective_api_token().ok_or_else(|| {
+        OxoError::LlmError(
+            "No API token configured. Set it with:\n  oxo-call config set llm.api_token <token>"
+                .to_string(),
+        )
+    })?;
+
+    let api_base = config.effective_api_base();
+    if !api_base.starts_with("https://")
+        && !api_base.starts_with("http://localhost")
+        && !api_base.starts_with("http://127.0.0.1")
+        && !api_base.starts_with("http://[::1]")
+    {
+        return Err(OxoError::LlmError(format!(
+            "API base URL must use HTTPS for remote endpoints: {api_base}"
+        )));
+    }
+
+    let model = config.effective_model();
+    let max_tokens = config.effective_max_tokens()?;
+    let temperature = config.effective_temperature()?;
+
+    let request = ChatRequest {
+        model: model.clone(),
+        messages,
+        max_tokens,
+        temperature,
+    };
+
+    let client = Client::builder()
+        .use_rustls_tls()
+        .build()
+        .map_err(|e| OxoError::LlmError(e.to_string()))?;
+
+    let url = format!("{api_base}/chat/completions");
+
+    let resp = client
+        .post(&url)
+        .bearer_auth(&token)
+        .json(&request)
+        .send()
+        .await
+        .map_err(|e| OxoError::LlmError(format!("HTTP error: {e}")))?;
+
+    let status = resp.status();
+    if !status.is_success() {
+        let body = resp
+            .text()
+            .await
+            .unwrap_or_else(|_| "<no body>".to_string());
+        return Err(OxoError::LlmError(format!(
+            "LLM API returned {status}: {body}"
+        )));
+    }
+
+    let chat: ChatResponse = resp
+        .json()
+        .await
+        .map_err(|e| OxoError::LlmError(format!("Failed to parse LLM response: {e}")))?;
+
+    let raw = chat
+        .choices
+        .first()
+        .map(|c| c.message.content.clone())
+        .unwrap_or_default();
+
+    if let Some(wf) = parse_workflow_response(&raw, engine) {
+        return Ok(wf);
+    }
+
+    // Retry with format correction.
+    let mut messages2 = request.messages.clone();
+    messages2.push(ChatMessage {
+        role: "assistant".to_string(),
+        content: raw.clone(),
+    });
+    messages2.push(ChatMessage {
+        role: "user".to_string(),
+        content: "Your response was not in the required format.  \
+                  Please rewrite it starting with WORKFLOW: and ending with END_WORKFLOW, \
+                  then EXPLANATION:"
+            .to_string(),
+    });
+
+    let request2 = ChatRequest {
+        model: model.clone(),
+        messages: messages2,
+        max_tokens,
+        temperature,
+    };
+
+    let resp2 = client
+        .post(&url)
+        .bearer_auth(&token)
+        .json(&request2)
+        .send()
+        .await
+        .map_err(|e| OxoError::LlmError(format!("HTTP error on retry: {e}")))?;
+
+    let raw2 = resp2
+        .json::<ChatResponse>()
+        .await
+        .ok()
+        .and_then(|c| c.choices.into_iter().next())
+        .map(|c| c.message.content)
+        .unwrap_or_default();
+
+    parse_workflow_response(&raw2, engine).ok_or_else(|| {
+        OxoError::LlmError("LLM did not return a parseable workflow after two attempts".to_string())
+    })
 }

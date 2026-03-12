@@ -1,0 +1,111 @@
+# =============================================================================
+# Long-read assembly workflow — oxo-call native format
+#
+# Supports Oxford Nanopore (ONT) or PacBio HiFi reads.
+# Pipeline: NanoQ/NanoStat QC → Flye assembly → Medaka polishing → QUAST evaluation
+#
+# Usage:
+#   1. Edit [wildcards] and [params] sections below
+#   2. Run:  oxo-call workflow run longreads.toml
+#   3. Or preview first:  oxo-call workflow dry-run longreads.toml
+#   4. Export to Snakemake:  oxo-call workflow export longreads.toml --to snakemake
+#
+# Expected input layout:
+#   data/{sample}.fastq.gz   (ONT basecalled reads or PacBio HiFi reads)
+# =============================================================================
+
+[workflow]
+name        = "longreads"
+description = "Long-read assembly: NanoQ/NanoStat QC → Flye assembly → Medaka polishing → QUAST assembly evaluation"
+version     = "1.0"
+
+[wildcards]
+sample = ["sample1", "sample2"]
+
+# ── Configurable parameters ───────────────────────────────────────────────────
+# REQUIRED: update paths before running.
+[params]
+threads      = "16"
+genome_size  = "5m"                    # Estimated genome size (e.g. 5m, 500k, 3g)
+read_type    = "nano-hq"               # Flye read type: nano-raw, nano-hq, nano-corr, pacbio-raw, pacbio-corr, pacbio-hifi
+medaka_model = "r941_min_sup_g507"     # Medaka polishing model (match your ONT flowcell/basecaller)
+reference    = "/path/to/reference.fa" # OPTIONAL: reference for QUAST evaluation (leave empty to skip)
+
+# =============================================================================
+
+[[step]]
+name    = "nanoq"
+cmd     = """\
+nanoq \
+  -i data/{sample}.fastq.gz \
+  -r qc/{sample}_nanoq_report.txt \
+  -s qc/{sample}_nanoq_stats.json \
+  --min-len 1000 \
+  --min-qual 8 \
+  -o filtered/{sample}.fastq.gz\
+"""
+inputs  = ["data/{sample}.fastq.gz"]
+outputs = ["filtered/{sample}.fastq.gz", "qc/{sample}_nanoq_stats.json"]
+
+[[step]]
+name       = "nanostat"
+depends_on = ["nanoq"]
+cmd        = """\
+NanoStat \
+  --fastq filtered/{sample}.fastq.gz \
+  --threads {params.threads} \
+  -n {sample} \
+  -o qc/ \
+  --tsv\
+"""
+inputs  = ["filtered/{sample}.fastq.gz"]
+outputs = ["qc/{sample}NanoStats.txt"]
+
+[[step]]
+name       = "flye"
+depends_on = ["nanoq"]
+cmd        = """\
+flye \
+  --{params.read_type} filtered/{sample}.fastq.gz \
+  --genome-size {params.genome_size} \
+  --out-dir assembly/{sample} \
+  --threads {params.threads}\
+"""
+inputs  = ["filtered/{sample}.fastq.gz"]
+outputs = ["assembly/{sample}/assembly.fasta",
+           "assembly/{sample}/assembly_info.txt"]
+
+[[step]]
+name       = "medaka"
+depends_on = ["flye"]
+cmd        = """\
+medaka_consensus \
+  -i filtered/{sample}.fastq.gz \
+  -d assembly/{sample}/assembly.fasta \
+  -o polished/{sample} \
+  -t {params.threads} \
+  -m {params.medaka_model}\
+"""
+inputs  = ["filtered/{sample}.fastq.gz", "assembly/{sample}/assembly.fasta"]
+outputs = ["polished/{sample}/consensus.fasta"]
+
+[[step]]
+name       = "quast"
+depends_on = ["medaka"]
+cmd        = """\
+quast.py \
+  polished/{sample}/consensus.fasta \
+  -o qc/quast_{sample} \
+  --threads {params.threads} \
+  --min-contig 500\
+"""
+inputs  = ["polished/{sample}/consensus.fasta"]
+outputs = ["qc/quast_{sample}/report.txt", "qc/quast_{sample}/report.html"]
+
+[[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["nanostat", "quast"]
+cmd        = "multiqc qc/ -o results/multiqc/"
+inputs     = []
+outputs    = ["results/multiqc/multiqc_report.html"]
