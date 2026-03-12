@@ -17,7 +17,7 @@ oxo-call uses a dual-license model:
   per-organization license (one-time fee, perpetual, includes updates).
   See LICENSE-COMMERCIAL for the full terms.
 
-  How to obtain:  license@traitome.com
+  How to obtain:  w_shixiang@163.com
                   https://github.com/Traitome/oxo-call#licensing
 
 Runtime requirement
@@ -34,5 +34,4 @@ Runtime requirement
   To verify your license:
     oxo-call license verify
 
-Copyright (c) 2024–2025 Traitome (https://github.com/Traitome)
-All rights reserved.  Unauthorized commercial use is prohibited.
+Copyright (c) 2026-present Shixiang Wang (王诗翔)

@@ -250,7 +250,7 @@ an Ed25519 signature.
 
 #### Commercial License (per-organization, one-time fee)
 
-1. Contact: <license@traitome.com>  *(← contact placeholder)*
+1. Contact: <w_shixiang@163.com>  *(← contact placeholder)*
 2. You will receive a `license.oxo.json` signed for your organization.
 3. Place it in the same location as the academic license (see above).
 4. One license covers all employees/contractors within your organization.
