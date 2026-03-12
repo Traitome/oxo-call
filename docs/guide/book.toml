@@ -1,0 +1,15 @@
+[book]
+authors = ["Traitome"]
+language = "en"
+src = "src"
+title = "oxo-call Documentation"
+description = "Comprehensive documentation for oxo-call — model-intelligent orchestration for CLI bioinformatics"
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "navy"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/Traitome/oxo-call"
+edit-url-template = "https://github.com/Traitome/oxo-call/edit/main/docs/guide/{path}"
