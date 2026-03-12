@@ -1,0 +1,100 @@
+# =============================================================================
+# Shotgun metagenomics workflow — oxo-call native format
+#
+# Usage:
+#   oxo-call workflow run     metagenomics.toml
+#   oxo-call workflow dry-run metagenomics.toml
+#   oxo-call workflow export  metagenomics.toml --to snakemake
+# =============================================================================
+
+[workflow]
+name        = "metagenomics"
+description = "Shotgun metagenomics: fastp → host removal → Kraken2 → Bracken"
+version     = "1.0"
+
+[wildcards]
+sample = ["sample1", "sample2"]
+
+# ── Configurable parameters ───────────────────────────────────────────────────
+# REQUIRED: update these paths to match your environment before running.
+[params]
+threads       = "8"
+host_index    = "/path/to/bowtie2_host_index"  # REQUIRED: Bowtie2 index for host genome (e.g. hg38)
+kraken2_db    = "/path/to/kraken2_db"           # REQUIRED: Kraken2 database directory
+bracken_rlen  = "150"                           # Bracken read length (match your sequencing read length)
+
+# =============================================================================
+
+[[step]]
+name    = "fastp"
+cmd     = """\
+fastp \
+  --in1  data/{sample}_R1.fastq.gz \
+  --in2  data/{sample}_R2.fastq.gz \
+  --out1 trimmed/{sample}_R1.fastq.gz \
+  --out2 trimmed/{sample}_R2.fastq.gz \
+  --html qc/{sample}_fastp.html \
+  --json qc/{sample}_fastp.json \
+  --thread {params.threads} \
+  --detect_adapter_for_pe \
+  --qualified_quality_phred 20 \
+  --length_required 50\
+"""
+inputs  = ["data/{sample}_R1.fastq.gz", "data/{sample}_R2.fastq.gz"]
+outputs = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz"]
+
+[[step]]
+name       = "remove_host"
+depends_on = ["fastp"]
+cmd        = """\
+bowtie2 \
+  -x {params.host_index} \
+  -1 trimmed/{sample}_R1.fastq.gz \
+  -2 trimmed/{sample}_R2.fastq.gz \
+  -p {params.threads} \
+  --no-unal \
+  --un-conc-gz dehost/{sample}_R%.fastq.gz \
+  -S /dev/null\
+"""
+inputs  = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz"]
+outputs = ["dehost/{sample}_R1.fastq.gz", "dehost/{sample}_R2.fastq.gz"]
+
+[[step]]
+name       = "kraken2"
+depends_on = ["remove_host"]
+cmd        = """\
+kraken2 \
+  --db {params.kraken2_db} \
+  --threads {params.threads} \
+  --paired \
+  --gzip-compressed \
+  --report kraken2/{sample}.report \
+  --output kraken2/{sample}.kraken2.out \
+  dehost/{sample}_R1.fastq.gz \
+  dehost/{sample}_R2.fastq.gz\
+"""
+inputs  = ["dehost/{sample}_R1.fastq.gz", "dehost/{sample}_R2.fastq.gz"]
+outputs = ["kraken2/{sample}.report"]
+
+[[step]]
+name       = "bracken"
+depends_on = ["kraken2"]
+cmd        = """\
+bracken \
+  -d {params.kraken2_db} \
+  -i kraken2/{sample}.report \
+  -o bracken/{sample}.bracken \
+  -w bracken/{sample}.bracken_report \
+  -r {params.bracken_rlen} \
+  -l S\
+"""
+inputs  = ["kraken2/{sample}.report"]
+outputs = ["bracken/{sample}.bracken"]
+
+[[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["fastp", "kraken2"]
+cmd        = "multiqc qc/ kraken2/ -o results/multiqc/"
+inputs     = []
+outputs    = ["results/multiqc/multiqc_report.html"]

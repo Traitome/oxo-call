@@ -1,0 +1,121 @@
+# =============================================================================
+# Whole-genome sequencing (WGS) workflow — oxo-call native format
+#
+# Usage:
+#   oxo-call workflow run     wgs.toml
+#   oxo-call workflow dry-run wgs.toml
+#   oxo-call workflow export  wgs.toml --to snakemake
+#
+# Expected input layout:
+#   data/{sample}_R1.fastq.gz
+#   data/{sample}_R2.fastq.gz
+# =============================================================================
+
+[workflow]
+name        = "wgs"
+description = "WGS: fastp → BWA-MEM2 → GATK MarkDup / BQSR → HaplotypeCaller"
+version     = "1.0"
+
+[wildcards]
+sample = ["sample1", "sample2"]
+
+# ── Configurable parameters ───────────────────────────────────────────────────
+# REQUIRED: update these paths to match your environment before running.
+[params]
+threads      = "8"
+genome_fasta = "/path/to/reference.fa"     # REQUIRED: path to reference genome FASTA (BWA-MEM2 indexed)
+dbsnp        = "/path/to/dbsnp.vcf.gz"     # REQUIRED: dbSNP VCF for BQSR
+known_indels = "/path/to/known_indels.vcf.gz"  # REQUIRED: known indels VCF for BQSR
+
+# =============================================================================
+
+[[step]]
+name    = "fastp"
+cmd     = """\
+fastp \
+  --in1  data/{sample}_R1.fastq.gz \
+  --in2  data/{sample}_R2.fastq.gz \
+  --out1 trimmed/{sample}_R1.fastq.gz \
+  --out2 trimmed/{sample}_R2.fastq.gz \
+  --html qc/{sample}_fastp.html \
+  --json qc/{sample}_fastp.json \
+  --thread {params.threads} \
+  --detect_adapter_for_pe\
+"""
+inputs  = ["data/{sample}_R1.fastq.gz", "data/{sample}_R2.fastq.gz"]
+outputs = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz"]
+
+[[step]]
+name       = "bwa_mem2"
+depends_on = ["fastp"]
+cmd        = """\
+bwa-mem2 mem \
+  -t {params.threads} \
+  -R '@RG\tID:{sample}\tSM:{sample}\tLB:{sample}\tPL:ILLUMINA' \
+  {params.genome_fasta} \
+  trimmed/{sample}_R1.fastq.gz \
+  trimmed/{sample}_R2.fastq.gz \
+  | samtools sort -@ 4 -o aligned/{sample}.sorted.bam\
+"""
+inputs  = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz"]
+outputs = ["aligned/{sample}.sorted.bam"]
+
+[[step]]
+name       = "mark_duplicates"
+depends_on = ["bwa_mem2"]
+cmd        = """\
+gatk MarkDuplicates \
+  -I aligned/{sample}.sorted.bam \
+  -O aligned/{sample}.markdup.bam \
+  -M qc/{sample}.markdup_metrics.txt\
+"""
+inputs  = ["aligned/{sample}.sorted.bam"]
+outputs = ["aligned/{sample}.markdup.bam", "qc/{sample}.markdup_metrics.txt"]
+
+[[step]]
+name       = "index_markdup"
+depends_on = ["mark_duplicates"]
+cmd        = "samtools index -@ {params.threads} aligned/{sample}.markdup.bam"
+inputs     = ["aligned/{sample}.markdup.bam"]
+outputs    = ["aligned/{sample}.markdup.bam.bai"]
+
+[[step]]
+name       = "bqsr"
+depends_on = ["index_markdup"]
+cmd        = """\
+gatk BaseRecalibrator \
+  -I aligned/{sample}.markdup.bam \
+  -R {params.genome_fasta} \
+  --known-sites {params.dbsnp} \
+  --known-sites {params.known_indels} \
+  -O aligned/{sample}.recal.table && \
+gatk ApplyBQSR \
+  -I aligned/{sample}.markdup.bam \
+  -R {params.genome_fasta} \
+  --bqsr-recal-file aligned/{sample}.recal.table \
+  -O aligned/{sample}.recal.bam\
+"""
+inputs  = ["aligned/{sample}.markdup.bam"]
+outputs = ["aligned/{sample}.recal.bam"]
+
+[[step]]
+name       = "haplotype_caller"
+depends_on = ["bqsr"]
+cmd        = """\
+gatk HaplotypeCaller \
+  -R {params.genome_fasta} \
+  -I aligned/{sample}.recal.bam \
+  -O vcf/{sample}.g.vcf.gz \
+  -ERC GVCF \
+  --native-pair-hmm-threads {params.threads}\
+"""
+inputs  = ["aligned/{sample}.recal.bam"]
+outputs = ["vcf/{sample}.g.vcf.gz"]
+
+[[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["fastp", "mark_duplicates"]
+cmd        = "multiqc qc/ aligned/ -o results/multiqc/"
+inputs     = []
+outputs    = ["results/multiqc/multiqc_report.html"]

@@ -1,0 +1,108 @@
+# =============================================================================
+# ATAC-seq workflow — oxo-call native format
+#
+# Usage:
+#   oxo-call workflow run     atacseq.toml
+#   oxo-call workflow dry-run atacseq.toml
+#   oxo-call workflow export  atacseq.toml --to snakemake
+# =============================================================================
+
+[workflow]
+name        = "atacseq"
+description = "ATAC-seq: fastp → Bowtie2 → Picard dedup → blacklist filter → MACS3 peaks"
+version     = "1.0"
+
+[wildcards]
+sample = ["sample1", "sample2"]
+
+# ── Configurable parameters ───────────────────────────────────────────────────
+# REQUIRED: update these paths to match your environment before running.
+[params]
+threads       = "8"
+bowtie2_index = "/path/to/bt2_index"    # REQUIRED: Bowtie2 index prefix (e.g. /data/hg38/bt2/hg38)
+blacklist     = "/path/to/blacklist.bed"  # REQUIRED: ENCODE blacklist BED for your genome
+genome_size   = "hs"                      # macs3 genome size: hs=human, mm=mouse, ce=worm, dm=fly
+
+# =============================================================================
+
+[[step]]
+name    = "fastp"
+cmd     = """\
+fastp \
+  --in1  data/{sample}_R1.fastq.gz \
+  --in2  data/{sample}_R2.fastq.gz \
+  --out1 trimmed/{sample}_R1.fastq.gz \
+  --out2 trimmed/{sample}_R2.fastq.gz \
+  --html qc/{sample}_fastp.html \
+  --json qc/{sample}_fastp.json \
+  --thread {params.threads} \
+  --detect_adapter_for_pe \
+  --length_required 20\
+"""
+inputs  = ["data/{sample}_R1.fastq.gz", "data/{sample}_R2.fastq.gz"]
+outputs = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz"]
+
+[[step]]
+name       = "bowtie2"
+depends_on = ["fastp"]
+cmd        = """\
+bowtie2 \
+  -x {params.bowtie2_index} \
+  -1 trimmed/{sample}_R1.fastq.gz \
+  -2 trimmed/{sample}_R2.fastq.gz \
+  -p {params.threads} \
+  --no-mixed --no-discordant --no-unal \
+  | samtools sort -@ 4 -o aligned/{sample}.sorted.bam\
+"""
+inputs  = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz"]
+outputs = ["aligned/{sample}.sorted.bam"]
+
+[[step]]
+name       = "mark_duplicates"
+depends_on = ["bowtie2"]
+cmd        = """\
+picard MarkDuplicates \
+  I=aligned/{sample}.sorted.bam \
+  O=aligned/{sample}.markdup.bam \
+  M=qc/{sample}.markdup_metrics.txt \
+  REMOVE_DUPLICATES=false && \
+samtools index aligned/{sample}.markdup.bam\
+"""
+inputs  = ["aligned/{sample}.sorted.bam"]
+outputs = ["aligned/{sample}.markdup.bam", "qc/{sample}.markdup_metrics.txt"]
+
+[[step]]
+name       = "filter"
+depends_on = ["mark_duplicates"]
+cmd        = """\
+samtools view -@ {params.threads} -b -F 1804 -f 2 -q 30 aligned/{sample}.markdup.bam \
+  | bedtools intersect -v -abam stdin -b {params.blacklist} \
+  > aligned/{sample}.filtered.bam && \
+samtools index aligned/{sample}.filtered.bam\
+"""
+inputs  = ["aligned/{sample}.markdup.bam"]
+outputs = ["aligned/{sample}.filtered.bam"]
+
+[[step]]
+name       = "macs3"
+depends_on = ["filter"]
+cmd        = """\
+macs3 callpeak \
+  -t aligned/{sample}.filtered.bam \
+  -f BAMPE \
+  -n {sample} \
+  --outdir peaks/ \
+  -g {params.genome_size} \
+  --nomodel --shift -75 --extsize 150 \
+  -B --SPMR --keep-dup all\
+"""
+inputs  = ["aligned/{sample}.filtered.bam"]
+outputs = ["peaks/{sample}_peaks.narrowPeak", "peaks/{sample}_summits.bed"]
+
+[[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["fastp", "mark_duplicates"]
+cmd        = "multiqc qc/ aligned/ -o results/multiqc/"
+inputs     = []
+outputs    = ["results/multiqc/multiqc_report.html"]

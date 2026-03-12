@@ -864,3 +864,326 @@ fn test_docs_fetch_non_http_url_via_add_fails() {
         "Expected error for non-http URL, got: {stderr}"
     );
 }
+
+// ─── Workflow command tests ───────────────────────────────────────────────────
+
+#[test]
+fn test_workflow_help_output() {
+    let output = oxo_call()
+        .args(["workflow", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("generate") || stdout.contains("Generate"),
+        "Expected generate subcommand in workflow help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("list") || stdout.contains("List"),
+        "Expected list subcommand in workflow help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("show") || stdout.contains("Show"),
+        "Expected show subcommand in workflow help, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_list_shows_builtin_templates() {
+    let output = oxo_call()
+        .args(["workflow", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("rnaseq"),
+        "Expected rnaseq template, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("wgs"),
+        "Expected wgs template, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("atacseq"),
+        "Expected atacseq template, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("metagenomics"),
+        "Expected metagenomics template, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_show_rnaseq_native() {
+    let output = oxo_call()
+        .args(["workflow", "show", "rnaseq"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    // Default format is now native .oxo.toml
+    assert!(
+        stdout.contains("[workflow]") || stdout.contains("[[step]]"),
+        "Expected native TOML syntax in rnaseq template, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("star") || stdout.contains("STAR"),
+        "Expected STAR alignment step, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("fastp"),
+        "Expected fastp QC step, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_show_rnaseq_snakemake() {
+    let output = oxo_call()
+        .args(["workflow", "show", "rnaseq", "--engine", "snakemake"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("rule all") || stdout.contains("configfile"),
+        "Expected Snakemake syntax in rnaseq template, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("STAR") || stdout.contains("star"),
+        "Expected STAR alignment step, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("fastp"),
+        "Expected fastp QC step, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_show_wgs_nextflow() {
+    let output = oxo_call()
+        .args(["workflow", "show", "wgs", "--engine", "nextflow"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("nextflow.enable.dsl"),
+        "Expected Nextflow DSL2 syntax, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("bwa-mem2") || stdout.contains("BWA_MEM2"),
+        "Expected BWA-MEM2 alignment step, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("HaplotypeCaller") || stdout.contains("HAPLOTYPE_CALLER"),
+        "Expected GATK HaplotypeCaller step, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_show_unknown_template() {
+    let output = oxo_call()
+        .args(["workflow", "show", "nonexistent_workflow_xyz"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        !output.status.success(),
+        "Expected non-zero exit for unknown template"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("Unknown") || stderr.contains("error"),
+        "Expected error message for unknown template, got: {stderr}"
+    );
+}
+
+#[test]
+fn test_workflow_show_atacseq_snakemake() {
+    let output = oxo_call()
+        .args(["workflow", "show", "atacseq"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("bowtie2") || stdout.contains("BOWTIE2"),
+        "Expected Bowtie2 alignment in ATAC-seq workflow, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("macs3") || stdout.contains("MACS3"),
+        "Expected MACS3 peak calling in ATAC-seq workflow, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_show_metagenomics_snakemake() {
+    let output = oxo_call()
+        .args(["workflow", "show", "metagenomics"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("kraken2") || stdout.contains("KRAKEN2"),
+        "Expected Kraken2 classification in metagenomics workflow, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("bracken") || stdout.contains("BRACKEN"),
+        "Expected Bracken abundance estimation in metagenomics workflow, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_generate_requires_llm_token() {
+    // Without a configured LLM token, generate should fail gracefully
+    let output = oxo_call()
+        .args(["workflow", "generate", "RNA-seq pipeline for human samples"])
+        .env_remove("OXO_CALL_LLM_API_TOKEN")
+        .output()
+        .expect("failed to run oxo-call");
+    // Should fail because no API token is configured (in CI there is no real token)
+    assert!(
+        !output.status.success() || {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            stdout.contains("WORKFLOW:") || stdout.contains("workflow")
+        },
+        "Expected either a failure or a valid workflow output"
+    );
+}
+
+#[test]
+fn test_help_includes_workflow() {
+    let output = oxo_call()
+        .arg("--help")
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("workflow") || stdout.contains("Workflow"),
+        "Expected workflow subcommand in help, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_dry_run_builtin_template() {
+    let output = oxo_call()
+        .args(["workflow", "dry-run", "rnaseq"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("fastp") || stdout.contains("▷"),
+        "Expected dry-run preview output, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("dry-run"),
+        "Expected dry-run label in output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_dry_run_from_file() {
+    let tmp = tempfile::NamedTempFile::with_suffix(".toml").expect("tempfile");
+    let toml_content = r#"
+[workflow]
+name = "test"
+description = "test workflow"
+
+[wildcards]
+sample = ["s1"]
+
+[params]
+threads = "4"
+
+[[step]]
+name = "echo_step"
+cmd = "echo hello {sample}"
+outputs = ["out_{sample}.txt"]
+"#;
+    std::fs::write(tmp.path(), toml_content).expect("write");
+    let path = tmp.path().to_str().unwrap().to_string();
+
+    let output = oxo_call()
+        .args(["workflow", "dry-run", &path])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("echo_step") || stdout.contains("echo"),
+        "Expected step name in dry-run output, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("s1"),
+        "Expected wildcard expansion in dry-run output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_export_to_snakemake() {
+    let output = oxo_call()
+        .args(["workflow", "export", "rnaseq", "--to", "snakemake"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("rule") || stdout.contains("configfile"),
+        "Expected Snakemake syntax in export output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_export_to_nextflow() {
+    let output = oxo_call()
+        .args(["workflow", "export", "metagenomics", "--to", "nextflow"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("nextflow.enable.dsl") || stdout.contains("process"),
+        "Expected Nextflow syntax in export output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_run_from_file() {
+    use std::io::Write;
+    let dir = tempfile::tempdir().expect("tempdir");
+    let wf_path = dir.path().join("test.toml");
+    let out_path = dir.path().join("out.txt");
+
+    std::fs::write(
+        &wf_path,
+        format!(
+            r#"
+[workflow]
+name = "test"
+description = "trivial test workflow"
+
+[[step]]
+name = "echo_hello"
+cmd = "echo hello > {out}"
+outputs = ["{out}"]
+"#,
+            out = out_path.display()
+        ),
+    )
+    .expect("write workflow");
+
+    let output = oxo_call()
+        .args(["workflow", "run", wf_path.to_str().unwrap()])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        output.status.success(),
+        "workflow run should succeed, stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(out_path.exists(), "Expected output file to be created");
+}

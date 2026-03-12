@@ -1,6 +1,7 @@
 mod cli;
 mod config;
 mod docs;
+mod engine;
 mod error;
 mod history;
 mod index;
@@ -8,11 +9,12 @@ mod license;
 mod llm;
 mod runner;
 mod skill;
+mod workflow;
 
 use clap::Parser;
 use cli::{
     Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, LicenseCommands,
-    SkillCommands,
+    SkillCommands, WorkflowCommands,
 };
 use colored::Colorize;
 
@@ -726,6 +728,164 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
             }
         }
+
+        Commands::Workflow { command } => match command {
+            WorkflowCommands::List => {
+                workflow::print_template_list();
+            }
+
+            WorkflowCommands::Show { name, engine } => {
+                // Check if `name` is a file path first, then fall back to built-in name.
+                let content = if std::path::Path::new(&name).exists() {
+                    let def = engine::WorkflowDef::from_file(std::path::Path::new(&name))?;
+                    match engine.as_str() {
+                        "snakemake" => engine::to_snakemake(&def),
+                        "nextflow" => engine::to_nextflow(&def),
+                        _ => std::fs::read_to_string(&name)?,
+                    }
+                } else {
+                    match workflow::find_template(&name) {
+                        Some(tpl) => match engine.as_str() {
+                            "snakemake" => tpl.snakemake.to_string(),
+                            "nextflow" => tpl.nextflow.to_string(),
+                            _ => tpl.native.to_string(),
+                        },
+                        None => {
+                            eprintln!(
+                                "{} Unknown workflow template '{}'. Run 'oxo-call workflow list'.",
+                                "error:".red().bold(),
+                                name
+                            );
+                            std::process::exit(1);
+                        }
+                    }
+                };
+                println!("{content}");
+            }
+
+            WorkflowCommands::RunWorkflow { file } => {
+                let path = std::path::Path::new(&file);
+                let source = if path.exists() {
+                    std::fs::read_to_string(path)?
+                } else {
+                    // Try as built-in template name.
+                    match workflow::find_template(&file) {
+                        Some(tpl) => tpl.native.to_string(),
+                        None => {
+                            eprintln!(
+                                "{} '{}' is not a file or a known built-in template.",
+                                "error:".red().bold(),
+                                file
+                            );
+                            std::process::exit(1);
+                        }
+                    }
+                };
+                let def = engine::WorkflowDef::from_str_content(&source)?;
+                let tasks = engine::expand(&def)?;
+                engine::execute(tasks, false).await?;
+            }
+
+            WorkflowCommands::DryRunWorkflow { file } => {
+                let path = std::path::Path::new(&file);
+                let source = if path.exists() {
+                    std::fs::read_to_string(path)?
+                } else {
+                    match workflow::find_template(&file) {
+                        Some(tpl) => tpl.native.to_string(),
+                        None => {
+                            eprintln!(
+                                "{} '{}' is not a file or a known built-in template.",
+                                "error:".red().bold(),
+                                file
+                            );
+                            std::process::exit(1);
+                        }
+                    }
+                };
+                let def = engine::WorkflowDef::from_str_content(&source)?;
+                let tasks = engine::expand(&def)?;
+                engine::execute(tasks, true).await?;
+            }
+
+            WorkflowCommands::Export { file, to, output } => {
+                let path = std::path::Path::new(&file);
+                let def = if path.exists() {
+                    engine::WorkflowDef::from_file(path)?
+                } else {
+                    match workflow::find_template(&file) {
+                        Some(tpl) => engine::WorkflowDef::from_str_content(tpl.native)?,
+                        None => {
+                            eprintln!(
+                                "{} '{}' is not a file or a known built-in template.",
+                                "error:".red().bold(),
+                                file
+                            );
+                            std::process::exit(1);
+                        }
+                    }
+                };
+                let content = match to.as_str() {
+                    "nextflow" => engine::to_nextflow(&def),
+                    _ => engine::to_snakemake(&def),
+                };
+                match output {
+                    Some(out_path) => {
+                        std::fs::write(&out_path, &content)?;
+                        println!(
+                            "{} Exported to {}",
+                            "✓".green().bold(),
+                            out_path.display().to_string().cyan()
+                        );
+                    }
+                    None => println!("{content}"),
+                }
+            }
+
+            WorkflowCommands::Generate {
+                task,
+                engine: engine_name,
+                output,
+            } => {
+                let cfg = config::Config::load()?;
+                let label = match engine_name.as_str() {
+                    "snakemake" => "Snakemake",
+                    "nextflow" => "Nextflow DSL2",
+                    _ => "native (.oxo.toml)",
+                };
+                let spinner =
+                    runner::make_spinner(&format!("Generating {label} workflow with LLM..."));
+                let wf = match workflow::generate_workflow(&cfg, &task, &engine_name).await {
+                    Ok(w) => {
+                        spinner.finish_and_clear();
+                        w
+                    }
+                    Err(e) => {
+                        spinner.finish_and_clear();
+                        return Err(e);
+                    }
+                };
+
+                match output {
+                    Some(path) => {
+                        std::fs::write(&path, &wf.content)?;
+                        println!(
+                            "{} Workflow written to {}",
+                            "✓".green().bold(),
+                            path.display().to_string().cyan()
+                        );
+                        if !wf.explanation.is_empty() {
+                            println!();
+                            println!("  {}", "Pipeline explanation:".bold());
+                            println!("  {}", wf.explanation);
+                        }
+                    }
+                    None => {
+                        workflow::print_generated_workflow(&wf);
+                    }
+                }
+            }
+        },
     }
 
     Ok(())

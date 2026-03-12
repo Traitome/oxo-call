@@ -1,0 +1,104 @@
+# =============================================================================
+# RNA-seq workflow — oxo-call native format
+#
+# Usage:
+#   1. Edit [wildcards] and [params] sections below
+#   2. Run:  oxo-call workflow run rnaseq.toml
+#   3. Or preview first:  oxo-call workflow dry-run rnaseq.toml
+#   4. Export to Snakemake:  oxo-call workflow export rnaseq.toml --to snakemake
+#   5. Export to Nextflow:   oxo-call workflow export rnaseq.toml --to nextflow
+#
+# Expected input layout:
+#   data/{sample}_R1.fastq.gz
+#   data/{sample}_R2.fastq.gz
+# =============================================================================
+
+[workflow]
+name        = "rnaseq"
+description = "Bulk RNA-seq: fastp QC → STAR alignment → featureCounts → MultiQC"
+version     = "1.0"
+
+# ── Sample wildcards ──────────────────────────────────────────────────────────
+# oxo-call expands {sample} for every value listed here.
+# Steps that don't use {sample} run once (e.g., multiqc with gather = true).
+[wildcards]
+sample = ["sample1", "sample2", "sample3"]
+
+# ── Configurable parameters ───────────────────────────────────────────────────
+# REQUIRED: update these paths to match your environment before running.
+# Use {params.KEY} or the bare {KEY} in step commands.
+[params]
+threads    = "8"
+star_index = "/path/to/star_index"   # REQUIRED: path to STAR genome index directory
+gtf        = "/path/to/annotation.gtf"  # REQUIRED: path to gene annotation GTF
+
+# =============================================================================
+# Steps — each [[step]] runs for every value of {sample} (unless gather = true)
+# =============================================================================
+
+[[step]]
+name    = "fastp"
+cmd     = """\
+fastp \
+  --in1  data/{sample}_R1.fastq.gz \
+  --in2  data/{sample}_R2.fastq.gz \
+  --out1 trimmed/{sample}_R1.fastq.gz \
+  --out2 trimmed/{sample}_R2.fastq.gz \
+  --html qc/{sample}_fastp.html \
+  --json qc/{sample}_fastp.json \
+  --thread {params.threads} \
+  --detect_adapter_for_pe \
+  --qualified_quality_phred 20 \
+  --length_required 30\
+"""
+inputs  = ["data/{sample}_R1.fastq.gz", "data/{sample}_R2.fastq.gz"]
+outputs = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz",
+           "qc/{sample}_fastp.json"]
+
+[[step]]
+name       = "star"
+depends_on = ["fastp"]
+cmd        = """\
+STAR \
+  --runMode alignReads \
+  --genomeDir {params.star_index} \
+  --readFilesIn trimmed/{sample}_R1.fastq.gz trimmed/{sample}_R2.fastq.gz \
+  --readFilesCommand zcat \
+  --outSAMtype BAM SortedByCoordinate \
+  --outSAMattributes NH HI AS NM MD \
+  --outFileNamePrefix aligned/{sample}/ \
+  --runThreadN {params.threads} \
+  --outSAMstrandField intronMotif \
+  --outFilterIntronMotifs RemoveNoncanonical\
+"""
+inputs  = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz"]
+outputs = ["aligned/{sample}/Aligned.sortedByCoord.out.bam"]
+
+[[step]]
+name       = "samtools_index"
+depends_on = ["star"]
+cmd        = "samtools index -@ {params.threads} aligned/{sample}/Aligned.sortedByCoord.out.bam"
+inputs     = ["aligned/{sample}/Aligned.sortedByCoord.out.bam"]
+outputs    = ["aligned/{sample}/Aligned.sortedByCoord.out.bam.bai"]
+
+[[step]]
+name       = "featurecounts"
+depends_on = ["samtools_index"]
+cmd        = """\
+featureCounts \
+  -T {params.threads} \
+  -p \
+  -a {params.gtf} \
+  -o results/{sample}_counts.txt \
+  aligned/{sample}/Aligned.sortedByCoord.out.bam\
+"""
+inputs  = ["aligned/{sample}/Aligned.sortedByCoord.out.bam"]
+outputs = ["results/{sample}_counts.txt"]
+
+[[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["fastp", "star"]
+cmd        = "multiqc qc/ aligned/ -o results/multiqc/"
+inputs     = []
+outputs    = ["results/multiqc/multiqc_report.html"]
