@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 680" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4a4a4a"/>
+    </marker>
+    <linearGradient id="docGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#e3f2fd;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#bbdefb;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="skillGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#fff3e0;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#ffe0b2;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="llmGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#e8f5e9;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#c8e6c9;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="execGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#fce4ec;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#f8bbd0;stop-opacity:1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Panel A label -->
+  <text x="15" y="22" font-size="16" font-weight="bold" fill="#333">A</text>
+  <text x="35" y="22" font-size="13" fill="#555">Documentation-grounded command generation pipeline</text>
+
+  <!-- User input -->
+  <rect x="50" y="40" width="800" height="50" rx="8" fill="#f5f5f5" stroke="#bdbdbd" stroke-width="1.5"/>
+  <text x="70" y="60" font-size="11" fill="#666">User input:</text>
+  <text x="70" y="77" font-size="13" font-weight="bold" fill="#333" font-family="Courier, monospace">oxo-call run samtools "sort input.bam by coordinate and output to sorted.bam"</text>
+
+  <!-- Arrow from input to docs -->
+  <line x1="450" y1="90" x2="450" y2="110" stroke="#4a4a4a" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+  <!-- Stage 1: Documentation Resolution -->
+  <rect x="50" y="115" width="370" height="100" rx="8" fill="url(#docGrad)" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="65" y="136" font-size="12" font-weight="bold" fill="#1565c0">① Documentation Resolution</text>
+  <text x="65" y="155" font-size="10.5" fill="#333">• Capture tool --help output (auto-cached)</text>
+  <text x="65" y="170" font-size="10.5" fill="#333">• Merge remote URLs &amp; local doc files</text>
+  <text x="65" y="185" font-size="10.5" fill="#333">• Deduplicate overlapping content</text>
+  <text x="65" y="200" font-size="10.5" fill="#333">• Validate tool name (path-traversal prevention)</text>
+
+  <!-- Stage 2: Skill Loading -->
+  <rect x="480" y="115" width="370" height="100" rx="8" fill="url(#skillGrad)" stroke="#e65100" stroke-width="1.5"/>
+  <text x="495" y="136" font-size="12" font-weight="bold" fill="#e65100">② Skill Loading</text>
+  <text x="495" y="155" font-size="10.5" fill="#333">• Search: user → community → built-in</text>
+  <text x="495" y="170" font-size="10.5" fill="#333">• Inject concepts (domain knowledge)</text>
+  <text x="495" y="185" font-size="10.5" fill="#333">• Inject pitfalls (common mistakes)</text>
+  <text x="495" y="200" font-size="10.5" fill="#333">• Inject worked examples (few-shot demos)</text>
+
+  <!-- Arrows to LLM -->
+  <line x1="235" y1="215" x2="235" y2="240" stroke="#4a4a4a" stroke-width="1.2"/>
+  <line x1="665" y1="215" x2="665" y2="240" stroke="#4a4a4a" stroke-width="1.2"/>
+  <line x1="235" y1="240" x2="665" y2="240" stroke="#4a4a4a" stroke-width="1.2"/>
+  <line x1="450" y1="240" x2="450" y2="260" stroke="#4a4a4a" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+  <!-- Stage 3: LLM Generation -->
+  <rect x="150" y="265" width="600" height="95" rx="8" fill="url(#llmGrad)" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="165" y="286" font-size="12" font-weight="bold" fill="#2e7d32">③ LLM Generation (GitHub Copilot | OpenAI | Anthropic | Ollama)</text>
+  <text x="165" y="305" font-size="10.5" fill="#333">• System prompt: 11 rules (no hallucination, valid flags only, multilingual)</text>
+  <text x="165" y="320" font-size="10.5" fill="#333">• Enriched prompt = skill section + raw docs + task + format instructions</text>
+  <text x="165" y="335" font-size="10.5" fill="#333">• Strict parsing: ARGS: &lt;flags&gt; / EXPLANATION: &lt;rationale&gt;</text>
+  <text x="165" y="350" font-size="10.5" fill="#333">• Auto-retry on format failure (up to 2 retries with corrective prompt)</text>
+
+  <!-- Arrow to execution -->
+  <line x1="450" y1="360" x2="450" y2="380" stroke="#4a4a4a" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+  <!-- Stage 4: Execution & Provenance -->
+  <rect x="150" y="385" width="600" height="90" rx="8" fill="url(#execGrad)" stroke="#c62828" stroke-width="1.5"/>
+  <text x="165" y="406" font-size="12" font-weight="bold" fill="#c62828">④ Execution &amp; Provenance Recording</text>
+  <text x="165" y="425" font-size="10.5" fill="#333">• Execute command (or dry-run preview, or --ask confirmation)</text>
+  <text x="165" y="440" font-size="10.5" fill="#333">• Record JSONL history: tool, task, command, exit code, timestamp</text>
+  <text x="165" y="455" font-size="10.5" fill="#333">• CommandProvenance: tool_version, docs_hash (SHA-256), skill_name, model</text>
+  <text x="165" y="470" font-size="10.5" fill="#333">• Drift detection: documentation hash changes signal tool version update</text>
+
+  <!-- Output box -->
+  <line x1="450" y1="475" x2="450" y2="495" stroke="#4a4a4a" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <rect x="200" y="500" width="500" height="45" rx="6" fill="#fafafa" stroke="#757575" stroke-width="1.5"/>
+  <text x="220" y="518" font-size="11" fill="#666">Output:</text>
+  <text x="220" y="535" font-size="13" font-weight="bold" fill="#2e7d32" font-family="Courier, monospace">samtools sort -@ 4 -o sorted.bam input.bam</text>
+
+  <!-- Bottom border line -->
+  <line x1="30" y1="560" x2="870" y2="560" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="5,3"/>
+
+  <!-- Panel B label -->
+  <text x="15" y="580" font-size="16" font-weight="bold" fill="#333">B</text>
+  <text x="35" y="580" font-size="13" fill="#555">Skill TOML structure (samtools example)</text>
+
+  <!-- Skill structure visual -->
+  <rect x="50" y="590" width="250" height="80" rx="6" fill="#fff8e1" stroke="#f9a825" stroke-width="1.2"/>
+  <text x="65" y="608" font-size="11" font-weight="bold" fill="#f57f17">[meta]</text>
+  <text x="65" y="624" font-size="9.5" fill="#555">name = "samtools"</text>
+  <text x="65" y="638" font-size="9.5" fill="#555">category = "alignment"</text>
+  <text x="65" y="652" font-size="9.5" fill="#555">tags = ["bam","sam","ngs"]</text>
+
+  <rect x="325" y="590" width="250" height="80" rx="6" fill="#fbe9e7" stroke="#d84315" stroke-width="1.2"/>
+  <text x="340" y="608" font-size="11" font-weight="bold" fill="#bf360c">[context]</text>
+  <text x="340" y="624" font-size="9.5" fill="#555">concepts = ["BAM must be</text>
+  <text x="340" y="638" font-size="9.5" fill="#555">  sorted before indexing",…]</text>
+  <text x="340" y="652" font-size="9.5" fill="#555">pitfalls = ["view without -b",…]</text>
+
+  <rect x="600" y="590" width="250" height="80" rx="6" fill="#e8eaf6" stroke="#283593" stroke-width="1.2"/>
+  <text x="615" y="608" font-size="11" font-weight="bold" fill="#1a237e">[[examples]]</text>
+  <text x="615" y="624" font-size="9.5" fill="#555">task = "sort BAM by coord"</text>
+  <text x="615" y="638" font-size="9.5" fill="#555">args = "sort -@ 4 -o ..."</text>
+  <text x="615" y="652" font-size="9.5" fill="#555">explanation = "coord sort"</text>
+</svg>

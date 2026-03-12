@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" font-family="Helvetica, Arial, sans-serif">
+
+  <text x="15" y="22" font-size="14" font-weight="bold" fill="#333">Supplementary Figure S4.</text>
+  <text x="225" y="22" font-size="13" fill="#555">Prompt construction and LLM interaction protocol</text>
+
+  <defs>
+    <marker id="s4arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#555"/>
+    </marker>
+  </defs>
+
+  <!-- Prompt structure visualization -->
+  <text x="50" y="55" font-size="12" font-weight="bold" fill="#37474f">Enriched prompt assembly (build_prompt)</text>
+
+  <!-- System prompt -->
+  <rect x="50" y="70" width="380" height="80" rx="6" fill="#e8eaf6" stroke="#283593" stroke-width="1.5"/>
+  <text x="65" y="90" font-size="11" font-weight="bold" fill="#283593">System prompt (11 rules)</text>
+  <text x="65" y="108" font-size="9" fill="#555">R1: Only use flags in documentation</text>
+  <text x="65" y="121" font-size="9" fill="#555">R2: Never include tool name in ARGS</text>
+  <text x="65" y="134" font-size="9" fill="#555">R6: Never hallucinate flags | R9: Match file formats</text>
+  <text x="65" y="147" font-size="9" fill="#888">... 7 more rules for multi-threading, strandedness, etc.</text>
+
+  <!-- User prompt layers -->
+  <rect x="50" y="165" width="380" height="220" rx="6" fill="#fff" stroke="#37474f" stroke-width="1.5"/>
+  <text x="65" y="185" font-size="11" font-weight="bold" fill="#37474f">User prompt (enriched)</text>
+
+  <!-- Layer 1: Tool name -->
+  <rect x="65" y="195" width="350" height="24" rx="4" fill="#e3f2fd" stroke="#90caf9" stroke-width="1"/>
+  <text x="80" y="212" font-size="9.5" fill="#1565c0" font-family="Courier"># Tool: `samtools`</text>
+
+  <!-- Layer 2: Skill section -->
+  <rect x="65" y="225" width="350" height="55" rx="4" fill="#fff3e0" stroke="#ffcc80" stroke-width="1"/>
+  <text x="80" y="242" font-size="9.5" fill="#e65100" font-weight="bold">## Expert Domain Knowledge</text>
+  <text x="80" y="256" font-size="9" fill="#555">1. BAM files MUST be sorted before indexing...</text>
+  <text x="80" y="268" font-size="9.5" fill="#e65100" font-weight="bold">## Common Pitfalls to Avoid</text>
+  <text x="80" y="278" font-size="9" fill="#555">- Without -o, samtools writes to stdout...</text>
+
+  <!-- Layer 3: Documentation -->
+  <rect x="65" y="286" width="350" height="30" rx="4" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="1"/>
+  <text x="80" y="305" font-size="9.5" fill="#2e7d32" font-weight="bold">## Tool Documentation</text>
+  <text x="260" y="305" font-size="9" fill="#555">[cached --help output]</text>
+
+  <!-- Layer 4: Task -->
+  <rect x="65" y="322" width="350" height="24" rx="4" fill="#fce4ec" stroke="#f48fb1" stroke-width="1"/>
+  <text x="80" y="339" font-size="9.5" fill="#c62828" font-family="Courier">## Task: sort input.bam by coordinate...</text>
+
+  <!-- Layer 5: Format instructions -->
+  <rect x="65" y="352" width="350" height="24" rx="4" fill="#f5f5f5" stroke="#bdbdbd" stroke-width="1"/>
+  <text x="80" y="369" font-size="9.5" fill="#555" font-family="Courier">## Output Format (STRICT)</text>
+
+  <!-- Arrow to response -->
+  <line x1="430" y1="275" x2="485" y2="275" stroke="#555" stroke-width="1.5" marker-end="url(#s4arr)"/>
+
+  <!-- Response parsing -->
+  <rect x="490" y="165" width="360" height="220" rx="6" fill="#fff" stroke="#37474f" stroke-width="1.5"/>
+  <text x="505" y="185" font-size="11" font-weight="bold" fill="#37474f">Response parsing &amp; validation</text>
+
+  <!-- Valid response -->
+  <rect x="505" y="195" width="330" height="60" rx="4" fill="#e8f5e9" stroke="#66bb6a" stroke-width="1.2"/>
+  <text x="520" y="212" font-size="10" font-weight="bold" fill="#2e7d32">✓ Valid response</text>
+  <text x="520" y="228" font-size="9" fill="#555" font-family="Courier">ARGS: sort -@ 4 -o sorted.bam input.bam</text>
+  <text x="520" y="242" font-size="9" fill="#555" font-family="Courier">EXPLANATION: Sorts BAM by coordinate...</text>
+
+  <!-- parse_response() flow -->
+  <text x="520" y="275" font-size="10" fill="#37474f">parse_response(raw) →</text>
+  <text x="520" y="290" font-size="9" fill="#555">• Extract ARGS: line → shell tokenize</text>
+  <text x="520" y="305" font-size="9" fill="#555">• Extract EXPLANATION: line</text>
+  <text x="520" y="320" font-size="9" fill="#555">• Validate: is_valid_suggestion()</text>
+
+  <!-- Retry logic -->
+  <rect x="505" y="332" width="330" height="45" rx="4" fill="#ffebee" stroke="#ef5350" stroke-width="1.2"/>
+  <text x="520" y="350" font-size="10" font-weight="bold" fill="#c62828">✗ Invalid → Corrective retry</text>
+  <text x="520" y="365" font-size="9" fill="#555">build_retry_prompt() includes previous raw response</text>
+  <text x="520" y="375" font-size="9" fill="#555">Up to 2 retries (MAX_RETRIES = 2)</text>
+
+  <!-- Retry arrow back -->
+  <path d="M 670 377 L 670 395 L 240 395 L 240 165" stroke="#c62828" stroke-width="1.2" fill="none" stroke-dasharray="4,3" marker-end="url(#s4arr)"/>
+  <text x="400" y="408" font-size="8.5" fill="#c62828">retry with correction note</text>
+
+  <!-- Divider -->
+  <line x1="30" y1="425" x2="870" y2="425" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="5,3"/>
+
+  <!-- Multi-provider support -->
+  <text x="50" y="450" font-size="12" font-weight="bold" fill="#37474f">LLM provider abstraction (unified chat-completion API)</text>
+
+  <!-- Provider boxes -->
+  <rect x="50" y="465" width="190" height="60" rx="6" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.2"/>
+  <text x="95" y="488" font-size="10" font-weight="bold" fill="#1565c0">GitHub Copilot</text>
+  <text x="98" y="505" font-size="9" fill="#555">Default provider</text>
+  <text x="85" y="518" font-size="8" fill="#888">Bearer token auth</text>
+
+  <rect x="260" y="465" width="150" height="60" rx="6" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.2"/>
+  <text x="305" y="488" font-size="10" font-weight="bold" fill="#2e7d32">OpenAI</text>
+  <text x="290" y="505" font-size="9" fill="#555">GPT-4o, GPT-4o-mini</text>
+  <text x="290" y="518" font-size="8" fill="#888">Bearer token auth</text>
+
+  <rect x="430" y="465" width="150" height="60" rx="6" fill="#fce4ec" stroke="#c62828" stroke-width="1.2"/>
+  <text x="470" y="488" font-size="10" font-weight="bold" fill="#c62828">Anthropic</text>
+  <text x="455" y="505" font-size="9" fill="#555">Claude 3.5 Sonnet</text>
+  <text x="455" y="518" font-size="8" fill="#888">x-api-key header</text>
+
+  <rect x="600" y="465" width="150" height="60" rx="6" fill="#fff3e0" stroke="#e65100" stroke-width="1.2"/>
+  <text x="647" y="488" font-size="10" font-weight="bold" fill="#e65100">Ollama</text>
+  <text x="630" y="505" font-size="9" fill="#555">Local, no token</text>
+  <text x="630" y="518" font-size="8" fill="#888">HTTP localhost only</text>
+
+  <!-- Unified API arrow -->
+  <rect x="50" y="540" width="700" height="30" rx="4" fill="#fafafa" stroke="#bdbdbd" stroke-width="1"/>
+  <text x="250" y="560" font-size="10" fill="#37474f">Unified interface: POST {api_base}/chat/completions → ChatRequest → ChatResponse</text>
+
+  <line x1="145" y1="525" x2="145" y2="540" stroke="#555" stroke-width="1"/>
+  <line x1="335" y1="525" x2="335" y2="540" stroke="#555" stroke-width="1"/>
+  <line x1="505" y1="525" x2="505" y2="540" stroke="#555" stroke-width="1"/>
+  <line x1="675" y1="525" x2="675" y2="540" stroke="#555" stroke-width="1"/>
+
+  <!-- Temperature note -->
+  <text x="50" y="600" font-size="9.5" fill="#888">Default: temperature = 0.0 (deterministic), max_tokens = 2048</text>
+  <text x="50" y="616" font-size="9.5" fill="#888">Multi-language support: task descriptions accepted in any language; ARGS always ASCII; EXPLANATION in task language</text>
+</svg>

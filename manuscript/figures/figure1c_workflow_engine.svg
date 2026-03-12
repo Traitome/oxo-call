@@ -1,0 +1,167 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#555"/>
+    </marker>
+  </defs>
+
+  <!-- Panel C label -->
+  <text x="15" y="22" font-size="16" font-weight="bold" fill="#333">C</text>
+  <text x="35" y="22" font-size="13" fill="#555">Native DAG workflow engine — .oxo.toml execution</text>
+
+  <!-- Workflow file box -->
+  <rect x="50" y="40" width="220" height="160" rx="8" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
+  <text x="65" y="62" font-size="12" font-weight="bold" fill="#7b1fa2">rnaseq.oxo.toml</text>
+
+  <text x="65" y="82" font-size="9.5" fill="#555" font-family="Courier, monospace">[workflow]</text>
+  <text x="65" y="95" font-size="9.5" fill="#555" font-family="Courier, monospace">name = "rnaseq"</text>
+  <text x="65" y="112" font-size="9.5" fill="#555" font-family="Courier, monospace">[wildcards]</text>
+  <text x="65" y="125" font-size="9.5" fill="#555" font-family="Courier, monospace">sample = ["s1","s2","s3"]</text>
+  <text x="65" y="142" font-size="9.5" fill="#555" font-family="Courier, monospace">[[step]]</text>
+  <text x="65" y="155" font-size="9.5" fill="#555" font-family="Courier, monospace">name = "fastp"</text>
+  <text x="65" y="168" font-size="9.5" fill="#555" font-family="Courier, monospace">[[step]]</text>
+  <text x="65" y="181" font-size="9.5" fill="#555" font-family="Courier, monospace">name = "star"</text>
+  <text x="65" y="194" font-size="9.5" fill="#555" font-family="Courier, monospace">depends_on = ["fastp"]</text>
+
+  <!-- Arrow from file to parser -->
+  <line x1="270" y1="120" x2="310" y2="120" stroke="#555" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Parser box -->
+  <rect x="315" y="60" width="130" height="50" rx="6" fill="#e0f2f1" stroke="#00695c" stroke-width="1.2"/>
+  <text x="335" y="82" font-size="11" font-weight="bold" fill="#00695c">TOML Parser</text>
+  <text x="335" y="97" font-size="9.5" fill="#555">~800 μs per file</text>
+
+  <!-- Arrow to expander -->
+  <line x1="380" y1="110" x2="380" y2="140" stroke="#555" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <!-- Expander box -->
+  <rect x="315" y="145" width="130" height="50" rx="6" fill="#e0f2f1" stroke="#00695c" stroke-width="1.2"/>
+  <text x="327" y="167" font-size="11" font-weight="bold" fill="#00695c">Wildcard Expand</text>
+  <text x="343" y="182" font-size="9.5" fill="#555">~23 μs added</text>
+
+  <!-- Arrow to DAG -->
+  <line x1="445" y1="170" x2="490" y2="170" stroke="#555" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- DAG visualization -->
+  <rect x="495" y="40" width="370" height="195" rx="8" fill="#fafafa" stroke="#37474f" stroke-width="1.5"/>
+  <text x="510" y="62" font-size="12" font-weight="bold" fill="#37474f">Expanded DAG (13 tasks)</text>
+
+  <!-- DAG nodes - fastp layer -->
+  <circle cx="570" cy="100" r="18" fill="#bbdefb" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="556" y="104" font-size="8" fill="#1565c0" font-weight="bold">fastp</text>
+  <text x="560" y="114" font-size="7" fill="#555">s1</text>
+
+  <circle cx="660" cy="100" r="18" fill="#bbdefb" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="646" y="104" font-size="8" fill="#1565c0" font-weight="bold">fastp</text>
+  <text x="650" y="114" font-size="7" fill="#555">s2</text>
+
+  <circle cx="750" cy="100" r="18" fill="#bbdefb" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="736" y="104" font-size="8" fill="#1565c0" font-weight="bold">fastp</text>
+  <text x="740" y="114" font-size="7" fill="#555">s3</text>
+
+  <!-- Arrows to star layer -->
+  <line x1="570" y1="118" x2="570" y2="142" stroke="#555" stroke-width="1" marker-end="url(#arr)"/>
+  <line x1="660" y1="118" x2="660" y2="142" stroke="#555" stroke-width="1" marker-end="url(#arr)"/>
+  <line x1="750" y1="118" x2="750" y2="142" stroke="#555" stroke-width="1" marker-end="url(#arr)"/>
+
+  <!-- DAG nodes - star layer -->
+  <circle cx="570" cy="160" r="18" fill="#c8e6c9" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="558" y="164" font-size="8" fill="#2e7d32" font-weight="bold">STAR</text>
+  <text x="560" y="174" font-size="7" fill="#555">s1</text>
+
+  <circle cx="660" cy="160" r="18" fill="#c8e6c9" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="648" y="164" font-size="8" fill="#2e7d32" font-weight="bold">STAR</text>
+  <text x="650" y="174" font-size="7" fill="#555">s2</text>
+
+  <circle cx="750" cy="160" r="18" fill="#c8e6c9" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="738" y="164" font-size="8" fill="#2e7d32" font-weight="bold">STAR</text>
+  <text x="740" y="174" font-size="7" fill="#555">s3</text>
+
+  <!-- Arrows to multiqc (gather) -->
+  <line x1="570" y1="178" x2="660" y2="198" stroke="#555" stroke-width="1"/>
+  <line x1="660" y1="178" x2="660" y2="198" stroke="#555" stroke-width="1"/>
+  <line x1="750" y1="178" x2="660" y2="198" stroke="#555" stroke-width="1"/>
+
+  <!-- MultiQC gather node -->
+  <rect x="625" y="200" width="70" height="25" rx="4" fill="#fff9c4" stroke="#f57f17" stroke-width="1.5"/>
+  <text x="634" y="216" font-size="9" fill="#f57f17" font-weight="bold">MultiQC</text>
+
+  <!-- Parallel execution indicator -->
+  <text x="510" y="80" font-size="9.5" fill="#37474f">║ parallel tasks ║</text>
+
+  <!-- Lower section: Templates -->
+  <line x1="30" y1="255" x2="870" y2="255" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="5,3"/>
+
+  <text x="15" y="280" font-size="16" font-weight="bold" fill="#333">D</text>
+  <text x="35" y="280" font-size="13" fill="#555">Built-in workflow templates with multi-format support</text>
+
+  <!-- Template table -->
+  <rect x="50" y="295" width="800" height="185" rx="6" fill="#fff" stroke="#bdbdbd" stroke-width="1"/>
+
+  <!-- Header -->
+  <rect x="50" y="295" width="800" height="28" rx="6" fill="#eceff1" stroke="#bdbdbd" stroke-width="1"/>
+  <text x="70" y="314" font-size="11" font-weight="bold" fill="#37474f">Template</text>
+  <text x="190" y="314" font-size="11" font-weight="bold" fill="#37474f">Assay Type</text>
+  <text x="340" y="314" font-size="11" font-weight="bold" fill="#37474f">Pipeline Steps</text>
+  <text x="680" y="314" font-size="11" font-weight="bold" fill="#37474f">Formats</text>
+
+  <!-- RNA-seq -->
+  <text x="70" y="342" font-size="10.5" fill="#333" font-weight="bold">rnaseq</text>
+  <text x="190" y="342" font-size="10.5" fill="#555">Transcriptomics</text>
+  <text x="340" y="342" font-size="10.5" fill="#555">fastp → STAR → featureCounts → MultiQC</text>
+  <text x="680" y="342" font-size="10" fill="#1565c0">TOML</text>
+  <text x="718" y="342" font-size="10" fill="#2e7d32">SMK</text>
+  <text x="748" y="342" font-size="10" fill="#7b1fa2">NF</text>
+
+  <!-- WGS -->
+  <text x="70" y="362" font-size="10.5" fill="#333" font-weight="bold">wgs</text>
+  <text x="190" y="362" font-size="10.5" fill="#555">Genomics</text>
+  <text x="340" y="362" font-size="10.5" fill="#555">fastp → BWA-MEM2 → GATK BQSR → HaplotypeCaller</text>
+  <text x="680" y="362" font-size="10" fill="#1565c0">TOML</text>
+  <text x="718" y="362" font-size="10" fill="#2e7d32">SMK</text>
+  <text x="748" y="362" font-size="10" fill="#7b1fa2">NF</text>
+
+  <!-- ATAC-seq -->
+  <text x="70" y="382" font-size="10.5" fill="#333" font-weight="bold">atacseq</text>
+  <text x="190" y="382" font-size="10.5" fill="#555">Epigenomics</text>
+  <text x="340" y="382" font-size="10.5" fill="#555">fastp → Bowtie2 → Picard → blacklist → MACS3</text>
+  <text x="680" y="382" font-size="10" fill="#1565c0">TOML</text>
+  <text x="718" y="382" font-size="10" fill="#2e7d32">SMK</text>
+  <text x="748" y="382" font-size="10" fill="#7b1fa2">NF</text>
+
+  <!-- ChIP-seq -->
+  <text x="70" y="402" font-size="10.5" fill="#333" font-weight="bold">chipseq</text>
+  <text x="190" y="402" font-size="10.5" fill="#555">Epigenomics</text>
+  <text x="340" y="402" font-size="10.5" fill="#555">fastp → Bowtie2 → MarkDup → blacklist → MACS3 → bigWig</text>
+  <text x="680" y="402" font-size="10" fill="#1565c0">TOML</text>
+  <text x="718" y="402" font-size="10" fill="#2e7d32">SMK</text>
+  <text x="748" y="402" font-size="10" fill="#7b1fa2">NF</text>
+
+  <!-- Metagenomics -->
+  <text x="70" y="422" font-size="10.5" fill="#333" font-weight="bold">metagenomics</text>
+  <text x="190" y="422" font-size="10.5" fill="#555">Metagenomics</text>
+  <text x="340" y="422" font-size="10.5" fill="#555">fastp → host removal → Kraken2 → Bracken</text>
+  <text x="680" y="422" font-size="10" fill="#1565c0">TOML</text>
+  <text x="718" y="422" font-size="10" fill="#2e7d32">SMK</text>
+  <text x="748" y="422" font-size="10" fill="#7b1fa2">NF</text>
+
+  <!-- scRNA-seq -->
+  <text x="70" y="442" font-size="10.5" fill="#333" font-weight="bold">scrnaseq</text>
+  <text x="190" y="442" font-size="10.5" fill="#555">Single-cell</text>
+  <text x="340" y="442" font-size="10.5" fill="#555">fastp → STARsolo (10x v3) → EmptyDrops → QC</text>
+  <text x="680" y="442" font-size="10" fill="#1565c0">TOML</text>
+  <text x="718" y="442" font-size="10" fill="#2e7d32">SMK</text>
+  <text x="748" y="442" font-size="10" fill="#7b1fa2">NF</text>
+
+  <!-- methylseq, amplicon16s, longreads -->
+  <text x="70" y="462" font-size="10.5" fill="#333" font-weight="bold">+ 3 more</text>
+  <text x="190" y="462" font-size="10.5" fill="#555">methylseq, amplicon16s, longreads</text>
+  <text x="680" y="462" font-size="10" fill="#1565c0">TOML</text>
+  <text x="718" y="462" font-size="10" fill="#2e7d32">SMK</text>
+  <text x="748" y="462" font-size="10" fill="#7b1fa2">NF</text>
+
+  <!-- Legend -->
+  <text x="780" y="342" font-size="8.5" fill="#888">= native</text>
+  <text x="780" y="358" font-size="8.5" fill="#888">= Snakemake</text>
+  <text x="780" y="374" font-size="8.5" fill="#888">= Nextflow</text>
+</svg>

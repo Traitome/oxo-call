@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 550" font-family="Helvetica, Arial, sans-serif">
+
+  <text x="15" y="22" font-size="14" font-weight="bold" fill="#333">Supplementary Figure S1.</text>
+  <text x="225" y="22" font-size="13" fill="#555">Built-in skill coverage across analytical domains (119 tools)</text>
+
+  <!-- Treemap-style visualization of tool coverage -->
+  <!-- QC & preprocessing: 9 tools -->
+  <rect x="50" y="45" width="280" height="105" rx="4" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="60" y="63" font-size="11" font-weight="bold" fill="#1565c0">QC &amp; preprocessing (9)</text>
+  <text x="60" y="80" font-size="9" fill="#555">samtools  fastp  fastqc  multiqc</text>
+  <text x="60" y="94" font-size="9" fill="#555">trimmomatic  cutadapt  trim_galore</text>
+  <text x="60" y="108" font-size="9" fill="#555">picard  fastq-screen</text>
+  <rect x="60" y="118" width="90" height="4" rx="2" fill="#1565c0"/>
+  <rect x="60" y="118" width="90" height="4" rx="2" fill="#1565c0" opacity="0.3"/>
+  <text x="60" y="140" font-size="8" fill="#888">9/9 with ≥5 examples</text>
+
+  <!-- Short-read alignment: 6 -->
+  <rect x="340" y="45" width="200" height="105" rx="4" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="350" y="63" font-size="11" font-weight="bold" fill="#2e7d32">Short-read alignment (6)</text>
+  <text x="350" y="80" font-size="9" fill="#555">bwa  bwa-mem2  bowtie2</text>
+  <text x="350" y="94" font-size="9" fill="#555">hisat2  star  chromap</text>
+  <rect x="350" y="112" width="60" height="4" rx="2" fill="#2e7d32"/>
+  <text x="350" y="140" font-size="8" fill="#888">6/6 with ≥3 concepts</text>
+
+  <!-- Long-read: 10 -->
+  <rect x="550" y="45" width="300" height="105" rx="4" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+  <text x="560" y="63" font-size="11" font-weight="bold" fill="#e65100">Long-read QC &amp; alignment (10)</text>
+  <text x="560" y="80" font-size="9" fill="#555">minimap2  pbmm2  dorado  nanoplot</text>
+  <text x="560" y="94" font-size="9" fill="#555">nanostat  chopper  porechop  medaka</text>
+  <text x="560" y="108" font-size="9" fill="#555">racon  pbccs</text>
+  <rect x="560" y="118" width="100" height="4" rx="2" fill="#e65100"/>
+  <text x="560" y="140" font-size="8" fill="#888">10/10 with ≥3 pitfalls</text>
+
+  <!-- RNA-seq: 7 -->
+  <rect x="50" y="160" width="220" height="95" rx="4" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
+  <text x="60" y="178" font-size="11" font-weight="bold" fill="#7b1fa2">RNA-seq quantification (7)</text>
+  <text x="60" y="195" font-size="9" fill="#555">salmon  kallisto  rsem</text>
+  <text x="60" y="209" font-size="9" fill="#555">stringtie  featurecounts</text>
+  <text x="60" y="223" font-size="9" fill="#555">trinity  arriba</text>
+  <rect x="60" y="233" width="70" height="4" rx="2" fill="#7b1fa2"/>
+
+  <!-- Variant calling: 7 -->
+  <rect x="280" y="160" width="220" height="95" rx="4" fill="#fce4ec" stroke="#c62828" stroke-width="1.5"/>
+  <text x="290" y="178" font-size="11" font-weight="bold" fill="#c62828">Variant calling (7)</text>
+  <text x="290" y="195" font-size="9" fill="#555">gatk  bcftools  freebayes</text>
+  <text x="290" y="209" font-size="9" fill="#555">deepvariant  strelka2</text>
+  <text x="290" y="223" font-size="9" fill="#555">varscan2  longshot</text>
+  <rect x="290" y="233" width="70" height="4" rx="2" fill="#c62828"/>
+
+  <!-- SV & CNV: 6 -->
+  <rect x="510" y="160" width="170" height="95" rx="4" fill="#ffebee" stroke="#d32f2f" stroke-width="1.5"/>
+  <text x="520" y="178" font-size="11" font-weight="bold" fill="#d32f2f">SV &amp; CNV (6)</text>
+  <text x="520" y="195" font-size="9" fill="#555">manta  delly  sniffles</text>
+  <text x="520" y="209" font-size="9" fill="#555">pbsv  cnvkit  survivor</text>
+  <rect x="520" y="230" width="60" height="4" rx="2" fill="#d32f2f"/>
+
+  <!-- Annotation: 5+3 = 8 -->
+  <rect x="690" y="160" width="160" height="95" rx="4" fill="#ffe0b2" stroke="#ef6c00" stroke-width="1.5"/>
+  <text x="700" y="178" font-size="11" font-weight="bold" fill="#ef6c00">Annotation (8)</text>
+  <text x="700" y="195" font-size="9" fill="#555">snpeff  vep  vcftools</text>
+  <text x="700" y="209" font-size="9" fill="#555">vcfanno  whatshap</text>
+  <text x="700" y="223" font-size="9" fill="#555">hap_py  shapeit4  liftoff</text>
+
+  <!-- Metagenomics: 11 -->
+  <rect x="50" y="265" width="330" height="95" rx="4" fill="#e0f7fa" stroke="#00838f" stroke-width="1.5"/>
+  <text x="60" y="283" font-size="11" font-weight="bold" fill="#00838f">Metagenomics (11)</text>
+  <text x="60" y="300" font-size="9" fill="#555">kraken2  bracken  metaphlan  diamond  prokka</text>
+  <text x="60" y="314" font-size="9" fill="#555">bakta  metabat2  checkm2  gtdbtk  humann3  centrifuge</text>
+  <rect x="60" y="330" width="110" height="4" rx="2" fill="#00838f"/>
+  <text x="60" y="348" font-size="8" fill="#888">Largest category: 11 tools</text>
+
+  <!-- Epigenomics: 7 -->
+  <rect x="390" y="265" width="220" height="95" rx="4" fill="#fce4ec" stroke="#880e4f" stroke-width="1.5"/>
+  <text x="400" y="283" font-size="11" font-weight="bold" fill="#880e4f">Epigenomics (7)</text>
+  <text x="400" y="300" font-size="9" fill="#555">macs2  deeptools  bismark</text>
+  <text x="400" y="314" font-size="9" fill="#555">methyldackel  pairtools</text>
+  <text x="400" y="328" font-size="9" fill="#555">homer  modkit</text>
+
+  <!-- Single-cell: 5 -->
+  <rect x="620" y="265" width="230" height="95" rx="4" fill="#e8eaf6" stroke="#283593" stroke-width="1.5"/>
+  <text x="630" y="283" font-size="11" font-weight="bold" fill="#283593">Single-cell (5)</text>
+  <text x="630" y="300" font-size="9" fill="#555">cellranger  starsolo  kb</text>
+  <text x="630" y="314" font-size="9" fill="#555">velocyto  cellsnp-lite</text>
+
+  <!-- Assembly: 8 -->
+  <rect x="50" y="370" width="280" height="80" rx="4" fill="#fff8e1" stroke="#f57f17" stroke-width="1.5"/>
+  <text x="60" y="388" font-size="11" font-weight="bold" fill="#f57f17">De novo assembly (8)</text>
+  <text x="60" y="405" font-size="9" fill="#555">spades  megahit  flye  hifiasm  canu</text>
+  <text x="60" y="419" font-size="9" fill="#555">miniasm  wtdbg2  verkko</text>
+
+  <!-- Assembly QC: 8 -->
+  <rect x="340" y="370" width="260" height="80" rx="4" fill="#f1f8e9" stroke="#558b2f" stroke-width="1.5"/>
+  <text x="350" y="388" font-size="11" font-weight="bold" fill="#558b2f">Assembly QC &amp; annotation (8)</text>
+  <text x="350" y="405" font-size="9" fill="#555">quast  busco  prodigal  augustus</text>
+  <text x="350" y="419" font-size="9" fill="#555">agat  repeatmasker  annot8r  pilon</text>
+
+  <!-- Utilities & phylogenetics: 17 -->
+  <rect x="610" y="370" width="240" height="80" rx="4" fill="#eceff1" stroke="#455a64" stroke-width="1.5"/>
+  <text x="620" y="388" font-size="11" font-weight="bold" fill="#455a64">Utilities &amp; phylogenetics (17)</text>
+  <text x="620" y="405" font-size="9" fill="#555">seqtk seqkit bedtools bedops blast</text>
+  <text x="620" y="419" font-size="9" fill="#555">hmmer tabix mafft iqtree2 plink2 ...</text>
+
+  <!-- Summary stats -->
+  <rect x="50" y="468" width="800" height="70" rx="6" fill="#fafafa" stroke="#bdbdbd" stroke-width="1"/>
+  <text x="70" y="490" font-size="12" font-weight="bold" fill="#333">Summary statistics</text>
+  <text x="70" y="510" font-size="10.5" fill="#555">Total built-in skills: 119  |  Analytical categories: 14  |  Min. examples per skill: 5</text>
+  <text x="70" y="526" font-size="10.5" fill="#555">Min. concepts per skill: 3  |  Min. pitfalls per skill: 3  |  Skill load priority: user &gt; community &gt; built-in</text>
+</svg>
