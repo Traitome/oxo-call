@@ -1,0 +1,41 @@
+[meta]
+name = "racon"
+category = "assembly"
+description = "Ultrafast consensus module for raw de novo DNA assembly of long-uncorrected reads"
+tags = ["assembly", "polishing", "consensus", "long-read", "nanopore", "pacbio", "correction"]
+author = "oxo-call built-in"
+source_url = "https://github.com/lbcb-sci/racon"
+
+[context]
+concepts = [
+    "Racon polishes long-read assemblies by generating consensus sequences from overlapping reads.",
+    "Requires: raw reads (FASTQ), mapping to assembly (PAF/SAM), and draft assembly (FASTA).",
+    "Generate mapping with minimap2: minimap2 -x map-ont draft.fasta reads.fastq > mapping.paf",
+    "Run multiple rounds of Racon polishing (2-4 rounds) before Medaka for ONT data.",
+    "Use -t N for multi-threading; output is consensus FASTA to stdout.",
+    "For ONT data after Racon, always run Medaka for additional polishing with neural network models.",
+    "For PacBio CLR, 1-2 rounds of Racon followed by Arrow/GCPP is the standard workflow.",
+]
+
+pitfalls = [
+    "Racon requires fresh mapping to the CURRENT draft for each polishing round — remap before each Racon run.",
+    "Racon output is to stdout — redirect to a file for the polished assembly.",
+    "Too many Racon rounds (>4) may degrade assembly quality — use Medaka after 2-3 Racon rounds for ONT.",
+    "The PAF alignment file must be computed with minimap2 against the DRAFT assembly, not the original reference.",
+    "Racon requires all three inputs: reads, mapping PAF/SAM, and draft assembly FASTA.",
+]
+
+[[examples]]
+task = "run one round of Racon polishing on an ONT assembly"
+args = "-t 16 reads.fastq.gz mapping.paf draft_assembly.fasta > polished_round1.fasta"
+explanation "mapping.paf from minimap2 -x map-ont draft_assembly.fasta reads.fastq.gz > mapping.paf; then run racon"
+
+[[examples]]
+task = "run second round of Racon polishing"
+args = "-t 16 reads.fastq.gz round2_mapping.paf polished_round1.fasta > polished_round2.fasta"
+explanation "re-map to round1 output: minimap2 -x map-ont polished_round1.fasta reads.fastq.gz > round2_mapping.paf"
+
+[[examples]]
+task = "run Racon polishing using SAM alignment instead of PAF"
+args = "-t 16 reads.fastq.gz alignment.sam draft_assembly.fasta > polished_assembly.fasta"
+explanation "SAM format is also accepted; use minimap2 -a flag to output SAM instead of PAF"

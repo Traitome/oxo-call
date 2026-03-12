@@ -29,23 +29,23 @@ pitfalls = [
 
 [[examples]]
 task = "prepare RSEM reference from genome FASTA and GTF annotation"
-args = "--prepare-reference --gtf genes.gtf --num-threads 8 genome.fa rsem_index/genome"
-explanation = "--gtf extracts transcripts from genome; index stored with prefix rsem_index/genome"
+args = "--gtf genes.gtf --num-threads 8 genome.fa rsem_index/genome"
+explanation = "rsem-prepare-reference command; --gtf extracts transcripts from genome; index prefix rsem_index/genome"
 
 [[examples]]
 task = "quantify paired-end RNA-seq reads using RSEM with Bowtie2"
-args = "--calculate-expression --paired-end --num-threads 8 --strandedness reverse R1.fastq.gz R2.fastq.gz rsem_index/genome sample_output"
-explanation = "--paired-end; --strandedness reverse for dUTP libraries; output prefix creates sample_output.genes.results"
+args = "--paired-end --num-threads 8 --strandedness reverse R1.fastq.gz R2.fastq.gz rsem_index/genome sample_output"
+explanation = "rsem-calculate-expression; --paired-end; --strandedness reverse for dUTP libraries; creates sample_output.genes.results"
 
 [[examples]]
 task = "quantify RNA-seq using RSEM with STAR aligner"
-args = "--calculate-expression --paired-end --star --num-threads 8 R1.fastq.gz R2.fastq.gz rsem_index/genome sample_output"
-explanation = "--star uses STAR instead of Bowtie2 for alignment; RSEM manages STAR internally"
+args = "--paired-end --star --num-threads 8 R1.fastq.gz R2.fastq.gz rsem_index/genome sample_output"
+explanation = "rsem-calculate-expression --star uses STAR instead of Bowtie2 for alignment; RSEM manages STAR internally"
 
 [[examples]]
 task = "prepare RSEM reference directly from transcriptome FASTA"
-args = "--prepare-reference --num-threads 4 transcriptome.fa rsem_transcript_index/transcripts"
-explanation = "direct transcriptome reference; simpler but no gene-level aggregation without transcript-to-gene mapping"
+args = "--num-threads 4 transcriptome.fa rsem_transcript_index/transcripts"
+explanation = "rsem-prepare-reference from transcriptome FASTA; simpler than genome+GTF approach"
 
 [[examples]]
 task = "generate count matrix from multiple RSEM results files for DESeq2"

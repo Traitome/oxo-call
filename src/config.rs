@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 const DEFAULT_LLM_PROVIDER: &str = "github-copilot";
 const DEFAULT_MAX_TOKENS: u32 = 2048;
-const DEFAULT_TEMPERATURE: f32 = 0.2;
+const DEFAULT_TEMPERATURE: f32 = 0.0;
 const ENV_LLM_PROVIDER: &str = "OXO_CALL_LLM_PROVIDER";
 const ENV_LLM_API_TOKEN: &str = "OXO_CALL_LLM_API_TOKEN";
 const ENV_LLM_API_BASE: &str = "OXO_CALL_LLM_API_BASE";

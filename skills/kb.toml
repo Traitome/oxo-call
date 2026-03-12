@@ -1,0 +1,47 @@
+[meta]
+name = "kb"
+category = "single-cell"
+description = "kallisto|bustools workflow for fast single-cell RNA-seq preprocessing and count matrix generation"
+tags = ["single-cell", "scrna-seq", "kallisto", "bustools", "barcode", "umi", "10x-genomics", "kb-python"]
+author = "oxo-call built-in"
+source_url = "https://www.kallistobus.tools/"
+
+[context]
+concepts = [
+    "kb-python (kb) wraps kallisto and bustools for ultra-fast scRNA-seq preprocessing.",
+    "Main command: kb count for processing FASTQ to count matrix; kb ref for reference building.",
+    "Use -x to specify technology: 10xv3 (10x Chromium v3), 10xv2, 10xv1, INDROPS, CELSEQ, CELSEQ2.",
+    "kb count takes barcode+UMI reads as first argument and cDNA reads second: -1 R1.fastq.gz -2 R2.fastq.gz.",
+    "Output: cells_x_genes.mtx (sparse matrix), cells_x_genes.barcodes.txt, cells_x_genes.genes.txt.",
+    "Use --workflow lamanno for RNA velocity output (spliced/unspliced matrices).",
+    "Use --h5ad to output AnnData format directly for Scanpy.",
+    "kb ref --workflow lamanno builds a reference with both spliced and unspliced sequences.",
+]
+
+pitfalls = [
+    "The -x technology flag must match the library preparation protocol exactly.",
+    "For 10x v3: -1 is R1 (barcode+UMI, 28 bp), -2 is R2 (cDNA) — check file naming.",
+    "kb uses kallisto internally — ensure kallisto is installed and in PATH.",
+    "The reference must be built with kb ref matching the desired workflow (standard vs lamanno vs nac).",
+    "Without --h5ad, kb outputs sparse matrix format — convert manually for Scanpy/Seurat compatibility.",
+]
+
+[[examples]]
+task = "build kb reference from genome and GTF"
+args = "ref -i index.idx -g t2g.txt -f1 cdna.fasta genome.fa genes.gtf"
+explanation "-i kallisto index; -g transcript-to-gene mapping; -f1 cDNA FASTA; from genome + GTF"
+
+[[examples]]
+task = "process 10x Chromium v3 scRNA-seq FASTQ files"
+args = "count -i index.idx -g t2g.txt -x 10xv3 -o output_dir/ -t 16 R1.fastq.gz R2.fastq.gz"
+explanation "-x 10xv3 technology; R1 (barcode+UMI) R2 (cDNA); -o output directory; -t threads"
+
+[[examples]]
+task = "process scRNA-seq with RNA velocity output"
+args = "count -i spliced_unspliced.idx -g t2g.txt -x 10xv3 --workflow lamanno -o velocity_output/ -t 16 R1.fastq.gz R2.fastq.gz"
+explanation "--workflow lamanno outputs spliced and unspliced matrices for RNA velocity with scVelo"
+
+[[examples]]
+task = "process 10x Chromium v3 and output AnnData for Scanpy"
+args = "count -i index.idx -g t2g.txt -x 10xv3 --h5ad -o output_dir/ -t 16 R1.fastq.gz R2.fastq.gz"
+explanation "--h5ad generates AnnData (.h5ad) file directly compatible with Scanpy"
