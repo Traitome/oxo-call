@@ -396,7 +396,12 @@ fn format_elapsed(elapsed: std::time::Duration) -> String {
     } else if secs < 3600 {
         format!("{}m {:02}s", secs / 60, secs % 60)
     } else {
-        format!("{}h {:02}m {:02}s", secs / 3600, (secs % 3600) / 60, secs % 60)
+        format!(
+            "{}h {:02}m {:02}s",
+            secs / 3600,
+            (secs % 3600) / 60,
+            secs % 60
+        )
     }
 }
 
@@ -444,11 +449,7 @@ fn print_dag_phases(tasks: &[ConcreteTask]) {
             }
         }
 
-        println!(
-            "  {:>9}  {}",
-            phase_num.cyan(),
-            group_strs.join("  │  ")
-        );
+        println!("  {:>9}  {}", phase_num.cyan(), group_strs.join("  │  "));
 
         if i + 1 < phases.len() {
             println!("  {:>9}  {}", "", "↓".dimmed());
@@ -910,11 +911,7 @@ mod tests {
 
     #[test]
     fn test_compute_phases_linear_chain() {
-        let tasks = vec![
-            task("a", &[]),
-            task("b", &["a"]),
-            task("c", &["b"]),
-        ];
+        let tasks = vec![task("a", &[]), task("b", &["a"]), task("c", &["b"])];
         let phases = compute_phases(&tasks);
         assert_eq!(phases.len(), 3);
         assert_eq!(phases[0].len(), 1);
@@ -925,11 +922,7 @@ mod tests {
 
     #[test]
     fn test_compute_phases_parallel_tasks() {
-        let tasks = vec![
-            task("a", &[]),
-            task("b", &[]),
-            task("c", &["a", "b"]),
-        ];
+        let tasks = vec![task("a", &[]), task("b", &[]), task("c", &["a", "b"])];
         let phases = compute_phases(&tasks);
         assert_eq!(phases.len(), 2);
         // Phase 1: a and b in parallel.
@@ -996,7 +989,10 @@ mod tests {
             task("star[sample=s2]", &["fastp[sample=s2]"]),
             task("featurecounts[sample=s1]", &["star[sample=s1]"]),
             task("featurecounts[sample=s2]", &["star[sample=s2]"]),
-            gather_task("multiqc", &["featurecounts[sample=s1]", "featurecounts[sample=s2]"]),
+            gather_task(
+                "multiqc",
+                &["featurecounts[sample=s1]", "featurecounts[sample=s2]"],
+            ),
         ];
         let phases = compute_phases(&tasks);
         assert_eq!(phases.len(), 4);
@@ -1042,7 +1038,10 @@ mod tests {
         // multiqc depends on all featurecounts instances
         assert_eq!(multiqc.deps.len(), 3);
         for dep in &multiqc.deps {
-            assert!(dep.starts_with("featurecounts["), "multiqc dep should be featurecounts: {dep}");
+            assert!(
+                dep.starts_with("featurecounts["),
+                "multiqc dep should be featurecounts: {dep}"
+            );
         }
 
         // Verify phases
@@ -1070,9 +1069,18 @@ mod tests {
 
         // Verify parallel phases: macs3 and bigwig should be in the same phase
         let phases = compute_phases(&tasks);
-        let macs3_phase = phases.iter().position(|p| p.iter().any(|t| t.step_name == "macs3")).unwrap();
-        let bigwig_phase = phases.iter().position(|p| p.iter().any(|t| t.step_name == "bigwig")).unwrap();
-        assert_eq!(macs3_phase, bigwig_phase, "macs3 and bigwig should execute in the same phase");
+        let macs3_phase = phases
+            .iter()
+            .position(|p| p.iter().any(|t| t.step_name == "macs3"))
+            .unwrap();
+        let bigwig_phase = phases
+            .iter()
+            .position(|p| p.iter().any(|t| t.step_name == "bigwig"))
+            .unwrap();
+        assert_eq!(
+            macs3_phase, bigwig_phase,
+            "macs3 and bigwig should execute in the same phase"
+        );
     }
 
     #[test]
@@ -1084,9 +1092,18 @@ mod tests {
 
         // Verify nanostat and flye are in the same phase (both depend on nanoq only)
         let phases = compute_phases(&tasks);
-        let nanostat_phase = phases.iter().position(|p| p.iter().any(|t| t.step_name == "nanostat")).unwrap();
-        let flye_phase = phases.iter().position(|p| p.iter().any(|t| t.step_name == "flye")).unwrap();
-        assert_eq!(nanostat_phase, flye_phase, "nanostat and flye should execute in parallel");
+        let nanostat_phase = phases
+            .iter()
+            .position(|p| p.iter().any(|t| t.step_name == "nanostat"))
+            .unwrap();
+        let flye_phase = phases
+            .iter()
+            .position(|p| p.iter().any(|t| t.step_name == "flye"))
+            .unwrap();
+        assert_eq!(
+            nanostat_phase, flye_phase,
+            "nanostat and flye should execute in parallel"
+        );
     }
 
     #[test]
@@ -1097,24 +1114,39 @@ mod tests {
             ("wgs", include_str!("../workflows/native/wgs.toml")),
             ("atacseq", include_str!("../workflows/native/atacseq.toml")),
             ("chipseq", include_str!("../workflows/native/chipseq.toml")),
-            ("metagenomics", include_str!("../workflows/native/metagenomics.toml")),
-            ("amplicon16s", include_str!("../workflows/native/amplicon16s.toml")),
-            ("scrnaseq", include_str!("../workflows/native/scrnaseq.toml")),
-            ("longreads", include_str!("../workflows/native/longreads.toml")),
-            ("methylseq", include_str!("../workflows/native/methylseq.toml")),
+            (
+                "metagenomics",
+                include_str!("../workflows/native/metagenomics.toml"),
+            ),
+            (
+                "amplicon16s",
+                include_str!("../workflows/native/amplicon16s.toml"),
+            ),
+            (
+                "scrnaseq",
+                include_str!("../workflows/native/scrnaseq.toml"),
+            ),
+            (
+                "longreads",
+                include_str!("../workflows/native/longreads.toml"),
+            ),
+            (
+                "methylseq",
+                include_str!("../workflows/native/methylseq.toml"),
+            ),
         ];
         for (name, toml) in &templates {
             let def = WorkflowDef::from_str_content(toml)
                 .unwrap_or_else(|e| panic!("Failed to parse {name}: {e}"));
-            let tasks = expand(&def)
-                .unwrap_or_else(|e| panic!("Failed to expand {name}: {e}"));
+            let tasks = expand(&def).unwrap_or_else(|e| panic!("Failed to expand {name}: {e}"));
             assert!(!tasks.is_empty(), "{name} should have at least one task");
 
             // Verify multiqc is the final phase in every workflow
             let phases = compute_phases(&tasks);
             let last_phase = phases.last().expect("should have phases");
             assert_eq!(
-                last_phase.len(), 1,
+                last_phase.len(),
+                1,
                 "{name}: last phase should have exactly one task (multiqc)"
             );
             assert!(
