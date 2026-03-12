@@ -1032,23 +1032,34 @@ mod tests {
         // Gather: multiqc (1)
         assert_eq!(tasks.len(), 13);
 
-        // multiqc should be the last task and should depend on featurecounts
+        // multiqc is an upstream QC aggregation step that depends on fastp
         let multiqc = tasks.iter().find(|t| t.step_name == "multiqc").unwrap();
         assert!(multiqc.gather);
-        // multiqc depends on all featurecounts instances
+        // multiqc depends on all fastp instances
         assert_eq!(multiqc.deps.len(), 3);
         for dep in &multiqc.deps {
             assert!(
-                dep.starts_with("featurecounts["),
-                "multiqc dep should be featurecounts: {dep}"
+                dep.starts_with("fastp["),
+                "multiqc dep should be fastp: {dep}"
             );
         }
 
-        // Verify phases
+        // Verify phases: multiqc runs in parallel with star (both depend on fastp)
         let phases = compute_phases(&tasks);
-        assert_eq!(phases.len(), 5); // fastp → star → samtools_index → featurecounts → multiqc
         assert_eq!(phases[0].len(), 3); // 3 fastp tasks
-        assert_eq!(phases[4].len(), 1); // 1 multiqc task
+        // multiqc and star should be in the same phase (phase 1)
+        let multiqc_phase = phases
+            .iter()
+            .position(|p| p.iter().any(|t| t.step_name == "multiqc"))
+            .unwrap();
+        let star_phase = phases
+            .iter()
+            .position(|p| p.iter().any(|t| t.step_name == "star"))
+            .unwrap();
+        assert_eq!(
+            multiqc_phase, star_phase,
+            "multiqc and star should execute in the same phase"
+        );
     }
 
     #[test]
@@ -1058,17 +1069,33 @@ mod tests {
         let def = WorkflowDef::from_str_content(toml).expect("parse chipseq template");
         let tasks = expand(&def).expect("expand chipseq DAG");
 
+        // multiqc is upstream QC and depends only on fastp
         let multiqc = tasks.iter().find(|t| t.step_name == "multiqc").unwrap();
         assert!(multiqc.gather);
-        // multiqc should depend on both macs3 and bigwig (all instances)
-        assert_eq!(multiqc.deps.len(), 6); // 3 samples × 2 leaf steps
-        let has_macs3 = multiqc.deps.iter().any(|d| d.starts_with("macs3["));
-        let has_bigwig = multiqc.deps.iter().any(|d| d.starts_with("bigwig["));
-        assert!(has_macs3, "multiqc should depend on macs3");
-        assert!(has_bigwig, "multiqc should depend on bigwig");
+        assert_eq!(multiqc.deps.len(), 3); // 3 samples × fastp
+        for dep in &multiqc.deps {
+            assert!(
+                dep.starts_with("fastp["),
+                "multiqc dep should be fastp: {dep}"
+            );
+        }
+
+        // multiqc and bowtie2 should be in the same phase (both depend on fastp)
+        let phases = compute_phases(&tasks);
+        let multiqc_phase = phases
+            .iter()
+            .position(|p| p.iter().any(|t| t.step_name == "multiqc"))
+            .unwrap();
+        let bowtie2_phase = phases
+            .iter()
+            .position(|p| p.iter().any(|t| t.step_name == "bowtie2"))
+            .unwrap();
+        assert_eq!(
+            multiqc_phase, bowtie2_phase,
+            "multiqc and bowtie2 should execute in the same phase"
+        );
 
         // Verify parallel phases: macs3 and bigwig should be in the same phase
-        let phases = compute_phases(&tasks);
         let macs3_phase = phases
             .iter()
             .position(|p| p.iter().any(|t| t.step_name == "macs3"))
@@ -1141,18 +1168,12 @@ mod tests {
             let tasks = expand(&def).unwrap_or_else(|e| panic!("Failed to expand {name}: {e}"));
             assert!(!tasks.is_empty(), "{name} should have at least one task");
 
-            // Verify multiqc is the final phase in every workflow
-            let phases = compute_phases(&tasks);
-            let last_phase = phases.last().expect("should have phases");
-            assert_eq!(
-                last_phase.len(),
-                1,
-                "{name}: last phase should have exactly one task (multiqc)"
-            );
+            // Verify multiqc is an upstream QC aggregation step (not the final phase)
+            let multiqc = tasks.iter().find(|t| t.step_name == "multiqc");
+            assert!(multiqc.is_some(), "{name}: should have a multiqc task");
             assert!(
-                last_phase[0].step_name == "multiqc",
-                "{name}: last phase should be multiqc, got '{}'",
-                last_phase[0].step_name
+                multiqc.unwrap().gather,
+                "{name}: multiqc should be a gather step"
             );
         }
     }

@@ -62,6 +62,14 @@ inputs  = ["filtered/{sample}.fastq.gz"]
 outputs = ["qc/{sample}NanoStats.txt"]
 
 [[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["nanostat"]
+cmd        = "multiqc qc/ -o results/multiqc/ --force"
+inputs     = []
+outputs    = ["results/multiqc/multiqc_report.html"]
+
+[[step]]
 name       = "flye"
 depends_on = ["nanoq"]
 cmd        = """\
@@ -101,11 +109,3 @@ quast.py \
 """
 inputs  = ["polished/{sample}/consensus.fasta"]
 outputs = ["qc/quast_{sample}/report.txt", "qc/quast_{sample}/report.html"]
-
-[[step]]
-name       = "multiqc"
-gather     = true
-depends_on = ["nanostat", "quast"]
-cmd        = "multiqc qc/ -o results/multiqc/ --force"
-inputs     = []
-outputs    = ["results/multiqc/multiqc_report.html"]

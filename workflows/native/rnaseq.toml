@@ -56,6 +56,14 @@ outputs = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz",
            "qc/{sample}_fastp.json"]
 
 [[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["fastp"]
+cmd        = "multiqc qc/ -o results/multiqc/ --force"
+inputs     = []
+outputs    = ["results/multiqc/multiqc_report.html"]
+
+[[step]]
 name       = "star"
 depends_on = ["fastp"]
 cmd        = """\
@@ -94,11 +102,3 @@ featureCounts \
 """
 inputs  = ["aligned/{sample}/Aligned.sortedByCoord.out.bam"]
 outputs = ["results/{sample}_counts.txt"]
-
-[[step]]
-name       = "multiqc"
-gather     = true
-depends_on = ["featurecounts"]
-cmd        = "multiqc qc/ aligned/ results/ -o results/multiqc/ --force"
-inputs     = []
-outputs    = ["results/multiqc/multiqc_report.html"]

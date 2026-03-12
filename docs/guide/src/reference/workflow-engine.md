@@ -60,12 +60,12 @@ The engine automatically skips tasks whose outputs are already up to date:
 
 ### MultiQC Aggregation Pattern
 
-All built-in templates follow a consistent pattern where **MultiQC is always the final step**:
+All built-in templates follow a consistent pattern where **MultiQC is an upstream QC aggregation step**:
 
 1. MultiQC is configured as a `gather = true` step
-2. It depends on the **leaf analysis steps** (the last per-sample analysis step in each branch)
-3. This ensures all per-sample QC, alignment, and analysis outputs are complete before aggregation
-4. The MultiQC command scans all relevant output directories with `--force` for consistent reruns
+2. It depends on the **QC/preprocessing step** (e.g., fastp, trim_galore, or nanostat)
+3. It runs **in parallel** with downstream analysis steps (alignment, variant calling, etc.)
+4. The MultiQC command scans the QC output directory with `--force` for consistent reruns
 
 ## File Format (.oxo.toml)
 

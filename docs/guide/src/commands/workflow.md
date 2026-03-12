@@ -99,23 +99,23 @@ oxo-call workflow show metagenomics --engine nextflow
 
 | Template | Domain | Pipeline Steps |
 |----------|--------|----------------|
-| `rnaseq` | Transcriptomics | fastp → STAR → samtools index → featureCounts → MultiQC |
-| `wgs` | Genomics | fastp → BWA-MEM2 → MarkDuplicates → BQSR → HaplotypeCaller → MultiQC |
-| `atacseq` | Epigenomics | fastp → Bowtie2 → Picard dedup → blacklist filter → MACS3 → MultiQC |
-| `chipseq` | Epigenomics | fastp → Bowtie2 → MarkDup → filter → MACS3 + bigWig → MultiQC |
-| `metagenomics` | Metagenomics | fastp → host removal → Kraken2 → Bracken → MultiQC |
-| `amplicon16s` | Metagenomics | cutadapt → fastp → DADA2 (gather) → MultiQC |
-| `scrnaseq` | Single-cell | fastp → STARsolo (10x v3) → samtools index + cell QC → MultiQC |
-| `longreads` | Genomics | NanoQ → NanoStat + Flye (parallel) → Medaka → QUAST → MultiQC |
-| `methylseq` | Epigenomics | Trim Galore → Bismark → dedup → sort → methylation extract → bedGraph → MultiQC |
+| `rnaseq` | Transcriptomics | fastp → MultiQC + STAR → samtools index → featureCounts |
+| `wgs` | Genomics | fastp → MultiQC + BWA-MEM2 → MarkDuplicates → BQSR → HaplotypeCaller |
+| `atacseq` | Epigenomics | fastp → MultiQC + Bowtie2 → Picard dedup → blacklist filter → MACS3 |
+| `chipseq` | Epigenomics | fastp → MultiQC + Bowtie2 → MarkDup → filter → MACS3 + bigWig |
+| `metagenomics` | Metagenomics | fastp → MultiQC + host removal → Kraken2 → Bracken |
+| `amplicon16s` | Metagenomics | cutadapt → fastp → MultiQC + DADA2 (gather) |
+| `scrnaseq` | Single-cell | fastp → MultiQC + STARsolo (10x v3) → samtools index + cell QC |
+| `longreads` | Genomics | NanoQ → NanoStat → MultiQC + Flye (parallel) → Medaka → QUAST |
+| `methylseq` | Epigenomics | Trim Galore → MultiQC + Bismark → dedup → sort → methylation extract → bedGraph |
 
 ### MultiQC Aggregation
 
-All templates follow a consistent pattern: **MultiQC always runs as the final step** after all per-sample analysis steps complete. It is configured as a `gather` step that depends on all leaf analysis steps, ensuring:
+All templates follow a consistent pattern: **MultiQC runs as an upstream QC aggregation step** right after the QC/preprocessing step (e.g., fastp, trim_galore, or nanostat). It is configured as a `gather` step that depends only on the QC step, enabling it to run in parallel with downstream analysis:
 
-1. All QC, alignment, and analysis outputs are available before aggregation
-2. MultiQC scans all relevant output directories (qc/, aligned/, peaks/, etc.)
-3. A single comprehensive report is generated across all samples
+1. MultiQC only needs QC results (fastp JSON/HTML reports) to generate its report
+2. MultiQC scans the QC output directory (e.g., qc/ or trimmed/)
+3. A single comprehensive QC report is generated across all samples without blocking downstream steps
 
 ## .oxo.toml Format
 
