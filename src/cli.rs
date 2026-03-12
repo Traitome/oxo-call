@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -9,14 +10,17 @@ use clap::{Parser, Subcommand};
 tools without memorizing every flag and parameter.
 
 Quick start:
-  1. Set up your API token:
+  1. Obtain a license file (academic: free; commercial: license@traitome.com)
+     and place it at ~/.config/oxo-call/license.oxo.json
+
+  2. Set up your API token:
        oxo-call config set llm.api_token <your-github-token>
 
-  2. Build a documentation index for a tool:
+  3. Build a documentation index for a tool:
        oxo-call index add bwa
        oxo-call index add samtools
 
-  3. Run a tool with a natural-language task:
+  4. Run a tool with a natural-language task:
        oxo-call run samtools "sort input.bam by coordinate and output to sorted.bam"
        oxo-call dry-run bwa "align reads.fastq to reference.fa with 8 threads"
 
@@ -27,10 +31,13 @@ Skills — expert knowledge for reliable LLM output even with small models:
   oxo-call skill create <tool>      # generate a skill template for a new tool
 
 Supported LLM providers: github-copilot (default), openai, anthropic, ollama
-License: BUSL-1.1 — free for academic/research use; commercial license required otherwise.
-         Run 'oxo-call license' for details."#
+License: Dual (Academic free / Commercial per-org) — run 'oxo-call license' for details."#
 )]
 pub struct Cli {
+    /// Path to the license file (overrides OXO_CALL_LICENSE env var and default path)
+    #[arg(long, global = true, value_name = "PATH")]
+    pub license: Option<PathBuf>,
+
     #[command(subcommand)]
     pub command: Commands,
 }
@@ -93,9 +100,12 @@ pub enum Commands {
         command: SkillCommands,
     },
 
-    /// Show license information
+    /// Show license information or verify the current license file
     #[command(visible_alias = "lic")]
-    License,
+    License {
+        #[command(subcommand)]
+        command: Option<LicenseCommands>,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -217,4 +227,10 @@ pub enum SkillCommands {
     },
     /// Show the path to the user skills directory
     Path,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum LicenseCommands {
+    /// Verify the license file and display its details
+    Verify,
 }

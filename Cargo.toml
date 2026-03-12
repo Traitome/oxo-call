@@ -1,3 +1,6 @@
+[workspace]
+members = [".", "crates/license-issuer"]
+
 [package]
 name = "oxo-call"
 version = "0.1.0"
@@ -26,6 +29,11 @@ chrono = { version = "0.4", features = ["serde"] }
 indicatif = "0.17"
 uuid = { version = "1", features = ["v4"] }
 which = "7.0"
+ed25519-dalek = "2"
+base64 = "0.22"
+
+[dev-dependencies]
+tempfile = "3"
 
 [profile.release]
 opt-level = 3

@@ -1,0 +1,18 @@
+[package]
+name = "license-issuer"
+version = "0.1.0"
+edition = "2024"
+description = "Offline license-signing tool for oxo-call (maintainer use only)"
+authors = ["Traitome <https://github.com/Traitome>"]
+publish = false
+
+[dependencies]
+clap = { version = "4.5", features = ["derive", "env"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+base64 = "0.22"
+uuid = { version = "1", features = ["v4"] }
+chrono = "0.4"
+rand = "0.8"
+anyhow = "1.0"

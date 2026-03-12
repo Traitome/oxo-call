@@ -228,15 +228,90 @@ cargo test
 
 ## License
 
-**Dual License — [Business Source License 1.1 (BUSL-1.1)](LICENSE)**
+**Dual License — Academic Free / Commercial Per-Organization**
 
-| Use case | License |
-|----------|---------|
-| Academic research, education, personal non-commercial | **Free** |
-| Commercial / production use | **Commercial license required** |
+| Use case | License | Cost |
+|----------|---------|------|
+| Academic research, education, personal non-commercial | [LICENSE-ACADEMIC](LICENSE-ACADEMIC) | **Free** — license file required |
+| Commercial / production (any organization) | [LICENSE-COMMERCIAL](LICENSE-COMMERCIAL) | Paid — per-org, one-time fee |
 
-After 4 years from each version's release date, the code converts to the MIT License.
+### Licensing / How to obtain a license
 
-For commercial licensing: <license@traitome.com> · <https://github.com/Traitome/oxo-call#licensing>
+All users — academic and commercial — must have a **signed license file** to run
+core commands.  The license is verified **offline** (no network required) using
+an Ed25519 signature.
+
+#### Academic License (free)
+
+1. Apply via: <https://github.com/Traitome/oxo-call#licensing>  *(← apply link placeholder)*
+2. You will receive a `license.oxo.json` file by email.
+3. Place the file at `~/.config/oxo-call/license.oxo.json` (Linux/macOS) or
+   `%APPDATA%\oxo-call\license.oxo.json` (Windows).
+
+#### Commercial License (per-organization, one-time fee)
+
+1. Contact: <license@traitome.com>  *(← contact placeholder)*
+2. You will receive a `license.oxo.json` signed for your organization.
+3. Place it in the same location as the academic license (see above).
+4. One license covers all employees/contractors within your organization.
+
+#### Using the license file
+
+```bash
+# Option 1 — Place in the default location
+cp license.oxo.json ~/.config/oxo-call/license.oxo.json
+
+# Option 2 — CLI flag
+oxo-call --license /path/to/license.oxo.json run samtools "..."
+
+# Option 3 — Environment variable
+export OXO_CALL_LICENSE=/path/to/license.oxo.json
+oxo-call run samtools "..."
+
+# Verify your license
+oxo-call license verify
+```
 
 > **Skill files** contributed to the community registry are licensed under **CC-BY-4.0** and remain freely usable by everyone.
+
+---
+
+## Developer Notes — Issuing Licenses (Maintainer Only)
+
+The `crates/license-issuer` workspace member provides an offline signing tool.
+
+### Generate a key pair (once per deployment)
+
+```bash
+cargo run --bin license-issuer -- generate-keypair
+# Prints: PRIVATE_KEY_SEED=<base64>  PUBLIC_KEY=<base64>
+# Store the private key securely (password manager / offline vault).
+# Update EMBEDDED_PUBLIC_KEY_BASE64 in src/license.rs with the public key.
+```
+
+### Issue an academic license
+
+```bash
+export OXO_LICENSE_PRIVATE_KEY="<your-base64-private-key-seed>"
+cargo run --bin license-issuer -- issue \
+    --org "Recipient University" \
+    --email researcher@uni.edu \
+    --type academic \
+    --output license.oxo.json
+# Send license.oxo.json to the recipient.
+```
+
+### Issue a commercial license
+
+```bash
+export OXO_LICENSE_PRIVATE_KEY="<your-base64-private-key-seed>"
+cargo run --bin license-issuer -- issue \
+    --org "Example Corp" \
+    --email admin@example.com \
+    --type commercial \
+    --output license.oxo.json
+```
+
+> **Never commit your private key.**  The private key should only ever exist on
+> an air-gapped machine or in a secure secret store.
+
