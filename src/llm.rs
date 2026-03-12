@@ -12,6 +12,14 @@ pub struct LlmCommandSuggestion {
     pub raw_response: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct LlmVerificationResult {
+    pub provider: String,
+    pub api_base: String,
+    pub model: String,
+    pub response_preview: String,
+}
+
 #[derive(Debug, Serialize)]
 struct ChatRequest {
     model: String,
@@ -166,13 +174,41 @@ impl LlmClient {
         unreachable!()
     }
 
+    pub async fn verify_configuration(&self) -> Result<LlmVerificationResult> {
+        let provider = self.config.effective_provider();
+        let api_base = self.config.effective_api_base();
+        let model = self.config.effective_model();
+        let raw = self
+            .request_text("Reply with exactly OK.", Some(16), Some(0.0))
+            .await?;
+        let response_preview = raw.lines().next().unwrap_or("").trim().to_string();
+
+        Ok(LlmVerificationResult {
+            provider,
+            api_base,
+            model,
+            response_preview,
+        })
+    }
+
     /// Make the raw API call and return the assistant message content.
     async fn call_api(&self, user_prompt: &str) -> Result<String> {
+        self.request_text(user_prompt, None, None).await
+    }
+
+    async fn request_text(
+        &self,
+        user_prompt: &str,
+        max_tokens_override: Option<u32>,
+        temperature_override: Option<f32>,
+    ) -> Result<String> {
+        let provider = self.config.effective_provider();
         let token = self.config.effective_api_token().ok_or_else(|| {
             OxoError::LlmError(
                 "No API token configured. Set it with:\n  oxo-call config set llm.api_token <token>\n\
-                Or set the environment variable GITHUB_TOKEN (for GitHub Copilot), \
-                OPENAI_API_KEY (for OpenAI), or ANTHROPIC_API_KEY (for Anthropic)."
+                Or set the environment variable OXO_CALL_LLM_API_TOKEN.\n\
+                Backward-compatible provider-specific variables still work too: \
+                GITHUB_TOKEN / GH_TOKEN, OPENAI_API_KEY, ANTHROPIC_API_KEY, OXO_API_TOKEN."
                     .to_string(),
             )
         })?;
@@ -207,8 +243,8 @@ impl LlmClient {
         let request = ChatRequest {
             model,
             messages,
-            max_tokens: self.config.llm.max_tokens,
-            temperature: self.config.llm.temperature,
+            max_tokens: max_tokens_override.unwrap_or(self.config.effective_max_tokens()?),
+            temperature: temperature_override.unwrap_or(self.config.effective_temperature()?),
         };
 
         let mut req_builder = self
@@ -216,7 +252,7 @@ impl LlmClient {
             .post(&url)
             .header("Content-Type", "application/json");
 
-        req_builder = match self.config.llm.provider.as_str() {
+        req_builder = match provider.as_str() {
             "anthropic" => req_builder
                 .header("x-api-key", &token)
                 .header("anthropic-version", "2023-06-01"),

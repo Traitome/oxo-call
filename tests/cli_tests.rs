@@ -43,6 +43,18 @@ fn test_help_output() {
 }
 
 #[test]
+fn test_run_help_mentions_ask_flag() {
+    let output = oxo_call()
+        .args(["run", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("--ask"));
+    assert!(stdout.contains("Ask for confirmation"));
+}
+
+#[test]
 fn test_version_output() {
     let output = oxo_call()
         .arg("--version")
@@ -64,6 +76,8 @@ fn test_config_show() {
     assert!(stdout.contains("github-copilot"));
     assert!(stdout.contains("max_tokens"));
     assert!(stdout.contains("temperature"));
+    assert!(stdout.contains("Stored values"));
+    assert!(stdout.contains("Effective values"));
 }
 
 #[test]
@@ -111,6 +125,136 @@ fn test_config_invalid_key() {
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("Unknown config key") || stderr.contains("error"));
+}
+
+#[test]
+fn test_config_get_uses_env_overrides() {
+    let provider = oxo_call()
+        .env("OXO_CALL_LLM_PROVIDER", "ollama")
+        .args(["config", "get", "llm.provider"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(provider.status.success());
+    assert_eq!(String::from_utf8_lossy(&provider.stdout).trim(), "ollama");
+
+    let api_base = oxo_call()
+        .env("OXO_CALL_LLM_API_BASE", "http://localhost:1234/v1")
+        .args(["config", "get", "llm.api_base"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(api_base.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&api_base.stdout).trim(),
+        "http://localhost:1234/v1"
+    );
+
+    let model = oxo_call()
+        .env("OXO_CALL_LLM_MODEL", "custom-model")
+        .args(["config", "get", "llm.model"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(model.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&model.stdout).trim(),
+        "custom-model"
+    );
+
+    let max_tokens = oxo_call()
+        .env("OXO_CALL_LLM_MAX_TOKENS", "4096")
+        .args(["config", "get", "llm.max_tokens"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(max_tokens.status.success());
+    assert_eq!(String::from_utf8_lossy(&max_tokens.stdout).trim(), "4096");
+
+    let temperature = oxo_call()
+        .env("OXO_CALL_LLM_TEMPERATURE", "0.7")
+        .args(["config", "get", "llm.temperature"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(temperature.status.success());
+    assert_eq!(String::from_utf8_lossy(&temperature.stdout).trim(), "0.7");
+
+    let auto_update = oxo_call()
+        .env("OXO_CALL_DOCS_AUTO_UPDATE", "false")
+        .args(["config", "get", "docs.auto_update"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(auto_update.status.success());
+    assert_eq!(String::from_utf8_lossy(&auto_update.stdout).trim(), "false");
+}
+
+#[test]
+fn test_config_get_api_token_supports_key_specific_and_legacy_env_vars() {
+    let key_specific = oxo_call()
+        .env("OXO_CALL_LLM_API_TOKEN", "token-from-key-env")
+        .args(["config", "get", "llm.api_token"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(key_specific.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&key_specific.stdout).trim(),
+        "token-from-key-env"
+    );
+
+    let legacy = oxo_call()
+        .env("OXO_CALL_LLM_PROVIDER", "openai")
+        .env_remove("OXO_CALL_LLM_API_TOKEN")
+        .env("OPENAI_API_KEY", "token-from-openai-env")
+        .args(["config", "get", "llm.api_token"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(legacy.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&legacy.stdout).trim(),
+        "token-from-openai-env"
+    );
+}
+
+#[test]
+fn test_config_get_invalid_env_value_fails() {
+    let output = oxo_call()
+        .env("OXO_CALL_LLM_MAX_TOKENS", "not-a-number")
+        .args(["config", "get", "llm.max_tokens"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("OXO_CALL_LLM_MAX_TOKENS") || stderr.contains("Invalid value"));
+}
+
+#[test]
+fn test_config_show_displays_effective_sources() {
+    let output = oxo_call()
+        .env("OXO_CALL_LLM_PROVIDER", "ollama")
+        .env("OXO_CALL_LLM_API_TOKEN", "token-from-env")
+        .args(["config", "show"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("stored config.toml / built-in defaults")
+            || stdout.contains("Stored values")
+    );
+    assert!(stdout.contains("env:OXO_CALL_LLM_PROVIDER"));
+    assert!(stdout.contains("env:OXO_CALL_LLM_API_TOKEN"));
+}
+
+#[test]
+fn test_config_verify_insecure_remote_api_base_fails_with_guidance() {
+    let output = oxo_call()
+        .env("OXO_CALL_LLM_PROVIDER", "openai")
+        .env("OXO_CALL_LLM_API_TOKEN", "dummy-token")
+        .env("OXO_CALL_LLM_API_BASE", "http://example.com/v1")
+        .args(["config", "verify"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("configuration check failed"));
+    assert!(stderr.contains("HTTPS") || stderr.contains("https://"));
+    assert!(stderr.contains("llm.api_base") || stderr.contains("Use an `https://` API base"));
 }
 
 #[test]

@@ -2,10 +2,18 @@ use crate::error::{OxoError, Result};
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use std::str::FromStr;
 
 const DEFAULT_LLM_PROVIDER: &str = "github-copilot";
 const DEFAULT_MAX_TOKENS: u32 = 2048;
 const DEFAULT_TEMPERATURE: f32 = 0.2;
+const ENV_LLM_PROVIDER: &str = "OXO_CALL_LLM_PROVIDER";
+const ENV_LLM_API_TOKEN: &str = "OXO_CALL_LLM_API_TOKEN";
+const ENV_LLM_API_BASE: &str = "OXO_CALL_LLM_API_BASE";
+const ENV_LLM_MODEL: &str = "OXO_CALL_LLM_MODEL";
+const ENV_LLM_MAX_TOKENS: &str = "OXO_CALL_LLM_MAX_TOKENS";
+const ENV_LLM_TEMPERATURE: &str = "OXO_CALL_LLM_TEMPERATURE";
+const ENV_DOCS_AUTO_UPDATE: &str = "OXO_CALL_DOCS_AUTO_UPDATE";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
@@ -145,44 +153,67 @@ impl Config {
     }
 
     pub fn get(&self, key: &str) -> Result<String> {
-        match key {
-            "llm.provider" => Ok(self.llm.provider.clone()),
-            "llm.api_token" => Ok(self.llm.api_token.clone().unwrap_or_default()),
-            "llm.api_base" => Ok(self.llm.api_base.clone().unwrap_or_default()),
-            "llm.model" => Ok(self.llm.model.clone().unwrap_or_default()),
-            "llm.max_tokens" => Ok(self.llm.max_tokens.to_string()),
-            "llm.temperature" => Ok(self.llm.temperature.to_string()),
-            "docs.auto_update" => Ok(self.docs.auto_update.to_string()),
-            _ => Err(OxoError::ConfigError(format!("Unknown config key: {key}"))),
+        self.effective_value(key)
+    }
+
+    fn env_string(name: &str) -> Option<String> {
+        std::env::var(name).ok().filter(|value| !value.is_empty())
+    }
+
+    fn env_parse<T>(name: &str, key: &str) -> Result<Option<T>>
+    where
+        T: FromStr,
+        T::Err: std::fmt::Display,
+    {
+        match Self::env_string(name) {
+            Some(value) => value.parse::<T>().map(Some).map_err(|e| {
+                OxoError::ConfigError(format!(
+                    "Invalid value in environment variable {name} for {key}: {e}"
+                ))
+            }),
+            None => Ok(None),
         }
     }
 
-    /// Resolve the effective API token from config or environment variables
+    pub fn effective_provider(&self) -> String {
+        Self::env_string(ENV_LLM_PROVIDER).unwrap_or_else(|| self.llm.provider.clone())
+    }
+
     pub fn effective_api_token(&self) -> Option<String> {
-        if let Some(token) = &self.llm.api_token
-            && !token.is_empty()
-        {
-            return Some(token.clone());
+        if let Some(token) = Self::env_string(ENV_LLM_API_TOKEN) {
+            return Some(token);
         }
-        // Fallback to environment variables
-        match self.llm.provider.as_str() {
+        // Backward-compatible provider-specific fallbacks
+        let legacy_env_token = match self.effective_provider().as_str() {
             "github-copilot" => std::env::var("GITHUB_TOKEN")
                 .or_else(|_| std::env::var("GH_TOKEN"))
                 .ok(),
             "openai" => std::env::var("OPENAI_API_KEY").ok(),
             "anthropic" => std::env::var("ANTHROPIC_API_KEY").ok(),
             _ => std::env::var("OXO_API_TOKEN").ok(),
+        };
+        if legacy_env_token.is_some() {
+            return legacy_env_token;
         }
+        if let Some(token) = &self.llm.api_token
+            && !token.is_empty()
+        {
+            return Some(token.clone());
+        }
+        None
     }
 
     /// Resolve the effective API base URL for the current provider
     pub fn effective_api_base(&self) -> String {
+        if let Some(base) = Self::env_string(ENV_LLM_API_BASE) {
+            return base;
+        }
         if let Some(base) = &self.llm.api_base
             && !base.is_empty()
         {
             return base.clone();
         }
-        match self.llm.provider.as_str() {
+        match self.effective_provider().as_str() {
             "github-copilot" => "https://api.githubcopilot.com".to_string(),
             "openai" => "https://api.openai.com/v1".to_string(),
             "anthropic" => "https://api.anthropic.com/v1".to_string(),
@@ -193,17 +224,142 @@ impl Config {
 
     /// Resolve the effective model name for the current provider
     pub fn effective_model(&self) -> String {
+        if let Some(model) = Self::env_string(ENV_LLM_MODEL) {
+            return model;
+        }
         if let Some(model) = &self.llm.model
             && !model.is_empty()
         {
             return model.clone();
         }
-        match self.llm.provider.as_str() {
+        match self.effective_provider().as_str() {
             "github-copilot" => "gpt-4o".to_string(),
             "openai" => "gpt-4o".to_string(),
             "anthropic" => "claude-3-5-sonnet-20241022".to_string(),
             "ollama" => "llama3.2".to_string(),
             _ => "gpt-4o".to_string(),
+        }
+    }
+
+    pub fn effective_max_tokens(&self) -> Result<u32> {
+        Ok(Self::env_parse(ENV_LLM_MAX_TOKENS, "llm.max_tokens")?.unwrap_or(self.llm.max_tokens))
+    }
+
+    pub fn effective_temperature(&self) -> Result<f32> {
+        Ok(
+            Self::env_parse(ENV_LLM_TEMPERATURE, "llm.temperature")?
+                .unwrap_or(self.llm.temperature),
+        )
+    }
+
+    pub fn effective_docs_auto_update(&self) -> Result<bool> {
+        Ok(Self::env_parse(ENV_DOCS_AUTO_UPDATE, "docs.auto_update")?
+            .unwrap_or(self.docs.auto_update))
+    }
+
+    pub fn effective_value(&self, key: &str) -> Result<String> {
+        match key {
+            "llm.provider" => Ok(self.effective_provider()),
+            "llm.api_token" => Ok(self.effective_api_token().unwrap_or_default()),
+            "llm.api_base" => Ok(self.effective_api_base()),
+            "llm.model" => Ok(self.effective_model()),
+            "llm.max_tokens" => Ok(self.effective_max_tokens()?.to_string()),
+            "llm.temperature" => Ok(self.effective_temperature()?.to_string()),
+            "docs.auto_update" => Ok(self.effective_docs_auto_update()?.to_string()),
+            _ => Err(OxoError::ConfigError(format!("Unknown config key: {key}"))),
+        }
+    }
+
+    pub fn effective_source(&self, key: &str) -> Result<String> {
+        match key {
+            "llm.provider" => {
+                if Self::env_string(ENV_LLM_PROVIDER).is_some() {
+                    Ok(format!("env:{ENV_LLM_PROVIDER}"))
+                } else {
+                    Ok("stored config/default".to_string())
+                }
+            }
+            "llm.api_token" => {
+                if Self::env_string(ENV_LLM_API_TOKEN).is_some() {
+                    return Ok(format!("env:{ENV_LLM_API_TOKEN}"));
+                }
+                let provider = self.effective_provider();
+                let legacy_env = match provider.as_str() {
+                    "github-copilot" => std::env::var("GITHUB_TOKEN")
+                        .ok()
+                        .map(|_| "GITHUB_TOKEN")
+                        .or_else(|| std::env::var("GH_TOKEN").ok().map(|_| "GH_TOKEN")),
+                    "openai" => std::env::var("OPENAI_API_KEY")
+                        .ok()
+                        .map(|_| "OPENAI_API_KEY"),
+                    "anthropic" => std::env::var("ANTHROPIC_API_KEY")
+                        .ok()
+                        .map(|_| "ANTHROPIC_API_KEY"),
+                    _ => std::env::var("OXO_API_TOKEN").ok().map(|_| "OXO_API_TOKEN"),
+                };
+                if let Some(name) = legacy_env {
+                    Ok(format!("env:{name}"))
+                } else if self
+                    .llm
+                    .api_token
+                    .as_deref()
+                    .is_some_and(|token| !token.is_empty())
+                {
+                    Ok("stored config".to_string())
+                } else {
+                    Ok("unset".to_string())
+                }
+            }
+            "llm.api_base" => {
+                if Self::env_string(ENV_LLM_API_BASE).is_some() {
+                    Ok(format!("env:{ENV_LLM_API_BASE}"))
+                } else if self
+                    .llm
+                    .api_base
+                    .as_deref()
+                    .is_some_and(|base| !base.is_empty())
+                {
+                    Ok("stored config".to_string())
+                } else {
+                    Ok("provider default".to_string())
+                }
+            }
+            "llm.model" => {
+                if Self::env_string(ENV_LLM_MODEL).is_some() {
+                    Ok(format!("env:{ENV_LLM_MODEL}"))
+                } else if self
+                    .llm
+                    .model
+                    .as_deref()
+                    .is_some_and(|model| !model.is_empty())
+                {
+                    Ok("stored config".to_string())
+                } else {
+                    Ok("provider default".to_string())
+                }
+            }
+            "llm.max_tokens" => {
+                if Self::env_string(ENV_LLM_MAX_TOKENS).is_some() {
+                    Ok(format!("env:{ENV_LLM_MAX_TOKENS}"))
+                } else {
+                    Ok("stored config/default".to_string())
+                }
+            }
+            "llm.temperature" => {
+                if Self::env_string(ENV_LLM_TEMPERATURE).is_some() {
+                    Ok(format!("env:{ENV_LLM_TEMPERATURE}"))
+                } else {
+                    Ok("stored config/default".to_string())
+                }
+            }
+            "docs.auto_update" => {
+                if Self::env_string(ENV_DOCS_AUTO_UPDATE).is_some() {
+                    Ok(format!("env:{ENV_DOCS_AUTO_UPDATE}"))
+                } else {
+                    Ok("stored config/default".to_string())
+                }
+            }
+            _ => Err(OxoError::ConfigError(format!("Unknown config key: {key}"))),
         }
     }
 }

@@ -39,10 +39,10 @@ async fn run(cli: Cli) -> error::Result<()> {
     }
 
     match cli.command {
-        Commands::Run { tool, task, yes } => {
+        Commands::Run { tool, task, ask } => {
             let cfg = config::Config::load()?;
             let runner = runner::Runner::new(cfg);
-            runner.run(&tool, &task, yes).await?;
+            runner.run(&tool, &task, ask).await?;
         }
 
         Commands::DryRun { tool, task } => {
@@ -218,6 +218,10 @@ async fn run(cli: Cli) -> error::Result<()> {
                     path.display().to_string().dimmed()
                 );
                 println!();
+                println!(
+                    "  {} ",
+                    "Stored values (config.toml / built-in defaults):".bold()
+                );
                 println!("  {} ", "[llm]".bold().cyan());
                 println!("  {:<25} {}", "provider", cfg.llm.provider);
                 println!(
@@ -259,19 +263,157 @@ async fn run(cli: Cli) -> error::Result<()> {
                     }
                 );
                 println!();
-                println!("  {} ", "Effective settings:".bold());
+                println!(
+                    "  {} ",
+                    "Effective values (after env overrides / provider defaults):".bold()
+                );
                 let token_status = if cfg.effective_api_token().is_some() {
-                    "set (from config or environment)".green().to_string()
+                    format!(
+                        "{} [{}]",
+                        "set".green(),
+                        cfg.effective_source("llm.api_token")?.dimmed()
+                    )
                 } else {
-                    "not set".red().to_string()
+                    format!(
+                        "{} [{}]",
+                        "not set".red(),
+                        cfg.effective_source("llm.api_token")?.dimmed()
+                    )
                 };
-                println!("  {:<25} {}", "effective api_token", token_status);
                 println!(
                     "  {:<25} {}",
-                    "effective api_base",
-                    cfg.effective_api_base()
+                    "provider",
+                    with_source(
+                        &cfg.effective_provider(),
+                        &cfg.effective_source("llm.provider")?
+                    )
                 );
-                println!("  {:<25} {}", "effective model", cfg.effective_model());
+                println!("  {:<25} {}", "api_token", token_status);
+                println!(
+                    "  {:<25} {}",
+                    "api_base",
+                    with_source(
+                        &cfg.effective_api_base(),
+                        &cfg.effective_source("llm.api_base")?
+                    )
+                );
+                println!(
+                    "  {:<25} {}",
+                    "model",
+                    with_source(&cfg.effective_model(), &cfg.effective_source("llm.model")?)
+                );
+                println!(
+                    "  {:<25} {}",
+                    "max_tokens",
+                    with_source(
+                        &cfg.effective_max_tokens()?.to_string(),
+                        &cfg.effective_source("llm.max_tokens")?
+                    )
+                );
+                println!(
+                    "  {:<25} {}",
+                    "temperature",
+                    with_source(
+                        &cfg.effective_temperature()?.to_string(),
+                        &cfg.effective_source("llm.temperature")?
+                    )
+                );
+                println!(
+                    "  {:<25} {}",
+                    "auto_update",
+                    with_source(
+                        &cfg.effective_docs_auto_update()?.to_string(),
+                        &cfg.effective_source("docs.auto_update")?
+                    )
+                );
+            }
+            ConfigCommands::Verify => {
+                let cfg = config::Config::load()?;
+                let client = llm::LlmClient::new(cfg.clone());
+
+                println!("{}", "Verifying LLM configuration...".bold());
+                println!("{}", "─".repeat(50).dimmed());
+                println!(
+                    "  {:<18} {}",
+                    "provider",
+                    with_source(
+                        &cfg.effective_provider(),
+                        &cfg.effective_source("llm.provider")?
+                    )
+                );
+                println!(
+                    "  {:<18} {}",
+                    "api_base",
+                    with_source(
+                        &cfg.effective_api_base(),
+                        &cfg.effective_source("llm.api_base")?
+                    )
+                );
+                println!(
+                    "  {:<18} {}",
+                    "model",
+                    with_source(&cfg.effective_model(), &cfg.effective_source("llm.model")?)
+                );
+                println!(
+                    "  {:<18} {}",
+                    "max_tokens",
+                    with_source(
+                        &cfg.effective_max_tokens()?.to_string(),
+                        &cfg.effective_source("llm.max_tokens")?
+                    )
+                );
+                println!(
+                    "  {:<18} {}",
+                    "temperature",
+                    with_source(
+                        &cfg.effective_temperature()?.to_string(),
+                        &cfg.effective_source("llm.temperature")?
+                    )
+                );
+                println!(
+                    "  {:<18} {}",
+                    "api_token",
+                    if cfg.effective_api_token().is_some() {
+                        format!(
+                            "{} [{}]",
+                            "set".green(),
+                            cfg.effective_source("llm.api_token")?.dimmed()
+                        )
+                    } else {
+                        format!(
+                            "{} [{}]",
+                            "not set".red(),
+                            cfg.effective_source("llm.api_token")?.dimmed()
+                        )
+                    }
+                );
+                println!();
+
+                match client.verify_configuration().await {
+                    Ok(result) => {
+                        println!("{} LLM configuration is valid", "✓".green().bold());
+                        println!("  {:<18} {}", "provider", result.provider);
+                        println!("  {:<18} {}", "api_base", result.api_base);
+                        println!("  {:<18} {}", "model", result.model);
+                        println!(
+                            "  {:<18} {}",
+                            "response",
+                            if result.response_preview.is_empty() {
+                                "(empty response)".yellow().to_string()
+                            } else {
+                                result.response_preview
+                            }
+                        );
+                    }
+                    Err(error::OxoError::LlmError(message)) => {
+                        eprintln!("{} {}", "configuration check failed:".bold().red(), message);
+                        for suggestion in config_verify_suggestions(&cfg, &message) {
+                            eprintln!("  - {}", suggestion);
+                        }
+                        std::process::exit(1);
+                    }
+                    Err(e) => return Err(e),
+                }
             }
             ConfigCommands::Path => {
                 let path = config::Config::config_path()?;
@@ -514,4 +656,68 @@ async fn run(cli: Cli) -> error::Result<()> {
     }
 
     Ok(())
+}
+
+fn with_source(value: &str, source: &str) -> String {
+    format!("{value} [{}]", source.dimmed())
+}
+
+fn config_verify_suggestions(cfg: &config::Config, message: &str) -> Vec<String> {
+    let provider = cfg.effective_provider();
+    let api_base = cfg.effective_api_base();
+    let mut suggestions = Vec::new();
+
+    if message.contains("No API token configured") {
+        suggestions.push(
+            "Set `llm.api_token` with `oxo-call config set llm.api_token <token>` or export `OXO_CALL_LLM_API_TOKEN`."
+                .to_string(),
+        );
+        suggestions.push(format!(
+            "Current provider is `{provider}`. If that is not what you intended, change it with `oxo-call config set llm.provider <provider>` or `OXO_CALL_LLM_PROVIDER`."
+        ));
+    }
+    if message.contains("Personal Access Tokens are not supported") {
+        suggestions.push(
+            "The selected endpoint rejected a personal access token. For `github-copilot`, use a Copilot-compatible authentication flow/token, or switch to `openai`, `anthropic`, or `ollama`."
+                .to_string(),
+        );
+    }
+    if message.contains("401") || message.contains("403") {
+        suggestions.push(
+            "The token was rejected. Verify that the token matches the selected provider and that the provider setting is correct."
+                .to_string(),
+        );
+    }
+    if message.contains("404") {
+        suggestions.push(format!(
+            "The endpoint `{api_base}` did not expose the expected `/chat/completions` API. Check `llm.api_base`."
+        ));
+    }
+    if message.contains("API base URL must use HTTPS") {
+        suggestions.push(
+            "Use an `https://` API base for remote providers, or `http://localhost...` / `http://127.0.0.1...` for local Ollama-compatible endpoints."
+                .to_string(),
+        );
+    }
+    if message.contains("HTTP request failed") {
+        suggestions.push(
+            "Check network connectivity, proxy settings, DNS, and whether the configured `llm.api_base` is reachable from this machine."
+                .to_string(),
+        );
+    }
+    if message.contains("Failed to parse API response") {
+        suggestions.push(
+            "The endpoint responded, but not with the expected OpenAI-compatible chat completions JSON. Check the selected provider and `llm.api_base`."
+                .to_string(),
+        );
+    }
+
+    if suggestions.is_empty() {
+        suggestions.push(
+            "Run `oxo-call config show` to inspect stored vs effective values, then verify the provider, token source, model, and API base."
+                .to_string(),
+        );
+    }
+
+    suggestions
 }

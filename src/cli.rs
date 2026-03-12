@@ -53,9 +53,9 @@ pub enum Commands {
         tool: String,
         /// Natural-language description of the task
         task: String,
-        /// Execute without confirmation prompt
+        /// Ask for confirmation before executing the generated command
         #[arg(short, long)]
-        yes: bool,
+        ask: bool,
     },
 
     /// Preview the command that would be executed (no actual execution)
@@ -174,6 +174,8 @@ pub enum ConfigCommands {
     },
     /// Show all current configuration
     Show,
+    /// Verify the effective LLM configuration with a real API call
+    Verify,
     /// Show the path to the configuration file
     Path,
 }
@@ -235,4 +237,29 @@ pub enum SkillCommands {
 pub enum LicenseCommands {
     /// Verify the license file and display its details
     Verify,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_run_defaults_to_non_interactive_execution() {
+        let cli = Cli::parse_from(["oxo-call", "run", "date", "current time"]);
+
+        match cli.command {
+            Commands::Run { ask, .. } => assert!(!ask),
+            _ => panic!("expected run command"),
+        }
+    }
+
+    #[test]
+    fn test_run_supports_explicit_ask_flag() {
+        let cli = Cli::parse_from(["oxo-call", "run", "--ask", "date", "current time"]);
+
+        match cli.command {
+            Commands::Run { ask, .. } => assert!(ask),
+            _ => panic!("expected run command"),
+        }
+    }
 }

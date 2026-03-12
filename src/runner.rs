@@ -103,7 +103,7 @@ impl Runner {
     }
 
     /// run: execute the command for real
-    pub async fn run(&self, tool: &str, task: &str, yes: bool) -> Result<()> {
+    pub async fn run(&self, tool: &str, task: &str, ask: bool) -> Result<()> {
         let suggestion = self.prepare(tool, task).await?;
         let full_cmd = build_command_string(tool, &suggestion.args);
 
@@ -122,7 +122,7 @@ impl Runner {
             println!();
         }
 
-        if !yes {
+        if ask {
             print!("  {} [y/N] ", "Execute this command?".bold().yellow());
             use std::io::{self, Write};
             io::stdout().flush().ok();

@@ -26,27 +26,30 @@ cargo install --path .
 **GitHub Copilot (default):**
 ```bash
 oxo-call config set llm.api_token <your-github-token>
-# Or set the GITHUB_TOKEN environment variable
+# Or set OXO_CALL_LLM_API_TOKEN or GITHUB_TOKEN / GH_TOKEN
 ```
 
 **OpenAI:**
 ```bash
 oxo-call config set llm.provider openai
 oxo-call config set llm.api_token <your-openai-key>
-# Or set OPENAI_API_KEY
+# Or set OXO_CALL_LLM_PROVIDER=openai and OXO_CALL_LLM_API_TOKEN
+# OPENAI_API_KEY is also supported as a backward-compatible fallback
 ```
 
 **Anthropic:**
 ```bash
 oxo-call config set llm.provider anthropic
 oxo-call config set llm.api_token <your-anthropic-key>
-# Or set ANTHROPIC_API_KEY
+# Or set OXO_CALL_LLM_PROVIDER=anthropic and OXO_CALL_LLM_API_TOKEN
+# ANTHROPIC_API_KEY is also supported as a backward-compatible fallback
 ```
 
 **Ollama (local, no token needed):**
 ```bash
 oxo-call config set llm.provider ollama
 oxo-call config set llm.model llama3.2
+# Or set OXO_CALL_LLM_PROVIDER=ollama and OXO_CALL_LLM_MODEL=llama3.2
 ```
 
 ### 3. Build a documentation index (optional but recommended)
@@ -67,8 +70,8 @@ oxo-call dry-run samtools "sort input.bam by coordinate and output to sorted.bam
 # Execute the command
 oxo-call run bwa "align reads.fastq to reference.fa using 8 threads, output SAM"
 
-# Auto-confirm without prompting
-oxo-call run -y bcftools "call variants from my.bam against ref.fa and output to variants.vcf"
+# Ask before executing
+oxo-call run --ask bcftools "call variants from my.bam against ref.fa and output to variants.vcf"
 ```
 
 ## Subcommands
@@ -80,13 +83,15 @@ oxo-call run [OPTIONS] <TOOL> <TASK>
 oxo-call r   [OPTIONS] <TOOL> <TASK>   # short alias
 
 Options:
-  -y, --yes   Execute without confirmation prompt
+  -a, --ask   Ask for confirmation before executing
 ```
 
 Example:
 ```bash
 oxo-call run samtools "view only primary alignments from file.bam and save to primary.bam"
 ```
+
+`run` now executes immediately by default. Use `dry-run` to preview without executing, or `run --ask` if you want a confirmation prompt before the generated command runs.
 
 ---
 
@@ -152,22 +157,27 @@ oxo-call docs fetch bwa https://bio-bwa.sourceforge.net/bwa.shtml
 
 ```
 oxo-call config set  <KEY> <VALUE>   # Set a config value
-oxo-call config get  <KEY>           # Get a config value
-oxo-call config show                 # Show all settings
+oxo-call config get  <KEY>           # Get the effective value (after env overrides)
+oxo-call config show                 # Show stored values and effective values
+oxo-call config verify               # Verify the effective LLM config with a real API call
 oxo-call config path                 # Show config file path
 ```
 
 **Config keys:**
 
-| Key | Default | Description |
-|-----|---------|-------------|
-| `llm.provider` | `github-copilot` | LLM provider: `github-copilot`, `openai`, `anthropic`, `ollama` |
-| `llm.api_token` | *(env var)* | API token (or use env var) |
-| `llm.api_base` | *(auto)* | Override API base URL |
-| `llm.model` | *(auto)* | Model name (e.g. `gpt-4o`, `claude-3-5-sonnet-20241022`) |
-| `llm.max_tokens` | `2048` | Maximum tokens to generate |
-| `llm.temperature` | `0.2` | Temperature (lower = more deterministic) |
-| `docs.auto_update` | `true` | Auto-refresh docs on first use |
+| Key | Default | Environment variable | Description |
+|-----|---------|----------------------|-------------|
+| `llm.provider` | `github-copilot` | `OXO_CALL_LLM_PROVIDER` | LLM provider: `github-copilot`, `openai`, `anthropic`, `ollama` |
+| `llm.api_token` | *(unset)* | `OXO_CALL_LLM_API_TOKEN` | API token. Backward-compatible provider-specific token env vars are also supported. |
+| `llm.api_base` | *(auto)* | `OXO_CALL_LLM_API_BASE` | Override API base URL |
+| `llm.model` | *(auto)* | `OXO_CALL_LLM_MODEL` | Model name (e.g. `gpt-4o`, `claude-3-5-sonnet-20241022`) |
+| `llm.max_tokens` | `2048` | `OXO_CALL_LLM_MAX_TOKENS` | Maximum tokens to generate |
+| `llm.temperature` | `0.2` | `OXO_CALL_LLM_TEMPERATURE` | Temperature (lower = more deterministic) |
+| `docs.auto_update` | `true` | `OXO_CALL_DOCS_AUTO_UPDATE` | Auto-refresh docs on first use |
+
+Environment variables override values from `config.toml` for these keys. `oxo-call config get <KEY>` reports the effective value after applying environment-variable overrides, and `oxo-call config show` separates stored values from effective ones.
+
+Use `oxo-call config verify` when you want to check whether the current effective provider, token, API base, and model can actually complete a chat request. On failure it prints the upstream error plus targeted configuration suggestions.
 
 ---
 
@@ -189,11 +199,18 @@ oxo-call history list --tool samtools  # Filter by tool
 
 | Variable | Used for |
 |----------|----------|
+| `OXO_CALL_LLM_PROVIDER` | Override `llm.provider` |
+| `OXO_CALL_LLM_API_TOKEN` | Override `llm.api_token` |
+| `OXO_CALL_LLM_API_BASE` | Override `llm.api_base` |
+| `OXO_CALL_LLM_MODEL` | Override `llm.model` |
+| `OXO_CALL_LLM_MAX_TOKENS` | Override `llm.max_tokens` |
+| `OXO_CALL_LLM_TEMPERATURE` | Override `llm.temperature` |
+| `OXO_CALL_DOCS_AUTO_UPDATE` | Override `docs.auto_update` |
 | `GITHUB_TOKEN` | GitHub Copilot API token |
 | `GH_TOKEN` | GitHub token (fallback) |
 | `OPENAI_API_KEY` | OpenAI API token |
 | `ANTHROPIC_API_KEY` | Anthropic API token |
-| `OXO_API_TOKEN` | Generic fallback token |
+| `OXO_API_TOKEN` | Generic fallback token for providers without a dedicated token env var |
 
 ## Configuration File
 
