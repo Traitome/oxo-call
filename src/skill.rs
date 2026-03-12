@@ -197,6 +197,11 @@ pub static BUILTIN_SKILLS: &[(&str, &str)] = &[
     builtin!("mosdepth"),
     builtin!("crossmap"),
     builtin!("igvtools"),
+    // ── Sequence search & clustering ─────────────────────────────────────────
+    builtin!("mmseqs2"),
+    // ── Sequence sketching & comparison ──────────────────────────────────────
+    builtin!("mash"),
+    builtin!("sourmash"),
     // ── Multiple sequence alignment ──────────────────────────────────────────
     builtin!("mafft"),
     builtin!("muscle"),
@@ -206,6 +211,35 @@ pub static BUILTIN_SKILLS: &[(&str, &str)] = &[
     // ── Population genomics ──────────────────────────────────────────────────
     builtin!("plink2"),
     builtin!("admixture"),
+    builtin!("angsd"),
+    // ── Comparative & functional genomics ───────────────────────────────────
+    builtin!("orthofinder"),
+    builtin!("eggnog-mapper"),
+    // ── Genome annotation transfer ───────────────────────────────────────────
+    builtin!("liftoff"),
+    // ── Assembly polishing ───────────────────────────────────────────────────
+    builtin!("pilon"),
+    // ── Hybrid assembly ──────────────────────────────────────────────────────
+    builtin!("verkko"),
+    // ── Epigenomics (motif & ChIP-seq) ───────────────────────────────────────
+    builtin!("homer"),
+    // ── ONT base modification ────────────────────────────────────────────────
+    builtin!("modkit"),
+    // ── Metagenomics (additional) ────────────────────────────────────────────
+    builtin!("centrifuge"),
+    // ── Single-cell (additional) ─────────────────────────────────────────────
+    builtin!("velocyto"),
+    builtin!("cellsnp-lite"),
+    // ── QC (additional) ──────────────────────────────────────────────────────
+    builtin!("fastq-screen"),
+    builtin!("nanocomp"),
+    // ── Variant annotation (additional) ──────────────────────────────────────
+    builtin!("vcfanno"),
+    // ── Structural variant merging & benchmarking ────────────────────────────
+    builtin!("survivor"),
+    builtin!("truvari"),
+    // ── Genomic arithmetic ───────────────────────────────────────────────────
+    builtin!("bedops"),
 ];
 
 // ─── Prompt generation ────────────────────────────────────────────────────────

@@ -172,7 +172,7 @@ oxo-call config path                 # Show config file path
 | `llm.api_base` | *(auto)* | `OXO_CALL_LLM_API_BASE` | Override API base URL |
 | `llm.model` | *(auto)* | `OXO_CALL_LLM_MODEL` | Model name (e.g. `gpt-4o`, `claude-3-5-sonnet-20241022`) |
 | `llm.max_tokens` | `2048` | `OXO_CALL_LLM_MAX_TOKENS` | Maximum tokens to generate |
-| `llm.temperature` | `0.2` | `OXO_CALL_LLM_TEMPERATURE` | Temperature (lower = more deterministic) |
+| `llm.temperature` | `0.0` | `OXO_CALL_LLM_TEMPERATURE` | Temperature (lower = more deterministic; `0.0` = fully deterministic output) |
 | `docs.auto_update` | `true` | `OXO_CALL_DOCS_AUTO_UPDATE` | Auto-refresh docs on first use |
 
 Environment variables override values from `config.toml` for these keys. `oxo-call config get <KEY>` reports the effective value after applying environment-variable overrides, and `oxo-call config show` separates stored values from effective ones.
@@ -194,6 +194,88 @@ oxo-call history list           # Show last 20 commands
 oxo-call history list -n 50    # Show last 50 commands
 oxo-call history list --tool samtools  # Filter by tool
 ```
+
+---
+
+### `skill` — Manage expert knowledge profiles for tools
+
+Skills are curated TOML files that inject **domain-expert knowledge** into the LLM prompt for a specific bioinformatics tool.  They contain key concepts, common pitfalls, and worked command examples.  When oxo-call finds a matching skill it includes this knowledge in the prompt, which dramatically improves command accuracy — especially for complex tools and smaller/weaker LLM models.
+
+```
+oxo-call skill list                          # List all available skills (built-in, community, user)
+oxo-call skill show  <TOOL>                  # Display the full skill for a tool
+oxo-call skill install <TOOL>               # Install a skill from the community registry
+oxo-call skill install <TOOL> --url <URL>   # Install a skill from a custom URL
+oxo-call skill remove  <TOOL>               # Remove a community or user-installed skill
+oxo-call skill create  <TOOL>               # Print a skill TOML template to stdout
+oxo-call skill create  <TOOL> -o out.toml   # Write the template to a file
+oxo-call skill path                         # Show the user skills directory path
+```
+
+Examples:
+```bash
+# See what skills are available
+oxo-call skill list
+
+# Inspect the samtools skill (concepts, pitfalls, worked examples)
+oxo-call skill show samtools
+
+# Install a community skill for a tool not yet built-in
+oxo-call skill install bismark
+
+# Scaffold a new skill file for your own tool
+oxo-call skill create mytool -o ~/.config/oxo-call/skills/mytool.toml
+```
+
+**Skill load priority** (highest wins):
+1. User-defined: `~/.config/oxo-call/skills/<tool>.toml`
+2. Community-installed: `~/.local/share/oxo-call/skills/<tool>.toml`
+3. Built-in: compiled into the binary (120 tools as of this release)
+
+**Built-in skill coverage** spans all major omics domains:
+
+| Domain | Tools |
+|--------|-------|
+| QC & preprocessing | samtools, fastp, fastqc, multiqc, trimmomatic, cutadapt, trim_galore, picard, fastq-screen |
+| Short-read alignment | bwa, bwa-mem2, bowtie2, hisat2, star, chromap |
+| Long-read alignment | minimap2, pbmm2 |
+| RNA-seq | salmon, kallisto, rsem, stringtie, featurecounts, trinity, arriba |
+| Variant calling (SNV/indel) | gatk, bcftools, freebayes, deepvariant, strelka2, varscan2, longshot |
+| Structural variants | manta, delly, sniffles, pbsv, survivor, truvari |
+| CNV | cnvkit |
+| Variant annotation | snpeff, vep, vcftools, vcfanno |
+| Phasing & benchmarking | whatshap, shapeit4, hap_py |
+| Epigenomics | macs2, deeptools, bismark, methyldackel, pairtools, homer, modkit |
+| Metagenomics | kraken2, bracken, metaphlan, diamond, prokka, bakta, metabat2, checkm2, gtdbtk, humann3, centrifuge |
+| Single-cell | cellranger, starsolo, kb, velocyto, cellsnp-lite |
+| Long-read (ONT/PacBio) | dorado, nanoplot, nanostat, chopper, porechop, racon, medaka, pbccs, pbfusion, nanocomp |
+| De novo assembly | spades, megahit, flye, hifiasm, canu, miniasm, wtdbg2, verkko |
+| Assembly QC & polishing | quast, busco, pilon |
+| Genome annotation | prodigal, augustus, agat, repeatmasker, annot8r, bakta, liftoff |
+| Sequence search & comparison | blast, hmmer, mmseqs2, diamond, mash, sourmash |
+| Utilities | seqtk, seqkit, bedtools, bedops, bamtools, samtools, tabix, mosdepth, crossmap, igvtools, sra-tools |
+| MSA & phylogenetics | mafft, muscle, iqtree2, fasttree |
+| Population genomics | plink2, admixture, angsd |
+| Comparative & functional genomics | orthofinder, eggnog-mapper |
+
+---
+
+### Skills vs Docs — what's the difference?
+
+oxo-call uses **two complementary knowledge sources** when building the LLM prompt:
+
+| | `docs` | `skill` |
+|---|---|---|
+| **What it is** | Raw `--help` output + optionally fetched web docs for a tool | Curated TOML file with concepts, pitfalls, and worked examples |
+| **Created by** | Automatically fetched at runtime from the tool itself or a URL | Written by domain experts; built-ins are compiled into the binary |
+| **Content** | Exhaustive flag reference — everything the tool can do | Selective expert commentary on the most important patterns and gotchas |
+| **LLM role** | Provides factual grounding so the LLM knows valid flags | Provides reasoning scaffolding so the LLM applies flags correctly |
+| **Managed with** | `oxo-call docs`, `oxo-call index` | `oxo-call skill` |
+| **Stored at** | `~/.local/share/oxo-call/docs/` | `~/.local/share/oxo-call/skills/` (community) or `~/.config/oxo-call/skills/` (user) |
+
+In practice, `docs` answer *"what flags exist?"* while `skills` answer *"which flags should I use for this task, and what mistakes should I avoid?"*  Both are injected into the prompt together for best results.
+
+---
 
 ## Environment Variables
 
