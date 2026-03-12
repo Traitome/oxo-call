@@ -1,0 +1,13 @@
+category,tool,task_description,required_patterns
+alignment,bwa,"align reads.fastq to ref.fa with 8 threads","mem;-t 8"
+alignment,bwa-mem2,"align paired reads R1.fastq R2.fastq to reference.fa with read group ID sample1","mem;-R"
+alignment,bowtie2,"align R1.fastq.gz and R2.fastq.gz to index bt2_index with 4 threads","-x;-1;-2"
+qc,fastp,"quality trim paired reads R1.fastq.gz R2.fastq.gz with adapter auto-detection and 8 threads","--in1;--in2;--detect_adapter_for_pe"
+qc,samtools,"sort aligned.bam by coordinate and output to sorted.bam using 4 threads","sort;-o"
+qc,samtools,"index sorted.bam","index"
+variant-calling,gatk,"call variants in gVCF mode on sample.bam against reference.fa","HaplotypeCaller;-ERC GVCF"
+variant-calling,bcftools,"call SNVs and indels from input.bcf with ploidy 2","call;-m"
+quantification,featureCounts,"count reads in aligned.bam against annotation.gtf for paired-end data with 8 threads","-a;-p"
+quantification,salmon,"quantify expression from R1.fastq.gz and R2.fastq.gz against index salmon_index","quant;-1;-2"
+metagenomics,kraken2,"classify paired reads R1.fastq.gz R2.fastq.gz against database /db/kraken2 and write report to report.txt","--db;--paired;--report"
+metagenomics,bracken,"estimate abundance from kraken2 report.txt with database /db/kraken2 and read length 150","-d;-i;-r 150"

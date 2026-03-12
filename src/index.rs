@@ -5,6 +5,7 @@ use crate::runner::make_spinner;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use uuid::Uuid;
 
 /// Metadata entry for a tool's documentation index
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,9 +45,14 @@ impl DocIndex {
             .ok_or_else(|| OxoError::IndexError("Index path has no parent directory".into()))?;
         std::fs::create_dir_all(dir)?;
         let content = serde_json::to_string_pretty(self)?;
-        // Write to a sibling temp file first, then atomically rename into place.
-        // This prevents concurrent readers from observing a half-written file.
-        let tmp_path = path.with_extension("tmp");
+        // Write to a uniquely-named sibling temp file first, then atomically rename into
+        // place.  Using a UUID suffix prevents concurrent CLI invocations (e.g. parallel
+        // integration-test runs) from racing on the same `.tmp` path and hitting ENOENT
+        // on the subsequent rename.
+        let tmp_path = dir.join(format!(
+            "index.{}.tmp",
+            Uuid::new_v4().simple()
+        ));
         std::fs::write(&tmp_path, &content)?;
         std::fs::rename(&tmp_path, &path)?;
         Ok(())

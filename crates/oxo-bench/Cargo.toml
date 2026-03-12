@@ -1,0 +1,39 @@
+[package]
+name = "oxo-bench"
+version = "0.1.0"
+edition = "2024"
+description = "Systematic benchmark suite for oxo-call — evaluates accuracy, reproducibility, and LLM model performance across bioinformatics workflows"
+authors = ["Traitome <https://github.com/Traitome>"]
+license-file = "../../LICENSE"
+repository = "https://github.com/Traitome/oxo-call"
+
+[lib]
+name = "oxo_bench"
+path = "src/lib.rs"
+
+[[bin]]
+name = "oxo-bench"
+path = "src/main.rs"
+
+[dependencies]
+# Shared types from the main crate (without network/process features).
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+anyhow = "1.0"
+colored = "2.2"
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4.5", features = ["derive"] }
+rand = "0.8"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+tempfile = "3"
+
+[[bench]]
+name = "workflow_expand"
+harness = false
+
+[[bench]]
+name = "template_parse"
+harness = false

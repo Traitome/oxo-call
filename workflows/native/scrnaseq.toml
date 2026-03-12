@@ -1,0 +1,118 @@
+# =============================================================================
+# Single-cell RNA-seq workflow — oxo-call native format
+#
+# Uses STARsolo for alignment + UMI/barcode demultiplexing (10x Chromium v3).
+# Downstream R/Python analysis steps produce per-sample Seurat-ready matrices.
+#
+# Usage:
+#   1. Edit [wildcards] and [params] sections below
+#   2. Run:  oxo-call workflow run scrnaseq.toml
+#   3. Or preview first:  oxo-call workflow dry-run scrnaseq.toml
+#   4. Export to Snakemake:  oxo-call workflow export scrnaseq.toml --to snakemake
+#
+# Expected input layout (10x Chromium paired-end):
+#   data/{sample}_R1.fastq.gz   (cell barcode + UMI, 28 bp)
+#   data/{sample}_R2.fastq.gz   (cDNA read)
+# =============================================================================
+
+[workflow]
+name        = "scrnaseq"
+description = "scRNA-seq: fastp QC → STARsolo alignment/demux (10x v3) → knee-point filtering → Seurat QC metrics"
+version     = "1.0"
+
+[wildcards]
+sample = ["sample1", "sample2"]
+
+# ── Configurable parameters ───────────────────────────────────────────────────
+# REQUIRED: update paths before running.
+[params]
+threads         = "16"
+star_index      = "/path/to/star_index"             # REQUIRED: STAR genome index directory
+star_whitelist  = "/path/to/3M-february-2018.txt"  # REQUIRED: 10x v3 CB whitelist (from cellranger)
+genome_fasta    = "/path/to/genome.fa"              # REQUIRED: reference FASTA
+gtf             = "/path/to/annotation.gtf"         # REQUIRED: gene annotation GTF
+
+# =============================================================================
+
+[[step]]
+name    = "fastp"
+cmd     = """\
+fastp \
+  --in1  data/{sample}_R1.fastq.gz \
+  --in2  data/{sample}_R2.fastq.gz \
+  --out1 trimmed/{sample}_R1.fastq.gz \
+  --out2 trimmed/{sample}_R2.fastq.gz \
+  --html qc/{sample}_fastp.html \
+  --json qc/{sample}_fastp.json \
+  --thread {params.threads} \
+  --disable_adapter_trimming \
+  --disable_quality_filtering \
+  --disable_length_filtering\
+"""
+inputs  = ["data/{sample}_R1.fastq.gz", "data/{sample}_R2.fastq.gz"]
+outputs = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz",
+           "qc/{sample}_fastp.json"]
+
+[[step]]
+name       = "starsolo"
+depends_on = ["fastp"]
+cmd        = """\
+STAR \
+  --soloType CB_UMI_Simple \
+  --soloCBwhitelist {params.star_whitelist} \
+  --soloCBstart 1 --soloCBlen 16 \
+  --soloUMIstart 17 --soloUMIlen 12 \
+  --genomeDir {params.star_index} \
+  --readFilesIn trimmed/{sample}_R2.fastq.gz trimmed/{sample}_R1.fastq.gz \
+  --readFilesCommand zcat \
+  --outSAMtype BAM SortedByCoordinate \
+  --outSAMattributes NH HI nM AS CR UR CB UB GX GN sS sQ sM \
+  --outFileNamePrefix starsolo/{sample}/ \
+  --runThreadN {params.threads} \
+  --soloCellFilter EmptyDrops_CR \
+  --soloFeatures Gene GeneFull \
+  --outSAMunmapped Within\
+"""
+inputs  = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz"]
+outputs = ["starsolo/{sample}/Aligned.sortedByCoord.out.bam",
+           "starsolo/{sample}/Solo.out/Gene/filtered/matrix.mtx.gz"]
+
+[[step]]
+name       = "samtools_index"
+depends_on = ["starsolo"]
+cmd        = "samtools index -@ {params.threads} starsolo/{sample}/Aligned.sortedByCoord.out.bam"
+inputs     = ["starsolo/{sample}/Aligned.sortedByCoord.out.bam"]
+outputs    = ["starsolo/{sample}/Aligned.sortedByCoord.out.bam.bai"]
+
+[[step]]
+name       = "cell_qc"
+depends_on = ["starsolo"]
+cmd        = """\
+python3 -c "
+import scipy.io, numpy as np, json, os, gzip
+mtx_dir = 'starsolo/{sample}/Solo.out/Gene/filtered'
+mat = scipy.io.mmread(mtx_dir + '/matrix.mtx.gz').toarray()
+umi_per_cell = mat.sum(axis=0)
+gene_per_cell = (mat > 0).sum(axis=0)
+stats = {
+    'sample': '{sample}',
+    'n_cells': int(mat.shape[1]),
+    'median_umi': float(np.median(umi_per_cell)),
+    'median_genes': float(np.median(gene_per_cell))
+}
+os.makedirs('qc', exist_ok=True)
+with open('qc/{sample}_cell_stats.json', 'w') as fh:
+    json.dump(stats, fh, indent=2)
+print(json.dumps(stats, indent=2))
+"\
+"""
+inputs  = ["starsolo/{sample}/Solo.out/Gene/filtered/matrix.mtx.gz"]
+outputs = ["qc/{sample}_cell_stats.json"]
+
+[[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["fastp", "starsolo"]
+cmd        = "multiqc qc/ starsolo/ -o results/multiqc/"
+inputs     = []
+outputs    = ["results/multiqc/multiqc_report.html"]

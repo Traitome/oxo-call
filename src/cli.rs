@@ -325,6 +325,27 @@ pub enum WorkflowCommands {
         output: Option<std::path::PathBuf>,
     },
 
+    /// Infer and generate a workflow from a task description and input data directory
+    ///
+    /// Scans the data directory to discover sample names and file patterns, then
+    /// uses the LLM to generate a workflow with real paths and sample names already filled in.
+    Infer {
+        /// Plain-English description of the analysis task
+        task: String,
+        /// Path to the directory containing input data files (FASTQ, BAM, etc.)
+        #[arg(short, long, value_name = "DIR")]
+        data: std::path::PathBuf,
+        /// Output format: native (default), snakemake, or nextflow
+        #[arg(short, long, default_value = "native", value_parser = ["native", "snakemake", "nextflow"])]
+        engine: String,
+        /// Write the generated workflow to this file (defaults to stdout)
+        #[arg(short, long)]
+        output: Option<std::path::PathBuf>,
+        /// After generating, immediately run the workflow (only with --output)
+        #[arg(long)]
+        run: bool,
+    },
+
     /// List built-in workflow templates
     List,
 

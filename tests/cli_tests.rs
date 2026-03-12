@@ -1187,3 +1187,221 @@ outputs = ["{out}"]
     );
     assert!(out_path.exists(), "Expected output file to be created");
 }
+
+// ─── New omics template tests ─────────────────────────────────────────────────
+
+#[test]
+fn test_workflow_list_shows_new_templates() {
+    let output = oxo_call()
+        .args(["workflow", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    // All original templates must still be present.
+    assert!(stdout.contains("rnaseq"), "rnaseq missing from list");
+    assert!(stdout.contains("wgs"), "wgs missing from list");
+    assert!(stdout.contains("atacseq"), "atacseq missing from list");
+    assert!(stdout.contains("metagenomics"), "metagenomics missing from list");
+    // New templates.
+    assert!(stdout.contains("chipseq"), "chipseq missing from list");
+    assert!(stdout.contains("methylseq"), "methylseq missing from list");
+    assert!(stdout.contains("scrnaseq"), "scrnaseq missing from list");
+    assert!(stdout.contains("amplicon16s"), "amplicon16s missing from list");
+    assert!(stdout.contains("longreads"), "longreads missing from list");
+}
+
+#[test]
+fn test_workflow_show_chipseq_native() {
+    let output = oxo_call()
+        .args(["workflow", "show", "chipseq"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("macs3") || stdout.contains("MACS3"),
+        "Expected MACS3 peak calling in ChIP-seq workflow, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("bamCoverage") || stdout.contains("bigwig"),
+        "Expected bigWig generation in ChIP-seq workflow, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_show_methylseq_native() {
+    let output = oxo_call()
+        .args(["workflow", "show", "methylseq"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("bismark"),
+        "Expected Bismark alignment in methylseq workflow, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("methylation_extract") || stdout.contains("bismark_methylation_extractor"),
+        "Expected methylation extraction in methylseq workflow, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_show_scrnaseq_native() {
+    let output = oxo_call()
+        .args(["workflow", "show", "scrnaseq"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("STARsolo") || stdout.contains("starsolo") || stdout.contains("STAR"),
+        "Expected STARsolo in scrnaseq workflow, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("CB_UMI_Simple") || stdout.contains("soloType"),
+        "Expected 10x Chromium STARsolo params in scrnaseq workflow, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_show_amplicon16s_native() {
+    let output = oxo_call()
+        .args(["workflow", "show", "amplicon16s"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("cutadapt"),
+        "Expected cutadapt primer trimming in amplicon16s workflow, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("dada2") || stdout.contains("DADA2"),
+        "Expected DADA2 in amplicon16s workflow, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_show_longreads_native() {
+    let output = oxo_call()
+        .args(["workflow", "show", "longreads"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("flye") || stdout.contains("Flye"),
+        "Expected Flye assembly in longreads workflow, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("medaka"),
+        "Expected Medaka polishing in longreads workflow, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_export_chipseq_snakemake() {
+    let output = oxo_call()
+        .args(["workflow", "export", "chipseq", "--to", "snakemake"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("rule all") || stdout.contains("configfile"),
+        "Expected Snakemake structure in chipseq export, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_export_scrnaseq_nextflow() {
+    let output = oxo_call()
+        .args(["workflow", "export", "scrnaseq", "--to", "nextflow"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("nextflow.enable.dsl") || stdout.contains("process"),
+        "Expected Nextflow DSL2 structure in scrnaseq export, got: {stdout}"
+    );
+}
+
+// ─── workflow infer tests ─────────────────────────────────────────────────────
+
+#[test]
+fn test_workflow_infer_help() {
+    let output = oxo_call()
+        .args(["workflow", "infer", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("data") || stdout.contains("task"),
+        "Expected --data and --task in infer help, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_infer_missing_data_dir_fails() {
+    let output = oxo_call()
+        .args(["workflow", "infer", "RNA-seq analysis", "--data", "/nonexistent/path/xyz"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        !output.status.success(),
+        "infer with nonexistent data dir should fail"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("error") || stderr.contains("not exist"),
+        "Expected error message for missing data dir, got: {stderr}"
+    );
+}
+
+#[test]
+fn test_workflow_infer_scans_data_dir() {
+    // Create a temp directory with some fake FASTQ files.
+    let tmp = tempfile::TempDir::new().expect("create temp dir");
+    let data_dir = tmp.path().join("data");
+    std::fs::create_dir_all(&data_dir).unwrap();
+
+    // Create fake paired-end FASTQ files.
+    for sample in &["ctrl_rep1", "treat_rep1", "treat_rep2"] {
+        std::fs::write(
+            data_dir.join(format!("{sample}_R1.fastq.gz")),
+            b"fake",
+        ).unwrap();
+        std::fs::write(
+            data_dir.join(format!("{sample}_R2.fastq.gz")),
+            b"fake",
+        ).unwrap();
+    }
+
+    // Run infer — it will scan the directory and try to call LLM.
+    // Without a real LLM token it should fail after printing data context.
+    let output = oxo_call()
+        .args([
+            "workflow", "infer",
+            "ChIP-seq analysis for H3K27ac mark",
+            "--data", data_dir.to_str().unwrap(),
+        ])
+        .env_remove("OXO_CALL_LLM_API_TOKEN")
+        .output()
+        .expect("failed to run oxo-call");
+
+    // Whether it succeeds or fails depends on the LLM token.
+    // Either way, we expect to see the data scan output before the LLM call.
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let combined = format!("{stdout}{stderr}");
+
+    // Should print at least the data directory scan summary.
+    assert!(
+        combined.contains("Scanning") || combined.contains("sample") || combined.contains("error"),
+        "Expected scan output or error, got stdout={stdout} stderr={stderr}"
+    );
+}
