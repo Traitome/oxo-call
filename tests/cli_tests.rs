@@ -281,18 +281,24 @@ fn test_index_add_real_tool() {
 
 #[test]
 fn test_index_add_and_list() {
-    // Index a tool
-    let _ = oxo_call().args(["index", "add", "cat"]).output();
+    // Index a tool via the legacy 'index add' command
+    let add_output = oxo_call()
+        .args(["index", "add", "cat"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(add_output.status.success(), "index add cat should succeed");
 
-    // List should contain the tool
+    // List should contain the indexed tool
     let output = oxo_call()
         .args(["index", "list"])
         .output()
         .expect("failed to run oxo-call");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    // Either we see "cat" or the list header
-    assert!(stdout.contains("cat") || stdout.contains("Tool"));
+    assert!(
+        stdout.contains("cat"),
+        "Expected 'cat' in index list output, got: {stdout}"
+    );
 }
 
 #[test]
@@ -702,16 +708,23 @@ fn test_docs_list_empty_or_filled() {
 #[test]
 fn test_docs_add_and_list() {
     // Index a tool via 'docs add'
-    let _ = oxo_call().args(["docs", "add", "date"]).output();
+    let add_output = oxo_call()
+        .args(["docs", "add", "date"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(add_output.status.success(), "docs add date should succeed");
 
+    // List must show the tool that was just indexed
     let output = oxo_call()
         .args(["docs", "list"])
         .output()
         .expect("failed to run oxo-call");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    // Either we see the tool name or the header
-    assert!(stdout.contains("date") || stdout.contains("Tool"));
+    assert!(
+        stdout.contains("date"),
+        "Expected 'date' in docs list output, got: {stdout}"
+    );
 }
 
 #[test]

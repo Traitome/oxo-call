@@ -10,6 +10,15 @@ const MIN_HELP_LEN: usize = 80;
 // Maximum chars to store per help section to keep LLM prompts reasonable
 const MAX_HELP_LEN: usize = 16_000;
 
+// Fraction of help text that must appear in cache to consider it a duplicate (80 %)
+const DEDUP_OVERLAP_NUMERATOR: usize = 4;
+const DEDUP_OVERLAP_DENOMINATOR: usize = 5;
+
+// Section header written by IndexManager when it stores --help output in the cache.
+// strip_embedded_help_section() must match this exactly; change both if the header changes.
+const HELP_OUTPUT_SECTION_LF: &str = "# Help Output\n";
+const HELP_OUTPUT_SECTION_CRLF: &str = "# Help Output\r\n";
+
 /// Validate that a tool name is safe to use in file paths and command execution.
 /// Tool names must consist of alphanumeric characters, hyphens, underscores, or dots.
 pub fn validate_tool_name(tool: &str) -> Result<()> {
@@ -599,9 +608,9 @@ fn truncate_doc(s: &str) -> String {
 /// Return `true` when `help` is substantially contained within `cached`, so
 /// we can skip re-appending identical content.
 fn deduplicate_check(cached: &str, help: &str) -> bool {
-    // Use 80 % of help length as the significant overlap threshold — exact
-    // containment is too strict because the cache may have reformatted whitespace.
-    let significant_len = (help.len() * 4) / 5;
+    // Use DEDUP_OVERLAP_THRESHOLD of help length as the significant overlap threshold —
+    // exact containment is too strict because the cache may have reformatted whitespace.
+    let significant_len = (help.len() * DEDUP_OVERLAP_NUMERATOR) / DEDUP_OVERLAP_DENOMINATOR;
     if significant_len == 0 {
         return false;
     }
@@ -609,7 +618,7 @@ fn deduplicate_check(cached: &str, help: &str) -> bool {
     if cached.contains(help) {
         return true;
     }
-    // Sliding-window check: does any 80%-length prefix of `help` appear in `cached`?
+    // Sliding-window check: does the leading significant portion of `help` appear in `cached`?
     let probe = &help[..significant_len.min(help.len())];
     cached.contains(probe)
 }
@@ -650,8 +659,9 @@ fn strip_html_tags(html: &str) -> String {
 /// This prevents duplicate display when fresh --help is appended alongside
 /// a cache that was built by `docs add` (which includes `# Help Output`).
 fn strip_embedded_help_section(cached: &str) -> String {
-    // Find the first occurrence of the well-known section header added by IndexManager
-    let markers = ["# Help Output\n", "# Help Output\r\n"];
+    // Find the first occurrence of the well-known section header added by IndexManager.
+    // The constants are shared with IndexManager to keep both sides in sync.
+    let markers = [HELP_OUTPUT_SECTION_LF, HELP_OUTPUT_SECTION_CRLF];
     for marker in &markers {
         if let Some(start) = cached.find(marker) {
             // Find where this section ends — either at the next top-level heading or EOF
