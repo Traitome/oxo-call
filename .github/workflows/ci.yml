@@ -102,12 +102,116 @@ jobs:
           name: oxo-call-${{ matrix.target }}
           path: dist/*.tar.gz
 
+  # ─── Build macOS binaries (only on version tags) ──────────────────────────
+  build-macos:
+    name: Build macOS (${{ matrix.target }})
+    permissions:
+      contents: read
+    runs-on: ${{ matrix.runner }}
+    needs: [test]
+    if: startsWith(github.ref, 'refs/tags/v')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-apple-darwin
+            runner: macos-13
+          - target: aarch64-apple-darwin
+            runner: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build release
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package binary
+        shell: bash
+        run: |
+          set -euxo pipefail
+          BIN_NAME="oxo-call"
+          TARGET_DIR="target/${{ matrix.target }}/release"
+          mkdir -p dist
+          tar -C "${TARGET_DIR}" -czvf \
+            "dist/${BIN_NAME}-${{ github.ref_name }}-${{ matrix.target }}.tar.gz" \
+            "${BIN_NAME}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: oxo-call-${{ matrix.target }}
+          path: dist/*.tar.gz
+
+  # ─── Build Windows binaries (only on version tags) ────────────────────────
+  build-windows:
+    name: Build Windows (${{ matrix.target }})
+    permissions:
+      contents: read
+    runs-on: windows-latest
+    needs: [test]
+    if: startsWith(github.ref, 'refs/tags/v')
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\.cargo\registry
+            ~\.cargo\git
+            target
+          key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build release
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package binary
+        shell: pwsh
+        run: |
+          $BIN_NAME = "oxo-call"
+          $TARGET_DIR = "target/${{ matrix.target }}/release"
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Compress-Archive -Path "${TARGET_DIR}/${BIN_NAME}.exe" `
+            -DestinationPath "dist/${BIN_NAME}-${{ github.ref_name }}-${{ matrix.target }}.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: oxo-call-${{ matrix.target }}
+          path: dist/*.zip
+
   # ─── GitHub Release (attach all binary artifacts) ─────────────────────────
   release:
     permissions:
       contents: write
     name: GitHub Release
-    needs: [build-linux]
+    needs: [build-linux, build-macos, build-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
 
@@ -122,7 +226,9 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*.tar.gz
+          files: |
+            artifacts/**/*.tar.gz
+            artifacts/**/*.zip
           draft: false
           prerelease: false
           generate_release_notes: true
