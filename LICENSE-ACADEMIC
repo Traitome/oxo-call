@@ -1,0 +1,81 @@
+oxo-call Academic License
+==========================
+
+Version 1.0, effective 2025
+
+Copyright (c) 2024–2025 Traitome (https://github.com/Traitome)
+
+GRANT OF LICENSE
+─────────────────
+Subject to the conditions below, Traitome ("Licensor") grants you
+("Licensee") a non-exclusive, non-transferable, royalty-free license
+to use, copy, modify, and distribute oxo-call solely for:
+
+  • Academic research (including publication of results)
+  • Education and teaching
+  • Personal non-commercial projects
+  • Evaluation of the software
+
+PERMITTED USES
+──────────────
+  ✓  Use in university / research-institute pipelines
+  ✓  Use in coursework and teaching materials
+  ✓  Publication of results obtained with oxo-call (citation appreciated)
+  ✓  Modification and redistribution of modified versions for
+     academic/non-commercial purposes
+  ✓  Internal benchmarking and evaluation
+
+PROHIBITED USES
+───────────────
+  ✗  Any commercial use (see definition below)
+  ✗  Offering oxo-call or a derivative as a paid service or product
+  ✗  Using oxo-call in a for-profit production pipeline
+  ✗  Distributing the software without retaining this license notice
+     and the copyright notice above
+  ✗  Sublicensing to third parties under different terms
+
+DEFINITION OF COMMERCIAL USE
+──────────────────────────────
+"Commercial use" means any use of oxo-call by or for a commercial
+organization (company, partnership, or any entity whose primary
+purpose is generating profit), including:
+  • Internal use in a for-profit organization's production pipelines
+  • Integration into a paid product or service
+  • Contract research, consulting, or outsourced analytical services
+    where oxo-call is used to deliver commercial outputs
+
+Joint industry–academic projects funded by commercial sponsors fall
+under the commercial category unless the sponsor has purchased a
+commercial organization license.
+
+LICENSE FILE REQUIREMENT
+─────────────────────────
+Even academic use requires a signed license file issued by Traitome.
+Academic licenses are free; apply at:
+  https://github.com/Traitome/oxo-call#licensing
+
+CONDITIONS
+──────────
+  1. You must retain all copyright notices and this license in all
+     copies or substantial portions of the software.
+  2. Redistributions of modified works must carry a prominent notice
+     stating that changes were made and must be distributed under terms
+     no less restrictive than this license.
+  3. The license file issued to you is non-transferable.  Do not share
+     your license file with other organizations.
+
+DISCLAIMER
+──────────
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+IN NO EVENT SHALL TRAITOME BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR
+THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+OBTAINING A LICENSE
+────────────────────
+  Apply for a free academic license:
+    https://github.com/Traitome/oxo-call#licensing   ← placeholder
+
+  For commercial use, see LICENSE-COMMERCIAL.

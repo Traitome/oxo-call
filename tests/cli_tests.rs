@@ -1,8 +1,28 @@
 /// Integration tests for oxo-call CLI
+use std::path::PathBuf;
 use std::process::Command;
 
+/// Path to the pre-generated test license fixture (signed with the demo key).
+fn test_license_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("fixtures")
+        .join("test_license.oxo.json")
+}
+
+/// Build a Command that automatically injects the test license via env var,
+/// so all core commands can run without manual license setup.
 fn oxo_call() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_oxo-call"))
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_oxo-call"));
+    cmd.env("OXO_CALL_LICENSE", test_license_path());
+    cmd
+}
+
+/// Build a Command WITHOUT any license (for testing license-enforcement paths).
+fn oxo_call_no_license() -> Command {
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_oxo-call"));
+    cmd.env_remove("OXO_CALL_LICENSE");
+    cmd
 }
 
 #[test]
@@ -360,8 +380,8 @@ fn test_license_command() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("Business Source License"),
-        "Expected license info, got: {stdout}"
+        stdout.contains("oxo-call License Information"),
+        "Expected license info header, got: {stdout}"
     );
     assert!(
         stdout.contains("academic"),
@@ -370,6 +390,25 @@ fn test_license_command() {
     assert!(
         stdout.contains("commercial"),
         "Expected commercial info, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("license.oxo.json") || stdout.contains("OXO_CALL_LICENSE"),
+        "Expected license file instructions, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_license_verify_no_file() {
+    // Verify command with a non-existent license file should exit non-zero
+    let output = oxo_call()
+        .args(["--license", "/tmp/nonexistent-oxo-license-12345.json", "license", "verify"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("license error") || stderr.contains("No license"),
+        "Expected license error, got: {stderr}"
     );
 }
 
@@ -388,5 +427,90 @@ fn test_help_includes_skill_and_license() {
     assert!(
         stdout.contains("license") || stdout.contains("License"),
         "Expected license subcommand in help, got: {stdout}"
+    );
+}
+
+// ─── License enforcement tests ────────────────────────────────────────────────
+
+#[test]
+fn test_core_command_blocked_without_license() {
+    // Run a core command (config show) without any license file — should fail.
+    let output = oxo_call_no_license()
+        .env("OXO_CALL_LICENSE", "/tmp/nonexistent-license-enforcement-test.json")
+        .args(["config", "show"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        !output.status.success(),
+        "Expected failure without license, but command succeeded"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("license") || stderr.contains("No license"),
+        "Expected license error message, got: {stderr}"
+    );
+}
+
+#[test]
+fn test_help_allowed_without_license() {
+    // --help must work even without a license
+    let output = oxo_call_no_license()
+        .env("OXO_CALL_LICENSE", "/tmp/nonexistent-license-enforcement-test.json")
+        .arg("--help")
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        output.status.success(),
+        "--help should work without a license"
+    );
+}
+
+#[test]
+fn test_version_allowed_without_license() {
+    // --version must work even without a license
+    let output = oxo_call_no_license()
+        .env("OXO_CALL_LICENSE", "/tmp/nonexistent-license-enforcement-test.json")
+        .arg("--version")
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        output.status.success(),
+        "--version should work without a license"
+    );
+}
+
+#[test]
+fn test_license_command_allowed_without_license() {
+    // `oxo-call license` must work even without a license
+    let output = oxo_call_no_license()
+        .env("OXO_CALL_LICENSE", "/tmp/nonexistent-license-enforcement-test.json")
+        .arg("license")
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        output.status.success(),
+        "'license' command should work without a license file"
+    );
+}
+
+#[test]
+fn test_license_verify_with_valid_fixture() {
+    // Verify command with the test fixture should succeed
+    let output = oxo_call()
+        .args(["license", "verify"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        output.status.success(),
+        "license verify with valid fixture should succeed"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("valid") || stdout.contains("✓"),
+        "Expected valid license output, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("academic"),
+        "Expected license type in output, got: {stdout}"
     );
 }

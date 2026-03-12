@@ -1,0 +1,77 @@
+oxo-call Commercial License — Terms Summary
+============================================
+
+Version 1.0, effective 2025
+
+Copyright (c) 2024–2025 Traitome (https://github.com/Traitome)
+
+NOTE: This document is a summary of the commercial license terms.
+The binding agreement is the commercial license issued by Traitome
+to each licensed organization.  Contact license@traitome.com to
+obtain a full license agreement and to purchase a license.
+
+SCOPE OF LICENSE
+─────────────────
+A commercial license is issued to a single legal entity ("Licensee
+Organization").  The license:
+
+  • Permits unlimited use of oxo-call by employees and contractors of
+    the Licensee Organization within the organization's own operations.
+  • Is perpetual — no expiry date, no annual renewal required.
+  • Includes all software updates released during the license's validity
+    period (perpetual means all future updates are included).
+  • Is non-exclusive — other organizations may hold their own licenses.
+  • Is per-organization — each separate legal entity must purchase its
+    own license (subsidiaries and affiliates require separate licenses
+    unless agreed otherwise in writing).
+
+GRANT
+──────
+Subject to payment of the applicable license fee and acceptance of the
+full commercial license agreement, Traitome grants the Licensee
+Organization a non-transferable, non-sublicensable right to:
+
+  ✓  Use oxo-call in internal commercial production pipelines
+  ✓  Integrate oxo-call into internal tooling and workflows
+  ✓  Use across all employees and contractors of the organization
+  ✓  Modify the software for internal use
+  ✓  Retain usage rights for all versions released during the
+     perpetual license period
+
+RESTRICTIONS
+─────────────
+  ✗  Redistribute, sublicense, or transfer the license to any other
+     organization or individual
+  ✗  Offer oxo-call or a derivative as a standalone paid product or
+     SaaS service to third parties
+  ✗  Share the signed license file with other organizations
+  ✗  Remove copyright notices or license files from the software
+
+LICENSE FILE REQUIREMENT
+─────────────────────────
+Commercial users receive a signed `license.oxo.json` file tied to
+their organization name.  The file must be placed in one of the
+standard locations before the CLI will operate:
+
+  Linux/macOS:  ~/.config/oxo-call/license.oxo.json
+  Windows:      %APPDATA%\oxo-call\license.oxo.json
+
+  Or pass it explicitly: oxo-call --license /path/to/license.oxo.json
+
+WARRANTY & LIABILITY DISCLAIMER
+─────────────────────────────────
+THE SOFTWARE IS PROVIDED "AS IS".  TO THE MAXIMUM EXTENT PERMITTED BY
+APPLICABLE LAW, TRAITOME DISCLAIMS ALL WARRANTIES AND SHALL NOT BE
+LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES
+ARISING FROM THE USE OF THE SOFTWARE.
+
+PRICING & PURCHASE
+───────────────────
+  Commercial license fee: contact for current pricing
+  Per-organization, one-time payment, perpetual license.
+
+  Contact:
+    Email : license@traitome.com                  ← placeholder
+    Web   : https://github.com/Traitome/oxo-call#licensing  ← placeholder
+
+  For academic / non-commercial use, see LICENSE-ACADEMIC (free).

@@ -11,7 +11,8 @@ mod skill;
 
 use clap::Parser;
 use cli::{
-    Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, SkillCommands,
+    Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, LicenseCommands,
+    SkillCommands,
 };
 use colored::Colorize;
 
@@ -25,13 +26,15 @@ async fn main() {
 }
 
 async fn run(cli: Cli) -> error::Result<()> {
-    // Show the first-run license notice (only once, then mark as seen)
-    if !matches!(cli.command, Commands::License) {
-        let mut cfg = config::Config::load()?;
-        if !cfg.license.notice_shown {
-            eprintln!("{}", license::FIRST_RUN_NOTICE);
-            cfg.license.notice_shown = true;
-            let _ = cfg.save(); // Best-effort — don't fail if config can't be saved
+    // Commands that are permitted without a valid license file.
+    // `--help` and `--version` are handled by clap before reaching this function.
+    let license_exempt = matches!(cli.command, Commands::License { .. });
+
+    if !license_exempt {
+        let license_path = cli.license.as_deref();
+        if let Err(e) = license::load_and_verify(license_path) {
+            eprintln!("{} {}", "license error:".bold().red(), e);
+            std::process::exit(2);
         }
     }
 
@@ -448,25 +451,65 @@ async fn run(cli: Cli) -> error::Result<()> {
             }
         }
 
-        Commands::License => {
-            let cfg = config::Config::load()?;
-            print!("{}", license::LICENSE_INFO);
-            let key_ref = cfg.license.license_key.as_deref();
-            let status = license::license_status(key_ref);
-            println!(
-                "  Current license status: {}",
-                if status.starts_with("commercial") {
-                    status.green().to_string()
-                } else {
-                    status.yellow().to_string()
+        Commands::License { command } => {
+            match command {
+                None => {
+                    // Show static license information
+                    print!("{}", license::LICENSE_INFO);
+                    // Show current license status if a file is present
+                    let license_path = cli.license.as_deref();
+                    match license::load_and_verify(license_path) {
+                        Ok(lic) => {
+                            println!(
+                                "  Current license: {} — issued to: {}{}",
+                                lic.payload.license_type.to_string().green().bold(),
+                                lic.payload.issued_to_org.cyan(),
+                                lic.payload
+                                    .contact_email
+                                    .as_deref()
+                                    .map(|e| format!(" <{e}>"))
+                                    .unwrap_or_default()
+                            );
+                            println!(
+                                "  Issued at: {}  |  Perpetual: {}",
+                                lic.payload.issued_at,
+                                lic.payload.perpetual
+                            );
+                        }
+                        Err(license::LicenseError::NotFound) => {
+                            println!("  Current license: {}", "none found".yellow());
+                        }
+                        Err(e) => {
+                            println!("  Current license: {} — {e}", "invalid".red().bold());
+                        }
+                    }
                 }
-            );
-            if cfg.license.license_key.is_none() {
-                println!();
-                println!(
-                    "  To register a commercial license key:\n  {}",
-                    "oxo-call config set license.license_key OXO-XXXX-XXXX-XXXX".dimmed()
-                );
+                Some(LicenseCommands::Verify) => {
+                    let license_path = cli.license.as_deref();
+                    match license::load_and_verify(license_path) {
+                        Ok(lic) => {
+                            println!("{} License is valid", "✓".green().bold());
+                            println!(
+                                "  Type       : {}",
+                                lic.payload.license_type.to_string().green()
+                            );
+                            println!("  Issued to  : {}", lic.payload.issued_to_org.cyan());
+                            if let Some(email) = &lic.payload.contact_email {
+                                println!("  Contact    : {}", email);
+                            }
+                            println!("  License ID : {}", lic.payload.license_id.dimmed());
+                            println!("  Issued at  : {}", lic.payload.issued_at);
+                            println!(
+                                "  Perpetual  : {}",
+                                if lic.payload.perpetual { "yes" } else { "no" }
+                            );
+                        }
+                        Err(e) => {
+                            eprintln!("{} {}", "✗ License error:".red().bold(), e);
+                            std::process::exit(2);
+                        }
+                    }
+                }
             }
         }
     }

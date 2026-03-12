@@ -1,0 +1,10 @@
+{
+  "schema": "oxo-call-license-v1",
+  "license_id": "00000000-0000-0000-0000-000000000099",
+  "issued_to_org": "Test Organization (CI)",
+  "license_type": "academic",
+  "scope": "org",
+  "perpetual": true,
+  "issued_at": "2025-01-01",
+  "signature": "gZ8bHShO0tIgKYchXPETNY+FPALwI0hcI+YD4ulWzHGANZM+TVm7hQJI458DxHoFN6jyfteRQq7EMwq4h6nqDw=="
+}

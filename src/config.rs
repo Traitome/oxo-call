@@ -41,12 +41,12 @@ pub struct DocsConfig {
     pub auto_update: bool,
 }
 
-/// License configuration for dual academic/commercial licensing
+/// License configuration — kept for backward-compatible TOML deserialization.
+/// License validation is now file-based (see `src/license.rs`).
+/// Unknown TOML keys from older config files (e.g. `license_key`) are silently ignored.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LicenseConfig {
-    /// Optional commercial license key (format: OXO-XXXX-XXXX-XXXX)
-    pub license_key: Option<String>,
-    /// Whether the first-run license notice has been shown
+    /// Whether the first-run notice has been shown (no longer displayed).
     #[serde(default)]
     pub notice_shown: bool,
 }
@@ -135,12 +135,9 @@ impl Config {
                     OxoError::ConfigError(format!("Invalid auto_update value: {value}"))
                 })?
             }
-            "license.license_key" => {
-                self.license.license_key = Some(value.to_string());
-            }
             _ => {
                 return Err(OxoError::ConfigError(format!(
-                    "Unknown config key: {key}. Valid keys: llm.provider, llm.api_token, llm.api_base, llm.model, llm.max_tokens, llm.temperature, docs.auto_update, license.license_key"
+                    "Unknown config key: {key}. Valid keys: llm.provider, llm.api_token, llm.api_base, llm.model, llm.max_tokens, llm.temperature, docs.auto_update"
                 )));
             }
         }
@@ -156,7 +153,6 @@ impl Config {
             "llm.max_tokens" => Ok(self.llm.max_tokens.to_string()),
             "llm.temperature" => Ok(self.llm.temperature.to_string()),
             "docs.auto_update" => Ok(self.docs.auto_update.to_string()),
-            "license.license_key" => Ok(self.license.license_key.clone().unwrap_or_default()),
             _ => Err(OxoError::ConfigError(format!("Unknown config key: {key}"))),
         }
     }
