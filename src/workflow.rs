@@ -163,6 +163,9 @@ Format rules:
 - Use {params.KEY} for parameter substitution in cmd.
 - A step with gather = true runs ONCE after all wildcard instances of its deps complete.
 - Always include fastp as the first QC step.
+- Always include a multiqc step with gather=true placed RIGHT AFTER fastp.
+  MultiQC depends only on fastp (or equivalent QC step) and scans only the QC
+  output directory.  It runs in parallel with downstream analysis steps.
 - Use realistic default param values in [params].
 
 Respond with EXACTLY this format (nothing before or after):

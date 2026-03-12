@@ -32,13 +32,11 @@ Example for the RNA-seq template with 3 samples:
 ```
 Phase 1: fastp[s1]  fastp[s2]  fastp[s3]          (3 tasks in parallel)
     ↓
-Phase 2: star[s1]   star[s2]   star[s3]            (3 tasks in parallel)
+Phase 2: multiqc [gather]  │  star[s1]  star[s2]  star[s3]  (QC + alignment in parallel)
     ↓
 Phase 3: samtools_index[s1]  samtools_index[s2]  samtools_index[s3]
     ↓
 Phase 4: featurecounts[s1]  featurecounts[s2]  featurecounts[s3]
-    ↓
-Phase 5: multiqc [gather]                          (1 task, aggregates all)
 ```
 
 ### Progress Display
@@ -89,19 +87,20 @@ cmd     = "fastp --in1 data/{sample}_R1.fq.gz --in2 data/{sample}_R2.fq.gz --out
 inputs  = ["data/{sample}_R1.fq.gz", "data/{sample}_R2.fq.gz"]
 outputs = ["trimmed/{sample}_R1.fq.gz", "trimmed/{sample}_R2.fq.gz", "qc/{sample}_fastp.json"]
 
+# MultiQC runs right after QC, in parallel with alignment
+[[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["qc"]
+cmd        = "multiqc qc/ -o results/multiqc/ --force"
+outputs    = ["results/multiqc/multiqc_report.html"]
+
 [[step]]
 name       = "align"
 depends_on = ["qc"]
 cmd        = "STAR --genomeDir {params.reference} --readFilesIn trimmed/{sample}_R1.fq.gz trimmed/{sample}_R2.fq.gz --outFileNamePrefix aligned/{sample}/"
 inputs     = ["trimmed/{sample}_R1.fq.gz", "trimmed/{sample}_R2.fq.gz"]
 outputs    = ["aligned/{sample}/Aligned.sortedByCoord.out.bam"]
-
-[[step]]
-name       = "aggregate"
-gather     = true
-depends_on = ["align"]
-cmd        = "multiqc qc/ aligned/ -o results/multiqc/ --force"
-outputs    = ["results/multiqc/multiqc_report.html"]
 ```
 
 ## Compatibility Export

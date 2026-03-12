@@ -136,9 +136,24 @@ reference  = "/path/to/genome.fa"
 
 # Steps: each [[step]] runs for every wildcard combination
 [[step]]
-name    = "align"
-cmd     = "bwa mem -t {params.threads} {params.reference} data/{sample}_R1.fq.gz data/{sample}_R2.fq.gz | samtools sort -o aligned/{sample}.bam"
+name    = "qc"
+cmd     = "fastp --in1 data/{sample}_R1.fq.gz --in2 data/{sample}_R2.fq.gz --out1 trimmed/{sample}_R1.fq.gz --out2 trimmed/{sample}_R2.fq.gz --json qc/{sample}_fastp.json"
 inputs  = ["data/{sample}_R1.fq.gz", "data/{sample}_R2.fq.gz"]
+outputs = ["trimmed/{sample}_R1.fq.gz", "trimmed/{sample}_R2.fq.gz", "qc/{sample}_fastp.json"]
+
+# MultiQC runs right after QC, in parallel with alignment
+[[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["qc"]
+cmd        = "multiqc qc/ -o results/multiqc/ --force"
+outputs    = ["results/multiqc/multiqc_report.html"]
+
+[[step]]
+name    = "align"
+depends_on = ["qc"]
+cmd     = "bwa mem -t {params.threads} {params.reference} trimmed/{sample}_R1.fq.gz trimmed/{sample}_R2.fq.gz | samtools sort -o aligned/{sample}.bam"
+inputs  = ["trimmed/{sample}_R1.fq.gz", "trimmed/{sample}_R2.fq.gz"]
 outputs = ["aligned/{sample}.bam"]
 
 [[step]]
@@ -147,14 +162,6 @@ depends_on = ["align"]
 cmd        = "samtools index aligned/{sample}.bam"
 inputs     = ["aligned/{sample}.bam"]
 outputs    = ["aligned/{sample}.bam.bai"]
-
-# Gather step: runs ONCE after all wildcard instances of deps complete
-[[step]]
-name       = "multiqc"
-gather     = true
-depends_on = ["index"]
-cmd        = "multiqc aligned/ -o results/multiqc/ --force"
-outputs    = ["results/multiqc/multiqc_report.html"]
 ```
 
 ### Step Fields
@@ -176,17 +183,15 @@ During execution, the engine shows:
 ◆ oxo workflow — 13 task(s)
 ────────────────────────────────────────────────────────────────
 
-  Pipeline DAG (5 phases, 13 tasks)
+  Pipeline DAG (4 phases, 13 tasks)
 
     Phase 1  fastp[sample=s1]  │  fastp[sample=s2]  │  fastp[sample=s3]
              ↓
-    Phase 2  star[sample=s1]  │  star[sample=s2]  │  star[sample=s3]
+    Phase 2  multiqc [gather]  │  star[sample=s1]  │  … +2 more
              ↓
     Phase 3  samtools_index[sample=s1]  │  … +2 more
              ↓
     Phase 4  featurecounts[sample=s1]  │  … +2 more
-             ↓
-    Phase 5  multiqc [gather]
 
 ────────────────────────────────────────────────────────────────
   ▶ fastp[sample=s1]
@@ -194,7 +199,7 @@ During execution, the engine shows:
   ▶ fastp[sample=s2]
   ✓ [2/13] fastp[sample=s2]
   ...
-  ✓ [13/13] multiqc
+  ✓ [13/13] featurecounts[sample=s3]
 ────────────────────────────────────────────────────────────────
 
 ✓ Workflow complete — 13 task(s) run, 0 up to date  (2m 34s)
