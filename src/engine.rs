@@ -882,3 +882,246 @@ pub fn to_nextflow(def: &WorkflowDef) -> String {
 
     out
 }
+
+// ─── Tests ────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Helper to build a minimal ConcreteTask for testing.
+    fn task(id: &str, deps: &[&str]) -> ConcreteTask {
+        ConcreteTask {
+            id: id.to_string(),
+            step_name: id.split('[').next().unwrap_or(id).to_string(),
+            cmd: format!("echo {id}"),
+            inputs: vec![],
+            outputs: vec![],
+            deps: deps.iter().map(|d| d.to_string()).collect(),
+            gather: false,
+        }
+    }
+
+    fn gather_task(id: &str, deps: &[&str]) -> ConcreteTask {
+        let mut t = task(id, deps);
+        t.gather = true;
+        t
+    }
+
+    #[test]
+    fn test_compute_phases_linear_chain() {
+        let tasks = vec![
+            task("a", &[]),
+            task("b", &["a"]),
+            task("c", &["b"]),
+        ];
+        let phases = compute_phases(&tasks);
+        assert_eq!(phases.len(), 3);
+        assert_eq!(phases[0].len(), 1);
+        assert_eq!(phases[0][0].id, "a");
+        assert_eq!(phases[1][0].id, "b");
+        assert_eq!(phases[2][0].id, "c");
+    }
+
+    #[test]
+    fn test_compute_phases_parallel_tasks() {
+        let tasks = vec![
+            task("a", &[]),
+            task("b", &[]),
+            task("c", &["a", "b"]),
+        ];
+        let phases = compute_phases(&tasks);
+        assert_eq!(phases.len(), 2);
+        // Phase 1: a and b in parallel.
+        assert_eq!(phases[0].len(), 2);
+        // Phase 2: c after both.
+        assert_eq!(phases[1].len(), 1);
+        assert_eq!(phases[1][0].id, "c");
+    }
+
+    #[test]
+    fn test_compute_phases_diamond_dag() {
+        // a → b, a → c, b+c → d
+        let tasks = vec![
+            task("a", &[]),
+            task("b", &["a"]),
+            task("c", &["a"]),
+            task("d", &["b", "c"]),
+        ];
+        let phases = compute_phases(&tasks);
+        assert_eq!(phases.len(), 3);
+        assert_eq!(phases[0].len(), 1); // a
+        assert_eq!(phases[1].len(), 2); // b, c
+        assert_eq!(phases[2].len(), 1); // d
+    }
+
+    #[test]
+    fn test_compute_phases_with_gather() {
+        // Mimics rnaseq: fastp[s1], fastp[s2] → multiqc (gather)
+        let tasks = vec![
+            task("fastp[sample=s1]", &[]),
+            task("fastp[sample=s2]", &[]),
+            gather_task("multiqc", &["fastp[sample=s1]", "fastp[sample=s2]"]),
+        ];
+        let phases = compute_phases(&tasks);
+        assert_eq!(phases.len(), 2);
+        assert_eq!(phases[0].len(), 2); // both fastp tasks
+        assert_eq!(phases[1].len(), 1); // multiqc
+        assert!(phases[1][0].gather);
+    }
+
+    #[test]
+    fn test_compute_phases_empty() {
+        let tasks: Vec<ConcreteTask> = vec![];
+        let phases = compute_phases(&tasks);
+        assert_eq!(phases.len(), 0);
+    }
+
+    #[test]
+    fn test_compute_phases_single_task() {
+        let tasks = vec![task("only", &[])];
+        let phases = compute_phases(&tasks);
+        assert_eq!(phases.len(), 1);
+        assert_eq!(phases[0].len(), 1);
+    }
+
+    #[test]
+    fn test_compute_phases_complex_pipeline() {
+        // Mimics a real pipeline with parallel and gather:
+        // fastp[s1,s2] → star[s1,s2] → featurecounts[s1,s2] → multiqc
+        let tasks = vec![
+            task("fastp[sample=s1]", &[]),
+            task("fastp[sample=s2]", &[]),
+            task("star[sample=s1]", &["fastp[sample=s1]"]),
+            task("star[sample=s2]", &["fastp[sample=s2]"]),
+            task("featurecounts[sample=s1]", &["star[sample=s1]"]),
+            task("featurecounts[sample=s2]", &["star[sample=s2]"]),
+            gather_task("multiqc", &["featurecounts[sample=s1]", "featurecounts[sample=s2]"]),
+        ];
+        let phases = compute_phases(&tasks);
+        assert_eq!(phases.len(), 4);
+        assert_eq!(phases[0].len(), 2); // fastp[s1], fastp[s2]
+        assert_eq!(phases[1].len(), 2); // star[s1], star[s2]
+        assert_eq!(phases[2].len(), 2); // featurecounts[s1], featurecounts[s2]
+        assert_eq!(phases[3].len(), 1); // multiqc
+    }
+
+    #[test]
+    fn test_format_elapsed_seconds() {
+        let d = std::time::Duration::from_secs_f64(5.3);
+        assert_eq!(format_elapsed(d), "5.3s");
+    }
+
+    #[test]
+    fn test_format_elapsed_minutes() {
+        let d = std::time::Duration::from_secs(125);
+        assert_eq!(format_elapsed(d), "2m 05s");
+    }
+
+    #[test]
+    fn test_format_elapsed_hours() {
+        let d = std::time::Duration::from_secs(3723);
+        assert_eq!(format_elapsed(d), "1h 02m 03s");
+    }
+
+    #[test]
+    fn test_expand_rnaseq_template() {
+        // Verify that the built-in RNA-seq template parses and expands correctly.
+        let toml = include_str!("../workflows/native/rnaseq.toml");
+        let def = WorkflowDef::from_str_content(toml).expect("parse rnaseq template");
+        let tasks = expand(&def).expect("expand rnaseq DAG");
+
+        // rnaseq has 3 samples and 5 steps:
+        // Per-sample: fastp, star, samtools_index, featurecounts (4 × 3 = 12)
+        // Gather: multiqc (1)
+        assert_eq!(tasks.len(), 13);
+
+        // multiqc should be the last task and should depend on featurecounts
+        let multiqc = tasks.iter().find(|t| t.step_name == "multiqc").unwrap();
+        assert!(multiqc.gather);
+        // multiqc depends on all featurecounts instances
+        assert_eq!(multiqc.deps.len(), 3);
+        for dep in &multiqc.deps {
+            assert!(dep.starts_with("featurecounts["), "multiqc dep should be featurecounts: {dep}");
+        }
+
+        // Verify phases
+        let phases = compute_phases(&tasks);
+        assert_eq!(phases.len(), 5); // fastp → star → samtools_index → featurecounts → multiqc
+        assert_eq!(phases[0].len(), 3); // 3 fastp tasks
+        assert_eq!(phases[4].len(), 1); // 1 multiqc task
+    }
+
+    #[test]
+    fn test_expand_chipseq_template() {
+        // ChIP-seq has parallel macs3 + bigwig branches.
+        let toml = include_str!("../workflows/native/chipseq.toml");
+        let def = WorkflowDef::from_str_content(toml).expect("parse chipseq template");
+        let tasks = expand(&def).expect("expand chipseq DAG");
+
+        let multiqc = tasks.iter().find(|t| t.step_name == "multiqc").unwrap();
+        assert!(multiqc.gather);
+        // multiqc should depend on both macs3 and bigwig (all instances)
+        assert_eq!(multiqc.deps.len(), 6); // 3 samples × 2 leaf steps
+        let has_macs3 = multiqc.deps.iter().any(|d| d.starts_with("macs3["));
+        let has_bigwig = multiqc.deps.iter().any(|d| d.starts_with("bigwig["));
+        assert!(has_macs3, "multiqc should depend on macs3");
+        assert!(has_bigwig, "multiqc should depend on bigwig");
+
+        // Verify parallel phases: macs3 and bigwig should be in the same phase
+        let phases = compute_phases(&tasks);
+        let macs3_phase = phases.iter().position(|p| p.iter().any(|t| t.step_name == "macs3")).unwrap();
+        let bigwig_phase = phases.iter().position(|p| p.iter().any(|t| t.step_name == "bigwig")).unwrap();
+        assert_eq!(macs3_phase, bigwig_phase, "macs3 and bigwig should execute in the same phase");
+    }
+
+    #[test]
+    fn test_expand_longreads_template() {
+        // Long-reads has parallel nanostat + flye branches.
+        let toml = include_str!("../workflows/native/longreads.toml");
+        let def = WorkflowDef::from_str_content(toml).expect("parse longreads template");
+        let tasks = expand(&def).expect("expand longreads DAG");
+
+        // Verify nanostat and flye are in the same phase (both depend on nanoq only)
+        let phases = compute_phases(&tasks);
+        let nanostat_phase = phases.iter().position(|p| p.iter().any(|t| t.step_name == "nanostat")).unwrap();
+        let flye_phase = phases.iter().position(|p| p.iter().any(|t| t.step_name == "flye")).unwrap();
+        assert_eq!(nanostat_phase, flye_phase, "nanostat and flye should execute in parallel");
+    }
+
+    #[test]
+    fn test_all_builtin_templates_parse_and_expand() {
+        // Ensure every built-in template can be parsed and expanded without errors.
+        let templates = [
+            ("rnaseq", include_str!("../workflows/native/rnaseq.toml")),
+            ("wgs", include_str!("../workflows/native/wgs.toml")),
+            ("atacseq", include_str!("../workflows/native/atacseq.toml")),
+            ("chipseq", include_str!("../workflows/native/chipseq.toml")),
+            ("metagenomics", include_str!("../workflows/native/metagenomics.toml")),
+            ("amplicon16s", include_str!("../workflows/native/amplicon16s.toml")),
+            ("scrnaseq", include_str!("../workflows/native/scrnaseq.toml")),
+            ("longreads", include_str!("../workflows/native/longreads.toml")),
+            ("methylseq", include_str!("../workflows/native/methylseq.toml")),
+        ];
+        for (name, toml) in &templates {
+            let def = WorkflowDef::from_str_content(toml)
+                .unwrap_or_else(|e| panic!("Failed to parse {name}: {e}"));
+            let tasks = expand(&def)
+                .unwrap_or_else(|e| panic!("Failed to expand {name}: {e}"));
+            assert!(!tasks.is_empty(), "{name} should have at least one task");
+
+            // Verify multiqc is the final phase in every workflow
+            let phases = compute_phases(&tasks);
+            let last_phase = phases.last().expect("should have phases");
+            assert_eq!(
+                last_phase.len(), 1,
+                "{name}: last phase should have exactly one task (multiqc)"
+            );
+            assert!(
+                last_phase[0].step_name == "multiqc",
+                "{name}: last phase should be multiqc, got '{}'",
+                last_phase[0].step_name
+            );
+        }
+    }
+}
