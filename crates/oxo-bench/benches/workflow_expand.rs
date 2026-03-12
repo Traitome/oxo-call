@@ -14,9 +14,7 @@ fn bench_expand(c: &mut Criterion) {
             BenchmarkId::new("expand", name),
             &(name, content),
             |b, &(name, content)| {
-                b.iter(|| {
-                    black_box(bench_workflow_parse(name, content))
-                });
+                b.iter(|| black_box(bench_workflow_parse(name, content)));
             },
         );
     }

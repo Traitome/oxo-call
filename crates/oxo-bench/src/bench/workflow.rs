@@ -23,33 +23,22 @@ pub struct BenchWorkflowResult {
 /// Built-in workflow TOML content used for benchmarking (small, fast to parse).
 ///
 /// These are representative templates that cover different dependency patterns.
-pub const BENCH_WORKFLOW_RNASEQ: &str = include_str!(
-    "../../../../workflows/native/rnaseq.toml"
-);
+pub const BENCH_WORKFLOW_RNASEQ: &str = include_str!("../../../../workflows/native/rnaseq.toml");
 
-pub const BENCH_WORKFLOW_WGS: &str = include_str!(
-    "../../../../workflows/native/wgs.toml"
-);
+pub const BENCH_WORKFLOW_WGS: &str = include_str!("../../../../workflows/native/wgs.toml");
 
-pub const BENCH_WORKFLOW_ATACSEQ: &str = include_str!(
-    "../../../../workflows/native/atacseq.toml"
-);
+pub const BENCH_WORKFLOW_ATACSEQ: &str = include_str!("../../../../workflows/native/atacseq.toml");
 
-pub const BENCH_WORKFLOW_METAGENOMICS: &str = include_str!(
-    "../../../../workflows/native/metagenomics.toml"
-);
+pub const BENCH_WORKFLOW_METAGENOMICS: &str =
+    include_str!("../../../../workflows/native/metagenomics.toml");
 
-pub const BENCH_WORKFLOW_CHIPSEQ: &str = include_str!(
-    "../../../../workflows/native/chipseq.toml"
-);
+pub const BENCH_WORKFLOW_CHIPSEQ: &str = include_str!("../../../../workflows/native/chipseq.toml");
 
-pub const BENCH_WORKFLOW_SCRNASEQ: &str = include_str!(
-    "../../../../workflows/native/scrnaseq.toml"
-);
+pub const BENCH_WORKFLOW_SCRNASEQ: &str =
+    include_str!("../../../../workflows/native/scrnaseq.toml");
 
-pub const BENCH_WORKFLOW_LONGREADS: &str = include_str!(
-    "../../../../workflows/native/longreads.toml"
-);
+pub const BENCH_WORKFLOW_LONGREADS: &str =
+    include_str!("../../../../workflows/native/longreads.toml");
 
 /// All benchmark TOML contents paired with their names.
 pub const ALL_BENCH_WORKFLOWS: &[(&str, &str)] = &[

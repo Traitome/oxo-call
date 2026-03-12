@@ -5,8 +5,8 @@
 //! 2. As integration evaluation tasks (via the `oxo-bench` CLI), for higher-level
 //!    accuracy and reproducibility measurement.
 
-pub mod workflow;
 pub mod llm;
+pub mod workflow;
 
-pub use workflow::{BenchWorkflowResult, bench_workflow_parse, bench_workflow_expand};
 pub use llm::{ModelBenchConfig, ModelBenchResult, run_model_bench};
+pub use workflow::{BenchWorkflowResult, bench_workflow_expand, bench_workflow_parse};

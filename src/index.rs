@@ -49,10 +49,7 @@ impl DocIndex {
         // place.  Using a UUID suffix prevents concurrent CLI invocations (e.g. parallel
         // integration-test runs) from racing on the same `.tmp` path and hitting ENOENT
         // on the subsequent rename.
-        let tmp_path = dir.join(format!(
-            "index.{}.tmp",
-            Uuid::new_v4().simple()
-        ));
+        let tmp_path = dir.join(format!("index.{}.tmp", Uuid::new_v4().simple()));
         std::fs::write(&tmp_path, &content)?;
         std::fs::rename(&tmp_path, &path)?;
         Ok(())

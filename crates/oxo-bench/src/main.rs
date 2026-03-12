@@ -10,12 +10,12 @@ use clap::{Parser, Subcommand};
 use colored::Colorize;
 use oxo_bench::{
     bench::{
-        llm::{canonical_eval_tasks, ModelBenchConfig},
+        llm::{ModelBenchConfig, canonical_eval_tasks},
         workflow::bench_workflow_expand,
     },
     report::{
-        print_workflow_report, summarise_by_model, print_model_summary,
-        write_workflow_csv, write_scenarios_csv, write_eval_tasks_csv,
+        print_model_summary, print_workflow_report, summarise_by_model, write_eval_tasks_csv,
+        write_scenarios_csv, write_workflow_csv,
     },
     sim::omics::{canonical_scenarios, simulate_scenario},
 };
@@ -147,7 +147,11 @@ fn run(cli: Cli) -> anyhow::Result<()> {
             }
         }
 
-        Commands::Simulate { output, scenario, list } => {
+        Commands::Simulate {
+            output,
+            scenario,
+            list,
+        } => {
             let scenarios = canonical_scenarios();
 
             if list {
@@ -174,7 +178,10 @@ fn run(cli: Cli) -> anyhow::Result<()> {
             let to_run: Vec<_> = if let Some(ref id) = scenario {
                 let found: Vec<_> = scenarios.iter().filter(|s| &s.id == id).collect();
                 if found.is_empty() {
-                    anyhow::bail!("Scenario '{}' not found. Use --list to see available scenarios.", id);
+                    anyhow::bail!(
+                        "Scenario '{}' not found. Use --list to see available scenarios.",
+                        id
+                    );
                 }
                 found
             } else {
@@ -212,7 +219,12 @@ fn run(cli: Cli) -> anyhow::Result<()> {
             );
         }
 
-        Commands::EvalModels { model, repeats, list, output } => {
+        Commands::EvalModels {
+            model,
+            repeats,
+            list,
+            output,
+        } => {
             let tasks = canonical_eval_tasks();
 
             if list {
@@ -225,19 +237,15 @@ fn run(cli: Cli) -> anyhow::Result<()> {
                 println!("{}", "─".repeat(80).dimmed());
                 for t in &tasks {
                     let task_preview: String = t.task.chars().take(56).collect();
-                    println!(
-                        "{:<16} {:<14} {}",
-                        t.tool.cyan(),
-                        t.category,
-                        task_preview
-                    );
+                    println!("{:<16} {:<14} {}", t.tool.cyan(), t.category, task_preview);
                 }
                 println!("\n{} {} evaluation tasks total", tasks.len(), "→".dimmed());
                 return Ok(());
             }
 
             // Live LLM evaluation is gated behind the API token env var.
-            let token = std::env::var("OXO_CALL_API_TOKEN").ok()
+            let token = std::env::var("OXO_CALL_API_TOKEN")
+                .ok()
                 .or_else(|| std::env::var("GITHUB_TOKEN").ok());
 
             if token.is_none() {
@@ -304,13 +312,18 @@ fn run(cli: Cli) -> anyhow::Result<()> {
             let content = std::fs::read_to_string(&json)?;
 
             // Try to parse as workflow results first.
-            if let Ok(wf_results) = serde_json::from_str::<Vec<oxo_bench::bench::workflow::BenchWorkflowResult>>(&content) {
+            if let Ok(wf_results) = serde_json::from_str::<
+                Vec<oxo_bench::bench::workflow::BenchWorkflowResult>,
+            >(&content)
+            {
                 print_workflow_report(&mut std::io::stdout(), &wf_results)?;
                 return Ok(());
             }
 
             // Try as model results.
-            if let Ok(model_results) = serde_json::from_str::<Vec<oxo_bench::bench::llm::ModelBenchResult>>(&content) {
+            if let Ok(model_results) =
+                serde_json::from_str::<Vec<oxo_bench::bench::llm::ModelBenchResult>>(&content)
+            {
                 let mut stdout = std::io::stdout();
                 let summaries = summarise_by_model(&model_results);
                 print_model_summary(&mut stdout, &summaries)?;

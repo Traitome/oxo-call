@@ -413,7 +413,8 @@ pub fn print_template_list() {
     );
     println!(
         "{}",
-        "Use 'oxo-call workflow infer --data <dir> \"<task>\"' to auto-generate from data.".dimmed()
+        "Use 'oxo-call workflow infer --data <dir> \"<task>\"' to auto-generate from data."
+            .dimmed()
     );
 }
 
@@ -550,9 +551,7 @@ pub fn scan_data_directory(dir: &std::path::Path) -> DataContext {
 
 fn strip_read_pair_suffix(stem: &str) -> String {
     // Remove common trailing patterns: _R1, _R2, _1, _2, _R1_001, _R2_001.
-    let patterns = [
-        "_r1_001", "_r2_001", "_r1", "_r2", "_1", "_2",
-    ];
+    let patterns = ["_r1_001", "_r2_001", "_r1", "_r2", "_1", "_2"];
     let lower = stem.to_lowercase();
     for pat in &patterns {
         if let Some(pos) = lower.rfind(pat) {
