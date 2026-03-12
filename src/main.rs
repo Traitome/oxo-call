@@ -16,7 +16,8 @@ use cli::{
 };
 use colored::Colorize;
 
-#[tokio::main]
+#[cfg_attr(not(target_arch = "wasm32"), tokio::main)]
+#[cfg_attr(target_arch = "wasm32", tokio::main(flavor = "current_thread"))]
 async fn main() {
     let cli = Cli::parse();
     if let Err(e) = run(cli).await {

@@ -27,6 +27,7 @@ pub enum OxoError {
     #[error("JSON error: {0}")]
     JsonError(#[from] serde_json::Error),
 
+    #[cfg(not(target_arch = "wasm32"))]
     #[error("HTTP error: {0}")]
     HttpError(#[from] reqwest::Error),
 

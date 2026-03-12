@@ -1,14 +1,20 @@
 use crate::config::Config;
 use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
+#[cfg(not(target_arch = "wasm32"))]
 use crate::history::{HistoryEntry, HistoryStore};
 use crate::llm::{LlmClient, LlmCommandSuggestion};
 use crate::skill::SkillManager;
+#[cfg(not(target_arch = "wasm32"))]
 use chrono::Utc;
 use colored::Colorize;
+#[cfg(not(target_arch = "wasm32"))]
 use indicatif::{ProgressBar, ProgressStyle};
+#[cfg(not(target_arch = "wasm32"))]
 use std::process::Command;
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
+#[cfg(not(target_arch = "wasm32"))]
 use uuid::Uuid;
 
 pub struct Runner {
@@ -141,44 +147,53 @@ impl Runner {
         println!("{}", "─".repeat(60).dimmed());
         println!();
 
-        let status = Command::new(tool)
-            .args(&suggestion.args)
-            .status()
-            .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
+        // Process execution is not supported in WebAssembly
+        #[cfg(target_arch = "wasm32")]
+        return Err(OxoError::ExecutionError(
+            "Command execution is not supported in WebAssembly".to_string(),
+        ));
 
-        let exit_code = status.code().unwrap_or(-1);
-        let success = status.success();
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let status = Command::new(tool)
+                .args(&suggestion.args)
+                .status()
+                .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
 
-        // Record in history
-        let entry = HistoryEntry {
-            id: Uuid::new_v4().to_string(),
-            tool: tool.to_string(),
-            task: task.to_string(),
-            command: full_cmd.clone(),
-            exit_code,
-            executed_at: Utc::now(),
-            dry_run: false,
-        };
-        let _ = HistoryStore::append(entry);
+            let exit_code = status.code().unwrap_or(-1);
+            let success = status.success();
 
-        println!();
-        println!("{}", "─".repeat(60).dimmed());
-        if success {
-            println!(
-                "  {} exit code {}",
-                "Completed successfully,".bold().green(),
-                exit_code.to_string().green()
-            );
-        } else {
-            println!(
-                "  {} exit code {}",
-                "Command failed,".bold().red(),
-                exit_code.to_string().red()
-            );
+            // Record in history
+            let entry = HistoryEntry {
+                id: Uuid::new_v4().to_string(),
+                tool: tool.to_string(),
+                task: task.to_string(),
+                command: full_cmd.clone(),
+                exit_code,
+                executed_at: Utc::now(),
+                dry_run: false,
+            };
+            let _ = HistoryStore::append(entry);
+
+            println!();
+            println!("{}", "─".repeat(60).dimmed());
+            if success {
+                println!(
+                    "  {} exit code {}",
+                    "Completed successfully,".bold().green(),
+                    exit_code.to_string().green()
+                );
+            } else {
+                println!(
+                    "  {} exit code {}",
+                    "Command failed,".bold().red(),
+                    exit_code.to_string().red()
+                );
+            }
+            println!("{}", "─".repeat(60).dimmed());
+
+            Ok(())
         }
-        println!("{}", "─".repeat(60).dimmed());
-
-        Ok(())
     }
 }
 
@@ -201,6 +216,7 @@ fn build_command_string(tool: &str, args: &[String]) -> String {
 }
 
 /// Create a styled progress spinner for long-running operations.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn make_spinner(msg: &str) -> ProgressBar {
     let pb = ProgressBar::new_spinner();
     pb.set_style(
@@ -210,4 +226,21 @@ pub fn make_spinner(msg: &str) -> ProgressBar {
     pb.set_message(msg.to_string());
     pb.enable_steady_tick(Duration::from_millis(80));
     pb
+}
+
+/// No-op spinner used on WebAssembly targets where terminal progress bars are
+/// unavailable.
+#[cfg(target_arch = "wasm32")]
+pub struct Spinner;
+
+#[cfg(target_arch = "wasm32")]
+impl Spinner {
+    pub fn finish_and_clear(&self) {}
+    pub fn set_message(&self, _msg: String) {}
+}
+
+/// Create a no-op spinner on WebAssembly targets.
+#[cfg(target_arch = "wasm32")]
+pub fn make_spinner(_msg: &str) -> Spinner {
+    Spinner
 }
