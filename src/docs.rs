@@ -3,6 +3,7 @@ use crate::error::{OxoError, Result};
 use std::path::PathBuf;
 #[cfg(not(target_arch = "wasm32"))]
 use std::process::Command;
+use uuid::Uuid;
 
 // Minimum useful help text length – anything shorter than this is likely an error message
 const MIN_HELP_LEN: usize = 80;
@@ -268,8 +269,15 @@ impl DocsFetcher {
             )
         })?;
         std::fs::create_dir_all(dir)?;
-        // Write to a sibling temp file first, then atomically rename into place.
-        let tmp_path = cache_path.with_extension("tmp");
+        // Write to a uniquely-named sibling temp file first, then atomically rename into
+        // place.  Using a UUID suffix prevents concurrent CLI invocations (e.g. parallel
+        // integration-test runs) from racing on the same `.tmp` path and hitting ENOENT
+        // on the subsequent rename.
+        let tmp_path = dir.join(format!(
+            "{}.{}.tmp",
+            cache_path.file_stem().and_then(|s| s.to_str()).unwrap_or("doc"),
+            Uuid::new_v4().simple()
+        ));
         std::fs::write(&tmp_path, content)?;
         std::fs::rename(&tmp_path, &cache_path)?;
         Ok(())
