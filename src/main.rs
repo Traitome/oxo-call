@@ -8,11 +8,12 @@ mod license;
 mod llm;
 mod runner;
 mod skill;
+mod workflow;
 
 use clap::Parser;
 use cli::{
     Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, LicenseCommands,
-    SkillCommands,
+    SkillCommands, WorkflowCommands,
 };
 use colored::Colorize;
 
@@ -654,6 +655,69 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
             }
         }
+
+        Commands::Workflow { command } => match command {
+            WorkflowCommands::List => {
+                workflow::print_template_list();
+            }
+
+            WorkflowCommands::Show { name, engine } => match workflow::find_template(&name) {
+                Some(tpl) => {
+                    let content = match engine.as_str() {
+                        "nextflow" => tpl.nextflow,
+                        _ => tpl.snakemake,
+                    };
+                    println!("{}", content);
+                }
+                None => {
+                    eprintln!(
+                        "{} Unknown workflow template '{}'. Run 'oxo-call workflow list' to see available templates.",
+                        "error:".red().bold(),
+                        name
+                    );
+                    std::process::exit(1);
+                }
+            },
+
+            WorkflowCommands::Generate {
+                task,
+                engine,
+                output,
+            } => {
+                let cfg = config::Config::load()?;
+                let spinner =
+                    runner::make_spinner(&format!("Generating {engine} workflow with LLM..."));
+                let wf = match workflow::generate_workflow(&cfg, &task, &engine).await {
+                    Ok(w) => {
+                        spinner.finish_and_clear();
+                        w
+                    }
+                    Err(e) => {
+                        spinner.finish_and_clear();
+                        return Err(e);
+                    }
+                };
+
+                match output {
+                    Some(path) => {
+                        std::fs::write(&path, &wf.content)?;
+                        println!(
+                            "{} Workflow written to {}",
+                            "✓".green().bold(),
+                            path.display().to_string().cyan()
+                        );
+                        if !wf.explanation.is_empty() {
+                            println!();
+                            println!("  {}", "Pipeline explanation:".bold());
+                            println!("  {}", wf.explanation);
+                        }
+                    }
+                    None => {
+                        workflow::print_generated_workflow(&wf);
+                    }
+                }
+            }
+        },
     }
 
     Ok(())

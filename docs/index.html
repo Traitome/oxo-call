@@ -443,6 +443,7 @@
   <ul class="nav-links">
     <li><a href="#demo">Demo</a></li>
     <li><a href="#features">Features</a></li>
+    <li><a href="#workflow">Workflows</a></li>
     <li><a href="#tools">Skills</a></li>
     <li><a href="#install">Install</a></li>
     <li><a href="https://github.com/Traitome/oxo-call" target="_blank" rel="noopener">GitHub</a></li>
@@ -555,6 +556,11 @@
       <p>Expert knowledge for 100+ bioinformatics tools baked in as <code>.toml</code> skill files — concepts, pitfalls, and worked examples.</p>
     </div>
     <div class="feature-card">
+      <div class="feature-icon">🔗</div>
+      <h3>Workflow generation</h3>
+      <p>Generate complete <strong>Snakemake</strong> or <strong>Nextflow</strong> pipelines from a plain-English description. Built-in templates for RNA-seq, WGS, ATAC-seq, and metagenomics.</p>
+    </div>
+    <div class="feature-card">
       <div class="feature-icon">🔧</div>
       <h3>Flexible LLM backends</h3>
       <p>GitHub Copilot (default), OpenAI, Anthropic, or a local Ollama instance — switch with one config key.</p>
@@ -660,6 +666,73 @@
     <div class="tool-card"><div class="tool-name">bowtie2</div><div class="tool-desc">Fast short-read aligner</div></div>
     <div class="tool-card"><div class="tool-name">seqkit</div><div class="tool-desc">FASTA/Q toolkit</div></div>
     <div class="tool-card"><div class="tool-name">star</div><div class="tool-desc">RNA-seq spliced aligner</div></div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Workflow Generation ──────────────────────────────────────────────────── -->
+<section id="workflow">
+  <div class="section-label">// workflow generation</div>
+  <h2 class="section-title">From single commands to<br/>complete pipelines</h2>
+  <p class="section-body">
+    <code>oxo-call workflow</code> bridges individual tool invocations into
+    full, runnable <strong>Snakemake</strong> or <strong>Nextflow</strong>
+    pipeline files — with built-in production-tested templates for the most
+    common omics assay types.
+  </p>
+
+  <div class="features-grid" style="margin-top:2rem">
+    <div class="feature-card">
+      <div class="feature-icon">🔬</div>
+      <h3>RNA-seq</h3>
+      <p>fastp QC → STAR alignment → featureCounts quantification → MultiQC report. Supports both Snakemake and Nextflow DSL2.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🧬</div>
+      <h3>Whole-Genome Sequencing</h3>
+      <p>fastp → BWA-MEM2 → GATK MarkDuplicates → BQSR → HaplotypeCaller GVCF. GATK best-practices out of the box.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔓</div>
+      <h3>ATAC-seq</h3>
+      <p>fastp → Bowtie2 → Picard deduplication → blacklist filtering → MACS3 peak calling. Ready for downstream footprinting.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🌍</div>
+      <h3>Shotgun Metagenomics</h3>
+      <p>fastp → host read removal (Bowtie2) → Kraken2 classification → Bracken species abundance estimation.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">✨</div>
+      <h3>LLM-generated custom workflows</h3>
+      <p>Describe any pipeline in plain language and get a complete, runnable workflow file. One prompt → one deployable script.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔄</div>
+      <h3>Snakemake &amp; Nextflow</h3>
+      <p>Every built-in template ships in both formats. Switch with <code>--engine nextflow</code>. Save directly to a file with <code>-o</code>.</p>
+    </div>
+  </div>
+
+  <div class="code-block" style="margin-top:2.5rem">
+    <div class="code-block-header">
+      <span style="color:var(--muted);font-size:0.8rem">// workflow commands</span>
+    </div>
+    <pre class="code-block-body"><span class="c"># List all built-in templates</span>
+<span class="prompt">$</span> oxo-call workflow list
+
+<span class="c"># Show the WGS Snakemake template</span>
+<span class="prompt">$</span> oxo-call workflow show wgs
+
+<span class="c"># Get the RNA-seq Nextflow pipeline</span>
+<span class="prompt">$</span> oxo-call workflow show rnaseq --engine nextflow &gt; rnaseq.nf
+
+<span class="c"># Generate a custom ChIP-seq workflow with LLM</span>
+<span class="prompt">$</span> oxo-call workflow generate \
+    "ChIP-seq H3K27ac: QC → Bowtie2 → MACS3 peaks vs input control" \
+    --engine snakemake \
+    --output chipseq.smk</pre>
   </div>
 </section>
 

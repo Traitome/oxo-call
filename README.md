@@ -157,6 +157,7 @@ oxo-call run --ask bcftools "call variants from my.bam against ref.fa and output
 | `config` | — | Read and write LLM/behavior settings |
 | `history` | — | Browse past command runs with exit codes and timestamps |
 | `skill` | — | List, show, or manage prompting skill files |
+| `workflow` | `wf` | Generate Snakemake / Nextflow workflows from natural language |
 | `license` | — | Verify your signed license file |
 
 </div>
@@ -338,6 +339,55 @@ oxo-call skill create mytool -o ~/.config/oxo-call/skills/mytool.toml
 | MSA & phylogenetics | mafft, muscle, iqtree2, fasttree |
 | Population genomics | plink2, admixture, angsd |
 | Comparative & functional genomics | orthofinder, eggnog-mapper |
+
+---
+
+### `workflow` — Generate bioinformatics workflow files
+
+The `workflow` command bridges individual `oxo-call run` invocations into
+complete, runnable **Snakemake** or **Nextflow** pipeline files.  It combines
+built-in production-tested templates for the most common assay types with an
+LLM-powered generator for custom pipelines.
+
+```
+oxo-call workflow list                            # List built-in workflow templates
+oxo-call workflow show  <NAME>                    # Print a built-in Snakemake template
+oxo-call workflow show  <NAME> --engine nextflow  # Print the Nextflow version
+oxo-call workflow generate "<TASK>"               # Generate a custom workflow with LLM
+oxo-call workflow generate "<TASK>" -e nextflow   # Generate a Nextflow workflow
+oxo-call workflow generate "<TASK>" -o wf.smk     # Save workflow to a file
+```
+
+**Built-in templates:**
+
+| Template | Assay | Steps |
+|----------|-------|-------|
+| `rnaseq` | Bulk RNA-seq | fastp → STAR → featureCounts → MultiQC |
+| `wgs` | Whole-genome sequencing | fastp → BWA-MEM2 → GATK BQSR → HaplotypeCaller |
+| `atacseq` | ATAC-seq / chromatin accessibility | fastp → Bowtie2 → Picard → MACS3 |
+| `metagenomics` | Shotgun metagenomics | fastp → host removal → Kraken2 → Bracken |
+
+Both Snakemake and Nextflow (DSL2) formats are available for every template.
+
+Examples:
+```bash
+# Inspect the RNA-seq Snakemake template
+oxo-call workflow show rnaseq
+
+# Get the WGS pipeline as a Nextflow file
+oxo-call workflow show wgs --engine nextflow > wgs.nf
+
+# Generate a custom chip-seq workflow with LLM and save to file
+oxo-call workflow generate \
+  "ChIP-seq for H3K27ac from paired-end Illumina reads, peak calling against input control" \
+  --engine snakemake \
+  --output chipseq_h3k27ac.smk
+
+# Generate a metagenomics de-novo assembly workflow
+oxo-call workflow generate \
+  "assemble shotgun metagenomics reads with MEGAHIT and then bin contigs with MetaBAT2" \
+  -e nextflow -o assembly.nf
+```
 
 ---
 

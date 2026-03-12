@@ -108,6 +108,13 @@ pub enum Commands {
         #[command(subcommand)]
         command: Option<LicenseCommands>,
     },
+
+    /// Generate bioinformatics workflow files (Snakemake / Nextflow)
+    #[command(visible_alias = "wf")]
+    Workflow {
+        #[command(subcommand)]
+        command: WorkflowCommands,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -237,6 +244,31 @@ pub enum SkillCommands {
 pub enum LicenseCommands {
     /// Verify the license file and display its details
     Verify,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum WorkflowCommands {
+    /// Generate a Snakemake or Nextflow workflow from a natural-language description
+    Generate {
+        /// Plain-English description of the bioinformatics workflow
+        task: String,
+        /// Target workflow engine: snakemake or nextflow
+        #[arg(short, long, default_value = "snakemake", value_parser = ["snakemake", "nextflow"])]
+        engine: String,
+        /// Write the generated workflow to this file (defaults to stdout)
+        #[arg(short, long)]
+        output: Option<std::path::PathBuf>,
+    },
+    /// List built-in workflow templates
+    List,
+    /// Show a built-in workflow template
+    Show {
+        /// Template name (see 'workflow list')
+        name: String,
+        /// Target workflow engine: snakemake or nextflow
+        #[arg(short, long, default_value = "snakemake", value_parser = ["snakemake", "nextflow"])]
+        engine: String,
+    },
 }
 
 #[cfg(test)]
