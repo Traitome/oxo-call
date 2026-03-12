@@ -29,19 +29,19 @@ pitfalls = [
 [[examples]]
 task = "parse Hi-C BWA alignments to pairs format"
 args = "parse --min-mapq 30 --walks-policy mask --max-inter-align-gap 30 -N sample --chroms-path chromsizes.txt sorted.bam > sample.pairs.gz"
-explanation "--min-mapq 30 quality filter; --walks-policy for multi-mapper handling; outputs .pairs.gz"
+explanation = "--min-mapq 30 quality filter; --walks-policy for multi-mapper handling; outputs .pairs.gz"
 
 [[examples]]
 task = "sort pairs file for deduplication"
 args = "sort sample.pairs.gz --nproc 16 --tmpdir /tmp/ > sample_sorted.pairs.gz"
-explanation "--nproc 16 parallel sorting; --tmpdir for temporary files"
+explanation = "--nproc 16 parallel sorting; --tmpdir for temporary files"
 
 [[examples]]
 task = "deduplicate sorted pairs file"
 args = "dedup --nproc 16 --output-stats dedup_stats.txt sample_sorted.pairs.gz > sample_dedup.pairs.gz"
-explanation "--output-stats generates deduplication statistics; required for Hi-C QC"
+explanation = "--output-stats generates deduplication statistics; required for Hi-C QC"
 
 [[examples]]
 task = "bin pairs into contact matrix using cooler"
 args = "cload pairs --chrom1 2 --pos1 3 --chrom2 4 --pos2 5 chromsizes.txt:5000 sample_dedup.pairs.gz sample_5kb.cool"
-explanation "cooler cload pairs; 5000 = bin size in bp; creates .cool matrix for visualization"
+explanation = "cooler cload pairs; 5000 = bin size in bp; creates .cool matrix for visualization"

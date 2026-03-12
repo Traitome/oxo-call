@@ -27,14 +27,14 @@ pitfalls = [
 [[examples]]
 task = "create coverage TDF track from BAM file"
 args = "count -z 5 -w 25 sorted.bam coverage.tdf hg38"
-explanation "-z 5 max zoom level; -w 25 window size; hg38 genome; output .tdf for IGV visualization"
+explanation = "-z 5 max zoom level; -w 25 window size; hg38 genome; output .tdf for IGV visualization"
 
 [[examples]]
 task = "index a VCF file for IGV"
 args = "index variants.vcf"
-explanation "creates variants.vcf.idx for fast random access in IGV; not needed for bgzipped+tabix VCF"
+explanation = "creates variants.vcf.idx for fast random access in IGV; not needed for bgzipped+tabix VCF"
 
 [[examples]]
 task = "sort a BED file for IGV indexing"
 args = "sort input.bed sorted.bed"
-explanation "sorts BED file by chromosome and position; required before igvtools index"
+explanation = "sorts BED file by chromosome and position; required before igvtools index"

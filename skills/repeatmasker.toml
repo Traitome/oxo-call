@@ -30,19 +30,19 @@ pitfalls = [
 [[examples]]
 task = "softmask repeats in a mammalian genome assembly"
 args = "-species human -xsmall -pa 16 -dir repeatmasker_output/ genome.fasta"
-explanation "-species human; -xsmall softmasking (lowercase repeats); -pa 16 parallel; -dir output directory"
+explanation = "-species human; -xsmall softmasking (lowercase repeats); -pa 16 parallel; -dir output directory"
 
 [[examples]]
 task = "hard-mask repeats in a plant genome"
 args = "-species arabidopsis -pa 8 -dir masked_output/ genome.fasta"
-explanation "default hard-masking with N; -species arabidopsis; -pa 8 for parallel processing"
+explanation = "default hard-masking with N; -species arabidopsis; -pa 8 for parallel processing"
 
 [[examples]]
 task = "mask repeats using a custom library"
 args = "-lib custom_repeats.fasta -xsmall -pa 8 -dir custom_masked/ genome.fasta"
-explanation "-lib custom repeat library; useful when species-specific repeats are known"
+explanation = "-lib custom repeat library; useful when species-specific repeats are known"
 
 [[examples]]
 task = "mask only simple repeats and low-complexity regions"
 args = "-noint -xsmall -pa 4 -dir simple_masked/ genome.fasta"
-explanation "-noint skips interspersed repeats (TEs); only masks simple repeats and low-complexity regions"
+explanation = "-noint skips interspersed repeats (TEs); only masks simple repeats and low-complexity regions"

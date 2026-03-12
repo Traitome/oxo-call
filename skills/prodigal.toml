@@ -29,19 +29,19 @@ pitfalls = [
 [[examples]]
 task = "predict genes in a bacterial genome and output protein and GFF files"
 args = "-i genome.fasta -a proteins.faa -d cds.fna -f gff -o gene_predictions.gff"
-explanation "-i input genome; -a protein FASTA output; -d CDS nucleotide FASTA; -f gff format; -o GFF output"
+explanation = "-i input genome; -a protein FASTA output; -d CDS nucleotide FASTA; -f gff format; -o GFF output"
 
 [[examples]]
 task = "predict genes in metagenomic contigs"
 args = "-i metagenomic_contigs.fasta -a meta_proteins.faa -d meta_cds.fna -f gff -o meta_genes.gff -p meta"
-explanation "-p meta mode for metagenomes or mixed/unknown organisms; handles fragmented sequences"
+explanation = "-p meta mode for metagenomes or mixed/unknown organisms; handles fragmented sequences"
 
 [[examples]]
 task = "predict genes with non-standard genetic code (Mycoplasma)"
 args = "-i mycoplasma_genome.fasta -a mycoplasma_proteins.faa -f gff -o mycoplasma_genes.gff -g 4"
-explanation "-g 4 specifies genetic code 4 (TGA codes for Trp instead of stop); for Mycoplasma/Spiroplasma"
+explanation = "-g 4 specifies genetic code 4 (TGA codes for Trp instead of stop); for Mycoplasma/Spiroplasma"
 
 [[examples]]
 task = "predict genes and output in GenBank format for import into annotation tools"
 args = "-i assembly.fasta -a proteins.faa -f gbk -o predictions.gbk"
-explanation "-f gbk GenBank format; compatible with many genome browsers and annotation tools"
+explanation = "-f gbk GenBank format; compatible with many genome browsers and annotation tools"

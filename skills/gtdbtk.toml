@@ -30,14 +30,14 @@ pitfalls = [
 [[examples]]
 task = "classify a directory of genome bins with GTDB-Tk"
 args = "classify_wf --genome_dir bins/ --out_dir gtdbtk_output/ --cpus 32 --extension fa"
-explanation "--genome_dir directory with .fa files; --out_dir results directory; --extension fa file extension"
+explanation = "--genome_dir directory with .fa files; --out_dir results directory; --extension fa file extension"
 
 [[examples]]
 task = "classify genomes with custom GTDB database path"
 args = "classify_wf --genome_dir bins/ --out_dir gtdbtk_output/ --cpus 32 --extension fasta --skip_ani_screen"
-explanation "--skip_ani_screen skips slow ANI check; faster for large datasets but may reduce accuracy"
+explanation = "--skip_ani_screen skips slow ANI check; faster for large datasets but may reduce accuracy"
 
 [[examples]]
 task = "run only the identification step (marker gene identification)"
 args = "identify --genome_dir bins/ --out_dir gtdbtk_identify/ --cpus 16 --extension fa"
-explanation "identify subcommand extracts marker genes; useful for intermediate workflow steps"
+explanation = "identify subcommand extracts marker genes; useful for intermediate workflow steps"

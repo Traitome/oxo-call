@@ -30,24 +30,24 @@ pitfalls = [
 [[examples]]
 task = "infer maximum-likelihood tree with automatic model selection"
 args = "-s alignment.fasta -m MFP --prefix my_tree -T AUTO"
-explanation "-m MFP: model selection + tree inference; --prefix names output files; -T AUTO detects CPU count"
+explanation = "-m MFP: model selection + tree inference; --prefix names output files; -T AUTO detects CPU count"
 
 [[examples]]
 task = "infer tree with ultrafast bootstrap and model selection"
 args = "-s alignment.fasta -m MFP -B 1000 --bnni --prefix bootstrap_tree -T 8"
-explanation "-B 1000 ultrafast bootstrap replicates; --bnni optimizes each bootstrap tree; standard approach"
+explanation = "-B 1000 ultrafast bootstrap replicates; --bnni optimizes each bootstrap tree; standard approach"
 
 [[examples]]
 task = "infer phylogenetic tree for protein sequences"
 args = "-s protein_alignment.fasta -st AA -m TEST -B 1000 --bnni --prefix protein_tree -T 8"
-explanation "-st AA specifies amino acid data type; -m TEST selects best protein substitution model"
+explanation = "-st AA specifies amino acid data type; -m TEST selects best protein substitution model"
 
 [[examples]]
 task = "infer concordance factor analysis for assessing gene tree discordance"
 args = "-s alignment.fasta -m MFP -B 1000 --prefix main_tree -T 8 --gcf gene_trees.txt --scfl 100"
-explanation "--gcf gene tree concordance factor; --scfl site concordance factor; requires per-gene trees"
+explanation = "--gcf gene tree concordance factor; --scfl site concordance factor; requires per-gene trees"
 
 [[examples]]
 task = "infer tree with standard bootstrap and specified outgroup"
 args = "-s alignment.fasta -m MFP -b 100 -o outgroup_taxon --prefix rooted_tree -T 8"
-explanation "-b 100 standard bootstrap (slower); -o outgroup_taxon roots the tree at specified taxon"
+explanation = "-b 100 standard bootstrap (slower); -o outgroup_taxon roots the tree at specified taxon"

@@ -45,9 +45,9 @@ explanation = "--kingdom Archaea switches annotation databases appropriate for a
 [[examples]]
 task = "annotate genome with custom protein database for improved annotation"
 args = "--kingdom Bacteria --proteins custom_proteins.faa --cpus 8 --outdir custom_annotation --prefix sample genome.fasta"
-explanation "--proteins adds custom protein FASTA for database-driven annotation; takes priority over defaults"
+explanation = "--proteins adds custom protein FASTA for database-driven annotation; takes priority over defaults"
 
 [[examples]]
 task = "annotate genome and add specific locus tag prefix"
 args = "--kingdom Bacteria --locustag MYORG --cpus 8 --outdir annotated --prefix genome_v1 assembly.fasta"
-explanation "--locustag sets locus tag prefix for gene names (e.g., MYORG_00001); important for GenBank submissions"
+explanation = "--locustag sets locus tag prefix for gene names (e.g., MYORG_00001); important for GenBank submissions"

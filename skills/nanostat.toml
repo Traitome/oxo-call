@@ -25,14 +25,14 @@ pitfalls = [
 [[examples]]
 task = "get statistics for ONT FASTQ reads"
 args = "--fastq reads.fastq.gz -t 4 --name sample_name"
-explanation "--fastq input; -t 4 threads; --name label for output report"
+explanation = "--fastq input; -t 4 threads; --name label for output report"
 
 [[examples]]
 task = "get statistics from ONT sequencing summary"
 args = "--summary sequencing_summary.txt -t 4 --name run_qc"
-explanation "--summary provides timing and per-read statistics from ONT MinKNOW"
+explanation = "--summary provides timing and per-read statistics from ONT MinKNOW"
 
 [[examples]]
 task = "get statistics from aligned BAM file"
 args = "--bam aligned_sorted.bam -t 4 --name aligned_stats"
-explanation "--bam for aligned long-read BAM; shows alignment-specific statistics"
+explanation = "--bam for aligned long-read BAM; shows alignment-specific statistics"

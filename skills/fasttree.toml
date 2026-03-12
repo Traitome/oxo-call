@@ -30,19 +30,19 @@ pitfalls = [
 [[examples]]
 task = "infer phylogenetic tree from nucleotide alignment"
 args = "-nt -gtr aligned_sequences.fasta > nucleotide_tree.nwk"
-explanation "-nt specifies nucleotide data; -gtr GTR substitution model; output Newick tree to file"
+explanation = "-nt specifies nucleotide data; -gtr GTR substitution model; output Newick tree to file"
 
 [[examples]]
 task = "infer phylogenetic tree from protein alignment"
 args = "aligned_proteins.fasta > protein_tree.nwk"
-explanation "protein data is default (no -nt flag); JTT model default; output Newick to file"
+explanation = "protein data is default (no -nt flag); JTT model default; output Newick to file"
 
 [[examples]]
 task = "infer tree with WAG protein substitution model"
 args = "-wag aligned_proteins.fasta > wag_tree.nwk"
-explanation "-wag uses WAG substitution model for proteins; commonly used for bacterial proteins"
+explanation = "-wag uses WAG substitution model for proteins; commonly used for bacterial proteins"
 
 [[examples]]
 task = "infer tree with local support values"
 args = "-nt -gtr -boot 1000 -seed 42 aligned_sequences.fasta > tree_with_support.nwk"
-explanation "-boot 1000 local support values; -seed 42 for reproducibility"
+explanation = "-boot 1000 local support values; -seed 42 for reproducibility"

@@ -30,29 +30,29 @@ pitfalls = [
 [[examples]]
 task = "assemble a bacterial genome from paired-end reads"
 args = "-1 R1.fastq.gz -2 R2.fastq.gz -o spades_output/ --threads 16 --memory 32 --careful"
-explanation "--careful reduces mismatches; --threads 16 cores; --memory 32 limits RAM to 32 GB"
+explanation = "--careful reduces mismatches; --threads 16 cores; --memory 32 limits RAM to 32 GB"
 
 [[examples]]
 task = "assemble a metagenome from paired-end reads"
 args = "--meta -1 R1.fastq.gz -2 R2.fastq.gz -o metaspades_output/ --threads 32 --memory 128"
-explanation "--meta enables metaSPAdes mode for metagenomic assembly; higher memory for diverse communities"
+explanation = "--meta enables metaSPAdes mode for metagenomic assembly; higher memory for diverse communities"
 
 [[examples]]
 task = "assemble plasmids from paired-end reads"
 args = "--plasmid -1 R1.fastq.gz -2 R2.fastq.gz -o plasmidspades_output/ --threads 8 --memory 16"
-explanation "--plasmid mode for plasmid assembly and recovery from whole-genome sequencing data"
+explanation = "--plasmid mode for plasmid assembly and recovery from whole-genome sequencing data"
 
 [[examples]]
 task = "assemble single-cell MDA amplified data"
 args = "--sc -1 R1.fastq.gz -2 R2.fastq.gz -o sc_spades_output/ --threads 8 --memory 32"
-explanation "--sc mode handles uneven coverage typical of single-cell amplified data"
+explanation = "--sc mode handles uneven coverage typical of single-cell amplified data"
 
 [[examples]]
 task = "resume interrupted SPAdes assembly"
 args = "-o spades_output/ --continue"
-explanation "--continue resumes from the last successfully completed stage; requires the same output directory"
+explanation = "--continue resumes from the last successfully completed stage; requires the same output directory"
 
 [[examples]]
 task = "assemble with both paired-end and long reads (hybrid assembly)"
 args = "-1 short_R1.fastq.gz -2 short_R2.fastq.gz --nanopore long_reads.fastq.gz -o hybrid_output/ --threads 16 --memory 64"
-explanation "--nanopore provides ONT long reads for hybrid assembly; SPAdes integrates short and long reads"
+explanation = "--nanopore provides ONT long reads for hybrid assembly; SPAdes integrates short and long reads"

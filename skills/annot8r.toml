@@ -26,14 +26,14 @@ pitfalls = [
 [[examples]]
 task = "annotate proteins with eggNOG-mapper for GO, KEGG, and COG terms"
 args = "emapper.py -i proteins.faa --output eggnog_annotation --output_dir eggnog_results/ -m diamond --cpu 16 --go_evidence non-electronic"
-explanation "emapper.py; -i protein FASTA; -m diamond for fast search; --go_evidence non-electronic for high-quality GO"
+explanation = "emapper.py; -i protein FASTA; -m diamond for fast search; --go_evidence non-electronic for high-quality GO"
 
 [[examples]]
 task = "run InterProScan for protein domain and GO annotation"
 args = "interproscan.sh -i proteins.faa -f tsv -o interpro_results.tsv --cpu 8 --goterms --pathways"
-explanation "-f tsv tabular output; --goterms adds GO term annotations; --pathways adds MetaCyc/Reactome"
+explanation = "-f tsv tabular output; --goterms adds GO term annotations; --pathways adds MetaCyc/Reactome"
 
 [[examples]]
 task = "annotate with eggNOG-mapper using pre-downloaded database"
 args = "emapper.py -i proteins.faa --data_dir /path/to/eggnog_db/ --output annotation --cpu 16 --override"
-explanation "--data_dir points to downloaded eggNOG database; --override overwrites existing output"
+explanation = "--data_dir points to downloaded eggNOG database; --override overwrites existing output"

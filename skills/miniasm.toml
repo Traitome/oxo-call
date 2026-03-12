@@ -28,14 +28,14 @@ pitfalls = [
 [[examples]]
 task = "compute all-vs-all overlaps for ONT reads with minimap2"
 args = "-x ava-ont -t 16 reads.fastq.gz reads.fastq.gz | gzip > overlaps.paf.gz"
-explanation "-x ava-ont preset for ONT all-vs-all overlap; -t 16 threads; gzip output overlaps"
+explanation = "-x ava-ont preset for ONT all-vs-all overlap; -t 16 threads; gzip output overlaps"
 
 [[examples]]
 task = "assemble ONT reads from precomputed overlaps"
 args = "-f reads.fastq.gz overlaps.paf.gz > assembly.gfa"
-explanation "-f reads FASTQ; overlaps PAF (can be gzipped); outputs GFA assembly"
+explanation = "-f reads FASTQ; overlaps PAF (can be gzipped); outputs GFA assembly"
 
 [[examples]]
 task = "convert miniasm GFA output to FASTA"
 args = "/^S/ {print \">\"$2\"\\n\"$3}"
-explanation "awk command: awk '/^S/ {print \">\"$2\"\\n\"$3}' assembly.gfa > assembly.fasta"
+explanation = "awk command: awk '/^S/ {print \">\"$2\"\\n\"$3}' assembly.gfa > assembly.fasta"

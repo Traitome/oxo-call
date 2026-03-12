@@ -29,19 +29,19 @@ pitfalls = [
 [[examples]]
 task = "build a reusable minimap2 index for ONT alignment"
 args = "-d reference_ont.mmi -x map-ont reference.fa"
-explanation "-d creates .mmi index; -x preset must match the intended alignment use"
+explanation = "-d creates .mmi index; -x preset must match the intended alignment use"
 
 [[examples]]
 task = "align long-read RNA-seq reads with splice-aware mode"
 args = "-ax splice --junc-bed known_junctions.bed -o rna_aligned.bam reference.fa rna_reads.fastq.gz"
-explanation "-ax splice for spliced alignment; --junc-bed provides known splice junctions for improved accuracy"
+explanation = "-ax splice for spliced alignment; --junc-bed provides known splice junctions for improved accuracy"
 
 [[examples]]
 task = "compare two genome assemblies with minimap2"
 args = "-ax asm5 -o asm_comparison.sam assembly1.fa assembly2.fa"
-explanation "-x asm5 for similar assemblies (<5% divergence); -c for PAF output (better for dotplots)"
+explanation = "-x asm5 for similar assemblies (<5% divergence); -c for PAF output (better for dotplots)"
 
 [[examples]]
 task = "compute all-vs-all overlaps for assembly (e.g., for Miniasm)"
 args = "-x ava-ont -t 16 reads.fastq.gz reads.fastq.gz | gzip > overlaps.paf.gz"
-explanation "-x ava-ont all-vs-all for ONT reads; -x ava-pb for PacBio; used for de novo assembly"
+explanation = "-x ava-ont all-vs-all for ONT reads; -x ava-pb for PacBio; used for de novo assembly"

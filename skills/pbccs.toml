@@ -30,19 +30,19 @@ pitfalls = [
 [[examples]]
 task = "generate HiFi reads from PacBio subreads BAM"
 args = "subreads.bam hifi_reads.bam -j 32 --min-rq 0.99"
-explanation "input subreads BAM; output HiFi BAM; -j 32 threads; --min-rq 0.99 minimum Q20 quality"
+explanation = "input subreads BAM; output HiFi BAM; -j 32 threads; --min-rq 0.99 minimum Q20 quality"
 
 [[examples]]
 task = "generate HiFi reads with minimum 3 SMRTbell passes"
 args = "subreads.bam hifi_reads.bam -j 32 --min-rq 0.99 --min-passes 3"
-explanation "--min-passes 3 ensures 3 complete circular passes; improves consensus accuracy"
+explanation = "--min-passes 3 ensures 3 complete circular passes; improves consensus accuracy"
 
 [[examples]]
 task = "generate HiFi reads with kinetics for methylation calling"
 args = "subreads.bam hifi_reads_kinetics.bam -j 32 --min-rq 0.99 --hifi-kinetics"
-explanation "--hifi-kinetics adds IPD and pulse width tags for subsequent methylation analysis"
+explanation = "--hifi-kinetics adds IPD and pulse width tags for subsequent methylation analysis"
 
 [[examples]]
 task = "generate HiFi reads using chunked processing for distributed computing"
 args = "subreads.bam chunk1.bam -j 16 --min-rq 0.99 --chunk 1/4"
-explanation "--chunk 1/4 processes first quarter; run chunks 1-4 in parallel, then merge with pbmerge"
+explanation = "--chunk 1/4 processes first quarter; run chunks 1-4 in parallel, then merge with pbmerge"

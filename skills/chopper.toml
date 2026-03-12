@@ -29,19 +29,19 @@ pitfalls = [
 [[examples]]
 task = "filter ONT reads by minimum quality Q10 and minimum length 1000 bp"
 args = "-q 10 -l 1000 --threads 8"
-explanation "pipe: gunzip -c reads.fastq.gz | chopper -q 10 -l 1000 --threads 8 | gzip > filtered.fastq.gz"
+explanation = "pipe: gunzip -c reads.fastq.gz | chopper -q 10 -l 1000 --threads 8 | gzip > filtered.fastq.gz"
 
 [[examples]]
 task = "filter high-quality ONT reads for variant calling (Q15, min 500 bp)"
 args = "-q 15 -l 500 --threads 8"
-explanation "Q15 ≈ 97% accuracy; -l 500 minimum length; pipe input from gunzip and output to gzip"
+explanation = "Q15 ≈ 97% accuracy; -l 500 minimum length; pipe input from gunzip and output to gzip"
 
 [[examples]]
 task = "filter reads and remove low-quality ends"
 args = "-q 10 -l 1000 --headcrop 30 --tailcrop 30 --threads 8"
-explanation "--headcrop 30 removes first 30 bases (often lower quality); --tailcrop 30 removes last 30 bases"
+explanation = "--headcrop 30 removes first 30 bases (often lower quality); --tailcrop 30 removes last 30 bases"
 
 [[examples]]
 task = "filter reads with maximum length cutoff for specific applications"
 args = "-q 8 -l 200 --maxlength 50000 --threads 4"
-explanation "--maxlength removes very long reads that may be chimeric; -l 200 for short-fragment applications"
+explanation = "--maxlength removes very long reads that may be chimeric; -l 200 for short-fragment applications"

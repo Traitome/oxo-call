@@ -28,24 +28,24 @@ pitfalls = [
 [[examples]]
 task = "get alignment statistics from a BAM file"
 args = "stats -in input.bam > alignment_stats.txt"
-explanation "stats subcommand provides total reads, mapped, unmapped, duplicates, paired statistics"
+explanation = "stats subcommand provides total reads, mapped, unmapped, duplicates, paired statistics"
 
 [[examples]]
 task = "count aligned reads in a BAM file"
 args = "count -in input.bam"
-explanation "count outputs total read count to stdout"
+explanation = "count outputs total read count to stdout"
 
 [[examples]]
 task = "filter BAM to keep only mapped, properly paired reads"
 args = "filter -in input.bam -out filtered.bam -isMapped true -isProperPair true"
-explanation "-isMapped true keeps only mapped reads; -isProperPair true keeps properly paired reads"
+explanation = "-isMapped true keeps only mapped reads; -isProperPair true keeps properly paired reads"
 
 [[examples]]
 task = "merge multiple BAM files"
 args = "merge -in sample1.bam -in sample2.bam -in sample3.bam -out merged.bam"
-explanation "multiple -in flags for each input BAM; -out for merged output"
+explanation = "multiple -in flags for each input BAM; -out for merged output"
 
 [[examples]]
 task = "convert BAM to FASTQ"
 args = "convert -in input.bam -format fastq -out reads.fastq"
-explanation "-format fastq; also supports -format sam, fasta, bed, json"
+explanation = "-format fastq; also supports -format sam, fasta, bed, json"

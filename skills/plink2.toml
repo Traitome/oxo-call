@@ -30,24 +30,24 @@ pitfalls = [
 [[examples]]
 task = "convert VCF to PLINK2 binary format"
 args = "--vcf variants.vcf --make-pgen --out plink_dataset --set-missing-var-ids @:#[b37]\\$r,\\$a --max-alleles 2"
-explanation "--make-pgen creates PLINK2 .pgen/.pvar/.psam; --set-missing-var-ids sets variant IDs; --max-alleles 2 for biallelic"
+explanation = "--make-pgen creates PLINK2 .pgen/.pvar/.psam; --set-missing-var-ids sets variant IDs; --max-alleles 2 for biallelic"
 
 [[examples]]
 task = "perform quality control filtering on PLINK dataset"
 args = "--pfile plink_dataset --maf 0.01 --geno 0.05 --mind 0.1 --hwe 1e-6 --make-pgen --out qc_filtered"
-explanation "--maf 0.01 minor allele frequency; --geno 0.05 SNP missingness; --mind 0.1 sample missingness; --hwe Hardy-Weinberg"
+explanation = "--maf 0.01 minor allele frequency; --geno 0.05 SNP missingness; --mind 0.1 sample missingness; --hwe Hardy-Weinberg"
 
 [[examples]]
 task = "perform LD pruning and compute PCA"
 args = "--pfile plink_dataset --indep-pairwise 50 10 0.1 --out ld_prune && plink2 --pfile plink_dataset --extract ld_prune.prune.in --pca 20 --out pca_results"
-explanation "two steps: first LD prune; then PCA with pruned variants; --pca 20 top 20 PCs"
+explanation = "two steps: first LD prune; then PCA with pruned variants; --pca 20 top 20 PCs"
 
 [[examples]]
 task = "run genome-wide association study (GWAS) for binary phenotype"
 args = "--pfile plink_dataset --pheno phenotypes.txt --pheno-name case_control --covar covariates.txt --glm hide-covar --out gwas_results"
-explanation "--glm for logistic regression; --pheno phenotype file; --covar covariates (PCs, age, sex); --hide-covar suppresses covariate output"
+explanation = "--glm for logistic regression; --pheno phenotype file; --covar covariates (PCs, age, sex); --hide-covar suppresses covariate output"
 
 [[examples]]
 task = "compute kinship/relatedness matrix"
 args = "--pfile plink_dataset --extract ld_prune.prune.in --make-king-table --out kinship_matrix"
-explanation "--make-king-table computes KING relatedness coefficients; use LD-pruned variants"
+explanation = "--make-king-table computes KING relatedness coefficients; use LD-pruned variants"

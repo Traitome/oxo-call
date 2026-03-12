@@ -29,19 +29,19 @@ pitfalls = [
 [[examples]]
 task = "trim adapters from Oxford Nanopore FASTQ reads"
 args = "-i reads.fastq.gz -o trimmed_reads.fastq.gz --threads 8"
-explanation "-i input gzipped FASTQ; -o output trimmed gzipped FASTQ; --threads 8 parallel"
+explanation = "-i input gzipped FASTQ; -o output trimmed gzipped FASTQ; --threads 8 parallel"
 
 [[examples]]
 task = "trim adapters and remove chimeric reads"
 args = "-i reads.fastq.gz -o trimmed_no_chimeras.fastq.gz --discard_middle --threads 8"
-explanation "--discard_middle removes reads with internal adapters (chimeras) instead of splitting"
+explanation = "--discard_middle removes reads with internal adapters (chimeras) instead of splitting"
 
 [[examples]]
 task = "demultiplex barcoded ONT reads into separate files"
 args = "-i barcoded_reads.fastq.gz -b demultiplexed_reads/ --threads 8"
-explanation "-b specifies output directory; creates one FASTQ per barcode bin"
+explanation = "-b specifies output directory; creates one FASTQ per barcode bin"
 
 [[examples]]
 task = "trim adapters and set minimum length output"
 args = "-i reads.fastq.gz -o trimmed.fastq.gz --min_split_read_size 1000 --threads 8"
-explanation "--min_split_read_size 1000 discards split reads shorter than 1000 bp"
+explanation = "--min_split_read_size 1000 discards split reads shorter than 1000 bp"

@@ -30,19 +30,19 @@ pitfalls = [
 [[examples]]
 task = "polish an ONT assembly with Medaka (all-in-one pipeline)"
 args = "medaka_consensus -i reads.fastq.gz -d draft_assembly.fasta -o medaka_output/ -t 8 -m r941_min_hac_g507"
-explanation "-i ONT reads; -d draft assembly; -o output directory; -m model matching your basecaller version"
+explanation = "-i ONT reads; -d draft assembly; -o output directory; -m model matching your basecaller version"
 
 [[examples]]
 task = "call variants from ONT reads (haploid)"
 args = "medaka_haploid_variant -i reads.fastq.gz -r reference.fasta -o medaka_variants/ -t 8 -m r941_min_hac_g507"
-explanation "medaka_haploid_variant for haploid variant calling (bacteria, viruses); -r reference FASTA"
+explanation = "medaka_haploid_variant for haploid variant calling (bacteria, viruses); -r reference FASTA"
 
 [[examples]]
 task = "list available Medaka models"
 args = "tools list_models"
-explanation "lists all available models; select the appropriate model for your flowcell and basecaller version"
+explanation = "lists all available models; select the appropriate model for your flowcell and basecaller version"
 
 [[examples]]
 task = "run Medaka consensus with GPU acceleration"
 args = "medaka_consensus -i reads.fastq.gz -d draft.fasta -o medaka_gpu/ -t 2 -m r1041_e82_400bps_hac_v4.2.0 --gpu"
-explanation "--gpu uses CUDA for faster neural network inference; reduce -t when using GPU"
+explanation = "--gpu uses CUDA for faster neural network inference; reduce -t when using GPU"

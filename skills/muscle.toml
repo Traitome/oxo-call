@@ -29,19 +29,19 @@ pitfalls = [
 [[examples]]
 task = "align multiple protein sequences with MUSCLE v5"
 args = "-align proteins.fasta -output aligned_proteins.fasta -threads 8"
-explanation "-align input FASTA; -output aligned FASTA; -threads 8 parallel"
+explanation = "-align input FASTA; -output aligned FASTA; -threads 8 parallel"
 
 [[examples]]
 task = "align a large dataset with MUSCLE v5 super5 mode"
 args = "-super5 large_dataset.fasta -output large_aligned.fasta -threads 16"
-explanation "-super5 for >1000 sequences; lower memory usage; suitable for large datasets"
+explanation = "-super5 for >1000 sequences; lower memory usage; suitable for large datasets"
 
 [[examples]]
 task = "align sequences with MUSCLE v3 syntax (legacy)"
 args = "-in sequences.fasta -out aligned.fasta"
-explanation "MUSCLE v3 syntax; -in input; -out output; auto-detects protein/nucleotide"
+explanation = "MUSCLE v3 syntax; -in input; -out output; auto-detects protein/nucleotide"
 
 [[examples]]
 task = "generate multiple alignment replicates for uncertainty estimation"
 args = "-align sequences.fasta -output aligned.fasta -replicates 5 -threads 8"
-explanation "-replicates 5 generates 5 alternative alignments; use for ensemble-based analysis"
+explanation = "-replicates 5 generates 5 alternative alignments; use for ensemble-based analysis"

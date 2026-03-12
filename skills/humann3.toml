@@ -30,19 +30,19 @@ pitfalls = [
 [[examples]]
 task = "run HUMAnN3 functional profiling on metagenomic reads"
 args = "--input reads.fastq.gz --output humann3_output/ --threads 16 --nucleotide-database /path/to/chocophlan --protein-database /path/to/uniref90"
-explanation "--input FASTQ; --output directory; --threads 16; explicit database paths for reproducibility"
+explanation = "--input FASTQ; --output directory; --threads 16; explicit database paths for reproducibility"
 
 [[examples]]
 task = "run HUMAnN3 on concatenated paired-end reads"
 args = "--input merged_R1R2.fastq.gz --output humann3_output/ --threads 16 --bypass-nucleotide-index"
-explanation "merge PE reads: cat R1.fq.gz R2.fq.gz > merged.fq.gz; --bypass-nucleotide-index for faster run"
+explanation = "merge PE reads: cat R1.fq.gz R2.fq.gz > merged.fq.gz; --bypass-nucleotide-index for faster run"
 
 [[examples]]
 task = "normalize HUMAnN3 gene family output to relative abundance"
 args = "--input sample_genefamilies.tsv --output sample_genefamilies_relab.tsv --units relab"
-explanation "humann_renorm_table normalizes to relative abundance (relab) or copies per million (cpm)"
+explanation = "humann_renorm_table normalizes to relative abundance (relab) or copies per million (cpm)"
 
 [[examples]]
 task = "join multiple HUMAnN3 gene family tables into one matrix"
 args = "--input humann3_results/ --output merged_genefamilies.tsv"
-explanation "humann_join_tables merges all *_genefamilies.tsv files from the directory into one table"
+explanation = "humann_join_tables merges all *_genefamilies.tsv files from the directory into one table"

@@ -30,19 +30,19 @@ pitfalls = [
 [[examples]]
 task = "predict genes in a eukaryotic genome using human parameters"
 args = "--species=human genome.fasta --gff3=on > augustus_predictions.gff3"
-explanation "--species=human trained model; --gff3=on standard output format; output redirected to GFF3 file"
+explanation = "--species=human trained model; --gff3=on standard output format; output redirected to GFF3 file"
 
 [[examples]]
 task = "predict genes with RNA-seq hints for improved accuracy"
 args = "--species=arabidopsis --hintsfile=rnaseq_hints.gff --extrinsicCfgFile=extrinsic.cfg genome.fasta --gff3=on > improved_predictions.gff3"
-explanation "--hintsfile provides RNA-seq intron/exon hints; --extrinsicCfgFile sets weights for hint integration"
+explanation = "--hintsfile provides RNA-seq intron/exon hints; --extrinsicCfgFile sets weights for hint integration"
 
 [[examples]]
 task = "predict genes and output protein sequences"
 args = "--species=fly --gff3=on --protein=on --codingseq=on genome.fasta > fly_predictions.gff3"
-explanation "--protein=on outputs protein sequences in GFF3; --codingseq=on outputs CDS sequences"
+explanation = "--protein=on outputs protein sequences in GFF3; --codingseq=on outputs CDS sequences"
 
 [[examples]]
 task = "run Augustus on a repeat-masked genome"
 args = "--species=zebrafish zebrafish_masked.fasta --gff3=on --softmasking=1 > zebrafish_genes.gff3"
-explanation "--softmasking=1 uses softmasked repeat regions (lowercase) to avoid predicting genes in repeats"
+explanation = "--softmasking=1 uses softmasked repeat regions (lowercase) to avoid predicting genes in repeats"

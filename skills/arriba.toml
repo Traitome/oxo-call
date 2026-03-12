@@ -29,14 +29,14 @@ pitfalls = [
 [[examples]]
 task = "run STAR with chimeric output for Arriba fusion detection"
 args = "--runMode alignReads --genomeDir /star_index/ --readFilesIn R1.fastq.gz R2.fastq.gz --readFilesCommand zcat --runThreadN 8 --outSAMtype BAM SortedByCoordinate --outFileNamePrefix sample/ --chimSegmentMin 10 --chimOutType WithinBAM --chimJunctionOverhangMin 10 --chimScoreDropMax 30 --peOverlapNbasesMin 12"
-explanation "required STAR chimeric parameters for Arriba; these flags enable chimeric read detection"
+explanation = "required STAR chimeric parameters for Arriba; these flags enable chimeric read detection"
 
 [[examples]]
 task = "detect gene fusions with Arriba"
 args = "-x sample/Aligned.sortedByCoord.out.bam -o fusions.tsv -O discarded_fusions.tsv -g genome.fa -a genes.gtf -b blacklist_hg38_GRCh38_v2.4.0.tsv.gz"
-explanation "-x STAR BAM; -g genome FASTA; -a GTF; -b blacklist; -o fusions output; -O discarded fusions"
+explanation = "-x STAR BAM; -g genome FASTA; -a GTF; -b blacklist; -o fusions output; -O discarded fusions"
 
 [[examples]]
 task = "visualize detected fusions with Arriba draw_fusions"
 args = "draw_fusions.R --fusions=fusions.tsv --alignments=sample/Aligned.sortedByCoord.out.bam --genome=genome.fa --annotation=genes.gtf --output=fusion_plots.pdf"
-explanation "R script for fusion visualization; outputs PDF with structural diagrams for each fusion"
+explanation = "R script for fusion visualization; outputs PDF with structural diagrams for each fusion"

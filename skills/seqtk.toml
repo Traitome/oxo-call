@@ -29,29 +29,29 @@ pitfalls = [
 [[examples]]
 task = "subsample 1 million read pairs from paired-end FASTQ files"
 args = "sample -s 42 R1.fastq.gz 1000000 | gzip > sub_R1.fastq.gz"
-explanation "-s 42 random seed; same seed must be used for R2: seqtk sample -s 42 R2.fastq.gz 1000000 | gzip > sub_R2.fastq.gz"
+explanation = "-s 42 random seed; same seed must be used for R2: seqtk sample -s 42 R2.fastq.gz 1000000 | gzip > sub_R2.fastq.gz"
 
 [[examples]]
 task = "convert FASTQ to FASTA format"
 args = "seq -a reads.fastq.gz > reads.fasta"
-explanation "-a flag outputs FASTA format; works on both compressed and uncompressed FASTQ"
+explanation = "-a flag outputs FASTA format; works on both compressed and uncompressed FASTQ"
 
 [[examples]]
 task = "reverse complement all sequences in a FASTA file"
 args = "seq -r sequences.fasta > revcomp.fasta"
-explanation "-r flag reverse complements all sequences"
+explanation = "-r flag reverse complements all sequences"
 
 [[examples]]
 task = "extract specific sequences by name from a FASTQ file"
 args = "subseq reads.fastq.gz read_names.txt > extracted_reads.fastq"
-explanation "read_names.txt contains one read name per line; extracts matching reads"
+explanation = "read_names.txt contains one read name per line; extracts matching reads"
 
 [[examples]]
 task = "quality trim reads below Phred 20 from both ends"
 args = "trimfq -q 0.05 reads.fastq.gz | gzip > trimmed.fastq.gz"
-explanation "-q sets the trimming error rate (0.05 ≈ Phred 13); alternatively use -l and -r for fixed trimming"
+explanation = "-q sets the trimming error rate (0.05 ≈ Phred 13); alternatively use -l and -r for fixed trimming"
 
 [[examples]]
 task = "subsample 10% of reads with reproducible seed"
 args = "sample -s 100 reads.fastq.gz 0.1 > subsampled_10pct.fastq"
-explanation "-s 100 random seed; 0.1 is 10% fraction; for PE use same seed on both files"
+explanation = "-s 100 random seed; 0.1 is 10% fraction; for PE use same seed on both files"

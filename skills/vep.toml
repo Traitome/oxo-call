@@ -30,19 +30,19 @@ pitfalls = [
 [[examples]]
 task = "annotate VCF variants with VEP using offline cache"
 args = "--input_file variants.vcf --output_file annotated.vcf --vcf --cache --dir_cache /path/to/cache/ --assembly GRCh38 --fork 8 --offline"
-explanation "--cache offline mode; --vcf output VCF; --assembly GRCh38; --fork 8 parallel; --offline for speed"
+explanation = "--cache offline mode; --vcf output VCF; --assembly GRCh38; --fork 8 parallel; --offline for speed"
 
 [[examples]]
 task = "annotate with all standard functional predictions"
 args = "--input_file variants.vcf --output_file annotated.vcf --vcf --cache --dir_cache /path/to/cache/ --assembly GRCh38 --everything --fork 8 --offline"
-explanation "--everything enables SIFT, PolyPhen, gnomAD AF, ClinVar, dbSNP, and all standard annotations"
+explanation = "--everything enables SIFT, PolyPhen, gnomAD AF, ClinVar, dbSNP, and all standard annotations"
 
 [[examples]]
 task = "annotate and pick single most severe consequence per variant"
 args = "--input_file variants.vcf --output_file annotated.vcf --vcf --cache --dir_cache /path/to/cache/ --assembly GRCh38 --pick --fork 8 --offline"
-explanation "--pick selects one annotation per variant (most severe consequence); reduces output size"
+explanation = "--pick selects one annotation per variant (most severe consequence); reduces output size"
 
 [[examples]]
 task = "annotate with gnomAD population frequencies"
 args = "--input_file variants.vcf --output_file annotated.vcf --vcf --cache --dir_cache /path/to/cache/ --assembly GRCh38 --af_gnomad --fork 8 --offline"
-explanation "--af_gnomad adds gnomAD allele frequencies for all populations; useful for filtering rare variants"
+explanation = "--af_gnomad adds gnomAD allele frequencies for all populations; useful for filtering rare variants"

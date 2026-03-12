@@ -29,19 +29,19 @@ pitfalls = [
 [[examples]]
 task = "convert BED file from hg19 to hg38 coordinates"
 args = "bed hg19ToHg38.over.chain.gz input_hg19.bed output_hg38.bed"
-explanation "bed subcommand; chain file specifies conversion direction; output is lifted-over BED"
+explanation = "bed subcommand; chain file specifies conversion direction; output is lifted-over BED"
 
 [[examples]]
 task = "convert VCF file from hg19 to hg38 with target reference"
 args = "vcf hg19ToHg38.over.chain.gz input_hg19.vcf hg38_reference.fa output_hg38.vcf"
-explanation "vcf subcommand; requires target FASTA for REF allele check; unlifted variants go to .unmap"
+explanation = "vcf subcommand; requires target FASTA for REF allele check; unlifted variants go to .unmap"
 
 [[examples]]
 task = "convert GFF/GTF annotation from one assembly to another"
 args = "gff hg19ToHg38.over.chain.gz annotation_hg19.gtf output_hg38.gtf"
-explanation "gff subcommand handles both GFF and GTF format conversion"
+explanation = "gff subcommand handles both GFF and GTF format conversion"
 
 [[examples]]
 task = "convert BAM file from one genome build to another"
 args = "bam hg19ToHg38.over.chain.gz input_hg19.bam output_hg38.bam"
-explanation "bam subcommand; re-sort output with samtools sort; update header SQ lines with new coordinates"
+explanation = "bam subcommand; re-sort output with samtools sort; update header SQ lines with new coordinates"

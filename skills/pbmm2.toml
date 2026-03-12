@@ -28,19 +28,19 @@ pitfalls = [
 [[examples]]
 task = "align PacBio HiFi reads to reference genome"
 args = "align --preset HIFI --sort -j 16 --sort-threads 4 reference.fa hifi_reads.bam aligned_sorted.bam"
-explanation "--preset HIFI; --sort for sorted output; -j 16 alignment threads; input PacBio BAM; output sorted BAM"
+explanation = "--preset HIFI; --sort for sorted output; -j 16 alignment threads; input PacBio BAM; output sorted BAM"
 
 [[examples]]
 task = "align PacBio IsoSeq transcriptome reads"
 args = "align --preset ISOSEQ --sort -j 8 reference.fa isoseq_reads.bam isoseq_aligned.bam"
-explanation "--preset ISOSEQ for transcript alignment with splice-aware settings"
+explanation = "--preset ISOSEQ for transcript alignment with splice-aware settings"
 
 [[examples]]
 task = "index reference genome for repeated pbmm2 use"
 args = "index reference.fa reference.mmi"
-explanation "creates minimap2 index for faster repeated alignment; pass .mmi to align -d option"
+explanation = "creates minimap2 index for faster repeated alignment; pass .mmi to align -d option"
 
 [[examples]]
 task = "align CLR (subread) PacBio reads"
 args = "align --preset SUBREAD --sort -j 16 reference.fa subreads.bam clr_aligned.bam"
-explanation "--preset SUBREAD for raw CLR reads; longer, noisier reads require different alignment parameters"
+explanation = "--preset SUBREAD for raw CLR reads; longer, noisier reads require different alignment parameters"

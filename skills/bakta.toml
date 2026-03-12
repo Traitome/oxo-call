@@ -30,14 +30,14 @@ pitfalls = [
 [[examples]]
 task = "annotate a bacterial genome with Bakta"
 args = "--db /path/to/bakta_db/ --threads 8 --output annotation/ --prefix genome_annotation genome.fasta"
-explanation "--db database path; --threads 8; --output directory; --prefix file naming prefix"
+explanation = "--db database path; --threads 8; --output directory; --prefix file naming prefix"
 
 [[examples]]
 task = "annotate genome for NCBI submission"
 args = "--db /path/to/bakta_db/ --compliant --locus-tag MYORG --genus Escherichia --species coli --threads 8 --output ncbi_annotation/ --prefix ecoli_K12 genome.fasta"
-explanation "--compliant INSDC-compliant format; --locus-tag gene name prefix; required for NCBI submission"
+explanation = "--compliant INSDC-compliant format; --locus-tag gene name prefix; required for NCBI submission"
 
 [[examples]]
 task = "annotate plasmid sequence"
 args = "--db /path/to/bakta_db/ --plasmid --threads 4 --output plasmid_annotation/ --prefix plasmid plasmid.fasta"
-explanation "--plasmid adjusts for circular plasmid topology"
+explanation = "--plasmid adjusts for circular plasmid topology"

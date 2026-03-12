@@ -30,24 +30,24 @@ pitfalls = [
 [[examples]]
 task = "assess completeness of a bacterial genome assembly"
 args = "-i genome_assembly.fasta -o busco_bacteria -l bacteria_odb10 -m genome -c 8"
-explanation "-l bacteria_odb10 bacterial lineage dataset; -m genome mode; -c 8 threads; output in busco_bacteria/"
+explanation = "-l bacteria_odb10 bacterial lineage dataset; -m genome mode; -c 8 threads; output in busco_bacteria/"
 
 [[examples]]
 task = "assess completeness of a eukaryotic genome assembly"
 args = "-i eukaryote_assembly.fasta -o busco_euk -l eukaryota_odb10 -m genome -c 16"
-explanation "eukaryota_odb10 is the broadest eukaryote dataset; use vertebrata_odb10 or insecta_odb10 for more specific"
+explanation = "eukaryota_odb10 is the broadest eukaryote dataset; use vertebrata_odb10 or insecta_odb10 for more specific"
 
 [[examples]]
 task = "assess proteome completeness from predicted proteins"
 args = "-i proteins.faa -o busco_proteome -l fungi_odb10 -m proteins -c 8"
-explanation "-m proteins for proteome mode; faster than genome mode; -l fungi_odb10 for fungal proteins"
+explanation = "-m proteins for proteome mode; faster than genome mode; -l fungi_odb10 for fungal proteins"
 
 [[examples]]
 task = "assess transcriptome completeness"
 args = "-i transcriptome.fasta -o busco_transcriptome -l vertebrata_odb10 -m transcriptome -c 8"
-explanation "-m transcriptome mode; -l vertebrata_odb10 for vertebrate transcriptome completeness"
+explanation = "-m transcriptome mode; -l vertebrata_odb10 for vertebrate transcriptome completeness"
 
 [[examples]]
 task = "run BUSCO with automatic lineage detection"
 args = "-i genome.fasta -o busco_autolineage -m genome --auto-lineage -c 16"
-explanation "--auto-lineage automatically selects best lineage; useful when unsure of phylogenetic placement"
+explanation = "--auto-lineage automatically selects best lineage; useful when unsure of phylogenetic placement"

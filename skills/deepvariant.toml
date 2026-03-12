@@ -30,19 +30,19 @@ pitfalls = [
 [[examples]]
 task = "call variants from Illumina WGS data using DeepVariant"
 args = "run_deepvariant --model_type WGS --ref reference.fa --input_bam sorted.bam --output_vcf output.vcf --output_gvcf output.g.vcf --num_shards 16"
-explanation "--model_type WGS for Illumina whole-genome; --num_shards 16 parallel CPU shards"
+explanation = "--model_type WGS for Illumina whole-genome; --num_shards 16 parallel CPU shards"
 
 [[examples]]
 task = "call variants from PacBio HiFi data"
 args = "run_deepvariant --model_type PACBIO --ref reference.fa --input_bam hifi_sorted.bam --output_vcf pacbio_variants.vcf --output_gvcf pacbio.g.vcf --num_shards 16"
-explanation "--model_type PACBIO for CCS/HiFi reads; dedicated model for long high-accuracy reads"
+explanation = "--model_type PACBIO for CCS/HiFi reads; dedicated model for long high-accuracy reads"
 
 [[examples]]
 task = "call variants from Oxford Nanopore reads"
 args = "run_deepvariant --model_type ONT --ref reference.fa --input_bam ont_sorted.bam --output_vcf ont_variants.vcf --output_gvcf ont.g.vcf --num_shards 16"
-explanation "--model_type ONT for Nanopore reads; trained on ONT-specific error profiles"
+explanation = "--model_type ONT for Nanopore reads; trained on ONT-specific error profiles"
 
 [[examples]]
 task = "call variants from WES data"
 args = "run_deepvariant --model_type WES --ref reference.fa --input_bam wes_sorted.bam --regions targets.bed --output_vcf wes_variants.vcf --output_gvcf wes.g.vcf --num_shards 8"
-explanation "--model_type WES for whole-exome; --regions restricts calling to target BED regions"
+explanation = "--model_type WES for whole-exome; --regions restricts calling to target BED regions"

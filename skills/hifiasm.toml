@@ -30,24 +30,24 @@ pitfalls = [
 [[examples]]
 task = "assemble genome from PacBio HiFi reads"
 args = "-o assembly -t 32 hifi_reads.fastq.gz"
-explanation "-o output prefix; -t 32 threads; creates assembly.bp.hap1.p_ctg.gfa and assembly.bp.hap2.p_ctg.gfa"
+explanation = "-o output prefix; -t 32 threads; creates assembly.bp.hap1.p_ctg.gfa and assembly.bp.hap2.p_ctg.gfa"
 
 [[examples]]
 task = "haplotype-resolved assembly with Hi-C phasing data"
 args = "-o phased_assembly -t 32 --h1 hic_R1.fastq.gz --h2 hic_R2.fastq.gz hifi_reads.fastq.gz"
-explanation "--h1/--h2 provide Hi-C reads for haplotype phasing alongside HiFi reads"
+explanation = "--h1/--h2 provide Hi-C reads for haplotype phasing alongside HiFi reads"
 
 [[examples]]
 task = "convert hifiasm GFA output to FASTA"
 args = "/^S/ {print \">\"$2; print $3}"
-explanation "awk command: awk '/^S/ {print \">\"$2; print $3}' assembly.bp.hap1.p_ctg.gfa > hap1.fasta"
+explanation = "awk command: awk '/^S/ {print \">\"$2; print $3}' assembly.bp.hap1.p_ctg.gfa > hap1.fasta"
 
 [[examples]]
 task = "assemble with ultra-long ONT reads for improved scaffolding"
 args = "-o assembly -t 32 --ul ultralong_reads.fastq.gz hifi_reads.fastq.gz"
-explanation "--ul adds ultra-long ONT reads (>100kb) to improve scaffold N50 and telomere-to-telomere assembly"
+explanation = "--ul adds ultra-long ONT reads (>100kb) to improve scaffold N50 and telomere-to-telomere assembly"
 
 [[examples]]
 task = "assemble with aggressive duplicate purging"
 args = "-o assembly -t 32 -l 3 hifi_reads.fastq.gz"
-explanation "-l 3 aggressive purging level; useful for highly heterozygous genomes with duplicate haplotigs"
+explanation = "-l 3 aggressive purging level; useful for highly heterozygous genomes with duplicate haplotigs"

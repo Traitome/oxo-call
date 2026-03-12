@@ -49,4 +49,4 @@ explanation = "population files list one sample ID per line; --fst-window-size f
 [[examples]]
 task = "convert VCF to PLINK format for downstream analysis"
 args = "--vcf variants.vcf --plink --out plink_dataset"
-explanation "--plink creates .ped and .map files; use --plink-tped for transposed PLINK format"
+explanation = "--plink creates .ped and .map files; use --plink-tped for transposed PLINK format"

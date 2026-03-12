@@ -29,19 +29,19 @@ pitfalls = [
 [[examples]]
 task = "build kb reference from genome and GTF"
 args = "ref -i index.idx -g t2g.txt -f1 cdna.fasta genome.fa genes.gtf"
-explanation "-i kallisto index; -g transcript-to-gene mapping; -f1 cDNA FASTA; from genome + GTF"
+explanation = "-i kallisto index; -g transcript-to-gene mapping; -f1 cDNA FASTA; from genome + GTF"
 
 [[examples]]
 task = "process 10x Chromium v3 scRNA-seq FASTQ files"
 args = "count -i index.idx -g t2g.txt -x 10xv3 -o output_dir/ -t 16 R1.fastq.gz R2.fastq.gz"
-explanation "-x 10xv3 technology; R1 (barcode+UMI) R2 (cDNA); -o output directory; -t threads"
+explanation = "-x 10xv3 technology; R1 (barcode+UMI) R2 (cDNA); -o output directory; -t threads"
 
 [[examples]]
 task = "process scRNA-seq with RNA velocity output"
 args = "count -i spliced_unspliced.idx -g t2g.txt -x 10xv3 --workflow lamanno -o velocity_output/ -t 16 R1.fastq.gz R2.fastq.gz"
-explanation "--workflow lamanno outputs spliced and unspliced matrices for RNA velocity with scVelo"
+explanation = "--workflow lamanno outputs spliced and unspliced matrices for RNA velocity with scVelo"
 
 [[examples]]
 task = "process 10x Chromium v3 and output AnnData for Scanpy"
 args = "count -i index.idx -g t2g.txt -x 10xv3 --h5ad -o output_dir/ -t 16 R1.fastq.gz R2.fastq.gz"
-explanation "--h5ad generates AnnData (.h5ad) file directly compatible with Scanpy"
+explanation = "--h5ad generates AnnData (.h5ad) file directly compatible with Scanpy"

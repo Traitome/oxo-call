@@ -29,9 +29,9 @@ pitfalls = [
 [[examples]]
 task = "benchmark a variant caller VCF against GIAB truth set"
 args = "-r reference.fa GIAB_truth.vcf.gz query_calls.vcf.gz -o benchmark_results --engine vcfeval -f HG001_highconf.bed --threads 8"
-explanation "-r reference; truth VCF; query VCF; -o output prefix; --engine vcfeval; -f confident regions BED"
+explanation = "-r reference; truth VCF; query VCF; -o output prefix; --engine vcfeval; -f confident regions BED"
 
 [[examples]]
 task = "benchmark with Stratification for SNPs and indels separately"
 args = "-r reference.fa truth.vcf.gz query.vcf.gz -o results --engine vcfeval -f confident.bed --report-prefix detailed_report --threads 8"
-explanation "--report-prefix generates detailed per-category report; standard SNP/indel breakdown in summary.csv"
+explanation = "--report-prefix generates detailed per-category report; standard SNP/indel breakdown in summary.csv"

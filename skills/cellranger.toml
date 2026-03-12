@@ -30,19 +30,19 @@ pitfalls = [
 [[examples]]
 task = "count gene expression from 10x scRNA-seq FASTQ files"
 args = "count --id=sample_output --transcriptome=/path/to/refdata-gex-GRCh38-2020-A --fastqs=/path/to/fastqs/ --sample=sample_name --localcores=16 --localmem=64"
-explanation "--id output directory name; --transcriptome 10x reference; --fastqs directory; --sample FASTQ prefix"
+explanation = "--id output directory name; --transcriptome 10x reference; --fastqs directory; --sample FASTQ prefix"
 
 [[examples]]
 task = "process 10x multiome (RNA+ATAC) data with Cell Ranger ARC"
 args = "arc count --id=multiome_output --reference=/path/to/arc_ref/ --libraries=libraries.csv --localcores=16 --localmem=128"
-explanation "cellranger-arc count for RNA+ATAC multiome; --libraries CSV specifies ATAC and GEX FASTQ paths"
+explanation = "cellranger-arc count for RNA+ATAC multiome; --libraries CSV specifies ATAC and GEX FASTQ paths"
 
 [[examples]]
 task = "build a custom Cell Ranger reference from genome FASTA and GTF"
 args = "mkref --genome=custom_genome --fasta=genome.fa --genes=genes.gtf --nthreads=8"
-explanation "--genome output reference name; --fasta genome FASTA; --genes GTF annotation; creates compatible reference"
+explanation = "--genome output reference name; --fasta genome FASTA; --genes GTF annotation; creates compatible reference"
 
 [[examples]]
 task = "process 10x ATAC-seq data with Cell Ranger ATAC"
 args = "atac count --id=atac_output --reference=/path/to/refdata-cellranger-arc-GRCh38-2020-A-2.0.0 --fastqs=/path/to/atac_fastqs/ --sample=atac_sample --localcores=16 --localmem=64"
-explanation "cellranger-atac count for single-cell ATAC-seq; requires arc reference"
+explanation = "cellranger-atac count for single-cell ATAC-seq; requires arc reference"

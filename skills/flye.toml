@@ -30,24 +30,24 @@ pitfalls = [
 [[examples]]
 task = "assemble bacterial genome from Oxford Nanopore reads"
 args = "--nano-raw reads.fastq.gz --genome-size 5m --out-dir flye_output/ --threads 16"
-explanation "--nano-raw for ONT reads; --genome-size 5m (5 Mb); --out-dir output directory"
+explanation = "--nano-raw for ONT reads; --genome-size 5m (5 Mb); --out-dir output directory"
 
 [[examples]]
 task = "assemble genome from PacBio HiFi reads"
 args = "--pacbio-hifi hifi_reads.fastq.gz --genome-size 3g --out-dir hifi_assembly/ --threads 32"
-explanation "--pacbio-hifi for CCS/HiFi reads; --genome-size 3g for 3 Gb human-sized genome"
+explanation = "--pacbio-hifi for CCS/HiFi reads; --genome-size 3g for 3 Gb human-sized genome"
 
 [[examples]]
 task = "assemble metagenomic community from ONT reads"
 args = "--meta --nano-raw meta_reads.fastq.gz --out-dir meta_flye/ --threads 32"
-explanation "--meta for metagenomic mode; no --genome-size required; handles uneven coverage"
+explanation = "--meta for metagenomic mode; no --genome-size required; handles uneven coverage"
 
 [[examples]]
 task = "assemble with high-quality ONT reads (R10, Q20+)"
 args = "--nano-hq hq_reads.fastq.gz --genome-size 4.5m --out-dir hq_assembly/ --threads 16 --iterations 2"
-explanation "--nano-hq for high-accuracy ONT reads; --iterations 2 for additional polishing"
+explanation = "--nano-hq for high-accuracy ONT reads; --iterations 2 for additional polishing"
 
 [[examples]]
 task = "resume an interrupted Flye assembly"
 args = "--nano-raw reads.fastq.gz --genome-size 5m --out-dir flye_output/ --threads 16 --resume"
-explanation "--resume continues from the last successfully completed stage"
+explanation = "--resume continues from the last successfully completed stage"

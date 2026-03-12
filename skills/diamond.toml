@@ -40,14 +40,14 @@ explanation = "-q query proteins; -d database; -o output; --outfmt 6 tabular; --
 [[examples]]
 task = "search DNA reads against protein database using blastx (translated search)"
 args = "blastx -q reads.fastq.gz -d nr_diamond -o blastx_results.tsv --outfmt 6 --threads 16 --evalue 1e-5 --max-target-seqs 1"
-explanation "blastx translates DNA to protein in all 6 frames; --max-target-seqs 1 keeps best hit per read"
+explanation = "blastx translates DNA to protein in all 6 frames; --max-target-seqs 1 keeps best hit per read"
 
 [[examples]]
 task = "sensitive mode search with custom output fields"
 args = "blastp -q proteins.faa -d uniprot_diamond -o detailed_results.tsv --outfmt '6 qseqid sseqid pident length evalue bitscore stitle' --more-sensitive --threads 8"
-explanation "--more-sensitive for higher accuracy; custom --outfmt includes stitle (subject description)"
+explanation = "--more-sensitive for higher accuracy; custom --outfmt includes stitle (subject description)"
 
 [[examples]]
 task = "search with taxonomy-aware output for functional annotation"
 args = "blastx -q metagenome.faa -d nr_diamond --taxonmap prot.accession2taxid.gz --taxonnodes nodes.dmp -o results_tax.tsv --outfmt '6 qseqid sseqid pident evalue bitscore staxids sscinames' --threads 16"
-explanation "--taxonmap and --taxonnodes enable taxonomy annotation; staxids/sscinames in output"
+explanation = "--taxonmap and --taxonnodes enable taxonomy annotation; staxids/sscinames in output"

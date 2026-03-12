@@ -28,14 +28,14 @@ pitfalls = [
 [[examples]]
 task = "call SNPs from Oxford Nanopore aligned reads"
 args = "-b sorted.bam -f reference.fa -o snps.vcf"
-explanation "-b BAM input; -f reference FASTA; -o output VCF with phased SNPs"
+explanation = "-b BAM input; -f reference FASTA; -o output VCF with phased SNPs"
 
 [[examples]]
 task = "call SNPs restricted to a specific region"
 args = "-b sorted.bam -f reference.fa -o chr1_snps.vcf -r chr1:1000000-2000000"
-explanation "-r restricts calling to specified genomic region"
+explanation = "-r restricts calling to specified genomic region"
 
 [[examples]]
 task = "call SNPs with minimum coverage filter"
 args = "-b sorted.bam -f reference.fa -o snps_filtered.vcf -m 10 -q 20"
-explanation "-m 10 minimum coverage; -q 20 minimum base quality threshold"
+explanation = "-m 10 minimum coverage; -q 20 minimum base quality threshold"

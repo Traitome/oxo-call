@@ -29,19 +29,19 @@ pitfalls = [
 [[examples]]
 task = "calculate genome-wide depth of coverage in 500bp windows"
 args = "--by 500 -t 8 --prefix sample_coverage sample_sorted.bam"
-explanation "--by 500 windows; -t 8 threads; --prefix output prefix; creates .summary.txt and .regions.bed.gz"
+explanation = "--by 500 windows; -t 8 threads; --prefix output prefix; creates .summary.txt and .regions.bed.gz"
 
 [[examples]]
 task = "calculate coverage over target regions for WES"
 args = "--by targets.bed -t 4 --prefix wes_coverage sample_sorted.bam"
-explanation "--by targets.bed restricts to capture regions; outputs per-region coverage"
+explanation = "--by targets.bed restricts to capture regions; outputs per-region coverage"
 
 [[examples]]
 task = "calculate per-base depth with MAPQ filter"
 args = "-t 4 -Q 20 -F 1796 --prefix filtered_coverage sample_sorted.bam"
-explanation "-Q 20 minimum MAPQ; -F 1796 excludes duplicate (1024) + secondary (256) + unmapped (4) + supplementary (2048) reads"
+explanation = "-Q 20 minimum MAPQ; -F 1796 excludes duplicate (1024) + secondary (256) + unmapped (4) + supplementary (2048) reads"
 
 [[examples]]
 task = "get summary statistics only without per-base output"
 args = "-n -t 8 --prefix summary_only sample_sorted.bam"
-explanation "-n disables per-base .bed.gz output; much faster for summary statistics only"
+explanation = "-n disables per-base .bed.gz output; much faster for summary statistics only"

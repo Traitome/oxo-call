@@ -28,19 +28,19 @@ pitfalls = [
 [[examples]]
 task = "build Chromap genome index"
 args = "-i -r genome.fa -o genome.index"
-explanation "-i index mode; -r reference FASTA; -o index output file"
+explanation = "-i index mode; -r reference FASTA; -o index output file"
 
 [[examples]]
 task = "align paired-end ATAC-seq reads with Chromap"
 args = "--preset atac -x genome.index -r genome.fa -1 R1.fastq.gz -2 R2.fastq.gz -o fragments.bed -t 16"
-explanation "--preset atac; -x index; -r reference; -1/-2 paired reads; -o output BED; -t threads"
+explanation = "--preset atac; -x index; -r reference; -1/-2 paired reads; -o output BED; -t threads"
 
 [[examples]]
 task = "process single-cell ATAC-seq with barcodes"
 args = "--preset atac -x genome.index -r genome.fa -1 R1.fastq.gz -2 R2.fastq.gz -b barcode.fastq.gz --barcode-whitelist whitelist.txt -o scatac_fragments.bed -t 16"
-explanation "-b barcode FASTQ; --barcode-whitelist valid barcode list; outputs fragments per cell"
+explanation = "-b barcode FASTQ; --barcode-whitelist valid barcode list; outputs fragments per cell"
 
 [[examples]]
 task = "align ChIP-seq reads with Chromap"
 args = "--preset chip -x genome.index -r genome.fa -1 R1.fastq.gz -2 R2.fastq.gz -o chip_aligned.bed -t 16"
-explanation "--preset chip for ChIP-seq alignment settings"
+explanation = "--preset chip for ChIP-seq alignment settings"

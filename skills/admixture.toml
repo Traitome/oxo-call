@@ -30,19 +30,19 @@ pitfalls = [
 [[examples]]
 task = "run ADMIXTURE for K=5 ancestral populations"
 args = "data.bed 5 --cv=10 -j8"
-explanation "positional K=5; --cv=10 cross-validation with 10 folds; -j8 threads; outputs data.5.Q and data.5.P"
+explanation = "positional K=5; --cv=10 cross-validation with 10 folds; -j8 threads; outputs data.5.Q and data.5.P"
 
 [[examples]]
 task = "run ADMIXTURE with reproducible seed"
 args = "data.bed 3 --seed=42 --cv=10 -j8"
-explanation "--seed for reproducibility; run same command with different seeds to check convergence"
+explanation = "--seed for reproducibility; run same command with different seeds to check convergence"
 
 [[examples]]
 task = "run supervised ADMIXTURE with known reference populations"
 args = "data.bed 3 --supervised -j8"
-explanation "--supervised mode uses .pop file (same name as .fam) with population labels for reference individuals"
+explanation = "--supervised mode uses .pop file (same name as .fam) with population labels for reference individuals"
 
 [[examples]]
 task = "run ADMIXTURE across multiple K values (shell loop)"
 args = "data.bed K --cv=10 -j8 > admixture_K.log"
-explanation "run for K=2,3,4,5,etc in a loop; compare cross-validation errors to select optimal K"
+explanation = "run for K=2,3,4,5,etc in a loop; compare cross-validation errors to select optimal K"

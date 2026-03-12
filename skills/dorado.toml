@@ -30,24 +30,24 @@ pitfalls = [
 [[examples]]
 task = "basecall ONT POD5 files with high-accuracy model on GPU"
 args = "basecaller hac pod5_files/ --device cuda:0 > calls.bam"
-explanation "hac high-accuracy model; pod5_files/ directory of POD5 files; --device cuda:0 GPU; output uBAM"
+explanation = "hac high-accuracy model; pod5_files/ directory of POD5 files; --device cuda:0 GPU; output uBAM"
 
 [[examples]]
 task = "basecall with super-accuracy model and modified base calling"
 args = "basecaller sup pod5_files/ --modified-bases 5mCG_5hmCG --device cuda:0 > calls_mods.bam"
-explanation "sup model; --modified-bases detects 5mC and 5hmC methylation; requires compatible modified base model"
+explanation = "sup model; --modified-bases detects 5mC and 5hmC methylation; requires compatible modified base model"
 
 [[examples]]
 task = "basecall and output FASTQ format"
 args = "basecaller hac pod5_files/ --emit-fastq --device cuda:0 | gzip > basecalled_reads.fastq.gz"
-explanation "--emit-fastq outputs FASTQ instead of uBAM; pipe to gzip for compressed output"
+explanation = "--emit-fastq outputs FASTQ instead of uBAM; pipe to gzip for compressed output"
 
 [[examples]]
 task = "demultiplex barcoded reads using Dorado"
 args = "demux --kit-name SQK-NBD114-24 --output-dir demux_output/ --emit-fastq reads.bam"
-explanation "--kit-name specifies barcode kit; --emit-fastq outputs FASTQ files per barcode"
+explanation = "--kit-name specifies barcode kit; --emit-fastq outputs FASTQ files per barcode"
 
 [[examples]]
 task = "run duplex basecalling for highest accuracy paired reads"
 args = "duplex sup pod5_files/ --device cuda:0 > duplex_calls.bam"
-explanation "duplex mode uses paired strands for highest accuracy; requires paired-strand pod5 files"
+explanation = "duplex mode uses paired strands for highest accuracy; requires paired-strand pod5 files"

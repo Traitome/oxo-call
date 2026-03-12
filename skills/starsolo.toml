@@ -30,14 +30,14 @@ pitfalls = [
 [[examples]]
 task = "process 10x Chromium v3 scRNA-seq with STARsolo"
 args = "--soloType CB_UMI_Simple --soloCBwhitelist 3M-february-2018.txt --soloCBstart 1 --soloCBlen 16 --soloUMIstart 17 --soloUMIlen 12 --genomeDir /path/to/star_genome/ --readFilesIn R2.fastq.gz R1.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --outSAMattributes NH HI nM AS CR UR CB UB GX GN sS sQ sM --runThreadN 16 --outFileNamePrefix sample_starsolo/"
-explanation "R2 (cDNA) before R1 (barcode); --soloCBwhitelist barcode whitelist; 16bp CB + 12bp UMI for 10x v3"
+explanation = "R2 (cDNA) before R1 (barcode); --soloCBwhitelist barcode whitelist; 16bp CB + 12bp UMI for 10x v3"
 
 [[examples]]
 task = "process 10x Chromium v2 scRNA-seq with STARsolo"
 args = "--soloType CB_UMI_Simple --soloCBwhitelist 737K-august-2016.txt --soloCBlen 16 --soloUMIlen 10 --genomeDir /star_genome/ --readFilesIn R2.fastq.gz R1.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix sample_v2/"
-explanation "v2 whitelist and 10bp UMI; same R2-before-R1 ordering"
+explanation = "v2 whitelist and 10bp UMI; same R2-before-R1 ordering"
 
 [[examples]]
 task = "run STARsolo with RNA velocity output"
 args = "--soloType CB_UMI_Simple --soloCBwhitelist 3M-february-2018.txt --soloCBlen 16 --soloUMIlen 12 --soloFeatures Gene Velocyto --genomeDir /star_genome/ --readFilesIn R2.fastq.gz R1.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix velocity_sample/"
-explanation "--soloFeatures Velocyto adds spliced/unspliced/ambiguous count matrices for RNA velocity analysis"
+explanation = "--soloFeatures Velocyto adds spliced/unspliced/ambiguous count matrices for RNA velocity analysis"

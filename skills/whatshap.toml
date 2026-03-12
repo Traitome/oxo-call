@@ -29,19 +29,19 @@ pitfalls = [
 [[examples]]
 task = "phase variants using long reads (ONT/PacBio)"
 args = "phase --output phased.vcf.gz --reference reference.fa variants.vcf.gz long_reads.bam"
-explanation "--output phased VCF; --reference genome; variants.vcf.gz input unphased; long_reads.bam provides phase info"
+explanation = "--output phased VCF; --reference genome; variants.vcf.gz input unphased; long_reads.bam provides phase info"
 
 [[examples]]
 task = "phase variants using Illumina short reads"
 args = "phase --output phased.vcf.gz --reference reference.fa variants.vcf.gz illumina.bam"
-explanation "Illumina can phase nearby variants; long reads give much longer phase blocks"
+explanation = "Illumina can phase nearby variants; long reads give much longer phase blocks"
 
 [[examples]]
 task = "tag reads with haplotype information after phasing"
 args = "haplotag --output haplotagged.bam --reference reference.fa phased.vcf.gz sorted.bam"
-explanation "haplotag adds HP tag to reads assigning them to haplotype 1 or 2; useful for read visualization"
+explanation = "haplotag adds HP tag to reads assigning them to haplotype 1 or 2; useful for read visualization"
 
 [[examples]]
 task = "compute phasing statistics from a phased VCF"
 args = "stats phased.vcf.gz"
-explanation "outputs N50 phase block length, number of phased heterozygous variants"
+explanation = "outputs N50 phase block length, number of phased heterozygous variants"

@@ -27,19 +27,19 @@ pitfalls = [
 [[examples]]
 task = "convert GFF3 to GTF format"
 args = "agat_convert_sp_gff2gtf.pl --gff annotation.gff3 -o annotation.gtf"
-explanation "converts GFF3 to GTF; handles feature hierarchy; -o output GTF file"
+explanation = "converts GFF3 to GTF; handles feature hierarchy; -o output GTF file"
 
 [[examples]]
 task = "get annotation statistics from a GFF3 file"
 args = "agat_sp_statistics.pl --gff annotation.gff3 -o statistics_report.txt"
-explanation "outputs gene count, mRNA count, exon statistics, intron size distribution"
+explanation = "outputs gene count, mRNA count, exon statistics, intron size distribution"
 
 [[examples]]
 task = "filter genes by minimum length"
 args = "agat_sp_filter_gene_by_length.pl --gff annotation.gff3 --size 300 -o filtered_annotation.gff3"
-explanation "--size 300 keeps only genes ≥300 bp in length"
+explanation = "--size 300 keeps only genes ≥300 bp in length"
 
 [[examples]]
 task = "fix and standardize a malformed GFF3 file"
 args = "agat_convert_sp_gxf2gxf.pl -g malformed.gff3 -o fixed.gff3"
-explanation "repairs common GFF3 errors, adds missing parent features, standardizes format"
+explanation = "repairs common GFF3 errors, adds missing parent features, standardizes format"

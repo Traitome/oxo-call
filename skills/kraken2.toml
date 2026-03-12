@@ -45,4 +45,4 @@ explanation = "single-end classification; omit --paired for single-end reads"
 [[examples]]
 task = "classify reads and extract classified reads for downstream analysis"
 args = "--db /path/to/kraken2_db --paired --threads 8 --output kraken_out.txt --report kraken_report.txt --classified-out classified#.fastq R1.fastq.gz R2.fastq.gz"
-explanation "--classified-out saves reads that were classified; useful for host decontamination (keep unclassified)"
+explanation = "--classified-out saves reads that were classified; useful for host decontamination (keep unclassified)"

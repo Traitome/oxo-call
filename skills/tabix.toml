@@ -30,24 +30,24 @@ pitfalls = [
 [[examples]]
 task = "compress a VCF file with bgzip and create tabix index"
 args = "variants.vcf.gz"
-explanation "first: bgzip variants.vcf → creates variants.vcf.gz; then: tabix -p vcf variants.vcf.gz → creates .tbi"
+explanation = "first: bgzip variants.vcf → creates variants.vcf.gz; then: tabix -p vcf variants.vcf.gz → creates .tbi"
 
 [[examples]]
 task = "create tabix index for a bgzipped VCF file"
 args = "-p vcf variants.vcf.gz"
-explanation "-p vcf specifies VCF format; creates variants.vcf.gz.tbi index file"
+explanation = "-p vcf specifies VCF format; creates variants.vcf.gz.tbi index file"
 
 [[examples]]
 task = "query a specific genomic region from an indexed VCF"
 args = "-h variants.vcf.gz chr1:1000000-2000000 > chr1_region.vcf"
-explanation "-h includes header lines; queries chr1 from 1Mb to 2Mb; output redirected to new VCF"
+explanation = "-h includes header lines; queries chr1 from 1Mb to 2Mb; output redirected to new VCF"
 
 [[examples]]
 task = "create tabix index for a bgzipped BED file"
 args = "-p bed regions.bed.gz"
-explanation "-p bed specifies BED format; BED file must be sorted by chromosome and start position"
+explanation = "-p bed specifies BED format; BED file must be sorted by chromosome and start position"
 
 [[examples]]
 task = "list all chromosomes/contigs in an indexed VCF"
 args = "-l variants.vcf.gz"
-explanation "-l lists all contig names in the index; useful for scripting region-based iteration"
+explanation = "-l lists all contig names in the index; useful for scripting region-based iteration"

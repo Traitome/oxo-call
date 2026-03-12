@@ -30,19 +30,19 @@ pitfalls = [
 [[examples]]
 task = "trim adapters and quality-filter paired-end Illumina reads"
 args = "--paired --quality 20 --length 36 --cores 4 --gzip -o trimmed_output/ R1.fastq.gz R2.fastq.gz"
-explanation "--paired PE mode; --quality 20 Q20 threshold; --length 36 minimum; --gzip compressed output; -o output dir"
+explanation = "--paired PE mode; --quality 20 Q20 threshold; --length 36 minimum; --gzip compressed output; -o output dir"
 
 [[examples]]
 task = "trim RRBS bisulfite sequencing data"
 args = "--paired --rrbs --quality 20 --length 20 --cores 4 --gzip -o rrbs_trimmed/ R1.fastq.gz R2.fastq.gz"
-explanation "--rrbs for MspI-digested RRBS; trims 2 bp from 3' end after adapter removal to remove MspI bias"
+explanation = "--rrbs for MspI-digested RRBS; trims 2 bp from 3' end after adapter removal to remove MspI bias"
 
 [[examples]]
 task = "trim single-end reads with automatic adapter detection"
 args = "--quality 20 --length 36 --cores 4 --gzip -o se_trimmed/ reads.fastq.gz"
-explanation "single-end mode (no --paired); auto-detects Illumina adapters; quality trim at Q20"
+explanation = "single-end mode (no --paired); auto-detects Illumina adapters; quality trim at Q20"
 
 [[examples]]
 task = "trim with specific adapter sequence for non-standard libraries"
 args = "--paired --adapter AGATCGGAAGAGCACACGTCT --adapter2 AGATCGGAAGAGCGTCGTGTA --quality 20 --cores 4 --gzip -o custom_trimmed/ R1.fastq.gz R2.fastq.gz"
-explanation "--adapter and --adapter2 for explicit adapter specification for R1 and R2 respectively"
+explanation = "--adapter and --adapter2 for explicit adapter specification for R1 and R2 respectively"

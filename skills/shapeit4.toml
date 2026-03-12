@@ -29,14 +29,14 @@ pitfalls = [
 [[examples]]
 task = "phase a chromosome using SHAPEIT4"
 args = "--input variants.vcf.gz --map genetic_map_chr1.txt --region chr1 --output phased_chr1.vcf.gz --thread 8"
-explanation "--input unphased VCF; --map genetic map for chr1; --region restricts to chr1; --output phased VCF"
+explanation = "--input unphased VCF; --map genetic map for chr1; --region restricts to chr1; --output phased VCF"
 
 [[examples]]
 task = "phase with a reference haplotype scaffold panel"
 args = "--input variants.vcf.gz --scaffold reference_panel.vcf.gz --map genetic_map_chr22.txt --region chr22 --output phased_chr22.vcf.gz --thread 8"
-explanation "--scaffold reference panel improves phasing; often used with 1000 Genomes or HGSVC panel"
+explanation = "--scaffold reference panel improves phasing; often used with 1000 Genomes or HGSVC panel"
 
 [[examples]]
 task = "phase sequencing data with higher accuracy settings"
 args = "--input variants.vcf.gz --map genetic_map.txt --region chr1 --sequencing --output phased.vcf.gz --thread 16 --mcmc-iterations 8b,1p,1b,1p,1b,1p,5m"
-explanation "--sequencing mode for WGS data; --mcmc-iterations for convergence tuning"
+explanation = "--sequencing mode for WGS data; --mcmc-iterations for convergence tuning"

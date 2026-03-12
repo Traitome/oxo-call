@@ -30,19 +30,19 @@ pitfalls = [
 [[examples]]
 task = "assess assembly quality with reference genome"
 args = "-r reference.fasta -g genes.gff assembly.fasta -o quast_output/ --threads 8"
-explanation "-r reference for comparison; -g gene annotation; output in quast_output/; generates HTML report"
+explanation = "-r reference for comparison; -g gene annotation; output in quast_output/; generates HTML report"
 
 [[examples]]
 task = "compare multiple assemblies without reference genome"
 args = "spades_assembly.fasta megahit_assembly.fasta flye_assembly.fasta -o assembly_comparison/ --threads 8"
-explanation "multiple assembly FASTAs compared side-by-side; --no-icarus to skip large interactive browser"
+explanation = "multiple assembly FASTAs compared side-by-side; --no-icarus to skip large interactive browser"
 
 [[examples]]
 task = "assess metagenome assembly quality with metaQUAST"
 args = "metaquast.py -r reference1.fasta,reference2.fasta assembly.fasta -o metaquast_output/ --threads 16"
-explanation "metaquast.py for metagenome assemblies; -r multiple references; or use --auto-ref for automatic"
+explanation = "metaquast.py for metagenome assemblies; -r multiple references; or use --auto-ref for automatic"
 
 [[examples]]
 task = "assess assembly with minimum contig length filter"
 args = "-r reference.fasta assembly.fasta -o quast_out/ --min-contig 1000 --threads 8"
-explanation "--min-contig 1000 excludes contigs shorter than 1000 bp from all statistics"
+explanation = "--min-contig 1000 excludes contigs shorter than 1000 bp from all statistics"

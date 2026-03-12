@@ -30,24 +30,24 @@ pitfalls = [
 [[examples]]
 task = "download and convert an SRA accession to FASTQ"
 args = "fasterq-dump SRR123456 -O output_directory/ -e 8"
-explanation "fasterq-dump downloads and converts; -O output directory; -e 8 threads; auto-splits PE reads"
+explanation = "fasterq-dump downloads and converts; -O output directory; -e 8 threads; auto-splits PE reads"
 
 [[examples]]
 task = "download SRA file first then convert (more reliable)"
 args = "prefetch SRR123456 -O sra_downloads/"
-explanation "prefetch downloads .sra file; then run: fasterq-dump sra_downloads/SRR123456/SRR123456.sra -O fastq_output/"
+explanation = "prefetch downloads .sra file; then run: fasterq-dump sra_downloads/SRR123456/SRR123456.sra -O fastq_output/"
 
 [[examples]]
 task = "download multiple SRA accessions in batch"
 args = "prefetch --option-file accession_list.txt -O sra_downloads/"
-explanation "--option-file with one accession per line; downloads all; then loop through fasterq-dump for conversion"
+explanation = "--option-file with one accession per line; downloads all; then loop through fasterq-dump for conversion"
 
 [[examples]]
 task = "convert SRA to compressed FASTQ"
 args = "fasterq-dump SRR123456 -O output/ -e 8 && gzip output/SRR123456_1.fastq output/SRR123456_2.fastq"
-explanation "fasterq-dump then gzip; fasterq-dump does not natively gzip output"
+explanation = "fasterq-dump then gzip; fasterq-dump does not natively gzip output"
 
 [[examples]]
 task = "validate an SRA file integrity"
 args = "vdb-validate SRR123456.sra"
-explanation "vdb-validate checks SRA file integrity before conversion; useful after download"
+explanation = "vdb-validate checks SRA file integrity before conversion; useful after download"

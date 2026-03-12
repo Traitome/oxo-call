@@ -30,24 +30,24 @@ pitfalls = [
 [[examples]]
 task = "build a nucleotide BLAST database from a FASTA file"
 args = "-in genome.fasta -dbtype nucl -out genome_db -title 'Genome Database' -parse_seqids"
-explanation "-dbtype nucl for nucleotide; -out database prefix; -parse_seqids enables sequence retrieval"
+explanation = "-dbtype nucl for nucleotide; -out database prefix; -parse_seqids enables sequence retrieval"
 
 [[examples]]
 task = "run blastn to find similar nucleotide sequences"
 args = "-query query.fasta -db genome_db -out blast_results.txt -outfmt 6 -evalue 1e-5 -num_threads 8"
-explanation "-outfmt 6 tabular output; -evalue 1e-5 threshold; -num_threads 8 parallel search"
+explanation = "-outfmt 6 tabular output; -evalue 1e-5 threshold; -num_threads 8 parallel search"
 
 [[examples]]
 task = "search protein sequences against NR database"
 args = "-query proteins.faa -db /path/to/nr -out blastp_results.txt -outfmt '6 std stitle staxids' -evalue 1e-5 -num_threads 16 -max_target_seqs 5"
-explanation "-db nr (NCBI non-redundant); stitle and staxids in custom outfmt; top 5 hits per query"
+explanation = "-db nr (NCBI non-redundant); stitle and staxids in custom outfmt; top 5 hits per query"
 
 [[examples]]
 task = "run blastx to annotate nucleotide sequences against protein database"
 args = "-query contigs.fasta -db /path/to/swissprot -out blastx_results.txt -outfmt 6 -evalue 1e-5 -num_threads 8 -max_target_seqs 1"
-explanation "blastx translates query DNA in all 6 frames; -db swissprot for curated protein annotations"
+explanation = "blastx translates query DNA in all 6 frames; -db swissprot for curated protein annotations"
 
 [[examples]]
 task = "perform remote BLAST search against NCBI nr database"
 args = "-query query.fasta -db nr -out remote_blast.txt -outfmt 6 -remote -max_target_seqs 10"
-explanation "-remote searches NCBI servers directly; no local database needed; slower than local search"
+explanation = "-remote searches NCBI servers directly; no local database needed; slower than local search"

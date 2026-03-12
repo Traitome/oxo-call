@@ -30,19 +30,19 @@ pitfalls = [
 [[examples]]
 task = "run CNVkit batch workflow for tumor-normal WES"
 args = "batch tumor.bam --normal normal.bam --targets targets.bed --annotate refFlat.txt --fasta reference.fa --access access.hg38.bed --output-reference normal_reference.cnn --output-dir cnvkit_output/ -p 8"
-explanation "--normal matched normal BAM; --targets WES regions; -p 8 threads; outputs CNV profiles"
+explanation = "--normal matched normal BAM; --targets WES regions; -p 8 threads; outputs CNV profiles"
 
 [[examples]]
 task = "run CNVkit on tumor-only WES with pre-built reference"
 args = "batch tumor.bam --reference normal_reference.cnn --targets targets.bed --output-dir cnvkit_tumor_only/ -p 4"
-explanation "--reference pre-built normal reference .cnn; use for tumor-only analysis"
+explanation = "--reference pre-built normal reference .cnn; use for tumor-only analysis"
 
 [[examples]]
 task = "visualize CNV scatter plot"
 args = "scatter tumor.cnr -s tumor.cns -o cnv_scatter.pdf"
-explanation "-s segmentation file; -o output PDF with genome-wide CNV scatter plot"
+explanation = "-s segmentation file; -o output PDF with genome-wide CNV scatter plot"
 
 [[examples]]
 task = "call integer copy numbers from segments"
 args = "call tumor.cns -o tumor.call.cns --center median --purity 0.8"
-explanation "--purity 0.8 sets tumor purity for copy number adjustment; --center median for centering"
+explanation = "--purity 0.8 sets tumor purity for copy number adjustment; --center median for centering"

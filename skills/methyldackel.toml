@@ -30,19 +30,19 @@ pitfalls = [
 [[examples]]
 task = "extract CpG methylation from bisulfite-aligned BAM"
 args = "extract reference.fa sorted_bisulfite.bam -o sample_methylation"
-explanation "extract subcommand; outputs sample_methylation_CpG.bedGraph; -o sets output prefix"
+explanation = "extract subcommand; outputs sample_methylation_CpG.bedGraph; -o sets output prefix"
 
 [[examples]]
 task = "extract all cytosine contexts (CpG, CHG, CHH)"
 args = "extract --CHG --CHH reference.fa sorted_bisulfite.bam -o sample_all_contexts"
-explanation "--CHG --CHH enables CHG and CHH context extraction in addition to CpG"
+explanation = "--CHG --CHH enables CHG and CHH context extraction in addition to CpG"
 
 [[examples]]
 task = "detect M-bias before extraction"
 args = "mbias reference.fa sorted_bisulfite.bam sample_mbias"
-explanation "mbias generates M-bias plots; use to determine --ignore parameters for biased read positions"
+explanation = "mbias generates M-bias plots; use to determine --ignore parameters for biased read positions"
 
 [[examples]]
 task = "extract methylation ignoring biased read ends"
 args = "extract --ignore 5 5 reference.fa sorted_bisulfite.bam -o trimmed_methylation"
-explanation "--ignore 5 5 ignores first and last 5 bases of each read to remove end-of-read bias"
+explanation = "--ignore 5 5 ignores first and last 5 bases of each read to remove end-of-read bias"

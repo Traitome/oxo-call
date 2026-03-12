@@ -29,19 +29,19 @@ pitfalls = [
 [[examples]]
 task = "compute contig depths from BAM files for MetaBAT2"
 args = "jgi_summarize_bam_contig_depths --outputDepth contig_depths.txt sample1.bam sample2.bam sample3.bam"
-explanation "jgi_summarize_bam_contig_depths from multiple samples; creates depth table for MetaBAT2"
+explanation = "jgi_summarize_bam_contig_depths from multiple samples; creates depth table for MetaBAT2"
 
 [[examples]]
 task = "bin metagenomic assembly contigs into MAGs"
 args = "metabat2 -i assembly.fasta -a contig_depths.txt -o bins/bin -m 2500 -t 8"
-explanation "-i assembly; -a depth file from jgi_summarize; -o output prefix for bin FASTA files; -m min contig length"
+explanation = "-i assembly; -a depth file from jgi_summarize; -o output prefix for bin FASTA files; -m min contig length"
 
 [[examples]]
 task = "run MetaBAT2 binning without coverage information (tetranucleotide only)"
 args = "metabat2 -i assembly.fasta -o bins/bin -m 1500 -t 8"
-explanation "without -a coverage file, MetaBAT2 uses only tetranucleotide frequency; less accurate but usable"
+explanation = "without -a coverage file, MetaBAT2 uses only tetranucleotide frequency; less accurate but usable"
 
 [[examples]]
 task = "bin with custom sensitivity settings"
 args = "metabat2 -i assembly.fasta -a contig_depths.txt -o bins/bin --sensitive -m 2000 -t 8"
-explanation "--sensitive mode for more permissive binning; may produce more bins with lower purity"
+explanation = "--sensitive mode for more permissive binning; may produce more bins with lower purity"

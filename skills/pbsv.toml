@@ -28,19 +28,19 @@ pitfalls = [
 [[examples]]
 task = "discover SV signatures from PacBio HiFi aligned BAM"
 args = "discover --hifi sorted.bam sample.svsig.gz"
-explanation "--hifi preset for CCS/HiFi data; output .svsig.gz contains SV candidate signatures"
+explanation = "--hifi preset for CCS/HiFi data; output .svsig.gz contains SV candidate signatures"
 
 [[examples]]
 task = "call SVs from a single sample's signature file"
 args = "call --hifi reference.fa sample.svsig.gz output_svs.vcf"
-explanation "call genotypes SVs; reference.fa required; output VCF with SV calls"
+explanation = "call genotypes SVs; reference.fa required; output VCF with SV calls"
 
 [[examples]]
 task = "call SVs jointly from multiple samples"
 args = "call --hifi reference.fa sample1.svsig.gz sample2.svsig.gz sample3.svsig.gz cohort_svs.vcf"
-explanation "provide all .svsig.gz files for joint genotyping across cohort"
+explanation = "provide all .svsig.gz files for joint genotyping across cohort"
 
 [[examples]]
 task = "discover with tandem repeat annotation for better accuracy"
 args = "discover --hifi --tandem-repeats hg38.trf.bed sorted.bam sample.svsig.gz"
-explanation "--tandem-repeats BED file improves breakpoint precision in STR/VNTR regions"
+explanation = "--tandem-repeats BED file improves breakpoint precision in STR/VNTR regions"

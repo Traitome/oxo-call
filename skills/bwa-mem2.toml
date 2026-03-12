@@ -28,14 +28,14 @@ pitfalls = [
 [[examples]]
 task = "build BWA-MEM2 index from reference genome"
 args = "index reference.fa"
-explanation "creates reference.fa.* index files; may take 30-60 min and ~60 GB RAM for human genome"
+explanation = "creates reference.fa.* index files; may take 30-60 min and ~60 GB RAM for human genome"
 
 [[examples]]
 task = "align paired-end reads to reference using 16 threads"
 args = "mem -t 16 reference.fa R1.fastq.gz R2.fastq.gz | samtools sort -@ 4 -o sorted.bam"
-explanation "BWA-MEM2 mem has same flags as BWA-MEM; pipe to samtools sort for sorted BAM"
+explanation = "BWA-MEM2 mem has same flags as BWA-MEM; pipe to samtools sort for sorted BAM"
 
 [[examples]]
 task = "align paired-end reads with GATK read group"
 args = "mem -t 16 -R '@RG\\tID:sample1\\tSM:sample1\\tLB:lib1\\tPL:ILLUMINA' reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o aligned.bam"
-explanation "-R adds read group required for GATK downstream; same syntax as BWA"
+explanation = "-R adds read group required for GATK downstream; same syntax as BWA"

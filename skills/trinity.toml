@@ -30,19 +30,19 @@ pitfalls = [
 [[examples]]
 task = "de novo transcriptome assembly from paired-end RNA-seq reads"
 args = "--seqType fq --left R1.fastq.gz --right R2.fastq.gz --max_memory 50G --CPU 16 --output trinity_output/"
-explanation "--seqType fq FASTQ; --left/--right PE reads; --max_memory 50G RAM limit; --CPU 16 threads"
+explanation = "--seqType fq FASTQ; --left/--right PE reads; --max_memory 50G RAM limit; --CPU 16 threads"
 
 [[examples]]
 task = "genome-guided Trinity assembly using STAR alignments"
 args = "--genome_guided_bam star_aligned.bam --genome_guided_max_intron 10000 --max_memory 50G --CPU 16 --output genome_guided_trinity/"
-explanation "--genome_guided_bam STAR BAM; --genome_guided_max_intron max intron size; more accurate than de novo"
+explanation = "--genome_guided_bam STAR BAM; --genome_guided_max_intron max intron size; more accurate than de novo"
 
 [[examples]]
 task = "de novo assembly from single-end RNA-seq reads"
 args = "--seqType fq --single reads.fastq.gz --max_memory 32G --CPU 8 --output trinity_se/"
-explanation "--single for single-end reads; same Trinity pipeline with SE input"
+explanation = "--single for single-end reads; same Trinity pipeline with SE input"
 
 [[examples]]
 task = "Trinity assembly with strand-specific library"
 args = "--seqType fq --left R1.fastq.gz --right R2.fastq.gz --SS_lib_type RF --max_memory 50G --CPU 16 --output stranded_trinity/"
-explanation "--SS_lib_type RF for reverse-strand (dUTP) libraries; RF=reverse, FR=forward"
+explanation = "--SS_lib_type RF for reverse-strand (dUTP) libraries; RF=reverse, FR=forward"

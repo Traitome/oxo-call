@@ -28,19 +28,19 @@ pitfalls = [
 [[examples]]
 task = "generate quality plots from Oxford Nanopore FASTQ reads"
 args = "--fastq reads.fastq.gz -o nanoplot_output/ -p sample_qc --threads 8"
-explanation "--fastq input; -o output directory; -p file prefix; generates HTML report and plots"
+explanation = "--fastq input; -o output directory; -p file prefix; generates HTML report and plots"
 
 [[examples]]
 task = "generate quality statistics from ONT sequencing summary file"
 args = "--summary sequencing_summary.txt -o nanoplot_summary/ -p run_qc --threads 4"
-explanation "--summary provides richest data including per-read timing and channel information"
+explanation = "--summary provides richest data including per-read timing and channel information"
 
 [[examples]]
 task = "plot quality statistics for aligned BAM file"
 args = "--bam sorted.bam -o bam_qc/ -p aligned_sample --threads 8"
-explanation "--bam for aligned data; shows mapping quality and per-read alignment statistics"
+explanation = "--bam for aligned data; shows mapping quality and per-read alignment statistics"
 
 [[examples]]
 task = "plot quality statistics with read length and quality filters"
 args = "--fastq reads.fastq.gz --minlength 1000 --minqual 9 -o filtered_qc/ -p hq_reads --threads 4"
-explanation "--minlength 1000 minimum read length; --minqual 9 minimum mean quality for displayed reads"
+explanation = "--minlength 1000 minimum read length; --minqual 9 minimum mean quality for displayed reads"

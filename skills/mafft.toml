@@ -30,24 +30,24 @@ pitfalls = [
 [[examples]]
 task = "align multiple protein sequences with automatic algorithm selection"
 args = "--auto --thread 8 proteins.fasta > aligned_proteins.fasta"
-explanation "--auto selects algorithm based on data size; output to stdout redirected to aligned_proteins.fasta"
+explanation = "--auto selects algorithm based on data size; output to stdout redirected to aligned_proteins.fasta"
 
 [[examples]]
 task = "highly accurate multiple sequence alignment for fewer than 200 sequences"
 args = "--localpair --maxiterate 1000 --thread 8 sequences.fasta > aligned_localpair.fasta"
-explanation "--localpair (L-INS-i) most accurate for conserved core sequences; --maxiterate 1000 maximum iterations"
+explanation = "--localpair (L-INS-i) most accurate for conserved core sequences; --maxiterate 1000 maximum iterations"
 
 [[examples]]
 task = "align RNA sequences adjusting for strand orientation"
 args = "--auto --adjustdirectionaccurately --thread 8 rna_sequences.fasta > aligned_rna.fasta"
-explanation "--adjustdirectionaccurately handles sequences on different strands by reverse complementing as needed"
+explanation = "--adjustdirectionaccurately handles sequences on different strands by reverse complementing as needed"
 
 [[examples]]
 task = "align sequences and output in PHYLIP format for phylogenetic analysis"
 args = "--auto --thread 8 --phylipout sequences.fasta > aligned.phy"
-explanation "--phylipout generates PHYLIP format suitable for RAxML, IQ-TREE phylogenetic tools"
+explanation = "--phylipout generates PHYLIP format suitable for RAxML, IQ-TREE phylogenetic tools"
 
 [[examples]]
 task = "add new sequences to existing alignment"
 args = "--add new_sequences.fasta --thread 8 existing_alignment.fasta > updated_alignment.fasta"
-explanation "--add incorporates new sequences into an existing alignment without re-aligning the original"
+explanation = "--add incorporates new sequences into an existing alignment without re-aligning the original"

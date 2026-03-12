@@ -27,9 +27,9 @@ pitfalls = [
 [[examples]]
 task = "detect gene fusions from PacBio IsoSeq aligned data"
 args = "--bam isoseq_aligned.bam --gtf genes.gtf --output-dir fusion_output/ --threads 8"
-explanation "--bam aligned IsoSeq BAM; --gtf gene annotation; --output-dir for results"
+explanation = "--bam aligned IsoSeq BAM; --gtf gene annotation; --output-dir for results"
 
 [[examples]]
 task = "detect fusions with minimum supporting reads"
 args = "--bam isoseq_aligned.bam --gtf genes.gtf --output-dir fusion_output/ --min-support 3 --threads 8"
-explanation "--min-support 3 requires at least 3 reads supporting each fusion; reduces false positives"
+explanation = "--min-support 3 requires at least 3 reads supporting each fusion; reduces false positives"
