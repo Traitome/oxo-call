@@ -34,7 +34,7 @@ body = """
 - {% if commit.scope %}**{{ commit.scope }}:** {% endif %}{{ commit.message | upper_first }}\
   {% if commit.remote.username %} ([@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }}))\
   {% endif %}\
-  {% if commit.remote.pr_number %} ([#{{ commit.remote.pr_number }}]({{ commit.remote.pr_url }}))\
+  {% if commit.remote.pr_number %} ([#{{ commit.remote.pr_number }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/pull/{{ commit.remote.pr_number }}))\
   {% endif %}\
 {% endfor %}
 {% endfor %}\n
@@ -51,7 +51,7 @@ footer = """
 [{{ release.version | trim_start_matches(pat="v") }}]: {{ repo_url }}/releases/tag/{{ release.version }}
         {% endif %}\
     {% else %}\
-[Unreleased]: {{ repo_url }}/compare/{{ releases | filter(attribute="version") | first | map(attribute="version") | first }}...HEAD
+[Unreleased]: {{ repo_url }}/compare/{{ release.previous.version }}...HEAD
     {% endif %}\
 {% endfor %}
 """
