@@ -128,9 +128,7 @@ impl DocsFetcher {
         };
 
         // 1. Try local cache first (unless skipping cache)
-        if !skip_cache
-            && let Ok(cached) = self.load_cache(tool)
-        {
+        if !skip_cache && let Ok(cached) = self.load_cache(tool) {
             docs.cached_docs = Some(cached);
         }
 

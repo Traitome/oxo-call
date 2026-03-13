@@ -1880,18 +1880,12 @@ fn test_run_help_mentions_new_flags() {
         .expect("failed to run oxo-call");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout.contains("--model"),
-        "Expected '--model' in run help"
-    );
+    assert!(stdout.contains("--model"), "Expected '--model' in run help");
     assert!(
         stdout.contains("--no-cache"),
         "Expected '--no-cache' in run help"
     );
-    assert!(
-        stdout.contains("--json"),
-        "Expected '--json' in run help"
-    );
+    assert!(stdout.contains("--json"), "Expected '--json' in run help");
     assert!(
         stdout.contains("EXAMPLES"),
         "Expected 'EXAMPLES' in run help"

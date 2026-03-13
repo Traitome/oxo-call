@@ -274,7 +274,7 @@ impl LlmClient {
                     "github-copilot" => "  For GitHub Copilot, use a GitHub token with copilot scope:\n    https://github.com/settings/tokens",
                     "openai" => "  For OpenAI, create an API key at:\n    https://platform.openai.com/api-keys",
                     "anthropic" => "  For Anthropic, create an API key at:\n    https://console.anthropic.com/settings/keys",
-                    "ollama" => "  For Ollama (local), no token is usually needed.\n    Set OXO_API_TOKEN if your instance requires auth.",
+                    "ollama" => "  For Ollama (local), no token is usually needed.\n    Set OXO_CALL_LLM_API_TOKEN if your instance requires auth.",
                     _ => "  Check your provider's documentation for token setup.",
                 };
                 OxoError::LlmError(
