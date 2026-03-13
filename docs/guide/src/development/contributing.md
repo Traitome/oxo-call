@@ -77,3 +77,35 @@ cd docs/guide
 mdbook build    # Build the documentation
 mdbook serve    # Serve locally at http://localhost:3000
 ```
+
+## Benchmarking with oxo-bench
+
+The `oxo-bench` crate provides automated evaluation for testing skill quality and LLM accuracy:
+
+```bash
+# Run the full benchmark suite (50+ tasks across 15 categories)
+cargo run -p oxo-bench -- evaluate
+
+# Benchmark a specific tool
+cargo run -p oxo-bench -- evaluate --tool samtools
+
+# Run ablation tests (docs-only vs. docs+skills vs. full pipeline)
+cargo run -p oxo-bench -- evaluate --ablation
+
+# Export benchmark data as CSV for analysis
+cargo run -p oxo-bench -- export-csv --output docs/
+```
+
+Benchmark categories include: alignment, variant-calling, SAM/BAM, quantification, QC, metagenomics, epigenomics, single-cell, assembly, annotation, and more.
+
+When contributing a new built-in skill, run the benchmark for that tool to verify accuracy improvements:
+
+```bash
+# Before: evaluate without the skill
+cargo run -p oxo-bench -- evaluate --tool mytool
+
+# After: evaluate with the skill added
+cargo run -p oxo-bench -- evaluate --tool mytool
+```
+
+Results are exported to `docs/bench_eval_tasks.csv`, `docs/bench_scenarios.csv`, and `docs/bench_workflow.csv`.

@@ -43,6 +43,7 @@
 - [LLM Integration](./reference/llm-integration.md)
 - [Workflow Engine](./reference/workflow-engine.md)
 - [License System](./reference/license-system.md)
+- [Security Considerations](./reference/security-considerations.md)
 
 # Development
 

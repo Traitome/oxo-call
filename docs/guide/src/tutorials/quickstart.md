@@ -2,6 +2,11 @@
 
 This guide walks you through your first oxo-call session in under 5 minutes.
 
+> **Test Data:** To follow along with real files, you can download small test datasets:
+> - [samtools test data](https://github.com/samtools/samtools/tree/develop/test) — small BAM/SAM files
+> - [nf-core test datasets](https://github.com/nf-core/test-datasets) — FASTQ, BAM, and reference files for various pipelines
+> - Or create a minimal test BAM: `samtools view -b -h /dev/null -o test.bam` (empty BAM for testing command syntax)
+
 ## Step 1: Install oxo-call
 
 ```bash
@@ -61,18 +66,37 @@ oxo-call config verify
 ### Preview a command (dry-run)
 ```bash
 oxo-call dry-run samtools "sort input.bam by coordinate and output to sorted.bam"
-# → samtools sort -o sorted.bam input.bam
+```
+
+Expected output:
+```
+Command: samtools sort -o sorted.bam input.bam
+Explanation: Uses -o to specify the output file; coordinate sort is the default behavior.
 ```
 
 ### Execute a command
 ```bash
 oxo-call run samtools "index sorted.bam"
-# → samtools index sorted.bam
+```
+
+Expected output:
+```
+Command: samtools index sorted.bam
+Explanation: Creates a .bai index file for random access to the sorted BAM.
+→ Running: samtools index sorted.bam
+✓ Exit code: 0
 ```
 
 ### Ask for confirmation before executing
 ```bash
 oxo-call run --ask bcftools "call variants from my.bam against ref.fa"
+```
+
+Expected output:
+```
+Command: bcftools mpileup -f ref.fa my.bam | bcftools call -mv -o variants.vcf
+Explanation: mpileup generates genotype likelihoods; call -mv outputs variant sites only.
+Execute this command? [y/N]
 ```
 
 ## Step 5: Explore More Features
