@@ -5,7 +5,7 @@ Native workflow engine with Snakemake and Nextflow compatibility export.
 ## Synopsis
 
 ```
-oxo-call workflow run      <FILE|TEMPLATE>
+oxo-call workflow run      <FILE|TEMPLATE> [--verify]
 oxo-call workflow dry-run  <FILE|TEMPLATE>
 oxo-call workflow verify   <FILE|TEMPLATE>        # alias: check
 oxo-call workflow fmt      <FILE|TEMPLATE> [--stdout]  # alias: format
@@ -43,7 +43,12 @@ Execute a workflow file or built-in template:
 ```bash
 oxo-call workflow run pipeline.oxo.toml
 oxo-call workflow run rnaseq              # Run a built-in template directly
+
+# After all steps complete, use LLM to verify output files and report issues
+oxo-call workflow run --verify pipeline.oxo.toml
 ```
+
+**`--verify`** collects the expected output files declared by every step, probes them for existence and size, then asks the LLM for a structured verdict (summary, issues, suggestions). It is advisory — it never changes the exit code.
 
 ### `workflow dry-run`
 
