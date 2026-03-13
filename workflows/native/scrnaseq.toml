@@ -54,6 +54,14 @@ outputs = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz",
            "qc/{sample}_fastp.json"]
 
 [[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["fastp"]
+cmd        = "multiqc qc/ -o results/multiqc/ --force"
+inputs     = []
+outputs    = ["results/multiqc/multiqc_report.html"]
+
+[[step]]
 name       = "starsolo"
 depends_on = ["fastp"]
 cmd        = """\
@@ -108,11 +116,3 @@ print(json.dumps(stats, indent=2))
 """
 inputs  = ["starsolo/{sample}/Solo.out/Gene/filtered/matrix.mtx.gz"]
 outputs = ["qc/{sample}_cell_stats.json"]
-
-[[step]]
-name       = "multiqc"
-gather     = true
-depends_on = ["fastp", "starsolo"]
-cmd        = "multiqc qc/ starsolo/ -o results/multiqc/"
-inputs     = []
-outputs    = ["results/multiqc/multiqc_report.html"]

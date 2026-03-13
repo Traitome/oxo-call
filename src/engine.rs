@@ -50,7 +50,7 @@ use colored::Colorize;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
-use std::time::SystemTime;
+use std::time::{Instant, SystemTime};
 
 // ─── Workflow definition (parsed from TOML) ───────────────────────────────────
 
@@ -356,6 +356,109 @@ fn is_up_to_date(task: &ConcreteTask) -> bool {
         .all(|i| mtime(i).is_none_or(|t| t <= oldest_output))
 }
 
+// ─── DAG phase computation ────────────────────────────────────────────────────
+
+/// Compute execution phases: groups of tasks that can run in parallel.
+///
+/// Each phase contains tasks whose dependencies are all satisfied by
+/// earlier phases.  Within a phase, all tasks are independent and can
+/// execute concurrently.
+pub fn compute_phases(tasks: &[ConcreteTask]) -> Vec<Vec<&ConcreteTask>> {
+    let mut phases: Vec<Vec<&ConcreteTask>> = Vec::new();
+    let mut assigned: HashSet<&str> = HashSet::new();
+    let mut remaining: Vec<&ConcreteTask> = tasks.iter().collect();
+
+    while !remaining.is_empty() {
+        let (ready, rest): (Vec<&ConcreteTask>, Vec<&ConcreteTask>) = remaining
+            .into_iter()
+            .partition(|t| t.deps.iter().all(|d| assigned.contains(d.as_str())));
+
+        if ready.is_empty() {
+            // All remaining tasks have unsatisfied deps — cycle or error.
+            break;
+        }
+
+        for t in &ready {
+            assigned.insert(&t.id);
+        }
+        phases.push(ready);
+        remaining = rest;
+    }
+
+    phases
+}
+
+/// Format elapsed time as human-readable string.
+fn format_elapsed(elapsed: std::time::Duration) -> String {
+    let secs = elapsed.as_secs();
+    if secs < 60 {
+        format!("{:.1}s", elapsed.as_secs_f64())
+    } else if secs < 3600 {
+        format!("{}m {:02}s", secs / 60, secs % 60)
+    } else {
+        format!(
+            "{}h {:02}m {:02}s",
+            secs / 3600,
+            (secs % 3600) / 60,
+            secs % 60
+        )
+    }
+}
+
+/// Print the DAG phase diagram for a set of tasks.
+fn print_dag_phases(tasks: &[ConcreteTask]) {
+    let phases = compute_phases(tasks);
+    if phases.is_empty() {
+        return;
+    }
+
+    println!();
+    println!(
+        "  {} {}",
+        "Pipeline DAG".bold(),
+        format!("({} phases, {} tasks)", phases.len(), tasks.len()).dimmed()
+    );
+    println!();
+
+    for (i, phase) in phases.iter().enumerate() {
+        let phase_num = format!("Phase {}", i + 1);
+
+        // Group by step_name to show compact per-sample expansion.
+        let mut groups: Vec<(String, Vec<String>)> = Vec::new();
+        for t in phase.iter() {
+            let label = if t.gather {
+                format!("{} [gather]", t.id)
+            } else {
+                t.id.clone()
+            };
+            if let Some(g) = groups.last_mut().filter(|(name, _)| name == &t.step_name) {
+                g.1.push(label);
+            } else {
+                groups.push((t.step_name.clone(), vec![label]));
+            }
+        }
+
+        let mut group_strs: Vec<String> = Vec::new();
+        for (_, items) in &groups {
+            if items.len() <= 3 {
+                group_strs.extend(items.iter().cloned());
+            } else {
+                // Show first two and a count.
+                group_strs.push(items[0].clone());
+                group_strs.push(format!("… +{} more", items.len() - 1));
+            }
+        }
+
+        println!("  {:>9}  {}", phase_num.cyan(), group_strs.join("  │  "));
+
+        if i + 1 < phases.len() {
+            println!("  {:>9}  {}", "", "↓".dimmed());
+        }
+    }
+
+    println!();
+}
+
 // ─── Async executor ────────────────────────────────────────────────────────────
 
 /// Execute a task graph with maximum parallelism.
@@ -373,6 +476,8 @@ pub async fn execute(tasks: Vec<ConcreteTask>, dry_run: bool) -> Result<()> {
     }
 
     let total = tasks.len();
+    let start_time = Instant::now();
+
     println!();
     println!(
         "{} {} — {} task(s){}",
@@ -383,12 +488,18 @@ pub async fn execute(tasks: Vec<ConcreteTask>, dry_run: bool) -> Result<()> {
     );
     println!("{}", "─".repeat(60).dimmed());
 
+    // Print DAG phase diagram.
+    print_dag_phases(&tasks);
+
+    println!("{}", "─".repeat(60).dimmed());
+
     // Set of completed task IDs (includes both run and skipped).
     let mut done: HashSet<String> = HashSet::new();
     // Tasks that have been dispatched (to avoid double-dispatch).
     let mut started: HashSet<String> = HashSet::new();
     // Separately track which tasks were skipped (up-to-date).
     let mut skipped_count: usize = 0;
+    let mut completed_count: usize = 0;
     let mut join_set: JoinSet<Result<(String, bool /*skipped*/)>> = JoinSet::new();
 
     let mut iterations_without_progress = 0usize;
@@ -403,8 +514,9 @@ pub async fn execute(tasks: Vec<ConcreteTask>, dry_run: bool) -> Result<()> {
         for task in newly_ready {
             started.insert(task.id.clone());
             if dry_run {
-                print_task_dry_run(task);
+                print_task_dry_run(task, completed_count + 1, total);
                 done.insert(task.id.clone());
+                completed_count += 1;
             } else {
                 let t = task.clone();
                 join_set.spawn(async move { run_single_task(t).await });
@@ -442,36 +554,48 @@ pub async fn execute(tasks: Vec<ConcreteTask>, dry_run: bool) -> Result<()> {
             Some(result) => {
                 let (id, skipped) = result
                     .map_err(|e| OxoError::ExecutionError(format!("Task join error: {e}")))??;
+                completed_count += 1;
                 if skipped {
                     skipped_count += 1;
                     println!(
-                        "  {} {} {}",
+                        "  {} [{}/{}] {} {}",
                         "↷".dimmed(),
+                        completed_count,
+                        total,
                         id.dimmed(),
                         "(up to date)".dimmed()
                     );
                 } else {
-                    println!("  {} {}", "✓".green().bold(), id.green());
+                    println!(
+                        "  {} [{}/{}] {}",
+                        "✓".green().bold(),
+                        completed_count,
+                        total,
+                        id.green()
+                    );
                 }
                 done.insert(id);
             }
         }
     }
 
+    let elapsed = start_time.elapsed();
     println!("{}", "─".repeat(60).dimmed());
     let run_count = started.len();
     if dry_run {
         println!(
-            "\n{} {} task(s) would execute",
+            "\n{} {} task(s) would execute across {} phase(s)",
             "◆".cyan().bold(),
-            run_count
+            run_count,
+            compute_phases(&tasks).len()
         );
     } else {
         println!(
-            "\n{} Workflow complete ({} task(s) run, {} up to date)",
+            "\n{} Workflow complete — {} task(s) run, {} up to date  ({})",
             "✓".green().bold(),
             run_count.saturating_sub(skipped_count),
-            skipped_count
+            skipped_count,
+            format_elapsed(elapsed)
         );
     }
 
@@ -519,10 +643,12 @@ async fn run_single_task(task: ConcreteTask) -> Result<(String, bool)> {
 }
 
 /// Print a dry-run preview for a single task.
-fn print_task_dry_run(task: &ConcreteTask) {
+fn print_task_dry_run(task: &ConcreteTask, current: usize, total: usize) {
     println!(
-        "  {} {}",
+        "  {} [{}/{}] {}",
         "▷".cyan(),
+        current,
+        total,
         if task.gather {
             format!("{} [gather]", task.id).cyan().bold().to_string()
         } else {
@@ -756,4 +882,681 @@ pub fn to_nextflow(def: &WorkflowDef) -> String {
     out.push_str("}\n");
 
     out
+}
+
+// ─── Verify ───────────────────────────────────────────────────────────────────
+
+/// A single diagnostic produced by [`verify`].
+#[derive(Debug, Clone)]
+pub struct Diagnostic {
+    pub level: DiagLevel,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DiagLevel {
+    Error,
+    Warning,
+}
+
+impl std::fmt::Display for DiagLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DiagLevel::Error => write!(f, "error"),
+            DiagLevel::Warning => write!(f, "warning"),
+        }
+    }
+}
+
+/// Verify a parsed [`WorkflowDef`] for semantic correctness and return
+/// a list of diagnostics (errors + warnings).
+///
+/// Returns `Ok(diags)` even if there are errors — the caller decides whether
+/// to abort.  The vector is empty when the workflow is fully valid.
+pub fn verify(def: &WorkflowDef) -> Vec<Diagnostic> {
+    let mut diags: Vec<Diagnostic> = Vec::new();
+
+    // ── Metadata checks ──────────────────────────────────────────────────────
+    if def.workflow.name.is_empty() {
+        diags.push(Diagnostic {
+            level: DiagLevel::Warning,
+            message: "[workflow] name is empty".to_string(),
+        });
+    }
+
+    // ── Step name uniqueness ─────────────────────────────────────────────────
+    let mut seen_names: HashSet<&str> = HashSet::new();
+    for step in &def.steps {
+        if step.name.is_empty() {
+            diags.push(Diagnostic {
+                level: DiagLevel::Error,
+                message: "A step has an empty name".to_string(),
+            });
+        }
+        if !seen_names.insert(step.name.as_str()) {
+            diags.push(Diagnostic {
+                level: DiagLevel::Error,
+                message: format!("Duplicate step name: '{}'", step.name),
+            });
+        }
+        if step.cmd.trim().is_empty() {
+            diags.push(Diagnostic {
+                level: DiagLevel::Error,
+                message: format!("Step '{}' has an empty cmd", step.name),
+            });
+        }
+    }
+
+    // ── Unknown depends_on references ────────────────────────────────────────
+    let all_names: HashSet<&str> = def.steps.iter().map(|s| s.name.as_str()).collect();
+    for step in &def.steps {
+        for dep in &step.depends_on {
+            if !all_names.contains(dep.as_str()) {
+                diags.push(Diagnostic {
+                    level: DiagLevel::Error,
+                    message: format!("Step '{}' depends on unknown step '{dep}'", step.name),
+                });
+            }
+        }
+    }
+
+    // ── Forward-dependency ordering (informational) ──────────────────────────
+    let name_to_pos: HashMap<&str, usize> = def
+        .steps
+        .iter()
+        .enumerate()
+        .map(|(i, s)| (s.name.as_str(), i))
+        .collect();
+    for step in &def.steps {
+        let step_pos = name_to_pos[step.name.as_str()];
+        for dep in &step.depends_on {
+            if let Some(&dep_pos) = name_to_pos.get(dep.as_str())
+                && dep_pos > step_pos
+            {
+                diags.push(Diagnostic {
+                    level: DiagLevel::Warning,
+                    message: format!(
+                        "Step '{}' references '{}' which appears later in the file — \
+                         dependency will be silently ignored at runtime",
+                        step.name, dep
+                    ),
+                });
+            }
+        }
+    }
+
+    // ── Wildcard references in cmds ──────────────────────────────────────────
+    let wc_keys: HashSet<String> = def.wildcards.keys().cloned().collect();
+    let param_keys: HashSet<String> = def.params.keys().cloned().collect();
+    for step in &def.steps {
+        // Find {placeholder} references in cmd, inputs, outputs.
+        let all_text = std::iter::once(step.cmd.as_str())
+            .chain(step.inputs.iter().map(|s| s.as_str()))
+            .chain(step.outputs.iter().map(|s| s.as_str()));
+        for text in all_text {
+            // Scan for {placeholder} patterns, skipping shell-style ${var} expansions.
+            let bytes = text.as_bytes();
+            let mut i = 0;
+            while i < bytes.len() {
+                if bytes[i] == b'{'
+                    // Skip ${...} — shell variable expansion, not a workflow placeholder.
+                    && (i == 0 || bytes[i - 1] != b'$')
+                {
+                    let rest = &text[i + 1..];
+                    if let Some(end) = rest.find('}') {
+                        let placeholder = &rest[..end];
+                        if let Some(key) = placeholder.strip_prefix("params.") {
+                            if !param_keys.contains(key) {
+                                diags.push(Diagnostic {
+                                    level: DiagLevel::Warning,
+                                    message: format!(
+                                        "Step '{}' references {{params.{key}}} but it is not defined in [params]",
+                                        step.name
+                                    ),
+                                });
+                            }
+                        } else if !placeholder.is_empty()
+                            && !wc_keys.contains(placeholder)
+                            && !param_keys.contains(placeholder)
+                        {
+                            diags.push(Diagnostic {
+                                level: DiagLevel::Warning,
+                                message: format!(
+                                    "Step '{}' references {{{placeholder}}} which is not a defined wildcard or param",
+                                    step.name
+                                ),
+                            });
+                        }
+                        i += 1 + end + 1; // skip past the closing '}'
+                        continue;
+                    }
+                }
+                i += 1;
+            }
+        }
+    }
+
+    // ── Cycle detection via DAG expand ───────────────────────────────────────
+    if diags.iter().all(|d| d.level != DiagLevel::Error)
+        && let Err(e) = expand(def)
+    {
+        diags.push(Diagnostic {
+            level: DiagLevel::Error,
+            message: format!("DAG expansion failed: {e}"),
+        });
+    }
+
+    diags
+}
+
+/// Print verify diagnostics to stdout in a human-friendly format.
+/// Returns `true` if there are any errors.
+pub fn print_verify_report(def: &WorkflowDef, diags: &[Diagnostic]) -> bool {
+    let errors = diags.iter().filter(|d| d.level == DiagLevel::Error).count();
+    let warnings = diags
+        .iter()
+        .filter(|d| d.level == DiagLevel::Warning)
+        .count();
+
+    println!(
+        "{} workflow '{}' — {} step(s), {} wildcard(s)",
+        "◆".cyan().bold(),
+        def.workflow.name.bold(),
+        def.steps.len(),
+        def.wildcards.len()
+    );
+
+    if diags.is_empty() {
+        println!("{} No issues found — workflow is valid", "✓".green().bold());
+        return false;
+    }
+
+    println!("{}", "─".repeat(60).dimmed());
+    for d in diags {
+        let (icon, colored_level) = match d.level {
+            DiagLevel::Error => (
+                "✗".red().bold().to_string(),
+                "error".red().bold().to_string(),
+            ),
+            DiagLevel::Warning => (
+                "⚠".yellow().bold().to_string(),
+                "warning".yellow().bold().to_string(),
+            ),
+        };
+        println!("  {} [{}] {}", icon, colored_level, d.message);
+    }
+    println!("{}", "─".repeat(60).dimmed());
+    println!(
+        "  {} error(s), {} warning(s)",
+        if errors > 0 {
+            errors.to_string().red().bold().to_string()
+        } else {
+            errors.to_string()
+        },
+        if warnings > 0 {
+            warnings.to_string().yellow().bold().to_string()
+        } else {
+            warnings.to_string()
+        },
+    );
+
+    errors > 0
+}
+
+// ─── Format ───────────────────────────────────────────────────────────────────
+
+/// Serialize a [`WorkflowDef`] back to canonical `.oxo.toml` TOML text.
+///
+/// The output is deterministically ordered:
+/// `[workflow]` → `[wildcards]` → `[params]` → `[[step]]` blocks.
+pub fn format_toml(def: &WorkflowDef) -> String {
+    let mut out = String::new();
+
+    // ── [workflow] ────────────────────────────────────────────────────────────
+    out.push_str("[workflow]\n");
+    out.push_str(&format!("name        = {:?}\n", def.workflow.name));
+    if !def.workflow.description.is_empty() {
+        out.push_str(&format!("description = {:?}\n", def.workflow.description));
+    }
+    if !def.workflow.version.is_empty() {
+        out.push_str(&format!("version     = {:?}\n", def.workflow.version));
+    }
+    out.push('\n');
+
+    // ── [wildcards] ────────────────────────────────────────────────────────────
+    if !def.wildcards.is_empty() {
+        out.push_str("[wildcards]\n");
+        let mut keys: Vec<&String> = def.wildcards.keys().collect();
+        keys.sort();
+        for k in &keys {
+            let vals = &def.wildcards[*k];
+            let quoted: Vec<String> = vals.iter().map(|v| format!("{v:?}")).collect();
+            out.push_str(&format!("{k} = [{}]\n", quoted.join(", ")));
+        }
+        out.push('\n');
+    }
+
+    // ── [params] ──────────────────────────────────────────────────────────────
+    if !def.params.is_empty() {
+        out.push_str("[params]\n");
+        let mut pkeys: Vec<&String> = def.params.keys().collect();
+        pkeys.sort();
+        for k in &pkeys {
+            out.push_str(&format!("{k:<12} = {:?}\n", def.params[*k]));
+        }
+        out.push('\n');
+    }
+
+    // ── [[step]] blocks ────────────────────────────────────────────────────────
+    for step in &def.steps {
+        out.push_str("[[step]]\n");
+        out.push_str(&format!("name       = {:?}\n", step.name));
+        if step.gather {
+            out.push_str("gather     = true\n");
+        }
+        if !step.depends_on.is_empty() {
+            let deps: Vec<String> = step.depends_on.iter().map(|d| format!("{d:?}")).collect();
+            out.push_str(&format!("depends_on = [{}]\n", deps.join(", ")));
+        }
+        // cmd: use multi-line literal for long commands
+        let cmd = &step.cmd;
+        if cmd.contains('\n') || cmd.len() > MAX_INLINE_CMD_LENGTH {
+            // Render as triple-quoted string with backslash-continuation lines.
+            out.push_str("cmd        = \"\"\"\\\n");
+            for line in cmd.lines() {
+                out.push_str(&format!("{line}\n"));
+            }
+            out.push_str("\"\"\"\n");
+        } else {
+            out.push_str(&format!("cmd        = {:?}\n", cmd));
+        }
+        if !step.inputs.is_empty() {
+            let ins: Vec<String> = step.inputs.iter().map(|i| format!("{i:?}")).collect();
+            out.push_str(&format!("inputs     = [{}]\n", ins.join(", ")));
+        }
+        if !step.outputs.is_empty() {
+            let outs: Vec<String> = step.outputs.iter().map(|o| format!("{o:?}")).collect();
+            out.push_str(&format!("outputs    = [{}]\n", outs.join(", ")));
+        }
+        out.push('\n');
+    }
+
+    // Remove trailing newline.
+    out.pop();
+    out
+}
+
+// Maximum command length for single-line formatting; longer commands use multi-line syntax.
+const MAX_INLINE_CMD_LENGTH: usize = 80;
+
+/// Print a rich DAG visualisation for a workflow to stdout.
+///
+/// Shows the phase diagram, step dependency table, and a summary.
+pub fn visualize_workflow(def: &WorkflowDef) -> Result<()> {
+    let tasks = expand(def)?;
+    let phases = compute_phases(&tasks);
+
+    println!();
+    println!(
+        "{} {} {}",
+        "◆".cyan().bold(),
+        format!("Workflow: {}", def.workflow.name).bold(),
+        format!(
+            "({} steps, {} tasks, {} phases)",
+            def.steps.len(),
+            tasks.len(),
+            phases.len()
+        )
+        .dimmed()
+    );
+    if !def.workflow.description.is_empty() {
+        println!("  {}", def.workflow.description.dimmed());
+    }
+
+    // ── Wildcard summary ──────────────────────────────────────────────────────
+    if !def.wildcards.is_empty() {
+        println!();
+        println!("  {}", "Wildcards:".bold());
+        let mut keys: Vec<&String> = def.wildcards.keys().collect();
+        keys.sort();
+        for k in &keys {
+            let vals = &def.wildcards[k.as_str()];
+            let preview = if vals.len() <= 4 {
+                vals.join(", ")
+            } else {
+                format!("{}, … ({} total)", vals[..3].join(", "), vals.len())
+            };
+            println!("    {:<12} = [{}]", k.cyan(), preview);
+        }
+    }
+
+    // ── Phase diagram (reuse existing helper) ─────────────────────────────────
+    println!();
+    println!("{}", "─".repeat(60).dimmed());
+    print_dag_phases(&tasks);
+    println!("{}", "─".repeat(60).dimmed());
+
+    // ── Per-step dependency table ─────────────────────────────────────────────
+    println!();
+    println!("  {}", "Step details:".bold());
+    println!(
+        "  {:<18} {:<8} {:<8} {}",
+        "Step".bold(),
+        "Gather".bold(),
+        "Tasks".bold(),
+        "Depends on".bold()
+    );
+    println!("  {}", "─".repeat(56).dimmed());
+    for step in &def.steps {
+        let task_count = tasks.iter().filter(|t| t.step_name == step.name).count();
+        let gather_str = if step.gather { "yes" } else { "" };
+        let deps_str = if step.depends_on.is_empty() {
+            "(none)".dimmed().to_string()
+        } else {
+            step.depends_on.join(", ").cyan().to_string()
+        };
+        println!(
+            "  {:<18} {:<8} {:<8} {}",
+            step.name.cyan(),
+            gather_str,
+            task_count,
+            deps_str
+        );
+    }
+
+    println!();
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Helper to build a minimal ConcreteTask for testing.
+    fn task(id: &str, deps: &[&str]) -> ConcreteTask {
+        ConcreteTask {
+            id: id.to_string(),
+            step_name: id.split('[').next().unwrap_or(id).to_string(),
+            cmd: format!("echo {id}"),
+            inputs: vec![],
+            outputs: vec![],
+            deps: deps.iter().map(|d| d.to_string()).collect(),
+            gather: false,
+        }
+    }
+
+    fn gather_task(id: &str, deps: &[&str]) -> ConcreteTask {
+        let mut t = task(id, deps);
+        t.gather = true;
+        t
+    }
+
+    #[test]
+    fn test_compute_phases_linear_chain() {
+        let tasks = vec![task("a", &[]), task("b", &["a"]), task("c", &["b"])];
+        let phases = compute_phases(&tasks);
+        assert_eq!(phases.len(), 3);
+        assert_eq!(phases[0].len(), 1);
+        assert_eq!(phases[0][0].id, "a");
+        assert_eq!(phases[1][0].id, "b");
+        assert_eq!(phases[2][0].id, "c");
+    }
+
+    #[test]
+    fn test_compute_phases_parallel_tasks() {
+        let tasks = vec![task("a", &[]), task("b", &[]), task("c", &["a", "b"])];
+        let phases = compute_phases(&tasks);
+        assert_eq!(phases.len(), 2);
+        // Phase 1: a and b in parallel.
+        assert_eq!(phases[0].len(), 2);
+        // Phase 2: c after both.
+        assert_eq!(phases[1].len(), 1);
+        assert_eq!(phases[1][0].id, "c");
+    }
+
+    #[test]
+    fn test_compute_phases_diamond_dag() {
+        // a → b, a → c, b+c → d
+        let tasks = vec![
+            task("a", &[]),
+            task("b", &["a"]),
+            task("c", &["a"]),
+            task("d", &["b", "c"]),
+        ];
+        let phases = compute_phases(&tasks);
+        assert_eq!(phases.len(), 3);
+        assert_eq!(phases[0].len(), 1); // a
+        assert_eq!(phases[1].len(), 2); // b, c
+        assert_eq!(phases[2].len(), 1); // d
+    }
+
+    #[test]
+    fn test_compute_phases_with_gather() {
+        // Mimics rnaseq: fastp[s1], fastp[s2] → multiqc (gather)
+        let tasks = vec![
+            task("fastp[sample=s1]", &[]),
+            task("fastp[sample=s2]", &[]),
+            gather_task("multiqc", &["fastp[sample=s1]", "fastp[sample=s2]"]),
+        ];
+        let phases = compute_phases(&tasks);
+        assert_eq!(phases.len(), 2);
+        assert_eq!(phases[0].len(), 2); // both fastp tasks
+        assert_eq!(phases[1].len(), 1); // multiqc
+        assert!(phases[1][0].gather);
+    }
+
+    #[test]
+    fn test_compute_phases_empty() {
+        let tasks: Vec<ConcreteTask> = vec![];
+        let phases = compute_phases(&tasks);
+        assert_eq!(phases.len(), 0);
+    }
+
+    #[test]
+    fn test_compute_phases_single_task() {
+        let tasks = vec![task("only", &[])];
+        let phases = compute_phases(&tasks);
+        assert_eq!(phases.len(), 1);
+        assert_eq!(phases[0].len(), 1);
+    }
+
+    #[test]
+    fn test_compute_phases_complex_pipeline() {
+        // Mimics a real pipeline with parallel and gather:
+        // fastp[s1,s2] → star[s1,s2] → featurecounts[s1,s2] → multiqc
+        let tasks = vec![
+            task("fastp[sample=s1]", &[]),
+            task("fastp[sample=s2]", &[]),
+            task("star[sample=s1]", &["fastp[sample=s1]"]),
+            task("star[sample=s2]", &["fastp[sample=s2]"]),
+            task("featurecounts[sample=s1]", &["star[sample=s1]"]),
+            task("featurecounts[sample=s2]", &["star[sample=s2]"]),
+            gather_task(
+                "multiqc",
+                &["featurecounts[sample=s1]", "featurecounts[sample=s2]"],
+            ),
+        ];
+        let phases = compute_phases(&tasks);
+        assert_eq!(phases.len(), 4);
+        assert_eq!(phases[0].len(), 2); // fastp[s1], fastp[s2]
+        assert_eq!(phases[1].len(), 2); // star[s1], star[s2]
+        assert_eq!(phases[2].len(), 2); // featurecounts[s1], featurecounts[s2]
+        assert_eq!(phases[3].len(), 1); // multiqc
+    }
+
+    #[test]
+    fn test_format_elapsed_seconds() {
+        let d = std::time::Duration::from_secs_f64(5.3);
+        assert_eq!(format_elapsed(d), "5.3s");
+    }
+
+    #[test]
+    fn test_format_elapsed_minutes() {
+        let d = std::time::Duration::from_secs(125);
+        assert_eq!(format_elapsed(d), "2m 05s");
+    }
+
+    #[test]
+    fn test_format_elapsed_hours() {
+        let d = std::time::Duration::from_secs(3723);
+        assert_eq!(format_elapsed(d), "1h 02m 03s");
+    }
+
+    #[test]
+    fn test_expand_rnaseq_template() {
+        // Verify that the built-in RNA-seq template parses and expands correctly.
+        let toml = include_str!("../workflows/native/rnaseq.toml");
+        let def = WorkflowDef::from_str_content(toml).expect("parse rnaseq template");
+        let tasks = expand(&def).expect("expand rnaseq DAG");
+
+        // rnaseq has 3 samples and 5 steps:
+        // Per-sample: fastp, star, samtools_index, featurecounts (4 × 3 = 12)
+        // Gather: multiqc (1)
+        assert_eq!(tasks.len(), 13);
+
+        // multiqc is an upstream QC aggregation step that depends on fastp
+        let multiqc = tasks.iter().find(|t| t.step_name == "multiqc").unwrap();
+        assert!(multiqc.gather);
+        // multiqc depends on all fastp instances
+        assert_eq!(multiqc.deps.len(), 3);
+        for dep in &multiqc.deps {
+            assert!(
+                dep.starts_with("fastp["),
+                "multiqc dep should be fastp: {dep}"
+            );
+        }
+
+        // Verify phases: multiqc runs in parallel with star (both depend on fastp)
+        let phases = compute_phases(&tasks);
+        assert_eq!(phases[0].len(), 3); // 3 fastp tasks
+        // multiqc and star should be in the same phase (phase 1)
+        let multiqc_phase = phases
+            .iter()
+            .position(|p| p.iter().any(|t| t.step_name == "multiqc"))
+            .unwrap();
+        let star_phase = phases
+            .iter()
+            .position(|p| p.iter().any(|t| t.step_name == "star"))
+            .unwrap();
+        assert_eq!(
+            multiqc_phase, star_phase,
+            "multiqc and star should execute in the same phase"
+        );
+    }
+
+    #[test]
+    fn test_expand_chipseq_template() {
+        // ChIP-seq has parallel macs3 + bigwig branches.
+        let toml = include_str!("../workflows/native/chipseq.toml");
+        let def = WorkflowDef::from_str_content(toml).expect("parse chipseq template");
+        let tasks = expand(&def).expect("expand chipseq DAG");
+
+        // multiqc is upstream QC and depends only on fastp
+        let multiqc = tasks.iter().find(|t| t.step_name == "multiqc").unwrap();
+        assert!(multiqc.gather);
+        assert_eq!(multiqc.deps.len(), 3); // 3 samples × fastp
+        for dep in &multiqc.deps {
+            assert!(
+                dep.starts_with("fastp["),
+                "multiqc dep should be fastp: {dep}"
+            );
+        }
+
+        // multiqc and bowtie2 should be in the same phase (both depend on fastp)
+        let phases = compute_phases(&tasks);
+        let multiqc_phase = phases
+            .iter()
+            .position(|p| p.iter().any(|t| t.step_name == "multiqc"))
+            .unwrap();
+        let bowtie2_phase = phases
+            .iter()
+            .position(|p| p.iter().any(|t| t.step_name == "bowtie2"))
+            .unwrap();
+        assert_eq!(
+            multiqc_phase, bowtie2_phase,
+            "multiqc and bowtie2 should execute in the same phase"
+        );
+
+        // Verify parallel phases: macs3 and bigwig should be in the same phase
+        let macs3_phase = phases
+            .iter()
+            .position(|p| p.iter().any(|t| t.step_name == "macs3"))
+            .unwrap();
+        let bigwig_phase = phases
+            .iter()
+            .position(|p| p.iter().any(|t| t.step_name == "bigwig"))
+            .unwrap();
+        assert_eq!(
+            macs3_phase, bigwig_phase,
+            "macs3 and bigwig should execute in the same phase"
+        );
+    }
+
+    #[test]
+    fn test_expand_longreads_template() {
+        // Long-reads has parallel nanostat + flye branches.
+        let toml = include_str!("../workflows/native/longreads.toml");
+        let def = WorkflowDef::from_str_content(toml).expect("parse longreads template");
+        let tasks = expand(&def).expect("expand longreads DAG");
+
+        // Verify nanostat and flye are in the same phase (both depend on nanoq only)
+        let phases = compute_phases(&tasks);
+        let nanostat_phase = phases
+            .iter()
+            .position(|p| p.iter().any(|t| t.step_name == "nanostat"))
+            .unwrap();
+        let flye_phase = phases
+            .iter()
+            .position(|p| p.iter().any(|t| t.step_name == "flye"))
+            .unwrap();
+        assert_eq!(
+            nanostat_phase, flye_phase,
+            "nanostat and flye should execute in parallel"
+        );
+    }
+
+    #[test]
+    fn test_all_builtin_templates_parse_and_expand() {
+        // Ensure every built-in template can be parsed and expanded without errors.
+        let templates = [
+            ("rnaseq", include_str!("../workflows/native/rnaseq.toml")),
+            ("wgs", include_str!("../workflows/native/wgs.toml")),
+            ("atacseq", include_str!("../workflows/native/atacseq.toml")),
+            ("chipseq", include_str!("../workflows/native/chipseq.toml")),
+            (
+                "metagenomics",
+                include_str!("../workflows/native/metagenomics.toml"),
+            ),
+            (
+                "amplicon16s",
+                include_str!("../workflows/native/amplicon16s.toml"),
+            ),
+            (
+                "scrnaseq",
+                include_str!("../workflows/native/scrnaseq.toml"),
+            ),
+            (
+                "longreads",
+                include_str!("../workflows/native/longreads.toml"),
+            ),
+            (
+                "methylseq",
+                include_str!("../workflows/native/methylseq.toml"),
+            ),
+        ];
+        for (name, toml) in &templates {
+            let def = WorkflowDef::from_str_content(toml)
+                .unwrap_or_else(|e| panic!("Failed to parse {name}: {e}"));
+            let tasks = expand(&def).unwrap_or_else(|e| panic!("Failed to expand {name}: {e}"));
+            assert!(!tasks.is_empty(), "{name} should have at least one task");
+
+            // Verify multiqc is an upstream QC aggregation step (not the final phase)
+            let multiqc = tasks.iter().find(|t| t.step_name == "multiqc");
+            assert!(multiqc.is_some(), "{name}: should have a multiqc task");
+            assert!(
+                multiqc.unwrap().gather,
+                "{name}: multiqc should be a gather step"
+            );
+        }
+    }
 }

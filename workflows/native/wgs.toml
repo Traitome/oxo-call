@@ -46,6 +46,14 @@ inputs  = ["data/{sample}_R1.fastq.gz", "data/{sample}_R2.fastq.gz"]
 outputs = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz"]
 
 [[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["fastp"]
+cmd        = "multiqc qc/ -o results/multiqc/ --force"
+inputs     = []
+outputs    = ["results/multiqc/multiqc_report.html"]
+
+[[step]]
 name       = "bwa_mem2"
 depends_on = ["fastp"]
 cmd        = """\
@@ -111,11 +119,3 @@ gatk HaplotypeCaller \
 """
 inputs  = ["aligned/{sample}.recal.bam"]
 outputs = ["vcf/{sample}.g.vcf.gz"]
-
-[[step]]
-name       = "multiqc"
-gather     = true
-depends_on = ["fastp", "mark_duplicates"]
-cmd        = "multiqc qc/ aligned/ -o results/multiqc/"
-inputs     = []
-outputs    = ["results/multiqc/multiqc_report.html"]

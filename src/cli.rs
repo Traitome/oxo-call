@@ -357,6 +357,30 @@ pub enum WorkflowCommands {
         #[arg(short, long, default_value = "native", value_parser = ["native", "snakemake", "nextflow"])]
         engine: String,
     },
+
+    /// Verify a .oxo.toml workflow file for correctness (parse, dependency, cycle checks)
+    #[command(visible_alias = "check")]
+    Verify {
+        /// Path to an .oxo.toml workflow file (or a built-in template name)
+        file: String,
+    },
+
+    /// Auto-format a .oxo.toml workflow file to canonical style
+    #[command(name = "fmt", visible_alias = "format")]
+    Format {
+        /// Path to an .oxo.toml workflow file (or a built-in template name)
+        file: String,
+        /// Write formatted output to stdout instead of overwriting the file
+        #[arg(long)]
+        stdout: bool,
+    },
+
+    /// Visualize the workflow DAG as a phase diagram
+    #[command(visible_alias = "dag")]
+    Vis {
+        /// Path to an .oxo.toml workflow file (or a built-in template name)
+        file: String,
+    },
 }
 
 #[cfg(test)]

@@ -127,12 +127,8 @@ rule methylation_extract:
 rule multiqc:
     input:
         expand("results/qc/{sample}_R1_val_1_fastqc.zip", sample=SAMPLES),
-        expand("results/aligned/{sample}_bismark_bt2_PE_report.txt", sample=SAMPLES),
-        expand("results/deduped/{sample}_bismark_bt2_pe.deduplication_report.txt", sample=SAMPLES),
-        expand("results/methyl/{sample}.sorted_splitting_report.txt", sample=SAMPLES),
     output:
         "results/multiqc/multiqc_report.html",
     log: "logs/multiqc.log"
     shell:
-        "multiqc results/trimmed/ results/aligned/ results/deduped/ results/methyl/ "
-        "-o results/multiqc/ > {log} 2>&1"
+        "multiqc results/trimmed/ -o results/multiqc/ --force > {log} 2>&1"

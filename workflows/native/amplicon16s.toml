@@ -76,6 +76,14 @@ outputs = ["filtered/{sample}_R1.fastq.gz", "filtered/{sample}_R2.fastq.gz",
            "qc/{sample}_fastp.json"]
 
 [[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["fastp"]
+cmd        = "multiqc qc/ -o results/multiqc/ --force"
+inputs     = []
+outputs    = ["results/multiqc/multiqc_report.html"]
+
+[[step]]
 name       = "dada2"
 gather     = true
 depends_on = ["fastp"]
@@ -108,11 +116,3 @@ REOF\
 inputs  = []
 outputs = ["dada2/asv_table.csv", "dada2/taxonomy_table.csv",
            "dada2/seqtab_nochim.rds"]
-
-[[step]]
-name       = "multiqc"
-gather     = true
-depends_on = ["fastp"]
-cmd        = "multiqc qc/ -o results/multiqc/"
-inputs     = []
-outputs    = ["results/multiqc/multiqc_report.html"]

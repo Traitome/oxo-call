@@ -44,6 +44,14 @@ inputs  = ["data/{sample}_R1.fastq.gz", "data/{sample}_R2.fastq.gz"]
 outputs = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz"]
 
 [[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["fastp"]
+cmd        = "multiqc qc/ -o results/multiqc/ --force"
+inputs     = []
+outputs    = ["results/multiqc/multiqc_report.html"]
+
+[[step]]
 name       = "remove_host"
 depends_on = ["fastp"]
 cmd        = """\
@@ -90,11 +98,3 @@ bracken \
 """
 inputs  = ["kraken2/{sample}.report"]
 outputs = ["bracken/{sample}.bracken"]
-
-[[step]]
-name       = "multiqc"
-gather     = true
-depends_on = ["fastp", "kraken2"]
-cmd        = "multiqc qc/ kraken2/ -o results/multiqc/"
-inputs     = []
-outputs    = ["results/multiqc/multiqc_report.html"]

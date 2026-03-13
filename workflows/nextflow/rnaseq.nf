@@ -156,8 +156,8 @@ workflow {
     SAMTOOLS_INDEX(STAR_ALIGN.out.bam)
     FEATURECOUNTS(SAMTOOLS_INDEX.out, gtf_ch)
 
-    // Collect all QC files for MultiQC
-    qc_files = FASTP.out.json.mix(STAR_ALIGN.out.log).collect()
+    // QC aggregation — runs in parallel with alignment
+    qc_files = FASTP.out.json.collect()
     MULTIQC(qc_files)
 }
 

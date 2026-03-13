@@ -59,6 +59,14 @@ outputs = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz",
            "qc/{sample}_fastp.json"]
 
 [[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["fastp"]
+cmd        = "multiqc qc/ -o results/multiqc/ --force"
+inputs     = []
+outputs    = ["results/multiqc/multiqc_report.html"]
+
+[[step]]
 name       = "bowtie2"
 depends_on = ["fastp"]
 cmd        = """\
@@ -130,11 +138,3 @@ bamCoverage \
 """
 inputs  = ["aligned/{sample}.filtered.bam"]
 outputs = ["bigwig/{sample}.bw"]
-
-[[step]]
-name       = "multiqc"
-gather     = true
-depends_on = ["fastp", "mark_duplicates"]
-cmd        = "multiqc qc/ aligned/ -o results/multiqc/"
-inputs     = []
-outputs    = ["results/multiqc/multiqc_report.html"]

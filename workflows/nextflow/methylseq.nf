@@ -161,13 +161,9 @@ workflow {
     SORT_INDEX(BISMARK_DEDUP.out.bam)
     METHYLATION_EXTRACT(SORT_INDEX.out.bam)
 
-    // MultiQC across all reports
-    all_reports = TRIM_GALORE.out.fastqc
-        .mix(BISMARK_ALIGN.out.report)
-        .mix(BISMARK_DEDUP.out.report)
-        .mix(METHYLATION_EXTRACT.out.report)
-        .collect()
-    MULTIQC(all_reports)
+    // QC aggregation — runs in parallel with Bismark alignment
+    qc_files = TRIM_GALORE.out.fastqc.collect()
+    MULTIQC(qc_files)
 }
 
 /*

@@ -50,6 +50,14 @@ outputs = ["trimmed/{sample}_R1_val_1.fq.gz", "trimmed/{sample}_R2_val_2.fq.gz",
            "trimmed/{sample}_R1_val_1_fastqc.zip"]
 
 [[step]]
+name       = "multiqc"
+gather     = true
+depends_on = ["trim_galore"]
+cmd        = "multiqc trimmed/ -o results/multiqc/ --force"
+inputs     = []
+outputs    = ["results/multiqc/multiqc_report.html"]
+
+[[step]]
 name       = "bismark_align"
 depends_on = ["trim_galore"]
 cmd        = """\
@@ -123,11 +131,3 @@ bismark2bedGraph \
 """
 inputs  = ["methyl/{sample}.sorted_CpG.bedGraph"]
 outputs = ["methyl/{sample}.CpG.bedGraph.gz.bismark.zero.cov"]
-
-[[step]]
-name       = "multiqc"
-gather     = true
-depends_on = ["trim_galore", "bismark_align", "bismark_dedup", "methylation_extract"]
-cmd        = "multiqc trimmed/ aligned/ deduped/ methyl/ -o results/multiqc/"
-inputs     = []
-outputs    = ["results/multiqc/multiqc_report.html"]

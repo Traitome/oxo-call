@@ -157,7 +157,7 @@ workflow {
     KRAKEN2(REMOVE_HOST.out, kraken2_db_ch)
     BRACKEN(KRAKEN2.out.report, bracken_db_ch)
 
-    qc_files = FASTP.out.json.mix(KRAKEN2.out.report).collect()
+    qc_files = FASTP.out.json.collect()
     MULTIQC(qc_files)
 }
 

@@ -152,6 +152,7 @@ workflow {
         .flatten()
     DADA2(all_filtered, silva_ch)
 
+    // QC aggregation — runs in parallel with DADA2
     qc_files = FASTP.out.json.mix(CUTADAPT.out.log).collect()
     MULTIQC(qc_files)
 }
