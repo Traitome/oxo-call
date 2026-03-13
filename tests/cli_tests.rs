@@ -1413,3 +1413,371 @@ fn test_workflow_infer_scans_data_dir() {
         "Expected scan output or error, got stdout={stdout} stderr={stderr}"
     );
 }
+
+// ─── workflow verify tests ─────────────────────────────────────────────────────
+
+#[test]
+fn test_workflow_verify_valid_builtin_template() {
+    // A built-in template should always be valid.
+    let output = oxo_call()
+        .args(["workflow", "verify", "rnaseq"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        output.status.success(),
+        "verify should succeed for rnaseq built-in template"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("valid") || stdout.contains("No issues"),
+        "Expected 'valid' or 'No issues' in verify output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_verify_valid_file() {
+    let tmp = tempfile::NamedTempFile::with_suffix(".toml").expect("tempfile");
+    let toml_content = r#"
+[workflow]
+name = "test"
+description = "test workflow"
+
+[wildcards]
+sample = ["s1", "s2"]
+
+[params]
+threads = "4"
+
+[[step]]
+name = "qc"
+cmd = "fastp --in1 data/{sample}_R1.fq.gz --json qc/{sample}.json"
+inputs = ["data/{sample}_R1.fq.gz"]
+outputs = ["qc/{sample}.json"]
+
+[[step]]
+name = "align"
+depends_on = ["qc"]
+cmd = "bwa mem -t {params.threads} ref.fa qc/{sample}.json > {sample}.sam"
+inputs = ["qc/{sample}.json"]
+outputs = ["{sample}.sam"]
+"#;
+    std::fs::write(tmp.path(), toml_content).expect("write");
+    let output = oxo_call()
+        .args(["workflow", "verify", tmp.path().to_str().unwrap()])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        output.status.success(),
+        "verify should succeed for valid workflow file"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("valid") || stdout.contains("No issues"),
+        "Expected valid output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_verify_unknown_dep_fails() {
+    let tmp = tempfile::NamedTempFile::with_suffix(".toml").expect("tempfile");
+    let toml_content = r#"
+[workflow]
+name = "broken"
+
+[[step]]
+name = "step_b"
+depends_on = ["nonexistent_step"]
+cmd = "echo b"
+"#;
+    std::fs::write(tmp.path(), toml_content).expect("write");
+    let output = oxo_call()
+        .args(["workflow", "verify", tmp.path().to_str().unwrap()])
+        .output()
+        .expect("failed to run oxo-call");
+    // Should exit with error code since there's an unknown dep.
+    assert!(
+        !output.status.success(),
+        "verify should fail for workflow with unknown dependency"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("nonexistent_step") || stdout.contains("unknown"),
+        "Expected error about unknown step, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_verify_all_builtin_templates() {
+    // All built-in templates must pass verification.
+    for name in &[
+        "rnaseq",
+        "wgs",
+        "atacseq",
+        "chipseq",
+        "metagenomics",
+        "amplicon16s",
+        "scrnaseq",
+        "longreads",
+        "methylseq",
+    ] {
+        let output = oxo_call()
+            .args(["workflow", "verify", name])
+            .output()
+            .expect("failed to run oxo-call");
+        assert!(
+            output.status.success(),
+            "verify failed for built-in template '{name}': {}",
+            String::from_utf8_lossy(&output.stdout)
+        );
+    }
+}
+
+#[test]
+fn test_workflow_verify_alias_check() {
+    // 'check' is a visible alias for 'verify'.
+    let output = oxo_call()
+        .args(["workflow", "check", "rnaseq"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        output.status.success(),
+        "'workflow check' alias should work"
+    );
+}
+
+// ─── workflow fmt tests ────────────────────────────────────────────────────────
+
+#[test]
+fn test_workflow_fmt_stdout_builtin() {
+    // fmt --stdout on a built-in template should print canonical TOML.
+    let output = oxo_call()
+        .args(["workflow", "fmt", "rnaseq", "--stdout"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("[workflow]"),
+        "Expected [workflow] section in formatted output, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("[[step]]"),
+        "Expected [[step]] in formatted output, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("name       ="),
+        "Expected canonical name alignment in formatted output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_fmt_inplace() {
+    // fmt without --stdout should reformat the file in-place.
+    let tmp = tempfile::NamedTempFile::with_suffix(".toml").expect("tempfile");
+    // Write deliberately un-aligned TOML.
+    let input = r#"
+[workflow]
+name="my-pipeline"
+description="test"
+
+[wildcards]
+sample=["s1","s2"]
+
+[params]
+threads="8"
+
+[[step]]
+name="qc"
+cmd="echo {sample}"
+outputs=["out/{sample}.txt"]
+"#;
+    std::fs::write(tmp.path(), input).expect("write");
+
+    let output = oxo_call()
+        .args(["workflow", "fmt", tmp.path().to_str().unwrap()])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        output.status.success(),
+        "fmt should succeed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Formatted"),
+        "Expected 'Formatted' confirmation, got: {stdout}"
+    );
+
+    // The file should now have canonical formatting.
+    let formatted = std::fs::read_to_string(tmp.path()).expect("read formatted");
+    assert!(
+        formatted.contains("[workflow]"),
+        "Formatted file should contain [workflow], got: {formatted}"
+    );
+    assert!(
+        formatted.contains("name       ="),
+        "Formatted file should use aligned name field, got: {formatted}"
+    );
+}
+
+#[test]
+fn test_workflow_format_alias() {
+    // 'format' is a visible alias for 'fmt'.
+    let output = oxo_call()
+        .args(["workflow", "format", "rnaseq", "--stdout"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        output.status.success(),
+        "'workflow format' alias should work"
+    );
+}
+
+// ─── workflow vis tests ────────────────────────────────────────────────────────
+
+#[test]
+fn test_workflow_vis_builtin_template() {
+    let output = oxo_call()
+        .args(["workflow", "vis", "rnaseq"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Phase"),
+        "Expected 'Phase' in vis output, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("fastp"),
+        "Expected 'fastp' step in vis output, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("multiqc") || stdout.contains("gather"),
+        "Expected multiqc gather step in vis output, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("Depends on") || stdout.contains("Step details"),
+        "Expected step details table in vis output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_vis_dag_alias() {
+    // 'dag' is a visible alias for 'vis'.
+    let output = oxo_call()
+        .args(["workflow", "dag", "wgs"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        output.status.success(),
+        "'workflow dag' alias should work: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Phase"),
+        "Expected phase diagram in dag output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_vis_from_file() {
+    let tmp = tempfile::NamedTempFile::with_suffix(".toml").expect("tempfile");
+    let toml_content = r#"
+[workflow]
+name = "simple"
+description = "simple test pipeline"
+
+[wildcards]
+sample = ["s1", "s2", "s3"]
+
+[[step]]
+name = "qc"
+cmd = "fastp -i {sample}.fq"
+
+[[step]]
+name = "multiqc"
+gather = true
+depends_on = ["qc"]
+cmd = "multiqc qc/"
+outputs = ["multiqc_report.html"]
+
+[[step]]
+name = "align"
+depends_on = ["qc"]
+cmd = "bwa mem ref.fa {sample}.fq > {sample}.bam"
+"#;
+    std::fs::write(tmp.path(), toml_content).expect("write");
+    let output = oxo_call()
+        .args(["workflow", "vis", tmp.path().to_str().unwrap()])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Phase"),
+        "Expected phase output, got: {stdout}"
+    );
+    // multiqc and align should be in the same phase (both depend on qc).
+    assert!(
+        stdout.contains("multiqc") || stdout.contains("align"),
+        "Expected step names in vis output, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("simple"),
+        "Expected workflow name in vis output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_vis_shows_wildcards() {
+    let output = oxo_call()
+        .args(["workflow", "vis", "metagenomics"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("sample") || stdout.contains("Wildcard"),
+        "Expected wildcard info in vis output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_vis_unknown_template_fails() {
+    let output = oxo_call()
+        .args(["workflow", "vis", "nonexistent_workflow"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        !output.status.success(),
+        "vis should fail for unknown template"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("not a file") || stderr.contains("error"),
+        "Expected error message, got: {stderr}"
+    );
+}
+
+#[test]
+fn test_workflow_help_shows_new_commands() {
+    let output = oxo_call()
+        .args(["workflow", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("verify") || stdout.contains("Verify"),
+        "Expected 'verify' in workflow help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("fmt") || stdout.contains("format"),
+        "Expected 'fmt' in workflow help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("vis") || stdout.contains("dag"),
+        "Expected 'vis' in workflow help, got: {stdout}"
+    );
+}

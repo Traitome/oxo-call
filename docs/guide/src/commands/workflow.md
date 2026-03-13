@@ -7,6 +7,9 @@ Native workflow engine with Snakemake and Nextflow compatibility export.
 ```
 oxo-call workflow run      <FILE|TEMPLATE>
 oxo-call workflow dry-run  <FILE|TEMPLATE>
+oxo-call workflow verify   <FILE|TEMPLATE>        # alias: check
+oxo-call workflow fmt      <FILE|TEMPLATE> [--stdout]  # alias: format
+oxo-call workflow vis      <FILE|TEMPLATE>        # alias: dag
 oxo-call workflow export   <FILE|TEMPLATE> --to <snakemake|nextflow> [-o <FILE>]
 oxo-call workflow generate <TASK> [--engine native|snakemake|nextflow] [-o <FILE>]
 oxo-call workflow infer    <TASK> --data <DIR> [--engine native|snakemake|nextflow] [-o <FILE>] [--run]
@@ -27,6 +30,9 @@ The `workflow` command (alias: `wf`) provides a lightweight native Rust workflow
 - **Gather steps** — steps with `gather = true` run once after all wildcard instances of their dependency steps complete (e.g., MultiQC aggregation)
 - **Progress display** — step counter `[N/M]`, elapsed time, and DAG phase visualization
 - **Cycle detection** — dependency cycles are detected and reported as errors
+- **Verification** — validate your workflow file before running with `workflow verify`
+- **Auto-formatting** — canonical style with `workflow fmt`
+- **DAG visualization** — text phase diagram with `workflow vis`
 
 ## Subcommands
 
@@ -49,6 +55,85 @@ oxo-call workflow dry-run rnaseq
 ```
 
 The dry-run shows the DAG phase diagram, step-by-step expansion with wildcard bindings, commands, dependencies, inputs, and outputs.
+
+### `workflow verify`
+
+Validate a workflow file or built-in template for correctness before running. Checks for:
+
+- Parse errors (malformed TOML)
+- Empty step names or commands
+- Duplicate step names
+- References to unknown `depends_on` steps
+- `{params.key}` references to undefined parameters
+- `{wildcard}` references to undefined wildcards
+- Forward-ordering violations (depending on a step defined later in the file)
+- DAG expansion failures (cycles, unresolvable dependencies)
+
+```bash
+oxo-call workflow verify pipeline.oxo.toml    # Exit 0 if valid, 1 if errors
+oxo-call workflow check pipeline.oxo.toml     # alias
+```
+
+Example output:
+
+```
+◆ workflow 'rnaseq' — 6 step(s), 1 wildcard(s)
+✓ No issues found — workflow is valid
+```
+
+### `workflow fmt`
+
+Auto-format a `.oxo.toml` workflow file to canonical aligned style:
+
+```bash
+oxo-call workflow fmt pipeline.oxo.toml         # Edit in-place
+oxo-call workflow fmt pipeline.oxo.toml --stdout  # Print to stdout
+oxo-call workflow format pipeline.oxo.toml      # alias
+```
+
+The formatter normalizes key alignment, sorts wildcards and params alphabetically, and ensures consistent quoting. Parse the file first with `verify` if you are unsure whether it is valid TOML.
+
+### `workflow vis`
+
+Visualize the workflow as a DAG phase diagram. Shows parallel execution groups, step dependency table, and wildcard expansion summary:
+
+```bash
+oxo-call workflow vis pipeline.oxo.toml   # From file
+oxo-call workflow vis rnaseq              # Built-in template
+oxo-call workflow dag rnaseq              # alias
+```
+
+Example output:
+
+```
+◆ Workflow: rnaseq  (6 steps, 13 tasks, 4 phases)
+  RNA-seq bulk transcript quantification pipeline
+
+  Wildcards:
+    sample       = [s1, s2, s3]
+
+────────────────────────────────────────────────────────────────
+  Pipeline DAG (4 phases, 13 tasks)
+
+    Phase 1  fastp[sample=s1]  │  fastp[sample=s2]  │  fastp[sample=s3]
+             ↓
+    Phase 2  multiqc [gather]  │  star[sample=s1]  │  … +2 more
+             ↓
+    Phase 3  samtools_index[sample=s1]  │  … +2 more
+             ↓
+    Phase 4  featurecounts[sample=s1]  │  … +2 more
+
+────────────────────────────────────────────────────────────────
+
+  Step details:
+  Step               Gather   Tasks    Depends on
+  ────────────────────────────────────────────────────────
+  fastp                       3        (none)
+  multiqc            yes      1        fastp
+  star                        3        fastp
+  samtools_index              3        star
+  featurecounts               3        samtools_index
+```
 
 ### `workflow export`
 

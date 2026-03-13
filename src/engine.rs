@@ -884,7 +884,389 @@ pub fn to_nextflow(def: &WorkflowDef) -> String {
     out
 }
 
-// ─── Tests ────────────────────────────────────────────────────────────────────
+// ─── Verify ───────────────────────────────────────────────────────────────────
+
+/// A single diagnostic produced by [`verify`].
+#[derive(Debug, Clone)]
+pub struct Diagnostic {
+    pub level: DiagLevel,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DiagLevel {
+    Error,
+    Warning,
+}
+
+impl std::fmt::Display for DiagLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DiagLevel::Error => write!(f, "error"),
+            DiagLevel::Warning => write!(f, "warning"),
+        }
+    }
+}
+
+/// Verify a parsed [`WorkflowDef`] for semantic correctness and return
+/// a list of diagnostics (errors + warnings).
+///
+/// Returns `Ok(diags)` even if there are errors — the caller decides whether
+/// to abort.  The vector is empty when the workflow is fully valid.
+pub fn verify(def: &WorkflowDef) -> Vec<Diagnostic> {
+    let mut diags: Vec<Diagnostic> = Vec::new();
+
+    // ── Metadata checks ──────────────────────────────────────────────────────
+    if def.workflow.name.is_empty() {
+        diags.push(Diagnostic {
+            level: DiagLevel::Warning,
+            message: "[workflow] name is empty".to_string(),
+        });
+    }
+
+    // ── Step name uniqueness ─────────────────────────────────────────────────
+    let mut seen_names: HashSet<&str> = HashSet::new();
+    for step in &def.steps {
+        if step.name.is_empty() {
+            diags.push(Diagnostic {
+                level: DiagLevel::Error,
+                message: "A step has an empty name".to_string(),
+            });
+        }
+        if !seen_names.insert(step.name.as_str()) {
+            diags.push(Diagnostic {
+                level: DiagLevel::Error,
+                message: format!("Duplicate step name: '{}'", step.name),
+            });
+        }
+        if step.cmd.trim().is_empty() {
+            diags.push(Diagnostic {
+                level: DiagLevel::Error,
+                message: format!("Step '{}' has an empty cmd", step.name),
+            });
+        }
+    }
+
+    // ── Unknown depends_on references ────────────────────────────────────────
+    let all_names: HashSet<&str> = def.steps.iter().map(|s| s.name.as_str()).collect();
+    for step in &def.steps {
+        for dep in &step.depends_on {
+            if !all_names.contains(dep.as_str()) {
+                diags.push(Diagnostic {
+                    level: DiagLevel::Error,
+                    message: format!("Step '{}' depends on unknown step '{dep}'", step.name),
+                });
+            }
+        }
+    }
+
+    // ── Forward-dependency ordering (informational) ──────────────────────────
+    let name_to_pos: HashMap<&str, usize> = def
+        .steps
+        .iter()
+        .enumerate()
+        .map(|(i, s)| (s.name.as_str(), i))
+        .collect();
+    for step in &def.steps {
+        let step_pos = name_to_pos[step.name.as_str()];
+        for dep in &step.depends_on {
+            if let Some(&dep_pos) = name_to_pos.get(dep.as_str())
+                && dep_pos > step_pos
+            {
+                diags.push(Diagnostic {
+                    level: DiagLevel::Warning,
+                    message: format!(
+                        "Step '{}' references '{}' which appears later in the file — \
+                         dependency will be silently ignored at runtime",
+                        step.name, dep
+                    ),
+                });
+            }
+        }
+    }
+
+    // ── Wildcard references in cmds ──────────────────────────────────────────
+    let wc_keys: HashSet<String> = def.wildcards.keys().cloned().collect();
+    let param_keys: HashSet<String> = def.params.keys().cloned().collect();
+    for step in &def.steps {
+        // Find {placeholder} references in cmd, inputs, outputs.
+        let all_text = std::iter::once(step.cmd.as_str())
+            .chain(step.inputs.iter().map(|s| s.as_str()))
+            .chain(step.outputs.iter().map(|s| s.as_str()));
+        for text in all_text {
+            // Scan for {placeholder} patterns, skipping shell-style ${var} expansions.
+            let bytes = text.as_bytes();
+            let mut i = 0;
+            while i < bytes.len() {
+                if bytes[i] == b'{'
+                    // Skip ${...} — shell variable expansion, not a workflow placeholder.
+                    && (i == 0 || bytes[i - 1] != b'$')
+                {
+                    let rest = &text[i + 1..];
+                    if let Some(end) = rest.find('}') {
+                        let placeholder = &rest[..end];
+                        if let Some(key) = placeholder.strip_prefix("params.") {
+                            if !param_keys.contains(key) {
+                                diags.push(Diagnostic {
+                                    level: DiagLevel::Warning,
+                                    message: format!(
+                                        "Step '{}' references {{params.{key}}} but it is not defined in [params]",
+                                        step.name
+                                    ),
+                                });
+                            }
+                        } else if !placeholder.is_empty()
+                            && !wc_keys.contains(placeholder)
+                            && !param_keys.contains(placeholder)
+                        {
+                            diags.push(Diagnostic {
+                                level: DiagLevel::Warning,
+                                message: format!(
+                                    "Step '{}' references {{{placeholder}}} which is not a defined wildcard or param",
+                                    step.name
+                                ),
+                            });
+                        }
+                        i += 1 + end + 1; // skip past the closing '}'
+                        continue;
+                    }
+                }
+                i += 1;
+            }
+        }
+    }
+
+    // ── Cycle detection via DAG expand ───────────────────────────────────────
+    if diags.iter().all(|d| d.level != DiagLevel::Error)
+        && let Err(e) = expand(def)
+    {
+        diags.push(Diagnostic {
+            level: DiagLevel::Error,
+            message: format!("DAG expansion failed: {e}"),
+        });
+    }
+
+    diags
+}
+
+/// Print verify diagnostics to stdout in a human-friendly format.
+/// Returns `true` if there are any errors.
+pub fn print_verify_report(def: &WorkflowDef, diags: &[Diagnostic]) -> bool {
+    let errors = diags.iter().filter(|d| d.level == DiagLevel::Error).count();
+    let warnings = diags
+        .iter()
+        .filter(|d| d.level == DiagLevel::Warning)
+        .count();
+
+    println!(
+        "{} workflow '{}' — {} step(s), {} wildcard(s)",
+        "◆".cyan().bold(),
+        def.workflow.name.bold(),
+        def.steps.len(),
+        def.wildcards.len()
+    );
+
+    if diags.is_empty() {
+        println!("{} No issues found — workflow is valid", "✓".green().bold());
+        return false;
+    }
+
+    println!("{}", "─".repeat(60).dimmed());
+    for d in diags {
+        let (icon, colored_level) = match d.level {
+            DiagLevel::Error => (
+                "✗".red().bold().to_string(),
+                "error".red().bold().to_string(),
+            ),
+            DiagLevel::Warning => (
+                "⚠".yellow().bold().to_string(),
+                "warning".yellow().bold().to_string(),
+            ),
+        };
+        println!("  {} [{}] {}", icon, colored_level, d.message);
+    }
+    println!("{}", "─".repeat(60).dimmed());
+    println!(
+        "  {} error(s), {} warning(s)",
+        if errors > 0 {
+            errors.to_string().red().bold().to_string()
+        } else {
+            errors.to_string()
+        },
+        if warnings > 0 {
+            warnings.to_string().yellow().bold().to_string()
+        } else {
+            warnings.to_string()
+        },
+    );
+
+    errors > 0
+}
+
+// ─── Format ───────────────────────────────────────────────────────────────────
+
+/// Serialize a [`WorkflowDef`] back to canonical `.oxo.toml` TOML text.
+///
+/// The output is deterministically ordered:
+/// `[workflow]` → `[wildcards]` → `[params]` → `[[step]]` blocks.
+pub fn format_toml(def: &WorkflowDef) -> String {
+    let mut out = String::new();
+
+    // ── [workflow] ────────────────────────────────────────────────────────────
+    out.push_str("[workflow]\n");
+    out.push_str(&format!("name        = {:?}\n", def.workflow.name));
+    if !def.workflow.description.is_empty() {
+        out.push_str(&format!("description = {:?}\n", def.workflow.description));
+    }
+    if !def.workflow.version.is_empty() {
+        out.push_str(&format!("version     = {:?}\n", def.workflow.version));
+    }
+    out.push('\n');
+
+    // ── [wildcards] ────────────────────────────────────────────────────────────
+    if !def.wildcards.is_empty() {
+        out.push_str("[wildcards]\n");
+        let mut keys: Vec<&String> = def.wildcards.keys().collect();
+        keys.sort();
+        for k in &keys {
+            let vals = &def.wildcards[*k];
+            let quoted: Vec<String> = vals.iter().map(|v| format!("{v:?}")).collect();
+            out.push_str(&format!("{k} = [{}]\n", quoted.join(", ")));
+        }
+        out.push('\n');
+    }
+
+    // ── [params] ──────────────────────────────────────────────────────────────
+    if !def.params.is_empty() {
+        out.push_str("[params]\n");
+        let mut pkeys: Vec<&String> = def.params.keys().collect();
+        pkeys.sort();
+        for k in &pkeys {
+            out.push_str(&format!("{k:<12} = {:?}\n", def.params[*k]));
+        }
+        out.push('\n');
+    }
+
+    // ── [[step]] blocks ────────────────────────────────────────────────────────
+    for step in &def.steps {
+        out.push_str("[[step]]\n");
+        out.push_str(&format!("name       = {:?}\n", step.name));
+        if step.gather {
+            out.push_str("gather     = true\n");
+        }
+        if !step.depends_on.is_empty() {
+            let deps: Vec<String> = step.depends_on.iter().map(|d| format!("{d:?}")).collect();
+            out.push_str(&format!("depends_on = [{}]\n", deps.join(", ")));
+        }
+        // cmd: use multi-line literal for long commands
+        let cmd = &step.cmd;
+        if cmd.contains('\n') || cmd.len() > MAX_INLINE_CMD_LENGTH {
+            // Render as triple-quoted string with backslash-continuation lines.
+            out.push_str("cmd        = \"\"\"\\\n");
+            for line in cmd.lines() {
+                out.push_str(&format!("{line}\n"));
+            }
+            out.push_str("\"\"\"\n");
+        } else {
+            out.push_str(&format!("cmd        = {:?}\n", cmd));
+        }
+        if !step.inputs.is_empty() {
+            let ins: Vec<String> = step.inputs.iter().map(|i| format!("{i:?}")).collect();
+            out.push_str(&format!("inputs     = [{}]\n", ins.join(", ")));
+        }
+        if !step.outputs.is_empty() {
+            let outs: Vec<String> = step.outputs.iter().map(|o| format!("{o:?}")).collect();
+            out.push_str(&format!("outputs    = [{}]\n", outs.join(", ")));
+        }
+        out.push('\n');
+    }
+
+    // Remove trailing newline.
+    out.pop();
+    out
+}
+
+// Maximum command length for single-line formatting; longer commands use multi-line syntax.
+const MAX_INLINE_CMD_LENGTH: usize = 80;
+
+/// Print a rich DAG visualisation for a workflow to stdout.
+///
+/// Shows the phase diagram, step dependency table, and a summary.
+pub fn visualize_workflow(def: &WorkflowDef) -> Result<()> {
+    let tasks = expand(def)?;
+    let phases = compute_phases(&tasks);
+
+    println!();
+    println!(
+        "{} {} {}",
+        "◆".cyan().bold(),
+        format!("Workflow: {}", def.workflow.name).bold(),
+        format!(
+            "({} steps, {} tasks, {} phases)",
+            def.steps.len(),
+            tasks.len(),
+            phases.len()
+        )
+        .dimmed()
+    );
+    if !def.workflow.description.is_empty() {
+        println!("  {}", def.workflow.description.dimmed());
+    }
+
+    // ── Wildcard summary ──────────────────────────────────────────────────────
+    if !def.wildcards.is_empty() {
+        println!();
+        println!("  {}", "Wildcards:".bold());
+        let mut keys: Vec<&String> = def.wildcards.keys().collect();
+        keys.sort();
+        for k in &keys {
+            let vals = &def.wildcards[k.as_str()];
+            let preview = if vals.len() <= 4 {
+                vals.join(", ")
+            } else {
+                format!("{}, … ({} total)", vals[..3].join(", "), vals.len())
+            };
+            println!("    {:<12} = [{}]", k.cyan(), preview);
+        }
+    }
+
+    // ── Phase diagram (reuse existing helper) ─────────────────────────────────
+    println!();
+    println!("{}", "─".repeat(60).dimmed());
+    print_dag_phases(&tasks);
+    println!("{}", "─".repeat(60).dimmed());
+
+    // ── Per-step dependency table ─────────────────────────────────────────────
+    println!();
+    println!("  {}", "Step details:".bold());
+    println!(
+        "  {:<18} {:<8} {:<8} {}",
+        "Step".bold(),
+        "Gather".bold(),
+        "Tasks".bold(),
+        "Depends on".bold()
+    );
+    println!("  {}", "─".repeat(56).dimmed());
+    for step in &def.steps {
+        let task_count = tasks.iter().filter(|t| t.step_name == step.name).count();
+        let gather_str = if step.gather { "yes" } else { "" };
+        let deps_str = if step.depends_on.is_empty() {
+            "(none)".dimmed().to_string()
+        } else {
+            step.depends_on.join(", ").cyan().to_string()
+        };
+        println!(
+            "  {:<18} {:<8} {:<8} {}",
+            step.name.cyan(),
+            gather_str,
+            task_count,
+            deps_str
+        );
+    }
+
+    println!();
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {

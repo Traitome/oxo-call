@@ -1054,6 +1054,80 @@ async fn run(cli: Cli) -> error::Result<()> {
                 );
                 std::process::exit(1);
             }
+
+            WorkflowCommands::Verify { file } => {
+                let path = std::path::Path::new(&file);
+                let def = if path.exists() {
+                    engine::WorkflowDef::from_file(path)?
+                } else {
+                    match workflow::find_template(&file) {
+                        Some(tpl) => engine::WorkflowDef::from_str_content(tpl.native)?,
+                        None => {
+                            eprintln!(
+                                "{} '{}' is not a file or a known built-in template.",
+                                "error:".red().bold(),
+                                file
+                            );
+                            std::process::exit(1);
+                        }
+                    }
+                };
+                let diags = engine::verify(&def);
+                let has_errors = engine::print_verify_report(&def, &diags);
+                if has_errors {
+                    std::process::exit(1);
+                }
+            }
+
+            WorkflowCommands::Format { file, stdout } => {
+                let path = std::path::Path::new(&file);
+                let def = if path.exists() {
+                    engine::WorkflowDef::from_file(path)?
+                } else {
+                    match workflow::find_template(&file) {
+                        Some(tpl) => engine::WorkflowDef::from_str_content(tpl.native)?,
+                        None => {
+                            eprintln!(
+                                "{} '{}' is not a file or a known built-in template.",
+                                "error:".red().bold(),
+                                file
+                            );
+                            std::process::exit(1);
+                        }
+                    }
+                };
+                let formatted = engine::format_toml(&def);
+                if stdout || !path.exists() {
+                    println!("{formatted}");
+                } else {
+                    std::fs::write(path, &formatted)?;
+                    println!(
+                        "{} Formatted {}",
+                        "✓".green().bold(),
+                        path.display().to_string().cyan()
+                    );
+                }
+            }
+
+            WorkflowCommands::Vis { file } => {
+                let path = std::path::Path::new(&file);
+                let def = if path.exists() {
+                    engine::WorkflowDef::from_file(path)?
+                } else {
+                    match workflow::find_template(&file) {
+                        Some(tpl) => engine::WorkflowDef::from_str_content(tpl.native)?,
+                        None => {
+                            eprintln!(
+                                "{} '{}' is not a file or a known built-in template.",
+                                "error:".red().bold(),
+                                file
+                            );
+                            std::process::exit(1);
+                        }
+                    }
+                };
+                engine::visualize_workflow(&def)?;
+            }
         },
     }
 
