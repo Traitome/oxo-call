@@ -36,8 +36,8 @@
 /// [[step]]
 /// name       = "multiqc"
 /// gather     = true          # runs ONCE after all {sample} instances of deps finish
-/// depends_on = ["fastp", "star"]
-/// cmd        = "multiqc qc/ aligned/ -o results/multiqc/"
+/// depends_on = ["fastp"]
+/// cmd        = "multiqc qc/ -o results/multiqc/ --force"
 /// outputs    = ["results/multiqc/multiqc_report.html"]
 /// ```
 ///
@@ -84,6 +84,18 @@ pub struct StepDef {
     /// complete (like a gather/aggregate step, e.g. MultiQC).
     #[serde(default)]
     pub gather: bool,
+    /// Optional shell preamble executed before the main command.
+    ///
+    /// Use this to activate conda environments, set interpreter paths, or
+    /// configure environment variables for tools that need a specific runtime
+    /// (e.g., a step requiring Python 2 vs. Python 3).
+    ///
+    /// Example values:
+    /// - `"conda activate py2_env &&"`
+    /// - `"source /opt/py2/bin/activate &&"`
+    /// - `"export PATH=/opt/star-2.7.11b/bin:$PATH &&"`
+    #[serde(default)]
+    pub env: Option<String>,
 }
 
 /// Top-level workflow definition (the parsed `.oxo.toml`).
@@ -131,6 +143,8 @@ pub struct ConcreteTask {
     /// IDs of tasks that must complete before this task can start.
     pub deps: Vec<String>,
     pub gather: bool,
+    /// Optional shell preamble (e.g., conda activate, PATH override).
+    pub env: Option<String>,
 }
 
 // ─── Wildcard expansion helpers ────────────────────────────────────────────────
@@ -266,6 +280,7 @@ pub fn expand(def: &WorkflowDef) -> Result<Vec<ConcreteTask>> {
                     .collect(),
                 deps,
                 gather: step.gather,
+                env: step.env.clone(),
             };
             step_tasks.entry(step.name.clone()).or_default().push(id);
             tasks.push(t);
@@ -303,6 +318,7 @@ pub fn expand(def: &WorkflowDef) -> Result<Vec<ConcreteTask>> {
                         .collect(),
                     deps,
                     gather: false,
+                    env: step.env.clone(),
                 };
                 step_tasks.entry(step.name.clone()).or_default().push(id);
                 tasks.push(t);
@@ -622,9 +638,15 @@ async fn run_single_task(task: ConcreteTask) -> Result<(String, bool)> {
         }
     }
 
+    // Build the full shell command, prepending env preamble if set.
+    let full_cmd = match &task.env {
+        Some(env) => format!("{env} {}", task.cmd),
+        None => task.cmd.clone(),
+    };
+
     let status = Command::new("sh")
         .arg("-c")
-        .arg(&task.cmd)
+        .arg(&full_cmd)
         .status()
         .await
         .map_err(|e| {
@@ -656,6 +678,9 @@ fn print_task_dry_run(task: &ConcreteTask, current: usize, total: usize) {
         }
     );
     println!("    $ {}", task.cmd.dimmed());
+    if let Some(env) = &task.env {
+        println!("    env:     {}", env.dimmed());
+    }
     if !task.deps.is_empty() {
         println!("    after:   {}", task.deps.join(", ").dimmed());
     }
@@ -1154,6 +1179,9 @@ pub fn format_toml(def: &WorkflowDef) -> String {
         if step.gather {
             out.push_str("gather     = true\n");
         }
+        if let Some(env) = &step.env {
+            out.push_str(&format!("env        = {:?}\n", env));
+        }
         if !step.depends_on.is_empty() {
             let deps: Vec<String> = step.depends_on.iter().map(|d| format!("{d:?}")).collect();
             out.push_str(&format!("depends_on = [{}]\n", deps.join(", ")));
@@ -1282,6 +1310,7 @@ mod tests {
             outputs: vec![],
             deps: deps.iter().map(|d| d.to_string()).collect(),
             gather: false,
+            env: None,
         }
     }
 
@@ -1362,26 +1391,35 @@ mod tests {
 
     #[test]
     fn test_compute_phases_complex_pipeline() {
-        // Mimics a real pipeline with parallel and gather:
-        // fastp[s1,s2] → star[s1,s2] → featurecounts[s1,s2] → multiqc
+        // Mimics the real RNA-seq pipeline with upstream QC aggregation:
+        // fastp[s1,s2] → { multiqc (gather), star[s1,s2] } → samtools_index[s1,s2] → featurecounts[s1,s2]
+        // MultiQC is an upstream QC aggregation step that depends on fastp only
+        // and runs in parallel with the STAR alignment branch.
         let tasks = vec![
             task("fastp[sample=s1]", &[]),
             task("fastp[sample=s2]", &[]),
-            task("star[sample=s1]", &["fastp[sample=s1]"]),
-            task("star[sample=s2]", &["fastp[sample=s2]"]),
-            task("featurecounts[sample=s1]", &["star[sample=s1]"]),
-            task("featurecounts[sample=s2]", &["star[sample=s2]"]),
             gather_task(
                 "multiqc",
-                &["featurecounts[sample=s1]", "featurecounts[sample=s2]"],
+                &["fastp[sample=s1]", "fastp[sample=s2]"],
             ),
+            task("star[sample=s1]", &["fastp[sample=s1]"]),
+            task("star[sample=s2]", &["fastp[sample=s2]"]),
+            task("samtools_index[sample=s1]", &["star[sample=s1]"]),
+            task("samtools_index[sample=s2]", &["star[sample=s2]"]),
+            task("featurecounts[sample=s1]", &["samtools_index[sample=s1]"]),
+            task("featurecounts[sample=s2]", &["samtools_index[sample=s2]"]),
         ];
         let phases = compute_phases(&tasks);
         assert_eq!(phases.len(), 4);
         assert_eq!(phases[0].len(), 2); // fastp[s1], fastp[s2]
-        assert_eq!(phases[1].len(), 2); // star[s1], star[s2]
-        assert_eq!(phases[2].len(), 2); // featurecounts[s1], featurecounts[s2]
-        assert_eq!(phases[3].len(), 1); // multiqc
+        // Phase 2: multiqc + star[s1,s2] run in parallel (all depend only on fastp)
+        assert_eq!(phases[1].len(), 3); // multiqc, star[s1], star[s2]
+        assert!(
+            phases[1].iter().any(|t| t.id == "multiqc"),
+            "multiqc should be in the same phase as star"
+        );
+        assert_eq!(phases[2].len(), 2); // samtools_index[s1], samtools_index[s2]
+        assert_eq!(phases[3].len(), 2); // featurecounts[s1], featurecounts[s2]
     }
 
     #[test]
@@ -1558,5 +1596,64 @@ mod tests {
                 "{name}: multiqc should be a gather step"
             );
         }
+    }
+
+    #[test]
+    fn test_env_field_parsing_and_expansion() {
+        // Verify that the optional `env` field is parsed and propagated to tasks.
+        let toml = r#"
+[workflow]
+name = "env-test"
+
+[wildcards]
+sample = ["s1"]
+
+[[step]]
+name = "py2_step"
+env  = "conda activate py2_env &&"
+cmd  = "python2 script.py {sample}"
+
+[[step]]
+name       = "py3_step"
+depends_on = ["py2_step"]
+cmd        = "python3 analysis.py {sample}"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse env-test");
+        assert_eq!(
+            def.steps[0].env.as_deref(),
+            Some("conda activate py2_env &&")
+        );
+        assert!(def.steps[1].env.is_none());
+
+        let tasks = expand(&def).expect("expand env-test");
+        assert_eq!(tasks.len(), 2);
+        assert_eq!(
+            tasks[0].env.as_deref(),
+            Some("conda activate py2_env &&")
+        );
+        assert!(tasks[1].env.is_none());
+    }
+
+    #[test]
+    fn test_format_toml_includes_env() {
+        let toml = r#"
+[workflow]
+name = "env-fmt"
+
+[[step]]
+name = "step1"
+env  = "source /opt/venv/bin/activate &&"
+cmd  = "run_tool"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let formatted = format_toml(&def);
+        assert!(
+            formatted.contains("env"),
+            "formatted TOML should include env field"
+        );
+        assert!(
+            formatted.contains("source /opt/venv/bin/activate"),
+            "env value should be preserved"
+        );
     }
 }

@@ -15,7 +15,7 @@
 
 [workflow]
 name        = "rnaseq"
-description = "Bulk RNA-seq: fastp QC → STAR alignment → featureCounts → MultiQC"
+description = "Bulk RNA-seq: fastp QC → STAR alignment / MultiQC (parallel) → featureCounts"
 version     = "1.0"
 
 # ── Sample wildcards ──────────────────────────────────────────────────────────
