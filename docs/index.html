@@ -507,15 +507,36 @@
       border: 1px solid var(--border);
       color: var(--accent4);
     }
-    .bench-task-desc {
-      white-space: normal;
-      min-width: 260px;
-      max-width: 400px;
-      line-height: 1.4;
+    #eval-table {
+      width: 100%;
     }
-    .bench-patterns {
-      white-space: normal;
-      min-width: 160px;
+    #eval-table colgroup col:nth-child(1) {
+      width: 12%;
+    }
+    #eval-table colgroup col:nth-child(2) {
+      width: 10%;
+    }
+    #eval-table colgroup col:nth-child(3) {
+      width: 48%;
+    }
+    #eval-table colgroup col:nth-child(4) {
+      width: 30%;
+    }
+    #eval-table th {
+      vertical-align: middle;
+      padding: 0.6rem 0.8rem;
+      white-space: nowrap;
+    }
+    #eval-table td {
+      vertical-align: top;
+      padding: 0.6rem 0.8rem;
+    }
+    #eval-table td:nth-child(3) {
+      word-break: break-word;
+      line-height: 1.5;
+    }
+    #eval-table td:nth-child(4) {
+      word-break: break-word;
       line-height: 1.4;
       color: var(--muted);
     }
@@ -534,6 +555,104 @@
       border: 1px solid var(--border);
     }
     .bench-loading { color: var(--muted); font-size: 0.85rem; padding: 1.5rem 0; }
+
+    /* ── PayPal Payment Section ─────────────────────────────────────────── */
+    .paypal-section {
+      margin-top: 2rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .paypal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      background: var(--surface);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .paypal-header:hover {
+      background: rgba(88, 166, 255, 0.05);
+    }
+    .paypal-title {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .paypal-icon {
+      font-size: 1.25rem;
+    }
+    .paypal-toggle {
+      color: var(--muted);
+      font-size: 0.9rem;
+      transition: transform 0.2s;
+    }
+    .paypal-section.open .paypal-toggle {
+      transform: rotate(180deg);
+    }
+    .paypal-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+    .paypal-section.open .paypal-content {
+      max-height: 500px;
+    }
+    .paypal-inner {
+      padding: 1.5rem;
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+    .paypal-qr {
+      text-align: center;
+    }
+    .paypal-qr img {
+      width: 180px;
+      height: 180px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .paypal-info h4 {
+      margin: 0 0 0.75rem 0;
+      color: var(--accent);
+      font-size: 0.95rem;
+    }
+    .paypal-info p {
+      margin: 0 0 0.5rem 0;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+    .paypal-info .price {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent2);
+      margin: 0.5rem 0;
+    }
+    .paypal-note {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: rgba(243, 166, 88, 0.1);
+      border-left: 3px solid var(--accent3);
+      border-radius: 0 4px 4px 0;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    @media (max-width: 600px) {
+      .paypal-inner {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      .paypal-qr img {
+        width: 160px;
+        height: 160px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -929,7 +1048,7 @@ wasmtime oxo-call.wasm -- dry-run samtools <span class="s">"sort input.bam by co
 
   <div class="code-block">
     <div class="code-block-header">
-      <span>Public academic test license (test use only)</span>
+      <span>Quick test license (copy & paste to get started)</span>
       <button class="copy-btn" data-copy='{
   "schema": "oxo-call-license-v1",
   "license_id": "6548e181-e352-402a-ab72-4da51f49e7b5",
@@ -939,9 +1058,9 @@ wasmtime oxo-call.wasm -- dry-run samtools <span class="s">"sort input.bam by co
   "perpetual": true,
   "issued_at": "2026-03-12",
   "signature": "duKJcISYPdyZkw1PbyVil5zTjvLhAYsmbzRpH0n6eRYJET90p1b0rYiHO0cJ7IGR6NLEJWqkY1wBXUkfvUvECw=="
-}'>copy</button>
+}'>copy license JSON</button>
     </div>
-    <pre><span class="c"># Public academic test license — publish for testing only</span>
+    <pre><span class="c"># Step 1: Copy this JSON and save it as license.oxo.json</span>
 {
   "schema": "oxo-call-license-v1",
   "license_id": "6548e181-e352-402a-ab72-4da51f49e7b5",
@@ -953,19 +1072,57 @@ wasmtime oxo-call.wasm -- dry-run samtools <span class="s">"sort input.bam by co
   "signature": "duKJcISYPdyZkw1PbyVil5zTjvLhAYsmbzRpH0n6eRYJET90p1b0rYiHO0cJ7IGR6NLEJWqkY1wBXUkfvUvECw=="
 }
 
-<span class="c"># Save it locally (Linux)</span>
-mkdir -p ~/.config/oxo-call &amp;&amp; cp docs/public-academic-test-license.oxo.json ~/.config/oxo-call/license.oxo.json
+<span class="c"># Step 2: Move the file to the config directory</span>
+<span class="c"># Linux:</span>
+mkdir -p ~/.config/oxo-call && mv license.oxo.json ~/.config/oxo-call/
 
-<span class="c"># Save it locally (macOS)</span>
-mkdir -p ~/Library/Application\ Support/io.traitome.oxo-call &amp;&amp; cp docs/public-academic-test-license.oxo.json ~/Library/Application\ Support/io.traitome.oxo-call/license.oxo.json</pre>
+<span class="c"># macOS:</span>
+mkdir -p ~/Library/Application\ Support/io.traitome.oxo-call && mv license.oxo.json ~/Library/Application\ Support/io.traitome.oxo-call/
+
+<span class="c"># Windows (PowerShell):</span>
+New-Item -ItemType Directory -Force -Path $env:APPDATA\oxo-call; Move-Item license.oxo.json $env:APPDATA\oxo-call\
+
+<span class="c"># Step 3: Verify the license works</span>
+oxo-call license verify
+
+<span class="c"># Step 4: Try your first command</span>
+oxo-call dry-run samtools <span class="s">"sort input.bam by coordinate"</span></pre>
   </div>
 
   <p class="section-body">
-    <strong>Test use only.</strong> This public academic license is published for evaluation and testing.
-    Academic users should still apply for a formal academic license for real use.
-    Commercial users should contact the maintainer, pay the <strong>USD 200</strong>
-    authorization fee, and obtain a formal commercial license.
+    <strong>Quick test license is for evaluation only.</strong> 
+    It lets you try oxo-call immediately without any setup.
+    For continued use, academic users should request a free formal license, 
+    and commercial users should contact <a href="mailto:w_shixiang@163.com">w_shixiang@163.com</a> 
+    to purchase a license (USD 200 per organization).
   </p>
+
+  <!-- PayPal Payment Section -->
+  <div class="paypal-section" id="paypal-section">
+    <div class="paypal-header" onclick="togglePaypal()">
+      <div class="paypal-title">
+        <span class="paypal-icon">💳</span>
+        <span>Commercial License Payment</span>
+      </div>
+      <span class="paypal-toggle">▼</span>
+    </div>
+    <div class="paypal-content">
+      <div class="paypal-inner">
+        <div class="paypal-qr">
+          <img src="paypal.png" alt="PayPal QR Code" />
+        </div>
+        <div class="paypal-info">
+          <div class="price">USD $200</div>
+          <h4>Per-organization Commercial License</h4>
+          <p>One-time payment, perpetual license covering all employees and contractors within your organization.</p>
+          <div class="paypal-note">
+            <strong>⚠️ Important:</strong> Please include your <strong>organization name</strong> and <strong>email address</strong> in the payment note. 
+            The formal license file will be sent to your email within one week after payment confirmation.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <hr class="divider" />
@@ -1044,6 +1201,12 @@ mkdir -p ~/Library/Application\ Support/io.traitome.oxo-call &amp;&amp; cp docs/
   <div class="bench-panel" id="bench-panel-eval">
     <div class="bench-table-wrap">
       <table class="bench-table" id="eval-table">
+        <colgroup>
+          <col />
+          <col />
+          <col />
+          <col />
+        </colgroup>
         <thead>
           <tr>
             <th>Category</th>
@@ -1071,7 +1234,8 @@ mkdir -p ~/Library/Application\ Support/io.traitome.oxo-call &amp;&amp; cp docs/
 <!-- ── Footer ───────────────────────────────────────────────────────────── -->
 <footer>
   <p>
-    <strong>oxo-call</strong> is dual-licensed: free for academic use, formal commercial license available for <strong>USD 200</strong>.
+    <strong>oxo-call</strong> is dual-licensed: free for academic use, commercial license <strong>USD 200</strong>/org.
+    Contact <a href="mailto:w_shixiang@163.com">w_shixiang@163.com</a> for commercial licensing.
     &nbsp;·&nbsp;
     <a href="https://github.com/Traitome/oxo-call" target="_blank" rel="noopener">GitHub</a>
     &nbsp;·&nbsp;
@@ -1488,6 +1652,12 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
     });
   });
 })();
+
+/* ─── PayPal Toggle ────────────────────────────────────────────────────── */
+function togglePaypal() {
+  const section = document.getElementById('paypal-section');
+  section.classList.toggle('open');
+}
 </script>
 </body>
 </html>
