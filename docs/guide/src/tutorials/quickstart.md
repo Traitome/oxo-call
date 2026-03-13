@@ -20,7 +20,7 @@ See the [Installation guide](./installation.md) for alternative methods.
 A signed license file is required for core commands (free for academic use).
 
 ```bash
-# Apply for a free academic license by emailing license@traitome.com
+# Apply for a free academic license by emailing w_shixiang@163.com
 # See the License Setup guide for details
 
 # Place your license.oxo.json at the default path:

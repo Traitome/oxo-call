@@ -9,16 +9,32 @@ high-quality pull requests.
 
 ## Table of contents
 
-- [Development setup](#development-setup)
-- [Project structure](#project-structure)
-- [Adding a new skill](#adding-a-new-skill)
-- [Adding workflow templates](#adding-workflow-templates)
-- [Code style](#code-style)
-- [Testing](#testing)
-- [Documentation](#documentation)
-- [Pull request guidelines](#pull-request-guidelines)
-- [Issue guidelines](#issue-guidelines)
-- [License](#license)
+- [Contributing to oxo-call](#contributing-to-oxo-call)
+  - [Table of contents](#table-of-contents)
+  - [Development setup](#development-setup)
+    - [Prerequisites](#prerequisites)
+    - [Clone and build](#clone-and-build)
+    - [Run the test suite](#run-the-test-suite)
+    - [Lint and format](#lint-and-format)
+    - [Install locally](#install-locally)
+  - [Project structure](#project-structure)
+    - [Execution flow](#execution-flow)
+  - [Adding a new skill](#adding-a-new-skill)
+    - [1. Create the TOML file](#1-create-the-toml-file)
+    - [2. Register the skill in `src/skill.rs`](#2-register-the-skill-in-srcskillrs)
+    - [3. Verify](#3-verify)
+  - [Adding workflow templates](#adding-workflow-templates)
+  - [Code style](#code-style)
+  - [Testing](#testing)
+    - [Integration tests](#integration-tests)
+    - [Unit tests](#unit-tests)
+    - [Running all tests](#running-all-tests)
+  - [Documentation](#documentation)
+    - [Build docs locally](#build-docs-locally)
+    - [When to update docs](#when-to-update-docs)
+  - [Pull request guidelines](#pull-request-guidelines)
+  - [Issue guidelines](#issue-guidelines)
+  - [License](#license)
 
 ---
 
@@ -351,4 +367,4 @@ By contributing to this repository, you agree that your contributions will
 be licensed under the same terms. See [LICENSE](LICENSE) for the full
 details.
 
-If you have licensing questions, contact **license@traitome.com**.
+If you have licensing questions, contact **w_shixiang@163.com**.

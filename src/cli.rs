@@ -10,7 +10,7 @@ use std::path::PathBuf;
 tools without memorizing every flag and parameter.
 
 Quick start:
-  1. Obtain a license file (academic: free; commercial: license@traitome.com)
+  1. Obtain a license file (academic: free; commercial: w_shixiang@163.com)
      and place it at the platform config path
      (macOS: ~/Library/Application Support/io.traitome.oxo-call/license.oxo.json;
       legacy Unix path ~/.config/oxo-call/license.oxo.json is also accepted)

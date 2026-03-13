@@ -15,7 +15,7 @@ oxo-call uses a dual-license model with offline Ed25519 signature verification.
 
 Academic licenses are free for researchers, students, and academic institutions:
 
-1. Send an email to `license@traitome.com` with:
+1. Send an email to `w_shixiang@163.com` with:
    - Your name and role
    - Institution/university name
    - Brief description of your research

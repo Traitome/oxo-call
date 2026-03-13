@@ -19,7 +19,7 @@
 ///
 /// To obtain a license:
 ///   Academic : <https://github.com/Traitome/oxo-call#license>
-///   Commercial: license@traitome.com
+///   Commercial: w_shixiang@163.com
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
@@ -104,7 +104,7 @@ pub enum LicenseError {
          Academic use is free but requires a signed license file.\n\
          \n\
          • Apply for an academic license : https://github.com/Traitome/oxo-call#license\n\
-         • Purchase a commercial license : license@traitome.com\n\
+         • Purchase a commercial license : w_shixiang@163.com\n\
          \n\
          Once you have a license file, place it at one of:\n\
          \t1. Pass --license <path> on the command line\n\
@@ -137,7 +137,7 @@ pub enum LicenseError {
     #[error(
         "License signature is invalid.\n\
          The license file may have been tampered with or was not issued by Traitome.\n\
-         Please contact license@traitome.com to obtain a valid license."
+         Please contact w_shixiang@163.com to obtain a valid license."
     )]
     InvalidSignature,
 
@@ -303,7 +303,7 @@ REQUIREMENTS FOR ALL USERS
   • A valid signed license file must be present before running any core commands.
   • License files are issued by Traitome and verified offline using Ed25519 signatures.
   • Academic licenses are free; apply at: https://github.com/Traitome/oxo-call#license
-  • Commercial licenses are per-organization, one-time fee; contact: license@traitome.com
+  • Commercial licenses are per-organization, one-time fee; contact: w_shixiang@163.com
 
 HOW TO PLACE YOUR LICENSE FILE
 ────────────────────────────────
