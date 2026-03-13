@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 580" font-family="'Segoe UI', 'Liberation Sans', Arial, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff"/>
+    </marker>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000030"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="860" height="580" fill="#0f1923" rx="12"/>
+
+  <!-- Title -->
+  <text x="430" y="34" text-anchor="middle" fill="#e2e8f0" font-size="17" font-weight="700">Workflow DAG Execution — RNA-seq (3 samples)</text>
+  <line x1="40" y1="46" x2="820" y2="46" stroke="#2d3f52" stroke-width="1"/>
+
+  <!-- Phase labels on left -->
+  <text x="20" y="120" fill="#7a8fa6" font-size="10" transform="rotate(-90,20,120)" text-anchor="middle">Phase 1</text>
+  <text x="20" y="230" fill="#7a8fa6" font-size="10" transform="rotate(-90,20,230)" text-anchor="middle">Phase 2</text>
+  <text x="20" y="350" fill="#7a8fa6" font-size="10" transform="rotate(-90,20,350)" text-anchor="middle">Phase 3</text>
+  <text x="20" y="460" fill="#7a8fa6" font-size="10" transform="rotate(-90,20,460)" text-anchor="middle">Phase 4</text>
+
+  <!-- Phase 1 row background -->
+  <rect x="40" y="62" width="780" height="88" rx="8" fill="#131f2e" stroke="#2a4a6a" stroke-width="1" opacity="0.7"/>
+  <text x="815" y="104" text-anchor="end" fill="#7a8fa6" font-size="10">parallel</text>
+
+  <!-- Phase 1 boxes: fastp[s1], fastp[s2], fastp[s3] -->
+  <rect x="85" y="76" width="180" height="60" rx="8" fill="#163545" stroke="#1a8a6a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="175" y="100" text-anchor="middle" fill="#4ecdc4" font-size="13" font-weight="700">fastp [sample1]</text>
+  <text x="175" y="116" text-anchor="middle" fill="#9bb5cc" font-size="10">QC + adapter trimming</text>
+  <text x="175" y="130" text-anchor="middle" fill="#7a8fa6" font-size="10" font-family="monospace">→ qc/s1_fastp.json</text>
+
+  <rect x="335" y="76" width="180" height="60" rx="8" fill="#163545" stroke="#1a8a6a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="425" y="100" text-anchor="middle" fill="#4ecdc4" font-size="13" font-weight="700">fastp [sample2]</text>
+  <text x="425" y="116" text-anchor="middle" fill="#9bb5cc" font-size="10">QC + adapter trimming</text>
+  <text x="425" y="130" text-anchor="middle" fill="#7a8fa6" font-size="10" font-family="monospace">→ qc/s2_fastp.json</text>
+
+  <rect x="585" y="76" width="180" height="60" rx="8" fill="#163545" stroke="#1a8a6a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="675" y="100" text-anchor="middle" fill="#4ecdc4" font-size="13" font-weight="700">fastp [sample3]</text>
+  <text x="675" y="116" text-anchor="middle" fill="#9bb5cc" font-size="10">QC + adapter trimming</text>
+  <text x="675" y="130" text-anchor="middle" fill="#7a8fa6" font-size="10" font-family="monospace">→ qc/s3_fastp.json</text>
+
+  <!-- Arrows Phase 1 → Phase 2 -->
+  <!-- fastp[s1] → multiqc (gather) -->
+  <line x1="175" y1="136" x2="130" y2="186" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- fastp[s2] → multiqc (gather) -->
+  <line x1="425" y1="136" x2="160" y2="186" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- fastp[s3] → multiqc (gather) -->
+  <line x1="675" y1="136" x2="185" y2="186" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- fastp[s1] → star[s1] -->
+  <line x1="175" y1="136" x2="360" y2="186" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- fastp[s2] → star[s2] -->
+  <line x1="425" y1="136" x2="495" y2="186" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- fastp[s3] → star[s3] -->
+  <line x1="675" y1="136" x2="625" y2="186" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Phase 2 row background -->
+  <rect x="40" y="174" width="780" height="96" rx="8" fill="#131f2e" stroke="#2a4a6a" stroke-width="1" opacity="0.7"/>
+  <text x="815" y="220" text-anchor="end" fill="#7a8fa6" font-size="10">parallel</text>
+
+  <!-- MultiQC [gather] -->
+  <rect x="55" y="188" width="200" height="68" rx="8" fill="#2a1e10" stroke="#f39c12" stroke-width="2" filter="url(#shadow)"/>
+  <text x="155" y="209" text-anchor="middle" fill="#f6ad55" font-size="13" font-weight="700">multiqc [gather]</text>
+  <text x="155" y="226" text-anchor="middle" fill="#9bb5cc" font-size="10">Waits for ALL fastp instances</text>
+  <text x="155" y="241" text-anchor="middle" fill="#9bb5cc" font-size="10" font-family="monospace">multiqc qc/ -o results/</text>
+  <text x="155" y="252" text-anchor="middle" fill="#f6ad55" font-size="9">gather=true</text>
+
+  <!-- STAR [s1] -->
+  <rect x="285" y="188" width="150" height="68" rx="8" fill="#1e2a3e" stroke="#3a6fa8" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="360" y="210" text-anchor="middle" fill="#7eb8f7" font-size="12" font-weight="700">STAR [sample1]</text>
+  <text x="360" y="226" text-anchor="middle" fill="#9bb5cc" font-size="10">Splice-aware alignment</text>
+  <text x="360" y="241" text-anchor="middle" fill="#7a8fa6" font-size="10" font-family="monospace">→ aligned/s1/</text>
+
+  <!-- STAR [s2] -->
+  <rect x="445" y="188" width="150" height="68" rx="8" fill="#1e2a3e" stroke="#3a6fa8" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="520" y="210" text-anchor="middle" fill="#7eb8f7" font-size="12" font-weight="700">STAR [sample2]</text>
+  <text x="520" y="226" text-anchor="middle" fill="#9bb5cc" font-size="10">Splice-aware alignment</text>
+  <text x="520" y="241" text-anchor="middle" fill="#7a8fa6" font-size="10" font-family="monospace">→ aligned/s2/</text>
+
+  <!-- STAR [s3] -->
+  <rect x="605" y="188" width="150" height="68" rx="8" fill="#1e2a3e" stroke="#3a6fa8" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="680" y="210" text-anchor="middle" fill="#7eb8f7" font-size="12" font-weight="700">STAR [sample3]</text>
+  <text x="680" y="226" text-anchor="middle" fill="#9bb5cc" font-size="10">Splice-aware alignment</text>
+  <text x="680" y="241" text-anchor="middle" fill="#7a8fa6" font-size="10" font-family="monospace">→ aligned/s3/</text>
+
+  <!-- Arrows Phase 2 → Phase 3 -->
+  <line x1="360" y1="256" x2="360" y2="298" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="520" y1="256" x2="500" y2="298" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="680" y1="256" x2="645" y2="298" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Phase 3 row background -->
+  <rect x="40" y="286" width="780" height="88" rx="8" fill="#131f2e" stroke="#2a4a6a" stroke-width="1" opacity="0.7"/>
+  <text x="815" y="328" text-anchor="end" fill="#7a8fa6" font-size="10">parallel</text>
+
+  <!-- samtools_index [s1] -->
+  <rect x="285" y="300" width="150" height="60" rx="8" fill="#1e2a3e" stroke="#3a6fa8" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="360" y="322" text-anchor="middle" fill="#7eb8f7" font-size="11" font-weight="700">samtools index [s1]</text>
+  <text x="360" y="337" text-anchor="middle" fill="#9bb5cc" font-size="10">Sort + index BAM</text>
+  <text x="360" y="350" text-anchor="middle" fill="#7a8fa6" font-size="10" font-family="monospace">→ aligned/s1/*.bai</text>
+
+  <!-- samtools_index [s2] -->
+  <rect x="445" y="300" width="150" height="60" rx="8" fill="#1e2a3e" stroke="#3a6fa8" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="520" y="322" text-anchor="middle" fill="#7eb8f7" font-size="11" font-weight="700">samtools index [s2]</text>
+  <text x="520" y="337" text-anchor="middle" fill="#9bb5cc" font-size="10">Sort + index BAM</text>
+  <text x="520" y="350" text-anchor="middle" fill="#7a8fa6" font-size="10" font-family="monospace">→ aligned/s2/*.bai</text>
+
+  <!-- samtools_index [s3] -->
+  <rect x="605" y="300" width="150" height="60" rx="8" fill="#1e2a3e" stroke="#3a6fa8" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="680" y="322" text-anchor="middle" fill="#7eb8f7" font-size="11" font-weight="700">samtools index [s3]</text>
+  <text x="680" y="337" text-anchor="middle" fill="#9bb5cc" font-size="10">Sort + index BAM</text>
+  <text x="680" y="350" text-anchor="middle" fill="#7a8fa6" font-size="10" font-family="monospace">→ aligned/s3/*.bai</text>
+
+  <!-- Arrows Phase 3 → Phase 4 -->
+  <line x1="360" y1="360" x2="360" y2="400" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="520" y1="360" x2="500" y2="400" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="680" y1="360" x2="645" y2="400" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Phase 4 row background -->
+  <rect x="40" y="388" width="780" height="88" rx="8" fill="#131f2e" stroke="#2a4a6a" stroke-width="1" opacity="0.7"/>
+  <text x="815" y="430" text-anchor="end" fill="#7a8fa6" font-size="10">parallel</text>
+
+  <!-- featureCounts [s1] -->
+  <rect x="285" y="402" width="150" height="60" rx="8" fill="#163545" stroke="#1a8a6a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="360" y="424" text-anchor="middle" fill="#4ecdc4" font-size="11" font-weight="700">featureCounts [s1]</text>
+  <text x="360" y="439" text-anchor="middle" fill="#9bb5cc" font-size="10">Gene-level quantification</text>
+  <text x="360" y="452" text-anchor="middle" fill="#7a8fa6" font-size="10" font-family="monospace">→ counts/s1.txt</text>
+
+  <!-- featureCounts [s2] -->
+  <rect x="445" y="402" width="150" height="60" rx="8" fill="#163545" stroke="#1a8a6a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="520" y="424" text-anchor="middle" fill="#4ecdc4" font-size="11" font-weight="700">featureCounts [s2]</text>
+  <text x="520" y="439" text-anchor="middle" fill="#9bb5cc" font-size="10">Gene-level quantification</text>
+  <text x="520" y="452" text-anchor="middle" fill="#7a8fa6" font-size="10" font-family="monospace">→ counts/s2.txt</text>
+
+  <!-- featureCounts [s3] -->
+  <rect x="605" y="402" width="150" height="60" rx="8" fill="#163545" stroke="#1a8a6a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="680" y="424" text-anchor="middle" fill="#4ecdc4" font-size="11" font-weight="700">featureCounts [s3]</text>
+  <text x="680" y="439" text-anchor="middle" fill="#9bb5cc" font-size="10">Gene-level quantification</text>
+  <text x="680" y="452" text-anchor="middle" fill="#7a8fa6" font-size="10" font-family="monospace">→ counts/s3.txt</text>
+
+  <!-- Legend / Notes -->
+  <rect x="40" y="494" width="780" height="70" rx="8" fill="#131f2e" stroke="#2d3f52" stroke-width="1"/>
+  <text x="60" y="514" fill="#7a8fa6" font-size="11" font-weight="700">Key Design Points</text>
+  <rect x="60" y="522" width="12" height="12" rx="2" fill="none" stroke="#f39c12" stroke-width="2"/>
+  <text x="78" y="532" fill="#9bb5cc" font-size="10">gather=true  — waits for ALL wildcard instances before executing once</text>
+  <rect x="60" y="540" width="12" height="12" rx="2" fill="#1e2a3e" stroke="#3a6fa8" stroke-width="1.5"/>
+  <text x="78" y="550" fill="#9bb5cc" font-size="10">MultiQC runs in Phase 2 (same as STAR) because it depends only on fastp — maximum parallelism</text>
+  <text x="450" y="532" fill="#9bb5cc" font-size="10">↷ skipped if outputs are newer than inputs (output-freshness caching)</text>
+  <text x="450" y="550" fill="#9bb5cc" font-size="10">Tasks within a phase are dispatched concurrently via tokio::task::JoinSet</text>
+</svg>

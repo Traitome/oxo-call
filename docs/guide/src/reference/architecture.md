@@ -1,5 +1,7 @@
 # System Architecture
 
+![System Architecture Diagram](../images/architecture.svg)
+
 ## Overview
 
 oxo-call is a Rust workspace with three crates:
@@ -34,6 +36,8 @@ lib.rs              — Programmatic API surface (re-exports all modules)
 ```
 
 ## Execution Flow
+
+![Command Generation Flow](../images/command-flow.svg)
 
 ### Command Generation (run/dry-run)
 

@@ -16,34 +16,7 @@ This is not a simple LLM chat. oxo-call fetches the tool's actual `--help` outpu
 
 ## How It Works
 
-```
-  You: "sort input.bam by coordinate using 4 threads"
-         │
-         ▼
-  ┌─────────────────────────────────────────────────┐
-  │               Documentation Layer               │
-  │   samtools --help output (cached on first use)  │
-  │   + optional remote manual URL                  │
-  └────────────────────┬────────────────────────────┘
-                       │ real flag reference
-                       ▼
-  ┌─────────────────────────────────────────────────┐
-  │                  Skill System                   │
-  │   Built-in samtools skill:                      │
-  │   • "sort BEFORE index — required"              │
-  │   • "always use -o, never write to stdout"      │
-  │   • "use -@ N for N extra threads"              │
-  └────────────────────┬────────────────────────────┘
-                       │ grounded prompt
-                       ▼
-  ┌─────────────────────────────────────────────────┐
-  │                  LLM Backend                    │
-  │   GitHub Copilot / OpenAI / Anthropic / Ollama  │
-  └────────────────────┬────────────────────────────┘
-                       │
-                       ▼
-  samtools sort -@ 4 -o sorted.bam input.bam
-```
+![Command Generation Pipeline](./images/command-flow.svg)
 
 The docs answer *"what flags exist?"* The skill answers *"which flags should I use, and what mistakes should I avoid?"* Together, they produce commands that are both syntactically correct and semantically appropriate.
 
