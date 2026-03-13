@@ -1296,6 +1296,117 @@ pub fn visualize_workflow(def: &WorkflowDef) -> Result<()> {
     Ok(())
 }
 
+/// Post-execution LLM verification for a completed workflow.
+///
+/// Inspects each step's expected output files, then asks the LLM to summarise
+/// the overall state of the workflow outputs and surface any issues.
+///
+/// This is a best-effort check: failures from the LLM are printed as warnings
+/// rather than propagated as errors, so the exit code of `workflow run` is not
+/// affected.
+#[cfg(not(target_arch = "wasm32"))]
+pub async fn verify_workflow_results(def: &WorkflowDef, config: &crate::config::Config) {
+    use crate::llm::LlmClient;
+    use crate::runner::make_spinner;
+    use colored::Colorize;
+
+    // Collect output file metadata for every step.
+    let mut step_lines: Vec<String> = Vec::new();
+    for step in &def.steps {
+        step_lines.push(format!(
+            "### Step: `{}`\nCommand: `{}`",
+            step.name, step.cmd
+        ));
+        if step.outputs.is_empty() {
+            step_lines.push("Outputs: (none declared)".to_string());
+        } else {
+            for path in &step.outputs {
+                let size_info = match std::fs::metadata(path).ok().map(|m| m.len()) {
+                    Some(bytes) => format!("{bytes} bytes"),
+                    None => "**MISSING**".to_string(),
+                };
+                step_lines.push(format!("- `{path}` — {size_info}"));
+            }
+        }
+    }
+
+    // Collect all declared output files with sizes for the LLM call.
+    let all_outputs: Vec<(String, Option<u64>)> = def
+        .steps
+        .iter()
+        .flat_map(|s| s.outputs.iter())
+        .map(|p| {
+            let size = std::fs::metadata(p).ok().map(|m| m.len());
+            (p.clone(), size)
+        })
+        .collect();
+
+    let step_summary = step_lines.join("\n");
+    let workflow_task = format!(
+        "Workflow '{}': {}\n\n## Step Output Status\n{}",
+        def.workflow.name, def.workflow.description, step_summary
+    );
+    let workflow_cmd = format!("oxo-call workflow run ({})", def.workflow.name);
+
+    let spinner = make_spinner("Verifying workflow results with LLM...");
+    let llm = LlmClient::new(config.clone());
+    let verification = match llm
+        .verify_run_result(
+            &def.workflow.name,
+            &workflow_task,
+            &workflow_cmd,
+            0,
+            "",
+            &all_outputs,
+        )
+        .await
+    {
+        Ok(v) => {
+            spinner.finish_and_clear();
+            v
+        }
+        Err(e) => {
+            spinner.finish_and_clear();
+            eprintln!(
+                "{} LLM workflow verification failed: {}",
+                "warning:".yellow().bold(),
+                e
+            );
+            return;
+        }
+    };
+
+    println!();
+    println!("{}", "─".repeat(60).dimmed());
+    let label = if verification.success {
+        "LLM Workflow Verification: OK".bold().green().to_string()
+    } else {
+        "LLM Workflow Verification: Issues detected"
+            .bold()
+            .red()
+            .to_string()
+    };
+    println!("  {}", label);
+    if !verification.summary.is_empty() {
+        println!("  {}", verification.summary);
+    }
+    if !verification.issues.is_empty() {
+        println!();
+        println!("  {}", "Issues:".bold().yellow());
+        for issue in &verification.issues {
+            println!("    {} {}", "•".yellow(), issue);
+        }
+    }
+    if !verification.suggestions.is_empty() {
+        println!();
+        println!("  {}", "Suggestions:".bold().cyan());
+        for sug in &verification.suggestions {
+            println!("    {} {}", "→".cyan(), sug);
+        }
+    }
+    println!("{}", "─".repeat(60).dimmed());
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

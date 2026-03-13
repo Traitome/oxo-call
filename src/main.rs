@@ -57,6 +57,8 @@ async fn run(cli: Cli) -> error::Result<()> {
             model,
             no_cache,
             json,
+            verify,
+            optimize_task,
         } => {
             let mut cfg = config::Config::load()?;
             if let Some(ref m) = model {
@@ -64,7 +66,9 @@ async fn run(cli: Cli) -> error::Result<()> {
             }
             let runner = runner::Runner::new(cfg)
                 .with_verbose(verbose)
-                .with_no_cache(no_cache);
+                .with_no_cache(no_cache)
+                .with_verify(verify)
+                .with_optimize_task(optimize_task);
             runner.run(&tool, &task, ask, json).await?;
         }
 
@@ -74,6 +78,7 @@ async fn run(cli: Cli) -> error::Result<()> {
             model,
             no_cache,
             json,
+            optimize_task,
         } => {
             let mut cfg = config::Config::load()?;
             if let Some(ref m) = model {
@@ -81,7 +86,8 @@ async fn run(cli: Cli) -> error::Result<()> {
             }
             let runner = runner::Runner::new(cfg)
                 .with_verbose(verbose)
-                .with_no_cache(no_cache);
+                .with_no_cache(no_cache)
+                .with_optimize_task(optimize_task);
             runner.dry_run(&tool, &task, json).await?;
         }
 
@@ -814,7 +820,7 @@ async fn run(cli: Cli) -> error::Result<()> {
             }
 
             #[cfg(not(target_arch = "wasm32"))]
-            WorkflowCommands::RunWorkflow { file } => {
+            WorkflowCommands::RunWorkflow { file, verify } => {
                 let path = std::path::Path::new(&file);
                 let source = if path.exists() {
                     std::fs::read_to_string(path)?
@@ -835,6 +841,10 @@ async fn run(cli: Cli) -> error::Result<()> {
                 let def = engine::WorkflowDef::from_str_content(&source)?;
                 let tasks = engine::expand(&def)?;
                 engine::execute(tasks, false).await?;
+                if verify {
+                    let cfg = config::Config::load()?;
+                    engine::verify_workflow_results(&def, &cfg).await;
+                }
             }
 
             #[cfg(target_arch = "wasm32")]

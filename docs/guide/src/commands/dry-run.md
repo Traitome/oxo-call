@@ -16,6 +16,7 @@ oxo-call d       [OPTIONS] <TOOL> <TASK>
 | `-m`, `--model <MODEL>` | Override the LLM model for this invocation |
 | `--no-cache` | Skip cached documentation and fetch fresh `--help` output |
 | `--json` | Output result as JSON (useful for scripting and CI) |
+| `--optimize-task` | Before generating the command, use LLM to expand and refine the task description |
 | `-v`, `--verbose` | Show docs source, skill info, and LLM details (global) |
 | `--license <PATH>` | Path to license file (global option) |
 
@@ -48,7 +49,14 @@ oxo-call dry-run --json samtools "flagstat input.bam"
 
 # Force fresh documentation
 oxo-call dry-run --no-cache samtools "sort input.bam"
+
+# Expand a vague task before generating
+oxo-call dry-run --optimize-task samtools "sort bam"
 ```
+
+## Task Optimization (`--optimize-task`)
+
+When `--optimize-task` is set, an extra LLM call refines the task description before command generation. The optimized task is shown when it differs from the original, and is used as the actual prompt for the LLM.
 
 ## JSON Output
 
@@ -58,6 +66,7 @@ When `--json` is used, the output is a JSON object:
 {
   "tool": "samtools",
   "task": "flagstat input.bam",
+  "effective_task": "flagstat input.bam",
   "command": "samtools flagstat input.bam",
   "args": ["flagstat", "input.bam"],
   "explanation": "Generates alignment statistics for the BAM file",

@@ -13,11 +13,23 @@ oxo-call supports four LLM providers for command generation:
 | Anthropic | claude-3-5-sonnet-20241022 | Yes |
 | Ollama | llama3.2 | No (local) |
 
-## Prompt Architecture
+## LLM Roles
+
+oxo-call uses the LLM in up to three distinct roles per invocation:
+
+| Role | Trigger | System Prompt |
+|------|---------|---------------|
+| **Command generation** (always) | Every `run` / `dry-run` | Expert bioinformatics command generator |
+| **Task optimization** (`--optimize-task`) | Pre-generation step | Expand and clarify the user's task description |
+| **Result verification** (`--verify`) | Post-execution step | Expert bioinformatics QC analyst |
+
+Each role uses a separate system prompt so the LLM behaves appropriately for the job.
+
+## Command Generation Prompt
 
 ### System Prompt
 
-The system prompt contains 11 rules that constrain the LLM's behavior:
+The command generation system prompt contains 11 rules that constrain the LLM's behavior:
 
 1. Only use flags documented in the provided documentation
 2. Never include the tool name in the ARGS output
@@ -98,6 +110,34 @@ Use `--verbose` mode to see the actual prompt for any command:
 ```bash
 oxo-call dry-run --verbose samtools "sort input.bam by coordinate"
 ```
+
+## Task Optimization (`--optimize-task`)
+
+When `--optimize-task` is set, an extra LLM call is made **before** command generation. The LLM is asked to rewrite the user's task into a precise bioinformatics instruction:
+
+- Clarifies ambiguous terms (e.g., "sort bam" → "sort BAM file input.bam by coordinate …")
+- Infers bioinformatics defaults (paired-end, hg38, 8 threads, gzipped output, etc.)
+- Preserves all file names and paths from the original task
+- Responds in the same language as the original task
+
+The optimized task is shown to the user when it differs from the original and replaces the original in the command generation prompt.
+
+## Result Verification (`--verify`)
+
+When `--verify` is set on `run` or `workflow run`, an extra LLM call is made **after** execution. The LLM acts as a bioinformatics QC analyst and analyses:
+
+- The exit code of the completed command
+- Any stderr output (error keywords, tool-specific patterns, alignment rates, etc.)
+- Declared output files — their existence and sizes
+
+The structured response includes:
+
+- `STATUS: success | warning | failure`
+- `SUMMARY:` a one-sentence verdict in the same language as the task
+- `ISSUES:` a list of detected problems (empty when clean)
+- `SUGGESTIONS:` actionable fixes
+
+Verification is advisory — it never changes the process exit code. In JSON mode (`--json`), a `verification` block is appended to the output.
 
 ## Provider Configuration
 
