@@ -86,8 +86,8 @@ The engine automatically skips tasks whose outputs are already up to date:
 **Reliability notes:**
 
 - Freshness is determined by file modification time (`mtime`), not content hashing. This is fast but can miss changes if a file is overwritten with identical content.
-- If a step fails mid-execution, its partial outputs may remain on disk. Re-running the workflow will skip the failed step if partial outputs look complete. To force re-execution, delete the output files or the output directory for that step.
-- Inputs that do not exist on disk are treated as "older than any output" — this means a step with a missing input file will be skipped rather than re-run. Declare all real input files in the `inputs` field to get correct freshness behavior.
+- If a step fails mid-execution, its partial outputs may remain on disk. Re-running the workflow will skip the failed step if all declared output files exist and their modification times are newer than the inputs. To force re-execution, delete the output files or the output directory for that step.
+- Missing input files do not block freshness checks — if an input file does not exist on disk, it is treated as having no timestamp, so the freshness comparison passes. This is by design for steps that reference optional or generated inputs, but it means you should declare all real input files in the `inputs` field to get correct skip-if-fresh behavior.
 
 ### MultiQC Aggregation Pattern
 
@@ -199,6 +199,7 @@ env = "module load samtools/1.21 &&"
 - Environment changes do **not** leak between steps — each step starts with a clean shell.
 - If a step does not need a special environment, omit the `env` field entirely.
 - When exporting to Snakemake or Nextflow, consider using their native environment management (conda directives, container images) instead of the `env` field.
+- **Security note**: The `env` field is passed directly to the shell. Only use values from trusted `.oxo.toml` files that you have reviewed. Do not use `env` values from untrusted or user-supplied workflow files without inspection.
 
 ## Reliability Considerations
 
