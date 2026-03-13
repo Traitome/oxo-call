@@ -696,7 +696,13 @@ mod tests {
         let name_lower = lower.unwrap().meta.name;
         let name_upper = upper.unwrap().meta.name;
         let name_mixed = mixed.unwrap().meta.name;
-        assert_eq!(name_lower, name_upper, "lowercase and uppercase should resolve to the same skill");
-        assert_eq!(name_lower, name_mixed, "lowercase and mixed-case should resolve to the same skill");
+        assert_eq!(
+            name_lower, name_upper,
+            "lowercase and uppercase should resolve to the same skill"
+        );
+        assert_eq!(
+            name_lower, name_mixed,
+            "lowercase and mixed-case should resolve to the same skill"
+        );
     }
 }
