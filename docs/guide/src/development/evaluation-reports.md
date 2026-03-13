@@ -107,6 +107,8 @@ Twelve independent expert roles were designed to cover three evaluation dimensio
 
 ✅ SHA256 checksums (recommendation 4) — `SHA256SUMS.txt` is generated alongside release binaries in the CI pipeline and published with each GitHub Release.
 
+✅ Environment reproducibility (recommendation 2, extended) — the `env` field on workflow steps allows per-step conda environment, virtualenv, or PATH overrides, enabling reproducible runtime isolation without full containerization. This addresses the "Missing containerization" concern for lightweight deployments where Docker/Singularity is not available.
+
 **Unresolved: The `--seed` parameter (recommendation 1) for LLM calls has not been implemented. Seed support is provider-dependent — not all LLM APIs support deterministic seeds, and behavior varies across providers (OpenAI, Anthropic, Ollama).**
 
 **Unresolved: Skill versioning (recommendation 3) — no semantic versioning has been added to skill `[meta]` sections. Implementing this would require a migration across all 119 built-in skills and a versioning policy for community-contributed skills.**
@@ -500,6 +502,77 @@ The following prioritized action list synthesizes recommendations across all 12 
 | 20 | Container image references in workflows | 3 | ✅ Done |
 | 21 | Data anonymization for sensitive LLM contexts | 6 | ✅ Done |
 | 22 | Structured logging with tracing crate | 9 | ⏳ Planned |
+| 23 | Per-step environment management (`env` field) for Python 2/3, conda | 3, 9 | ✅ Done |
+| 24 | Workflow engine reliability documentation (caching, error handling, DAG patterns) | 9 | ✅ Done |
+
+---
+
+## Workflow Accuracy Audit
+
+A comprehensive audit of all built-in workflow templates was conducted to verify computation logic, flow logic, and documentation accuracy. The following corrections were made:
+
+### Pipeline Flow Corrections
+
+| Issue | Description | Resolution |
+|-------|-------------|------------|
+| RNA-seq description | `rnaseq.toml` description implied linear pipeline ending with MultiQC | Fixed to "fastp QC → STAR alignment / MultiQC (parallel) → featureCounts" |
+| Methylseq description | `methylseq.toml` listed MultiQC as the final step | Fixed to show MultiQC as upstream QC step in parallel with Bismark alignment |
+| engine.rs doc comment | Module-level doc example showed multiqc depending on `["fastp", "star"]` | Corrected to `["fastp"]` — MultiQC depends only on the QC step |
+| Unit test | `test_compute_phases_complex_pipeline` modeled multiqc at end of pipeline | Corrected to upstream QC aggregation pattern: multiqc in same phase as STAR |
+| Snakemake header | `rnaseq.smk` header omitted MultiQC parallel structure | Updated to reflect parallel QC aggregation |
+| Nextflow header | `rnaseq.nf` header omitted MultiQC parallel structure | Updated to reflect parallel QC aggregation |
+
+### Correct RNA-seq Pipeline DAG
+
+```
+Raw FASTQ reads
+       │
+  ▼ Quality Control (fastp)
+Trimmed FASTQ + QC report
+       │
+  ┌────┴────┐
+  ▼         ▼
+STAR      MultiQC (gather)
+(per-sample)  (aggregates QC)
+  │
+  ▼ samtools index
+  │
+  ▼ featureCounts
+Count matrix (gene × sample)
+```
+
+Key design principle: **MultiQC is an upstream QC aggregation step that runs in parallel with STAR alignment**, not a final step that waits for all analysis to complete. This means QC reports are available while alignment is still running.
+
+### MultiQC Positioning Verification
+
+All 9 built-in templates were verified for correct MultiQC placement:
+
+| Template | MultiQC depends on | Correct upstream placement | Verified |
+|----------|-------------------|---------------------------|----------|
+| rnaseq | fastp | ✅ Phase 2 (parallel with STAR) | ✅ |
+| wgs | fastp | ✅ Phase 2 (parallel with BWA-MEM2) | ✅ |
+| atacseq | fastp | ✅ Phase 2 (parallel with Bowtie2) | ✅ |
+| chipseq | fastp | ✅ Phase 2 (parallel with Bowtie2) | ✅ |
+| metagenomics | fastp | ✅ Phase 2 (parallel with host removal) | ✅ |
+| methylseq | trim_galore | ✅ Phase 2 (parallel with Bismark) | ✅ |
+| scrnaseq | fastp | ✅ Phase 2 (parallel with STARsolo) | ✅ |
+| amplicon16s | fastp | ✅ Phase 2 (parallel with DADA2) | ✅ |
+| longreads | nanostat | ✅ Phase 2 (parallel with Flye) | ✅ |
+
+### Workflow Engine Improvements
+
+The following engine improvements address reliability and flexibility concerns:
+
+1. **`env` field** — Per-step shell preamble for conda environments, virtualenvs, PATH overrides, and module system integration. Enables pipelines that mix Python 2 and Python 3 tools, or different conda environments for different steps.
+
+2. **Reliability documentation** — Workflow Engine reference now documents:
+   - Output freshness caching semantics and edge cases
+   - Error handling behavior (fail-fast with concurrent task completion)
+   - Cycle detection at expansion and verification time
+   - Concurrent execution safety guarantees
+   - Complex DAG patterns (diamond, fan-out/fan-in, multi-gather)
+
+3. **Step fields reference table** — Complete field reference with types, requirements, and descriptions for all `[[step]]` attributes.
 
 ---
 
@@ -593,6 +666,8 @@ The following section presents a structured review of this documentation guide f
 #### Resolution Status
 
 🔧 Skill depth requirements (recommendation 3) are enforced in the codebase — `validate_skill_depth()` in `src/skill.rs` checks `MIN_EXAMPLES=5`, `MIN_CONCEPTS=3`, `MIN_PITFALLS=3`. The validation exists but explicit documentation in the custom skill how-to is still incomplete.
+
+✅ The Workflow Engine reference (recommendation related to gap 1) now documents complex DAG patterns including diamond dependencies, fan-out/fan-in, multiple gather points, and inter-phase dependencies. The reference also includes a step fields reference table, reliability considerations, and environment management.
 
 **Unresolved: CI/cluster considerations section (recommendation 1) — no documentation on running oxo-call in SLURM job scripts or CI environments where `GITHUB_TOKEN` may not be set.**
 
@@ -691,6 +766,8 @@ Based on the four-role review above, the following issues are prioritized for th
 | 🟡 Medium | Add air-gapped / offline mode documentation | Core Manager | 🔧 Partial |
 | 🟡 Medium | Add test data download links to tutorials | Student | ⏳ Planned |
 | 🟡 Medium | Document skill depth requirements explicitly in how-to | Experienced Bio | 🔧 Partial |
+| 🟡 Medium | Document complex DAG patterns and step fields reference | Experienced Bio | ✅ Done |
+| 🟡 Medium | Document workflow reliability (caching, error handling, env) | Experienced Bio | ✅ Done |
 | 🟢 Low | STAR two-pass mode note in RNA-seq tutorial | Experienced Bio | ⏳ Planned |
 | 🟢 Low | Show raw LLM prompt format in reference | Methods Developer | ⏳ Planned |
 | 🟢 Low | Link oxo-bench from contributing guide | Methods Developer | ⏳ Planned |

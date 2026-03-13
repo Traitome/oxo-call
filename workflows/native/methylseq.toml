@@ -18,7 +18,7 @@
 
 [workflow]
 name        = "methylseq"
-description = "WGBS methylation: Trim Galore QC → Bismark alignment → deduplication → methylation extraction → bismark2bedGraph → MultiQC"
+description = "WGBS methylation: Trim Galore QC → MultiQC / Bismark alignment (parallel) → deduplication → methylation extraction → bismark2bedGraph"
 version     = "1.0"
 
 [wildcards]

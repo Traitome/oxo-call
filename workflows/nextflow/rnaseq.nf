@@ -1,6 +1,6 @@
 #!/usr/bin/env nextflow
 // =============================================================================
-// RNA-seq workflow — fastp QC → STAR alignment → featureCounts quantification
+// RNA-seq workflow — fastp QC → STAR alignment / MultiQC (parallel) → featureCounts
 //
 // Usage:
 //   nextflow run rnaseq.nf --samplesheet samplesheet.csv \
