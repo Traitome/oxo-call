@@ -240,6 +240,26 @@ pub static BUILTIN_SKILLS: &[(&str, &str)] = &[
     builtin!("truvari"),
     // ── Genomic arithmetic ───────────────────────────────────────────────────
     builtin!("bedops"),
+    // ── Version control ──────────────────────────────────────────────────────
+    builtin!("git"),
+    // ── Networking & file transfer ───────────────────────────────────────────
+    builtin!("ssh"),
+    builtin!("curl"),
+    builtin!("wget"),
+    builtin!("rsync"),
+    // ── Containerization ─────────────────────────────────────────────────────
+    builtin!("docker"),
+    // ── Filesystem & text processing ─────────────────────────────────────────
+    builtin!("find"),
+    builtin!("grep"),
+    builtin!("sed"),
+    builtin!("awk"),
+    builtin!("tar"),
+    builtin!("rm"),
+    // ── Package management & scripting ───────────────────────────────────────
+    builtin!("conda"),
+    builtin!("pip"),
+    builtin!("python"),
 ];
 
 // ─── Prompt generation ────────────────────────────────────────────────────────

@@ -1,0 +1,76 @@
+[meta]
+name = "find"
+category = "filesystem"
+description = "Search for files in a directory hierarchy by name, type, size, time, and permissions"
+tags = ["search", "filesystem", "files", "filter", "locate", "directories"]
+author = "oxo-call built-in"
+source_url = "https://www.gnu.org/software/findutils/manual/html_mono/find.html"
+
+[context]
+concepts = [
+    "find searches recursively from a starting directory: 'find <path> <expression>'. Use '.' for current directory. Expressions are evaluated left-to-right with implicit AND.",
+    "Common tests: -name (case-sensitive glob), -iname (case-insensitive), -type f (files), -type d (directories), -type l (symlinks), -size +N[k/M/G] (larger than N), -mtime -N (modified within N days).",
+    "Actions: -print (default, print paths), -delete (delete matched files in-place), -exec <cmd> {} \\; (run command on each match), -exec <cmd> {} + (batch matches into one command call).",
+    "Use -maxdepth N to limit search depth (e.g., -maxdepth 1 for current directory only). Place -maxdepth early in the expression for performance.",
+    "Combine tests with logical operators: -and (default), -or (-o), -not (!). Parentheses group expressions but must be escaped: \\( ... \\).",
+    "find -exec is slower than -delete or piping to xargs for large result sets. Use 'find ... -print0 | xargs -0 <cmd>' for handling filenames with spaces.",
+]
+
+pitfalls = [
+    "DANGER: 'find . -delete' deletes everything in the current directory tree. Always test with -print first: replace -delete with -print to preview matches before deleting.",
+    "find -name uses shell globs, not regex — use -name '*.txt' (quoted to prevent shell expansion), not -name *.txt (the shell may expand the glob before find sees it).",
+    "-mtime +N means 'more than N*24 hours ago'; -mtime -N means 'less than N*24 hours ago'. The sign is often confused: +7 means older than 7 days.",
+    "find . -name 'file' searches the current directory AND all subdirectories. Add -maxdepth 1 to search only the current directory.",
+    "Permissions test -perm /mode matches if ANY of the specified bits are set; -perm -mode requires ALL bits to be set. -perm 644 requires EXACTLY 644.",
+    "The closing semicolon in -exec must be escaped or quoted: -exec rm {} \\; or -exec rm {} ';'. Missing the escape causes a syntax error.",
+]
+
+[[examples]]
+task = "find all files larger than 100 MB in the current directory tree"
+args = ". -type f -size +100M"
+explanation = "-type f limits to regular files; -size +100M finds files strictly larger than 100 MB"
+
+[[examples]]
+task = "find all Python files modified in the last 7 days"
+args = ". -name '*.py' -mtime -7"
+explanation = "-name '*.py' matches Python files; -mtime -7 means modified within the last 7 days"
+
+[[examples]]
+task = "find and delete all .tmp files in a directory tree"
+args = "/tmp -name '*.tmp' -type f -delete"
+explanation = "preview with -print before using -delete; this permanently removes all matched files"
+
+[[examples]]
+task = "find files by name case-insensitively"
+args = ". -iname 'readme*'"
+explanation = "-iname is case-insensitive; matches README.md, readme.txt, Readme.rst, etc."
+
+[[examples]]
+task = "find all directories in the current directory (depth 1 only)"
+args = ". -maxdepth 1 -type d"
+explanation = "-maxdepth 1 limits search to immediate children; -type d shows only directories"
+
+[[examples]]
+task = "find empty files and directories"
+args = ". -empty"
+explanation = "-empty matches both empty files and empty directories; useful for cleanup"
+
+[[examples]]
+task = "find files and execute a command on each match"
+args = ". -name '*.log' -exec gzip {} \\;"
+explanation = "-exec runs gzip on each matched file; {} is replaced with the filename; \\; terminates the -exec expression"
+
+[[examples]]
+task = "find files owned by a specific user"
+args = "/home -user alice -type f"
+explanation = "-user matches files owned by the specified username"
+
+[[examples]]
+task = "find recently modified files and sort by modification time"
+args = ". -type f -newer reference_file.txt"
+explanation = "-newer finds files modified more recently than reference_file.txt; combine with -ls for details"
+
+[[examples]]
+task = "find files with specific permissions"
+args = ". -type f -perm /o+w"
+explanation = "-perm /o+w finds world-writable files (any other-write bit set); useful for security audits"
