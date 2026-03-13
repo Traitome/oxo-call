@@ -158,7 +158,8 @@ Format rules:
 - [wildcards] block: keys are wildcard names (e.g. sample), values are example lists.
 - [params] block: string key-value pairs for configurable paths and settings.
 - [[step]] entries: name, cmd (shell command), depends_on (list of step names),
-  inputs (list of file patterns), outputs (list of file patterns), gather (bool).
+  inputs (list of file patterns), outputs (list of file patterns), gather (bool),
+  env (optional string — shell preamble for conda/venv/PATH activation).
 - Use {wildcard} for wildcard substitution in cmd/inputs/outputs.
 - Use {params.KEY} for parameter substitution in cmd.
 - A step with gather = true runs ONCE after all wildcard instances of its deps complete.
@@ -167,6 +168,8 @@ Format rules:
   MultiQC depends only on fastp (or equivalent QC step) and scans only the QC
   output directory.  It runs in parallel with downstream analysis steps.
 - Use realistic default param values in [params].
+- If different steps need different Python versions or conda environments,
+  use the env field (e.g. env = "conda activate py2_env &&").
 
 Respond with EXACTLY this format (nothing before or after):
 WORKFLOW:

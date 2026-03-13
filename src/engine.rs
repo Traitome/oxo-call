@@ -1398,10 +1398,7 @@ mod tests {
         let tasks = vec![
             task("fastp[sample=s1]", &[]),
             task("fastp[sample=s2]", &[]),
-            gather_task(
-                "multiqc",
-                &["fastp[sample=s1]", "fastp[sample=s2]"],
-            ),
+            gather_task("multiqc", &["fastp[sample=s1]", "fastp[sample=s2]"]),
             task("star[sample=s1]", &["fastp[sample=s1]"]),
             task("star[sample=s2]", &["fastp[sample=s2]"]),
             task("samtools_index[sample=s1]", &["star[sample=s1]"]),
@@ -1627,10 +1624,7 @@ cmd        = "python3 analysis.py {sample}"
 
         let tasks = expand(&def).expect("expand env-test");
         assert_eq!(tasks.len(), 2);
-        assert_eq!(
-            tasks[0].env.as_deref(),
-            Some("conda activate py2_env &&")
-        );
+        assert_eq!(tasks[0].env.as_deref(), Some("conda activate py2_env &&"));
         assert!(tasks[1].env.is_none());
     }
 
