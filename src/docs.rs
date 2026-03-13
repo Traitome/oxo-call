@@ -189,6 +189,7 @@ impl DocsFetcher {
             .or_else(|_| self.run_help_flag(tool, "-h"))
             .or_else(|_| self.run_help_flag(tool, "help"))
             .or_else(|_| self.run_no_args(tool))
+            .or_else(|_| self.run_shell_builtin_help(tool))
             .map_err(|_| {
                 OxoError::DocFetchError(
                     tool.to_string(),
@@ -256,6 +257,33 @@ impl DocsFetcher {
             let output = Command::new(tool)
                 .output()
                 .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
+
+            extract_useful_output(tool, &output.stdout, &output.stderr)
+        }
+        #[cfg(target_arch = "wasm32")]
+        Err(OxoError::ToolNotFound(format!(
+            "{tool}: process execution is not supported in WebAssembly"
+        )))
+    }
+
+    /// Try to get help for a shell built-in command via `bash -c "help <tool>"`.
+    /// This handles commands like `cd`, `export`, `alias`, etc. that are not
+    /// standalone executables and cannot be invoked directly.
+    fn run_shell_builtin_help(&self, tool: &str) -> Result<String> {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let output = Command::new("bash")
+                .arg("-c")
+                .arg(format!("help {tool}"))
+                .output()
+                .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
+
+            if !output.status.success() {
+                return Err(OxoError::DocFetchError(
+                    tool.to_string(),
+                    "Not a shell built-in".to_string(),
+                ));
+            }
 
             extract_useful_output(tool, &output.stdout, &output.stderr)
         }
