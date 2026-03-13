@@ -382,3 +382,135 @@ Benchmark results are stored in CSV files under `docs/`:
 - `bench_workflow.csv` — Workflow execution metrics
 - `bench_scenarios.csv` — Scenario configurations
 - `bench_eval_tasks.csv` — Evaluation task results
+
+---
+
+## Documentation Review: Multi-Role Perspectives
+
+The following section presents a structured review of this documentation guide from the perspective of four key user roles. Each reviewer read through the guide as a new user and provided feedback on usability, completeness, and clarity.
+
+---
+
+### Documentation Reviewer 1: New PhD Student
+
+**Role**: First-year graduate student, bioinformatics. Has basic Linux skills; knows what FASTQ, BAM, and RNA-seq are; never used oxo-call before.
+
+#### Positive Findings
+
+- The **Introduction** is clear about what oxo-call is and why it is useful. The architecture diagram with plain-language labels helps.
+- **Your First Command** tutorial is the right entry point — the 5-step structure with expected output examples is very helpful. The "what happened behind the scenes" callout boxes explain the *why*, not just the *how*.
+- The dry-run → run → ask pattern is simple enough to learn in one session.
+- The "What You Learned" summary at the end of each tutorial helps consolidate knowledge.
+
+#### Gaps Found
+
+- The **License Setup** page does not explain what happens if the license is wrong — what error do I see? Add an error example and how to fix it.
+- **Configuration** mentions `oxo-call config verify` but does not show a failed verification example. What does a failed LLM connection look like?
+- The RNA-seq tutorial assumes the user has a STAR genome index. Add a note about where to download pre-built indices (e.g., ENCODE, GENCODE).
+- The Ollama section in the how-to guide assumes Ollama is already installed. Add the install command explicitly.
+
+#### Recommendations
+
+1. Add a "Troubleshooting" section to the Getting Started pages with common first-run errors
+2. Add download links for test data (e.g., a small BAM file to follow the tutorials)
+3. Add an "Expected output" block to every `oxo-call run` example, even if approximate
+
+---
+
+### Documentation Reviewer 2: Experienced Bioinformatician
+
+**Role**: Staff scientist at a genomics core, 7 years of experience, runs pipelines for 20+ PIs. Uses Snakemake daily. Evaluating oxo-call for adoption across the core.
+
+#### Positive Findings
+
+- The **BAM workflow tutorial** covers exactly the operations we perform daily (sort → index → filter → stat). The `-F 0x904` explanation is correct and thorough.
+- The **Workflow Builder tutorial** correctly explains `gather = true` for MultiQC — this is a non-obvious but critical concept.
+- The pipeline design checklist in the how-to guide is production-quality.
+- HPC export (Snakemake + Nextflow) is documented and the step-by-step is complete.
+
+#### Gaps Found
+
+- The **Workflow Engine reference** should document whether `depends_on` supports inter-phase dependencies (e.g., can a gather step depend on another gather step?).
+- The RNA-seq tutorial should mention STAR two-pass mode — it is the standard for novel splice junction discovery. Currently the alignment step uses basic one-pass.
+- The how-to guide for custom skills does not mention the minimum skill requirements (5 examples, 3 concepts, 3 pitfalls). This is validated by the engine — users need to know.
+- There is no documentation on how to run oxo-call in a SLURM job script environment where `GITHUB_TOKEN` may not be set.
+
+#### Recommendations
+
+1. Add a "CI/cluster considerations" section to the configuration page
+2. Add STAR two-pass mode as a note in the RNA-seq tutorial
+3. Explicitly document skill depth requirements in the custom skill how-to
+4. Add a workflow troubleshooting table to the workflow builder tutorial (already done — this is good)
+
+---
+
+### Documentation Reviewer 3: Computational Biologist / Methods Developer
+
+**Role**: Postdoc developing new analysis methods. Writes Rust and Python. Wants to extend oxo-call with custom skills and possibly contribute to the codebase.
+
+#### Positive Findings
+
+- The skill TOML format is well-documented with a complete working example (kallisto). The good/bad examples in the "Writing Good Skills" section are exactly the right teaching pattern.
+- The `skill create` → `skill show` → test flow is clear.
+- The contributing guide in Development explains how to add built-in skills to the Rust binary.
+- The architecture module graph in the reference section gives enough context to navigate the codebase.
+
+#### Gaps Found
+
+- The skill how-to mentions "minimum requirements" (5 examples, 3 concepts) but the validation error messages are not shown. What does the LLM prompt injection look like when a skill is too thin?
+- The **LLM Integration reference** should document the exact prompt format sent to the LLM — this is important for debugging and for evaluating skill effectiveness.
+- There is no guidance on testing skills programmatically with `oxo-bench`. The bench crate is mentioned at the end of the evaluation reports but not linked from the contributing guide.
+- The `sanitize.rs` module (path/token redaction) is mentioned in architecture but not explained. Users handling sensitive data need to know how this works.
+
+#### Recommendations
+
+1. Add a "Debugging skills" section to the custom skill how-to: how to see what the LLM actually received
+2. Link `oxo-bench` from the contributing guide with usage examples
+3. Add a note in the configuration guide about `sanitize.rs` and what data is anonymized before LLM calls
+4. Show the raw prompt format in the LLM Integration reference
+
+---
+
+### Documentation Reviewer 4: Bioinformatics Core Manager
+
+**Role**: Manages a team of 8 bioinformaticians, responsible for adopting and standardizing tools across the organization. Focuses on onboarding experience, cost, licensing, and institutional concerns.
+
+#### Positive Findings
+
+- The **License page** is clear about free vs. commercial use. The offline verification model is a major plus for air-gapped or data-sovereignty-constrained environments.
+- The Ollama section in the how-to addresses our primary concern about data privacy for patient data.
+- The history with provenance metadata (tool version, docs hash, model) directly addresses our reproducibility requirements.
+- The How-to Guides section is well-organized for the types of questions we receive from new team members.
+
+#### Gaps Found
+
+- There is no documentation on **team-wide configuration** — how do we share a common `config.toml` or skills directory across a team? Environment variables are mentioned but the multi-user scenario is not addressed.
+- The **Commercial license** section says "USD 200" but should clarify: one license covers all users in the organization? (This is stated in the README but not in the documentation guide.)
+- There is no discussion of **audit and compliance** — what data does oxo-call send to the LLM API? How is patient data handled? The sanitize module should be explicitly documented.
+- No mention of how to air-gap the tool completely — can oxo-call run with local documentation and Ollama, with no external network calls at all?
+
+#### Recommendations
+
+1. Add a "Team Setup" or "Organizational Deployment" how-to guide
+2. Add an "Air-gapped / Offline Mode" section to the configuration page
+3. Document explicitly what data is sent to the LLM API (and what is NOT sent — e.g., actual file contents)
+4. Clarify commercial license scope (one license = whole organization) in the documentation guide
+5. Add a security considerations page to the architecture reference section
+
+---
+
+### Documentation Iteration Summary
+
+Based on the four-role review above, the following issues are prioritized for the next iteration:
+
+| Priority | Issue | Reviewer(s) |
+|----------|-------|-------------|
+| 🔴 High | Add troubleshooting examples with error messages for first-run failures | Student |
+| 🔴 High | Document what data is sent to LLM API (privacy/compliance) | Core Manager |
+| 🟡 Medium | Add team/organizational deployment how-to | Core Manager |
+| 🟡 Medium | Add air-gapped / offline mode documentation | Core Manager |
+| 🟡 Medium | Add test data download links to tutorials | Student |
+| 🟡 Medium | Document skill depth requirements explicitly in how-to | Experienced Bio |
+| 🟢 Low | STAR two-pass mode note in RNA-seq tutorial | Experienced Bio |
+| 🟢 Low | Show raw LLM prompt format in reference | Methods Developer |
+| 🟢 Low | Link oxo-bench from contributing guide | Methods Developer |
