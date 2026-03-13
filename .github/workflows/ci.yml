@@ -442,6 +442,15 @@ jobs:
           echo "=== SHA256SUMS ==="
           cat checksums/SHA256SUMS.txt
 
+      - name: Generate full CHANGELOG.md
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --verbose
+        env:
+          OUTPUT: CHANGELOG.md
+          GITHUB_REPO: ${{ github.repository }}
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -455,6 +464,34 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update CHANGELOG.md in repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEFAULT_BRANCH="${{ github.event.repository.default_branch }}"
+
+          # Save the generated changelog before switching branches
+          cp CHANGELOG.md /tmp/CHANGELOG.md
+
+          # Force-checkout the latest default branch (discards local changes
+          # from the git-cliff step so the checkout cannot fail).
+          git fetch origin "$DEFAULT_BRANCH"
+          git checkout -B "$DEFAULT_BRANCH" "origin/$DEFAULT_BRANCH"
+
+          # Restore the generated changelog
+          cp /tmp/CHANGELOG.md CHANGELOG.md
+
+          # Commit and push if there are changes
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet CHANGELOG.md; then
+            git add CHANGELOG.md
+            git commit -m "docs: update CHANGELOG.md for ${RELEASE_TAG} [skip ci]"
+            git push origin "$DEFAULT_BRANCH"
+          else
+            echo "CHANGELOG.md is already up-to-date"
+          fi
 
   # ─── Publish to crates.io (only on version tags) ──────────────────────────
   publish-crate:
