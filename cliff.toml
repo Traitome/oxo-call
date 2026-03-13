@@ -32,9 +32,9 @@ body = """
 ### {{ group | striptags | trim | upper_first }}
 {% for commit in commits %}
 - {% if commit.scope %}**{{ commit.scope }}:** {% endif %}{{ commit.message | upper_first }}\
-  {% if commit.github.username %} ([@{{ commit.github.username }}](https://github.com/{{ commit.github.username }}))\
+  {% if commit.remote.username %} ([@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }}))\
   {% endif %}\
-  {% if commit.github.pr_number %} ([#{{ commit.github.pr_number }}]({{ commit.github.pr_url }}))\
+  {% if commit.remote.pr_number %} ([#{{ commit.remote.pr_number }}]({{ commit.remote.pr_url }}))\
   {% endif %}\
 {% endfor %}
 {% endfor %}\n
@@ -42,15 +42,16 @@ body = """
 
 footer = """
 <!-- next-url -->
+{% set repo_url = "https://github.com/Traitome/oxo-call" %}\
 {% for release in releases %}\
     {% if release.version %}\
         {% if release.previous.version %}\
-[{{ release.version | trim_start_matches(pat="v") }}]: {{ remote.link }}/compare/{{ release.previous.version }}...{{ release.version }}
+[{{ release.version | trim_start_matches(pat="v") }}]: {{ repo_url }}/compare/{{ release.previous.version }}...{{ release.version }}
         {% else %}\
-[{{ release.version | trim_start_matches(pat="v") }}]: {{ remote.link }}/releases/tag/{{ release.version }}
+[{{ release.version | trim_start_matches(pat="v") }}]: {{ repo_url }}/releases/tag/{{ release.version }}
         {% endif %}\
     {% else %}\
-[Unreleased]: {{ remote.link }}/compare/{{ releases | filter(attribute="version") | first | map(attribute="version") | first }}...HEAD
+[Unreleased]: {{ repo_url }}/compare/{{ releases | filter(attribute="version") | first | map(attribute="version") | first }}...HEAD
     {% endif %}\
 {% endfor %}
 """
