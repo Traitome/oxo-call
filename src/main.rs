@@ -13,10 +13,10 @@ mod sanitize;
 mod skill;
 mod workflow;
 
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use cli::{
     Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, LicenseCommands,
-    SkillCommands, WorkflowCommands,
+    ShellType, SkillCommands, WorkflowCommands,
 };
 use colored::Colorize;
 use handlers::{config_verify_suggestions, print_index_table, with_source};
@@ -34,7 +34,10 @@ async fn main() {
 async fn run(cli: Cli) -> error::Result<()> {
     // Commands that are permitted without a valid license file.
     // `--help` and `--version` are handled by clap before reaching this function.
-    let license_exempt = matches!(cli.command, Commands::License { .. });
+    let license_exempt = matches!(
+        cli.command,
+        Commands::License { .. } | Commands::Completion { .. }
+    );
 
     if !license_exempt {
         let license_path = cli.license.as_deref();
@@ -44,17 +47,42 @@ async fn run(cli: Cli) -> error::Result<()> {
         }
     }
 
+    let verbose = cli.verbose;
+
     match cli.command {
-        Commands::Run { tool, task, ask } => {
-            let cfg = config::Config::load()?;
-            let runner = runner::Runner::new(cfg);
-            runner.run(&tool, &task, ask).await?;
+        Commands::Run {
+            tool,
+            task,
+            ask,
+            model,
+            no_cache,
+            json,
+        } => {
+            let mut cfg = config::Config::load()?;
+            if let Some(ref m) = model {
+                cfg.llm.model = Some(m.clone());
+            }
+            let runner = runner::Runner::new(cfg)
+                .with_verbose(verbose)
+                .with_no_cache(no_cache);
+            runner.run(&tool, &task, ask, json).await?;
         }
 
-        Commands::DryRun { tool, task } => {
-            let cfg = config::Config::load()?;
-            let runner = runner::Runner::new(cfg);
-            runner.dry_run(&tool, &task).await?;
+        Commands::DryRun {
+            tool,
+            task,
+            model,
+            no_cache,
+            json,
+        } => {
+            let mut cfg = config::Config::load()?;
+            if let Some(ref m) = model {
+                cfg.llm.model = Some(m.clone());
+            }
+            let runner = runner::Runner::new(cfg)
+                .with_verbose(verbose)
+                .with_no_cache(no_cache);
+            runner.dry_run(&tool, &task, json).await?;
         }
 
         Commands::Index { command } => match command {
@@ -1129,6 +1157,18 @@ async fn run(cli: Cli) -> error::Result<()> {
                 engine::visualize_workflow(&def)?;
             }
         },
+
+        Commands::Completion { shell } => {
+            let mut cmd = Cli::command();
+            let shell = match shell {
+                ShellType::Bash => clap_complete::Shell::Bash,
+                ShellType::Zsh => clap_complete::Shell::Zsh,
+                ShellType::Fish => clap_complete::Shell::Fish,
+                ShellType::Powershell => clap_complete::Shell::PowerShell,
+                ShellType::Elvish => clap_complete::Shell::Elvish,
+            };
+            clap_complete::generate(shell, &mut cmd, "oxo-call", &mut std::io::stdout());
+        }
     }
 
     Ok(())

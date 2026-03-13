@@ -270,14 +270,25 @@ impl LlmClient {
         {
             let provider = self.config.effective_provider();
             let token = self.config.effective_api_token().ok_or_else(|| {
-            OxoError::LlmError(
-                "No API token configured. Set it with:\n  oxo-call config set llm.api_token <token>\n\
-                Or set the environment variable OXO_CALL_LLM_API_TOKEN.\n\
-                Backward-compatible provider-specific variables still work too: \
-                GITHUB_TOKEN / GH_TOKEN, OPENAI_API_KEY, ANTHROPIC_API_KEY, OXO_API_TOKEN."
-                    .to_string(),
-            )
-        })?;
+                let token_hint = match provider.as_str() {
+                    "github-copilot" => "  For GitHub Copilot, use a GitHub token with copilot scope:\n    https://github.com/settings/tokens",
+                    "openai" => "  For OpenAI, create an API key at:\n    https://platform.openai.com/api-keys",
+                    "anthropic" => "  For Anthropic, create an API key at:\n    https://console.anthropic.com/settings/keys",
+                    "ollama" => "  For Ollama (local), no token is usually needed.\n    Set OXO_API_TOKEN if your instance requires auth.",
+                    _ => "  Check your provider's documentation for token setup.",
+                };
+                OxoError::LlmError(
+                    format!(
+                        "No API token configured for provider '{provider}'.\n\n\
+                        Option 1 — Set via config (recommended):\n  \
+                          oxo-call config set llm.api_token <your-token>\n\n\
+                        Option 2 — Set via environment variable:\n  \
+                          export OXO_CALL_LLM_API_TOKEN=<your-token>\n\n\
+                        How to get a token:\n{token_hint}\n\n\
+                        Test your setup: oxo-call config verify"
+                    ),
+                )
+            })?;
 
             let api_base = self.config.effective_api_base();
 

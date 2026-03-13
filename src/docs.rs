@@ -107,6 +107,17 @@ impl DocsFetcher {
 
     /// Fetch documentation for a tool from all available sources
     pub async fn fetch(&self, tool: &str) -> Result<ToolDocs> {
+        self.fetch_inner(tool, false).await
+    }
+
+    /// Fetch documentation for a tool, skipping the local cache.
+    /// This forces a fresh --help fetch even when cached docs exist.
+    pub async fn fetch_no_cache(&self, tool: &str) -> Result<ToolDocs> {
+        self.fetch_inner(tool, true).await
+    }
+
+    /// Inner implementation shared by `fetch` and `fetch_no_cache`.
+    async fn fetch_inner(&self, tool: &str, skip_cache: bool) -> Result<ToolDocs> {
         validate_tool_name(tool)?;
 
         let mut docs = ToolDocs {
@@ -116,8 +127,10 @@ impl DocsFetcher {
             version: None,
         };
 
-        // 1. Try local cache first
-        if let Ok(cached) = self.load_cache(tool) {
+        // 1. Try local cache first (unless skipping cache)
+        if !skip_cache
+            && let Ok(cached) = self.load_cache(tool)
+        {
             docs.cached_docs = Some(cached);
         }
 
@@ -132,8 +145,9 @@ impl DocsFetcher {
             }
         }
 
-        // 3. Try local documentation paths from config
-        if docs.cached_docs.is_none()
+        // 3. Try local documentation paths from config (unless skipping cache)
+        if !skip_cache
+            && docs.cached_docs.is_none()
             && let Some(local_doc) = self.search_local_docs(tool)
         {
             docs.cached_docs = Some(local_doc);
@@ -142,7 +156,14 @@ impl DocsFetcher {
         if docs.is_empty() {
             return Err(OxoError::DocFetchError(
                 tool.to_string(),
-                "No documentation found. Try 'oxo-call docs add <tool>' to build the index, or ensure the tool is installed.".to_string(),
+                format!(
+                    "No documentation found for '{tool}'.\n\n\
+                     Troubleshooting:\n  \
+                     1. Ensure '{tool}' is installed and in PATH: which {tool}\n  \
+                     2. Cache documentation: oxo-call docs add {tool}\n  \
+                     3. Add remote docs: oxo-call docs add {tool} --url <docs-url>\n\n\
+                     See: oxo-call docs --help"
+                ),
             ));
         }
 

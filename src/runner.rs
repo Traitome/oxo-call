@@ -32,6 +32,8 @@ pub struct Runner {
     fetcher: DocsFetcher,
     llm: LlmClient,
     skill_manager: SkillManager,
+    verbose: bool,
+    no_cache: bool,
 }
 
 impl Runner {
@@ -41,12 +43,30 @@ impl Runner {
             llm: LlmClient::new(config.clone()),
             skill_manager: SkillManager::new(config.clone()),
             config,
+            verbose: false,
+            no_cache: false,
         }
+    }
+
+    /// Enable verbose output for this runner.
+    pub fn with_verbose(mut self, verbose: bool) -> Self {
+        self.verbose = verbose;
+        self
+    }
+
+    /// Skip cached documentation and fetch fresh --help output.
+    pub fn with_no_cache(mut self, no_cache: bool) -> Self {
+        self.no_cache = no_cache;
+        self
     }
 
     /// Resolve documentation for the tool, showing a spinner while fetching
     async fn resolve_docs(&self, tool: &str) -> Result<String> {
-        let docs = self.fetcher.fetch(tool).await?;
+        let docs = if self.no_cache {
+            self.fetcher.fetch_no_cache(tool).await?
+        } else {
+            self.fetcher.fetch(tool).await?
+        };
         Ok(docs.combined())
     }
 
@@ -64,6 +84,19 @@ impl Runner {
             }
         };
 
+        if self.verbose {
+            eprintln!(
+                "{} Documentation: {} chars{}",
+                "[verbose]".dimmed(),
+                docs.len(),
+                if self.no_cache {
+                    " (fresh, cache skipped)"
+                } else {
+                    ""
+                }
+            );
+        }
+
         let docs_hash = sha256_hex(&docs);
 
         let skill = self.skill_manager.load(tool);
@@ -73,6 +106,29 @@ impl Runner {
         } else {
             String::new()
         };
+
+        if self.verbose {
+            if let Some(ref s) = skill {
+                eprintln!(
+                    "{} Skill loaded: {} ({} concepts, {} pitfalls, {} examples)",
+                    "[verbose]".dimmed(),
+                    s.meta.name,
+                    s.context.concepts.len(),
+                    s.context.pitfalls.len(),
+                    s.examples.len()
+                );
+            } else {
+                eprintln!("{} No skill found for '{}'", "[verbose]".dimmed(), tool);
+            }
+            eprintln!(
+                "{} LLM: provider={}, model={}, max_tokens={}, temperature={}",
+                "[verbose]".dimmed(),
+                self.config.effective_provider(),
+                self.config.effective_model(),
+                self.config.effective_max_tokens().unwrap_or(2048),
+                self.config.effective_temperature().unwrap_or(0.0)
+            );
+        }
 
         let spinner = make_spinner(&format!(
             "Asking LLM to generate command arguments{skill_label}..."
@@ -100,9 +156,24 @@ impl Runner {
     }
 
     /// dry-run: show the command that would be executed without running it
-    pub async fn dry_run(&self, tool: &str, task: &str) -> Result<()> {
+    pub async fn dry_run(&self, tool: &str, task: &str, json: bool) -> Result<()> {
         let result = self.prepare(tool, task).await?;
         let full_cmd = build_command_string(tool, &result.suggestion.args);
+
+        if json {
+            let output = serde_json::json!({
+                "tool": tool,
+                "task": task,
+                "command": full_cmd,
+                "args": result.suggestion.args,
+                "explanation": result.suggestion.explanation,
+                "dry_run": true,
+                "skill": result.skill_name,
+                "model": self.config.effective_model(),
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+            return Ok(());
+        }
 
         println!();
         println!("{}", "─".repeat(60).dimmed());
@@ -128,23 +199,25 @@ impl Runner {
     }
 
     /// run: execute the command for real
-    pub async fn run(&self, tool: &str, task: &str, ask: bool) -> Result<()> {
+    pub async fn run(&self, tool: &str, task: &str, ask: bool, json: bool) -> Result<()> {
         let result = self.prepare(tool, task).await?;
         let full_cmd = build_command_string(tool, &result.suggestion.args);
 
-        println!();
-        println!("{}", "─".repeat(60).dimmed());
-        println!("  {} {}", "Tool:".bold(), tool.cyan());
-        println!("  {} {}", "Task:".bold(), task);
-        println!("{}", "─".repeat(60).dimmed());
-        println!();
-        println!("  {}", "Generated command:".bold().green());
-        println!("  {}", full_cmd.green().bold());
-        println!();
-        if !result.suggestion.explanation.is_empty() {
-            println!("  {}", "Explanation:".bold());
-            println!("  {}", result.suggestion.explanation);
+        if !json {
             println!();
+            println!("{}", "─".repeat(60).dimmed());
+            println!("  {} {}", "Tool:".bold(), tool.cyan());
+            println!("  {} {}", "Task:".bold(), task);
+            println!("{}", "─".repeat(60).dimmed());
+            println!();
+            println!("  {}", "Generated command:".bold().green());
+            println!("  {}", full_cmd.green().bold());
+            println!();
+            if !result.suggestion.explanation.is_empty() {
+                println!("  {}", "Explanation:".bold());
+                println!("  {}", result.suggestion.explanation);
+                println!();
+            }
         }
 
         if ask {
@@ -160,11 +233,13 @@ impl Runner {
             }
         }
 
-        println!();
-        println!("{}", "─".repeat(60).dimmed());
-        println!("  {} {}", "Running:".bold(), full_cmd.cyan());
-        println!("{}", "─".repeat(60).dimmed());
-        println!();
+        if !json {
+            println!();
+            println!("{}", "─".repeat(60).dimmed());
+            println!("  {} {}", "Running:".bold(), full_cmd.cyan());
+            println!("{}", "─".repeat(60).dimmed());
+            println!();
+        }
 
         // Process execution is not supported in WebAssembly
         #[cfg(target_arch = "wasm32")]
@@ -197,28 +272,44 @@ impl Runner {
                 provenance: Some(CommandProvenance {
                     tool_version,
                     docs_hash: Some(result.docs_hash),
-                    skill_name: result.skill_name,
+                    skill_name: result.skill_name.clone(),
                     model: Some(self.config.effective_model()),
                 }),
             };
             let _ = HistoryStore::append(entry);
 
-            println!();
-            println!("{}", "─".repeat(60).dimmed());
-            if success {
-                println!(
-                    "  {} exit code {}",
-                    "Completed successfully,".bold().green(),
-                    exit_code.to_string().green()
-                );
+            if json {
+                let output = serde_json::json!({
+                    "tool": tool,
+                    "task": task,
+                    "command": full_cmd,
+                    "args": result.suggestion.args,
+                    "explanation": result.suggestion.explanation,
+                    "dry_run": false,
+                    "exit_code": exit_code,
+                    "success": success,
+                    "skill": result.skill_name,
+                    "model": self.config.effective_model(),
+                });
+                println!("{}", serde_json::to_string_pretty(&output)?);
             } else {
-                println!(
-                    "  {} exit code {}",
-                    "Command failed,".bold().red(),
-                    exit_code.to_string().red()
-                );
+                println!();
+                println!("{}", "─".repeat(60).dimmed());
+                if success {
+                    println!(
+                        "  {} exit code {}",
+                        "Completed successfully,".bold().green(),
+                        exit_code.to_string().green()
+                    );
+                } else {
+                    println!(
+                        "  {} exit code {}",
+                        "Command failed,".bold().red(),
+                        exit_code.to_string().red()
+                    );
+                }
+                println!("{}", "─".repeat(60).dimmed());
             }
-            println!("{}", "─".repeat(60).dimmed());
 
             Ok(())
         }
