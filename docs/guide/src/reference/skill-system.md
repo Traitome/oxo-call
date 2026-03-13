@@ -1,5 +1,7 @@
 # Skill System
 
+![Skill System — Load Priority and Prompt Injection](../images/skill-system.svg)
+
 ## Overview
 
 The skill system is oxo-call's knowledge engineering layer. Skills are curated TOML files that inject domain-expert knowledge about specific bioinformatics tools into the LLM prompt.

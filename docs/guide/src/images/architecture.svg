@@ -1,0 +1,170 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" font-family="'Segoe UI', 'Liberation Sans', Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff"/>
+    </marker>
+    <marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7a8fa6"/>
+    </marker>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="#00000022"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="620" fill="#0f1923" rx="12"/>
+
+  <!-- Title -->
+  <text x="450" y="38" text-anchor="middle" fill="#e2e8f0" font-size="18" font-weight="700" letter-spacing="0.5">oxo-call System Architecture</text>
+  <line x1="60" y1="50" x2="840" y2="50" stroke="#2d3f52" stroke-width="1"/>
+
+  <!-- ── Workspace crates row ─────────────────────────────────────────── -->
+  <text x="450" y="76" text-anchor="middle" fill="#7a8fa6" font-size="11" letter-spacing="1">RUST WORKSPACE</text>
+
+  <!-- oxo-call crate (main) -->
+  <rect x="50" y="85" width="560" height="490" rx="10" fill="#131f2e" stroke="#2d5a8a" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="50" y="85" width="560" height="30" rx="10" fill="#1a3a5c"/>
+  <rect x="50" y="105" width="560" height="10" rx="0" fill="#1a3a5c"/>
+  <text x="330" y="106" text-anchor="middle" fill="#7eb8f7" font-size="12" font-weight="700">oxo-call (CLI crate)</text>
+
+  <!-- license-issuer crate -->
+  <rect x="635" y="85" width="215" height="85" rx="10" fill="#131f2e" stroke="#2d6a3e" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="742" y="108" text-anchor="middle" fill="#6fcf97" font-size="12" font-weight="700">license-issuer</text>
+  <text x="742" y="126" text-anchor="middle" fill="#7a8fa6" font-size="10">Maintainer signing tool</text>
+  <text x="742" y="142" text-anchor="middle" fill="#7a8fa6" font-size="10">Ed25519 keypair + sign</text>
+  <rect x="657" y="153" width="170" height="5" rx="2" fill="#2d6a3e" opacity="0.5"/>
+
+  <!-- oxo-bench crate -->
+  <rect x="635" y="190" width="215" height="85" rx="10" fill="#131f2e" stroke="#5a3a8a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="742" y="213" text-anchor="middle" fill="#b39ddb" font-size="12" font-weight="700">oxo-bench</text>
+  <text x="742" y="231" text-anchor="middle" fill="#7a8fa6" font-size="10">Benchmark &amp; evaluation</text>
+  <text x="742" y="247" text-anchor="middle" fill="#7a8fa6" font-size="10">70+ eval tasks, CSV export</text>
+  <rect x="657" y="258" width="170" height="5" rx="2" fill="#5a3a8a" opacity="0.5"/>
+
+  <!-- ── Modules inside main crate ────────────────────────────────────── -->
+
+  <!-- main.rs -->
+  <rect x="70" y="125" width="200" height="44" rx="7" fill="#1e3a5f" stroke="#3a6fa8" stroke-width="1.5"/>
+  <text x="170" y="143" text-anchor="middle" fill="#7eb8f7" font-size="12" font-weight="700">main.rs</text>
+  <text x="170" y="158" text-anchor="middle" fill="#9bb5cc" font-size="10">Command dispatcher · License gate</text>
+
+  <!-- cli.rs -->
+  <rect x="295" y="125" width="140" height="44" rx="7" fill="#1e3a5f" stroke="#3a6fa8" stroke-width="1.5"/>
+  <text x="365" y="143" text-anchor="middle" fill="#7eb8f7" font-size="12" font-weight="700">cli.rs</text>
+  <text x="365" y="158" text-anchor="middle" fill="#9bb5cc" font-size="10">Clap command tree</text>
+
+  <!-- license.rs -->
+  <rect x="455" y="125" width="140" height="44" rx="7" fill="#1e3a5f" stroke="#3a6fa8" stroke-width="1.5"/>
+  <text x="525" y="143" text-anchor="middle" fill="#7eb8f7" font-size="12" font-weight="700">license.rs</text>
+  <text x="525" y="158" text-anchor="middle" fill="#9bb5cc" font-size="10">Ed25519 verification</text>
+
+  <!-- Arrow: main.rs → runner.rs area -->
+  <line x1="170" y1="169" x2="170" y2="218" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- runner.rs -->
+  <rect x="70" y="220" width="200" height="50" rx="7" fill="#163545" stroke="#1a8a6a" stroke-width="1.5"/>
+  <text x="170" y="241" text-anchor="middle" fill="#4ecdc4" font-size="12" font-weight="700">runner.rs</text>
+  <text x="170" y="256" text-anchor="middle" fill="#9bb5cc" font-size="10">Core orchestration · Provenance</text>
+
+  <!-- Arrows from runner to sub-modules -->
+  <line x1="170" y1="270" x2="170" y2="308" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="200" y1="280" x2="310" y2="308" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="140" y1="280" x2="100" y2="308" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="185" y1="270" x2="460" y2="308" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- docs.rs -->
+  <rect x="70" y="310" width="140" height="44" rx="7" fill="#1c2e20" stroke="#2a7a3a" stroke-width="1.5"/>
+  <text x="140" y="328" text-anchor="middle" fill="#6fcf97" font-size="12" font-weight="700">docs.rs</text>
+  <text x="140" y="343" text-anchor="middle" fill="#9bb5cc" font-size="10">Documentation resolver</text>
+
+  <!-- skill.rs -->
+  <rect x="230" y="310" width="140" height="44" rx="7" fill="#1c2e20" stroke="#2a7a3a" stroke-width="1.5"/>
+  <text x="300" y="328" text-anchor="middle" fill="#6fcf97" font-size="12" font-weight="700">skill.rs</text>
+  <text x="300" y="343" text-anchor="middle" fill="#9bb5cc" font-size="10">Skill loading · Depth validation</text>
+
+  <!-- llm.rs -->
+  <rect x="390" y="310" width="140" height="44" rx="7" fill="#2e1c2e" stroke="#7a3a8a" stroke-width="1.5"/>
+  <text x="460" y="328" text-anchor="middle" fill="#b39ddb" font-size="12" font-weight="700">llm.rs</text>
+  <text x="460" y="343" text-anchor="middle" fill="#9bb5cc" font-size="10">LLM client · Prompt builder</text>
+
+  <!-- history.rs (below runner) -->
+  <rect x="70" y="374" width="140" height="44" rx="7" fill="#2e2010" stroke="#8a6a2a" stroke-width="1.5"/>
+  <text x="140" y="392" text-anchor="middle" fill="#f6ad55" font-size="12" font-weight="700">history.rs</text>
+  <text x="140" y="407" text-anchor="middle" fill="#9bb5cc" font-size="10">JSONL log · Provenance</text>
+  <line x1="140" y1="354" x2="140" y2="372" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Workflow cluster -->
+  <rect x="70" y="438" width="390" height="110" rx="8" fill="#131f2e" stroke="#4a6a8a" stroke-width="1" stroke-dasharray="5,3"/>
+  <text x="265" y="456" text-anchor="middle" fill="#7a8fa6" font-size="10" letter-spacing="0.5">WORKFLOW ENGINE</text>
+
+  <!-- workflow.rs -->
+  <rect x="85" y="462" width="160" height="72" rx="7" fill="#1a2e3e" stroke="#3a7a9a" stroke-width="1.5"/>
+  <text x="165" y="482" text-anchor="middle" fill="#7eb8f7" font-size="12" font-weight="700">workflow.rs</text>
+  <text x="165" y="497" text-anchor="middle" fill="#9bb5cc" font-size="10">Templates · Registry</text>
+  <text x="165" y="512" text-anchor="middle" fill="#9bb5cc" font-size="10">Snakemake / Nextflow export</text>
+  <text x="165" y="527" text-anchor="middle" fill="#9bb5cc" font-size="10">verify · fmt · vis</text>
+
+  <!-- Arrow workflow → engine -->
+  <line x1="245" y1="497" x2="263" y2="497" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- engine.rs -->
+  <rect x="265" y="462" width="180" height="72" rx="7" fill="#1a2e3e" stroke="#3a7a9a" stroke-width="1.5"/>
+  <text x="355" y="482" text-anchor="middle" fill="#7eb8f7" font-size="12" font-weight="700">engine.rs</text>
+  <text x="355" y="497" text-anchor="middle" fill="#9bb5cc" font-size="10">DAG execution · tokio</text>
+  <text x="355" y="512" text-anchor="middle" fill="#9bb5cc" font-size="10">Wildcard expansion</text>
+  <text x="355" y="527" text-anchor="middle" fill="#9bb5cc" font-size="10">Output-freshness caching</text>
+
+  <!-- Bottom modules row -->
+  <!-- config.rs -->
+  <rect x="70" y="562" width="110" height="44" rx="7" fill="#2a1e10" stroke="#8a5a2a" stroke-width="1.5"/>
+  <text x="125" y="580" text-anchor="middle" fill="#f6ad55" font-size="11" font-weight="700">config.rs</text>
+  <text x="125" y="595" text-anchor="middle" fill="#9bb5cc" font-size="10">Platform config dirs</text>
+
+  <!-- index.rs -->
+  <rect x="195" y="562" width="110" height="44" rx="7" fill="#2a1e10" stroke="#8a5a2a" stroke-width="1.5"/>
+  <text x="250" y="580" text-anchor="middle" fill="#f6ad55" font-size="11" font-weight="700">index.rs</text>
+  <text x="250" y="595" text-anchor="middle" fill="#9bb5cc" font-size="10">Docs index · cache</text>
+
+  <!-- sanitize.rs -->
+  <rect x="320" y="562" width="120" height="44" rx="7" fill="#2a1810" stroke="#8a3a2a" stroke-width="1.5"/>
+  <text x="380" y="580" text-anchor="middle" fill="#fc8181" font-size="11" font-weight="700">sanitize.rs</text>
+  <text x="380" y="595" text-anchor="middle" fill="#9bb5cc" font-size="10">PII redaction for LLM</text>
+
+  <!-- error.rs -->
+  <rect x="455" y="562" width="110" height="44" rx="7" fill="#1e1e2a" stroke="#4a4a7a" stroke-width="1.5"/>
+  <text x="510" y="580" text-anchor="middle" fill="#b39ddb" font-size="11" font-weight="700">error.rs</text>
+  <text x="510" y="595" text-anchor="middle" fill="#9bb5cc" font-size="10">Error type definitions</text>
+
+  <!-- lib.rs badge -->
+  <rect x="480" y="440" width="120" height="36" rx="7" fill="#1e2a2e" stroke="#2a6a8a" stroke-width="1"/>
+  <text x="540" y="456" text-anchor="middle" fill="#7eb8f7" font-size="10" font-weight="700">lib.rs</text>
+  <text x="540" y="469" text-anchor="middle" fill="#7a8fa6" font-size="9">Programmatic API surface</text>
+
+  <!-- handlers.rs badge -->
+  <rect x="480" y="485" width="120" height="36" rx="7" fill="#1e2a2e" stroke="#2a6a8a" stroke-width="1"/>
+  <text x="540" y="501" text-anchor="middle" fill="#7eb8f7" font-size="10" font-weight="700">handlers.rs</text>
+  <text x="540" y="514" text-anchor="middle" fill="#7a8fa6" font-size="9">Formatting helpers</text>
+
+  <!-- Legend -->
+  <rect x="635" y="295" width="215" height="175" rx="8" fill="#131f2e" stroke="#2d3f52" stroke-width="1"/>
+  <text x="742" y="315" text-anchor="middle" fill="#7a8fa6" font-size="11" font-weight="700" letter-spacing="0.5">LEGEND</text>
+  <rect x="648" y="325" width="16" height="10" rx="2" fill="#1a3a5c" stroke="#3a6fa8" stroke-width="1.5"/>
+  <text x="672" y="334" fill="#9bb5cc" font-size="10">Core modules</text>
+  <rect x="648" y="343" width="16" height="10" rx="2" fill="#163545" stroke="#1a8a6a" stroke-width="1.5"/>
+  <text x="672" y="352" fill="#9bb5cc" font-size="10">Orchestration layer</text>
+  <rect x="648" y="361" width="16" height="10" rx="2" fill="#1c2e20" stroke="#2a7a3a" stroke-width="1.5"/>
+  <text x="672" y="370" fill="#9bb5cc" font-size="10">Docs &amp; skills</text>
+  <rect x="648" y="379" width="16" height="10" rx="2" fill="#2e1c2e" stroke="#7a3a8a" stroke-width="1.5"/>
+  <text x="672" y="388" fill="#9bb5cc" font-size="10">LLM integration</text>
+  <rect x="648" y="397" width="16" height="10" rx="2" fill="#2e2010" stroke="#8a6a2a" stroke-width="1.5"/>
+  <text x="672" y="406" fill="#9bb5cc" font-size="10">History &amp; config</text>
+  <rect x="648" y="415" width="16" height="10" rx="2" fill="#1a2e3e" stroke="#3a7a9a" stroke-width="1.5"/>
+  <text x="672" y="424" fill="#9bb5cc" font-size="10">Workflow engine</text>
+  <line x1="648" y1="443" x2="664" y2="443" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="672" y="447" fill="#9bb5cc" font-size="10">Module dependency</text>
+
+  <!-- Shared license schema annotation -->
+  <line x1="595" y1="145" x2="635" y2="128" stroke="#7a8fa6" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="640" y="175" fill="#7a8fa6" font-size="9" text-anchor="middle">Shared license</text>
+  <text x="640" y="186" fill="#7a8fa6" font-size="9" text-anchor="middle">payload schema</text>
+</svg>

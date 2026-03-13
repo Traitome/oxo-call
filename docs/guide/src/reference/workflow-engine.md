@@ -6,6 +6,8 @@ oxo-call includes a native Rust workflow engine that executes `.oxo.toml` pipeli
 
 ## Architecture
 
+![Workflow DAG Execution Phases](../images/workflow-dag.svg)
+
 ### DAG Execution
 
 The engine builds a Directed Acyclic Graph (DAG) from step dependencies:

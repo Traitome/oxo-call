@@ -1,5 +1,7 @@
 # Documentation System
 
+![Documentation System — Fetch and Cache Pipeline](../images/documentation-system.svg)
+
 ## Overview
 
 The documentation system in oxo-call serves a critical role: it provides grounding context for the LLM, preventing hallucination by anchoring generated commands in real tool documentation.

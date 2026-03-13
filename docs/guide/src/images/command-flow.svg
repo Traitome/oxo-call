@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 540" font-family="'Segoe UI', 'Liberation Sans', Arial, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff"/>
+    </marker>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000030"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="820" height="540" fill="#0f1923" rx="12"/>
+
+  <!-- Title -->
+  <text x="410" y="36" text-anchor="middle" fill="#e2e8f0" font-size="17" font-weight="700">Command Generation Pipeline</text>
+  <text x="410" y="54" text-anchor="middle" fill="#7a8fa6" font-size="11">oxo-call run / dry-run</text>
+  <line x1="60" y1="64" x2="760" y2="64" stroke="#2d3f52" stroke-width="1"/>
+
+  <!-- STEP 1: User Input -->
+  <rect x="60" y="82" width="700" height="58" rx="9" fill="#1a2840" stroke="#3a6fa8" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="60" y="82" width="8" height="58" rx="4" fill="#4a9eff"/>
+  <text x="92" y="105" fill="#7eb8f7" font-size="13" font-weight="700">① User Input</text>
+  <text x="92" y="125" fill="#c8d8e8" font-size="11" font-family="monospace">oxo-call run samtools "sort input.bam by coordinate using 4 threads"</text>
+
+  <!-- Arrow -->
+  <line x1="410" y1="140" x2="410" y2="155" stroke="#4a9eff" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- STEP 2: License Gate -->
+  <rect x="60" y="157" width="700" height="52" rx="9" fill="#1c1c2e" stroke="#5a3a8a" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="60" y="157" width="8" height="52" rx="4" fill="#9b59b6"/>
+  <text x="92" y="179" fill="#b39ddb" font-size="13" font-weight="700">② License Verification</text>
+  <text x="92" y="197" fill="#9bb5cc" font-size="11">Ed25519 signature check  →  Valid academic / commercial license required</text>
+  <!-- Lock icon sketch -->
+  <rect x="730" y="166" width="18" height="14" rx="3" fill="none" stroke="#9b59b6" stroke-width="1.5"/>
+  <path d="M735 166 Q735 160 739 160 Q743 160 743 166" fill="none" stroke="#9b59b6" stroke-width="1.5"/>
+
+  <!-- Arrow -->
+  <line x1="410" y1="209" x2="410" y2="224" stroke="#4a9eff" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- STEP 3: Documentation Layer -->
+  <rect x="60" y="226" width="700" height="78" rx="9" fill="#162a1e" stroke="#2a7a4a" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="60" y="226" width="8" height="78" rx="4" fill="#27ae60"/>
+  <text x="92" y="249" fill="#6fcf97" font-size="13" font-weight="700">③ Documentation Fetch</text>
+  <!-- Sub items -->
+  <rect x="92" y="258" width="148" height="20" rx="4" fill="#1e3a28" stroke="#2a7a4a" stroke-width="1"/>
+  <text x="166" y="272" text-anchor="middle" fill="#9bb5cc" font-size="10">Cached --help output</text>
+  <rect x="248" y="258" width="148" height="20" rx="4" fill="#1e3a28" stroke="#2a7a4a" stroke-width="1"/>
+  <text x="322" y="272" text-anchor="middle" fill="#9bb5cc" font-size="10">Live --help (if stale)</text>
+  <rect x="404" y="258" width="148" height="20" rx="4" fill="#1e3a28" stroke="#2a7a4a" stroke-width="1"/>
+  <text x="478" y="272" text-anchor="middle" fill="#9bb5cc" font-size="10">Local doc files</text>
+  <rect x="560" y="258" width="148" height="20" rx="4" fill="#1e3a28" stroke="#2a7a4a" stroke-width="1"/>
+  <text x="634" y="272" text-anchor="middle" fill="#9bb5cc" font-size="10">Remote URLs</text>
+  <text x="92" y="295" fill="#7a8fa6" font-size="10">→  Merged, deduplicated, validated (80–16 000 chars), cached for next run</text>
+
+  <!-- Arrow -->
+  <line x1="410" y1="304" x2="410" y2="319" stroke="#4a9eff" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- STEP 4: Skill System -->
+  <rect x="60" y="321" width="700" height="66" rx="9" fill="#2a1e10" stroke="#8a6a2a" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="60" y="321" width="8" height="66" rx="4" fill="#f39c12"/>
+  <text x="92" y="344" fill="#f6ad55" font-size="13" font-weight="700">④ Skill Loading</text>
+  <rect x="92" y="353" width="118" height="20" rx="4" fill="#3a2a10" stroke="#8a6a2a" stroke-width="1"/>
+  <text x="151" y="367" text-anchor="middle" fill="#f6ad55" font-size="10" font-weight="600">user</text>
+  <text x="218" y="362" fill="#7a8fa6" font-size="10">›</text>
+  <rect x="228" y="353" width="118" height="20" rx="4" fill="#3a2a10" stroke="#8a6a2a" stroke-width="1"/>
+  <text x="287" y="367" text-anchor="middle" fill="#f6ad55" font-size="10" font-weight="600">community</text>
+  <text x="354" y="362" fill="#7a8fa6" font-size="10">›</text>
+  <rect x="364" y="353" width="118" height="20" rx="4" fill="#3a2a10" stroke="#8a6a2a" stroke-width="1"/>
+  <text x="423" y="367" text-anchor="middle" fill="#f6ad55" font-size="10" font-weight="600">built-in (150+ tools)</text>
+  <text x="510" y="380" fill="#7a8fa6" font-size="10">Concepts · Pitfalls · Worked examples → injected into prompt</text>
+
+  <!-- Arrow -->
+  <line x1="410" y1="387" x2="410" y2="402" stroke="#4a9eff" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- STEP 5: LLM -->
+  <rect x="60" y="404" width="700" height="58" rx="9" fill="#2e1c2e" stroke="#7a3a8a" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="60" y="404" width="8" height="58" rx="4" fill="#9b59b6"/>
+  <text x="92" y="427" fill="#b39ddb" font-size="13" font-weight="700">⑤ LLM API Call</text>
+  <rect x="92" y="436" width="90" height="18" rx="4" fill="#3a1c3e" stroke="#7a3a8a" stroke-width="1"/>
+  <text x="137" y="449" text-anchor="middle" fill="#b39ddb" font-size="10">GitHub Copilot</text>
+  <rect x="190" y="436" width="90" height="18" rx="4" fill="#3a1c3e" stroke="#7a3a8a" stroke-width="1"/>
+  <text x="235" y="449" text-anchor="middle" fill="#b39ddb" font-size="10">OpenAI</text>
+  <rect x="288" y="436" width="90" height="18" rx="4" fill="#3a1c3e" stroke="#7a3a8a" stroke-width="1"/>
+  <text x="333" y="449" text-anchor="middle" fill="#b39ddb" font-size="10">Anthropic</text>
+  <rect x="386" y="436" width="90" height="18" rx="4" fill="#3a1c3e" stroke="#7a3a8a" stroke-width="1"/>
+  <text x="431" y="449" text-anchor="middle" fill="#b39ddb" font-size="10">Ollama (local)</text>
+  <text x="560" y="449" fill="#7a8fa6" font-size="10">ARGS: + EXPLANATION: format</text>
+
+  <!-- Arrow -->
+  <line x1="410" y1="462" x2="410" y2="477" stroke="#4a9eff" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- STEP 6: Output -->
+  <rect x="60" y="479" width="340" height="44" rx="9" fill="#1e2e1e" stroke="#2a7a4a" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="60" y="479" width="8" height="44" rx="4" fill="#27ae60"/>
+  <text x="92" y="498" fill="#6fcf97" font-size="12" font-weight="700">⑥a Execute (run)</text>
+  <text x="92" y="514" fill="#9bb5cc" font-size="11" font-family="monospace">samtools sort -@ 4 -o sorted.bam input.bam</text>
+
+  <rect x="420" y="479" width="340" height="44" rx="9" fill="#1e2530" stroke="#3a6fa8" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="420" y="479" width="8" height="44" rx="4" fill="#4a9eff"/>
+  <text x="452" y="498" fill="#7eb8f7" font-size="12" font-weight="700">⑥b Preview (dry-run)</text>
+  <text x="452" y="514" fill="#9bb5cc" font-size="11">Shows command + explanation, no execution</text>
+</svg>

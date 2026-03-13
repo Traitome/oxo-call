@@ -1,5 +1,7 @@
 # LLM Integration
 
+![LLM Prompt Architecture and Grounding Strategy](../images/llm-prompt.svg)
+
 ## Overview
 
 oxo-call supports four LLM providers for command generation:
