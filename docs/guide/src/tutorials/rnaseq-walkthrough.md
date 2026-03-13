@@ -158,6 +158,9 @@ oxo-call run STAR \
    sort BAM by coordinate, use 8 threads, generate a BAM file"
 ```
 
+> **STAR Two-Pass Mode:**  
+> For novel splice junction discovery (e.g., tumor RNA-seq, rare transcripts), consider using STAR's two-pass mode. In the first pass, STAR discovers splice junctions; in the second pass, it re-maps reads using the discovered junctions for improved sensitivity. Add `--twopassMode Basic` to your alignment task description. Note that two-pass mode increases runtime and memory usage. For standard differential expression analyses with well-annotated genomes (e.g., human, mouse), one-pass mode with a comprehensive GTF annotation is usually sufficient.
+
 ### Index the BAM
 
 ```bash

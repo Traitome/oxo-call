@@ -74,3 +74,80 @@ Environment variables override `config.toml` values. Provider-specific token var
 - Default model: `llama3.2`
 - API base: `http://localhost:11434`
 - No API token required (local inference)
+
+---
+
+## Troubleshooting
+
+### Wrong or Missing License
+
+If your license file is missing, expired, or invalid, you will see an error like:
+
+```
+Error: License verification failed — no valid license found.
+Checked locations (in order):
+  1. --license CLI flag
+  2. OXO_CALL_LICENSE environment variable
+  3. ~/.config/oxo-call/license.oxo.json
+
+Run `oxo-call license verify` for details.
+```
+
+**Fix:** Ensure your `license.oxo.json` is at one of the checked paths. See [License Setup](./license.md).
+
+### Failed LLM Connection
+
+If `oxo-call config verify` fails with a connection error:
+
+```
+✗ LLM provider: openai
+✗ Connection: Failed — could not reach https://api.openai.com/v1
+```
+
+**Common causes:**
+- **No API token**: Run `oxo-call config get llm.api_token` to check
+- **Wrong provider**: Verify with `oxo-call config get llm.provider`
+- **Network issue**: Check internet connectivity or proxy settings
+- **Ollama not running**: Start with `ollama serve`
+
+### Config File Not Found
+
+```
+Config file not found at ~/.config/oxo-call/config.toml
+Using default values.
+```
+
+This is normal on first use. Set your first value to create the file:
+
+```bash
+oxo-call config set llm.provider openai
+```
+
+### CI / HPC Cluster Considerations
+
+When running oxo-call in non-interactive environments (CI pipelines, SLURM job scripts, HPC clusters):
+
+1. **License**: Set `OXO_CALL_LICENSE` to the path of your license file in your job script or CI environment
+2. **API tokens**: Use environment variables instead of config files:
+   ```bash
+   export OXO_CALL_LLM_PROVIDER=openai
+   export OXO_CALL_LLM_API_TOKEN=$OPENAI_API_KEY
+   ```
+3. **No `GITHUB_TOKEN`**: If your CI environment does not set `GITHUB_TOKEN`, switch to OpenAI, Anthropic, or Ollama
+4. **Ollama on clusters**: Run Ollama as a service on a shared node, then set `llm.api_base` to point to it:
+   ```bash
+   export OXO_CALL_LLM_PROVIDER=ollama
+   export OXO_CALL_LLM_API_BASE=http://ollama-node:11434
+   ```
+5. **SLURM example**:
+   ```bash
+   #!/bin/bash
+   #SBATCH --job-name=oxo-call-pipeline
+   #SBATCH --cpus-per-task=8
+   
+   export OXO_CALL_LICENSE=/shared/licenses/license.oxo.json
+   export OXO_CALL_LLM_PROVIDER=ollama
+   export OXO_CALL_LLM_API_BASE=http://ollama-node:11434
+   
+   oxo-call run samtools "sort input.bam by coordinate using 8 threads"
+   ```

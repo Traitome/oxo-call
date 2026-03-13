@@ -151,6 +151,59 @@ mv /tmp/kallisto.toml ~/.config/oxo-call/skills/kallisto.toml
 
 Compare the outputs — the skill-augmented version should include the correct index path pattern and bootstrap flag.
 
+## Debugging Skills
+
+### See what the LLM receives
+
+Use the `--verbose` flag to see the full prompt sent to the LLM, including your skill content:
+
+```bash
+oxo-call dry-run --verbose kallisto \
+  "quantify paired-end reads R1.fq R2.fq against human transcriptome"
+```
+
+With `--verbose`, the output includes:
+- The system prompt rules
+- Injected skill concepts, pitfalls, and examples
+- The tool documentation sent to the LLM
+- The user task description
+- The raw LLM response
+
+This helps you verify that your skill content is being injected correctly and identify whether issues are in the skill, the documentation, or the LLM's interpretation.
+
+### Common debugging steps
+
+1. **Skill not loading?** Check with `oxo-call skill show <tool>`. If it returns nothing, verify:
+   - Filename matches the tool binary name exactly (case-sensitive)
+   - File is in `~/.config/oxo-call/skills/` (user) or `~/.local/share/oxo-call/skills/` (community)
+   - TOML syntax is valid — especially check that `[[examples]]` fields use `= "..."` syntax
+
+2. **Skill loaded but LLM ignores it?** Compare dry-run output with and without the skill. If the LLM ignores your examples, try:
+   - Making concepts more specific and actionable
+   - Adding more examples that directly match common tasks
+   - Ensuring pitfalls describe concrete failure modes
+
+3. **Validation warnings?** Skills must meet minimum depth requirements:
+   - At least 5 examples
+   - At least 3 concepts
+   - At least 3 pitfalls
+   
+   Skills below these thresholds will produce a validation warning.
+
+### Testing skills with oxo-bench
+
+For systematic skill evaluation, the `oxo-bench` benchmarking crate can test skills programmatically:
+
+```bash
+# Run benchmark for a specific tool
+cargo run -p oxo-bench -- evaluate --tool kallisto
+
+# Export results for analysis
+cargo run -p oxo-bench -- export-csv --output results/
+```
+
+See the [oxo-bench crate](https://github.com/Traitome/oxo-call/tree/main/crates/oxo-bench) for full usage details.
+
 ---
 
 ## Writing Good Skills

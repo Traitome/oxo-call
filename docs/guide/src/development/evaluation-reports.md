@@ -43,9 +43,9 @@ Twelve independent expert roles were designed to cover three evaluation dimensio
 
 ✅ `detect_tool_version()` implemented in `src/runner.rs` — runs `<tool> --version` and records the output in provenance, resolving recommendation 4.
 
-**Unresolved: `docs update --auto-version` (recommendation 2) is not yet implemented. Automatic detection of tool version changes and cache refresh is planned for a future release. Currently users must manually re-index documentation when tools are upgraded.**
+⏳ **Deferred: `docs update --auto-version` (recommendation 2).** Automatic detection of tool version changes requires reliable version-string parsing for 150+ tools with inconsistent `--version` output formats (some print to stderr, some embed version in help text, some require subcommands). The current approach — `docs add <tool>` to re-index manually — is simple and predictable. Users can re-run `docs add` after upgrading a tool. Automatic version monitoring may be added in a future release if a reliable cross-tool version detection heuristic is found.
 
-**Unresolved: The `--validate` flag (recommendation 3) for semantic validation of generated commands (file existence, format checks) has not been implemented. Generic validation across 119+ tools with diverse argument semantics is complex; a tool-specific validation plugin system may be needed.**
+⏳ **Deferred: `--validate` flag (recommendation 3).** Generic semantic validation of generated commands (file existence, format compatibility, reference genome matching) is not feasible as a single feature across 150+ tools with fundamentally different argument semantics. For example, validating a `samtools sort` command requires checking BAM file existence, while validating a `STAR --genomeGenerate` command requires verifying genome FASTA and GTF paths. The `--ask` flag provides human-in-the-loop verification, and `dry-run` mode allows previewing commands before execution — these serve as practical alternatives to automated validation.
 
 ---
 
@@ -72,9 +72,9 @@ Twelve independent expert roles were designed to cover three evaluation dimensio
 
 ✅ `CommandProvenance` struct in `src/history.rs` captures tool version, docs hash (SHA-256), skill name, and LLM model — partially addressing recommendation 3. Provenance is automatically recorded with every history entry rather than requiring a separate `--provenance` flag.
 
-**Unresolved: Input file metadata (recommendation 1) — file size, format, and sample count are not recorded in history entries. This would require parsing tool-specific argument semantics to identify input files and extract their metadata.**
+⏳ **Deferred: Input file metadata (recommendation 1).** Recording file size, format, and sample count in history entries would require parsing tool-specific argument semantics to identify which arguments are input files (vs. output files, reference files, or parameter values). Each tool has a different argument convention — positional arguments, `-i` flags, `--input` flags, etc. The existing `CommandProvenance` already captures tool version, docs hash, skill name, and LLM model, which provides sufficient provenance for reproducibility audits. Input file metadata can be derived from the recorded command and the filesystem state at execution time.
 
-**Unresolved: Statistical context in skills (recommendation 2) — no specific statistical guidance (e.g., normalization method selection, multiple testing correction) has been added to quantitative tool skills. This requires domain-expert curation for each statistical tool.**
+⏳ **Deferred: Statistical context in skills (recommendation 2).** Adding statistical guidance (normalization method selection, multiple testing correction, batch effect handling) to quantitative tool skills requires domain-expert curation for each statistical tool. This is an ongoing effort — skills like DESeq2, edgeR, and limma could benefit from statistical context, but the guidance must be accurate and up-to-date with evolving statistical best practices. Community contributions of statistical context to existing skills are welcome via pull requests.
 
 ---
 
@@ -109,11 +109,11 @@ Twelve independent expert roles were designed to cover three evaluation dimensio
 
 ✅ Environment reproducibility (recommendation 2, extended) — the `env` field on workflow steps allows per-step conda environment, virtualenv, or PATH overrides, enabling reproducible runtime isolation without full containerization. This addresses the "Missing containerization" concern for lightweight deployments where Docker/Singularity is not available.
 
-**Unresolved: The `--seed` parameter (recommendation 1) for LLM calls has not been implemented. Seed support is provider-dependent — not all LLM APIs support deterministic seeds, and behavior varies across providers (OpenAI, Anthropic, Ollama).**
+⏳ **Deferred: `--seed` parameter (recommendation 1).** LLM seed support is provider-dependent and does not guarantee determinism. OpenAI supports a `seed` parameter but explicitly states outputs are not guaranteed to be identical. Anthropic does not support seeds. Ollama's seed behavior varies by model backend. Since oxo-call already uses `temperature=0.0` (the strongest determinism guarantee available across all providers), adding `--seed` would provide marginal benefit with significant implementation complexity. The existing `CommandProvenance` (docs hash + skill name + model) provides a better reproducibility mechanism than relying on non-deterministic LLM seeds.
 
-**Unresolved: Skill versioning (recommendation 3) — no semantic versioning has been added to skill `[meta]` sections. Implementing this would require a migration across all 119 built-in skills and a versioning policy for community-contributed skills.**
+⏳ **Deferred: Skill versioning (recommendation 3).** Adding semantic versioning to all 150+ built-in skill `[meta]` sections would require a large migration and an ongoing versioning policy. The existing `CommandProvenance` captures the `skill_name` and `docs_hash` per execution, which together with the git commit of the oxo-call release provides sufficient traceability. Skill changes are tracked via git history, and the skill depth validation (`MIN_EXAMPLES=5`, `MIN_CONCEPTS=3`, `MIN_PITFALLS=3`) ensures quality consistency across releases.
 
-**Unresolved: The `reproduce` command (recommendation 5) has not been implemented. Faithful replay requires reconstructing the exact documentation cache, skill version, and LLM state from the original execution — a complex dependency-resolution problem.**
+⏳ **Deferred: `reproduce` command (recommendation 5).** Faithful command replay requires reconstructing the exact documentation cache, skill content, and LLM state from the original execution — a complex dependency-resolution problem. The existing `CommandProvenance` records enough metadata (tool version, docs hash, skill name, model) for manual reproducibility audits. Users can re-run the same task description with `dry-run` to compare outputs. A full `reproduce` command would need to snapshot and restore documentation caches, which adds significant storage and complexity without proportional benefit.
 
 ---
 
@@ -142,13 +142,13 @@ Twelve independent expert roles were designed to cover three evaluation dimensio
 
 ✅ Offline operation and Ed25519 license verification (noted as strengths) remain fully functional, supporting clinical environments with network restrictions.
 
-**Unresolved: User identity in history (recommendation 1) has not been added. Privacy considerations for shared systems and multi-tenant environments need to be addressed before recording user identities by default.**
+⏳ **Deferred: User identity in history (recommendation 1).** Recording user identity by default raises privacy concerns for shared systems and multi-tenant environments. On shared HPC clusters, the system username may leak information about who ran which analyses. A privacy-preserving approach (opt-in user identity, hashed identifiers, or configurable anonymization) would be needed before enabling this feature. Users who need audit trails with user identity can wrap oxo-call invocations with their own logging that captures `$USER`.
 
-**Unresolved: `--strict` mode (recommendation 2) — rejecting commands when the LLM response changes between retries requires multi-call comparison logic that has not been implemented.**
+⏳ **Deferred: `--strict` mode (recommendation 2).** Rejecting commands when the LLM response changes between retries requires multi-call comparison logic — calling the LLM multiple times per command request, comparing outputs, and rejecting on divergence. This would increase API costs and latency significantly. The existing `temperature=0.0` setting provides the strongest available determinism guarantee. For regulatory submissions, users should use `dry-run` to preview and record the exact command before execution.
 
-**Unresolved: Clinical vs. research classification (recommendation 3) has not been added to skill metadata. The classification criteria for clinical validation status are domain-specific and would require expert curation.**
+⏳ **Deferred: Clinical vs. research classification (recommendation 3).** Classifying tools by clinical validation status (research-only, clinically validated, FDA-cleared) requires domain-expert curation and ongoing maintenance as tools receive new regulatory approvals. This classification is also jurisdiction-dependent (FDA vs. EMA vs. NMPA). The skill system's `category` and `tags` fields could carry this metadata in the future, but the classification criteria and maintenance policy need to be defined first.
 
-**Unresolved: LIMS integration (recommendation 4) — structured output beyond JSONL history has not been implemented. This is a potential future plugin or export feature.**
+⏳ **Deferred: LIMS integration (recommendation 4).** Structured output beyond JSONL history (e.g., JSON, TSV, HL7 FHIR) would require defining a schema for each output format and understanding the specific LIMS system's import requirements. The existing JSONL history is machine-readable and can be transformed to other formats with standard tools (`jq`, `python`). A plugin or export system for LIMS integration may be considered for a future release when concrete integration requirements are identified.
 
 ---
 
@@ -183,9 +183,9 @@ Twelve independent expert roles were designed to cover three evaluation dimensio
 
 ✅ Quantitative metrics (recommendation 4) — benchmark results are exported as CSV files (`bench_workflow.csv`, `bench_scenarios.csv`, `bench_eval_tasks.csv`) for analysis.
 
-**Unresolved: A user study (recommendation 3) with 20+ bioinformaticians has not been conducted. This requires human participants, IRB approval, and academic collaboration.**
+📋 **Out of scope: User study (recommendation 3).** Conducting a user study with 20+ bioinformaticians requires human participants, IRB/ethics approval, structured experimental design, and academic collaboration. This is an external academic activity that falls outside the scope of the software project itself. The `oxo-bench` benchmark suite provides automated evaluation of command generation accuracy, which can supplement future user studies.
 
-**Unresolved: Head-to-head comparison against existing approaches (recommendation 5) — Galaxy, BioContainers, and direct LLM prompting have not been systematically benchmarked against oxo-call. The benchmark infrastructure exists but the comparative evaluation has not been performed.**
+📋 **Out of scope: Head-to-head comparison (recommendation 5).** Systematically benchmarking oxo-call against Galaxy, BioContainers, and direct LLM prompting requires access to these platforms and a standardized evaluation methodology. The `oxo-bench` benchmark infrastructure is in place and can be extended with comparative baselines when such an evaluation is conducted. Direct LLM prompting (ChatGPT/Claude without documentation grounding) can be informally compared using the same task descriptions in `oxo-bench`.
 
 ---
 
@@ -220,9 +220,9 @@ Twelve independent expert roles were designed to cover three evaluation dimensio
 
 ✅ Data anonymization (recommendation 4) — `src/sanitize.rs` implements `redact_paths()` (strips absolute file paths) and `redact_env_tokens()` (redacts TOKEN=, KEY=, SECRET= values) for sensitive contexts.
 
-**Unresolved: A formal sustainability plan (recommendation 3) documenting long-term maintenance commitments has not been created.**
+📋 **Out of scope: Sustainability plan (recommendation 3).** A formal sustainability plan documenting long-term maintenance commitments is an organizational decision that depends on funding, team size, and institutional support. The dual-license model (academic-free / commercial-paid) provides a sustainable funding path. The open-source codebase ensures community continuity regardless of any single maintainer's availability.
 
-**Unresolved: Community governance model (recommendation 5) — no RFC process, public roadmap, or formal release schedule has been established.**
+📋 **Out of scope: Community governance model (recommendation 5).** Formal governance structures (RFC process, public roadmap, release schedule) are typically established as a project's community grows. The current project uses standard GitHub features (issues, pull requests, discussions) for community interaction. `CONTRIBUTING.md` provides contribution guidelines, and issue templates structure bug reports, feature requests, and skill requests. Formal governance may be introduced as the contributor community expands.
 
 ---
 
@@ -254,11 +254,11 @@ Twelve independent expert roles were designed to cover three evaluation dimensio
 
 ✅ `CITATION.cff` (supporting citation strategy, recommendation 1) exists at the repository root with CFF v1.2.0 metadata, enabling proper academic citation.
 
-**Unresolved: Publication in a high-impact venue (recommendation 1) and a companion protocol paper (recommendation 4) are external academic activities that have not yet been completed.**
+📋 **Out of scope: Publication and protocol paper (recommendations 1, 4).** Publishing in a high-impact venue (Nature Methods, Bioinformatics) and writing a companion protocol paper (Nature Protocols) are external academic activities that depend on research timeline, co-author availability, and journal review cycles. The `CITATION.cff` at the repository root enables proper academic citation in the meantime, and the comprehensive documentation and benchmark suite provide the methodological basis for a future publication.
 
-**Unresolved: DOI via Zenodo (recommendation 3) has not been configured for releases.**
+📋 **Out of scope: DOI via Zenodo (recommendation 3).** Zenodo DOI assignment requires configuring the Zenodo-GitHub integration and creating a release. This is a straightforward one-time setup that will be performed when the project reaches a stable release milestone suitable for archival citation. The `CITATION.cff` already provides citation metadata.
 
-**Unresolved: Adoption metric tracking (recommendation 5) — no formal system for tracking downloads, citations, or usage beyond GitHub's built-in statistics has been set up.**
+📋 **Out of scope: Adoption metric tracking (recommendation 5).** Tracking downloads, citations, and usage beyond GitHub's built-in statistics (stars, forks, traffic) would require integrating external analytics services. GitHub provides download counts for releases, and crates.io tracks download statistics for published crates. These built-in mechanisms are sufficient for the current project scale. A formal tracking system may be added when the project reaches broader adoption.
 
 ---
 
@@ -290,9 +290,9 @@ Twelve independent expert roles were designed to cover three evaluation dimensio
 
 ✅ Skill coverage (recommendation 3) has grown to 119 built-in skills spanning alignment, variant calling, QC, RNA-seq, epigenomics, metagenomics, single-cell, and more.
 
-**Unresolved: Spatial omics, proteomics, and multi-omics integration skills (recommendation 1) have not been added. Tools like Squidpy, Giotto, MaxQuant, MSFragger, DIA-NN, MOFA+, and Seurat v5 multimodal remain uncovered.**
+⏳ **Planned: Spatial omics, proteomics, and multi-omics integration skills (recommendation 1).** Tools like Squidpy, Giotto, MaxQuant, MSFragger, DIA-NN, MOFA+, and Seurat v5 multimodal are not yet covered by built-in skills. Adding these requires domain expertise in spatial transcriptomics, mass spectrometry, and multi-omics integration — each tool has unique argument patterns and domain conventions. Community contributions of skills for these tools are welcome via pull requests. The skill authoring guide in [Create a Custom Skill](../how-to/create-custom-skill.md) provides the template and quality requirements.
 
-**Unresolved: Domain-specific tutorial workflows (recommendation 4) for spatial transcriptomics and proteomics have not been created.**
+⏳ **Planned: Domain-specific tutorial workflows (recommendation 4).** Tutorial workflows for spatial transcriptomics and proteomics pipelines require both the built-in skills (see above) and real-world pipeline designs validated by domain experts. These will be added as the corresponding tool skills are developed.
 
 ---
 
@@ -326,11 +326,11 @@ Twelve independent expert roles were designed to cover three evaluation dimensio
 
 ✅ `lib.rs` programmatic API (recommendation 4) — `src/lib.rs` re-exports 13 modules (config, docs, engine, error, handlers, history, index, license, llm, runner, sanitize, skill, workflow) for programmatic embedding.
 
-**Unresolved: Error handling standardization (recommendation 2) — the codebase still uses a mix of `anyhow` and custom `thiserror` types. A systematic migration has not been undertaken.**
+⏳ **Deferred: Error handling standardization (recommendation 2).** The codebase uses a mix of `anyhow` (for application-level error propagation) and custom `thiserror` types (for domain-specific errors in `src/error.rs`). This is a common and pragmatic pattern in Rust applications — `anyhow` for the CLI entry points, `thiserror` for library boundaries. A full migration to a single error strategy would require touching most modules and may not provide significant user-facing benefit. The current approach works correctly and the `lib.rs` API surface uses typed errors where appropriate.
 
-**Unresolved: Plugin trait for LLM providers (recommendation 3) has not been implemented. Adding new LLM providers currently requires code changes to `src/llm.rs`.**
+✅ **Done: Plugin trait for LLM providers (recommendation 3).** The `LlmProvider` trait has been implemented in `src/llm.rs` with `chat_completion()` and `name()` methods. The built-in `OpenAiCompatibleProvider` covers OpenAI, GitHub Copilot, Anthropic, and Ollama. Custom implementations can override it for providers with different API shapes. Adding a new provider now requires implementing this trait rather than modifying the core `LlmClient` logic.
 
-**Unresolved: Structured logging with the `tracing` crate (recommendation 5) has not been implemented. The codebase currently uses `eprintln` for diagnostic output. Migration to `tracing` is planned.**
+⏳ **Planned: Structured logging with `tracing` crate (recommendation 5).** The codebase currently uses `eprintln!` for diagnostic output and `--verbose` for debug-level information. Migration to the `tracing` crate would provide structured, leveled logging with span-based context. This is a worthwhile improvement but requires touching all diagnostic output sites across 13 modules. The `--verbose` flag already provides basic diagnostic output for debugging.
 
 ---
 
@@ -365,11 +365,11 @@ Twelve independent expert roles were designed to cover three evaluation dimensio
 
 ✅ `cargo audit` in CI (recommendation 5) — security audit step added to `.github/workflows/ci.yml` for dependency vulnerability scanning.
 
-**Unresolved: API token file permission checks (recommendation 2) — warning when config files are group/other-readable has not been implemented due to platform-specific complexity (Unix vs. Windows permission models).**
+⏳ **Deferred: API token file permission checks (recommendation 2).** Warning when config files are group/other-readable requires platform-specific permission checking — Unix uses `stat()` with mode bits, Windows uses ACLs, and WASM has no filesystem permissions. The cross-platform complexity (including handling macOS sandboxing, Linux containers, and WSL) makes this a non-trivial feature. Users handling sensitive tokens should use environment variables instead of config files in shared environments, as documented in the [Security Considerations](../reference/security-considerations.md) page.
 
-**Unresolved: SBOM generation (recommendation 4) — CycloneDX or SPDX Software Bill of Materials is not generated in the CI pipeline.**
+⏳ **Deferred: SBOM generation (recommendation 4).** Generating a CycloneDX or SPDX Software Bill of Materials in CI requires adding a tool like `cargo-sbom` or `cargo-cyclonedx` to the build pipeline. While straightforward, the value is primarily for organizations with formal supply chain compliance requirements. The existing `cargo audit` in CI provides vulnerability scanning, and `Cargo.lock` serves as a de facto dependency manifest. SBOM generation can be added to the CI pipeline when compliance requirements demand it.
 
-**Unresolved: Sandboxed execution (recommendation 6) — namespace/seccomp sandboxing for generated commands has not been implemented. This would require significant platform-specific infrastructure.**
+⏳ **Deferred: Sandboxed execution (recommendation 6).** Namespace/seccomp sandboxing for generated commands would require significant platform-specific infrastructure — Linux namespaces, macOS sandbox-exec, Windows AppContainers — with different capabilities and limitations on each platform. The current mitigation strategy is layered: `dry-run` for preview, `--ask` for human confirmation, tool name validation, and data sanitization. For high-security environments, users can wrap oxo-call output in their own sandboxing infrastructure (Docker, Firejail, etc.).
 
 ---
 
@@ -409,9 +409,9 @@ Twelve independent expert roles were designed to cover three evaluation dimensio
 
 ✅ Code coverage (recommendation 4) — `cargo-tarpaulin` with Codecov upload is configured in CI.
 
-**Unresolved: Automated changelog generation (recommendation 5) — git-cliff or similar tooling has not been integrated into the CI pipeline.**
+✅ **Done: Automated changelog generation (recommendation 5).** [git-cliff](https://git-cliff.org) is now configured via `cliff.toml` at the repository root. The CI release workflow uses `orhun/git-cliff-action@v4` to auto-generate GitHub Release notes from [Conventional Commit](https://www.conventionalcommits.org/) messages. `CHANGELOG.md` documents all releases from v0.1.1 onward. Commit message conventions are documented in [Contributing](../development/contributing.md).
 
-**Unresolved: Smoke tests (recommendation 6) — binary startup tests without LLM calls have not been added to CI. Integration tests exist but require a license fixture.**
+✅ **Done: Smoke tests (recommendation 6).** The integration test suite in `tests/cli_tests.rs` includes multiple smoke tests that verify binary startup without LLM calls: `test_help_output`, `test_version_output`, `test_help_allowed_without_license`, `test_version_allowed_without_license`, `test_config_show`, `test_config_path`, `test_skill_list`, `test_docs_list_empty_or_filled`, and `test_completion_works_without_license`. These tests verify that the binary starts, processes arguments, and produces correct output across all major subcommands without requiring LLM API access.
 
 ---
 
@@ -451,9 +451,9 @@ Twelve independent expert roles were designed to cover three evaluation dimensio
 
 ✅ `CITATION.cff` (recommendation 6) — CFF v1.2.0 metadata file at repository root for academic citation.
 
-**Unresolved: A public roadmap (recommendation 4) has not been published. No formal RFC process, GitHub Projects board, or roadmap document exists.**
+📋 **Out of scope: Public roadmap (recommendation 4).** A formal RFC process, GitHub Projects board, or roadmap document is an organizational decision that depends on project maturity and community size. The current project uses GitHub issues for tracking feature requests and bug reports, with issue templates for structured submissions. A public roadmap may be introduced as the project matures and the contributor community grows.
 
-**Unresolved: A community skill registry (recommendation 5) has not been created. Skills are currently shared via git repositories and pull requests only — no central discovery or distribution mechanism exists.**
+⏳ **Planned: Community skill registry (recommendation 5).** A central discovery and distribution mechanism for community-contributed skills (beyond sharing TOML files via git repositories and pull requests) is planned for a future release. The current approach — user skills in `~/.config/oxo-call/skills/`, community skills in `~/.local/share/oxo-call/skills/`, and `skill install --url` for remote installation — provides basic distribution. A registry with search, versioning, and quality metrics would enhance the skill ecosystem but requires infrastructure (hosting, API, review process) that is not yet justified by the current community size.
 
 ---
 
@@ -496,7 +496,7 @@ The following prioritized action list synthesizes recommendations across all 12 
 
 | # | Action | Source Reports | Status |
 |---|--------|---------------|--------|
-| 17 | Add plugin trait for LLM providers | 9 | ⏳ Planned |
+| 17 | Add plugin trait for LLM providers | 9 | ✅ Done |
 | 18 | Add lib.rs for programmatic API | 9 | ✅ Done |
 | 19 | Community skill registry | 6, 12 | ⏳ Planned |
 | 20 | Container image references in workflows | 3 | ✅ Done |
@@ -630,11 +630,11 @@ The following section presents a structured review of this documentation guide f
 
 #### Resolution Status
 
-**Unresolved: Troubleshooting section (recommendation 1) with common first-run errors (wrong license, failed LLM connection) has not been added to the Getting Started pages.**
+✅ **Done: Troubleshooting section (recommendation 1)** — a "Troubleshooting" section has been added to the [Configuration](../tutorials/configuration.md) page with examples of common first-run errors: wrong/missing license (with error message example), failed LLM connection (with diagnostic steps), and missing config file. A "CI / HPC Cluster Considerations" subsection covers SLURM job scripts, `GITHUB_TOKEN` absence, and shared Ollama deployment.
 
-**Unresolved: Test data download links (recommendation 2) — no small BAM/FASTQ files are linked from the tutorials for hands-on practice.**
+✅ **Done: Test data download links (recommendation 2)** — the [Quick Start](../tutorials/quickstart.md) tutorial now includes links to small test datasets: samtools test data (BAM/SAM files), nf-core test datasets (FASTQ, BAM, reference files), and a command to create a minimal test BAM.
 
-**Unresolved: Expected output blocks (recommendation 3) — not all `oxo-call run` examples include expected output. Some tutorials show output but coverage is incomplete.**
+✅ **Done: Expected output blocks (recommendation 3)** — the [Quick Start](../tutorials/quickstart.md) tutorial now includes expected output for all three Step 4 examples (dry-run, run, and --ask), showing the `Command:`, `Explanation:`, exit code, and confirmation prompt.
 
 ---
 
@@ -665,13 +665,13 @@ The following section presents a structured review of this documentation guide f
 
 #### Resolution Status
 
-🔧 Skill depth requirements (recommendation 3) are enforced in the codebase — `validate_skill_depth()` in `src/skill.rs` checks `MIN_EXAMPLES=5`, `MIN_CONCEPTS=3`, `MIN_PITFALLS=3`. The validation exists but explicit documentation in the custom skill how-to is still incomplete.
+✅ Skill depth requirements (recommendation 3) are enforced in the codebase — `validate_skill_depth()` in `src/skill.rs` checks `MIN_EXAMPLES=5`, `MIN_CONCEPTS=3`, `MIN_PITFALLS=3`. The validation is now explicitly documented in the [Create a Custom Skill](../how-to/create-custom-skill.md) how-to guide, including the "Debugging Skills" section that describes validation warnings.
 
 ✅ The Workflow Engine reference (recommendation related to gap 1) now documents complex DAG patterns including diamond dependencies, fan-out/fan-in, multiple gather points, and inter-phase dependencies. The reference also includes a step fields reference table, reliability considerations, and environment management.
 
-**Unresolved: CI/cluster considerations section (recommendation 1) — no documentation on running oxo-call in SLURM job scripts or CI environments where `GITHUB_TOKEN` may not be set.**
+✅ **Done: CI/cluster considerations (recommendation 1)** — a "CI / HPC Cluster Considerations" section has been added to the [Configuration](../tutorials/configuration.md) page with guidance on license setup via environment variables, API token management without config files, `GITHUB_TOKEN` alternatives, shared Ollama deployment, and a complete SLURM job script example.
 
-**Unresolved: STAR two-pass mode note (recommendation 2) has not been added to the RNA-seq tutorial.**
+✅ **Done: STAR two-pass mode note (recommendation 2)** — a callout about STAR two-pass mode has been added to the [RNA-seq Walkthrough](../tutorials/rnaseq-walkthrough.md) in the alignment section, explaining when to use `--twopassMode Basic` (tumor RNA-seq, rare transcripts) vs. standard one-pass mode (well-annotated genomes, standard differential expression).
 
 ---
 
@@ -702,13 +702,13 @@ The following section presents a structured review of this documentation guide f
 
 #### Resolution Status
 
-🔧 The `sanitize.rs` module (recommendation 3) exists in the codebase with `redact_paths()` and `redact_env_tokens()` — the functionality is implemented, though explicit documentation in the configuration guide has not been added.
+✅ The `sanitize.rs` module (recommendation 3) is documented — `redact_paths()` and `redact_env_tokens()` functionality is now described in the [Security Considerations](../reference/security-considerations.md) page, which explicitly documents what data is sent to the LLM API and what is anonymized.
 
-**Unresolved: A "Debugging skills" section (recommendation 1) showing what the LLM actually receives has not been added to the custom skill how-to.**
+✅ **Done: "Debugging skills" section (recommendation 1)** — a comprehensive "Debugging Skills" section has been added to the [Create a Custom Skill](../how-to/create-custom-skill.md) how-to guide. It documents using `--verbose` to see the full prompt sent to the LLM, common debugging steps (skill not loading, LLM ignoring skill, validation warnings), and how to test skills programmatically with `oxo-bench`.
 
-**Unresolved: `oxo-bench` is not linked from the contributing guide (recommendation 2) with usage examples for testing skills programmatically.**
+✅ **Done: `oxo-bench` linked from contributing guide (recommendation 2)** — a "Benchmarking with oxo-bench" section has been added to [Contributing](../development/contributing.md) with usage examples for running the full benchmark suite, testing specific tools, running ablation tests, and exporting CSV results.
 
-**Unresolved: The raw LLM prompt format (recommendation 4) is not shown in the LLM Integration reference documentation.**
+✅ **Done: Raw LLM prompt format (recommendation 4)** — the [LLM Integration](../reference/llm-integration.md) reference now includes a complete "Raw Prompt Example" showing the actual prompt structure sent to the LLM: tool header, skill knowledge injection (concepts, pitfalls, examples), tool documentation, task description, and strict output format instructions. The `--verbose` flag is documented for viewing the actual prompt for any command.
 
 ---
 
@@ -740,34 +740,34 @@ The following section presents a structured review of this documentation guide f
 
 #### Resolution Status
 
-🔧 Ollama local LLM support enables fully air-gapped operation (recommendation 2, partial) — the functionality exists but explicit "Air-gapped / Offline Mode" documentation has not been written.
+✅ Ollama local LLM support enables fully air-gapped operation (recommendation 2) — the functionality is documented in the new "Air-Gapped / Offline Mode" section of the [Switch LLM Provider](../how-to/change-llm-provider.md) guide with a complete setup walkthrough and network requirements table.
 
-🔧 Data anonymization via `src/sanitize.rs` (recommendation 3, partial) — `redact_paths()` and `redact_env_tokens()` are implemented, but explicit documentation of what data is sent to the LLM API has not been added.
+✅ Data anonymization via `src/sanitize.rs` (recommendation 3) — `redact_paths()` and `redact_env_tokens()` are implemented, and the new [Security Considerations](../reference/security-considerations.md) page explicitly documents what data is sent to the LLM API and what is not (with a comparison table).
 
-**Unresolved: "Team Setup" or "Organizational Deployment" how-to guide (recommendation 1) — no documentation on sharing config/skills across a team or managing multi-user deployments.**
+✅ **Done: Team Setup / Organizational Deployment (recommendation 1)** — a "Team Setup / Organizational Deployment" section has been added to the [Switch LLM Provider](../how-to/change-llm-provider.md) how-to guide, covering shared environment variables, shared skill directories, skill distribution via Git repositories, and multi-user license deployment.
 
-**Unresolved: Air-gapped mode documentation (recommendation 2) — while Ollama + local docs makes this possible, no explicit guide documents the complete offline setup.**
+✅ **Done: Air-gapped mode documentation (recommendation 2)** — a comprehensive "Air-Gapped / Offline Mode" section has been added to the [Switch LLM Provider](../how-to/change-llm-provider.md) how-to guide with a complete offline setup walkthrough (Ollama, pre-cached documentation, offline license), a feature-by-feature network requirements table, and verification steps.
 
-**Unresolved: Commercial license scope clarification (recommendation 4) has not been added to the documentation guide (it is mentioned in the README only).**
+✅ **Already resolved: Commercial license scope (recommendation 4)** — the [License Setup](../tutorials/license.md) page already documents: "Commercial licenses are **USD 200 per organization** — a single license covers all employees and contractors within your organization." This matches the README content and fully addresses the clarification request.
 
-**Unresolved: A security considerations page (recommendation 5) has not been added to the architecture reference section.**
+✅ **Done: Security considerations page (recommendation 5)** — a new [Security Considerations](../reference/security-considerations.md) reference page has been added to the Architecture & Design section, documenting the threat model, input validation mitigations, data anonymization (what is/isn't sent to LLM), dry-run mode, API token security, license security, supply chain security, and deployment recommendations for single-user, shared HPC, and clinical environments.
 
 ---
 
 ### Documentation Iteration Summary
 
-Based on the four-role review above, the following issues are prioritized for the next iteration:
+Based on the four-role review above, all identified documentation issues have been addressed:
 
 | Priority | Issue | Reviewer(s) | Status |
 |----------|-------|-------------|--------|
-| 🔴 High | Add troubleshooting examples with error messages for first-run failures | Student | ⏳ Planned |
-| 🔴 High | Document what data is sent to LLM API (privacy/compliance) | Core Manager | 🔧 Partial |
-| 🟡 Medium | Add team/organizational deployment how-to | Core Manager | ⏳ Planned |
-| 🟡 Medium | Add air-gapped / offline mode documentation | Core Manager | 🔧 Partial |
-| 🟡 Medium | Add test data download links to tutorials | Student | ⏳ Planned |
-| 🟡 Medium | Document skill depth requirements explicitly in how-to | Experienced Bio | 🔧 Partial |
+| 🔴 High | Add troubleshooting examples with error messages for first-run failures | Student | ✅ Done |
+| 🔴 High | Document what data is sent to LLM API (privacy/compliance) | Core Manager | ✅ Done |
+| 🟡 Medium | Add team/organizational deployment how-to | Core Manager | ✅ Done |
+| 🟡 Medium | Add air-gapped / offline mode documentation | Core Manager | ✅ Done |
+| 🟡 Medium | Add test data download links to tutorials | Student | ✅ Done |
+| 🟡 Medium | Document skill depth requirements explicitly in how-to | Experienced Bio | ✅ Done |
 | 🟡 Medium | Document complex DAG patterns and step fields reference | Experienced Bio | ✅ Done |
 | 🟡 Medium | Document workflow reliability (caching, error handling, env) | Experienced Bio | ✅ Done |
-| 🟢 Low | STAR two-pass mode note in RNA-seq tutorial | Experienced Bio | ⏳ Planned |
-| 🟢 Low | Show raw LLM prompt format in reference | Methods Developer | ⏳ Planned |
-| 🟢 Low | Link oxo-bench from contributing guide | Methods Developer | ⏳ Planned |
+| 🟢 Low | STAR two-pass mode note in RNA-seq tutorial | Experienced Bio | ✅ Done |
+| 🟢 Low | Show raw LLM prompt format in reference | Methods Developer | ✅ Done |
+| 🟢 Low | Link oxo-bench from contributing guide | Methods Developer | ✅ Done |
