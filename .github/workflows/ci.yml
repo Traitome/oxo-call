@@ -8,9 +8,17 @@ on:
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build and publish (e.g. v1.2.3). Leave empty for a plain CI run on the default branch.'
+        required: false
+        default: ''
 
 env:
   CARGO_TERM_COLOR: always
+  # Effective release tag: the git tag triggering this run (tag push) or the
+  # manually supplied tag (workflow_dispatch with inputs.tag set).
+  RELEASE_TAG: ${{ (github.event_name == 'workflow_dispatch' && inputs.tag != '') && inputs.tag || github.ref_name }}
 
 jobs:
   # ─── Sync Cargo.toml / Cargo.lock / CITATION.cff version with git tag ─────
@@ -174,7 +182,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.tag != '') && format('refs/tags/{0}', inputs.tag) || github.ref }}
 
       - name: Install Rust (stable)
         uses: dtolnay/rust-toolchain@stable
@@ -199,7 +207,7 @@ jobs:
         run: cross build --release --target ${{ matrix.target }}
 
       - name: Package binary
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
         shell: bash
         run: |
           set -euxo pipefail
@@ -207,11 +215,11 @@ jobs:
           TARGET_DIR="target/${{ matrix.target }}/release"
           mkdir -p dist
           tar -C "${TARGET_DIR}" -czvf \
-            "dist/${BIN_NAME}-${{ github.ref_name }}-${{ matrix.target }}.tar.gz" \
+            "dist/${BIN_NAME}-${RELEASE_TAG}-${{ matrix.target }}.tar.gz" \
             "${BIN_NAME}"
 
       - name: Upload artifact
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
         uses: actions/upload-artifact@v7
         with:
           name: oxo-call-${{ matrix.target }}
@@ -236,7 +244,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.tag != '') && format('refs/tags/{0}', inputs.tag) || github.ref }}
 
       - name: Install Rust (stable)
         uses: dtolnay/rust-toolchain@stable
@@ -256,7 +264,7 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Package binary
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
         shell: bash
         run: |
           set -euxo pipefail
@@ -264,11 +272,11 @@ jobs:
           TARGET_DIR="target/${{ matrix.target }}/release"
           mkdir -p dist
           tar -C "${TARGET_DIR}" -czvf \
-            "dist/${BIN_NAME}-${{ github.ref_name }}-${{ matrix.target }}.tar.gz" \
+            "dist/${BIN_NAME}-${RELEASE_TAG}-${{ matrix.target }}.tar.gz" \
             "${BIN_NAME}"
 
       - name: Upload artifact
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
         uses: actions/upload-artifact@v7
         with:
           name: oxo-call-${{ matrix.target }}
@@ -291,7 +299,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.tag != '') && format('refs/tags/{0}', inputs.tag) || github.ref }}
 
       - name: Install Rust (stable)
         uses: dtolnay/rust-toolchain@stable
@@ -311,17 +319,17 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Package binary
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
         shell: pwsh
         run: |
           $BIN_NAME = "oxo-call"
           $TARGET_DIR = "target/${{ matrix.target }}/release"
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           Compress-Archive -Path "${TARGET_DIR}/${BIN_NAME}.exe" `
-            -DestinationPath "dist/${BIN_NAME}-${{ github.ref_name }}-${{ matrix.target }}.zip"
+            -DestinationPath "dist/${BIN_NAME}-${env:RELEASE_TAG}-${{ matrix.target }}.zip"
 
       - name: Upload artifact
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
         uses: actions/upload-artifact@v7
         with:
           name: oxo-call-${{ matrix.target }}
@@ -336,7 +344,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.tag != '') && format('refs/tags/{0}', inputs.tag) || github.ref }}
 
       - name: Install Rust (stable) with wasm32-wasip1
         uses: dtolnay/rust-toolchain@stable
@@ -356,7 +364,7 @@ jobs:
         run: cargo build --release --target wasm32-wasip1
 
       - name: Package binary
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
         shell: bash
         run: |
           set -euxo pipefail
@@ -364,11 +372,11 @@ jobs:
           TARGET_DIR="target/wasm32-wasip1/release"
           mkdir -p dist
           tar -C "${TARGET_DIR}" -czvf \
-            "dist/${BIN_NAME}-${{ github.ref_name }}-wasm32-wasip1.tar.gz" \
+            "dist/${BIN_NAME}-${RELEASE_TAG}-wasm32-wasip1.tar.gz" \
             "${BIN_NAME}.wasm"
 
       - name: Upload artifact
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
         uses: actions/upload-artifact@v7
         with:
           name: oxo-call-wasm32-wasip1
@@ -381,13 +389,20 @@ jobs:
     name: GitHub Release
     needs: [sync-version, build-linux, build-macos, build-windows, build-wasm]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: >-
+      always() &&
+      (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')) &&
+      (needs.sync-version.result == 'success' || needs.sync-version.result == 'skipped') &&
+      needs.build-linux.result == 'success' &&
+      needs.build-macos.result == 'success' &&
+      needs.build-windows.result == 'success' &&
+      needs.build-wasm.result == 'success'
 
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0  # full history required for git-cliff
-          ref: ${{ github.ref }}
+          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.tag != '') && format('refs/tags/{0}', inputs.tag) || github.ref }}
 
       - name: Generate changelog for this release
         uses: orhun/git-cliff-action@v4
@@ -420,6 +435,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
           body_path: RELEASE_NOTES.md
           files: |
             artifacts/**/*.tar.gz
