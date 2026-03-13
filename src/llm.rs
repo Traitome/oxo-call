@@ -20,6 +20,19 @@ pub struct LlmVerificationResult {
     pub response_preview: String,
 }
 
+/// Result of an LLM-based analysis of a completed command run.
+#[derive(Debug, Clone)]
+pub struct LlmRunVerification {
+    /// Whether the run looks successful.
+    pub success: bool,
+    /// One-sentence summary of the result.
+    pub summary: String,
+    /// Detected issues (empty when success is clean).
+    pub issues: Vec<String>,
+    /// Actionable suggestions for the user.
+    pub suggestions: Vec<String>,
+}
+
 // ─── Provider trait ──────────────────────────────────────────────────────────
 
 /// Trait that all LLM provider backends must implement.
@@ -144,6 +157,159 @@ fn build_prompt(tool: &str, documentation: &str, task: &str, skill: Option<&Skil
     prompt
 }
 
+// ─── Task optimization prompt ─────────────────────────────────────────────────
+
+/// Build a prompt that asks the LLM to expand and clarify a raw task description
+/// into a precise, unambiguous bioinformatics instruction.
+fn build_task_optimization_prompt(tool: &str, raw_task: &str) -> String {
+    format!(
+        "# Task Optimization Request\n\n\
+         Tool: `{tool}`\n\
+         User's original task description: {raw_task}\n\n\
+         Your job is to rewrite the task description as a precise, complete bioinformatics \
+         instruction. The rewritten task should:\n\
+         - Clarify any ambiguous terms (e.g., 'sort bam' → 'sort BAM by coordinate using \
+           samtools sort and output to sorted.bam')\n\
+         - Infer reasonable defaults (paired-end, hg38, 8 threads, gzipped output, etc.) \
+           when not specified\n\
+         - Preserve all file names and paths mentioned in the original task\n\
+         - Be written in the SAME LANGUAGE as the original task\n\n\
+         ## Output Format (STRICT)\n\
+         Respond with EXACTLY one line:\n\
+         TASK: <the optimized task description>\n\
+         - Do NOT add any other text, markdown, or explanation\n"
+    )
+}
+
+// ─── Run verification prompt ──────────────────────────────────────────────────
+
+/// System prompt for the result verification role.
+fn verification_system_prompt() -> &'static str {
+    "You are an expert bioinformatics QC analyst. Your task is to analyze the output \
+     of a bioinformatics command execution and determine whether it completed \
+     successfully. You understand common error patterns, expected output structures, \
+     and tool-specific behaviors. Respond in the same language as the task description."
+}
+
+/// Build the user prompt for run result verification.
+fn build_verification_prompt(
+    tool: &str,
+    task: &str,
+    command: &str,
+    exit_code: i32,
+    stderr: &str,
+    output_files: &[(String, Option<u64>)],
+) -> String {
+    let mut prompt = format!(
+        "## Command Execution Analysis\n\n\
+         **Tool:** `{tool}`\n\
+         **Task:** {task}\n\
+         **Command:** `{command}`\n\
+         **Exit Code:** {exit_code}\n\n"
+    );
+
+    if !stderr.is_empty() {
+        // Limit stderr to the last 3000 characters to stay within context limits.
+        let stderr_snippet = if stderr.len() > 3000 {
+            format!("...(truncated)...\n{}", &stderr[stderr.len() - 3000..])
+        } else {
+            stderr.to_string()
+        };
+        prompt.push_str("## Standard Error / Tool Output\n");
+        prompt.push_str("```\n");
+        prompt.push_str(&stderr_snippet);
+        prompt.push_str("\n```\n\n");
+    }
+
+    if !output_files.is_empty() {
+        prompt.push_str("## Output Files\n");
+        for (path, size) in output_files {
+            match size {
+                Some(bytes) => {
+                    prompt.push_str(&format!("- `{path}` — {bytes} bytes\n"));
+                }
+                None => {
+                    prompt.push_str(&format!("- `{path}` — **NOT FOUND** (missing output)\n"));
+                }
+            }
+        }
+        prompt.push('\n');
+    }
+
+    prompt.push_str(
+        "## Analysis Instructions\n\
+         Analyze whether this command ran successfully. Consider:\n\
+         1. Exit code (0 = success for most tools; some tools use non-zero for warnings)\n\
+         2. Error keywords in stderr (e.g., ERROR, FATAL, Exception, Traceback, \
+            Segmentation fault, Killed, Out of memory)\n\
+         3. Missing expected output files or zero-byte outputs\n\
+         4. Tool-specific patterns (e.g., samtools warnings about truncated BAM, \
+            STAR alignment rate < 50%%, GATK MalformedRead)\n\n\
+         ## Output Format (STRICT)\n\
+         STATUS: success|warning|failure\n\
+         SUMMARY: <one concise sentence summarising the result — same language as task>\n\
+         ISSUES:\n\
+         - <issue 1, or write 'none' when no issues>\n\
+         SUGGESTIONS:\n\
+         - <suggestion 1, or write 'none' when no suggestions>\n\
+         Do NOT add any other text or markdown outside this format.\n",
+    );
+
+    prompt
+}
+
+/// Parse the structured verification response from the LLM.
+fn parse_verification_response(raw: &str) -> LlmRunVerification {
+    let mut status = "success";
+    let mut summary = String::new();
+    let mut issues: Vec<String> = Vec::new();
+    let mut suggestions: Vec<String> = Vec::new();
+
+    #[derive(PartialEq)]
+    enum Section {
+        None,
+        Issues,
+        Suggestions,
+    }
+    let mut section = Section::None;
+
+    for line in raw.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("STATUS:") {
+            status = match rest.trim() {
+                s if s.contains("fail") => "failure",
+                s if s.contains("warn") => "warning",
+                _ => "success",
+            };
+        } else if let Some(rest) = trimmed.strip_prefix("SUMMARY:") {
+            summary = rest.trim().to_string();
+            section = Section::None;
+        } else if trimmed.starts_with("ISSUES:") {
+            section = Section::Issues;
+        } else if trimmed.starts_with("SUGGESTIONS:") {
+            section = Section::Suggestions;
+        } else if trimmed.starts_with('-') {
+            let item = trimmed.trim_start_matches('-').trim().to_string();
+            if item.is_empty() || item.eq_ignore_ascii_case("none") {
+                continue;
+            }
+            match section {
+                Section::Issues => issues.push(item),
+                Section::Suggestions => suggestions.push(item),
+                Section::None => {}
+            }
+        }
+    }
+
+    let success = status != "failure";
+    LlmRunVerification {
+        success,
+        summary,
+        issues,
+        suggestions,
+    }
+}
+
 /// Build a corrective retry prompt when the first attempt had an invalid response.
 fn build_retry_prompt(
     tool: &str,
@@ -250,13 +416,97 @@ impl LlmClient {
         }
     }
 
+    /// Use the LLM to optimize/expand a raw task description into a precise instruction.
+    ///
+    /// Returns the refined task text on success, or falls back to the original task
+    /// if the LLM response is not parseable.  Errors from the API are propagated.
+    pub async fn optimize_task(&self, tool: &str, raw_task: &str) -> Result<String> {
+        #[cfg(target_arch = "wasm32")]
+        return Err(OxoError::LlmError(
+            "LLM API calls are not supported in WebAssembly".to_string(),
+        ));
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let prompt = build_task_optimization_prompt(tool, raw_task);
+            let raw = self.request_text(&prompt, Some(256), Some(0.2)).await?;
+
+            // Extract the TASK: line.
+            for line in raw.lines() {
+                if let Some(rest) = line.strip_prefix("TASK:") {
+                    let refined = rest.trim().to_string();
+                    if !refined.is_empty() {
+                        return Ok(refined);
+                    }
+                }
+            }
+            // Fall back to original task if parsing fails.
+            Ok(raw_task.to_string())
+        }
+    }
+
+    /// Ask the LLM to verify the result of a completed command execution.
+    ///
+    /// `output_files` is a list of `(path, Option<file_size_bytes>)` pairs — a
+    /// `None` size means the file was not found on disk.
+    pub async fn verify_run_result(
+        &self,
+        tool: &str,
+        task: &str,
+        command: &str,
+        exit_code: i32,
+        stderr: &str,
+        output_files: &[(String, Option<u64>)],
+    ) -> Result<LlmRunVerification> {
+        #[cfg(target_arch = "wasm32")]
+        return Err(OxoError::LlmError(
+            "LLM API calls are not supported in WebAssembly".to_string(),
+        ));
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let user_prompt =
+                build_verification_prompt(tool, task, command, exit_code, stderr, output_files);
+
+            let raw = self
+                .request_with_system(
+                    verification_system_prompt(),
+                    &user_prompt,
+                    Some(512),
+                    Some(0.2),
+                )
+                .await?;
+
+            Ok(parse_verification_response(&raw))
+        }
+    }
+
     /// Make the raw API call and return the assistant message content.
     async fn call_api(&self, user_prompt: &str) -> Result<String> {
-        self.request_text(user_prompt, None, None).await
+        self.request_with_system(system_prompt(), user_prompt, None, None)
+            .await
     }
 
     async fn request_text(
         &self,
+        user_prompt: &str,
+        max_tokens_override: Option<u32>,
+        temperature_override: Option<f32>,
+    ) -> Result<String> {
+        self.request_with_system(
+            system_prompt(),
+            user_prompt,
+            max_tokens_override,
+            temperature_override,
+        )
+        .await
+    }
+
+    /// Core HTTP call.  Accepts an explicit system prompt so callers can use a
+    /// role-specific prompt (e.g., the verification analyst persona).
+    async fn request_with_system(
+        &self,
+        sys_prompt: &str,
         user_prompt: &str,
         max_tokens_override: Option<u32>,
         temperature_override: Option<f32>,
@@ -309,7 +559,7 @@ impl LlmClient {
             let messages = vec![
                 ChatMessage {
                     role: "system".to_string(),
-                    content: system_prompt().to_string(),
+                    content: sys_prompt.to_string(),
                 },
                 ChatMessage {
                     role: "user".to_string(),
@@ -437,4 +687,93 @@ fn parse_shell_args(input: &str) -> Vec<String> {
     }
 
     args
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_verification_response_success() {
+        let raw = "STATUS: success\nSUMMARY: Command completed successfully.\nISSUES:\n- none\nSUGGESTIONS:\n- none";
+        let v = parse_verification_response(raw);
+        assert!(v.success);
+        assert_eq!(v.summary, "Command completed successfully.");
+        assert!(v.issues.is_empty());
+        assert!(v.suggestions.is_empty());
+    }
+
+    #[test]
+    fn test_parse_verification_response_failure() {
+        let raw = "STATUS: failure\nSUMMARY: Command failed with non-zero exit code.\nISSUES:\n- Output BAM file is missing\n- Stderr contains 'out of memory'\nSUGGESTIONS:\n- Increase memory limit\n- Check input file integrity";
+        let v = parse_verification_response(raw);
+        assert!(!v.success);
+        assert_eq!(v.summary, "Command failed with non-zero exit code.");
+        assert_eq!(v.issues.len(), 2);
+        assert!(v.issues[0].contains("BAM"));
+        assert_eq!(v.suggestions.len(), 2);
+    }
+
+    #[test]
+    fn test_parse_verification_response_warning() {
+        let raw = "STATUS: warning\nSUMMARY: Completed with warnings.\nISSUES:\n- Low alignment rate (45%)\nSUGGESTIONS:\n- Check reference genome";
+        let v = parse_verification_response(raw);
+        // warning is still considered success=true (not failure)
+        assert!(v.success);
+        assert!(!v.issues.is_empty());
+    }
+
+    #[test]
+    fn test_parse_verification_response_empty() {
+        let v = parse_verification_response("");
+        assert!(v.success); // defaults to success when no STATUS line
+        assert!(v.summary.is_empty());
+    }
+
+    #[test]
+    fn test_build_verification_prompt_contains_key_info() {
+        let prompt = build_verification_prompt(
+            "samtools",
+            "sort bam",
+            "samtools sort -o out.bam in.bam",
+            0,
+            "",
+            &[("out.bam".to_string(), Some(1024))],
+        );
+        assert!(prompt.contains("samtools"));
+        assert!(prompt.contains("sort bam"));
+        assert!(prompt.contains('0'), "should contain exit code 0");
+        assert!(prompt.contains("out.bam"));
+        assert!(prompt.contains("1024 bytes"));
+    }
+
+    #[test]
+    fn test_build_verification_prompt_missing_file() {
+        let prompt = build_verification_prompt(
+            "bwa",
+            "align",
+            "bwa mem ref.fa reads.fq > out.sam",
+            1,
+            "Error: reference not found",
+            &[("out.sam".to_string(), None)],
+        );
+        assert!(prompt.contains("NOT FOUND"));
+        assert!(prompt.contains('1'), "should contain exit code 1");
+        assert!(prompt.contains("Error: reference not found"));
+    }
+
+    #[test]
+    fn test_build_verification_prompt_truncates_long_stderr() {
+        let long_stderr = "x".repeat(4000);
+        let prompt = build_verification_prompt("tool", "task", "tool args", 0, &long_stderr, &[]);
+        assert!(prompt.contains("truncated"));
+    }
+
+    #[test]
+    fn test_build_task_optimization_prompt_contains_tool_and_task() {
+        let prompt = build_task_optimization_prompt("samtools", "sort bam");
+        assert!(prompt.contains("samtools"));
+        assert!(prompt.contains("sort bam"));
+        assert!(prompt.contains("TASK:"));
+    }
 }

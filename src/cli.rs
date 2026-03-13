@@ -65,7 +65,9 @@ EXAMPLES:\n  \
   oxo-call run bwa 'align reads.fq to ref.fa with 8 threads'\n  \
   oxo-call run --ask samtools 'filter only mapped reads from input.bam'\n  \
   oxo-call run --model gpt-4 samtools 'index sorted.bam'\n  \
-  oxo-call run --json samtools 'flagstat input.bam'"
+  oxo-call run --json samtools 'flagstat input.bam'\n  \
+  oxo-call run --verify samtools 'sort input.bam by coordinate'\n  \
+  oxo-call run --optimize-task samtools 'sort bam'"
     )]
     Run {
         /// The tool to run (must be in PATH)
@@ -84,6 +86,14 @@ EXAMPLES:\n  \
         /// Output result as JSON (useful for scripting and CI integration)
         #[arg(long)]
         json: bool,
+        /// After execution, ask the LLM to verify results: checks output files,
+        /// stderr patterns, and exit code, then reports issues and suggestions
+        #[arg(long)]
+        verify: bool,
+        /// Before generating the command, use the LLM to optimize and expand
+        /// the task description for better accuracy
+        #[arg(long)]
+        optimize_task: bool,
     },
 
     /// Preview the command that would be executed (no actual execution)
@@ -98,7 +108,8 @@ EXAMPLES:\n  \
   oxo-call dry-run samtools 'sort input.bam by coordinate'\n  \
   oxo-call dry-run bwa 'align reads.fq to reference.fa with 8 threads'\n  \
   oxo-call dry-run --model gpt-4 gatk 'call variants on sample.bam'\n  \
-  oxo-call dry-run --json samtools 'flagstat input.bam'"
+  oxo-call dry-run --json samtools 'flagstat input.bam'\n  \
+  oxo-call dry-run --optimize-task samtools 'sort bam'"
     )]
     DryRun {
         /// The tool to preview
@@ -114,6 +125,10 @@ EXAMPLES:\n  \
         /// Output result as JSON (useful for scripting and CI integration)
         #[arg(long)]
         json: bool,
+        /// Before generating the command, use the LLM to optimize and expand
+        /// the task description for better accuracy
+        #[arg(long)]
+        optimize_task: bool,
     },
 
     /// Manage tool documentation (add, remove, update, list, show)
@@ -366,6 +381,10 @@ pub enum WorkflowCommands {
     RunWorkflow {
         /// Path to an .oxo.toml workflow file (or a built-in template name)
         file: String,
+        /// After all steps complete, ask the LLM to verify outputs: checks
+        /// expected output files and provides feedback and suggestions
+        #[arg(long)]
+        verify: bool,
     },
 
     /// Preview a workflow without executing any steps (dry-run)

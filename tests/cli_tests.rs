@@ -1890,6 +1890,14 @@ fn test_run_help_mentions_new_flags() {
         stdout.contains("EXAMPLES"),
         "Expected 'EXAMPLES' in run help"
     );
+    assert!(
+        stdout.contains("--verify"),
+        "Expected '--verify' in run help"
+    );
+    assert!(
+        stdout.contains("--optimize-task"),
+        "Expected '--optimize-task' in run help"
+    );
 }
 
 #[test]
@@ -1915,5 +1923,70 @@ fn test_dry_run_help_mentions_new_flags() {
     assert!(
         stdout.contains("EXAMPLES"),
         "Expected 'EXAMPLES' in dry-run help"
+    );
+    assert!(
+        stdout.contains("--optimize-task"),
+        "Expected '--optimize-task' in dry-run help"
+    );
+}
+
+#[test]
+fn test_workflow_run_help_mentions_verify_flag() {
+    let output = oxo_call()
+        .args(["workflow", "run", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("--verify"),
+        "Expected '--verify' in workflow run help"
+    );
+}
+
+#[test]
+fn test_run_verify_flag_is_parsed() {
+    // Verifies that --verify is accepted by the CLI parser (no "unknown flag" error).
+    // The flag requires an LLM token to do anything, so we just check that the
+    // binary does not reject the flag with a usage error.
+    let output = oxo_call()
+        .args(["run", "--verify", "date", "current time"])
+        .output()
+        .expect("failed to run oxo-call");
+    // The command will fail due to missing license/token, but NOT due to unknown flag.
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        !stderr.contains("unexpected argument '--verify'"),
+        "CLI should accept --verify flag"
+    );
+    assert!(
+        !stderr.contains("error: Found argument '--verify'"),
+        "CLI should accept --verify flag"
+    );
+}
+
+#[test]
+fn test_run_optimize_task_flag_is_parsed() {
+    let output = oxo_call()
+        .args(["run", "--optimize-task", "date", "current time"])
+        .output()
+        .expect("failed to run oxo-call");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        !stderr.contains("unexpected argument '--optimize-task'"),
+        "CLI should accept --optimize-task flag"
+    );
+}
+
+#[test]
+fn test_dry_run_optimize_task_flag_is_parsed() {
+    let output = oxo_call()
+        .args(["dry-run", "--optimize-task", "date", "current time"])
+        .output()
+        .expect("failed to run oxo-call");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        !stderr.contains("unexpected argument '--optimize-task'"),
+        "CLI should accept --optimize-task flag in dry-run"
     );
 }
