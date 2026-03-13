@@ -272,9 +272,11 @@ impl DocsFetcher {
     fn run_shell_builtin_help(&self, tool: &str) -> Result<String> {
         #[cfg(not(target_arch = "wasm32"))]
         {
+            // Use $1 with -- to safely pass the tool name without shell interpolation.
+            // validate_tool_name() already restricts to [a-zA-Z0-9._-], but defence
+            // in depth avoids any future risk if that validation changes.
             let output = Command::new("bash")
-                .arg("-c")
-                .arg(format!("help {tool}"))
+                .args(["-c", "help -- \"$1\"", "--", tool])
                 .output()
                 .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
 
