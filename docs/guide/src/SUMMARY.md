@@ -5,9 +5,23 @@
 # Getting Started
 
 - [Installation](./tutorials/installation.md)
-- [Quick Start](./tutorials/quickstart.md)
-- [Configuration](./tutorials/configuration.md)
 - [License Setup](./tutorials/license.md)
+- [Configuration](./tutorials/configuration.md)
+- [Quick Start](./tutorials/quickstart.md)
+
+# Tutorials
+
+- [Your First Command](./tutorials/first-command.md)
+- [SAM/BAM Processing](./tutorials/bam-workflow.md)
+- [RNA-seq Walkthrough](./tutorials/rnaseq-walkthrough.md)
+- [Workflow Builder](./tutorials/workflow-builder.md)
+
+# How-to Guides
+
+- [Add Documentation for a Tool](./how-to/add-tool-docs.md)
+- [Switch LLM Provider](./how-to/change-llm-provider.md)
+- [Create a Custom Skill](./how-to/create-custom-skill.md)
+- [Build a Production Pipeline](./how-to/build-pipeline.md)
 
 # Command Reference
 
