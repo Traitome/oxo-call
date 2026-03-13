@@ -385,6 +385,63 @@
       .nav-links { display: none; }
     }
 
+    /* ── Community banner ────────────────────────────────────────────────── */
+    .community-banner {
+      background: linear-gradient(135deg, rgba(88,166,255,0.08), rgba(63,185,80,0.06));
+      border: 1px solid rgba(88,166,255,0.25);
+      border-radius: 12px;
+      padding: 2.5rem 2rem;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 2rem;
+      align-items: center;
+    }
+    .community-banner h2 {
+      font-size: clamp(1.2rem, 2.5vw, 1.6rem);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .community-banner p {
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      max-width: 560px;
+      margin-bottom: 1.25rem;
+    }
+    .community-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+    .community-links {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+      min-width: 240px;
+    }
+    .community-link {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 0.9rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      transition: border-color 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .community-link:hover { border-color: var(--accent); color: var(--accent); }
+    .community-link .emoji { font-size: 1rem; }
+    @media (max-width: 800px) {
+      .community-banner { grid-template-columns: 1fr; }
+      .community-links { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 500px) {
+      .community-links { grid-template-columns: 1fr; }
+    }
+
     /* ── Wasm note ──────────────────────────────────────────────────────── */
     .wasm-badge {
       display: inline-flex;
@@ -666,6 +723,7 @@
     <li><a href="#workflow">Workflows</a></li>
     <li><a href="#tools">Skills</a></li>
     <li><a href="#benchmarks">Benchmarks</a></li>
+    <li><a href="#community">Community</a></li>
     <li><a href="#install">Install</a></li>
     <li><a href="documentation/index.html">Docs</a></li>
     <li><a href="https://github.com/Traitome/oxo-call" target="_blank" rel="noopener">GitHub</a></li>
@@ -1226,6 +1284,47 @@ oxo-call dry-run samtools <span class="s">"sort input.bam by coordinate"</span><
       <code>oxo-bench eval-models --list</code> to explore the full suite.
       Source: <code>docs/bench_eval_tasks.csv</code>
     </p>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Community & Feedback ────────────────────────────────────────────── -->
+<section id="community">
+  <div class="section-label">// community &amp; feedback</div>
+  <div class="community-banner">
+    <div>
+      <h2>oxo-call is built by users, for users 🚀</h2>
+      <p>
+        This is an <strong>actively developed, feedback-driven project</strong>.
+        Your bug reports, feature requests, and real-world use cases directly shape
+        what gets built next. Whether you're a student running your first RNA-seq
+        pipeline or a bioinformatics core facility supporting dozens of assays —
+        your experience matters. Try it, break it, and tell us what happened!
+      </p>
+      <div class="community-actions">
+        <a href="https://github.com/Traitome/oxo-call/issues" class="btn btn-secondary btn-sm" target="_blank" rel="noopener">
+          Browse Issues
+        </a>
+        <a href="documentation/development/contributing.html" class="btn btn-secondary btn-sm">
+          Contributing Guide
+        </a>
+      </div>
+    </div>
+    <div class="community-links">
+      <a class="community-link" href="https://github.com/Traitome/oxo-call/issues/new?template=bug_report.md" target="_blank" rel="noopener">
+        <span class="emoji">🐛</span> Report a bug
+      </a>
+      <a class="community-link" href="https://github.com/Traitome/oxo-call/issues/new?template=feature_request.md" target="_blank" rel="noopener">
+        <span class="emoji">💡</span> Request a feature
+      </a>
+      <a class="community-link" href="https://github.com/Traitome/oxo-call/issues/new?template=skill_request.md" target="_blank" rel="noopener">
+        <span class="emoji">🎯</span> Request a skill
+      </a>
+      <a class="community-link" href="https://github.com/Traitome/oxo-call" target="_blank" rel="noopener">
+        <span class="emoji">⭐</span> Star on GitHub
+      </a>
+    </div>
   </div>
 </section>
 

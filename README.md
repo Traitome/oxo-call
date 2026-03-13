@@ -91,6 +91,21 @@ The full documentation is a hands-on tutorial book covering everything from firs
 
 ---
 
+## Community & Feedback
+
+oxo-call is a **user-driven project** — your real-world usage and feedback directly shape what gets built next.
+
+We are actively looking for early adopters and testers across all stages of bioinformatics work. The more you use it and report back, the better it gets for everyone.
+
+- 🐛 **Found a bug?** [Open a bug report](https://github.com/Traitome/oxo-call/issues/new?template=bug_report.md)
+- 💡 **Have a feature idea?** [Request a feature](https://github.com/Traitome/oxo-call/issues/new?template=feature_request.md)
+- 🎯 **Missing a skill for your tool?** [Request a skill](https://github.com/Traitome/oxo-call/issues/new?template=skill_request.md)
+- 📣 **Share how you use it** — real-world use cases help prioritize development
+
+> We especially welcome feedback from students, researchers, and core facility staff who run oxo-call on real data. Every issue filed and every comment left makes the tool better!
+
+---
+
 ## License
 
 **Dual License — Academic Free / Commercial Per-Organization**
