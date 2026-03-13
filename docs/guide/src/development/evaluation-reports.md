@@ -409,7 +409,7 @@ Twelve independent expert roles were designed to cover three evaluation dimensio
 
 ✅ Code coverage (recommendation 4) — `cargo-tarpaulin` with Codecov upload is configured in CI.
 
-⏳ **Deferred: Automated changelog generation (recommendation 5).** Tools like git-cliff or conventional-changelog can generate changelogs from commit messages. This requires adopting a commit message convention (e.g., Conventional Commits) and adding the tool to the CI pipeline. The current project uses descriptive commit messages and GitHub Release notes. Automated changelog generation can be added when the release cadence increases and manual release notes become burdensome.
+✅ **Done: Automated changelog generation (recommendation 5).** [git-cliff](https://git-cliff.org) is now configured via `cliff.toml` at the repository root. The CI release workflow uses `orhun/git-cliff-action@v4` to auto-generate GitHub Release notes from [Conventional Commit](https://www.conventionalcommits.org/) messages. `CHANGELOG.md` documents all releases from v0.1.1 onward. Commit message conventions are documented in [Contributing](../development/contributing.md).
 
 ✅ **Done: Smoke tests (recommendation 6).** The integration test suite in `tests/cli_tests.rs` includes multiple smoke tests that verify binary startup without LLM calls: `test_help_output`, `test_version_output`, `test_help_allowed_without_license`, `test_version_allowed_without_license`, `test_config_show`, `test_config_path`, `test_skill_list`, `test_docs_list_empty_or_filled`, and `test_completion_works_without_license`. These tests verify that the binary starts, processes arguments, and produces correct output across all major subcommands without requiring LLM API access.
 
