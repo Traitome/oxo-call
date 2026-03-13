@@ -53,7 +53,9 @@ explanation = "explanation of the flags"
 - At least 3 pitfalls
 - At least 5 examples
 
----
+> **Important:** All `task`, `args`, and `explanation` fields in `[[examples]]` blocks **must** use the `= "..."` assignment syntax. Missing `=` causes a silent TOML parse failure — the skill will silently return `None` at runtime with only a warning to stderr.
+
+
 
 ## Step 1: Generate a Template
 

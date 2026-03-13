@@ -23,7 +23,9 @@ Academic licenses are free for researchers, students, and academic institutions:
 
 ### Commercial License
 
-Contact `license@traitome.com` for commercial licensing options.
+Commercial licenses are **USD 200 per organization** — a single license covers all employees and contractors within your organization.
+
+Contact `w_shixiang@163.com` to obtain a commercial license.
 
 ## Installing Your License
 
