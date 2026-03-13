@@ -33,6 +33,7 @@
 - [skill](./commands/skill.md)
 - [workflow](./commands/workflow.md)
 - [license](./commands/license.md)
+- [completion](./commands/completion.md)
 
 # Architecture & Design
 

@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -43,6 +43,10 @@ pub struct Cli {
     #[arg(long, global = true, value_name = "PATH")]
     pub license: Option<PathBuf>,
 
+    /// Enable verbose output (show docs source, skill info, LLM details)
+    #[arg(short, long, global = true)]
+    pub verbose: bool,
+
     #[command(subcommand)]
     pub command: Commands,
 }
@@ -50,7 +54,19 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Execute a bioinformatics tool with LLM-generated parameters
-    #[command(visible_alias = "r")]
+    #[command(
+        visible_alias = "r",
+        long_about = "\
+Execute a bioinformatics tool with LLM-generated parameters.\n\n\
+The tool must be installed and available in your PATH. Documentation is \
+automatically fetched and cached on first use.\n\n\
+EXAMPLES:\n  \
+  oxo-call run samtools 'sort input.bam by coordinate and output to sorted.bam'\n  \
+  oxo-call run bwa 'align reads.fq to ref.fa with 8 threads'\n  \
+  oxo-call run --ask samtools 'filter only mapped reads from input.bam'\n  \
+  oxo-call run --model gpt-4 samtools 'index sorted.bam'\n  \
+  oxo-call run --json samtools 'flagstat input.bam'"
+    )]
     Run {
         /// The tool to run (must be in PATH)
         tool: String,
@@ -59,15 +75,45 @@ pub enum Commands {
         /// Ask for confirmation before executing the generated command
         #[arg(short, long)]
         ask: bool,
+        /// Override the LLM model for this invocation (e.g. gpt-4, claude-3-5-sonnet-20241022)
+        #[arg(short, long, value_name = "MODEL")]
+        model: Option<String>,
+        /// Skip cached documentation and fetch fresh --help output
+        #[arg(long)]
+        no_cache: bool,
+        /// Output result as JSON (useful for scripting and CI integration)
+        #[arg(long)]
+        json: bool,
     },
 
     /// Preview the command that would be executed (no actual execution)
-    #[command(name = "dry-run", visible_alias = "d")]
+    #[command(
+        name = "dry-run",
+        visible_alias = "d",
+        long_about = "\
+Preview the command that would be generated without executing it.\n\n\
+This is useful for reviewing and testing LLM-generated commands before running \
+them, or for building shell scripts from natural-language descriptions.\n\n\
+EXAMPLES:\n  \
+  oxo-call dry-run samtools 'sort input.bam by coordinate'\n  \
+  oxo-call dry-run bwa 'align reads.fq to reference.fa with 8 threads'\n  \
+  oxo-call dry-run --model gpt-4 gatk 'call variants on sample.bam'\n  \
+  oxo-call dry-run --json samtools 'flagstat input.bam'"
+    )]
     DryRun {
         /// The tool to preview
         tool: String,
         /// Natural-language description of the task (any language supported)
         task: String,
+        /// Override the LLM model for this invocation (e.g. gpt-4, claude-3-5-sonnet-20241022)
+        #[arg(short, long, value_name = "MODEL")]
+        model: Option<String>,
+        /// Skip cached documentation and fetch fresh --help output
+        #[arg(long)]
+        no_cache: bool,
+        /// Output result as JSON (useful for scripting and CI integration)
+        #[arg(long)]
+        json: bool,
     },
 
     /// Manage tool documentation (add, remove, update, list, show)
@@ -117,6 +163,19 @@ pub enum Commands {
     Workflow {
         #[command(subcommand)]
         command: WorkflowCommands,
+    },
+
+    /// Generate shell completion scripts
+    #[command(long_about = "\
+Generate shell completion scripts for oxo-call.\n\n\
+EXAMPLES:\n  \
+  oxo-call completion bash > ~/.local/share/bash-completion/completions/oxo-call\n  \
+  oxo-call completion zsh > ~/.zfunc/_oxo-call\n  \
+  oxo-call completion fish > ~/.config/fish/completions/oxo-call.fish\n  \
+  oxo-call completion powershell > oxo-call.ps1")]
+    Completion {
+        /// Shell to generate completions for
+        shell: ShellType,
     },
 }
 
@@ -279,6 +338,21 @@ pub enum SkillCommands {
     Path,
 }
 
+/// Supported shell types for completion generation
+#[derive(Clone, Debug, ValueEnum)]
+pub enum ShellType {
+    /// Bash shell
+    Bash,
+    /// Zsh shell
+    Zsh,
+    /// Fish shell
+    Fish,
+    /// PowerShell
+    Powershell,
+    /// Elvish shell
+    Elvish,
+}
+
 #[derive(Subcommand, Debug)]
 pub enum LicenseCommands {
     /// Verify the license file and display its details
@@ -404,6 +478,91 @@ mod tests {
         match cli.command {
             Commands::Run { ask, .. } => assert!(ask),
             _ => panic!("expected run command"),
+        }
+    }
+
+    #[test]
+    fn test_run_supports_model_override() {
+        let cli = Cli::parse_from([
+            "oxo-call", "run", "--model", "gpt-4", "samtools", "sort bam",
+        ]);
+
+        match cli.command {
+            Commands::Run { model, tool, .. } => {
+                assert_eq!(model.as_deref(), Some("gpt-4"));
+                assert_eq!(tool, "samtools");
+            }
+            _ => panic!("expected run command"),
+        }
+    }
+
+    #[test]
+    fn test_run_supports_no_cache_flag() {
+        let cli = Cli::parse_from(["oxo-call", "run", "--no-cache", "samtools", "sort bam"]);
+
+        match cli.command {
+            Commands::Run { no_cache, .. } => assert!(no_cache),
+            _ => panic!("expected run command"),
+        }
+    }
+
+    #[test]
+    fn test_run_supports_json_flag() {
+        let cli = Cli::parse_from(["oxo-call", "run", "--json", "samtools", "sort bam"]);
+
+        match cli.command {
+            Commands::Run { json, .. } => assert!(json),
+            _ => panic!("expected run command"),
+        }
+    }
+
+    #[test]
+    fn test_dry_run_supports_model_override() {
+        let cli = Cli::parse_from([
+            "oxo-call",
+            "dry-run",
+            "--model",
+            "claude-3-5-sonnet-20241022",
+            "bwa",
+            "align reads",
+        ]);
+
+        match cli.command {
+            Commands::DryRun { model, tool, .. } => {
+                assert_eq!(model.as_deref(), Some("claude-3-5-sonnet-20241022"));
+                assert_eq!(tool, "bwa");
+            }
+            _ => panic!("expected dry-run command"),
+        }
+    }
+
+    #[test]
+    fn test_dry_run_supports_json_flag() {
+        let cli = Cli::parse_from(["oxo-call", "dry-run", "--json", "samtools", "sort bam"]);
+
+        match cli.command {
+            Commands::DryRun { json, .. } => assert!(json),
+            _ => panic!("expected dry-run command"),
+        }
+    }
+
+    #[test]
+    fn test_verbose_flag_is_global() {
+        let cli = Cli::parse_from(["oxo-call", "--verbose", "run", "date", "current time"]);
+        assert!(cli.verbose);
+
+        let cli = Cli::parse_from(["oxo-call", "run", "--verbose", "date", "current time"]);
+        assert!(cli.verbose);
+    }
+
+    #[test]
+    fn test_completion_command_accepts_shell_types() {
+        let cli = Cli::parse_from(["oxo-call", "completion", "bash"]);
+        match cli.command {
+            Commands::Completion { shell } => {
+                assert!(matches!(shell, ShellType::Bash));
+            }
+            _ => panic!("expected completion command"),
         }
     }
 }

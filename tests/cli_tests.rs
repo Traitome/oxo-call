@@ -1781,3 +1781,139 @@ fn test_workflow_help_shows_new_commands() {
         "Expected 'vis' in workflow help, got: {stdout}"
     );
 }
+
+// ─── Shell completion tests ──────────────────────────────────────────────────
+
+#[test]
+fn test_completion_bash() {
+    let output = oxo_call()
+        .args(["completion", "bash"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("_oxo-call"),
+        "Expected bash completion function name in output"
+    );
+    assert!(
+        stdout.contains("COMPREPLY"),
+        "Expected COMPREPLY in bash completion output"
+    );
+}
+
+#[test]
+fn test_completion_zsh() {
+    let output = oxo_call()
+        .args(["completion", "zsh"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("#compdef oxo-call"),
+        "Expected zsh compdef header"
+    );
+}
+
+#[test]
+fn test_completion_fish() {
+    let output = oxo_call()
+        .args(["completion", "fish"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("oxo_call") || stdout.contains("oxo-call"),
+        "Expected oxo-call references in fish completion"
+    );
+}
+
+#[test]
+fn test_completion_works_without_license() {
+    let output = oxo_call_no_license()
+        .args(["completion", "bash"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        output.status.success(),
+        "completion should work without a license"
+    );
+}
+
+// ─── New flag tests ──────────────────────────────────────────────────────────
+
+#[test]
+fn test_help_mentions_completion_command() {
+    let output = oxo_call()
+        .arg("--help")
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("completion"),
+        "Expected 'completion' in top-level help"
+    );
+}
+
+#[test]
+fn test_help_mentions_verbose_flag() {
+    let output = oxo_call()
+        .arg("--help")
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("--verbose"),
+        "Expected '--verbose' in top-level help"
+    );
+}
+
+#[test]
+fn test_run_help_mentions_new_flags() {
+    let output = oxo_call()
+        .args(["run", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("--model"), "Expected '--model' in run help");
+    assert!(
+        stdout.contains("--no-cache"),
+        "Expected '--no-cache' in run help"
+    );
+    assert!(stdout.contains("--json"), "Expected '--json' in run help");
+    assert!(
+        stdout.contains("EXAMPLES"),
+        "Expected 'EXAMPLES' in run help"
+    );
+}
+
+#[test]
+fn test_dry_run_help_mentions_new_flags() {
+    let output = oxo_call()
+        .args(["dry-run", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("--model"),
+        "Expected '--model' in dry-run help"
+    );
+    assert!(
+        stdout.contains("--no-cache"),
+        "Expected '--no-cache' in dry-run help"
+    );
+    assert!(
+        stdout.contains("--json"),
+        "Expected '--json' in dry-run help"
+    );
+    assert!(
+        stdout.contains("EXAMPLES"),
+        "Expected 'EXAMPLES' in dry-run help"
+    );
+}
