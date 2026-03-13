@@ -316,17 +316,24 @@ impl SkillManager {
 
     /// Load the best available skill for a tool.
     /// Priority: user-defined > community-installed > built-in.
+    ///
+    /// Tool name matching is **case-insensitive**: "featureCounts", "FeatureCounts",
+    /// and "featurecounts" all resolve to the same skill.  The canonical form used
+    /// for file lookups and built-in registry matching is lowercase.
     pub fn load(&self, tool: &str) -> Option<Skill> {
-        self.load_user(tool)
-            .or_else(|| self.load_community(tool))
-            .or_else(|| self.load_builtin(tool))
+        let tool_lc = tool.to_ascii_lowercase();
+        self.load_user(&tool_lc)
+            .or_else(|| self.load_community(&tool_lc))
+            .or_else(|| self.load_builtin(&tool_lc))
     }
 
     /// Load a skill from the built-in registry (compiled into the binary).
+    /// Matching is case-insensitive: "SAMTOOLS" and "SamTools" both load "samtools".
     pub fn load_builtin(&self, tool: &str) -> Option<Skill> {
+        let tool_lc = tool.to_ascii_lowercase();
         BUILTIN_SKILLS
             .iter()
-            .find(|(name, _)| *name == tool)
+            .find(|(name, _)| *name == tool_lc.as_str())
             .and_then(|(_, content)| {
                 toml::from_str(content)
                     .map_err(|e| eprintln!("warning: could not parse built-in skill '{tool}': {e}"))
@@ -643,5 +650,53 @@ mod tests {
         };
         let issues = validate_skill_depth(&skill);
         assert_eq!(issues.len(), 3);
+    }
+
+    #[test]
+    fn test_load_builtin_case_insensitive() {
+        use crate::config::Config;
+        let config = Config::default();
+        let mgr = SkillManager::new(config);
+
+        // Exact lowercase — should always work
+        assert!(
+            mgr.load_builtin("samtools").is_some(),
+            "samtools (lowercase) should load"
+        );
+        // UPPERCASE — must also resolve via case-insensitive matching
+        assert!(
+            mgr.load_builtin("SAMTOOLS").is_some(),
+            "SAMTOOLS (uppercase) should load via case-insensitive matching"
+        );
+        // Mixed case (featureCounts is the real-world trigger of this bug)
+        assert!(
+            mgr.load_builtin("featureCounts").is_some(),
+            "featureCounts (mixed case) should load via case-insensitive matching"
+        );
+        assert!(
+            mgr.load_builtin("GATK").is_some(),
+            "GATK (uppercase) should load via case-insensitive matching"
+        );
+    }
+
+    #[test]
+    fn test_skill_manager_load_case_insensitive() {
+        use crate::config::Config;
+        let config = Config::default();
+        let mgr = SkillManager::new(config);
+
+        let lower = mgr.load("samtools");
+        let upper = mgr.load("SAMTOOLS");
+        let mixed = mgr.load("SamTools");
+
+        // All three should resolve to the same skill
+        assert!(lower.is_some(), "samtools lowercase should load");
+        assert!(upper.is_some(), "SAMTOOLS uppercase should load");
+        assert!(mixed.is_some(), "SamTools mixed-case should load");
+        let name_lower = lower.unwrap().meta.name;
+        let name_upper = upper.unwrap().meta.name;
+        let name_mixed = mixed.unwrap().meta.name;
+        assert_eq!(name_lower, name_upper, "lowercase and uppercase should resolve to the same skill");
+        assert_eq!(name_lower, name_mixed, "lowercase and mixed-case should resolve to the same skill");
     }
 }
