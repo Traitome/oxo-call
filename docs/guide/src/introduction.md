@@ -100,3 +100,20 @@ oxo-call history list
 ```
 
 Ready to begin? → [Installation](./tutorials/installation.md)
+
+---
+
+## Join the Community
+
+oxo-call is a **user-driven, feedback-driven project**. Every bug report, feature request, and real-world use case you share directly influences what gets built next.
+
+We actively welcome early adopters and testers — from students running their first RNA-seq pipeline to seasoned bioinformaticians automating complex workflows.
+
+| How to contribute | Link |
+|-------------------|------|
+| 🐛 Report a bug | [Bug report](https://github.com/Traitome/oxo-call/issues/new?template=bug_report.md) |
+| 💡 Request a feature | [Feature request](https://github.com/Traitome/oxo-call/issues/new?template=feature_request.md) |
+| 🎯 Request a skill for a new tool | [Skill request](https://github.com/Traitome/oxo-call/issues/new?template=skill_request.md) |
+| 🤝 Contribute code or skills | [Contributing guide](./development/contributing.md) |
+
+> **Try it, break it, and tell us what happened.** Even a one-line comment on what went wrong — or right — helps us improve the tool for the whole community.
