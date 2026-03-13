@@ -4,7 +4,7 @@ category = "single-cell"
 description = "10x Genomics Cell Ranger pipeline for single-cell RNA-seq, ATAC-seq, and multiome data processing"
 tags = ["single-cell", "scrna-seq", "10x-genomics", "cellranger", "gene-expression", "atac-seq"]
 author = "oxo-call built-in"
-source_url = "https://www.10xgenomics.com/support/software/cell-ranger"
+source_url = "https://github.com/10XGenomics/cellranger"
 
 [context]
 concepts = [

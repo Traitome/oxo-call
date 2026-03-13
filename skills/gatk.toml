@@ -13,8 +13,10 @@ concepts = [
     "The reference FASTA must be indexed with 'samtools faidx ref.fa' and have a sequence dictionary 'gatk CreateSequenceDictionary -R ref.fa'.",
     "HaplotypeCaller: germline variant calling; Mutect2: somatic variant calling; GenotypeGVCFs: joint genotyping.",
     "The GVCF workflow for cohort studies: HaplotypeCaller -ERC GVCF → GenomicsDBImport → GenotypeGVCFs.",
+    "BQSR (Base Quality Score Recalibration) is a two-step process: (1) BaseRecalibrator generates a recalibration table, (2) ApplyBQSR applies it to the BAM.",
     "VQSR (VariantQualityScoreRecalibration) is preferred over hard filtering for large cohorts (>30 samples).",
     "For small cohorts, use hard filtering: SNPs: QD<2, FS>60, MQ<40; Indels: QD<2, FS>200.",
+    "SelectVariants extracts a subset of variants from a VCF by type (SNP/INDEL), sample, region, or filter status.",
 ]
 
 pitfalls = [
@@ -24,6 +26,8 @@ pitfalls = [
     "The --tmp-dir argument should point to a large temporary directory — GATK creates huge temp files.",
     "GATK4 uses Java 17+ by default; the gatk wrapper script handles this but the JAR must be executable.",
     "For WGS, always provide --intervals chr1 chr2 ... to parallelize; omitting it runs on the entire genome sequentially.",
+    "BaseRecalibrator requires at least one --known-sites VCF (e.g., dbSNP, Mills indels) — omitting it causes an error.",
+    "ApplyBQSR must receive the recalibration table from BaseRecalibrator via --bqsr-recal-file; do not skip this flag.",
 ]
 
 [[examples]]
@@ -60,3 +64,23 @@ explanation = "creates reference.dict in the same directory; required by Haploty
 task = "add read group to a BAM file (required before GATK variant calling)"
 args = "AddOrReplaceReadGroups -I input.bam -O output_rg.bam -RGID sample1 -RGLB lib1 -RGPL ILLUMINA -RGPU unit1 -RGSM sample1"
 explanation = "all four -RG fields are required; RGSM is the sample name used in the VCF"
+
+[[examples]]
+task = "perform base quality score recalibration (BQSR step 1) on markdup BAM with hg38 reference and dbSNP known sites"
+args = "BaseRecalibrator -R hg38.fa -I markdup.bam --known-sites dbsnp.vcf -O recal.table"
+explanation = "step 1 of BQSR: generates a recalibration table; --known-sites can be repeated for multiple VCFs (e.g., dbSNP + Mills indels)"
+
+[[examples]]
+task = "apply base quality score recalibration (BQSR step 2) to produce recalibrated BAM"
+args = "ApplyBQSR -R hg38.fa -I markdup.bam --bqsr-recal-file recal.table -O recal.bam"
+explanation = "step 2 of BQSR: applies the recalibration table from BaseRecalibrator to produce a recalibrated BAM ready for variant calling"
+
+[[examples]]
+task = "select only SNPs from a variants VCF"
+args = "SelectVariants -V variants.vcf -O SNPs.vcf --select-type-to-include SNP"
+explanation = "extracts SNP-type variants only; use INDEL for indels; can be combined with -L for region filtering"
+
+[[examples]]
+task = "joint genotype multiple samples from GenomicsDB"
+args = "GenotypeGVCFs -R reference.fa -V gendb://genomicsdb -O cohort.vcf.gz"
+explanation = "final joint genotyping step for cohort GVCF workflow; input is a GenomicsDB workspace created by GenomicsDBImport"
