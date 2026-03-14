@@ -41,7 +41,10 @@
 use crate::config::McpServerConfig;
 use crate::error::{OxoError, Result};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+#[cfg(not(target_arch = "wasm32"))]
+use serde_json::json;
+use serde_json::Value;
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 
 /// Default HTTP timeout for MCP requests.
@@ -192,6 +195,14 @@ impl McpClient {
         Ok((name, version))
     }
 
+    /// Wasm32-compatible stub: MCP HTTP transport is not available in WebAssembly.
+    #[cfg(target_arch = "wasm32")]
+    pub async fn initialize(&self) -> Result<(String, String)> {
+        Err(OxoError::IndexError(
+            "MCP is not supported in WebAssembly".to_string(),
+        ))
+    }
+
     /// Call `resources/list` to discover skill resources on this server.
     ///
     /// Returns a list of `(uri, tool_name, description)` triples.  Only
@@ -227,6 +238,14 @@ impl McpClient {
             }
         }
         Ok(entries)
+    }
+
+    /// Wasm32-compatible stub: MCP HTTP transport is not available in WebAssembly.
+    #[cfg(target_arch = "wasm32")]
+    pub async fn list_skill_resources(&self) -> Result<Vec<McpSkillEntry>> {
+        Err(OxoError::IndexError(
+            "MCP is not supported in WebAssembly".to_string(),
+        ))
     }
 
     /// Call `resources/read` to fetch the Markdown content for a skill URI.
