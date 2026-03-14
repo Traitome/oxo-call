@@ -41,9 +41,9 @@
 use crate::config::McpServerConfig;
 use crate::error::{OxoError, Result};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 #[cfg(not(target_arch = "wasm32"))]
 use serde_json::json;
-use serde_json::Value;
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 
