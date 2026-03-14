@@ -734,14 +734,15 @@ mod tests {
 
         match cli.command {
             Commands::Server {
-                command: ServerCommands::Add {
-                    name,
-                    host,
-                    user,
-                    server_type,
-                    scheduler,
-                    ..
-                },
+                command:
+                    ServerCommands::Add {
+                        name,
+                        host,
+                        user,
+                        server_type,
+                        scheduler,
+                        ..
+                    },
             } => {
                 assert_eq!(name, "mycluster");
                 assert_eq!(host, "login.hpc.edu");
@@ -755,9 +756,7 @@ mod tests {
 
     #[test]
     fn test_server_add_default_type() {
-        let cli = Cli::parse_from([
-            "oxo-call", "server", "add", "mybox", "--host", "10.0.0.5",
-        ]);
+        let cli = Cli::parse_from(["oxo-call", "server", "add", "mybox", "--host", "10.0.0.5"]);
 
         match cli.command {
             Commands::Server {

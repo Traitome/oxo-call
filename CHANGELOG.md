@@ -13,6 +13,17 @@ From v0.4.0 onward, entries are generated automatically by
 
 ## [Unreleased]
 
+### Features
+
+- **HPC cluster management skills:** 6 new built-in skills for cluster job schedulers — `slurm`, `pbs` (PBS Pro/Torque), `sge` (Sun Grid Engine), `lsf` (IBM Spectrum LSF), `htcondor`, and `kubectl` (Kubernetes). Each skill includes common submission templates, resource query commands, array job patterns, and bioinformatics-specific examples for quick job script generation without memorizing scheduler syntax.
+- **`server` subcommand:** New top-level command for managing SSH-connected remote servers. Register workstations and HPC cluster login nodes, check connectivity, and generate commands for remote execution:
+  - `server add` — register a server with SSH credentials, server type (workstation/hpc), and optional scheduler
+  - `server remove` / `server list` / `server status` — manage and monitor registered servers
+  - `server ssh-config` — discover and import hosts from `~/.ssh/config`
+  - `server run` / `server dry-run` — generate LLM-powered commands targeting a remote server
+  - **HPC login node safety:** Automatically detects compute-intensive commands and warns against direct execution on login nodes, suggesting scheduler submission (sbatch, qsub, etc.) instead
+  - **Scheduler auto-detection:** For HPC servers, attempts to detect the installed scheduler (Slurm, PBS, SGE, LSF, HTCondor) automatically
+
 ## [0.3.0] — 2026-03-13
 
 ### Features
