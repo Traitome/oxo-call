@@ -16,12 +16,66 @@ const ENV_LLM_MAX_TOKENS: &str = "OXO_CALL_LLM_MAX_TOKENS";
 const ENV_LLM_TEMPERATURE: &str = "OXO_CALL_LLM_TEMPERATURE";
 const ENV_DOCS_AUTO_UPDATE: &str = "OXO_CALL_DOCS_AUTO_UPDATE";
 
+// ─── MCP configuration ────────────────────────────────────────────────────────
+
+/// Configuration for a single MCP skill provider server.
+///
+/// Register MCP servers in `~/.config/oxo-call/config.toml`:
+///
+/// ```toml
+/// [[mcp.servers]]
+/// url  = "http://localhost:3000"
+/// name = "local-skills"
+///
+/// [[mcp.servers]]
+/// url     = "https://skills.example.org"
+/// name    = "org-skills"
+/// api_key = "secret-token"
+/// ```
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct McpServerConfig {
+    /// Base URL of the MCP server (e.g. `http://localhost:3000`).
+    pub url: String,
+    /// Human-readable label shown in `skill list` and `skill mcp list`.
+    /// Defaults to the URL's hostname when not set.
+    #[serde(default)]
+    pub name: String,
+    /// Optional Bearer token sent as `Authorization: Bearer <api_key>`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api_key: Option<String>,
+}
+
+impl McpServerConfig {
+    /// Returns the display name, falling back to the URL if name is empty.
+    pub fn name(&self) -> &str {
+        if self.name.is_empty() {
+            &self.url
+        } else {
+            &self.name
+        }
+    }
+}
+
+/// Aggregated MCP configuration (list of skill provider servers).
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct McpConfig {
+    /// Registered MCP skill servers, queried in order after community skills
+    /// and before built-in skills.
+    #[serde(default)]
+    pub servers: Vec<McpServerConfig>,
+}
+
+// ─── Main config ──────────────────────────────────────────────────────────────
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub llm: LlmConfig,
     pub docs: DocsConfig,
     #[serde(default)]
     pub license: LicenseConfig,
+    /// MCP skill provider configuration.
+    #[serde(default)]
+    pub mcp: McpConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -77,6 +131,7 @@ impl Default for Config {
                 auto_update: true,
             },
             license: LicenseConfig::default(),
+            mcp: McpConfig::default(),
         }
     }
 }

@@ -321,7 +321,7 @@ pub enum HistoryCommands {
 
 #[derive(Subcommand, Debug)]
 pub enum SkillCommands {
-    /// List all available skills (built-in, community, and user-defined)
+    /// List all available skills (built-in, community, MCP, and user-defined)
     List,
     /// Show the content of a skill
     Show {
@@ -352,6 +352,37 @@ pub enum SkillCommands {
     },
     /// Show the path to the user skills directory
     Path,
+    /// Manage MCP skill provider servers
+    #[command(visible_alias = "mcp")]
+    McpServer {
+        #[command(subcommand)]
+        command: SkillMcpCommands,
+    },
+}
+
+/// Subcommands for `skill mcp`
+#[derive(Subcommand, Debug)]
+pub enum SkillMcpCommands {
+    /// Register an MCP skill provider server
+    Add {
+        /// MCP server base URL (e.g. http://localhost:3000)
+        url: String,
+        /// Human-readable label for this server (defaults to the URL)
+        #[arg(long)]
+        name: Option<String>,
+        /// Bearer token for authenticated servers
+        #[arg(long)]
+        api_key: Option<String>,
+    },
+    /// Unregister an MCP skill provider server by URL or name
+    Remove {
+        /// URL or name of the server to remove
+        url_or_name: String,
+    },
+    /// List all registered MCP skill provider servers
+    List,
+    /// Test connectivity to all registered MCP servers
+    Ping,
 }
 
 /// Supported shell types for completion generation

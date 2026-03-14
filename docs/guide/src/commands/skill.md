@@ -11,25 +11,37 @@ oxo-call skill install  <TOOL> [--url <URL>]
 oxo-call skill remove   <TOOL>
 oxo-call skill create   <TOOL> [-o <FILE>]
 oxo-call skill path
+oxo-call skill mcp add    <URL> [--name <NAME>] [--api-key <KEY>]
+oxo-call skill mcp remove <URL-OR-NAME>
+oxo-call skill mcp list
+oxo-call skill mcp ping
 ```
 
 ## Description
 
 Skills are Markdown files with YAML front-matter that inject **domain-expert knowledge** into the LLM prompt for a specific tool. They contain key concepts, common pitfalls, and worked command examples. When oxo-call finds a matching skill, it includes this knowledge in the prompt, dramatically improving accuracy.
 
+Skills can come from four sources (highest priority first):
+1. **User-defined** files in `~/.config/oxo-call/skills/`
+2. **Community-installed** files in `~/.local/share/oxo-call/skills/`
+3. **MCP servers** — remote skill providers using the Model Context Protocol
+4. **Built-in** — compiled into the binary (134+ tools)
+
 ## Subcommands
 
 ### `skill list`
 
-List all available skills (built-in, community, user-defined):
+List all available skills (built-in, community, MCP, and user-defined):
 
 ```bash
 oxo-call skill list
 ```
 
+MCP-sourced skills are shown with a yellow `mcp:<server-name>` label.
+
 ### `skill show`
 
-Display the full skill content for a tool:
+Display the full skill content for a tool (queries MCP servers if needed):
 
 ```bash
 oxo-call skill show samtools
@@ -71,11 +83,47 @@ Show the user skills directory path:
 oxo-call skill path
 ```
 
+### `skill mcp add`
+
+Register an MCP skill provider server:
+
+```bash
+oxo-call skill mcp add http://localhost:3000
+oxo-call skill mcp add http://localhost:3000 --name local-skills
+oxo-call skill mcp add https://skills.example.org --name org-skills --api-key token
+```
+
+### `skill mcp remove`
+
+Unregister an MCP server by URL or name:
+
+```bash
+oxo-call skill mcp remove local-skills
+oxo-call skill mcp remove http://localhost:3000
+```
+
+### `skill mcp list`
+
+List all registered MCP skill servers:
+
+```bash
+oxo-call skill mcp list
+```
+
+### `skill mcp ping`
+
+Test connectivity to all registered servers and report their skill count:
+
+```bash
+oxo-call skill mcp ping
+```
+
 ## Skill Load Priority
 
 1. **User-defined**: `~/.config/oxo-call/skills/<tool>.md` (`.toml` also accepted)
 2. **Community-installed**: `~/.local/share/oxo-call/skills/<tool>.md` (`.toml` also accepted)
-3. **Built-in**: Compiled into the binary
+3. **MCP servers**: Configured via `skill mcp add` — see [MCP Skill Provider](../reference/mcp-skill-provider.md)
+4. **Built-in**: Compiled into the binary
 
 ## Skill File Format
 
@@ -110,5 +158,5 @@ source_url: https://tool-docs.example.com   # optional
 
 ## Built-in Skill Coverage
 
-oxo-call ships with 150+ built-in skills covering all major omics domains. See [Skill System Reference](../reference/skill-system.md) for the full list.
+oxo-call ships with 134+ built-in skills covering all major omics domains. See [Skill System Reference](../reference/skill-system.md) for the full list.
 

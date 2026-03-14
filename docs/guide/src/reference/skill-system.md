@@ -68,7 +68,8 @@ Skills are loaded with the following precedence (highest wins):
 
 1. **User-defined**: `~/.config/oxo-call/skills/<tool>.md`
 2. **Community-installed**: `~/.local/share/oxo-call/skills/<tool>.md`
-3. **Built-in**: Compiled into the binary via `include_str!`
+3. **MCP servers**: Configured in `config.toml` under `[[mcp.servers]]` — see [MCP Skill Provider](./mcp-skill-provider.md)
+4. **Built-in**: Compiled into the binary via `include_str!`
 
 Both `.md` and `.toml` extensions are checked for user and community skills.
 

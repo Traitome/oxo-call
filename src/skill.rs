@@ -9,6 +9,8 @@
 /// 2. **Community extensibility** — anyone can write and share skill files without
 ///    touching Rust code.
 /// 3. **User customisation** — per-user overrides take priority over built-ins.
+/// 4. **MCP integration** — remote MCP servers can act as skill providers, enabling
+///    organisational or project-scoped skill libraries.
 ///
 /// # Skill file format (`<tool>.md`)
 ///
@@ -41,7 +43,8 @@
 /// # Load priority (highest first)
 /// 1. User-defined   `~/.config/oxo-call/skills/<tool>.md`  (`.toml` also accepted)
 /// 2. Community      `~/.local/share/oxo-call/skills/<tool>.md`  (`.toml` also accepted)
-/// 3. Built-in       compiled into the binary via `include_str!`
+/// 3. MCP servers    configured in `~/.config/oxo-call/config.toml` under `[mcp]`
+/// 4. Built-in       compiled into the binary via `include_str!`
 use crate::config::Config;
 use crate::error::{OxoError, Result};
 use serde::{Deserialize, Serialize};
@@ -556,8 +559,11 @@ impl SkillManager {
 
     // ── Loading ──────────────────────────────────────────────────────────────
 
-    /// Load the best available skill for a tool.
+    /// Load the best available skill for a tool (synchronous).
     /// Priority: user-defined > community-installed > built-in.
+    ///
+    /// **Does not query MCP servers** — use [`load_async`][Self::load_async]
+    /// when running inside an async context (e.g. inside `Runner::prepare`).
     ///
     /// Tool name matching is **case-insensitive**: "featureCounts", "FeatureCounts",
     /// and "featurecounts" all resolve to the same skill.  The canonical form used
@@ -567,6 +573,32 @@ impl SkillManager {
         self.load_user(&tool_lc)
             .or_else(|| self.load_community(&tool_lc))
             .or_else(|| self.load_builtin(&tool_lc))
+    }
+
+    /// Load the best available skill for a tool, including MCP server sources.
+    ///
+    /// Priority: user-defined > community-installed > MCP servers > built-in.
+    ///
+    /// MCP servers are queried in the order they appear in `config.toml`.  The
+    /// first server that returns a parseable skill wins.  Network errors are
+    /// silently ignored (a warning is printed with `--verbose`).
+    #[cfg(not(target_arch = "wasm32"))]
+    pub async fn load_async(&self, tool: &str) -> Option<Skill> {
+        let tool_lc = tool.to_ascii_lowercase();
+        // 1. User-defined (highest priority)
+        if let Some(skill) = self.load_user(&tool_lc) {
+            return Some(skill);
+        }
+        // 2. Community-installed
+        if let Some(skill) = self.load_community(&tool_lc) {
+            return Some(skill);
+        }
+        // 3. MCP servers
+        if let Some(skill) = self.load_mcp(&tool_lc).await {
+            return Some(skill);
+        }
+        // 4. Built-in (lowest priority)
+        self.load_builtin(&tool_lc)
     }
 
     /// Load a skill from the built-in registry (compiled into the binary).
@@ -630,9 +662,32 @@ impl SkillManager {
         }
     }
 
+    /// Try each configured MCP server in order; return the first parseable skill found.
+    #[cfg(not(target_arch = "wasm32"))]
+    async fn load_mcp(&self, tool: &str) -> Option<Skill> {
+        use crate::mcp::McpClient;
+
+        for server in &self.config.mcp.servers {
+            let client = McpClient::new(server.clone());
+            if let Some(content) = client.fetch_skill(tool).await {
+                if let Some(skill) = parse_skill_md(&content) {
+                    return Some(skill);
+                }
+                // Fallback: try legacy TOML format
+                if let Ok(skill) = toml::from_str::<Skill>(&content) {
+                    return Some(skill);
+                }
+            }
+        }
+        None
+    }
+
     // ── Discovery ────────────────────────────────────────────────────────────
 
     /// Return all known skills with their source label (built-in / community / user).
+    ///
+    /// Does **not** include MCP skills. Use [`list_all_async`][Self::list_all_async]
+    /// to also include skills from configured MCP servers.
     pub fn list_all(&self) -> Vec<(String, String)> {
         let mut skills: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();
@@ -662,6 +717,42 @@ impl SkillManager {
                     && let Some(stem) = path.file_stem()
                 {
                     skills.insert(stem.to_string_lossy().into_owned(), "user".to_string());
+                }
+            }
+        }
+
+        let mut result: Vec<(String, String)> = skills.into_iter().collect();
+        result.sort_by(|a, b| a.0.cmp(&b.0));
+        result
+    }
+
+    /// Return all known skills including those from configured MCP servers.
+    ///
+    /// Priority labels: `user` > `community` > `mcp:<server-name>` > `built-in`.
+    /// MCP servers are queried concurrently; errors are silently ignored.
+    ///
+    /// Returns `Vec<(tool_name, source_label)>` sorted alphabetically.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub async fn list_all_async(&self) -> Vec<(String, String)> {
+        use crate::mcp::McpClient;
+
+        // Start from the synchronous list (user/community/built-in)
+        let mut skills: std::collections::HashMap<String, String> =
+            self.list_all().into_iter().collect();
+
+        // Query MCP servers — each skill only fills in the gap (does not
+        // override user/community skills that are already present).
+        for server in &self.config.mcp.servers {
+            let client = McpClient::new(server.clone());
+            if let Ok(entries) = client.list_skill_resources().await {
+                let label = format!("mcp:{}", server.name());
+                for entry in entries {
+                    // Only add if not already known from higher-priority sources.
+                    // Use or_insert_with to avoid cloning the label when the key
+                    // is already present.
+                    skills
+                        .entry(entry.tool.to_ascii_lowercase())
+                        .or_insert_with(|| label.clone());
                 }
             }
         }
@@ -1064,6 +1155,64 @@ source_url: https://example.com
         assert_eq!(
             name_lower, name_mixed,
             "lowercase and mixed-case should resolve to the same skill"
+        );
+    }
+
+    #[test]
+    fn test_mcp_config_defaults_to_empty() {
+        use crate::config::Config;
+        let cfg = Config::default();
+        assert!(
+            cfg.mcp.servers.is_empty(),
+            "default config should have no MCP servers"
+        );
+    }
+
+    #[test]
+    fn test_mcp_config_round_trips_toml() {
+        use crate::config::{Config, McpServerConfig};
+
+        let mut cfg = Config::default();
+        cfg.mcp.servers.push(McpServerConfig {
+            url: "http://localhost:3000".to_string(),
+            name: "test-server".to_string(),
+            api_key: None,
+        });
+        cfg.mcp.servers.push(McpServerConfig {
+            url: "https://skills.example.org".to_string(),
+            name: "org-skills".to_string(),
+            api_key: Some("secret".to_string()),
+        });
+
+        let toml_str = toml::to_string_pretty(&cfg).expect("serialize");
+        let back: Config = toml::from_str(&toml_str).expect("deserialize");
+
+        assert_eq!(back.mcp.servers.len(), 2);
+        assert_eq!(back.mcp.servers[0].url, "http://localhost:3000");
+        assert_eq!(back.mcp.servers[0].name, "test-server");
+        assert!(back.mcp.servers[0].api_key.is_none());
+        assert_eq!(back.mcp.servers[1].api_key.as_deref(), Some("secret"));
+    }
+
+    #[test]
+    fn test_mcp_config_backward_compat_no_mcp_section() {
+        // Old config.toml files without [mcp] should deserialize to empty servers list
+        let old_toml = r#"
+[llm]
+provider = "github-copilot"
+max_tokens = 2048
+temperature = 0.0
+
+[docs]
+local_paths = []
+remote_sources = []
+auto_update = true
+"#;
+        let cfg: crate::config::Config =
+            toml::from_str(old_toml).expect("should deserialize old config");
+        assert!(
+            cfg.mcp.servers.is_empty(),
+            "old configs should have no MCP servers"
         );
     }
 }

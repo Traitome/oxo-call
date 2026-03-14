@@ -34,7 +34,9 @@ Integration tests live in `tests/cli_tests.rs` and execute the compiled binary. 
 
 **LLM response format** — `src/llm.rs` expects `ARGS:` and `EXPLANATION:` lines and retries on invalid format. The three LLM roles (command generation, `--optimize-task`, `--verify`) each use a dedicated system prompt.
 
-**Skill precedence** — `user > community > built-in`. Reuse `SkillManager`; do not add ad-hoc skill loading.
+**Skill precedence** — `user > community > mcp > built-in`. Reuse `SkillManager`; do not add ad-hoc skill loading. Use `load_async()` in async contexts (runner, CLI commands) and `load()` only where sync is unavoidable.
+
+**MCP skill provider** — `src/mcp.rs` implements the minimal MCP JSON-RPC client (HTTP POST transport, no SSE). `McpServerConfig` is defined in `config.rs`. MCP servers are registered via `skill mcp add <url>` and stored under `[[mcp.servers]]` in `config.toml`.
 
 **Keep issuer in sync** — `crates/license-issuer/src/main.rs` signs the same payload that `src/license.rs` verifies. Schema changes require edits in both.
 
