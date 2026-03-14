@@ -494,6 +494,7 @@ pub static BUILTIN_SKILLS: &[(&str, &str)] = &[
     builtin!("rsync"),
     // ── Containerization ─────────────────────────────────────────────────────
     builtin!("docker"),
+    builtin!("singularity"),
     // ── Filesystem & text processing ─────────────────────────────────────────
     builtin!("find"),
     builtin!("grep"),
@@ -508,8 +509,26 @@ pub static BUILTIN_SKILLS: &[(&str, &str)] = &[
     builtin!("python"),
     builtin!("r"),
     builtin!("cargo"),
+    // ── Programming languages ────────────────────────────────────────────────
+    builtin!("perl"),
+    builtin!("julia"),
+    builtin!("bash"),
+    builtin!("java"),
+    // ── Workflow managers ────────────────────────────────────────────────────
+    builtin!("nextflow"),
+    builtin!("snakemake"),
     // ── AI assistant platforms ────────────────────────────────────────────────
     builtin!("openclaw"),
+    // ── QC tools ─────────────────────────────────────────────────────────────
+    builtin!("qualimap"),
+    builtin!("rseqc"),
+    // ── Read processing ──────────────────────────────────────────────────────
+    builtin!("bbtools"),
+    // ── Comparative genomics ─────────────────────────────────────────────────
+    builtin!("fastani"),
+    builtin!("mummer"),
+    // ── Motif analysis ───────────────────────────────────────────────────────
+    builtin!("meme"),
     // ── HPC & cluster management ─────────────────────────────────────────────
     builtin!("slurm"),
     builtin!("pbs"),
