@@ -38,13 +38,34 @@ oxo-call is an AI-powered CLI assistant for bioinformatics. Instead of memorizin
 
 ## Quick Start
 
-### 1. Install
+### 1. Install (Recommended: Pre-built Binaries)
+
+The easiest way to install oxo-call is to download pre-built binaries from GitHub Releases:
+
+```bash
+# Linux/macOS
+curl -fsSL https://github.com/Traitome/oxo-call/releases/latest/download/oxo-call-linux-x86_64 -o oxo-call
+chmod +x oxo-call
+sudo mv oxo-call /usr/local/bin/
+
+# Or macOS (Apple Silicon)
+curl -fsSL https://github.com/Traitome/oxo-call/releases/latest/download/oxo-call-macos-aarch64 -o oxo-call
+chmod +x oxo-call
+sudo mv oxo-call /usr/local/bin/
+
+# Or Windows
+# Download from: https://github.com/Traitome/oxo-call/releases
+```
+
+See the [Installation guide](https://traitome.github.io/oxo-call/documentation/tutorials/installation.html) for all platforms and options.
+
+### Alternative: Install via Cargo
+
+If you have Rust installed, you can also install via cargo:
 
 ```bash
 cargo install oxo-call
 ```
-
-See the [Installation guide](https://traitome.github.io/oxo-call/documentation/tutorials/installation.html) for pre-built binaries and source builds.
 
 ### 2. Get a license
 
