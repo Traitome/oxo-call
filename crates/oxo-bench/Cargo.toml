@@ -19,11 +19,11 @@ path = "src/main.rs"
 # Shared types from the main crate (without network/process features).
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-toml = "0.8"
+toml = "1.0"
 anyhow = "1.0"
-colored = "2.2"
+colored = "3.0"
 chrono = { version = "0.4", features = ["serde"] }
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"] }
 rand = "0.8"
 
 [dev-dependencies]
