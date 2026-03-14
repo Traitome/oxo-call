@@ -104,7 +104,7 @@ plugins:
       lang: en
 
 nav:
-  - Home: introduction.md
+  - Home: index.md
   - Getting Started:
       - Installation: tutorials/installation.md
       - License Setup: tutorials/license.md
