@@ -3,7 +3,7 @@
     <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff"/>
     </marker>
-    <filter id="shadow">
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
       <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#00000030"/>
     </filter>
   </defs>

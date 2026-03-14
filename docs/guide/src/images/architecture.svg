@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" font-family="'Segoe UI', 'Liberation Sans', Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 680" font-family="'Segoe UI', 'Liberation Sans', Arial, sans-serif">
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff"/>
@@ -12,7 +12,7 @@
   </defs>
 
   <!-- Background -->
-  <rect width="900" height="620" fill="#0f1923" rx="12"/>
+  <rect width="900" height="680" fill="#0f1923" rx="12"/>
 
   <!-- Title -->
   <text x="450" y="38" text-anchor="middle" fill="#e2e8f0" font-size="18" font-weight="700" letter-spacing="0.5">oxo-call System Architecture</text>
@@ -22,7 +22,7 @@
   <text x="450" y="76" text-anchor="middle" fill="#7a8fa6" font-size="11" letter-spacing="1">RUST WORKSPACE</text>
 
   <!-- oxo-call crate (main) -->
-  <rect x="50" y="85" width="560" height="490" rx="10" fill="#131f2e" stroke="#2d5a8a" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="50" y="85" width="560" height="570" rx="10" fill="#131f2e" stroke="#2d5a8a" stroke-width="1.5" filter="url(#shadow)"/>
   <rect x="50" y="85" width="560" height="30" rx="10" fill="#1a3a5c"/>
   <rect x="50" y="105" width="560" height="10" rx="0" fill="#1a3a5c"/>
   <text x="330" y="106" text-anchor="middle" fill="#7eb8f7" font-size="12" font-weight="700">oxo-call (CLI crate)</text>
@@ -145,23 +145,35 @@
   <text x="540" y="501" text-anchor="middle" fill="#7eb8f7" font-size="10" font-weight="700">handlers.rs</text>
   <text x="540" y="514" text-anchor="middle" fill="#7a8fa6" font-size="9">Formatting helpers</text>
 
+  <!-- mcp.rs badge -->
+  <rect x="480" y="530" width="120" height="36" rx="7" fill="#1c2e20" stroke="#2a7a3a" stroke-width="1"/>
+  <text x="540" y="546" text-anchor="middle" fill="#6fcf97" font-size="10" font-weight="700">mcp.rs</text>
+  <text x="540" y="559" text-anchor="middle" fill="#7a8fa6" font-size="9">MCP skill provider</text>
+
+  <!-- server.rs badge -->
+  <rect x="480" y="575" width="120" height="36" rx="7" fill="#1a2e3e" stroke="#3a7a9a" stroke-width="1"/>
+  <text x="540" y="591" text-anchor="middle" fill="#7eb8f7" font-size="10" font-weight="700">server.rs</text>
+  <text x="540" y="604" text-anchor="middle" fill="#7a8fa6" font-size="9">Remote server mgmt</text>
+
   <!-- Legend -->
-  <rect x="635" y="295" width="215" height="175" rx="8" fill="#131f2e" stroke="#2d3f52" stroke-width="1"/>
+  <rect x="635" y="295" width="215" height="200" rx="8" fill="#131f2e" stroke="#2d3f52" stroke-width="1"/>
   <text x="742" y="315" text-anchor="middle" fill="#7a8fa6" font-size="11" font-weight="700" letter-spacing="0.5">LEGEND</text>
   <rect x="648" y="325" width="16" height="10" rx="2" fill="#1a3a5c" stroke="#3a6fa8" stroke-width="1.5"/>
   <text x="672" y="334" fill="#9bb5cc" font-size="10">Core modules</text>
   <rect x="648" y="343" width="16" height="10" rx="2" fill="#163545" stroke="#1a8a6a" stroke-width="1.5"/>
   <text x="672" y="352" fill="#9bb5cc" font-size="10">Orchestration layer</text>
   <rect x="648" y="361" width="16" height="10" rx="2" fill="#1c2e20" stroke="#2a7a3a" stroke-width="1.5"/>
-  <text x="672" y="370" fill="#9bb5cc" font-size="10">Docs &amp; skills</text>
+  <text x="672" y="370" fill="#9bb5cc" font-size="10">Docs, skills &amp; MCP</text>
   <rect x="648" y="379" width="16" height="10" rx="2" fill="#2e1c2e" stroke="#7a3a8a" stroke-width="1.5"/>
   <text x="672" y="388" fill="#9bb5cc" font-size="10">LLM integration</text>
   <rect x="648" y="397" width="16" height="10" rx="2" fill="#2e2010" stroke="#8a6a2a" stroke-width="1.5"/>
   <text x="672" y="406" fill="#9bb5cc" font-size="10">History &amp; config</text>
   <rect x="648" y="415" width="16" height="10" rx="2" fill="#1a2e3e" stroke="#3a7a9a" stroke-width="1.5"/>
-  <text x="672" y="424" fill="#9bb5cc" font-size="10">Workflow engine</text>
+  <text x="672" y="424" fill="#9bb5cc" font-size="10">Workflow / server</text>
   <line x1="648" y1="443" x2="664" y2="443" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arrow)"/>
   <text x="672" y="447" fill="#9bb5cc" font-size="10">Module dependency</text>
+  <rect x="648" y="461" width="16" height="10" rx="2" fill="#1e2a2e" stroke="#2a6a8a" stroke-width="1"/>
+  <text x="672" y="470" fill="#9bb5cc" font-size="10">API / utility surface</text>
 
   <!-- Shared license schema annotation -->
   <line x1="595" y1="145" x2="635" y2="128" stroke="#7a8fa6" stroke-width="1" stroke-dasharray="4,2"/>
