@@ -1,0 +1,45 @@
+---
+name: manta
+category: variant-calling
+description: Structural variant and indel caller for short-read sequencing data
+tags: [structural-variant, sv, indel, cnv, deletion, insertion, translocation, vcf]
+author: oxo-call built-in
+source_url: "https://github.com/Illumina/manta"
+---
+
+## Concepts
+
+- Manta uses a two-step workflow: (1) configureManta.py to configure; (2) python runWorkflow.py -m local -j N to execute.
+- Manta calls SVs ≥50bp including deletions, duplications, insertions, inversions, and translocations.
+- For tumor-normal somatic SV calling, use --tumorBam and --normalBam; for germline use --bam.
+- Manta outputs candidateSmallIndels.vcf.gz (used as input to Strelka2) and diploidSV.vcf.gz/somaticSV.vcf.gz.
+- The output directory (--runDir) is created by configureManta.py and contains runWorkflow.py.
+- Use --exome for WES/targeted sequencing; --callRegions for restricting to specific regions.
+- Manta can process RNA-seq data for fusion detection with --rna flag.
+
+## Pitfalls
+
+- Manta requires a two-step workflow — the configure step only sets up the run directory.
+- Input BAMs must be coordinate-sorted and indexed.
+- The reference FASTA must be indexed with samtools faidx.
+- The --runDir must not already exist — Manta will not overwrite an existing run directory.
+- For WES, --exome and --callRegions are both recommended for accurate SV calling.
+- --callRegions BED must be bgzipped and tabix-indexed.
+
+## Examples
+
+### configure and run Manta germline SV calling
+**Args:** `configureManta.py --bam sorted.bam --referenceFasta reference.fa --runDir manta_output && python manta_output/runWorkflow.py -m local -j 8`
+**Explanation:** configure sets up runDir; execute with -m local and -j 8 threads; results in manta_output/results/variants/
+
+### run Manta somatic SV calling for tumor-normal pair
+**Args:** `configureManta.py --normalBam normal.bam --tumorBam tumor.bam --referenceFasta reference.fa --runDir manta_somatic && python manta_somatic/runWorkflow.py -m local -j 8`
+**Explanation:** --normalBam and --tumorBam for somatic mode; outputs somaticSV.vcf.gz in results/variants/
+
+### run Manta on WES data with capture regions
+**Args:** `configureManta.py --bam sample.bam --referenceFasta reference.fa --exome --callRegions targets.bed.gz --runDir manta_wes && python manta_wes/runWorkflow.py -m local -j 8`
+**Explanation:** --exome adjusts parameters for WES; --callRegions restricts to target regions (bgzipped + tabix-indexed BED)
+
+### run Manta for RNA fusion detection
+**Args:** `configureManta.py --rna --bam rna_sorted.bam --referenceFasta reference.fa --runDir manta_rna && python manta_rna/runWorkflow.py -m local -j 8`
+**Explanation:** --rna mode detects RNA fusions; outputs rnaSV.vcf.gz

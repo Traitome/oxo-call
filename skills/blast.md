@@ -1,0 +1,50 @@
+---
+name: blast
+category: sequence-utilities
+description: Basic Local Alignment Search Tool — search protein or nucleotide databases for sequence similarity
+tags: [blast, alignment, database-search, nucleotide, protein, ncbi, homology]
+author: oxo-call built-in
+source_url: "https://blast.ncbi.nlm.nih.gov/doc/blast-help/"
+---
+
+## Concepts
+
+- BLAST+ suite includes: blastn (nucleotide vs nucleotide), blastp (protein vs protein), blastx (translated DNA vs protein), tblastn (protein vs translated DNA), tblastx (translated vs translated).
+- Build a BLAST database with makeblastdb: makeblastdb -in sequences.fasta -dbtype nucl -out db_name.
+- Use -query for query file; -db for database; -out for output; -outfmt 6 for tabular output.
+- tabular format 6 columns: qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore.
+- Use -evalue to set E-value threshold (default 10); -max_target_seqs to limit hits per query.
+- -num_threads N for parallel search; -perc_identity for minimum percent identity filter.
+- Remote BLAST against NCBI databases: add -remote flag (slower but no local database needed).
+- outfmt '6 std stitle staxids' adds title and taxonomy to standard tabular output.
+
+## Pitfalls
+
+- BLAST database must be built with makeblastdb before searching (except -remote).
+- -max_target_seqs 1 with tabular output may not always return the BEST hit — it returns the first found.
+- blastn default word size (28) is too large for short sequences (<100 bp) — use -word_size 11.
+- The -db argument is the database PREFIX, not the full file name (without .nhr/.nin etc.).
+- BLAST can be very slow on large databases without -num_threads; use DIAMOND for large protein databases.
+- outfmt 5 (XML) is verbose but machine-readable; outfmt 6 is most commonly used for scripting.
+
+## Examples
+
+### build a nucleotide BLAST database from a FASTA file
+**Args:** `-in genome.fasta -dbtype nucl -out genome_db -title 'Genome Database' -parse_seqids`
+**Explanation:** -dbtype nucl for nucleotide; -out database prefix; -parse_seqids enables sequence retrieval
+
+### run blastn to find similar nucleotide sequences
+**Args:** `-query query.fasta -db genome_db -out blast_results.txt -outfmt 6 -evalue 1e-5 -num_threads 8`
+**Explanation:** -outfmt 6 tabular output; -evalue 1e-5 threshold; -num_threads 8 parallel search
+
+### search protein sequences against NR database
+**Args:** `-query proteins.faa -db /path/to/nr -out blastp_results.txt -outfmt '6 std stitle staxids' -evalue 1e-5 -num_threads 16 -max_target_seqs 5`
+**Explanation:** -db nr (NCBI non-redundant); stitle and staxids in custom outfmt; top 5 hits per query
+
+### run blastx to annotate nucleotide sequences against protein database
+**Args:** `-query contigs.fasta -db /path/to/swissprot -out blastx_results.txt -outfmt 6 -evalue 1e-5 -num_threads 8 -max_target_seqs 1`
+**Explanation:** blastx translates query DNA in all 6 frames; -db swissprot for curated protein annotations
+
+### perform remote BLAST search against NCBI nr database
+**Args:** `-query query.fasta -db nr -out remote_blast.txt -outfmt 6 -remote -max_target_seqs 10`
+**Explanation:** -remote searches NCBI servers directly; no local database needed; slower than local search

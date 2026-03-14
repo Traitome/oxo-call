@@ -53,7 +53,7 @@ Integration tests live in `tests/cli_tests.rs` and execute the compiled binary. 
 1–4 same as above, plus `docs/guide/src/SUMMARY.md` if it's a top-level command.
 
 **New built-in skill:**
-1. `skills/<tool>.toml` — `[meta]` + `[context]` + `[[examples]]` (≥3 concepts, ≥3 pitfalls, ≥5 examples)
+1. `skills/<tool>.md` — YAML front-matter (`name`, `category`, `description`, `tags`, `author`, `source_url`) + `## Concepts` + `## Pitfalls` + `## Examples` sections (≥3 concepts, ≥3 pitfalls, ≥5 examples). Each example: `### task` → `**Args:** \`flags\`` → `**Explanation:** text`
 2. `src/skill.rs` — add to `BUILTIN_SKILLS` array with `include_str!`
 
 **New workflow template:**

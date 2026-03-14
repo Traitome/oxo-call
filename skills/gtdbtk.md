@@ -1,0 +1,42 @@
+---
+name: gtdbtk
+category: metagenomics
+description: GTDB-Tk — taxonomic classification of prokaryotic genomes using the Genome Taxonomy Database
+tags: [taxonomy, gtdb, phylogenomics, bacteria, archaea, mag, classification, metagenomics]
+author: oxo-call built-in
+source_url: "https://github.com/Ecogenomics/GTDBTk"
+---
+
+## Concepts
+
+- GTDB-Tk classifies prokaryotic genomes (isolates and MAGs) using the Genome Taxonomy Database (GTDB).
+- Main command: gtdbtk classify_wf for full workflow (identify markers + classify).
+- Use --genome_dir for directory of genome FASTA files; --out_dir for results; --cpus for threads.
+- GTDB-Tk requires a pre-downloaded database (GTDB reference data, ~100 GB) — set GTDBTK_DATA_PATH.
+- Output: gtdbtk.bac120.summary.tsv (bacterial) and gtdbtk.ar53.summary.tsv (archaeal) with taxonomy.
+- Use --extension fa or --extension fasta to specify genome file extension in --genome_dir.
+- GTDB taxonomy (GTDB-Tk) differs from NCBI taxonomy — species names may differ significantly.
+- classify_wf also produces phylogenetic trees and alignment files for reference.
+
+## Pitfalls
+
+- GTDB database must be downloaded before running — set GTDBTK_DATA_PATH to the database directory.
+- GTDB-Tk requires significant RAM (>300 GB for pplacer step with all reference genomes).
+- Without --cpus flag, GTDB-Tk uses limited threads — always specify for faster processing.
+- The --genome_dir must contain only genome FASTA files — remove any non-genome files first.
+- GTDB and NCBI taxonomy do not map directly — report both when publishing.
+- Low-quality MAGs (<50% completeness) may not classify accurately.
+
+## Examples
+
+### classify a directory of genome bins with GTDB-Tk
+**Args:** `classify_wf --genome_dir bins/ --out_dir gtdbtk_output/ --cpus 32 --extension fa`
+**Explanation:** --genome_dir directory with .fa files; --out_dir results directory; --extension fa file extension
+
+### classify genomes with custom GTDB database path
+**Args:** `classify_wf --genome_dir bins/ --out_dir gtdbtk_output/ --cpus 32 --extension fasta --skip_ani_screen`
+**Explanation:** --skip_ani_screen skips slow ANI check; faster for large datasets but may reduce accuracy
+
+### run only the identification step (marker gene identification)
+**Args:** `identify --genome_dir bins/ --out_dir gtdbtk_identify/ --cpus 16 --extension fa`
+**Explanation:** identify subcommand extracts marker genes; useful for intermediate workflow steps

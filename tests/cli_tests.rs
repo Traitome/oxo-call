@@ -496,12 +496,20 @@ fn test_skill_create_template() {
         "Expected tool name in template, got: {stdout}"
     );
     assert!(
-        stdout.contains("[meta]"),
-        "Expected TOML structure, got: {stdout}"
+        stdout.contains("---"),
+        "Expected YAML front-matter delimiters, got: {stdout}"
     );
     assert!(
-        stdout.contains("[[examples]]"),
-        "Expected examples section, got: {stdout}"
+        stdout.contains("## Concepts"),
+        "Expected ## Concepts section, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("## Examples"),
+        "Expected ## Examples section, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("**Args:**"),
+        "Expected **Args:** example format, got: {stdout}"
     );
 }
 

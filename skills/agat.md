@@ -1,0 +1,43 @@
+---
+name: agat
+category: annotation
+description: Another GTF/GFF Analysis Toolkit — comprehensive toolkit for GFF/GTF file manipulation and statistics
+tags: [gff, gtf, annotation, gene-model, format-conversion, statistics, genome]
+author: oxo-call built-in
+source_url: "https://github.com/NBISweden/AGAT"
+---
+
+## Concepts
+
+- AGAT provides tools for GFF3/GTF manipulation, statistics, format conversion, and quality checking.
+- Common subcommands: agat_convert_sp_gff2gtf.pl, agat_sp_statistics.pl, agat_sp_filter_gene_by_length.pl.
+- AGAT handles non-standard GFF3/GTF files and can repair malformed annotations.
+- Use agat_convert_sp_gxf2gxf.pl to convert and fix/standardize GFF/GTF files.
+- Use agat_sp_statistics.pl to get genome annotation statistics (gene count, intron sizes, etc.).
+- AGAT tools typically use -f/-gff for input, -o for output.
+- AGAT maintains proper gene/mRNA/exon/CDS hierarchy — it can infer parent features if missing.
+
+## Pitfalls
+
+- AGAT Perl scripts require specific naming (agat_*.pl); do not confuse with other GFF tools.
+- Very large GFF3 files may be slow in AGAT — consider BEDOPS or awk for simple operations.
+- AGAT may auto-fix GFF3 errors silently — check output for unexpected changes.
+- Coordinate systems: GFF3 is 1-based closed; BED is 0-based half-open — check after conversion.
+
+## Examples
+
+### convert GFF3 to GTF format
+**Args:** `agat_convert_sp_gff2gtf.pl --gff annotation.gff3 -o annotation.gtf`
+**Explanation:** converts GFF3 to GTF; handles feature hierarchy; -o output GTF file
+
+### get annotation statistics from a GFF3 file
+**Args:** `agat_sp_statistics.pl --gff annotation.gff3 -o statistics_report.txt`
+**Explanation:** outputs gene count, mRNA count, exon statistics, intron size distribution
+
+### filter genes by minimum length
+**Args:** `agat_sp_filter_gene_by_length.pl --gff annotation.gff3 --size 300 -o filtered_annotation.gff3`
+**Explanation:** --size 300 keeps only genes ≥300 bp in length
+
+### fix and standardize a malformed GFF3 file
+**Args:** `agat_convert_sp_gxf2gxf.pl -g malformed.gff3 -o fixed.gff3`
+**Explanation:** repairs common GFF3 errors, adds missing parent features, standardizes format

@@ -1,0 +1,53 @@
+---
+name: seqtk
+category: sequence-utilities
+description: Fast and lightweight toolkit for processing FASTA and FASTQ files
+tags: [fastq, fasta, sequence, subsample, format-conversion, trimming, utility]
+author: oxo-call built-in
+source_url: "https://github.com/lh3/seqtk"
+---
+
+## Concepts
+
+- seqtk is a versatile toolkit for FASTA/FASTQ processing; subcommands: seq, subseq, sample, trimfq, mergefa, fqchk.
+- seqtk seq converts between FASTA and FASTQ formats and performs basic sequence manipulations.
+- seqtk sample subsamples reads with a fixed seed for reproducibility; use the SAME seed for paired-end files.
+- seqtk trimfq trims reads by quality score; seqtk subseq extracts sequences by name or coordinate.
+- seqtk always outputs to stdout — pipe or redirect to save output.
+- seqtk seq -a converts FASTQ to FASTA; seqtk seq -q converts FASTA to FASTQ with quality 40.
+- Use seqtk seq -l 60 to wrap FASTA sequences at 60 characters per line (NCBI format).
+
+## Pitfalls
+
+- seqtk sample paired-end reads MUST use the same seed for both files to maintain read pairing.
+- seqtk outputs to stdout — always redirect to a file or pipe to another tool.
+- seqtk sample N when N < 1 treats it as a fraction; when N > 1 treats it as absolute count.
+- seqtk does not support gzipped output directly — pipe to gzip: seqtk seq input.fq | gzip > output.fq.gz.
+- seqtk subseq for region extraction requires a sorted BED file and indexed FASTA.
+- seqtk trimfq quality trimming uses Phred-encoded scores — check for phred33 vs phred64.
+
+## Examples
+
+### subsample 1 million read pairs from paired-end FASTQ files
+**Args:** `sample -s 42 R1.fastq.gz 1000000 | gzip > sub_R1.fastq.gz`
+**Explanation:** -s 42 random seed; same seed must be used for R2: seqtk sample -s 42 R2.fastq.gz 1000000 | gzip > sub_R2.fastq.gz
+
+### convert FASTQ to FASTA format
+**Args:** `seq -a reads.fastq.gz > reads.fasta`
+**Explanation:** -a flag outputs FASTA format; works on both compressed and uncompressed FASTQ
+
+### reverse complement all sequences in a FASTA file
+**Args:** `seq -r sequences.fasta > revcomp.fasta`
+**Explanation:** -r flag reverse complements all sequences
+
+### extract specific sequences by name from a FASTQ file
+**Args:** `subseq reads.fastq.gz read_names.txt > extracted_reads.fastq`
+**Explanation:** read_names.txt contains one read name per line; extracts matching reads
+
+### quality trim reads below Phred 20 from both ends
+**Args:** `trimfq -q 0.05 reads.fastq.gz | gzip > trimmed.fastq.gz`
+**Explanation:** -q sets the trimming error rate (0.05 ≈ Phred 13); alternatively use -l and -r for fixed trimming
+
+### subsample 10% of reads with reproducible seed
+**Args:** `sample -s 100 reads.fastq.gz 0.1 > subsampled_10pct.fastq`
+**Explanation:** -s 100 random seed; 0.1 is 10% fraction; for PE use same seed on both files

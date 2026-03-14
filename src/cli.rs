@@ -332,7 +332,8 @@ pub enum SkillCommands {
     Install {
         /// Tool name
         tool: String,
-        /// Custom URL to a skill TOML file (optional; defaults to community registry)
+        /// Custom URL to a skill file (optional; defaults to community registry).
+        /// Accepts `.md` (YAML front-matter + Markdown, preferred) and legacy `.toml`.
         #[arg(long)]
         url: Option<String>,
     },

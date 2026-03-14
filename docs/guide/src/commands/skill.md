@@ -15,7 +15,7 @@ oxo-call skill path
 
 ## Description
 
-Skills are curated TOML files that inject **domain-expert knowledge** into the LLM prompt for a specific tool. They contain key concepts, common pitfalls, and worked command examples. When oxo-call finds a matching skill, it includes this knowledge in the prompt, dramatically improving accuracy.
+Skills are Markdown files with YAML front-matter that inject **domain-expert knowledge** into the LLM prompt for a specific tool. They contain key concepts, common pitfalls, and worked command examples. When oxo-call finds a matching skill, it includes this knowledge in the prompt, dramatically improving accuracy.
 
 ## Subcommands
 
@@ -41,8 +41,10 @@ Install a community skill or from a custom URL:
 
 ```bash
 oxo-call skill install bismark
-oxo-call skill install mytool --url https://example.com/mytool.toml
+oxo-call skill install mytool --url https://example.com/mytool.md
 ```
+
+Both `.md` (YAML front-matter + Markdown, preferred) and legacy `.toml` formats are supported.
 
 ### `skill remove`
 
@@ -54,11 +56,11 @@ oxo-call skill remove mytool
 
 ### `skill create`
 
-Generate a skill TOML template:
+Generate a skill Markdown template:
 
 ```bash
 oxo-call skill create mytool
-oxo-call skill create mytool -o ~/.config/oxo-call/skills/mytool.toml
+oxo-call skill create mytool -o ~/.config/oxo-call/skills/mytool.md
 ```
 
 ### `skill path`
@@ -71,35 +73,42 @@ oxo-call skill path
 
 ## Skill Load Priority
 
-1. **User-defined**: `~/.config/oxo-call/skills/<tool>.toml`
-2. **Community-installed**: `~/.local/share/oxo-call/skills/<tool>.toml`
+1. **User-defined**: `~/.config/oxo-call/skills/<tool>.md` (`.toml` also accepted)
+2. **Community-installed**: `~/.local/share/oxo-call/skills/<tool>.md` (`.toml` also accepted)
 3. **Built-in**: Compiled into the binary
 
 ## Skill File Format
 
-```toml
-[meta]
-name = "mytool"
-category = "alignment"
-tags = ["bam", "sam", "ngs"]
+Skills use a Markdown file with YAML front-matter:
 
-[context]
-concepts = [
-    "Key concept 1 about the tool",
-    "Key concept 2 about the tool",
-]
+```markdown
+---
+name: mytool
+category: alignment
+description: One-line description of the tool
+tags: [bam, sam, ngs]
+author: your-name   # optional
+source_url: https://tool-docs.example.com   # optional
+---
 
-pitfalls = [
-    "Common mistake 1 and how to avoid it",
-    "Common mistake 2 and how to avoid it",
-]
+## Concepts
 
-[[examples]]
-task = "description of what to do"
-args = "the-tool --flag1 --flag2 input output"
-explanation = "why these flags were chosen"
+- Key concept 1 about the tool
+- Key concept 2 about the tool
+
+## Pitfalls
+
+- Common mistake 1 and how to avoid it
+- Common mistake 2 and how to avoid it
+
+## Examples
+
+### description of what to do
+**Args:** `--flag1 --flag2 input output`
+**Explanation:** why these flags were chosen
 ```
 
 ## Built-in Skill Coverage
 
 oxo-call ships with 150+ built-in skills covering all major omics domains. See [Skill System Reference](../reference/skill-system.md) for the full list.
+

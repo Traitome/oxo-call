@@ -25,7 +25,7 @@ cargo clippy -- -D warnings
 ```
 oxo-call/
 ├── src/              # Main CLI source code
-├── skills/           # 150+ built-in skill TOML files
+├── skills/           # 134+ built-in skill Markdown files (.md)
 ├── tests/            # Integration tests
 ├── crates/
 │   ├── license-issuer/   # Maintainer license signing tool
@@ -55,7 +55,7 @@ cargo test test_valid_academic_license_passes -- --exact
 
 ## Adding a New Skill
 
-1. Create a TOML file in `skills/<tool>.toml`
+1. Create a Markdown file in `skills/<tool>.md` (YAML front-matter + Markdown body)
 2. Register it in `src/skill.rs` in the `BUILTIN_SKILLS` array
 3. Follow the skill format (see [Skill System](../reference/skill-system.md))
 4. Run tests to verify
