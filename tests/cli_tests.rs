@@ -2269,3 +2269,107 @@ fn test_skill_show_htcondor() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("htcondor"));
 }
+
+// ─── skill verify / polish / create --llm tests ──────────────────────────────
+
+#[test]
+fn test_skill_create_with_llm_flag_is_parsed() {
+    // Without LLM config the command should fall back to the blank template
+    // rather than erroring on argument parsing.
+    let dir = tempfile::tempdir().expect("tmpdir");
+    let output = oxo_call()
+        .env("HOME", dir.path())
+        .args(["skill", "create", "mytool", "--llm"])
+        .output()
+        .expect("failed to run oxo-call");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    // Either succeeds with a template OR fails gracefully (LLM not configured),
+    // but must never fail with "unknown argument".
+    assert!(
+        !stderr.contains("unexpected argument"),
+        "Should parse --llm flag; got: {stderr}"
+    );
+    // If it fell back to the blank template, it should contain the tool name.
+    if output.status.success() {
+        assert!(
+            stdout.contains("mytool") || stdout.contains("Template written"),
+            "Expected template content or success message, got: {stdout}"
+        );
+    }
+}
+
+#[test]
+fn test_skill_verify_unknown_tool_shows_helpful_message() {
+    let dir = tempfile::tempdir().expect("tmpdir");
+    let output = oxo_call()
+        .env("HOME", dir.path())
+        .args(["skill", "verify", "nonexistent_tool_xyz99"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        output.status.success(),
+        "verify of missing skill should not error"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("No skill") || stdout.contains("install") || stdout.contains("create"),
+        "Expected helpful message for missing skill, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_skill_verify_no_llm_flag_is_parsed() {
+    // --no-llm skips the LLM review; with a built-in skill this should succeed
+    let output = oxo_call()
+        .args(["skill", "verify", "samtools", "--no-llm"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success(), "verify --no-llm should succeed");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("PASS") || stdout.contains("FAIL") || stdout.contains("Structural"),
+        "Expected structural check result, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_skill_polish_missing_tool_shows_error() {
+    let dir = tempfile::tempdir().expect("tmpdir");
+    let output = oxo_call()
+        .env("HOME", dir.path())
+        .args(["skill", "polish", "nonexistent_tool_xyz99"])
+        .output()
+        .expect("failed to run oxo-call");
+    // Should fail with a clear error message about the skill not being found locally
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        !output.status.success(),
+        "polish of non-existent tool should fail, stderr={stderr} stdout={stdout}"
+    );
+    assert!(
+        stderr.contains("not installed")
+            || stderr.contains("no editable")
+            || stderr.contains("install"),
+        "Expected helpful error for missing local skill, stderr={stderr}"
+    );
+}
+
+#[test]
+fn test_skill_help_shows_new_subcommands() {
+    let output = oxo_call()
+        .args(["skill", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("verify"),
+        "Expected 'verify' in skill help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("polish"),
+        "Expected 'polish' in skill help, got: {stdout}"
+    );
+}

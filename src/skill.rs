@@ -902,6 +902,30 @@ source_url:      # Link to tool documentation (optional)
     pub fn community_skill_dir(&self) -> Result<PathBuf> {
         Ok(Config::data_dir()?.join("skills"))
     }
+
+    /// Find the on-disk path for a user-defined or community-installed skill.
+    ///
+    /// Checks (in order): user `.md`, user `.toml`, community `.md`, community `.toml`.
+    /// Returns an error if the skill is not installed locally (e.g., it's built-in or MCP-only).
+    pub fn find_user_or_community_skill_path(&self, tool: &str) -> Result<PathBuf> {
+        let tool_lc = tool.to_ascii_lowercase();
+        let user_dir = self.user_skill_dir()?;
+        let comm_dir = self.community_skill_dir()?;
+        for dir in &[&user_dir, &comm_dir] {
+            for ext in &["md", "toml"] {
+                let path = dir.join(format!("{tool_lc}.{ext}"));
+                if path.exists() {
+                    return Ok(path);
+                }
+            }
+        }
+        Err(OxoError::IndexError(format!(
+            "Skill '{tool}' has no editable local file. \
+             Built-in and MCP skills cannot be polished in-place. \
+             Install the skill first with 'oxo-call skill install {tool}' \
+             or create a user skill with 'oxo-call skill create {tool}'."
+        )))
+    }
 }
 
 // ─── Skill depth validation ───────────────────────────────────────────────────

@@ -371,6 +371,25 @@ pub enum SkillCommands {
         /// Write template to this file (defaults to stdout)
         #[arg(short, long)]
         output: Option<std::path::PathBuf>,
+        /// Use LLM to generate a pre-filled skill template (requires LLM config)
+        #[arg(long)]
+        llm: bool,
+    },
+    /// Verify a skill file for format correctness and quality (structural + LLM review)
+    Verify {
+        /// Tool name
+        tool: String,
+        /// Skip the LLM review and only run structural validation
+        #[arg(long)]
+        no_llm: bool,
+    },
+    /// Polish a user or community skill using LLM to improve quality and fix format issues
+    Polish {
+        /// Tool name
+        tool: String,
+        /// Write the polished skill to this file instead of updating in-place
+        #[arg(short, long)]
+        output: Option<std::path::PathBuf>,
     },
     /// Show the path to the user skills directory
     Path,

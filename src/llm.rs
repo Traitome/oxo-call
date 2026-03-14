@@ -82,6 +82,19 @@ struct ChatChoice {
     message: ChatMessage,
 }
 
+/// Result of an LLM-based review of a skill file.
+#[derive(Debug, Clone)]
+pub struct LlmSkillVerification {
+    /// Whether the skill passes the quality bar.
+    pub passed: bool,
+    /// Short overall verdict (one sentence).
+    pub summary: String,
+    /// Format or structural issues found.
+    pub issues: Vec<String>,
+    /// Actionable improvement suggestions.
+    pub suggestions: Vec<String>,
+}
+
 // ─── System prompt ────────────────────────────────────────────────────────────
 
 fn system_prompt() -> &'static str {
@@ -304,6 +317,147 @@ fn parse_verification_response(raw: &str) -> LlmRunVerification {
     let success = status != "failure";
     LlmRunVerification {
         success,
+        summary,
+        issues,
+        suggestions,
+    }
+}
+
+// ─── Skill reviewer prompts ───────────────────────────────────────────────────
+
+/// System prompt for the skill reviewer / editor persona.
+fn skill_reviewer_system_prompt() -> &'static str {
+    "You are an expert bioinformatics skill author for the oxo-call tool. \
+     You deeply understand the oxo-call skill file format (YAML front-matter + Markdown sections) \
+     and how skills are used to improve LLM command generation quality. \
+     A high-quality skill file must have: \
+     (1) Complete YAML front-matter with name, category, description, tags, author, source_url. \
+     (2) A '## Concepts' section with ≥3 bullet points covering key data model and paradigm concepts. \
+     (3) A '## Pitfalls' section with ≥3 bullet points covering common mistakes and their consequences. \
+     (4) An '## Examples' section with ≥5 subsections, each starting with '### <task description>', \
+         followed by '**Args:** `<flags>`' and '**Explanation:** <sentence>'. \
+     All content must be accurate, actionable, and written in English."
+}
+
+/// Build a prompt asking the LLM to review a skill file for quality.
+fn build_skill_verify_prompt(tool: &str, skill_content: &str) -> String {
+    format!(
+        "# Skill Review Request\n\n\
+         Tool: `{tool}`\n\n\
+         ## Skill File Content\n\
+         ```\n{skill_content}\n```\n\n\
+         Please review this skill file and evaluate its quality.\n\n\
+         ## Output Format (STRICT)\n\
+         VERDICT: pass|fail\n\
+         SUMMARY: <one sentence overall assessment>\n\
+         ISSUES:\n\
+         - <issue 1, or 'none' when no issues>\n\
+         SUGGESTIONS:\n\
+         - <actionable improvement 1, or 'none' when no suggestions>\n\
+         Do NOT add any other text or markdown outside this format.\n"
+    )
+}
+
+/// Build a prompt asking the LLM to polish/rewrite a skill file.
+fn build_skill_polish_prompt(tool: &str, skill_content: &str) -> String {
+    format!(
+        "# Skill Polish Request\n\n\
+         Tool: `{tool}`\n\n\
+         ## Current Skill File\n\
+         ```\n{skill_content}\n```\n\n\
+         Please rewrite and enhance this skill file to meet oxo-call quality standards:\n\
+         - Keep all correct information; fix inaccuracies if any\n\
+         - Ensure YAML front-matter is complete (name, category, description, tags, author, source_url)\n\
+         - Add or improve concepts to reach ≥3 specific, actionable bullet points\n\
+         - Add or improve pitfalls to reach ≥3 bullet points explaining consequences\n\
+         - Add or improve examples to reach ≥5 subsections with correct ### / **Args:** / **Explanation:** format\n\
+         - Use clear, professional English\n\n\
+         ## Output Format (STRICT)\n\
+         Respond with ONLY the complete improved skill file in Markdown format (starting with '---').\n\
+         Do NOT add any explanation, preamble, or code fences around the output.\n"
+    )
+}
+
+/// Build a prompt asking the LLM to generate a fresh skill template for a tool.
+fn build_skill_generate_prompt(tool: &str) -> String {
+    format!(
+        "# Skill Generation Request\n\n\
+         Tool: `{tool}`\n\n\
+         Generate a complete, high-quality oxo-call skill file for this bioinformatics tool.\n\
+         The skill file must include:\n\
+         - YAML front-matter with name, category, description, tags, author ('AI-generated'), source_url\n\
+         - '## Concepts' section with ≥3 specific, actionable bullet points about the tool's data model and key behaviors\n\
+         - '## Pitfalls' section with ≥3 bullet points about common mistakes and their consequences\n\
+         - '## Examples' section with ≥5 realistic subsections, each:\n\
+             ### <task description in plain English>\n\
+             **Args:** `<exact CLI flags without tool name>`\n\
+             **Explanation:** <one sentence explaining why these flags>\n\n\
+         ## Output Format (STRICT)\n\
+         Respond with ONLY the complete skill file in Markdown format (starting with '---').\n\
+         Do NOT add any explanation, preamble, or code fences around the output.\n"
+    )
+}
+
+/// Strip leading/trailing markdown code fences from LLM output.
+fn strip_markdown_fences(raw: &str) -> String {
+    let trimmed = raw.trim();
+    // Remove opening fence (```markdown, ```md, ```, etc.)
+    let body = if let Some(rest) = trimmed.strip_prefix("```") {
+        // Skip the fence line
+        rest.split_once('\n').map(|x| x.1).unwrap_or(rest)
+    } else {
+        trimmed
+    };
+    // Remove closing fence
+    let body = if let Some(stripped) = body.trim_end().strip_suffix("```") {
+        stripped.trim_end()
+    } else {
+        body
+    };
+    body.trim().to_string()
+}
+
+/// Parse the structured skill verification response from the LLM.
+fn parse_skill_verify_response(raw: &str) -> LlmSkillVerification {
+    let mut passed = true;
+    let mut summary = String::new();
+    let mut issues: Vec<String> = Vec::new();
+    let mut suggestions: Vec<String> = Vec::new();
+
+    #[derive(PartialEq)]
+    enum Section {
+        None,
+        Issues,
+        Suggestions,
+    }
+    let mut section = Section::None;
+
+    for line in raw.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("VERDICT:") {
+            passed = rest.trim().eq_ignore_ascii_case("pass");
+        } else if let Some(rest) = trimmed.strip_prefix("SUMMARY:") {
+            summary = rest.trim().to_string();
+            section = Section::None;
+        } else if trimmed.starts_with("ISSUES:") {
+            section = Section::Issues;
+        } else if trimmed.starts_with("SUGGESTIONS:") {
+            section = Section::Suggestions;
+        } else if trimmed.starts_with('-') {
+            let item = trimmed.trim_start_matches('-').trim().to_string();
+            if item.is_empty() || item.eq_ignore_ascii_case("none") {
+                continue;
+            }
+            match section {
+                Section::Issues => issues.push(item),
+                Section::Suggestions => suggestions.push(item),
+                Section::None => {}
+            }
+        }
+    }
+
+    LlmSkillVerification {
+        passed,
         summary,
         issues,
         suggestions,
@@ -608,6 +762,85 @@ impl LlmClient {
                 .first()
                 .map(|c| c.message.content.clone())
                 .unwrap_or_default())
+        }
+    }
+
+    /// Ask the LLM to review a skill file for quality and completeness.
+    ///
+    /// Returns a structured `LlmSkillVerification` with findings and suggestions.
+    pub async fn verify_skill(
+        &self,
+        tool: &str,
+        skill_content: &str,
+    ) -> Result<LlmSkillVerification> {
+        #[cfg(target_arch = "wasm32")]
+        return Err(OxoError::LlmError(
+            "LLM API calls are not supported in WebAssembly".to_string(),
+        ));
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let user_prompt = build_skill_verify_prompt(tool, skill_content);
+            let raw = self
+                .request_with_system(
+                    skill_reviewer_system_prompt(),
+                    &user_prompt,
+                    Some(1024),
+                    Some(0.2),
+                )
+                .await?;
+            Ok(parse_skill_verify_response(&raw))
+        }
+    }
+
+    /// Ask the LLM to rewrite and improve a skill file, returning the enhanced Markdown.
+    ///
+    /// The LLM is instructed to preserve the tool name and all correct information
+    /// while adding missing concepts/pitfalls/examples, fixing format issues, and
+    /// improving clarity.
+    pub async fn polish_skill(&self, tool: &str, skill_content: &str) -> Result<String> {
+        #[cfg(target_arch = "wasm32")]
+        return Err(OxoError::LlmError(
+            "LLM API calls are not supported in WebAssembly".to_string(),
+        ));
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let user_prompt = build_skill_polish_prompt(tool, skill_content);
+            let raw = self
+                .request_with_system(
+                    skill_reviewer_system_prompt(),
+                    &user_prompt,
+                    Some(4096),
+                    Some(0.3),
+                )
+                .await?;
+            // Strip any markdown code fences the LLM might have wrapped the output in
+            Ok(strip_markdown_fences(&raw))
+        }
+    }
+
+    /// Use LLM to generate an initial skill template pre-filled with domain knowledge.
+    ///
+    /// Returns a Markdown-format skill file (YAML front-matter + body sections).
+    pub async fn generate_skill_template(&self, tool: &str) -> Result<String> {
+        #[cfg(target_arch = "wasm32")]
+        return Err(OxoError::LlmError(
+            "LLM API calls are not supported in WebAssembly".to_string(),
+        ));
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let user_prompt = build_skill_generate_prompt(tool);
+            let raw = self
+                .request_with_system(
+                    skill_reviewer_system_prompt(),
+                    &user_prompt,
+                    Some(4096),
+                    Some(0.4),
+                )
+                .await?;
+            Ok(strip_markdown_fences(&raw))
         }
     }
 

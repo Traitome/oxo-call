@@ -153,7 +153,10 @@ impl Runner {
             task.to_string()
         };
 
+        #[cfg(not(target_arch = "wasm32"))]
         let skill = self.skill_manager.load_async(tool).await;
+        #[cfg(target_arch = "wasm32")]
+        let skill = self.skill_manager.load(tool);
         let skill_name = skill.as_ref().map(|s| s.meta.name.clone());
         let skill_label = if skill.is_some() {
             format!(" (skill: {})", tool)
