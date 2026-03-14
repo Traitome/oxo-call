@@ -1738,6 +1738,10 @@ async fn run(cli: Cli) -> error::Result<()> {
                     task,
                     server: server_flag,
                     model,
+                    no_cache,
+                    json,
+                    verify,
+                    optimize_task,
                 } => {
                     let cfg = config::Config::load()?;
                     let mgr = server::ServerManager::new(cfg.clone());
@@ -1789,32 +1793,49 @@ async fn run(cli: Cli) -> error::Result<()> {
                     if let Some(ref m) = model {
                         run_cfg.llm.model = Some(m.clone());
                     }
-                    let runner_inst = runner::Runner::new(run_cfg).with_verbose(verbose);
+                    let runner_inst = runner::Runner::new(run_cfg)
+                        .with_verbose(verbose)
+                        .with_no_cache(no_cache)
+                        .with_optimize_task(optimize_task)
+                        .with_verify(verify);
                     let generated = runner_inst.generate_command(&tool, &task).await?;
 
                     // Show preview
-                    println!();
-                    println!("{}", "─".repeat(60).dimmed());
-                    println!("  {} {}", "Tool:".bold(), tool.cyan());
-                    println!("  {} {}", "Task:".bold(), task);
-                    if generated.effective_task != task {
-                        println!(
-                            "  {} {}",
-                            "Optimized task:".bold().dimmed(),
-                            generated.effective_task.dimmed()
-                        );
-                    }
-                    println!("{}", "─".repeat(60).dimmed());
-                    println!();
-                    println!("  {}", "Generated command:".bold().green());
-                    println!("  {}", generated.full_cmd.green().bold());
-                    println!();
-                    if !generated.explanation.is_empty() {
-                        println!("  {}", "Explanation:".bold());
-                        println!("  {}", generated.explanation);
+                    if json {
+                        let preview = serde_json::json!({
+                            "tool": tool,
+                            "task": task,
+                            "effective_task": generated.effective_task,
+                            "command": generated.full_cmd,
+                            "explanation": generated.explanation,
+                            "server": server_name,
+                            "ssh_dest": host.ssh_dest(),
+                        });
+                        println!("{}", serde_json::to_string_pretty(&preview)?);
+                    } else {
                         println!();
+                        println!("{}", "─".repeat(60).dimmed());
+                        println!("  {} {}", "Tool:".bold(), tool.cyan());
+                        println!("  {} {}", "Task:".bold(), task);
+                        if generated.effective_task != task {
+                            println!(
+                                "  {} {}",
+                                "Optimized task:".bold().dimmed(),
+                                generated.effective_task.dimmed()
+                            );
+                        }
+                        println!("{}", "─".repeat(60).dimmed());
+                        println!();
+                        println!("  {}", "Generated command:".bold().green());
+                        println!("  {}", generated.full_cmd.green().bold());
+                        println!();
+                        if !generated.explanation.is_empty() {
+                            println!("  {}", "Explanation:".bold());
+                            println!("  {}", generated.explanation);
+                            println!();
+                        }
+                        println!("{}", "─".repeat(60).dimmed());
                     }
-                    println!("{}", "─".repeat(60).dimmed());
 
                     // Ask for confirmation before SSH execution
                     use std::io::Write as _;
@@ -1880,6 +1901,9 @@ async fn run(cli: Cli) -> error::Result<()> {
                     task,
                     server: server_flag,
                     model,
+                    no_cache,
+                    json,
+                    optimize_task,
                 } => {
                     let cfg = config::Config::load()?;
                     let mgr = server::ServerManager::new(cfg.clone());
@@ -1906,8 +1930,11 @@ async fn run(cli: Cli) -> error::Result<()> {
                     if let Some(ref m) = model {
                         run_cfg.llm.model = Some(m.clone());
                     }
-                    let runner_inst = runner::Runner::new(run_cfg).with_verbose(verbose);
-                    runner_inst.dry_run(&tool, &task, false).await?;
+                    let runner_inst = runner::Runner::new(run_cfg)
+                        .with_verbose(verbose)
+                        .with_no_cache(no_cache)
+                        .with_optimize_task(optimize_task);
+                    runner_inst.dry_run(&tool, &task, json).await?;
 
                     println!(
                         "\n{} Target server: '{}' ({}{})",
