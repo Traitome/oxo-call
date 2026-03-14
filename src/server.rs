@@ -105,6 +105,11 @@ impl ServerHost {
 pub struct ServerConfig {
     #[serde(default)]
     pub hosts: Vec<ServerHost>,
+    /// The active (default) server name.  When set, `server run` and
+    /// `server dry-run` use this server when no explicit `--server` flag is
+    /// given.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active: Option<String>,
 }
 
 // ─── SSH config parser ────────────────────────────────────────────────────────
@@ -249,7 +254,8 @@ impl ServerManager {
         Ok(())
     }
 
-    /// Remove a server by name.
+    /// Remove a server by name.  Also clears the active server if it was the
+    /// one being removed.
     pub fn remove(&mut self, name: &str) -> Result<()> {
         let before = self.config.server.hosts.len();
         self.config.server.hosts.retain(|h| h.name != name);
@@ -258,6 +264,38 @@ impl ServerManager {
                 "No server found with name '{name}'"
             )));
         }
+        // Clear active if it pointed at the removed server.
+        if self.config.server.active.as_deref() == Some(name) {
+            self.config.server.active = None;
+        }
+        self.config.save()?;
+        Ok(())
+    }
+
+    /// Return the active (default) server, if one is set.
+    pub fn get_active(&self) -> Option<&ServerHost> {
+        self.config
+            .server
+            .active
+            .as_deref()
+            .and_then(|name| self.find(name))
+    }
+
+    /// Set the active (default) server.
+    pub fn set_active(&mut self, name: &str) -> Result<()> {
+        if self.find(name).is_none() {
+            return Err(OxoError::ConfigError(format!(
+                "No server found with name '{name}'. Run 'oxo-call server list'."
+            )));
+        }
+        self.config.server.active = Some(name.to_string());
+        self.config.save()?;
+        Ok(())
+    }
+
+    /// Clear the active server.
+    pub fn clear_active(&mut self) -> Result<()> {
+        self.config.server.active = None;
         self.config.save()?;
         Ok(())
     }
@@ -649,5 +687,77 @@ Host *
     fn test_parse_selection_empty() {
         assert_eq!(parse_selection("", 5), Vec::<usize>::new());
         assert_eq!(parse_selection("   ", 5), Vec::<usize>::new());
+    }
+
+    // ─── active server tests ───────────────────────────────────────────────
+
+    fn make_test_config_with_servers() -> crate::config::Config {
+        let mut cfg = crate::config::Config::default();
+        cfg.server.hosts.push(ServerHost {
+            name: "alpha".to_string(),
+            host: "alpha.example.com".to_string(),
+            user: Some("alice".to_string()),
+            port: None,
+            identity_file: None,
+            server_type: ServerType::Workstation,
+            scheduler: None,
+            work_dir: None,
+        });
+        cfg.server.hosts.push(ServerHost {
+            name: "beta".to_string(),
+            host: "beta.example.com".to_string(),
+            user: None,
+            port: Some(2222),
+            identity_file: None,
+            server_type: ServerType::Hpc,
+            scheduler: Some("slurm".to_string()),
+            work_dir: None,
+        });
+        cfg
+    }
+
+    #[test]
+    fn test_get_active_none_by_default() {
+        let cfg = make_test_config_with_servers();
+        let mgr = ServerManager { config: cfg };
+        assert!(mgr.get_active().is_none());
+    }
+
+    #[test]
+    fn test_server_config_active_field_default() {
+        let cfg = ServerConfig::default();
+        assert!(cfg.active.is_none());
+    }
+
+    #[test]
+    fn test_set_active_unknown_server_fails() {
+        let cfg = make_test_config_with_servers();
+        let mut mgr = ServerManager { config: cfg };
+        assert!(mgr.set_active("nonexistent").is_err());
+    }
+
+    #[test]
+    fn test_get_active_after_set_in_memory() {
+        let cfg = make_test_config_with_servers();
+        // Mutate config directly to avoid disk I/O in unit tests.
+        let mut cfg2 = cfg;
+        cfg2.server.active = Some("alpha".to_string());
+        let mgr = ServerManager { config: cfg2 };
+        let active = mgr.get_active().expect("should have active server");
+        assert_eq!(active.name, "alpha");
+    }
+
+    #[test]
+    fn test_remove_clears_active_when_active_removed() {
+        let mut cfg = make_test_config_with_servers();
+        cfg.server.active = Some("alpha".to_string());
+        let mut mgr = ServerManager { config: cfg };
+        // Manually remove without saving (unit test - no disk)
+        mgr.config.server.hosts.retain(|h| h.name != "alpha");
+        if mgr.config.server.active.as_deref() == Some("alpha") {
+            mgr.config.server.active = None;
+        }
+        assert!(mgr.get_active().is_none());
+        assert!(mgr.find("alpha").is_none());
     }
 }

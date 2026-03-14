@@ -2140,6 +2140,14 @@ fn test_server_help_output() {
     assert!(stdout.contains("ssh-config"));
     assert!(stdout.contains("run"));
     assert!(stdout.contains("dry-run"));
+    assert!(
+        stdout.contains("use"),
+        "server --help should list 'use' subcommand"
+    );
+    assert!(
+        stdout.contains("unuse"),
+        "server --help should list 'unuse' subcommand"
+    );
 }
 
 #[test]
@@ -2213,9 +2221,59 @@ fn test_server_run_help() {
         .expect("failed to run oxo-call");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("server"));
+    // tool and task are still required positionals
     assert!(stdout.contains("tool"));
     assert!(stdout.contains("task"));
+    // server is now an optional flag
+    assert!(
+        stdout.contains("--server") || stdout.contains("-s"),
+        "server should be an optional --server flag"
+    );
+}
+
+#[test]
+fn test_server_use_help() {
+    let output = oxo_call()
+        .args(["server", "use", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("active") || stdout.contains("name"));
+}
+
+#[test]
+fn test_server_unuse_help() {
+    let output = oxo_call()
+        .args(["server", "unuse", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("active") || stdout.contains("Clear") || stdout.contains("clear"),
+        "unuse help should describe clearing the active server"
+    );
+}
+
+#[test]
+fn test_server_run_no_server_no_active_fails() {
+    // With no active server and no --server flag, server run should fail gracefully
+    let output = oxo_call()
+        .args(["server", "run", "ls", "list files"])
+        .env("OXO_CALL_CONFIG_DIR", "/tmp/oxo-call-test-empty-config")
+        .output()
+        .expect("failed to run oxo-call");
+    // Should fail because no server is specified and no active server
+    assert!(
+        !output.status.success(),
+        "server run without server should fail"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("No server") || stderr.contains("active"),
+        "error should mention missing server or active host"
+    );
 }
 
 // ─── HPC skill tests ─────────────────────────────────────────────────────────
