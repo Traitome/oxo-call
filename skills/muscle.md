@@ -1,0 +1,45 @@
+---
+name: muscle
+category: phylogenetics
+description: Fast and accurate multiple sequence alignment for proteins and DNA
+tags: [multiple-sequence-alignment, msa, protein, nucleotide, phylogenetics, alignment]
+author: oxo-call built-in
+source_url: "https://drive5.com/muscle/"
+---
+
+## Concepts
+
+- MUSCLE (v5) performs progressive and iterative multiple sequence alignment for proteins and DNA.
+- MUSCLE v5 has a different command syntax than v3: use '-align' for alignment, '-super5' for large datasets.
+- Use -align for standard alignment; -super5 for >1000 sequences (uses less memory).
+- Use -threads N for parallelism in MUSCLE v5.
+- Output is aligned FASTA by default; use -output to specify output file.
+- MUSCLE v5 produces 15 replicate ensembles by default — use -replicates 1 for speed.
+- MUSCLE v3 (older, widely used): muscle -in input.fasta -out aligned.fasta
+- MUSCLE is generally faster than MAFFT for large datasets but may be less accurate for divergent sequences.
+
+## Pitfalls
+
+- MUSCLE v3 and v5 have completely different command syntax — check version before using.
+- MUSCLE v5 outputs ensemble alignments by default; use -replicates 1 for a single alignment.
+- For very divergent sequences (<20% identity), MAFFT with --localpair may give better results.
+- MUSCLE output is to stdout by default in v3; use -out for file output.
+- MUSCLE v5 is not compatible with MUSCLE v3 parameters — update commands when switching versions.
+
+## Examples
+
+### align multiple protein sequences with MUSCLE v5
+**Args:** `-align proteins.fasta -output aligned_proteins.fasta -threads 8`
+**Explanation:** -align input FASTA; -output aligned FASTA; -threads 8 parallel
+
+### align a large dataset with MUSCLE v5 super5 mode
+**Args:** `-super5 large_dataset.fasta -output large_aligned.fasta -threads 16`
+**Explanation:** -super5 for >1000 sequences; lower memory usage; suitable for large datasets
+
+### align sequences with MUSCLE v3 syntax (legacy)
+**Args:** `-in sequences.fasta -out aligned.fasta`
+**Explanation:** MUSCLE v3 syntax; -in input; -out output; auto-detects protein/nucleotide
+
+### generate multiple alignment replicates for uncertainty estimation
+**Args:** `-align sequences.fasta -output aligned.fasta -replicates 5 -threads 8`
+**Explanation:** -replicates 5 generates 5 alternative alignments; use for ensemble-based analysis

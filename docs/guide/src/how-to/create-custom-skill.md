@@ -14,38 +14,41 @@ Create a skill when:
 
 ---
 
-## Skill File Structure
+## Skill File Format
 
-A skill file is a TOML file with three sections:
+A skill is a **Markdown file** (`.md`) with a YAML front-matter block followed by Markdown sections:
 
-```toml
-[meta]
-name     = "mytool"        # must match the binary name exactly
-category = "alignment"     # domain category
-tags     = ["bam", "ngs"]  # searchable tags
+```markdown
+---
+name: mytool
+category: alignment     # domain category
+description: One-line summary of what this tool does
+tags: [bam, ngs]        # searchable tags
+author: your-name       # optional
+source_url: https://...  # link to tool docs (optional)
+---
 
-[context]
-concepts = [
-    "Concept 1: fundamental knowledge about this tool",
-    "Concept 2: key behavior to understand",
-    "Concept 3: important flag semantics",
-]
+## Concepts
 
-pitfalls = [
-    "Common mistake 1 — and how to avoid it",
-    "Common mistake 2 — and how to avoid it",
-    "Common mistake 3 — and how to avoid it",
-]
+- Concept 1: fundamental knowledge about this tool
+- Concept 2: key behavior to understand
+- Concept 3: important flag semantics
 
-[[examples]]
-task        = "a plain English description of a task"
-args        = "mytool --flag1 value1 --flag2 value2 input output"
-explanation = "why these flags were chosen"
+## Pitfalls
 
-[[examples]]
-task        = "another task description"
-args        = "mytool --other-flags input"
-explanation = "explanation of the flags"
+- Common mistake 1 — and how to avoid it
+- Common mistake 2 — and how to avoid it
+- Common mistake 3 — and how to avoid it
+
+## Examples
+
+### a plain English description of a task
+**Args:** `--flag1 value1 --flag2 value2 input output`
+**Explanation:** why these flags were chosen
+
+### another task description
+**Args:** `--other-flags input`
+**Explanation:** explanation of the flags
 ```
 
 **Minimum requirements for a valid skill:**
@@ -53,17 +56,21 @@ explanation = "explanation of the flags"
 - At least 3 pitfalls
 - At least 5 examples
 
-> **Important:** All `task`, `args`, and `explanation` fields in `[[examples]]` blocks **must** use the `= "..."` assignment syntax. Missing `=` causes a silent TOML parse failure — the skill will silently return `None` at runtime with only a warning to stderr.
+> **Format rules for examples:**
+> - The task goes in a level-3 heading (`### task description`)
+> - Args are on the next line as `**Args:** \`command flags here\`` (backtick-wrapped)
+> - Explanation is on the following line as `**Explanation:** text`
+> - `args` should contain only the arguments, **not** the tool name itself
 
 
 
 ## Step 1: Generate a Template
 
 ```bash
-oxo-call skill create mytool -o ~/.config/oxo-call/skills/mytool.toml
+oxo-call skill create mytool -o ~/.config/oxo-call/skills/mytool.md
 ```
 
-This creates a TOML template with placeholder content at the user skills directory.
+This creates a Markdown template with placeholder content at the user skills directory.
 
 ---
 
@@ -71,53 +78,53 @@ This creates a TOML template with placeholder content at the user skills directo
 
 Open the file and fill in real content. Here is a complete example for `kallisto`:
 
-```toml
-[meta]
-name     = "kallisto"
-category = "rna-seq"
-tags     = ["rna-seq", "quantification", "pseudoalignment", "transcript"]
+```markdown
+---
+name: kallisto
+category: rna-seq
+description: Near-optimal RNA-seq quantification by pseudoalignment
+tags: [rna-seq, quantification, pseudoalignment, transcript]
+author: oxo-call built-in
+source_url: https://pachterlab.github.io/kallisto/
+---
 
-[context]
-concepts = [
-    "kallisto uses pseudoalignment — it does not produce a BAM file; output is abundance.tsv, abundance.h5, and run_info.json",
-    "Build a transcriptome index with 'kallisto index', NOT a genome index — use cDNA FASTA, not genomic FASTA",
-    "The -b flag sets bootstrap samples for uncertainty estimation; 0 = no bootstraps; 100 is typical for differential expression",
-    "Use --single for single-end reads with --fragment-length and --sd required",
-    "Output directory must be specified with -o; kallisto will not create nested directories",
-]
+## Concepts
 
-pitfalls = [
-    "Using a genome FASTA instead of a transcriptome FASTA for the index — use Ensembl cDNA or GENCODE transcripts FASTA",
-    "Forgetting -b for bootstraps when using downstream tools like sleuth that require uncertainty estimates",
-    "Using --single without --fragment-length and --sd — both are required for single-end quantification",
-    "Not specifying -o — output goes to current directory and may overwrite previous runs",
-    "Using the wrong strand flag — check library preparation: --fr-stranded or --rf-stranded for stranded libraries",
-]
+- kallisto uses pseudoalignment — it does not produce a BAM file; output is abundance.tsv, abundance.h5, and run_info.json
+- Build a transcriptome index with 'kallisto index', NOT a genome index — use cDNA FASTA, not genomic FASTA
+- The -b flag sets bootstrap samples for uncertainty estimation; 0 = no bootstraps; 100 is typical for differential expression
+- Use --single for single-end reads with --fragment-length and --sd required
+- Output directory must be specified with -o; kallisto will not create nested directories
 
-[[examples]]
-task        = "build a transcriptome index from human cDNA FASTA"
-args        = "index -i hg38_transcriptome.idx gencode.v44.pc_transcripts.fa"
-explanation = "-i specifies the output index filename; input is the transcriptome FASTA (not genome)"
+## Pitfalls
 
-[[examples]]
-task        = "quantify paired-end RNA-seq reads with 100 bootstraps"
-args        = "quant -i hg38_transcriptome.idx -o quant/sample1 -b 100 sample1_R1.fq.gz sample1_R2.fq.gz"
-explanation = "-i is the index; -o sets output directory; -b 100 generates 100 bootstraps for sleuth"
+- Using a genome FASTA instead of a transcriptome FASTA for the index — use Ensembl cDNA or GENCODE transcripts FASTA
+- Forgetting -b for bootstraps when using downstream tools like sleuth that require uncertainty estimates
+- Using --single without --fragment-length and --sd — both are required for single-end quantification
+- Not specifying -o — output goes to current directory and may overwrite previous runs
+- Using the wrong strand flag — check library preparation: --fr-stranded or --rf-stranded for stranded libraries
 
-[[examples]]
-task        = "quantify single-end reads with 150bp mean fragment length"
-args        = "quant -i hg38_transcriptome.idx -o quant/sample1 --single -l 150 -s 20 sample1.fq.gz"
-explanation = "--single enables single-end mode; -l is mean fragment length; -s is standard deviation"
+## Examples
 
-[[examples]]
-task        = "quantify stranded paired-end reads (forward-reverse orientation)"
-args        = "quant -i hg38_transcriptome.idx -o quant/sample1 --fr-stranded -b 50 R1.fq.gz R2.fq.gz"
-explanation = "--fr-stranded for dUTP-based stranded library; check your protocol documentation"
+### build a transcriptome index from human cDNA FASTA
+**Args:** `index -i hg38_transcriptome.idx gencode.v44.pc_transcripts.fa`
+**Explanation:** -i specifies the output index filename; input is the transcriptome FASTA (not genome)
 
-[[examples]]
-task        = "inspect the transcriptome index"
-args        = "inspect hg38_transcriptome.idx"
-explanation = "prints index statistics: number of k-mers, transcripts, and k-mer length"
+### quantify paired-end RNA-seq reads with 100 bootstraps
+**Args:** `quant -i hg38_transcriptome.idx -o quant/sample1 -b 100 sample1_R1.fq.gz sample1_R2.fq.gz`
+**Explanation:** -i is the index; -o sets output directory; -b 100 generates 100 bootstraps for sleuth
+
+### quantify single-end reads with 150bp mean fragment length
+**Args:** `quant -i hg38_transcriptome.idx -o quant/sample1 --single -l 150 -s 20 sample1.fq.gz`
+**Explanation:** --single enables single-end mode; -l is mean fragment length; -s is standard deviation
+
+### quantify stranded paired-end reads (forward-reverse orientation)
+**Args:** `quant -i hg38_transcriptome.idx -o quant/sample1 --fr-stranded -b 50 R1.fq.gz R2.fq.gz`
+**Explanation:** --fr-stranded for dUTP-based stranded library; check your protocol documentation
+
+### inspect the transcriptome index
+**Args:** `inspect hg38_transcriptome.idx`
+**Explanation:** prints index statistics: number of k-mers, transcripts, and k-mer length
 ```
 
 ---
@@ -129,9 +136,10 @@ oxo-call skill show kallisto
 ```
 
 If you see the skill content, it is working. If not, check:
-- File is at `~/.config/oxo-call/skills/kallisto.toml`
+- File is at `~/.config/oxo-call/skills/kallisto.md`
 - Filename matches the binary name exactly
-- TOML syntax is valid (use `toml-validator` if needed)
+- Front-matter block starts with `---` and ends with `---`
+- Each example has a `### Task` heading, then `**Args:**` and `**Explanation:**` lines
 
 ---
 
@@ -144,9 +152,9 @@ Compare dry-run output with and without the skill:
 oxo-call dry-run kallisto "quantify paired-end reads R1.fq R2.fq against human transcriptome"
 
 # Temporarily disable by moving the skill file
-mv ~/.config/oxo-call/skills/kallisto.toml /tmp/
+mv ~/.config/oxo-call/skills/kallisto.md /tmp/
 oxo-call dry-run kallisto "quantify paired-end reads R1.fq R2.fq against human transcriptome"
-mv /tmp/kallisto.toml ~/.config/oxo-call/skills/kallisto.toml
+mv /tmp/kallisto.md ~/.config/oxo-call/skills/kallisto.md
 ```
 
 Compare the outputs — the skill-augmented version should include the correct index path pattern and bootstrap flag.
@@ -176,7 +184,8 @@ This helps you verify that your skill content is being injected correctly and id
 1. **Skill not loading?** Check with `oxo-call skill show <tool>`. If it returns nothing, verify:
    - Filename matches the tool binary name exactly (case-sensitive)
    - File is in `~/.config/oxo-call/skills/` (user) or `~/.local/share/oxo-call/skills/` (community)
-   - TOML syntax is valid — especially check that `[[examples]]` fields use `= "..."` syntax
+   - File starts with `---` (YAML front-matter delimiter)
+   - Each `### Example` heading is followed by `**Args:**` and `**Explanation:**` lines
 
 2. **Skill loaded but LLM ignores it?** Compare dry-run output with and without the skill. If the LLM ignores your examples, try:
    - Making concepts more specific and actionable
@@ -212,39 +221,40 @@ See the [oxo-bench crate](https://github.com/Traitome/oxo-call/tree/main/crates/
 
 Concepts should be facts that the LLM needs to understand to use the tool correctly, but that might not be obvious from `--help` output alone.
 
-```toml
+```markdown
 # ✓ GOOD: explains non-obvious behavior
-"BAM files MUST be coordinate-sorted before indexing with samtools index"
+- BAM files MUST be coordinate-sorted before indexing with samtools index
 
 # ✗ BAD: restates what --help already says
-"Use -o to specify the output file"
+- Use -o to specify the output file
 ```
 
 ### Pitfalls: common mistakes
 
 Pitfalls should be mistakes that users (or LLMs) commonly make, with the consequence explained.
 
-```toml
+```markdown
 # ✓ GOOD: specific mistake + consequence
-"Using --gtf with a genome FASTA (not transcriptome) for kallisto index — will produce incorrect k-mer counts"
+- Using --gtf with a genome FASTA (not transcriptome) for kallisto index — will produce incorrect k-mer counts
 
 # ✗ BAD: vague
-"Be careful with input files"
+- Be careful with input files
 ```
 
 ### Examples: task → args mappings
 
-Examples should cover the most common real-world tasks in your domain. The `args` field is the actual command-line flags (without the tool name prefix).
+Examples should cover the most common real-world tasks in your domain. The args are the actual command-line flags (without the tool name prefix).
 
-```toml
+```markdown
 # ✓ GOOD: complete, realistic task
-task        = "align paired-end reads to hg38, output sorted BAM, 8 threads"
-args        = "mem -t 8 hg38.fa R1.fq.gz R2.fq.gz | samtools sort -o aligned.bam"
-explanation = "pipes to samtools sort to avoid intermediate SAM file"
+### align paired-end reads to hg38, output sorted BAM, 8 threads
+**Args:** `mem -t 8 hg38.fa R1.fq.gz R2.fq.gz | samtools sort -o aligned.bam`
+**Explanation:** pipes to samtools sort to avoid intermediate SAM file
 
 # ✗ BAD: too generic
-task = "align reads"
-args = "mem ref.fa reads.fq"
+### align reads
+**Args:** `mem ref.fa reads.fq`
+**Explanation:** basic alignment
 ```
 
 ---
@@ -255,10 +265,10 @@ You can install a skill from a URL:
 
 ```bash
 # Install from a URL (shared within your organization)
-oxo-call skill install kallisto --url https://your-org.example.com/skills/kallisto.toml
+oxo-call skill install kallisto --url https://your-org.example.com/skills/kallisto.md
 
 # Others on your team can do the same
-oxo-call skill install kallisto --url https://your-org.example.com/skills/kallisto.toml
+oxo-call skill install kallisto --url https://your-org.example.com/skills/kallisto.md
 ```
 
 ---
@@ -280,3 +290,4 @@ Your custom skill always wins over the built-in.
 - [Skill System reference](../reference/skill-system.md) — full format specification
 - [skill command reference](../commands/skill.md) — all subcommands
 - [Contributing built-in skills](../development/contributing.md) — contribute to the project
+

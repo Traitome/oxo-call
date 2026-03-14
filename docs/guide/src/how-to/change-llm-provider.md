@@ -202,7 +202,7 @@ After this setup, disconnect from the network. All subsequent `oxo-call run` and
 | `docs add --url` (remote fetch) | ✅ | Use `docs add --file` or `docs add --dir` |
 | `docs add` (first-time `--help` capture) | ❌ | Tool must be installed locally |
 | License verification | ❌ | Already offline |
-| `skill install --url` | ✅ | Copy TOML files manually |
+| `skill install --url` | ✅ | Copy skill files manually |
 
 ---
 
@@ -230,11 +230,11 @@ Distribute team skills via a shared directory or Git repository:
 
 ```bash
 # Team lead creates skills
-oxo-call skill create internal-tool -o /shared/oxo-call/skills/internal-tool.toml
+oxo-call skill create internal-tool -o /shared/oxo-call/skills/internal-tool.md
 # Edit the skill file with team-specific conventions
 
 # Team members install
-cp /shared/oxo-call/skills/*.toml ~/.config/oxo-call/skills/
+cp /shared/oxo-call/skills/*.md ~/.config/oxo-call/skills/
 # Or symlink the entire directory
 ```
 

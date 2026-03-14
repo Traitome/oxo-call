@@ -1,0 +1,42 @@
+---
+name: bakta
+category: annotation
+description: Fast and standardized annotation of bacterial genomes and plasmids in GFF3 and GenBank format
+tags: [annotation, bacteria, genome, gff, genbank, plasmid, ncbi, insdc]
+author: oxo-call built-in
+source_url: "https://github.com/oschwengers/bakta"
+---
+
+## Concepts
+
+- Bakta is a modern prokaryotic annotation tool that produces INSDC/NCBI-compliant annotation files.
+- Use --db to specify the Bakta database path (download with 'bakta_db download --output /path/to/db').
+- Use -o for output directory; --prefix for output file prefix; --threads for parallelism.
+- Bakta outputs: GFF3, GenBank/EMBL, TSV table, FAA, FNA, log files.
+- Use --gram to specify Gram stain (+/-) for signal peptide prediction.
+- Use --genus and --species for taxonomy-aware annotations.
+- Bakta is recommended over Prokka for NCBI submissions due to better standard compliance.
+- Use --compliant for INSDC-compliant sequence IDs (required for GenBank/EMBL submission).
+
+## Pitfalls
+
+- Bakta database must be downloaded before running — use 'bakta_db download' first.
+- --db must point to the full database directory, not just a file within it.
+- The output directory must not already exist — Bakta creates it fresh.
+- For NCBI submission, always use --compliant and set --locus-tag.
+- Bakta requires sequences ≥200 bp — very short contigs may not produce annotations.
+- Without --gram, signal peptide prediction defaults to both orientations.
+
+## Examples
+
+### annotate a bacterial genome with Bakta
+**Args:** `--db /path/to/bakta_db/ --threads 8 --output annotation/ --prefix genome_annotation genome.fasta`
+**Explanation:** --db database path; --threads 8; --output directory; --prefix file naming prefix
+
+### annotate genome for NCBI submission
+**Args:** `--db /path/to/bakta_db/ --compliant --locus-tag MYORG --genus Escherichia --species coli --threads 8 --output ncbi_annotation/ --prefix ecoli_K12 genome.fasta`
+**Explanation:** --compliant INSDC-compliant format; --locus-tag gene name prefix; required for NCBI submission
+
+### annotate plasmid sequence
+**Args:** `--db /path/to/bakta_db/ --plasmid --threads 4 --output plasmid_annotation/ --prefix plasmid plasmid.fasta`
+**Explanation:** --plasmid adjusts for circular plasmid topology

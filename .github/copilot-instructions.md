@@ -34,7 +34,9 @@ Integration tests live in `tests/cli_tests.rs` and execute the compiled binary. 
 
 **LLM response format** — `src/llm.rs` expects `ARGS:` and `EXPLANATION:` lines and retries on invalid format. The three LLM roles (command generation, `--optimize-task`, `--verify`) each use a dedicated system prompt.
 
-**Skill precedence** — `user > community > built-in`. Reuse `SkillManager`; do not add ad-hoc skill loading.
+**Skill precedence** — `user > community > mcp > built-in`. Reuse `SkillManager`; do not add ad-hoc skill loading. Use `load_async()` in async contexts (runner, CLI commands) and `load()` only where sync is unavoidable.
+
+**MCP skill provider** — `src/mcp.rs` implements the minimal MCP JSON-RPC client (HTTP POST transport, no SSE). `McpServerConfig` is defined in `config.rs`. MCP servers are registered via `skill mcp add <url>` and stored under `[[mcp.servers]]` in `config.toml`.
 
 **Keep issuer in sync** — `crates/license-issuer/src/main.rs` signs the same payload that `src/license.rs` verifies. Schema changes require edits in both.
 
@@ -53,7 +55,7 @@ Integration tests live in `tests/cli_tests.rs` and execute the compiled binary. 
 1–4 same as above, plus `docs/guide/src/SUMMARY.md` if it's a top-level command.
 
 **New built-in skill:**
-1. `skills/<tool>.toml` — `[meta]` + `[context]` + `[[examples]]` (≥3 concepts, ≥3 pitfalls, ≥5 examples)
+1. `skills/<tool>.md` — YAML front-matter (`name`, `category`, `description`, `tags`, `author`, `source_url`) + `## Concepts` + `## Pitfalls` + `## Examples` sections (≥3 concepts, ≥3 pitfalls, ≥5 examples). Each example: `### task` → `**Args:** \`flags\`` → `**Explanation:** text`
 2. `src/skill.rs` — add to `BUILTIN_SKILLS` array with `include_str!`
 
 **New workflow template:**

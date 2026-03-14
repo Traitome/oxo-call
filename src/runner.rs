@@ -153,7 +153,7 @@ impl Runner {
             task.to_string()
         };
 
-        let skill = self.skill_manager.load(tool);
+        let skill = self.skill_manager.load_async(tool).await;
         let skill_name = skill.as_ref().map(|s| s.meta.name.clone());
         let skill_label = if skill.is_some() {
             format!(" (skill: {})", tool)

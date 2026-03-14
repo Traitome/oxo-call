@@ -1,0 +1,45 @@
+---
+name: chopper
+category: qc
+description: Quality filtering and trimming of Oxford Nanopore reads based on quality score and length
+tags: [nanopore, long-read, qc, filtering, trimming, quality-control, ont]
+author: oxo-call built-in
+source_url: "https://github.com/wdecoster/chopper"
+---
+
+## Concepts
+
+- chopper filters and trims Oxford Nanopore reads by quality score and length; it replaces NanoFilt.
+- chopper reads from stdin and writes to stdout — pipe from gunzip/cat and pipe to gzip.
+- Use -q to set minimum mean quality (Phred score); -l for minimum read length; --maxlength for maximum.
+- Use --headcrop N to trim N bases from the start; --tailcrop N to trim N bases from the end.
+- Use --threads N for parallel processing.
+- Standard usage: gunzip -c reads.fastq.gz | chopper -q 10 -l 1000 | gzip > filtered.fastq.gz
+- chopper is Rust-based and much faster than NanoFilt for large ONT datasets.
+
+## Pitfalls
+
+- chopper reads from stdin — must pipe input, not pass a file argument.
+- gzipped input requires gunzip -c or zcat piped to chopper; gzipped output requires piping to gzip.
+- --headcrop and --tailcrop values are in bases, not quality scores.
+- Quality threshold (-q) applies to mean read quality, not per-base quality.
+- Minimum length (-l 1000) is essential for most long-read analyses — short reads from DNA fragmentation add noise.
+- chopper does NOT replace Porechop for adapter trimming — run Porechop before chopper for best results.
+
+## Examples
+
+### filter ONT reads by minimum quality Q10 and minimum length 1000 bp
+**Args:** `-q 10 -l 1000 --threads 8`
+**Explanation:** pipe: gunzip -c reads.fastq.gz | chopper -q 10 -l 1000 --threads 8 | gzip > filtered.fastq.gz
+
+### filter high-quality ONT reads for variant calling (Q15, min 500 bp)
+**Args:** `-q 15 -l 500 --threads 8`
+**Explanation:** Q15 ≈ 97% accuracy; -l 500 minimum length; pipe input from gunzip and output to gzip
+
+### filter reads and remove low-quality ends
+**Args:** `-q 10 -l 1000 --headcrop 30 --tailcrop 30 --threads 8`
+**Explanation:** --headcrop 30 removes first 30 bases (often lower quality); --tailcrop 30 removes last 30 bases
+
+### filter reads with maximum length cutoff for specific applications
+**Args:** `-q 8 -l 200 --maxlength 50000 --threads 4`
+**Explanation:** --maxlength removes very long reads that may be chimeric; -l 200 for short-fragment applications

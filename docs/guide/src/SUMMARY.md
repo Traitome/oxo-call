@@ -40,6 +40,7 @@
 - [System Architecture](./reference/architecture.md)
 - [Documentation System](./reference/documentation-system.md)
 - [Skill System](./reference/skill-system.md)
+- [MCP Skill Provider](./reference/mcp-skill-provider.md)
 - [LLM Integration](./reference/llm-integration.md)
 - [Workflow Engine](./reference/workflow-engine.md)
 - [License System](./reference/license-system.md)

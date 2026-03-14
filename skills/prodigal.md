@@ -1,0 +1,45 @@
+---
+name: prodigal
+category: annotation
+description: Fast prokaryotic gene prediction tool for bacteria and archaea genomes and metagenomes
+tags: [annotation, gene-prediction, prokaryote, bacteria, archaea, metagenomics, orf]
+author: oxo-call built-in
+source_url: "https://github.com/hyattpd/Prodigal"
+---
+
+## Concepts
+
+- Prodigal predicts protein-coding genes in prokaryotic (bacterial/archaeal) genomes and metagenomes.
+- Two modes: single genome mode (default, trains on input genome) and metagenomic mode (-p meta).
+- Use -i for input FASTA; -a for protein output FASTA; -d for nucleotide CDS FASTA; -f for output format.
+- Output formats: -f gbk (GenBank, default), -f gff (GFF3), -f sco (summary).
+- Use -p meta for metagenomic sequences (fragmented/short contigs) or unknown organisms.
+- Prodigal is fast and accurate for prokaryotes; not suitable for eukaryotes (use Augustus or BRAKER).
+- The -g flag specifies genetic code: -g 4 for Mycoplasma/Spiroplasma (TGA = Trp); default is standard code 11.
+
+## Pitfalls
+
+- Prodigal only works for prokaryotes — do NOT use for eukaryotic gene prediction.
+- Without -p meta, Prodigal trains on the input sequence — short/fragmented sequences need -p meta mode.
+- The default output (-o) is GenBank format; specify -f gff3 for GFF3 format.
+- Prodigal does not predict tRNAs or rRNAs — use Aragorn and Barrnap for those.
+- Very short sequences (<20 kb) may not provide enough training data for single mode — use -p meta.
+- The protein file (-a) header format includes gene coordinates and strand — useful for downstream analysis.
+
+## Examples
+
+### predict genes in a bacterial genome and output protein and GFF files
+**Args:** `-i genome.fasta -a proteins.faa -d cds.fna -f gff -o gene_predictions.gff`
+**Explanation:** -i input genome; -a protein FASTA output; -d CDS nucleotide FASTA; -f gff format; -o GFF output
+
+### predict genes in metagenomic contigs
+**Args:** `-i metagenomic_contigs.fasta -a meta_proteins.faa -d meta_cds.fna -f gff -o meta_genes.gff -p meta`
+**Explanation:** -p meta mode for metagenomes or mixed/unknown organisms; handles fragmented sequences
+
+### predict genes with non-standard genetic code (Mycoplasma)
+**Args:** `-i mycoplasma_genome.fasta -a mycoplasma_proteins.faa -f gff -o mycoplasma_genes.gff -g 4`
+**Explanation:** -g 4 specifies genetic code 4 (TGA codes for Trp instead of stop); for Mycoplasma/Spiroplasma
+
+### predict genes and output in GenBank format for import into annotation tools
+**Args:** `-i assembly.fasta -a proteins.faa -f gbk -o predictions.gbk`
+**Explanation:** -f gbk GenBank format; compatible with many genome browsers and annotation tools

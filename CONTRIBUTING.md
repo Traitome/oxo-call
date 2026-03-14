@@ -111,7 +111,7 @@ oxo-call/
 │   ├── config.rs            # Platform-aware configuration
 │   ├── history.rs           # JSONL command history
 │   └── license.rs           # Offline Ed25519 license verification
-├── skills/                  # 143 built-in skill TOML files
+├── skills/                  # 134+ built-in skill Markdown files (.md)
 ├── workflows/
 │   ├── native/              # .oxo.toml workflow format
 │   ├── snakemake/           # Snakemake (.smk) templates
@@ -142,50 +142,51 @@ oxo-call/
 
 ## Adding a new skill
 
-Skills ground the LLM in domain-specific knowledge. Each skill is a TOML
-file that lives in `skills/`.
+Skills ground the LLM in domain-specific knowledge. Each skill is a Markdown
+file (`.md`) with YAML front-matter that lives in `skills/`.
 
-### 1. Create the TOML file
+### 1. Create the Markdown file
 
-Create `skills/<toolname>.toml` following this structure:
+Create `skills/<toolname>.md` following this structure:
 
-```toml
-[meta]
-name = "toolname"
-category = "alignment"          # e.g. alignment, variant-calling, qc, …
-description = "One-line summary of the tool"
-tags = ["bam", "alignment"]     # Relevant search keywords
-author = "oxo-call built-in"
-source_url = "https://tool-docs.example.com"
+```markdown
+---
+name: toolname
+category: alignment          # e.g. alignment, variant-calling, qc, …
+description: One-line summary of the tool
+tags: [bam, alignment]       # Relevant search keywords
+author: oxo-call built-in
+source_url: https://tool-docs.example.com
+---
 
-[context]
-concepts = [
-    "Key concept the LLM should know when generating arguments.",
-    "Another concept — be specific and actionable.",
-]
+## Concepts
 
-pitfalls = [
-    "Common mistake users make with this tool.",
-    "Another pitfall — explain what goes wrong and the fix.",
-]
+- Key concept the LLM should know when generating arguments
+- Another concept — be specific and actionable
 
-[[examples]]
-task = "Sort a BAM file by coordinate"
-args = "sort -@ 4 -o sorted.bam input.bam"
-explanation = "-@ 4 uses 4 threads; -o writes output; coordinate sort is the default"
+## Pitfalls
 
-[[examples]]
-task = "Another representative task"
-args = "view -b -q 30 input.bam"
-explanation = "Filters to reads with MAPQ ≥ 30 and outputs BAM"
+- Common mistake users make with this tool
+- Another pitfall — explain what goes wrong and the fix
+
+## Examples
+
+### Sort a BAM file by coordinate
+**Args:** `sort -@ 4 -o sorted.bam input.bam`
+**Explanation:** -@ 4 uses 4 threads; -o writes output; coordinate sort is the default
+
+### Another representative task
+**Args:** `view -b -q 30 input.bam`
+**Explanation:** Filters to reads with MAPQ ≥ 30 and outputs BAM
 ```
 
 **Tips:**
 
 - `args` should contain only the arguments, **not** the tool name itself.
-- Include 3–6 representative examples covering common use cases.
-- Concepts and pitfalls directly shape the LLM prompt—make them concise and
+- Include 5+ representative examples covering common use cases.
+- Concepts and pitfalls directly shape the LLM prompt — make them concise and
   accurate.
+- Each example: `### Task description` → `**Args:** \`flags\`` → `**Explanation:** text`
 
 ### 2. Register the skill in `src/skill.rs`
 

@@ -1,0 +1,46 @@
+---
+name: checkm2
+category: metagenomics
+description: Assessment of metagenome-assembled genome (MAG) and isolate genome quality using machine learning
+tags: [metagenomics, mag, quality, completeness, contamination, genome, binning]
+author: oxo-call built-in
+source_url: "https://github.com/chklovski/CheckM2"
+---
+
+## Concepts
+
+- CheckM2 assesses genome bin quality (completeness and contamination) using machine learning models trained on protein signatures.
+- CheckM2 is the successor to CheckM1 — it's faster and doesn't require lineage-specific marker genes.
+- Use 'checkm2 predict' to run quality assessment on a directory of genome FASTA files.
+- Use --input to specify the directory of bins; --output-directory for results; --threads for parallelism.
+- Output includes quality_report.tsv with Completeness (%), Contamination (%), and Genome_Size columns.
+- High-quality MAG: ≥90% completeness, ≤5% contamination (MIMAG standards).
+- Medium-quality MAG: ≥50% completeness, ≤10% contamination.
+- Use --database_path to specify the CheckM2 database directory (download with 'checkm2 database --download').
+
+## Pitfalls
+
+- CheckM2 requires the database to be downloaded separately — run 'checkm2 database --download' first.
+- Input bins must be in a single directory — CheckM2 processes all FASTA files in --input directory.
+- File extensions must be .fasta, .fa, or .fna — other extensions are not recognized unless --extension is set.
+- CheckM2 uses protein coding predictions — very fragmented assemblies with few ORFs give inaccurate results.
+- CheckM2 output directory must not already exist — use a fresh output directory.
+- For large datasets, use --threads to speed up the protein prediction step.
+
+## Examples
+
+### assess quality of all MAG bins in a directory
+**Args:** `predict --input bins_directory/ --output-directory checkm2_results/ --threads 16`
+**Explanation:** --input directory with FASTA bins; --output-directory for results; outputs quality_report.tsv
+
+### assess genome quality with custom database path
+**Args:** `predict --input bins_directory/ --output-directory checkm2_output/ --threads 16 --database_path /path/to/checkm2_database/`
+**Explanation:** --database_path specifies downloaded CheckM2 database; required if not in default location
+
+### assess quality and produce detailed outputs including protein predictions
+**Args:** `predict --input bins_directory/ --output-directory checkm2_results/ --threads 16 --allmodels`
+**Explanation:** --allmodels runs all CheckM2 quality models; provides more comprehensive quality estimates
+
+### download the CheckM2 database
+**Args:** `database --download --path /path/to/databases/`
+**Explanation:** downloads the CheckM2 DIAMOND database; must be run before first use

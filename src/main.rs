@@ -8,6 +8,7 @@ mod history;
 mod index;
 mod license;
 mod llm;
+mod mcp;
 mod runner;
 mod sanitize;
 mod skill;
@@ -16,7 +17,7 @@ mod workflow;
 use clap::{CommandFactory, Parser};
 use cli::{
     Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, LicenseCommands,
-    ShellType, SkillCommands, WorkflowCommands,
+    ShellType, SkillCommands, SkillMcpCommands, WorkflowCommands,
 };
 use colored::Colorize;
 use handlers::{config_verify_suggestions, print_index_table, with_source};
@@ -617,35 +618,42 @@ async fn run(cli: Cli) -> error::Result<()> {
         },
 
         Commands::Skill { command } => {
-            let cfg = config::Config::load()?;
-            let mgr = skill::SkillManager::new(cfg);
+            let mut cfg = config::Config::load()?;
+            let mgr = skill::SkillManager::new(cfg.clone());
 
             match command {
                 SkillCommands::List => {
-                    let skills = mgr.list_all();
+                    let skills = mgr.list_all_async().await;
                     if skills.is_empty() {
                         println!("{}", "No skills found.".yellow());
                         return Ok(());
                     }
                     println!(
-                        "{:<20} {:<12} {}",
+                        "{:<20} {:<16} {}",
                         "Tool".bold(),
                         "Source".bold(),
                         "Description".bold()
                     );
-                    println!("{}", "─".repeat(70).dimmed());
+                    println!("{}", "─".repeat(75).dimmed());
                     for (name, source) in &skills {
-                        let desc = mgr
-                            .load(name)
-                            .map(|s| s.meta.description)
-                            .unwrap_or_default();
+                        // For local/built-in skills, load description synchronously.
+                        // For MCP skills (source starts with "mcp:"), skip the extra
+                        // HTTP round-trip and show the server label instead.
+                        let desc = if source.starts_with("mcp:") {
+                            format!("[{}]", source.trim_start_matches("mcp:"))
+                        } else {
+                            mgr.load(name)
+                                .map(|s| s.meta.description)
+                                .unwrap_or_default()
+                        };
                         let source_colored = match source.as_str() {
                             "built-in" => source.dimmed().to_string(),
                             "community" => source.cyan().to_string(),
                             "user" => source.green().bold().to_string(),
+                            s if s.starts_with("mcp:") => source.yellow().to_string(),
                             _ => source.clone(),
                         };
-                        println!("{:<20} {:<12} {}", name.cyan(), source_colored, desc);
+                        println!("{:<20} {:<16} {}", name.cyan(), source_colored, desc);
                     }
                     println!(
                         "\n{} skills available. Use 'oxo-call skill show <tool>' to inspect one.",
@@ -654,7 +662,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
 
                 SkillCommands::Show { tool } => {
-                    if let Some(skill) = mgr.load(&tool) {
+                    if let Some(skill) = mgr.load_async(&tool).await {
                         println!("{}", format!("# Skill: {}", skill.meta.name).bold());
                         println!("Category: {}", skill.meta.category.cyan());
                         println!("Description: {}", skill.meta.description);
@@ -721,6 +729,106 @@ async fn run(cli: Cli) -> error::Result<()> {
                     let path = mgr.user_skill_dir()?;
                     println!("{}", path.display());
                 }
+
+                // ── MCP skill provider management ─────────────────────────
+                SkillCommands::McpServer { command } => match command {
+                    SkillMcpCommands::Add { url, name, api_key } => {
+                        let label = name.clone().unwrap_or_else(|| url.clone());
+                        // Prevent duplicates by URL
+                        if cfg.mcp.servers.iter().any(|s| s.url == url) {
+                            println!(
+                                "{} MCP server '{}' is already registered.",
+                                "ℹ".blue().bold(),
+                                url.cyan()
+                            );
+                            return Ok(());
+                        }
+                        cfg.mcp.servers.push(config::McpServerConfig {
+                            url: url.clone(),
+                            name: label.clone(),
+                            api_key,
+                        });
+                        cfg.save()?;
+                        println!(
+                            "{} Registered MCP server '{}' ({})",
+                            "✓".green().bold(),
+                            label.cyan(),
+                            url
+                        );
+                    }
+
+                    SkillMcpCommands::Remove { url_or_name } => {
+                        let before = cfg.mcp.servers.len();
+                        cfg.mcp
+                            .servers
+                            .retain(|s| s.url != url_or_name && s.name != url_or_name);
+                        if cfg.mcp.servers.len() == before {
+                            return Err(crate::error::OxoError::IndexError(format!(
+                                "No MCP server found matching '{url_or_name}'"
+                            )));
+                        }
+                        cfg.save()?;
+                        println!(
+                            "{} Removed MCP server '{}'",
+                            "✓".green().bold(),
+                            url_or_name.cyan()
+                        );
+                    }
+
+                    SkillMcpCommands::List => {
+                        if cfg.mcp.servers.is_empty() {
+                            println!("{}", "No MCP skill servers registered.".yellow());
+                            println!("Add one with: {}", "oxo-call skill mcp add <url>".bold());
+                        } else {
+                            println!("{:<24} {}", "Name / Label".bold(), "URL".bold());
+                            println!("{}", "─".repeat(60).dimmed());
+                            for s in &cfg.mcp.servers {
+                                println!("{:<24} {}", s.name().cyan(), s.url);
+                            }
+                            println!("\n{} server(s) registered.", cfg.mcp.servers.len());
+                        }
+                    }
+
+                    SkillMcpCommands::Ping => {
+                        if cfg.mcp.servers.is_empty() {
+                            println!("{}", "No MCP skill servers registered.".yellow());
+                            return Ok(());
+                        }
+                        for server in &cfg.mcp.servers {
+                            let client = mcp::McpClient::new(server.clone());
+                            let spinner =
+                                runner::make_spinner(&format!("Pinging '{}'...", server.name()));
+                            match client.initialize().await {
+                                Ok((server_name, version)) => {
+                                    spinner.finish_and_clear();
+                                    // Count available skills
+                                    let skill_count = client
+                                        .list_skill_resources()
+                                        .await
+                                        .map(|r| r.len())
+                                        .unwrap_or(0);
+                                    println!(
+                                        "{} {} — {} v{} ({} skills)",
+                                        "✓".green().bold(),
+                                        server.name().cyan(),
+                                        server_name,
+                                        version,
+                                        skill_count
+                                    );
+                                }
+                                Err(e) => {
+                                    spinner.finish_and_clear();
+                                    println!(
+                                        "{} {} — {}",
+                                        "✗".red().bold(),
+                                        server.name().cyan(),
+                                        e
+                                    );
+                                }
+                            }
+                        }
+                    }
+                },
             }
         }
 

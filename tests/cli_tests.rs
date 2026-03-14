@@ -496,12 +496,20 @@ fn test_skill_create_template() {
         "Expected tool name in template, got: {stdout}"
     );
     assert!(
-        stdout.contains("[meta]"),
-        "Expected TOML structure, got: {stdout}"
+        stdout.contains("---"),
+        "Expected YAML front-matter delimiters, got: {stdout}"
     );
     assert!(
-        stdout.contains("[[examples]]"),
-        "Expected examples section, got: {stdout}"
+        stdout.contains("## Concepts"),
+        "Expected ## Concepts section, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("## Examples"),
+        "Expected ## Examples section, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("**Args:**"),
+        "Expected **Args:** example format, got: {stdout}"
     );
 }
 
@@ -516,6 +524,100 @@ fn test_skill_path() {
     assert!(
         stdout.contains("skills"),
         "Expected skills path, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_skill_mcp_list_empty() {
+    // With a fresh temp config dir there are no MCP servers registered.
+    let dir = tempfile::tempdir().expect("tmpdir");
+    let output = oxo_call()
+        .env("HOME", dir.path())
+        .args(["skill", "mcp", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success(), "mcp list should succeed");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("No MCP") || stdout.contains("registered"),
+        "Expected empty MCP list message, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_skill_mcp_add_and_list() {
+    let dir = tempfile::tempdir().expect("tmpdir");
+    // Add a server
+    let add = oxo_call()
+        .env("HOME", dir.path())
+        .args([
+            "skill",
+            "mcp",
+            "add",
+            "http://localhost:9999",
+            "--name",
+            "test-server",
+        ])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        add.status.success(),
+        "mcp add should succeed: {}",
+        String::from_utf8_lossy(&add.stderr)
+    );
+
+    // List should now show it
+    let list = oxo_call()
+        .env("HOME", dir.path())
+        .args(["skill", "mcp", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(list.status.success());
+    let stdout = String::from_utf8_lossy(&list.stdout);
+    assert!(
+        stdout.contains("test-server") || stdout.contains("localhost:9999"),
+        "Expected registered server in list, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_skill_mcp_remove() {
+    let dir = tempfile::tempdir().expect("tmpdir");
+    // Add then remove
+    oxo_call()
+        .env("HOME", dir.path())
+        .args([
+            "skill",
+            "mcp",
+            "add",
+            "http://localhost:9998",
+            "--name",
+            "removable",
+        ])
+        .output()
+        .expect("add");
+
+    let rm = oxo_call()
+        .env("HOME", dir.path())
+        .args(["skill", "mcp", "remove", "removable"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        rm.status.success(),
+        "mcp remove should succeed: {}",
+        String::from_utf8_lossy(&rm.stderr)
+    );
+
+    // List should now be empty again
+    let list = oxo_call()
+        .env("HOME", dir.path())
+        .args(["skill", "mcp", "list"])
+        .output()
+        .expect("list");
+    let stdout = String::from_utf8_lossy(&list.stdout);
+    assert!(
+        stdout.contains("No MCP") || stdout.contains("registered") && !stdout.contains("removable"),
+        "Expected empty list after remove, got: {stdout}"
     );
 }
 
