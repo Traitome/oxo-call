@@ -711,8 +711,35 @@ async fn run(cli: Cli) -> error::Result<()> {
                     println!("{} Removed skill for '{}'", "✓".green().bold(), tool.cyan());
                 }
 
-                SkillCommands::Create { tool, output } => {
-                    let template = skill::SkillManager::create_template(&tool);
+                SkillCommands::Create { tool, output, llm } => {
+                    let template = if llm {
+                        let llm_client = llm::LlmClient::new(cfg.clone());
+                        let spinner = runner::make_spinner(&format!(
+                            "Generating skill template for '{tool}' with LLM..."
+                        ));
+                        match llm_client.generate_skill_template(&tool).await {
+                            Ok(generated) => {
+                                spinner.finish_and_clear();
+                                println!(
+                                    "{} LLM-generated skill template for '{}'",
+                                    "✓".green().bold(),
+                                    tool.cyan()
+                                );
+                                generated
+                            }
+                            Err(e) => {
+                                spinner.finish_and_clear();
+                                eprintln!(
+                                    "{} LLM generation failed ({}), falling back to blank template",
+                                    "!".yellow().bold(),
+                                    e
+                                );
+                                skill::SkillManager::create_template(&tool)
+                            }
+                        }
+                    } else {
+                        skill::SkillManager::create_template(&tool)
+                    };
                     match output {
                         Some(path) => {
                             std::fs::write(&path, &template)?;
@@ -723,6 +750,151 @@ async fn run(cli: Cli) -> error::Result<()> {
                             );
                         }
                         None => print!("{template}"),
+                    }
+                }
+
+                SkillCommands::Verify { tool, no_llm } => {
+                    // ── Structural validation ──────────────────────────────
+                    let skill_opt = mgr.load_async(&tool).await;
+                    match skill_opt {
+                        None => {
+                            println!(
+                                "{} No skill found for '{}'. Use 'oxo-call skill install {}' or 'oxo-call skill create {}' first.",
+                                "✗".red().bold(),
+                                tool.cyan(),
+                                tool,
+                                tool
+                            );
+                        }
+                        Some(ref s) => {
+                            println!(
+                                "{} Skill: {}  ({})",
+                                "→".blue().bold(),
+                                s.meta.name.cyan().bold(),
+                                s.meta.category.dimmed()
+                            );
+                            println!();
+
+                            // Structural depth check
+                            let depth_issues = skill::validate_skill_depth(s);
+                            if depth_issues.is_empty() {
+                                println!(
+                                    "{}  Structural check: {} ({} concepts, {} pitfalls, {} examples)",
+                                    "✓".green().bold(),
+                                    "PASS".green(),
+                                    s.context.concepts.len(),
+                                    s.context.pitfalls.len(),
+                                    s.examples.len()
+                                );
+                            } else {
+                                println!(
+                                    "{}  Structural check: {}",
+                                    "✗".red().bold(),
+                                    "FAIL".red()
+                                );
+                                for issue in &depth_issues {
+                                    println!("    {} {}", "·".red(), issue);
+                                }
+                            }
+
+                            // Optional LLM review
+                            if !no_llm {
+                                let raw_md = s.to_prompt_section();
+                                let llm_client = llm::LlmClient::new(cfg.clone());
+                                let spinner = runner::make_spinner("Running LLM quality review...");
+                                match llm_client.verify_skill(&tool, &raw_md).await {
+                                    Ok(report) => {
+                                        spinner.finish_and_clear();
+                                        let verdict_label = if report.passed {
+                                            "PASS".green().to_string()
+                                        } else {
+                                            "FAIL".red().to_string()
+                                        };
+                                        println!(
+                                            "{}  LLM review: {}",
+                                            if report.passed {
+                                                "✓".green().bold()
+                                            } else {
+                                                "✗".red().bold()
+                                            },
+                                            verdict_label
+                                        );
+                                        if !report.summary.is_empty() {
+                                            println!("   {}", report.summary.dimmed());
+                                        }
+                                        if !report.issues.is_empty() {
+                                            println!("\n   {}", "Issues:".bold());
+                                            for issue in &report.issues {
+                                                println!("    {} {}", "·".red(), issue);
+                                            }
+                                        }
+                                        if !report.suggestions.is_empty() {
+                                            println!("\n   {}", "Suggestions:".bold());
+                                            for sug in &report.suggestions {
+                                                println!("    {} {}", "·".cyan(), sug);
+                                            }
+                                        }
+                                    }
+                                    Err(e) => {
+                                        spinner.finish_and_clear();
+                                        println!(
+                                            "{}  LLM review skipped: {}",
+                                            "!".yellow().bold(),
+                                            e
+                                        );
+                                        println!(
+                                            "   (Run 'oxo-call config verify' to check your LLM setup)"
+                                        );
+                                    }
+                                }
+                            }
+
+                            println!();
+                            if depth_issues.is_empty() {
+                                println!(
+                                    "{} Use 'oxo-call skill polish {}' to have the LLM enhance this skill.",
+                                    "ℹ".blue().bold(),
+                                    tool
+                                );
+                            } else {
+                                println!(
+                                    "{} Use 'oxo-call skill polish {}' to automatically fix these issues.",
+                                    "ℹ".blue().bold(),
+                                    tool
+                                );
+                            }
+                        }
+                    }
+                }
+
+                SkillCommands::Polish { tool, output } => {
+                    // Resolve the skill source file path
+                    let skill_path = mgr.find_user_or_community_skill_path(&tool)?;
+                    let skill_content = std::fs::read_to_string(&skill_path)?;
+
+                    let llm_client = llm::LlmClient::new(cfg.clone());
+                    let spinner =
+                        runner::make_spinner(&format!("Polishing skill '{tool}' with LLM..."));
+                    match llm_client.polish_skill(&tool, &skill_content).await {
+                        Ok(improved) => {
+                            spinner.finish_and_clear();
+                            let dest = output.unwrap_or_else(|| skill_path.clone());
+                            std::fs::write(&dest, &improved)?;
+                            println!(
+                                "{} Polished skill for '{}' saved to '{}'",
+                                "✓".green().bold(),
+                                tool.cyan(),
+                                dest.display()
+                            );
+                            println!(
+                                "   Use 'oxo-call skill verify {}' to review the result.",
+                                tool
+                            );
+                        }
+                        Err(e) => {
+                            spinner.finish_and_clear();
+                            return Err(e);
+                        }
                     }
                 }
 
