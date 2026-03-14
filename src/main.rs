@@ -11,13 +11,14 @@ mod llm;
 mod mcp;
 mod runner;
 mod sanitize;
+mod server;
 mod skill;
 mod workflow;
 
 use clap::{CommandFactory, Parser};
 use cli::{
     Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, LicenseCommands,
-    ShellType, SkillCommands, SkillMcpCommands, WorkflowCommands,
+    ServerCommands, ShellType, SkillCommands, SkillMcpCommands, WorkflowCommands,
 };
 use colored::Colorize;
 use handlers::{config_verify_suggestions, print_index_table, with_source};
@@ -1275,6 +1276,308 @@ async fn run(cli: Cli) -> error::Result<()> {
                 engine::visualize_workflow(&def)?;
             }
         },
+
+        #[cfg(not(target_arch = "wasm32"))]
+        Commands::Server { command } => {
+            match command {
+                ServerCommands::Add {
+                    name,
+                    host,
+                    user,
+                    port,
+                    identity_file,
+                    server_type,
+                    scheduler,
+                    work_dir,
+                } => {
+                    let mut cfg = config::Config::load()?;
+                    let st: server::ServerType = server_type
+                        .parse()
+                        .map_err(|e: String| error::OxoError::ConfigError(e))?;
+                    let new_host = server::ServerHost {
+                        name: name.clone(),
+                        host,
+                        user,
+                        port,
+                        identity_file,
+                        server_type: st.clone(),
+                        scheduler,
+                        work_dir,
+                    };
+                    let mut mgr = server::ServerManager::new(cfg.clone());
+                    mgr.add(new_host)?;
+                    // Reload config to pick up changes
+                    cfg = config::Config::load()?;
+
+                    println!(
+                        "{} Registered server '{}' ({})",
+                        "✓".green().bold(),
+                        name.cyan(),
+                        st
+                    );
+
+                    // For HPC nodes, try to detect the scheduler
+                    if st == server::ServerType::Hpc
+                        && let Some(server_host) = cfg.server.hosts.iter().find(|h| h.name == name)
+                    {
+                        let mgr2 = server::ServerManager::new(cfg.clone());
+                        if let Some(detected) = mgr2.detect_scheduler(server_host) {
+                            println!(
+                                "  {} Detected scheduler: {}",
+                                "→".cyan().bold(),
+                                detected.green()
+                            );
+                        } else {
+                            println!(
+                                "  {} Could not auto-detect scheduler. Use --scheduler to set it.",
+                                "ℹ".blue().bold()
+                            );
+                        }
+                    }
+                }
+
+                ServerCommands::Remove { name } => {
+                    let cfg = config::Config::load()?;
+                    let mut mgr = server::ServerManager::new(cfg);
+                    mgr.remove(&name)?;
+                    println!("{} Removed server '{}'", "✓".green().bold(), name.cyan());
+                }
+
+                ServerCommands::List => {
+                    let cfg = config::Config::load()?;
+                    let mgr = server::ServerManager::new(cfg);
+                    let hosts = mgr.list();
+                    if hosts.is_empty() {
+                        println!(
+                            "{}",
+                            "No servers registered. Use 'oxo-call server add' to register one."
+                                .yellow()
+                        );
+                    } else {
+                        println!(
+                            "{:<16} {:<24} {:<14} {:<12} {}",
+                            "Name".bold(),
+                            "Host".bold(),
+                            "Type".bold(),
+                            "Scheduler".bold(),
+                            "User".bold()
+                        );
+                        println!("{}", "─".repeat(80).dimmed());
+                        for h in hosts {
+                            println!(
+                                "{:<16} {:<24} {:<14} {:<12} {}",
+                                h.name.cyan(),
+                                h.ssh_dest(),
+                                h.server_type.to_string(),
+                                h.scheduler.as_deref().unwrap_or("—"),
+                                h.user.as_deref().unwrap_or("(current)")
+                            );
+                        }
+                        println!("\n{} server(s) registered.", hosts.len());
+                    }
+                }
+
+                ServerCommands::Status { name } => {
+                    let cfg = config::Config::load()?;
+                    let mgr = server::ServerManager::new(cfg);
+                    let host = mgr.find(&name).ok_or_else(|| {
+                        error::OxoError::ConfigError(format!("No server found with name '{name}'"))
+                    })?;
+                    let spinner =
+                        runner::make_spinner(&format!("Checking connection to '{name}'..."));
+                    let connected = mgr.check_connection(host)?;
+                    spinner.finish_and_clear();
+                    if connected {
+                        println!(
+                            "{} Server '{}' is reachable ({})",
+                            "✓".green().bold(),
+                            name.cyan(),
+                            host.ssh_dest()
+                        );
+                        if host.server_type == server::ServerType::Hpc
+                            && let Some(ref sched) = host.scheduler
+                        {
+                            println!("  {} Scheduler: {}", "→".cyan().bold(), sched.green());
+                        }
+                    } else {
+                        eprintln!(
+                            "{} Cannot connect to '{}' ({})",
+                            "✗".red().bold(),
+                            name.cyan(),
+                            host.ssh_dest()
+                        );
+                        eprintln!("  Check SSH configuration, keys, and network connectivity.");
+                        std::process::exit(1);
+                    }
+                }
+
+                ServerCommands::SshConfig => {
+                    let entries = server::parse_ssh_config();
+                    if entries.is_empty() {
+                        println!(
+                            "{}",
+                            "No hosts found in ~/.ssh/config (or file does not exist).".yellow()
+                        );
+                        return Ok(());
+                    }
+                    println!(
+                        "{} Found {} host(s) in ~/.ssh/config:",
+                        "→".cyan().bold(),
+                        entries.len()
+                    );
+                    println!();
+                    println!(
+                        "{:<20} {:<28} {:<12} {}",
+                        "Alias".bold(),
+                        "HostName".bold(),
+                        "User".bold(),
+                        "Port".bold()
+                    );
+                    println!("{}", "─".repeat(70).dimmed());
+                    for e in &entries {
+                        println!(
+                            "{:<20} {:<28} {:<12} {}",
+                            e.alias.cyan(),
+                            e.hostname.as_deref().unwrap_or("—"),
+                            e.user.as_deref().unwrap_or("—"),
+                            e.port
+                                .map(|p| p.to_string())
+                                .unwrap_or_else(|| "22".to_string())
+                        );
+                    }
+                    println!();
+                    println!(
+                        "To register a host: {}",
+                        "oxo-call server add <name> --host <hostname> --type <workstation|hpc>"
+                            .bold()
+                    );
+                }
+
+                ServerCommands::Run {
+                    server: server_name,
+                    tool,
+                    task,
+                    model,
+                } => {
+                    let cfg = config::Config::load()?;
+                    let mgr = server::ServerManager::new(cfg.clone());
+                    let host = mgr.find(&server_name).ok_or_else(|| {
+                    error::OxoError::ConfigError(format!(
+                        "No server found with name '{server_name}'. Run 'oxo-call server list'."
+                    ))
+                })?.clone();
+
+                    // Warn about login node compute execution
+                    if host.server_type == server::ServerType::Hpc
+                        && server::ServerManager::is_compute_command(&tool)
+                    {
+                        eprintln!(
+                            "{} This appears to be a compute-intensive command.",
+                            "⚠ WARNING:".bold().yellow()
+                        );
+                        eprintln!(
+                            "  Server '{}' is an HPC login node. Running compute jobs directly on",
+                            server_name.cyan()
+                        );
+                        eprintln!(
+                            "  login nodes is discouraged and may be prohibited by your site policy."
+                        );
+                        if let Some(ref sched) = host.scheduler {
+                            eprintln!(
+                                "  Consider submitting through {} instead (e.g., sbatch, qsub).",
+                                sched.green()
+                            );
+                        }
+                        eprintln!();
+                    }
+
+                    // Generate command with LLM (dry-run locally to preview)
+                    println!(
+                        "{} Generating command for '{}' on server '{}'...",
+                        "→".cyan().bold(),
+                        tool.cyan(),
+                        server_name.cyan()
+                    );
+                    let mut run_cfg = cfg;
+                    if let Some(ref m) = model {
+                        run_cfg.llm.model = Some(m.clone());
+                    }
+                    let runner_inst = runner::Runner::new(run_cfg).with_verbose(verbose);
+                    runner_inst.dry_run(&tool, &task, false).await?;
+
+                    println!(
+                        "\n{} To execute on '{}': ssh {} '<generated-command>'",
+                        "→".cyan().bold(),
+                        server_name.cyan(),
+                        host.ssh_dest()
+                    );
+                }
+
+                ServerCommands::DryRun {
+                    server: server_name,
+                    tool,
+                    task,
+                    model,
+                } => {
+                    let cfg = config::Config::load()?;
+                    let mgr = server::ServerManager::new(cfg.clone());
+                    let host = mgr.find(&server_name).ok_or_else(|| {
+                    error::OxoError::ConfigError(format!(
+                        "No server found with name '{server_name}'. Run 'oxo-call server list'."
+                    ))
+                })?.clone();
+
+                    let mut run_cfg = cfg;
+                    if let Some(ref m) = model {
+                        run_cfg.llm.model = Some(m.clone());
+                    }
+                    let runner_inst = runner::Runner::new(run_cfg).with_verbose(verbose);
+                    runner_inst.dry_run(&tool, &task, false).await?;
+
+                    println!(
+                        "\n{} Target server: '{}' ({}{})",
+                        "→".cyan().bold(),
+                        server_name.cyan(),
+                        host.ssh_dest(),
+                        if host.server_type == server::ServerType::Hpc {
+                            format!(
+                                ", HPC login node{}",
+                                host.scheduler
+                                    .as_ref()
+                                    .map(|s| format!(", scheduler: {s}"))
+                                    .unwrap_or_default()
+                            )
+                        } else {
+                            String::new()
+                        }
+                    );
+
+                    if host.server_type == server::ServerType::Hpc {
+                        if let Some(ref sched) = host.scheduler {
+                            println!(
+                                "  {} Wrap compute commands with {} for submission (e.g., sbatch --wrap=\"...\")",
+                                "ℹ".blue().bold(),
+                                sched.green()
+                            );
+                        } else {
+                            eprintln!(
+                                "  {} This is an HPC login node. Consider submitting via a scheduler.",
+                                "⚠".yellow().bold()
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        Commands::Server { .. } => {
+            eprintln!(
+                "{} 'server' commands are not supported on WebAssembly.",
+                "error:".red().bold()
+            );
+            std::process::exit(1);
+        }
 
         Commands::Completion { shell } => {
             let mut cmd = Cli::command();

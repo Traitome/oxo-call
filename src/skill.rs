@@ -505,6 +505,13 @@ pub static BUILTIN_SKILLS: &[(&str, &str)] = &[
     builtin!("conda"),
     builtin!("pip"),
     builtin!("python"),
+    // ── HPC & cluster management ─────────────────────────────────────────────
+    builtin!("slurm"),
+    builtin!("pbs"),
+    builtin!("sge"),
+    builtin!("lsf"),
+    builtin!("htcondor"),
+    builtin!("kubectl"),
 ];
 
 // ─── Prompt generation ────────────────────────────────────────────────────────

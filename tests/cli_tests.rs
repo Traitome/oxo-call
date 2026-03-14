@@ -2108,3 +2108,164 @@ fn test_dry_run_optimize_task_flag_is_parsed() {
         "CLI should accept --optimize-task flag in dry-run"
     );
 }
+
+// ─── Server command tests ─────────────────────────────────────────────────────
+
+#[test]
+fn test_help_includes_server() {
+    let output = oxo_call()
+        .arg("--help")
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("server"),
+        "help output should mention server command"
+    );
+}
+
+#[test]
+fn test_server_help_output() {
+    let output = oxo_call()
+        .args(["server", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("add"));
+    assert!(stdout.contains("remove"));
+    assert!(stdout.contains("list"));
+    assert!(stdout.contains("status"));
+    assert!(stdout.contains("ssh-config"));
+    assert!(stdout.contains("run"));
+    assert!(stdout.contains("dry-run"));
+}
+
+#[test]
+fn test_server_list_empty() {
+    let output = oxo_call()
+        .args(["server", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("No servers registered") || stdout.contains("Name"),
+        "server list should show empty message or header"
+    );
+}
+
+#[test]
+fn test_server_ssh_config() {
+    let output = oxo_call()
+        .args(["server", "ssh-config"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    // Either finds hosts or reports no file
+    assert!(
+        stdout.contains("host") || stdout.contains("No hosts found"),
+        "ssh-config should report found hosts or no-file message"
+    );
+}
+
+#[test]
+fn test_server_add_help() {
+    let output = oxo_call()
+        .args(["server", "add", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("--host"));
+    assert!(stdout.contains("--type"));
+    assert!(stdout.contains("workstation"));
+    assert!(stdout.contains("hpc"));
+}
+
+#[test]
+fn test_server_run_help() {
+    let output = oxo_call()
+        .args(["server", "run", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("server"));
+    assert!(stdout.contains("tool"));
+    assert!(stdout.contains("task"));
+}
+
+// ─── HPC skill tests ─────────────────────────────────────────────────────────
+
+#[test]
+fn test_skill_show_slurm() {
+    let output = oxo_call()
+        .args(["skill", "show", "slurm"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("slurm"));
+    assert!(stdout.contains("hpc"));
+    assert!(stdout.contains("sbatch"));
+}
+
+#[test]
+fn test_skill_show_pbs() {
+    let output = oxo_call()
+        .args(["skill", "show", "pbs"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("pbs"));
+    assert!(stdout.contains("qsub"));
+}
+
+#[test]
+fn test_skill_show_kubectl() {
+    let output = oxo_call()
+        .args(["skill", "show", "kubectl"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("kubectl"));
+    assert!(stdout.contains("kubernetes") | stdout.contains("Kubernetes"));
+}
+
+#[test]
+fn test_skill_show_sge() {
+    let output = oxo_call()
+        .args(["skill", "show", "sge"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("sge"));
+}
+
+#[test]
+fn test_skill_show_lsf() {
+    let output = oxo_call()
+        .args(["skill", "show", "lsf"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("lsf"));
+}
+
+#[test]
+fn test_skill_show_htcondor() {
+    let output = oxo_call()
+        .args(["skill", "show", "htcondor"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("htcondor"));
+}

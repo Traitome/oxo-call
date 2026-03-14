@@ -1,4 +1,5 @@
 use crate::error::{OxoError, Result};
+use crate::server::ServerConfig;
 #[cfg(not(target_arch = "wasm32"))]
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
@@ -76,6 +77,9 @@ pub struct Config {
     /// MCP skill provider configuration.
     #[serde(default)]
     pub mcp: McpConfig,
+    /// Remote server management configuration.
+    #[serde(default)]
+    pub server: ServerConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -132,6 +136,7 @@ impl Default for Config {
             },
             license: LicenseConfig::default(),
             mcp: McpConfig::default(),
+            server: ServerConfig::default(),
         }
     }
 }
