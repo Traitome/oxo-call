@@ -50,7 +50,9 @@ use colored::Colorize;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
-use std::time::{Instant, SystemTime};
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::Instant;
+use std::time::SystemTime;
 
 // ─── Workflow definition (parsed from TOML) ───────────────────────────────────
 

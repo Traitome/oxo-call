@@ -608,6 +608,12 @@ impl SkillManager {
         self.load_builtin(&tool_lc)
     }
 
+    /// Wasm32-compatible stub: falls back to synchronous load (MCP not available).
+    #[cfg(target_arch = "wasm32")]
+    pub async fn load_async(&self, tool: &str) -> Option<Skill> {
+        self.load(tool)
+    }
+
     /// Load a skill from the built-in registry (compiled into the binary).
     /// Matching is case-insensitive: "SAMTOOLS" and "SamTools" both load "samtools".
     pub fn load_builtin(&self, tool: &str) -> Option<Skill> {
@@ -767,6 +773,12 @@ impl SkillManager {
         let mut result: Vec<(String, String)> = skills.into_iter().collect();
         result.sort_by(|a, b| a.0.cmp(&b.0));
         result
+    }
+
+    /// Wasm32-compatible stub: falls back to synchronous list (MCP not available).
+    #[cfg(target_arch = "wasm32")]
+    pub async fn list_all_async(&self) -> Vec<(String, String)> {
+        self.list_all()
     }
 
     // ── Install / remove ─────────────────────────────────────────────────────
