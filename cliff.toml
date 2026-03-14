@@ -82,6 +82,9 @@ commit_parsers = [
 
 # Filter out commits that only bump the version
 commit_preprocessors = [
+  # Strip commit body and trailers (everything after the subject line) to keep
+  # the changelog concise. Squash-merge commits often embed multi-line PR bodies.
+  { pattern = "(?s)\\n.*", replace = "" },
   { pattern = " \\(#(\\d+)\\)$", replace = " ([#${1}](https://github.com/Traitome/oxo-call/pull/${1}))" },
 ]
 
@@ -91,7 +94,6 @@ skip_tags = ""
 ignore_tags = ""
 topo_order = false
 sort_commits = "newest"
-limit_commits = 0
 
 [remote.github]
 owner = "Traitome"
