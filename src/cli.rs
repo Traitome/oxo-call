@@ -594,17 +594,43 @@ pub enum ServerCommands {
     },
 
     /// Import hosts from ~/.ssh/config as registered servers
-    SshConfig,
+    SshConfig {
+        /// Import all hosts without interactive selection
+        #[arg(long, short = 'y')]
+        yes: bool,
+        /// Default server type for all imported hosts
+        #[arg(
+            long = "type",
+            value_name = "TYPE",
+            default_value = "workstation",
+            value_parser = ["workstation", "hpc", "ws", "cluster"]
+        )]
+        server_type: String,
+    },
+
+    /// Set a server as the active (default) server
+    ///
+    /// Once set, `server run` and `server dry-run` will use this server when
+    /// no `--server` flag is provided.
+    #[command(name = "use")]
+    Use {
+        /// Server name to make active
+        name: String,
+    },
+
+    /// Clear the active (default) server
+    Unuse,
 
     /// Run a tool on a remote server with LLM-generated parameters
     #[command(visible_alias = "r")]
     Run {
-        /// Registered server name
-        server: String,
         /// The tool to run
         tool: String,
         /// Natural-language description of the task
         task: String,
+        /// Server to run on (uses the active server if not specified)
+        #[arg(long, short = 's', value_name = "SERVER")]
+        server: Option<String>,
         /// Override the LLM model for this invocation
         #[arg(short, long, value_name = "MODEL")]
         model: Option<String>,
@@ -613,12 +639,13 @@ pub enum ServerCommands {
     /// Preview a command for a remote server (no execution)
     #[command(name = "dry-run", visible_alias = "d")]
     DryRun {
-        /// Registered server name
-        server: String,
         /// The tool to preview
         tool: String,
         /// Natural-language description of the task
         task: String,
+        /// Server to target (uses the active server if not specified)
+        #[arg(long, short = 's', value_name = "SERVER")]
+        server: Option<String>,
         /// Override the LLM model for this invocation
         #[arg(short, long, value_name = "MODEL")]
         model: Option<String>,
@@ -788,14 +815,15 @@ mod tests {
     }
 
     #[test]
-    fn test_server_dry_run_parses() {
+    fn test_server_dry_run_parses_with_server_flag() {
         let cli = Cli::parse_from([
             "oxo-call",
             "server",
             "dry-run",
-            "mycluster",
             "samtools",
             "sort input.bam",
+            "--server",
+            "mycluster",
         ]);
 
         match cli.command {
@@ -805,11 +833,98 @@ mod tests {
                         server, tool, task, ..
                     },
             } => {
-                assert_eq!(server, "mycluster");
+                assert_eq!(server.as_deref(), Some("mycluster"));
                 assert_eq!(tool, "samtools");
                 assert_eq!(task, "sort input.bam");
             }
             _ => panic!("expected server dry-run command"),
+        }
+    }
+
+    #[test]
+    fn test_server_dry_run_parses_without_server() {
+        let cli = Cli::parse_from([
+            "oxo-call",
+            "server",
+            "dry-run",
+            "samtools",
+            "sort input.bam",
+        ]);
+
+        match cli.command {
+            Commands::Server {
+                command: ServerCommands::DryRun { server, .. },
+            } => {
+                assert!(server.is_none(), "server should be None when not specified");
+            }
+            _ => panic!("expected server dry-run command"),
+        }
+    }
+
+    #[test]
+    fn test_server_run_parses_with_server_flag() {
+        let cli = Cli::parse_from([
+            "oxo-call",
+            "server",
+            "run",
+            "ls",
+            "list home directory",
+            "--server",
+            "lab-wsx",
+        ]);
+
+        match cli.command {
+            Commands::Server {
+                command:
+                    ServerCommands::Run {
+                        server, tool, task, ..
+                    },
+            } => {
+                assert_eq!(server.as_deref(), Some("lab-wsx"));
+                assert_eq!(tool, "ls");
+                assert_eq!(task, "list home directory");
+            }
+            _ => panic!("expected server run command"),
+        }
+    }
+
+    #[test]
+    fn test_server_run_parses_without_server() {
+        let cli = Cli::parse_from(["oxo-call", "server", "run", "ls", "list home directory"]);
+
+        match cli.command {
+            Commands::Server {
+                command: ServerCommands::Run { server, .. },
+            } => {
+                assert!(server.is_none(), "server should be None when not specified");
+            }
+            _ => panic!("expected server run command"),
+        }
+    }
+
+    #[test]
+    fn test_server_use_parses() {
+        let cli = Cli::parse_from(["oxo-call", "server", "use", "lab-wsx"]);
+
+        match cli.command {
+            Commands::Server {
+                command: ServerCommands::Use { name },
+            } => {
+                assert_eq!(name, "lab-wsx");
+            }
+            _ => panic!("expected server use command"),
+        }
+    }
+
+    #[test]
+    fn test_server_unuse_parses() {
+        let cli = Cli::parse_from(["oxo-call", "server", "unuse"]);
+
+        match cli.command {
+            Commands::Server {
+                command: ServerCommands::Unuse,
+            } => {}
+            _ => panic!("expected server unuse command"),
         }
     }
 }

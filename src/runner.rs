@@ -17,6 +17,17 @@ use std::time::Duration;
 #[cfg(not(target_arch = "wasm32"))]
 use uuid::Uuid;
 
+/// The LLM-generated command that will be executed (or sent over SSH).
+pub struct GeneratedCommand {
+    /// The full shell command string, ready to execute.
+    pub full_cmd: String,
+    /// Human-readable explanation from the LLM.
+    pub explanation: String,
+    /// The task description actually used (may differ from user input when
+    /// `--optimize-task` is active).
+    pub effective_task: String,
+}
+
 /// Intermediate result from the `prepare` step that carries provenance metadata
 /// alongside the LLM suggestion.
 struct PrepareResult {
@@ -210,6 +221,20 @@ impl Runner {
             docs_hash,
             skill_name,
             effective_task,
+        })
+    }
+
+    /// Generate the LLM-suggested command without printing or executing it.
+    ///
+    /// Used by the `server run` handler to obtain the command string that will
+    /// be sent over SSH, while keeping display logic in the caller.
+    pub async fn generate_command(&self, tool: &str, task: &str) -> Result<GeneratedCommand> {
+        let result = self.prepare(tool, task).await?;
+        let full_cmd = build_command_string(tool, &result.suggestion.args);
+        Ok(GeneratedCommand {
+            full_cmd,
+            explanation: result.suggestion.explanation.clone(),
+            effective_task: result.effective_task.clone(),
         })
     }
 

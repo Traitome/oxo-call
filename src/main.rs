@@ -1524,18 +1524,22 @@ async fn run(cli: Cli) -> error::Result<()> {
                                 .yellow()
                         );
                     } else {
+                        let active_name = mgr.get_active().map(|h| h.name.as_str()).unwrap_or("");
                         println!(
-                            "{:<16} {:<24} {:<14} {:<12} {}",
+                            "{:<3} {:<16} {:<24} {:<14} {:<12} {}",
+                            " ".bold(),
                             "Name".bold(),
                             "Host".bold(),
                             "Type".bold(),
                             "Scheduler".bold(),
                             "User".bold()
                         );
-                        println!("{}", "─".repeat(80).dimmed());
+                        println!("{}", "─".repeat(84).dimmed());
                         for h in hosts {
+                            let marker = if h.name == active_name { "✦" } else { " " };
                             println!(
-                                "{:<16} {:<24} {:<14} {:<12} {}",
+                                "{:<3} {:<16} {:<24} {:<14} {:<12} {}",
+                                marker.green().bold(),
                                 h.name.cyan(),
                                 h.ssh_dest(),
                                 h.server_type.to_string(),
@@ -1544,6 +1548,12 @@ async fn run(cli: Cli) -> error::Result<()> {
                             );
                         }
                         println!("\n{} server(s) registered.", hosts.len());
+                        if !active_name.is_empty() {
+                            println!(
+                                "Active server: {} (use 'server run <tool> <task>' without --server)",
+                                active_name.cyan()
+                            );
+                        }
                     }
                 }
 
@@ -1581,7 +1591,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                     }
                 }
 
-                ServerCommands::SshConfig => {
+                ServerCommands::SshConfig { yes, server_type } => {
                     let entries = server::parse_ssh_config();
                     if entries.is_empty() {
                         println!(
@@ -1590,52 +1600,165 @@ async fn run(cli: Cli) -> error::Result<()> {
                         );
                         return Ok(());
                     }
+
+                    let cfg = config::Config::load()?;
+                    let mut mgr = server::ServerManager::new(cfg);
+                    let already_registered: std::collections::HashSet<String> =
+                        mgr.list().iter().map(|h| h.name.clone()).collect();
+
                     println!(
-                        "{} Found {} host(s) in ~/.ssh/config:",
+                        "{} Found {} host(s) in ~/.ssh/config:\n",
                         "→".cyan().bold(),
                         entries.len()
                     );
-                    println!();
                     println!(
-                        "{:<20} {:<28} {:<12} {}",
+                        "{:<5} {:<20} {:<28} {:<12} {}",
+                        "#".bold(),
                         "Alias".bold(),
                         "HostName".bold(),
                         "User".bold(),
                         "Port".bold()
                     );
-                    println!("{}", "─".repeat(70).dimmed());
-                    for e in &entries {
+                    println!("{}", "─".repeat(75).dimmed());
+                    for (i, e) in entries.iter().enumerate() {
+                        let tag = if already_registered.contains(&e.alias) {
+                            format!(" {}", "[registered]".dimmed())
+                        } else {
+                            String::new()
+                        };
                         println!(
-                            "{:<20} {:<28} {:<12} {}",
+                            "{:<5} {:<20} {:<28} {:<12} {}{}",
+                            (i + 1).to_string().yellow(),
                             e.alias.cyan(),
                             e.hostname.as_deref().unwrap_or("—"),
                             e.user.as_deref().unwrap_or("—"),
                             e.port
                                 .map(|p| p.to_string())
-                                .unwrap_or_else(|| "22".to_string())
+                                .unwrap_or_else(|| "22".to_string()),
+                            tag
                         );
                     }
                     println!();
+
+                    // Determine which indices to import.
+                    let selected: Vec<usize> = if yes {
+                        (0..entries.len()).collect()
+                    } else {
+                        use std::io::Write;
+                        print!(
+                            "Select hosts to import ({}, {} or {}):\n> ",
+                            "e.g. 1,3,5-7".dimmed(),
+                            "'all'".bold(),
+                            "Enter to cancel".dimmed()
+                        );
+                        std::io::stdout().flush().ok();
+                        let mut input = String::new();
+                        if let Err(e) = std::io::stdin().read_line(&mut input) {
+                            eprintln!("{} Failed to read input: {e}", "✗".red().bold());
+                            return Ok(());
+                        }
+                        let input = input.trim();
+                        if input.is_empty() {
+                            println!("{}", "Cancelled.".dimmed());
+                            return Ok(());
+                        }
+                        server::parse_selection(input, entries.len())
+                    };
+
+                    if selected.is_empty() {
+                        println!("{}", "No valid selection — nothing imported.".yellow());
+                        return Ok(());
+                    }
+
+                    let st: server::ServerType = server_type
+                        .parse()
+                        .map_err(|e: String| error::OxoError::ConfigError(e))?;
+
+                    let mut imported = 0usize;
+                    let mut skipped = 0usize;
+                    for idx in &selected {
+                        let e = &entries[*idx];
+                        if already_registered.contains(&e.alias) {
+                            println!(
+                                "  {} '{}' already registered — skipping.",
+                                "·".dimmed(),
+                                e.alias.cyan()
+                            );
+                            skipped += 1;
+                            continue;
+                        }
+                        let new_host = server::ServerHost {
+                            name: e.alias.clone(),
+                            host: e.hostname.clone().unwrap_or_else(|| e.alias.clone()),
+                            user: e.user.clone(),
+                            port: e.port,
+                            identity_file: e.identity_file.clone(),
+                            server_type: st.clone(),
+                            scheduler: None,
+                            work_dir: None,
+                        };
+                        mgr.add(new_host)?;
+                        println!("  {} Registered '{}'", "✓".green().bold(), e.alias.cyan());
+                        imported += 1;
+                    }
+
+                    println!();
                     println!(
-                        "To register a host: {}",
-                        "oxo-call server add <name> --host <hostname> --type <workstation|hpc>"
-                            .bold()
+                        "{} Imported {}, skipped {}.",
+                        "→".cyan().bold(),
+                        format!("{imported} host(s)").green(),
+                        format!("{skipped} already registered").yellow()
                     );
                 }
 
+                ServerCommands::Use { name } => {
+                    let cfg = config::Config::load()?;
+                    let mut mgr = server::ServerManager::new(cfg);
+                    mgr.set_active(&name)?;
+                    println!(
+                        "{} Active server set to '{}'",
+                        "✓".green().bold(),
+                        name.cyan()
+                    );
+                    println!(
+                        "  You can now run: {}",
+                        "oxo-call server run <tool> <task>".bold()
+                    );
+                }
+
+                ServerCommands::Unuse => {
+                    let cfg = config::Config::load()?;
+                    let mut mgr = server::ServerManager::new(cfg);
+                    mgr.clear_active()?;
+                    println!("{} Active server cleared.", "✓".green().bold());
+                }
+
                 ServerCommands::Run {
-                    server: server_name,
                     tool,
                     task,
+                    server: server_flag,
                     model,
                 } => {
                     let cfg = config::Config::load()?;
                     let mgr = server::ServerManager::new(cfg.clone());
-                    let host = mgr.find(&server_name).ok_or_else(|| {
-                    error::OxoError::ConfigError(format!(
-                        "No server found with name '{server_name}'. Run 'oxo-call server list'."
-                    ))
-                })?.clone();
+
+                    // Resolve server: explicit flag → active server → error
+                    let host = match &server_flag {
+                        Some(name) => mgr.find(name).ok_or_else(|| {
+                            error::OxoError::ConfigError(format!(
+                                "No server found with name '{name}'. Run 'oxo-call server list'."
+                            ))
+                        })?,
+                        None => mgr.get_active().ok_or_else(|| {
+                            error::OxoError::ConfigError(
+                                "No server specified and no active server set. \
+                                 Use --server <name> or run 'oxo-call server use <name>'"
+                                    .to_string(),
+                            )
+                        })?,
+                    }
+                    .clone();
+                    let server_name = host.name.clone();
 
                     // Warn about login node compute execution
                     if host.server_type == server::ServerType::Hpc
@@ -1661,41 +1784,123 @@ async fn run(cli: Cli) -> error::Result<()> {
                         eprintln!();
                     }
 
-                    // Generate command with LLM (dry-run locally to preview)
-                    println!(
-                        "{} Generating command for '{}' on server '{}'...",
-                        "→".cyan().bold(),
-                        tool.cyan(),
-                        server_name.cyan()
-                    );
+                    // Generate the command via LLM
                     let mut run_cfg = cfg;
                     if let Some(ref m) = model {
                         run_cfg.llm.model = Some(m.clone());
                     }
                     let runner_inst = runner::Runner::new(run_cfg).with_verbose(verbose);
-                    runner_inst.dry_run(&tool, &task, false).await?;
+                    let generated = runner_inst.generate_command(&tool, &task).await?;
 
-                    println!(
-                        "\n{} To execute on '{}': ssh {} '<generated-command>'",
-                        "→".cyan().bold(),
-                        server_name.cyan(),
-                        host.ssh_dest()
+                    // Show preview
+                    println!();
+                    println!("{}", "─".repeat(60).dimmed());
+                    println!("  {} {}", "Tool:".bold(), tool.cyan());
+                    println!("  {} {}", "Task:".bold(), task);
+                    if generated.effective_task != task {
+                        println!(
+                            "  {} {}",
+                            "Optimized task:".bold().dimmed(),
+                            generated.effective_task.dimmed()
+                        );
+                    }
+                    println!("{}", "─".repeat(60).dimmed());
+                    println!();
+                    println!("  {}", "Generated command:".bold().green());
+                    println!("  {}", generated.full_cmd.green().bold());
+                    println!();
+                    if !generated.explanation.is_empty() {
+                        println!("  {}", "Explanation:".bold());
+                        println!("  {}", generated.explanation);
+                        println!();
+                    }
+                    println!("{}", "─".repeat(60).dimmed());
+
+                    // Ask for confirmation before SSH execution
+                    use std::io::Write as _;
+                    print!(
+                        "\n  {} [y/N] ",
+                        format!("Execute on '{server_name}'?").bold().yellow()
                     );
+                    std::io::stdout().flush().ok();
+                    let mut confirm = String::new();
+                    std::io::stdin().read_line(&mut confirm).ok();
+                    if confirm.trim().to_lowercase() != "y"
+                        && confirm.trim().to_lowercase() != "yes"
+                    {
+                        println!("{}", "Aborted.".red());
+                        return Ok(());
+                    }
+
+                    // Execute via SSH
+                    println!();
+                    println!("{}", "─".repeat(60).dimmed());
+                    println!(
+                        "  {} ssh {} '{}'",
+                        "Running:".bold(),
+                        host.ssh_dest().cyan(),
+                        generated.full_cmd
+                    );
+                    println!("{}", "─".repeat(60).dimmed());
+                    println!();
+
+                    #[cfg(not(target_arch = "wasm32"))]
+                    {
+                        let mut ssh_cmd = std::process::Command::new("ssh");
+                        for arg in &host.ssh_args() {
+                            ssh_cmd.arg(arg);
+                        }
+                        ssh_cmd.arg(&generated.full_cmd);
+
+                        let status = ssh_cmd.status()?;
+
+                        println!();
+                        if status.success() {
+                            println!(
+                                "{} Command completed on '{}'.",
+                                "✓".green().bold(),
+                                server_name.cyan()
+                            );
+                        } else {
+                            let code = status.code().unwrap_or(1);
+                            eprintln!(
+                                "{} Command exited with code {code} on '{}'.",
+                                "✗".red().bold(),
+                                server_name.cyan()
+                            );
+                            return Err(error::OxoError::ExecutionError(format!(
+                                "SSH command on '{server_name}' exited with code {code}"
+                            )));
+                        }
+                    }
                 }
 
                 ServerCommands::DryRun {
-                    server: server_name,
                     tool,
                     task,
+                    server: server_flag,
                     model,
                 } => {
                     let cfg = config::Config::load()?;
                     let mgr = server::ServerManager::new(cfg.clone());
-                    let host = mgr.find(&server_name).ok_or_else(|| {
-                    error::OxoError::ConfigError(format!(
-                        "No server found with name '{server_name}'. Run 'oxo-call server list'."
-                    ))
-                })?.clone();
+
+                    // Resolve server: explicit flag → active server → error
+                    let host = match &server_flag {
+                        Some(name) => mgr.find(name).ok_or_else(|| {
+                            error::OxoError::ConfigError(format!(
+                                "No server found with name '{name}'. Run 'oxo-call server list'."
+                            ))
+                        })?,
+                        None => mgr.get_active().ok_or_else(|| {
+                            error::OxoError::ConfigError(
+                                "No server specified and no active server set. \
+                                 Use --server <name> or run 'oxo-call server use <name>'"
+                                    .to_string(),
+                            )
+                        })?,
+                    }
+                    .clone();
+                    let server_name = host.name.clone();
 
                     let mut run_cfg = cfg;
                     if let Some(ref m) = model {
