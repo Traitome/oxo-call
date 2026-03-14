@@ -27,5 +27,6 @@ pub mod llm;
 pub mod mcp;
 pub mod runner;
 pub mod sanitize;
+pub mod server;
 pub mod skill;
 pub mod workflow;

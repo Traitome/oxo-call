@@ -834,7 +834,7 @@
     <div class="feature-card">
       <div class="feature-icon">🎯</div>
       <h3>Built-in skill system</h3>
-      <p>Expert knowledge for 100+ bioinformatics tools baked in as <code>.toml</code> skill files — concepts, pitfalls, and worked examples.</p>
+      <p>Expert knowledge for 140+ tools baked in as skill files — bioinformatics, HPC schedulers, containers, and more.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🔗</div>
@@ -855,6 +855,16 @@
       <div class="feature-icon">🗂️</div>
       <h3>Auto documentation cache</h3>
       <p>Tool help is fetched and cached automatically on first use. Enrich with remote URLs, local files, or directories via <code>oxo-call docs add</code>.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🖥️</div>
+      <h3>Remote server management</h3>
+      <p>Register workstations and HPC clusters via SSH. Generate commands for remote execution with login-node safety checks and scheduler integration (Slurm, PBS, SGE, LSF).</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🏗️</div>
+      <h3>HPC cluster skills</h3>
+      <p>Built-in skills for Slurm, PBS, SGE, LSF, HTCondor, and Kubernetes — job templates, resource queries, and array job patterns for quick HPC script generation.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">⚡</div>
@@ -931,7 +941,7 @@
 <!-- ── Supported Tools ──────────────────────────────────────────────────── -->
 <section id="tools">
   <div class="section-label">// built-in skills</div>
-  <h2 class="section-title">Expert knowledge for 100+ tools</h2>
+  <h2 class="section-title">Expert knowledge for 140+ tools</h2>
   <p class="section-body">
     Each built-in skill encodes domain-specific concepts, common pitfalls, and
     worked examples so the LLM is guided beyond a raw <code>--help</code> dump.
@@ -947,6 +957,9 @@
     <div class="tool-card"><div class="tool-name">bowtie2</div><div class="tool-desc">Fast short-read aligner</div></div>
     <div class="tool-card"><div class="tool-name">seqkit</div><div class="tool-desc">FASTA/Q toolkit</div></div>
     <div class="tool-card"><div class="tool-name">star</div><div class="tool-desc">RNA-seq spliced aligner</div></div>
+    <div class="tool-card"><div class="tool-name">slurm</div><div class="tool-desc">HPC job scheduling (sbatch, srun)</div></div>
+    <div class="tool-card"><div class="tool-name">pbs</div><div class="tool-desc">PBS/Torque batch scheduler (qsub)</div></div>
+    <div class="tool-card"><div class="tool-name">kubectl</div><div class="tool-desc">Kubernetes cluster management</div></div>
   </div>
 </section>
 

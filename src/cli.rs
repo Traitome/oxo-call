@@ -180,6 +180,28 @@ EXAMPLES:\n  \
         command: WorkflowCommands,
     },
 
+    /// Manage remote servers for SSH-based execution on workstations and HPC clusters
+    #[command(
+        visible_alias = "srv",
+        long_about = "\
+Manage remote servers for SSH-based command execution.\n\n\
+Register workstations or HPC cluster login nodes, then run commands remotely. \
+For HPC clusters (Slurm, PBS, SGE, LSF), commands are submitted through the \
+scheduler rather than executed directly on the login node.\n\n\
+EXAMPLES:\n  \
+  oxo-call server add myserver --host login.hpc.edu --user alice --type hpc\n  \
+  oxo-call server add workstation1 --host 10.0.0.5 --type workstation\n  \
+  oxo-call server list\n  \
+  oxo-call server status myserver\n  \
+  oxo-call server ssh-config                   # import from ~/.ssh/config\n  \
+  oxo-call server run myserver samtools 'sort input.bam by coordinate'\n  \
+  oxo-call server dry-run myserver bwa 'align reads to reference'"
+    )]
+    Server {
+        #[command(subcommand)]
+        command: ServerCommands,
+    },
+
     /// Generate shell completion scripts
     #[command(long_about = "\
 Generate shell completion scripts for oxo-call.\n\n\
@@ -508,6 +530,82 @@ pub enum WorkflowCommands {
     },
 }
 
+#[derive(Subcommand, Debug)]
+pub enum ServerCommands {
+    /// Register a remote server (workstation or HPC cluster login node)
+    Add {
+        /// A short name for this server (used in subsequent commands)
+        name: String,
+        /// SSH hostname or IP address
+        #[arg(long)]
+        host: String,
+        /// SSH username (defaults to current user)
+        #[arg(long)]
+        user: Option<String>,
+        /// SSH port (defaults to 22)
+        #[arg(long)]
+        port: Option<u16>,
+        /// Path to SSH identity (private key) file
+        #[arg(long, value_name = "PATH")]
+        identity_file: Option<String>,
+        /// Server type: 'workstation' for direct execution, 'hpc' for cluster login nodes
+        #[arg(long = "type", default_value = "workstation", value_parser = ["workstation", "hpc", "ws", "cluster"])]
+        server_type: String,
+        /// Job scheduler (slurm, pbs, sge, lsf, htcondor) — auto-detected for HPC nodes
+        #[arg(long)]
+        scheduler: Option<String>,
+        /// Default working directory on the remote host
+        #[arg(long, value_name = "DIR")]
+        work_dir: Option<String>,
+    },
+
+    /// Remove a registered server
+    Remove {
+        /// Server name to remove
+        name: String,
+    },
+
+    /// List all registered servers
+    List,
+
+    /// Check SSH connectivity to a registered server
+    Status {
+        /// Server name to check
+        name: String,
+    },
+
+    /// Import hosts from ~/.ssh/config as registered servers
+    SshConfig,
+
+    /// Run a tool on a remote server with LLM-generated parameters
+    #[command(visible_alias = "r")]
+    Run {
+        /// Registered server name
+        server: String,
+        /// The tool to run
+        tool: String,
+        /// Natural-language description of the task
+        task: String,
+        /// Override the LLM model for this invocation
+        #[arg(short, long, value_name = "MODEL")]
+        model: Option<String>,
+    },
+
+    /// Preview a command for a remote server (no execution)
+    #[command(name = "dry-run", visible_alias = "d")]
+    DryRun {
+        /// Registered server name
+        server: String,
+        /// The tool to preview
+        tool: String,
+        /// Natural-language description of the task
+        task: String,
+        /// Override the LLM model for this invocation
+        #[arg(short, long, value_name = "MODEL")]
+        model: Option<String>,
+    },
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -614,6 +712,85 @@ mod tests {
                 assert!(matches!(shell, ShellType::Bash));
             }
             _ => panic!("expected completion command"),
+        }
+    }
+
+    #[test]
+    fn test_server_add_parses_correctly() {
+        let cli = Cli::parse_from([
+            "oxo-call",
+            "server",
+            "add",
+            "mycluster",
+            "--host",
+            "login.hpc.edu",
+            "--user",
+            "alice",
+            "--type",
+            "hpc",
+            "--scheduler",
+            "slurm",
+        ]);
+
+        match cli.command {
+            Commands::Server {
+                command:
+                    ServerCommands::Add {
+                        name,
+                        host,
+                        user,
+                        server_type,
+                        scheduler,
+                        ..
+                    },
+            } => {
+                assert_eq!(name, "mycluster");
+                assert_eq!(host, "login.hpc.edu");
+                assert_eq!(user.as_deref(), Some("alice"));
+                assert_eq!(server_type, "hpc");
+                assert_eq!(scheduler.as_deref(), Some("slurm"));
+            }
+            _ => panic!("expected server add command"),
+        }
+    }
+
+    #[test]
+    fn test_server_add_default_type() {
+        let cli = Cli::parse_from(["oxo-call", "server", "add", "mybox", "--host", "10.0.0.5"]);
+
+        match cli.command {
+            Commands::Server {
+                command: ServerCommands::Add { server_type, .. },
+            } => {
+                assert_eq!(server_type, "workstation");
+            }
+            _ => panic!("expected server add command"),
+        }
+    }
+
+    #[test]
+    fn test_server_dry_run_parses() {
+        let cli = Cli::parse_from([
+            "oxo-call",
+            "server",
+            "dry-run",
+            "mycluster",
+            "samtools",
+            "sort input.bam",
+        ]);
+
+        match cli.command {
+            Commands::Server {
+                command:
+                    ServerCommands::DryRun {
+                        server, tool, task, ..
+                    },
+            } => {
+                assert_eq!(server, "mycluster");
+                assert_eq!(tool, "samtools");
+                assert_eq!(task, "sort input.bam");
+            }
+            _ => panic!("expected server dry-run command"),
         }
     }
 }
