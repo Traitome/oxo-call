@@ -505,6 +505,7 @@ pub static BUILTIN_SKILLS: &[(&str, &str)] = &[
     // ── Package management & scripting ───────────────────────────────────────
     builtin!("conda"),
     builtin!("mamba"),
+    builtin!("pixi"),
     builtin!("pip"),
     builtin!("python"),
     builtin!("r"),
