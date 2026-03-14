@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <circle cx="32" cy="32" r="30" fill="#1a7fd4"/>
+  <text x="32" y="40" font-family="monospace" font-size="22" font-weight="bold"
+        fill="white" text-anchor="middle">oxo</text>
+</svg>

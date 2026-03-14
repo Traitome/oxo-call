@@ -1,0 +1,145 @@
+site_name: "oxo-call"
+site_url: https://traitome.github.io/oxo-call/documentation/
+site_description: "oxo-call Documentation — Model-intelligent orchestration for CLI bioinformatics"
+repo_url: https://github.com/Traitome/oxo-call
+repo_name: Traitome/oxo-call
+edit_uri: edit/main/docs/guide/src/
+
+docs_dir: src
+site_dir: site
+
+theme:
+  name: material
+  favicon: images/favicon.svg
+  logo: images/logo.svg
+
+  font:
+    text: Inter
+    code: JetBrains Mono
+
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+  features:
+    - content.code.copy
+    - content.code.annotate
+    - content.action.edit
+    - content.tabs.link
+    - content.tooltips
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - search.highlight
+    - search.suggest
+
+  icon:
+    edit: material/pencil
+    view: material/eye
+    repo: fontawesome/brands/github
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - admonition
+  - abbr
+  - def_list
+  - footnotes
+  - attr_list
+  - md_in_html
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - toc:
+      toc_depth: 3
+      permalink: "#"
+  - tables
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Traitome/oxo-call
+      name: oxo-call on GitHub
+
+plugins:
+  - search:
+      lang: en
+
+nav:
+  - Home: introduction.md
+  - Getting Started:
+      - Installation: tutorials/installation.md
+      - License Setup: tutorials/license.md
+      - Configuration: tutorials/configuration.md
+      - Quick Start: tutorials/quickstart.md
+  - Tutorials:
+      - Your First Command: tutorials/first-command.md
+      - SAM/BAM Processing: tutorials/bam-workflow.md
+      - RNA-seq Walkthrough: tutorials/rnaseq-walkthrough.md
+      - Workflow Builder: tutorials/workflow-builder.md
+  - How-to Guides:
+      - Add Documentation for a Tool: how-to/add-tool-docs.md
+      - Switch LLM Provider: how-to/change-llm-provider.md
+      - Create a Custom Skill: how-to/create-custom-skill.md
+      - Build a Production Pipeline: how-to/build-pipeline.md
+  - Command Reference:
+      - run: commands/run.md
+      - dry-run: commands/dry-run.md
+      - docs: commands/docs.md
+      - config: commands/config.md
+      - history: commands/history.md
+      - skill: commands/skill.md
+      - workflow: commands/workflow.md
+      - server: commands/server.md
+      - license: commands/license.md
+      - completion: commands/completion.md
+  - Architecture & Design:
+      - System Architecture: reference/architecture.md
+      - Documentation System: reference/documentation-system.md
+      - Skill System: reference/skill-system.md
+      - MCP Skill Provider: reference/mcp-skill-provider.md
+      - LLM Integration: reference/llm-integration.md
+      - Workflow Engine: reference/workflow-engine.md
+      - License System: reference/license-system.md
+      - Security Considerations: reference/security-considerations.md
+  - Development:
+      - Contributing: development/contributing.md
+      - Evaluation Reports: development/evaluation-reports.md

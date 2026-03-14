@@ -201,4 +201,4 @@ oxo-call skill mcp ping
 - oxo-call does not execute any code returned by MCP servers.  Skill content
   is only injected into LLM prompts.
 
-See [Security Considerations](./security.md) for the full security model.
+See [Security Considerations](./security-considerations.md) for the full security model.

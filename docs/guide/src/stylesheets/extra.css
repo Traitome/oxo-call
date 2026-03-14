@@ -1,0 +1,95 @@
+/* ── oxo-call brand colours ──────────────────────────────────────────────── */
+:root,
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color:        #1a7fd4;
+  --md-primary-fg-color--light: #3a9ae0;
+  --md-primary-fg-color--dark:  #1262aa;
+  --md-accent-fg-color:         #3fb950;
+  --md-accent-fg-color--transparent: #3fb95020;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color:        #58a6ff;
+  --md-primary-fg-color--light: #79bcff;
+  --md-primary-fg-color--dark:  #388bfd;
+  --md-accent-fg-color:         #3fb950;
+  --md-accent-fg-color--transparent: #3fb95020;
+  --md-default-bg-color:        #0d1117;
+  --md-default-bg-color--light: #161b22;
+  --md-default-bg-color--lighter: #21262d;
+  --md-default-bg-color--lightest: #30363d;
+}
+
+/* ── Monospace font for inline code ──────────────────────────────────────── */
+code {
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 0.875em;
+}
+
+/* ── Header tweaks ───────────────────────────────────────────────────────── */
+.md-header {
+  background-color: #1a7fd4;
+}
+
+[data-md-color-scheme="slate"] .md-header {
+  background-color: #161b22;
+  border-bottom: 1px solid #30363d;
+}
+
+/* ── Nav sidebar ─────────────────────────────────────────────────────────── */
+[data-md-color-scheme="slate"] .md-nav__title {
+  color: #e6edf3;
+}
+
+/* ── Admonition colour overrides ─────────────────────────────────────────── */
+.md-typeset .admonition.tip,
+.md-typeset details.tip {
+  border-color: #3fb950;
+}
+.md-typeset .tip > .admonition-title,
+.md-typeset .tip > summary {
+  background-color: #3fb95020;
+}
+.md-typeset .tip > .admonition-title::before,
+.md-typeset .tip > summary::before {
+  background-color: #3fb950;
+}
+
+/* ── Code block styling ──────────────────────────────────────────────────── */
+[data-md-color-scheme="slate"] .md-typeset pre > code {
+  background-color: #161b22;
+}
+
+/* ── Terminal / shell prompt styling ─────────────────────────────────────── */
+.md-typeset .highlight .gp {
+  color: #3fb950;
+  font-weight: bold;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+.md-footer {
+  background-color: #161b22;
+}
+
+/* ── Table of contents active item ──────────────────────────────────────── */
+.md-nav__item--active > .md-nav__link {
+  color: var(--md-accent-fg-color);
+}
+
+/* ── Hero-style home page intro ──────────────────────────────────────────── */
+.hero-banner {
+  background: linear-gradient(135deg, #1a7fd4 0%, #3fb950 100%);
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+  color: white;
+}
+
+[data-md-color-scheme="slate"] .hero-banner {
+  background: linear-gradient(135deg, #1262aa 0%, #2c8a3a 100%);
+}
+
+.hero-banner h1,
+.hero-banner p {
+  color: white !important;
+}
