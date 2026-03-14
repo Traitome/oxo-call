@@ -145,6 +145,10 @@ fn dirs_ssh_config() -> PathBuf {
     }
 }
 
+fn is_concrete_alias(alias: &str) -> bool {
+    !alias.contains('*') && !alias.contains('?')
+}
+
 fn parse_ssh_config_content(content: &str) -> Vec<SshConfigEntry> {
     let mut entries = Vec::new();
     let mut current: Option<SshConfigEntry> = None;
@@ -165,8 +169,7 @@ fn parse_ssh_config_content(content: &str) -> Vec<SshConfigEntry> {
             "host" => {
                 // Save the previous entry
                 if let Some(entry) = current.take()
-                    && !entry.alias.contains('*')
-                    && !entry.alias.contains('?')
+                    && is_concrete_alias(&entry.alias)
                 {
                     entries.push(entry);
                 }
@@ -204,8 +207,7 @@ fn parse_ssh_config_content(content: &str) -> Vec<SshConfigEntry> {
 
     // Don't forget the last entry
     if let Some(entry) = current
-        && !entry.alias.contains('*')
-        && !entry.alias.contains('?')
+        && is_concrete_alias(&entry.alias)
     {
         entries.push(entry);
     }

@@ -77,3 +77,7 @@ source_url: "https://slurm.schedmd.com/documentation.html"
 ### check your fairshare and account allocation
 **Args:** `sacctmgr show assoc user=$USER format=Account,User,Share,GrpTRES,MaxTRES,QOS`
 **Explanation:** shows account associations, share allocations, resource limits, and available QoS; helps understand scheduling priority
+
+### submit a job with per-CPU memory allocation
+**Args:** `sbatch --job-name=variant_call --partition=compute --cpus-per-task=4 --mem-per-cpu=8G --time=12:00:00 gatk_hc.sh`
+**Explanation:** --mem-per-cpu=8G allocates 8GB per CPU (32GB total with 4 CPUs); preferred over --mem when job scaling varies

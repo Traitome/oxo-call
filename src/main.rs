@@ -1290,7 +1290,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                     scheduler,
                     work_dir,
                 } => {
-                    let mut cfg = config::Config::load()?;
+                    let cfg = config::Config::load()?;
                     let st: server::ServerType = server_type
                         .parse()
                         .map_err(|e: String| error::OxoError::ConfigError(e))?;
@@ -1304,10 +1304,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                         scheduler,
                         work_dir,
                     };
-                    let mut mgr = server::ServerManager::new(cfg.clone());
+                    let mut mgr = server::ServerManager::new(cfg);
                     mgr.add(new_host)?;
-                    // Reload config to pick up changes
-                    cfg = config::Config::load()?;
 
                     println!(
                         "{} Registered server '{}' ({})",
@@ -1318,10 +1316,10 @@ async fn run(cli: Cli) -> error::Result<()> {
 
                     // For HPC nodes, try to detect the scheduler
                     if st == server::ServerType::Hpc
-                        && let Some(server_host) = cfg.server.hosts.iter().find(|h| h.name == name)
+                        && let Some(server_host) = mgr.find(&name)
                     {
-                        let mgr2 = server::ServerManager::new(cfg.clone());
-                        if let Some(detected) = mgr2.detect_scheduler(server_host) {
+                        let server_host = server_host.clone();
+                        if let Some(detected) = mgr.detect_scheduler(&server_host) {
                             println!(
                                 "  {} Detected scheduler: {}",
                                 "→".cyan().bold(),
