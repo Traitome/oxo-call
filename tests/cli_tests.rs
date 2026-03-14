@@ -697,6 +697,22 @@ fn test_docs_add_real_tool() {
 }
 
 #[test]
+fn test_docs_add_shell_builtin() {
+    // 'cd' is a shell built-in; docs should be fetched via 'bash -c "help cd"'
+    let output = oxo_call()
+        .args(["docs", "add", "cd"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        output.status.success(),
+        "docs add cd should succeed for shell built-in: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Indexed") || stdout.contains("cd"));
+}
+
+#[test]
 fn test_docs_list_empty_or_filled() {
     let output = oxo_call()
         .args(["docs", "list"])
