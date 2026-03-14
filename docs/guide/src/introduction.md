@@ -26,7 +26,7 @@ The docs answer *"what flags exist?"* The skill answers *"which flags should I u
 
 | Capability | What it means for you |
 |------------|----------------------|
-| **150+ built-in skills** | Expert knowledge for samtools, STAR, BWA, GATK, bcftools, fastp, and 145+ more |
+| **140+ built-in skills** | Expert knowledge for samtools, STAR, BWA, GATK, bcftools, fastp, and 135+ more |
 | **Auto documentation** | `--help` cached on first use — no setup required |
 | **Dry-run mode** | Preview every command before it runs |
 | **Workflow engine** | Native DAG pipelines with Snakemake/Nextflow export |

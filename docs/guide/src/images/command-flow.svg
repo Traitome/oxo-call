@@ -3,7 +3,7 @@
     <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff"/>
     </marker>
-    <filter id="shadow">
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
       <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000030"/>
     </filter>
   </defs>
@@ -59,15 +59,18 @@
   <rect x="60" y="321" width="700" height="66" rx="9" fill="#2a1e10" stroke="#8a6a2a" stroke-width="1.5" filter="url(#shadow)"/>
   <rect x="60" y="321" width="8" height="66" rx="4" fill="#f39c12"/>
   <text x="92" y="344" fill="#f6ad55" font-size="13" font-weight="700">④ Skill Loading</text>
-  <rect x="92" y="353" width="118" height="20" rx="4" fill="#3a2a10" stroke="#8a6a2a" stroke-width="1"/>
-  <text x="151" y="367" text-anchor="middle" fill="#f6ad55" font-size="10" font-weight="600">user</text>
-  <text x="218" y="362" fill="#7a8fa6" font-size="10">›</text>
-  <rect x="228" y="353" width="118" height="20" rx="4" fill="#3a2a10" stroke="#8a6a2a" stroke-width="1"/>
-  <text x="287" y="367" text-anchor="middle" fill="#f6ad55" font-size="10" font-weight="600">community</text>
-  <text x="354" y="362" fill="#7a8fa6" font-size="10">›</text>
-  <rect x="364" y="353" width="118" height="20" rx="4" fill="#3a2a10" stroke="#8a6a2a" stroke-width="1"/>
-  <text x="423" y="367" text-anchor="middle" fill="#f6ad55" font-size="10" font-weight="600">built-in (150+ tools)</text>
-  <text x="510" y="380" fill="#7a8fa6" font-size="10">Concepts · Pitfalls · Worked examples → injected into prompt</text>
+  <rect x="92" y="353" width="96" height="20" rx="4" fill="#3a2a10" stroke="#8a6a2a" stroke-width="1"/>
+  <text x="140" y="367" text-anchor="middle" fill="#f6ad55" font-size="10" font-weight="600">user</text>
+  <text x="196" y="362" fill="#7a8fa6" font-size="10">›</text>
+  <rect x="204" y="353" width="96" height="20" rx="4" fill="#3a2a10" stroke="#8a6a2a" stroke-width="1"/>
+  <text x="252" y="367" text-anchor="middle" fill="#f6ad55" font-size="10" font-weight="600">community</text>
+  <text x="308" y="362" fill="#7a8fa6" font-size="10">›</text>
+  <rect x="316" y="353" width="72" height="20" rx="4" fill="#1c2e20" stroke="#2a7a3a" stroke-width="1"/>
+  <text x="352" y="367" text-anchor="middle" fill="#6fcf97" font-size="10" font-weight="600">MCP</text>
+  <text x="396" y="362" fill="#7a8fa6" font-size="10">›</text>
+  <rect x="404" y="353" width="128" height="20" rx="4" fill="#3a2a10" stroke="#8a6a2a" stroke-width="1"/>
+  <text x="468" y="367" text-anchor="middle" fill="#f6ad55" font-size="10" font-weight="600">built-in (140+ tools)</text>
+  <text x="548" y="380" fill="#7a8fa6" font-size="10">Concepts · Pitfalls · Worked examples &#x2192; injected into prompt</text>
 
   <!-- Arrow -->
   <line x1="410" y1="387" x2="410" y2="402" stroke="#4a9eff" stroke-width="2" marker-end="url(#arr)"/>

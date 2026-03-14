@@ -24,9 +24,11 @@ main.rs             — Command dispatcher & license gate
   ├─→ runner.rs     — Core orchestration pipeline + provenance tracking
   │     ├─→ docs.rs        — Documentation resolver
   │     ├─→ skill.rs       — Skill loading system + depth validation
+  │     │     └─→ mcp.rs   — MCP skill provider (JSON-RPC / HTTP)
   │     ├─→ llm.rs         — LLM client, prompt builder & provider trait
   │     └─→ history.rs     — Command history tracker with provenance
   ├─→ sanitize.rs   — Data anonymization for LLM contexts
+  ├─→ server.rs     — Remote server management (SSH / HPC)
   ├─→ workflow.rs   — Templates & registry
   │     └─→ engine.rs      — DAG execution engine
   ├─→ config.rs     — Configuration management
@@ -44,7 +46,7 @@ lib.rs              — Programmatic API surface (re-exports all modules)
 ```text
 1. License verification (Ed25519 signature check)
 2. Documentation fetch (cache → --help → local files → remote URLs)
-3. Skill loading (user → community → built-in)
+3. Skill loading (user → community → MCP → built-in)
 4. Prompt construction (docs + skill + task → system + user message)
 5. LLM API call (GitHub Copilot / OpenAI / Anthropic / Ollama)
 6. Response parsing (extract ARGS: and EXPLANATION: lines)

@@ -1,15 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 440" font-family="'Segoe UI', 'Liberation Sans', Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 452" font-family="'Segoe UI', 'Liberation Sans', Arial, sans-serif">
   <defs>
     <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff"/>
     </marker>
-    <filter id="shadow">
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
       <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#00000030"/>
     </filter>
   </defs>
 
   <!-- Background -->
-  <rect width="820" height="440" fill="#0f1923" rx="12"/>
+  <rect width="820" height="452" fill="#0f1923" rx="12"/>
 
   <!-- Title -->
   <text x="410" y="34" text-anchor="middle" fill="#e2e8f0" font-size="17" font-weight="700">Documentation System — Fetch &amp; Cache Pipeline</text>
@@ -18,14 +18,14 @@
   <!-- Sources row -->
   <text x="410" y="68" text-anchor="middle" fill="#7a8fa6" font-size="11" letter-spacing="0.5">DOCUMENTATION SOURCES  (merged in priority order)</text>
 
-  <!-- Source 1: Cached --help -->
+  <!-- Source 1: Cached help output -->
   <rect x="40" y="78" width="170" height="76" rx="9" fill="#163545" stroke="#1a8a6a" stroke-width="1.5" filter="url(#shadow)"/>
   <text x="125" y="98" text-anchor="middle" fill="#4ecdc4" font-size="12" font-weight="700">Cached --help</text>
   <text x="125" y="114" text-anchor="middle" fill="#9bb5cc" font-size="10">Captured on first use</text>
   <text x="125" y="128" text-anchor="middle" fill="#9bb5cc" font-size="10">Stored in platform</text>
   <text x="125" y="141" text-anchor="middle" fill="#9bb5cc" font-size="10">data directory</text>
 
-  <!-- Source 2: Live --help -->
+  <!-- Source 2: Live help output -->
   <rect x="226" y="78" width="170" height="76" rx="9" fill="#1a2840" stroke="#3a6fa8" stroke-width="1.5" filter="url(#shadow)"/>
   <text x="311" y="98" text-anchor="middle" fill="#7eb8f7" font-size="12" font-weight="700">Live --help</text>
   <text x="311" y="114" text-anchor="middle" fill="#9bb5cc" font-size="10">Run at query time</text>
@@ -76,8 +76,8 @@
   <text x="410" y="352" text-anchor="middle" fill="#9bb5cc" font-size="10">Inserted as "## Tool Documentation" section · Grounds every generated command</text>
 
   <!-- Commands reference -->
-  <rect x="40" y="380" width="740" height="44" rx="8" fill="#131f2e" stroke="#2d3f52" stroke-width="1"/>
+  <rect x="40" y="380" width="740" height="56" rx="8" fill="#131f2e" stroke="#2d3f52" stroke-width="1"/>
   <text x="60" y="398" fill="#7a8fa6" font-size="11" font-weight="700">CLI Commands</text>
-  <text x="60" y="415" fill="#9bb5cc" font-size="10" font-family="monospace">oxo-call docs add --url https://…  |  docs add --file path  |  docs add --dir path  |  docs list  |  docs show &lt;tool&gt;</text>
-  <text x="470" y="415" fill="#9bb5cc" font-size="10" font-family="monospace">docs update &lt;tool&gt;  |  docs remove &lt;tool&gt;</text>
+  <text x="60" y="413" fill="#9bb5cc" font-size="10" font-family="monospace">oxo-call docs add --url https://...  |  docs add --file path  |  docs add --dir path  |  docs list  |  docs show &lt;tool&gt;</text>
+  <text x="60" y="428" fill="#9bb5cc" font-size="10" font-family="monospace">docs update &lt;tool&gt;  |  docs remove &lt;tool&gt;</text>
 </svg>
