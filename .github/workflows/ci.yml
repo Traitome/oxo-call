@@ -163,6 +163,7 @@ jobs:
         with:
           files: cobertura.xml
           fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
         continue-on-error: true
 
   # ─── Cross-compile Linux binaries (always, release artifacts only on tags) ─
