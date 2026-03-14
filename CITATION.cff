@@ -10,8 +10,8 @@ type: software
 authors:
   - family-names: Traitome
     affiliation: Traitome
-version: 0.5.0
-date-released: "2026-03-13"
+version: 0.6.0
+date-released: "2026-03-14"
 license: LicenseRef-oxo-call-dual
 url: https://github.com/Traitome/oxo-call
 repository-code: https://github.com/Traitome/oxo-call
