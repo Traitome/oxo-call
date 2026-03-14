@@ -1,13 +1,34 @@
 # Copilot Instructions for `oxo-call`
 
-## Build, test, lint
+## ⚠️ Mandatory pre-commit CI gate
+
+**Before every call to `report_progress`, ALL of the following checks MUST pass locally with zero errors.**
+Pushing code that fails any of these checks will break the CI "Test" job and is not acceptable.
+
+```bash
+# Option A – run everything in one command (preferred):
+make ci
+
+# Option B – run each step individually:
+cargo fmt -- --check          # formatting (MUST pass – most commonly forgotten)
+cargo clippy -- -D warnings   # zero lint warnings allowed
+cargo build                   # must compile
+cargo test                    # all unit + integration tests must pass
+```
+
+If `cargo fmt -- --check` reports diff output, fix it first with `cargo fmt` and re-run the check.
+**Never call `report_progress` until `make ci` (or all four individual commands) exits with code 0.**
+
+## Build, test, lint (individual command reference)
+
+The `make ci` target above runs the four mandatory checks. The full reference, including the additional security audit step used in CI, is:
 
 ```bash
 cargo build          # build
 cargo test           # run all tests (unit + integration)
 cargo fmt -- --check # check formatting
 cargo clippy -- -D warnings  # lint (zero warnings allowed)
-cargo audit          # security audit
+cargo audit          # security audit (run when changing dependencies)
 ```
 
 Integration tests live in `tests/cli_tests.rs` and execute the compiled binary. They inject a fixture license via `OXO_CALL_LICENSE`.
