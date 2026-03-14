@@ -503,8 +503,13 @@ pub static BUILTIN_SKILLS: &[(&str, &str)] = &[
     builtin!("rm"),
     // ── Package management & scripting ───────────────────────────────────────
     builtin!("conda"),
+    builtin!("mamba"),
     builtin!("pip"),
     builtin!("python"),
+    builtin!("r"),
+    builtin!("cargo"),
+    // ── AI assistant platforms ────────────────────────────────────────────────
+    builtin!("openclaw"),
     // ── HPC & cluster management ─────────────────────────────────────────────
     builtin!("slurm"),
     builtin!("pbs"),

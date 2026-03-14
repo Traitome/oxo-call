@@ -634,6 +634,20 @@ pub enum ServerCommands {
         /// Override the LLM model for this invocation
         #[arg(short, long, value_name = "MODEL")]
         model: Option<String>,
+        /// Skip cached documentation and fetch fresh --help output
+        #[arg(long)]
+        no_cache: bool,
+        /// Output result as JSON (useful for scripting and CI integration)
+        #[arg(long)]
+        json: bool,
+        /// After execution, ask the LLM to verify results: checks output files,
+        /// stderr patterns, and exit code, then reports issues and suggestions
+        #[arg(long)]
+        verify: bool,
+        /// Before generating the command, use the LLM to optimize and expand
+        /// the task description for better accuracy
+        #[arg(long)]
+        optimize_task: bool,
     },
 
     /// Preview a command for a remote server (no execution)
@@ -649,6 +663,16 @@ pub enum ServerCommands {
         /// Override the LLM model for this invocation
         #[arg(short, long, value_name = "MODEL")]
         model: Option<String>,
+        /// Skip cached documentation and fetch fresh --help output
+        #[arg(long)]
+        no_cache: bool,
+        /// Output result as JSON (useful for scripting and CI integration)
+        #[arg(long)]
+        json: bool,
+        /// Before generating the command, use the LLM to optimize and expand
+        /// the task description for better accuracy
+        #[arg(long)]
+        optimize_task: bool,
     },
 }
 
@@ -925,6 +949,120 @@ mod tests {
                 command: ServerCommands::Unuse,
             } => {}
             _ => panic!("expected server unuse command"),
+        }
+    }
+
+    #[test]
+    fn test_server_run_supports_no_cache_flag() {
+        let cli = Cli::parse_from([
+            "oxo-call",
+            "server",
+            "run",
+            "--no-cache",
+            "ls",
+            "list files",
+        ]);
+
+        match cli.command {
+            Commands::Server {
+                command: ServerCommands::Run { no_cache, .. },
+            } => assert!(no_cache),
+            _ => panic!("expected server run command"),
+        }
+    }
+
+    #[test]
+    fn test_server_run_supports_json_flag() {
+        let cli = Cli::parse_from(["oxo-call", "server", "run", "--json", "ls", "list files"]);
+
+        match cli.command {
+            Commands::Server {
+                command: ServerCommands::Run { json, .. },
+            } => assert!(json),
+            _ => panic!("expected server run command"),
+        }
+    }
+
+    #[test]
+    fn test_server_run_supports_verify_flag() {
+        let cli = Cli::parse_from(["oxo-call", "server", "run", "--verify", "ls", "list files"]);
+
+        match cli.command {
+            Commands::Server {
+                command: ServerCommands::Run { verify, .. },
+            } => assert!(verify),
+            _ => panic!("expected server run command"),
+        }
+    }
+
+    #[test]
+    fn test_server_run_supports_optimize_task_flag() {
+        let cli = Cli::parse_from([
+            "oxo-call",
+            "server",
+            "run",
+            "--optimize-task",
+            "ls",
+            "list files",
+        ]);
+
+        match cli.command {
+            Commands::Server {
+                command: ServerCommands::Run { optimize_task, .. },
+            } => assert!(optimize_task),
+            _ => panic!("expected server run command"),
+        }
+    }
+
+    #[test]
+    fn test_server_dry_run_supports_no_cache_flag() {
+        let cli = Cli::parse_from([
+            "oxo-call",
+            "server",
+            "dry-run",
+            "--no-cache",
+            "samtools",
+            "sort bam",
+        ]);
+
+        match cli.command {
+            Commands::Server {
+                command: ServerCommands::DryRun { no_cache, .. },
+            } => assert!(no_cache),
+            _ => panic!("expected server dry-run command"),
+        }
+    }
+
+    #[test]
+    fn test_server_dry_run_supports_json_flag() {
+        let cli = Cli::parse_from([
+            "oxo-call", "server", "dry-run", "--json", "samtools", "sort bam",
+        ]);
+
+        match cli.command {
+            Commands::Server {
+                command: ServerCommands::DryRun { json, .. },
+            } => assert!(json),
+            _ => panic!("expected server dry-run command"),
+        }
+    }
+
+    #[test]
+    fn test_server_dry_run_supports_optimize_task_flag() {
+        let cli = Cli::parse_from([
+            "oxo-call",
+            "server",
+            "dry-run",
+            "--optimize-task",
+            "samtools",
+            "sort bam",
+        ]);
+
+        match cli.command {
+            Commands::Server {
+                command: ServerCommands::DryRun { optimize_task, .. },
+            } => assert!(optimize_task),
+            _ => panic!("expected server dry-run command"),
         }
     }
 }
