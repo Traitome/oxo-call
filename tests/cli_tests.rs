@@ -2164,10 +2164,30 @@ fn test_server_ssh_config() {
         .expect("failed to run oxo-call");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    // Either finds hosts or reports no file
+    // Either finds hosts (shows numbered table) or reports no file; with no
+    // stdin the interactive prompt cancels automatically.
     assert!(
-        stdout.contains("host") || stdout.contains("No hosts found"),
+        stdout.contains("host(s)") || stdout.contains("No hosts found"),
         "ssh-config should report found hosts or no-file message"
+    );
+}
+
+#[test]
+fn test_server_ssh_config_help() {
+    let output = oxo_call()
+        .args(["server", "ssh-config", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("--yes") || stdout.contains("-y"),
+        "--yes flag should appear"
+    );
+    assert!(stdout.contains("--type"), "--type flag should appear");
+    assert!(
+        stdout.contains("workstation"),
+        "default type should appear in help"
     );
 }
 

@@ -594,7 +594,19 @@ pub enum ServerCommands {
     },
 
     /// Import hosts from ~/.ssh/config as registered servers
-    SshConfig,
+    SshConfig {
+        /// Import all hosts without interactive selection
+        #[arg(long, short = 'y')]
+        yes: bool,
+        /// Default server type for all imported hosts
+        #[arg(
+            long = "type",
+            value_name = "TYPE",
+            default_value = "workstation",
+            value_parser = ["workstation", "hpc", "ws", "cluster"]
+        )]
+        server_type: String,
+    },
 
     /// Run a tool on a remote server with LLM-generated parameters
     #[command(visible_alias = "r")]

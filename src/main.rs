@@ -1581,7 +1581,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                     }
                 }
 
-                ServerCommands::SshConfig => {
+                ServerCommands::SshConfig { yes, server_type } => {
                     let entries = server::parse_ssh_config();
                     if entries.is_empty() {
                         println!(
@@ -1590,36 +1590,114 @@ async fn run(cli: Cli) -> error::Result<()> {
                         );
                         return Ok(());
                     }
+
+                    let cfg = config::Config::load()?;
+                    let mut mgr = server::ServerManager::new(cfg);
+                    let already_registered: std::collections::HashSet<String> =
+                        mgr.list().iter().map(|h| h.name.clone()).collect();
+
                     println!(
-                        "{} Found {} host(s) in ~/.ssh/config:",
+                        "{} Found {} host(s) in ~/.ssh/config:\n",
                         "→".cyan().bold(),
                         entries.len()
                     );
-                    println!();
                     println!(
-                        "{:<20} {:<28} {:<12} {}",
+                        "{:<5} {:<20} {:<28} {:<12} {}",
+                        "#".bold(),
                         "Alias".bold(),
                         "HostName".bold(),
                         "User".bold(),
                         "Port".bold()
                     );
-                    println!("{}", "─".repeat(70).dimmed());
-                    for e in &entries {
+                    println!("{}", "─".repeat(75).dimmed());
+                    for (i, e) in entries.iter().enumerate() {
+                        let tag = if already_registered.contains(&e.alias) {
+                            format!(" {}", "[registered]".dimmed())
+                        } else {
+                            String::new()
+                        };
                         println!(
-                            "{:<20} {:<28} {:<12} {}",
+                            "{:<5} {:<20} {:<28} {:<12} {}{}",
+                            (i + 1).to_string().yellow(),
                             e.alias.cyan(),
                             e.hostname.as_deref().unwrap_or("—"),
                             e.user.as_deref().unwrap_or("—"),
                             e.port
                                 .map(|p| p.to_string())
-                                .unwrap_or_else(|| "22".to_string())
+                                .unwrap_or_else(|| "22".to_string()),
+                            tag
                         );
                     }
                     println!();
+
+                    // Determine which indices to import.
+                    let selected: Vec<usize> = if yes {
+                        (0..entries.len()).collect()
+                    } else {
+                        use std::io::Write;
+                        print!(
+                            "Select hosts to import ({}, {} or {}):\n> ",
+                            "e.g. 1,3,5-7".dimmed(),
+                            "'all'".bold(),
+                            "Enter to cancel".dimmed()
+                        );
+                        std::io::stdout().flush().ok();
+                        let mut input = String::new();
+                        if let Err(e) = std::io::stdin().read_line(&mut input) {
+                            eprintln!("{} Failed to read input: {e}", "✗".red().bold());
+                            return Ok(());
+                        }
+                        let input = input.trim();
+                        if input.is_empty() {
+                            println!("{}", "Cancelled.".dimmed());
+                            return Ok(());
+                        }
+                        server::parse_selection(input, entries.len())
+                    };
+
+                    if selected.is_empty() {
+                        println!("{}", "No valid selection — nothing imported.".yellow());
+                        return Ok(());
+                    }
+
+                    let st: server::ServerType = server_type
+                        .parse()
+                        .map_err(|e: String| error::OxoError::ConfigError(e))?;
+
+                    let mut imported = 0usize;
+                    let mut skipped = 0usize;
+                    for idx in &selected {
+                        let e = &entries[*idx];
+                        if already_registered.contains(&e.alias) {
+                            println!(
+                                "  {} '{}' already registered — skipping.",
+                                "·".dimmed(),
+                                e.alias.cyan()
+                            );
+                            skipped += 1;
+                            continue;
+                        }
+                        let new_host = server::ServerHost {
+                            name: e.alias.clone(),
+                            host: e.hostname.clone().unwrap_or_else(|| e.alias.clone()),
+                            user: e.user.clone(),
+                            port: e.port,
+                            identity_file: e.identity_file.clone(),
+                            server_type: st.clone(),
+                            scheduler: None,
+                            work_dir: None,
+                        };
+                        mgr.add(new_host)?;
+                        println!("  {} Registered '{}'", "✓".green().bold(), e.alias.cyan());
+                        imported += 1;
+                    }
+
+                    println!();
                     println!(
-                        "To register a host: {}",
-                        "oxo-call server add <name> --host <hostname> --type <workstation|hpc>"
-                            .bold()
+                        "{} Imported {}, skipped {}.",
+                        "→".cyan().bold(),
+                        format!("{imported} host(s)").green(),
+                        format!("{skipped} already registered").yellow()
                     );
                 }
 

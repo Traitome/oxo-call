@@ -402,6 +402,43 @@ impl ServerManager {
     }
 }
 
+// ─── Selection helper ─────────────────────────────────────────────────────────
+
+/// Parse a user selection string into a sorted, deduplicated list of 0-based
+/// indices.  Input may be:
+/// - `"all"` or `"a"` — selects every item
+/// - Comma-separated 1-based numbers and/or inclusive ranges, e.g. `"1,3,5-7"`
+///
+/// Numbers outside `[1, len]` are silently ignored.
+pub fn parse_selection(input: &str, len: usize) -> Vec<usize> {
+    let input = input.trim().to_lowercase();
+    if input == "all" || input == "a" {
+        return (0..len).collect();
+    }
+    let mut indices = std::collections::BTreeSet::new();
+    for part in input.split(',') {
+        let part = part.trim();
+        if part.is_empty() {
+            continue;
+        }
+        if let Some((start, end)) = part.split_once('-') {
+            if let (Ok(s), Ok(e)) = (start.trim().parse::<usize>(), end.trim().parse::<usize>()) {
+                for i in s..=e {
+                    if i >= 1 && i <= len {
+                        indices.insert(i - 1);
+                    }
+                }
+            }
+        } else if let Ok(n) = part.parse::<usize>()
+            && n >= 1
+            && n <= len
+        {
+            indices.insert(n - 1);
+        }
+    }
+    indices.into_iter().collect()
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -558,5 +595,59 @@ Host *
     fn test_server_config_default() {
         let cfg = ServerConfig::default();
         assert!(cfg.hosts.is_empty());
+    }
+
+    // ─── parse_selection tests ─────────────────────────────────────────────
+
+    #[test]
+    fn test_parse_selection_all() {
+        assert_eq!(parse_selection("all", 5), vec![0, 1, 2, 3, 4]);
+        assert_eq!(parse_selection("a", 3), vec![0, 1, 2]);
+        assert_eq!(parse_selection("ALL", 2), vec![0, 1]);
+    }
+
+    #[test]
+    fn test_parse_selection_single() {
+        assert_eq!(parse_selection("1", 5), vec![0]);
+        assert_eq!(parse_selection("3", 5), vec![2]);
+        assert_eq!(parse_selection("5", 5), vec![4]);
+    }
+
+    #[test]
+    fn test_parse_selection_comma_list() {
+        assert_eq!(parse_selection("1,3,5", 5), vec![0, 2, 4]);
+        assert_eq!(parse_selection("2, 4", 5), vec![1, 3]);
+    }
+
+    #[test]
+    fn test_parse_selection_range() {
+        assert_eq!(parse_selection("1-3", 5), vec![0, 1, 2]);
+        assert_eq!(parse_selection("2-4", 5), vec![1, 2, 3]);
+        assert_eq!(parse_selection("1-5", 5), vec![0, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn test_parse_selection_mixed() {
+        assert_eq!(parse_selection("1,3-5", 5), vec![0, 2, 3, 4]);
+        assert_eq!(parse_selection("1-2,5", 5), vec![0, 1, 4]);
+    }
+
+    #[test]
+    fn test_parse_selection_deduplication() {
+        assert_eq!(parse_selection("1,1,2", 5), vec![0, 1]);
+        assert_eq!(parse_selection("1-3,2-4", 5), vec![0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_parse_selection_out_of_bounds() {
+        assert_eq!(parse_selection("0", 5), Vec::<usize>::new());
+        assert_eq!(parse_selection("6", 5), Vec::<usize>::new());
+        assert_eq!(parse_selection("1-10", 3), vec![0, 1, 2]);
+    }
+
+    #[test]
+    fn test_parse_selection_empty() {
+        assert_eq!(parse_selection("", 5), Vec::<usize>::new());
+        assert_eq!(parse_selection("   ", 5), Vec::<usize>::new());
     }
 }
