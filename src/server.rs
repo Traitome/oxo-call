@@ -379,7 +379,7 @@ impl ServerManager {
             "flye",
             "canu",
             "python",
-            "Rscript",
+            "rscript",
             "julia",
             "matlab",
             "make",
@@ -759,5 +759,179 @@ Host *
         }
         assert!(mgr.get_active().is_none());
         assert!(mgr.find("alpha").is_none());
+    }
+
+    // ─── ServerManager::find / list ───────────────────────────────────────────
+
+    #[test]
+    fn test_find_existing_server() {
+        let cfg = make_test_config_with_servers();
+        let mgr = ServerManager { config: cfg };
+        let h = mgr.find("alpha").expect("alpha should be found");
+        assert_eq!(h.host, "alpha.example.com");
+    }
+
+    #[test]
+    fn test_find_nonexistent_server() {
+        let cfg = make_test_config_with_servers();
+        let mgr = ServerManager { config: cfg };
+        assert!(mgr.find("doesnotexist").is_none());
+    }
+
+    #[test]
+    fn test_list_servers() {
+        let cfg = make_test_config_with_servers();
+        let mgr = ServerManager { config: cfg };
+        let hosts = mgr.list();
+        assert_eq!(hosts.len(), 2);
+        assert_eq!(hosts[0].name, "alpha");
+        assert_eq!(hosts[1].name, "beta");
+    }
+
+    // ─── is_compute_command edge cases ────────────────────────────────────────
+
+    #[test]
+    fn test_is_compute_command_via_path() {
+        // Compute command accessed via full path
+        assert!(ServerManager::is_compute_command(
+            "/usr/bin/samtools sort input.bam"
+        ));
+    }
+
+    #[test]
+    fn test_is_compute_command_make_build() {
+        assert!(ServerManager::is_compute_command("make -j8 install"));
+    }
+
+    #[test]
+    fn test_is_compute_command_r_script() {
+        // "Rscript" is now stored as lowercase "rscript" so case-insensitive matching works
+        assert!(ServerManager::is_compute_command("Rscript analysis.R"));
+        assert!(ServerManager::is_compute_command("rscript analysis.R"));
+    }
+
+    // ─── is_login_safe_command edge cases ─────────────────────────────────────
+
+    #[test]
+    fn test_is_login_safe_pwd() {
+        assert!(ServerManager::is_login_safe_command("pwd"));
+        assert!(ServerManager::is_login_safe_command("hostname"));
+        assert!(ServerManager::is_login_safe_command("whoami"));
+    }
+
+    #[test]
+    fn test_is_login_safe_empty() {
+        assert!(!ServerManager::is_login_safe_command(""));
+    }
+
+    // ─── parse_ssh_config_content edge cases ─────────────────────────────────
+
+    #[test]
+    fn test_ssh_config_equals_separator() {
+        let content = "Host=myhost\n  HostName=192.168.1.1\n  User=testuser\n";
+        let entries = parse_ssh_config_content(content);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].alias, "myhost");
+    }
+
+    #[test]
+    fn test_ssh_config_no_hostname_field() {
+        // Host with no HostName — alias is the hostname
+        let content = "Host myhost\n  User alice\n";
+        let entries = parse_ssh_config_content(content);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].alias, "myhost");
+        assert!(entries[0].hostname.is_none());
+        assert_eq!(entries[0].user.as_deref(), Some("alice"));
+    }
+
+    #[test]
+    fn test_ssh_config_wildcard_excluded() {
+        let content = "Host *\n  ServerAliveInterval 60\nHost *.example.com\n  User admin\n";
+        let entries = parse_ssh_config_content(content);
+        assert!(entries.is_empty(), "wildcard hosts should be excluded");
+    }
+
+    #[test]
+    fn test_ssh_config_identity_file() {
+        let content = "Host secure-host\n  IdentityFile ~/.ssh/id_ed25519\n  User admin\n";
+        let entries = parse_ssh_config_content(content);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(
+            entries[0].identity_file.as_deref(),
+            Some("~/.ssh/id_ed25519")
+        );
+    }
+
+    // ─── parse_selection edge cases ───────────────────────────────────────────
+
+    #[test]
+    fn test_parse_selection_zero_len() {
+        // When len is 0, no valid indices exist
+        assert_eq!(parse_selection("all", 0), Vec::<usize>::new());
+        assert_eq!(parse_selection("1", 0), Vec::<usize>::new());
+    }
+
+    #[test]
+    fn test_parse_selection_invalid_range_ignored() {
+        // "abc-xyz" should not produce any indices
+        assert_eq!(parse_selection("abc-xyz", 5), Vec::<usize>::new());
+        // "1-abc" should be ignored too
+        assert_eq!(parse_selection("1-abc", 5), Vec::<usize>::new());
+    }
+
+    #[test]
+    fn test_parse_selection_comma_with_spaces() {
+        assert_eq!(parse_selection(" 1 , 3 , 5 ", 5), vec![0, 2, 4]);
+    }
+
+    // ─── ServerManager::new ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_server_manager_new() {
+        let cfg = crate::config::Config::default();
+        let mgr = ServerManager::new(cfg);
+        assert!(mgr.list().is_empty());
+    }
+
+    // ─── ServerHost::to_display_row / ssh_args ─────────────────────────────────
+
+    #[test]
+    fn test_ssh_args_minimal() {
+        let host = ServerHost {
+            name: "minimal".to_string(),
+            host: "1.2.3.4".to_string(),
+            user: None,
+            port: None,
+            identity_file: None,
+            server_type: ServerType::Workstation,
+            scheduler: None,
+            work_dir: None,
+        };
+        let args = host.ssh_args();
+        // Should just be ["1.2.3.4"]
+        assert_eq!(args, vec!["1.2.3.4"]);
+    }
+
+    // ─── check_connection with unreachable host ───────────────────────────────
+
+    #[test]
+    fn test_check_connection_unreachable_returns_false() {
+        let host = ServerHost {
+            name: "unreachable".to_string(),
+            host: "192.0.2.1".to_string(), // TEST-NET, not routable
+            user: None,
+            port: None,
+            identity_file: None,
+            server_type: ServerType::Workstation,
+            scheduler: None,
+            work_dir: None,
+        };
+        let cfg = crate::config::Config::default();
+        let mgr = ServerManager::new(cfg);
+        // The check will timeout/fail; result should be Ok(false) not Err
+        let result = mgr.check_connection(&host);
+        assert!(result.is_ok(), "connection check should not error");
+        assert!(!result.unwrap(), "unreachable host should return false");
     }
 }

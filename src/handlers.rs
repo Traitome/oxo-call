@@ -198,4 +198,33 @@ mod tests {
         let combined = suggestions.join(" ");
         assert!(combined.contains("config show"));
     }
+
+    // ─── print_index_table ────────────────────────────────────────────────────
+
+    #[test]
+    fn test_print_index_table_no_panic_empty() {
+        print_index_table(&[]);
+    }
+
+    #[test]
+    fn test_print_index_table_no_panic_with_entries() {
+        use chrono::Utc;
+        let entries = vec![
+            index::IndexEntry {
+                tool_name: "samtools".to_string(),
+                version: Some("1.17".to_string()),
+                indexed_at: Utc::now(),
+                doc_size_bytes: 1024,
+                sources: vec!["help".to_string()],
+            },
+            index::IndexEntry {
+                tool_name: "bwa".to_string(),
+                version: None,
+                indexed_at: Utc::now(),
+                doc_size_bytes: 512,
+                sources: vec![],
+            },
+        ];
+        print_index_table(&entries);
+    }
 }

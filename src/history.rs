@@ -89,11 +89,10 @@ impl HistoryStore {
 mod tests {
     use super::*;
     use chrono::Utc;
-    use std::sync::Mutex;
 
-    // Mutex to serialize tests that mutate OXO_CALL_DATA_DIR to prevent races
-    // between parallel test threads in the same process.
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
+    // All tests that mutate OXO_CALL_DATA_DIR use the crate-wide ENV_LOCK to
+    // prevent races with docs.rs, config.rs, and skill.rs tests.
+    use crate::ENV_LOCK;
 
     fn make_entry(id: &str, tool: &str, dry_run: bool) -> HistoryEntry {
         HistoryEntry {

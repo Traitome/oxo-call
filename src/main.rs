@@ -16,6 +16,12 @@ mod server;
 mod skill;
 mod workflow;
 
+/// A single crate-wide mutex that **all** test modules must acquire before
+/// reading or writing `OXO_CALL_DATA_DIR` (or any other process-global
+/// environment variable used by tests).
+#[cfg(test)]
+pub(crate) static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 use clap::{CommandFactory, Parser};
 use cli::{
     Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, JobCommands,

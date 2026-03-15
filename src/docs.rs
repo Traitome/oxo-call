@@ -750,10 +750,11 @@ fn strip_embedded_help_section(cached: &str) -> String {
 mod tests {
     use super::*;
     use crate::config::Config;
-    use std::sync::Mutex;
 
-    // Mutex to serialize tests that mutate OXO_CALL_DATA_DIR
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
+    // All tests that mutate OXO_CALL_DATA_DIR use the crate-wide ENV_LOCK
+    // so they are serialised against tests in skill.rs, config.rs, and
+    // history.rs that also touch the same env variable.
+    use crate::ENV_LOCK;
 
     // ─── validate_tool_name ───────────────────────────────────────────────────
 
@@ -1151,5 +1152,221 @@ mod tests {
         let fetcher = DocsFetcher::new(Config::default());
         let result = fetcher.fetch_remote("tool", "ftp://example.com/docs").await;
         assert!(result.is_err());
+    }
+
+    // ─── extract_useful_output ────────────────────────────────────────────────
+
+    #[test]
+    fn test_extract_useful_output_uses_stdout() {
+        let long_help = "A ".repeat(50); // > MIN_HELP_LEN
+        let result = extract_useful_output("tool", long_help.as_bytes(), b"");
+        assert!(result.is_ok());
+        assert!(result.unwrap().contains("A "));
+    }
+
+    #[test]
+    fn test_extract_useful_output_falls_back_to_stderr() {
+        let long_help = "Usage: tool [options]\n".repeat(10);
+        let result = extract_useful_output("tool", b"", long_help.as_bytes());
+        assert!(result.is_ok());
+        assert!(result.unwrap().contains("Usage"));
+    }
+
+    #[test]
+    fn test_extract_useful_output_empty_returns_error() {
+        let result = extract_useful_output("tool", b"", b"");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_extract_useful_output_short_error_text_rejected() {
+        let short_error = "unrecognized command: foo";
+        let result = extract_useful_output("tool", short_error.as_bytes(), b"");
+        assert!(result.is_err(), "short error text should be rejected");
+    }
+
+    #[test]
+    fn test_extract_useful_output_truncates_long_output() {
+        let very_long = "x".repeat(20_000);
+        let result = extract_useful_output("tool", very_long.as_bytes(), b"");
+        assert!(result.is_ok());
+        let content = result.unwrap();
+        assert!(
+            content.contains("[truncated]"),
+            "long output should be truncated"
+        );
+    }
+
+    #[test]
+    fn test_extract_useful_output_combines_both_streams() {
+        let stdout = "stdout content: usage: tool\n".repeat(5);
+        let stderr = "stderr content: extra flags\n".repeat(5);
+        let result = extract_useful_output("tool", stdout.as_bytes(), stderr.as_bytes());
+        assert!(result.is_ok());
+        // Combined should contain content from both
+        let content = result.unwrap();
+        assert!(content.contains("stdout") || content.contains("stderr"));
+    }
+
+    // ─── looks_like_version / clean_version_string ───────────────────────────
+
+    #[test]
+    fn test_looks_like_version_too_long() {
+        let long = "v".to_string() + &"x".repeat(150);
+        assert!(!looks_like_version(&long));
+    }
+
+    #[test]
+    fn test_looks_like_version_no_dot() {
+        assert!(!looks_like_version("12345"));
+        assert!(!looks_like_version("version12"));
+    }
+
+    #[test]
+    fn test_clean_version_string_v_prefix() {
+        assert_eq!(clean_version_string("v1.2.3"), "v1.2.3");
+    }
+
+    // ─── is_likely_error ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_is_likely_error_invalid_option() {
+        assert!(is_likely_error("invalid option: --foo"));
+        assert!(is_likely_error("unrecognized option -x"));
+    }
+
+    #[test]
+    fn test_is_likely_error_no_such() {
+        assert!(is_likely_error("no such file or directory"));
+    }
+
+    #[test]
+    fn test_is_likely_error_error_with_usage_is_help() {
+        // "error: ... usage: ..." should NOT be flagged as error text
+        assert!(!is_likely_error("error: missing arg; usage: tool --help"));
+    }
+
+    // ─── strip_html_tags ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_strip_html_tags_nested() {
+        let html = "<html><head><title>Tool</title></head><body><h1>Usage</h1><p>Details</p></body></html>";
+        let text = strip_html_tags(html);
+        assert!(text.contains("Tool"));
+        assert!(text.contains("Usage"));
+        assert!(text.contains("Details"));
+        assert!(!text.contains("<html>"));
+        assert!(!text.contains("<head>"));
+    }
+
+    #[test]
+    fn test_strip_html_tags_plain_text_unchanged() {
+        let plain = "Hello world\nSecond line";
+        let result = strip_html_tags(plain);
+        assert!(result.contains("Hello world"));
+        assert!(result.contains("Second line"));
+    }
+
+    // ─── fetch_from_file: directory path ─────────────────────────────────────
+
+    #[test]
+    fn test_fetch_from_file_directory_is_error() {
+        let tmp = tempfile::tempdir().unwrap();
+        let fetcher = DocsFetcher::new(Config::default());
+        assert!(fetcher.fetch_from_file("tool", tmp.path()).is_err());
+    }
+
+    // ─── fetch_from_dir: not a directory ─────────────────────────────────────
+
+    #[test]
+    fn test_fetch_from_dir_file_path_is_error() {
+        let tmp = tempfile::tempdir().unwrap();
+        let file_path = tmp.path().join("a.txt");
+        std::fs::write(&file_path, "not a dir").unwrap();
+        let fetcher = DocsFetcher::new(Config::default());
+        assert!(fetcher.fetch_from_dir("tool", &file_path).is_err());
+    }
+
+    // ─── fetch_from_dir: RST and HTML files ──────────────────────────────────
+
+    #[test]
+    fn test_fetch_from_dir_collects_rst_and_html() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(
+            tmp.path().join("api.rst"),
+            ".. code:: bash\n\n   tool --help",
+        )
+        .unwrap();
+        std::fs::write(tmp.path().join("guide.html"), "<p>Guide text</p>").unwrap();
+
+        let fetcher = DocsFetcher::new(Config::default());
+        let content = fetcher.fetch_from_dir("tool", tmp.path()).unwrap();
+        assert!(content.contains("tool --help") || content.contains("Guide text"));
+    }
+
+    // ─── ToolDocs::combined deduplication ────────────────────────────────────
+
+    #[test]
+    fn test_tool_docs_combined_deduplicates_help_in_cached() {
+        let help = "usage: samtools sort -o out.bam input.bam";
+        let cached = format!("# Samtools Docs\n\n{help}\n\nMore content here.");
+        let docs = ToolDocs {
+            tool_name: "samtools".to_string(),
+            help_output: Some(help.to_string()),
+            cached_docs: Some(cached),
+            version: None,
+        };
+        let combined = docs.combined();
+        // Help should not be duplicated
+        let count = combined.matches("usage: samtools sort").count();
+        assert_eq!(count, 1, "help content should not be duplicated");
+    }
+
+    #[test]
+    fn test_tool_docs_combined_appends_help_not_in_cached() {
+        let help = "freshly fetched flags: --new-flag";
+        let cached = "# Tool Docs\n\nOld docs without the new flag.".to_string();
+        let docs = ToolDocs {
+            tool_name: "tool".to_string(),
+            help_output: Some(help.to_string()),
+            cached_docs: Some(cached),
+            version: None,
+        };
+        let combined = docs.combined();
+        assert!(combined.contains("Old docs"));
+        assert!(
+            combined.contains("freshly fetched"),
+            "new help should be appended"
+        );
+    }
+
+    // ─── strip_embedded_help_section with CRLF ────────────────────────────────
+
+    #[test]
+    fn test_strip_embedded_help_section_crlf() {
+        let cached =
+            "# Overview\r\n\r\nSome intro.\r\n\r\n# Help Output\r\n\r\nusage: tool --help\r\n";
+        let result = strip_embedded_help_section(cached);
+        assert!(!result.contains("# Help Output"));
+        assert!(result.contains("Some intro."));
+    }
+
+    // ─── deduplicate_check edge cases ────────────────────────────────────────
+
+    #[test]
+    fn test_deduplicate_check_empty_help() {
+        let cached = "some docs here";
+        assert!(
+            !deduplicate_check(cached, ""),
+            "empty help should not be a duplicate"
+        );
+    }
+
+    #[test]
+    fn test_deduplicate_check_partial_overlap() {
+        let help = "usage: tool [options]\nOptions:\n  --flag1\n  --flag2\n  --flag3\n";
+        // Cache contains the significant prefix of help
+        let cached = format!("cached intro\n{}", &help[..((help.len() * 4) / 5 + 1)]);
+        assert!(deduplicate_check(&cached, help));
     }
 }

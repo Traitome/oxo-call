@@ -31,3 +31,4 @@ docs/guide/book/
 
 # MkDocs build output
 docs/guide/site/
+lcov.info

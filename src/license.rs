@@ -528,4 +528,183 @@ pub mod tests {
 
         assert_eq!(candidates, vec![path]);
     }
+
+    // ─── LicenseType::Display ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_license_type_display_academic() {
+        let lt = LicenseType::Academic;
+        assert_eq!(lt.to_string(), "academic");
+    }
+
+    #[test]
+    fn test_license_type_display_commercial() {
+        let lt = LicenseType::Commercial;
+        assert_eq!(lt.to_string(), "commercial");
+    }
+
+    // ─── find_license_path: OXO_CALL_LICENSE env var ─────────────────────────
+
+    #[test]
+    fn test_find_license_path_from_env_var() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().to_path_buf();
+        unsafe {
+            std::env::set_var("OXO_CALL_LICENSE", path.to_str().unwrap());
+        }
+        let found = find_license_path(None);
+        // Should use the env var path
+        assert_eq!(found.as_deref(), Some(path.as_path()));
+        unsafe {
+            std::env::remove_var("OXO_CALL_LICENSE");
+        }
+    }
+
+    #[test]
+    fn test_find_license_path_from_cli_arg_takes_precedence_over_env() {
+        let cli_path = PathBuf::from("/tmp/cli-license.json");
+        let env_path = PathBuf::from("/tmp/env-license.json");
+        unsafe {
+            std::env::set_var("OXO_CALL_LICENSE", env_path.to_str().unwrap());
+        }
+        let found = find_license_path(Some(&cli_path));
+        assert_eq!(found.as_deref(), Some(cli_path.as_path()));
+        unsafe {
+            std::env::remove_var("OXO_CALL_LICENSE");
+        }
+    }
+
+    // ─── load_and_verify: valid license from temp file ────────────────────────
+
+    #[test]
+    fn test_load_and_verify_valid_license() {
+        let (key, pubkey_b64) = make_test_keypair();
+        let license = make_license(&key, LicenseType::Academic);
+
+        // Write the license to a temp file
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let json = serde_json::to_string_pretty(&license).unwrap();
+        std::fs::write(tmp.path(), json.as_bytes()).unwrap();
+
+        // load_and_verify uses the EMBEDDED key, so this verifies with the real key —
+        // but we can't use our test key for load_and_verify.
+        // Instead verify that load_and_verify reads and parses without I/O error.
+        // We test verify_license_with_key separately for correctness.
+        let result = load_and_verify(Some(tmp.path()));
+        // This will fail with InvalidSignature because we used a test key,
+        // not the embedded key. Just verify it doesn't fail with I/O error.
+        match result {
+            Err(LicenseError::InvalidSignature) => {} // expected with test key
+            Err(LicenseError::InvalidSchema { .. }) => {} // also acceptable
+            Ok(_) => {} // would pass if test key == embedded key (impossible by design)
+            Err(e) => panic!("unexpected error type: {e}"),
+        }
+        // Verify the key-specific check works
+        assert!(verify_license_with_key(&license, &pubkey_b64).is_ok());
+    }
+
+    // ─── verify_license: with embedded key (smoke test) ───────────────────────
+
+    #[test]
+    fn test_verify_license_embedded_key_wrong_schema_fails() {
+        // A license signed with the test key but with wrong schema
+        let (key, _) = make_test_keypair();
+        let mut payload = LicensePayload {
+            schema: "wrong-schema".to_string(),
+            license_id: "00000000-0000-0000-0000-000000000099".to_string(),
+            issued_to_org: "Test".to_string(),
+            contact_email: None,
+            license_type: LicenseType::Academic,
+            scope: "org".to_string(),
+            perpetual: true,
+            issued_at: "2025-01-01".to_string(),
+        };
+        let payload_bytes = serde_json::to_vec(&payload).unwrap();
+        let sig = key.sign(&payload_bytes);
+        let license = LicenseFile {
+            payload: payload.clone(),
+            signature: STANDARD.encode(sig.to_bytes()),
+        };
+        // verify_license uses EMBEDDED_PUBLIC_KEY_BASE64 — should fail with InvalidSchema
+        let result = verify_license(&license);
+        assert!(
+            matches!(result, Err(LicenseError::InvalidSchema { .. })),
+            "expected InvalidSchema, got: {result:?}"
+        );
+        payload.schema = SCHEMA_VERSION.to_string();
+        let _ = payload;
+    }
+
+    // ─── LicenseError: invalid public key ─────────────────────────────────────
+
+    #[test]
+    fn test_invalid_public_key_base64_fails() {
+        let (key, _) = make_test_keypair();
+        let license = make_license(&key, LicenseType::Academic);
+        let result = verify_license_with_key(&license, "!!!not-valid-base64!!!");
+        assert!(
+            matches!(result, Err(LicenseError::InvalidPublicKey(_))),
+            "expected InvalidPublicKey, got: {result:?}"
+        );
+    }
+
+    #[test]
+    fn test_invalid_public_key_wrong_length_fails() {
+        let (key, _) = make_test_keypair();
+        let license = make_license(&key, LicenseType::Academic);
+        // Valid base64 but only 16 bytes, not 32
+        let short_key = STANDARD.encode([0u8; 16]);
+        let result = verify_license_with_key(&license, &short_key);
+        assert!(
+            matches!(result, Err(LicenseError::InvalidPublicKey(_))),
+            "expected InvalidPublicKey, got: {result:?}"
+        );
+    }
+
+    // ─── LicenseError: invalid signature encoding ─────────────────────────────
+
+    #[test]
+    fn test_invalid_signature_encoding_fails() {
+        let (key, pubkey_b64) = make_test_keypair();
+        let mut license = make_license(&key, LicenseType::Academic);
+        license.signature = "!!!not-valid-base64!!!".to_string();
+        let result = verify_license_with_key(&license, &pubkey_b64);
+        assert!(
+            matches!(result, Err(LicenseError::InvalidSignatureEncoding(_))),
+            "expected InvalidSignatureEncoding, got: {result:?}"
+        );
+    }
+
+    #[test]
+    fn test_invalid_signature_wrong_length_fails() {
+        let (key, pubkey_b64) = make_test_keypair();
+        let mut license = make_license(&key, LicenseType::Academic);
+        // Valid base64 but 32 bytes (not 64)
+        license.signature = STANDARD.encode([0u8; 32]);
+        let result = verify_license_with_key(&license, &pubkey_b64);
+        assert!(
+            matches!(result, Err(LicenseError::InvalidSignatureEncoding(_))),
+            "expected InvalidSignatureEncoding, got: {result:?}"
+        );
+    }
+
+    // ─── legacy_unix_license_path_from_home ──────────────────────────────────
+
+    #[test]
+    fn test_legacy_unix_license_path_some() {
+        let home = PathBuf::from("/home/alice");
+        let path = legacy_unix_license_path_from_home(Some(home));
+        assert_eq!(
+            path,
+            Some(PathBuf::from(
+                "/home/alice/.config/oxo-call/license.oxo.json"
+            ))
+        );
+    }
+
+    #[test]
+    fn test_legacy_unix_license_path_none() {
+        let path = legacy_unix_license_path_from_home(None);
+        assert!(path.is_none());
+    }
 }

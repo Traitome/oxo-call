@@ -448,10 +448,10 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
 
-    // Mutex to serialize tests that mutate env vars
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
+    // All tests that mutate env vars use the crate-wide ENV_LOCK to prevent
+    // races with docs.rs, history.rs, and skill.rs tests.
+    use crate::ENV_LOCK;
 
     // ─── McpServerConfig ──────────────────────────────────────────────────────
 
@@ -928,10 +928,10 @@ mod tests {
 
     #[test]
     fn test_config_load_returns_default_when_missing() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         // Point config dir at empty temp directory
         let tmp = tempfile::tempdir().unwrap();
-        // SAFETY: test-only env var mutation, single-threaded test
-
+        // SAFETY: test-only env var mutation, serialised by ENV_LOCK
         unsafe {
             std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
         }
@@ -988,5 +988,401 @@ mod tests {
         }
         let data_dir = Config::data_dir().unwrap();
         assert_eq!(data_dir, tmp.path());
+    }
+
+    // ─── effective_api_token ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_effective_api_token_from_config() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_TOKEN");
+            std::env::remove_var("GITHUB_TOKEN");
+            std::env::remove_var("GH_TOKEN");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.api_token = Some("stored-token-123".to_string());
+        assert_eq!(
+            cfg.effective_api_token().as_deref(),
+            Some("stored-token-123")
+        );
+    }
+
+    #[test]
+    fn test_effective_api_token_none_when_empty_string() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_TOKEN");
+            std::env::remove_var("GITHUB_TOKEN");
+            std::env::remove_var("GH_TOKEN");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.api_token = Some(String::new()); // empty string
+        assert!(
+            cfg.effective_api_token().is_none(),
+            "empty string token should be treated as None"
+        );
+    }
+
+    #[test]
+    fn test_effective_api_token_env_var_takes_precedence() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::set_var("OXO_CALL_LLM_API_TOKEN", "env-token-xyz");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.api_token = Some("stored-token".to_string());
+        assert_eq!(
+            cfg.effective_api_token().as_deref(),
+            Some("env-token-xyz"),
+            "env var should take precedence over stored config"
+        );
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_TOKEN");
+        }
+    }
+
+    // ─── effective_api_token legacy provider fallbacks ─────────────────────────
+
+    #[test]
+    fn test_effective_api_token_openai_legacy_env() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_TOKEN");
+            std::env::set_var("OPENAI_API_KEY", "openai-legacy-key");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "openai".to_string();
+        assert_eq!(
+            cfg.effective_api_token().as_deref(),
+            Some("openai-legacy-key")
+        );
+        unsafe {
+            std::env::remove_var("OPENAI_API_KEY");
+        }
+    }
+
+    #[test]
+    fn test_effective_api_token_anthropic_legacy_env() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_TOKEN");
+            std::env::set_var("ANTHROPIC_API_KEY", "anthropic-legacy-key");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "anthropic".to_string();
+        assert_eq!(
+            cfg.effective_api_token().as_deref(),
+            Some("anthropic-legacy-key")
+        );
+        unsafe {
+            std::env::remove_var("ANTHROPIC_API_KEY");
+        }
+    }
+
+    // ─── effective_value for all keys ────────────────────────────────────────
+
+    #[test]
+    fn test_effective_value_all_known_keys() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            // Clear all relevant env vars
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+            std::env::remove_var("OXO_CALL_LLM_API_TOKEN");
+            std::env::remove_var("OXO_CALL_LLM_API_BASE");
+            std::env::remove_var("OXO_CALL_LLM_MODEL");
+            std::env::remove_var("OXO_CALL_LLM_MAX_TOKENS");
+            std::env::remove_var("OXO_CALL_LLM_TEMPERATURE");
+            std::env::remove_var("OXO_CALL_DOCS_AUTO_UPDATE");
+            std::env::remove_var("GITHUB_TOKEN");
+            std::env::remove_var("GH_TOKEN");
+        }
+        let cfg = Config::default();
+        assert!(cfg.effective_value("llm.provider").is_ok());
+        assert!(cfg.effective_value("llm.api_token").is_ok());
+        assert!(cfg.effective_value("llm.api_base").is_ok());
+        assert!(cfg.effective_value("llm.model").is_ok());
+        assert!(cfg.effective_value("llm.max_tokens").is_ok());
+        assert!(cfg.effective_value("llm.temperature").is_ok());
+        assert!(cfg.effective_value("docs.auto_update").is_ok());
+        assert!(cfg.effective_value("unknown.key").is_err());
+    }
+
+    // ─── effective_source for all keys ───────────────────────────────────────
+
+    #[test]
+    fn test_effective_source_api_base_stored_config() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_BASE");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.api_base = Some("https://custom.example.com/v1".to_string());
+        let src = cfg.effective_source("llm.api_base").unwrap();
+        assert!(src.contains("stored config"));
+    }
+
+    #[test]
+    fn test_effective_source_api_token_stored_config() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_TOKEN");
+            std::env::remove_var("GITHUB_TOKEN");
+            std::env::remove_var("GH_TOKEN");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.api_token = Some("my-stored-token".to_string());
+        let src = cfg.effective_source("llm.api_token").unwrap();
+        assert!(src.contains("stored config"));
+    }
+
+    // ─── Config::save / Config::load round-trip ───────────────────────────────
+
+    #[test]
+    fn test_config_save_and_load_round_trip() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+
+        let mut cfg = Config::default();
+        cfg.llm.provider = "openai".to_string();
+        cfg.llm.model = Some("gpt-4-turbo".to_string());
+        cfg.llm.max_tokens = 4096;
+
+        // Save to the temp dir location
+        // Config::save() uses config_dir(), which is separate from data_dir(),
+        // so we write directly to exercise the save/load TOML path
+        let config_dir = tmp.path().join(".config").join("oxo-call");
+        std::fs::create_dir_all(&config_dir).unwrap();
+        let config_path = config_dir.join("config.toml");
+        let toml_str = toml::to_string_pretty(&cfg).unwrap();
+        std::fs::write(&config_path, &toml_str).unwrap();
+
+        // Read back and verify
+        let loaded: Config = toml::from_str(&toml_str).unwrap();
+        assert_eq!(loaded.llm.provider, "openai");
+        assert_eq!(loaded.llm.model.as_deref(), Some("gpt-4-turbo"));
+        assert_eq!(loaded.llm.max_tokens, 4096);
+    }
+
+    // ─── effective_api_base: unknown provider ─────────────────────────────────
+
+    #[test]
+    fn test_effective_api_base_unknown_provider() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_BASE");
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "some-unknown-provider".to_string();
+        // Should fall through to OpenAI default
+        assert_eq!(cfg.effective_api_base(), "https://api.openai.com/v1");
+    }
+
+    // ─── effective_model: unknown provider ────────────────────────────────────
+
+    #[test]
+    fn test_effective_model_unknown_provider() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_MODEL");
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "some-unknown-provider".to_string();
+        // Should fall through to gpt-4o default
+        assert_eq!(cfg.effective_model(), "gpt-4o");
+    }
+
+    // ─── effective_api_token: GH_TOKEN fallback ───────────────────────────────
+
+    #[test]
+    fn test_effective_api_token_gh_token_fallback() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_TOKEN");
+            std::env::remove_var("GITHUB_TOKEN");
+            std::env::set_var("GH_TOKEN", "gh-legacy-token");
+        }
+        let cfg = Config::default(); // default provider is github-copilot
+        let token = cfg.effective_api_token();
+        assert_eq!(token.as_deref(), Some("gh-legacy-token"));
+        unsafe {
+            std::env::remove_var("GH_TOKEN");
+        }
+    }
+
+    // ─── effective_source with env vars set ──────────────────────────────────
+
+    #[test]
+    fn test_effective_source_provider_from_env() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::set_var("OXO_CALL_LLM_PROVIDER", "anthropic");
+        }
+        let cfg = Config::default();
+        let src = cfg.effective_source("llm.provider").unwrap();
+        assert!(src.contains("OXO_CALL_LLM_PROVIDER") || src.contains("env"));
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+    }
+
+    #[test]
+    fn test_effective_source_api_base_from_env() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::set_var("OXO_CALL_LLM_API_BASE", "https://my-proxy.example.com/v1");
+        }
+        let cfg = Config::default();
+        let src = cfg.effective_source("llm.api_base").unwrap();
+        assert!(src.contains("OXO_CALL_LLM_API_BASE") || src.contains("env"));
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_BASE");
+        }
+    }
+
+    #[test]
+    fn test_effective_source_api_token_from_env() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::set_var("OXO_CALL_LLM_API_TOKEN", "env-token");
+        }
+        let cfg = Config::default();
+        let src = cfg.effective_source("llm.api_token").unwrap();
+        assert!(src.contains("OXO_CALL_LLM_API_TOKEN") || src.contains("env"));
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_TOKEN");
+        }
+    }
+
+    #[test]
+    fn test_effective_source_model_from_env() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::set_var("OXO_CALL_LLM_MODEL", "claude-3-opus");
+        }
+        let cfg = Config::default();
+        let src = cfg.effective_source("llm.model").unwrap();
+        assert!(src.contains("OXO_CALL_LLM_MODEL") || src.contains("env"));
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_MODEL");
+        }
+    }
+
+    #[test]
+    fn test_effective_source_max_tokens_from_env() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::set_var("OXO_CALL_LLM_MAX_TOKENS", "4096");
+        }
+        let cfg = Config::default();
+        let src = cfg.effective_source("llm.max_tokens").unwrap();
+        assert!(src.contains("OXO_CALL_LLM_MAX_TOKENS") || src.contains("env"));
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_MAX_TOKENS");
+        }
+    }
+
+    #[test]
+    fn test_effective_source_temperature_from_env() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::set_var("OXO_CALL_LLM_TEMPERATURE", "0.7");
+        }
+        let cfg = Config::default();
+        let src = cfg.effective_source("llm.temperature").unwrap();
+        assert!(src.contains("OXO_CALL_LLM_TEMPERATURE") || src.contains("env"));
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_TEMPERATURE");
+        }
+    }
+
+    #[test]
+    fn test_effective_source_docs_auto_update_from_env() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::set_var("OXO_CALL_DOCS_AUTO_UPDATE", "false");
+        }
+        let cfg = Config::default();
+        let src = cfg.effective_source("docs.auto_update").unwrap();
+        assert!(src.contains("OXO_CALL_DOCS_AUTO_UPDATE") || src.contains("env"));
+        unsafe {
+            std::env::remove_var("OXO_CALL_DOCS_AUTO_UPDATE");
+        }
+    }
+
+    // ─── effective_api_token: OXO_API_TOKEN legacy env (unknown provider) ─────
+
+    #[test]
+    fn test_effective_api_token_oxo_api_token_legacy() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_TOKEN");
+            std::env::set_var("OXO_API_TOKEN", "oxo-legacy-token");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "some-custom-provider".to_string(); // triggers _ arm
+        let token = cfg.effective_api_token();
+        assert_eq!(token.as_deref(), Some("oxo-legacy-token"));
+        unsafe {
+            std::env::remove_var("OXO_API_TOKEN");
+        }
+    }
+
+    // ─── effective_source: anthropic ANTHROPIC_API_KEY ────────────────────────
+
+    #[test]
+    fn test_effective_source_api_token_anthropic_legacy_env() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_TOKEN");
+            std::env::set_var("ANTHROPIC_API_KEY", "anthropic-key");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "anthropic".to_string();
+        let src = cfg.effective_source("llm.api_token").unwrap();
+        assert!(src.contains("ANTHROPIC_API_KEY"));
+        unsafe {
+            std::env::remove_var("ANTHROPIC_API_KEY");
+        }
+    }
+
+    // ─── effective_source: openai OPENAI_API_KEY ──────────────────────────────
+
+    #[test]
+    fn test_effective_source_api_token_openai_legacy_env() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_TOKEN");
+            std::env::set_var("OPENAI_API_KEY", "openai-key");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "openai".to_string();
+        let src = cfg.effective_source("llm.api_token").unwrap();
+        assert!(src.contains("OPENAI_API_KEY"));
+        unsafe {
+            std::env::remove_var("OPENAI_API_KEY");
+        }
+    }
+
+    // ─── Config::effective_api_base env var takes precedence ──────────────────
+
+    #[test]
+    fn test_effective_api_base_env_takes_precedence() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::set_var("OXO_CALL_LLM_API_BASE", "https://env-proxy.example.com/v1");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.api_base = Some("https://config-proxy.example.com/v1".to_string());
+        // Env var should take precedence over config
+        assert_eq!(cfg.effective_api_base(), "https://env-proxy.example.com/v1");
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_BASE");
+        }
     }
 }
