@@ -720,6 +720,7 @@
   <ul class="nav-links">
     <li><a href="#demo">Demo</a></li>
     <li><a href="#features">Features</a></li>
+    <li><a href="#job">Jobs</a></li>
     <li><a href="#workflow">Workflows</a></li>
     <li><a href="#tools">Skills</a></li>
     <li><a href="#benchmarks">Benchmarks</a></li>
@@ -834,7 +835,7 @@
     <div class="feature-card">
       <div class="feature-icon">🎯</div>
       <h3>Built-in skill system</h3>
-      <p>Expert knowledge for 140+ tools baked in as skill files — bioinformatics, HPC schedulers, containers, and more.</p>
+      <p>Expert knowledge for 155+ tools baked in as skill files — bioinformatics, HPC schedulers, containers, and more.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🔗</div>
@@ -865,6 +866,11 @@
       <div class="feature-icon">🏗️</div>
       <h3>HPC cluster skills</h3>
       <p>Built-in skills for Slurm, PBS, SGE, LSF, HTCondor, and Kubernetes — job templates, resource queries, and array job patterns for quick HPC script generation.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📋</div>
+      <h3>Job library with lifecycle management</h3>
+      <p>Save named shell shortcuts (<code>oxo-call job add</code>), attach cron schedules, track run history and exit codes, and generate jobs from plain-English descriptions via the LLM. 25+ built-in templates for common ops, HPC, and bioinformatics tasks.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">⚡</div>
@@ -941,7 +947,7 @@
 <!-- ── Supported Tools ──────────────────────────────────────────────────── -->
 <section id="tools">
   <div class="section-label">// built-in skills</div>
-  <h2 class="section-title">Expert knowledge for 140+ tools</h2>
+  <h2 class="section-title">Expert knowledge for 155+ tools</h2>
   <p class="section-body">
     Each built-in skill encodes domain-specific concepts, common pitfalls, and
     worked examples so the LLM is guided beyond a raw <code>--help</code> dump.
@@ -960,6 +966,71 @@
     <div class="tool-card"><div class="tool-name">slurm</div><div class="tool-desc">HPC job scheduling (sbatch, srun)</div></div>
     <div class="tool-card"><div class="tool-name">pbs</div><div class="tool-desc">PBS/Torque batch scheduler (qsub)</div></div>
     <div class="tool-card"><div class="tool-name">kubectl</div><div class="tool-desc">Kubernetes cluster management</div></div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Job Library ──────────────────────────────────────────────────── -->
+<section id="job">
+  <div class="section-label">// job library</div>
+  <h2 class="section-title">Named command shortcuts —<br/>with scheduling, history, and LLM generation</h2>
+  <p class="section-body">
+    <code>oxo-call job</code> is your personal library of named shell commands.
+    Add any command once, then run it by name — locally or on a remote SSH server.
+    Track execution history, set cron schedules, and let the LLM generate commands
+    from plain-English descriptions.
+  </p>
+
+  <div class="features-grid" style="margin-top:2rem">
+    <div class="feature-card">
+      <div class="feature-icon">📋</div>
+      <h3>Named command library</h3>
+      <p>Save any shell command with <code>oxo-call job add</code>. Attach descriptions and tags. Run it anywhere with <code>oxo-call job run &lt;name&gt;</code>.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Execution history &amp; status</h3>
+      <p>Every run is recorded with timestamp, exit code, and duration. <code>job status</code> shows a live dashboard; <code>job history</code> shows the full run log.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⏰</div>
+      <h3>Cron scheduling</h3>
+      <p>Attach a cron expression with <code>job schedule &lt;name&gt; "0 * * * *"</code> and wire it to your crontab for automated execution.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🤖</div>
+      <h3>LLM-generated jobs</h3>
+      <p>Describe a task in plain English — <code>job generate "check disk and alert if over 90%"</code> — and the LLM generates and saves the shell command for you.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🗃️</div>
+      <h3>25+ built-in templates</h3>
+      <p>Browse ready-made jobs for SLURM, PBS, LSF, Kubernetes, Docker, Git, and bioinformatics with <code>oxo-call job list --builtin</code>. Import with one command.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🖥️</div>
+      <h3>Local and remote execution</h3>
+      <p>Run jobs locally or on any registered SSH server with <code>--server</code>. Integrates with the <code>server</code> subcommand for HPC cluster management.</p>
+    </div>
+  </div>
+
+  <div class="code-block" style="margin-top:2rem">
+    <div class="code-header">
+      <span class="code-lang">bash</span>
+      <button class="copy-btn" data-copy="oxo-call job import squeue-me && oxo-call job run squeue-me">copy</button>
+    </div>
+    <pre><span class="comment"># Import a built-in SLURM template and run it</span>
+oxo-call job list --builtin --tag slurm
+oxo-call job import squeue-me
+oxo-call job run squeue-me
+
+<span class="comment"># Generate a job from a plain-English description</span>
+oxo-call job generate <span class="s">"show Docker containers over 1 GB memory"</span>
+
+<span class="comment"># View execution history and status</span>
+oxo-call job status
+oxo-call job history squeue-me</pre>
   </div>
 </section>
 

@@ -293,9 +293,8 @@ pub const BUILTIN_JOBS: &[BuiltinJob] = &[
     // ── Bioinformatics / data ────────────────────────────────────────────────
     BuiltinJob {
         name: "count-reads",
-        // Two-part command: plain FASTQ line count, then per-file gz count.
-        command: "for f in *.fastq; do echo \"$f: $(wc -l < $f | awk '{print $1/4}') reads\"; done 2>/dev/null; for f in *.fastq.gz; do echo \"$f: $(zcat $f | wc -l | awk '{print $1/4}') reads\"; done 2>/dev/null",
-        description: "Count reads in all FASTQ / FASTQ.gz files in the current directory",
+        command: "for f in *.fastq *.fastq.gz; do [ -f \"$f\" ] || continue; lines=$(zcat -f \"$f\" | wc -l); echo \"$f: $((lines / 4)) reads\"; done",
+        description: "Count reads in all FASTQ / FASTQ.gz files in the current directory (uses zcat -f for both plain and gzipped)",
         tags: &["bioinformatics", "data"],
     },
     BuiltinJob {

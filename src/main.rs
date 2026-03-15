@@ -2582,7 +2582,7 @@ async fn run(cli: Cli) -> error::Result<()> {
         }
 
         Commands::Completion { shell } => {
-            let mut clap_cmd = Cli::command();
+            let mut cli_app = Cli::command();
             let shell = match shell {
                 ShellType::Bash => clap_complete::Shell::Bash,
                 ShellType::Zsh => clap_complete::Shell::Zsh,
@@ -2593,7 +2593,7 @@ async fn run(cli: Cli) -> error::Result<()> {
             // Generate into a buffer first so that a broken pipe (e.g. `| head`)
             // does not cause a panic from within clap_complete.
             let mut buf: Vec<u8> = Vec::new();
-            clap_complete::generate(shell, &mut clap_cmd, "oxo-call", &mut buf);
+            clap_complete::generate(shell, &mut cli_app, "oxo-call", &mut buf);
             use std::io::Write as _;
             let _ = std::io::stdout().write_all(&buf);
         }
