@@ -303,6 +303,144 @@ pub const BUILTIN_JOBS: &[BuiltinJob] = &[
         description: "Run samtools flagstat on every BAM in the current directory",
         tags: &["bioinformatics", "samtools"],
     },
+    BuiltinJob {
+        name: "find-bam",
+        command: "find . -name '*.bam' -type f | sort",
+        description: "Find all BAM files under the current directory",
+        tags: &["bioinformatics", "fs"],
+    },
+    BuiltinJob {
+        name: "find-fastq",
+        command: "find . \\( -name '*.fastq' -o -name '*.fastq.gz' -o -name '*.fq' -o -name '*.fq.gz' \\) -type f | sort",
+        description: "Find all FASTQ/FASTQ.gz files under the current directory",
+        tags: &["bioinformatics", "fs"],
+    },
+    BuiltinJob {
+        name: "bam-index",
+        command: "for f in *.bam; do [ -f \"$f\" ] || continue; echo \"Indexing $f\"; samtools index \"$f\"; done",
+        description: "Index all BAM files in the current directory with samtools",
+        tags: &["bioinformatics", "samtools"],
+    },
+    // ── System / monitoring ──────────────────────────────────────────────────
+    BuiltinJob {
+        name: "uptime",
+        command: "uptime",
+        description: "Show system uptime and load averages",
+        tags: &["system", "ops"],
+    },
+    BuiltinJob {
+        name: "load",
+        command: "cat /proc/loadavg",
+        description: "Show current system load averages (1/5/15 min)",
+        tags: &["system", "ops"],
+    },
+    BuiltinJob {
+        name: "who",
+        command: "who",
+        description: "List users currently logged in",
+        tags: &["system", "ops"],
+    },
+    BuiltinJob {
+        name: "inode",
+        command: "df -i",
+        description: "Show inode usage per filesystem",
+        tags: &["fs", "ops"],
+    },
+    BuiltinJob {
+        name: "tmp",
+        command: "du -sh /tmp/* 2>/dev/null | sort -rh | head -20",
+        description: "Show the largest items in /tmp",
+        tags: &["fs", "ops"],
+    },
+    BuiltinJob {
+        name: "cpu-info",
+        command: "lscpu",
+        description: "Show detailed CPU architecture information",
+        tags: &["system", "ops"],
+    },
+    BuiltinJob {
+        name: "find-recent",
+        command: "find . -type f -newer /tmp -mtime -1 2>/dev/null | sort",
+        description: "Find files modified in the last 24 hours under the current directory",
+        tags: &["fs", "ops"],
+    },
+    // ── SGE / Grid Engine cluster ────────────────────────────────────────────
+    BuiltinJob {
+        name: "qstat-sge",
+        command: "qstat -u $USER",
+        description: "Show my SGE/Grid Engine jobs",
+        tags: &["sge", "hpc", "cluster"],
+    },
+    BuiltinJob {
+        name: "qhost",
+        command: "qhost",
+        description: "Show SGE cluster host status",
+        tags: &["sge", "hpc", "cluster"],
+    },
+    BuiltinJob {
+        name: "qdel-me",
+        command: "qdel -u $USER",
+        description: "Delete all my SGE jobs",
+        tags: &["sge", "hpc", "cluster"],
+    },
+    // ── Docker (extended) ────────────────────────────────────────────────────
+    BuiltinJob {
+        name: "docker-images",
+        command: "docker images --format 'table {{.Repository}}\\t{{.Tag}}\\t{{.Size}}\\t{{.CreatedSince}}'",
+        description: "List all local Docker images in a table",
+        tags: &["docker", "ops"],
+    },
+    BuiltinJob {
+        name: "docker-all",
+        command: "docker ps -a --format 'table {{.ID}}\\t{{.Image}}\\t{{.Status}}\\t{{.Names}}'",
+        description: "List all Docker containers including stopped ones",
+        tags: &["docker", "ops"],
+    },
+    // ── Kubernetes (extended) ────────────────────────────────────────────────
+    BuiltinJob {
+        name: "k8s-svc",
+        command: "kubectl get svc --all-namespaces",
+        description: "List all Kubernetes services across all namespaces",
+        tags: &["k8s", "cluster"],
+    },
+    BuiltinJob {
+        name: "k8s-top",
+        command: "kubectl top nodes",
+        description: "Show Kubernetes node resource usage",
+        tags: &["k8s", "cluster"],
+    },
+    // ── Git (extended) ───────────────────────────────────────────────────────
+    BuiltinJob {
+        name: "git-status",
+        command: "git status --short --branch",
+        description: "Show concise Git working-tree status",
+        tags: &["git", "dev"],
+    },
+    BuiltinJob {
+        name: "git-branch",
+        command: "git branch -a --sort=-committerdate",
+        description: "List all Git branches sorted by most recent commit",
+        tags: &["git", "dev"],
+    },
+    // ── Development ──────────────────────────────────────────────────────────
+    BuiltinJob {
+        name: "conda-envs",
+        command: "conda env list",
+        description: "List all conda environments",
+        tags: &["conda", "dev"],
+    },
+    BuiltinJob {
+        name: "screen-ls",
+        command: "screen -ls",
+        description: "List all screen sessions",
+        tags: &["dev", "ops"],
+    },
+    BuiltinJob {
+        name: "tmux-ls",
+        command: "tmux list-sessions 2>/dev/null || echo 'No tmux sessions'",
+        description: "List all tmux sessions",
+        tags: &["dev", "ops"],
+    },
 ];
 
 /// Return all built-in jobs, optionally filtered by tag.

@@ -97,7 +97,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_verbose(verbose)
                 .with_no_cache(no_cache)
                 .with_optimize_task(optimize_task);
-            runner.dry_run(&tool, &task, json).await?;
+            runner.dry_run(&tool, &task, json, None).await?;
         }
 
         Commands::Index { command } => match command {
@@ -558,14 +558,15 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
 
                 println!(
-                    "{:<8} {:<12} {:<8} {:<28} {}",
+                    "{:<10} {:<14} {:<6} {:<18} {:<26} {}",
                     "Status".bold(),
                     "Tool".bold(),
                     "Exit".bold(),
+                    "Server".bold(),
                     "Time".bold(),
                     "Command".bold()
                 );
-                println!("{}", "─".repeat(100).dimmed());
+                println!("{}", "─".repeat(110).dimmed());
                 for e in &entries {
                     let status = if e.dry_run {
                         "dry-run".yellow().to_string()
@@ -574,16 +575,22 @@ async fn run(cli: Cli) -> error::Result<()> {
                     } else {
                         "failed".red().to_string()
                     };
-                    let cmd_short = if e.command.len() > 45 {
-                        format!("{}...", &e.command[..45])
+                    let server_col = e
+                        .server
+                        .as_deref()
+                        .map(|s| s.cyan().to_string())
+                        .unwrap_or_else(|| "—".dimmed().to_string());
+                    let cmd_short = if e.command.len() > 40 {
+                        format!("{}...", &e.command[..40])
                     } else {
                         e.command.clone()
                     };
                     println!(
-                        "{:<8} {:<12} {:<8} {:<28} {}",
+                        "{:<10} {:<14} {:<6} {:<18} {:<26} {}",
                         status,
                         e.tool.cyan().to_string(),
                         e.exit_code,
+                        server_col,
                         e.executed_at.format("%Y-%m-%d %H:%M:%S").to_string(),
                         cmd_short
                     );
@@ -603,7 +610,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                             parts.push(format!("docs={}", &h[..8.min(h.len())]));
                         }
                         if !parts.is_empty() {
-                            println!("         {}", format!("[{}]", parts.join(", ")).dimmed());
+                            println!("           {}", format!("[{}]", parts.join(", ")).dimmed());
                         }
                     }
                 }
@@ -1677,13 +1684,71 @@ async fn run(cli: Cli) -> error::Result<()> {
                         return Ok(());
                     }
 
-                    let st: server::ServerType = server_type
+                    // In batch mode (--yes) use the global --type for every host.
+                    // In interactive mode, allow the user to set a type per host.
+                    let default_st: server::ServerType = server_type
                         .parse()
                         .map_err(|e: String| error::OxoError::ConfigError(e))?;
 
+                    // Build a map: selected index → ServerType
+                    let per_host_types: Vec<server::ServerType> = if yes {
+                        // Batch: apply default to all.
+                        selected.iter().map(|_| default_st.clone()).collect()
+                    } else {
+                        // Interactive: offer per-host type override.
+                        use std::io::Write;
+                        print!(
+                            "Set server type per host? ({}/{}, Enter for all-'{}'):\n> ",
+                            "y".bold(),
+                            "N".dimmed(),
+                            server_type.yellow()
+                        );
+                        std::io::stdout().flush().ok();
+                        let mut ans = String::new();
+                        std::io::stdin().read_line(&mut ans).ok();
+                        if ans.trim().eq_ignore_ascii_case("y") {
+                            let mut types = Vec::new();
+                            for idx in &selected {
+                                let e = &entries[*idx];
+                                loop {
+                                    print!(
+                                        "  Type for '{}' ([{}]/{}): ",
+                                        e.alias.cyan(),
+                                        "workstation".green(),
+                                        "hpc".yellow()
+                                    );
+                                    std::io::stdout().flush().ok();
+                                    let mut t_input = String::new();
+                                    std::io::stdin().read_line(&mut t_input).ok();
+                                    let t_str = t_input.trim();
+                                    if t_str.is_empty() {
+                                        types.push(default_st.clone());
+                                        break;
+                                    }
+                                    match t_str.parse::<server::ServerType>() {
+                                        Ok(st) => {
+                                            types.push(st);
+                                            break;
+                                        }
+                                        Err(_) => {
+                                            eprintln!(
+                                                "  {} Invalid type '{}'. Use 'workstation' or 'hpc'.",
+                                                "✗".red(),
+                                                t_str
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                            types
+                        } else {
+                            selected.iter().map(|_| default_st.clone()).collect()
+                        }
+                    };
+
                     let mut imported = 0usize;
                     let mut skipped = 0usize;
-                    for idx in &selected {
+                    for (i, idx) in selected.iter().enumerate() {
                         let e = &entries[*idx];
                         if already_registered.contains(&e.alias) {
                             println!(
@@ -1694,13 +1759,17 @@ async fn run(cli: Cli) -> error::Result<()> {
                             skipped += 1;
                             continue;
                         }
+                        let host_type = per_host_types
+                            .get(i)
+                            .cloned()
+                            .unwrap_or_else(|| default_st.clone());
                         let new_host = server::ServerHost {
                             name: e.alias.clone(),
                             host: e.hostname.clone().unwrap_or_else(|| e.alias.clone()),
                             user: e.user.clone(),
                             port: e.port,
                             identity_file: e.identity_file.clone(),
-                            server_type: st.clone(),
+                            server_type: host_type,
                             scheduler: None,
                             work_dir: None,
                         };
@@ -1881,6 +1950,20 @@ async fn run(cli: Cli) -> error::Result<()> {
                         ssh_cmd.arg(&generated.full_cmd);
 
                         let status = ssh_cmd.status()?;
+                        let exit_code = status.code().unwrap_or(-1);
+
+                        // Record the server run in history.
+                        let _ = history::HistoryStore::append(history::HistoryEntry {
+                            id: uuid::Uuid::new_v4().to_string(),
+                            tool: tool.clone(),
+                            task: task.clone(),
+                            command: generated.full_cmd.clone(),
+                            exit_code,
+                            executed_at: chrono::Utc::now(),
+                            dry_run: false,
+                            server: Some(server_name.clone()),
+                            provenance: None,
+                        });
 
                         println!();
                         if status.success() {
@@ -1890,14 +1973,13 @@ async fn run(cli: Cli) -> error::Result<()> {
                                 server_name.cyan()
                             );
                         } else {
-                            let code = status.code().unwrap_or(1);
                             eprintln!(
-                                "{} Command exited with code {code} on '{}'.",
+                                "{} Command exited with code {exit_code} on '{}'.",
                                 "✗".red().bold(),
                                 server_name.cyan()
                             );
                             return Err(error::OxoError::ExecutionError(format!(
-                                "SSH command on '{server_name}' exited with code {code}"
+                                "SSH command on '{server_name}' exited with code {exit_code}"
                             )));
                         }
                     }
@@ -1941,7 +2023,9 @@ async fn run(cli: Cli) -> error::Result<()> {
                         .with_verbose(verbose)
                         .with_no_cache(no_cache)
                         .with_optimize_task(optimize_task);
-                    runner_inst.dry_run(&tool, &task, json).await?;
+                    runner_inst
+                        .dry_run(&tool, &task, json, Some(&server_name))
+                        .await?;
 
                     println!(
                         "\n{} Target server: '{}' ({}{})",
@@ -2408,38 +2492,87 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
 
                 JobCommands::History { name, limit } => {
-                    let runs = job::JobRunStore::load(Some(&name))?;
+                    let runs = job::JobRunStore::load(name.as_deref())?;
                     if runs.is_empty() {
-                        println!("No run history for job '{name}'.");
+                        if let Some(ref n) = name {
+                            println!("No run history for job '{n}'.");
+                        } else {
+                            println!("No job run history found.");
+                        }
                     } else {
                         println!();
-                        println!(
-                            "  {} Run history for '{}' (last {}):",
-                            "◆".cyan(),
-                            name.cyan().bold(),
-                            limit
-                        );
-                        println!();
-                        for run in runs.iter().rev().take(limit) {
-                            let status_icon = if run.exit_code == 0 {
-                                "✓".green().to_string()
-                            } else {
-                                "✗".red().to_string()
-                            };
+                        if let Some(ref n) = name {
                             println!(
-                                "  {} {}  exit={}  {:.2}s{}",
-                                status_icon,
-                                run.started_at.format("%Y-%m-%d %H:%M:%S UTC"),
-                                run.exit_code,
-                                run.duration_secs,
-                                run.server
-                                    .as_ref()
-                                    .map(|s| format!("  [{}]", s.cyan()))
-                                    .unwrap_or_default()
+                                "  {} Run history for '{}' (last {}):",
+                                "◆".cyan(),
+                                n.cyan().bold(),
+                                limit
                             );
-                            println!("    {}", run.command.dimmed());
+                        } else {
+                            println!(
+                                "  {} All job run history (last {} per job):",
+                                "◆".cyan(),
+                                limit
+                            );
                         }
                         println!();
+                        // When showing all jobs, group by job name.
+                        if name.is_none() {
+                            // Collect unique job names in the order they last ran.
+                            let mut seen: Vec<String> = Vec::new();
+                            let mut seen_set = std::collections::HashSet::new();
+                            for run in runs.iter().rev() {
+                                if seen_set.insert(run.job_name.clone()) {
+                                    seen.push(run.job_name.clone());
+                                }
+                            }
+                            for job_name in seen {
+                                let job_runs: Vec<&job::JobRun> =
+                                    runs.iter().filter(|r| r.job_name == job_name).collect();
+                                println!("  {} '{}'", "◇".cyan(), job_name.cyan().bold());
+                                for run in job_runs.iter().rev().take(limit) {
+                                    let status_icon = if run.exit_code == 0 {
+                                        "✓".green().to_string()
+                                    } else {
+                                        "✗".red().to_string()
+                                    };
+                                    println!(
+                                        "    {} {}  exit={}  {:.2}s{}",
+                                        status_icon,
+                                        run.started_at.format("%Y-%m-%d %H:%M:%S UTC"),
+                                        run.exit_code,
+                                        run.duration_secs,
+                                        run.server
+                                            .as_ref()
+                                            .map(|s| format!("  [{}]", s.cyan()))
+                                            .unwrap_or_default()
+                                    );
+                                    println!("      {}", run.command.dimmed());
+                                }
+                                println!();
+                            }
+                        } else {
+                            for run in runs.iter().rev().take(limit) {
+                                let status_icon = if run.exit_code == 0 {
+                                    "✓".green().to_string()
+                                } else {
+                                    "✗".red().to_string()
+                                };
+                                println!(
+                                    "  {} {}  exit={}  {:.2}s{}",
+                                    status_icon,
+                                    run.started_at.format("%Y-%m-%d %H:%M:%S UTC"),
+                                    run.exit_code,
+                                    run.duration_secs,
+                                    run.server
+                                        .as_ref()
+                                        .map(|s| format!("  [{}]", s.cyan()))
+                                        .unwrap_or_default()
+                                );
+                                println!("    {}", run.command.dimmed());
+                            }
+                            println!();
+                        }
                     }
                 }
 
@@ -2547,42 +2680,97 @@ async fn run(cli: Cli) -> error::Result<()> {
                     );
                 }
 
-                JobCommands::Import { name, as_name } => {
-                    let template = job::BUILTIN_JOBS
-                        .iter()
-                        .find(|j| j.name == name)
-                        .ok_or_else(|| {
-                            error::OxoError::ConfigError(format!(
-                                "No built-in job template named '{name}'. \
-                                 Run 'oxo-call job list --builtin' to see all templates."
-                            ))
+                JobCommands::Import { name, as_name, all } => {
+                    if all {
+                        // Collect existing job names to skip duplicates.
+                        let existing: std::collections::HashSet<String> =
+                            job::JobManager::list(None)?
+                                .into_iter()
+                                .map(|e| e.name)
+                                .collect();
+                        let mut imported = 0usize;
+                        let mut skipped = 0usize;
+                        let now = chrono::Utc::now();
+                        for template in job::BUILTIN_JOBS {
+                            if existing.contains(template.name) {
+                                println!(
+                                    "  {} '{}' already exists — skipping.",
+                                    "↷".yellow(),
+                                    template.name.cyan()
+                                );
+                                skipped += 1;
+                                continue;
+                            }
+                            let entry = job::JobEntry {
+                                name: template.name.to_string(),
+                                command: template.command.to_string(),
+                                description: Some(template.description.to_string()),
+                                tags: template.tags.iter().map(|s| s.to_string()).collect(),
+                                schedule: None,
+                                run_count: 0,
+                                last_run: None,
+                                last_exit_code: None,
+                                created_at: now,
+                                updated_at: now,
+                            };
+                            job::JobManager::add(entry)?;
+                            println!(
+                                "  {} Imported '{}'",
+                                "✓".green().bold(),
+                                template.name.cyan()
+                            );
+                            imported += 1;
+                        }
+                        println!();
+                        println!(
+                            "{} Imported {}, skipped {}.",
+                            "→".cyan().bold(),
+                            format!("{imported} job(s)").green(),
+                            format!("{skipped} already existed").yellow()
+                        );
+                    } else {
+                        let name = name.ok_or_else(|| {
+                            error::OxoError::ConfigError(
+                                "Provide a template name or use --all to import every template."
+                                    .to_string(),
+                            )
                         })?;
+                        let template = job::BUILTIN_JOBS
+                            .iter()
+                            .find(|j| j.name == name)
+                            .ok_or_else(|| {
+                                error::OxoError::ConfigError(format!(
+                                    "No built-in job template named '{name}'. \
+                                     Run 'oxo-call job list --builtin' to see all templates."
+                                ))
+                            })?;
 
-                    let final_name = as_name.unwrap_or_else(|| name.clone());
-                    let now = chrono::Utc::now();
-                    let entry = job::JobEntry {
-                        name: final_name.clone(),
-                        command: template.command.to_string(),
-                        description: Some(template.description.to_string()),
-                        tags: template.tags.iter().map(|s| s.to_string()).collect(),
-                        schedule: None,
-                        run_count: 0,
-                        last_run: None,
-                        last_exit_code: None,
-                        created_at: now,
-                        updated_at: now,
-                    };
-                    job::JobManager::add(entry)?;
-                    println!(
-                        "{} Built-in job '{}' imported as '{}'.",
-                        "✓".green().bold(),
-                        name.cyan(),
-                        final_name.cyan()
-                    );
-                    println!(
-                        "  Run with: {}",
-                        format!("oxo-call job run {final_name}").bold()
-                    );
+                        let final_name = as_name.unwrap_or_else(|| name.clone());
+                        let now = chrono::Utc::now();
+                        let entry = job::JobEntry {
+                            name: final_name.clone(),
+                            command: template.command.to_string(),
+                            description: Some(template.description.to_string()),
+                            tags: template.tags.iter().map(|s| s.to_string()).collect(),
+                            schedule: None,
+                            run_count: 0,
+                            last_run: None,
+                            last_exit_code: None,
+                            created_at: now,
+                            updated_at: now,
+                        };
+                        job::JobManager::add(entry)?;
+                        println!(
+                            "{} Built-in job '{}' imported as '{}'.",
+                            "✓".green().bold(),
+                            name.cyan(),
+                            final_name.cyan()
+                        );
+                        println!(
+                            "  Run with: {}",
+                            format!("oxo-call job run {final_name}").bold()
+                        );
+                    }
                 }
             }
         }

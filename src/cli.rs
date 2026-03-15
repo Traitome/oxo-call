@@ -564,8 +564,8 @@ pub enum JobCommands {
 
     /// Show execution history for a job
     History {
-        /// Name of the job
-        name: String,
+        /// Name of the job (omit to show history for all jobs)
+        name: Option<String>,
         /// Number of most-recent runs to show (default: 10)
         #[arg(short = 'n', long, default_value = "10")]
         limit: usize,
@@ -597,11 +597,14 @@ pub enum JobCommands {
 
     /// Copy a built-in job template into your personal library
     Import {
-        /// Name of the built-in template to import
-        name: String,
+        /// Name of the built-in template to import (omit with --all to import every template)
+        name: Option<String>,
         /// Override the name used in your library (defaults to the template name)
         #[arg(long)]
         as_name: Option<String>,
+        /// Import every built-in template at once (skips templates that already exist)
+        #[arg(long, conflicts_with_all = ["name", "as_name"])]
+        all: bool,
     },
 }
 
