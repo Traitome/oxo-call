@@ -202,9 +202,43 @@ EXAMPLES:\n  \
         command: ServerCommands,
     },
 
+    /// Manage personal command shortcuts (your "job" library)
+    #[command(
+        visible_alias = "c",
+        long_about = "\
+Manage your personal library of named command shortcuts.\n\n\
+Store, organize, and execute frequently-used shell commands — like shell\n\
+aliases but with descriptions, tags, and optional remote (SSH) execution.\n\
+Ideal for ops tasks, cluster management, and job submission workflows.\n\n\
+EXAMPLES:\n  \
+  oxo-call cmd add gpu-check 'nvidia-smi' --description 'Check GPU status'\n  \
+  oxo-call cmd add squeue-me 'squeue -u $USER' --tag hpc --tag slurm\n  \
+  oxo-call cmd list\n  \
+  oxo-call cmd list --tag hpc\n  \
+  oxo-call cmd show squeue-me\n  \
+  oxo-call cmd run squeue-me\n  \
+  oxo-call cmd run gpu-check --server mycluster\n  \
+  oxo-call cmd edit squeue-me --command 'squeue -u $USER -o \"%.18i %.9P %.8j %.8u %.2t %.10M\"'\n  \
+  oxo-call cmd remove gpu-check"
+    )]
+    Cmd {
+        #[command(subcommand)]
+        command: CmdCommands,
+    },
+
     /// Generate shell completion scripts
     #[command(long_about = "\
 Generate shell completion scripts for oxo-call.\n\n\
+SETUP (Zsh):\n  \
+  mkdir -p ~/.zfunc\n  \
+  oxo-call completion zsh > ~/.zfunc/_oxo-call\n  \
+  # Add to ~/.zshrc (before compinit):\n  \
+  #   fpath=(~/.zfunc $fpath)\n  \
+  #   autoload -Uz compinit && compinit\n\n\
+SETUP (Bash):\n  \
+  oxo-call completion bash > ~/.local/share/bash-completion/completions/oxo-call\n\n\
+SETUP (Fish):\n  \
+  oxo-call completion fish > ~/.config/fish/completions/oxo-call.fish\n\n\
 EXAMPLES:\n  \
   oxo-call completion bash > ~/.local/share/bash-completion/completions/oxo-call\n  \
   oxo-call completion zsh > ~/.zfunc/_oxo-call\n  \
@@ -424,6 +458,83 @@ pub enum SkillMcpCommands {
     List,
     /// Test connectivity to all registered MCP servers
     Ping,
+}
+
+/// Subcommands for `oxo-call cmd`
+#[derive(Subcommand, Debug)]
+pub enum CmdCommands {
+    /// Add a new named command to your library
+    #[command(visible_alias = "a")]
+    Add {
+        /// Short name used to invoke this command (must be unique)
+        name: String,
+        /// The shell command to save
+        command: String,
+        /// Brief description of what this command does
+        #[arg(short, long)]
+        description: Option<String>,
+        /// Tags for organizing commands (repeatable: --tag hpc --tag slurm)
+        #[arg(short, long = "tag", value_name = "TAG")]
+        tags: Vec<String>,
+    },
+
+    /// Remove a command from your library
+    #[command(visible_alias = "rm")]
+    Remove {
+        /// Name of the command to remove
+        name: String,
+    },
+
+    /// List saved commands
+    #[command(visible_alias = "ls")]
+    List {
+        /// Only show commands with this tag
+        #[arg(short, long)]
+        tag: Option<String>,
+    },
+
+    /// Show full details of a saved command
+    Show {
+        /// Name of the command to show
+        name: String,
+    },
+
+    /// Run a saved command locally or on a remote server
+    #[command(visible_alias = "r")]
+    Run {
+        /// Name of the command to run
+        name: String,
+        /// Run on this registered remote server (via SSH)
+        #[arg(short, long)]
+        server: Option<String>,
+        /// Print the command without executing it
+        #[arg(long = "dry-run")]
+        dry_run: bool,
+    },
+
+    /// Edit an existing command entry
+    #[command(visible_alias = "e")]
+    Edit {
+        /// Name of the command to edit
+        name: String,
+        /// Replace the command string
+        #[arg(short, long)]
+        command: Option<String>,
+        /// Replace the description
+        #[arg(short, long)]
+        description: Option<String>,
+        /// Replace all tags (repeatable: --tag hpc --tag slurm)
+        #[arg(short, long = "tag", value_name = "TAG")]
+        tags: Vec<String>,
+    },
+
+    /// Rename a command
+    Rename {
+        /// Current name
+        from: String,
+        /// New name
+        to: String,
+    },
 }
 
 /// Supported shell types for completion generation

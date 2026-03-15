@@ -1,4 +1,5 @@
 mod cli;
+mod cmd;
 mod config;
 mod docs;
 mod engine;
@@ -17,8 +18,8 @@ mod workflow;
 
 use clap::{CommandFactory, Parser};
 use cli::{
-    Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, LicenseCommands,
-    ServerCommands, ShellType, SkillCommands, SkillMcpCommands, WorkflowCommands,
+    Cli, CmdCommands, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands,
+    LicenseCommands, ServerCommands, ShellType, SkillCommands, SkillMcpCommands, WorkflowCommands,
 };
 use colored::Colorize;
 use handlers::{config_verify_suggestions, print_index_table, with_source};
@@ -1981,8 +1982,238 @@ async fn run(cli: Cli) -> error::Result<()> {
             std::process::exit(1);
         }
 
+        Commands::Cmd { command } => {
+            match command {
+                CmdCommands::Add {
+                    name,
+                    command,
+                    description,
+                    tags,
+                } => {
+                    let now = chrono::Utc::now();
+                    let entry = cmd::CmdEntry {
+                        name: name.clone(),
+                        command,
+                        description,
+                        tags,
+                        created_at: now,
+                        updated_at: now,
+                    };
+                    cmd::CmdManager::add(entry)?;
+                    println!(
+                        "{} Command '{}' added to your library.",
+                        "✓".green().bold(),
+                        name.cyan()
+                    );
+                    println!("  Run with: {}", format!("oxo-call cmd run {name}").bold());
+                }
+
+                CmdCommands::Remove { name } => {
+                    cmd::CmdManager::remove(&name)?;
+                    println!("{} Command '{}' removed.", "✓".green().bold(), name.cyan());
+                }
+
+                CmdCommands::List { tag } => {
+                    let entries = cmd::CmdManager::list(tag.as_deref())?;
+                    if entries.is_empty() {
+                        if let Some(ref t) = tag {
+                            println!("No commands found with tag '{t}'.");
+                        } else {
+                            println!("No commands saved yet.");
+                            println!(
+                                "  Add one with: {}",
+                                "oxo-call cmd add <name> '<command>'".bold()
+                            );
+                        }
+                    } else {
+                        println!();
+                        for entry in &entries {
+                            let tags_str = if entry.tags.is_empty() {
+                                String::new()
+                            } else {
+                                format!("  [{}]", entry.tags.join(", ").dimmed())
+                            };
+                            println!("  {}{}  {}", entry.name.cyan().bold(), tags_str, {
+                                entry
+                                    .description
+                                    .as_deref()
+                                    .unwrap_or("")
+                                    .dimmed()
+                                    .to_string()
+                            });
+                            println!("    {}", entry.command.green());
+                        }
+                        println!();
+                        println!(
+                            "  {} command(s). Run: {}",
+                            entries.len(),
+                            "oxo-call cmd run <name>".bold()
+                        );
+                    }
+                }
+
+                CmdCommands::Show { name } => {
+                    let entry = cmd::CmdManager::find(&name)?.ok_or_else(|| {
+                        error::OxoError::ConfigError(format!("No command found with name '{name}'"))
+                    })?;
+                    println!();
+                    println!("  {}  {}", "Name:".bold(), entry.name.cyan().bold());
+                    println!("  {}  {}", "Command:".bold(), entry.command.green());
+                    if let Some(ref desc) = entry.description {
+                        println!("  {}  {}", "Description:".bold(), desc);
+                    }
+                    if !entry.tags.is_empty() {
+                        println!("  {}  {}", "Tags:".bold(), entry.tags.join(", "));
+                    }
+                    println!(
+                        "  {}  {}",
+                        "Created:".bold(),
+                        entry.created_at.format("%Y-%m-%d %H:%M:%S UTC")
+                    );
+                    if entry.updated_at != entry.created_at {
+                        println!(
+                            "  {}  {}",
+                            "Updated:".bold(),
+                            entry.updated_at.format("%Y-%m-%d %H:%M:%S UTC")
+                        );
+                    }
+                    println!();
+                }
+
+                CmdCommands::Run {
+                    name,
+                    server: server_flag,
+                    dry_run,
+                } => {
+                    let entry = cmd::CmdManager::find(&name)?.ok_or_else(|| {
+                        error::OxoError::ConfigError(format!("No command found with name '{name}'"))
+                    })?;
+
+                    println!();
+                    println!("  {} {}", "Command:".bold(), entry.command.green().bold());
+                    if let Some(ref desc) = entry.description {
+                        println!("  {} {}", "Description:".bold(), desc.dimmed());
+                    }
+
+                    if dry_run {
+                        println!();
+                        println!("{}", "  (dry-run — not executed)".yellow());
+                        return Ok(());
+                    }
+
+                    #[cfg(not(target_arch = "wasm32"))]
+                    if let Some(ref srv_name) = server_flag {
+                        // Remote execution via SSH
+                        let cfg = config::Config::load()?;
+                        let mgr = server::ServerManager::new(cfg);
+                        let host = mgr.find(srv_name).ok_or_else(|| {
+                            error::OxoError::ConfigError(format!(
+                                "No server found with name '{srv_name}'. \
+                                 Run 'oxo-call server list'."
+                            ))
+                        })?;
+
+                        println!(
+                            "  {} {} ({})",
+                            "Server:".bold(),
+                            srv_name.cyan(),
+                            host.ssh_dest()
+                        );
+                        println!();
+                        println!(
+                            "  {} ssh {} '{}'",
+                            "Running:".bold(),
+                            host.ssh_dest().cyan(),
+                            entry.command
+                        );
+                        println!("{}", "─".repeat(60).dimmed());
+
+                        let mut ssh_cmd = std::process::Command::new("ssh");
+                        for arg in &host.ssh_args() {
+                            ssh_cmd.arg(arg);
+                        }
+                        ssh_cmd.arg(&entry.command);
+                        let status = ssh_cmd.status()?;
+
+                        println!();
+                        if status.success() {
+                            println!(
+                                "{} Command completed on '{}'.",
+                                "✓".green().bold(),
+                                srv_name.cyan()
+                            );
+                        } else {
+                            let code = status.code().unwrap_or(1);
+                            eprintln!(
+                                "{} Command exited with code {code} on '{}'.",
+                                "✗".red().bold(),
+                                srv_name.cyan()
+                            );
+                            return Err(error::OxoError::ExecutionError(format!(
+                                "SSH command on '{srv_name}' exited with code {code}"
+                            )));
+                        }
+                    } else {
+                        // Local execution
+                        println!("{}", "─".repeat(60).dimmed());
+                        let status = std::process::Command::new("sh")
+                            .arg("-c")
+                            .arg(&entry.command)
+                            .status()?;
+                        println!();
+                        if status.success() {
+                            println!("{} Done.", "✓".green().bold());
+                        } else {
+                            let code = status.code().unwrap_or(1);
+                            eprintln!("{} Command exited with code {code}.", "✗".red().bold());
+                            return Err(error::OxoError::ExecutionError(format!(
+                                "Command '{name}' exited with code {code}"
+                            )));
+                        }
+                    }
+
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        let _ = server_flag;
+                        eprintln!(
+                            "{} 'cmd run' is not supported on WebAssembly.",
+                            "error:".red().bold()
+                        );
+                        std::process::exit(1);
+                    }
+                }
+
+                CmdCommands::Edit {
+                    name,
+                    command: new_command,
+                    description: new_description,
+                    tags,
+                } => {
+                    let new_tags = if tags.is_empty() { None } else { Some(tags) };
+                    cmd::CmdManager::edit(
+                        &name,
+                        new_command.as_deref(),
+                        new_description.as_deref(),
+                        false,
+                        new_tags,
+                    )?;
+                    println!("{} Command '{}' updated.", "✓".green().bold(), name.cyan());
+                }
+
+                CmdCommands::Rename { from, to } => {
+                    cmd::CmdManager::rename(&from, &to)?;
+                    println!(
+                        "{} Command '{}' renamed to '{}'.",
+                        "✓".green().bold(),
+                        from.cyan(),
+                        to.cyan()
+                    );
+                }
+            }
+        }
+
         Commands::Completion { shell } => {
-            let mut cmd = Cli::command();
+            let mut clap_cmd = Cli::command();
             let shell = match shell {
                 ShellType::Bash => clap_complete::Shell::Bash,
                 ShellType::Zsh => clap_complete::Shell::Zsh,
@@ -1990,7 +2221,12 @@ async fn run(cli: Cli) -> error::Result<()> {
                 ShellType::Powershell => clap_complete::Shell::PowerShell,
                 ShellType::Elvish => clap_complete::Shell::Elvish,
             };
-            clap_complete::generate(shell, &mut cmd, "oxo-call", &mut std::io::stdout());
+            // Generate into a buffer first so that a broken pipe (e.g. `| head`)
+            // does not cause a panic from within clap_complete.
+            let mut buf: Vec<u8> = Vec::new();
+            clap_complete::generate(shell, &mut clap_cmd, "oxo-call", &mut buf);
+            use std::io::Write as _;
+            let _ = std::io::stdout().write_all(&buf);
         }
     }
 

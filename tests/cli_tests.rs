@@ -2451,3 +2451,347 @@ fn test_skill_help_shows_new_subcommands() {
         "Expected 'polish' in skill help, got: {stdout}"
     );
 }
+
+// ─── cmd subcommand tests ─────────────────────────────────────────────────────
+
+/// Build a Command with test license AND a temporary data directory so cmd tests
+/// do not touch the real user data directory and can run in parallel safely.
+fn oxo_call_with_tmpdir(tmp: &std::path::Path) -> Command {
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_oxo-call"));
+    cmd.env("OXO_CALL_LICENSE", test_license_path());
+    cmd.env("OXO_CALL_DATA_DIR", tmp);
+    cmd
+}
+
+#[test]
+fn test_cmd_help() {
+    let output = oxo_call()
+        .args(["cmd", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("add"), "Expected 'add' in cmd help");
+    assert!(stdout.contains("remove"), "Expected 'remove' in cmd help");
+    assert!(stdout.contains("list"), "Expected 'list' in cmd help");
+    assert!(stdout.contains("run"), "Expected 'run' in cmd help");
+    assert!(stdout.contains("edit"), "Expected 'edit' in cmd help");
+    assert!(stdout.contains("rename"), "Expected 'rename' in cmd help");
+    assert!(stdout.contains("show"), "Expected 'show' in cmd help");
+}
+
+#[test]
+fn test_cmd_list_empty() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let output = oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("No commands saved"),
+        "Expected empty message, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_cmd_add_and_list() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let add_out = oxo_call_with_tmpdir(tmp.path())
+        .args([
+            "cmd",
+            "add",
+            "my-cmd",
+            "echo hello",
+            "--description",
+            "A greeting",
+        ])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        add_out.status.success(),
+        "add failed: {}",
+        String::from_utf8_lossy(&add_out.stderr)
+    );
+
+    let list_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(list_out.status.success());
+    let stdout = String::from_utf8_lossy(&list_out.stdout);
+    assert!(stdout.contains("my-cmd"), "Expected 'my-cmd' in list");
+    assert!(
+        stdout.contains("echo hello"),
+        "Expected command text in list"
+    );
+}
+
+#[test]
+fn test_cmd_add_duplicate_fails() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "add", "dup-cmd", "echo 1"])
+        .output()
+        .expect("failed to run oxo-call");
+    let second = oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "add", "dup-cmd", "echo 2"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(!second.status.success(), "duplicate add should fail");
+    let stderr = String::from_utf8_lossy(&second.stderr);
+    assert!(
+        stderr.contains("already exists"),
+        "Expected 'already exists' in error, got: {stderr}"
+    );
+}
+
+#[test]
+fn test_cmd_show() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args([
+            "cmd",
+            "add",
+            "show-cmd",
+            "ls -la",
+            "--description",
+            "List files",
+        ])
+        .output()
+        .expect("failed to run oxo-call");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "show", "show-cmd"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("show-cmd"), "Expected name in show output");
+    assert!(stdout.contains("ls -la"), "Expected command in show output");
+    assert!(
+        stdout.contains("List files"),
+        "Expected description in show output"
+    );
+}
+
+#[test]
+fn test_cmd_remove() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "add", "del-cmd", "echo bye"])
+        .output()
+        .expect("failed to run oxo-call");
+
+    let rm_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "remove", "del-cmd"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        rm_out.status.success(),
+        "remove failed: {}",
+        String::from_utf8_lossy(&rm_out.stderr)
+    );
+
+    let list_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    let stdout = String::from_utf8_lossy(&list_out.stdout);
+    assert!(
+        !stdout.contains("del-cmd"),
+        "Removed command should not appear in list"
+    );
+}
+
+#[test]
+fn test_cmd_remove_missing_fails() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "remove", "ghost"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(!out.status.success(), "removing missing cmd should fail");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("No command found"),
+        "Expected 'No command found' in error, got: {stderr}"
+    );
+}
+
+#[test]
+fn test_cmd_edit() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "add", "edit-cmd", "echo old"])
+        .output()
+        .expect("failed to run oxo-call");
+
+    let edit_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "edit", "edit-cmd", "--command", "echo new"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        edit_out.status.success(),
+        "edit failed: {}",
+        String::from_utf8_lossy(&edit_out.stderr)
+    );
+
+    let show_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "show", "edit-cmd"])
+        .output()
+        .expect("failed to run oxo-call");
+    let stdout = String::from_utf8_lossy(&show_out.stdout);
+    assert!(
+        stdout.contains("echo new"),
+        "Expected updated command in show"
+    );
+}
+
+#[test]
+fn test_cmd_rename() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "add", "rename-old", "echo hi"])
+        .output()
+        .expect("failed to run oxo-call");
+
+    let ren_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "rename", "rename-old", "rename-new"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        ren_out.status.success(),
+        "rename failed: {}",
+        String::from_utf8_lossy(&ren_out.stderr)
+    );
+
+    let list_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    let stdout = String::from_utf8_lossy(&list_out.stdout);
+    assert!(stdout.contains("rename-new"), "Expected new name in list");
+    assert!(
+        !stdout.contains("rename-old"),
+        "Old name should not appear in list"
+    );
+}
+
+#[test]
+fn test_cmd_run_dry_run() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "add", "dry-cmd", "echo dry"])
+        .output()
+        .expect("failed to run oxo-call");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "run", "dry-cmd", "--dry-run"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        out.status.success(),
+        "dry-run failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("dry-run") || stdout.contains("not executed"),
+        "Expected dry-run indicator in output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_cmd_run_local() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "add", "run-local", "echo oxo-cmd-test-output"])
+        .output()
+        .expect("failed to run oxo-call");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "run", "run-local"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        out.status.success(),
+        "cmd run failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("oxo-cmd-test-output"),
+        "Expected command output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_cmd_list_tag_filter() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args([
+            "cmd",
+            "add",
+            "tagged-cmd",
+            "squeue -u $USER",
+            "--tag",
+            "slurm",
+        ])
+        .output()
+        .expect("failed to run oxo-call");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "add", "untagged-cmd", "ls"])
+        .output()
+        .expect("failed to run oxo-call");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["cmd", "list", "--tag", "slurm"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("tagged-cmd"),
+        "Expected tagged-cmd in filtered list"
+    );
+    assert!(
+        !stdout.contains("untagged-cmd"),
+        "Untagged cmd should not appear"
+    );
+}
+
+#[test]
+fn test_help_mentions_cmd_command() {
+    let output = oxo_call()
+        .arg("--help")
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("cmd"),
+        "Expected 'cmd' in top-level help, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_completion_zsh_no_panic_piped() {
+    // Regression test: completing to stdout when piped must not panic.
+    let output = oxo_call()
+        .args(["completion", "zsh"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("#compdef oxo-call"),
+        "Expected zsh compdef header, got: {stdout}"
+    );
+    // The new cmd subcommand should appear in the completion output.
+    assert!(
+        stdout.contains("cmd"),
+        "Expected 'cmd' subcommand in zsh completion"
+    );
+}
