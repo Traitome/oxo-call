@@ -3218,4 +3218,100 @@ outputs = ["out.sam"]
             "output older than input should not be up-to-date"
         );
     }
+
+    // ─── format_elapsed ───────────────────────────────────────────────────────
+
+    #[test]
+    fn test_format_elapsed_zero() {
+        assert_eq!(format_elapsed(std::time::Duration::from_secs(0)), "0.0s");
+    }
+
+    #[test]
+    fn test_format_elapsed_sub_second_millis() {
+        assert_eq!(
+            format_elapsed(std::time::Duration::from_millis(500)),
+            "0.5s"
+        );
+    }
+
+    // ─── mtime + is_up_to_date ────────────────────────────────────────────────
+
+    #[test]
+    fn test_mtime_nonexistent_file() {
+        assert!(mtime("/nonexistent/file/xyz").is_none());
+    }
+
+    #[test]
+    fn test_mtime_existing_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test.txt");
+        std::fs::write(&file_path, "hello").unwrap();
+        assert!(mtime(file_path.to_str().unwrap()).is_some());
+    }
+
+    // ─── print_dag_phases ─────────────────────────────────────────────────────
+
+    #[test]
+    fn test_print_dag_phases_no_panic_empty_vec() {
+        print_dag_phases(&[]);
+    }
+
+    #[test]
+    fn test_print_dag_phases_no_panic_with_tasks() {
+        let tasks = vec![
+            ConcreteTask {
+                step_name: "align".to_string(),
+                id: "align__s1".to_string(),
+                cmd: "bwa mem ref.fa s1.fq".to_string(),
+                inputs: vec!["s1.fq".to_string()],
+                outputs: vec!["s1.bam".to_string()],
+                deps: vec![],
+                gather: false,
+                env: None,
+            },
+            ConcreteTask {
+                step_name: "sort".to_string(),
+                id: "sort__s1".to_string(),
+                cmd: "samtools sort s1.bam".to_string(),
+                inputs: vec!["s1.bam".to_string()],
+                outputs: vec!["s1.sorted.bam".to_string()],
+                deps: vec!["align__s1".to_string()],
+                gather: false,
+                env: None,
+            },
+        ];
+        print_dag_phases(&tasks);
+    }
+
+    // ─── print_task_dry_run ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_print_task_dry_run_no_panic_with_io() {
+        let task = ConcreteTask {
+            step_name: "test".to_string(),
+            id: "test__1".to_string(),
+            cmd: "echo hello".to_string(),
+            inputs: vec!["in.txt".to_string()],
+            outputs: vec!["out.txt".to_string()],
+            deps: vec![],
+            gather: false,
+            env: None,
+        };
+        print_task_dry_run(&task, 1, 5);
+    }
+
+    #[test]
+    fn test_print_task_dry_run_with_env() {
+        let task = ConcreteTask {
+            step_name: "test".to_string(),
+            id: "test__1".to_string(),
+            cmd: "echo hello".to_string(),
+            inputs: vec![],
+            outputs: vec![],
+            deps: vec![],
+            gather: false,
+            env: Some("THREADS=4".to_string()),
+        };
+        print_task_dry_run(&task, 0, 1);
+    }
 }

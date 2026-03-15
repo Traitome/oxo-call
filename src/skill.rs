@@ -1686,4 +1686,403 @@ explanation = "an example"
         assert!(mgr.load_builtin("SAMTOOLS").is_some());
         assert!(mgr.load_builtin("SamTools").is_some());
     }
+
+    // ─── yaml_unquote ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_yaml_unquote_double_quoted() {
+        assert_eq!(yaml_unquote("\"hello world\""), "hello world");
+    }
+
+    #[test]
+    fn test_yaml_unquote_single_quoted() {
+        assert_eq!(yaml_unquote("'hello world'"), "hello world");
+    }
+
+    #[test]
+    fn test_yaml_unquote_bare_value() {
+        assert_eq!(yaml_unquote("hello"), "hello");
+    }
+
+    #[test]
+    fn test_yaml_unquote_empty_string() {
+        assert_eq!(yaml_unquote(""), "");
+    }
+
+    #[test]
+    fn test_yaml_unquote_single_char() {
+        assert_eq!(yaml_unquote("x"), "x");
+    }
+
+    #[test]
+    fn test_yaml_unquote_mismatched_quotes() {
+        assert_eq!(yaml_unquote("\"hello'"), "\"hello'");
+    }
+
+    #[test]
+    fn test_yaml_unquote_empty_quoted() {
+        assert_eq!(yaml_unquote("\"\""), "");
+    }
+
+    // ─── parse_yaml_frontmatter ───────────────────────────────────────────────
+
+    #[test]
+    fn test_parse_yaml_frontmatter_basic() {
+        let yaml = "name: samtools\ncategory: alignment\ndescription: SAM/BAM tool";
+        let meta = parse_yaml_frontmatter(yaml);
+        assert_eq!(meta.name, "samtools");
+        assert_eq!(meta.category, "alignment");
+        assert_eq!(meta.description, "SAM/BAM tool");
+    }
+
+    #[test]
+    fn test_parse_yaml_frontmatter_quoted_values() {
+        let yaml = "name: \"my tool\"\ndescription: 'a description'";
+        let meta = parse_yaml_frontmatter(yaml);
+        assert_eq!(meta.name, "my tool");
+        assert_eq!(meta.description, "a description");
+    }
+
+    #[test]
+    fn test_parse_yaml_frontmatter_tags() {
+        let yaml = "name: test\ntags: [bam, sam, alignment]";
+        let meta = parse_yaml_frontmatter(yaml);
+        assert_eq!(meta.tags, vec!["bam", "sam", "alignment"]);
+    }
+
+    #[test]
+    fn test_parse_yaml_frontmatter_tags_quoted() {
+        let yaml = "name: test\ntags: [\"bam\", \"sam\"]";
+        let meta = parse_yaml_frontmatter(yaml);
+        assert_eq!(meta.tags, vec!["bam", "sam"]);
+    }
+
+    #[test]
+    fn test_parse_yaml_frontmatter_author_and_source_url() {
+        let yaml = "name: test\nauthor: John Doe\nsource_url: http://example.com/docs";
+        let meta = parse_yaml_frontmatter(yaml);
+        assert_eq!(meta.author.as_deref(), Some("John Doe"));
+        assert_eq!(meta.source_url.as_deref(), Some("http://example.com/docs"));
+    }
+
+    #[test]
+    fn test_parse_yaml_frontmatter_empty_author() {
+        let yaml = "name: test\nauthor: ";
+        let meta = parse_yaml_frontmatter(yaml);
+        assert!(meta.author.is_none());
+    }
+
+    #[test]
+    fn test_parse_yaml_frontmatter_empty_source_url() {
+        let yaml = "name: test\nsource_url: ";
+        let meta = parse_yaml_frontmatter(yaml);
+        assert!(meta.source_url.is_none());
+    }
+
+    #[test]
+    fn test_parse_yaml_frontmatter_skips_comments() {
+        let yaml = "name: test\n# this is a comment\ncategory: bio";
+        let meta = parse_yaml_frontmatter(yaml);
+        assert_eq!(meta.name, "test");
+        assert_eq!(meta.category, "bio");
+    }
+
+    #[test]
+    fn test_parse_yaml_frontmatter_skips_empty_lines() {
+        let yaml = "name: test\n\ncategory: bio";
+        let meta = parse_yaml_frontmatter(yaml);
+        assert_eq!(meta.name, "test");
+        assert_eq!(meta.category, "bio");
+    }
+
+    #[test]
+    fn test_parse_yaml_frontmatter_unknown_keys_ignored() {
+        let yaml = "name: test\nunknown_key: value\ncategory: bio";
+        let meta = parse_yaml_frontmatter(yaml);
+        assert_eq!(meta.name, "test");
+        assert_eq!(meta.category, "bio");
+    }
+
+    #[test]
+    fn test_parse_yaml_frontmatter_source_url_with_colons() {
+        let yaml = "name: test\nsource_url: https://example.com:8080/path";
+        let meta = parse_yaml_frontmatter(yaml);
+        assert_eq!(
+            meta.source_url.as_deref(),
+            Some("https://example.com:8080/path")
+        );
+    }
+
+    // ─── parse_skill_body ─────────────────────────────────────────────────────
+
+    #[test]
+    fn test_parse_skill_body_concepts_only() {
+        let body = "## Concepts\n- concept one\n- concept two\n";
+        let (ctx, examples) = parse_skill_body(body);
+        assert_eq!(ctx.concepts, vec!["concept one", "concept two"]);
+        assert!(ctx.pitfalls.is_empty());
+        assert!(examples.is_empty());
+    }
+
+    #[test]
+    fn test_parse_skill_body_pitfalls_only() {
+        let body = "## Pitfalls\n- pitfall one\n- pitfall two\n";
+        let (ctx, examples) = parse_skill_body(body);
+        assert!(ctx.concepts.is_empty());
+        assert_eq!(ctx.pitfalls, vec!["pitfall one", "pitfall two"]);
+        assert!(examples.is_empty());
+    }
+
+    #[test]
+    fn test_parse_skill_body_examples_only() {
+        let body = "## Examples\n\n### Sort BAM\n**Args:** `sort -o out.bam in.bam`\n**Explanation:** Sorts by coordinate\n";
+        let (ctx, examples) = parse_skill_body(body);
+        assert!(ctx.concepts.is_empty());
+        assert_eq!(examples.len(), 1);
+        assert_eq!(examples[0].task, "Sort BAM");
+        assert_eq!(examples[0].args, "sort -o out.bam in.bam");
+        assert_eq!(examples[0].explanation, "Sorts by coordinate");
+    }
+
+    #[test]
+    fn test_parse_skill_body_multiple_examples() {
+        let body = "## Examples\n\n### Task 1\n**Args:** `arg1`\n**Explanation:** expl1\n\n### Task 2\n**Args:** `arg2`\n**Explanation:** expl2\n";
+        let (_, examples) = parse_skill_body(body);
+        assert_eq!(examples.len(), 2);
+        assert_eq!(examples[0].task, "Task 1");
+        assert_eq!(examples[1].task, "Task 2");
+    }
+
+    #[test]
+    fn test_parse_skill_body_all_sections() {
+        let body = "\
+## Concepts
+- concept A
+- concept B
+
+## Pitfalls
+- pitfall X
+
+## Examples
+
+### Do something
+**Args:** `--flag value`
+**Explanation:** This does something
+";
+        let (ctx, examples) = parse_skill_body(body);
+        assert_eq!(ctx.concepts.len(), 2);
+        assert_eq!(ctx.pitfalls.len(), 1);
+        assert_eq!(examples.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_skill_body_empty_body() {
+        let (ctx, examples) = parse_skill_body("");
+        assert!(ctx.concepts.is_empty());
+        assert!(ctx.pitfalls.is_empty());
+        assert!(examples.is_empty());
+    }
+
+    #[test]
+    fn test_parse_skill_body_non_list_lines_ignored() {
+        let body = "## Concepts\nThis is a paragraph, not a list item\n- actual concept\n";
+        let (ctx, _) = parse_skill_body(body);
+        assert_eq!(ctx.concepts, vec!["actual concept"]);
+    }
+
+    #[test]
+    fn test_parse_skill_body_incomplete_example_not_flushed() {
+        // Missing explanation → should not be collected
+        let body = "## Examples\n\n### Task\n**Args:** `arg`\n";
+        let (_, examples) = parse_skill_body(body);
+        assert!(
+            examples.is_empty(),
+            "incomplete examples (missing explanation) should not be collected"
+        );
+    }
+
+    // ─── to_prompt_section ────────────────────────────────────────────────────
+
+    #[test]
+    fn test_to_prompt_section_empty_skill() {
+        let skill = Skill::default();
+        let section = skill.to_prompt_section();
+        assert!(
+            section.is_empty(),
+            "empty skill should produce empty section"
+        );
+    }
+
+    #[test]
+    fn test_to_prompt_section_concepts_only() {
+        let skill = Skill {
+            context: SkillContext {
+                concepts: vec!["concept 1".to_string()],
+                pitfalls: vec![],
+            },
+            ..Default::default()
+        };
+        let section = skill.to_prompt_section();
+        assert!(section.contains("Expert Domain Knowledge"));
+        assert!(section.contains("concept 1"));
+        assert!(!section.contains("Common Pitfalls"));
+    }
+
+    #[test]
+    fn test_to_prompt_section_pitfalls_only() {
+        let skill = Skill {
+            context: SkillContext {
+                concepts: vec![],
+                pitfalls: vec!["pitfall 1".to_string()],
+            },
+            ..Default::default()
+        };
+        let section = skill.to_prompt_section();
+        assert!(!section.contains("Expert Domain Knowledge"));
+        assert!(section.contains("Common Pitfalls"));
+        assert!(section.contains("pitfall 1"));
+    }
+
+    #[test]
+    fn test_to_prompt_section_examples_only() {
+        let skill = Skill {
+            examples: vec![SkillExample {
+                task: "Sort BAM".to_string(),
+                args: "sort -o out.bam in.bam".to_string(),
+                explanation: "Sorts by coordinate".to_string(),
+            }],
+            ..Default::default()
+        };
+        let section = skill.to_prompt_section();
+        assert!(section.contains("Worked Reference Examples"));
+        assert!(section.contains("Sort BAM"));
+        assert!(section.contains("sort -o out.bam in.bam"));
+    }
+
+    #[test]
+    fn test_to_prompt_section_full() {
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "samtools".to_string(),
+                ..Default::default()
+            },
+            context: SkillContext {
+                concepts: vec!["concept A".to_string(), "concept B".to_string()],
+                pitfalls: vec!["pitfall X".to_string()],
+            },
+            examples: vec![SkillExample {
+                task: "Sort BAM".to_string(),
+                args: "sort -o out.bam in.bam".to_string(),
+                explanation: "Sorts by coordinate".to_string(),
+            }],
+        };
+        let section = skill.to_prompt_section();
+        assert!(section.contains("Expert Domain Knowledge"));
+        assert!(section.contains("Common Pitfalls"));
+        assert!(section.contains("Worked Reference Examples"));
+        assert!(section.contains("1. concept A"));
+        assert!(section.contains("2. concept B"));
+    }
+
+    // ─── validate_skill_depth ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_validate_skill_depth_insufficient_examples() {
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "test".to_string(),
+                ..Default::default()
+            },
+            context: SkillContext {
+                concepts: vec!["a".into(), "b".into(), "c".into()],
+                pitfalls: vec!["a".into(), "b".into(), "c".into()],
+            },
+            examples: vec![],
+        };
+        let issues = validate_skill_depth(&skill);
+        assert!(issues.iter().any(|i| i.contains("examples")));
+    }
+
+    #[test]
+    fn test_validate_skill_depth_insufficient_concepts() {
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "test".to_string(),
+                ..Default::default()
+            },
+            context: SkillContext {
+                concepts: vec![],
+                pitfalls: vec!["a".into(), "b".into(), "c".into()],
+            },
+            examples: (0..5)
+                .map(|i| SkillExample {
+                    task: format!("task {i}"),
+                    args: format!("arg {i}"),
+                    explanation: format!("expl {i}"),
+                })
+                .collect(),
+        };
+        let issues = validate_skill_depth(&skill);
+        assert!(issues.iter().any(|i| i.contains("concepts")));
+    }
+
+    #[test]
+    fn test_validate_skill_depth_insufficient_pitfalls() {
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "test".to_string(),
+                ..Default::default()
+            },
+            context: SkillContext {
+                concepts: vec!["a".into(), "b".into(), "c".into()],
+                pitfalls: vec![],
+            },
+            examples: (0..5)
+                .map(|i| SkillExample {
+                    task: format!("task {i}"),
+                    args: format!("arg {i}"),
+                    explanation: format!("expl {i}"),
+                })
+                .collect(),
+        };
+        let issues = validate_skill_depth(&skill);
+        assert!(issues.iter().any(|i| i.contains("pitfalls")));
+    }
+
+    // ─── parse_skill_md edge cases ────────────────────────────────────────────
+
+    #[test]
+    fn test_parse_skill_md_no_closing_fence() {
+        let md = "---\nname: test\ncategory: test\n";
+        assert!(
+            parse_skill_md(md).is_none(),
+            "no closing --- should return None"
+        );
+    }
+
+    #[test]
+    fn test_parse_skill_md_empty_body() {
+        let md = "---\nname: test\ncategory: test\ndescription: desc\n---\n";
+        let skill = parse_skill_md(md);
+        assert!(skill.is_some());
+        let skill = skill.unwrap();
+        assert_eq!(skill.meta.name, "test");
+        assert!(skill.context.concepts.is_empty());
+        assert!(skill.examples.is_empty());
+    }
+
+    #[test]
+    fn test_parse_skill_md_whitespace_prefix() {
+        let md = "  \n---\nname: test\ncategory: test\ndescription: desc\n---\n## Concepts\n- c1\n";
+        let skill = parse_skill_md(md);
+        assert!(skill.is_some());
+        assert_eq!(skill.unwrap().context.concepts, vec!["c1"]);
+    }
+
+    #[test]
+    fn test_parse_skill_md_crlf_line_endings() {
+        let md = "---\r\nname: test\r\ncategory: test\r\ndescription: desc\r\n---\r\n## Concepts\r\n- c1\r\n";
+        let skill = parse_skill_md(md);
+        assert!(skill.is_some());
+    }
 }
