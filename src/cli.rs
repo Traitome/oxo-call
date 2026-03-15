@@ -597,11 +597,14 @@ pub enum JobCommands {
 
     /// Copy a built-in job template into your personal library
     Import {
-        /// Name of the built-in template to import
-        name: String,
+        /// Name of the built-in template to import (omit with --all to import every template)
+        name: Option<String>,
         /// Override the name used in your library (defaults to the template name)
         #[arg(long)]
         as_name: Option<String>,
+        /// Import every built-in template at once (skips templates that already exist)
+        #[arg(long, conflicts_with_all = ["name", "as_name"])]
+        all: bool,
     },
 }
 

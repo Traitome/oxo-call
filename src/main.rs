@@ -2547,42 +2547,97 @@ async fn run(cli: Cli) -> error::Result<()> {
                     );
                 }
 
-                JobCommands::Import { name, as_name } => {
-                    let template = job::BUILTIN_JOBS
-                        .iter()
-                        .find(|j| j.name == name)
-                        .ok_or_else(|| {
-                            error::OxoError::ConfigError(format!(
-                                "No built-in job template named '{name}'. \
-                                 Run 'oxo-call job list --builtin' to see all templates."
-                            ))
+                JobCommands::Import { name, as_name, all } => {
+                    if all {
+                        // Collect existing job names to skip duplicates.
+                        let existing: std::collections::HashSet<String> =
+                            job::JobManager::list(None)?
+                                .into_iter()
+                                .map(|e| e.name)
+                                .collect();
+                        let mut imported = 0usize;
+                        let mut skipped = 0usize;
+                        let now = chrono::Utc::now();
+                        for template in job::BUILTIN_JOBS {
+                            if existing.contains(template.name) {
+                                println!(
+                                    "  {} '{}' already exists — skipping.",
+                                    "↷".yellow(),
+                                    template.name.cyan()
+                                );
+                                skipped += 1;
+                                continue;
+                            }
+                            let entry = job::JobEntry {
+                                name: template.name.to_string(),
+                                command: template.command.to_string(),
+                                description: Some(template.description.to_string()),
+                                tags: template.tags.iter().map(|s| s.to_string()).collect(),
+                                schedule: None,
+                                run_count: 0,
+                                last_run: None,
+                                last_exit_code: None,
+                                created_at: now,
+                                updated_at: now,
+                            };
+                            job::JobManager::add(entry)?;
+                            println!(
+                                "  {} Imported '{}'",
+                                "✓".green().bold(),
+                                template.name.cyan()
+                            );
+                            imported += 1;
+                        }
+                        println!();
+                        println!(
+                            "{} Imported {}, skipped {}.",
+                            "→".cyan().bold(),
+                            format!("{imported} job(s)").green(),
+                            format!("{skipped} already existed").yellow()
+                        );
+                    } else {
+                        let name = name.ok_or_else(|| {
+                            error::OxoError::ConfigError(
+                                "Provide a template name or use --all to import every template."
+                                    .to_string(),
+                            )
                         })?;
+                        let template = job::BUILTIN_JOBS
+                            .iter()
+                            .find(|j| j.name == name)
+                            .ok_or_else(|| {
+                                error::OxoError::ConfigError(format!(
+                                    "No built-in job template named '{name}'. \
+                                     Run 'oxo-call job list --builtin' to see all templates."
+                                ))
+                            })?;
 
-                    let final_name = as_name.unwrap_or_else(|| name.clone());
-                    let now = chrono::Utc::now();
-                    let entry = job::JobEntry {
-                        name: final_name.clone(),
-                        command: template.command.to_string(),
-                        description: Some(template.description.to_string()),
-                        tags: template.tags.iter().map(|s| s.to_string()).collect(),
-                        schedule: None,
-                        run_count: 0,
-                        last_run: None,
-                        last_exit_code: None,
-                        created_at: now,
-                        updated_at: now,
-                    };
-                    job::JobManager::add(entry)?;
-                    println!(
-                        "{} Built-in job '{}' imported as '{}'.",
-                        "✓".green().bold(),
-                        name.cyan(),
-                        final_name.cyan()
-                    );
-                    println!(
-                        "  Run with: {}",
-                        format!("oxo-call job run {final_name}").bold()
-                    );
+                        let final_name = as_name.unwrap_or_else(|| name.clone());
+                        let now = chrono::Utc::now();
+                        let entry = job::JobEntry {
+                            name: final_name.clone(),
+                            command: template.command.to_string(),
+                            description: Some(template.description.to_string()),
+                            tags: template.tags.iter().map(|s| s.to_string()).collect(),
+                            schedule: None,
+                            run_count: 0,
+                            last_run: None,
+                            last_exit_code: None,
+                            created_at: now,
+                            updated_at: now,
+                        };
+                        job::JobManager::add(entry)?;
+                        println!(
+                            "{} Built-in job '{}' imported as '{}'.",
+                            "✓".green().bold(),
+                            name.cyan(),
+                            final_name.cyan()
+                        );
+                        println!(
+                            "  Run with: {}",
+                            format!("oxo-call job run {final_name}").bold()
+                        );
+                    }
                 }
             }
         }

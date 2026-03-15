@@ -3016,6 +3016,80 @@ fn test_job_import_missing_fails() {
 }
 
 #[test]
+fn test_job_import_no_args_fails() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "import"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        !out.status.success(),
+        "import with no name and no --all should fail"
+    );
+}
+
+#[test]
+fn test_job_import_all() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "import", "--all"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        out.status.success(),
+        "import --all failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("Imported"),
+        "Expected import summary in output, got: {stdout}"
+    );
+
+    // All built-in jobs should now appear in the list.
+    let list_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    let list_stdout = String::from_utf8_lossy(&list_out.stdout);
+    // "disk" and "gpu" are stable built-in templates.
+    assert!(
+        list_stdout.contains("disk"),
+        "Expected 'disk' in list after --all import, got: {list_stdout}"
+    );
+    assert!(
+        list_stdout.contains("gpu"),
+        "Expected 'gpu' in list after --all import, got: {list_stdout}"
+    );
+}
+
+#[test]
+fn test_job_import_all_skips_existing() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    // Import "disk" first.
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "import", "disk"])
+        .output()
+        .expect("failed to pre-import disk");
+
+    // Now import --all; "disk" should be skipped, rest imported.
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "import", "--all"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        out.status.success(),
+        "import --all failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("skipping"),
+        "Expected skip message for 'disk', got: {stdout}"
+    );
+}
+
+#[test]
 fn test_job_add_with_schedule() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let out = oxo_call_with_tmpdir(tmp.path())
