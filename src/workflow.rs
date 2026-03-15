@@ -777,3 +777,210 @@ pub async fn infer_workflow(
         OxoError::LlmError("LLM did not return a parseable workflow after two attempts".to_string())
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    // ─── find_template ────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_find_template_rnaseq() {
+        let t = find_template("rnaseq").expect("rnaseq template should exist");
+        assert_eq!(t.name, "rnaseq");
+        assert!(!t.native.is_empty());
+        assert!(!t.snakemake.is_empty());
+        assert!(!t.nextflow.is_empty());
+    }
+
+    #[test]
+    fn test_find_template_case_insensitive() {
+        assert!(find_template("RNAseq").is_some());
+        assert!(find_template("RNASEQ").is_some());
+        assert!(find_template("WGS").is_some());
+    }
+
+    #[test]
+    fn test_find_template_unknown_returns_none() {
+        assert!(find_template("unknown-workflow-xyz").is_none());
+        assert!(find_template("").is_none());
+    }
+
+    #[test]
+    fn test_all_builtin_templates_exist() {
+        let expected = [
+            "rnaseq",
+            "wgs",
+            "atacseq",
+            "metagenomics",
+            "chipseq",
+            "methylseq",
+            "scrnaseq",
+            "amplicon16s",
+            "longreads",
+        ];
+        for name in &expected {
+            assert!(
+                find_template(name).is_some(),
+                "Expected built-in template '{name}' to exist"
+            );
+        }
+    }
+
+    #[test]
+    fn test_template_has_description_and_assay() {
+        let t = find_template("wgs").unwrap();
+        assert!(!t.description.is_empty());
+        assert!(!t.assay.is_empty());
+    }
+
+    // ─── parse_workflow_response ──────────────────────────────────────────────
+
+    #[test]
+    fn test_parse_workflow_response_valid() {
+        let raw = "WORKFLOW:\n[workflow]\nname = \"test\"\nEND_WORKFLOW\nEXPLANATION:\nThis is a test workflow.";
+        let wf = parse_workflow_response(raw, "native");
+        assert!(wf.is_some());
+        let wf = wf.unwrap();
+        assert_eq!(wf.engine, "native");
+        assert!(wf.content.contains("[workflow]"));
+        assert_eq!(wf.explanation, "This is a test workflow.");
+    }
+
+    #[test]
+    fn test_parse_workflow_response_missing_markers_returns_none() {
+        let raw = "This has no markers at all.";
+        assert!(parse_workflow_response(raw, "native").is_none());
+    }
+
+    #[test]
+    fn test_parse_workflow_response_empty_content_returns_none() {
+        let raw = "WORKFLOW:\nEND_WORKFLOW\nEXPLANATION:\nSome explanation.";
+        assert!(parse_workflow_response(raw, "native").is_none());
+    }
+
+    // ─── scan_data_directory ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_scan_data_directory_empty_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let ctx = scan_data_directory(tmp.path());
+        assert!(ctx.samples.is_empty());
+        assert!(ctx.files.is_empty());
+        assert!(ctx.data_type_hint.contains("Unknown") || ctx.data_type_hint.contains("no"));
+    }
+
+    #[test]
+    fn test_scan_data_directory_nonexistent_returns_default() {
+        let ctx = scan_data_directory(Path::new("/nonexistent/dir/xyz"));
+        assert!(ctx.samples.is_empty());
+        assert!(ctx.files.is_empty());
+    }
+
+    #[test]
+    fn test_scan_data_directory_paired_end_fastq() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("sample1_R1.fastq.gz"), b"").unwrap();
+        std::fs::write(tmp.path().join("sample1_R2.fastq.gz"), b"").unwrap();
+        std::fs::write(tmp.path().join("sample2_R1.fastq.gz"), b"").unwrap();
+        std::fs::write(tmp.path().join("sample2_R2.fastq.gz"), b"").unwrap();
+
+        let ctx = scan_data_directory(tmp.path());
+        assert!(ctx.samples.contains(&"sample1".to_string()));
+        assert!(ctx.samples.contains(&"sample2".to_string()));
+        assert!(ctx.data_type_hint.contains("paired-end") || ctx.data_type_hint.contains("FASTQ"));
+    }
+
+    #[test]
+    fn test_scan_data_directory_bam_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("sample_A.sorted.bam"), b"").unwrap();
+        std::fs::write(tmp.path().join("sample_B.markdup.bam"), b"").unwrap();
+
+        let ctx = scan_data_directory(tmp.path());
+        assert!(ctx.data_type_hint.contains("BAM") || ctx.data_type_hint.contains("aligned"));
+    }
+
+    #[test]
+    fn test_scan_data_directory_fast5_detected() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("read1.fast5"), b"").unwrap();
+
+        let ctx = scan_data_directory(tmp.path());
+        assert!(
+            ctx.data_type_hint.contains("Nanopore") || ctx.data_type_hint.contains("long-read")
+        );
+    }
+
+    #[test]
+    fn test_scan_data_directory_pod5_detected() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("read1.pod5"), b"").unwrap();
+
+        let ctx = scan_data_directory(tmp.path());
+        assert!(
+            ctx.data_type_hint.contains("Nanopore") || ctx.data_type_hint.contains("long-read")
+        );
+    }
+
+    #[test]
+    fn test_scan_data_directory_single_end_fastq() {
+        let tmp = tempfile::tempdir().unwrap();
+        // Only files without R1/R2 pattern -> single-end hint
+        std::fs::write(tmp.path().join("sample.fastq.gz"), b"").unwrap();
+
+        let ctx = scan_data_directory(tmp.path());
+        assert!(ctx.data_type_hint.contains("single-end") || ctx.data_type_hint.contains("FASTQ"));
+    }
+
+    // ─── build_infer_prompt ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_build_infer_prompt_contains_task_and_dir() {
+        let ctx = DataContext {
+            samples: vec!["sample1".to_string(), "sample2".to_string()],
+            files: vec!["/data/sample1_R1.fastq.gz".to_string()],
+            data_type_hint: "Illumina short-read FASTQ (paired-end)".to_string(),
+        };
+        let prompt = build_infer_prompt("align paired-end reads to human genome", &ctx, "/data");
+        assert!(prompt.contains("align paired-end reads"));
+        assert!(prompt.contains("/data"));
+        assert!(prompt.contains("sample1"));
+        assert!(prompt.contains("sample2"));
+    }
+
+    #[test]
+    fn test_build_infer_prompt_no_samples_message() {
+        let ctx = DataContext {
+            samples: Vec::new(),
+            files: Vec::new(),
+            data_type_hint: "Unknown".to_string(),
+        };
+        let prompt = build_infer_prompt("do something", &ctx, "/tmp/data");
+        assert!(prompt.contains("no samples") || prompt.contains("auto-detected"));
+    }
+
+    #[test]
+    fn test_build_infer_prompt_contains_data_type() {
+        let ctx = DataContext {
+            samples: vec!["s1".to_string()],
+            files: vec!["/data/s1.bam".to_string()],
+            data_type_hint: "Pre-aligned BAM files".to_string(),
+        };
+        let prompt = build_infer_prompt("variant calling", &ctx, "/data");
+        assert!(prompt.contains("Pre-aligned BAM"));
+    }
+
+    // ─── strip_read_pair_suffix (indirectly via scan) ─────────────────────────
+
+    #[test]
+    fn test_strip_read_pair_suffix_r1_001_pattern() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("ctrl_R1_001.fastq.gz"), b"").unwrap();
+        std::fs::write(tmp.path().join("ctrl_R2_001.fastq.gz"), b"").unwrap();
+
+        let ctx = scan_data_directory(tmp.path());
+        assert!(ctx.samples.contains(&"ctrl".to_string()));
+    }
+}

@@ -1048,4 +1048,105 @@ mod tests {
         assert!(prompt.contains("sort bam"));
         assert!(prompt.contains("TASK:"));
     }
+
+    // ─── parse_shell_args ─────────────────────────────────────────────────────
+
+    #[test]
+    fn test_parse_shell_args_simple() {
+        let args = parse_shell_args("-o out.bam input.bam");
+        assert_eq!(args, vec!["-o", "out.bam", "input.bam"]);
+    }
+
+    #[test]
+    fn test_parse_shell_args_empty() {
+        let args = parse_shell_args("");
+        assert!(args.is_empty());
+    }
+
+    #[test]
+    fn test_parse_shell_args_whitespace_only() {
+        let args = parse_shell_args("   ");
+        assert!(args.is_empty());
+    }
+
+    #[test]
+    fn test_parse_shell_args_single_quoted() {
+        let args = parse_shell_args("-o 'my output.bam'");
+        assert_eq!(args, vec!["-o", "my output.bam"]);
+    }
+
+    #[test]
+    fn test_parse_shell_args_double_quoted() {
+        let args = parse_shell_args("-o \"my output.bam\"");
+        assert_eq!(args, vec!["-o", "my output.bam"]);
+    }
+
+    #[test]
+    fn test_parse_shell_args_backslash_escape() {
+        let args = parse_shell_args(r#"-o my\ output.bam"#);
+        assert_eq!(args, vec!["-o", "my output.bam"]);
+    }
+
+    #[test]
+    fn test_parse_shell_args_multiple_spaces() {
+        let args = parse_shell_args("  -o   out.bam   input.bam  ");
+        assert_eq!(args, vec!["-o", "out.bam", "input.bam"]);
+    }
+
+    #[test]
+    fn test_parse_shell_args_mixed_quotes() {
+        let args = parse_shell_args("sort -k1,1 -k2,2n 'file with spaces.txt'");
+        assert_eq!(
+            args,
+            vec!["sort", "-k1,1", "-k2,2n", "file with spaces.txt"]
+        );
+    }
+
+    // ─── is_valid_suggestion ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_is_valid_suggestion_with_explanation() {
+        let s = LlmCommandSuggestion {
+            args: vec!["-o".to_string(), "out.bam".to_string()],
+            explanation: "Sort the BAM file by coordinate.".to_string(),
+            raw_response: "ARGS: -o out.bam\nEXPLANATION: Sort the BAM file by coordinate."
+                .to_string(),
+        };
+        assert!(is_valid_suggestion(&s));
+    }
+
+    #[test]
+    fn test_is_valid_suggestion_empty_explanation() {
+        let s = LlmCommandSuggestion {
+            args: vec!["-o".to_string()],
+            explanation: String::new(),
+            raw_response: "ARGS: -o\nEXPLANATION:".to_string(),
+        };
+        assert!(!is_valid_suggestion(&s));
+    }
+
+    #[test]
+    fn test_is_valid_suggestion_empty_args_but_has_explanation() {
+        let s = LlmCommandSuggestion {
+            args: vec![],
+            explanation: "Run the tool with default arguments.".to_string(),
+            raw_response: "ARGS:\nEXPLANATION: Run the tool with default arguments.".to_string(),
+        };
+        // ARGS can be empty, explanation is what matters
+        assert!(is_valid_suggestion(&s));
+    }
+
+    // ─── LlmRunVerification struct ────────────────────────────────────────────
+
+    #[test]
+    fn test_llm_run_verification_debug() {
+        let v = LlmRunVerification {
+            success: true,
+            summary: "ok".to_string(),
+            issues: vec![],
+            suggestions: vec![],
+        };
+        let s = format!("{v:?}");
+        assert!(s.contains("success: true"));
+    }
 }

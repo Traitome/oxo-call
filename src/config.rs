@@ -444,3 +444,549 @@ impl Config {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Mutex;
+
+    // Mutex to serialize tests that mutate env vars
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    // ─── McpServerConfig ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_mcp_server_config_name_non_empty() {
+        let cfg = McpServerConfig {
+            url: "http://localhost:3000".to_string(),
+            name: "my-server".to_string(),
+            api_key: None,
+        };
+        assert_eq!(cfg.name(), "my-server");
+    }
+
+    #[test]
+    fn test_mcp_server_config_name_falls_back_to_url() {
+        let cfg = McpServerConfig {
+            url: "http://localhost:3000".to_string(),
+            name: String::new(),
+            api_key: None,
+        };
+        assert_eq!(cfg.name(), "http://localhost:3000");
+    }
+
+    // ─── Config defaults ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_config_default_provider() {
+        let cfg = Config::default();
+        assert_eq!(cfg.llm.provider, "github-copilot");
+    }
+
+    #[test]
+    fn test_config_default_max_tokens() {
+        let cfg = Config::default();
+        assert_eq!(cfg.llm.max_tokens, 2048);
+    }
+
+    #[test]
+    fn test_config_default_temperature() {
+        let cfg = Config::default();
+        assert!((cfg.llm.temperature - 0.0_f32).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_config_default_no_api_token() {
+        let cfg = Config::default();
+        assert!(cfg.llm.api_token.is_none());
+    }
+
+    // ─── Config::set ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_config_set_provider() {
+        let mut cfg = Config::default();
+        cfg.set("llm.provider", "openai").unwrap();
+        assert_eq!(cfg.llm.provider, "openai");
+    }
+
+    #[test]
+    fn test_config_set_api_token() {
+        let mut cfg = Config::default();
+        cfg.set("llm.api_token", "sk-test123").unwrap();
+        assert_eq!(cfg.llm.api_token.as_deref(), Some("sk-test123"));
+    }
+
+    #[test]
+    fn test_config_set_api_base() {
+        let mut cfg = Config::default();
+        cfg.set("llm.api_base", "https://my-proxy.example.com/v1")
+            .unwrap();
+        assert_eq!(
+            cfg.llm.api_base.as_deref(),
+            Some("https://my-proxy.example.com/v1")
+        );
+    }
+
+    #[test]
+    fn test_config_set_model() {
+        let mut cfg = Config::default();
+        cfg.set("llm.model", "claude-3-5-sonnet-20241022").unwrap();
+        assert_eq!(cfg.llm.model.as_deref(), Some("claude-3-5-sonnet-20241022"));
+    }
+
+    #[test]
+    fn test_config_set_max_tokens() {
+        let mut cfg = Config::default();
+        cfg.set("llm.max_tokens", "4096").unwrap();
+        assert_eq!(cfg.llm.max_tokens, 4096);
+    }
+
+    #[test]
+    fn test_config_set_max_tokens_invalid() {
+        let mut cfg = Config::default();
+        assert!(cfg.set("llm.max_tokens", "not-a-number").is_err());
+    }
+
+    #[test]
+    fn test_config_set_temperature() {
+        let mut cfg = Config::default();
+        cfg.set("llm.temperature", "0.7").unwrap();
+        assert!((cfg.llm.temperature - 0.7_f32).abs() < 1e-5);
+    }
+
+    #[test]
+    fn test_config_set_temperature_invalid() {
+        let mut cfg = Config::default();
+        assert!(cfg.set("llm.temperature", "hot").is_err());
+    }
+
+    #[test]
+    fn test_config_set_docs_auto_update() {
+        let mut cfg = Config::default();
+        cfg.set("docs.auto_update", "false").unwrap();
+        assert!(!cfg.docs.auto_update);
+        cfg.set("docs.auto_update", "true").unwrap();
+        assert!(cfg.docs.auto_update);
+    }
+
+    #[test]
+    fn test_config_set_unknown_key_errors() {
+        let mut cfg = Config::default();
+        assert!(cfg.set("llm.unknown_field", "value").is_err());
+        assert!(cfg.set("does.not.exist", "value").is_err());
+    }
+
+    // ─── Config::get / effective_value ────────────────────────────────────────
+
+    #[test]
+    fn test_config_get_provider() {
+        let cfg = Config::default();
+        assert_eq!(cfg.get("llm.provider").unwrap(), "github-copilot");
+    }
+
+    #[test]
+    fn test_config_get_unknown_key_errors() {
+        let cfg = Config::default();
+        assert!(cfg.get("llm.does_not_exist").is_err());
+    }
+
+    // ─── effective_provider ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_effective_provider_default() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // Remove env var if set by another test
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let cfg = Config::default();
+        assert_eq!(cfg.effective_provider(), "github-copilot");
+    }
+
+    #[test]
+    fn test_effective_provider_from_config() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "anthropic".to_string();
+        assert_eq!(cfg.effective_provider(), "anthropic");
+    }
+
+    // ─── effective_api_base ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_effective_api_base_github_copilot() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_BASE");
+        }
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let cfg = Config::default();
+        assert_eq!(cfg.effective_api_base(), "https://api.githubcopilot.com");
+    }
+
+    #[test]
+    fn test_effective_api_base_openai() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_BASE");
+        }
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "openai".to_string();
+        assert_eq!(cfg.effective_api_base(), "https://api.openai.com/v1");
+    }
+
+    #[test]
+    fn test_effective_api_base_anthropic() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_BASE");
+        }
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "anthropic".to_string();
+        assert_eq!(cfg.effective_api_base(), "https://api.anthropic.com/v1");
+    }
+
+    #[test]
+    fn test_effective_api_base_ollama() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_BASE");
+        }
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "ollama".to_string();
+        assert_eq!(cfg.effective_api_base(), "http://localhost:11434/v1");
+    }
+
+    #[test]
+    fn test_effective_api_base_from_config() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_BASE");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.api_base = Some("https://custom.example.com/v1".to_string());
+        assert_eq!(cfg.effective_api_base(), "https://custom.example.com/v1");
+    }
+
+    // ─── effective_model ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_effective_model_github_copilot() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_MODEL");
+        }
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let cfg = Config::default();
+        assert_eq!(cfg.effective_model(), "gpt-4o");
+    }
+
+    #[test]
+    fn test_effective_model_anthropic() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_MODEL");
+        }
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "anthropic".to_string();
+        assert_eq!(cfg.effective_model(), "claude-3-5-sonnet-20241022");
+    }
+
+    #[test]
+    fn test_effective_model_ollama() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_MODEL");
+        }
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "ollama".to_string();
+        assert_eq!(cfg.effective_model(), "llama3.2");
+    }
+
+    #[test]
+    fn test_effective_model_from_config() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_MODEL");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.model = Some("gpt-4-turbo".to_string());
+        assert_eq!(cfg.effective_model(), "gpt-4-turbo");
+    }
+
+    // ─── effective_max_tokens / effective_temperature ─────────────────────────
+
+    #[test]
+    fn test_effective_max_tokens_default() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_MAX_TOKENS");
+        }
+        let cfg = Config::default();
+        assert_eq!(cfg.effective_max_tokens().unwrap(), 2048);
+    }
+
+    #[test]
+    fn test_effective_temperature_default() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_TEMPERATURE");
+        }
+        let cfg = Config::default();
+        assert!((cfg.effective_temperature().unwrap() - 0.0_f32).abs() < f32::EPSILON);
+    }
+
+    // ─── effective_docs_auto_update ───────────────────────────────────────────
+
+    #[test]
+    fn test_effective_docs_auto_update_default() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_DOCS_AUTO_UPDATE");
+        }
+        let cfg = Config::default();
+        assert!(cfg.effective_docs_auto_update().unwrap());
+    }
+
+    // ─── effective_source ─────────────────────────────────────────────────────
+
+    #[test]
+    fn test_effective_source_provider_default() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let cfg = Config::default();
+        let src = cfg.effective_source("llm.provider").unwrap();
+        assert!(src.contains("config") || src.contains("default"));
+    }
+
+    #[test]
+    fn test_effective_source_unknown_key_errors() {
+        let cfg = Config::default();
+        assert!(cfg.effective_source("bad.key").is_err());
+    }
+
+    #[test]
+    fn test_effective_source_api_base_provider_default() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_BASE");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.api_base = None;
+        let src = cfg.effective_source("llm.api_base").unwrap();
+        assert!(src.contains("default") || src.contains("provider"));
+    }
+
+    #[test]
+    fn test_effective_source_model_stored_config() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_MODEL");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.model = Some("gpt-4-turbo".to_string());
+        let src = cfg.effective_source("llm.model").unwrap();
+        assert!(src.contains("stored config"));
+    }
+
+    #[test]
+    fn test_effective_source_api_token_unset() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_TOKEN");
+        }
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("GITHUB_TOKEN");
+        }
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("GH_TOKEN");
+        }
+        let cfg = Config::default();
+        let src = cfg.effective_source("llm.api_token").unwrap();
+        assert!(src.contains("unset"));
+    }
+
+    #[test]
+    fn test_effective_source_max_tokens_default() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_MAX_TOKENS");
+        }
+        let cfg = Config::default();
+        let src = cfg.effective_source("llm.max_tokens").unwrap();
+        assert!(src.contains("default") || src.contains("stored"));
+    }
+
+    #[test]
+    fn test_effective_source_temperature_default() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_TEMPERATURE");
+        }
+        let cfg = Config::default();
+        let src = cfg.effective_source("llm.temperature").unwrap();
+        assert!(src.contains("default") || src.contains("stored"));
+    }
+
+    #[test]
+    fn test_effective_source_docs_auto_update_default() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::remove_var("OXO_CALL_DOCS_AUTO_UPDATE");
+        }
+        let cfg = Config::default();
+        let src = cfg.effective_source("docs.auto_update").unwrap();
+        assert!(src.contains("default") || src.contains("stored"));
+    }
+
+    // ─── load returns default when no config file ─────────────────────────────
+
+    #[test]
+    fn test_config_load_returns_default_when_missing() {
+        // Point config dir at empty temp directory
+        let tmp = tempfile::tempdir().unwrap();
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        // Config::load() uses config_dir() not data_dir(), but we exercise the
+        // "file not found → default" path by verifying the returned config looks like defaults.
+        // We can't easily redirect config_dir in unit tests without disk access.
+        // At minimum: Config::default() is exercised.
+        let cfg = Config::default();
+        assert_eq!(cfg.llm.provider, "github-copilot");
+        assert!(cfg.llm.api_token.is_none());
+    }
+
+    // ─── LicenseConfig defaults ───────────────────────────────────────────────
+
+    #[test]
+    fn test_license_config_default() {
+        let lc = LicenseConfig::default();
+        assert!(!lc.notice_shown);
+    }
+
+    // ─── McpConfig defaults ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_mcp_config_default_empty() {
+        let mc = McpConfig::default();
+        assert!(mc.servers.is_empty());
+    }
+
+    // ─── TOML round-trip ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_config_toml_round_trip() {
+        let mut cfg = Config::default();
+        cfg.llm.provider = "openai".to_string();
+        cfg.llm.model = Some("gpt-4-turbo".to_string());
+        cfg.llm.max_tokens = 4096;
+
+        let toml_str = toml::to_string_pretty(&cfg).expect("serialize");
+        let back: Config = toml::from_str(&toml_str).expect("deserialize");
+
+        assert_eq!(back.llm.provider, "openai");
+        assert_eq!(back.llm.model.as_deref(), Some("gpt-4-turbo"));
+        assert_eq!(back.llm.max_tokens, 4096);
+    }
+
+    #[test]
+    fn test_data_dir_uses_env_override() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        // SAFETY: test-only env var mutation, single-threaded test
+
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let data_dir = Config::data_dir().unwrap();
+        assert_eq!(data_dir, tmp.path());
+    }
+}

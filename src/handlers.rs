@@ -95,3 +95,107 @@ pub fn config_verify_suggestions(cfg: &config::Config, message: &str) -> Vec<Str
 
     suggestions
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_with_source_contains_value_and_source() {
+        let result = with_source("gpt-4o", "stored config");
+        assert!(result.contains("gpt-4o"));
+        assert!(result.contains("stored config"));
+    }
+
+    #[test]
+    fn test_with_source_format() {
+        let result = with_source("openai", "env:OXO_CALL_LLM_PROVIDER");
+        // Should have both value and source somewhere in the string
+        assert!(result.contains("openai"));
+        assert!(result.contains("env:OXO_CALL_LLM_PROVIDER"));
+    }
+
+    fn default_cfg() -> config::Config {
+        config::Config::default()
+    }
+
+    #[test]
+    fn test_no_api_token_suggestions() {
+        let cfg = default_cfg();
+        let suggestions = config_verify_suggestions(&cfg, "No API token configured for provider");
+        assert!(
+            suggestions.len() >= 2,
+            "should have at least 2 suggestions for missing token"
+        );
+        let combined = suggestions.join(" ");
+        assert!(combined.contains("llm.api_token"));
+        assert!(combined.contains("provider"));
+    }
+
+    #[test]
+    fn test_personal_access_token_suggestion() {
+        let cfg = default_cfg();
+        let suggestions =
+            config_verify_suggestions(&cfg, "Personal Access Tokens are not supported");
+        let combined = suggestions.join(" ");
+        assert!(combined.contains("github-copilot") || combined.contains("endpoint"));
+    }
+
+    #[test]
+    fn test_401_suggestion() {
+        let cfg = default_cfg();
+        let suggestions = config_verify_suggestions(&cfg, "HTTP 401 Unauthorized");
+        let combined = suggestions.join(" ");
+        assert!(combined.contains("rejected") || combined.contains("token"));
+    }
+
+    #[test]
+    fn test_403_suggestion() {
+        let cfg = default_cfg();
+        let suggestions = config_verify_suggestions(&cfg, "HTTP 403 Forbidden");
+        let combined = suggestions.join(" ");
+        assert!(combined.contains("rejected") || combined.contains("token"));
+    }
+
+    #[test]
+    fn test_404_suggestion_contains_api_base() {
+        let cfg = default_cfg();
+        let suggestions = config_verify_suggestions(&cfg, "endpoint returned 404");
+        let combined = suggestions.join(" ");
+        assert!(combined.contains("chat/completions") || combined.contains("api_base"));
+    }
+
+    #[test]
+    fn test_https_suggestion() {
+        let cfg = default_cfg();
+        let suggestions = config_verify_suggestions(&cfg, "API base URL must use HTTPS");
+        let combined = suggestions.join(" ");
+        assert!(combined.contains("https://"));
+    }
+
+    #[test]
+    fn test_http_request_failed_suggestion() {
+        let cfg = default_cfg();
+        let suggestions =
+            config_verify_suggestions(&cfg, "HTTP request failed: connection refused");
+        let combined = suggestions.join(" ");
+        assert!(combined.contains("network") || combined.contains("connectivity"));
+    }
+
+    #[test]
+    fn test_parse_api_response_suggestion() {
+        let cfg = default_cfg();
+        let suggestions = config_verify_suggestions(&cfg, "Failed to parse API response");
+        let combined = suggestions.join(" ");
+        assert!(combined.contains("OpenAI") || combined.contains("provider"));
+    }
+
+    #[test]
+    fn test_unknown_error_returns_generic_suggestion() {
+        let cfg = default_cfg();
+        let suggestions = config_verify_suggestions(&cfg, "some completely unknown error");
+        assert!(!suggestions.is_empty());
+        let combined = suggestions.join(" ");
+        assert!(combined.contains("config show"));
+    }
+}
