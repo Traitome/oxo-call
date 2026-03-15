@@ -166,6 +166,9 @@ impl Config {
     pub fn data_dir() -> Result<PathBuf> {
         #[cfg(not(target_arch = "wasm32"))]
         {
+            if let Ok(override_dir) = std::env::var("OXO_CALL_DATA_DIR") {
+                return Ok(PathBuf::from(override_dir));
+            }
             let dirs = Self::project_dirs().ok_or_else(|| {
                 OxoError::ConfigError("Cannot determine data directory".to_string())
             })?;

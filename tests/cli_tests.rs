@@ -2451,3 +2451,610 @@ fn test_skill_help_shows_new_subcommands() {
         "Expected 'polish' in skill help, got: {stdout}"
     );
 }
+
+// ─── job subcommand tests ─────────────────────────────────────────────────────
+
+/// Build a Command with test license AND a temporary data directory so job tests
+/// do not touch the real user data directory and can run in parallel safely.
+fn oxo_call_with_tmpdir(tmp: &std::path::Path) -> Command {
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_oxo-call"));
+    cmd.env("OXO_CALL_LICENSE", test_license_path());
+    cmd.env("OXO_CALL_DATA_DIR", tmp);
+    cmd
+}
+
+#[test]
+fn test_job_help() {
+    let output = oxo_call()
+        .args(["job", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("add"), "Expected 'add' in job help");
+    assert!(stdout.contains("remove"), "Expected 'remove' in job help");
+    assert!(stdout.contains("list"), "Expected 'list' in job help");
+    assert!(stdout.contains("run"), "Expected 'run' in job help");
+    assert!(stdout.contains("edit"), "Expected 'edit' in job help");
+    assert!(stdout.contains("rename"), "Expected 'rename' in job help");
+    assert!(stdout.contains("show"), "Expected 'show' in job help");
+}
+
+#[test]
+fn test_job_list_empty() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let output = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("No jobs saved"),
+        "Expected empty message, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_add_and_list() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let add_out = oxo_call_with_tmpdir(tmp.path())
+        .args([
+            "job",
+            "add",
+            "my-cmd",
+            "echo hello",
+            "--description",
+            "A greeting",
+        ])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        add_out.status.success(),
+        "add failed: {}",
+        String::from_utf8_lossy(&add_out.stderr)
+    );
+
+    let list_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(list_out.status.success());
+    let stdout = String::from_utf8_lossy(&list_out.stdout);
+    assert!(stdout.contains("my-cmd"), "Expected 'my-cmd' in list");
+    assert!(
+        stdout.contains("echo hello"),
+        "Expected command text in list"
+    );
+}
+
+#[test]
+fn test_job_add_duplicate_fails() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "dup-cmd", "echo 1"])
+        .output()
+        .expect("failed to run oxo-call");
+    let second = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "dup-cmd", "echo 2"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(!second.status.success(), "duplicate add should fail");
+    let stderr = String::from_utf8_lossy(&second.stderr);
+    assert!(
+        stderr.contains("already exists"),
+        "Expected 'already exists' in error, got: {stderr}"
+    );
+}
+
+#[test]
+fn test_job_show() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args([
+            "job",
+            "add",
+            "show-cmd",
+            "ls -la",
+            "--description",
+            "List files",
+        ])
+        .output()
+        .expect("failed to run oxo-call");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "show", "show-cmd"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("show-cmd"), "Expected name in show output");
+    assert!(stdout.contains("ls -la"), "Expected command in show output");
+    assert!(
+        stdout.contains("List files"),
+        "Expected description in show output"
+    );
+}
+
+#[test]
+fn test_job_remove() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "del-cmd", "echo bye"])
+        .output()
+        .expect("failed to run oxo-call");
+
+    let rm_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "remove", "del-cmd"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        rm_out.status.success(),
+        "remove failed: {}",
+        String::from_utf8_lossy(&rm_out.stderr)
+    );
+
+    let list_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    let stdout = String::from_utf8_lossy(&list_out.stdout);
+    assert!(
+        !stdout.contains("del-cmd"),
+        "Removed command should not appear in list"
+    );
+}
+
+#[test]
+fn test_job_remove_missing_fails() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "remove", "ghost"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(!out.status.success(), "removing missing job should fail");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("No job found"),
+        "Expected 'No job found' in error, got: {stderr}"
+    );
+}
+
+#[test]
+fn test_job_edit() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "edit-cmd", "echo old"])
+        .output()
+        .expect("failed to run oxo-call");
+
+    let edit_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "edit", "edit-cmd", "--command", "echo new"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        edit_out.status.success(),
+        "edit failed: {}",
+        String::from_utf8_lossy(&edit_out.stderr)
+    );
+
+    let show_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "show", "edit-cmd"])
+        .output()
+        .expect("failed to run oxo-call");
+    let stdout = String::from_utf8_lossy(&show_out.stdout);
+    assert!(
+        stdout.contains("echo new"),
+        "Expected updated command in show"
+    );
+}
+
+#[test]
+fn test_job_rename() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "rename-old", "echo hi"])
+        .output()
+        .expect("failed to run oxo-call");
+
+    let ren_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "rename", "rename-old", "rename-new"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        ren_out.status.success(),
+        "rename failed: {}",
+        String::from_utf8_lossy(&ren_out.stderr)
+    );
+
+    let list_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    let stdout = String::from_utf8_lossy(&list_out.stdout);
+    assert!(stdout.contains("rename-new"), "Expected new name in list");
+    assert!(
+        !stdout.contains("rename-old"),
+        "Old name should not appear in list"
+    );
+}
+
+#[test]
+fn test_job_run_dry_run() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "dry-cmd", "echo dry"])
+        .output()
+        .expect("failed to run oxo-call");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "run", "dry-cmd", "--dry-run"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        out.status.success(),
+        "dry-run failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("dry-run") || stdout.contains("not executed"),
+        "Expected dry-run indicator in output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_run_local() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "run-local", "echo oxo-cmd-test-output"])
+        .output()
+        .expect("failed to run oxo-call");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "run", "run-local"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        out.status.success(),
+        "job run failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("oxo-cmd-test-output"),
+        "Expected command output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_list_tag_filter() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args([
+            "job",
+            "add",
+            "tagged-cmd",
+            "squeue -u $USER",
+            "--tag",
+            "slurm",
+        ])
+        .output()
+        .expect("failed to run oxo-call");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "untagged-cmd", "ls"])
+        .output()
+        .expect("failed to run oxo-call");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "list", "--tag", "slurm"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("tagged-cmd"),
+        "Expected tagged-cmd in filtered list"
+    );
+    assert!(
+        !stdout.contains("untagged-cmd"),
+        "Untagged cmd should not appear"
+    );
+}
+
+#[test]
+fn test_help_mentions_job_command() {
+    let output = oxo_call()
+        .arg("--help")
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("job"),
+        "Expected 'job' in top-level help, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_completion_zsh_no_panic_piped_includes_job() {
+    // Regression test: completing to stdout when piped must not panic.
+    let output = oxo_call()
+        .args(["completion", "zsh"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("#compdef oxo-call"),
+        "Expected zsh compdef header, got: {stdout}"
+    );
+    // The job subcommand should appear in the completion output.
+    assert!(
+        stdout.contains("job"),
+        "Expected 'job' subcommand in zsh completion"
+    );
+}
+
+#[test]
+fn test_job_status_empty() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    // status with no jobs should succeed and mention "No jobs"
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "status"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("No jobs"),
+        "Expected 'No jobs' in status output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_status_after_add() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "status-job", "echo status"])
+        .output()
+        .expect("add failed");
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "status"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("status-job"),
+        "Expected job name in status output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_history_empty() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "hist-job", "echo hi"])
+        .output()
+        .expect("add failed");
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "history", "hist-job"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("No run history"),
+        "Expected 'No run history' in output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_history_after_run() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "hist-run-job", "echo hist-test"])
+        .output()
+        .expect("add failed");
+    // Run the job so it gets a history entry
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "run", "hist-run-job"])
+        .output()
+        .expect("run failed");
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "history", "hist-run-job"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("hist-run-job"),
+        "Expected job name in history, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_schedule_set_and_clear() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "sched-job", "df -h"])
+        .output()
+        .expect("add failed");
+
+    // Set schedule
+    let set_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "schedule", "sched-job", "0 * * * *"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        set_out.status.success(),
+        "schedule set failed: {}",
+        String::from_utf8_lossy(&set_out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&set_out.stdout);
+    assert!(
+        stdout.contains("0 * * * *"),
+        "Expected cron expression in output, got: {stdout}"
+    );
+
+    // Show should include the schedule
+    let show_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "show", "sched-job"])
+        .output()
+        .expect("failed to run oxo-call");
+    let show_stdout = String::from_utf8_lossy(&show_out.stdout);
+    assert!(
+        show_stdout.contains("0 * * * *"),
+        "Expected schedule in show output, got: {show_stdout}"
+    );
+
+    // Clear schedule
+    let clear_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "schedule", "sched-job"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        clear_out.status.success(),
+        "schedule clear failed: {}",
+        String::from_utf8_lossy(&clear_out.stderr)
+    );
+}
+
+#[test]
+fn test_job_list_builtin() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "list", "--builtin"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    // Should show common built-in jobs
+    assert!(
+        stdout.contains("gpu") || stdout.contains("disk") || stdout.contains("squeue"),
+        "Expected built-in job names in output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_list_builtin_tag_filter() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "list", "--builtin", "--tag", "slurm"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("squeue"),
+        "Expected SLURM built-in jobs, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_import_builtin() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "import", "gpu"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        out.status.success(),
+        "import failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("gpu"),
+        "Expected job name in import output, got: {stdout}"
+    );
+
+    // Job should now appear in list
+    let list_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    let list_stdout = String::from_utf8_lossy(&list_out.stdout);
+    assert!(
+        list_stdout.contains("gpu"),
+        "Expected imported job in list, got: {list_stdout}"
+    );
+}
+
+#[test]
+fn test_job_import_with_custom_name() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "import", "disk", "--as-name", "my-disk"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        out.status.success(),
+        "import failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let list_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    let stdout = String::from_utf8_lossy(&list_out.stdout);
+    assert!(
+        stdout.contains("my-disk"),
+        "Expected custom-named import in list, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_import_missing_fails() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "import", "nonexistent-builtin-xyz"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(!out.status.success(), "importing nonexistent should fail");
+}
+
+#[test]
+fn test_job_add_with_schedule() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args([
+            "job",
+            "add",
+            "cron-job",
+            "df -h",
+            "--schedule",
+            "*/5 * * * *",
+        ])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        out.status.success(),
+        "add with schedule failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+
+    let show_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "show", "cron-job"])
+        .output()
+        .expect("failed to run oxo-call");
+    let stdout = String::from_utf8_lossy(&show_out.stdout);
+    assert!(
+        stdout.contains("*/5 * * * *"),
+        "Expected schedule in show output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_backward_compat_cmd_alias() {
+    // The `cmd` alias should still work after the rename to `job`.
+    let output = oxo_call()
+        .args(["cmd", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        output.status.success(),
+        "'cmd --help' should succeed via backward-compat alias"
+    );
+}

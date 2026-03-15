@@ -6,6 +6,7 @@ mod error;
 mod handlers;
 mod history;
 mod index;
+mod job;
 mod license;
 mod llm;
 mod mcp;
@@ -17,8 +18,8 @@ mod workflow;
 
 use clap::{CommandFactory, Parser};
 use cli::{
-    Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, LicenseCommands,
-    ServerCommands, ShellType, SkillCommands, SkillMcpCommands, WorkflowCommands,
+    Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, JobCommands,
+    LicenseCommands, ServerCommands, ShellType, SkillCommands, SkillMcpCommands, WorkflowCommands,
 };
 use colored::Colorize;
 use handlers::{config_verify_suggestions, print_index_table, with_source};
@@ -1981,8 +1982,607 @@ async fn run(cli: Cli) -> error::Result<()> {
             std::process::exit(1);
         }
 
+        Commands::Job { command } => {
+            match command {
+                JobCommands::Add {
+                    name,
+                    command,
+                    description,
+                    tags,
+                    schedule,
+                } => {
+                    let now = chrono::Utc::now();
+                    let entry = job::JobEntry {
+                        name: name.clone(),
+                        command,
+                        description,
+                        tags,
+                        schedule,
+                        run_count: 0,
+                        last_run: None,
+                        last_exit_code: None,
+                        created_at: now,
+                        updated_at: now,
+                    };
+                    job::JobManager::add(entry)?;
+                    println!(
+                        "{} Job '{}' added to your library.",
+                        "✓".green().bold(),
+                        name.cyan()
+                    );
+                    println!("  Run with: {}", format!("oxo-call job run {name}").bold());
+                }
+
+                JobCommands::Remove { name } => {
+                    job::JobManager::remove(&name)?;
+                    println!("{} Job '{}' removed.", "✓".green().bold(), name.cyan());
+                }
+
+                JobCommands::List { tag, builtin } => {
+                    if builtin {
+                        let entries = job::builtin_jobs(tag.as_deref());
+                        if entries.is_empty() {
+                            if let Some(ref t) = tag {
+                                println!("No built-in jobs found with tag '{t}'.");
+                            } else {
+                                println!("No built-in jobs available.");
+                            }
+                        } else {
+                            println!();
+                            println!("  {} Built-in job templates:", "●".cyan());
+                            println!();
+                            for j in &entries {
+                                let tags_str = if j.tags.is_empty() {
+                                    String::new()
+                                } else {
+                                    format!("  [{}]", j.tags.join(", ").dimmed())
+                                };
+                                println!(
+                                    "  {}{}  {}",
+                                    j.name.cyan().bold(),
+                                    tags_str,
+                                    j.description.dimmed()
+                                );
+                                println!("    {}", j.command.green());
+                            }
+                            println!();
+                            println!(
+                                "  {} built-in template(s). Import one with: {}",
+                                entries.len(),
+                                "oxo-call job import <name>".bold()
+                            );
+                        }
+                    } else {
+                        let entries = job::JobManager::list(tag.as_deref())?;
+                        if entries.is_empty() {
+                            if let Some(ref t) = tag {
+                                println!("No jobs found with tag '{t}'.");
+                            } else {
+                                println!("No jobs saved yet.");
+                                println!(
+                                    "  Add one with: {}",
+                                    "oxo-call job add <name> '<command>'".bold()
+                                );
+                                println!(
+                                    "  Or browse built-ins: {}",
+                                    "oxo-call job list --builtin".bold()
+                                );
+                            }
+                        } else {
+                            println!();
+                            for entry in &entries {
+                                let tags_str = if entry.tags.is_empty() {
+                                    String::new()
+                                } else {
+                                    format!("  [{}]", entry.tags.join(", ").dimmed())
+                                };
+                                let status = match entry.last_exit_code {
+                                    None => "–".dimmed().to_string(),
+                                    Some(0) => "✓".green().to_string(),
+                                    Some(_) => "✗".red().to_string(),
+                                };
+                                println!(
+                                    "  {} {}{}  {}",
+                                    status,
+                                    entry.name.cyan().bold(),
+                                    tags_str,
+                                    entry.description.as_deref().unwrap_or("").dimmed()
+                                );
+                                println!("    {}", entry.command.green());
+                            }
+                            println!();
+                            println!(
+                                "  {} job(s). Run: {}",
+                                entries.len(),
+                                "oxo-call job run <name>".bold()
+                            );
+                        }
+                    }
+                }
+
+                JobCommands::Show { name } => {
+                    let entry = job::JobManager::find(&name)?.ok_or_else(|| {
+                        error::OxoError::ConfigError(format!("No job found with name '{name}'"))
+                    })?;
+                    println!();
+                    println!("  {}  {}", "Name:".bold(), entry.name.cyan().bold());
+                    println!("  {}  {}", "Command:".bold(), entry.command.green());
+                    if let Some(ref desc) = entry.description {
+                        println!("  {}  {}", "Description:".bold(), desc);
+                    }
+                    if !entry.tags.is_empty() {
+                        println!("  {}  {}", "Tags:".bold(), entry.tags.join(", "));
+                    }
+                    if let Some(ref sched) = entry.schedule {
+                        println!("  {}  {}", "Schedule:".bold(), sched.yellow());
+                    }
+                    println!(
+                        "  {}  {}",
+                        "Status:".bold(),
+                        match entry.last_exit_code {
+                            None => "never run".dimmed().to_string(),
+                            Some(0) => "ok (last run succeeded)".green().to_string(),
+                            Some(c) => format!("failed (exit code {c})").red().to_string(),
+                        }
+                    );
+                    println!("  {}  {}", "Run count:".bold(), entry.run_count);
+                    if let Some(ref lr) = entry.last_run {
+                        println!(
+                            "  {}  {}",
+                            "Last run:".bold(),
+                            lr.format("%Y-%m-%d %H:%M:%S UTC")
+                        );
+                    }
+                    println!(
+                        "  {}  {}",
+                        "Created:".bold(),
+                        entry.created_at.format("%Y-%m-%d %H:%M:%S UTC")
+                    );
+                    if entry.updated_at != entry.created_at {
+                        println!(
+                            "  {}  {}",
+                            "Updated:".bold(),
+                            entry.updated_at.format("%Y-%m-%d %H:%M:%S UTC")
+                        );
+                    }
+                    println!();
+                }
+
+                JobCommands::Run {
+                    name,
+                    server: server_flag,
+                    dry_run,
+                } => {
+                    let entry = job::JobManager::find(&name)?.ok_or_else(|| {
+                        error::OxoError::ConfigError(format!("No job found with name '{name}'"))
+                    })?;
+
+                    println!();
+                    println!("  {} {}", "Command:".bold(), entry.command.green().bold());
+                    if let Some(ref desc) = entry.description {
+                        println!("  {} {}", "Description:".bold(), desc.dimmed());
+                    }
+
+                    if dry_run {
+                        println!();
+                        println!("{}", "  (dry-run — not executed)".yellow());
+                        return Ok(());
+                    }
+
+                    let started = chrono::Utc::now();
+                    let start_inst = std::time::Instant::now();
+
+                    #[cfg(not(target_arch = "wasm32"))]
+                    if let Some(ref srv_name) = server_flag {
+                        // Remote execution via SSH
+                        let cfg = config::Config::load()?;
+                        let mgr = server::ServerManager::new(cfg);
+                        let host = mgr.find(srv_name).ok_or_else(|| {
+                            error::OxoError::ConfigError(format!(
+                                "No server found with name '{srv_name}'. \
+                                 Run 'oxo-call server list'."
+                            ))
+                        })?;
+
+                        println!(
+                            "  {} {} ({})",
+                            "Server:".bold(),
+                            srv_name.cyan(),
+                            host.ssh_dest()
+                        );
+                        println!();
+                        println!(
+                            "  {} ssh {} '{}'",
+                            "Running:".bold(),
+                            host.ssh_dest().cyan(),
+                            entry.command
+                        );
+                        println!("{}", "─".repeat(60).dimmed());
+
+                        let mut ssh_cmd = std::process::Command::new("ssh");
+                        for arg in &host.ssh_args() {
+                            ssh_cmd.arg(arg);
+                        }
+                        ssh_cmd.arg(&entry.command);
+                        let status = ssh_cmd.status()?;
+                        let dur = start_inst.elapsed().as_secs_f64();
+                        let code = status.code().unwrap_or(1);
+
+                        let _ = job::JobManager::record_run(
+                            &name,
+                            &entry.command,
+                            Some(srv_name.clone()),
+                            code,
+                            started,
+                            dur,
+                        );
+
+                        println!();
+                        if status.success() {
+                            println!(
+                                "{} Job completed on '{}'.",
+                                "✓".green().bold(),
+                                srv_name.cyan()
+                            );
+                        } else {
+                            eprintln!(
+                                "{} Job exited with code {code} on '{}'.",
+                                "✗".red().bold(),
+                                srv_name.cyan()
+                            );
+                            return Err(error::OxoError::ExecutionError(format!(
+                                "SSH job on '{srv_name}' exited with code {code}"
+                            )));
+                        }
+                    } else {
+                        // Local execution
+                        println!("{}", "─".repeat(60).dimmed());
+                        let status = std::process::Command::new("sh")
+                            .arg("-c")
+                            .arg(&entry.command)
+                            .status()?;
+                        let dur = start_inst.elapsed().as_secs_f64();
+                        let code = status.code().unwrap_or(1);
+
+                        let _ = job::JobManager::record_run(
+                            &name,
+                            &entry.command,
+                            None,
+                            code,
+                            started,
+                            dur,
+                        );
+
+                        println!();
+                        if status.success() {
+                            println!("{} Done.", "✓".green().bold());
+                        } else {
+                            eprintln!("{} Job exited with code {code}.", "✗".red().bold());
+                            return Err(error::OxoError::ExecutionError(format!(
+                                "Job '{name}' exited with code {code}"
+                            )));
+                        }
+                    }
+
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        let _ = server_flag;
+                        eprintln!(
+                            "{} 'job run' is not supported on WebAssembly.",
+                            "error:".red().bold()
+                        );
+                        std::process::exit(1);
+                    }
+                }
+
+                JobCommands::Edit {
+                    name,
+                    command: new_command,
+                    description: new_description,
+                    tags,
+                    schedule: new_schedule,
+                    clear_schedule,
+                } => {
+                    let new_tags = if tags.is_empty() { None } else { Some(tags) };
+                    job::JobManager::edit(
+                        &name,
+                        new_command.as_deref(),
+                        new_description.as_deref(),
+                        false,
+                        new_tags,
+                        new_schedule.as_deref(),
+                        clear_schedule,
+                    )?;
+                    println!("{} Job '{}' updated.", "✓".green().bold(), name.cyan());
+                }
+
+                JobCommands::Rename { from, to } => {
+                    job::JobManager::rename(&from, &to)?;
+                    println!(
+                        "{} Job '{}' renamed to '{}'.",
+                        "✓".green().bold(),
+                        from.cyan(),
+                        to.cyan()
+                    );
+                }
+
+                JobCommands::Status { name } => {
+                    if let Some(ref job_name) = name {
+                        // Single job status with recent run history
+                        let entry = job::JobManager::find(job_name)?.ok_or_else(|| {
+                            error::OxoError::ConfigError(format!(
+                                "No job found with name '{job_name}'"
+                            ))
+                        })?;
+                        println!();
+                        println!("  {}  {}", "Job:".bold(), entry.name.cyan().bold());
+                        println!("  {}  {}", "Command:".bold(), entry.command.green());
+                        println!(
+                            "  {}  {}",
+                            "Status:".bold(),
+                            match entry.last_exit_code {
+                                None => "never run".dimmed().to_string(),
+                                Some(0) => "ok".green().to_string(),
+                                Some(c) => format!("failed (exit {c})").red().to_string(),
+                            }
+                        );
+                        println!("  {}  {}", "Run count:".bold(), entry.run_count);
+                        if let Some(ref lr) = entry.last_run {
+                            println!(
+                                "  {}  {}",
+                                "Last run:".bold(),
+                                lr.format("%Y-%m-%d %H:%M:%S UTC")
+                            );
+                        }
+                        if let Some(ref sched) = entry.schedule {
+                            println!("  {}  {}", "Schedule:".bold(), sched.yellow());
+                        }
+
+                        // Show last 5 runs from history
+                        let runs = job::JobRunStore::load(Some(job_name))?;
+                        if !runs.is_empty() {
+                            println!();
+                            println!("  {} Recent runs:", "◆".cyan());
+                            for run in runs.iter().rev().take(5) {
+                                let status_icon = if run.exit_code == 0 {
+                                    "✓".green().to_string()
+                                } else {
+                                    "✗".red().to_string()
+                                };
+                                println!(
+                                    "    {} {}  exit={}  {:.1}s{}",
+                                    status_icon,
+                                    run.started_at.format("%Y-%m-%d %H:%M:%S"),
+                                    run.exit_code,
+                                    run.duration_secs,
+                                    run.server
+                                        .as_ref()
+                                        .map(|s| format!("  server={s}"))
+                                        .unwrap_or_default()
+                                );
+                            }
+                        }
+                        println!();
+                    } else {
+                        // All jobs status summary
+                        let entries = job::JobManager::list(None)?;
+                        if entries.is_empty() {
+                            println!("No jobs saved yet.");
+                        } else {
+                            println!();
+                            println!(
+                                "  {:<20} {:<10} {:<6} {}",
+                                "JOB".bold(),
+                                "STATUS".bold(),
+                                "RUNS".bold(),
+                                "LAST RUN".bold()
+                            );
+                            println!("  {}", "─".repeat(60).dimmed());
+                            for entry in &entries {
+                                let status = match entry.last_exit_code {
+                                    None => "never".dimmed().to_string(),
+                                    Some(0) => "ok".green().to_string(),
+                                    Some(c) => format!("fail({c})").red().to_string(),
+                                };
+                                let last = entry
+                                    .last_run
+                                    .map(|t| t.format("%Y-%m-%d %H:%M").to_string())
+                                    .unwrap_or_else(|| "–".to_string());
+                                println!(
+                                    "  {:<20} {:<10} {:<6} {}",
+                                    entry.name.cyan().to_string(),
+                                    status,
+                                    entry.run_count,
+                                    last.dimmed()
+                                );
+                            }
+                            println!();
+                        }
+                    }
+                }
+
+                JobCommands::History { name, limit } => {
+                    let runs = job::JobRunStore::load(Some(&name))?;
+                    if runs.is_empty() {
+                        println!("No run history for job '{name}'.");
+                    } else {
+                        println!();
+                        println!(
+                            "  {} Run history for '{}' (last {}):",
+                            "◆".cyan(),
+                            name.cyan().bold(),
+                            limit
+                        );
+                        println!();
+                        for run in runs.iter().rev().take(limit) {
+                            let status_icon = if run.exit_code == 0 {
+                                "✓".green().to_string()
+                            } else {
+                                "✗".red().to_string()
+                            };
+                            println!(
+                                "  {} {}  exit={}  {:.2}s{}",
+                                status_icon,
+                                run.started_at.format("%Y-%m-%d %H:%M:%S UTC"),
+                                run.exit_code,
+                                run.duration_secs,
+                                run.server
+                                    .as_ref()
+                                    .map(|s| format!("  [{}]", s.cyan()))
+                                    .unwrap_or_default()
+                            );
+                            println!("    {}", run.command.dimmed());
+                        }
+                        println!();
+                    }
+                }
+
+                JobCommands::Schedule { name, cron } => {
+                    job::JobManager::set_schedule(&name, cron.as_deref())?;
+                    if let Some(ref expr) = cron {
+                        println!(
+                            "{} Schedule for '{}' set to: {}",
+                            "✓".green().bold(),
+                            name.cyan(),
+                            expr.yellow()
+                        );
+                        println!(
+                            "  Use 'oxo-call job run {}' in a cron job to execute it.",
+                            name.cyan()
+                        );
+                    } else {
+                        println!(
+                            "{} Schedule for '{}' cleared.",
+                            "✓".green().bold(),
+                            name.cyan()
+                        );
+                    }
+                }
+
+                JobCommands::Generate {
+                    description,
+                    name,
+                    tags,
+                    dry_run,
+                } => {
+                    use crate::llm::LlmClient;
+
+                    let cfg = config::Config::load()?;
+                    let llm = LlmClient::new(cfg);
+
+                    println!("  {} Generating job from description …", "⚙".cyan());
+
+                    let (generated_cmd, explanation) =
+                        llm.generate_shell_command(&description).await?;
+
+                    println!();
+                    println!("  {}  {}", "Command:".bold(), generated_cmd.green().bold());
+                    if !explanation.is_empty() {
+                        println!("  {}  {}", "Explanation:".bold(), explanation.dimmed());
+                    }
+
+                    if dry_run {
+                        println!();
+                        println!("{}", "  (dry-run — not saved)".yellow());
+                        return Ok(());
+                    }
+
+                    // Derive a name if not provided
+                    let job_name = name.unwrap_or_else(|| {
+                        // Slugify: take first 5 words, lowercase, join with '-'
+                        let slug = description
+                            .split_whitespace()
+                            .take(5)
+                            .map(|w| {
+                                w.chars()
+                                    .filter(|c| c.is_alphanumeric() || *c == '-')
+                                    .collect::<String>()
+                                    .to_lowercase()
+                            })
+                            .filter(|s| !s.is_empty())
+                            .collect::<Vec<_>>()
+                            .join("-");
+                        // Fallback to a timestamped name if slug is empty
+                        if slug.is_empty() {
+                            format!("generated-{}", chrono::Utc::now().format("%Y%m%d%H%M%S"))
+                        } else {
+                            slug
+                        }
+                    });
+
+                    let now = chrono::Utc::now();
+                    let entry = job::JobEntry {
+                        name: job_name.clone(),
+                        command: generated_cmd.clone(),
+                        description: if explanation.is_empty() {
+                            Some(description.clone())
+                        } else {
+                            Some(explanation.clone())
+                        },
+                        tags,
+                        schedule: None,
+                        run_count: 0,
+                        last_run: None,
+                        last_exit_code: None,
+                        created_at: now,
+                        updated_at: now,
+                    };
+
+                    job::JobManager::add(entry)?;
+                    println!();
+                    println!(
+                        "{} Job '{}' saved to your library.",
+                        "✓".green().bold(),
+                        job_name.cyan()
+                    );
+                    println!(
+                        "  Run with: {}",
+                        format!("oxo-call job run {job_name}").bold()
+                    );
+                }
+
+                JobCommands::Import { name, as_name } => {
+                    let template = job::BUILTIN_JOBS
+                        .iter()
+                        .find(|j| j.name == name)
+                        .ok_or_else(|| {
+                            error::OxoError::ConfigError(format!(
+                                "No built-in job template named '{name}'. \
+                                 Run 'oxo-call job list --builtin' to see all templates."
+                            ))
+                        })?;
+
+                    let final_name = as_name.unwrap_or_else(|| name.clone());
+                    let now = chrono::Utc::now();
+                    let entry = job::JobEntry {
+                        name: final_name.clone(),
+                        command: template.command.to_string(),
+                        description: Some(template.description.to_string()),
+                        tags: template.tags.iter().map(|s| s.to_string()).collect(),
+                        schedule: None,
+                        run_count: 0,
+                        last_run: None,
+                        last_exit_code: None,
+                        created_at: now,
+                        updated_at: now,
+                    };
+                    job::JobManager::add(entry)?;
+                    println!(
+                        "{} Built-in job '{}' imported as '{}'.",
+                        "✓".green().bold(),
+                        name.cyan(),
+                        final_name.cyan()
+                    );
+                    println!(
+                        "  Run with: {}",
+                        format!("oxo-call job run {final_name}").bold()
+                    );
+                }
+            }
+        }
+
         Commands::Completion { shell } => {
-            let mut cmd = Cli::command();
+            let mut cli_app = Cli::command();
             let shell = match shell {
                 ShellType::Bash => clap_complete::Shell::Bash,
                 ShellType::Zsh => clap_complete::Shell::Zsh,
@@ -1990,7 +2590,12 @@ async fn run(cli: Cli) -> error::Result<()> {
                 ShellType::Powershell => clap_complete::Shell::PowerShell,
                 ShellType::Elvish => clap_complete::Shell::Elvish,
             };
-            clap_complete::generate(shell, &mut cmd, "oxo-call", &mut std::io::stdout());
+            // Generate into a buffer first so that a broken pipe (e.g. `| head`)
+            // does not cause a panic from within clap_complete.
+            let mut buf: Vec<u8> = Vec::new();
+            clap_complete::generate(shell, &mut cli_app, "oxo-call", &mut buf);
+            use std::io::Write as _;
+            let _ = std::io::stdout().write_all(&buf);
         }
     }
 
