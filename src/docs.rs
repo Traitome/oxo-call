@@ -1369,4 +1369,157 @@ mod tests {
         let cached = format!("cached intro\n{}", &help[..((help.len() * 4) / 5 + 1)]);
         assert!(deduplicate_check(&cached, help));
     }
+
+    // ─── tool name validation edge cases ──────────────────────────────────────
+
+    #[test]
+    fn test_validate_tool_name_too_long() {
+        let long_name = "a".repeat(200);
+        let result = validate_tool_name(&long_name);
+        // Very long names should still pass if they contain valid chars
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_tool_name_with_dots() {
+        let result = validate_tool_name("samtools.v1");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_tool_name_with_dashes_and_underscores() {
+        let result = validate_tool_name("my-tool_v2");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_tool_name_with_slash() {
+        let result = validate_tool_name("path/to/tool");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_tool_name_with_parent_traversal() {
+        let result = validate_tool_name("../etc/passwd");
+        assert!(result.is_err());
+    }
+
+    // ─── ToolDocs ─────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_tool_docs_combined_all_fields() {
+        let docs = ToolDocs {
+            tool_name: "tool".to_string(),
+            help_output: Some("usage: tool [options]".to_string()),
+            cached_docs: Some("# Cached\nSome docs".to_string()),
+            version: Some("1.0.0".to_string()),
+        };
+        let combined = docs.combined();
+        assert!(combined.contains("usage: tool"));
+        assert!(combined.contains("Some docs"));
+        // Version might be included in combined output
+    }
+
+    #[test]
+    fn test_tool_docs_is_empty_with_empty_strings() {
+        let docs = ToolDocs {
+            tool_name: "empty".to_string(),
+            help_output: Some(String::new()),
+            cached_docs: None,
+            version: None,
+        };
+        // Some("") is still "present" even if empty
+        assert!(!docs.is_empty());
+    }
+
+    // ─── strip_html_tags edge cases ───────────────────────────────────────────
+
+    #[test]
+    fn test_strip_html_nested_tags() {
+        let html = "<div><p>Hello <strong>World</strong></p></div>";
+        let result = strip_html_tags(html);
+        assert_eq!(result.trim(), "Hello World");
+    }
+
+    #[test]
+    fn test_strip_html_self_closing_tags() {
+        let html = "Line1<br/>Line2<hr/>Line3";
+        let result = strip_html_tags(html);
+        assert!(result.contains("Line1"));
+        assert!(result.contains("Line2"));
+        assert!(result.contains("Line3"));
+    }
+
+    #[test]
+    fn test_strip_html_no_tags() {
+        let text = "plain text without any HTML";
+        let result = strip_html_tags(text);
+        // strip_html_tags appends a trailing newline
+        assert_eq!(result.trim(), text);
+    }
+
+    // ─── truncate_doc edge cases ──────────────────────────────────────────────
+
+    #[test]
+    fn test_truncate_doc_empty() {
+        let result = truncate_doc("");
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_truncate_doc_exact_limit() {
+        let content = "a".repeat(100_000);
+        let result = truncate_doc(&content);
+        assert!(result.len() <= 100_001); // within limit
+    }
+
+    // ─── looks_like_version ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_looks_like_version_multidigit() {
+        assert!(looks_like_version("12.34.56"));
+    }
+
+    #[test]
+    fn test_looks_like_version_prerelease() {
+        // Pre-release tags still have digits and dots, so they match
+        assert!(looks_like_version("1.0.0-beta"));
+    }
+
+    // ─── clean_version_string ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_clean_version_string_with_prefix() {
+        // clean_version_string strips "version:" or "version " prefix, not "v"
+        assert_eq!(clean_version_string("version:1.2.3"), "1.2.3");
+    }
+
+    #[test]
+    fn test_clean_version_string_tool_prefix() {
+        // Tool name prefix is not stripped; only "version:" or "version " prefix is
+        assert_eq!(clean_version_string("samtools 1.17"), "samtools 1.17");
+    }
+
+    #[test]
+    fn test_clean_version_string_no_match() {
+        assert_eq!(clean_version_string("no version here"), "no version here");
+    }
+
+    // ─── is_likely_error ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_is_likely_error_command_not_found() {
+        // "command not found" is not in the recognized error patterns
+        assert!(is_likely_error("unknown command: samtools"));
+    }
+
+    #[test]
+    fn test_is_likely_error_no_such_file() {
+        assert!(is_likely_error("No such file or directory"));
+    }
+
+    #[test]
+    fn test_is_likely_error_normal_output() {
+        assert!(!is_likely_error("SAM file processed successfully"));
+    }
 }

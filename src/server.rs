@@ -934,4 +934,134 @@ Host *
         assert!(result.is_ok(), "connection check should not error");
         assert!(!result.unwrap(), "unreachable host should return false");
     }
+
+    // ─── parse_ssh_config_content additional ──────────────────────────────────
+
+    #[test]
+    fn test_parse_ssh_config_multiple_hosts() {
+        let content = "\
+Host server1
+    HostName 10.0.0.1
+    User alice
+    Port 22
+
+Host server2
+    HostName 10.0.0.2
+    User bob
+    Port 2222
+    IdentityFile ~/.ssh/id_rsa
+";
+        let entries = parse_ssh_config_content(content);
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].alias, "server1");
+        assert_eq!(entries[0].hostname.as_deref(), Some("10.0.0.1"));
+        assert_eq!(entries[0].user.as_deref(), Some("alice"));
+        assert_eq!(entries[0].port, Some(22));
+        assert_eq!(entries[1].alias, "server2");
+        assert_eq!(entries[1].hostname.as_deref(), Some("10.0.0.2"));
+        assert_eq!(entries[1].user.as_deref(), Some("bob"));
+        assert_eq!(entries[1].port, Some(2222));
+        assert!(entries[1].identity_file.is_some());
+    }
+
+    #[test]
+    fn test_parse_ssh_config_host_without_hostname() {
+        let content = "Host myhost\n    User myuser\n";
+        let entries = parse_ssh_config_content(content);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].alias, "myhost");
+        assert!(entries[0].hostname.is_none());
+    }
+
+    #[test]
+    fn test_is_concrete_alias_simple() {
+        assert!(is_concrete_alias("myserver"));
+        assert!(!is_concrete_alias("*"));
+        assert!(!is_concrete_alias("*.example.com"));
+        assert!(!is_concrete_alias("test?"));
+    }
+
+    // ─── ServerHost SSH args ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_ssh_args_full_config() {
+        let host = ServerHost {
+            name: "full".to_string(),
+            host: "example.com".to_string(),
+            user: Some("admin".to_string()),
+            port: Some(2222),
+            identity_file: Some("/home/user/.ssh/id_ed25519".to_string()),
+            server_type: ServerType::Hpc,
+            scheduler: Some("slurm".to_string()),
+            work_dir: Some("/scratch/user".to_string()),
+        };
+        let args = host.ssh_args();
+        assert!(args.contains(&"-p".to_string()));
+        assert!(args.contains(&"2222".to_string()));
+        assert!(args.contains(&"-i".to_string()));
+        assert!(args.contains(&"/home/user/.ssh/id_ed25519".to_string()));
+        // ssh_dest formats as user@host
+        assert!(args.contains(&"admin@example.com".to_string()));
+    }
+
+    // ─── ServerType display/from_str ──────────────────────────────────────────
+
+    #[test]
+    fn test_server_type_roundtrip() {
+        for st in &[ServerType::Workstation, ServerType::Hpc] {
+            let s = st.to_string();
+            let parsed: ServerType = s.parse().unwrap();
+            assert_eq!(*st, parsed);
+        }
+    }
+
+    #[test]
+    fn test_server_type_from_str_invalid() {
+        let result: std::result::Result<ServerType, String> = "invalid".parse();
+        assert!(result.is_err());
+    }
+
+    // ─── is_compute_command additional ────────────────────────────────────────
+
+    #[test]
+    fn test_is_compute_command_python_script() {
+        assert!(ServerManager::is_compute_command("python3 train.py"));
+    }
+
+    #[test]
+    fn test_is_compute_command_nextflow() {
+        // nextflow is not in the compute patterns list
+        assert!(!ServerManager::is_compute_command("nextflow run main.nf"));
+    }
+
+    #[test]
+    fn test_is_compute_command_snakemake() {
+        // snakemake is not in the compute patterns list
+        assert!(!ServerManager::is_compute_command("snakemake --cores 8"));
+    }
+
+    #[test]
+    fn test_is_login_safe_ls() {
+        assert!(ServerManager::is_login_safe_command("ls -la"));
+    }
+
+    #[test]
+    fn test_is_login_safe_cat() {
+        assert!(ServerManager::is_login_safe_command("cat file.txt"));
+    }
+
+    // ─── parse_selection additional ────────────────────────────────────────────
+
+    #[test]
+    fn test_parse_selection_large_range() {
+        let result = parse_selection("1-100", 100);
+        assert_eq!(result.len(), 100);
+    }
+
+    #[test]
+    fn test_parse_selection_reverse_range_ignored() {
+        let result = parse_selection("5-3", 10);
+        // Reverse ranges should be empty (start > end)
+        assert!(result.is_empty());
+    }
 }
