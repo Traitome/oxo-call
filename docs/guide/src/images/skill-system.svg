@@ -1,129 +1,129 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 580" font-family="'Segoe UI', 'Liberation Sans', Arial, sans-serif">
   <defs>
     <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff"/>
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
     </marker>
     <marker id="arr-gold" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="#f39c12"/>
+      <polygon points="0 0, 10 3.5, 0 7" fill="#d97706"/>
     </marker>
     <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
-      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#00000030"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#00000020"/>
     </filter>
   </defs>
 
   <!-- Background -->
-  <rect width="820" height="580" fill="#0f1923" rx="12"/>
+  <rect width="820" height="580" fill="#ffffff" rx="12"/>
 
   <!-- Title -->
-  <text x="410" y="34" text-anchor="middle" fill="#e2e8f0" font-size="17" font-weight="700">Skill System — Load Priority &amp; Prompt Injection</text>
-  <line x1="40" y1="46" x2="780" y2="46" stroke="#2d3f52" stroke-width="1"/>
+  <text x="410" y="34" text-anchor="middle" fill="#0f172a" font-size="17" font-weight="700">Skill System — Load Priority &amp; Prompt Injection</text>
+  <line x1="40" y1="46" x2="780" y2="46" stroke="#cbd5e1" stroke-width="1"/>
 
   <!-- ── LEFT: Load Priority column ── -->
-  <text x="200" y="68" text-anchor="middle" fill="#7a8fa6" font-size="11" letter-spacing="0.5">LOAD PRIORITY  (highest → lowest)</text>
+  <text x="200" y="68" text-anchor="middle" fill="#4b5563" font-size="11" letter-spacing="0.5">LOAD PRIORITY  (highest → lowest)</text>
 
   <!-- 1. User skill -->
-  <rect x="40" y="80" width="320" height="70" rx="9" fill="#2a1c10" stroke="#f39c12" stroke-width="2" filter="url(#shadow)"/>
-  <text x="64" y="104" fill="#f6ad55" font-size="22" font-weight="700">1</text>
-  <text x="96" y="100" fill="#f6ad55" font-size="13" font-weight="700">User-defined skill</text>
-  <text x="96" y="116" fill="#9bb5cc" font-size="10" font-family="monospace">~/.config/oxo-call/skills/&lt;tool&gt;.md</text>
-  <text x="96" y="132" fill="#9bb5cc" font-size="10">Overrides everything — your domain expertise</text>
+  <rect x="40" y="80" width="320" height="70" rx="9" fill="#fffbeb" stroke="#d97706" stroke-width="2" filter="url(#shadow)"/>
+  <text x="64" y="104" fill="#92400e" font-size="22" font-weight="700">1</text>
+  <text x="96" y="100" fill="#92400e" font-size="13" font-weight="700">User-defined skill</text>
+  <text x="96" y="116" fill="#374151" font-size="10" font-family="monospace">~/.config/oxo-call/skills/&lt;tool&gt;.md</text>
+  <text x="96" y="132" fill="#374151" font-size="10">Overrides everything — your domain expertise</text>
 
   <!-- 2. Community skill -->
-  <rect x="40" y="162" width="320" height="70" rx="9" fill="#1e2a3e" stroke="#3a6fa8" stroke-width="2" filter="url(#shadow)"/>
-  <text x="64" y="186" fill="#7eb8f7" font-size="22" font-weight="700">2</text>
-  <text x="96" y="182" fill="#7eb8f7" font-size="13" font-weight="700">Community skill</text>
-  <text x="96" y="198" fill="#9bb5cc" font-size="10" font-family="monospace">~/.local/share/oxo-call/skills/&lt;tool&gt;.md</text>
-  <text x="96" y="214" fill="#9bb5cc" font-size="10">Shared team or community pack</text>
+  <rect x="40" y="162" width="320" height="70" rx="9" fill="#eff6ff" stroke="#2563eb" stroke-width="2" filter="url(#shadow)"/>
+  <text x="64" y="186" fill="#1d4ed8" font-size="22" font-weight="700">2</text>
+  <text x="96" y="182" fill="#1d4ed8" font-size="13" font-weight="700">Community skill</text>
+  <text x="96" y="198" fill="#374151" font-size="10" font-family="monospace">~/.local/share/oxo-call/skills/&lt;tool&gt;.md</text>
+  <text x="96" y="214" fill="#374151" font-size="10">Shared team or community pack</text>
 
   <!-- 3. MCP skill provider -->
-  <rect x="40" y="244" width="320" height="70" rx="9" fill="#1c2e20" stroke="#2a7a3a" stroke-width="2" filter="url(#shadow)"/>
-  <text x="64" y="268" fill="#6fcf97" font-size="22" font-weight="700">3</text>
-  <text x="96" y="264" fill="#6fcf97" font-size="13" font-weight="700">MCP skill provider</text>
-  <text x="96" y="280" fill="#9bb5cc" font-size="10" font-family="monospace">skill mcp add &lt;url&gt;  — configured servers</text>
-  <text x="96" y="296" fill="#9bb5cc" font-size="10">Remote skills via MCP JSON-RPC protocol</text>
+  <rect x="40" y="244" width="320" height="70" rx="9" fill="#f0fdf4" stroke="#16a34a" stroke-width="2" filter="url(#shadow)"/>
+  <text x="64" y="268" fill="#166534" font-size="22" font-weight="700">3</text>
+  <text x="96" y="264" fill="#166534" font-size="13" font-weight="700">MCP skill provider</text>
+  <text x="96" y="280" fill="#374151" font-size="10" font-family="monospace">skill mcp add &lt;url&gt;  — configured servers</text>
+  <text x="96" y="296" fill="#374151" font-size="10">Remote skills via MCP JSON-RPC protocol</text>
 
   <!-- 4. Built-in skill -->
-  <rect x="40" y="326" width="320" height="70" rx="9" fill="#163545" stroke="#1a8a6a" stroke-width="2" filter="url(#shadow)"/>
-  <text x="64" y="350" fill="#4ecdc4" font-size="22" font-weight="700">4</text>
-  <text x="96" y="346" fill="#4ecdc4" font-size="13" font-weight="700">Built-in skill (140+ tools)</text>
-  <text x="96" y="362" fill="#9bb5cc" font-size="10" font-family="monospace">Compiled via include_str! — always present</text>
-  <text x="96" y="378" fill="#9bb5cc" font-size="10">samtools, STAR, BWA, GATK, bcftools …</text>
+  <rect x="40" y="326" width="320" height="70" rx="9" fill="#f0fdfa" stroke="#0d9488" stroke-width="2" filter="url(#shadow)"/>
+  <text x="64" y="350" fill="#0f766e" font-size="22" font-weight="700">4</text>
+  <text x="96" y="346" fill="#0f766e" font-size="13" font-weight="700">Built-in skill (150+ tools)</text>
+  <text x="96" y="362" fill="#374151" font-size="10" font-family="monospace">Compiled via include_str! — always present</text>
+  <text x="96" y="378" fill="#374151" font-size="10">samtools, STAR, BWA, GATK, bcftools …</text>
 
   <!-- No skill fallback -->
-  <rect x="40" y="408" width="320" height="52" rx="9" fill="#1a1a1a" stroke="#4a4a4a" stroke-width="1.5" stroke-dasharray="5,3"/>
-  <text x="64" y="430" fill="#7a8fa6" font-size="13" font-weight="700">No skill (fallback)</text>
-  <text x="64" y="446" fill="#7a8fa6" font-size="10">Prompt uses --help docs only — still works,</text>
-  <text x="64" y="457" fill="#7a8fa6" font-size="10">but without expert pitfall + example grounding</text>
+  <rect x="40" y="408" width="320" height="52" rx="9" fill="#f9fafb" stroke="#4a4a4a" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="64" y="430" fill="#4b5563" font-size="13" font-weight="700">No skill (fallback)</text>
+  <text x="64" y="446" fill="#4b5563" font-size="10">Prompt uses --help docs only — still works,</text>
+  <text x="64" y="457" fill="#4b5563" font-size="10">but without expert pitfall + example grounding</text>
 
   <!-- Priority arrow -->
-  <text x="380" y="288" fill="#7a8fa6" font-size="10" text-anchor="middle" transform="rotate(-90,380,288)">highest priority wins</text>
-  <line x1="370" y1="85" x2="370" y2="452" stroke="#7a8fa6" stroke-width="1" stroke-dasharray="4,3"/>
-  <polygon points="366,452 370,462 374,452" fill="#7a8fa6"/>
+  <text x="380" y="288" fill="#4b5563" font-size="10" text-anchor="middle" transform="rotate(-90,380,288)">highest priority wins</text>
+  <line x1="370" y1="85" x2="370" y2="452" stroke="#4b5563" stroke-width="1" stroke-dasharray="4,3"/>
+  <polygon points="366,452 370,462 374,452" fill="#4b5563"/>
 
   <!-- ── RIGHT: Skill file anatomy &amp; prompt injection ── -->
-  <text x="610" y="68" text-anchor="middle" fill="#7a8fa6" font-size="11" letter-spacing="0.5">SKILL FILE ANATOMY</text>
+  <text x="610" y="68" text-anchor="middle" fill="#4b5563" font-size="11" letter-spacing="0.5">SKILL FILE ANATOMY</text>
 
-  <rect x="420" y="80" width="360" height="390" rx="9" fill="#131f2e" stroke="#2d4a6a" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="420" y="80" width="360" height="390" rx="9" fill="#f0f5fa" stroke="#6b8faf" stroke-width="1.5" filter="url(#shadow)"/>
 
   <!-- [meta] -->
-  <rect x="435" y="94" width="330" height="40" rx="6" fill="#1a2840" stroke="#3a6fa8" stroke-width="1"/>
-  <text x="447" y="111" fill="#7eb8f7" font-size="11" font-family="monospace" font-weight="700">[meta]</text>
-  <text x="447" y="125" fill="#9bb5cc" font-size="10" font-family="monospace">name = "samtools"  category = "alignment"</text>
+  <rect x="435" y="94" width="330" height="40" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
+  <text x="447" y="111" fill="#1d4ed8" font-size="11" font-family="monospace" font-weight="700">[meta]</text>
+  <text x="447" y="125" fill="#374151" font-size="10" font-family="monospace">name = "samtools"  category = "alignment"</text>
 
   <!-- [context].concepts -->
-  <rect x="435" y="142" width="330" height="60" rx="6" fill="#1c2e20" stroke="#2a7a3a" stroke-width="1"/>
-  <text x="447" y="159" fill="#6fcf97" font-size="11" font-family="monospace" font-weight="700">[context]  concepts</text>
-  <text x="447" y="174" fill="#9bb5cc" font-size="10" font-family="monospace">- "BAM must be sorted before indexing"</text>
-  <text x="447" y="188" fill="#9bb5cc" font-size="10" font-family="monospace">- "Use -@ N for N extra threads"</text>
+  <rect x="435" y="142" width="330" height="60" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1"/>
+  <text x="447" y="159" fill="#166534" font-size="11" font-family="monospace" font-weight="700">[context]  concepts</text>
+  <text x="447" y="174" fill="#374151" font-size="10" font-family="monospace">- "BAM must be sorted before indexing"</text>
+  <text x="447" y="188" fill="#374151" font-size="10" font-family="monospace">- "Use -@ N for N extra threads"</text>
 
   <!-- [context].pitfalls -->
-  <rect x="435" y="210" width="330" height="50" rx="6" fill="#2e1c1c" stroke="#8a3a3a" stroke-width="1"/>
-  <text x="447" y="227" fill="#fc8181" font-size="11" font-family="monospace" font-weight="700">[context]  pitfalls</text>
-  <text x="447" y="241" fill="#9bb5cc" font-size="10" font-family="monospace">- "Without -o, output goes to stdout"</text>
-  <text x="447" y="253" fill="#9bb5cc" font-size="10" font-family="monospace">- "CRAM requires --reference"</text>
+  <rect x="435" y="210" width="330" height="50" rx="6" fill="#fff1f2" stroke="#dc2626" stroke-width="1"/>
+  <text x="447" y="227" fill="#b91c1c" font-size="11" font-family="monospace" font-weight="700">[context]  pitfalls</text>
+  <text x="447" y="241" fill="#374151" font-size="10" font-family="monospace">- "Without -o, output goes to stdout"</text>
+  <text x="447" y="253" fill="#374151" font-size="10" font-family="monospace">- "CRAM requires --reference"</text>
 
   <!-- [[examples]] -->
-  <rect x="435" y="268" width="330" height="108" rx="6" fill="#2a1e10" stroke="#8a6a2a" stroke-width="1"/>
-  <text x="447" y="285" fill="#f6ad55" font-size="11" font-family="monospace" font-weight="700">[[examples]]</text>
-  <text x="447" y="300" fill="#9bb5cc" font-size="10" font-family="monospace">task = "sort BAM by coordinate"</text>
-  <text x="447" y="314" fill="#9bb5cc" font-size="10" font-family="monospace">args = "sort -@ 4 -o sorted.bam in.bam"</text>
-  <text x="447" y="328" fill="#9bb5cc" font-size="10" font-family="monospace">explanation = "-@ 4: 4 extra threads"</text>
-  <text x="447" y="342" fill="#7a8fa6" font-size="9">Min 5 examples · 3 concepts · 3 pitfalls required</text>
-  <text x="447" y="355" fill="#7a8fa6" font-size="9">validate_skill_depth() checks at load time</text>
-  <text x="447" y="369" fill="#7a8fa6" font-size="9" font-family="monospace">oxo-call skill show &lt;tool&gt;  # inspect loaded skill</text>
+  <rect x="435" y="268" width="330" height="108" rx="6" fill="#fffbeb" stroke="#b45309" stroke-width="1"/>
+  <text x="447" y="285" fill="#92400e" font-size="11" font-family="monospace" font-weight="700">[[examples]]</text>
+  <text x="447" y="300" fill="#374151" font-size="10" font-family="monospace">task = "sort BAM by coordinate"</text>
+  <text x="447" y="314" fill="#374151" font-size="10" font-family="monospace">args = "sort -@ 4 -o sorted.bam in.bam"</text>
+  <text x="447" y="328" fill="#374151" font-size="10" font-family="monospace">explanation = "-@ 4: 4 extra threads"</text>
+  <text x="447" y="342" fill="#4b5563" font-size="9">Min 5 examples · 3 concepts · 3 pitfalls required</text>
+  <text x="447" y="355" fill="#4b5563" font-size="9">validate_skill_depth() checks at load time</text>
+  <text x="447" y="369" fill="#4b5563" font-size="9" font-family="monospace">oxo-call skill show &lt;tool&gt;  # inspect loaded skill</text>
 
   <!-- Validation badge -->
-  <rect x="435" y="384" width="330" height="2" rx="1" fill="#2d4a6a"/>
-  <rect x="435" y="388" width="160" height="20" rx="5" fill="#1c2e20" stroke="#2a7a3a" stroke-width="1"/>
-  <text x="515" y="402" text-anchor="middle" fill="#6fcf97" font-size="10">&#x2713; depth validated</text>
-  <rect x="605" y="388" width="160" height="20" rx="5" fill="#2a1e10" stroke="#8a6a2a" stroke-width="1"/>
-  <text x="685" y="402" text-anchor="middle" fill="#f6ad55" font-size="10">&#x2192; injected into prompt</text>
+  <rect x="435" y="384" width="330" height="2" rx="1" fill="#6b8faf"/>
+  <rect x="435" y="388" width="160" height="20" rx="5" fill="#f0fdf4" stroke="#16a34a" stroke-width="1"/>
+  <text x="515" y="402" text-anchor="middle" fill="#166534" font-size="10">&#x2713; depth validated</text>
+  <rect x="605" y="388" width="160" height="20" rx="5" fill="#fffbeb" stroke="#b45309" stroke-width="1"/>
+  <text x="685" y="402" text-anchor="middle" fill="#92400e" font-size="10">&#x2192; injected into prompt</text>
 
   <!-- Legacy .toml note -->
-  <rect x="435" y="414" width="330" height="46" rx="6" fill="#1a1a2e" stroke="#3a3a6a" stroke-width="1"/>
-  <text x="447" y="430" fill="#7a8fa6" font-size="9" font-weight="700">Primary format: Markdown (.md) with YAML front-matter</text>
-  <text x="447" y="443" fill="#7a8fa6" font-size="9">## Concepts  ## Pitfalls  ## Examples sections</text>
-  <text x="447" y="456" fill="#5a5a7a" font-size="9">Legacy .toml format still supported for backward compatibility</text>
+  <rect x="435" y="414" width="330" height="46" rx="6" fill="#f5f3ff" stroke="#4338ca" stroke-width="1"/>
+  <text x="447" y="430" fill="#4b5563" font-size="9" font-weight="700">Primary format: Markdown (.md) with YAML front-matter</text>
+  <text x="447" y="443" fill="#4b5563" font-size="9">## Concepts  ## Pitfalls  ## Examples sections</text>
+  <text x="447" y="456" fill="#6366f1" font-size="9">Legacy .toml format still supported for backward compatibility</text>
 
   <!-- Prompt injection annotation (bottom) -->
-  <rect x="40" y="480" width="740" height="78" rx="9" fill="#131f2e" stroke="#2d3f52" stroke-width="1"/>
-  <text x="60" y="500" fill="#7a8fa6" font-size="11" font-weight="700">Prompt Injection Order  (all three sections are inserted above the Tool Documentation block)</text>
-  <rect x="60" y="510" width="80" height="22" rx="5" fill="#1c2e20" stroke="#2a7a3a" stroke-width="1"/>
-  <text x="100" y="525" text-anchor="middle" fill="#6fcf97" font-size="11">Concepts</text>
-  <line x1="140" y1="521" x2="158" y2="521" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
-  <rect x="160" y="510" width="80" height="22" rx="5" fill="#2e1c1c" stroke="#8a3a3a" stroke-width="1"/>
-  <text x="200" y="525" text-anchor="middle" fill="#fc8181" font-size="11">Pitfalls</text>
-  <line x1="240" y1="521" x2="258" y2="521" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
-  <rect x="260" y="510" width="80" height="22" rx="5" fill="#2a1e10" stroke="#8a6a2a" stroke-width="1"/>
-  <text x="300" y="525" text-anchor="middle" fill="#f6ad55" font-size="11">Examples</text>
-  <line x1="340" y1="521" x2="358" y2="521" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
-  <rect x="360" y="510" width="100" height="22" rx="5" fill="#1e2530" stroke="#3a6fa8" stroke-width="1"/>
-  <text x="410" y="525" text-anchor="middle" fill="#7eb8f7" font-size="11">Tool Docs</text>
-  <line x1="460" y1="521" x2="478" y2="521" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
-  <rect x="480" y="510" width="100" height="22" rx="5" fill="#1c1c2e" stroke="#5a3a8a" stroke-width="1"/>
-  <text x="530" y="525" text-anchor="middle" fill="#b39ddb" font-size="11">LLM API</text>
-  <line x1="580" y1="521" x2="598" y2="521" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
-  <rect x="600" y="510" width="120" height="22" rx="5" fill="#163545" stroke="#1a8a6a" stroke-width="1"/>
-  <text x="660" y="525" text-anchor="middle" fill="#4ecdc4" font-size="11">ARGS: + EXPLANATION:</text>
-  <text x="60" y="548" fill="#7a8fa6" font-size="10">Grounded in real flags &#x2192; no hallucinations · Works even with weaker or smaller LLM models</text>
+  <rect x="40" y="480" width="740" height="78" rx="9" fill="#f0f5fa" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="60" y="500" fill="#4b5563" font-size="11" font-weight="700">Prompt Injection Order  (all three sections are inserted above the Tool Documentation block)</text>
+  <rect x="60" y="510" width="80" height="22" rx="5" fill="#f0fdf4" stroke="#16a34a" stroke-width="1"/>
+  <text x="100" y="525" text-anchor="middle" fill="#166534" font-size="11">Concepts</text>
+  <line x1="140" y1="521" x2="158" y2="521" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="160" y="510" width="80" height="22" rx="5" fill="#fff1f2" stroke="#dc2626" stroke-width="1"/>
+  <text x="200" y="525" text-anchor="middle" fill="#b91c1c" font-size="11">Pitfalls</text>
+  <line x1="240" y1="521" x2="258" y2="521" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="260" y="510" width="80" height="22" rx="5" fill="#fffbeb" stroke="#b45309" stroke-width="1"/>
+  <text x="300" y="525" text-anchor="middle" fill="#92400e" font-size="11">Examples</text>
+  <line x1="340" y1="521" x2="358" y2="521" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="360" y="510" width="100" height="22" rx="5" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
+  <text x="410" y="525" text-anchor="middle" fill="#1d4ed8" font-size="11">Tool Docs</text>
+  <line x1="460" y1="521" x2="478" y2="521" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="480" y="510" width="100" height="22" rx="5" fill="#faf5ff" stroke="#7c3aed" stroke-width="1"/>
+  <text x="530" y="525" text-anchor="middle" fill="#6d28d9" font-size="11">LLM API</text>
+  <line x1="580" y1="521" x2="598" y2="521" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="600" y="510" width="120" height="22" rx="5" fill="#f0fdfa" stroke="#0d9488" stroke-width="1"/>
+  <text x="660" y="525" text-anchor="middle" fill="#0f766e" font-size="11">ARGS: + EXPLANATION:</text>
+  <text x="60" y="548" fill="#4b5563" font-size="10">Grounded in real flags &#x2192; no hallucinations · Works even with weaker or smaller LLM models</text>
 </svg>

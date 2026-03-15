@@ -1,118 +1,118 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 560" font-family="'Segoe UI', 'Liberation Sans', Arial, sans-serif">
   <defs>
     <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff"/>
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
     </marker>
     <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
-      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#00000030"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#00000020"/>
     </filter>
   </defs>
 
   <!-- Background -->
-  <rect width="820" height="560" fill="#0f1923" rx="12"/>
+  <rect width="820" height="560" fill="#ffffff" rx="12"/>
 
   <!-- Title -->
-  <text x="410" y="34" text-anchor="middle" fill="#e2e8f0" font-size="17" font-weight="700">LLM Prompt Architecture &amp; Grounding Strategy</text>
-  <line x1="40" y1="46" x2="780" y2="46" stroke="#2d3f52" stroke-width="1"/>
+  <text x="410" y="34" text-anchor="middle" fill="#0f172a" font-size="17" font-weight="700">LLM Prompt Architecture &amp; Grounding Strategy</text>
+  <line x1="40" y1="46" x2="780" y2="46" stroke="#cbd5e1" stroke-width="1"/>
 
   <!-- ── LEFT: Prompt structure ── -->
-  <text x="220" y="64" text-anchor="middle" fill="#7a8fa6" font-size="11" letter-spacing="0.5">PROMPT STRUCTURE</text>
+  <text x="220" y="64" text-anchor="middle" fill="#4b5563" font-size="11" letter-spacing="0.5">PROMPT STRUCTURE</text>
 
   <!-- System Prompt block -->
-  <rect x="40" y="72" width="360" height="120" rx="9" fill="#1e1c2e" stroke="#5a3a8a" stroke-width="1.5" filter="url(#shadow)"/>
-  <rect x="40" y="72" width="360" height="28" rx="9" fill="#2a1c3e"/>
-  <rect x="40" y="90" width="360" height="10" rx="0" fill="#2a1c3e"/>
-  <text x="220" y="90" text-anchor="middle" fill="#b39ddb" font-size="12" font-weight="700">System Prompt  (11 rules)</text>
-  <text x="56" y="115" fill="#9bb5cc" font-size="10">① Only use flags from the provided documentation</text>
-  <text x="56" y="130" fill="#9bb5cc" font-size="10">② Never include the tool name in ARGS output</text>
-  <text x="56" y="145" fill="#9bb5cc" font-size="10">③ Use realistic filenames from the user's task</text>
-  <text x="56" y="158" fill="#9bb5cc" font-size="10">④–⑪ Production-ready · ASCII-only · No hallucinations …</text>
-  <text x="56" y="179" fill="#7a8fa6" font-size="9">Applied to every request · Provider-independent</text>
+  <rect x="40" y="72" width="360" height="120" rx="9" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="40" y="72" width="360" height="28" rx="9" fill="#ede9fe"/>
+  <rect x="40" y="90" width="360" height="10" rx="0" fill="#ede9fe"/>
+  <text x="220" y="90" text-anchor="middle" fill="#6d28d9" font-size="12" font-weight="700">System Prompt  (11 rules)</text>
+  <text x="56" y="115" fill="#374151" font-size="10">① Only use flags from the provided documentation</text>
+  <text x="56" y="130" fill="#374151" font-size="10">② Never include the tool name in ARGS output</text>
+  <text x="56" y="145" fill="#374151" font-size="10">③ Use realistic filenames from the user's task</text>
+  <text x="56" y="158" fill="#374151" font-size="10">④–⑪ Production-ready · ASCII-only · No hallucinations …</text>
+  <text x="56" y="179" fill="#4b5563" font-size="9">Applied to every request · Provider-independent</text>
 
   <!-- User Prompt block -->
-  <rect x="40" y="204" width="360" height="260" rx="9" fill="#131f2e" stroke="#3a6fa8" stroke-width="1.5" filter="url(#shadow)"/>
-  <rect x="40" y="204" width="360" height="28" rx="9" fill="#1a2840"/>
-  <rect x="40" y="222" width="360" height="10" rx="0" fill="#1a2840"/>
-  <text x="220" y="222" text-anchor="middle" fill="#7eb8f7" font-size="12" font-weight="700">User Prompt</text>
+  <rect x="40" y="204" width="360" height="260" rx="9" fill="#f0f5fa" stroke="#2563eb" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="40" y="204" width="360" height="28" rx="9" fill="#eff6ff"/>
+  <rect x="40" y="222" width="360" height="10" rx="0" fill="#eff6ff"/>
+  <text x="220" y="222" text-anchor="middle" fill="#1d4ed8" font-size="12" font-weight="700">User Prompt</text>
 
   <!-- Section: Expert Knowledge from skill -->
-  <rect x="52" y="238" width="336" height="72" rx="6" fill="#2a1e10" stroke="#8a6a2a" stroke-width="1"/>
-  <text x="64" y="254" fill="#f6ad55" font-size="10" font-weight="700">## Expert Knowledge (from skill)</text>
-  <text x="64" y="268" fill="#f6ad55" font-size="10" font-weight="600">### Key Concepts</text>
-  <text x="64" y="281" fill="#9bb5cc" font-size="10">- BAM must be coordinate-sorted before indexing</text>
-  <text x="64" y="293" fill="#f6ad55" font-size="10" font-weight="600">### Common Pitfalls</text>
-  <text x="64" y="305" fill="#9bb5cc" font-size="10">- Without -o, output goes to stdout</text>
+  <rect x="52" y="238" width="336" height="72" rx="6" fill="#fffbeb" stroke="#b45309" stroke-width="1"/>
+  <text x="64" y="254" fill="#92400e" font-size="10" font-weight="700">## Expert Knowledge (from skill)</text>
+  <text x="64" y="268" fill="#92400e" font-size="10" font-weight="600">### Key Concepts</text>
+  <text x="64" y="281" fill="#374151" font-size="10">- BAM must be coordinate-sorted before indexing</text>
+  <text x="64" y="293" fill="#92400e" font-size="10" font-weight="600">### Common Pitfalls</text>
+  <text x="64" y="305" fill="#374151" font-size="10">- Without -o, output goes to stdout</text>
 
   <!-- Section: Tool Documentation -->
-  <rect x="52" y="316" width="336" height="52" rx="6" fill="#1c2e20" stroke="#2a7a3a" stroke-width="1"/>
-  <text x="64" y="332" fill="#6fcf97" font-size="10" font-weight="700">## Tool Documentation</text>
-  <text x="64" y="346" fill="#9bb5cc" font-size="10">Captured --help + cached docs + remote URLs</text>
-  <text x="64" y="360" fill="#7a8fa6" font-size="9">(deduplicated, 80–16 000 chars validated)</text>
+  <rect x="52" y="316" width="336" height="52" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1"/>
+  <text x="64" y="332" fill="#166534" font-size="10" font-weight="700">## Tool Documentation</text>
+  <text x="64" y="346" fill="#374151" font-size="10">Captured --help + cached docs + remote URLs</text>
+  <text x="64" y="360" fill="#4b5563" font-size="9">(deduplicated, 80–16 000 chars validated)</text>
 
   <!-- Section: Task -->
-  <rect x="52" y="374" width="336" height="32" rx="6" fill="#1a2840" stroke="#3a6fa8" stroke-width="1"/>
-  <text x="64" y="390" fill="#7eb8f7" font-size="10" font-weight="700">## Task</text>
-  <text x="130" y="390" fill="#9bb5cc" font-size="10">sort input.bam by coordinate using 4 threads</text>
+  <rect x="52" y="374" width="336" height="32" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
+  <text x="64" y="390" fill="#1d4ed8" font-size="10" font-weight="700">## Task</text>
+  <text x="130" y="390" fill="#374151" font-size="10">sort input.bam by coordinate using 4 threads</text>
 
   <!-- Section: Output Format -->
-  <rect x="52" y="412" width="336" height="42" rx="6" fill="#1e1c2e" stroke="#5a3a8a" stroke-width="1"/>
-  <text x="64" y="428" fill="#b39ddb" font-size="10" font-weight="700">## Output Format  (STRICT)</text>
-  <text x="64" y="440" fill="#9bb5cc" font-size="10" font-family="monospace">ARGS: &lt;arguments&gt;</text>
-  <text x="200" y="440" fill="#9bb5cc" font-size="10" font-family="monospace">EXPLANATION: &lt;one sentence&gt;</text>
-  <text x="64" y="452" fill="#7a8fa6" font-size="9">No markdown · No code fences · ASCII only</text>
+  <rect x="52" y="412" width="336" height="42" rx="6" fill="#faf5ff" stroke="#7c3aed" stroke-width="1"/>
+  <text x="64" y="428" fill="#6d28d9" font-size="10" font-weight="700">## Output Format  (STRICT)</text>
+  <text x="64" y="440" fill="#374151" font-size="10" font-family="monospace">ARGS: &lt;arguments&gt;</text>
+  <text x="200" y="440" fill="#374151" font-size="10" font-family="monospace">EXPLANATION: &lt;one sentence&gt;</text>
+  <text x="64" y="452" fill="#4b5563" font-size="9">No markdown · No code fences · ASCII only</text>
 
   <!-- ── RIGHT: Provider + response + retry ── -->
-  <text x="610" y="64" text-anchor="middle" fill="#7a8fa6" font-size="11" letter-spacing="0.5">PROVIDERS &amp; RESPONSE</text>
+  <text x="610" y="64" text-anchor="middle" fill="#4b5563" font-size="11" letter-spacing="0.5">PROVIDERS &amp; RESPONSE</text>
 
   <!-- Provider boxes -->
-  <rect x="420" y="72" width="360" height="130" rx="9" fill="#2e1c2e" stroke="#7a3a8a" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="600" y="94" text-anchor="middle" fill="#b39ddb" font-size="12" font-weight="700">Supported LLM Providers</text>
+  <rect x="420" y="72" width="360" height="130" rx="9" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="600" y="94" text-anchor="middle" fill="#6d28d9" font-size="12" font-weight="700">Supported LLM Providers</text>
   <!-- Grid -->
-  <rect x="432" y="102" width="160" height="40" rx="6" fill="#3a1c3e" stroke="#7a3a8a" stroke-width="1"/>
-  <text x="512" y="118" text-anchor="middle" fill="#b39ddb" font-size="11" font-weight="700">GitHub Copilot</text>
-  <text x="512" y="133" text-anchor="middle" fill="#9bb5cc" font-size="10">auto · GitHub PAT</text>
-  <rect x="608" y="102" width="160" height="40" rx="6" fill="#3a1c3e" stroke="#7a3a8a" stroke-width="1"/>
-  <text x="688" y="118" text-anchor="middle" fill="#b39ddb" font-size="11" font-weight="700">OpenAI</text>
-  <text x="688" y="133" text-anchor="middle" fill="#9bb5cc" font-size="10">gpt-4o · API key</text>
-  <rect x="432" y="150" width="160" height="40" rx="6" fill="#3a1c3e" stroke="#7a3a8a" stroke-width="1"/>
-  <text x="512" y="166" text-anchor="middle" fill="#b39ddb" font-size="11" font-weight="700">Anthropic</text>
-  <text x="512" y="181" text-anchor="middle" fill="#9bb5cc" font-size="10">claude-3-5-sonnet · API key</text>
-  <rect x="608" y="150" width="160" height="40" rx="6" fill="#3a1c3e" stroke="#7a3a8a" stroke-width="1"/>
-  <text x="688" y="166" text-anchor="middle" fill="#b39ddb" font-size="11" font-weight="700">Ollama (local)</text>
-  <text x="688" y="181" text-anchor="middle" fill="#9bb5cc" font-size="10">llama3.2 · no key needed</text>
+  <rect x="432" y="102" width="160" height="40" rx="6" fill="#f3e8ff" stroke="#7c3aed" stroke-width="1"/>
+  <text x="512" y="118" text-anchor="middle" fill="#6d28d9" font-size="11" font-weight="700">GitHub Copilot</text>
+  <text x="512" y="133" text-anchor="middle" fill="#374151" font-size="10">auto · GitHub PAT</text>
+  <rect x="608" y="102" width="160" height="40" rx="6" fill="#f3e8ff" stroke="#7c3aed" stroke-width="1"/>
+  <text x="688" y="118" text-anchor="middle" fill="#6d28d9" font-size="11" font-weight="700">OpenAI</text>
+  <text x="688" y="133" text-anchor="middle" fill="#374151" font-size="10">gpt-4o · API key</text>
+  <rect x="432" y="150" width="160" height="40" rx="6" fill="#f3e8ff" stroke="#7c3aed" stroke-width="1"/>
+  <text x="512" y="166" text-anchor="middle" fill="#6d28d9" font-size="11" font-weight="700">Anthropic</text>
+  <text x="512" y="181" text-anchor="middle" fill="#374151" font-size="10">claude-3-5-sonnet · API key</text>
+  <rect x="608" y="150" width="160" height="40" rx="6" fill="#f3e8ff" stroke="#7c3aed" stroke-width="1"/>
+  <text x="688" y="166" text-anchor="middle" fill="#6d28d9" font-size="11" font-weight="700">Ollama (local)</text>
+  <text x="688" y="181" text-anchor="middle" fill="#374151" font-size="10">llama3.2 · no key needed</text>
 
   <!-- Response parsing -->
-  <rect x="420" y="218" width="360" height="100" rx="9" fill="#163545" stroke="#1a8a6a" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="600" y="238" text-anchor="middle" fill="#4ecdc4" font-size="12" font-weight="700">Response Parsing</text>
-  <rect x="432" y="246" width="336" height="28" rx="5" fill="#1c2e20" stroke="#2a7a3a" stroke-width="1"/>
-  <text x="440" y="262" fill="#6fcf97" font-size="11" font-family="monospace">ARGS: sort -@ 4 -o sorted.bam input.bam</text>
-  <rect x="432" y="280" width="336" height="28" rx="5" fill="#1c2e20" stroke="#2a7a3a" stroke-width="1"/>
-  <text x="440" y="296" fill="#9bb5cc" font-size="10" font-family="monospace">EXPLANATION: Sorts by coord, 4 threads, file output</text>
-  <text x="432" y="310" fill="#7a8fa6" font-size="9">Regex extracts ARGS: and EXPLANATION: lines — retries on format mismatch</text>
+  <rect x="420" y="218" width="360" height="100" rx="9" fill="#f0fdfa" stroke="#0d9488" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="600" y="238" text-anchor="middle" fill="#0f766e" font-size="12" font-weight="700">Response Parsing</text>
+  <rect x="432" y="246" width="336" height="28" rx="5" fill="#f0fdf4" stroke="#16a34a" stroke-width="1"/>
+  <text x="440" y="262" fill="#166534" font-size="11" font-family="monospace">ARGS: sort -@ 4 -o sorted.bam input.bam</text>
+  <rect x="432" y="280" width="336" height="28" rx="5" fill="#f0fdf4" stroke="#16a34a" stroke-width="1"/>
+  <text x="440" y="296" fill="#374151" font-size="10" font-family="monospace">EXPLANATION: Sorts by coord, 4 threads, file output</text>
+  <text x="432" y="310" fill="#4b5563" font-size="9">Regex extracts ARGS: and EXPLANATION: lines — retries on format mismatch</text>
 
   <!-- Retry loop -->
-  <rect x="420" y="334" width="360" height="60" rx="9" fill="#2e2010" stroke="#8a6a2a" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="600" y="355" text-anchor="middle" fill="#f6ad55" font-size="12" font-weight="700">Auto-Retry on Format Mismatch</text>
-  <text x="600" y="374" text-anchor="middle" fill="#9bb5cc" font-size="10">If response doesn't start with ARGS: / EXPLANATION:,</text>
-  <text x="600" y="387" text-anchor="middle" fill="#9bb5cc" font-size="10">the request is retried with the same prompt automatically</text>
+  <rect x="420" y="334" width="360" height="60" rx="9" fill="#fffbeb" stroke="#b45309" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="600" y="355" text-anchor="middle" fill="#92400e" font-size="12" font-weight="700">Auto-Retry on Format Mismatch</text>
+  <text x="600" y="374" text-anchor="middle" fill="#374151" font-size="10">If response doesn't start with ARGS: / EXPLANATION:,</text>
+  <text x="600" y="387" text-anchor="middle" fill="#374151" font-size="10">the request is retried with the same prompt automatically</text>
 
   <!-- Verbose mode -->
-  <rect x="420" y="410" width="360" height="52" rx="9" fill="#1a2840" stroke="#3a6fa8" stroke-width="1.5"/>
-  <text x="600" y="431" text-anchor="middle" fill="#7eb8f7" font-size="12" font-weight="700">Verbose Mode</text>
-  <text x="600" y="449" text-anchor="middle" fill="#9bb5cc" font-size="10" font-family="monospace">oxo-call dry-run --verbose samtools "sort …"</text>
-  <text x="600" y="462" text-anchor="middle" fill="#9bb5cc" font-size="10">Prints the full prompt sent to the LLM</text>
+  <rect x="420" y="410" width="360" height="52" rx="9" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="600" y="431" text-anchor="middle" fill="#1d4ed8" font-size="12" font-weight="700">Verbose Mode</text>
+  <text x="600" y="449" text-anchor="middle" fill="#374151" font-size="10" font-family="monospace">oxo-call dry-run --verbose samtools "sort …"</text>
+  <text x="600" y="462" text-anchor="middle" fill="#374151" font-size="10">Prints the full prompt sent to the LLM</text>
 
   <!-- Arrows: prompt → providers (centered connection) -->
-  <line x1="400" y1="340" x2="418" y2="300" stroke="#4a9eff" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="400" y1="340" x2="418" y2="300" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr)"/>
 
   <!-- Grounding summary at bottom -->
-  <rect x="40" y="478" width="740" height="64" rx="9" fill="#131f2e" stroke="#2d4a6a" stroke-width="1.5"/>
-  <text x="60" y="498" fill="#7a8fa6" font-size="11" font-weight="700">Docs-First Grounding Strategy</text>
-  <rect x="60" y="508" width="16" height="16" rx="3" fill="#1c2e20" stroke="#2a7a3a" stroke-width="1.5"/>
-  <text x="84" y="520" fill="#9bb5cc" font-size="10">Tool docs answer: "what flags exist?"</text>
-  <rect x="260" y="508" width="16" height="16" rx="3" fill="#2a1e10" stroke="#8a6a2a" stroke-width="1.5"/>
-  <text x="284" y="520" fill="#9bb5cc" font-size="10">Skill answers: "which flags to use &amp; what to avoid?"</text>
-  <rect x="520" y="508" width="16" height="16" rx="3" fill="#2e1c2e" stroke="#7a3a8a" stroke-width="1.5"/>
-  <text x="544" y="520" fill="#9bb5cc" font-size="10">Together: correct AND semantically appropriate commands</text>
-  <text x="60" y="535" fill="#7a8fa6" font-size="10">Critical for accuracy with complex tools (GATK, samtools), version-specific flags, and smaller LLM models</text>
+  <rect x="40" y="478" width="740" height="64" rx="9" fill="#f0f5fa" stroke="#6b8faf" stroke-width="1.5"/>
+  <text x="60" y="498" fill="#4b5563" font-size="11" font-weight="700">Docs-First Grounding Strategy</text>
+  <rect x="60" y="508" width="16" height="16" rx="3" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="84" y="520" fill="#374151" font-size="10">Tool docs answer: "what flags exist?"</text>
+  <rect x="260" y="508" width="16" height="16" rx="3" fill="#fffbeb" stroke="#b45309" stroke-width="1.5"/>
+  <text x="284" y="520" fill="#374151" font-size="10">Skill answers: "which flags to use &amp; what to avoid?"</text>
+  <rect x="520" y="508" width="16" height="16" rx="3" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="544" y="520" fill="#374151" font-size="10">Together: correct AND appropriate commands</text>
+  <text x="60" y="535" fill="#4b5563" font-size="10">Critical for accuracy with complex tools (GATK, samtools), version-specific flags, and smaller LLM models</text>
 </svg>
