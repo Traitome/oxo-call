@@ -2,22 +2,11 @@
 
 oxo-call can be installed through multiple channels depending on your needs.
 
-## From crates.io (Recommended)
+## From GitHub Releases (Pre-built Binaries) — Recommended
 
-The simplest way to install oxo-call is via Rust's package manager:
+Pre-built binaries are the easiest way to get started. Download from the [Releases page](https://github.com/Traitome/oxo-call/releases):
 
-```bash
-cargo install oxo-call
-```
-
-This downloads, compiles, and installs the latest published version. Requires [Rust](https://rustup.rs/) to be installed.
-
-## From GitHub Releases (Pre-built Binaries)
-
-Pre-built binaries are available for every tagged release on GitHub:
-
-1. Visit the [Releases page](https://github.com/Traitome/oxo-call/releases)
-2. Download the archive for your platform:
+1. Download the archive for your platform:
 
 | Platform | Architecture | File |
 |----------|-------------|------|
@@ -31,7 +20,7 @@ Pre-built binaries are available for every tagged release on GitHub:
 | Windows | aarch64 | `oxo-call-vX.Y.Z-aarch64-pc-windows-msvc.zip` |
 | WebAssembly | wasm32-wasip1 | `oxo-call-vX.Y.Z-wasm32-wasip1.tar.gz` (advanced) |
 
-3. Extract and move to your PATH:
+2. Extract and move to your PATH:
 
 ```bash
 # Linux / macOS
@@ -41,6 +30,39 @@ sudo mv oxo-call /usr/local/bin/
 # Or add to your user bin directory
 mv oxo-call ~/.local/bin/
 ```
+
+## From Bioconda (Conda/Mamba)
+
+If you use conda for bioinformatics package management, oxo-call is available from [Bioconda](https://bioconda.github.io/):
+
+```bash
+# First-time bioconda setup (if not already configured)
+conda config --add channels defaults
+conda config --add channels bioconda
+conda config --add channels conda-forge
+conda config --set channel_priority strict
+
+# Install
+conda install oxo-call
+```
+
+Or with mamba (faster dependency resolution):
+
+```bash
+mamba install oxo-call -c bioconda -c conda-forge
+```
+
+> **Note:** Bioconda support is new. Please report any issues at [GitHub Issues](https://github.com/Traitome/oxo-call/issues).
+
+## From crates.io (Cargo)
+
+If you have Rust installed, install via cargo:
+
+```bash
+cargo install oxo-call
+```
+
+This downloads, compiles, and installs the latest published version. Requires [Rust](https://rustup.rs/) to be installed.
 
 ## From Source (Git Clone)
 
@@ -71,8 +93,15 @@ oxo-call --help
 ## Updating
 
 ```bash
+# From GitHub Releases — re-download the latest binary
+
+# From Bioconda
+conda update oxo-call
+# or
+mamba update oxo-call
+
 # From crates.io
-cargo install oxo-call
+cargo install oxo-call --force
 
 # From source
 cd oxo-call
