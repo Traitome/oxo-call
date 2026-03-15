@@ -745,3 +745,411 @@ fn strip_embedded_help_section(cached: &str) -> String {
     }
     cached.to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+    use std::sync::Mutex;
+
+    // Mutex to serialize tests that mutate OXO_CALL_DATA_DIR
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    // ─── validate_tool_name ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_validate_tool_name_valid() {
+        assert!(validate_tool_name("samtools").is_ok());
+        assert!(validate_tool_name("bwa-mem2").is_ok());
+        assert!(validate_tool_name("featureCounts").is_ok());
+        assert!(validate_tool_name("picard.jar").is_ok());
+        assert!(validate_tool_name("tool_name").is_ok());
+    }
+
+    #[test]
+    fn test_validate_tool_name_empty() {
+        assert!(validate_tool_name("").is_err());
+    }
+
+    #[test]
+    fn test_validate_tool_name_path_traversal() {
+        assert!(validate_tool_name("../etc/passwd").is_err());
+        assert!(validate_tool_name("foo/../bar").is_err());
+        assert!(validate_tool_name("foo/bar").is_err());
+        assert!(validate_tool_name("foo\\bar").is_err());
+    }
+
+    #[test]
+    fn test_validate_tool_name_invalid_chars() {
+        assert!(validate_tool_name("tool name").is_err()); // space
+        assert!(validate_tool_name("tool!").is_err());
+        assert!(validate_tool_name("tool@v1").is_err());
+    }
+
+    // ─── ToolDocs::combined ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_tool_docs_combined_only_help() {
+        let docs = ToolDocs {
+            tool_name: "tool".to_string(),
+            help_output: Some("usage: tool [options]".to_string()),
+            cached_docs: None,
+            version: None,
+        };
+        let combined = docs.combined();
+        assert!(combined.contains("usage: tool"));
+    }
+
+    #[test]
+    fn test_tool_docs_combined_only_cached() {
+        let docs = ToolDocs {
+            tool_name: "tool".to_string(),
+            help_output: None,
+            cached_docs: Some("# Tool\n\nFull documentation here.".to_string()),
+            version: None,
+        };
+        let combined = docs.combined();
+        assert!(combined.contains("Full documentation"));
+    }
+
+    #[test]
+    fn test_tool_docs_combined_includes_version() {
+        let docs = ToolDocs {
+            tool_name: "samtools".to_string(),
+            help_output: Some("usage: samtools".to_string()),
+            cached_docs: None,
+            version: Some("1.17".to_string()),
+        };
+        let combined = docs.combined();
+        assert!(combined.contains("Version: 1.17"));
+    }
+
+    #[test]
+    fn test_tool_docs_is_empty_true() {
+        let docs = ToolDocs {
+            tool_name: "tool".to_string(),
+            help_output: None,
+            cached_docs: None,
+            version: None,
+        };
+        assert!(docs.is_empty());
+    }
+
+    #[test]
+    fn test_tool_docs_is_empty_false_with_help() {
+        let docs = ToolDocs {
+            tool_name: "tool".to_string(),
+            help_output: Some("usage: tool".to_string()),
+            cached_docs: None,
+            version: None,
+        };
+        assert!(!docs.is_empty());
+    }
+
+    #[test]
+    fn test_tool_docs_is_empty_false_with_cached() {
+        let docs = ToolDocs {
+            tool_name: "tool".to_string(),
+            help_output: None,
+            cached_docs: Some("docs".to_string()),
+            version: None,
+        };
+        assert!(!docs.is_empty());
+    }
+
+    // ─── DocsFetcher cache methods ────────────────────────────────────────────
+
+    #[test]
+    fn test_save_and_load_cache() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        // SAFETY: single-threaded access guaranteed by ENV_LOCK
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let fetcher = DocsFetcher::new(Config::default());
+
+        fetcher
+            .save_cache("samtools", "# samtools\nDocs here.")
+            .unwrap();
+        let path = fetcher.cache_path("samtools").unwrap();
+        assert!(path.exists());
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert!(content.contains("Docs here."));
+    }
+
+    #[test]
+    fn test_remove_cache() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        // SAFETY: single-threaded access guaranteed by ENV_LOCK
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let fetcher = DocsFetcher::new(Config::default());
+
+        fetcher.save_cache("bwa", "bwa docs").unwrap();
+        assert!(fetcher.cache_path("bwa").unwrap().exists());
+
+        fetcher.remove_cache("bwa").unwrap();
+        assert!(!fetcher.cache_path("bwa").unwrap().exists());
+    }
+
+    #[test]
+    fn test_remove_cache_nonexistent_is_ok() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        // SAFETY: single-threaded access guaranteed by ENV_LOCK
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let fetcher = DocsFetcher::new(Config::default());
+        // Should not error even if file doesn't exist
+        assert!(fetcher.remove_cache("doesnotexist").is_ok());
+    }
+
+    #[test]
+    fn test_list_cached_tools() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        // SAFETY: single-threaded access guaranteed by ENV_LOCK
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let fetcher = DocsFetcher::new(Config::default());
+
+        fetcher.save_cache("gatk", "gatk docs").unwrap();
+        fetcher.save_cache("star", "star docs").unwrap();
+
+        let tools = fetcher.list_cached_tools().unwrap();
+        assert!(tools.contains(&"gatk".to_string()));
+        assert!(tools.contains(&"star".to_string()));
+    }
+
+    #[test]
+    fn test_list_cached_tools_empty_dir() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        // SAFETY: single-threaded access guaranteed by ENV_LOCK
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let fetcher = DocsFetcher::new(Config::default());
+        let tools = fetcher.list_cached_tools().unwrap();
+        assert!(tools.is_empty());
+    }
+
+    #[test]
+    fn test_cache_path_sanitizes_special_chars() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        // SAFETY: single-threaded access guaranteed by ENV_LOCK
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let fetcher = DocsFetcher::new(Config::default());
+        let path = fetcher.cache_path("tool-with.dots_and-hyphens").unwrap();
+        let filename = path.file_name().unwrap().to_str().unwrap();
+        assert!(filename.ends_with(".md"));
+    }
+
+    // ─── fetch_from_file ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_fetch_from_file_md() {
+        let tmp = tempfile::tempdir().unwrap();
+        let md_path = tmp.path().join("tool.md");
+        std::fs::write(&md_path, "# Tool\nUsage: tool [options]").unwrap();
+
+        let fetcher = DocsFetcher::new(Config::default());
+        let content = fetcher.fetch_from_file("tool", &md_path).unwrap();
+        assert!(content.contains("Usage: tool"));
+    }
+
+    #[test]
+    fn test_fetch_from_file_txt() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("tool.txt");
+        std::fs::write(&path, "tool text docs").unwrap();
+
+        let fetcher = DocsFetcher::new(Config::default());
+        let content = fetcher.fetch_from_file("tool", &path).unwrap();
+        assert!(content.contains("tool text docs"));
+    }
+
+    #[test]
+    fn test_fetch_from_file_html_strips_tags() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("tool.html");
+        std::fs::write(
+            &path,
+            "<html><body><h1>Tool</h1><p>Description</p></body></html>",
+        )
+        .unwrap();
+
+        let fetcher = DocsFetcher::new(Config::default());
+        let content = fetcher.fetch_from_file("tool", &path).unwrap();
+        assert!(content.contains("Tool"));
+        assert!(content.contains("Description"));
+        assert!(!content.contains("<html>"));
+    }
+
+    #[test]
+    fn test_fetch_from_file_not_found() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("nonexistent.md");
+        let fetcher = DocsFetcher::new(Config::default());
+        assert!(fetcher.fetch_from_file("tool", &path).is_err());
+    }
+
+    #[test]
+    fn test_fetch_from_file_unsupported_extension() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("tool.pdf");
+        std::fs::write(&path, "binary content").unwrap();
+        let fetcher = DocsFetcher::new(Config::default());
+        assert!(fetcher.fetch_from_file("tool", &path).is_err());
+    }
+
+    // ─── fetch_from_dir ───────────────────────────────────────────────────────
+
+    #[test]
+    fn test_fetch_from_dir_collects_md_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("install.md"), "# Install\nInstall docs").unwrap();
+        std::fs::write(tmp.path().join("usage.md"), "# Usage\nUsage docs").unwrap();
+
+        let fetcher = DocsFetcher::new(Config::default());
+        let content = fetcher.fetch_from_dir("tool", tmp.path()).unwrap();
+        assert!(content.contains("Install docs"));
+        assert!(content.contains("Usage docs"));
+    }
+
+    #[test]
+    fn test_fetch_from_dir_not_found() {
+        let tmp = tempfile::tempdir().unwrap();
+        let nonexistent = tmp.path().join("missing");
+        let fetcher = DocsFetcher::new(Config::default());
+        assert!(fetcher.fetch_from_dir("tool", &nonexistent).is_err());
+    }
+
+    #[test]
+    fn test_fetch_from_dir_empty_dir_errors() {
+        let tmp = tempfile::tempdir().unwrap();
+        let empty_dir = tmp.path().join("empty");
+        std::fs::create_dir(&empty_dir).unwrap();
+
+        let fetcher = DocsFetcher::new(Config::default());
+        assert!(fetcher.fetch_from_dir("tool", &empty_dir).is_err());
+    }
+
+    // ─── internal helpers ─────────────────────────────────────────────────────
+
+    #[test]
+    fn test_strip_html_tags() {
+        let html = "<p>Hello <b>world</b></p>";
+        let text = strip_html_tags(html);
+        assert!(text.contains("Hello"));
+        assert!(text.contains("world"));
+        assert!(!text.contains("<p>"));
+        assert!(!text.contains("<b>"));
+    }
+
+    #[test]
+    fn test_truncate_doc_short_content() {
+        let short = "short content";
+        assert_eq!(truncate_doc(short), "short content");
+    }
+
+    #[test]
+    fn test_truncate_doc_long_content() {
+        let long = "x".repeat(20_000);
+        let result = truncate_doc(&long);
+        assert!(result.contains("[truncated]"));
+        assert!(result.len() < long.len());
+    }
+
+    #[test]
+    fn test_deduplicate_check_verbatim() {
+        let cached = "full docs here: usage: samtools sort";
+        let help = "usage: samtools sort";
+        assert!(deduplicate_check(cached, help));
+    }
+
+    #[test]
+    fn test_deduplicate_check_not_present() {
+        let cached = "completely different text";
+        let help = "usage: tool --flag";
+        assert!(!deduplicate_check(cached, help));
+    }
+
+    #[test]
+    fn test_strip_embedded_help_section_removes_section() {
+        let cached = "# Overview\n\nSome intro.\n\n# Help Output\n\nusage: tool --help\n";
+        let result = strip_embedded_help_section(cached);
+        assert!(!result.contains("# Help Output"));
+        assert!(result.contains("Some intro."));
+    }
+
+    #[test]
+    fn test_strip_embedded_help_section_no_section() {
+        let cached = "# Overview\n\nNo help section here.";
+        let result = strip_embedded_help_section(cached);
+        assert_eq!(result, cached);
+    }
+
+    #[test]
+    fn test_looks_like_version_valid() {
+        assert!(looks_like_version("1.17.1"));
+        assert!(looks_like_version("samtools 1.17"));
+        assert!(looks_like_version("v2.3.4"));
+    }
+
+    #[test]
+    fn test_looks_like_version_invalid() {
+        assert!(!looks_like_version("error: unknown option"));
+        assert!(!looks_like_version("usage: tool [options]"));
+        assert!(!looks_like_version("no dots here"));
+    }
+
+    #[test]
+    fn test_clean_version_string() {
+        assert_eq!(clean_version_string("version: 1.17"), "1.17");
+        assert_eq!(clean_version_string("Version 1.2.3"), "1.2.3");
+        assert_eq!(clean_version_string("  1.5.0  "), "1.5.0");
+        assert_eq!(clean_version_string("1.2.3 (build 456)"), "1.2.3");
+    }
+
+    #[test]
+    fn test_is_likely_error_true() {
+        assert!(is_likely_error("unrecognized command: foo"));
+        assert!(is_likely_error("unknown command 'bar'"));
+        assert!(is_likely_error("error: bad argument"));
+    }
+
+    #[test]
+    fn test_is_likely_error_false_for_help() {
+        assert!(!is_likely_error("usage: tool [options] FILE"));
+        assert!(!is_likely_error("error: missing argument; usage: ..."));
+    }
+
+    // ─── fetch_remote URL validation ──────────────────────────────────────────
+
+    #[tokio::test]
+    async fn test_fetch_remote_rejects_non_http_url() {
+        // No need to set OXO_CALL_DATA_DIR — this test only validates URL scheme rejection
+        let fetcher = DocsFetcher::new(Config::default());
+        let result = fetcher.fetch_remote("tool", "file:///etc/passwd").await;
+        assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
+        assert!(msg.contains("http") || msg.contains("https") || msg.contains("URL"));
+    }
+
+    #[tokio::test]
+    async fn test_fetch_remote_rejects_ftp_url() {
+        let fetcher = DocsFetcher::new(Config::default());
+        let result = fetcher.fetch_remote("tool", "ftp://example.com/docs").await;
+        assert!(result.is_err());
+    }
+}

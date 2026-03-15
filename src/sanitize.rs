@@ -114,4 +114,66 @@ mod tests {
             "non-secret env should be preserved"
         );
     }
+
+    #[test]
+    fn test_redact_multiple_paths() {
+        let input = "cp /home/user/input.bam /data/output.bam";
+        let result = redact_paths(input);
+        // Both absolute paths should be redacted
+        assert!(
+            !result.contains("/home/user"),
+            "first path should be redacted"
+        );
+        assert!(
+            !result.contains("/data/output"),
+            "second path should be redacted"
+        );
+    }
+
+    #[test]
+    fn test_redact_paths_preserves_flags() {
+        let input = "samtools sort --threads 8 --sort-by coordinate";
+        let result = redact_paths(input);
+        // No absolute paths, should be unchanged
+        assert!(result.contains("--threads"));
+        assert!(result.contains("--sort-by"));
+    }
+
+    #[test]
+    fn test_redact_paths_empty_string() {
+        let result = redact_paths("");
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_redact_env_tokens_secret() {
+        let input = "MY_SECRET=supersecretvalue";
+        let result = redact_env_tokens(input);
+        assert!(result.contains("<REDACTED>"));
+        assert!(!result.contains("supersecretvalue"));
+    }
+
+    #[test]
+    fn test_redact_env_tokens_multiline() {
+        let input = "NORMAL_VAR=hello\nAPI_TOKEN=abc123\nANOTHER=value";
+        let result = redact_env_tokens(input);
+        let lines: Vec<&str> = result.lines().collect();
+        assert_eq!(lines.len(), 3);
+        // NORMAL_VAR should be preserved
+        assert!(lines[0].contains("NORMAL_VAR=hello"));
+        // API_TOKEN should be redacted
+        assert!(lines[1].contains("<REDACTED>"));
+        // ANOTHER should be preserved
+        assert!(lines[2].contains("ANOTHER=value"));
+    }
+
+    #[test]
+    fn test_redact_env_tokens_no_match() {
+        let input = "NORMAL_VARIABLE=just_a_value\nFOO=bar";
+        let result = redact_env_tokens(input);
+        // Nothing should be redacted
+        assert!(!result.contains("<REDACTED>"));
+        assert!(result.contains("NORMAL_VARIABLE=just_a_value"));
+        assert!(result.contains("FOO=bar"));
+    }
 }

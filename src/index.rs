@@ -239,3 +239,135 @@ impl IndexManager {
         Ok(index.entries)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+    use std::sync::Mutex;
+
+    // Mutex to serialize tests that mutate OXO_CALL_DATA_DIR
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    fn make_entry(tool: &str, size: usize) -> IndexEntry {
+        IndexEntry {
+            tool_name: tool.to_string(),
+            version: Some("1.0".to_string()),
+            indexed_at: Utc::now(),
+            doc_size_bytes: size,
+            sources: vec!["help".to_string()],
+        }
+    }
+
+    // ─── DocIndex unit tests ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_docindex_default_empty() {
+        let idx = DocIndex::default();
+        assert!(idx.entries.is_empty());
+    }
+
+    #[test]
+    fn test_docindex_upsert_adds_new_entry() {
+        let mut idx = DocIndex::default();
+        idx.upsert(make_entry("samtools", 1024));
+        assert_eq!(idx.entries.len(), 1);
+        assert_eq!(idx.entries[0].tool_name, "samtools");
+    }
+
+    #[test]
+    fn test_docindex_upsert_replaces_existing_entry() {
+        let mut idx = DocIndex::default();
+        idx.upsert(make_entry("samtools", 1024));
+        idx.upsert(make_entry("samtools", 2048));
+        assert_eq!(idx.entries.len(), 1);
+        assert_eq!(idx.entries[0].doc_size_bytes, 2048);
+    }
+
+    #[test]
+    fn test_docindex_get_existing() {
+        let mut idx = DocIndex::default();
+        idx.upsert(make_entry("bwa", 512));
+        let entry = idx.get("bwa");
+        assert!(entry.is_some());
+        assert_eq!(entry.unwrap().tool_name, "bwa");
+    }
+
+    #[test]
+    fn test_docindex_get_missing() {
+        let idx = DocIndex::default();
+        assert!(idx.get("nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_docindex_remove_existing() {
+        let mut idx = DocIndex::default();
+        idx.upsert(make_entry("gatk", 4096));
+        let removed = idx.remove("gatk");
+        assert!(removed);
+        assert!(idx.entries.is_empty());
+    }
+
+    #[test]
+    fn test_docindex_remove_missing_returns_false() {
+        let mut idx = DocIndex::default();
+        let removed = idx.remove("doesnotexist");
+        assert!(!removed);
+    }
+
+    #[test]
+    fn test_docindex_remove_leaves_others_intact() {
+        let mut idx = DocIndex::default();
+        idx.upsert(make_entry("samtools", 1024));
+        idx.upsert(make_entry("bwa", 512));
+        idx.upsert(make_entry("gatk", 4096));
+        idx.remove("bwa");
+        assert_eq!(idx.entries.len(), 2);
+        assert!(idx.get("samtools").is_some());
+        assert!(idx.get("gatk").is_some());
+        assert!(idx.get("bwa").is_none());
+    }
+
+    // ─── DocIndex save/load round-trip ────────────────────────────────────────
+
+    #[test]
+    fn test_docindex_save_load_round_trip() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        // SAFETY: single-threaded access guaranteed by ENV_LOCK
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+
+        let mut idx = DocIndex::default();
+        idx.upsert(make_entry("samtools", 1024));
+        idx.upsert(IndexEntry {
+            tool_name: "bwa".to_string(),
+            version: None,
+            indexed_at: Utc::now(),
+            doc_size_bytes: 512,
+            sources: vec!["remote".to_string(), "help".to_string()],
+        });
+        idx.save().unwrap();
+
+        let loaded = DocIndex::load().unwrap();
+        assert_eq!(loaded.entries.len(), 2);
+        let sam = loaded.get("samtools").unwrap();
+        assert_eq!(sam.version.as_deref(), Some("1.0"));
+        let bwa = loaded.get("bwa").unwrap();
+        assert!(bwa.version.is_none());
+        assert_eq!(bwa.sources.len(), 2);
+    }
+
+    #[test]
+    fn test_docindex_load_returns_empty_when_no_file() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        // SAFETY: single-threaded access guaranteed by ENV_LOCK
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let loaded = DocIndex::load().unwrap();
+        assert!(loaded.entries.is_empty());
+    }
+}
