@@ -124,11 +124,12 @@ nav:
       - run: commands/run.md
       - dry-run: commands/dry-run.md
       - docs: commands/docs.md
+      - server: commands/server.md
+      - workflow: commands/workflow.md
+      - job: commands/job.md
       - config: commands/config.md
       - history: commands/history.md
       - skill: commands/skill.md
-      - workflow: commands/workflow.md
-      - server: commands/server.md
       - license: commands/license.md
       - completion: commands/completion.md
   - Architecture & Design:
