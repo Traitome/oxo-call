@@ -892,4 +892,143 @@ mod tests {
         let runner = runner.with_verify(true);
         let _runner = runner.with_optimize_task(true);
     }
+
+    // ─── detect_tool_version ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_detect_tool_version_existing_tool() {
+        // 'ls' always exists on Linux — result may be Some or None
+        // depending on whether it prints version info; just verify no panic.
+        let result = detect_tool_version("ls");
+        // Can be Some("ls (GNU coreutils) 8.32") or None (macOS) — both OK.
+        let _ = result;
+    }
+
+    #[test]
+    fn test_detect_tool_version_nonexistent_tool_returns_none() {
+        let result = detect_tool_version("__nonexistent_binary_oxo_call_test__");
+        assert!(result.is_none(), "nonexistent tool should return None");
+    }
+
+    #[test]
+    fn test_detect_tool_version_echo_command() {
+        // `echo --version` on Linux prints to stdout (GNU coreutils) or does nothing.
+        // Either Some or None is valid — just verify no panic.
+        let _result = detect_tool_version("echo");
+    }
+
+    // ─── make_spinner ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_make_spinner_creates_without_panic() {
+        let pb = make_spinner("Test message");
+        // Verify the spinner can be finished without panicking.
+        pb.finish_and_clear();
+    }
+
+    #[test]
+    fn test_make_spinner_with_empty_message() {
+        let pb = make_spinner("");
+        pb.finish_and_clear();
+    }
+
+    // ─── detect_output_files extra edge cases ────────────────────────────────
+
+    #[test]
+    fn test_detect_output_files_bam_flag() {
+        let args: Vec<String> = vec!["--bam".to_string(), "output.bam".to_string()];
+        let files = detect_output_files(&args);
+        assert!(
+            files.contains(&"output.bam".to_string()),
+            "--bam flag should capture next arg"
+        );
+    }
+
+    #[test]
+    fn test_detect_output_files_short_b_flag() {
+        let args: Vec<String> = vec!["-b".to_string(), "output.bam".to_string()];
+        let files = detect_output_files(&args);
+        assert!(
+            files.contains(&"output.bam".to_string()),
+            "-b flag should capture next arg"
+        );
+    }
+
+    #[test]
+    fn test_detect_output_files_equals_form_bam() {
+        let args: Vec<String> = vec!["-b=output.bam".to_string()];
+        let files = detect_output_files(&args);
+        assert!(files.contains(&"output.bam".to_string()));
+    }
+
+    #[test]
+    fn test_detect_output_files_equals_form_empty_value_ignored() {
+        // --output= with nothing after = should not add empty string
+        let args: Vec<String> = vec!["--output=".to_string()];
+        let files = detect_output_files(&args);
+        assert!(
+            !files.contains(&String::new()),
+            "empty value after = should not be collected"
+        );
+    }
+
+    #[test]
+    fn test_detect_output_files_positional_with_semicolon_excluded() {
+        // Args containing shell metacharacters should not be collected as files
+        let args: Vec<String> = vec!["input;rm -rf /".to_string()];
+        let files = detect_output_files(&args);
+        assert!(files.is_empty(), "args with ; should be excluded");
+    }
+
+    #[test]
+    fn test_detect_output_files_positional_with_pipe_excluded() {
+        let args: Vec<String> = vec!["input|cat".to_string()];
+        let files = detect_output_files(&args);
+        assert!(files.is_empty(), "args with | should be excluded");
+    }
+
+    #[test]
+    fn test_detect_output_files_positional_with_ampersand_excluded() {
+        let args: Vec<String> = vec!["input&output".to_string()];
+        let files = detect_output_files(&args);
+        assert!(files.is_empty(), "args with & should be excluded");
+    }
+
+    #[test]
+    fn test_detect_output_files_truncates_at_20() {
+        // Create 25 unique output flags with different file names
+        let mut args: Vec<String> = Vec::new();
+        for i in 0..25 {
+            args.push(format!("positional_{i}.bam"));
+        }
+        let files = detect_output_files(&args);
+        assert!(
+            files.len() <= 20,
+            "detect_output_files should cap at 20 entries"
+        );
+    }
+
+    #[test]
+    fn test_detect_output_files_no_dot_excluded() {
+        // Positional args without a dot are NOT file-like; should not be collected
+        let args: Vec<String> = vec!["nodot".to_string(), "anotherword".to_string()];
+        let files = detect_output_files(&args);
+        assert!(
+            !files.contains(&"nodot".to_string()),
+            "arg without dot should not be collected"
+        );
+    }
+
+    // ─── build_command_string: single-quote escaping ─────────────────────────
+
+    #[test]
+    fn test_build_command_string_escapes_single_quotes_in_args() {
+        // An arg containing a single quote must be escaped as '\''
+        let args: Vec<String> = vec!["it's".to_string()];
+        let cmd = build_command_string("echo", &args);
+        assert!(
+            cmd.contains("'\\'"),
+            "single quote should be escaped as '\\'"
+        );
+    }
 }

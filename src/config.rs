@@ -448,10 +448,10 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
 
-    // Mutex to serialize tests that mutate env vars
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
+    // All tests that mutate env vars use the crate-wide ENV_LOCK to prevent
+    // races with docs.rs, history.rs, and skill.rs tests.
+    use crate::ENV_LOCK;
 
     // ─── McpServerConfig ──────────────────────────────────────────────────────
 
@@ -928,10 +928,10 @@ mod tests {
 
     #[test]
     fn test_config_load_returns_default_when_missing() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         // Point config dir at empty temp directory
         let tmp = tempfile::tempdir().unwrap();
-        // SAFETY: test-only env var mutation, single-threaded test
-
+        // SAFETY: test-only env var mutation, serialised by ENV_LOCK
         unsafe {
             std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
         }

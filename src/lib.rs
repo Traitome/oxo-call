@@ -30,3 +30,11 @@ pub mod sanitize;
 pub mod server;
 pub mod skill;
 pub mod workflow;
+
+/// A single crate-wide mutex that **all** test modules must acquire before
+/// reading or writing `OXO_CALL_DATA_DIR` (or any other process-global
+/// environment variable used by tests).  Using a shared instance prevents
+/// the race conditions that arise when separate modules each define their
+/// own `ENV_LOCK`.
+#[cfg(test)]
+pub(crate) static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());

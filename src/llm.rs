@@ -1408,4 +1408,548 @@ mod tests {
         let _client = LlmClient::new(cfg);
         // Just verify it can be constructed without panic
     }
+
+    // ─── system_prompt ────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_system_prompt_not_empty() {
+        let p = system_prompt();
+        assert!(!p.is_empty());
+        assert!(
+            p.contains("bioinformatics"),
+            "should mention bioinformatics"
+        );
+        assert!(p.contains("ARGS"), "should mention ARGS format");
+        assert!(
+            p.contains("EXPLANATION"),
+            "should mention EXPLANATION format"
+        );
+    }
+
+    // ─── ChatMessage Debug + Clone ────────────────────────────────────────────
+
+    #[test]
+    fn test_chat_message_clone() {
+        let msg = ChatMessage {
+            role: "user".to_string(),
+            content: "hello".to_string(),
+        };
+        let cloned = msg.clone();
+        assert_eq!(cloned.role, "user");
+        assert_eq!(cloned.content, "hello");
+    }
+
+    #[test]
+    fn test_chat_message_debug() {
+        let msg = ChatMessage {
+            role: "system".to_string(),
+            content: "instructions".to_string(),
+        };
+        let s = format!("{msg:?}");
+        assert!(s.contains("system"));
+        assert!(s.contains("instructions"));
+    }
+
+    // ─── ChatRequest serialization ────────────────────────────────────────────
+
+    #[test]
+    fn test_chat_request_serializes_correctly() {
+        let req = ChatRequest {
+            model: "gpt-4o".to_string(),
+            messages: vec![
+                ChatMessage {
+                    role: "system".to_string(),
+                    content: "You are helpful.".to_string(),
+                },
+                ChatMessage {
+                    role: "user".to_string(),
+                    content: "sort a bam file".to_string(),
+                },
+            ],
+            max_tokens: 2048,
+            temperature: 0.0,
+        };
+        let json = serde_json::to_string(&req).unwrap();
+        assert!(json.contains("\"model\":\"gpt-4o\""));
+        assert!(json.contains("\"max_tokens\":2048"));
+        assert!(json.contains("\"temperature\":0.0"));
+        assert!(json.contains("system"));
+        assert!(json.contains("You are helpful."));
+    }
+
+    #[test]
+    fn test_chat_request_debug() {
+        let req = ChatRequest {
+            model: "test-model".to_string(),
+            messages: vec![],
+            max_tokens: 100,
+            temperature: 0.5,
+        };
+        let s = format!("{req:?}");
+        assert!(s.contains("test-model"));
+    }
+
+    // ─── ChatResponse + ChatChoice deserialization ────────────────────────────
+
+    #[test]
+    fn test_chat_response_deserializes_correctly() {
+        let json = r#"{
+            "choices": [
+                {"message": {"role": "assistant", "content": "ARGS: sort -o out.bam\nEXPLANATION: Sorts BAM"}}
+            ]
+        }"#;
+        let resp: ChatResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.choices.len(), 1);
+        assert_eq!(resp.choices[0].message.role, "assistant");
+        assert!(resp.choices[0].message.content.contains("ARGS:"));
+    }
+
+    #[test]
+    fn test_chat_response_empty_choices() {
+        let json = r#"{"choices": []}"#;
+        let resp: ChatResponse = serde_json::from_str(json).unwrap();
+        assert!(resp.choices.is_empty());
+    }
+
+    // ─── parse_shell_args tab handling ────────────────────────────────────────
+
+    #[test]
+    fn test_parse_shell_args_tab_as_separator() {
+        // Tab should be treated the same as space between args
+        let args = parse_shell_args("-o\tout.bam");
+        assert_eq!(args, vec!["-o", "out.bam"]);
+    }
+
+    // ─── LlmCommandSuggestion + LlmVerificationResult + LlmSkillVerification Debug ─
+
+    #[test]
+    fn test_llm_command_suggestion_debug() {
+        let s = LlmCommandSuggestion {
+            args: vec!["sort".to_string()],
+            explanation: "sort it".to_string(),
+            raw_response: "raw".to_string(),
+        };
+        let dbg = format!("{s:?}");
+        assert!(dbg.contains("sort"));
+    }
+
+    #[test]
+    fn test_llm_verification_result_debug() {
+        let v = LlmVerificationResult {
+            provider: "openai".to_string(),
+            api_base: "https://api.openai.com".to_string(),
+            model: "gpt-4o".to_string(),
+            response_preview: "OK".to_string(),
+        };
+        let dbg = format!("{v:?}");
+        assert!(dbg.contains("openai"));
+    }
+
+    #[test]
+    fn test_llm_skill_verification_debug() {
+        let v = LlmSkillVerification {
+            passed: true,
+            summary: "looks good".to_string(),
+            issues: vec![],
+            suggestions: vec!["add more examples".to_string()],
+        };
+        let dbg = format!("{v:?}");
+        assert!(dbg.contains("looks good"));
+    }
+
+    #[test]
+    fn test_llm_skill_verification_clone() {
+        let v = LlmSkillVerification {
+            passed: false,
+            summary: "needs work".to_string(),
+            issues: vec!["missing examples".to_string()],
+            suggestions: vec![],
+        };
+        let cloned = v.clone();
+        assert!(!cloned.passed);
+        assert_eq!(cloned.summary, "needs work");
+        assert_eq!(cloned.issues, vec!["missing examples".to_string()]);
+    }
+
+    // ─── LlmRunVerification Clone ─────────────────────────────────────────────
+
+    #[test]
+    fn test_llm_run_verification_clone() {
+        let v = LlmRunVerification {
+            success: true,
+            summary: "ok".to_string(),
+            issues: vec!["minor".to_string()],
+            suggestions: vec!["retry".to_string()],
+        };
+        let cloned = v.clone();
+        assert_eq!(cloned.success, v.success);
+        assert_eq!(cloned.summary, v.summary);
+        assert_eq!(cloned.issues, v.issues);
+        assert_eq!(cloned.suggestions, v.suggestions);
+    }
+
+    // ─── Mock HTTP tests (wiremock) ───────────────────────────────────────────
+    //
+    // These tests start a real local HTTP server and point the LlmClient at it.
+    // The URL begins with "http://127.0.0.1", which is in the allowlist in
+    // request_with_system(), so no HTTPS enforcement is triggered.
+
+    #[cfg(not(target_arch = "wasm32"))]
+    mod mock_tests {
+        use super::*;
+        use crate::config::Config;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        /// Build a Config pointing at the given local mock server URL.
+        fn mock_config(base_url: &str) -> Config {
+            let mut cfg = Config::default();
+            cfg.llm.api_token = Some("test-token".to_string());
+            cfg.llm.api_base = Some(base_url.to_string());
+            cfg.llm.provider = "openai".to_string();
+            cfg.llm.model = Some("gpt-4o-mini".to_string());
+            cfg
+        }
+
+        /// Minimal valid chat-completions response body.
+        fn completion_body(content: &str) -> serde_json::Value {
+            serde_json::json!({
+                "choices": [{
+                    "message": {
+                        "role": "assistant",
+                        "content": content
+                    }
+                }]
+            })
+        }
+
+        // ── suggest_command ───────────────────────────────────────────────────
+
+        #[tokio::test]
+        async fn test_suggest_command_success() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(completion_body(
+                    "ARGS: sort -o sorted.bam input.bam\nEXPLANATION: Sort BAM by coordinate.",
+                )))
+                .mount(&server)
+                .await;
+
+            let client = LlmClient::new(mock_config(&server.uri()));
+            let result = client
+                .suggest_command("samtools", "samtools --help output", "sort bam", None)
+                .await;
+
+            assert!(result.is_ok(), "should succeed: {:?}", result.err());
+            let s = result.unwrap();
+            assert!(!s.args.is_empty(), "should have parsed args");
+            assert!(!s.explanation.is_empty(), "should have explanation");
+        }
+
+        #[tokio::test]
+        async fn test_suggest_command_http_error_propagated() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(ResponseTemplate::new(500).set_body_string("Internal Server Error"))
+                .mount(&server)
+                .await;
+
+            let client = LlmClient::new(mock_config(&server.uri()));
+            let result = client
+                .suggest_command("samtools", "docs", "sort", None)
+                .await;
+
+            assert!(result.is_err(), "500 should produce an error");
+            let msg = result.unwrap_err().to_string();
+            assert!(
+                msg.contains("500") || msg.contains("Internal Server Error"),
+                "error should mention status: {msg}"
+            );
+        }
+
+        #[tokio::test]
+        async fn test_suggest_command_invalid_format_retries() {
+            let server = MockServer::start().await;
+            // First call returns invalid format; second returns valid.
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(completion_body("This is not the right format at all")),
+                )
+                .up_to_n_times(1)
+                .mount(&server)
+                .await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(completion_body(
+                    "ARGS: sort -o out.bam\nEXPLANATION: Sorts BAM file.",
+                )))
+                .mount(&server)
+                .await;
+
+            let client = LlmClient::new(mock_config(&server.uri()));
+            let result = client
+                .suggest_command("samtools", "docs", "sort bam", None)
+                .await;
+
+            assert!(result.is_ok());
+        }
+
+        // ── verify_configuration ──────────────────────────────────────────────
+
+        #[tokio::test]
+        async fn test_verify_configuration_success() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(completion_body("OK")))
+                .mount(&server)
+                .await;
+
+            let client = LlmClient::new(mock_config(&server.uri()));
+            let result = client.verify_configuration().await;
+
+            assert!(result.is_ok(), "should succeed: {:?}", result.err());
+            let v = result.unwrap();
+            assert_eq!(v.response_preview, "OK");
+            assert!(!v.model.is_empty());
+            assert!(!v.provider.is_empty());
+        }
+
+        // ── optimize_task ──────────────────────────────────────────────────────
+
+        #[tokio::test]
+        async fn test_optimize_task_valid_response() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(completion_body(
+                    "TASK: Sort a BAM file by coordinate with 8 threads and output to sorted.bam",
+                )))
+                .mount(&server)
+                .await;
+
+            let client = LlmClient::new(mock_config(&server.uri()));
+            let result = client.optimize_task("samtools", "sort bam").await;
+
+            assert!(result.is_ok());
+            let refined = result.unwrap();
+            assert!(
+                refined.contains("BAM") || refined.contains("sort"),
+                "should return the optimized task"
+            );
+        }
+
+        #[tokio::test]
+        async fn test_optimize_task_falls_back_on_bad_format() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(completion_body("Not a TASK: prefixed line at all")),
+                )
+                .mount(&server)
+                .await;
+
+            let client = LlmClient::new(mock_config(&server.uri()));
+            let result = client.optimize_task("samtools", "sort bam").await;
+
+            // Falls back to original task (or returns the raw response)
+            assert!(result.is_ok());
+        }
+
+        // ── verify_run_result ─────────────────────────────────────────────────
+
+        #[tokio::test]
+        async fn test_verify_run_result_success() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(completion_body(
+                    "STATUS: success\nSUMMARY: Command completed successfully.\nISSUES:\n- none\nSUGGESTIONS:\n- none",
+                )))
+                .mount(&server)
+                .await;
+
+            let client = LlmClient::new(mock_config(&server.uri()));
+            let result = client
+                .verify_run_result(
+                    "samtools",
+                    "sort bam",
+                    "samtools sort -o out.bam in.bam",
+                    0,
+                    "",
+                    &[("out.bam".to_string(), Some(1024))],
+                )
+                .await;
+
+            assert!(result.is_ok());
+            let v = result.unwrap();
+            assert!(v.success);
+            assert!(!v.summary.is_empty());
+        }
+
+        // ── verify_skill ──────────────────────────────────────────────────────
+
+        #[tokio::test]
+        async fn test_verify_skill_pass() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(completion_body(
+                    "VERDICT: pass\nSUMMARY: Skill looks complete.\nISSUES:\n- none\nSUGGESTIONS:\n- none",
+                )))
+                .mount(&server)
+                .await;
+
+            let client = LlmClient::new(mock_config(&server.uri()));
+            let skill_content = "---\nname: samtools\n---\n## Concepts\n- concept\n";
+            let result = client.verify_skill("samtools", skill_content).await;
+
+            assert!(result.is_ok());
+            let v = result.unwrap();
+            assert!(v.passed);
+        }
+
+        // ── polish_skill ──────────────────────────────────────────────────────
+
+        #[tokio::test]
+        async fn test_polish_skill_strips_fences() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(completion_body(
+                    "```markdown\n---\nname: samtools\n---\n## Concepts\n- improved\n```",
+                )))
+                .mount(&server)
+                .await;
+
+            let client = LlmClient::new(mock_config(&server.uri()));
+            let result = client
+                .polish_skill("samtools", "---\nname: samtools\n---\n")
+                .await;
+
+            assert!(result.is_ok());
+            let content = result.unwrap();
+            assert!(
+                !content.starts_with("```"),
+                "fences should be stripped: {content}"
+            );
+        }
+
+        // ── generate_skill_template ───────────────────────────────────────────
+
+        #[tokio::test]
+        async fn test_generate_skill_template() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(completion_body(
+                    "---\nname: gatk\ncategory: variant-calling\n---\n## Concepts\n- concept\n",
+                )))
+                .mount(&server)
+                .await;
+
+            let client = LlmClient::new(mock_config(&server.uri()));
+            let result = client.generate_skill_template("gatk").await;
+
+            assert!(result.is_ok());
+            let content = result.unwrap();
+            assert!(content.contains("gatk") || content.contains("---"));
+        }
+
+        // ── generate_shell_command ────────────────────────────────────────────
+
+        #[tokio::test]
+        async fn test_generate_shell_command_success() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(completion_body(
+                    "COMMAND: ls -la\nEXPLANATION: List all files with details.",
+                )))
+                .mount(&server)
+                .await;
+
+            let client = LlmClient::new(mock_config(&server.uri()));
+            let result = client
+                .generate_shell_command("list all files with details")
+                .await;
+
+            assert!(result.is_ok());
+            let (cmd, expl) = result.unwrap();
+            assert!(!cmd.is_empty());
+            assert!(expl.contains("List") || expl.contains("files"));
+        }
+
+        #[tokio::test]
+        async fn test_generate_shell_command_bad_format_falls_back() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(completion_body("ls -la")))
+                .mount(&server)
+                .await;
+
+            let client = LlmClient::new(mock_config(&server.uri()));
+            let result = client.generate_shell_command("list files").await;
+
+            assert!(result.is_ok());
+            let (cmd, _expl) = result.unwrap();
+            // Falls back to raw response text when no COMMAND: prefix
+            assert!(!cmd.is_empty());
+        }
+
+        // ── request_with_system: anthropic provider headers ───────────────────
+
+        #[tokio::test]
+        async fn test_request_with_system_anthropic_provider() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(completion_body("ARGS: -o out.bam\nEXPLANATION: test")),
+                )
+                .mount(&server)
+                .await;
+
+            let mut cfg = mock_config(&server.uri());
+            cfg.llm.provider = "anthropic".to_string();
+
+            let client = LlmClient::new(cfg);
+            // Calling through suggest_command which uses request_with_system internally
+            let result = client
+                .suggest_command("samtools", "docs", "sort", None)
+                .await;
+
+            assert!(result.is_ok());
+        }
+
+        // ── request_with_system: empty choices returns default ─────────────────
+
+        #[tokio::test]
+        async fn test_request_with_system_empty_choices() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(
+                    ResponseTemplate::new(200).set_body_json(serde_json::json!({"choices": []})),
+                )
+                .mount(&server)
+                .await;
+
+            let client = LlmClient::new(mock_config(&server.uri()));
+            let result = client
+                .suggest_command("samtools", "docs", "sort", None)
+                .await;
+
+            // Empty choices → empty string → parse_response returns empty suggestion
+            assert!(result.is_ok());
+        }
+    }
 }

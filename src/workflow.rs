@@ -1242,4 +1242,323 @@ mod tests {
             ctx.data_type_hint
         );
     }
+
+    // ─── ChatMessage / ChatRequest / ChatResponse in workflow.rs ─────────────
+
+    #[test]
+    fn test_workflow_chat_message_clone_and_debug() {
+        let msg = ChatMessage {
+            role: "user".to_string(),
+            content: "generate rnaseq workflow".to_string(),
+        };
+        let cloned = msg.clone();
+        assert_eq!(cloned.role, msg.role);
+        assert_eq!(cloned.content, msg.content);
+        let dbg = format!("{msg:?}");
+        assert!(dbg.contains("user"));
+    }
+
+    #[test]
+    fn test_workflow_chat_request_serialization() {
+        let req = ChatRequest {
+            model: "gpt-4o".to_string(),
+            messages: vec![ChatMessage {
+                role: "system".to_string(),
+                content: "You are an expert.".to_string(),
+            }],
+            max_tokens: 4096,
+            temperature: 0.2,
+        };
+        let json = serde_json::to_string(&req).unwrap();
+        assert!(json.contains("\"model\":\"gpt-4o\""));
+        assert!(json.contains("\"max_tokens\":4096"));
+        assert!(json.contains("You are an expert."));
+    }
+
+    #[test]
+    fn test_workflow_chat_request_debug() {
+        let req = ChatRequest {
+            model: "test-model".to_string(),
+            messages: vec![],
+            max_tokens: 100,
+            temperature: 0.0,
+        };
+        let s = format!("{req:?}");
+        assert!(s.contains("test-model"));
+    }
+
+    #[test]
+    fn test_workflow_chat_response_deserialization() {
+        let json = r#"{"choices": [{"message": {"role": "assistant", "content": "WORKFLOW:\n[workflow]\nEND_WORKFLOW\nEXPLANATION:\ntest"}}]}"#;
+        let resp: ChatResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.choices.len(), 1);
+        assert!(resp.choices[0].message.content.contains("WORKFLOW:"));
+    }
+
+    #[test]
+    fn test_workflow_chat_response_empty_choices() {
+        let json = r#"{"choices": []}"#;
+        let resp: ChatResponse = serde_json::from_str(json).unwrap();
+        assert!(resp.choices.is_empty());
+    }
+
+    // ─── Mock HTTP tests for generate_workflow / infer_workflow ───────────────
+
+    #[cfg(not(target_arch = "wasm32"))]
+    mod mock_tests {
+        use super::*;
+        use crate::config::Config;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        fn completion_body(content: &str) -> serde_json::Value {
+            serde_json::json!({
+                "choices": [{"message": {"role": "assistant", "content": content}}]
+            })
+        }
+
+        fn mock_cfg(base_url: &str) -> Config {
+            let mut cfg = Config::default();
+            cfg.llm.api_token = Some("test-token".to_string());
+            cfg.llm.api_base = Some(base_url.to_string());
+            cfg.llm.model = Some("gpt-4o-mini".to_string());
+            cfg
+        }
+
+        fn valid_workflow_response(engine: &str) -> String {
+            let content = if engine == "snakemake" {
+                "rule all:\n  input: expand(\"qc/{sample}.html\")\n"
+            } else if engine == "nextflow" {
+                "nextflow.enable.dsl = 2\nworkflow {\n}\n"
+            } else {
+                "[workflow]\nname = \"rnaseq\"\n[[step]]\nname = \"fastp\"\ncmd = \"fastp\"\n"
+            };
+            format!("WORKFLOW:\n{content}\nEND_WORKFLOW\nEXPLANATION:\nA complete workflow.")
+        }
+
+        // ── generate_workflow ─────────────────────────────────────────────────
+
+        #[tokio::test]
+        async fn test_generate_workflow_native_success() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(completion_body(&valid_workflow_response("native"))),
+                )
+                .mount(&server)
+                .await;
+
+            let result =
+                generate_workflow(&mock_cfg(&server.uri()), "rnaseq pipeline", "native").await;
+
+            assert!(result.is_ok(), "should succeed: {:?}", result.err());
+            let wf = result.unwrap();
+            assert_eq!(wf.engine, "native");
+            assert!(!wf.content.is_empty());
+            assert!(!wf.explanation.is_empty());
+        }
+
+        #[tokio::test]
+        async fn test_generate_workflow_snakemake_success() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(completion_body(&valid_workflow_response("snakemake"))),
+                )
+                .mount(&server)
+                .await;
+
+            let result =
+                generate_workflow(&mock_cfg(&server.uri()), "rnaseq pipeline", "snakemake").await;
+
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap().engine, "snakemake");
+        }
+
+        #[tokio::test]
+        async fn test_generate_workflow_nextflow_success() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(completion_body(&valid_workflow_response("nextflow"))),
+                )
+                .mount(&server)
+                .await;
+
+            let result =
+                generate_workflow(&mock_cfg(&server.uri()), "rnaseq pipeline", "nextflow").await;
+
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap().engine, "nextflow");
+        }
+
+        #[tokio::test]
+        async fn test_generate_workflow_retries_on_bad_format() {
+            let server = MockServer::start().await;
+            // First call returns invalid format
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(completion_body("This is not valid format at all")),
+                )
+                .up_to_n_times(1)
+                .mount(&server)
+                .await;
+            // Second call returns valid format
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(completion_body(&valid_workflow_response("native"))),
+                )
+                .mount(&server)
+                .await;
+
+            let result =
+                generate_workflow(&mock_cfg(&server.uri()), "rnaseq pipeline", "native").await;
+
+            assert!(
+                result.is_ok(),
+                "should succeed after retry: {:?}",
+                result.err()
+            );
+        }
+
+        #[tokio::test]
+        async fn test_generate_workflow_both_attempts_fail_returns_error() {
+            let server = MockServer::start().await;
+            // Both calls return invalid format
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(completion_body("Invalid format - no WORKFLOW: markers")),
+                )
+                .mount(&server)
+                .await;
+
+            let result =
+                generate_workflow(&mock_cfg(&server.uri()), "rnaseq pipeline", "native").await;
+
+            assert!(
+                result.is_err(),
+                "should fail when both attempts return bad format"
+            );
+        }
+
+        #[tokio::test]
+        async fn test_generate_workflow_http_error() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(ResponseTemplate::new(500).set_body_string("Internal Server Error"))
+                .mount(&server)
+                .await;
+
+            let result =
+                generate_workflow(&mock_cfg(&server.uri()), "rnaseq pipeline", "native").await;
+
+            assert!(result.is_err());
+        }
+
+        // ── infer_workflow ────────────────────────────────────────────────────
+
+        #[tokio::test]
+        async fn test_infer_workflow_native_success() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(completion_body(&valid_workflow_response("native"))),
+                )
+                .mount(&server)
+                .await;
+
+            let tmp = tempfile::tempdir().unwrap();
+            std::fs::write(tmp.path().join("sample1_R1.fastq.gz"), b"").unwrap();
+            std::fs::write(tmp.path().join("sample1_R2.fastq.gz"), b"").unwrap();
+
+            let result = infer_workflow(
+                &mock_cfg(&server.uri()),
+                "rnaseq analysis",
+                tmp.path(),
+                "native",
+            )
+            .await;
+
+            assert!(
+                result.is_ok(),
+                "infer_workflow should succeed: {:?}",
+                result.err()
+            );
+            let wf = result.unwrap();
+            assert_eq!(wf.engine, "native");
+        }
+
+        #[tokio::test]
+        async fn test_infer_workflow_retries_on_bad_format() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(completion_body("Not valid workflow format")),
+                )
+                .up_to_n_times(1)
+                .mount(&server)
+                .await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(completion_body(&valid_workflow_response("native"))),
+                )
+                .mount(&server)
+                .await;
+
+            let tmp = tempfile::tempdir().unwrap();
+            let result = infer_workflow(
+                &mock_cfg(&server.uri()),
+                "rnaseq analysis",
+                tmp.path(),
+                "native",
+            )
+            .await;
+
+            assert!(result.is_ok());
+        }
+
+        #[tokio::test]
+        async fn test_infer_workflow_empty_dir() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/chat/completions"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(completion_body(&valid_workflow_response("native"))),
+                )
+                .mount(&server)
+                .await;
+
+            let tmp = tempfile::tempdir().unwrap();
+            // Empty directory — scan_data_directory returns empty context
+            let result = infer_workflow(
+                &mock_cfg(&server.uri()),
+                "rnaseq analysis",
+                tmp.path(),
+                "native",
+            )
+            .await;
+
+            assert!(result.is_ok());
+        }
+    }
 }

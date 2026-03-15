@@ -1312,9 +1312,7 @@ auto_update = true
     #[test]
     fn test_skill_manager_load_user_skill_md() {
         use crate::config::Config;
-        use std::sync::Mutex;
-        static LOCK: Mutex<()> = Mutex::new(());
-        let _guard = LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
 
         let tmp = tempfile::tempdir().unwrap();
         let skill_dir = tmp.path().join(".config").join("oxo-call").join("skills");
@@ -1385,9 +1383,7 @@ tags: []
     #[test]
     fn test_find_user_or_community_skill_path_not_found() {
         use crate::config::Config;
-        use std::sync::Mutex;
-        static LOCK2: Mutex<()> = Mutex::new(());
-        let _guard = LOCK2.lock().unwrap_or_else(|p| p.into_inner());
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
 
         let tmp = tempfile::tempdir().unwrap();
         unsafe {
@@ -1479,8 +1475,6 @@ tags: []
 
     // ─── SkillManager community skill loading ─────────────────────────────────
 
-    static SKILL_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-
     /// Helper: write a minimal valid skill .md to `dir/<tool>.md`
     fn write_test_skill(dir: &std::path::Path, tool: &str) {
         let md = format!(
@@ -1531,7 +1525,7 @@ tags: []
 
     #[test]
     fn test_load_community_skill_from_data_dir() {
-        let _guard = SKILL_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         let tmp = tempfile::tempdir().unwrap();
         unsafe {
             std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
@@ -1553,7 +1547,7 @@ tags: []
 
     #[test]
     fn test_list_all_includes_community_skills() {
-        let _guard = SKILL_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         let tmp = tempfile::tempdir().unwrap();
         unsafe {
             std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
@@ -1572,7 +1566,7 @@ tags: []
 
     #[test]
     fn test_list_all_includes_builtin_skills() {
-        let _guard = SKILL_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         let tmp = tempfile::tempdir().unwrap();
         unsafe {
             std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
@@ -1593,7 +1587,7 @@ tags: []
 
     #[test]
     fn test_remove_community_skill() {
-        let _guard = SKILL_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         let tmp = tempfile::tempdir().unwrap();
         unsafe {
             std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
@@ -1612,7 +1606,7 @@ tags: []
 
     #[test]
     fn test_remove_builtin_skill_fails() {
-        let _guard = SKILL_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         let tmp = tempfile::tempdir().unwrap();
         unsafe {
             std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
@@ -1626,7 +1620,7 @@ tags: []
 
     #[test]
     fn test_find_user_or_community_skill_path_found() {
-        let _guard = SKILL_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         let tmp = tempfile::tempdir().unwrap();
         unsafe {
             std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());

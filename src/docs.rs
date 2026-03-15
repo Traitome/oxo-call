@@ -750,10 +750,11 @@ fn strip_embedded_help_section(cached: &str) -> String {
 mod tests {
     use super::*;
     use crate::config::Config;
-    use std::sync::Mutex;
 
-    // Mutex to serialize tests that mutate OXO_CALL_DATA_DIR
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
+    // All tests that mutate OXO_CALL_DATA_DIR use the crate-wide ENV_LOCK
+    // so they are serialised against tests in skill.rs, config.rs, and
+    // history.rs that also touch the same env variable.
+    use crate::ENV_LOCK;
 
     // ─── validate_tool_name ───────────────────────────────────────────────────
 

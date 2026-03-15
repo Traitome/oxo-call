@@ -423,4 +423,464 @@ mod tests {
         assert!(json.contains("\"uri\""));
         assert!(json.contains("skill://samtools"));
     }
+
+    // ─── RpcResponse deserialization ──────────────────────────────────────────
+
+    #[test]
+    fn test_rpc_response_success_deserialization() {
+        let json = r#"{"id": 1, "result": {"serverInfo": {"name": "my-server", "version": "1.0"}}, "error": null}"#;
+        let resp: RpcResponse = serde_json::from_str(json).unwrap();
+        assert!(resp.result.is_some());
+        assert!(resp.error.is_none());
+        let result = resp.result.unwrap();
+        assert_eq!(result["serverInfo"]["name"], "my-server");
+    }
+
+    #[test]
+    fn test_rpc_response_error_deserialization() {
+        let json =
+            r#"{"id": 1, "result": null, "error": {"code": -32601, "message": "not found"}}"#;
+        let resp: RpcResponse = serde_json::from_str(json).unwrap();
+        assert!(resp.result.is_none());
+        assert!(resp.error.is_some());
+        let err = resp.error.unwrap();
+        assert_eq!(err["code"], -32601);
+    }
+
+    #[test]
+    fn test_rpc_response_no_id_deserialization() {
+        let json = r#"{"result": {"resources": []}, "error": null}"#;
+        let resp: RpcResponse = serde_json::from_str(json).unwrap();
+        assert!(resp.id.is_none());
+        assert!(resp.result.is_some());
+    }
+
+    // ─── McpServerConfig::name() ──────────────────────────────────────────────
+
+    #[test]
+    fn test_mcp_server_config_name_with_name_field() {
+        let cfg = McpServerConfig {
+            url: "http://localhost:3000".to_string(),
+            name: "my-server".to_string(),
+            api_key: None,
+        };
+        assert_eq!(cfg.name(), "my-server");
+    }
+
+    #[test]
+    fn test_mcp_server_config_name_empty_falls_back_to_url() {
+        let cfg = McpServerConfig {
+            url: "http://localhost:3000".to_string(),
+            name: String::new(),
+            api_key: None,
+        };
+        // When name is empty, name() falls back to the URL
+        let n = cfg.name();
+        assert!(!n.is_empty(), "name() should never return empty string");
+    }
+
+    // ─── McpClient: endpoint with api_key ─────────────────────────────────────
+
+    #[test]
+    fn test_mcp_client_with_api_key() {
+        let cfg = McpServerConfig {
+            url: "https://skills.example.org".to_string(),
+            name: "secure-server".to_string(),
+            api_key: Some("mysecretkey".to_string()),
+        };
+        let client = McpClient::new(cfg);
+        assert_eq!(
+            client.endpoint(),
+            "https://skills.example.org/mcp",
+            "endpoint should append /mcp"
+        );
+        assert_eq!(
+            client.config.api_key.as_deref(),
+            Some("mysecretkey"),
+            "api_key should be stored"
+        );
+    }
+
+    // ─── MCP_TIMEOUT_SECS constant ────────────────────────────────────────────
+
+    #[test]
+    fn test_mcp_timeout_constant() {
+        assert_eq!(MCP_TIMEOUT_SECS, 5, "MCP timeout should be 5 seconds");
+    }
+
+    // ─── Mock HTTP tests (wiremock) ───────────────────────────────────────────
+
+    #[cfg(not(target_arch = "wasm32"))]
+    mod mock_tests {
+        use super::*;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        fn make_server_config(url: &str) -> McpServerConfig {
+            McpServerConfig {
+                url: url.to_string(),
+                name: "test-server".to_string(),
+                api_key: None,
+            }
+        }
+
+        fn rpc_result(result: serde_json::Value) -> serde_json::Value {
+            serde_json::json!({"id": 1, "result": result, "error": null})
+        }
+
+        fn rpc_error(msg: &str) -> serde_json::Value {
+            serde_json::json!({"id": 1, "result": null, "error": {"code": -32601, "message": msg}})
+        }
+
+        // ── initialize ─────────────────────────────────────────────────────────
+
+        #[tokio::test]
+        async fn test_initialize_success() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/mcp"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(rpc_result(
+                    serde_json::json!({"serverInfo": {"name": "my-skills", "version": "1.2.3"}}),
+                )))
+                .mount(&server)
+                .await;
+
+            let client = McpClient::new(make_server_config(&server.uri()));
+            let result = client.initialize().await;
+
+            assert!(
+                result.is_ok(),
+                "initialize should succeed: {:?}",
+                result.err()
+            );
+            let (name, version) = result.unwrap();
+            assert_eq!(name, "my-skills");
+            assert_eq!(version, "1.2.3");
+        }
+
+        #[tokio::test]
+        async fn test_initialize_missing_server_info_uses_url() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/mcp"))
+                .respond_with(
+                    ResponseTemplate::new(200).set_body_json(rpc_result(serde_json::json!({}))),
+                )
+                .mount(&server)
+                .await;
+
+            let client = McpClient::new(make_server_config(&server.uri()));
+            let result = client.initialize().await;
+
+            assert!(result.is_ok());
+            let (name, version) = result.unwrap();
+            // Falls back to URL when serverInfo is missing
+            assert!(!name.is_empty());
+            assert_eq!(version, "unknown");
+        }
+
+        #[tokio::test]
+        async fn test_initialize_rpc_error() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/mcp"))
+                .respond_with(
+                    ResponseTemplate::new(200).set_body_json(rpc_error("method not found")),
+                )
+                .mount(&server)
+                .await;
+
+            let client = McpClient::new(make_server_config(&server.uri()));
+            let result = client.initialize().await;
+
+            assert!(result.is_err());
+            let msg = result.unwrap_err().to_string();
+            assert!(
+                msg.contains("MCP error") || msg.contains("method not found"),
+                "should mention MCP error: {msg}"
+            );
+        }
+
+        #[tokio::test]
+        async fn test_initialize_http_error() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/mcp"))
+                .respond_with(ResponseTemplate::new(503))
+                .mount(&server)
+                .await;
+
+            let client = McpClient::new(make_server_config(&server.uri()));
+            let result = client.initialize().await;
+
+            assert!(result.is_err());
+            let msg = result.unwrap_err().to_string();
+            assert!(
+                msg.contains("503") || msg.contains("HTTP"),
+                "should mention HTTP error: {msg}"
+            );
+        }
+
+        // ── list_skill_resources ───────────────────────────────────────────────
+
+        #[tokio::test]
+        async fn test_list_skill_resources_skill_uri() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/mcp"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(rpc_result(
+                    serde_json::json!({
+                        "resources": [
+                            {"uri": "skill://samtools", "name": "samtools", "description": "SAM/BAM"},
+                            {"uri": "skill://bwa", "name": "bwa", "description": "BWA"},
+                        ]
+                    }),
+                )))
+                .mount(&server)
+                .await;
+
+            let client = McpClient::new(make_server_config(&server.uri()));
+            let result = client.list_skill_resources().await;
+
+            assert!(result.is_ok());
+            let entries = result.unwrap();
+            assert_eq!(entries.len(), 2);
+            assert_eq!(entries[0].tool, "samtools");
+            assert_eq!(entries[1].tool, "bwa");
+        }
+
+        #[tokio::test]
+        async fn test_list_skill_resources_markdown_fallback() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/mcp"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(rpc_result(
+                    serde_json::json!({
+                        "resources": [
+                            {"uri": "resource://docs/samtools", "name": "samtools",
+                             "description": "samtools docs", "mimeType": "text/markdown"},
+                        ]
+                    }),
+                )))
+                .mount(&server)
+                .await;
+
+            let client = McpClient::new(make_server_config(&server.uri()));
+            let result = client.list_skill_resources().await;
+
+            assert!(result.is_ok());
+            let entries = result.unwrap();
+            assert_eq!(entries.len(), 1);
+            assert_eq!(entries[0].tool, "samtools");
+        }
+
+        #[tokio::test]
+        async fn test_list_skill_resources_empty_when_no_resources_key() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/mcp"))
+                .respond_with(
+                    ResponseTemplate::new(200).set_body_json(rpc_result(serde_json::json!({}))),
+                )
+                .mount(&server)
+                .await;
+
+            let client = McpClient::new(make_server_config(&server.uri()));
+            let result = client.list_skill_resources().await;
+
+            assert!(result.is_ok());
+            assert!(result.unwrap().is_empty());
+        }
+
+        // ── read_resource ──────────────────────────────────────────────────────
+
+        #[tokio::test]
+        async fn test_read_resource_success() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/mcp"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(rpc_result(
+                    serde_json::json!({
+                        "contents": [
+                            {"uri": "skill://samtools", "text": "# samtools skill\n..."}
+                        ]
+                    }),
+                )))
+                .mount(&server)
+                .await;
+
+            let client = McpClient::new(make_server_config(&server.uri()));
+            let result = client.read_resource("skill://samtools").await;
+
+            assert!(result.is_ok());
+            let content = result.unwrap();
+            assert!(content.contains("samtools"));
+        }
+
+        #[tokio::test]
+        async fn test_read_resource_empty_content_returns_error() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/mcp"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(rpc_result(
+                    serde_json::json!({"contents": [{"uri": "skill://samtools", "text": ""}]}),
+                )))
+                .mount(&server)
+                .await;
+
+            let client = McpClient::new(make_server_config(&server.uri()));
+            let result = client.read_resource("skill://samtools").await;
+
+            assert!(result.is_err(), "empty text should return error");
+        }
+
+        #[tokio::test]
+        async fn test_read_resource_no_contents_returns_error() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/mcp"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(rpc_result(serde_json::json!({"contents": []}))),
+                )
+                .mount(&server)
+                .await;
+
+            let client = McpClient::new(make_server_config(&server.uri()));
+            let result = client.read_resource("skill://samtools").await;
+
+            assert!(result.is_err());
+        }
+
+        // ── fetch_skill ────────────────────────────────────────────────────────
+
+        #[tokio::test]
+        async fn test_fetch_skill_via_canonical_uri() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/mcp"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(rpc_result(
+                    serde_json::json!({
+                        "contents": [{"uri": "skill://samtools", "text": "# samtools\n## Concepts\n"}]
+                    }),
+                )))
+                .mount(&server)
+                .await;
+
+            let client = McpClient::new(make_server_config(&server.uri()));
+            let result = client.fetch_skill("samtools").await;
+
+            assert!(result.is_some(), "should find samtools skill");
+            assert!(result.unwrap().contains("samtools"));
+        }
+
+        #[tokio::test]
+        async fn test_fetch_skill_falls_back_to_list_scan() {
+            let server = MockServer::start().await;
+            // First call (canonical URI) fails → empty content
+            Mock::given(method("POST"))
+                .and(path("/mcp"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(rpc_result(serde_json::json!({"contents": []}))),
+                )
+                .up_to_n_times(1)
+                .mount(&server)
+                .await;
+            // Second call (list resources) returns a resource
+            Mock::given(method("POST"))
+                .and(path("/mcp"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(rpc_result(
+                    serde_json::json!({
+                        "resources": [{"uri": "resource://samtools", "name": "samtools", "description": "", "mimeType": "text/markdown"}]
+                    }),
+                )))
+                .up_to_n_times(1)
+                .mount(&server)
+                .await;
+            // Third call (read the found resource) returns content
+            Mock::given(method("POST"))
+                .and(path("/mcp"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(rpc_result(
+                    serde_json::json!({
+                        "contents": [{"uri": "resource://samtools", "text": "# samtools content"}]
+                    }),
+                )))
+                .mount(&server)
+                .await;
+
+            let client = McpClient::new(make_server_config(&server.uri()));
+            let result = client.fetch_skill("samtools").await;
+
+            // Either finds it via fallback or not — just verify no panic
+            let _ = result;
+        }
+
+        #[tokio::test]
+        async fn test_fetch_skill_not_found_returns_none() {
+            let server = MockServer::start().await;
+            // All calls fail with empty content
+            Mock::given(method("POST"))
+                .and(path("/mcp"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(rpc_result(serde_json::json!({"contents": []}))),
+                )
+                .up_to_n_times(1)
+                .mount(&server)
+                .await;
+            Mock::given(method("POST"))
+                .and(path("/mcp"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .set_body_json(rpc_result(serde_json::json!({"resources": []}))),
+                )
+                .mount(&server)
+                .await;
+
+            let client = McpClient::new(make_server_config(&server.uri()));
+            let result = client.fetch_skill("nonexistent-tool").await;
+
+            assert!(result.is_none());
+        }
+
+        // ── send: with api_key header ──────────────────────────────────────────
+
+        #[tokio::test]
+        async fn test_send_with_api_key() {
+            let server = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/mcp"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(rpc_result(
+                    serde_json::json!({"serverInfo": {"name": "secure", "version": "1.0"}}),
+                )))
+                .mount(&server)
+                .await;
+
+            let cfg = McpServerConfig {
+                url: server.uri(),
+                name: "secure-server".to_string(),
+                api_key: Some("mysecretkey".to_string()),
+            };
+            let client = McpClient::new(cfg);
+            let result = client.initialize().await;
+
+            assert!(result.is_ok());
+        }
+
+        // ── send: connection refused returns IndexError ────────────────────────
+
+        #[tokio::test]
+        async fn test_send_connection_refused_returns_error() {
+            // Port 1 is almost never bound — should get a connection refused
+            let client = McpClient::new(make_server_config("http://127.0.0.1:1"));
+            let result = client.initialize().await;
+            assert!(result.is_err());
+            let msg = result.unwrap_err().to_string();
+            assert!(
+                msg.contains("unreachable") || msg.contains("MCP") || msg.contains("error"),
+                "should indicate server unreachable: {msg}"
+            );
+        }
+    }
 }
