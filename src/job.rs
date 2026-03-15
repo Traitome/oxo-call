@@ -685,4 +685,129 @@ mod tests {
         assert_eq!(back.job_name, "test-job");
         assert_eq!(back.exit_code, 0);
     }
+
+    // ─── JobEntry additional ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_job_entry_default_fields() {
+        let entry = JobEntry {
+            name: "test".to_string(),
+            command: "echo hi".to_string(),
+            description: None,
+            tags: Vec::new(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            schedule: None,
+            run_count: 0,
+            last_run: None,
+            last_exit_code: None,
+        };
+        let toml = toml::to_string(&entry).unwrap();
+        assert!(toml.contains("name = \"test\""));
+        assert!(toml.contains("command = \"echo hi\""));
+        // Optional None fields should be absent
+        assert!(!toml.contains("description ="));
+    }
+
+    #[test]
+    fn test_job_entry_with_all_fields() {
+        let entry = JobEntry {
+            name: "align".to_string(),
+            command: "bwa mem ref.fa reads.fq > out.sam".to_string(),
+            description: Some("Align reads".to_string()),
+            tags: vec!["alignment".to_string(), "bwa".to_string()],
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            schedule: Some("daily".to_string()),
+            run_count: 5,
+            last_run: Some(Utc::now()),
+            last_exit_code: Some(0),
+        };
+        let toml = toml::to_string(&entry).unwrap();
+        let back: JobEntry = toml::from_str(&toml).unwrap();
+        assert_eq!(back.name, "align");
+        assert_eq!(back.description.as_deref(), Some("Align reads"));
+        assert_eq!(back.tags, vec!["alignment", "bwa"]);
+        assert_eq!(back.schedule.as_deref(), Some("daily"));
+        assert_eq!(back.run_count, 5);
+        assert_eq!(back.last_exit_code, Some(0));
+    }
+
+    #[test]
+    fn test_job_file_round_trip() {
+        let mut jf = JobFile::default();
+        jf.jobs.push(JobEntry {
+            name: "test1".to_string(),
+            command: "echo 1".to_string(),
+            description: None,
+            tags: Vec::new(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            schedule: None,
+            run_count: 0,
+            last_run: None,
+            last_exit_code: None,
+        });
+        jf.jobs.push(JobEntry {
+            name: "test2".to_string(),
+            command: "echo 2".to_string(),
+            description: Some("second job".to_string()),
+            tags: vec!["test".to_string()],
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            schedule: None,
+            run_count: 0,
+            last_run: None,
+            last_exit_code: None,
+        });
+        let toml = toml::to_string(&jf).unwrap();
+        let back: JobFile = toml::from_str(&toml).unwrap();
+        assert_eq!(back.jobs.len(), 2);
+        assert_eq!(back.jobs[0].name, "test1");
+        assert_eq!(back.jobs[1].name, "test2");
+    }
+
+    #[test]
+    fn test_job_run_all_fields() {
+        let run = JobRun {
+            job_name: "align".to_string(),
+            command: "bwa mem ref.fa reads.fq".to_string(),
+            server: Some("hpc-cluster".to_string()),
+            exit_code: 1,
+            started_at: Utc::now(),
+            duration_secs: 120.5,
+        };
+        let json = serde_json::to_string(&run).unwrap();
+        let back: JobRun = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.server.as_deref(), Some("hpc-cluster"));
+        assert_eq!(back.exit_code, 1);
+        assert!((back.duration_secs - 120.5).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_builtin_jobs_all_have_names() {
+        for job in BUILTIN_JOBS {
+            assert!(
+                !job.name.is_empty(),
+                "built-in job name should not be empty"
+            );
+            assert!(
+                !job.command.is_empty(),
+                "built-in job '{}' command should not be empty",
+                job.name
+            );
+        }
+    }
+
+    #[test]
+    fn test_builtin_jobs_unique_names() {
+        let mut names: Vec<&str> = BUILTIN_JOBS.iter().map(|j| j.name).collect();
+        names.sort();
+        names.dedup();
+        assert_eq!(
+            names.len(),
+            BUILTIN_JOBS.len(),
+            "built-in job names should be unique"
+        );
+    }
 }

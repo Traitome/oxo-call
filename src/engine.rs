@@ -3218,4 +3218,347 @@ outputs = ["out.sam"]
             "output older than input should not be up-to-date"
         );
     }
+
+    // ─── format_elapsed ───────────────────────────────────────────────────────
+
+    #[test]
+    fn test_format_elapsed_zero() {
+        assert_eq!(format_elapsed(std::time::Duration::from_secs(0)), "0.0s");
+    }
+
+    #[test]
+    fn test_format_elapsed_sub_second_millis() {
+        assert_eq!(
+            format_elapsed(std::time::Duration::from_millis(500)),
+            "0.5s"
+        );
+    }
+
+    // ─── mtime + is_up_to_date ────────────────────────────────────────────────
+
+    #[test]
+    fn test_mtime_nonexistent_file() {
+        assert!(mtime("/nonexistent/file/xyz").is_none());
+    }
+
+    #[test]
+    fn test_mtime_existing_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test.txt");
+        std::fs::write(&file_path, "hello").unwrap();
+        assert!(mtime(file_path.to_str().unwrap()).is_some());
+    }
+
+    // ─── print_dag_phases ─────────────────────────────────────────────────────
+
+    #[test]
+    fn test_print_dag_phases_no_panic_empty_vec() {
+        print_dag_phases(&[]);
+    }
+
+    #[test]
+    fn test_print_dag_phases_no_panic_with_tasks() {
+        let tasks = vec![
+            ConcreteTask {
+                step_name: "align".to_string(),
+                id: "align__s1".to_string(),
+                cmd: "bwa mem ref.fa s1.fq".to_string(),
+                inputs: vec!["s1.fq".to_string()],
+                outputs: vec!["s1.bam".to_string()],
+                deps: vec![],
+                gather: false,
+                env: None,
+            },
+            ConcreteTask {
+                step_name: "sort".to_string(),
+                id: "sort__s1".to_string(),
+                cmd: "samtools sort s1.bam".to_string(),
+                inputs: vec!["s1.bam".to_string()],
+                outputs: vec!["s1.sorted.bam".to_string()],
+                deps: vec!["align__s1".to_string()],
+                gather: false,
+                env: None,
+            },
+        ];
+        print_dag_phases(&tasks);
+    }
+
+    // ─── print_task_dry_run ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_print_task_dry_run_no_panic_with_io() {
+        let task = ConcreteTask {
+            step_name: "test".to_string(),
+            id: "test__1".to_string(),
+            cmd: "echo hello".to_string(),
+            inputs: vec!["in.txt".to_string()],
+            outputs: vec!["out.txt".to_string()],
+            deps: vec![],
+            gather: false,
+            env: None,
+        };
+        print_task_dry_run(&task, 1, 5);
+    }
+
+    #[test]
+    fn test_print_task_dry_run_with_env() {
+        let task = ConcreteTask {
+            step_name: "test".to_string(),
+            id: "test__1".to_string(),
+            cmd: "echo hello".to_string(),
+            inputs: vec![],
+            outputs: vec![],
+            deps: vec![],
+            gather: false,
+            env: Some("THREADS=4".to_string()),
+        };
+        print_task_dry_run(&task, 0, 1);
+    }
+
+    // ─── print_verify_report ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_print_verify_report_no_diags() {
+        let def = WorkflowDef {
+            workflow: WorkflowMeta {
+                name: "test".to_string(),
+                description: String::new(),
+                version: String::new(),
+            },
+            wildcards: HashMap::new(),
+            params: HashMap::new(),
+            steps: vec![],
+        };
+        let result = print_verify_report(&def, &[]);
+        assert!(!result, "no errors should return false");
+    }
+
+    #[test]
+    fn test_print_verify_report_with_single_error() {
+        let def = WorkflowDef {
+            workflow: WorkflowMeta {
+                name: "test".to_string(),
+                description: String::new(),
+                version: String::new(),
+            },
+            wildcards: HashMap::new(),
+            params: HashMap::new(),
+            steps: vec![],
+        };
+        let diags = vec![Diagnostic {
+            level: DiagLevel::Error,
+            message: "test error".to_string(),
+        }];
+        let result = print_verify_report(&def, &diags);
+        assert!(result, "errors should return true");
+    }
+
+    #[test]
+    fn test_print_verify_report_warnings_only() {
+        let def = WorkflowDef {
+            workflow: WorkflowMeta {
+                name: "test".to_string(),
+                description: String::new(),
+                version: String::new(),
+            },
+            wildcards: HashMap::new(),
+            params: HashMap::new(),
+            steps: vec![],
+        };
+        let diags = vec![Diagnostic {
+            level: DiagLevel::Warning,
+            message: "test warning".to_string(),
+        }];
+        let result = print_verify_report(&def, &diags);
+        assert!(!result, "warnings only should return false");
+    }
+
+    #[test]
+    fn test_print_verify_report_mixed_diags() {
+        let def = WorkflowDef {
+            workflow: WorkflowMeta {
+                name: "test".to_string(),
+                description: String::new(),
+                version: String::new(),
+            },
+            wildcards: HashMap::new(),
+            params: HashMap::new(),
+            steps: vec![],
+        };
+        let diags = vec![
+            Diagnostic {
+                level: DiagLevel::Error,
+                message: "error 1".to_string(),
+            },
+            Diagnostic {
+                level: DiagLevel::Warning,
+                message: "warning 1".to_string(),
+            },
+            Diagnostic {
+                level: DiagLevel::Error,
+                message: "error 2".to_string(),
+            },
+        ];
+        let result = print_verify_report(&def, &diags);
+        assert!(result, "should return true when errors present");
+    }
+
+    // ─── visualize_workflow ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_visualize_workflow_simple() {
+        let def = WorkflowDef {
+            workflow: WorkflowMeta {
+                name: "test-vis".to_string(),
+                description: "A test workflow".to_string(),
+                version: String::new(),
+            },
+            wildcards: HashMap::new(),
+            params: HashMap::new(),
+            steps: vec![StepDef {
+                name: "step1".to_string(),
+                cmd: "echo hello".to_string(),
+                inputs: vec![],
+                outputs: vec![],
+                depends_on: vec![],
+                gather: false,
+                env: None,
+            }],
+        };
+        let result = visualize_workflow(&def);
+        assert!(result.is_ok(), "simple visualization should succeed");
+    }
+
+    #[test]
+    fn test_visualize_workflow_with_wildcards() {
+        let mut wildcards = HashMap::new();
+        wildcards.insert(
+            "sample".to_string(),
+            vec![
+                "s1".to_string(),
+                "s2".to_string(),
+                "s3".to_string(),
+                "s4".to_string(),
+                "s5".to_string(),
+            ],
+        );
+        let def = WorkflowDef {
+            workflow: WorkflowMeta {
+                name: "wildcard-vis".to_string(),
+                description: String::new(),
+                version: String::new(),
+            },
+            wildcards,
+            params: HashMap::new(),
+            steps: vec![StepDef {
+                name: "align".to_string(),
+                cmd: "bwa mem ref.fa {sample}.fq".to_string(),
+                inputs: vec!["{sample}.fq".to_string()],
+                outputs: vec!["{sample}.bam".to_string()],
+                depends_on: vec![],
+                gather: false,
+                env: None,
+            }],
+        };
+        let result = visualize_workflow(&def);
+        assert!(result.is_ok());
+    }
+
+    // ─── WorkflowDef::from_str_content ────────────────────────────────────────
+
+    #[test]
+    fn test_from_str_content_valid() {
+        let toml = r#"
+[workflow]
+name = "test"
+description = "A test"
+
+[[step]]
+name = "s1"
+cmd = "echo hello"
+"#;
+        let def = WorkflowDef::from_str_content(toml);
+        assert!(def.is_ok());
+        let def = def.unwrap();
+        assert_eq!(def.workflow.name, "test");
+        assert_eq!(def.steps.len(), 1);
+    }
+
+    #[test]
+    fn test_from_str_content_invalid_toml() {
+        let bad = "this is not valid toml [[[";
+        let result = WorkflowDef::from_str_content(bad);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_from_str_content_empty() {
+        // Empty string is not valid TOML for the expected schema
+        let result = WorkflowDef::from_str_content("");
+        assert!(result.is_err());
+    }
+
+    // ─── is_up_to_date with real files ────────────────────────────────────────
+
+    #[test]
+    fn test_is_up_to_date_output_newer_than_input() {
+        let dir = tempfile::tempdir().unwrap();
+        let input_path = dir.path().join("input.txt");
+        std::fs::write(&input_path, "input data").unwrap();
+        // Small sleep to ensure different timestamps
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        let output_path = dir.path().join("output.txt");
+        std::fs::write(&output_path, "output data").unwrap();
+
+        let task = ConcreteTask {
+            step_name: "test".to_string(),
+            id: "test__1".to_string(),
+            cmd: "echo".to_string(),
+            inputs: vec![input_path.to_str().unwrap().to_string()],
+            outputs: vec![output_path.to_str().unwrap().to_string()],
+            deps: vec![],
+            gather: false,
+            env: None,
+        };
+        assert!(is_up_to_date(&task), "output is newer than input");
+    }
+
+    // ─── format_toml additional ───────────────────────────────────────────────
+
+    #[test]
+    fn test_format_toml_empty_workflow() {
+        let def = WorkflowDef {
+            workflow: WorkflowMeta {
+                name: String::new(),
+                description: String::new(),
+                version: String::new(),
+            },
+            wildcards: HashMap::new(),
+            params: HashMap::new(),
+            steps: vec![],
+        };
+        let toml = format_toml(&def);
+        assert!(toml.contains("[workflow]"));
+    }
+
+    #[test]
+    fn test_format_toml_with_params() {
+        let mut params = HashMap::new();
+        params.insert("threads".to_string(), "8".to_string());
+        params.insert("memory".to_string(), "16G".to_string());
+        let def = WorkflowDef {
+            workflow: WorkflowMeta {
+                name: "param-test".to_string(),
+                description: String::new(),
+                version: String::new(),
+            },
+            wildcards: HashMap::new(),
+            params,
+            steps: vec![],
+        };
+        let toml = format_toml(&def);
+        assert!(toml.contains("[params]"));
+        assert!(toml.contains("threads"));
+        assert!(toml.contains("memory"));
+    }
 }

@@ -1952,4 +1952,148 @@ mod tests {
             assert!(result.is_ok());
         }
     }
+
+    // ─── parse_verification_response edge cases ───────────────────────────────
+
+    #[test]
+    fn test_parse_verification_response_with_issues_and_suggestions() {
+        let raw = "\
+STATUS: fail
+SUMMARY: Command failed with error
+ISSUES:
+- Missing input file
+- Wrong flag used
+SUGGESTIONS:
+- Check the input path
+- Use --output instead of -o";
+        let result = parse_verification_response(raw);
+        assert!(!result.success);
+        assert_eq!(result.issues.len(), 2);
+        assert_eq!(result.suggestions.len(), 2);
+    }
+
+    #[test]
+    fn test_parse_verification_response_only_summary() {
+        let raw = "STATUS: OK\nSUMMARY: Everything looks good";
+        let result = parse_verification_response(raw);
+        assert!(result.success);
+        assert_eq!(result.summary, "Everything looks good");
+        assert!(result.issues.is_empty());
+        assert!(result.suggestions.is_empty());
+    }
+
+    // ─── strip_markdown_fences additional ─────────────────────────────────────
+
+    #[test]
+    fn test_strip_markdown_fences_with_yaml_fence() {
+        let input = "```yaml\nname: test\nvalue: 42\n```";
+        let result = strip_markdown_fences(input);
+        assert!(result.contains("name: test"));
+        assert!(!result.contains("```"));
+    }
+
+    #[test]
+    fn test_strip_markdown_fences_with_toml_fence() {
+        let input = "```toml\n[section]\nkey = \"value\"\n```";
+        let result = strip_markdown_fences(input);
+        assert!(result.contains("key = \"value\""));
+        assert!(!result.contains("```"));
+    }
+
+    #[test]
+    fn test_strip_markdown_fences_no_closing_fence() {
+        let input = "```markdown\nsome content without closing fence";
+        let result = strip_markdown_fences(input);
+        // Should return the original input if no closing fence
+        assert!(result.contains("some content"));
+    }
+
+    // ─── parse_skill_verify_response additional ───────────────────────────────
+
+    #[test]
+    fn test_parse_skill_verify_response_with_issues_and_suggestions() {
+        let raw = "\
+VERDICT: FAIL
+SUMMARY: Skill has problems
+ISSUES:
+- Missing concepts
+- Too few examples
+SUGGESTIONS:
+- Add more concepts
+- Add at least 5 examples";
+        let result = parse_skill_verify_response(raw);
+        assert!(!result.passed);
+        assert_eq!(result.issues.len(), 2);
+        assert_eq!(result.suggestions.len(), 2);
+    }
+
+    #[test]
+    fn test_parse_skill_verify_response_pass_with_summary() {
+        let raw = "VERDICT: pass\nSUMMARY: Skill looks great";
+        let result = parse_skill_verify_response(raw);
+        assert!(result.passed);
+        assert_eq!(result.summary, "Skill looks great");
+    }
+
+    // ─── build prompts additional ─────────────────────────────────────────────
+
+    #[test]
+    fn test_build_prompt_truncates_long_docs() {
+        let long_docs = "a".repeat(200_000);
+        let prompt = build_prompt("tool", &long_docs, "task", None);
+        // Should still produce a valid prompt (may be truncated internally)
+        assert!(prompt.contains("tool"));
+        assert!(prompt.contains("task"));
+    }
+
+    #[test]
+    fn test_build_prompt_empty_task() {
+        let prompt = build_prompt("samtools", "some docs", "", None);
+        assert!(prompt.contains("samtools"));
+    }
+
+    #[test]
+    fn test_build_retry_prompt_format() {
+        let prompt = build_retry_prompt(
+            "samtools",
+            "some docs",
+            "sort a BAM file",
+            None,
+            "invalid resp",
+        );
+        assert!(prompt.contains("samtools"));
+        assert!(prompt.contains("sort a BAM file"));
+        assert!(prompt.contains("invalid resp"));
+    }
+
+    #[test]
+    fn test_build_skill_generate_prompt_format() {
+        let prompt = build_skill_generate_prompt("fastp");
+        assert!(prompt.contains("fastp"));
+    }
+
+    // ─── parse_shell_args additional ──────────────────────────────────────────
+
+    #[test]
+    fn test_parse_shell_args_nested_quotes() {
+        let result = parse_shell_args("--filter 'QUAL > 30'");
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0], "--filter");
+        assert_eq!(result[1], "QUAL > 30");
+    }
+
+    #[test]
+    fn test_parse_shell_args_equals_syntax() {
+        let result = parse_shell_args("--threads=8 --output=out.bam");
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0], "--threads=8");
+        assert_eq!(result[1], "--output=out.bam");
+    }
+
+    #[test]
+    fn test_parse_shell_args_backslash_space() {
+        let result = parse_shell_args("my\\ file.bam");
+        // Backslash-space should be treated as escaped space
+        assert!(!result.is_empty());
+    }
 }
