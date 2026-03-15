@@ -152,6 +152,7 @@ oxo-call uses a "docs-first" grounding strategy:
 3. The combined context prevents the LLM from hallucinating flags
 
 This approach is critical for accuracy, especially with:
+
 - Complex tools with hundreds of options
 - Tools with version-specific flag differences
 - Smaller or weaker LLM models

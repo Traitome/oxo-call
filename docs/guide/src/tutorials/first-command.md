@@ -31,6 +31,7 @@ oxo-call config verify
 ```
 
 Expected output from `config verify`:
+
 ```
 ✓ LLM provider: github-copilot
 ✓ API token: configured
@@ -50,12 +51,14 @@ oxo-call dry-run samtools "sort input.bam by coordinate and output to sorted.bam
 ```
 
 What happens behind the scenes:
+
 1. oxo-call runs `samtools --help` and caches the output (first time only)
 2. The built-in `samtools` skill injects expert knowledge into the prompt
 3. The LLM receives: task + docs + skill, and returns the correct flags
 4. The command is printed for you to inspect — nothing is executed
 
 Expected output:
+
 ```
 Command: samtools sort -o sorted.bam input.bam
 Explanation: Uses -o to specify the output file; coordinate sort is the default behavior.
@@ -108,12 +111,14 @@ oxo-call history list
 ```
 
 Output:
+
 ```
 ok    samtools   0   2025-06-01 12:00:00   samtools sort -o sorted.bam input.bam
       [ver=samtools 1.21, model=gpt-4o-mini, skill=samtools, docs=a1b2c3d4]
 ```
 
 Each history entry includes:
+
 - **Status**: `ok` (exit 0) or `err` (non-zero exit)
 - **Tool**: the CLI tool that ran
 - **Exit code**: process exit code
@@ -122,6 +127,7 @@ Each history entry includes:
 - **Provenance**: tool version, model, skill used, docs hash
 
 To filter by tool:
+
 ```bash
 oxo-call history list --tool samtools
 ```

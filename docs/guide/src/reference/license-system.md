@@ -36,6 +36,7 @@ oxo-call searches for a license in this order:
 ### License Gate Enforcement
 
 The license gate is enforced in `src/main.rs` before command dispatch. Only these are exempt:
+
 - `license` subcommands
 - `--help` (handled by Clap before `run()`)
 - `--version` (handled by Clap before `run()`)

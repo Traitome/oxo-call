@@ -117,6 +117,7 @@ outputs    = ["final/cohort.vcf.gz"]
 ```
 
 With 4 samples, the execution order is:
+
 1. `bwa_align` × 4 (parallel)
 2. `mark_duplicates` × 4 (parallel)
 3. `bqsr` × 4 (parallel)

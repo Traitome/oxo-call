@@ -53,6 +53,7 @@ This documentation is organized as a hands-on tutorial book:
 
 ### If you are new to oxo-call
 Start with **Getting Started**:
+
 1. [Installation](./tutorials/installation.md) — install the binary
 2. [License Setup](./tutorials/license.md) — get your free academic license
 3. [Configuration](./tutorials/configuration.md) — connect your LLM
@@ -60,12 +61,14 @@ Start with **Getting Started**:
 
 ### If you want hands-on practice
 Work through the **Tutorials** in order:
+
 - [SAM/BAM Processing](./tutorials/bam-workflow.md) — complete BAM pipeline
 - [RNA-seq Walkthrough](./tutorials/rnaseq-walkthrough.md) — end-to-end analysis
 - [Workflow Builder](./tutorials/workflow-builder.md) — automate multi-sample runs
 
 ### If you need to accomplish a specific task
 Jump to **How-to Guides**:
+
 - [Add docs for a new tool](./how-to/add-tool-docs.md)
 - [Switch LLM provider](./how-to/change-llm-provider.md)
 - [Create a custom skill](./how-to/create-custom-skill.md)

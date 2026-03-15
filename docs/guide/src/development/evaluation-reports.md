@@ -592,6 +592,7 @@ cargo run -p oxo-bench -- export-csv --output docs/
 ```
 
 Benchmark results are stored in CSV files under `docs/`:
+
 - `bench_workflow.csv` — Workflow execution metrics
 - `bench_scenarios.csv` — Scenario configurations
 - `bench_eval_tasks.csv` — Evaluation task results

@@ -35,6 +35,7 @@ We will use oxo-call at each step. The commands shown use example filenames — 
 ### Sample data assumptions
 
 This tutorial assumes:
+
 - Paired-end RNA-seq data: `sample1_R1.fastq.gz`, `sample1_R2.fastq.gz`
 - STAR genome index at: `/data/star_hg38/`
 - GTF annotation at: `/data/gencode.v44.gtf`
@@ -77,6 +78,7 @@ oxo-call dry-run fastp \
 ```
 
 Expected:
+
 ```
 Command: fastp \
   --in1 sample1_R1.fastq.gz --in2 sample1_R2.fastq.gz \
@@ -115,6 +117,7 @@ oxo-call dry-run STAR \
 ```
 
 Expected:
+
 ```
 Command: STAR \
   --runMode genomeGenerate \
@@ -135,6 +138,7 @@ oxo-call dry-run STAR \
 ```
 
 Expected:
+
 ```
 Command: STAR \
   --genomeDir /data/star_hg38 \
@@ -150,6 +154,7 @@ Explanation: --readFilesCommand zcat handles .gz files; SortedByCoordinate produ
 > Forgetting this flag when using `.gz` input is one of the most common STAR mistakes. The STAR skill includes it as a pitfall: *"Always add `--readFilesCommand zcat` for compressed FASTQ."*
 
 Execute:
+
 ```bash
 mkdir -p aligned/sample1
 oxo-call run STAR \
@@ -179,6 +184,7 @@ oxo-call dry-run multiqc \
 ```
 
 Expected:
+
 ```
 Command: multiqc qc/ aligned/ -o results/multiqc/
 Explanation: multiqc automatically discovers fastp JSON reports and STAR Log.final.out files in the specified directories.
@@ -191,6 +197,7 @@ oxo-call run multiqc \
 ```
 
 Open `results/multiqc/multiqc_report.html` in a browser to review:
+
 - Per-sample read quality before/after trimming
 - Alignment rates
 - Duplication rates
@@ -210,6 +217,7 @@ oxo-call dry-run featureCounts \
 ```
 
 Expected:
+
 ```
 Command: featureCounts \
   -a /data/gencode.v44.gtf \
@@ -225,6 +233,7 @@ Explanation: -p specifies paired-end mode; -a is the GTF annotation; -T sets thr
 > `oxo-call dry-run salmon "quantify sample1_R1.fastq.gz and sample1_R2.fastq.gz against index at /data/salmon_hg38_index, output to quant/sample1/"`
 
 Execute:
+
 ```bash
 mkdir -p results
 oxo-call run featureCounts \

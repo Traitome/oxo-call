@@ -31,6 +31,7 @@ export GH_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
 ```
 
 Get a token:
+
 1. Go to [github.com/settings/tokens](https://github.com/settings/tokens)
 2. Create a new token with `read:user` and GitHub Copilot access
 3. Or use the GitHub CLI: `gh auth token`
@@ -52,6 +53,7 @@ oxo-call config verify
 ```
 
 Environment variable fallbacks:
+
 ```bash
 export OXO_CALL_LLM_PROVIDER=openai
 export OXO_CALL_LLM_API_TOKEN=sk-xxxx
@@ -84,6 +86,7 @@ oxo-call config verify
 ```
 
 Environment variable fallback:
+
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-xxxx
 ```
@@ -137,6 +140,7 @@ oxo-call config verify
 ```
 
 This tests connectivity and returns the model being used:
+
 ```
 ✓ LLM provider: openai
 ✓ Model: gpt-4o-mini
@@ -257,6 +261,7 @@ Make sure the Ollama server is running: `ollama serve`
 **"Invalid API key" errors**
 
 Check that the token is set correctly:
+
 ```bash
 oxo-call config get llm.api_token
 oxo-call config show
@@ -265,6 +270,7 @@ oxo-call config show
 **LLM output is incorrect or hallucinated**
 
 Try a more capable model, or enrich the documentation:
+
 ```bash
 oxo-call docs update <tool>
 oxo-call docs add <tool> --url <docs-url>
@@ -273,6 +279,7 @@ oxo-call docs add <tool> --url <docs-url>
 **Rate limiting**
 
 For high-volume use, consider:
+
 - Using a local Ollama model (no rate limits)
 - Increasing retry settings
 - Caching `--help` output to reduce API calls (done automatically after first run)

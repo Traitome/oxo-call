@@ -34,29 +34,34 @@ export OXO_CALL_LICENSE=/path/to/license.oxo.json
 ## Step 3: Configure Your LLM
 
 ### GitHub Copilot (Default)
+
 ```bash
 oxo-call config set llm.api_token <your-github-token>
 ```
 
 ### OpenAI
+
 ```bash
 oxo-call config set llm.provider openai
 oxo-call config set llm.api_token <your-openai-key>
 ```
 
 ### Anthropic
+
 ```bash
 oxo-call config set llm.provider anthropic
 oxo-call config set llm.api_token <your-anthropic-key>
 ```
 
 ### Ollama (Local, No Token Needed)
+
 ```bash
 oxo-call config set llm.provider ollama
 oxo-call config set llm.model llama3.2
 ```
 
 Verify your configuration:
+
 ```bash
 oxo-call config verify
 ```
@@ -64,22 +69,26 @@ oxo-call config verify
 ## Step 4: Run Your First Command
 
 ### Preview a command (dry-run)
+
 ```bash
 oxo-call dry-run samtools "sort input.bam by coordinate and output to sorted.bam"
 ```
 
 Expected output:
+
 ```
 Command: samtools sort -o sorted.bam input.bam
 Explanation: Uses -o to specify the output file; coordinate sort is the default behavior.
 ```
 
 ### Execute a command
+
 ```bash
 oxo-call run samtools "index sorted.bam"
 ```
 
 Expected output:
+
 ```
 Command: samtools index sorted.bam
 Explanation: Creates a .bai index file for random access to the sorted BAM.
@@ -88,11 +97,13 @@ Explanation: Creates a .bai index file for random access to the sorted BAM.
 ```
 
 ### Ask for confirmation before executing
+
 ```bash
 oxo-call run --ask bcftools "call variants from my.bam against ref.fa"
 ```
 
 Expected output:
+
 ```
 Command: bcftools mpileup -f ref.fa my.bam | bcftools call -mv -o variants.vcf
 Explanation: mpileup generates genotype likelihoods; call -mv outputs variant sites only.
@@ -102,17 +113,20 @@ Execute this command? [y/N]
 ## Step 5: Explore More Features
 
 ### Check available skills
+
 ```bash
 oxo-call skill list
 ```
 
 ### View cached documentation
+
 ```bash
 oxo-call docs list
 oxo-call docs show samtools
 ```
 
 ### Review command history
+
 ```bash
 oxo-call history list
 ```

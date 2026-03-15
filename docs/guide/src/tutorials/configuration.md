@@ -13,6 +13,7 @@ Settings are stored in a TOML file at the platform-specific configuration direct
 | Windows | `%APPDATA%\traitome\oxo-call\config.toml` |
 
 Find your config path:
+
 ```bash
 oxo-call config path
 ```
