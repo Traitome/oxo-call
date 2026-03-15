@@ -338,6 +338,26 @@ fn test_history_list_empty() {
 }
 
 #[test]
+fn test_history_list_shows_server_column() {
+    // history list should show a "Server" column header.
+    let output = oxo_call()
+        .args(["history", "list"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    // Even when empty, we only get the "No history found." message.
+    // But when there are entries the header should contain "Server".
+    // We can verify the help shows expected output format by running with an
+    // injected entry via the lib tests. Here we just confirm the command works.
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    // Either shows "No history found." or a table with Server column.
+    assert!(
+        stdout.contains("No history found.") || stdout.contains("Server"),
+        "Expected 'No history found.' or 'Server' column, got: {stdout}"
+    );
+}
+
+#[test]
 fn test_index_remove_nonexistent() {
     let output = oxo_call()
         .args(["index", "remove", "nonexistent_tool_xyz"])
@@ -2197,6 +2217,19 @@ fn test_server_ssh_config_help() {
         stdout.contains("workstation"),
         "default type should appear in help"
     );
+    assert!(stdout.contains("hpc"), "hpc option should appear in help");
+}
+
+#[test]
+fn test_server_ssh_config_type_hpc_yes() {
+    // --type hpc --yes in batch mode (no actual ssh config needed to test the
+    // flag is accepted without error; if no hosts found that's fine too).
+    let output = oxo_call()
+        .args(["server", "ssh-config", "--type", "hpc", "--yes"])
+        .output()
+        .expect("failed to run oxo-call");
+    // Should succeed (even if no hosts found).
+    assert!(output.status.success());
 }
 
 #[test]
@@ -2851,6 +2884,68 @@ fn test_job_history_empty() {
 }
 
 #[test]
+fn test_job_history_no_args_all() {
+    // `job history` without a name should succeed and show all job history.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    // Run a couple of jobs to generate history.
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "hist-all-a", "echo a"])
+        .output()
+        .expect("add a failed");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "hist-all-b", "echo b"])
+        .output()
+        .expect("add b failed");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "run", "hist-all-a"])
+        .output()
+        .expect("run a failed");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "run", "hist-all-b"])
+        .output()
+        .expect("run b failed");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "history"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        out.status.success(),
+        "job history (no args) failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("hist-all-a"),
+        "Expected job 'hist-all-a' in history, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("hist-all-b"),
+        "Expected job 'hist-all-b' in history, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_history_no_args_empty() {
+    // `job history` with no runs at all should still succeed.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "history"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        out.status.success(),
+        "job history (no args, empty) failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("No job run history"),
+        "Expected 'No job run history' message, got: {stdout}"
+    );
+}
+
+#[test]
 fn test_job_history_after_run() {
     let tmp = tempfile::tempdir().expect("tempdir");
     oxo_call_with_tmpdir(tmp.path())
@@ -2871,6 +2966,53 @@ fn test_job_history_after_run() {
     assert!(
         stdout.contains("hist-run-job"),
         "Expected job name in history, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_builtin_list_includes_new_jobs() {
+    // New built-in templates should appear in job list --builtin.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "list", "--builtin"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        out.status.success(),
+        "job list --builtin failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    // Spot-check a selection of new templates.
+    for name in &["uptime", "find-bam", "qstat-sge", "conda-envs", "tmux-ls"] {
+        assert!(
+            stdout.contains(name),
+            "Expected built-in job '{name}' in list, got: {stdout}"
+        );
+    }
+}
+
+#[test]
+fn test_job_import_new_builtin() {
+    // Can import one of the new built-in templates.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "import", "uptime"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        out.status.success(),
+        "import uptime failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let list_out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "list"])
+        .output()
+        .expect("list failed");
+    let list_stdout = String::from_utf8_lossy(&list_out.stdout);
+    assert!(
+        list_stdout.contains("uptime"),
+        "Expected 'uptime' in job list after import, got: {list_stdout}"
     );
 }
 

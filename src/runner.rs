@@ -238,10 +238,41 @@ impl Runner {
         })
     }
 
-    /// dry-run: show the command that would be executed without running it
-    pub async fn dry_run(&self, tool: &str, task: &str, json: bool) -> Result<()> {
+    /// dry-run: show the command that would be executed without running it.
+    /// Records the generated command in history with `dry_run = true`.
+    /// Pass `server` to tag the history entry with the remote server name.
+    pub async fn dry_run(
+        &self,
+        tool: &str,
+        task: &str,
+        json: bool,
+        server: Option<&str>,
+    ) -> Result<()> {
         let result = self.prepare(tool, task).await?;
         let full_cmd = build_command_string(tool, &result.suggestion.args);
+
+        // Record in history before displaying, so the entry is always saved.
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let tool_version = detect_tool_version(tool);
+            let entry = HistoryEntry {
+                id: Uuid::new_v4().to_string(),
+                tool: tool.to_string(),
+                task: task.to_string(),
+                command: full_cmd.clone(),
+                exit_code: 0,
+                executed_at: Utc::now(),
+                dry_run: true,
+                server: server.map(str::to_string),
+                provenance: Some(CommandProvenance {
+                    tool_version,
+                    docs_hash: Some(result.docs_hash.clone()),
+                    skill_name: result.skill_name.clone(),
+                    model: Some(self.config.effective_model()),
+                }),
+            };
+            let _ = HistoryStore::append(entry);
+        }
 
         if json {
             let output = serde_json::json!({
@@ -386,6 +417,7 @@ impl Runner {
                 exit_code,
                 executed_at: Utc::now(),
                 dry_run: false,
+                server: None,
                 provenance: Some(CommandProvenance {
                     tool_version,
                     docs_hash: Some(result.docs_hash),

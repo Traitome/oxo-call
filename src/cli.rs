@@ -564,8 +564,8 @@ pub enum JobCommands {
 
     /// Show execution history for a job
     History {
-        /// Name of the job
-        name: String,
+        /// Name of the job (omit to show history for all jobs)
+        name: Option<String>,
         /// Number of most-recent runs to show (default: 10)
         #[arg(short = 'n', long, default_value = "10")]
         limit: usize,

@@ -30,6 +30,9 @@ pub struct HistoryEntry {
     pub exit_code: i32,
     pub executed_at: DateTime<Utc>,
     pub dry_run: bool,
+    /// Remote server name when the command was executed via SSH (None for local runs).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub server: Option<String>,
     /// Command provenance for reproducibility (tool version, docs hash, skill, model).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub provenance: Option<CommandProvenance>,
@@ -103,6 +106,7 @@ mod tests {
             exit_code: 0,
             executed_at: Utc::now(),
             dry_run,
+            server: None,
             provenance: None,
         }
     }
@@ -116,6 +120,7 @@ mod tests {
             exit_code: 0,
             executed_at: Utc::now(),
             dry_run: false,
+            server: None,
             provenance: Some(CommandProvenance {
                 tool_version: Some("1.17".to_string()),
                 docs_hash: Some("abc123".to_string()),
