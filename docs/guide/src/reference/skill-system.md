@@ -9,10 +9,12 @@ The skill system is oxo-call's knowledge engineering layer. Skills are Markdown 
 ## How Skills Improve Accuracy
 
 Without skills, the LLM relies solely on:
+
 - Its training data (which may be outdated)
 - The tool's `--help` output (which may be terse)
 
 With skills, the LLM also receives:
+
 - **Key concepts** — fundamental domain knowledge the LLM needs
 - **Common pitfalls** — mistakes to avoid (with explanations)
 - **Worked examples** — task → args mappings that demonstrate correct usage

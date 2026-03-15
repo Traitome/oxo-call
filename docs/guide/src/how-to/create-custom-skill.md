@@ -7,6 +7,7 @@ This guide shows you how to write a custom skill file that teaches oxo-call expe
 ## When Should You Create a Custom Skill?
 
 Create a skill when:
+
 - You are using a tool not in the built-in library (check with `oxo-call skill list`)
 - The built-in skill for a tool is missing important domain-specific knowledge
 - You have institutional conventions or preferred parameter sets you want enforced
@@ -52,6 +53,7 @@ source_url: https://...  # link to tool docs (optional)
 ```
 
 **Minimum requirements for a valid skill:**
+
 - At least 3 concepts
 - At least 3 pitfalls
 - At least 5 examples
@@ -136,6 +138,7 @@ oxo-call skill show kallisto
 ```
 
 If you see the skill content, it is working. If not, check:
+
 - File is at `~/.config/oxo-call/skills/kallisto.md`
 - Filename matches the binary name exactly
 - Front-matter block starts with `---` and ends with `---`
@@ -171,6 +174,7 @@ oxo-call dry-run --verbose kallisto \
 ```
 
 With `--verbose`, the output includes:
+
 - The system prompt rules
 - Injected skill concepts, pitfalls, and examples
 - The tool documentation sent to the LLM

@@ -176,21 +176,25 @@ cmd        = "python3 modern_analysis.py {sample}"
 ### Common Patterns
 
 **Conda environment activation:**
+
 ```toml
 env = "conda activate myenv &&"
 ```
 
 **Virtual environment activation:**
+
 ```toml
 env = "source /opt/venvs/tool_venv/bin/activate &&"
 ```
 
 **PATH override for a specific tool version:**
+
 ```toml
 env = "export PATH=/opt/star-2.7.11b/bin:$PATH &&"
 ```
 
 **Module system (HPC clusters):**
+
 ```toml
 env = "module load samtools/1.21 &&"
 ```
@@ -237,6 +241,7 @@ oxo-call workflow export rnaseq --to snakemake -o Snakefile
 ```
 
 The generated Snakefile includes:
+
 - `rule all` collecting leaf outputs
 - Individual rules with `input`, `output`, `log`, and `shell` blocks
 - `expand()` for wildcard substitution
@@ -249,6 +254,7 @@ oxo-call workflow export wgs --to nextflow -o main.nf
 ```
 
 The generated Nextflow file includes:
+
 - `nextflow.enable.dsl = 2`
 - Individual `process` blocks with `input`, `output`, and `script` sections
 - `workflow` block chaining processes via channels

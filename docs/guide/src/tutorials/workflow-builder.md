@@ -11,6 +11,7 @@ This tutorial teaches you how to use the oxo-call native workflow engine to buil
 ## Why Use the Workflow Engine?
 
 Running commands manually works for a single sample. For a real experiment with 10–100 samples, you need:
+
 - **Reproducibility**: every sample processed identically
 - **Parallelism**: independent samples run at the same time
 - **Caching**: skip steps whose outputs already exist
@@ -66,6 +67,7 @@ outputs    = ["aligned/{sample}/Aligned.sortedByCoord.out.bam"]
 ```
 
 When you run this with `sample = ["sample1", "sample2"]`:
+
 - `qc` runs for both samples in parallel
 - `align` runs for each sample after its `qc` step completes
 
@@ -93,6 +95,7 @@ oxo-call workflow vis rnaseq
 ```
 
 Output:
+
 ```
 ◆ workflow 'rnaseq' — 4 step(s), 1 wildcard(s)
 
@@ -151,6 +154,7 @@ oxo-call workflow verify my_rnaseq.toml
 ```
 
 This checks for:
+
 - Malformed TOML
 - References to undefined wildcards or params
 - Unknown `depends_on` steps
@@ -158,12 +162,14 @@ This checks for:
 - DAG cycles
 
 Example valid output:
+
 ```
 ◆ workflow 'rnaseq' — 4 step(s), 1 wildcard(s)
 ✓ No issues found — workflow is valid
 ```
 
 Example error output:
+
 ```
 ◆ workflow 'rnaseq' — 4 step(s), 1 wildcard(s)
 ✗ Step 'star' depends on 'qc' which is not defined
@@ -183,12 +189,14 @@ oxo-call workflow dry-run my_rnaseq.toml
 ```
 
 This shows:
+
 - DAG phase diagram
 - Every expanded command (with wildcards substituted)
 - Dependencies and output paths
 - Which steps would be cached (outputs already newer than inputs)
 
 Example dry-run output:
+
 ```
 ◆ Workflow: rnaseq (4 steps, 4 samples)
 
@@ -233,6 +241,7 @@ oxo-call workflow run my_rnaseq.toml
 ```
 
 The engine will:
+
 1. Expand wildcards for all samples
 2. Build the DAG
 3. Run Phase 1 steps (fastp) in parallel across all samples
@@ -241,6 +250,7 @@ The engine will:
 6. Run featureCounts in parallel for all samples
 
 Progress output:
+
 ```
 [1/16] fastp ctrl_1        ... done (12.3s)
 [2/16] fastp ctrl_2        ... done (11.8s)

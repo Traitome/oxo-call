@@ -22,6 +22,7 @@ oxo-call skill mcp ping
 Skills are Markdown files with YAML front-matter that inject **domain-expert knowledge** into the LLM prompt for a specific tool. They contain key concepts, common pitfalls, and worked command examples. When oxo-call finds a matching skill, it includes this knowledge in the prompt, dramatically improving accuracy.
 
 Skills can come from four sources (highest priority first):
+
 1. **User-defined** files in `~/.config/oxo-call/skills/`
 2. **Community-installed** files in `~/.local/share/oxo-call/skills/`
 3. **MCP servers** — remote skill providers using the Model Context Protocol

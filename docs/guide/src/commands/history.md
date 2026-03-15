@@ -38,6 +38,7 @@ oxo-call history clear -y  # Skip confirmation
 ## History Entry Format
 
 Each history entry includes:
+
 - **ID**: Unique UUID
 - **Tool**: The CLI tool that was executed
 - **Task**: The natural language task description
@@ -61,5 +62,6 @@ ok       samtools     0        2025-06-01 12:00:00          samtools sort -o sor
 ## Storage
 
 History is stored as JSONL (JSON Lines) at:
+
 - Linux: `~/.local/share/oxo-call/history.jsonl`
 - macOS: `~/Library/Application Support/io.traitome.oxo-call/history.jsonl`

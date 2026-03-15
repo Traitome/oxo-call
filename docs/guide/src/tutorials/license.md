@@ -59,6 +59,7 @@ oxo-call license show
 ## License-Exempt Commands
 
 The following commands work without a license:
+
 - `oxo-call --help`
 - `oxo-call --version`
 - `oxo-call license verify`

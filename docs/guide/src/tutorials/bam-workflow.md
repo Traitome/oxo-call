@@ -74,6 +74,7 @@ oxo-call dry-run samtools "sort aligned.bam by coordinate using 4 threads and ou
 ```
 
 Expected output:
+
 ```
 Command: samtools sort -@ 4 -o sorted.bam aligned.bam
 Explanation: -@ 4 uses 4 worker threads; -o specifies the output file; coordinate sort is the default.
@@ -121,6 +122,7 @@ oxo-call dry-run samtools \
 ```
 
 Expected:
+
 ```
 Command: samtools view -F 0x904 -b -o filtered.bam sorted.bam && samtools index filtered.bam
 Explanation: -F 0x904 excludes unmapped (0x4), secondary (0x100), and supplementary (0x800) reads; -b writes BAM format.
@@ -153,6 +155,7 @@ cat flagstat.txt
 ```
 
 Example output:
+
 ```
 10234567 + 0 in total (QC-passed reads + QC-failed reads)
 0 + 0 secondary
@@ -188,6 +191,7 @@ oxo-call dry-run picard \
 ```
 
 Expected:
+
 ```
 Command: picard MarkDuplicates I=filtered.bam O=dedup.bam M=dedup_metrics.txt
 Explanation: I/O are input/output; M writes duplication metrics; duplicates are marked not removed by default.
