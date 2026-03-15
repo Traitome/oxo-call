@@ -63,7 +63,7 @@ oxo-call completion elvish > ~/.config/elvish/lib/oxo-call.elv
 
 ## What Gets Completed
 
-- All commands and subcommands (`run`, `dry-run`, `docs`, `config`, etc.)
-- Command aliases (`r` for `run`, `d` for `dry-run`, `wf` for `workflow`, etc.)
+- All commands and subcommands (`run`, `dry-run`, `docs`, `config`, `job`, etc.)
+- Command aliases (`r` for `run`, `d` for `dry-run`, `j` for `job`, `wf` for `workflow`, etc.)
 - All flags and options (`--ask`, `--model`, `--json`, `--no-cache`, etc.)
 - Shell type values for the `completion` command itself

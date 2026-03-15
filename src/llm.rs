@@ -844,6 +844,45 @@ impl LlmClient {
         }
     }
 
+    /// Generate a shell command from a plain-English description.
+    ///
+    /// Returns `(command, explanation)`.  The command is a ready-to-run shell
+    /// string; the explanation is a brief one-liner.
+    pub async fn generate_shell_command(&self, description: &str) -> Result<(String, String)> {
+        #[cfg(target_arch = "wasm32")]
+        return Err(OxoError::LlmError(
+            "LLM API calls are not supported in WebAssembly".to_string(),
+        ));
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let system = "You are a shell command expert. \
+                Given a plain-English description, produce a single shell command \
+                (or short pipeline) that accomplishes the task on a Linux/macOS system. \
+                Reply with exactly two lines and nothing else:\n\
+                COMMAND: <the shell command>\n\
+                EXPLANATION: <one-sentence explanation>";
+
+            let raw = self
+                .request_with_system(system, description, Some(256), Some(0.1))
+                .await?;
+
+            let mut command = String::new();
+            let mut explanation = String::new();
+            for line in raw.lines() {
+                if let Some(rest) = line.strip_prefix("COMMAND:") {
+                    command = rest.trim().to_string();
+                } else if let Some(rest) = line.strip_prefix("EXPLANATION:") {
+                    explanation = rest.trim().to_string();
+                }
+            }
+            if command.is_empty() {
+                command = raw.trim().to_string();
+            }
+            Ok((command, explanation))
+        }
+    }
+
     fn parse_response(raw: &str) -> Result<LlmCommandSuggestion> {
         let mut args_line = String::new();
         let mut explanation_line = String::new();

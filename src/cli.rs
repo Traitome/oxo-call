@@ -202,28 +202,36 @@ EXAMPLES:\n  \
         command: ServerCommands,
     },
 
-    /// Manage personal command shortcuts (your "job" library)
+    /// Manage named jobs — command shortcuts with full lifecycle management
     #[command(
-        visible_alias = "c",
+        visible_alias = "j",
+        alias = "cmd",
         long_about = "\
-Manage your personal library of named command shortcuts.\n\n\
-Store, organize, and execute frequently-used shell commands — like shell\n\
-aliases but with descriptions, tags, and optional remote (SSH) execution.\n\
-Ideal for ops tasks, cluster management, and job submission workflows.\n\n\
+Manage your personal library of named jobs (command shortcuts).\n\n\
+Store, organize, and execute frequently-used shell commands with full lifecycle\n\
+support: descriptions, tags, cron scheduling, execution history, status\n\
+tracking, and optional remote (SSH) execution.\n\n\
+Use 'job generate' to let the LLM create a job from a plain-English description.\n\
+Use 'job list --builtin' to browse the built-in easy-to-remember job templates.\n\n\
 EXAMPLES:\n  \
-  oxo-call cmd add gpu-check 'nvidia-smi' --description 'Check GPU status'\n  \
-  oxo-call cmd add squeue-me 'squeue -u $USER' --tag hpc --tag slurm\n  \
-  oxo-call cmd list\n  \
-  oxo-call cmd list --tag hpc\n  \
-  oxo-call cmd show squeue-me\n  \
-  oxo-call cmd run squeue-me\n  \
-  oxo-call cmd run gpu-check --server mycluster\n  \
-  oxo-call cmd edit squeue-me --command 'squeue -u $USER -o \"%.18i %.9P %.8j %.8u %.2t %.10M\"'\n  \
-  oxo-call cmd remove gpu-check"
+  oxo-call job add gpu-check 'nvidia-smi' --description 'Check GPU status'\n  \
+  oxo-call job add squeue-me 'squeue -u $USER' --tag hpc --tag slurm\n  \
+  oxo-call job list\n  \
+  oxo-call job list --tag hpc\n  \
+  oxo-call job list --builtin\n  \
+  oxo-call job show squeue-me\n  \
+  oxo-call job run squeue-me\n  \
+  oxo-call job run gpu-check --server mycluster\n  \
+  oxo-call job status squeue-me\n  \
+  oxo-call job history squeue-me\n  \
+  oxo-call job schedule squeue-me '*/5 * * * *'\n  \
+  oxo-call job generate 'check disk usage and alert if over 90%'\n  \
+  oxo-call job edit squeue-me --command 'squeue -u $USER -o \"%.18i %.9P %.8j %.8u %.2t %.10M\"'\n  \
+  oxo-call job remove gpu-check"
     )]
-    Cmd {
+    Job {
         #[command(subcommand)]
-        command: CmdCommands,
+        command: JobCommands,
     },
 
     /// Generate shell completion scripts
@@ -534,6 +542,143 @@ pub enum CmdCommands {
         from: String,
         /// New name
         to: String,
+    },
+}
+
+/// Subcommands for `oxo-call job`
+#[derive(Subcommand, Debug)]
+pub enum JobCommands {
+    /// Add a new named job to your library
+    #[command(visible_alias = "a")]
+    Add {
+        /// Short name used to invoke this job (must be unique)
+        name: String,
+        /// The shell command to save
+        command: String,
+        /// Brief description of what this job does
+        #[arg(short, long)]
+        description: Option<String>,
+        /// Tags for organizing jobs (repeatable: --tag hpc --tag slurm)
+        #[arg(short, long = "tag", value_name = "TAG")]
+        tags: Vec<String>,
+        /// Cron expression for scheduled execution (e.g. "0 * * * *")
+        #[arg(long)]
+        schedule: Option<String>,
+    },
+
+    /// Remove a job from your library
+    #[command(visible_alias = "rm")]
+    Remove {
+        /// Name of the job to remove
+        name: String,
+    },
+
+    /// List saved jobs
+    #[command(visible_alias = "ls")]
+    List {
+        /// Only show jobs with this tag
+        #[arg(short, long)]
+        tag: Option<String>,
+        /// Show built-in job templates instead of user-defined jobs
+        #[arg(long)]
+        builtin: bool,
+    },
+
+    /// Show full details of a saved job
+    Show {
+        /// Name of the job to show
+        name: String,
+    },
+
+    /// Run a saved job locally or on a remote server
+    #[command(visible_alias = "r")]
+    Run {
+        /// Name of the job to run
+        name: String,
+        /// Run on this registered remote server (via SSH)
+        #[arg(short, long)]
+        server: Option<String>,
+        /// Print the command without executing it
+        #[arg(long = "dry-run")]
+        dry_run: bool,
+    },
+
+    /// Edit an existing job entry
+    #[command(visible_alias = "e")]
+    Edit {
+        /// Name of the job to edit
+        name: String,
+        /// Replace the command string
+        #[arg(short, long)]
+        command: Option<String>,
+        /// Replace the description
+        #[arg(short, long)]
+        description: Option<String>,
+        /// Replace all tags (repeatable: --tag hpc --tag slurm)
+        #[arg(short, long = "tag", value_name = "TAG")]
+        tags: Vec<String>,
+        /// Set a new cron schedule (e.g. "0 * * * *")
+        #[arg(long)]
+        schedule: Option<String>,
+        /// Remove the cron schedule
+        #[arg(long)]
+        clear_schedule: bool,
+    },
+
+    /// Rename a job
+    Rename {
+        /// Current name
+        from: String,
+        /// New name
+        to: String,
+    },
+
+    /// Show recent execution status for a job (or all jobs)
+    Status {
+        /// Name of the job (omit to show status for all jobs)
+        name: Option<String>,
+    },
+
+    /// Show execution history for a job
+    History {
+        /// Name of the job
+        name: String,
+        /// Number of most-recent runs to show (default: 10)
+        #[arg(short = 'n', long, default_value = "10")]
+        limit: usize,
+    },
+
+    /// Set (or clear) a cron schedule on a job
+    Schedule {
+        /// Name of the job
+        name: String,
+        /// Cron expression, e.g. "0 * * * *" (5-field standard cron)
+        /// Omit to clear the current schedule.
+        cron: Option<String>,
+    },
+
+    /// Generate a job from a plain-English description using the LLM
+    Generate {
+        /// Natural-language description of what the job should do
+        description: String,
+        /// Save the generated job with this name (defaults to a slugified form of the description)
+        #[arg(short, long)]
+        name: Option<String>,
+        /// Tags to assign to the generated job (repeatable)
+        #[arg(short, long = "tag", value_name = "TAG")]
+        tags: Vec<String>,
+        /// Skip saving and only print the generated command
+        #[arg(long = "dry-run")]
+        dry_run: bool,
+    },
+
+    /// Copy a built-in job template into your personal library
+    Import {
+        /// Name of the built-in template to import
+        name: String,
+        /// Override the name used in your library (defaults to the template name)
+        #[arg(long)]
+        as_name: Option<String>,
     },
 }
 

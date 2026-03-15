@@ -33,6 +33,7 @@
 - [skill](./commands/skill.md)
 - [workflow](./commands/workflow.md)
 - [server](./commands/server.md)
+- [job](./commands/job.md)
 - [license](./commands/license.md)
 - [completion](./commands/completion.md)
 
