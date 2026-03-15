@@ -79,6 +79,8 @@ oxo-call config verify
 
 ## Step 4: Run Your First Command
 
+> See the [completion guide](../commands/completion.md) for generating shell completion (e.g., `zsh`, `bash`) scripts for oxo-call.
+
 ### Preview a command (dry-run)
 
 ```bash
