@@ -7,6 +7,8 @@
 [![CI](https://github.com/Traitome/oxo-call/actions/workflows/ci.yml/badge.svg)](https://github.com/Traitome/oxo-call/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/oxo-call.svg)](https://crates.io/crates/oxo-call)
 [![Crates.io Downloads](https://img.shields.io/crates/d/oxo-call.svg)](https://crates.io/crates/oxo-call)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/oxo-call/badges/version.svg)](https://anaconda.org/bioconda/oxo-call)
+[![bioconda](https://img.shields.io/badge/install-via-bioconda-2ea24a.svg)](https://bioconda.github.io/)
 [![GitHub Releases](https://img.shields.io/github/downloads/Traitome/oxo-call/total.svg)](https://github.com/Traitome/oxo-call/releases)
 [![License](https://img.shields.io/badge/license-Academic%20%7C%20Commercial-blue.svg)](#license)
 [![Rust](https://img.shields.io/badge/rust-2024_edition-orange.svg)](https://www.rust-lang.org/)
@@ -60,6 +62,27 @@ sudo mv oxo-call /usr/local/bin/
 ```
 
 See the [Installation guide](https://traitome.github.io/oxo-call/documentation/tutorials/installation.html) for all platforms and options.
+
+### Alternative: Install via Conda (Bioconda)
+
+If you use conda, you can install oxo-call from Bioconda:
+
+```bash
+# Install bioconda if you haven't already
+# conda config --add channels conda-forge
+# conda config --add channels bioconda
+# conda config --set channel_priority strict
+
+conda install oxo-call -c bioconda -c conda-forge
+```
+
+Or with mamba (faster):
+
+```bash
+mamba install oxo-call -c bioconda -c conda-forge
+```
+
+> **Note:** Bioconda support is experimental. Please report any issues at https://github.com/Traitome/oxo-call/issues.
 
 ### Alternative: Install via Cargo
 

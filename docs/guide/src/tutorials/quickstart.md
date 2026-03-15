@@ -9,11 +9,22 @@ This guide walks you through your first oxo-call session in under 5 minutes.
 
 ## Step 1: Install oxo-call
 
+Choose your preferred installation method:
+
 ```bash
+# Option A: Download pre-built binary (recommended)
+# Visit https://github.com/Traitome/oxo-call/releases
+
+# Option B: Install via Bioconda
+conda install oxo-call -c bioconda -c conda-forge
+# or with mamba (faster)
+mamba install oxo-call -c bioconda -c conda-forge
+
+# Option C: Install via Cargo
 cargo install oxo-call
 ```
 
-See the [Installation guide](./installation.md) for alternative methods.
+See the [Installation guide](./installation.md) for detailed instructions.
 
 ## Step 2: Obtain a License
 
