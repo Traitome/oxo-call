@@ -243,6 +243,8 @@ impl IndexManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::Config;
+    use crate::docs::DocsFetcher;
     use chrono::Utc;
     use std::sync::Mutex;
 
@@ -369,5 +371,111 @@ mod tests {
         }
         let loaded = DocIndex::load().unwrap();
         assert!(loaded.entries.is_empty());
+    }
+
+    // ─── IndexManager::list ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_index_manager_list_empty() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let config = Config::default();
+        let mgr = IndexManager::new(config);
+        let entries = mgr.list().unwrap();
+        assert!(entries.is_empty());
+    }
+
+    #[test]
+    fn test_index_manager_list_after_upsert() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+
+        // Manually create and save an index
+        let mut idx = DocIndex::default();
+        idx.upsert(make_entry("samtools", 1024));
+        idx.upsert(make_entry("bwa", 512));
+        idx.save().unwrap();
+
+        let config = Config::default();
+        let mgr = IndexManager::new(config);
+        let entries = mgr.list().unwrap();
+        assert_eq!(entries.len(), 2);
+        assert!(entries.iter().any(|e| e.tool_name == "samtools"));
+        assert!(entries.iter().any(|e| e.tool_name == "bwa"));
+    }
+
+    // ─── IndexManager::remove ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_index_manager_remove_nonexistent_errors() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let config = Config::default();
+        let mgr = IndexManager::new(config);
+        let result = mgr.remove("nonexistent_tool");
+        assert!(result.is_err(), "removing nonexistent tool should error");
+    }
+
+    #[test]
+    fn test_index_manager_remove_existing() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+
+        // Save an entry and a cache file for it
+        let mut idx = DocIndex::default();
+        idx.upsert(make_entry("samtools", 1024));
+        idx.save().unwrap();
+
+        // Create the cache file
+        let fetcher = DocsFetcher::new(Config::default());
+        fetcher.save_cache("samtools", "samtools docs").unwrap();
+
+        let config = Config::default();
+        let mgr = IndexManager::new(config);
+        mgr.remove("samtools").unwrap();
+
+        // Verify it's gone from the index
+        let entries = mgr.list().unwrap();
+        assert!(entries.iter().all(|e| e.tool_name != "samtools"));
+    }
+
+    // ─── IndexEntry serialization ─────────────────────────────────────────────
+
+    #[test]
+    fn test_index_entry_serialization() {
+        let entry = make_entry("gatk", 8192);
+        let json = serde_json::to_string(&entry).unwrap();
+        assert!(json.contains("\"tool_name\":\"gatk\""));
+        assert!(json.contains("\"doc_size_bytes\":8192"));
+
+        let back: IndexEntry = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.tool_name, "gatk");
+        assert_eq!(back.doc_size_bytes, 8192);
+    }
+
+    #[test]
+    fn test_index_entry_no_version_serializes() {
+        let entry = IndexEntry {
+            tool_name: "bwa".to_string(),
+            version: None,
+            indexed_at: Utc::now(),
+            doc_size_bytes: 512,
+            sources: vec![],
+        };
+        let json = serde_json::to_string(&entry).unwrap();
+        let back: IndexEntry = serde_json::from_str(&json).unwrap();
+        assert!(back.version.is_none());
     }
 }

@@ -1412,6 +1412,7 @@ pub async fn verify_workflow_results(def: &WorkflowDef, config: &crate::config::
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::workflow::BUILTIN_TEMPLATES;
 
     /// Helper to build a minimal ConcreteTask for testing.
     fn task(id: &str, deps: &[&str]) -> ConcreteTask {
@@ -1761,6 +1762,1460 @@ cmd  = "run_tool"
         assert!(
             formatted.contains("source /opt/venv/bin/activate"),
             "env value should be preserved"
+        );
+    }
+
+    // ─── wildcard_combinations ────────────────────────────────────────────────
+
+    #[test]
+    fn test_wildcard_combinations_empty() {
+        let wc: HashMap<String, Vec<String>> = HashMap::new();
+        let combos = wildcard_combinations(&wc);
+        assert_eq!(combos.len(), 1);
+        assert!(combos[0].is_empty());
+    }
+
+    #[test]
+    fn test_wildcard_combinations_single() {
+        let mut wc = HashMap::new();
+        wc.insert(
+            "sample".to_string(),
+            vec!["s1".to_string(), "s2".to_string()],
+        );
+        let combos = wildcard_combinations(&wc);
+        assert_eq!(combos.len(), 2);
+        let samples: Vec<&str> = combos.iter().map(|m| m["sample"].as_str()).collect();
+        assert!(samples.contains(&"s1"));
+        assert!(samples.contains(&"s2"));
+    }
+
+    #[test]
+    fn test_wildcard_combinations_two_keys() {
+        let mut wc = HashMap::new();
+        wc.insert(
+            "sample".to_string(),
+            vec!["s1".to_string(), "s2".to_string()],
+        );
+        wc.insert(
+            "condition".to_string(),
+            vec!["ctrl".to_string(), "treat".to_string()],
+        );
+        let combos = wildcard_combinations(&wc);
+        assert_eq!(combos.len(), 4); // 2 × 2
+    }
+
+    // ─── substitute ───────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_substitute_wildcard() {
+        let mut bindings = HashMap::new();
+        bindings.insert("sample".to_string(), "s1".to_string());
+        let params: HashMap<String, String> = HashMap::new();
+        let result = substitute("echo {sample}", &bindings, &params);
+        assert_eq!(result, "echo s1");
+    }
+
+    #[test]
+    fn test_substitute_param() {
+        let bindings: HashMap<String, String> = HashMap::new();
+        let mut params = HashMap::new();
+        params.insert("threads".to_string(), "8".to_string());
+        let result = substitute("cmd -t {params.threads}", &bindings, &params);
+        assert_eq!(result, "cmd -t 8");
+    }
+
+    #[test]
+    fn test_substitute_bare_param_key() {
+        let bindings: HashMap<String, String> = HashMap::new();
+        let mut params = HashMap::new();
+        params.insert("ref".to_string(), "/data/hg38.fa".to_string());
+        let result = substitute("bwa mem {ref}", &bindings, &params);
+        assert_eq!(result, "bwa mem /data/hg38.fa");
+    }
+
+    #[test]
+    fn test_substitute_wildcard_takes_precedence_over_param() {
+        let mut bindings = HashMap::new();
+        bindings.insert("key".to_string(), "from_wildcard".to_string());
+        let mut params = HashMap::new();
+        params.insert("key".to_string(), "from_param".to_string());
+        let result = substitute("{key}", &bindings, &params);
+        assert_eq!(result, "from_wildcard");
+    }
+
+    #[test]
+    fn test_substitute_no_placeholders() {
+        let bindings: HashMap<String, String> = HashMap::new();
+        let params: HashMap<String, String> = HashMap::new();
+        let result = substitute("echo hello world", &bindings, &params);
+        assert_eq!(result, "echo hello world");
+    }
+
+    // ─── task_id ──────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_task_id_no_bindings() {
+        let bindings: HashMap<String, String> = HashMap::new();
+        assert_eq!(task_id("fastp", &bindings), "fastp");
+    }
+
+    #[test]
+    fn test_task_id_single_binding() {
+        let mut bindings = HashMap::new();
+        bindings.insert("sample".to_string(), "s1".to_string());
+        assert_eq!(task_id("fastp", &bindings), "fastp[sample=s1]");
+    }
+
+    #[test]
+    fn test_task_id_multiple_bindings_sorted() {
+        let mut bindings = HashMap::new();
+        bindings.insert("cond".to_string(), "ctrl".to_string());
+        bindings.insert("sample".to_string(), "s1".to_string());
+        let id = task_id("step", &bindings);
+        // Keys are sorted, so cond before sample
+        assert_eq!(id, "step[cond=ctrl,sample=s1]");
+    }
+
+    // ─── uses_wildcards ───────────────────────────────────────────────────────
+
+    #[test]
+    fn test_uses_wildcards_true_in_cmd() {
+        let step = StepDef {
+            name: "s".to_string(),
+            cmd: "echo {sample}".to_string(),
+            depends_on: vec![],
+            inputs: vec![],
+            outputs: vec![],
+            gather: false,
+            env: None,
+        };
+        let mut wc = HashMap::new();
+        wc.insert("sample".to_string(), vec!["s1".to_string()]);
+        assert!(uses_wildcards(&step, &wc));
+    }
+
+    #[test]
+    fn test_uses_wildcards_false_no_match() {
+        let step = StepDef {
+            name: "s".to_string(),
+            cmd: "echo hello".to_string(),
+            depends_on: vec![],
+            inputs: vec![],
+            outputs: vec![],
+            gather: false,
+            env: None,
+        };
+        let mut wc = HashMap::new();
+        wc.insert("sample".to_string(), vec!["s1".to_string()]);
+        assert!(!uses_wildcards(&step, &wc));
+    }
+
+    #[test]
+    fn test_uses_wildcards_in_inputs() {
+        let step = StepDef {
+            name: "s".to_string(),
+            cmd: "echo hello".to_string(),
+            depends_on: vec![],
+            inputs: vec!["data/{sample}.fq.gz".to_string()],
+            outputs: vec![],
+            gather: false,
+            env: None,
+        };
+        let mut wc = HashMap::new();
+        wc.insert("sample".to_string(), vec!["s1".to_string()]);
+        assert!(uses_wildcards(&step, &wc));
+    }
+
+    #[test]
+    fn test_uses_wildcards_in_outputs() {
+        let step = StepDef {
+            name: "s".to_string(),
+            cmd: "echo hello".to_string(),
+            depends_on: vec![],
+            inputs: vec![],
+            outputs: vec!["out/{sample}.bam".to_string()],
+            gather: false,
+            env: None,
+        };
+        let mut wc = HashMap::new();
+        wc.insert("sample".to_string(), vec!["s1".to_string()]);
+        assert!(uses_wildcards(&step, &wc));
+    }
+
+    // ─── expand ───────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_expand_simple_no_wildcards() {
+        let toml = r#"
+[workflow]
+name = "simple"
+
+[[step]]
+name = "qc"
+cmd  = "fastqc input.fq"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let tasks = expand(&def).expect("expand");
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0].id, "qc");
+        assert_eq!(tasks[0].cmd, "fastqc input.fq");
+    }
+
+    #[test]
+    fn test_expand_unknown_dep_silently_drops_deps() {
+        // Unknown depends_on entries are silently dropped from the deps list
+        // (verify() catches them as errors, but expand() is more lenient).
+        let toml = r#"
+[workflow]
+name = "bad"
+
+[[step]]
+name = "step_b"
+cmd  = "echo b"
+depends_on = ["step_a"]
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let tasks = expand(&def).expect("expand does not error on unknown deps");
+        // step_b should exist but with empty deps since step_a was never declared
+        assert_eq!(tasks.len(), 1);
+        assert!(
+            tasks[0].deps.is_empty(),
+            "unknown dep should be silently dropped"
+        );
+    }
+
+    #[test]
+    fn test_expand_wildcard_steps() {
+        let toml = r#"
+[workflow]
+name = "wildcard-test"
+
+[wildcards]
+sample = ["s1", "s2"]
+
+[[step]]
+name = "qc"
+cmd  = "fastqc {sample}.fq"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let tasks = expand(&def).expect("expand");
+        assert_eq!(tasks.len(), 2);
+        let ids: Vec<&str> = tasks.iter().map(|t| t.id.as_str()).collect();
+        assert!(ids.iter().any(|id| id.contains("s1")));
+        assert!(ids.iter().any(|id| id.contains("s2")));
+    }
+
+    #[test]
+    fn test_expand_gather_depends_on_all_instances() {
+        let toml = r#"
+[workflow]
+name = "gather-test"
+
+[wildcards]
+sample = ["s1", "s2"]
+
+[[step]]
+name = "qc"
+cmd  = "fastqc {sample}.fq"
+
+[[step]]
+name       = "report"
+gather     = true
+depends_on = ["qc"]
+cmd        = "multiqc qc/"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let tasks = expand(&def).expect("expand");
+        // 2 qc + 1 report
+        assert_eq!(tasks.len(), 3);
+        let report = tasks.iter().find(|t| t.id == "report").unwrap();
+        assert!(report.gather);
+        assert_eq!(report.deps.len(), 2);
+    }
+
+    #[test]
+    fn test_expand_params_substitution() {
+        let toml = r#"
+[workflow]
+name = "params-test"
+
+[params]
+threads = "8"
+
+[[step]]
+name = "align"
+cmd  = "bwa mem -t {params.threads} ref.fa reads.fq"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let tasks = expand(&def).expect("expand");
+        assert_eq!(tasks.len(), 1);
+        assert!(tasks[0].cmd.contains("8"), "threads should be substituted");
+    }
+
+    // ─── is_up_to_date ────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_is_up_to_date_no_outputs_returns_false() {
+        let task = ConcreteTask {
+            id: "t".to_string(),
+            step_name: "t".to_string(),
+            cmd: "echo hello".to_string(),
+            inputs: vec![],
+            outputs: vec![],
+            deps: vec![],
+            gather: false,
+            env: None,
+        };
+        assert!(!is_up_to_date(&task));
+    }
+
+    #[test]
+    fn test_is_up_to_date_missing_output_returns_false() {
+        let task = ConcreteTask {
+            id: "t".to_string(),
+            step_name: "t".to_string(),
+            cmd: "echo hello".to_string(),
+            inputs: vec![],
+            outputs: vec!["/nonexistent/path/output.bam".to_string()],
+            deps: vec![],
+            gather: false,
+            env: None,
+        };
+        assert!(!is_up_to_date(&task));
+    }
+
+    #[test]
+    fn test_is_up_to_date_output_exists_no_inputs() {
+        let tmp = tempfile::tempdir().unwrap();
+        let out = tmp.path().join("output.txt");
+        std::fs::write(&out, "result").unwrap();
+
+        let task = ConcreteTask {
+            id: "t".to_string(),
+            step_name: "t".to_string(),
+            cmd: "echo hello".to_string(),
+            inputs: vec![],
+            outputs: vec![out.to_string_lossy().to_string()],
+            deps: vec![],
+            gather: false,
+            env: None,
+        };
+        assert!(
+            is_up_to_date(&task),
+            "output exists and there are no inputs"
+        );
+    }
+
+    // ─── verify ───────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_verify_valid_workflow() {
+        let toml = r#"
+[workflow]
+name = "valid"
+
+[wildcards]
+sample = ["s1", "s2"]
+
+[params]
+threads = "8"
+
+[[step]]
+name    = "fastp"
+cmd     = "fastp -i {sample}.fq -o out/{sample}.fq"
+outputs = ["out/{sample}.fq"]
+
+[[step]]
+name       = "star"
+depends_on = ["fastp"]
+cmd        = "STAR --runThreadN {params.threads} --readFilesIn out/{sample}.fq"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        assert!(
+            diags.is_empty(),
+            "valid workflow should have no diagnostics: {:?}",
+            diags
+        );
+    }
+
+    #[test]
+    fn test_verify_empty_workflow_name_produces_warning() {
+        let toml = r#"
+[workflow]
+name = ""
+
+[[step]]
+name = "s1"
+cmd  = "echo hello"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.level == DiagLevel::Warning && d.message.contains("name")),
+            "should warn about empty workflow name"
+        );
+    }
+
+    #[test]
+    fn test_verify_duplicate_step_name_produces_error() {
+        let toml = r#"
+[workflow]
+name = "dup-test"
+
+[[step]]
+name = "qc"
+cmd  = "echo a"
+
+[[step]]
+name = "qc"
+cmd  = "echo b"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.level == DiagLevel::Error && d.message.contains("Duplicate")),
+            "should error on duplicate step name"
+        );
+    }
+
+    #[test]
+    fn test_verify_unknown_depends_on_produces_error() {
+        let toml = r#"
+[workflow]
+name = "bad-dep"
+
+[[step]]
+name       = "step_b"
+depends_on = ["nonexistent"]
+cmd        = "echo b"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.level == DiagLevel::Error && d.message.contains("unknown step")),
+            "should error on unknown depends_on"
+        );
+    }
+
+    #[test]
+    fn test_verify_empty_step_cmd_produces_error() {
+        let toml = r#"
+[workflow]
+name = "empty-cmd"
+
+[[step]]
+name = "s1"
+cmd  = ""
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.level == DiagLevel::Error && d.message.contains("empty cmd")),
+            "should error on empty cmd"
+        );
+    }
+
+    #[test]
+    fn test_verify_undefined_placeholder_produces_warning() {
+        let toml = r#"
+[workflow]
+name = "undef-placeholder"
+
+[[step]]
+name = "s1"
+cmd  = "echo {undefined_var}"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        assert!(
+            diags.iter().any(|d| d.level == DiagLevel::Warning),
+            "should warn about undefined placeholder"
+        );
+    }
+
+    #[test]
+    fn test_verify_undefined_params_placeholder_produces_warning() {
+        let toml = r#"
+[workflow]
+name = "undef-params"
+
+[[step]]
+name = "s1"
+cmd  = "cmd -t {params.missing_param}"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        assert!(
+            diags.iter().any(
+                |d| d.level == DiagLevel::Warning && d.message.contains("params.missing_param")
+            ),
+            "should warn about undefined params placeholder"
+        );
+    }
+
+    #[test]
+    fn test_verify_forward_dep_ordering_warning() {
+        let toml = r#"
+[workflow]
+name = "forward-dep"
+
+[[step]]
+name       = "step_b"
+depends_on = ["step_a"]
+cmd        = "echo b"
+
+[[step]]
+name = "step_a"
+cmd  = "echo a"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        // step_b appears before step_a in the file — this should trigger a warning
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.level == DiagLevel::Warning && d.message.contains("step_b")),
+            "should warn when dep appears later in file"
+        );
+    }
+
+    #[test]
+    fn test_verify_diag_level_display() {
+        assert_eq!(format!("{}", DiagLevel::Error), "error");
+        assert_eq!(format!("{}", DiagLevel::Warning), "warning");
+    }
+
+    // ─── format_toml ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_format_toml_simple() {
+        let toml_in = r#"
+[workflow]
+name = "test-wf"
+description = "A test workflow"
+
+[params]
+threads = "8"
+
+[[step]]
+name    = "qc"
+cmd     = "fastqc input.fq"
+outputs = ["qc/"]
+"#;
+        let def = WorkflowDef::from_str_content(toml_in).expect("parse");
+        let formatted = format_toml(&def);
+        assert!(formatted.contains("test-wf"));
+        assert!(formatted.contains("A test workflow"));
+        assert!(formatted.contains("threads"));
+        assert!(formatted.contains("fastqc input.fq"));
+    }
+
+    #[test]
+    fn test_format_toml_with_wildcards() {
+        let toml_in = r#"
+[workflow]
+name = "wc-test"
+
+[wildcards]
+sample = ["s1", "s2"]
+
+[[step]]
+name = "qc"
+cmd  = "fastqc {sample}.fq"
+"#;
+        let def = WorkflowDef::from_str_content(toml_in).expect("parse");
+        let formatted = format_toml(&def);
+        assert!(formatted.contains("[wildcards]"));
+        assert!(formatted.contains("sample"));
+    }
+
+    #[test]
+    fn test_format_toml_with_depends_on() {
+        let toml_in = r#"
+[workflow]
+name = "dep-test"
+
+[[step]]
+name = "step_a"
+cmd  = "echo a"
+
+[[step]]
+name       = "step_b"
+depends_on = ["step_a"]
+cmd        = "echo b"
+"#;
+        let def = WorkflowDef::from_str_content(toml_in).expect("parse");
+        let formatted = format_toml(&def);
+        assert!(formatted.contains("depends_on"));
+        assert!(formatted.contains("step_a"));
+    }
+
+    #[test]
+    fn test_format_toml_long_cmd_multiline() {
+        let long_cmd = "a".repeat(MAX_INLINE_CMD_LENGTH + 10);
+        let toml_in = format!(
+            "[workflow]\nname = \"long-cmd\"\n\n[[step]]\nname = \"s\"\ncmd  = \"{long_cmd}\"\n"
+        );
+        let def = WorkflowDef::from_str_content(&toml_in).expect("parse");
+        let formatted = format_toml(&def);
+        assert!(
+            formatted.contains("\"\"\""),
+            "long cmd should use multiline syntax"
+        );
+    }
+
+    #[test]
+    fn test_format_toml_gather_step() {
+        let toml_in = r#"
+[workflow]
+name = "gather-fmt"
+
+[wildcards]
+sample = ["s1"]
+
+[[step]]
+name   = "qc"
+cmd    = "fastqc {sample}.fq"
+
+[[step]]
+name       = "report"
+gather     = true
+depends_on = ["qc"]
+cmd        = "multiqc qc/"
+"#;
+        let def = WorkflowDef::from_str_content(toml_in).expect("parse");
+        let formatted = format_toml(&def);
+        assert!(formatted.contains("gather     = true"));
+    }
+
+    // ─── to_snakemake ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_to_snakemake_basic() {
+        let toml = r#"
+[workflow]
+name = "snakemake-test"
+description = "Test Snakemake export"
+
+[[step]]
+name    = "qc"
+cmd     = "fastqc input.fq"
+inputs  = ["input.fq"]
+outputs = ["qc/input_fastqc.html"]
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let snakemake = to_snakemake(&def);
+        assert!(snakemake.contains("rule qc:"));
+        assert!(snakemake.contains("fastqc input.fq"));
+        assert!(snakemake.contains("rule all:"));
+        assert!(snakemake.contains("configfile:"));
+    }
+
+    #[test]
+    fn test_to_snakemake_with_wildcards() {
+        let toml = r#"
+[workflow]
+name = "wc-snakemake"
+
+[wildcards]
+sample = ["s1", "s2"]
+
+[[step]]
+name    = "qc"
+cmd     = "fastqc {sample}.fq"
+outputs = ["qc/{sample}_fastqc.html"]
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let snakemake = to_snakemake(&def);
+        assert!(
+            snakemake.contains("SAMPLE"),
+            "wildcard should be uppercased"
+        );
+        assert!(
+            snakemake.contains("expand("),
+            "should use expand() for wildcard outputs"
+        );
+        assert!(
+            snakemake.contains("wildcards.sample"),
+            "cmd should use wildcards.sample"
+        );
+    }
+
+    #[test]
+    fn test_to_snakemake_with_params() {
+        let toml = r#"
+[workflow]
+name = "params-snakemake"
+
+[params]
+threads = "8"
+
+[[step]]
+name = "align"
+cmd  = "bwa mem -t {params.threads} ref.fa reads.fq"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let snakemake = to_snakemake(&def);
+        // {params.threads} becomes {config["threads"]} which is then shell-escaped to {config[\"threads\"]}
+        assert!(
+            snakemake.contains("config[") || snakemake.contains("config"),
+            "params should use config reference"
+        );
+        assert!(
+            snakemake.contains("config.yaml"),
+            "should have config.yaml comment"
+        );
+        assert!(
+            snakemake.contains("threads"),
+            "threads param should appear in output"
+        );
+    }
+
+    #[test]
+    fn test_to_snakemake_generated_from_builtin_templates() {
+        // All built-in native templates should produce valid-looking Snakemake
+        for template in BUILTIN_TEMPLATES {
+            let def = WorkflowDef::from_str_content(template.native).expect("parse");
+            let snakemake = to_snakemake(&def);
+            assert!(
+                snakemake.contains("rule all:"),
+                "{}: missing rule all",
+                template.name
+            );
+            assert!(
+                snakemake.contains("configfile:"),
+                "{}: missing configfile",
+                template.name
+            );
+        }
+    }
+
+    // ─── to_nextflow ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_to_nextflow_basic() {
+        let toml = r#"
+[workflow]
+name = "nextflow-test"
+
+[[step]]
+name    = "qc"
+cmd     = "fastqc input.fq"
+inputs  = ["input.fq"]
+outputs = ["qc/input_fastqc.html"]
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let nf = to_nextflow(&def);
+        assert!(
+            nf.contains("process QC {"),
+            "process names should be uppercase"
+        );
+        assert!(nf.contains("nextflow.enable.dsl = 2"));
+        assert!(nf.contains("workflow {"));
+        assert!(nf.contains("fastqc input.fq"));
+    }
+
+    #[test]
+    fn test_to_nextflow_with_wildcards() {
+        let toml = r#"
+[workflow]
+name = "wc-nextflow"
+
+[wildcards]
+sample = ["s1", "s2"]
+
+[[step]]
+name    = "qc"
+cmd     = "fastqc {sample}.fq"
+outputs = ["qc/{sample}_fastqc.html"]
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let nf = to_nextflow(&def);
+        assert!(
+            nf.contains("samplesheet"),
+            "should have samplesheet channel"
+        );
+        assert!(
+            nf.contains("${sample}"),
+            "wildcards should be expanded as Nextflow vars"
+        );
+    }
+
+    #[test]
+    fn test_to_nextflow_with_params() {
+        let toml = r#"
+[workflow]
+name = "params-nextflow"
+
+[params]
+threads = "8"
+ref_genome = "/data/hg38.fa"
+
+[[step]]
+name = "align"
+cmd  = "bwa mem -t {params.threads} {params.ref_genome} reads.fq"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let nf = to_nextflow(&def);
+        assert!(nf.contains("params.threads"), "should have params.threads");
+        assert!(
+            nf.contains("params.ref_genome"),
+            "should have params.ref_genome"
+        );
+    }
+
+    #[test]
+    fn test_to_nextflow_gather_step() {
+        let toml = r#"
+[workflow]
+name = "gather-nextflow"
+
+[wildcards]
+sample = ["s1"]
+
+[[step]]
+name    = "qc"
+cmd     = "fastqc {sample}.fq"
+outputs = ["qc/{sample}_fastqc.html"]
+
+[[step]]
+name       = "report"
+gather     = true
+depends_on = ["qc"]
+cmd        = "multiqc qc/"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let nf = to_nextflow(&def);
+        assert!(
+            nf.contains("ch.collect()"),
+            "gather step should use .collect()"
+        );
+    }
+
+    #[test]
+    fn test_to_nextflow_generated_from_builtin_templates() {
+        for template in BUILTIN_TEMPLATES {
+            let def = WorkflowDef::from_str_content(template.native).expect("parse");
+            let nf = to_nextflow(&def);
+            assert!(
+                nf.contains("nextflow.enable.dsl = 2"),
+                "{}: missing dsl=2",
+                template.name
+            );
+            assert!(
+                nf.contains("workflow {"),
+                "{}: missing workflow block",
+                template.name
+            );
+        }
+    }
+
+    // ─── WorkflowDef::from_file ───────────────────────────────────────────────
+
+    #[test]
+    fn test_workflow_def_from_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("test.toml");
+        std::fs::write(
+            &path,
+            "[workflow]\nname = \"file-test\"\n\n[[step]]\nname = \"s1\"\ncmd = \"echo hello\"\n",
+        )
+        .unwrap();
+        let def = WorkflowDef::from_file(&path).expect("from_file");
+        assert_eq!(def.workflow.name, "file-test");
+    }
+
+    #[test]
+    fn test_workflow_def_from_file_not_found() {
+        let result = WorkflowDef::from_file(std::path::Path::new("/nonexistent/path.toml"));
+        assert!(result.is_err());
+    }
+
+    // ─── print_verify_report ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_print_verify_report_no_issues() {
+        let def = WorkflowDef {
+            workflow: WorkflowMeta {
+                name: "clean".to_string(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let diags: Vec<Diagnostic> = vec![];
+        let has_errors = print_verify_report(&def, &diags);
+        assert!(!has_errors);
+    }
+
+    #[test]
+    fn test_print_verify_report_with_errors() {
+        let def = WorkflowDef {
+            workflow: WorkflowMeta {
+                name: "broken".to_string(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let diags = vec![
+            Diagnostic {
+                level: DiagLevel::Error,
+                message: "something is broken".to_string(),
+            },
+            Diagnostic {
+                level: DiagLevel::Warning,
+                message: "something looks odd".to_string(),
+            },
+        ];
+        let has_errors = print_verify_report(&def, &diags);
+        assert!(has_errors);
+    }
+
+    // ─── compute_phases edge cases ────────────────────────────────────────────
+
+    #[test]
+    fn test_compute_phases_broken_cycle_stops() {
+        // Tasks with unsatisfied deps (simulated cycle) — compute_phases should
+        // return partial result rather than hanging forever.
+        let tasks = vec![
+            ConcreteTask {
+                id: "a".to_string(),
+                step_name: "a".to_string(),
+                cmd: "echo a".to_string(),
+                inputs: vec![],
+                outputs: vec![],
+                deps: vec!["b".to_string()], // unsatisfied
+                gather: false,
+                env: None,
+            },
+            ConcreteTask {
+                id: "b".to_string(),
+                step_name: "b".to_string(),
+                cmd: "echo b".to_string(),
+                inputs: vec![],
+                outputs: vec![],
+                deps: vec!["a".to_string()], // unsatisfied
+                gather: false,
+                env: None,
+            },
+        ];
+        let phases = compute_phases(&tasks);
+        // Cycle means no tasks ever become ready — result is empty
+        assert_eq!(phases.len(), 0);
+    }
+
+    // ─── verify() ─────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_verify_valid_workflow_no_diags() {
+        let toml = r#"
+[workflow]
+name = "valid-workflow"
+
+[wildcards]
+sample = ["s1", "s2"]
+
+[params]
+ref = "hg38.fa"
+
+[[step]]
+name = "align"
+cmd  = "bwa mem {params.ref} {sample}.fq > {sample}.sam"
+inputs  = ["{sample}.fq"]
+outputs = ["{sample}.sam"]
+
+[[step]]
+name       = "sort"
+cmd        = "samtools sort {sample}.sam -o {sample}.bam"
+depends_on = ["align"]
+inputs     = ["{sample}.sam"]
+outputs    = ["{sample}.bam"]
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        // Should have no errors or warnings
+        let errors: Vec<_> = diags
+            .iter()
+            .filter(|d| d.level == DiagLevel::Error)
+            .collect();
+        assert!(errors.is_empty(), "expected no errors: {errors:?}");
+    }
+
+    #[test]
+    fn test_verify_empty_workflow_name_warning() {
+        let toml = r#"
+[workflow]
+name = ""
+
+[[step]]
+name = "step1"
+cmd  = "echo hello"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        assert!(
+            diags.iter().any(|d| d.message.contains("name is empty")),
+            "should warn about empty workflow name"
+        );
+    }
+
+    #[test]
+    fn test_verify_duplicate_step_name_error() {
+        let toml = r#"
+[workflow]
+name = "dup-test"
+
+[[step]]
+name = "step1"
+cmd  = "echo first"
+
+[[step]]
+name = "step1"
+cmd  = "echo duplicate"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.level == DiagLevel::Error && d.message.contains("Duplicate")),
+            "should report duplicate step name"
+        );
+    }
+
+    #[test]
+    fn test_verify_unknown_dependency_error() {
+        let toml = r#"
+[workflow]
+name = "dep-test"
+
+[[step]]
+name       = "step1"
+cmd        = "echo hello"
+depends_on = ["nonexistent-step"]
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.level == DiagLevel::Error && d.message.contains("unknown step")),
+            "should error on unknown dependency"
+        );
+    }
+
+    #[test]
+    fn test_verify_undefined_wildcard_warning() {
+        let toml = r#"
+[workflow]
+name = "wc-test"
+
+[[step]]
+name = "step1"
+cmd  = "bwa mem {undefined_wildcard}.fq"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.message.contains("undefined_wildcard")),
+            "should warn about undefined wildcard: {diags:?}"
+        );
+    }
+
+    #[test]
+    fn test_verify_undefined_params_warning() {
+        let toml = r#"
+[workflow]
+name = "params-test"
+
+[[step]]
+name = "step1"
+cmd  = "bwa mem {params.reference} reads.fq"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        assert!(
+            diags.iter().any(|d| d.message.contains("reference")),
+            "should warn about undefined param: {diags:?}"
+        );
+    }
+
+    #[test]
+    fn test_verify_empty_step_cmd_error() {
+        let toml = r#"
+[workflow]
+name = "empty-cmd-test"
+
+[[step]]
+name = "step1"
+cmd  = "  "
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.level == DiagLevel::Error && d.message.contains("empty cmd")),
+            "should report empty cmd"
+        );
+    }
+
+    #[test]
+    fn test_verify_forward_dependency_warning() {
+        let toml = r#"
+[workflow]
+name = "fwd-dep"
+
+[[step]]
+name       = "step2"
+cmd        = "echo step2"
+depends_on = ["step1"]
+
+[[step]]
+name = "step1"
+cmd  = "echo step1"
+"#;
+        // Note: step2 appears before step1, creating a forward reference
+        // This is the scenario where dep_pos > step_pos.
+        // HOWEVER, depends_on for step2 includes "step1" which is the later step.
+        // Actually this should work fine since step1 appears AFTER step2.
+        // Let me check: step2 is at pos 0, step1 is at pos 1.
+        // dep_pos(step1)=1 > step_pos(step2)=0 → forward dependency warning
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        // Should have a forward-dependency warning
+        assert!(
+            diags.iter().any(|d| d.message.contains("appears later")),
+            "should warn about forward dependency: {diags:?}"
+        );
+    }
+
+    #[test]
+    fn test_verify_shell_var_expansion_not_flagged() {
+        // ${sample} should NOT trigger an "undefined wildcard" warning
+        let toml = r#"
+[workflow]
+name = "shell-var-test"
+
+[[step]]
+name = "step1"
+cmd  = "echo ${HOME}/output.txt"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        // shell variables (${...}) should be ignored — no spurious warnings
+        let shell_var_warnings: Vec<_> = diags
+            .iter()
+            .filter(|d| d.message.contains("HOME"))
+            .collect();
+        assert!(
+            shell_var_warnings.is_empty(),
+            "shell ${{HOME}} should not trigger undefined-wildcard warning"
+        );
+    }
+
+    #[test]
+    fn test_verify_all_builtin_templates_clean() {
+        for template in BUILTIN_TEMPLATES {
+            let def = WorkflowDef::from_str_content(template.native)
+                .unwrap_or_else(|e| panic!("{}: parse failed: {e}", template.name));
+            let diags = verify(&def);
+            let errors: Vec<_> = diags
+                .iter()
+                .filter(|d| d.level == DiagLevel::Error)
+                .collect();
+            assert!(
+                errors.is_empty(),
+                "{}: verify errors: {errors:?}",
+                template.name
+            );
+        }
+    }
+
+    // ─── execute() dry-run ────────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn test_execute_dry_run_no_tasks_ok() {
+        let result = execute(vec![], true).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_execute_dry_run_single_task_ok() {
+        let tasks = vec![ConcreteTask {
+            id: "echo-task".to_string(),
+            step_name: "echo-task".to_string(),
+            cmd: "echo hello".to_string(),
+            inputs: vec![],
+            outputs: vec![],
+            deps: vec![],
+            gather: false,
+            env: None,
+        }];
+        let result = execute(tasks, true).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_execute_dry_run_linear_chain_ok() {
+        let tasks = vec![
+            ConcreteTask {
+                id: "step_a".to_string(),
+                step_name: "step_a".to_string(),
+                cmd: "echo a".to_string(),
+                inputs: vec![],
+                outputs: vec![],
+                deps: vec![],
+                gather: false,
+                env: None,
+            },
+            ConcreteTask {
+                id: "step_b".to_string(),
+                step_name: "step_b".to_string(),
+                cmd: "echo b".to_string(),
+                inputs: vec![],
+                outputs: vec![],
+                deps: vec!["step_a".to_string()],
+                gather: false,
+                env: None,
+            },
+            ConcreteTask {
+                id: "step_c".to_string(),
+                step_name: "step_c".to_string(),
+                cmd: "echo c".to_string(),
+                inputs: vec![],
+                outputs: vec![],
+                deps: vec!["step_b".to_string()],
+                gather: false,
+                env: None,
+            },
+        ];
+        let result = execute(tasks, true).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_execute_dry_run_gather_step_ok() {
+        let tasks = vec![
+            ConcreteTask {
+                id: "fastp[sample=s1]".to_string(),
+                step_name: "fastp".to_string(),
+                cmd: "fastp -i s1_R1.fq -o s1.fq".to_string(),
+                inputs: vec!["s1_R1.fq".to_string()],
+                outputs: vec!["s1.fq".to_string()],
+                deps: vec![],
+                gather: false,
+                env: None,
+            },
+            ConcreteTask {
+                id: "fastp[sample=s2]".to_string(),
+                step_name: "fastp".to_string(),
+                cmd: "fastp -i s2_R1.fq -o s2.fq".to_string(),
+                inputs: vec!["s2_R1.fq".to_string()],
+                outputs: vec!["s2.fq".to_string()],
+                deps: vec![],
+                gather: false,
+                env: None,
+            },
+            ConcreteTask {
+                id: "multiqc".to_string(),
+                step_name: "multiqc".to_string(),
+                cmd: "multiqc qc/".to_string(),
+                inputs: vec![],
+                outputs: vec!["multiqc_report.html".to_string()],
+                deps: vec![
+                    "fastp[sample=s1]".to_string(),
+                    "fastp[sample=s2]".to_string(),
+                ],
+                gather: true,
+                env: None,
+            },
+        ];
+        let result = execute(tasks, true).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_execute_dry_run_with_env_field() {
+        let tasks = vec![ConcreteTask {
+            id: "py2-step".to_string(),
+            step_name: "py2-step".to_string(),
+            cmd: "python2 script.py".to_string(),
+            inputs: vec![],
+            outputs: vec![],
+            deps: vec![],
+            gather: false,
+            env: Some("conda activate py2_env &&".to_string()),
+        }];
+        let result = execute(tasks, true).await;
+        assert!(result.is_ok());
+    }
+
+    // ─── format_elapsed ───────────────────────────────────────────────────────
+
+    #[test]
+    fn test_format_elapsed_sub_second() {
+        let d = std::time::Duration::from_millis(500);
+        let s = format_elapsed(d);
+        assert!(s.ends_with("s"), "sub-second should end with 's': {s}");
+        assert!(s.contains("0.5"), "should show 0.5s: {s}");
+    }
+
+    #[test]
+    fn test_format_elapsed_exactly_one_minute() {
+        let d = std::time::Duration::from_secs(60);
+        let s = format_elapsed(d);
+        assert!(s.contains("m"), "should contain 'm': {s}");
+    }
+
+    #[test]
+    fn test_format_elapsed_exactly_one_hour() {
+        let d = std::time::Duration::from_secs(3600);
+        let s = format_elapsed(d);
+        assert!(s.contains("h"), "should contain 'h': {s}");
+    }
+
+    // ─── print_dag_phases ────────────────────────────────────────────────────
+
+    #[test]
+    fn test_print_dag_phases_no_panic_empty() {
+        print_dag_phases(&[]);
+        // Should not panic
+    }
+
+    #[test]
+    fn test_print_dag_phases_no_panic_linear() {
+        let tasks = vec![
+            ConcreteTask {
+                id: "a".to_string(),
+                step_name: "a".to_string(),
+                cmd: "echo a".to_string(),
+                inputs: vec![],
+                outputs: vec![],
+                deps: vec![],
+                gather: false,
+                env: None,
+            },
+            ConcreteTask {
+                id: "b".to_string(),
+                step_name: "b".to_string(),
+                cmd: "echo b".to_string(),
+                inputs: vec![],
+                outputs: vec![],
+                deps: vec!["a".to_string()],
+                gather: false,
+                env: None,
+            },
+        ];
+        print_dag_phases(&tasks);
+    }
+
+    #[test]
+    fn test_print_dag_phases_many_tasks_per_group() {
+        // Test the "… +N more" display path (> 3 tasks per group)
+        let tasks: Vec<ConcreteTask> = (0..5)
+            .map(|i| ConcreteTask {
+                id: format!("step[sample=s{i}]"),
+                step_name: "step".to_string(),
+                cmd: format!("echo s{i}"),
+                inputs: vec![],
+                outputs: vec![],
+                deps: vec![],
+                gather: false,
+                env: None,
+            })
+            .collect();
+        print_dag_phases(&tasks);
+    }
+
+    // ─── print_task_dry_run ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_print_task_dry_run_no_panic() {
+        let t = ConcreteTask {
+            id: "align[sample=s1]".to_string(),
+            step_name: "align".to_string(),
+            cmd: "bwa mem ref.fa reads.fq > out.sam".to_string(),
+            inputs: vec!["reads.fq".to_string()],
+            outputs: vec!["out.sam".to_string()],
+            deps: vec!["qc[sample=s1]".to_string()],
+            gather: false,
+            env: Some("module load bwa &&".to_string()),
+        };
+        print_task_dry_run(&t, 1, 3);
+    }
+
+    #[test]
+    fn test_print_task_dry_run_gather_no_panic() {
+        let t = ConcreteTask {
+            id: "multiqc".to_string(),
+            step_name: "multiqc".to_string(),
+            cmd: "multiqc qc/".to_string(),
+            inputs: vec![],
+            outputs: vec!["multiqc_report.html".to_string()],
+            deps: vec!["fastp[sample=s1]".to_string()],
+            gather: true,
+            env: None,
+        };
+        print_task_dry_run(&t, 5, 5);
+    }
+
+    // ─── WorkflowDef deserialization: inputs/outputs ─────────────────────────
+
+    #[test]
+    fn test_workflow_def_step_with_inputs_outputs() {
+        let toml = r#"
+[workflow]
+name = "io-test"
+
+[[step]]
+name    = "align"
+cmd     = "bwa mem ref.fa reads.fq"
+inputs  = ["ref.fa", "reads.fq"]
+outputs = ["out.sam"]
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        assert_eq!(def.steps[0].inputs, vec!["ref.fa", "reads.fq"]);
+        assert_eq!(def.steps[0].outputs, vec!["out.sam"]);
+    }
+
+    // ─── is_up_to_date: output exists but input is newer ────────────────────
+
+    #[test]
+    fn test_is_up_to_date_output_older_than_input() {
+        let tmp = tempfile::tempdir().unwrap();
+        let input = tmp.path().join("input.fq");
+        let output = tmp.path().join("output.bam");
+
+        // Create output first, then input (so output is older)
+        std::fs::write(&output, "result").unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        std::fs::write(&input, "reads").unwrap();
+
+        let task = ConcreteTask {
+            id: "t".to_string(),
+            step_name: "t".to_string(),
+            cmd: "bwa mem input.fq > output.bam".to_string(),
+            inputs: vec![input.to_string_lossy().to_string()],
+            outputs: vec![output.to_string_lossy().to_string()],
+            deps: vec![],
+            gather: false,
+            env: None,
+        };
+        // Output is older than input — should NOT be up-to-date
+        assert!(
+            !is_up_to_date(&task),
+            "output older than input should not be up-to-date"
         );
     }
 }

@@ -983,4 +983,263 @@ mod tests {
         let ctx = scan_data_directory(tmp.path());
         assert!(ctx.samples.contains(&"ctrl".to_string()));
     }
+
+    // ─── strip_read_pair_suffix (directly) ───────────────────────────────────
+
+    #[test]
+    fn test_strip_read_pair_suffix_r1() {
+        assert_eq!(strip_read_pair_suffix("sample_r1"), "sample");
+    }
+
+    #[test]
+    fn test_strip_read_pair_suffix_r2() {
+        assert_eq!(strip_read_pair_suffix("sample_r2"), "sample");
+    }
+
+    #[test]
+    fn test_strip_read_pair_suffix_1() {
+        assert_eq!(strip_read_pair_suffix("ctrl_1"), "ctrl");
+    }
+
+    #[test]
+    fn test_strip_read_pair_suffix_2() {
+        assert_eq!(strip_read_pair_suffix("ctrl_2"), "ctrl");
+    }
+
+    #[test]
+    fn test_strip_read_pair_suffix_no_suffix() {
+        assert_eq!(strip_read_pair_suffix("sample_only"), "sample_only");
+    }
+
+    // ─── strip_bam_suffix (via scan_data_directory) ───────────────────────────
+
+    #[test]
+    fn test_scan_data_directory_bam_sorted_suffix_stripped() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("sampleA.sorted.bam"), b"").unwrap();
+
+        let ctx = scan_data_directory(tmp.path());
+        assert!(
+            ctx.samples.contains(&"sampleA".to_string()),
+            "'.sorted' suffix should be stripped from BAM sample name"
+        );
+    }
+
+    #[test]
+    fn test_scan_data_directory_bam_markdup_suffix_stripped() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("sampleB.markdup.bam"), b"").unwrap();
+
+        let ctx = scan_data_directory(tmp.path());
+        assert!(
+            ctx.samples.contains(&"sampleB".to_string()),
+            "'.markdup' suffix should be stripped"
+        );
+    }
+
+    // ─── scan_data_directory: file cap ───────────────────────────────────────
+
+    #[test]
+    fn test_scan_data_directory_caps_file_list_at_20() {
+        let tmp = tempfile::tempdir().unwrap();
+        for i in 0..30 {
+            std::fs::write(tmp.path().join(format!("sample{i}_R1.fastq.gz")), b"").unwrap();
+        }
+        let ctx = scan_data_directory(tmp.path());
+        assert!(ctx.files.len() <= 20, "file list should be capped at 20");
+    }
+
+    // ─── build_infer_prompt: file preview ────────────────────────────────────
+
+    #[test]
+    fn test_build_infer_prompt_contains_file_preview() {
+        let ctx = DataContext {
+            samples: vec!["s1".to_string()],
+            files: vec![
+                "/data/s1_R1.fastq.gz".to_string(),
+                "/data/s1_R2.fastq.gz".to_string(),
+            ],
+            data_type_hint: "Illumina short-read FASTQ (paired-end)".to_string(),
+        };
+        let prompt = build_infer_prompt("align reads", &ctx, "/data");
+        assert!(prompt.contains("s1_R1.fastq.gz"));
+        assert!(prompt.contains("s1_R2.fastq.gz"));
+    }
+
+    // ─── find_template ───────────────────────────────────────────────────────
+
+    #[test]
+    fn test_find_template_all_have_native_content() {
+        for t in BUILTIN_TEMPLATES {
+            assert!(!t.native.is_empty(), "{}: native template is empty", t.name);
+            assert!(
+                !t.snakemake.is_empty(),
+                "{}: snakemake template is empty",
+                t.name
+            );
+            assert!(
+                !t.nextflow.is_empty(),
+                "{}: nextflow template is empty",
+                t.name
+            );
+        }
+    }
+
+    // ─── GeneratedWorkflow display helpers ────────────────────────────────────
+
+    #[test]
+    fn test_print_generated_workflow_no_explanation() {
+        let wf = GeneratedWorkflow {
+            engine: "native".to_string(),
+            content: "[workflow]\nname = \"test\"\n".to_string(),
+            explanation: String::new(),
+        };
+        // Should not panic even with empty explanation
+        print_generated_workflow(&wf);
+    }
+
+    #[test]
+    fn test_print_generated_workflow_with_explanation() {
+        let wf = GeneratedWorkflow {
+            engine: "snakemake".to_string(),
+            content: "rule all:\n  input:\n    \"output.txt\"\n".to_string(),
+            explanation: "This workflow runs STAR alignment.".to_string(),
+        };
+        // Should not panic
+        print_generated_workflow(&wf);
+    }
+
+    // ─── parse_workflow_response edge cases ───────────────────────────────────
+
+    #[test]
+    fn test_parse_workflow_response_reordered_markers_none() {
+        // END_WORKFLOW before WORKFLOW: — should return None
+        let raw = "END_WORKFLOW\nWORKFLOW:\ncontent\nEXPLANATION:\nexplanation";
+        assert!(parse_workflow_response(raw, "native").is_none());
+    }
+
+    #[test]
+    fn test_parse_workflow_response_explanation_before_end_none() {
+        // EXPLANATION: before END_WORKFLOW — should return None
+        let raw = "WORKFLOW:\ncontent\nEXPLANATION:\nexplanation\nEND_WORKFLOW";
+        assert!(parse_workflow_response(raw, "native").is_none());
+    }
+
+    #[test]
+    fn test_parse_workflow_response_all_engines() {
+        for engine in &["native", "snakemake", "nextflow"] {
+            let raw = format!(
+                "WORKFLOW:\n[workflow]\nname = \"test\"\nEND_WORKFLOW\nEXPLANATION:\nA test.\n"
+            );
+            let wf = parse_workflow_response(&raw, engine);
+            assert!(wf.is_some(), "should parse for engine {engine}");
+            assert_eq!(wf.unwrap().engine, *engine);
+        }
+    }
+
+    // ─── DataContext default ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_data_context_default() {
+        let ctx = DataContext::default();
+        assert!(ctx.samples.is_empty());
+        assert!(ctx.files.is_empty());
+        assert!(ctx.data_type_hint.is_empty());
+    }
+
+    // ─── System prompt content tests ──────────────────────────────────────────
+
+    #[test]
+    fn test_native_system_prompt_content() {
+        let prompt = native_system_prompt();
+        assert!(prompt.contains("oxo-call"), "should mention oxo-call");
+        assert!(prompt.contains(".oxo.toml"), "should mention .oxo.toml");
+        assert!(prompt.contains("[workflow]"), "should show format example");
+        assert!(prompt.contains("WORKFLOW:"), "should have output format");
+        assert!(prompt.contains("END_WORKFLOW"), "should have end marker");
+        assert!(
+            prompt.contains("EXPLANATION:"),
+            "should have explanation marker"
+        );
+    }
+
+    #[test]
+    fn test_snakemake_system_prompt_content() {
+        let prompt = snakemake_system_prompt();
+        assert!(prompt.contains("Snakemake"), "should mention Snakemake");
+        assert!(prompt.contains("WORKFLOW:"), "should have output format");
+        assert!(prompt.contains("END_WORKFLOW"), "should have end marker");
+        assert!(prompt.contains("rule all"), "should mention rule all");
+    }
+
+    #[test]
+    fn test_nextflow_system_prompt_content() {
+        let prompt = nextflow_system_prompt();
+        assert!(prompt.contains("Nextflow"), "should mention Nextflow");
+        assert!(
+            prompt.contains("DSL2") || prompt.contains("dsl"),
+            "should mention DSL2"
+        );
+        assert!(prompt.contains("WORKFLOW:"), "should have output format");
+        assert!(prompt.contains("END_WORKFLOW"), "should have end marker");
+    }
+
+    // ─── print_template_list ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_print_template_list_no_panic() {
+        // Should not panic when called
+        print_template_list();
+    }
+
+    // ─── strip_bam_suffix direct tests ───────────────────────────────────────
+
+    #[test]
+    fn test_strip_bam_suffix_recal() {
+        assert_eq!(strip_bam_suffix("sampleC.recal"), "sampleC");
+    }
+
+    #[test]
+    fn test_strip_bam_suffix_dedup() {
+        assert_eq!(strip_bam_suffix("sampleD.dedup"), "sampleD");
+    }
+
+    #[test]
+    fn test_strip_bam_suffix_multiple_suffixes() {
+        // sorted.markdup should strip both
+        assert_eq!(strip_bam_suffix("sample.sorted.markdup"), "sample");
+    }
+
+    #[test]
+    fn test_strip_bam_suffix_no_suffix() {
+        assert_eq!(strip_bam_suffix("sample"), "sample");
+    }
+
+    // ─── strip_read_pair_suffix 001 variants ─────────────────────────────────
+
+    #[test]
+    fn test_strip_read_pair_suffix_r1_001() {
+        assert_eq!(strip_read_pair_suffix("ctrl_r1_001"), "ctrl");
+    }
+
+    #[test]
+    fn test_strip_read_pair_suffix_r2_001() {
+        assert_eq!(strip_read_pair_suffix("ctrl_r2_001"), "ctrl");
+    }
+
+    // ─── scan_data_directory: single-end FASTQ ───────────────────────────────
+
+    #[test]
+    fn test_scan_data_directory_single_end_fastq_hint() {
+        let tmp = tempfile::tempdir().unwrap();
+        // Single-end file: no _R1/_R2 pattern
+        std::fs::write(tmp.path().join("sample_SE.fastq.gz"), b"").unwrap();
+
+        let ctx = scan_data_directory(tmp.path());
+        assert!(
+            ctx.data_type_hint.contains("single-end") || ctx.data_type_hint.contains("FASTQ"),
+            "should detect single-end FASTQ: {}",
+            ctx.data_type_hint
+        );
+    }
 }

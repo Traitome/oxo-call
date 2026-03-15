@@ -312,3 +312,115 @@ pub struct McpSkillEntry {
     /// Optional description from the resource metadata
     pub description: String,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::McpServerConfig;
+
+    fn make_config(url: &str) -> McpServerConfig {
+        McpServerConfig {
+            url: url.to_string(),
+            name: "test-server".to_string(),
+            api_key: None,
+        }
+    }
+
+    // ─── endpoint ─────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_endpoint_appends_mcp() {
+        let client = McpClient::new(make_config("http://localhost:3000"));
+        assert_eq!(client.endpoint(), "http://localhost:3000/mcp");
+    }
+
+    #[test]
+    fn test_endpoint_preserves_existing_mcp_suffix() {
+        let client = McpClient::new(make_config("http://localhost:3000/mcp"));
+        assert_eq!(client.endpoint(), "http://localhost:3000/mcp");
+    }
+
+    #[test]
+    fn test_endpoint_trims_trailing_slash_before_append() {
+        let client = McpClient::new(make_config("http://localhost:3000/"));
+        assert_eq!(client.endpoint(), "http://localhost:3000/mcp");
+    }
+
+    #[test]
+    fn test_endpoint_with_path_prefix() {
+        let client = McpClient::new(make_config("https://skills.example.org/api"));
+        assert_eq!(client.endpoint(), "https://skills.example.org/api/mcp");
+    }
+
+    // ─── McpClient::new ───────────────────────────────────────────────────────
+
+    #[test]
+    fn test_mcp_client_new_stores_config() {
+        let cfg = McpServerConfig {
+            url: "http://localhost:9000".to_string(),
+            name: "my-server".to_string(),
+            api_key: Some("secret".to_string()),
+        };
+        let client = McpClient::new(cfg.clone());
+        assert_eq!(client.config.url, "http://localhost:9000");
+        assert_eq!(client.config.name, "my-server");
+        assert_eq!(client.config.api_key.as_deref(), Some("secret"));
+    }
+
+    // ─── McpSkillEntry ────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_mcp_skill_entry_debug() {
+        let entry = McpSkillEntry {
+            uri: "skill://samtools".to_string(),
+            tool: "samtools".to_string(),
+            description: "SAM/BAM tool".to_string(),
+        };
+        let s = format!("{entry:?}");
+        assert!(s.contains("samtools"));
+        assert!(s.contains("SAM/BAM tool"));
+    }
+
+    #[test]
+    fn test_mcp_skill_entry_clone() {
+        let entry = McpSkillEntry {
+            uri: "skill://bwa".to_string(),
+            tool: "bwa".to_string(),
+            description: "Burrows-Wheeler Aligner".to_string(),
+        };
+        let cloned = entry.clone();
+        assert_eq!(cloned.uri, entry.uri);
+        assert_eq!(cloned.tool, entry.tool);
+        assert_eq!(cloned.description, entry.description);
+    }
+
+    // ─── RpcRequest serialization ─────────────────────────────────────────────
+
+    #[test]
+    fn test_rpc_request_serialization() {
+        let req = RpcRequest {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "initialize",
+            params: None,
+        };
+        let json = serde_json::to_string(&req).unwrap();
+        assert!(json.contains("\"jsonrpc\":\"2.0\""));
+        assert!(json.contains("\"method\":\"initialize\""));
+        // params: None should be omitted (skip_serializing_if)
+        assert!(!json.contains("params"));
+    }
+
+    #[test]
+    fn test_rpc_request_with_params_serialization() {
+        let req = RpcRequest {
+            jsonrpc: "2.0",
+            id: 2,
+            method: "resources/read",
+            params: Some(serde_json::json!({ "uri": "skill://samtools" })),
+        };
+        let json = serde_json::to_string(&req).unwrap();
+        assert!(json.contains("\"uri\""));
+        assert!(json.contains("skill://samtools"));
+    }
+}

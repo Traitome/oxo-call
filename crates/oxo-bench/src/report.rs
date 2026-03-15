@@ -371,4 +371,132 @@ mod tests {
         assert_eq!(s.total_correct, 5);
         assert_eq!(s.total_attempts, 6);
     }
+
+    // ─── print_model_report ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_print_model_report_header_and_rows() {
+        let results = vec![
+            ModelBenchResult {
+                model: "gpt-4o".to_string(),
+                tool: "samtools".to_string(),
+                task_summary: "sort bam".to_string(),
+                category: "alignment".to_string(),
+                correct_count: 3,
+                total_count: 3,
+                format_validity_rate: 1.0,
+                self_consistency_rate: 1.0,
+                avg_latency_ms: None,
+            },
+            ModelBenchResult {
+                model: "gpt-4o-mini".to_string(),
+                tool: "bwa".to_string(),
+                task_summary: "align reads".to_string(),
+                category: "alignment".to_string(),
+                correct_count: 2,
+                total_count: 3,
+                format_validity_rate: 0.9,
+                self_consistency_rate: 0.8,
+                avg_latency_ms: Some(100.0),
+            },
+        ];
+        let mut buf = Vec::new();
+        print_model_report(&mut buf, &results).unwrap();
+        let text = String::from_utf8(buf).unwrap();
+        assert!(text.contains("LLM model evaluation results"));
+        assert!(text.contains("gpt-4o"));
+        assert!(text.contains("gpt-4o-mini"));
+        assert!(text.contains("samtools"));
+        assert!(text.contains("bwa"));
+    }
+
+    #[test]
+    fn test_print_model_report_empty() {
+        let mut buf = Vec::new();
+        print_model_report(&mut buf, &[]).unwrap();
+        let text = String::from_utf8(buf).unwrap();
+        assert!(text.contains("LLM model evaluation results"));
+    }
+
+    // ─── print_model_summary ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_print_model_summary_header_and_rows() {
+        let results = vec![ModelBenchResult {
+            model: "gpt-4o".to_string(),
+            tool: "samtools".to_string(),
+            task_summary: "sort bam".to_string(),
+            category: "alignment".to_string(),
+            correct_count: 5,
+            total_count: 5,
+            format_validity_rate: 1.0,
+            self_consistency_rate: 0.9,
+            avg_latency_ms: Some(200.0),
+        }];
+        let summaries = summarise_by_model(&results);
+        let mut buf = Vec::new();
+        print_model_summary(&mut buf, &summaries).unwrap();
+        let text = String::from_utf8(buf).unwrap();
+        assert!(text.contains("Model summary"));
+        assert!(text.contains("gpt-4o"));
+        assert!(text.contains("200 ms"));
+    }
+
+    #[test]
+    fn test_print_model_summary_no_latency() {
+        let results = vec![ModelBenchResult {
+            model: "test-model".to_string(),
+            tool: "samtools".to_string(),
+            task_summary: "sort bam".to_string(),
+            category: "alignment".to_string(),
+            correct_count: 3,
+            total_count: 5,
+            format_validity_rate: 0.8,
+            self_consistency_rate: 0.7,
+            avg_latency_ms: None, // No latency samples
+        }];
+        let summaries = summarise_by_model(&results);
+        let mut buf = Vec::new();
+        print_model_summary(&mut buf, &summaries).unwrap();
+        let text = String::from_utf8(buf).unwrap();
+        assert!(text.contains("N/A"), "missing latency should show N/A");
+    }
+
+    // ─── ModelSummary methods ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_model_summary_no_attempts_zero_accuracy() {
+        let s = ModelSummary {
+            model: "test".to_string(),
+            n_tasks: 0,
+            total_correct: 0,
+            total_attempts: 0,
+            sum_format_rate: 0.0,
+            sum_consistency: 0.0,
+            sum_latency_ms: 0.0,
+            n_latency_samples: 0,
+        };
+        assert_eq!(s.overall_accuracy(), 0.0);
+        assert_eq!(s.avg_format_rate(), 0.0);
+        assert_eq!(s.avg_consistency(), 0.0);
+        assert!(s.avg_latency_ms().is_none());
+    }
+
+    #[test]
+    fn test_model_summary_with_data() {
+        let s = ModelSummary {
+            model: "gpt-4o".to_string(),
+            n_tasks: 2,
+            total_correct: 4,
+            total_attempts: 5,
+            sum_format_rate: 1.8,
+            sum_consistency: 1.6,
+            sum_latency_ms: 500.0,
+            n_latency_samples: 2,
+        };
+        assert!((s.overall_accuracy() - 0.8).abs() < 1e-9);
+        assert!((s.avg_format_rate() - 0.9).abs() < 1e-9);
+        assert!((s.avg_consistency() - 0.8).abs() < 1e-9);
+        assert_eq!(s.avg_latency_ms(), Some(250.0));
+    }
 }

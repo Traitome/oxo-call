@@ -1149,4 +1149,263 @@ mod tests {
         let s = format!("{v:?}");
         assert!(s.contains("success: true"));
     }
+
+    // ─── build_prompt ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_build_prompt_basic() {
+        let prompt = build_prompt(
+            "samtools",
+            "samtools --help output here",
+            "sort bam file",
+            None,
+        );
+        assert!(prompt.contains("samtools"));
+        assert!(prompt.contains("samtools --help output here"));
+        assert!(prompt.contains("sort bam file"));
+        assert!(prompt.contains("ARGS:"));
+        assert!(prompt.contains("EXPLANATION:"));
+    }
+
+    #[test]
+    fn test_build_prompt_with_skill() {
+        use crate::skill::{Skill, SkillContext, SkillExample, SkillMeta};
+
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "samtools".to_string(),
+                ..Default::default()
+            },
+            context: SkillContext {
+                concepts: vec!["concept 1".to_string()],
+                pitfalls: vec!["pitfall 1".to_string()],
+            },
+            examples: vec![SkillExample {
+                task: "sort bam".to_string(),
+                args: "sort -o sorted.bam input.bam".to_string(),
+                explanation: "sort by coordinate".to_string(),
+            }],
+        };
+        let prompt = build_prompt("samtools", "docs", "sort bam", Some(&skill));
+        assert!(prompt.contains("samtools"));
+        assert!(prompt.contains("concept 1"));
+        assert!(prompt.contains("pitfall 1"));
+        assert!(prompt.contains("sort bam"));
+    }
+
+    #[test]
+    fn test_build_prompt_format_instructions() {
+        let prompt = build_prompt("bwa", "bwa mem --help", "align reads", None);
+        assert!(
+            prompt.contains("ARGS:"),
+            "should contain ARGS: format instruction"
+        );
+        assert!(
+            prompt.contains("EXPLANATION:"),
+            "should contain EXPLANATION: format instruction"
+        );
+        assert!(prompt.contains("RULES:"), "should contain RULES section");
+    }
+
+    // ─── build_retry_prompt ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_build_retry_prompt_contains_prev_response() {
+        let prev = "THIS IS WRONG FORMAT";
+        let prompt = build_retry_prompt("samtools", "docs", "sort bam", None, prev);
+        assert!(
+            prompt.contains(prev),
+            "retry prompt should include previous response"
+        );
+        assert!(
+            prompt.contains("Correction"),
+            "retry prompt should mention correction"
+        );
+        assert!(prompt.contains("ARGS:"));
+    }
+
+    // ─── strip_markdown_fences ────────────────────────────────────────────────
+
+    #[test]
+    fn test_strip_markdown_fences_no_fence() {
+        let raw = "---\nname: tool\n---\n\n## Concepts\n";
+        assert_eq!(strip_markdown_fences(raw), raw.trim());
+    }
+
+    #[test]
+    fn test_strip_markdown_fences_with_fence() {
+        let raw = "```markdown\n---\nname: tool\n---\n```";
+        let stripped = strip_markdown_fences(raw);
+        assert!(!stripped.starts_with("```"), "fence should be removed");
+        assert!(
+            !stripped.ends_with("```"),
+            "closing fence should be removed"
+        );
+        assert!(stripped.contains("---"));
+    }
+
+    #[test]
+    fn test_strip_markdown_fences_with_md_fence() {
+        let raw = "```md\n---\nname: tool\n---\n```";
+        let stripped = strip_markdown_fences(raw);
+        assert!(!stripped.starts_with("```"));
+        assert!(stripped.contains("---"));
+    }
+
+    #[test]
+    fn test_strip_markdown_fences_bare_fence() {
+        let raw = "```\n---\nname: tool\n---\n```";
+        let stripped = strip_markdown_fences(raw);
+        assert!(!stripped.starts_with("```"));
+        assert!(stripped.contains("---"));
+    }
+
+    // ─── parse_skill_verify_response ─────────────────────────────────────────
+
+    #[test]
+    fn test_parse_skill_verify_response_pass() {
+        let raw =
+            "VERDICT: pass\nSUMMARY: The skill looks good.\nISSUES:\n- none\nSUGGESTIONS:\n- none";
+        let v = parse_skill_verify_response(raw);
+        assert!(v.passed);
+        assert_eq!(v.summary, "The skill looks good.");
+        assert!(v.issues.is_empty());
+        assert!(v.suggestions.is_empty());
+    }
+
+    #[test]
+    fn test_parse_skill_verify_response_fail() {
+        let raw = "VERDICT: fail\nSUMMARY: The skill needs work.\nISSUES:\n- Missing examples\n- Category is empty\nSUGGESTIONS:\n- Add 5 examples\n- Set a category";
+        let v = parse_skill_verify_response(raw);
+        assert!(!v.passed);
+        assert_eq!(v.summary, "The skill needs work.");
+        assert_eq!(v.issues.len(), 2);
+        assert_eq!(v.suggestions.len(), 2);
+        assert!(v.issues.iter().any(|i| i.contains("Missing")));
+    }
+
+    #[test]
+    fn test_parse_skill_verify_response_empty() {
+        let v = parse_skill_verify_response("");
+        // Defaults to passed=true when no VERDICT line
+        assert!(v.passed);
+        assert!(v.summary.is_empty());
+    }
+
+    // ─── build_skill_verify_prompt ────────────────────────────────────────────
+
+    #[test]
+    fn test_build_skill_verify_prompt_contains_tool_and_content() {
+        let content = "---\nname: samtools\n---\n## Concepts\n";
+        let prompt = build_skill_verify_prompt("samtools", content);
+        assert!(prompt.contains("samtools"));
+        assert!(prompt.contains(content));
+        assert!(prompt.contains("VERDICT:"));
+    }
+
+    // ─── build_skill_polish_prompt ────────────────────────────────────────────
+
+    #[test]
+    fn test_build_skill_polish_prompt_contains_tool_and_content() {
+        let content = "---\nname: bwa\n---\n## Concepts\n";
+        let prompt = build_skill_polish_prompt("bwa", content);
+        assert!(prompt.contains("bwa"));
+        assert!(prompt.contains(content));
+        assert!(prompt.contains("Polish"));
+    }
+
+    // ─── build_skill_generate_prompt ─────────────────────────────────────────
+
+    #[test]
+    fn test_build_skill_generate_prompt_contains_tool() {
+        let prompt = build_skill_generate_prompt("gatk");
+        assert!(prompt.contains("gatk"));
+        assert!(prompt.contains("Concepts"));
+        assert!(prompt.contains("Pitfalls"));
+        assert!(prompt.contains("Examples"));
+    }
+
+    // ─── LlmClient::parse_response ───────────────────────────────────────────
+
+    #[test]
+    fn test_parse_response_basic() {
+        let raw = "ARGS: sort -o out.bam in.bam\nEXPLANATION: Sort the BAM file by coordinate.";
+        let suggestion = LlmClient::parse_response(raw).unwrap();
+        assert_eq!(suggestion.args, vec!["sort", "-o", "out.bam", "in.bam"]);
+        assert_eq!(suggestion.explanation, "Sort the BAM file by coordinate.");
+    }
+
+    #[test]
+    fn test_parse_response_none_args() {
+        let raw = "ARGS: (none)\nEXPLANATION: Run with default settings.";
+        let suggestion = LlmClient::parse_response(raw).unwrap();
+        assert!(
+            suggestion.args.is_empty(),
+            "ARGS: (none) should give empty args"
+        );
+        assert_eq!(suggestion.explanation, "Run with default settings.");
+    }
+
+    #[test]
+    fn test_parse_response_empty_args() {
+        let raw = "ARGS:\nEXPLANATION: Run with no extra args.";
+        let suggestion = LlmClient::parse_response(raw).unwrap();
+        assert!(suggestion.args.is_empty());
+    }
+
+    #[test]
+    fn test_parse_response_no_explanation() {
+        let raw = "ARGS: -o out.bam";
+        let suggestion = LlmClient::parse_response(raw).unwrap();
+        assert_eq!(suggestion.args, vec!["-o", "out.bam"]);
+        assert!(suggestion.explanation.is_empty());
+    }
+
+    #[test]
+    fn test_parse_response_raw_response_stored() {
+        let raw = "ARGS: -o out.bam\nEXPLANATION: Test";
+        let suggestion = LlmClient::parse_response(raw).unwrap();
+        assert_eq!(suggestion.raw_response, raw);
+    }
+
+    // ─── build_task_optimization_prompt ──────────────────────────────────────
+
+    #[test]
+    fn test_build_task_optimization_prompt_format() {
+        let prompt = build_task_optimization_prompt("samtools", "sort bam by name");
+        assert!(prompt.contains("samtools"));
+        assert!(prompt.contains("sort bam by name"));
+        assert!(
+            prompt.contains("TASK:"),
+            "should contain TASK: output format"
+        );
+    }
+
+    // ─── verification_system_prompt / build_verification_prompt ──────────────
+
+    #[test]
+    fn test_verification_system_prompt_not_empty() {
+        let prompt = verification_system_prompt();
+        assert!(!prompt.is_empty());
+        assert!(prompt.contains("bioinformatics"));
+    }
+
+    // ─── skill_reviewer_system_prompt ────────────────────────────────────────
+
+    #[test]
+    fn test_skill_reviewer_system_prompt_not_empty() {
+        let prompt = skill_reviewer_system_prompt();
+        assert!(!prompt.is_empty());
+        assert!(prompt.contains("skill"));
+    }
+
+    // ─── LlmClient::new ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_llm_client_new() {
+        use crate::config::Config;
+        let cfg = Config::default();
+        let _client = LlmClient::new(cfg);
+        // Just verify it can be constructed without panic
+    }
 }

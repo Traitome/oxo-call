@@ -778,4 +778,118 @@ mod tests {
         assert!(!files.contains(&"--threads".to_string()));
         assert!(!files.contains(&"--sort".to_string()));
     }
+
+    // ─── build_command_string ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_build_command_string_no_args() {
+        assert_eq!(build_command_string("echo", &[]), "echo");
+    }
+
+    #[test]
+    fn test_build_command_string_simple_args() {
+        let args: Vec<String> = vec!["-o".to_string(), "out.bam".to_string()];
+        let cmd = build_command_string("samtools", &args);
+        assert_eq!(cmd, "samtools -o out.bam");
+    }
+
+    #[test]
+    fn test_build_command_string_quotes_args_with_spaces() {
+        let args: Vec<String> = vec!["--output".to_string(), "my output file.bam".to_string()];
+        let cmd = build_command_string("samtools", &args);
+        assert!(
+            cmd.contains("'my output file.bam'"),
+            "args with spaces should be quoted"
+        );
+    }
+
+    #[test]
+    fn test_build_command_string_quotes_args_with_special_chars() {
+        let args: Vec<String> = vec!["--filter".to_string(), "flag & 0x4".to_string()];
+        let cmd = build_command_string("samtools", &args);
+        assert!(cmd.contains("'flag"), "args with & should be quoted");
+    }
+
+    // ─── needs_quoting ────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_needs_quoting_simple_arg_false() {
+        assert!(!needs_quoting("-o"));
+        assert!(!needs_quoting("out.bam"));
+        assert!(!needs_quoting("--threads=8"));
+    }
+
+    #[test]
+    fn test_needs_quoting_space_true() {
+        assert!(needs_quoting("my file.bam"));
+    }
+
+    #[test]
+    fn test_needs_quoting_special_chars_true() {
+        assert!(needs_quoting("a;b"));
+        assert!(needs_quoting("a&b"));
+        assert!(needs_quoting("a|b"));
+        assert!(needs_quoting("$HOME"));
+        assert!(needs_quoting("`cmd`"));
+        assert!(needs_quoting("(subshell)"));
+        assert!(needs_quoting("a<b"));
+        assert!(needs_quoting("a>b"));
+        assert!(needs_quoting("a!b"));
+        assert!(needs_quoting("a\\b"));
+        assert!(needs_quoting("a\"b"));
+        assert!(needs_quoting("a'b"));
+    }
+
+    #[test]
+    fn test_needs_quoting_tab_true() {
+        assert!(needs_quoting("a\tb"));
+    }
+
+    // ─── sha256_hex ───────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_sha256_hex_empty_string() {
+        let hash = sha256_hex("");
+        // SHA256 of empty string is well-known
+        assert_eq!(
+            hash,
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
+    }
+
+    #[test]
+    fn test_sha256_hex_hello_world() {
+        let hash = sha256_hex("hello world");
+        assert_eq!(hash.len(), 64, "SHA256 hex should be 64 characters");
+        // Only hex characters
+        assert!(hash.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn test_sha256_hex_deterministic() {
+        let hash1 = sha256_hex("test input");
+        let hash2 = sha256_hex("test input");
+        assert_eq!(hash1, hash2, "SHA256 should be deterministic");
+    }
+
+    #[test]
+    fn test_sha256_hex_different_inputs_produce_different_hashes() {
+        let hash1 = sha256_hex("input one");
+        let hash2 = sha256_hex("input two");
+        assert_ne!(hash1, hash2);
+    }
+
+    // ─── Runner::new and builder methods ─────────────────────────────────────
+
+    #[test]
+    fn test_runner_new() {
+        use crate::config::Config;
+        let cfg = Config::default();
+        let runner = Runner::new(cfg);
+        // Just verify construction doesn't panic
+        let runner = runner.with_verbose(true);
+        let runner = runner.with_no_cache(true);
+        let runner = runner.with_verify(true);
+        let _runner = runner.with_optimize_task(true);
+    }
 }
