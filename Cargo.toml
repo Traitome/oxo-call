@@ -3,7 +3,7 @@ members = [".", "crates/license-issuer", "crates/oxo-bench"]
 
 [package]
 name = "oxo-call"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2024"
 description = "Model-intelligent orchestration for CLI bioinformatics — call any tool with LLM intelligence"
 authors = ["Traitome <https://github.com/Traitome>"]
