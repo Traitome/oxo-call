@@ -235,4 +235,144 @@ mod tests {
         let entries = HistoryStore::load_all().unwrap();
         assert!(entries.is_empty());
     }
+
+    // ─── New field: server ────────────────────────────────────────────────────
+
+    /// Helper that creates an entry tagged with a server name.
+    fn make_server_entry(id: &str, server: &str) -> HistoryEntry {
+        HistoryEntry {
+            id: id.to_string(),
+            tool: "samtools".to_string(),
+            task: "sort bam".to_string(),
+            command: "samtools sort -o out.bam in.bam".to_string(),
+            exit_code: 0,
+            executed_at: Utc::now(),
+            dry_run: false,
+            server: Some(server.to_string()),
+            provenance: None,
+        }
+    }
+
+    #[test]
+    fn test_server_field_round_trip_via_store() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+
+        HistoryStore::clear().unwrap();
+        HistoryStore::append(make_server_entry("srv-1", "hpc-cluster")).unwrap();
+
+        let entries = HistoryStore::load_all().unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].server.as_deref(), Some("hpc-cluster"));
+    }
+
+    #[test]
+    fn test_server_field_is_none_for_local_runs() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+
+        HistoryStore::clear().unwrap();
+        // local entry has server = None
+        HistoryStore::append(make_entry("local-1", "bwa", false)).unwrap();
+
+        let entries = HistoryStore::load_all().unwrap();
+        assert_eq!(entries.len(), 1);
+        assert!(
+            entries[0].server.is_none(),
+            "local entry should have server = None"
+        );
+    }
+
+    #[test]
+    fn test_server_field_omitted_in_json_when_none() {
+        let entry = make_entry("no-server", "gatk", false);
+        let json = serde_json::to_string(&entry).unwrap();
+        // server is None → should be omitted (skip_serializing_if)
+        assert!(
+            !json.contains("\"server\""),
+            "server field should be omitted when None, got: {json}"
+        );
+    }
+
+    #[test]
+    fn test_server_field_present_in_json_when_set() {
+        let entry = make_server_entry("srv-json", "my-server");
+        let json = serde_json::to_string(&entry).unwrap();
+        assert!(
+            json.contains("\"server\":\"my-server\""),
+            "server field should be present when set, got: {json}"
+        );
+    }
+
+    #[test]
+    fn test_old_history_entry_without_server_still_deserializes() {
+        // Simulate an old-format JSON line that has no "server" key.
+        let old_json = r#"{"id":"old-1","tool":"samtools","task":"sort","command":"samtools sort -o out.bam in.bam","exit_code":0,"executed_at":"2024-01-01T00:00:00Z","dry_run":false}"#;
+        let entry: HistoryEntry = serde_json::from_str(old_json).unwrap();
+        assert_eq!(entry.id, "old-1");
+        assert!(
+            entry.server.is_none(),
+            "old entries without server should deserialize with server = None"
+        );
+    }
+
+    #[test]
+    fn test_dry_run_entry_serialization() {
+        let entry = make_entry("dry-1", "samtools", true);
+        let json = serde_json::to_string(&entry).unwrap();
+        let back: HistoryEntry = serde_json::from_str(&json).unwrap();
+        assert!(back.dry_run, "dry_run should survive round-trip");
+        assert!(
+            back.server.is_none(),
+            "server should be None for local dry-run"
+        );
+    }
+
+    #[test]
+    fn test_server_dry_run_entry() {
+        let entry = HistoryEntry {
+            id: "sdr-1".to_string(),
+            tool: "ls".to_string(),
+            task: "list files".to_string(),
+            command: "ls -la".to_string(),
+            exit_code: 0,
+            executed_at: Utc::now(),
+            dry_run: true,
+            server: Some("remote-box".to_string()),
+            provenance: None,
+        };
+        let json = serde_json::to_string(&entry).unwrap();
+        let back: HistoryEntry = serde_json::from_str(&json).unwrap();
+        assert!(back.dry_run);
+        assert_eq!(back.server.as_deref(), Some("remote-box"));
+    }
+
+    #[test]
+    fn test_mixed_local_and_server_entries() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+
+        HistoryStore::clear().unwrap();
+        // local run
+        HistoryStore::append(make_entry("local-mix", "bwa", false)).unwrap();
+        // server run
+        HistoryStore::append(make_server_entry("srv-mix", "hpc1")).unwrap();
+        // dry-run
+        HistoryStore::append(make_entry("dry-mix", "samtools", true)).unwrap();
+
+        let entries = HistoryStore::load_all().unwrap();
+        assert_eq!(entries.len(), 3);
+        assert!(entries[0].server.is_none());
+        assert_eq!(entries[1].server.as_deref(), Some("hpc1"));
+        assert!(entries[2].dry_run);
+    }
 }

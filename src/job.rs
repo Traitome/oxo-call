@@ -948,4 +948,220 @@ mod tests {
             "built-in job names should be unique"
         );
     }
+
+    // ─── New built-in job coverage tests ─────────────────────────────────────
+
+    /// Verify every expected new built-in job name is present.
+    #[test]
+    fn test_new_builtin_jobs_exist() {
+        let names: std::collections::HashSet<&str> = BUILTIN_JOBS.iter().map(|j| j.name).collect();
+        for expected in &[
+            "uptime",
+            "load",
+            "who",
+            "inode",
+            "tmp",
+            "cpu-info",
+            "find-recent",
+            "find-bam",
+            "find-fastq",
+            "bam-index",
+            "qstat-sge",
+            "qhost",
+            "qdel-me",
+            "docker-images",
+            "docker-all",
+            "k8s-svc",
+            "k8s-top",
+            "git-status",
+            "git-branch",
+            "conda-envs",
+            "screen-ls",
+            "tmux-ls",
+        ] {
+            assert!(
+                names.contains(*expected),
+                "Expected built-in job '{expected}' to be present"
+            );
+        }
+    }
+
+    #[test]
+    fn test_builtin_jobs_total_count_at_least_50() {
+        assert!(
+            BUILTIN_JOBS.len() >= 49,
+            "Expected at least 49 built-in jobs, got {}",
+            BUILTIN_JOBS.len()
+        );
+    }
+
+    #[test]
+    fn test_builtin_jobs_sge_tag_filter() {
+        let sge = builtin_jobs(Some("sge"));
+        assert!(!sge.is_empty(), "should have SGE built-in jobs");
+        for j in &sge {
+            assert!(
+                j.tags.contains(&"sge"),
+                "job '{}' should have 'sge' tag",
+                j.name
+            );
+        }
+        // spot-check at least qstat-sge and qdel-me
+        let sge_names: Vec<&str> = sge.iter().map(|j| j.name).collect();
+        assert!(
+            sge_names.contains(&"qstat-sge"),
+            "qstat-sge should be in sge filter"
+        );
+        assert!(
+            sge_names.contains(&"qdel-me"),
+            "qdel-me should be in sge filter"
+        );
+    }
+
+    #[test]
+    fn test_builtin_jobs_bioinformatics_tag_filter() {
+        let bio = builtin_jobs(Some("bioinformatics"));
+        assert!(!bio.is_empty(), "should have bioinformatics built-in jobs");
+        let bio_names: Vec<&str> = bio.iter().map(|j| j.name).collect();
+        assert!(
+            bio_names.contains(&"find-bam"),
+            "find-bam should be in bioinformatics filter"
+        );
+        assert!(
+            bio_names.contains(&"find-fastq"),
+            "find-fastq should be in bioinformatics filter"
+        );
+        assert!(
+            bio_names.contains(&"bam-index"),
+            "bam-index should be in bioinformatics filter"
+        );
+    }
+
+    #[test]
+    fn test_builtin_jobs_dev_tag_filter() {
+        let dev = builtin_jobs(Some("dev"));
+        assert!(!dev.is_empty(), "should have dev built-in jobs");
+        let dev_names: Vec<&str> = dev.iter().map(|j| j.name).collect();
+        assert!(
+            dev_names.contains(&"git-status"),
+            "git-status should be in dev filter"
+        );
+        assert!(
+            dev_names.contains(&"git-branch"),
+            "git-branch should be in dev filter"
+        );
+        assert!(
+            dev_names.contains(&"conda-envs"),
+            "conda-envs should be in dev filter"
+        );
+        assert!(
+            dev_names.contains(&"screen-ls"),
+            "screen-ls should be in dev filter"
+        );
+        assert!(
+            dev_names.contains(&"tmux-ls"),
+            "tmux-ls should be in dev filter"
+        );
+    }
+
+    #[test]
+    fn test_builtin_jobs_all_have_non_empty_descriptions() {
+        for job in BUILTIN_JOBS {
+            assert!(
+                !job.description.is_empty(),
+                "built-in job '{}' should have a description",
+                job.name
+            );
+        }
+    }
+
+    #[test]
+    fn test_builtin_jobs_all_have_at_least_one_tag() {
+        for job in BUILTIN_JOBS {
+            assert!(
+                !job.tags.is_empty(),
+                "built-in job '{}' should have at least one tag",
+                job.name
+            );
+        }
+    }
+
+    #[test]
+    fn test_builtin_job_uptime_command() {
+        let uptime = BUILTIN_JOBS.iter().find(|j| j.name == "uptime").unwrap();
+        assert_eq!(uptime.command, "uptime");
+        assert!(uptime.tags.contains(&"system"));
+    }
+
+    #[test]
+    fn test_builtin_job_find_bam_command() {
+        let find_bam = BUILTIN_JOBS.iter().find(|j| j.name == "find-bam").unwrap();
+        assert!(
+            find_bam.command.contains("*.bam"),
+            "find-bam should look for .bam files"
+        );
+        assert!(find_bam.tags.contains(&"bioinformatics"));
+    }
+
+    #[test]
+    fn test_builtin_job_qstat_sge_command() {
+        let qstat = BUILTIN_JOBS.iter().find(|j| j.name == "qstat-sge").unwrap();
+        assert!(
+            qstat.command.contains("qstat"),
+            "qstat-sge should use qstat"
+        );
+        assert!(qstat.tags.contains(&"hpc"));
+    }
+
+    #[test]
+    fn test_builtin_job_docker_all_command() {
+        let docker_all = BUILTIN_JOBS
+            .iter()
+            .find(|j| j.name == "docker-all")
+            .unwrap();
+        assert!(
+            docker_all.command.contains("docker ps -a"),
+            "docker-all should use 'docker ps -a'"
+        );
+        assert!(docker_all.tags.contains(&"docker"));
+    }
+
+    #[test]
+    fn test_builtin_job_git_status_command() {
+        let git_status = BUILTIN_JOBS
+            .iter()
+            .find(|j| j.name == "git-status")
+            .unwrap();
+        assert!(
+            git_status.command.contains("git status"),
+            "git-status should use 'git status'"
+        );
+        assert!(git_status.tags.contains(&"git"));
+    }
+
+    #[test]
+    fn test_builtin_job_k8s_svc_command() {
+        let k8s_svc = BUILTIN_JOBS.iter().find(|j| j.name == "k8s-svc").unwrap();
+        assert!(
+            k8s_svc.command.contains("kubectl get svc"),
+            "k8s-svc should use 'kubectl get svc'"
+        );
+        assert!(k8s_svc.tags.contains(&"k8s"));
+    }
+
+    #[test]
+    fn test_job_run_store_with_server_field_round_trip() {
+        // Verify that JobRun with server field round-trips through JSON.
+        let run = JobRun {
+            job_name: "my-job".to_string(),
+            command: "echo test".to_string(),
+            server: Some("remote-server".to_string()),
+            exit_code: 0,
+            started_at: Utc::now(),
+            duration_secs: 1.5,
+        };
+        let json = serde_json::to_string(&run).unwrap();
+        let back: JobRun = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.server.as_deref(), Some("remote-server"));
+    }
 }
