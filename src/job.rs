@@ -724,6 +724,10 @@ impl JobManager {
 /// | `{stem}` | filename stem without the last extension (`sample` for `sample.bam`) |
 /// | `{ext}` | file extension without leading dot (`bam` for `sample.bam`) |
 ///
+/// **Empty `item`**: When `item` is an empty string (vars-only single run),
+/// the path-derived placeholders resolve as: `{item}` / `{line}` → `""`,
+/// `{basename}` → `""`, `{stem}` → `""`, `{ext}` → `""`, `{dir}` → `"."`.
+///
 /// User-defined vars (`--var KEY=VALUE`) are substituted first, so they take
 /// precedence over the built-in names if a user deliberately reuses them.
 pub fn interpolate_command(
@@ -1322,5 +1326,116 @@ mod tests {
         writeln!(f, "sample2.bam").unwrap();
         let items = read_input_list(f.path().to_str().unwrap()).unwrap();
         assert_eq!(items, vec!["sample1.bam", "sample2.bam"]);
+    }
+
+    #[test]
+    fn test_interpolate_empty_item_leaves_built_ins_blank() {
+        // When item is empty (vars-only run), built-in placeholders resolve to "".
+        let vars = HashMap::new();
+        let result = interpolate_command("echo {item} {line} {basename}", "", 0, &vars);
+        // Empty item → basename of "" is "", dir is ".", stem is "", ext is "".
+        assert_eq!(result, "echo   ");
+    }
+
+    #[test]
+    fn test_interpolate_no_placeholders_unchanged() {
+        let vars = HashMap::new();
+        let cmd = "samtools flagstat input.bam";
+        assert_eq!(interpolate_command(cmd, "ignored", 1, &vars), cmd);
+    }
+
+    #[test]
+    fn test_interpolate_multiple_occurrences() {
+        let vars = HashMap::new();
+        let result = interpolate_command("cp {item} {item}.bak", "file.txt", 1, &vars);
+        assert_eq!(result, "cp file.txt file.txt.bak");
+    }
+
+    #[test]
+    fn test_interpolate_item_without_extension() {
+        let vars = HashMap::new();
+        let result = interpolate_command("{stem}.{ext}", "README", 1, &vars);
+        // No extension → ext is empty → "README."
+        assert_eq!(result, "README.");
+    }
+
+    #[test]
+    fn test_interpolate_dir_for_root_item() {
+        let vars = HashMap::new();
+        // A bare filename has no parent dir → dir becomes "."
+        let result = interpolate_command("{dir}", "file.bam", 1, &vars);
+        assert_eq!(result, ".");
+    }
+
+    #[test]
+    fn test_interpolate_dir_for_nested_item() {
+        let vars = HashMap::new();
+        let result = interpolate_command("{dir}", "data/reads/sample.fq.gz", 1, &vars);
+        assert_eq!(result, "data/reads");
+    }
+
+    #[test]
+    fn test_interpolate_stem_for_double_extension() {
+        // Only the *last* extension is stripped (std behaviour).
+        let vars = HashMap::new();
+        let result = interpolate_command("{stem}", "sample.fq.gz", 1, &vars);
+        assert_eq!(result, "sample.fq");
+    }
+
+    #[test]
+    fn test_interpolate_vars_before_builtins_shadowing() {
+        // A user var named "item" should override the built-in {item}.
+        let mut vars = HashMap::new();
+        vars.insert("item".to_string(), "CUSTOM".to_string());
+        let result = interpolate_command("echo {item}", "real", 1, &vars);
+        // User var applied first → "{item}" → "CUSTOM". Built-in then tries to replace
+        // "{item}" again but it no longer appears in the string.
+        assert_eq!(result, "echo CUSTOM");
+    }
+
+    #[test]
+    fn test_parse_var_empty_value() {
+        let (k, v) = parse_var("KEY=").unwrap();
+        assert_eq!(k, "KEY");
+        assert_eq!(v, "");
+    }
+
+    #[test]
+    fn test_parse_var_empty_key() {
+        // Even an empty key before `=` is accepted; validation is the caller's job.
+        let (k, v) = parse_var("=value").unwrap();
+        assert_eq!(k, "");
+        assert_eq!(v, "value");
+    }
+
+    #[test]
+    fn test_read_input_list_all_comments_returns_empty() {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        writeln!(f, "# comment").unwrap();
+        writeln!(f, "   # indented comment").unwrap();
+        writeln!(f, "").unwrap();
+        let items = read_input_list(f.path().to_str().unwrap()).unwrap();
+        assert!(items.is_empty());
+    }
+
+    #[test]
+    fn test_read_input_list_preserves_whitespace_within_items() {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        writeln!(f, "file with spaces.bam").unwrap();
+        let items = read_input_list(f.path().to_str().unwrap()).unwrap();
+        assert_eq!(items, vec!["file with spaces.bam"]);
+    }
+
+    #[test]
+    fn test_read_input_list_nonexistent_file_returns_error() {
+        let result = read_input_list("/nonexistent/path/that/does/not/exist.txt");
+        assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
+        assert!(
+            msg.contains("cannot open --input-list"),
+            "Expected helpful error message, got: {msg}"
+        );
     }
 }

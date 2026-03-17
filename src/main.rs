@@ -2535,6 +2535,10 @@ async fn run(cli: Cli) -> error::Result<()> {
                         #[cfg(not(target_arch = "wasm32"))]
                         {
                             use std::sync::Arc;
+                            // Record wall-clock start before tasks are spawned.
+                            let started_all = chrono::Utc::now();
+                            let start_inst_all = std::time::Instant::now();
+
                             let sem = Arc::new(tokio::sync::Semaphore::new(jobs));
                             let mut handles: Vec<(
                                 String,
@@ -2575,8 +2579,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                             }
 
                             let mut failed = 0usize;
-                            let started_all = chrono::Utc::now();
-                            let start_inst_all = std::time::Instant::now();
                             for (item, handle) in handles {
                                 let code = match handle.await {
                                     Ok(Ok(c)) => c,
@@ -2596,22 +2598,27 @@ async fn run(cli: Cli) -> error::Result<()> {
                                         -1
                                     }
                                 };
-                                if code == 0 {
-                                    println!("  {} {}", "✓".green().bold(), item);
-                                } else if code != -1 {
-                                    eprintln!(
+                                // Count non-zero exit codes as failures.
+                                // Sentinel -1 already incremented `failed` above.
+                                if code != 0 && code != -1 {
+                                    failed += 1;
+                                }
+                                match code {
+                                    0 => println!("  {} {}", "✓".green().bold(), item),
+                                    -1 => {} // error already printed
+                                    c => eprintln!(
                                         "  {} {} (exit {})",
                                         "✗".red().bold(),
                                         item,
-                                        code.to_string().red()
-                                    );
-                                    failed += 1;
+                                        c.to_string().red()
+                                    ),
                                 }
                             }
 
                             let dur = start_inst_all.elapsed().as_secs_f64();
                             // Record the batch run under the job's name.
-                            let summary_cmd = format!("{}  # batch: {} items", entry.command, n);
+                            let summary_cmd =
+                                format!("{}  # batch:{n} vars:{}", entry.command, var_map.len());
                             let _ = job::JobManager::record_run(
                                 &name,
                                 &summary_cmd,

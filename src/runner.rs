@@ -668,6 +668,9 @@ impl Runner {
 
         let result = self.prepare(tool, task).await?;
         let cmd_template = build_command_string(tool, &result.suggestion.args);
+        // Clone provenance fields before result is consumed.
+        let docs_hash = result.docs_hash.clone();
+        let skill_name = result.skill_name.clone();
 
         let items = &self.input_items;
         let n = items.len();
@@ -698,6 +701,8 @@ impl Runner {
             println!();
         }
 
+        // Start timing before spawning so wall-time includes queue wait.
+        let batch_started = Utc::now();
         let sem = Arc::new(tokio::sync::Semaphore::new(jobs));
         let mut handles: Vec<(String, tokio::task::JoinHandle<Result<i32>>)> =
             Vec::with_capacity(n);
@@ -737,6 +742,8 @@ impl Runner {
                     if !json {
                         eprintln!("  {} {}: {}", "✗".red().bold(), item, e);
                     }
+                    // Use -1 as sentinel for "spawn/IO error" so we can distinguish
+                    // it from a real process exit code of -1 in the output section.
                     -1
                 }
                 Err(e) => {
@@ -747,21 +754,46 @@ impl Runner {
                     -1
                 }
             };
+            // Count non-zero exit codes as failures (applies in both json and text mode).
+            // Sentinel value -1 already incremented failed above; skip to avoid double-count.
+            if code != 0 && code != -1 {
+                failed += 1;
+            }
             if !json {
-                if code == 0 {
-                    println!("  {} {}", "✓".green().bold(), item);
-                } else if code != -1 {
-                    // Already printed above for errors; only print non-zero codes
-                    eprintln!(
+                match code {
+                    0 => println!("  {} {}", "✓".green().bold(), item),
+                    -1 => {} // error already printed in match arm above
+                    c => eprintln!(
                         "  {} {} (exit {})",
                         "✗".red().bold(),
                         item,
-                        code.to_string().red()
-                    );
-                    failed += 1;
+                        c.to_string().red()
+                    ),
                 }
             }
             results.push((item, code));
+        }
+
+        // Record a single batch summary in command history.
+        {
+            let tool_version = detect_tool_version(tool);
+            let history_entry = HistoryEntry {
+                id: Uuid::new_v4().to_string(),
+                tool: tool.to_string(),
+                task: task.to_string(),
+                command: format!("{cmd_template}  # batch:{n} vars:{}", self.vars.len()),
+                exit_code: if failed == 0 { 0 } else { 1 },
+                executed_at: batch_started,
+                dry_run: false,
+                server: None,
+                provenance: Some(CommandProvenance {
+                    tool_version,
+                    docs_hash: Some(docs_hash),
+                    skill_name,
+                    model: Some(self.config.effective_model()),
+                }),
+            };
+            let _ = HistoryStore::append(history_entry);
         }
 
         if json {
