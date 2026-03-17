@@ -76,6 +76,15 @@ Environment variables override `config.toml` values. Provider-specific token var
 - API base: `http://localhost:11434`
 - No API token required (local inference)
 
+### Custom
+
+```bash
+export OXO_CALL_LLM_PROVIDER=cherryin
+export OXO_CALL_LLM_API_BASE=https://open.cherryin.cc/v1
+export OXO_CALL_LLM_API_TOKEN=yxxxx-xxxxxx
+export OXO_CALL_LLM_MODEL=google/gemini-2.5-flash-lite
+```
+
 ---
 
 ## Troubleshooting
@@ -106,6 +115,7 @@ If `oxo-call config verify` fails with a connection error:
 ```
 
 **Common causes:**
+
 - **No API token**: Run `oxo-call config get llm.api_token` to check
 - **Wrong provider**: Verify with `oxo-call config get llm.provider`
 - **Network issue**: Check internet connectivity or proxy settings
