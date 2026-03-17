@@ -87,11 +87,11 @@ Integration tests live in `tests/cli_tests.rs` and execute the compiled binary. 
 
 ## Documentation
 
-mdBook source lives under `docs/guide/src/`.
+MkDocs source lives under `docs/guide/src/`.
 
 ```bash
-cd docs/guide && mdbook build   # build
-cd docs/guide && mdbook serve   # live preview
+cd docs/guide && mkdocs build   # build
+cd docs/guide && mkdocs serve   # live preview
 ```
 
 When CLI behavior changes, update `docs/guide/src/commands/<command>.md`. When architecture changes, update `docs/guide/src/reference/*.md`.

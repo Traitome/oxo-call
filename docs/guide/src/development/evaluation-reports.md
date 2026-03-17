@@ -387,14 +387,14 @@ Twelve independent expert roles were designed to cover three evaluation dimensio
 - **Missing security scanning**: No `cargo audit`, no SAST/DAST in CI
 - **No release checksums**: Binary releases lack SHA256 checksums
 - **No integration tests in CI**: Only unit tests run; no end-to-end tests with real LLM calls
-- **No documentation build in CI**: mdBook not built/deployed automatically
+- **No documentation build in CI**: MkDocs not built/deployed automatically
 - **Missing changelog**: No automated changelog generation from commits/PRs
 - **No code coverage**: No coverage reporting or minimum threshold
 
 ### Recommendations
 1. Add `cargo audit` step to CI pipeline
 2. Generate and publish SHA256 checksums with each release
-3. Add mdBook build and deploy step to the GitHub Pages workflow
+3. Add MkDocs build and deploy step to the GitHub Pages workflow
 4. Add code coverage reporting (tarpaulin or llvm-cov)
 5. Implement automated changelog generation (git-cliff or similar)
 6. Add smoke tests that verify binary startup without LLM calls
@@ -405,7 +405,7 @@ Twelve independent expert roles were designed to cover three evaluation dimensio
 
 ✅ SHA256 checksums (recommendation 2) — `SHA256SUMS.txt` is generated alongside release binaries and published with each GitHub Release.
 
-✅ mdBook build/deploy (recommendation 3) — mdBook documentation is built and deployed to GitHub Pages automatically in the CI pipeline.
+✅ MkDocs build/deploy (recommendation 3) — MkDocs documentation is built and deployed to GitHub Pages automatically in the CI pipeline.
 
 ✅ Code coverage (recommendation 4) — `cargo-tarpaulin` with Codecov upload is configured in CI.
 
@@ -478,7 +478,7 @@ The following prioritized action list synthesizes recommendations across all 12 
 | 6 | Add `cargo audit` to CI pipeline | 10, 11 | ✅ Done |
 | 7 | Generate SHA256 checksums for release binaries | 3, 11 | ✅ Done |
 | 8 | Add command sanitization layer | 10 | ✅ Done |
-| 9 | Add mdBook documentation build/deploy to CI | 11 | ✅ Done |
+| 9 | Add MkDocs documentation build/deploy to CI | 11 | ✅ Done |
 | 10 | Add code coverage reporting | 11 | ✅ Done |
 | 11 | Implement tool version tracking in history | 1, 4 | ✅ Done |
 

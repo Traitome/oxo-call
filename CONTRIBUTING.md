@@ -20,7 +20,7 @@ high-quality pull requests.
   - [Project structure](#project-structure)
     - [Execution flow](#execution-flow)
   - [Adding a new skill](#adding-a-new-skill)
-    - [1. Create the TOML file](#1-create-the-toml-file)
+    - [1. Create the Markdown file](#1-create-the-markdown-file)
     - [2. Register the skill in `src/skill.rs`](#2-register-the-skill-in-srcskillrs)
     - [3. Verify](#3-verify)
   - [Adding workflow templates](#adding-workflow-templates)
@@ -46,7 +46,8 @@ high-quality pull requests.
 |------|----------------|---------|
 | [Rust](https://rustup.rs/) | 1.85+ (edition 2024) | Build and test |
 | Git | 2.x | Version control |
-| [mdBook](https://rust-lang.github.io/mdBook/) | 0.4+ | Documentation (optional) |
+| [MkDocs](https://www.mkdocs.org/) | 1.5+ | Documentation (optional) |
+| [mkdocs-material](https://squidfunk.github.io/mkdocs-material/) | 9.0+ | Documentation theme (optional) |
 
 ### Clone and build
 
@@ -123,7 +124,7 @@ oxo-call/
 │   ├── cli_tests.rs         # Integration tests (binary execution)
 │   └── fixtures/            # Test license and data
 ├── docs/
-│   └── guide/               # mdBook documentation source
+│   └── guide/               # MkDocs documentation source
 └── .github/
     └── workflows/ci.yml     # CI: fmt, clippy, test, multi-platform build
 ```
@@ -287,15 +288,19 @@ CI runs the full test matrix on every PR across Linux, macOS, and Windows.
 
 ## Documentation
 
-The user-facing guide is built with [mdBook](https://rust-lang.github.io/mdBook/)
+The user-facing guide is built with [MkDocs](https://www.mkdocs.org/) and the [Material theme](https://squidfunk.github.io/mkdocs-material/)
 from source files in `docs/guide/src/`.
 
 ### Build docs locally
 
 ```bash
+# Install dependencies (first time only)
+pip install mkdocs-material
+
+# Serve or build
 cd docs/guide
-mdbook serve          # Live-reload at http://localhost:3000
-mdbook build          # Static output in docs/guide/book/
+mkdocs serve          # Live-reload at http://localhost:8000
+mkdocs build          # Static output in docs/guide/site/
 ```
 
 ### When to update docs
@@ -330,7 +335,7 @@ CI automatically deploys the guide to GitHub Pages on pushes to `main`.
    regression tests.
 
 6. **Update documentation** — if user-facing behavior changes, update the
-   relevant mdBook pages and/or `--help` text.
+   relevant documentation pages and/or `--help` text.
 
 7. **License gate awareness** — if you change command flow in `main.rs`,
    preserve the rule that core commands require a valid license while

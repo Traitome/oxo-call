@@ -70,12 +70,16 @@ cargo test test_valid_academic_license_passes -- --exact
 
 ## Documentation
 
-Documentation is built with [mdBook](https://rust-lang.github.io/mdBook/):
+Documentation is built with [MkDocs](https://www.mkdocs.org/) and the [Material theme](https://squidfunk.github.io/mkdocs-material/):
 
 ```bash
+# Install dependencies (first time only)
+pip install mkdocs-material
+
+# Build and serve
 cd docs/guide
-mdbook build    # Build the documentation
-mdbook serve    # Serve locally at http://localhost:3000
+mkdocs build    # Build the documentation
+mkdocs serve    # Serve locally at http://localhost:8000
 ```
 
 ## Benchmarking with oxo-bench

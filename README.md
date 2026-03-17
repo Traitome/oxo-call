@@ -63,7 +63,7 @@ sudo mv oxo-call /usr/local/bin/
 # Download from: https://github.com/Traitome/oxo-call/releases
 ```
 
-See the [Installation guide](https://traitome.github.io/oxo-call/documentation/tutorials/installation.html) for all platforms and options.
+See the [Installation guide](https://traitome.github.io/oxo-call/documentation/tutorials/installation/) for all platforms and options.
 
 ### Alternative: Install via Conda (Bioconda)
 
@@ -121,7 +121,7 @@ oxo-call run bwa "align reads.fastq to reference.fa using 8 threads"
 oxo-call workflow dry-run rnaseq
 ```
 
-For OpenAI, Anthropic, Ollama, and full configuration details, see the [Configuration guide](https://traitome.github.io/oxo-call/documentation/tutorials/configuration.html).
+For OpenAI, Anthropic, Ollama, and full configuration details, see the [Configuration guide](https://traitome.github.io/oxo-call/documentation/tutorials/configuration/).
 
 ---
 
@@ -131,11 +131,11 @@ The full documentation is a hands-on tutorial book covering everything from firs
 
 | Section | What you'll learn |
 |---------|-------------------|
-| [Getting Started](https://traitome.github.io/oxo-call/documentation/tutorials/installation.html) | Install, configure, and run your first command |
-| [Tutorials](https://traitome.github.io/oxo-call/documentation/tutorials/first-command.html) | Hands-on walkthroughs: BAM processing, RNA-seq, workflows |
-| [How-to Guides](https://traitome.github.io/oxo-call/documentation/how-to/add-tool-docs.html) | Practical recipes for common tasks |
-| [Command Reference](https://traitome.github.io/oxo-call/documentation/commands/run.html) | All commands, options, and examples |
-| [Architecture](https://traitome.github.io/oxo-call/documentation/reference/architecture.html) | How oxo-call works under the hood |
+| [Getting Started](https://traitome.github.io/oxo-call/documentation/tutorials/installation/) | Install, configure, and run your first command |
+| [Tutorials](https://traitome.github.io/oxo-call/documentation/tutorials/first-command/) | Hands-on walkthroughs: BAM processing, RNA-seq, workflows |
+| [How-to Guides](https://traitome.github.io/oxo-call/documentation/how-to/add-tool-docs/) | Practical recipes for common tasks |
+| [Command Reference](https://traitome.github.io/oxo-call/documentation/commands/run/) | All commands, options, and examples |
+| [Architecture](https://traitome.github.io/oxo-call/documentation/reference/architecture/) | How oxo-call works under the hood |
 
 ---
 
