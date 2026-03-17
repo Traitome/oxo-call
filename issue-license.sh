@@ -1,3 +1,6 @@
+#!/bin/bash
+set -e
+
 # Run cargo run -p license-issuer issue --help 
 # Issue (sign) a new license file
 #
@@ -15,6 +18,25 @@
 #   -h, --help                       Print help
 
 # Example:
-# cargo run -p license-issuer issue --org "ShixiangWang" --email "w_shixiang@163.com" --type academic -o ~/Downloads/oxo-call-license.json
-cargo run -p license-issuer issue --org $1 --email $2 --type $3 -o $4
+# ./issue-license.sh "Shixiang Wang" "w_shixiang@163.com" academic ~/Downloads/oxo-call-license.json
 
+# 检查参数数量
+if [ $# -lt 4 ]; then
+    echo "Usage: $0 <org_name> <email> <type> <output_file>"
+    echo "  org_name:    Full legal name of the organization (or individual for academic)"
+    echo "  email:       Contact e-mail address"
+    echo "  type:        License type: academic or commercial"
+    echo "  output_file: Path to write the signed license JSON"
+    echo ""
+    echo "Example:"
+    echo "  $0 \"Shixiang Wang\" \"w_shixiang@163.com\" academic ~/Downloads/oxo-call-license.json"
+    exit 1
+fi
+
+# 使用 "$@" 或 "\"$1\"" 等方式引用带空格的参数
+ORG="$1"
+EMAIL="$2"
+TYPE="$3"
+OUTPUT="$4"
+
+cargo run -p license-issuer issue --org "$ORG" --email "$EMAIL" --type "$TYPE" -o "$OUTPUT"
