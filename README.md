@@ -15,6 +15,7 @@
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)](#data-storage)
 [![codecov](https://codecov.io/gh/Traitome/oxo-call/graph/badge.svg?token=HDGVNW96XB)](https://codecov.io/gh/Traitome/oxo-call)
 [![Docs](https://img.shields.io/badge/docs-guide-blue.svg)](https://traitome.github.io/oxo-call/documentation/)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Traitome/oxo-call)
 
 Describe your task in plain language — `oxo-call` fetches the tool's documentation, grounds the request with a built-in skill, and asks your LLM backend to generate the exact flags you need.
 

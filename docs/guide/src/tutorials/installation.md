@@ -115,3 +115,19 @@ cargo install --path .
 - **Rust**: 2024 edition (if building from source)
 - **LLM Access**: A valid API token for at least one supported LLM provider
 - **License**: A valid `license.oxo.json` file (free for academic use)
+
+## Shell Completion (Recommended)
+
+After installation, set up shell completion for tab-completion support:
+
+```bash
+# Bash
+mkdir -p ~/.local/share/bash-completion/completions
+oxo-call completion bash > ~/.local/share/bash-completion/completions/oxo-call
+
+# Zsh
+mkdir -p ~/.zfunc
+oxo-call completion zsh > ~/.zfunc/_oxo-call
+```
+
+See the [completion command reference](../commands/completion.md) for detailed setup instructions for all supported shells (bash, zsh, fish, PowerShell, elvish).

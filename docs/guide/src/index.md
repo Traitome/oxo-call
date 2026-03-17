@@ -92,14 +92,18 @@ cargo install oxo-call
 export OXO_CALL_LICENSE=~/.config/oxo-call/license.oxo.json
 oxo-call config set llm.api_token ghp_...
 
-# 3. Preview a command
+# 3. Enable shell completion (optional but recommended)
+oxo-call completion bash > ~/.local/share/bash-completion/completions/oxo-call
+# See: https://traitome.github.io/oxo-call/documentation/commands/completion/
+
+# 4. Preview a command
 oxo-call dry-run samtools "sort input.bam by coordinate and output to sorted.bam"
 # → samtools sort -o sorted.bam input.bam
 
-# 4. Execute it
+# 5. Execute it
 oxo-call run samtools "sort input.bam by coordinate and output to sorted.bam"
 
-# 5. Review what ran
+# 6. Review what ran
 oxo-call history list
 ```
 
