@@ -13,6 +13,7 @@ use crate::config::Config;
 use crate::error::{OxoError, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 // ─── Data structures ──────────────────────────────────────────────────────────
@@ -708,6 +709,86 @@ impl JobManager {
     }
 }
 
+// ─── Variable interpolation ──────────────────────────────────────────────────
+
+/// Interpolate placeholders in a command string for one input item.
+///
+/// Built-in placeholders (all case-sensitive):
+///
+/// | Placeholder | Expands to |
+/// |-------------|-----------|
+/// | `{item}` / `{line}` | the current input item (e.g. a file path) |
+/// | `{nr}` | 1-based line / item number |
+/// | `{basename}` | `Path::file_name()` of `{item}`, or `{item}` when not a path |
+/// | `{dir}` | parent directory of `{item}`, or `.` when there is no parent |
+/// | `{stem}` | filename stem without the last extension (`sample` for `sample.bam`) |
+/// | `{ext}` | file extension without leading dot (`bam` for `sample.bam`) |
+///
+/// User-defined vars (`--var KEY=VALUE`) are substituted first, so they take
+/// precedence over the built-in names if a user deliberately reuses them.
+pub fn interpolate_command(
+    cmd: &str,
+    item: &str,
+    nr: usize,
+    vars: &HashMap<String, String>,
+) -> String {
+    use std::path::Path;
+
+    let path = Path::new(item);
+    let basename = path.file_name().and_then(|s| s.to_str()).unwrap_or(item);
+    let dir = path
+        .parent()
+        .and_then(|p| p.to_str())
+        .filter(|s| !s.is_empty())
+        .unwrap_or(".");
+    let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or(item);
+    let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
+
+    let mut result = cmd.to_string();
+
+    // User-defined vars first (they can shadow the built-in names).
+    for (k, v) in vars {
+        result = result.replace(&format!("{{{k}}}"), v);
+    }
+
+    // Built-in placeholders.
+    result = result.replace("{item}", item);
+    result = result.replace("{line}", item);
+    result = result.replace("{nr}", &nr.to_string());
+    result = result.replace("{basename}", basename);
+    result = result.replace("{dir}", dir);
+    result = result.replace("{stem}", stem);
+    result = result.replace("{ext}", ext);
+
+    result
+}
+
+/// Parse a `KEY=VALUE` string into `(key, value)`.
+///
+/// Returns an error when no `=` separator is present.
+pub fn parse_var(s: &str) -> Result<(String, String)> {
+    let pos = s
+        .find('=')
+        .ok_or_else(|| OxoError::ConfigError(format!("invalid --var '{s}': must be KEY=VALUE")))?;
+    Ok((s[..pos].to_string(), s[pos + 1..].to_string()))
+}
+
+/// Read non-blank, non-comment lines from a file into a `Vec<String>`.
+///
+/// Lines that are empty (after trimming whitespace) or that start with `#`
+/// are silently skipped — this lets users annotate their input lists.
+pub fn read_input_list(path: &str) -> Result<Vec<String>> {
+    use std::io::{BufRead, BufReader};
+    let f = std::fs::File::open(path)
+        .map_err(|e| OxoError::ConfigError(format!("cannot open --input-list '{path}': {e}")))?;
+    let lines: Vec<String> = BufReader::new(f)
+        .lines()
+        .map_while(|l| l.ok())
+        .filter(|l| !l.trim().is_empty() && !l.trim_start().starts_with('#'))
+        .collect();
+    Ok(lines)
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -1163,5 +1244,83 @@ mod tests {
         let json = serde_json::to_string(&run).unwrap();
         let back: JobRun = serde_json::from_str(&json).unwrap();
         assert_eq!(back.server.as_deref(), Some("remote-server"));
+    }
+
+    // ── interpolation ────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_interpolate_item_and_line() {
+        let vars = HashMap::new();
+        let result = interpolate_command("echo {item} {line}", "hello.bam", 1, &vars);
+        assert_eq!(result, "echo hello.bam hello.bam");
+    }
+
+    #[test]
+    fn test_interpolate_nr() {
+        let vars = HashMap::new();
+        let result = interpolate_command("cmd --index {nr}", "file.txt", 3, &vars);
+        assert_eq!(result, "cmd --index 3");
+    }
+
+    #[test]
+    fn test_interpolate_path_parts() {
+        let vars = HashMap::new();
+        let result = interpolate_command("{dir}/{stem}.sorted.{ext}", "data/sample.bam", 1, &vars);
+        assert_eq!(result, "data/sample.sorted.bam");
+    }
+
+    #[test]
+    fn test_interpolate_basename() {
+        let vars = HashMap::new();
+        let result = interpolate_command("{basename}", "data/sample.bam", 1, &vars);
+        assert_eq!(result, "sample.bam");
+    }
+
+    #[test]
+    fn test_interpolate_user_vars() {
+        let mut vars = HashMap::new();
+        vars.insert("THREADS".to_string(), "8".to_string());
+        vars.insert("REF".to_string(), "hg38.fa".to_string());
+        let result = interpolate_command("bwa mem -t {THREADS} {REF} {item}", "reads.fq", 1, &vars);
+        assert_eq!(result, "bwa mem -t 8 hg38.fa reads.fq");
+    }
+
+    #[test]
+    fn test_interpolate_no_item_placeholders() {
+        let mut vars = HashMap::new();
+        vars.insert("KEY".to_string(), "value".to_string());
+        let result = interpolate_command("echo {KEY}", "", 0, &vars);
+        assert_eq!(result, "echo value");
+    }
+
+    #[test]
+    fn test_parse_var_valid() {
+        let (k, v) = parse_var("THREADS=8").unwrap();
+        assert_eq!(k, "THREADS");
+        assert_eq!(v, "8");
+    }
+
+    #[test]
+    fn test_parse_var_value_contains_equals() {
+        let (k, v) = parse_var("OPTS=-t 8 --flag=x").unwrap();
+        assert_eq!(k, "OPTS");
+        assert_eq!(v, "-t 8 --flag=x");
+    }
+
+    #[test]
+    fn test_parse_var_missing_equals() {
+        assert!(parse_var("NOEQUALS").is_err());
+    }
+
+    #[test]
+    fn test_read_input_list_skips_blank_and_comments() {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        writeln!(f, "sample1.bam").unwrap();
+        writeln!(f, "# this is a comment").unwrap();
+        writeln!(f, "").unwrap();
+        writeln!(f, "sample2.bam").unwrap();
+        let items = read_input_list(f.path().to_str().unwrap()).unwrap();
+        assert_eq!(items, vec!["sample1.bam", "sample2.bam"]);
     }
 }

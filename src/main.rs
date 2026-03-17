@@ -68,16 +68,55 @@ async fn run(cli: Cli) -> error::Result<()> {
             json,
             verify,
             optimize_task,
+            vars,
+            input_list,
+            input_items,
+            jobs,
         } => {
             let mut cfg = config::Config::load()?;
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
             }
+
+            // Collect input items from --input-list / --input-items.
+            #[cfg(not(target_arch = "wasm32"))]
+            let all_items = {
+                let mut v: Vec<String> = Vec::new();
+                if let Some(ref path) = input_list {
+                    v.extend(job::read_input_list(path)?);
+                }
+                if let Some(ref items_str) = input_items {
+                    v.extend(
+                        items_str
+                            .split(',')
+                            .map(|s| s.trim().to_string())
+                            .filter(|s| !s.is_empty()),
+                    );
+                }
+                v
+            };
+
+            // Parse --var KEY=VALUE pairs.
+            #[cfg(not(target_arch = "wasm32"))]
+            let var_map = {
+                let mut m = std::collections::HashMap::new();
+                for v in &vars {
+                    let (k, val) = job::parse_var(v)?;
+                    m.insert(k, val);
+                }
+                m
+            };
+
             let runner = runner::Runner::new(cfg)
                 .with_verbose(verbose)
                 .with_no_cache(no_cache)
                 .with_verify(verify)
                 .with_optimize_task(optimize_task);
+            #[cfg(not(target_arch = "wasm32"))]
+            let runner = runner
+                .with_vars(var_map)
+                .with_input_items(all_items)
+                .with_jobs(jobs);
             runner.run(&tool, &task, ask, json).await?;
         }
 
@@ -88,15 +127,48 @@ async fn run(cli: Cli) -> error::Result<()> {
             no_cache,
             json,
             optimize_task,
+            vars,
+            input_list,
+            input_items,
         } => {
             let mut cfg = config::Config::load()?;
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
             }
+
+            #[cfg(not(target_arch = "wasm32"))]
+            let all_items = {
+                let mut v: Vec<String> = Vec::new();
+                if let Some(ref path) = input_list {
+                    v.extend(job::read_input_list(path)?);
+                }
+                if let Some(ref items_str) = input_items {
+                    v.extend(
+                        items_str
+                            .split(',')
+                            .map(|s| s.trim().to_string())
+                            .filter(|s| !s.is_empty()),
+                    );
+                }
+                v
+            };
+
+            #[cfg(not(target_arch = "wasm32"))]
+            let var_map = {
+                let mut m = std::collections::HashMap::new();
+                for v in &vars {
+                    let (k, val) = job::parse_var(v)?;
+                    m.insert(k, val);
+                }
+                m
+            };
+
             let runner = runner::Runner::new(cfg)
                 .with_verbose(verbose)
                 .with_no_cache(no_cache)
                 .with_optimize_task(optimize_task);
+            #[cfg(not(target_arch = "wasm32"))]
+            let runner = runner.with_vars(var_map).with_input_items(all_items);
             runner.dry_run(&tool, &task, json, None).await?;
         }
 
@@ -2242,126 +2314,343 @@ async fn run(cli: Cli) -> error::Result<()> {
                     name,
                     server: server_flag,
                     dry_run,
+                    vars,
+                    input_list,
+                    input_items,
+                    jobs,
+                    keep_order,
                 } => {
                     let entry = job::JobManager::find(&name)?.ok_or_else(|| {
                         error::OxoError::ConfigError(format!("No job found with name '{name}'"))
                     })?;
 
-                    println!();
-                    println!("  {} {}", "Command:".bold(), entry.command.green().bold());
-                    if let Some(ref desc) = entry.description {
-                        println!("  {} {}", "Description:".bold(), desc.dimmed());
+                    // Parse --var KEY=VALUE pairs.
+                    let mut var_map = std::collections::HashMap::new();
+                    for v in &vars {
+                        let (k, val) = job::parse_var(v)?;
+                        var_map.insert(k, val);
                     }
 
-                    if dry_run {
-                        println!();
-                        println!("{}", "  (dry-run — not executed)".yellow());
-                        return Ok(());
+                    // Collect input items.
+                    let mut all_items: Vec<String> = Vec::new();
+                    if let Some(ref path) = input_list {
+                        all_items.extend(job::read_input_list(path)?);
                     }
-
-                    let started = chrono::Utc::now();
-                    let start_inst = std::time::Instant::now();
-
+                    if let Some(ref items_str) = input_items {
+                        all_items.extend(
+                            items_str
+                                .split(',')
+                                .map(|s| s.trim().to_string())
+                                .filter(|s| !s.is_empty()),
+                        );
+                    }
+                    // If neither --input-list nor --input-items was given but stdin is not
+                    // a terminal, read items from stdin (one per line, skip blank/#-lines).
                     #[cfg(not(target_arch = "wasm32"))]
-                    if let Some(ref srv_name) = server_flag {
-                        // Remote execution via SSH
-                        let cfg = config::Config::load()?;
-                        let mgr = server::ServerManager::new(cfg);
-                        let host = mgr.find(srv_name).ok_or_else(|| {
-                            error::OxoError::ConfigError(format!(
-                                "No server found with name '{srv_name}'. \
-                                 Run 'oxo-call server list'."
-                            ))
-                        })?;
-
-                        println!(
-                            "  {} {} ({})",
-                            "Server:".bold(),
-                            srv_name.cyan(),
-                            host.ssh_dest()
-                        );
-                        println!();
-                        println!(
-                            "  {} ssh {} '{}'",
-                            "Running:".bold(),
-                            host.ssh_dest().cyan(),
-                            entry.command
-                        );
-                        println!("{}", "─".repeat(60).dimmed());
-
-                        let mut ssh_cmd = std::process::Command::new("ssh");
-                        for arg in &host.ssh_args() {
-                            ssh_cmd.arg(arg);
+                    if all_items.is_empty() && input_list.is_none() && input_items.is_none() {
+                        use std::io::IsTerminal;
+                        if !std::io::stdin().is_terminal() {
+                            use std::io::BufRead;
+                            let stdin = std::io::stdin();
+                            all_items = stdin
+                                .lock()
+                                .lines()
+                                .map_while(|l| l.ok())
+                                .filter(|l| {
+                                    !l.trim().is_empty() && !l.trim_start().starts_with('#')
+                                })
+                                .collect();
                         }
-                        ssh_cmd.arg(&entry.command);
-                        let status = ssh_cmd.status()?;
-                        let dur = start_inst.elapsed().as_secs_f64();
-                        let code = status.code().unwrap_or(1);
+                    }
 
-                        let _ = job::JobManager::record_run(
-                            &name,
-                            &entry.command,
-                            Some(srv_name.clone()),
-                            code,
-                            started,
-                            dur,
-                        );
+                    // Apply var substitution to the base command (no item yet).
+                    let base_cmd = if var_map.is_empty() {
+                        entry.command.clone()
+                    } else {
+                        job::interpolate_command(&entry.command, "", 0, &var_map)
+                    };
+
+                    if all_items.is_empty() {
+                        // ── Single run (original behaviour + var substitution) ──────────
 
                         println!();
-                        if status.success() {
+                        println!("  {} {}", "Command:".bold(), base_cmd.green().bold());
+                        if let Some(ref desc) = entry.description {
+                            println!("  {} {}", "Description:".bold(), desc.dimmed());
+                        }
+
+                        if dry_run {
+                            println!();
+                            println!("{}", "  (dry-run — not executed)".yellow());
+                            return Ok(());
+                        }
+
+                        let started = chrono::Utc::now();
+                        let start_inst = std::time::Instant::now();
+
+                        #[cfg(not(target_arch = "wasm32"))]
+                        if let Some(ref srv_name) = server_flag {
+                            let cfg = config::Config::load()?;
+                            let mgr = server::ServerManager::new(cfg);
+                            let host = mgr.find(srv_name).ok_or_else(|| {
+                                error::OxoError::ConfigError(format!(
+                                    "No server found with name '{srv_name}'. \
+                                     Run 'oxo-call server list'."
+                                ))
+                            })?;
+
                             println!(
-                                "{} Job completed on '{}'.",
-                                "✓".green().bold(),
-                                srv_name.cyan()
+                                "  {} {} ({})",
+                                "Server:".bold(),
+                                srv_name.cyan(),
+                                host.ssh_dest()
                             );
+                            println!();
+                            println!(
+                                "  {} ssh {} '{}'",
+                                "Running:".bold(),
+                                host.ssh_dest().cyan(),
+                                base_cmd
+                            );
+                            println!("{}", "─".repeat(60).dimmed());
+
+                            let mut ssh_cmd = std::process::Command::new("ssh");
+                            for arg in &host.ssh_args() {
+                                ssh_cmd.arg(arg);
+                            }
+                            ssh_cmd.arg(&base_cmd);
+                            let status = ssh_cmd.status()?;
+                            let dur = start_inst.elapsed().as_secs_f64();
+                            let code = status.code().unwrap_or(1);
+
+                            let _ = job::JobManager::record_run(
+                                &name,
+                                &base_cmd,
+                                Some(srv_name.clone()),
+                                code,
+                                started,
+                                dur,
+                            );
+
+                            println!();
+                            if status.success() {
+                                println!(
+                                    "{} Job completed on '{}'.",
+                                    "✓".green().bold(),
+                                    srv_name.cyan()
+                                );
+                            } else {
+                                eprintln!(
+                                    "{} Job exited with code {code} on '{}'.",
+                                    "✗".red().bold(),
+                                    srv_name.cyan()
+                                );
+                                return Err(error::OxoError::ExecutionError(format!(
+                                    "SSH job on '{srv_name}' exited with code {code}"
+                                )));
+                            }
                         } else {
-                            eprintln!(
-                                "{} Job exited with code {code} on '{}'.",
-                                "✗".red().bold(),
-                                srv_name.cyan()
+                            // Local execution
+                            println!("{}", "─".repeat(60).dimmed());
+                            let status = std::process::Command::new("sh")
+                                .arg("-c")
+                                .arg(&base_cmd)
+                                .status()?;
+                            let dur = start_inst.elapsed().as_secs_f64();
+                            let code = status.code().unwrap_or(1);
+
+                            let _ = job::JobManager::record_run(
+                                &name, &base_cmd, None, code, started, dur,
                             );
-                            return Err(error::OxoError::ExecutionError(format!(
-                                "SSH job on '{srv_name}' exited with code {code}"
-                            )));
+
+                            println!();
+                            if status.success() {
+                                println!("{} Done.", "✓".green().bold());
+                            } else {
+                                eprintln!("{} Job exited with code {code}.", "✗".red().bold());
+                                return Err(error::OxoError::ExecutionError(format!(
+                                    "Job '{name}' exited with code {code}"
+                                )));
+                            }
+                        }
+
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            let _ = server_flag;
+                            eprintln!(
+                                "{} 'job run' is not supported on WebAssembly.",
+                                "error:".red().bold()
+                            );
+                            std::process::exit(1);
                         }
                     } else {
-                        // Local execution
-                        println!("{}", "─".repeat(60).dimmed());
-                        let status = std::process::Command::new("sh")
-                            .arg("-c")
-                            .arg(&entry.command)
-                            .status()?;
-                        let dur = start_inst.elapsed().as_secs_f64();
-                        let code = status.code().unwrap_or(1);
+                        // ── Batch run (one item per invocation) ──────────────────────────
 
-                        let _ = job::JobManager::record_run(
-                            &name,
-                            &entry.command,
-                            None,
-                            code,
-                            started,
-                            dur,
-                        );
+                        let n = all_items.len();
+                        let jobs = jobs.max(1);
+                        // `keep_order` controls whether we join handles in submission order
+                        // (always true with our current Vec-based approach) or fire-and-forget.
+                        // Both modes are order-preserving for correctness; the flag is reserved
+                        // for future output-buffering support.
+                        let _ = keep_order;
+
+                        if dry_run {
+                            println!();
+                            println!(
+                                "  {} {}",
+                                "Command template:".bold(),
+                                entry.command.green().bold()
+                            );
+                            println!(
+                                "  {} {} items would be processed:",
+                                "Batch:".bold(),
+                                n.to_string().cyan()
+                            );
+                            println!("{}", "─".repeat(60).dimmed());
+                            for (i, item) in all_items.iter().enumerate() {
+                                let cmd =
+                                    job::interpolate_command(&entry.command, item, i + 1, &var_map);
+                                println!("  [{:>3}] {}", i + 1, cmd.green());
+                            }
+                            println!("{}", "─".repeat(60).dimmed());
+                            println!("{}", "  (dry-run — not executed)".yellow());
+                            return Ok(());
+                        }
 
                         println!();
-                        if status.success() {
-                            println!("{} Done.", "✓".green().bold());
-                        } else {
-                            eprintln!("{} Job exited with code {code}.", "✗".red().bold());
-                            return Err(error::OxoError::ExecutionError(format!(
-                                "Job '{name}' exited with code {code}"
-                            )));
-                        }
-                    }
-
-                    #[cfg(target_arch = "wasm32")]
-                    {
-                        let _ = server_flag;
-                        eprintln!(
-                            "{} 'job run' is not supported on WebAssembly.",
-                            "error:".red().bold()
+                        println!(
+                            "  {} {}",
+                            "Command template:".bold(),
+                            entry.command.green().bold()
                         );
-                        std::process::exit(1);
+                        println!(
+                            "  {} {} items, {} parallel",
+                            "Batch:".bold(),
+                            n.to_string().cyan(),
+                            jobs.to_string().cyan()
+                        );
+                        println!("{}", "─".repeat(60).dimmed());
+                        println!();
+
+                        #[cfg(not(target_arch = "wasm32"))]
+                        {
+                            use std::sync::Arc;
+                            let sem = Arc::new(tokio::sync::Semaphore::new(jobs));
+                            let mut handles: Vec<(
+                                String,
+                                tokio::task::JoinHandle<error::Result<i32>>,
+                            )> = Vec::with_capacity(n);
+
+                            for (i, item) in all_items.iter().enumerate() {
+                                let cmd =
+                                    job::interpolate_command(&entry.command, item, i + 1, &var_map);
+                                let sem_clone = Arc::clone(&sem);
+                                let item_label = item.clone();
+                                let handle: tokio::task::JoinHandle<error::Result<i32>> =
+                                    tokio::spawn(async move {
+                                        let _permit = sem_clone
+                                            .acquire_owned()
+                                            .await
+                                            .expect("semaphore closed unexpectedly");
+                                        tokio::task::spawn_blocking(move || {
+                                            std::process::Command::new("sh")
+                                                .arg("-c")
+                                                .arg(&cmd)
+                                                .status()
+                                                .map(|s| s.code().unwrap_or(-1))
+                                                .map_err(|e| {
+                                                    error::OxoError::ExecutionError(format!(
+                                                        "failed to run '{item_label}': {e}"
+                                                    ))
+                                                })
+                                        })
+                                        .await
+                                        .map_err(|e| {
+                                            error::OxoError::ExecutionError(format!(
+                                                "task join error: {e}"
+                                            ))
+                                        })?
+                                    });
+                                handles.push((item.clone(), handle));
+                            }
+
+                            let mut failed = 0usize;
+                            let started_all = chrono::Utc::now();
+                            let start_inst_all = std::time::Instant::now();
+                            for (item, handle) in handles {
+                                let code = match handle.await {
+                                    Ok(Ok(c)) => c,
+                                    Ok(Err(e)) => {
+                                        failed += 1;
+                                        eprintln!("  {} {}: {}", "✗".red().bold(), item, e);
+                                        -1
+                                    }
+                                    Err(e) => {
+                                        failed += 1;
+                                        eprintln!(
+                                            "  {} {}: join error: {}",
+                                            "✗".red().bold(),
+                                            item,
+                                            e
+                                        );
+                                        -1
+                                    }
+                                };
+                                if code == 0 {
+                                    println!("  {} {}", "✓".green().bold(), item);
+                                } else if code != -1 {
+                                    eprintln!(
+                                        "  {} {} (exit {})",
+                                        "✗".red().bold(),
+                                        item,
+                                        code.to_string().red()
+                                    );
+                                    failed += 1;
+                                }
+                            }
+
+                            let dur = start_inst_all.elapsed().as_secs_f64();
+                            // Record the batch run under the job's name.
+                            let summary_cmd = format!("{}  # batch: {} items", entry.command, n);
+                            let _ = job::JobManager::record_run(
+                                &name,
+                                &summary_cmd,
+                                None,
+                                if failed == 0 { 0 } else { 1 },
+                                started_all,
+                                dur,
+                            );
+
+                            println!();
+                            println!("{}", "─".repeat(60).dimmed());
+                            if failed == 0 {
+                                println!(
+                                    "  {} All {} items completed successfully.",
+                                    "✓".green().bold(),
+                                    n.to_string().green()
+                                );
+                            } else {
+                                eprintln!(
+                                    "  {} {}/{} items failed.",
+                                    "✗".red().bold(),
+                                    failed.to_string().red(),
+                                    n
+                                );
+                                return Err(error::OxoError::ExecutionError(format!(
+                                    "{failed}/{n} batch items failed"
+                                )));
+                            }
+                            println!("{}", "─".repeat(60).dimmed());
+                        }
+
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            eprintln!(
+                                "{} 'job run' batch mode is not supported on WebAssembly.",
+                                "error:".red().bold()
+                            );
+                            std::process::exit(1);
+                        }
                     }
                 }
 

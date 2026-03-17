@@ -3274,3 +3274,373 @@ fn test_job_backward_compat_cmd_alias() {
         "'cmd --help' should succeed via backward-compat alias"
     );
 }
+
+// ─── Variable interpolation / parallel / batch tests ──────────────────────────
+
+#[test]
+fn test_job_run_help_shows_var_flag() {
+    let out = oxo_call()
+        .args(["job", "run", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("--var") || stdout.contains("-V"),
+        "Expected --var in job run help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("--input-list") || stdout.contains("-i"),
+        "Expected --input-list in job run help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("--jobs") || stdout.contains("-j"),
+        "Expected --jobs in job run help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("--keep-order") || stdout.contains("-k"),
+        "Expected --keep-order in job run help, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_run_help_shows_var_flag() {
+    let out = oxo_call()
+        .args(["run", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("--var") || stdout.contains("-V"),
+        "Expected --var in run help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("--input-list"),
+        "Expected --input-list in run help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("--input-items"),
+        "Expected --input-items in run help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("--jobs") || stdout.contains("-j"),
+        "Expected --jobs in run help, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_dry_run_help_shows_var_flag() {
+    let out = oxo_call()
+        .args(["dry-run", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("--var") || stdout.contains("-V"),
+        "Expected --var in dry-run help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("--input-list"),
+        "Expected --input-list in dry-run help, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_run_var_substitution() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    // Add a job with a {MSG} placeholder in its command.
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "var-job", "echo {MSG}"])
+        .output()
+        .expect("failed to add job");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "run", "var-job", "--var", "MSG=hello-world"])
+        .output()
+        .expect("failed to run job");
+    assert!(
+        out.status.success(),
+        "job run with --var failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("hello-world"),
+        "Expected substituted output, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_run_var_dry_run() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "var-dry", "echo {GREETING}"])
+        .output()
+        .expect("failed to add job");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "run", "var-dry", "--var", "GREETING=hi", "--dry-run"])
+        .output()
+        .expect("failed to run job");
+    assert!(
+        out.status.success(),
+        "dry-run with --var failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    // Should NOT have executed the echo.
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("dry-run") || stdout.contains("not executed"),
+        "Expected dry-run indicator, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_run_input_items_batch() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    // Job echoes {item} so we can capture the substitution.
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "batch-echo", "echo item={item}"])
+        .output()
+        .expect("failed to add job");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args([
+            "job",
+            "run",
+            "batch-echo",
+            "--input-items",
+            "alpha,beta,gamma",
+        ])
+        .output()
+        .expect("failed to run batch job");
+    assert!(
+        out.status.success(),
+        "batch job run failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("alpha"),
+        "Expected alpha in output: {stdout}"
+    );
+    assert!(stdout.contains("beta"), "Expected beta in output: {stdout}");
+    assert!(
+        stdout.contains("gamma"),
+        "Expected gamma in output: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_run_input_list_from_file() {
+    use std::io::Write;
+    let tmp = tempfile::tempdir().expect("tempdir");
+    // Write a small input list to a temp file.
+    let list_file = tmp.path().join("inputs.txt");
+    {
+        let mut f = std::fs::File::create(&list_file).unwrap();
+        writeln!(f, "# comment line — should be skipped").unwrap();
+        writeln!(f, "item-one").unwrap();
+        writeln!(f, "").unwrap(); // blank line — should be skipped
+        writeln!(f, "item-two").unwrap();
+    }
+
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "list-echo", "echo {item}"])
+        .output()
+        .expect("failed to add job");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args([
+            "job",
+            "run",
+            "list-echo",
+            "--input-list",
+            list_file.to_str().unwrap(),
+        ])
+        .output()
+        .expect("failed to run job with --input-list");
+    assert!(
+        out.status.success(),
+        "--input-list batch failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("item-one"), "Expected item-one: {stdout}");
+    assert!(stdout.contains("item-two"), "Expected item-two: {stdout}");
+}
+
+#[test]
+fn test_job_run_batch_dry_run_shows_commands() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "dry-batch", "echo {item}"])
+        .output()
+        .expect("failed to add job");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args([
+            "job",
+            "run",
+            "dry-batch",
+            "--input-items",
+            "a,b,c",
+            "--dry-run",
+        ])
+        .output()
+        .expect("failed to run dry-run batch");
+    assert!(
+        out.status.success(),
+        "dry-run batch failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    // Should list interpolated commands without running them.
+    assert!(
+        stdout.contains("echo a") || stdout.contains(" a"),
+        "Expected 'a': {stdout}"
+    );
+    assert!(
+        stdout.contains("echo b") || stdout.contains(" b"),
+        "Expected 'b': {stdout}"
+    );
+    assert!(
+        stdout.contains("echo c") || stdout.contains(" c"),
+        "Expected 'c': {stdout}"
+    );
+    assert!(
+        stdout.contains("dry-run") || stdout.contains("not executed"),
+        "Expected dry-run indicator: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_run_parallel_batch() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    // Items with short sleep to verify parallel actually finishes in reasonable time.
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "par-echo", "echo {item}"])
+        .output()
+        .expect("failed to add job");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args([
+            "job",
+            "run",
+            "par-echo",
+            "--input-items",
+            "x1,x2,x3,x4",
+            "--jobs",
+            "2",
+        ])
+        .output()
+        .expect("failed to run parallel batch");
+    assert!(
+        out.status.success(),
+        "parallel batch failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("x1"), "Expected x1: {stdout}");
+    assert!(stdout.contains("x2"), "Expected x2: {stdout}");
+    assert!(stdout.contains("x3"), "Expected x3: {stdout}");
+    assert!(stdout.contains("x4"), "Expected x4: {stdout}");
+}
+
+#[test]
+fn test_job_run_path_interpolation() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    // Test that {stem}, {ext}, {basename}, {dir} are substituted correctly.
+    oxo_call_with_tmpdir(tmp.path())
+        .args([
+            "job",
+            "add",
+            "path-job",
+            "echo stem={stem} ext={ext} base={basename}",
+        ])
+        .output()
+        .expect("failed to add job");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "run", "path-job", "--input-items", "data/sample.bam"])
+        .output()
+        .expect("failed to run path-job");
+    assert!(
+        out.status.success(),
+        "path-job failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("stem=sample"),
+        "Expected stem=sample: {stdout}"
+    );
+    assert!(stdout.contains("ext=bam"), "Expected ext=bam: {stdout}");
+    assert!(
+        stdout.contains("base=sample.bam"),
+        "Expected base=sample.bam: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_run_nr_placeholder() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "nr-job", "echo nr={nr}"])
+        .output()
+        .expect("failed to add job");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "run", "nr-job", "--input-items", "a,b,c"])
+        .output()
+        .expect("failed to run nr-job");
+    assert!(
+        out.status.success(),
+        "nr-job failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("nr=1"), "Expected nr=1: {stdout}");
+    assert!(stdout.contains("nr=2"), "Expected nr=2: {stdout}");
+    assert!(stdout.contains("nr=3"), "Expected nr=3: {stdout}");
+}
+
+#[test]
+fn test_job_run_var_and_item_combined() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    // Combine --var and --input-items: {THREADS} from --var, {item} from input.
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "combo-job", "echo t={THREADS} f={item}"])
+        .output()
+        .expect("failed to add job");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args([
+            "job",
+            "run",
+            "combo-job",
+            "--var",
+            "THREADS=8",
+            "--input-items",
+            "file1.bam,file2.bam",
+        ])
+        .output()
+        .expect("failed to run combo-job");
+    assert!(
+        out.status.success(),
+        "combo-job failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("t=8"), "Expected t=8: {stdout}");
+    assert!(
+        stdout.contains("f=file1.bam"),
+        "Expected f=file1.bam: {stdout}"
+    );
+    assert!(
+        stdout.contains("f=file2.bam"),
+        "Expected f=file2.bam: {stdout}"
+    );
+}

@@ -3,6 +3,7 @@ use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
 #[cfg(not(target_arch = "wasm32"))]
 use crate::history::{CommandProvenance, HistoryEntry, HistoryStore};
+use crate::job;
 use crate::llm::{LlmClient, LlmCommandSuggestion};
 use crate::skill::SkillManager;
 #[cfg(not(target_arch = "wasm32"))]
@@ -10,6 +11,8 @@ use chrono::Utc;
 use colored::Colorize;
 #[cfg(not(target_arch = "wasm32"))]
 use indicatif::{ProgressBar, ProgressStyle};
+#[cfg(not(target_arch = "wasm32"))]
+use std::collections::HashMap;
 #[cfg(not(target_arch = "wasm32"))]
 use std::process::Command;
 #[cfg(not(target_arch = "wasm32"))]
@@ -53,6 +56,15 @@ pub struct Runner {
     /// When true, use LLM to optimize/expand the user's task description before
     /// building the command generation prompt.
     optimize_task: bool,
+    /// Named variables substituted into the task description before the LLM call.
+    #[cfg(not(target_arch = "wasm32"))]
+    vars: HashMap<String, String>,
+    /// Input items for batch/parallel execution (empty = single run).
+    #[cfg(not(target_arch = "wasm32"))]
+    input_items: Vec<String>,
+    /// Maximum number of parallel jobs when `input_items` is non-empty.
+    #[cfg(not(target_arch = "wasm32"))]
+    jobs: usize,
 }
 
 impl Runner {
@@ -66,6 +78,12 @@ impl Runner {
             no_cache: false,
             verify: false,
             optimize_task: false,
+            #[cfg(not(target_arch = "wasm32"))]
+            vars: HashMap::new(),
+            #[cfg(not(target_arch = "wasm32"))]
+            input_items: Vec::new(),
+            #[cfg(not(target_arch = "wasm32"))]
+            jobs: 1,
         }
     }
 
@@ -90,6 +108,32 @@ impl Runner {
     /// Enable LLM-based task description optimization before generating the command.
     pub fn with_optimize_task(mut self, optimize_task: bool) -> Self {
         self.optimize_task = optimize_task;
+        self
+    }
+
+    /// Set named variables that will be substituted into the task description
+    /// (and, when an input list is present, into the generated command) before
+    /// the LLM call.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn with_vars(mut self, vars: HashMap<String, String>) -> Self {
+        self.vars = vars;
+        self
+    }
+
+    /// Set input items for batch / parallel execution.
+    ///
+    /// When non-empty, the LLM is called once and the generated command
+    /// template (which may contain `{item}`) is executed for every item.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn with_input_items(mut self, items: Vec<String>) -> Self {
+        self.input_items = items;
+        self
+    }
+
+    /// Set the maximum number of parallel jobs (default: 1 = sequential).
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn with_jobs(mut self, jobs: usize) -> Self {
+        self.jobs = jobs.max(1);
         self
     }
 
@@ -248,6 +292,22 @@ impl Runner {
         json: bool,
         server: Option<&str>,
     ) -> Result<()> {
+        // ── Native-only: apply vars + batch dispatch ──────────────────────────
+        #[cfg(not(target_arch = "wasm32"))]
+        let _task_buf;
+        #[cfg(not(target_arch = "wasm32"))]
+        let task: &str = if self.vars.is_empty() {
+            task
+        } else {
+            _task_buf = job::interpolate_command(task, "", 0, &self.vars);
+            &_task_buf
+        };
+        #[cfg(not(target_arch = "wasm32"))]
+        if !self.input_items.is_empty() {
+            return self.dry_run_batch(tool, task, json).await;
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         let result = self.prepare(tool, task).await?;
         let full_cmd = build_command_string(tool, &result.suggestion.args);
 
@@ -322,6 +382,22 @@ impl Runner {
 
     /// run: execute the command for real
     pub async fn run(&self, tool: &str, task: &str, ask: bool, json: bool) -> Result<()> {
+        // ── Native-only: apply vars + batch dispatch ──────────────────────────
+        #[cfg(not(target_arch = "wasm32"))]
+        let _task_buf;
+        #[cfg(not(target_arch = "wasm32"))]
+        let task: &str = if self.vars.is_empty() {
+            task
+        } else {
+            _task_buf = job::interpolate_command(task, "", 0, &self.vars);
+            &_task_buf
+        };
+        #[cfg(not(target_arch = "wasm32"))]
+        if !self.input_items.is_empty() {
+            return self.run_batch(tool, task, json).await;
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         let result = self.prepare(tool, task).await?;
         let full_cmd = build_command_string(tool, &result.suggestion.args);
 
@@ -577,6 +653,228 @@ impl Runner {
             }
         }
         println!("{}", "─".repeat(60).dimmed());
+    }
+}
+
+impl Runner {
+    /// Execute the LLM-generated command template for every input item.
+    ///
+    /// The command template is obtained with a single LLM call; `{item}` (and
+    /// other placeholders) are then substituted for each item before execution.
+    /// Up to `self.jobs` items are run concurrently.
+    #[cfg(not(target_arch = "wasm32"))]
+    async fn run_batch(&self, tool: &str, task: &str, json: bool) -> Result<()> {
+        use std::sync::Arc;
+
+        let result = self.prepare(tool, task).await?;
+        let cmd_template = build_command_string(tool, &result.suggestion.args);
+
+        let items = &self.input_items;
+        let n = items.len();
+        let jobs = self.jobs.max(1);
+
+        if !json {
+            println!();
+            println!("{}", "─".repeat(60).dimmed());
+            println!("  {} {}", "Tool:".bold(), tool.cyan());
+            println!("  {} {}", "Task template:".bold(), task);
+            println!("{}", "─".repeat(60).dimmed());
+            println!();
+            println!("  {}", "Command template:".bold().green());
+            println!("  {}", cmd_template.green().bold());
+            println!();
+            if !result.suggestion.explanation.is_empty() {
+                println!("  {}", "Explanation:".bold());
+                println!("  {}", result.suggestion.explanation);
+                println!();
+            }
+            println!(
+                "  {} {} items, {} parallel",
+                "Batch:".bold(),
+                n.to_string().cyan(),
+                jobs.to_string().cyan(),
+            );
+            println!("{}", "─".repeat(60).dimmed());
+            println!();
+        }
+
+        let sem = Arc::new(tokio::sync::Semaphore::new(jobs));
+        let mut handles: Vec<(String, tokio::task::JoinHandle<Result<i32>>)> =
+            Vec::with_capacity(n);
+
+        for (i, item) in items.iter().enumerate() {
+            let cmd = job::interpolate_command(&cmd_template, item, i + 1, &self.vars);
+            let sem_clone = Arc::clone(&sem);
+            let item_label = item.clone();
+            let handle: tokio::task::JoinHandle<Result<i32>> = tokio::spawn(async move {
+                let _permit = sem_clone
+                    .acquire_owned()
+                    .await
+                    .expect("semaphore closed unexpectedly");
+                tokio::task::spawn_blocking(move || {
+                    std::process::Command::new("sh")
+                        .arg("-c")
+                        .arg(&cmd)
+                        .status()
+                        .map(|s| s.code().unwrap_or(-1))
+                        .map_err(|e| {
+                            OxoError::ExecutionError(format!("failed to run '{item_label}': {e}"))
+                        })
+                })
+                .await
+                .map_err(|e| OxoError::ExecutionError(format!("task join error: {e}")))?
+            });
+            handles.push((item.clone(), handle));
+        }
+
+        let mut failed = 0usize;
+        let mut results: Vec<(String, i32)> = Vec::with_capacity(n);
+        for (item, handle) in handles {
+            let code = match handle.await {
+                Ok(Ok(c)) => c,
+                Ok(Err(e)) => {
+                    failed += 1;
+                    if !json {
+                        eprintln!("  {} {}: {}", "✗".red().bold(), item, e);
+                    }
+                    -1
+                }
+                Err(e) => {
+                    failed += 1;
+                    if !json {
+                        eprintln!("  {} {}: join error: {}", "✗".red().bold(), item, e);
+                    }
+                    -1
+                }
+            };
+            if !json {
+                if code == 0 {
+                    println!("  {} {}", "✓".green().bold(), item);
+                } else if code != -1 {
+                    // Already printed above for errors; only print non-zero codes
+                    eprintln!(
+                        "  {} {} (exit {})",
+                        "✗".red().bold(),
+                        item,
+                        code.to_string().red()
+                    );
+                    failed += 1;
+                }
+            }
+            results.push((item, code));
+        }
+
+        if json {
+            let entries: Vec<serde_json::Value> = results
+                .iter()
+                .enumerate()
+                .map(|(i, (item, code))| {
+                    let cmd = job::interpolate_command(&cmd_template, item, i + 1, &self.vars);
+                    serde_json::json!({
+                        "item": item,
+                        "command": cmd,
+                        "exit_code": code,
+                        "success": *code == 0,
+                    })
+                })
+                .collect();
+            let output = serde_json::json!({
+                "tool": tool,
+                "task_template": task,
+                "command_template": cmd_template,
+                "total": n,
+                "failed": failed,
+                "success": failed == 0,
+                "results": entries,
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+        } else {
+            println!();
+            println!("{}", "─".repeat(60).dimmed());
+            if failed == 0 {
+                println!(
+                    "  {} All {} items completed successfully.",
+                    "✓".green().bold(),
+                    n.to_string().green()
+                );
+            } else {
+                eprintln!(
+                    "  {} {}/{} items failed.",
+                    "✗".red().bold(),
+                    failed.to_string().red(),
+                    n
+                );
+            }
+            println!("{}", "─".repeat(60).dimmed());
+        }
+
+        if failed > 0 {
+            return Err(OxoError::ExecutionError(format!(
+                "{failed}/{n} batch items failed"
+            )));
+        }
+        Ok(())
+    }
+
+    /// Show the interpolated command for every input item without executing.
+    #[cfg(not(target_arch = "wasm32"))]
+    async fn dry_run_batch(&self, tool: &str, task: &str, json: bool) -> Result<()> {
+        let result = self.prepare(tool, task).await?;
+        let cmd_template = build_command_string(tool, &result.suggestion.args);
+
+        let items = &self.input_items;
+        let n = items.len();
+
+        let commands: Vec<String> = items
+            .iter()
+            .enumerate()
+            .map(|(i, item)| job::interpolate_command(&cmd_template, item, i + 1, &self.vars))
+            .collect();
+
+        if json {
+            let output = serde_json::json!({
+                "tool": tool,
+                "task_template": task,
+                "command_template": cmd_template,
+                "commands": commands,
+                "dry_run": true,
+                "skill": result.skill_name,
+                "model": self.config.effective_model(),
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+            return Ok(());
+        }
+
+        println!();
+        println!("{}", "─".repeat(60).dimmed());
+        println!("  {} {}", "Tool:".bold(), tool.cyan());
+        println!("  {} {}", "Task template:".bold(), task);
+        println!("{}", "─".repeat(60).dimmed());
+        println!();
+        println!("  {}", "Command template (dry-run):".bold().yellow());
+        println!("  {}", cmd_template.green().bold());
+        println!();
+        if !result.suggestion.explanation.is_empty() {
+            println!("  {}", "Explanation:".bold());
+            println!("  {}", result.suggestion.explanation);
+            println!();
+        }
+        println!(
+            "  {} {} items would be processed:",
+            "Batch:".bold(),
+            n.to_string().cyan()
+        );
+        println!("{}", "─".repeat(60).dimmed());
+        for (i, cmd) in commands.iter().enumerate() {
+            println!("  [{:>3}] {}", i + 1, cmd.as_str().green());
+        }
+        println!("{}", "─".repeat(60).dimmed());
+        println!(
+            "  {}",
+            "Use 'oxo-call run' to execute these commands.".dimmed()
+        );
+
+        Ok(())
     }
 }
 

@@ -19,6 +19,10 @@ oxo-call r   [OPTIONS] <TOOL> <TASK>
 | `--json` | Output result as JSON (useful for scripting and CI) |
 | `--verify` | After execution, use LLM to validate results (output files, stderr, exit code) |
 | `--optimize-task` | Before generating the command, use LLM to expand and refine the task description |
+| `-V`, `--var KEY=VALUE` | Substitute `{KEY}` in the task description before the LLM call (repeatable) |
+| `-i`, `--input-list <FILE>` | Read input items from a file; runs the generated command for each item |
+| `--input-items <ITEMS>` | Comma-separated input items; runs the generated command for each item |
+| `-j`, `--jobs <N>` | Maximum parallel jobs when using `--input-list` / `--input-items` (default: 1) |
 | `-v`, `--verbose` | Show docs source, skill info, and LLM details (global) |
 | `--license <PATH>` | Path to license file (global option) |
 
@@ -31,7 +35,7 @@ The `run` command is the primary way to use oxo-call. It:
 3. Loads any matching skill (built-in, community, or user-defined)
 4. Sends the grounded prompt to the configured LLM
 5. Parses the response to extract command arguments
-6. Executes the tool with the generated arguments
+6. *(with `--input-list` / `--input-items`)* Executes the command template for each item
 7. Records the execution in command history
 8. *(with `--verify`)* Asks the LLM to review the outputs and report issues
 
@@ -61,6 +65,78 @@ oxo-call run --no-cache samtools "sort by name"
 
 # Get JSON output for scripting
 oxo-call run --json samtools "flagstat input.bam"
+
+# Variable substitution: replace {SAMPLE} in the task before the LLM call
+oxo-call run --var SAMPLE=NA12878 samtools \
+    "sort {SAMPLE}.bam by coordinate and output to {SAMPLE}.sorted.bam"
+
+# Batch mode: generate the command template once, run for each BAM in a list
+oxo-call run samtools "sort {item} by coordinate, output {item}.sorted.bam" \
+    --input-list bam_files.txt --jobs 4
+
+# Same with inline items
+oxo-call run samtools "index {item}" --input-items s1.bam,s2.bam,s3.bam --jobs 2
+
+# Preview all batch commands without executing (dry-run)
+oxo-call dry-run samtools "flagstat {item}" --input-items s1.bam,s2.bam
+
+# Combine vars and batch input
+oxo-call run bwa "align {item} to {REF} with {THREADS} threads" \
+    --var REF=hg38.fa --var THREADS=8 \
+    --input-list samples.txt --jobs 4
+```
+
+## Variable substitution (`--var`)
+
+Use `--var KEY=VALUE` to inject values into the task description before
+the LLM receives it. Multiple `--var` flags are allowed:
+
+```bash
+oxo-call run --var TOOL=samtools --var INPUT=sample.bam \
+    samtools "sort {INPUT} by coordinate"
+```
+
+This substitutes `{INPUT}` → `sample.bam` in the task string before the LLM
+call, so the LLM generates a concrete command rather than a template.
+
+## Batch / parallel mode (`--input-list` / `--input-items` / `--jobs`)
+
+When you provide a list of input items, the LLM is called **once** to generate
+a command template (which may contain `{item}`). The template is then executed
+for each item in the list.
+
+| Placeholder | Expands to |
+|-------------|-----------|
+| `{item}` / `{line}` | The current input item |
+| `{nr}` | 1-based item number |
+| `{basename}` | Filename without directory |
+| `{dir}` | Directory portion of the item path (or `.`) |
+| `{stem}` | Filename without last extension |
+| `{ext}` | File extension without dot |
+
+**Input list file format**: one item per line; blank lines and lines starting
+with `#` are ignored.
+
+**Parallelism**: set `-j N` (or `--jobs N`) to run up to N items concurrently.
+The default is 1 (sequential). Exit codes are collected after all items finish;
+any failure causes the overall command to exit non-zero.
+
+**JSON output** (`--json`) in batch mode returns an array of per-item results:
+
+```json
+{
+  "tool": "samtools",
+  "task_template": "flagstat {item}",
+  "command_template": "samtools flagstat {item}",
+  "total": 3,
+  "failed": 0,
+  "success": true,
+  "results": [
+    { "item": "s1.bam", "command": "samtools flagstat s1.bam", "exit_code": 0, "success": true },
+    { "item": "s2.bam", "command": "samtools flagstat s2.bam", "exit_code": 0, "success": true },
+    { "item": "s3.bam", "command": "samtools flagstat s3.bam", "exit_code": 0, "success": true }
+  ]
+}
 ```
 
 ## LLM Result Verification (`--verify`)
@@ -95,7 +171,7 @@ The optimized task is shown when it differs from the original and is used for th
 
 ## JSON Output
 
-When `--json` is used, the output is a JSON object:
+When `--json` is used for a single-item run, the output is a JSON object:
 
 ```json
 {
@@ -124,3 +200,5 @@ When `--verify` is also used, an additional `verification` block is appended.
 - Use `dry-run` to preview commands without executing
 - Use `--no-cache` to force a fresh `--help` fetch when docs may be stale
 - Use `--model` to quickly test different models without changing config
+- With `--input-list` / `--input-items`, the LLM is called once; each item
+  execution uses `sh -c` with `{item}` (and other placeholders) substituted
