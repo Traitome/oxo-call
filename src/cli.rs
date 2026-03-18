@@ -94,9 +94,29 @@ EXAMPLES:\n  \
         /// the task description for better accuracy
         #[arg(long)]
         optimize_task: bool,
+        /// Set a named variable for `{KEY}` substitution in the task description (repeatable)
+        ///
+        /// Example: --var SAMPLE=sample1 --var THREADS=8
+        #[arg(short = 'V', long = "var", value_name = "KEY=VALUE")]
+        vars: Vec<String>,
+        /// Read input items from a file (one per line); runs the command for each item
+        ///
+        /// Use `{item}` in the task to refer to the current item.
+        /// Blank lines and lines starting with `#` are ignored.
+        #[arg(short = 'i', long = "input-list", value_name = "FILE")]
+        input_list: Option<String>,
+        /// Comma-separated input items; runs the command for each item
+        ///
+        /// Example: --input-items sample1.bam,sample2.bam,sample3.bam
+        #[arg(long = "input-items", value_name = "ITEMS")]
+        input_items: Option<String>,
+        /// Number of parallel jobs when using --input-list or --input-items (default: 1)
+        #[arg(short = 'j', long = "jobs", default_value = "1", value_name = "N")]
+        jobs: usize,
+        /// Stop processing after the first failed item (exit immediately, do not run remaining items)
+        #[arg(short = 'x', long = "stop-on-error")]
+        stop_on_error: bool,
     },
-
-    /// Preview the command that would be executed (no actual execution)
     #[command(
         name = "dry-run",
         visible_alias = "d",
@@ -129,6 +149,19 @@ EXAMPLES:\n  \
         /// the task description for better accuracy
         #[arg(long)]
         optimize_task: bool,
+        /// Set a named variable for `{KEY}` substitution in the task description (repeatable)
+        ///
+        /// Example: --var SAMPLE=sample1 --var THREADS=8
+        #[arg(short = 'V', long = "var", value_name = "KEY=VALUE")]
+        vars: Vec<String>,
+        /// Read input items from a file (one per line); previews the command for each item
+        ///
+        /// Use `{item}` in the task to refer to the current item.
+        #[arg(short = 'i', long = "input-list", value_name = "FILE")]
+        input_list: Option<String>,
+        /// Comma-separated input items; previews the command for each item
+        #[arg(long = "input-items", value_name = "ITEMS")]
+        input_items: Option<String>,
     },
 
     /// Manage tool documentation (add, remove, update, list, show)
@@ -524,6 +557,32 @@ pub enum JobCommands {
         /// Print the command without executing it
         #[arg(long = "dry-run")]
         dry_run: bool,
+        /// Set a named variable for `{KEY}` substitution in the command (repeatable)
+        ///
+        /// Example: --var THREADS=8 --var REF=hg38.fa
+        #[arg(short = 'V', long = "var", value_name = "KEY=VALUE")]
+        vars: Vec<String>,
+        /// Read input items from a file (one per line); expands `{item}` in the command
+        ///
+        /// Blank lines and lines starting with `#` are ignored.
+        #[arg(short = 'i', long = "input-list", value_name = "FILE")]
+        input_list: Option<String>,
+        /// Comma-separated input items; expands `{item}` in the command
+        ///
+        /// Example: --input-items sample1.bam,sample2.bam,sample3.bam
+        #[arg(long = "input-items", value_name = "ITEMS")]
+        input_items: Option<String>,
+        /// Number of parallel jobs (default: 1 = sequential)
+        ///
+        /// Example: -j 4  runs up to 4 jobs concurrently
+        #[arg(short = 'j', long = "jobs", default_value = "1", value_name = "N")]
+        jobs: usize,
+        /// Preserve the order of output when running in parallel
+        #[arg(short = 'k', long = "keep-order")]
+        keep_order: bool,
+        /// Stop after the first failed item instead of continuing the batch
+        #[arg(short = 'x', long = "stop-on-error")]
+        stop_on_error: bool,
     },
 
     /// Edit an existing job entry

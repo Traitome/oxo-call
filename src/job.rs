@@ -13,6 +13,7 @@ use crate::config::Config;
 use crate::error::{OxoError, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 // ─── Data structures ──────────────────────────────────────────────────────────
@@ -708,6 +709,107 @@ impl JobManager {
     }
 }
 
+// ─── Variable interpolation ──────────────────────────────────────────────────
+
+/// Interpolate placeholders in a command string for one input item.
+///
+/// Built-in placeholders (all case-sensitive):
+///
+/// | Placeholder | Expands to |
+/// |-------------|-----------|
+/// | `{item}` / `{line}` / `{}` | the current input item (e.g. a file path) |
+/// | `{nr}` | 1-based line / item number |
+/// | `{basename}` | `Path::file_name()` of `{item}`, or `{item}` when not a path |
+/// | `{dir}` | parent directory of `{item}`, or `.` when there is no parent |
+/// | `{stem}` | filename stem without the last extension (`sample` for `sample.bam`) |
+/// | `{ext}` | file extension without leading dot (`bam` for `sample.bam`) |
+///
+/// **Empty `item`**: When `item` is an empty string (vars-only single run),
+/// the path-derived placeholders resolve as: `{item}` / `{line}` / `{}` → `""`,
+/// `{basename}` → `""`, `{stem}` → `""`, `{ext}` → `""`, `{dir}` → `"."`.
+///
+/// User-defined vars (`--var KEY=VALUE`) are substituted first, so they take
+/// precedence over the built-in names if a user deliberately reuses them.
+pub fn interpolate_command(
+    cmd: &str,
+    item: &str,
+    nr: usize,
+    vars: &HashMap<String, String>,
+) -> String {
+    use std::path::Path;
+
+    let path = Path::new(item);
+    let basename = path.file_name().and_then(|s| s.to_str()).unwrap_or(item);
+    let dir = path
+        .parent()
+        .and_then(|p| p.to_str())
+        .filter(|s| !s.is_empty())
+        .unwrap_or(".");
+    let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or(item);
+    let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
+
+    let mut result = cmd.to_string();
+
+    // User-defined vars first (they can shadow the built-in names).
+    for (k, v) in vars {
+        result = result.replace(&format!("{{{k}}}"), v);
+    }
+
+    // Built-in placeholders.
+    // `{}` is the rush-compatible shorthand for `{item}` and must be expanded
+    // before `{item}` / `{line}` so that the order is deterministic regardless
+    // of which alias the user chose.
+    result = result.replace("{}", item);
+    result = result.replace("{item}", item);
+    result = result.replace("{line}", item);
+    result = result.replace("{nr}", &nr.to_string());
+    result = result.replace("{basename}", basename);
+    result = result.replace("{dir}", dir);
+    result = result.replace("{stem}", stem);
+    result = result.replace("{ext}", ext);
+
+    result
+}
+
+/// Parse a `KEY=VALUE` string into `(key, value)`.
+///
+/// Returns an error when no `=` separator is present or when the key is empty.
+pub fn parse_var(s: &str) -> Result<(String, String)> {
+    let pos = s
+        .find('=')
+        .ok_or_else(|| OxoError::ConfigError(format!("invalid --var '{s}': must be KEY=VALUE")))?;
+    let key = &s[..pos];
+    if key.is_empty() {
+        return Err(OxoError::ConfigError(format!(
+            "invalid --var '{s}': key must not be empty (expected KEY=VALUE)"
+        )));
+    }
+    Ok((key.to_string(), s[pos + 1..].to_string()))
+}
+
+/// Read non-blank, non-comment lines from a file into a `Vec<String>`.
+///
+/// Lines that are empty (after trimming whitespace) or that start with `#`
+/// are silently skipped — this lets users annotate their input lists.
+///
+/// Returns an error if the file cannot be opened **or** if an IO error occurs
+/// while reading any line (i.e. errors are propagated, not silently truncated).
+pub fn read_input_list(path: &str) -> Result<Vec<String>> {
+    use std::io::{BufRead, BufReader};
+    let f = std::fs::File::open(path)
+        .map_err(|e| OxoError::ConfigError(format!("cannot open --input-list '{path}': {e}")))?;
+    let mut lines: Vec<String> = Vec::new();
+    for line_result in BufReader::new(f).lines() {
+        let line = line_result.map_err(|e| {
+            OxoError::ConfigError(format!("IO error reading --input-list '{path}': {e}"))
+        })?;
+        if !line.trim().is_empty() && !line.trim_start().starts_with('#') {
+            lines.push(line);
+        }
+    }
+    Ok(lines)
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -1163,5 +1265,260 @@ mod tests {
         let json = serde_json::to_string(&run).unwrap();
         let back: JobRun = serde_json::from_str(&json).unwrap();
         assert_eq!(back.server.as_deref(), Some("remote-server"));
+    }
+
+    // ── interpolation ────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_interpolate_item_and_line() {
+        let vars = HashMap::new();
+        let result = interpolate_command("echo {item} {line}", "hello.bam", 1, &vars);
+        assert_eq!(result, "echo hello.bam hello.bam");
+    }
+
+    #[test]
+    fn test_interpolate_nr() {
+        let vars = HashMap::new();
+        let result = interpolate_command("cmd --index {nr}", "file.txt", 3, &vars);
+        assert_eq!(result, "cmd --index 3");
+    }
+
+    #[test]
+    fn test_interpolate_path_parts() {
+        let vars = HashMap::new();
+        let result = interpolate_command("{dir}/{stem}.sorted.{ext}", "data/sample.bam", 1, &vars);
+        assert_eq!(result, "data/sample.sorted.bam");
+    }
+
+    #[test]
+    fn test_interpolate_basename() {
+        let vars = HashMap::new();
+        let result = interpolate_command("{basename}", "data/sample.bam", 1, &vars);
+        assert_eq!(result, "sample.bam");
+    }
+
+    #[test]
+    fn test_interpolate_user_vars() {
+        let mut vars = HashMap::new();
+        vars.insert("THREADS".to_string(), "8".to_string());
+        vars.insert("REF".to_string(), "hg38.fa".to_string());
+        let result = interpolate_command("bwa mem -t {THREADS} {REF} {item}", "reads.fq", 1, &vars);
+        assert_eq!(result, "bwa mem -t 8 hg38.fa reads.fq");
+    }
+
+    #[test]
+    fn test_interpolate_no_item_placeholders() {
+        let mut vars = HashMap::new();
+        vars.insert("KEY".to_string(), "value".to_string());
+        let result = interpolate_command("echo {KEY}", "", 0, &vars);
+        assert_eq!(result, "echo value");
+    }
+
+    #[test]
+    fn test_parse_var_valid() {
+        let (k, v) = parse_var("THREADS=8").unwrap();
+        assert_eq!(k, "THREADS");
+        assert_eq!(v, "8");
+    }
+
+    #[test]
+    fn test_parse_var_value_contains_equals() {
+        let (k, v) = parse_var("OPTS=-t 8 --flag=x").unwrap();
+        assert_eq!(k, "OPTS");
+        assert_eq!(v, "-t 8 --flag=x");
+    }
+
+    #[test]
+    fn test_parse_var_missing_equals() {
+        assert!(parse_var("NOEQUALS").is_err());
+    }
+
+    #[test]
+    fn test_read_input_list_skips_blank_and_comments() {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        writeln!(f, "sample1.bam").unwrap();
+        writeln!(f, "# this is a comment").unwrap();
+        writeln!(f, "").unwrap();
+        writeln!(f, "sample2.bam").unwrap();
+        let items = read_input_list(f.path().to_str().unwrap()).unwrap();
+        assert_eq!(items, vec!["sample1.bam", "sample2.bam"]);
+    }
+
+    #[test]
+    fn test_interpolate_empty_item_leaves_built_ins_blank() {
+        // When item is empty (vars-only run), built-in placeholders resolve to "".
+        let vars = HashMap::new();
+        let result = interpolate_command("echo {item} {line} {basename}", "", 0, &vars);
+        // Empty item → basename of "" is "", dir is ".", stem is "", ext is "".
+        assert_eq!(result, "echo   ");
+    }
+
+    #[test]
+    fn test_interpolate_no_placeholders_unchanged() {
+        let vars = HashMap::new();
+        let cmd = "samtools flagstat input.bam";
+        assert_eq!(interpolate_command(cmd, "ignored", 1, &vars), cmd);
+    }
+
+    #[test]
+    fn test_interpolate_multiple_occurrences() {
+        let vars = HashMap::new();
+        let result = interpolate_command("cp {item} {item}.bak", "file.txt", 1, &vars);
+        assert_eq!(result, "cp file.txt file.txt.bak");
+    }
+
+    #[test]
+    fn test_interpolate_item_without_extension() {
+        let vars = HashMap::new();
+        let result = interpolate_command("{stem}.{ext}", "README", 1, &vars);
+        // No extension → ext is empty → "README."
+        assert_eq!(result, "README.");
+    }
+
+    #[test]
+    fn test_interpolate_dir_for_root_item() {
+        let vars = HashMap::new();
+        // A bare filename has no parent dir → dir becomes "."
+        let result = interpolate_command("{dir}", "file.bam", 1, &vars);
+        assert_eq!(result, ".");
+    }
+
+    #[test]
+    fn test_interpolate_dir_for_nested_item() {
+        let vars = HashMap::new();
+        let result = interpolate_command("{dir}", "data/reads/sample.fq.gz", 1, &vars);
+        assert_eq!(result, "data/reads");
+    }
+
+    #[test]
+    fn test_interpolate_stem_for_double_extension() {
+        // Only the *last* extension is stripped (std behaviour).
+        let vars = HashMap::new();
+        let result = interpolate_command("{stem}", "sample.fq.gz", 1, &vars);
+        assert_eq!(result, "sample.fq");
+    }
+
+    #[test]
+    fn test_interpolate_vars_before_builtins_shadowing() {
+        // A user var named "item" should override the built-in {item}.
+        let mut vars = HashMap::new();
+        vars.insert("item".to_string(), "CUSTOM".to_string());
+        let result = interpolate_command("echo {item}", "real", 1, &vars);
+        // User var applied first → "{item}" → "CUSTOM". Built-in then tries to replace
+        // "{item}" again but it no longer appears in the string.
+        assert_eq!(result, "echo CUSTOM");
+    }
+
+    #[test]
+    fn test_parse_var_empty_value() {
+        let (k, v) = parse_var("KEY=").unwrap();
+        assert_eq!(k, "KEY");
+        assert_eq!(v, "");
+    }
+
+    #[test]
+    fn test_parse_var_empty_key() {
+        // An empty key is now rejected with a clear error.
+        let result = parse_var("=value");
+        assert!(result.is_err(), "Expected error for empty key");
+        let msg = result.unwrap_err().to_string();
+        assert!(
+            msg.contains("key must not be empty"),
+            "Expected empty-key error, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn test_read_input_list_all_comments_returns_empty() {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        writeln!(f, "# comment").unwrap();
+        writeln!(f, "   # indented comment").unwrap();
+        writeln!(f, "").unwrap();
+        let items = read_input_list(f.path().to_str().unwrap()).unwrap();
+        assert!(items.is_empty());
+    }
+
+    #[test]
+    fn test_read_input_list_preserves_whitespace_within_items() {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        writeln!(f, "file with spaces.bam").unwrap();
+        let items = read_input_list(f.path().to_str().unwrap()).unwrap();
+        assert_eq!(items, vec!["file with spaces.bam"]);
+    }
+
+    #[test]
+    fn test_read_input_list_nonexistent_file_returns_error() {
+        let result = read_input_list("/nonexistent/path/that/does/not/exist.txt");
+        assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
+        assert!(
+            msg.contains("cannot open --input-list"),
+            "Expected helpful error message, got: {msg}"
+        );
+    }
+
+    // ── New features ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_interpolate_curly_braces_alias_for_item() {
+        // `{}` is the rush-compatible alias for `{item}`.
+        let vars = HashMap::new();
+        let result = interpolate_command("samtools view -bS {} > {}.bam", "input.sam", 1, &vars);
+        assert_eq!(result, "samtools view -bS input.sam > input.sam.bam");
+    }
+
+    #[test]
+    fn test_interpolate_curly_braces_does_not_conflict_with_nr() {
+        // `{}` should not match `{nr}` — they are expanded independently.
+        let vars = HashMap::new();
+        let result = interpolate_command("{nr}: {}", "item", 3, &vars);
+        assert_eq!(result, "3: item");
+    }
+
+    #[test]
+    fn test_interpolate_curly_braces_with_vars() {
+        // User vars are expanded before `{}`, so they can shadow it.
+        let mut vars = HashMap::new();
+        vars.insert("T".to_string(), "8".to_string());
+        let result = interpolate_command("process -t {T} {}", "sample.bam", 1, &vars);
+        assert_eq!(result, "process -t 8 sample.bam");
+    }
+
+    #[test]
+    fn test_parse_var_still_allows_value_with_equals() {
+        // KEY=a=b should split on the FIRST `=` only.
+        let (k, v) = parse_var("KEY=a=b").unwrap();
+        assert_eq!(k, "KEY");
+        assert_eq!(v, "a=b");
+    }
+
+    #[test]
+    fn test_read_input_list_io_error_propagates() {
+        // Verify that read_input_list returns an error for unreadable paths,
+        // not a silently-truncated empty vec.
+        #[cfg(unix)]
+        {
+            use std::io::Write;
+            use std::os::unix::fs::PermissionsExt;
+            let mut f = tempfile::NamedTempFile::new().unwrap();
+            writeln!(f, "item1").unwrap();
+            std::fs::set_permissions(f.path(), std::fs::Permissions::from_mode(0o000)).unwrap();
+            let result = read_input_list(f.path().to_str().unwrap());
+            // Restore so the temp file can be cleaned up.
+            let _ = std::fs::set_permissions(f.path(), std::fs::Permissions::from_mode(0o644));
+            assert!(result.is_err(), "Expected error for unreadable file");
+            let msg = result.unwrap_err().to_string();
+            assert!(
+                msg.contains("--input-list"),
+                "Expected --input-list in error message, got: {msg}"
+            );
+        }
+        // Non-Unix: just verify non-existent file error (already covered by
+        // test_read_input_list_nonexistent_file_returns_error).
+        #[cfg(not(unix))]
+        {}
     }
 }

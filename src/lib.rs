@@ -22,6 +22,7 @@ pub mod error;
 pub mod handlers;
 pub mod history;
 pub mod index;
+pub mod job;
 pub mod license;
 pub mod llm;
 pub mod mcp;

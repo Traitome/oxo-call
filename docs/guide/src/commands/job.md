@@ -11,8 +11,10 @@ oxo-call job remove    <NAME>
 oxo-call job list      [--tag <TAG>] [--builtin]
 oxo-call job show      <NAME>
 oxo-call job run       <NAME> [--server <SERVER>] [--dry-run]
+                              [--var KEY=VALUE]... [--input-list <FILE>]
+                              [--input-items <ITEMS>] [-j <N>] [-k]
 oxo-call job edit      <NAME> [--command <CMD>] [--description <DESC>] [--tag <TAG>]...
-                              [--schedule <CRON>] [--clear-schedule]
+                               [--schedule <CRON>] [--clear-schedule]
 oxo-call job rename    <FROM> <TO>
 oxo-call job status    [<NAME>]
 oxo-call job history   <NAME> [-n <LIMIT>]
@@ -44,6 +46,9 @@ Run history is stored in `~/.local/share/oxo-call/job_runs.jsonl`.
 | Remote execution | Run any job on a registered SSH server |
 | LLM generation | Describe a task in plain English → job is generated and saved |
 | Built-in templates | 25+ pre-defined jobs for ops, cluster management, and bioinformatics |
+| **Variable substitution** | `--var KEY=VALUE` replaces `{KEY}` in the command at runtime |
+| **Array / batch input** | `--input-list` / `--input-items` runs once per item with `{item}` substitution |
+| **Parallel execution** | `-j N` runs up to N items concurrently |
 
 ## Subcommands
 
@@ -96,7 +101,7 @@ oxo-call job show squeue-me
 
 ### `job run`
 
-Execute a job locally or on a registered remote server:
+Execute a job locally or on a registered remote server.
 
 ```bash
 oxo-call job run squeue-me
@@ -106,6 +111,69 @@ oxo-call job run disk-check --dry-run          # preview only
 
 Every execution is recorded in `job_runs.jsonl`. View history with
 `job history <name>` or `job status <name>`.
+
+#### Options
+
+| Flag | Description |
+|------|-------------|
+| `--server <SERVER>` / `-s` | Run on this registered SSH server |
+| `--dry-run` | Print the command(s) without executing |
+| `--var KEY=VALUE` / `-V` | Set a named variable (repeatable). Replaces `{KEY}` in the command. |
+| `--input-list <FILE>` / `-i` | Read input items from a file (one per line). Runs the job once per item, substituting `{item}`. |
+| `--input-items <ITEMS>` | Comma-separated input items (e.g. `a.bam,b.bam`). |
+| `--jobs <N>` / `-j` | Maximum parallel jobs when using input items (default: 1 = sequential). |
+| `--keep-order` / `-k` | Preserve output ordering in parallel mode (reserved for future output-buffering). |
+| `--stop-on-error` / `-x` | Abort remaining items after the first failure. |
+
+#### Variable interpolation
+
+Use `{PLACEHOLDER}` in the job command at `add`-time; supply the value at
+`run`-time with `--var`:
+
+```bash
+oxo-call job add align 'bwa mem -t {THREADS} {REF} {item} > {stem}.sam'
+oxo-call job run align --var THREADS=8 --var REF=hg38.fa \
+    --input-items reads1.fq,reads2.fq,reads3.fq --jobs 4
+```
+
+Built-in interpolation placeholders (always available when input items are used):
+
+| Placeholder | Expands to |
+|-------------|-----------|
+| `{item}` / `{line}` / `{}` | The current input item (`{}` is the rush-compatible form) |
+| `{nr}` | 1-based item number |
+| `{basename}` | Filename without directory (e.g. `sample.bam`) |
+| `{dir}` | Directory portion of the item path (or `.`) |
+| `{stem}` | Filename without last extension (e.g. `sample`) |
+| `{ext}` | File extension without dot (e.g. `bam`) |
+
+User-defined `--var` values are applied first and take precedence over
+built-in names if reused.
+
+#### Batch / parallel examples
+
+```bash
+# Process every BAM in a file list, 4 at a time
+oxo-call job add bam-stats 'samtools flagstat {} > {stem}.stats'
+find . -name '*.bam' > bam_list.txt
+oxo-call job run bam-stats --input-list bam_list.txt --jobs 4
+
+# Inline item list (no file needed)
+oxo-call job run bam-stats --input-items sample1.bam,sample2.bam --jobs 2
+
+# Preview the expanded commands without executing
+oxo-call job run bam-stats --input-list bam_list.txt --dry-run
+
+# Combine variables and item list
+oxo-call job add trim 'trimmomatic SE -threads {T} {item} {stem}.trim.fq.gz SLIDINGWINDOW:4:20'
+oxo-call job run trim --var T=4 --input-list samples.txt --jobs 4
+
+# Read from stdin (piped input, no --input-list needed)
+find . -name '*.fastq.gz' | oxo-call job run trim --var T=4 --jobs 4
+
+# Stop as soon as one item fails (useful in pipelines)
+oxo-call job run bam-stats --input-list bam_list.txt --stop-on-error
+```
 
 ---
 
@@ -335,4 +403,19 @@ oxo-call job generate 'show Docker containers consuming over 1 GB memory'
 
 # Remote execution
 oxo-call job run squeue-me --server mycluster
+
+# Variable substitution
+oxo-call job add index-bam 'samtools index {item}'
+oxo-call job run index-bam --input-items sample1.bam,sample2.bam --jobs 4
+
+# Bioinformatics batch pipeline (rush-style)
+oxo-call job add trim-fq \
+    'trimmomatic SE -threads {THREADS} {item} {stem}.trimmed.fq.gz \
+     ILLUMINACLIP:adapters.fa:2:30:10 SLIDINGWINDOW:4:20 MINLEN:36'
+find rawdata/ -name '*.fastq.gz' | \
+    oxo-call job run trim-fq --var THREADS=4 --jobs 8
+
+# Preview what would run (dry-run with batch)
+oxo-call job run trim-fq --input-list samples.txt --var THREADS=4 --dry-run
 ```
+

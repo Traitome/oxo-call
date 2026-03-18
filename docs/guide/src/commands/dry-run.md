@@ -17,6 +17,9 @@ oxo-call d       [OPTIONS] <TOOL> <TASK>
 | `--no-cache` | Skip cached documentation and fetch fresh `--help` output |
 | `--json` | Output result as JSON (useful for scripting and CI) |
 | `--optimize-task` | Before generating the command, use LLM to expand and refine the task description |
+| `-V`, `--var KEY=VALUE` | Substitute `{KEY}` in the task description before the LLM call (repeatable) |
+| `-i`, `--input-list <FILE>` | Read input items from a file; shows the command for each item |
+| `--input-items <ITEMS>` | Comma-separated input items; shows the command for each item |
 | `-v`, `--verbose` | Show docs source, skill info, and LLM details (global) |
 | `--license <PATH>` | Path to license file (global option) |
 
@@ -29,6 +32,7 @@ oxo-call d       [OPTIONS] <TOOL> <TASK>
 - Generate commands to copy into scripts
 - Test with tools that aren't installed locally
 - Produce JSON output for pipeline integration
+- Preview batch command expansions before a real run
 
 ## Examples
 
@@ -52,15 +56,45 @@ oxo-call dry-run --no-cache samtools "sort input.bam"
 
 # Expand a vague task before generating
 oxo-call dry-run --optimize-task samtools "sort bam"
+
+# Variable substitution — preview with {SAMPLE} replaced
+oxo-call dry-run --var SAMPLE=NA12878 samtools \
+    "sort {SAMPLE}.bam by coordinate"
+
+# Preview all batch commands that would run
+oxo-call dry-run samtools "flagstat {item}" \
+    --input-items s1.bam,s2.bam,s3.bam
+
+# Preview from a file list
+oxo-call dry-run samtools "sort {item} by coordinate, output {stem}.sorted.bam" \
+    --input-list bam_files.txt
 ```
 
 ## Task Optimization (`--optimize-task`)
 
 When `--optimize-task` is set, an extra LLM call refines the task description before command generation. The optimized task is shown when it differs from the original, and is used as the actual prompt for the LLM.
 
+## Batch Preview (`--input-list` / `--input-items`)
+
+When input items are provided, `dry-run` calls the LLM once to generate a
+command template, then prints the interpolated command for **each item** without
+executing any of them. This lets you verify the expansion before committing to a
+real batch run.
+
+Supported placeholders in the task / generated command:
+
+| Placeholder | Expands to |
+|-------------|-----------|
+| `{item}` / `{line}` | The current input item |
+| `{nr}` | 1-based item number |
+| `{basename}` | Filename without directory |
+| `{dir}` | Directory portion (or `.`) |
+| `{stem}` | Filename without last extension |
+| `{ext}` | File extension without dot |
+
 ## JSON Output
 
-When `--json` is used, the output is a JSON object:
+When `--json` is used for a single-item dry-run, the output is a JSON object:
 
 ```json
 {
@@ -75,3 +109,22 @@ When `--json` is used, the output is a JSON object:
   "model": "gpt-4o"
 }
 ```
+
+For batch dry-run (`--input-list` / `--input-items`) with `--json`:
+
+```json
+{
+  "tool": "samtools",
+  "task_template": "flagstat {item}",
+  "command_template": "samtools flagstat {item}",
+  "commands": [
+    "samtools flagstat s1.bam",
+    "samtools flagstat s2.bam"
+  ],
+  "dry_run": true,
+  "skill": "samtools",
+  "model": "gpt-4o"
+}
+```
+
+
