@@ -4463,3 +4463,315 @@ fn test_job_run_dry_run_existing_behavior_unchanged() {
         "Expected dry-run indicator: {stdout}"
     );
 }
+
+// ─── Further enhancements: stability, performance, correctness ────────────────
+
+// ── {} rush-compatible placeholder ───────────────────────────────────────────
+
+#[test]
+fn test_job_run_curly_braces_placeholder() {
+    // `{}` is a rush-compatible alias for `{item}`.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "braces-job", "echo result={}"])
+        .output()
+        .expect("failed to add job");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "run", "braces-job", "--input-items", "myfile.bam"])
+        .output()
+        .expect("failed to run");
+    assert!(
+        out.status.success(),
+        "{{}} placeholder failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("result=myfile.bam"),
+        "Expected {{}} expansion: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_run_curly_braces_in_dry_run() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "braces-dry-job", "cp {} {}.bak"])
+        .output()
+        .expect("failed to add job");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args([
+            "job",
+            "run",
+            "braces-dry-job",
+            "--input-items",
+            "data.txt",
+            "--dry-run",
+        ])
+        .output()
+        .expect("failed to run dry-run");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("data.txt"),
+        "Expected {{}} expanded to data.txt: {stdout}"
+    );
+}
+
+// ── --stop-on-error flag ─────────────────────────────────────────────────────
+
+#[test]
+fn test_job_run_stop_on_error_aborts_early() {
+    // With --stop-on-error, processing should stop after the first failure.
+    // We have 5 items: fail, ok, ok, ok, ok — only item 1 should be processed.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    // Command: "false" always exits 1; "true" always exits 0.
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "stop-err-job", "sh -c 'test {item} = ok'"])
+        .output()
+        .expect("failed to add job");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args([
+            "job",
+            "run",
+            "stop-err-job",
+            "--input-items",
+            "fail,ok,ok,ok,ok",
+            "--stop-on-error",
+        ])
+        .output()
+        .expect("failed to run");
+    // Overall should fail.
+    assert!(
+        !out.status.success(),
+        "Expected non-zero with --stop-on-error"
+    );
+    // The "stop-on-error" message should appear.
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("stop-on-error") || stderr.contains("aborting"),
+        "Expected stop-on-error message: {stderr}"
+    );
+}
+
+#[test]
+fn test_job_run_stop_on_error_all_succeed_no_abort() {
+    // When all items succeed, --stop-on-error should not fire.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "soe-ok-job", "echo {item}"])
+        .output()
+        .expect("failed to add job");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args([
+            "job",
+            "run",
+            "soe-ok-job",
+            "--input-items",
+            "a,b,c",
+            "--stop-on-error",
+        ])
+        .output()
+        .expect("failed to run");
+    assert!(
+        out.status.success(),
+        "Should succeed when all items pass: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    // All three items should have been processed.
+    assert!(stdout.contains("a"), "Expected a: {stdout}");
+    assert!(stdout.contains("b"), "Expected b: {stdout}");
+    assert!(stdout.contains("c"), "Expected c: {stdout}");
+}
+
+#[test]
+fn test_run_stop_on_error_flag_in_help() {
+    let out = oxo_call()
+        .args(["run", "--help"])
+        .output()
+        .expect("failed to run");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("stop-on-error"),
+        "Expected --stop-on-error in run help: {stdout}"
+    );
+}
+
+#[test]
+fn test_job_run_stop_on_error_flag_in_help() {
+    let out = oxo_call()
+        .args(["job", "run", "--help"])
+        .output()
+        .expect("failed to run");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("stop-on-error"),
+        "Expected --stop-on-error in job run help: {stdout}"
+    );
+}
+
+// ── --var empty-key validation ────────────────────────────────────────────────
+
+#[test]
+fn test_job_run_var_empty_key_shows_error() {
+    // `--var =value` (empty key) should be rejected with a clear error.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "empty-key-job", "echo test"])
+        .output()
+        .expect("failed to add job");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "run", "empty-key-job", "--var", "=value"])
+        .output()
+        .expect("failed to run");
+    assert!(!out.status.success(), "Expected failure for empty var key");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("key") || stderr.contains("empty") || stderr.contains("KEY=VALUE"),
+        "Expected helpful error for empty key, got: {stderr}"
+    );
+}
+
+// ── progress counter ─────────────────────────────────────────────────────────
+
+#[test]
+fn test_job_run_batch_shows_progress_counter() {
+    // Batch output should include "[done/total]" progress.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "progress-job", "echo {item}"])
+        .output()
+        .expect("failed to add job");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "run", "progress-job", "--input-items", "a,b,c"])
+        .output()
+        .expect("failed to run");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    // Should show progress like [1/3], [2/3], [3/3].
+    assert!(
+        stdout.contains("/3]") || stdout.contains("[1/"),
+        "Expected progress counter [n/N]: {stdout}"
+    );
+}
+
+// ── read_input_list error propagation ────────────────────────────────────────
+
+#[test]
+fn test_job_run_input_list_io_error_reported() {
+    // A file that cannot be opened should produce a clear error,
+    // not silently succeed with 0 items.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "io-err-job", "echo {item}"])
+        .output()
+        .expect("failed to add job");
+
+    // Use a file with no read permissions for a cross-platform approach.
+    use std::io::Write;
+    let restricted = tmp.path().join("no_read.txt");
+    {
+        let mut f = std::fs::File::create(&restricted).expect("create");
+        writeln!(f, "item1").unwrap();
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&restricted, std::fs::Permissions::from_mode(0o000))
+            .expect("set permissions");
+        let out = oxo_call_with_tmpdir(tmp.path())
+            .args([
+                "job",
+                "run",
+                "io-err-job",
+                "--input-list",
+                restricted.to_str().unwrap(),
+            ])
+            .output()
+            .expect("failed to run");
+        // Restore permissions so tempdir cleanup doesn't fail.
+        let _ = std::fs::set_permissions(&restricted, std::fs::Permissions::from_mode(0o644));
+        assert!(
+            !out.status.success(),
+            "Expected failure for unreadable --input-list file: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        assert!(
+            stderr.contains("input-list") || stderr.contains("Permission denied"),
+            "Expected IO error message: {stderr}"
+        );
+    }
+    // Non-Unix: just verify the non-existent-file path is rejected (already covered
+    // by test_job_run_input_list_nonexistent_file_shows_error).
+    #[cfg(not(unix))]
+    {
+        let _ = restricted;
+    }
+}
+
+// ── backward-compat: {} placeholder with find-style cmds ─────────────────────
+
+#[test]
+fn test_job_run_curly_braces_find_style() {
+    // Users might write `find . -name '*.bam' | job run bam-index` using `{}`
+    // as the item placeholder — must expand correctly.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "find-style-job", "echo processing={}"])
+        .output()
+        .expect("failed to add job");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args([
+            "job",
+            "run",
+            "find-style-job",
+            "--input-items",
+            "file1.bam,file2.bam",
+        ])
+        .output()
+        .expect("failed to run");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("processing=file1.bam"),
+        "Expected {{}} expansion: {stdout}"
+    );
+    assert!(
+        stdout.contains("processing=file2.bam"),
+        "Expected {{}} expansion: {stdout}"
+    );
+}
+
+// ── parse_var regression: value containing = sign ────────────────────────────
+
+#[test]
+fn test_job_run_var_value_contains_equals_sign() {
+    // --var EXPR=a=b should store value "a=b", not split at the second `=`.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "add", "eq-var-job", "echo {EXPR}"])
+        .output()
+        .expect("failed to add job");
+
+    let out = oxo_call_with_tmpdir(tmp.path())
+        .args(["job", "run", "eq-var-job", "--var", "EXPR=a=b"])
+        .output()
+        .expect("failed to run");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("a=b"),
+        "Expected value with = sign: {stdout}"
+    );
+}

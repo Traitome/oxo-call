@@ -65,6 +65,9 @@ pub struct Runner {
     /// Maximum number of parallel jobs when `input_items` is non-empty.
     #[cfg(not(target_arch = "wasm32"))]
     jobs: usize,
+    /// When true, stop the batch after the first failed item.
+    #[cfg(not(target_arch = "wasm32"))]
+    stop_on_error: bool,
 }
 
 impl Runner {
@@ -84,6 +87,8 @@ impl Runner {
             input_items: Vec::new(),
             #[cfg(not(target_arch = "wasm32"))]
             jobs: 1,
+            #[cfg(not(target_arch = "wasm32"))]
+            stop_on_error: false,
         }
     }
 
@@ -134,6 +139,13 @@ impl Runner {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn with_jobs(mut self, jobs: usize) -> Self {
         self.jobs = jobs.max(1);
+        self
+    }
+
+    /// When enabled, abort the batch after the first failed item.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn with_stop_on_error(mut self, stop_on_error: bool) -> Self {
+        self.stop_on_error = stop_on_error;
         self
     }
 
@@ -662,6 +674,9 @@ impl Runner {
     /// The command template is obtained with a single LLM call; `{item}` (and
     /// other placeholders) are then substituted for each item before execution.
     /// Up to `self.jobs` items are run concurrently.
+    ///
+    /// When `self.stop_on_error` is true, remaining handles are aborted after
+    /// the first failure, and the batch exits immediately with an error.
     #[cfg(not(target_arch = "wasm32"))]
     async fn run_batch(&self, tool: &str, task: &str, json: bool) -> Result<()> {
         use std::sync::Arc;
@@ -692,10 +707,15 @@ impl Runner {
                 println!();
             }
             println!(
-                "  {} {} items, {} parallel",
+                "  {} {} items, {} parallel{}",
                 "Batch:".bold(),
                 n.to_string().cyan(),
                 jobs.to_string().cyan(),
+                if self.stop_on_error {
+                    " (stop-on-error)".yellow().to_string()
+                } else {
+                    String::new()
+                },
             );
             println!("{}", "─".repeat(60).dimmed());
             println!();
@@ -733,6 +753,7 @@ impl Runner {
         }
 
         let mut failed = 0usize;
+        let mut done = 0usize;
         let mut results: Vec<(String, i32)> = Vec::with_capacity(n);
         for (item, handle) in handles {
             let code = match handle.await {
@@ -759,19 +780,36 @@ impl Runner {
             if code != 0 && code != -1 {
                 failed += 1;
             }
+            done += 1;
             if !json {
                 match code {
-                    0 => println!("  {} {}", "✓".green().bold(), item),
+                    0 => println!("  {} [{}/{}] {}", "✓".green().bold(), done, n, item),
                     -1 => {} // error already printed in match arm above
                     c => eprintln!(
-                        "  {} {} (exit {})",
+                        "  {} [{}/{}] {} (exit {})",
                         "✗".red().bold(),
+                        done,
+                        n,
                         item,
                         c.to_string().red()
                     ),
                 }
             }
+            // Move item into results (no clone needed — item is no longer used after this).
             results.push((item, code));
+
+            // Stop-on-error: abort remaining handles after the first failure.
+            if self.stop_on_error && failed > 0 {
+                if !json {
+                    eprintln!(
+                        "  {} stop-on-error: aborting after first failure ({}/{} done)",
+                        "⚡".yellow().bold(),
+                        done,
+                        n
+                    );
+                }
+                break;
+            }
         }
 
         // Record a single batch summary in command history.
@@ -815,8 +853,10 @@ impl Runner {
                 "task_template": task,
                 "command_template": cmd_template,
                 "total": n,
+                "processed": done,
                 "failed": failed,
                 "success": failed == 0,
+                "stopped_early": self.stop_on_error && done < n,
                 "results": entries,
             });
             println!("{}", serde_json::to_string_pretty(&output)?);
@@ -834,7 +874,7 @@ impl Runner {
                     "  {} {}/{} items failed.",
                     "✗".red().bold(),
                     failed.to_string().red(),
-                    n
+                    done
                 );
             }
             println!("{}", "─".repeat(60).dimmed());
@@ -842,7 +882,7 @@ impl Runner {
 
         if failed > 0 {
             return Err(OxoError::ExecutionError(format!(
-                "{failed}/{n} batch items failed"
+                "{failed}/{done} batch items failed"
             )));
         }
         Ok(())

@@ -717,7 +717,7 @@ impl JobManager {
 ///
 /// | Placeholder | Expands to |
 /// |-------------|-----------|
-/// | `{item}` / `{line}` | the current input item (e.g. a file path) |
+/// | `{item}` / `{line}` / `{}` | the current input item (e.g. a file path) |
 /// | `{nr}` | 1-based line / item number |
 /// | `{basename}` | `Path::file_name()` of `{item}`, or `{item}` when not a path |
 /// | `{dir}` | parent directory of `{item}`, or `.` when there is no parent |
@@ -725,7 +725,7 @@ impl JobManager {
 /// | `{ext}` | file extension without leading dot (`bam` for `sample.bam`) |
 ///
 /// **Empty `item`**: When `item` is an empty string (vars-only single run),
-/// the path-derived placeholders resolve as: `{item}` / `{line}` → `""`,
+/// the path-derived placeholders resolve as: `{item}` / `{line}` / `{}` → `""`,
 /// `{basename}` → `""`, `{stem}` → `""`, `{ext}` → `""`, `{dir}` → `"."`.
 ///
 /// User-defined vars (`--var KEY=VALUE`) are substituted first, so they take
@@ -756,6 +756,10 @@ pub fn interpolate_command(
     }
 
     // Built-in placeholders.
+    // `{}` is the rush-compatible shorthand for `{item}` and must be expanded
+    // before `{item}` / `{line}` so that the order is deterministic regardless
+    // of which alias the user chose.
+    result = result.replace("{}", item);
     result = result.replace("{item}", item);
     result = result.replace("{line}", item);
     result = result.replace("{nr}", &nr.to_string());
@@ -769,27 +773,40 @@ pub fn interpolate_command(
 
 /// Parse a `KEY=VALUE` string into `(key, value)`.
 ///
-/// Returns an error when no `=` separator is present.
+/// Returns an error when no `=` separator is present or when the key is empty.
 pub fn parse_var(s: &str) -> Result<(String, String)> {
     let pos = s
         .find('=')
         .ok_or_else(|| OxoError::ConfigError(format!("invalid --var '{s}': must be KEY=VALUE")))?;
-    Ok((s[..pos].to_string(), s[pos + 1..].to_string()))
+    let key = &s[..pos];
+    if key.is_empty() {
+        return Err(OxoError::ConfigError(format!(
+            "invalid --var '{s}': key must not be empty (expected KEY=VALUE)"
+        )));
+    }
+    Ok((key.to_string(), s[pos + 1..].to_string()))
 }
 
 /// Read non-blank, non-comment lines from a file into a `Vec<String>`.
 ///
 /// Lines that are empty (after trimming whitespace) or that start with `#`
 /// are silently skipped — this lets users annotate their input lists.
+///
+/// Returns an error if the file cannot be opened **or** if an IO error occurs
+/// while reading any line (i.e. errors are propagated, not silently truncated).
 pub fn read_input_list(path: &str) -> Result<Vec<String>> {
     use std::io::{BufRead, BufReader};
     let f = std::fs::File::open(path)
         .map_err(|e| OxoError::ConfigError(format!("cannot open --input-list '{path}': {e}")))?;
-    let lines: Vec<String> = BufReader::new(f)
-        .lines()
-        .map_while(|l| l.ok())
-        .filter(|l| !l.trim().is_empty() && !l.trim_start().starts_with('#'))
-        .collect();
+    let mut lines: Vec<String> = Vec::new();
+    for line_result in BufReader::new(f).lines() {
+        let line = line_result.map_err(|e| {
+            OxoError::ConfigError(format!("IO error reading --input-list '{path}': {e}"))
+        })?;
+        if !line.trim().is_empty() && !line.trim_start().starts_with('#') {
+            lines.push(line);
+        }
+    }
     Ok(lines)
 }
 
@@ -1402,10 +1419,14 @@ mod tests {
 
     #[test]
     fn test_parse_var_empty_key() {
-        // Even an empty key before `=` is accepted; validation is the caller's job.
-        let (k, v) = parse_var("=value").unwrap();
-        assert_eq!(k, "");
-        assert_eq!(v, "value");
+        // An empty key is now rejected with a clear error.
+        let result = parse_var("=value");
+        assert!(result.is_err(), "Expected error for empty key");
+        let msg = result.unwrap_err().to_string();
+        assert!(
+            msg.contains("key must not be empty"),
+            "Expected empty-key error, got: {msg}"
+        );
     }
 
     #[test]
@@ -1437,5 +1458,67 @@ mod tests {
             msg.contains("cannot open --input-list"),
             "Expected helpful error message, got: {msg}"
         );
+    }
+
+    // ── New features ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_interpolate_curly_braces_alias_for_item() {
+        // `{}` is the rush-compatible alias for `{item}`.
+        let vars = HashMap::new();
+        let result = interpolate_command("samtools view -bS {} > {}.bam", "input.sam", 1, &vars);
+        assert_eq!(result, "samtools view -bS input.sam > input.sam.bam");
+    }
+
+    #[test]
+    fn test_interpolate_curly_braces_does_not_conflict_with_nr() {
+        // `{}` should not match `{nr}` — they are expanded independently.
+        let vars = HashMap::new();
+        let result = interpolate_command("{nr}: {}", "item", 3, &vars);
+        assert_eq!(result, "3: item");
+    }
+
+    #[test]
+    fn test_interpolate_curly_braces_with_vars() {
+        // User vars are expanded before `{}`, so they can shadow it.
+        let mut vars = HashMap::new();
+        vars.insert("T".to_string(), "8".to_string());
+        let result = interpolate_command("process -t {T} {}", "sample.bam", 1, &vars);
+        assert_eq!(result, "process -t 8 sample.bam");
+    }
+
+    #[test]
+    fn test_parse_var_still_allows_value_with_equals() {
+        // KEY=a=b should split on the FIRST `=` only.
+        let (k, v) = parse_var("KEY=a=b").unwrap();
+        assert_eq!(k, "KEY");
+        assert_eq!(v, "a=b");
+    }
+
+    #[test]
+    fn test_read_input_list_io_error_propagates() {
+        // Verify that read_input_list returns an error for unreadable paths,
+        // not a silently-truncated empty vec.
+        #[cfg(unix)]
+        {
+            use std::io::Write;
+            use std::os::unix::fs::PermissionsExt;
+            let mut f = tempfile::NamedTempFile::new().unwrap();
+            writeln!(f, "item1").unwrap();
+            std::fs::set_permissions(f.path(), std::fs::Permissions::from_mode(0o000)).unwrap();
+            let result = read_input_list(f.path().to_str().unwrap());
+            // Restore so the temp file can be cleaned up.
+            let _ = std::fs::set_permissions(f.path(), std::fs::Permissions::from_mode(0o644));
+            assert!(result.is_err(), "Expected error for unreadable file");
+            let msg = result.unwrap_err().to_string();
+            assert!(
+                msg.contains("--input-list"),
+                "Expected --input-list in error message, got: {msg}"
+            );
+        }
+        // Non-Unix: just verify non-existent file error (already covered by
+        // test_read_input_list_nonexistent_file_returns_error).
+        #[cfg(not(unix))]
+        {}
     }
 }

@@ -23,6 +23,7 @@ oxo-call r   [OPTIONS] <TOOL> <TASK>
 | `-i`, `--input-list <FILE>` | Read input items from a file; runs the generated command for each item |
 | `--input-items <ITEMS>` | Comma-separated input items; runs the generated command for each item |
 | `-j`, `--jobs <N>` | Maximum parallel jobs when using `--input-list` / `--input-items` (default: 1) |
+| `-x`, `--stop-on-error` | Abort remaining items after the first failure |
 | `-v`, `--verbose` | Show docs source, skill info, and LLM details (global) |
 | `--license <PATH>` | Path to license file (global option) |
 
@@ -107,7 +108,7 @@ for each item in the list.
 
 | Placeholder | Expands to |
 |-------------|-----------|
-| `{item}` / `{line}` | The current input item |
+| `{item}` / `{line}` / `{}` | The current input item (`{}` is the rush-compatible form) |
 | `{nr}` | 1-based item number |
 | `{basename}` | Filename without directory |
 | `{dir}` | Directory portion of the item path (or `.`) |
@@ -115,11 +116,16 @@ for each item in the list.
 | `{ext}` | File extension without dot |
 
 **Input list file format**: one item per line; blank lines and lines starting
-with `#` are ignored.
+with `#` are ignored. IO errors during reading are propagated immediately
+(no silent truncation).
 
 **Parallelism**: set `-j N` (or `--jobs N`) to run up to N items concurrently.
 The default is 1 (sequential). Exit codes are collected after all items finish;
 any failure causes the overall command to exit non-zero.
+
+**Stop-on-error** (`-x` / `--stop-on-error`): abort after the first item
+failure — useful in pipelines where continuing on error would produce incorrect
+downstream results.
 
 **JSON output** (`--json`) in batch mode returns an array of per-item results:
 

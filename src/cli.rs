@@ -113,9 +113,10 @@ EXAMPLES:\n  \
         /// Number of parallel jobs when using --input-list or --input-items (default: 1)
         #[arg(short = 'j', long = "jobs", default_value = "1", value_name = "N")]
         jobs: usize,
+        /// Stop processing after the first failed item (exit immediately, do not run remaining items)
+        #[arg(short = 'x', long = "stop-on-error")]
+        stop_on_error: bool,
     },
-
-    /// Preview the command that would be executed (no actual execution)
     #[command(
         name = "dry-run",
         visible_alias = "d",
@@ -579,6 +580,9 @@ pub enum JobCommands {
         /// Preserve the order of output when running in parallel
         #[arg(short = 'k', long = "keep-order")]
         keep_order: bool,
+        /// Stop after the first failed item instead of continuing the batch
+        #[arg(short = 'x', long = "stop-on-error")]
+        stop_on_error: bool,
     },
 
     /// Edit an existing job entry

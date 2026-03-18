@@ -123,6 +123,7 @@ Every execution is recorded in `job_runs.jsonl`. View history with
 | `--input-items <ITEMS>` | Comma-separated input items (e.g. `a.bam,b.bam`). |
 | `--jobs <N>` / `-j` | Maximum parallel jobs when using input items (default: 1 = sequential). |
 | `--keep-order` / `-k` | Preserve output ordering in parallel mode (reserved for future output-buffering). |
+| `--stop-on-error` / `-x` | Abort remaining items after the first failure. |
 
 #### Variable interpolation
 
@@ -139,7 +140,7 @@ Built-in interpolation placeholders (always available when input items are used)
 
 | Placeholder | Expands to |
 |-------------|-----------|
-| `{item}` / `{line}` | The current input item |
+| `{item}` / `{line}` / `{}` | The current input item (`{}` is the rush-compatible form) |
 | `{nr}` | 1-based item number |
 | `{basename}` | Filename without directory (e.g. `sample.bam`) |
 | `{dir}` | Directory portion of the item path (or `.`) |
@@ -153,7 +154,7 @@ built-in names if reused.
 
 ```bash
 # Process every BAM in a file list, 4 at a time
-oxo-call job add bam-stats 'samtools flagstat {item} > {stem}.stats'
+oxo-call job add bam-stats 'samtools flagstat {} > {stem}.stats'
 find . -name '*.bam' > bam_list.txt
 oxo-call job run bam-stats --input-list bam_list.txt --jobs 4
 
@@ -169,6 +170,9 @@ oxo-call job run trim --var T=4 --input-list samples.txt --jobs 4
 
 # Read from stdin (piped input, no --input-list needed)
 find . -name '*.fastq.gz' | oxo-call job run trim --var T=4 --jobs 4
+
+# Stop as soon as one item fails (useful in pipelines)
+oxo-call job run bam-stats --input-list bam_list.txt --stop-on-error
 ```
 
 ---

@@ -72,6 +72,7 @@ async fn run(cli: Cli) -> error::Result<()> {
             input_list,
             input_items,
             jobs,
+            stop_on_error,
         } => {
             let mut cfg = config::Config::load()?;
             if let Some(ref m) = model {
@@ -116,7 +117,8 @@ async fn run(cli: Cli) -> error::Result<()> {
             let runner = runner
                 .with_vars(var_map)
                 .with_input_items(all_items)
-                .with_jobs(jobs);
+                .with_jobs(jobs)
+                .with_stop_on_error(stop_on_error);
             runner.run(&tool, &task, ask, json).await?;
         }
 
@@ -2319,6 +2321,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                     input_items,
                     jobs,
                     keep_order,
+                    stop_on_error,
                 } => {
                     let entry = job::JobManager::find(&name)?.ok_or_else(|| {
                         error::OxoError::ConfigError(format!("No job found with name '{name}'"))
@@ -2524,10 +2527,15 @@ async fn run(cli: Cli) -> error::Result<()> {
                             entry.command.green().bold()
                         );
                         println!(
-                            "  {} {} items, {} parallel",
+                            "  {} {} items, {} parallel{}",
                             "Batch:".bold(),
                             n.to_string().cyan(),
-                            jobs.to_string().cyan()
+                            jobs.to_string().cyan(),
+                            if stop_on_error {
+                                " (stop-on-error)".yellow().to_string()
+                            } else {
+                                String::new()
+                            }
                         );
                         println!("{}", "─".repeat(60).dimmed());
                         println!();
@@ -2579,6 +2587,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                             }
 
                             let mut failed = 0usize;
+                            let mut done = 0usize;
                             for (item, handle) in handles {
                                 let code = match handle.await {
                                     Ok(Ok(c)) => c,
@@ -2603,15 +2612,33 @@ async fn run(cli: Cli) -> error::Result<()> {
                                 if code != 0 && code != -1 {
                                     failed += 1;
                                 }
+                                done += 1;
                                 match code {
-                                    0 => println!("  {} {}", "✓".green().bold(), item),
+                                    0 => println!(
+                                        "  {} [{}/{}] {}",
+                                        "✓".green().bold(),
+                                        done,
+                                        n,
+                                        item
+                                    ),
                                     -1 => {} // error already printed
                                     c => eprintln!(
-                                        "  {} {} (exit {})",
+                                        "  {} [{}/{}] {} (exit {})",
                                         "✗".red().bold(),
+                                        done,
+                                        n,
                                         item,
                                         c.to_string().red()
                                     ),
+                                }
+                                if stop_on_error && failed > 0 {
+                                    eprintln!(
+                                        "  {} stop-on-error: aborting after first failure ({}/{} done)",
+                                        "⚡".yellow().bold(),
+                                        done,
+                                        n
+                                    );
+                                    break;
                                 }
                             }
 
@@ -2634,17 +2661,17 @@ async fn run(cli: Cli) -> error::Result<()> {
                                 println!(
                                     "  {} All {} items completed successfully.",
                                     "✓".green().bold(),
-                                    n.to_string().green()
+                                    done.to_string().green()
                                 );
                             } else {
                                 eprintln!(
                                     "  {} {}/{} items failed.",
                                     "✗".red().bold(),
                                     failed.to_string().red(),
-                                    n
+                                    done
                                 );
                                 return Err(error::OxoError::ExecutionError(format!(
-                                    "{failed}/{n} batch items failed"
+                                    "{failed}/{done} batch items failed"
                                 )));
                             }
                             println!("{}", "─".repeat(60).dimmed());
