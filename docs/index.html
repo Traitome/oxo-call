@@ -249,24 +249,185 @@
     /* ── Tools grid ─────────────────────────────────────────────────────── */
     .tools-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      grid-template-rows: repeat(2, auto);
       gap: 1rem;
+      max-height: 340px;
+      overflow: hidden;
+      overflow: hidden;
+      perspective: 1000px;
+      position: relative;
+    }
+    .tools-grid::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 80px;
+      background: linear-gradient(to bottom, transparent, var(--bg));
+      pointer-events: none;
+      z-index: 5;
     }
     .tool-card {
-      background: var(--surface);
+      background: linear-gradient(135deg, var(--surface) 0%, rgba(88,166,255,0.03) 100%);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1rem 1.25rem;
+      border-radius: 12px;
+      padding: 1.2rem 1rem;
       font-family: 'JetBrains Mono', monospace;
       cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+      overflow: hidden;
+      transform-style: preserve-3d;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      animation: 
+        toolFloat 6s ease-in-out infinite,
+        toolGlow 4s ease-in-out infinite,
+        toolPulse 8s ease-in-out infinite;
     }
-    .tool-card:hover, .tool-card.active {
+    .tool-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(88,166,255,0.03) 50%,
+        transparent 70%
+      );
+      animation: shimmer 6s linear infinite;
+      pointer-events: none;
+    }
+    .tool-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 12px;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(88,166,255,0), rgba(88,166,255,0.3), rgba(63,185,80,0));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.3s;
+      animation: borderRotate 4s linear infinite;
+    }
+    /* Staggered animation delays for wave effect */
+    .tool-card:nth-child(1)  { animation-delay: 0s, 0s, 0s; }
+    .tool-card:nth-child(2)  { animation-delay: 0.15s, 0.5s, 0.3s; }
+    .tool-card:nth-child(3)  { animation-delay: 0.3s, 1s, 0.6s; }
+    .tool-card:nth-child(4)  { animation-delay: 0.45s, 1.5s, 0.9s; }
+    .tool-card:nth-child(5)  { animation-delay: 0.6s, 2s, 1.2s; }
+    .tool-card:nth-child(6)  { animation-delay: 0.75s, 2.5s, 1.5s; }
+    .tool-card:nth-child(7)  { animation-delay: 0.9s, 3s, 1.8s; }
+    .tool-card:nth-child(8)  { animation-delay: 1.05s, 0s, 2.1s; }
+    .tool-card:nth-child(9)  { animation-delay: 1.2s, 0.5s, 2.4s; }
+    .tool-card:nth-child(10) { animation-delay: 1.35s, 1s, 2.7s; }
+    .tool-card:nth-child(11) { animation-delay: 1.5s, 1.5s, 0s; }
+    .tool-card:nth-child(12) { animation-delay: 1.65s, 2s, 0.3s; }
+    .tool-card:nth-child(13) { animation-delay: 1.8s, 2.5s, 0.6s; }
+    .tool-card:nth-child(14) { animation-delay: 1.95s, 3s, 0.9s; }
+    .tool-card:nth-child(15) { animation-delay: 2.1s, 0s, 1.2s; }
+    .tool-card:nth-child(16) { animation-delay: 2.25s, 0.5s, 1.5s; }
+    .tool-card:nth-child(17) { animation-delay: 2.4s, 1s, 1.8s; }
+    .tool-card:nth-child(18) { animation-delay: 2.55s, 1.5s, 2.1s; }
+    .tool-card:nth-child(19) { animation-delay: 2.7s, 2s, 2.4s; }
+    .tool-card:nth-child(20) { animation-delay: 2.85s, 2.5s, 2.7s; }
+    .tool-card:nth-child(21) { animation-delay: 3s, 3s, 0s; }
+    .tool-card:nth-child(22) { animation-delay: 3.15s, 0s, 0.3s; }
+    .tool-card:nth-child(23) { animation-delay: 3.3s, 0.5s, 0.6s; }
+    .tool-card:nth-child(24) { animation-delay: 3.45s, 1s, 0.9s; }
+    .tool-card:nth-child(25) { animation-delay: 3.6s, 1.5s, 1.2s; }
+    .tool-card:nth-child(26) { animation-delay: 3.75s, 2s, 1.5s; }
+    .tool-card:nth-child(27) { animation-delay: 3.9s, 2.5s, 1.8s; }
+    .tool-card:nth-child(28) { animation-delay: 4.05s, 3s, 2.1s; }
+    
+    @keyframes toolFloat {
+      0%, 100% { transform: translateY(0) rotateX(0deg); }
+      25% { transform: translateY(-6px) rotateX(2deg); }
+      50% { transform: translateY(-3px) rotateX(0deg); }
+      75% { transform: translateY(-8px) rotateX(-2deg); }
+    }
+    @keyframes toolGlow {
+      0%, 100% { 
+        box-shadow: 0 2px 8px rgba(88,166,255,0), inset 0 1px 0 rgba(255,255,255,0.02);
+        border-color: var(--border);
+      }
+      50% { 
+        box-shadow: 0 4px 20px rgba(88,166,255,0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+        border-color: rgba(88,166,255,0.4);
+      }
+    }
+    @keyframes toolPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.85; }
+    }
+    @keyframes shimmer {
+      0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+      100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+    @keyframes borderRotate {
+      0% { background: linear-gradient(0deg, rgba(88,166,255,0), rgba(88,166,255,0.3), rgba(63,185,80,0)); }
+      25% { background: linear-gradient(90deg, rgba(88,166,255,0), rgba(88,166,255,0.3), rgba(63,185,80,0)); }
+      50% { background: linear-gradient(180deg, rgba(88,166,255,0), rgba(88,166,255,0.3), rgba(63,185,80,0)); }
+      75% { background: linear-gradient(270deg, rgba(88,166,255,0), rgba(88,166,255,0.3), rgba(63,185,80,0)); }
+      100% { background: linear-gradient(360deg, rgba(88,166,255,0), rgba(88,166,255,0.3), rgba(63,185,80,0)); }
+    }
+    .tool-card:hover {
+      transform: translateY(-12px) scale(1.05) rotateX(5deg);
       border-color: var(--accent);
-      background: rgba(88,166,255,0.08);
+      background: linear-gradient(135deg, rgba(88,166,255,0.15) 0%, var(--surface) 100%);
+      box-shadow: 
+        0 20px 40px rgba(88,166,255,0.2),
+        0 0 30px rgba(88,166,255,0.1),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+      z-index: 10;
+      animation-play-state: paused;
     }
-    .tool-name { font-size: 0.95rem; font-weight: 700; color: var(--accent); margin-bottom: 0.3rem; }
-    .tool-desc { font-size: 0.75rem; color: var(--muted); font-family: 'Inter', sans-serif; }
+    .tool-card:hover::after {
+      opacity: 1;
+    }
+    .tool-card:hover::before {
+      animation-duration: 2s;
+    }
+    .tool-name { 
+      font-size: 0.95rem; 
+      font-weight: 700; 
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.4rem;
+      position: relative;
+      z-index: 1;
+    }
+    .tool-desc { 
+      font-size: 0.75rem; 
+      color: var(--muted); 
+      font-family: 'Inter', sans-serif;
+      position: relative;
+      z-index: 1;
+    }
+    .tool-icon {
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+      opacity: 0.9;
+      filter: drop-shadow(0 2px 8px rgba(88,166,255,0.25));
+      animation: iconPulse 3s ease-in-out infinite;
+      display: inline-block;
+    }
+    @keyframes iconPulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 2px 8px rgba(88,166,255,0.25)); }
+      50% { transform: scale(1.1); filter: drop-shadow(0 4px 12px rgba(88,166,255,0.4)); }
+    }
+    .tool-card:nth-child(2n) .tool-icon { animation-delay: 0.5s; }
+    .tool-card:nth-child(3n) .tool-icon { animation-delay: 1s; }
+    .tool-card:nth-child(5n) .tool-icon { animation-delay: 1.5s; }
+    .tool-card:nth-child(7n) .tool-icon { animation-delay: 2s; }
 
     /* ── Interactive Demo ──────────────────────────────────────────────── */
     .demo-wrapper {
@@ -718,11 +879,11 @@
 <nav>
   <a class="nav-logo" href="#">oxo<span>-call</span></a>
   <ul class="nav-links">
-    <li><a href="#demo">Demo</a></li>
     <li><a href="#features">Features</a></li>
+    <li><a href="#demo">Demos</a></li>
+    <li><a href="#tools">Skills</a></li>
     <li><a href="#job">Jobs</a></li>
     <li><a href="#workflow">Workflows</a></li>
-    <li><a href="#tools">Skills</a></li>
     <li><a href="#benchmarks">Benchmarks</a></li>
     <li><a href="#community">Community</a></li>
     <li><a href="#install">Install</a></li>
@@ -752,7 +913,7 @@
     <div class="hero-actions">
       <a href="#install" class="btn btn-primary">Get started</a>
       <a href="documentation/index.html" class="btn btn-secondary">Documentation</a>
-      <a href="#demo"    class="btn btn-secondary">Try the demo</a>
+      <a href="#demo"    class="btn btn-secondary">Show demos</a>
       <a href="https://github.com/Traitome/oxo-call" class="btn btn-secondary" target="_blank" rel="noopener">GitHub →</a>
     </div>
   </div>
@@ -873,9 +1034,9 @@
       <p>Save named shell shortcuts (<code>oxo-call job add</code>), attach cron schedules, track run history and exit codes, and generate jobs from plain-English descriptions via the LLM. 25+ built-in templates for common ops, HPC, and bioinformatics tasks.</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">⚡</div>
-      <h3>WebAssembly / WASI</h3>
-      <p>Ships a <code>wasm32-wasip1</code> binary for portable execution in WASI runtimes like Wasmtime without native installation.</p>
+      <div class="feature-icon">🔀</div>
+      <h3>Variable interpolation &amp; batch execution</h3>
+      <p>Use <code>--var KEY=VALUE</code> for custom placeholders, <code>{item}</code> for batch input, and <code>-j N</code> for parallel execution. Process hundreds of files with a single command.</p>
     </div>
   </div>
 </section>
@@ -925,6 +1086,10 @@
         <div class="demo-ex-tool">seqkit stats</div>
         <div class="demo-ex-task">basic stats on a FASTQ file</div>
       </div>
+      <div class="demo-example" data-idx="6">
+        <div class="demo-ex-tool">variable interpolation</div>
+        <div class="demo-ex-task">batch process with {item} and --var</div>
+      </div>
     </div>
 
     <!-- Terminal output -->
@@ -952,20 +1117,19 @@
     Each built-in skill encodes domain-specific concepts, common pitfalls, and
     worked examples so the LLM is guided beyond a raw <code>--help</code> dump.
   </p>
-  <div class="tools-grid">
-    <div class="tool-card"><div class="tool-name">samtools</div><div class="tool-desc">SAM/BAM/CRAM manipulation</div></div>
-    <div class="tool-card"><div class="tool-name">bwa</div><div class="tool-desc">Burrows-Wheeler short-read aligner</div></div>
-    <div class="tool-card"><div class="tool-name">bcftools</div><div class="tool-desc">VCF/BCF variant calling & filtering</div></div>
-    <div class="tool-card"><div class="tool-name">bedtools</div><div class="tool-desc">Genomic interval arithmetic</div></div>
-    <div class="tool-card"><div class="tool-name">gatk</div><div class="tool-desc">Genome Analysis Toolkit</div></div>
-    <div class="tool-card"><div class="tool-name">minimap2</div><div class="tool-desc">Long-read / splice-aware aligner</div></div>
-    <div class="tool-card"><div class="tool-name">fastp</div><div class="tool-desc">Adapter trimming & QC</div></div>
-    <div class="tool-card"><div class="tool-name">bowtie2</div><div class="tool-desc">Fast short-read aligner</div></div>
-    <div class="tool-card"><div class="tool-name">seqkit</div><div class="tool-desc">FASTA/Q toolkit</div></div>
-    <div class="tool-card"><div class="tool-name">star</div><div class="tool-desc">RNA-seq spliced aligner</div></div>
-    <div class="tool-card"><div class="tool-name">slurm</div><div class="tool-desc">HPC job scheduling (sbatch, srun)</div></div>
-    <div class="tool-card"><div class="tool-name">pbs</div><div class="tool-desc">PBS/Torque batch scheduler (qsub)</div></div>
-    <div class="tool-card"><div class="tool-name">kubectl</div><div class="tool-desc">Kubernetes cluster management</div></div>
+  <div class="tools-grid" id="tools-grid">
+    <div class="tool-card" data-tool="samtools"><div class="tool-icon">🧬</div><div class="tool-name">samtools</div><div class="tool-desc">SAM/BAM/CRAM manipulation</div></div>
+    <div class="tool-card" data-tool="bwa"><div class="tool-icon">🎯</div><div class="tool-name">bwa</div><div class="tool-desc">Burrows-Wheeler short-read aligner</div></div>
+    <div class="tool-card" data-tool="bcftools"><div class="tool-icon">🧪</div><div class="tool-name">bcftools</div><div class="tool-desc">VCF/BCF variant calling & filtering</div></div>
+    <div class="tool-card" data-tool="bedtools"><div class="tool-icon">🛏️</div><div class="tool-name">bedtools</div><div class="tool-desc">Genomic interval arithmetic</div></div>
+    <div class="tool-card" data-tool="gatk"><div class="tool-icon">🔬</div><div class="tool-name">gatk</div><div class="tool-desc">Genome Analysis Toolkit</div></div>
+    <div class="tool-card" data-tool="minimap2"><div class="tool-icon">📏</div><div class="tool-name">minimap2</div><div class="tool-desc">Long-read / splice-aware aligner</div></div>
+    <div class="tool-card" data-tool="fastp"><div class="tool-icon">✂️</div><div class="tool-name">fastp</div><div class="tool-desc">Adapter trimming & QC</div></div>
+    <div class="tool-card" data-tool="bowtie2"><div class="tool-icon">🎀</div><div class="tool-name">bowtie2</div><div class="tool-desc">Fast short-read aligner</div></div>
+    <div class="tool-card" data-tool="seqkit"><div class="tool-icon">🧰</div><div class="tool-name">seqkit</div><div class="tool-desc">FASTA/Q toolkit</div></div>
+    <div class="tool-card" data-tool="star"><div class="tool-icon">⭐</div><div class="tool-name">star</div><div class="tool-desc">RNA-seq spliced aligner</div></div>
+    <div class="tool-card" data-tool="slurm"><div class="tool-icon">⚡</div><div class="tool-name">slurm</div><div class="tool-desc">HPC job scheduling (sbatch, srun)</div></div>
+    <div class="tool-card" data-tool="pbs"><div class="tool-icon">📋</div><div class="tool-name">pbs</div><div class="tool-desc">PBS/Torque batch scheduler (qsub)</div></div>
   </div>
 </section>
 
@@ -1016,21 +1180,21 @@
   </div>
 
   <div class="code-block" style="margin-top:2rem">
-    <div class="code-header">
-      <span class="code-lang">bash</span>
+    <div class="code-block-header">
+      <span style="color:var(--muted);font-size:0.8rem">// job library commands</span>
       <button class="copy-btn" data-copy="oxo-call job import squeue-me && oxo-call job run squeue-me">copy</button>
     </div>
-    <pre><span class="comment"># Import a built-in SLURM template and run it</span>
-oxo-call job list --builtin --tag slurm
-oxo-call job import squeue-me
-oxo-call job run squeue-me
+    <pre class="code-block-body"><span class="c"># Import a built-in SLURM template and run it</span>
+<span class="prompt">$</span> oxo-call job list --builtin --tag slurm
+<span class="prompt">$</span> oxo-call job import squeue-me
+<span class="prompt">$</span> oxo-call job run squeue-me
 
-<span class="comment"># Generate a job from a plain-English description</span>
-oxo-call job generate <span class="s">"show Docker containers over 1 GB memory"</span>
+<span class="c"># Generate a job from a plain-English description</span>
+<span class="prompt">$</span> oxo-call job generate <span class="s">"show Docker containers over 1 GB memory"</span>
 
-<span class="comment"># View execution history and status</span>
-oxo-call job status
-oxo-call job history squeue-me</pre>
+<span class="c"># View execution history and status</span>
+<span class="prompt">$</span> oxo-call job status
+<span class="prompt">$</span> oxo-call job history squeue-me</pre>
   </div>
 </section>
 
@@ -1082,6 +1246,16 @@ oxo-call job history squeue-me</pre>
       <h3>Snakemake &amp; Nextflow export</h3>
       <p>Every template can be exported with <code>workflow export --to snakemake</code> or <code>--to nextflow</code> for HPC environments.</p>
     </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Output freshness caching</h3>
+      <p>Automatically skip steps whose outputs exist and are newer than inputs. Re-run only what changed — perfect for iterative pipeline development.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎯</div>
+      <h3>Gather steps aggregation</h3>
+      <p>Steps with <code>gather = true</code> run once after all wildcard instances complete. Ideal for MultiQC reports and downstream aggregation tasks.</p>
+    </div>
   </div>
 
   <div class="code-block" style="margin-top:2.5rem">
@@ -1107,165 +1281,6 @@ oxo-call job history squeue-me</pre>
   </div>
 </section>
 
-<hr class="divider" />
-
-<!-- ── Install ──────────────────────────────────────────────────────────── -->
-<section id="install">
-  <div class="section-label">// install</div>
-  <h2 class="section-title">Get started in 60 seconds</h2>
-
-  <div class="code-block">
-    <div class="code-block-header">
-      <span>Install from crates.io (recommended)</span>
-      <button class="copy-btn" data-copy="cargo install oxo-call">copy</button>
-    </div>
-    <pre><span class="c"># Install the latest release from crates.io</span>
-cargo install oxo-call</pre>
-  </div>
-
-  <div class="code-block">
-    <div class="code-block-header">
-      <span>Install from GitHub Releases (pre-built binaries)</span>
-      <button class="copy-btn" data-copy="curl -LO https://github.com/Traitome/oxo-call/releases/latest">copy</button>
-    </div>
-    <pre><span class="c"># Download pre-built binary (Linux x86_64 example)</span>
-curl -LO https://github.com/Traitome/oxo-call/releases/latest/download/oxo-call-<span class="s">VERSION</span>-x86_64-unknown-linux-gnu.tar.gz
-tar xzf oxo-call-*-x86_64-unknown-linux-gnu.tar.gz
-sudo mv oxo-call /usr/local/bin/
-
-<span class="c"># Available for: Linux (x86_64/aarch64), macOS (Intel/Apple Silicon), Windows, WASM</span></pre>
-  </div>
-
-  <div class="code-block">
-    <div class="code-block-header">
-      <span>Install from source (git clone)</span>
-      <button class="copy-btn" data-copy="git clone https://github.com/Traitome/oxo-call && cd oxo-call && cargo install --path .">copy</button>
-    </div>
-    <pre><span class="c"># Clone and build from source (latest development version)</span>
-git clone https://github.com/Traitome/oxo-call
-cd oxo-call
-cargo install --path .</pre>
-  </div>
-
-  <div class="code-block">
-    <div class="code-block-header">
-      <span>Configure your LLM token</span>
-      <button class="copy-btn" data-copy="oxo-call config set llm.api_token YOUR_TOKEN">copy</button>
-    </div>
-    <pre><span class="c"># GitHub Copilot (default — free for Copilot subscribers)</span>
-oxo-call config set llm.api_token YOUR_GITHUB_TOKEN
-
-<span class="c"># OpenAI</span>
-oxo-call config set llm.provider openai
-oxo-call config set llm.api_token sk-...
-
-<span class="c"># Local Ollama (no token needed)</span>
-oxo-call config set llm.provider ollama
-oxo-call config set llm.model llama3.2</pre>
-  </div>
-
-  <div class="code-block">
-    <div class="code-block-header">
-      <span>Your first command</span>
-      <button class="copy-btn" data-copy='oxo-call dry-run samtools "sort input.bam by coordinate and output to sorted.bam"'>copy</button>
-    </div>
-    <pre><span class="c"># Preview — no execution</span>
-oxo-call dry-run samtools <span class="s">"sort input.bam by coordinate and output to sorted.bam"</span>
-
-<span class="c"># Execute immediately</span>
-oxo-call run bwa <span class="s">"align reads.fastq to reference.fa using 8 threads, output SAM"</span>
-
-<span class="c"># Confirm before running</span>
-oxo-call run --ask bcftools <span class="s">"call variants from my.bam against ref.fa"</span></pre>
-  </div>
-
-  <div class="code-block">
-    <div class="code-block-header">
-      <span>WASI binary (requires wasmtime)</span>
-      <button class="copy-btn" data-copy="wasmtime oxo-call.wasm -- dry-run samtools &quot;sort input.bam by coordinate&quot;">copy</button>
-    </div>
-    <pre><span class="c"># Download the .wasm binary from the GitHub Releases page, then:</span>
-wasmtime oxo-call.wasm -- dry-run samtools <span class="s">"sort input.bam by coordinate"</span></pre>
-  </div>
-
-  <div class="code-block">
-    <div class="code-block-header">
-      <span>Quick test license (copy & paste to get started)</span>
-      <button class="copy-btn" data-copy='{
-  "schema": "oxo-call-license-v1",
-  "license_id": "6548e181-e352-402a-ab72-4da51f49e7b5",
-  "issued_to_org": "Public Academic Test License (any academic user)",
-  "license_type": "academic",
-  "scope": "org",
-  "perpetual": true,
-  "issued_at": "2026-03-12",
-  "signature": "duKJcISYPdyZkw1PbyVil5zTjvLhAYsmbzRpH0n6eRYJET90p1b0rYiHO0cJ7IGR6NLEJWqkY1wBXUkfvUvECw=="
-}'>copy license JSON</button>
-    </div>
-    <pre><span class="c"># Step 1: Copy this JSON and save it as license.oxo.json</span>
-{
-  "schema": "oxo-call-license-v1",
-  "license_id": "6548e181-e352-402a-ab72-4da51f49e7b5",
-  "issued_to_org": "Public Academic Test License (any academic user)",
-  "license_type": "academic",
-  "scope": "org",
-  "perpetual": true,
-  "issued_at": "2026-03-12",
-  "signature": "duKJcISYPdyZkw1PbyVil5zTjvLhAYsmbzRpH0n6eRYJET90p1b0rYiHO0cJ7IGR6NLEJWqkY1wBXUkfvUvECw=="
-}
-
-<span class="c"># Step 2: Move the file to the config directory</span>
-<span class="c"># Linux:</span>
-mkdir -p ~/.config/oxo-call && mv license.oxo.json ~/.config/oxo-call/
-
-<span class="c"># macOS:</span>
-mkdir -p ~/Library/Application\ Support/io.traitome.oxo-call && mv license.oxo.json ~/Library/Application\ Support/io.traitome.oxo-call/
-
-<span class="c"># Windows (PowerShell):</span>
-New-Item -ItemType Directory -Force -Path $env:APPDATA\oxo-call; Move-Item license.oxo.json $env:APPDATA\oxo-call\
-
-<span class="c"># Step 3: Verify the license works</span>
-oxo-call license verify
-
-<span class="c"># Step 4: Try your first command</span>
-oxo-call dry-run samtools <span class="s">"sort input.bam by coordinate"</span></pre>
-  </div>
-
-  <p class="section-body">
-    <strong>Quick test license is for evaluation only.</strong> 
-    It lets you try oxo-call immediately without any setup.
-    For continued use, academic users should request a free formal license, 
-    and commercial users should contact <a href="mailto:w_shixiang@163.com">w_shixiang@163.com</a> 
-    to purchase a license (USD 200 per organization).
-  </p>
-
-  <!-- PayPal Payment Section -->
-  <div class="paypal-section" id="paypal-section">
-    <div class="paypal-header" onclick="togglePaypal()">
-      <div class="paypal-title">
-        <span class="paypal-icon">💳</span>
-        <span>Commercial License Payment</span>
-      </div>
-      <span class="paypal-toggle">▼</span>
-    </div>
-    <div class="paypal-content">
-      <div class="paypal-inner">
-        <div class="paypal-qr">
-          <img src="paypal.png" alt="PayPal QR Code" />
-        </div>
-        <div class="paypal-info">
-          <div class="price">USD $200</div>
-          <h4>Per-organization Commercial License</h4>
-          <p>One-time payment, perpetual license covering all employees and contractors within your organization.</p>
-          <div class="paypal-note">
-            <strong>⚠️ Important:</strong> Please include your <strong>organization name</strong> and <strong>email address</strong> in the payment note. 
-            The formal license file will be sent to your email within one week after payment confirmation.
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
 
 <hr class="divider" />
 
@@ -1374,6 +1389,187 @@ oxo-call dry-run samtools <span class="s">"sort input.bam by coordinate"</span><
 <hr class="divider" />
 
 <!-- ── Community & Feedback ────────────────────────────────────────────── -->
+<!-- ── Install ──────────────────────────────────────────────────────────── -->
+<section id="install">
+  <div class="section-label">// install</div>
+  <h2 class="section-title">Get started in 60 seconds</h2>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>Install from crates.io (recommended)</span>
+      <button class="copy-btn" data-copy="cargo install oxo-call">copy</button>
+    </div>
+    <pre><span class="c"># Install the latest release from crates.io</span>
+cargo install oxo-call</pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>Install from GitHub Releases (pre-built binaries)</span>
+      <button class="copy-btn" data-copy="curl -LO https://github.com/Traitome/oxo-call/releases/latest">copy</button>
+    </div>
+    <pre><span class="c"># Download pre-built binary (Linux x86_64 example)</span>
+curl -LO https://github.com/Traitome/oxo-call/releases/latest/download/oxo-call-<span class="s">VERSION</span>-x86_64-unknown-linux-gnu.tar.gz
+tar xzf oxo-call-*-x86_64-unknown-linux-gnu.tar.gz
+sudo mv oxo-call /usr/local/bin/
+
+<span class="c"># Available for: Linux (x86_64/aarch64), macOS (Intel/Apple Silicon), Windows, WASM</span></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>Install from source (git clone)</span>
+      <button class="copy-btn" data-copy="git clone https://github.com/Traitome/oxo-call && cd oxo-call && cargo install --path .">copy</button>
+    </div>
+    <pre><span class="c"># Clone and build from source (latest development version)</span>
+git clone https://github.com/Traitome/oxo-call
+cd oxo-call
+cargo install --path .</pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>Configure your LLM token</span>
+      <button class="copy-btn" data-copy="oxo-call config set llm.api_token YOUR_TOKEN">copy</button>
+    </div>
+    <pre><span class="c"># GitHub Copilot (default — free for Copilot subscribers)</span>
+oxo-call config set llm.api_token YOUR_GITHUB_TOKEN
+
+<span class="c"># OpenAI</span>
+oxo-call config set llm.provider openai
+oxo-call config set llm.api_token sk-...
+
+<span class="c"># Local Ollama (no token needed)</span>
+oxo-call config set llm.provider ollama
+oxo-call config set llm.model llama3.2</pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>Your first command</span>
+      <button class="copy-btn" data-copy='oxo-call dry-run samtools "sort input.bam by coordinate and output to sorted.bam"'>copy</button>
+    </div>
+    <pre><span class="c"># Preview — no execution</span>
+oxo-call dry-run samtools <span class="s">"sort input.bam by coordinate and output to sorted.bam"</span>
+
+<span class="c"># Execute immediately</span>
+oxo-call run bwa <span class="s">"align reads.fastq to reference.fa using 8 threads, output SAM"</span>
+
+<span class="c"># Confirm before running</span>
+oxo-call run --ask bcftools <span class="s">"call variants from my.bam against ref.fa"</span></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>Variable interpolation &amp; batch execution</span>
+      <button class="copy-btn" data-copy='oxo-call run --var SAMPLE=NA12878 samtools "index {SAMPLE}.bam"'>copy</button>
+    </div>
+    <pre><span class="c"># Variable substitution with --var</span>
+oxo-call run --var SAMPLE=NA12878 samtools <span class="s">"index {SAMPLE}.bam"</span>
+<span class="c"># → samtools index NA12878.bam</span>
+
+<span class="c"># Batch processing with {item} placeholder</span>
+oxo-call run samtools <span class="s">"flagstat {item}"</span> \
+    --input-items s1.bam,s2.bam,s3.bam --jobs 4
+
+<span class="c"># Process files from a list with path placeholders</span>
+<span class="c"># {stem} = filename without extension, {ext} = extension</span>
+oxo-call run samtools <span class="s">"sort {item} -o {stem}.sorted.{ext}"</span> \
+    --input-list bam_files.txt --jobs 8
+
+<span class="c"># Combine variables and batch input</span>
+oxo-call run bwa <span class="s">"mem -t {THREADS} {REF} {item} > {stem}.sam"</span> \
+    --var THREADS=16 --var REF=hg38.fa \
+    --input-list samples.txt --jobs 4</pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>WASI binary (requires wasmtime)</span>
+      <button class="copy-btn" data-copy="wasmtime oxo-call.wasm -- dry-run samtools &quot;sort input.bam by coordinate&quot;">copy</button>
+    </div>
+    <pre><span class="c"># Download the .wasm binary from the GitHub Releases page, then:</span>
+wasmtime oxo-call.wasm -- dry-run samtools <span class="s">"sort input.bam by coordinate"</span></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>Quick test license (copy & paste to get started)</span>
+      <button class="copy-btn" data-copy='{
+  "schema": "oxo-call-license-v1",
+  "license_id": "6548e181-e352-402a-ab72-4da51f49e7b5",
+  "issued_to_org": "Public Academic Test License (any academic user)",
+  "license_type": "academic",
+  "scope": "org",
+  "perpetual": true,
+  "issued_at": "2026-03-12",
+  "signature": "duKJcISYPdyZkw1PbyVil5zTjvLhAYsmbzRpH0n6eRYJET90p1b0rYiHO0cJ7IGR6NLEJWqkY1wBXUkfvUvECw=="
+}'>copy license JSON</button>
+    </div>
+    <pre><span class="c"># Step 1: Copy this JSON and save it as license.oxo.json</span>
+{
+  "schema": "oxo-call-license-v1",
+  "license_id": "6548e181-e352-402a-ab72-4da51f49e7b5",
+  "issued_to_org": "Public Academic Test License (any academic user)",
+  "license_type": "academic",
+  "scope": "org",
+  "perpetual": true,
+  "issued_at": "2026-03-12",
+  "signature": "duKJcISYPdyZkw1PbyVil5zTjvLhAYsmbzRpH0n6eRYJET90p1b0rYiHO0cJ7IGR6NLEJWqkY1wBXUkfvUvECw=="
+}
+
+<span class="c"># Step 2: Move the file to the config directory</span>
+<span class="c"># Linux:</span>
+mkdir -p ~/.config/oxo-call && mv license.oxo.json ~/.config/oxo-call/
+
+<span class="c"># macOS:</span>
+mkdir -p ~/Library/Application\ Support/io.traitome.oxo-call && mv license.oxo.json ~/Library/Application\ Support/io.traitome.oxo-call/
+
+<span class="c"># Windows (PowerShell):</span>
+New-Item -ItemType Directory -Force -Path $env:APPDATA\oxo-call; Move-Item license.oxo.json $env:APPDATA\oxo-call\
+
+<span class="c"># Step 3: Verify the license works</span>
+oxo-call license verify
+
+<span class="c"># Step 4: Try your first command</span>
+oxo-call dry-run samtools <span class="s">"sort input.bam by coordinate"</span></pre>
+  </div>
+
+  <p class="section-body">
+    <strong>Quick test license is for evaluation only.</strong> 
+    It lets you try oxo-call immediately without any setup.
+    For continued use, academic users should request a free formal license, 
+    and commercial users should contact <a href="mailto:w_shixiang@163.com">w_shixiang@163.com</a> 
+    to purchase a license (USD 200 per organization).
+  </p>
+
+  <!-- PayPal Payment Section -->
+  <div class="paypal-section" id="paypal-section">
+    <div class="paypal-header" onclick="togglePaypal()">
+      <div class="paypal-title">
+        <span class="paypal-icon">💳</span>
+        <span>Commercial License Payment</span>
+      </div>
+      <span class="paypal-toggle">▼</span>
+    </div>
+    <div class="paypal-content">
+      <div class="paypal-inner">
+        <div class="paypal-qr">
+          <img src="paypal.png" alt="PayPal QR Code" />
+        </div>
+        <div class="paypal-info">
+          <div class="price">USD $200</div>
+          <h4>Per-organization Commercial License</h4>
+          <p>One-time payment, perpetual license covering all employees and contractors within your organization.</p>
+          <div class="paypal-note">
+            <strong>⚠️ Important:</strong> Please include your <strong>organization name</strong> and <strong>email address</strong> in the payment note. 
+            The formal license file will be sent to your email within one week after payment confirmation.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 <section id="community">
   <div class="section-label">// community &amp; feedback</div>
   <div class="community-banner">
@@ -1460,6 +1656,39 @@ oxo-call dry-run samtools <span class="s">"sort input.bam by coordinate"</span><
         '               Redirect stdout to SAM output file.',
         '',
         '  $ bwa mem -t 16 hg38.fa R1.fastq R2.fastq > aligned.sam',
+        '',
+      ],
+    },
+    {
+      cmd:  'oxo-call run --var SAMPLE=NA12878 samtools "index {SAMPLE}.bam"',
+      out: [
+        '  ⠋ Fetching samtools documentation…',
+        '  ⠙ Loading built-in skill: samtools',
+        '  ✔ Skill loaded (v1.0)',
+        '  ⠸ Substituting {SAMPLE} → NA12878…',
+        '  ⠸ Asking LLM backend…',
+        '',
+        '  EXPLANATION: samtools index creates a .bai index file for fast',
+        '               random access. The .bam extension is preserved.',
+        '',
+        '  $ samtools index NA12878.bam',
+        '',
+      ],
+    },
+    {
+      cmd:  'oxo-call run samtools "flagstat {item}" --input-items s1.bam,s2.bam --jobs 2',
+      out: [
+        '  ⠋ Fetching samtools documentation…',
+        '  ⠙ Loading built-in skill: samtools',
+        '  ✔ Skill loaded (v1.0)',
+        '  ⠸ Querying LLM for command template…',
+        '',
+        '  Command template: samtools flagstat {item}',
+        '',
+        '  [1/2] $ samtools flagstat s1.bam',
+        '  ✔ success (exit 0)',
+        '  [2/2] $ samtools flagstat s2.bam',
+        '  ✔ success (exit 0)',
         '',
       ],
     },
@@ -1623,6 +1852,28 @@ oxo-call dry-run samtools <span class="s">"sort input.bam by coordinate"</span><
         { t: 'cmd',    s: '  $ seqkit stats -a sample.fastq.gz' },
       ],
     },
+    {
+      tool:  'samtools',
+      task:  'index {item} and output to {stem}.bai',
+      subcmd:'dry-run',
+      flags: '--input-items sample1.bam,sample2.bam --jobs 2',
+      steps: [
+        { t: 'output', s: '  ⠋ Fetching samtools documentation…' },
+        { t: 'output', s: '  ⠙ Loading built-in skill: samtools' },
+        { t: 'success',s: '  ✔ Skill loaded' },
+        { t: 'output', s: '  ⠸ Querying LLM for command template…' },
+        { t: 'blank',  s: '' },
+        { t: 'warn',   s: '  EXPLANATION: Template uses {item} for input, {stem} for base name.' },
+        { t: 'warn',   s: '               --jobs 2 runs up to 2 parallel indexing jobs.' },
+        { t: 'blank',  s: '' },
+        { t: 'success',s: '  Command template:' },
+        { t: 'cmd',    s: '  $ samtools index {item}' },
+        { t: 'blank',  s: '' },
+        { t: 'success',s: '  Expanded commands (2 jobs parallel):' },
+        { t: 'cmd',    s: '  [1/2] $ samtools index sample1.bam' },
+        { t: 'cmd',    s: '  [2/2] $ samtools index sample2.bam' },
+      ],
+    },
   ];
 
   const demoBody  = document.getElementById('demo-body');
@@ -1640,19 +1891,24 @@ oxo-call dry-run samtools <span class="s">"sort input.bam by coordinate"</span><
     if (running) return;
     running = true;
     const ex = examples[idx];
-    demoTitle.textContent = `oxo-call ${ex.subcmd} ${ex.tool}`;
+    demoTitle.textContent = ex.flags 
+      ? `oxo-call ${ex.subcmd} ${ex.tool} ${ex.flags}`
+      : `oxo-call ${ex.subcmd} ${ex.tool}`;
 
     demoBody.innerHTML = '';
 
     // Show the prompt line
     const promptLine = document.createElement('div');
     promptLine.className = 'term-line';
-    promptLine.innerHTML =
-      `<span class="prompt">$ </span>` +
+    let promptHtml = `<span class="prompt">$ </span>` +
       `<span class="tool">oxo-call</span>` +
-      ` <span class="flag">${ex.subcmd}</span>` +
-      ` <span class="tool">${escHtml(ex.tool)}</span>` +
+      ` <span class="flag">${ex.subcmd}</span>`;
+    if (ex.flags) {
+      promptHtml += ` <span class="flag">${escHtml(ex.flags)}</span>`;
+    }
+    promptHtml += ` <span class="tool">${escHtml(ex.tool)}</span>` +
       ` <span class="output">"${escHtml(ex.task)}"</span>`;
+    promptLine.innerHTML = promptHtml;
     demoBody.appendChild(promptLine);
 
     await sleep(400);
@@ -1834,6 +2090,146 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
       document.getElementById('bench-panel-' + tab.dataset.panel).classList.add('active');
     });
   });
+})();
+
+/* ─── Tools Grid Rotation ──────────────────────────────────────────────── */
+(function () {
+  const allTools = [
+    { name: 'samtools', desc: 'SAM/BAM/CRAM manipulation', icon: '🧬' },
+    { name: 'bwa', desc: 'Burrows-Wheeler short-read aligner', icon: '🎯' },
+    { name: 'bcftools', desc: 'VCF/BCF variant calling & filtering', icon: '🧪' },
+    { name: 'bedtools', desc: 'Genomic interval arithmetic', icon: '🛏️' },
+    { name: 'gatk', desc: 'Genome Analysis Toolkit', icon: '🔬' },
+    { name: 'minimap2', desc: 'Long-read / splice-aware aligner', icon: '📏' },
+    { name: 'fastp', desc: 'Adapter trimming & QC', icon: '✂️' },
+    { name: 'bowtie2', desc: 'Fast short-read aligner', icon: '🎀' },
+    { name: 'seqkit', desc: 'FASTA/Q toolkit', icon: '🧰' },
+    { name: 'star', desc: 'RNA-seq spliced aligner', icon: '⭐' },
+    { name: 'slurm', desc: 'HPC job scheduling (sbatch, srun)', icon: '⚡' },
+    { name: 'pbs', desc: 'PBS/Torque batch scheduler (qsub)', icon: '📋' },
+    { name: 'kubectl', desc: 'Kubernetes cluster management', icon: '☸️' },
+    { name: 'picard', desc: 'BAM manipulation & metrics', icon: '🎭' },
+    { name: 'hisat2', desc: 'Splice-aware RNA-seq aligner', icon: '🧵' },
+    { name: 'salmon', desc: 'Transcript quantification', icon: '🐟' },
+    { name: 'featureCounts', desc: 'Read summarization', icon: '🔢' },
+    { name: 'macs3', desc: 'Peak calling for ChIP-seq', icon: '🏔️' },
+    { name: 'deeptools', desc: 'NGS data visualization', icon: '📊' },
+    { name: 'multiqc', desc: 'Aggregate QC reports', icon: '📈' },
+    { name: 'trimmomatic', desc: 'Illumina adapter trimming', icon: '✂️' },
+    { name: 'kraken2', desc: 'Taxonomic classification', icon: '🐙' },
+    { name: 'blast', desc: 'Sequence similarity search', icon: '💥' },
+    { name: 'vcftools', desc: 'VCF manipulation & filtering', icon: '🧬' },
+    { name: 'plink', desc: 'GWAS & population genetics', icon: '🔗' },
+    { name: 'singularity', desc: 'Container runtime for HPC', icon: '📦' },
+    { name: 'docker', desc: 'Container platform', icon: '🐳' },
+    { name: 'conda', desc: 'Package & environment manager', icon: '🐍' },
+    { name: 'vcflib', desc: 'VCF processing toolkit', icon: '📚' },
+    { name: 'freebayes', desc: 'Bayesian variant caller', icon: '🎲' },
+    { name: 'ivar', desc: 'Viral amplicon-based sequencing', icon: '🦠' },
+    { name: 'lofreq', desc: 'Sensitive variant caller', icon: '🔍' },
+    { name: 'mosdepth', desc: 'Fast BAM/CRAM depth calculation', icon: '📐' },
+    { name: 'qualimap', desc: 'BAM QC analysis', icon: '✅' },
+    { name: 'rsem', desc: 'RNA-seq quantification', icon: '📊' },
+    { name: 'kallisto', desc: 'Pseudoalignment quantification', icon: '⚡' },
+    { name: 'stringtie', desc: 'Transcript assembly', icon: '🧵' },
+    { name: 'gffread', desc: 'GFF/GTF manipulation', icon: '📖' },
+    { name: 'bedops', desc: 'High-performance BED tools', icon: '🚀' },
+    { name: 'sra-toolkit', desc: 'NCBI SRA data download', icon: '⬇️' },
+    { name: 'parallel', desc: 'GNU parallel execution', icon: '⚡' },
+    { name: 'htop', desc: 'Interactive process viewer', icon: '📊' },
+    { name: 'lsf', desc: 'IBM LSF workload scheduler', icon: '🏢' },
+    { name: 'sge', desc: 'Sun Grid Engine', icon: '☀️' },
+    { name: 'htcondor', desc: 'High Throughput Computing', icon: '🦅' },
+  ];
+  
+  const grid = document.getElementById('tools-grid');
+  if (!grid) return;
+  
+  const cards = grid.querySelectorAll('.tool-card');
+  let visibleIndices = new Set(Array.from({length: cards.length}, (_, i) => i));
+  
+  // Random highlight effect
+  function randomHighlight() {
+    const idx = Math.floor(Math.random() * cards.length);
+    const card = cards[idx];
+    if (card && !card.matches(':hover')) {
+      card.style.transform = 'translateY(-8px) scale(1.03)';
+      card.style.borderColor = 'var(--accent2)';
+      card.style.boxShadow = '0 12px 30px rgba(63,185,80,0.25)';
+      
+      setTimeout(() => {
+        card.style.transform = '';
+        card.style.borderColor = '';
+        card.style.boxShadow = '';
+      }, 800);
+    }
+  }
+  
+  // Wave effect - sequentially highlight cards
+  function waveEffect() {
+    cards.forEach((card, i) => {
+      setTimeout(() => {
+        if (!card.matches(':hover')) {
+          card.style.borderColor = 'var(--accent)';
+          card.style.boxShadow = '0 0 20px rgba(88,166,255,0.3)';
+          
+          setTimeout(() => {
+            card.style.borderColor = '';
+            card.style.boxShadow = '';
+          }, 300);
+        }
+      }, i * 50);
+    });
+  }
+  
+  // Shuffle tools with 3D flip effect
+  function shuffleTools() {
+    const visible = Array.from(visibleIndices);
+    const hidden = allTools.map((_, i) => i).filter(i => !visibleIndices.has(i));
+    
+    if (hidden.length === 0) return;
+    
+    // Pick 1-3 cards to swap
+    const numToSwap = Math.floor(Math.random() * 3) + 1;
+    
+    for (let n = 0; n < numToSwap; n++) {
+      const outIdx = visible[Math.floor(Math.random() * visible.length)];
+      const inIdx = hidden[Math.floor(Math.random() * hidden.length)];
+      const card = cards[outIdx];
+      
+      if (card && !card.matches(':hover')) {
+        // 3D flip out
+        card.style.transform = 'rotateY(90deg) scale(0.8)';
+        card.style.opacity = '0';
+        
+        setTimeout(() => {
+          const iconEl = card.querySelector('.tool-icon');
+          const nameEl = card.querySelector('.tool-name');
+          const descEl = card.querySelector('.tool-desc');
+          
+          if (iconEl) iconEl.textContent = allTools[inIdx].icon;
+          if (nameEl) nameEl.textContent = allTools[inIdx].name;
+          if (descEl) descEl.textContent = allTools[inIdx].desc;
+          
+          // 3D flip in
+          card.style.transform = 'rotateY(-90deg) scale(0.8)';
+          
+          setTimeout(() => {
+            card.style.transform = '';
+            card.style.opacity = '';
+          }, 50);
+          
+          visibleIndices.delete(outIdx);
+          visibleIndices.add(inIdx);
+        }, 300);
+      }
+    }
+  }
+  
+  // Schedule effects
+  setInterval(randomHighlight, 2000);
+  setInterval(shuffleTools, 2000);
+  setInterval(waveEffect, 12000);
 })();
 
 /* ─── PayPal Toggle ────────────────────────────────────────────────────── */
