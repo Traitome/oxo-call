@@ -34,8 +34,44 @@ impl DocIndex {
             return Ok(Self::default());
         }
         let content = std::fs::read_to_string(&path)?;
-        let index: DocIndex = serde_json::from_str(&content)?;
-        Ok(index)
+
+        // Fast path: well-formed single JSON object (current format).
+        // Capture the error so it can be surfaced if all migration attempts fail.
+        let original_err = match serde_json::from_str::<DocIndex>(&content) {
+            Ok(index) => return Ok(index),
+            Err(e) => e,
+        };
+
+        // Migration path: legacy versions may have had a save bug that appended
+        // each new DocIndex to the file without overwriting, producing multiple
+        // concatenated JSON objects with no separator (e.g. `{...}{...}`).
+        // Stream through all valid DocIndex objects and take the last one, which
+        // has the most up-to-date state.  On success, rewrite the file in the
+        // current single-object format so future reads take the fast path.
+        let mut stream = serde_json::Deserializer::from_str(&content).into_iter::<DocIndex>();
+        let mut last: Option<DocIndex> = None;
+        for item in stream.by_ref() {
+            match item {
+                Ok(idx) => last = Some(idx),
+                Err(_) => break,
+            }
+        }
+        if let Some(idx) = last {
+            // Best-effort repair: rewrite in current format.
+            let _ = idx.save();
+            return Ok(idx);
+        }
+
+        // Last resort: try the legacy bare Vec<IndexEntry> format (plain JSON
+        // array without the DocIndex wrapper object).
+        if let Ok(entries) = serde_json::from_str::<Vec<IndexEntry>>(&content) {
+            let idx = DocIndex { entries };
+            let _ = idx.save();
+            return Ok(idx);
+        }
+
+        // File is genuinely unreadable – surface the original parse error.
+        Err(original_err.into())
     }
 
     pub fn save(&self) -> Result<()> {
@@ -477,5 +513,98 @@ mod tests {
         let json = serde_json::to_string(&entry).unwrap();
         let back: IndexEntry = serde_json::from_str(&json).unwrap();
         assert!(back.version.is_none());
+    }
+
+    // ─── Legacy format migration ──────────────────────────────────────────────
+
+    /// Simulate the v0.8.0 append-mode bug: each `save()` concatenated the new
+    /// JSON directly after the previous one with no separator.  The result is
+    /// multiple `DocIndex` JSON objects in the same file with no newline between
+    /// them, e.g. `{"entries":[...]}{"entries":[...]}`.
+    /// `DocIndex::load()` must recover the last (most recent) object.
+    #[test]
+    fn test_load_migrates_concatenated_objects_no_separator() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+
+        // Build two DocIndex "snapshots" as v0.8.0 would have written them.
+        let mut idx1 = DocIndex::default();
+        idx1.upsert(make_entry("git", 1000));
+        let snap1 = serde_json::to_string_pretty(&idx1).unwrap();
+
+        let mut idx2 = DocIndex::default();
+        idx2.upsert(make_entry("git", 1000));
+        idx2.upsert(make_entry("samtools", 2000));
+        let snap2 = serde_json::to_string_pretty(&idx2).unwrap();
+
+        // Write them concatenated without any separator – the exact byte layout
+        // that triggers "trailing characters at line 13 column 2".
+        let corrupt = format!("{snap1}{snap2}");
+        let index_path = tmp.path().join("index.json");
+        std::fs::write(&index_path, corrupt).unwrap();
+
+        let loaded = DocIndex::load().unwrap();
+        // Should have recovered the last (most-complete) snapshot.
+        assert_eq!(
+            loaded.entries.len(),
+            2,
+            "expected 2 entries from last snapshot"
+        );
+        assert!(loaded.get("git").is_some());
+        assert!(loaded.get("samtools").is_some());
+
+        // The file should now be repaired (single valid JSON object).
+        let repaired = std::fs::read_to_string(&index_path).unwrap();
+        let re_parsed: DocIndex = serde_json::from_str(&repaired).unwrap();
+        assert_eq!(re_parsed.entries.len(), 2);
+    }
+
+    /// Same as above but with a newline between the concatenated objects.
+    #[test]
+    fn test_load_migrates_concatenated_objects_with_newline() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+
+        let mut idx1 = DocIndex::default();
+        idx1.upsert(make_entry("bwa", 500));
+        let snap1 = serde_json::to_string_pretty(&idx1).unwrap();
+
+        let mut idx2 = DocIndex::default();
+        idx2.upsert(make_entry("bwa", 500));
+        idx2.upsert(make_entry("gatk", 8000));
+        let snap2 = serde_json::to_string_pretty(&idx2).unwrap();
+
+        let corrupt = format!("{snap1}\n{snap2}");
+        std::fs::write(tmp.path().join("index.json"), corrupt).unwrap();
+
+        let loaded = DocIndex::load().unwrap();
+        assert_eq!(loaded.entries.len(), 2);
+        assert!(loaded.get("gatk").is_some());
+    }
+
+    /// Legacy format: bare `Vec<IndexEntry>` JSON array without the DocIndex
+    /// wrapper object.
+    #[test]
+    fn test_load_migrates_bare_entries_array() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+
+        let entries = vec![make_entry("star", 3000), make_entry("hisat2", 4000)];
+        let legacy_json = serde_json::to_string_pretty(&entries).unwrap();
+        std::fs::write(tmp.path().join("index.json"), legacy_json).unwrap();
+
+        let loaded = DocIndex::load().unwrap();
+        assert_eq!(loaded.entries.len(), 2);
+        assert!(loaded.get("star").is_some());
+        assert!(loaded.get("hisat2").is_some());
     }
 }
