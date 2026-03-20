@@ -69,9 +69,7 @@ This downloads, compiles, and installs the latest published version. Requires [R
 For the latest development version or to contribute:
 
 ```bash
-git clone https://github.com/Traitome/oxo-call.git
-cd oxo-call
-cargo install --path .
+cargo install --git https://github.com/Traitome/oxo-call oxo-call
 ```
 
 To build a release-optimized binary:
