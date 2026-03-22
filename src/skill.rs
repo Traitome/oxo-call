@@ -520,6 +520,7 @@ pub static BUILTIN_SKILLS: &[(&str, &str)] = &[
     builtin!("snakemake"),
     // ── AI assistant platforms ────────────────────────────────────────────────
     builtin!("openclaw"),
+    builtin!("claude"),
     // ── QC tools ─────────────────────────────────────────────────────────────
     builtin!("qualimap"),
     builtin!("rseqc"),
