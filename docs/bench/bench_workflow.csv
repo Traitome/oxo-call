@@ -1,0 +1,8 @@
+workflow,expanded_tasks,parse_us,expand_us,cycle_free
+rnaseq,13,398.3,17.9,true
+wgs,13,446.8,22.6,true
+atacseq,11,408.1,20.0,true
+metagenomics,9,362.9,17.6,true
+chipseq,19,516.8,22.7,true
+scrnaseq,9,448.4,17.6,true
+longreads,11,391.0,19.3,true
