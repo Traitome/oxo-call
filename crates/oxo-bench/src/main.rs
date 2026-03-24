@@ -15,11 +15,11 @@ use oxo_bench::{
     bench::{
         llm::{ModelBenchConfig, canonical_eval_tasks},
         runner::{
-            self, ModelAggResult, OxoCallGenerator, TrialResult, aggregate_results, run_benchmark,
+            ModelAggResult, OxoCallGenerator, TrialResult, aggregate_results, run_benchmark,
             write_model_agg_csv, write_trials_csv,
         },
         scenario::{
-            self, Scenario, UsageDescription, generate_descriptions, generate_scenarios,
+            Scenario, UsageDescription, generate_descriptions, generate_scenarios,
             load_skills_from_dir, write_descriptions_csv, write_scenarios_csv,
         },
         workflow::bench_workflow_expand,
@@ -27,7 +27,7 @@ use oxo_bench::{
     config::BenchConfig,
     report::{
         print_model_summary, print_workflow_report, summarise_by_model, write_eval_tasks_csv,
-        write_scenarios_csv as write_sim_scenarios_csv, write_workflow_csv,
+        write_scenarios_csv as write_simulation_scenarios_csv, write_workflow_csv,
     },
     sim::omics::{canonical_scenarios, simulate_scenario},
 };
@@ -454,7 +454,7 @@ fn run(cli: Cli) -> anyhow::Result<()> {
             let scenarios = canonical_scenarios();
             {
                 let mut f = std::fs::File::create(&sc_csv_path)?;
-                write_sim_scenarios_csv(&mut f, &scenarios)?;
+                write_simulation_scenarios_csv(&mut f, &scenarios)?;
             }
             println!(
                 "{} {}  ({} scenarios)",
@@ -809,19 +809,37 @@ fn cmd_summary(results_dir: &std::path::Path) -> anyhow::Result<()> {
 
 /// Try to find oxo-call in PATH or target/release or target/debug.
 fn which_oxo_call() -> Option<String> {
-    // Check PATH.
-    if let Ok(path) = std::process::Command::new("which").arg("oxo-call").output()
+    // Check PATH using the platform-appropriate lookup command.
+    let lookup_cmd = if cfg!(target_os = "windows") {
+        "where"
+    } else {
+        "which"
+    };
+    if let Ok(path) = std::process::Command::new(lookup_cmd)
+        .arg("oxo-call")
+        .output()
         && path.status.success()
     {
-        let p = String::from_utf8_lossy(&path.stdout).trim().to_string();
+        let p = String::from_utf8_lossy(&path.stdout)
+            .lines()
+            .next()
+            .unwrap_or("")
+            .trim()
+            .to_string();
         if !p.is_empty() {
             return Some(p);
         }
     }
     // Check local build directories.
-    for candidate in &["target/release/oxo-call", "target/debug/oxo-call"] {
-        if std::path::Path::new(candidate).exists() {
-            return Some(candidate.to_string());
+    let ext = if cfg!(target_os = "windows") {
+        ".exe"
+    } else {
+        ""
+    };
+    for prefix in &["target/release/oxo-call", "target/debug/oxo-call"] {
+        let candidate = format!("{prefix}{ext}");
+        if std::path::Path::new(&candidate).exists() {
+            return Some(candidate);
         }
     }
     None
@@ -968,9 +986,3 @@ fn parse_csv_line(line: &str) -> Vec<String> {
     fields.push(current);
     fields
 }
-
-// Suppress unused import warnings for re-exported items used by the new commands.
-#[allow(unused_imports)]
-use runner as _runner_import;
-#[allow(unused_imports)]
-use scenario as _scenario_import;

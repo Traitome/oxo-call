@@ -225,8 +225,15 @@ pub fn load_skills_from_dir(dir: &Path) -> anyhow::Result<Vec<SkillFile>> {
         let content = std::fs::read_to_string(entry.path())?;
         match parse_skill_file(&content) {
             Ok(skill) if !skill.examples.is_empty() => skills.push(skill),
-            Ok(_) => {}  // skip skills with no examples
-            Err(_) => {} // skip unparseable files
+            Ok(_) => {
+                eprintln!(
+                    "  warning: {} has no examples, skipping",
+                    entry.path().display()
+                );
+            }
+            Err(e) => {
+                eprintln!("  warning: failed to parse {}: {e}", entry.path().display());
+            }
         }
     }
     Ok(skills)
@@ -274,23 +281,38 @@ pub fn generate_scenarios(skill: &SkillFile) -> Vec<Scenario> {
     scenarios
 }
 
+/// Synthetic variant types used to pad scenarios to [`SCENARIOS_PER_TOOL`].
+const VARIANT_VERBOSE: usize = 0;
+const VARIANT_THREADS: usize = 1;
+const VARIANT_OUTPUT: usize = 2;
+const VARIANT_QUIET: usize = 3;
+const VARIANT_DEFAULT: usize = 4;
+const NUM_VARIANT_TYPES: usize = 5;
+
 /// Create a synthetic variant of a scenario by adding/changing common flags.
 fn synthesise_variant(skill: &SkillFile, base: &Scenario, idx: usize) -> Scenario {
-    let suffix = match idx % 5 {
-        0 => " with verbose output",
-        1 => " using multiple threads",
-        2 => " and write output to a file",
-        3 => " in quiet mode",
-        _ => " with default parameters",
+    let variant_type = idx % NUM_VARIANT_TYPES;
+
+    let suffix = match variant_type {
+        VARIANT_VERBOSE => " with verbose output",
+        VARIANT_THREADS => " using multiple threads",
+        VARIANT_OUTPUT => " and write output to a file",
+        VARIANT_QUIET => " in quiet mode",
+        VARIANT_DEFAULT => " with default parameters",
+        _ => "",
     };
 
-    let args_suffix = match idx % 5 {
-        0 => " --verbose",
-        1 if base.reference_args.contains("-t") || base.reference_args.contains("-@") => "",
-        1 => " -t 4",
-        2 if base.reference_args.contains("-o") => "",
-        2 => " -o output.txt",
-        3 => " --quiet",
+    let args_suffix = match variant_type {
+        VARIANT_VERBOSE => " --verbose",
+        VARIANT_THREADS
+            if base.reference_args.contains("-t") || base.reference_args.contains("-@") =>
+        {
+            ""
+        }
+        VARIANT_THREADS => " -t 4",
+        VARIANT_OUTPUT if base.reference_args.contains("-o") => "",
+        VARIANT_OUTPUT => " -o output.txt",
+        VARIANT_QUIET => " --quiet",
         _ => "",
     };
 

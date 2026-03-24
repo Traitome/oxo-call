@@ -144,7 +144,8 @@ fn parse_dry_run_json(json_str: &str) -> GeneratedCommand {
             .unwrap_or("")
             .to_string();
 
-        let tokens = json_str.split_whitespace().count();
+        // Estimate token count from the generated args (not the full JSON envelope).
+        let tokens = args.split_whitespace().count();
 
         GeneratedCommand {
             args,

@@ -50,6 +50,9 @@ pub fn compare_commands(generated: &str, reference: &str) -> CompareResult {
     let subcommand_match = !ref_sub.is_empty() && gen_sub == ref_sub;
 
     // Token sets for Jaccard / precision / recall.
+    // Edge case: when both sets are empty (both args are empty), we treat that
+    // as a perfect match (Jaccard = 1.0) because the generator correctly
+    // produced no flags when none were expected.
     let gen_set: std::collections::HashSet<&str> = gen_tokens.iter().map(|s| s.as_str()).collect();
     let ref_set: std::collections::HashSet<&str> = ref_tokens.iter().map(|s| s.as_str()).collect();
 
