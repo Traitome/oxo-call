@@ -16,7 +16,7 @@ use oxo_bench::{
         llm::{ModelBenchConfig, canonical_eval_tasks},
         runner::{
             ModelAggResult, OxoCallGenerator, TrialResult, aggregate_results, run_benchmark,
-            write_model_agg_csv, write_trials_csv,
+            run_mock_benchmark, write_model_agg_csv, write_trials_csv,
         },
         scenario::{
             Scenario, UsageDescription, generate_descriptions, generate_scenarios,
@@ -179,6 +179,11 @@ enum Commands {
         /// Override repeat count from config
         #[arg(long)]
         repeats: Option<usize>,
+        /// Use mock generator instead of real oxo-call (for offline testing).
+        /// Produces deterministic results with model-specific perturbation
+        /// rates so that different models show different accuracy levels.
+        #[arg(long)]
+        mock: bool,
     },
 
     /// Print cross-model comparison summary from benchmark results
@@ -500,6 +505,7 @@ fn run(cli: Cli) -> anyhow::Result<()> {
             oxo_call,
             tools,
             repeats,
+            mock,
         } => {
             cmd_eval(
                 &config,
@@ -508,6 +514,7 @@ fn run(cli: Cli) -> anyhow::Result<()> {
                 oxo_call,
                 tools.as_deref(),
                 repeats,
+                mock,
             )?;
         }
 
@@ -623,6 +630,7 @@ fn cmd_eval(
     oxo_call_path: Option<String>,
     tools_filter: Option<&str>,
     repeats_override: Option<usize>,
+    mock: bool,
 ) -> anyhow::Result<()> {
     // Load or generate config.
     let config = if config_path.exists() {
@@ -667,70 +675,106 @@ fn cmd_eval(
 
     std::fs::create_dir_all(output_dir)?;
 
-    // Detect oxo-call binary.
-    let binary = oxo_call_path
-        .or_else(which_oxo_call)
-        .unwrap_or_else(|| "oxo-call".to_string());
-
-    println!(
-        "{} Using oxo-call binary: {}",
-        "→".cyan().bold(),
-        binary.cyan()
-    );
-
     let mut all_trials: Vec<TrialResult> = Vec::new();
 
-    if config.benchmark.parallel && config.models.len() > 1 {
-        // Parallel model evaluation using scoped threads.
+    if mock {
+        // ── Mock evaluation mode ──────────────────────────────────────────
         println!(
-            "{} Evaluating {} models in parallel ({} repeats each)...",
+            "{} Mock evaluation: {} models × {} repeats × {} descriptions",
             "→".cyan().bold(),
             config.models.len(),
             repeats,
+            descriptions.len()
+        );
+        println!(
+            "{}",
+            "  Using deterministic perturbation (no API calls required).".dimmed()
         );
 
-        let results: Vec<Vec<TrialResult>> = std::thread::scope(|scope| {
-            let handles: Vec<_> = config
-                .models
-                .iter()
-                .map(|model_entry| {
-                    let binary = binary.clone();
-                    let descriptions = &descriptions;
-                    let scenarios = &scenarios;
-                    scope.spawn(move || {
-                        let gtor = OxoCallGenerator {
-                            binary_path: binary,
-                        };
-                        run_benchmark(&model_entry.name, repeats, descriptions, scenarios, &gtor)
-                    })
-                })
-                .collect();
-
-            handles.into_iter().map(|h| h.join().unwrap()).collect()
-        });
-
-        for model_trials in results {
-            all_trials.extend(model_trials);
-        }
-    } else {
-        // Serial model evaluation.
         for (i, model_entry) in config.models.iter().enumerate() {
             println!(
-                "[{}/{}] {} Evaluating {} ({} repeats × {} descriptions)...",
+                "[{}/{}] {} Evaluating {} (mock)...",
                 i + 1,
                 config.models.len(),
                 "→".cyan().bold(),
                 model_entry.name.cyan(),
+            );
+            let trials = run_mock_benchmark(&model_entry.name, repeats, &descriptions, &scenarios);
+            println!(
+                "      {} {} trials recorded",
+                "✓".green().bold(),
+                trials.len()
+            );
+            all_trials.extend(trials);
+        }
+    } else {
+        // ── Real evaluation mode ──────────────────────────────────────────
+        let binary = oxo_call_path
+            .or_else(which_oxo_call)
+            .unwrap_or_else(|| "oxo-call".to_string());
+
+        println!(
+            "{} Using oxo-call binary: {}",
+            "→".cyan().bold(),
+            binary.cyan()
+        );
+
+        if config.benchmark.parallel && config.models.len() > 1 {
+            println!(
+                "{} Evaluating {} models in parallel ({} repeats each)...",
+                "→".cyan().bold(),
+                config.models.len(),
                 repeats,
-                descriptions.len(),
             );
 
-            let gtor = OxoCallGenerator {
-                binary_path: binary.clone(),
-            };
-            let trials =
-                run_benchmark(&model_entry.name, repeats, &descriptions, &scenarios, &gtor);
-            all_trials.extend(trials);
+            let results: Vec<Vec<TrialResult>> = std::thread::scope(|scope| {
+                let handles: Vec<_> = config
+                    .models
+                    .iter()
+                    .map(|model_entry| {
+                        let binary = binary.clone();
+                        let descriptions = &descriptions;
+                        let scenarios = &scenarios;
+                        scope.spawn(move || {
+                            let gtor = OxoCallGenerator {
+                                binary_path: binary,
+                            };
+                            run_benchmark(
+                                &model_entry.name,
+                                repeats,
+                                descriptions,
+                                scenarios,
+                                &gtor,
+                            )
+                        })
+                    })
+                    .collect();
+
+                handles.into_iter().map(|h| h.join().unwrap()).collect()
+            });
+
+            for model_trials in results {
+                all_trials.extend(model_trials);
+            }
+        } else {
+            for (i, model_entry) in config.models.iter().enumerate() {
+                println!(
+                    "[{}/{}] {} Evaluating {} ({} repeats × {} descriptions)...",
+                    i + 1,
+                    config.models.len(),
+                    "→".cyan().bold(),
+                    model_entry.name.cyan(),
+                    repeats,
+                    descriptions.len(),
+                );
+
+                let gtor = OxoCallGenerator {
+                    binary_path: binary.clone(),
+                };
+                let trials =
+                    run_benchmark(&model_entry.name, repeats, &descriptions, &scenarios, &gtor);
+                all_trials.extend(trials);
+            }
         }
     }
 

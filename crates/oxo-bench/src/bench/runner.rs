@@ -102,6 +102,166 @@ impl CommandGenerator for FixedGenerator {
     }
 }
 
+/// Run a mock benchmark with deterministic perturbation.
+///
+/// Directly looks up reference args per description, then applies
+/// model-specific perturbation to simulate realistic LLM behaviour.
+///
+/// The perturbation strategy varies by model name to produce meaningful
+/// cross-model differences:
+///
+/// - Model names containing "gpt-4o-mini" → ~15% perturbation
+/// - Model names containing "gpt-4o" (but not "mini") → ~5% perturbation
+/// - Model names containing "claude" → ~10% perturbation
+/// - Others → ~2% perturbation
+pub fn run_mock_benchmark(
+    model: &str,
+    repeats: usize,
+    descriptions: &[UsageDescription],
+    scenarios: &[Scenario],
+) -> Vec<TrialResult> {
+    let scenario_map: std::collections::HashMap<&str, &Scenario> = scenarios
+        .iter()
+        .map(|s| (s.scenario_id.as_str(), s))
+        .collect();
+
+    let mut results = Vec::new();
+
+    // Seed the perturbation from the model name for reproducibility.
+    let perturbation_rate = if model.contains("gpt-4o-mini") {
+        0.15
+    } else if model.contains("gpt-4o") {
+        0.05
+    } else if model.contains("claude") {
+        0.10
+    } else {
+        0.02
+    };
+
+    for desc in descriptions {
+        let scenario = match scenario_map.get(desc.scenario_id.as_str()) {
+            Some(s) => s,
+            None => continue,
+        };
+
+        for repeat in 0..repeats {
+            let start = Instant::now();
+
+            // Apply deterministic perturbation based on hash of inputs.
+            let generated_args = perturb_args(
+                &scenario.reference_args,
+                model,
+                &desc.desc_id,
+                repeat,
+                perturbation_rate,
+            );
+
+            let latency_ms = start.elapsed().as_secs_f64() * 1000.0;
+            let tokens = generated_args.split_whitespace().count();
+
+            let cmp = compare_commands(&generated_args, &scenario.reference_args);
+            let (fg_recall, fg_precision) =
+                compare_flag_groups(&generated_args, &scenario.reference_args);
+
+            results.push(TrialResult {
+                tool: desc.tool.clone(),
+                scenario_id: desc.scenario_id.clone(),
+                desc_id: desc.desc_id.clone(),
+                model: model.to_string(),
+                repeat_idx: repeat,
+                generated_args,
+                reference_args: scenario.reference_args.clone(),
+                exact_match: cmp.exact_match,
+                token_jaccard: cmp.token_jaccard,
+                flag_recall: cmp.flag_recall,
+                flag_precision: cmp.flag_precision,
+                flag_group_recall: fg_recall,
+                flag_group_precision: fg_precision,
+                subcommand_match: cmp.subcommand_match,
+                accuracy_score: cmp.accuracy_score(),
+                latency_ms,
+                tokens,
+                format_valid: true,
+            });
+        }
+    }
+
+    results
+}
+
+/// Apply deterministic perturbation to reference args.
+///
+/// Uses a simple hash of the inputs to decide whether to drop, reorder, or
+/// replace a flag — producing consistent results across runs.
+fn perturb_args(
+    reference_args: &str,
+    model: &str,
+    desc_id: &str,
+    repeat: usize,
+    perturbation_rate: f64,
+) -> String {
+    let tokens: Vec<&str> = reference_args.split_whitespace().collect();
+    if tokens.is_empty() {
+        return String::new();
+    }
+
+    // Compute a deterministic hash to decide perturbation.
+    let hash_input = format!("{model}:{desc_id}:{repeat}");
+    let hash = simple_hash(&hash_input);
+
+    // Decide whether to perturb this trial at all.
+    let frac = (hash % 1000) as f64 / 1000.0;
+    if frac >= perturbation_rate {
+        // No perturbation — return exact reference.
+        return reference_args.to_string();
+    }
+
+    // Apply one perturbation based on hash.
+    let perturbation_type = hash % 4;
+    let mut result_tokens: Vec<String> = tokens.iter().map(|&s| s.to_string()).collect();
+
+    match perturbation_type {
+        0 => {
+            // Drop a non-first token (simulate missing flag).
+            if result_tokens.len() > 2 {
+                let idx = 1 + (hash / 7) as usize % (result_tokens.len() - 1);
+                result_tokens.remove(idx);
+            }
+        }
+        1 => {
+            // Swap two adjacent tokens (simulate flag reordering).
+            if result_tokens.len() > 2 {
+                let idx = 1 + (hash / 11) as usize % (result_tokens.len() - 2);
+                result_tokens.swap(idx, idx + 1);
+            }
+        }
+        2 => {
+            // Add an extra flag (simulate hallucination).
+            result_tokens.push("--extra-flag".to_string());
+        }
+        _ => {
+            // Replace a file path with a different name.
+            if result_tokens.len() > 1 {
+                let idx = 1 + (hash / 13) as usize % (result_tokens.len() - 1);
+                if !result_tokens[idx].starts_with('-') {
+                    result_tokens[idx] = "other_file.bam".to_string();
+                }
+            }
+        }
+    }
+
+    result_tokens.join(" ")
+}
+
+/// Simple deterministic hash for perturbation decisions.
+fn simple_hash(input: &str) -> u64 {
+    let mut h: u64 = 5381;
+    for byte in input.bytes() {
+        h = h.wrapping_mul(33).wrapping_add(byte as u64);
+    }
+    h
+}
+
 /// Generator that calls `oxo-call dry-run --json` as a subprocess.
 pub struct OxoCallGenerator {
     pub binary_path: String,
@@ -581,5 +741,53 @@ mod tests {
         let resp = parse_dry_run_json("not json");
         assert!(!resp.format_valid);
         assert!(resp.args.is_empty());
+    }
+
+    #[test]
+    fn test_run_mock_benchmark() {
+        let trials = run_mock_benchmark(
+            "gpt-4o-mini",
+            2,
+            &sample_descriptions(),
+            &sample_scenarios(),
+        );
+        // 2 descriptions × 2 repeats = 4 trials.
+        assert_eq!(trials.len(), 4);
+        // All should have format_valid = true (mock always succeeds).
+        assert!(trials.iter().all(|t| t.format_valid));
+        // All should have non-empty reference_args.
+        assert!(trials.iter().all(|t| !t.reference_args.is_empty()));
+    }
+
+    #[test]
+    fn test_mock_benchmark_different_models_different_accuracy() {
+        let descs = sample_descriptions();
+        let scenarios = sample_scenarios();
+
+        // Run with many repeats to expose probabilistic differences.
+        let trials_strong = run_mock_benchmark("gpt-4o", 10, &descs, &scenarios);
+        let trials_weak = run_mock_benchmark("gpt-4o-mini", 10, &descs, &scenarios);
+
+        let exact_strong = trials_strong.iter().filter(|t| t.exact_match).count();
+        let exact_weak = trials_weak.iter().filter(|t| t.exact_match).count();
+
+        // gpt-4o has lower perturbation rate → more exact matches.
+        assert!(
+            exact_strong >= exact_weak,
+            "strong model ({exact_strong}) should have >= exact matches than weak ({exact_weak})"
+        );
+    }
+
+    #[test]
+    fn test_perturb_args_deterministic() {
+        let a = perturb_args("sort -@ 4 -o out.bam in.bam", "model", "d01", 0, 0.5);
+        let b = perturb_args("sort -@ 4 -o out.bam in.bam", "model", "d01", 0, 0.5);
+        assert_eq!(a, b, "same inputs should produce same perturbation");
+    }
+
+    #[test]
+    fn test_perturb_args_zero_rate() {
+        let result = perturb_args("sort -@ 4 -o out.bam in.bam", "model", "d01", 0, 0.0);
+        assert_eq!(result, "sort -@ 4 -o out.bam in.bam");
     }
 }

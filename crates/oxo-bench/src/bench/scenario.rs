@@ -401,18 +401,16 @@ fn lowercase_first_char(s: &str) -> String {
 
 /// Expert-level terse description: remove articles and filler words.
 fn make_terse(task: &str) -> String {
-    let stopwords = [
-        "a ", "an ", "the ", "for ", "with ", "and ", "in ", "to ", "from ", "using ", "into ",
-    ];
-    let mut result = task.to_string();
-    for sw in &stopwords {
-        result = result.replace(sw, "");
-    }
-    // Collapse multiple spaces.
-    while result.contains("  ") {
-        result = result.replace("  ", " ");
-    }
-    result.trim().to_string()
+    let stopwords: std::collections::HashSet<&str> = [
+        "a", "an", "the", "for", "with", "and", "in", "to", "from", "using", "into",
+    ]
+    .into_iter()
+    .collect();
+    let result: Vec<&str> = task
+        .split_whitespace()
+        .filter(|w| !stopwords.contains(&w.to_lowercase().as_str()))
+        .collect();
+    result.join(" ")
 }
 
 /// Detailed description: adds explanatory context from the reference args.

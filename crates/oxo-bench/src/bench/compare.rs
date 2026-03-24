@@ -70,7 +70,8 @@ pub fn compare_commands(generated: &str, reference: &str) -> CompareResult {
         intersection / ref_set.len() as f64
     };
     let flag_precision = if gen_set.is_empty() {
-        0.0
+        // Both empty → perfect match (vacuous truth); only gen empty → 0.
+        if ref_set.is_empty() { 1.0 } else { 0.0 }
     } else {
         intersection / gen_set.len() as f64
     };
@@ -135,7 +136,7 @@ pub fn compare_flag_groups(generated: &str, reference: &str) -> (f64, f64) {
         intersection / ref_set.len() as f64
     };
     let precision = if gen_set.is_empty() {
-        0.0
+        if ref_set.is_empty() { 1.0 } else { 0.0 }
     } else {
         intersection / gen_set.len() as f64
     };
