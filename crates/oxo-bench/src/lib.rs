@@ -9,22 +9,40 @@
 //!    performance of core oxo-call operations (workflow parsing, LLM command
 //!    generation, etc.).
 //!
-//! 3. **Report generation** (`report`) — aggregate results into human-readable
-//!    and machine-readable formats (JSON, Markdown).
+//! 3. **Scenario & description generation** (`bench::scenario`) — parse built-in
+//!    skill files and produce reference commands (10 per tool) plus diverse
+//!    English usage descriptions (10 per scenario) for LLM evaluation.
+//!
+//! 4. **Command comparison** (`bench::compare`) — flag-order-aware comparison of
+//!    generated vs. reference commands with multiple accuracy metrics.
+//!
+//! 5. **Multi-model benchmark runner** (`bench::runner`) — evaluate one or more
+//!    LLM models by calling `oxo-call dry-run` and measuring accuracy,
+//!    consistency, latency, and token counts.
+//!
+//! 6. **Configuration** (`config`) — TOML-based multi-model benchmark config
+//!    supporting serial/parallel execution and configurable repeat counts.
+//!
+//! 7. **Report generation** (`report`) — aggregate results into human-readable
+//!    and machine-readable formats (JSON, Markdown, CSV).
 //!
 //! # Quick start
 //!
 //! ```bash
+//! # Generate reference commands and usage descriptions from skill files
+//! oxo-bench generate --skills-dir skills/ --output bench_data/
+//!
+//! # Run LLM model evaluation with a config file
+//! oxo-bench eval --config bench_config.toml
+//!
+//! # View cross-model comparison summary
+//! oxo-bench summary --results-dir bench_results/
+//!
 //! # Run all criterion micro-benchmarks
 //! cargo bench --package oxo-bench
-//!
-//! # Run the LLM model evaluation CLI
-//! oxo-bench eval-models --models gpt-4o-mini,gpt-4o-nano --tasks 50
-//!
-//! # Simulate 100 paired-end RNA-seq samples and measure command generation
-//! oxo-bench sim-rnaseq --samples 100 --output /tmp/bench_rnaseq
 //! ```
 
 pub mod bench;
+pub mod config;
 pub mod report;
 pub mod sim;

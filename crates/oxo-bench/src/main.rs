@@ -5,17 +5,29 @@
 //!   oxo-bench simulate         # Simulate omics data for testing
 //!   oxo-bench eval-models      # Evaluate LLM models (requires API token)
 //!   oxo-bench report <json>    # Render a saved JSON report to Markdown
+//!   oxo-bench generate         # Generate reference commands & usage descriptions
+//!   oxo-bench eval             # Run full benchmark evaluation across models
+//!   oxo-bench summary          # Print cross-model comparison summary
 
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use oxo_bench::{
     bench::{
         llm::{ModelBenchConfig, canonical_eval_tasks},
+        runner::{
+            self, ModelAggResult, OxoCallGenerator, TrialResult, aggregate_results, run_benchmark,
+            write_model_agg_csv, write_trials_csv,
+        },
+        scenario::{
+            self, Scenario, UsageDescription, generate_descriptions, generate_scenarios,
+            load_skills_from_dir, write_descriptions_csv, write_scenarios_csv,
+        },
         workflow::bench_workflow_expand,
     },
+    config::BenchConfig,
     report::{
         print_model_summary, print_workflow_report, summarise_by_model, write_eval_tasks_csv,
-        write_scenarios_csv, write_workflow_csv,
+        write_scenarios_csv as write_sim_scenarios_csv, write_workflow_csv,
     },
     sim::omics::{canonical_scenarios, simulate_scenario},
 };
@@ -29,6 +41,15 @@ use std::path::PathBuf;
     long_about = r#"oxo-bench provides a rigorous, reproducible evaluation framework for oxo-call.
 
 Quick start:
+  # Generate reference commands and usage descriptions from skill files
+  oxo-bench generate --skills-dir skills/ --output bench_data/
+
+  # Run full benchmark evaluation with multiple models
+  oxo-bench eval --config bench_config.toml
+
+  # View cross-model comparison summary
+  oxo-bench summary --results-dir bench_results/
+
   # Benchmark workflow parsing and expansion performance
   oxo-bench workflow
 
@@ -37,9 +58,6 @@ Quick start:
 
   # Show the evaluation task suite (used for LLM model benchmarks)
   oxo-bench eval-models --list
-
-  # Run LLM model evaluation (requires OXO_CALL_API_TOKEN env var)
-  oxo-bench eval-models --model gpt-4o-mini --repeats 5
 "#
 )]
 struct Cli {
@@ -109,6 +127,73 @@ enum Commands {
         /// Number of benchmark runs to average for workflow timings (default: 200)
         #[arg(short, long, default_value = "200")]
         runs: usize,
+    },
+
+    // ── New commands ─────────────────────────────────────────────────────────
+    /// Generate reference command scenarios and usage descriptions from skill files
+    ///
+    /// Parses all built-in skill documentation (skills/*.md), extracts or
+    /// synthesises 10 usage scenarios per tool, then generates 10 diverse
+    /// English descriptions per scenario (simulating users of different
+    /// experience levels).
+    ///
+    /// Outputs two CSV files:
+    ///   reference_commands.csv  — 10 scenarios × N tools
+    ///   usage_descriptions.csv  — 100 descriptions × N tools
+    Generate {
+        /// Path to the skills directory
+        #[arg(long, default_value = "skills")]
+        skills_dir: PathBuf,
+        /// Output directory for CSVs
+        #[arg(short, long, default_value = "bench_data")]
+        output: PathBuf,
+        /// Limit to specific tools (comma-separated, e.g. "samtools,bwa,fastp")
+        #[arg(long)]
+        tools: Option<String>,
+    },
+
+    /// Run full benchmark evaluation across one or more LLM models
+    ///
+    /// Reads reference_commands.csv and usage_descriptions.csv (from the
+    /// `generate` step), calls `oxo-call dry-run --json` for each description,
+    /// and compares the generated command with the reference.
+    ///
+    /// Supports multiple models via a TOML configuration file.  Each model
+    /// can be evaluated in serial or parallel, with configurable repeat counts.
+    Eval {
+        /// Path to benchmark config TOML (generates default if missing)
+        #[arg(short, long, default_value = "bench_config.toml")]
+        config: PathBuf,
+        /// Directory containing reference_commands.csv and usage_descriptions.csv
+        #[arg(long, default_value = "bench_data")]
+        data_dir: PathBuf,
+        /// Output directory for result CSVs
+        #[arg(short, long, default_value = "bench_results")]
+        output: PathBuf,
+        /// Path to the oxo-call binary (default: auto-detect)
+        #[arg(long)]
+        oxo_call: Option<String>,
+        /// Limit to specific tools (comma-separated)
+        #[arg(long)]
+        tools: Option<String>,
+        /// Override repeat count from config
+        #[arg(long)]
+        repeats: Option<usize>,
+    },
+
+    /// Print cross-model comparison summary from benchmark results
+    Summary {
+        /// Directory containing benchmark result CSVs
+        #[arg(short, long, default_value = "bench_results")]
+        results_dir: PathBuf,
+    },
+
+    /// Generate a default benchmark configuration file
+    #[command(name = "init-config")]
+    InitConfig {
+        /// Path to write the config file
+        #[arg(short, long, default_value = "bench_config.toml")]
+        output: PathBuf,
     },
 }
 
@@ -369,7 +454,7 @@ fn run(cli: Cli) -> anyhow::Result<()> {
             let scenarios = canonical_scenarios();
             {
                 let mut f = std::fs::File::create(&sc_csv_path)?;
-                write_scenarios_csv(&mut f, &scenarios)?;
+                write_sim_scenarios_csv(&mut f, &scenarios)?;
             }
             println!(
                 "{} {}  ({} scenarios)",
@@ -398,7 +483,494 @@ fn run(cli: Cli) -> anyhow::Result<()> {
                 output.display().to_string().cyan()
             );
         }
+
+        // ── New commands ─────────────────────────────────────────────────────
+        Commands::Generate {
+            skills_dir,
+            output,
+            tools,
+        } => {
+            cmd_generate(&skills_dir, &output, tools.as_deref())?;
+        }
+
+        Commands::Eval {
+            config,
+            data_dir,
+            output,
+            oxo_call,
+            tools,
+            repeats,
+        } => {
+            cmd_eval(
+                &config,
+                &data_dir,
+                &output,
+                oxo_call,
+                tools.as_deref(),
+                repeats,
+            )?;
+        }
+
+        Commands::Summary { results_dir } => {
+            cmd_summary(&results_dir)?;
+        }
+
+        Commands::InitConfig { output } => {
+            BenchConfig::write_default(&output)?;
+            println!(
+                "{} Default config written to {}",
+                "✓".green().bold(),
+                output.display().to_string().cyan()
+            );
+        }
     }
 
     Ok(())
 }
+
+// ── Generate command ─────────────────────────────────────────────────────────
+
+fn cmd_generate(
+    skills_dir: &std::path::Path,
+    output_dir: &std::path::Path,
+    tools_filter: Option<&str>,
+) -> anyhow::Result<()> {
+    if !skills_dir.exists() {
+        anyhow::bail!(
+            "Skills directory not found: {}\n\
+             Hint: run from the repository root or use --skills-dir to specify the path.",
+            skills_dir.display()
+        );
+    }
+
+    std::fs::create_dir_all(output_dir)?;
+
+    println!(
+        "{} Loading skills from {} ...",
+        "→".cyan().bold(),
+        skills_dir.display().to_string().cyan()
+    );
+
+    let mut skills = load_skills_from_dir(skills_dir)?;
+
+    // Apply tool filter if specified.
+    if let Some(filter) = tools_filter {
+        let allowed: std::collections::HashSet<&str> = filter.split(',').collect();
+        skills.retain(|s| allowed.contains(s.name.as_str()));
+    }
+
+    println!(
+        "  {} skill files loaded ({} with examples)",
+        skills.len(),
+        skills.iter().filter(|s| !s.examples.is_empty()).count()
+    );
+
+    // ── Generate scenarios ────────────────────────────────────────────────
+    let mut all_scenarios: Vec<Scenario> = Vec::new();
+    for skill in &skills {
+        let scenarios = generate_scenarios(skill);
+        all_scenarios.extend(scenarios);
+    }
+
+    let ref_csv_path = output_dir.join("reference_commands.csv");
+    {
+        let mut f = std::fs::File::create(&ref_csv_path)?;
+        write_scenarios_csv(&mut f, &all_scenarios)?;
+    }
+    println!(
+        "{} {} ({} scenarios across {} tools)",
+        "✓".green().bold(),
+        ref_csv_path.display().to_string().cyan(),
+        all_scenarios.len(),
+        skills.len()
+    );
+
+    // ── Generate descriptions ─────────────────────────────────────────────
+    let mut all_descriptions: Vec<UsageDescription> = Vec::new();
+    for scenario in &all_scenarios {
+        let descs = generate_descriptions(scenario);
+        all_descriptions.extend(descs);
+    }
+
+    let desc_csv_path = output_dir.join("usage_descriptions.csv");
+    {
+        let mut f = std::fs::File::create(&desc_csv_path)?;
+        write_descriptions_csv(&mut f, &all_descriptions)?;
+    }
+    println!(
+        "{} {} ({} descriptions)",
+        "✓".green().bold(),
+        desc_csv_path.display().to_string().cyan(),
+        all_descriptions.len()
+    );
+
+    println!(
+        "\n{} Generated data for {} tools → {}/",
+        "✓".green().bold(),
+        skills.len(),
+        output_dir.display().to_string().cyan()
+    );
+
+    Ok(())
+}
+
+// ── Eval command ─────────────────────────────────────────────────────────────
+
+fn cmd_eval(
+    config_path: &std::path::Path,
+    data_dir: &std::path::Path,
+    output_dir: &std::path::Path,
+    oxo_call_path: Option<String>,
+    tools_filter: Option<&str>,
+    repeats_override: Option<usize>,
+) -> anyhow::Result<()> {
+    // Load or generate config.
+    let config = if config_path.exists() {
+        BenchConfig::load(config_path)?
+    } else {
+        println!(
+            "{} Config not found, using defaults (3 models, 3 repeats).",
+            "→".cyan().bold()
+        );
+        BenchConfig::default()
+    };
+
+    let repeats = repeats_override.unwrap_or(config.benchmark.repeats);
+
+    // Load scenarios and descriptions.
+    let ref_csv_path = data_dir.join("reference_commands.csv");
+    let desc_csv_path = data_dir.join("usage_descriptions.csv");
+
+    if !ref_csv_path.exists() || !desc_csv_path.exists() {
+        anyhow::bail!(
+            "Benchmark data not found in {}.\n\
+             Run 'oxo-bench generate' first to create reference_commands.csv and usage_descriptions.csv.",
+            data_dir.display()
+        );
+    }
+
+    let scenarios = load_scenarios_csv(&ref_csv_path)?;
+    let mut descriptions = load_descriptions_csv(&desc_csv_path)?;
+
+    // Apply tool filter.
+    if let Some(filter) = tools_filter {
+        let allowed: std::collections::HashSet<&str> = filter.split(',').collect();
+        descriptions.retain(|d| allowed.contains(d.tool.as_str()));
+    }
+
+    println!(
+        "{} Loaded {} scenarios, {} descriptions",
+        "→".cyan().bold(),
+        scenarios.len(),
+        descriptions.len()
+    );
+
+    std::fs::create_dir_all(output_dir)?;
+
+    // Detect oxo-call binary.
+    let binary = oxo_call_path
+        .or_else(which_oxo_call)
+        .unwrap_or_else(|| "oxo-call".to_string());
+
+    println!(
+        "{} Using oxo-call binary: {}",
+        "→".cyan().bold(),
+        binary.cyan()
+    );
+
+    let mut all_trials: Vec<TrialResult> = Vec::new();
+
+    if config.benchmark.parallel && config.models.len() > 1 {
+        // Parallel model evaluation using scoped threads.
+        println!(
+            "{} Evaluating {} models in parallel ({} repeats each)...",
+            "→".cyan().bold(),
+            config.models.len(),
+            repeats,
+        );
+
+        let results: Vec<Vec<TrialResult>> = std::thread::scope(|scope| {
+            let handles: Vec<_> = config
+                .models
+                .iter()
+                .map(|model_entry| {
+                    let binary = binary.clone();
+                    let descriptions = &descriptions;
+                    let scenarios = &scenarios;
+                    scope.spawn(move || {
+                        let gtor = OxoCallGenerator {
+                            binary_path: binary,
+                        };
+                        run_benchmark(&model_entry.name, repeats, descriptions, scenarios, &gtor)
+                    })
+                })
+                .collect();
+
+            handles.into_iter().map(|h| h.join().unwrap()).collect()
+        });
+
+        for model_trials in results {
+            all_trials.extend(model_trials);
+        }
+    } else {
+        // Serial model evaluation.
+        for (i, model_entry) in config.models.iter().enumerate() {
+            println!(
+                "[{}/{}] {} Evaluating {} ({} repeats × {} descriptions)...",
+                i + 1,
+                config.models.len(),
+                "→".cyan().bold(),
+                model_entry.name.cyan(),
+                repeats,
+                descriptions.len(),
+            );
+
+            let gtor = OxoCallGenerator {
+                binary_path: binary.clone(),
+            };
+            let trials =
+                run_benchmark(&model_entry.name, repeats, &descriptions, &scenarios, &gtor);
+            all_trials.extend(trials);
+        }
+    }
+
+    // ── Write result CSVs ─────────────────────────────────────────────────
+    let trials_csv_path = output_dir.join("benchmark_trials.csv");
+    {
+        let mut f = std::fs::File::create(&trials_csv_path)?;
+        write_trials_csv(&mut f, &all_trials)?;
+    }
+    println!(
+        "{} {} ({} trials)",
+        "✓".green().bold(),
+        trials_csv_path.display().to_string().cyan(),
+        all_trials.len()
+    );
+
+    let agg = aggregate_results(&all_trials);
+    let agg_csv_path = output_dir.join("model_summary.csv");
+    {
+        let mut f = std::fs::File::create(&agg_csv_path)?;
+        write_model_agg_csv(&mut f, &agg)?;
+    }
+    println!(
+        "{} {} ({} models)",
+        "✓".green().bold(),
+        agg_csv_path.display().to_string().cyan(),
+        agg.len()
+    );
+
+    // Per-model detailed CSVs.
+    for model_agg in &agg {
+        let model_trials: Vec<TrialResult> = all_trials
+            .iter()
+            .filter(|t| t.model == model_agg.model)
+            .cloned()
+            .collect();
+        let safe_name = model_agg.model.replace(['/', ':'], "_");
+        let model_csv_path = output_dir.join(format!("trials_{safe_name}.csv"));
+        {
+            let mut f = std::fs::File::create(&model_csv_path)?;
+            write_trials_csv(&mut f, &model_trials)?;
+        }
+        println!(
+            "  {} {} ({} trials)",
+            "✓".green().bold(),
+            model_csv_path.display().to_string().cyan(),
+            model_trials.len()
+        );
+    }
+
+    // Print summary table.
+    println!();
+    print_agg_summary(&agg);
+
+    Ok(())
+}
+
+// ── Summary command ──────────────────────────────────────────────────────────
+
+fn cmd_summary(results_dir: &std::path::Path) -> anyhow::Result<()> {
+    let agg_csv_path = results_dir.join("model_summary.csv");
+    if !agg_csv_path.exists() {
+        anyhow::bail!(
+            "Summary file not found: {}\n\
+             Run 'oxo-bench eval' first to generate results.",
+            agg_csv_path.display()
+        );
+    }
+
+    let agg = load_model_agg_csv(&agg_csv_path)?;
+    print_agg_summary(&agg);
+    Ok(())
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/// Try to find oxo-call in PATH or target/release or target/debug.
+fn which_oxo_call() -> Option<String> {
+    // Check PATH.
+    if let Ok(path) = std::process::Command::new("which").arg("oxo-call").output()
+        && path.status.success()
+    {
+        let p = String::from_utf8_lossy(&path.stdout).trim().to_string();
+        if !p.is_empty() {
+            return Some(p);
+        }
+    }
+    // Check local build directories.
+    for candidate in &["target/release/oxo-call", "target/debug/oxo-call"] {
+        if std::path::Path::new(candidate).exists() {
+            return Some(candidate.to_string());
+        }
+    }
+    None
+}
+
+/// Print a formatted summary table of aggregate results.
+fn print_agg_summary(agg: &[ModelAggResult]) {
+    println!("{}", "═══ Model Comparison Summary ═══".bold().cyan());
+    println!();
+    println!(
+        "{:<35} {:>8} {:>8} {:>8} {:>8} {:>8} {:>10}",
+        "Model".bold(),
+        "Acc%".bold(),
+        "Exact%".bold(),
+        "Recall%".bold(),
+        "Consist%".bold(),
+        "Format%".bold(),
+        "Latency".bold(),
+    );
+    println!("{}", "─".repeat(90).dimmed());
+    for a in agg {
+        println!(
+            "{:<35} {:>7.1}% {:>7.1}% {:>7.1}% {:>7.1}% {:>7.1}% {:>8.0}ms",
+            a.model.cyan(),
+            a.accuracy * 100.0,
+            a.exact_match_rate * 100.0,
+            a.avg_flag_recall * 100.0,
+            a.consistency * 100.0,
+            a.format_valid_rate * 100.0,
+            a.avg_latency_ms,
+        );
+    }
+    println!("{}", "─".repeat(90).dimmed());
+    if let Some(best) = agg.first() {
+        println!(
+            "\n{} Best model: {} (accuracy: {:.1}%)",
+            "★".yellow().bold(),
+            best.model.green().bold(),
+            best.accuracy * 100.0
+        );
+    }
+}
+
+/// Load scenarios from a CSV file.
+fn load_scenarios_csv(path: &std::path::Path) -> anyhow::Result<Vec<Scenario>> {
+    let content = std::fs::read_to_string(path)?;
+    let mut scenarios = Vec::new();
+    for line in content.lines().skip(1) {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let fields = parse_csv_line(line);
+        if fields.len() >= 5 {
+            scenarios.push(Scenario {
+                tool: fields[0].clone(),
+                scenario_id: fields[1].clone(),
+                reference_args: fields[2].clone(),
+                task_description: fields[3].clone(),
+                category: fields[4].clone(),
+            });
+        }
+    }
+    Ok(scenarios)
+}
+
+/// Load descriptions from a CSV file.
+fn load_descriptions_csv(path: &std::path::Path) -> anyhow::Result<Vec<UsageDescription>> {
+    let content = std::fs::read_to_string(path)?;
+    let mut descriptions = Vec::new();
+    for line in content.lines().skip(1) {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let fields = parse_csv_line(line);
+        if fields.len() >= 5 {
+            descriptions.push(UsageDescription {
+                tool: fields[0].clone(),
+                scenario_id: fields[1].clone(),
+                desc_id: fields[2].clone(),
+                user_level: fields[3].clone(),
+                description: fields[4].clone(),
+            });
+        }
+    }
+    Ok(descriptions)
+}
+
+/// Load model aggregate results from a CSV file.
+fn load_model_agg_csv(path: &std::path::Path) -> anyhow::Result<Vec<ModelAggResult>> {
+    let content = std::fs::read_to_string(path)?;
+    let mut results = Vec::new();
+    for line in content.lines().skip(1) {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let fields = parse_csv_line(line);
+        if fields.len() >= 12 {
+            results.push(ModelAggResult {
+                model: fields[0].clone(),
+                n_trials: fields[1].parse().unwrap_or(0),
+                accuracy: fields[2].parse().unwrap_or(0.0),
+                exact_match_rate: fields[3].parse().unwrap_or(0.0),
+                avg_flag_recall: fields[4].parse().unwrap_or(0.0),
+                avg_flag_precision: fields[5].parse().unwrap_or(0.0),
+                avg_token_jaccard: fields[6].parse().unwrap_or(0.0),
+                subcommand_match_rate: fields[7].parse().unwrap_or(0.0),
+                consistency: fields[8].parse().unwrap_or(0.0),
+                avg_latency_ms: fields[9].parse().unwrap_or(0.0),
+                avg_tokens: fields[10].parse().unwrap_or(0.0),
+                format_valid_rate: fields[11].parse().unwrap_or(0.0),
+            });
+        }
+    }
+    Ok(results)
+}
+
+/// Simple RFC 4180-compatible CSV line parser (handles quoted fields).
+fn parse_csv_line(line: &str) -> Vec<String> {
+    let mut fields = Vec::new();
+    let mut current = String::new();
+    let mut in_quotes = false;
+    let mut chars = line.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if in_quotes {
+            if c == '"' {
+                if chars.peek() == Some(&'"') {
+                    current.push('"');
+                    chars.next();
+                } else {
+                    in_quotes = false;
+                }
+            } else {
+                current.push(c);
+            }
+        } else if c == '"' {
+            in_quotes = true;
+        } else if c == ',' {
+            fields.push(std::mem::take(&mut current));
+        } else {
+            current.push(c);
+        }
+    }
+    fields.push(current);
+    fields
+}
+
+// Suppress unused import warnings for re-exported items used by the new commands.
+#[allow(unused_imports)]
+use runner as _runner_import;
+#[allow(unused_imports)]
+use scenario as _scenario_import;
