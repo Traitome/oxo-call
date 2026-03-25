@@ -1599,96 +1599,96 @@ blast,blast_10,blast_10_07,expert,perform remote BLAST search against NCBI nr da
 blast,blast_10,blast_10_08,detailed,I have data that I need to process: perform remote BLAST search against NCBI nr database with default parameters
 blast,blast_10,blast_10_09,informal,"Hey, can you help me perform remote BLAST search against NCBI nr database with default parameters?"
 blast,blast_10,blast_10_10,alternative,"With default parameters, perform remote BLAST search against NCBI nr database"
-bowtie2,bowtie2_01,bowtie2_01_01,original,build a bowtie2 index from a reference FASTA
-bowtie2,bowtie2_01,bowtie2_01_02,beginner,How do I build a bowtie2 index from a reference FASTA?
-bowtie2,bowtie2_01,bowtie2_01_03,student,I need to build a bowtie2 index from a reference FASTA
-bowtie2,bowtie2_01,bowtie2_01_04,polite,Please build a bowtie2 index from a reference FASTA
-bowtie2,bowtie2_01,bowtie2_01_05,sysadmin,Use bowtie2 to build a bowtie2 index from a reference FASTA
-bowtie2,bowtie2_01,bowtie2_01_06,goal_oriented,I want to build a bowtie2 index from a reference FASTA
-bowtie2,bowtie2_01,bowtie2_01_07,expert,build bowtie2 index reference FASTA
-bowtie2,bowtie2_01,bowtie2_01_08,detailed,I have data that I need to process: build a bowtie2 index from a reference FASTA
-bowtie2,bowtie2_01,bowtie2_01_09,informal,"Hey, can you help me build a bowtie2 index from a reference FASTA?"
-bowtie2,bowtie2_01,bowtie2_01_10,alternative,Perform: build a bowtie2 index from a reference FASTA
-bowtie2,bowtie2_02,bowtie2_02_01,original,align paired-end reads to a reference genome using 8 threads
-bowtie2,bowtie2_02,bowtie2_02_02,beginner,How do I align paired-end reads to a reference genome using 8 threads?
-bowtie2,bowtie2_02,bowtie2_02_03,student,I need to align paired-end reads to a reference genome using 8 threads
-bowtie2,bowtie2_02,bowtie2_02_04,polite,Please align paired-end reads to a reference genome using 8 threads
-bowtie2,bowtie2_02,bowtie2_02_05,sysadmin,Use bowtie2 to align paired-end reads to a reference genome using 8 threads
-bowtie2,bowtie2_02,bowtie2_02_06,goal_oriented,I want to align paired-end reads to a reference genome using 8 threads
-bowtie2,bowtie2_02,bowtie2_02_07,expert,align paired-end reads reference genome 8 threads
-bowtie2,bowtie2_02,bowtie2_02_08,detailed,"I have data that I need to process: align paired-end reads to a reference genome using 8 threads, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-bowtie2,bowtie2_02,bowtie2_02_09,informal,"Hey, can you help me align paired-end reads to a reference genome using 8 threads?"
-bowtie2,bowtie2_02,bowtie2_02_10,alternative,Output a reference genome using 8 threads by performing: align paired-end reads
-bowtie2,bowtie2_03,bowtie2_03_01,original,align single-end reads with sensitive settings
-bowtie2,bowtie2_03,bowtie2_03_02,beginner,How do I align single-end reads with sensitive settings?
-bowtie2,bowtie2_03,bowtie2_03_03,student,I need to align single-end reads with sensitive settings
-bowtie2,bowtie2_03,bowtie2_03_04,polite,Please align single-end reads with sensitive settings
-bowtie2,bowtie2_03,bowtie2_03_05,sysadmin,Use bowtie2 to align single-end reads with sensitive settings
-bowtie2,bowtie2_03,bowtie2_03_06,goal_oriented,I want to align single-end reads with sensitive settings
-bowtie2,bowtie2_03,bowtie2_03_07,expert,align single-end reads sensitive settings
-bowtie2,bowtie2_03,bowtie2_03_08,detailed,"I have data that I need to process: align single-end reads with sensitive settings, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-bowtie2,bowtie2_03,bowtie2_03_09,informal,"Hey, can you help me align single-end reads with sensitive settings?"
-bowtie2,bowtie2_03,bowtie2_03_10,alternative,"With sensitive settings, align single-end reads"
-bowtie2,bowtie2_04,bowtie2_04_01,original,align paired-end reads and save the alignment statistics
-bowtie2,bowtie2_04,bowtie2_04_02,beginner,How do I align paired-end reads and save the alignment statistics?
-bowtie2,bowtie2_04,bowtie2_04_03,student,I need to align paired-end reads and save the alignment statistics
-bowtie2,bowtie2_04,bowtie2_04_04,polite,Please align paired-end reads and save the alignment statistics
-bowtie2,bowtie2_04,bowtie2_04_05,sysadmin,Use bowtie2 to align paired-end reads and save the alignment statistics
-bowtie2,bowtie2_04,bowtie2_04_06,goal_oriented,I want to align paired-end reads and save the alignment statistics
-bowtie2,bowtie2_04,bowtie2_04_07,expert,align paired-end reads save alignment statistics
-bowtie2,bowtie2_04,bowtie2_04_08,detailed,"I have data that I need to process: align paired-end reads and save the alignment statistics, utilizing multiple CPU threads for speed"
-bowtie2,bowtie2_04,bowtie2_04_09,informal,"Hey, can you help me align paired-end reads and save the alignment statistics?"
-bowtie2,bowtie2_04,bowtie2_04_10,alternative,Save the alignment statistics after align paired-end reads
-bowtie2,bowtie2_05,bowtie2_05_01,original,align paired-end reads with read group tags for GATK downstream analysis
-bowtie2,bowtie2_05,bowtie2_05_02,beginner,How do I align paired-end reads with read group tags for GATK downstream analysis?
-bowtie2,bowtie2_05,bowtie2_05_03,student,I need to align paired-end reads with read group tags for GATK downstream analysis
-bowtie2,bowtie2_05,bowtie2_05_04,polite,Please align paired-end reads with read group tags for GATK downstream analysis
-bowtie2,bowtie2_05,bowtie2_05_05,sysadmin,Use bowtie2 to align paired-end reads with read group tags for GATK downstream analysis
-bowtie2,bowtie2_05,bowtie2_05_06,goal_oriented,I want to align paired-end reads with read group tags for GATK downstream analysis
-bowtie2,bowtie2_05,bowtie2_05_07,expert,align paired-end reads read group tags GATK downstream analysis
-bowtie2,bowtie2_05,bowtie2_05_08,detailed,"I have data that I need to process: align paired-end reads with read group tags for GATK downstream analysis, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-bowtie2,bowtie2_05,bowtie2_05_09,informal,"Hey, can you help me align paired-end reads with read group tags for GATK downstream analysis?"
-bowtie2,bowtie2_05,bowtie2_05_10,alternative,"With read group tags for GATK downstream analysis, align paired-end reads"
-bowtie2,bowtie2_06,bowtie2_06_01,original,align in local mode to allow soft-clipping of read ends
-bowtie2,bowtie2_06,bowtie2_06_02,beginner,How do I align in local mode to allow soft-clipping of read ends?
-bowtie2,bowtie2_06,bowtie2_06_03,student,I need to align in local mode to allow soft-clipping of read ends
-bowtie2,bowtie2_06,bowtie2_06_04,polite,Please align in local mode to allow soft-clipping of read ends
-bowtie2,bowtie2_06,bowtie2_06_05,sysadmin,Use bowtie2 to align in local mode to allow soft-clipping of read ends
-bowtie2,bowtie2_06,bowtie2_06_06,goal_oriented,I want to align in local mode to allow soft-clipping of read ends
-bowtie2,bowtie2_06,bowtie2_06_07,expert,align local mode allow soft-clipping of read ends
-bowtie2,bowtie2_06,bowtie2_06_08,detailed,"I have data that I need to process: align in local mode to allow soft-clipping of read ends, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-bowtie2,bowtie2_06,bowtie2_06_09,informal,"Hey, can you help me align in local mode to allow soft-clipping of read ends?"
-bowtie2,bowtie2_06,bowtie2_06_10,alternative,Output allow soft-clipping of read ends by performing: align in local mode
-bowtie2,bowtie2_07,bowtie2_07_01,original,align paired-end RNA-seq reads discarding unaligned reads
-bowtie2,bowtie2_07,bowtie2_07_02,beginner,How do I align paired-end RNA-seq reads discarding unaligned reads?
-bowtie2,bowtie2_07,bowtie2_07_03,student,I need to align paired-end RNA-seq reads discarding unaligned reads
-bowtie2,bowtie2_07,bowtie2_07_04,polite,Please align paired-end RNA-seq reads discarding unaligned reads
-bowtie2,bowtie2_07,bowtie2_07_05,sysadmin,Use bowtie2 to align paired-end RNA-seq reads discarding unaligned reads
-bowtie2,bowtie2_07,bowtie2_07_06,goal_oriented,I want to align paired-end RNA-seq reads discarding unaligned reads
-bowtie2,bowtie2_07,bowtie2_07_07,expert,align paired-end RNA-seq reads discarding unaligned reads
-bowtie2,bowtie2_07,bowtie2_07_08,detailed,"I have data that I need to process: align paired-end RNA-seq reads discarding unaligned reads, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-bowtie2,bowtie2_07,bowtie2_07_09,informal,"Hey, can you help me align paired-end RNA-seq reads discarding unaligned reads?"
-bowtie2,bowtie2_07,bowtie2_07_10,alternative,Perform: align paired-end RNA-seq reads discarding unaligned reads
-bowtie2,bowtie2_08,bowtie2_08_01,original,align single-end reads in fast mode for a quick quality check
-bowtie2,bowtie2_08,bowtie2_08_02,beginner,How do I align single-end reads in fast mode for a quick quality check?
-bowtie2,bowtie2_08,bowtie2_08_03,student,I need to align single-end reads in fast mode for a quick quality check
-bowtie2,bowtie2_08,bowtie2_08_04,polite,Please align single-end reads in fast mode for a quick quality check
-bowtie2,bowtie2_08,bowtie2_08_05,sysadmin,Use bowtie2 to align single-end reads in fast mode for a quick quality check
-bowtie2,bowtie2_08,bowtie2_08_06,goal_oriented,I want to align single-end reads in fast mode for a quick quality check
-bowtie2,bowtie2_08,bowtie2_08_07,expert,align single-end reads fast mode quick quality check
-bowtie2,bowtie2_08,bowtie2_08_08,detailed,"I have data that I need to process: align single-end reads in fast mode for a quick quality check, utilizing multiple CPU threads for speed"
-bowtie2,bowtie2_08,bowtie2_08_09,informal,"Hey, can you help me align single-end reads in fast mode for a quick quality check?"
-bowtie2,bowtie2_08,bowtie2_08_10,alternative,Perform: align single-end reads in fast mode for a quick quality check
-bowtie2,bowtie2_09,bowtie2_09_01,original,build index for a large reference genome in multi-threaded mode
-bowtie2,bowtie2_09,bowtie2_09_02,beginner,How do I build index for a large reference genome in multi-threaded mode?
-bowtie2,bowtie2_09,bowtie2_09_03,student,I need to build index for a large reference genome in multi-threaded mode
-bowtie2,bowtie2_09,bowtie2_09_04,polite,Please build index for a large reference genome in multi-threaded mode
-bowtie2,bowtie2_09,bowtie2_09_05,sysadmin,Use bowtie2 to build index for a large reference genome in multi-threaded mode
-bowtie2,bowtie2_09,bowtie2_09_06,goal_oriented,I want to build index for a large reference genome in multi-threaded mode
-bowtie2,bowtie2_09,bowtie2_09_07,expert,build index large reference genome multi-threaded mode
-bowtie2,bowtie2_09,bowtie2_09_08,detailed,"I have data that I need to process: build index for a large reference genome in multi-threaded mode, utilizing multiple CPU threads for speed"
-bowtie2,bowtie2_09,bowtie2_09_09,informal,"Hey, can you help me build index for a large reference genome in multi-threaded mode?"
-bowtie2,bowtie2_09,bowtie2_09_10,alternative,Perform: build index for a large reference genome in multi-threaded mode
+bowtie2,bowtie2_01,bowtie2_01_01,original,build a bowtie2 index from a reference FASTA file
+bowtie2,bowtie2_01,bowtie2_01_02,beginner,How do I build a bowtie2 index from a reference FASTA file?
+bowtie2,bowtie2_01,bowtie2_01_03,student,I need to build a bowtie2 index from a reference FASTA file
+bowtie2,bowtie2_01,bowtie2_01_04,polite,Please build a bowtie2 index from a reference FASTA file
+bowtie2,bowtie2_01,bowtie2_01_05,sysadmin,Use bowtie2 to build a bowtie2 index from a reference FASTA file
+bowtie2,bowtie2_01,bowtie2_01_06,goal_oriented,I want to build a bowtie2 index from a reference FASTA file
+bowtie2,bowtie2_01,bowtie2_01_07,expert,build bowtie2 index reference FASTA file
+bowtie2,bowtie2_01,bowtie2_01_08,detailed,I have data that I need to process: build a bowtie2 index from a reference FASTA file
+bowtie2,bowtie2_01,bowtie2_01_09,informal,"Hey, can you help me build a bowtie2 index from a reference FASTA file?"
+bowtie2,bowtie2_01,bowtie2_01_10,alternative,Perform: build a bowtie2 index from a reference FASTA file
+bowtie2,bowtie2_02,bowtie2_02_01,original,build a bowtie2 index using multiple threads for a large genome
+bowtie2,bowtie2_02,bowtie2_02_02,beginner,How do I build a bowtie2 index using multiple threads for a large genome?
+bowtie2,bowtie2_02,bowtie2_02_03,student,I need to build a bowtie2 index using multiple threads for a large genome
+bowtie2,bowtie2_02,bowtie2_02_04,polite,Please build a bowtie2 index using multiple threads for a large genome
+bowtie2,bowtie2_02,bowtie2_02_05,sysadmin,Use bowtie2 to build a bowtie2 index using multiple threads for a large genome
+bowtie2,bowtie2_02,bowtie2_02_06,goal_oriented,I want to build a bowtie2 index using multiple threads for a large genome
+bowtie2,bowtie2_02,bowtie2_02_07,expert,build bowtie2 index multiple threads large genome
+bowtie2,bowtie2_02,bowtie2_02_08,detailed,"I have data that I need to process: build a bowtie2 index using multiple threads for a large genome, utilizing multiple CPU threads for speed"
+bowtie2,bowtie2_02,bowtie2_02_09,informal,"Hey, can you help me build a bowtie2 index using multiple threads for a large genome?"
+bowtie2,bowtie2_02,bowtie2_02_10,alternative,Perform: build a bowtie2 index using multiple threads for a large genome
+bowtie2,bowtie2_03,bowtie2_03_01,original,align paired-end reads to a reference genome using 8 threads
+bowtie2,bowtie2_03,bowtie2_03_02,beginner,How do I align paired-end reads to a reference genome using 8 threads?
+bowtie2,bowtie2_03,bowtie2_03_03,student,I need to align paired-end reads to a reference genome using 8 threads
+bowtie2,bowtie2_03,bowtie2_03_04,polite,Please align paired-end reads to a reference genome using 8 threads
+bowtie2,bowtie2_03,bowtie2_03_05,sysadmin,Use bowtie2 to align paired-end reads to a reference genome using 8 threads
+bowtie2,bowtie2_03,bowtie2_03_06,goal_oriented,I want to align paired-end reads to a reference genome using 8 threads
+bowtie2,bowtie2_03,bowtie2_03_07,expert,align paired-end reads reference genome 8 threads
+bowtie2,bowtie2_03,bowtie2_03_08,detailed,"I have data that I need to process: align paired-end reads to a reference genome using 8 threads, utilizing multiple CPU threads for speed, saving the result to a specified output file"
+bowtie2,bowtie2_03,bowtie2_03_09,informal,"Hey, can you help me align paired-end reads to a reference genome using 8 threads?"
+bowtie2,bowtie2_03,bowtie2_03_10,alternative,Output a reference genome using 8 threads by performing: align paired-end reads
+bowtie2,bowtie2_04,bowtie2_04_01,original,align single-end reads with sensitive settings
+bowtie2,bowtie2_04,bowtie2_04_02,beginner,How do I align single-end reads with sensitive settings?
+bowtie2,bowtie2_04,bowtie2_04_03,student,I need to align single-end reads with sensitive settings
+bowtie2,bowtie2_04,bowtie2_04_04,polite,Please align single-end reads with sensitive settings
+bowtie2,bowtie2_04,bowtie2_04_05,sysadmin,Use bowtie2 to align single-end reads with sensitive settings
+bowtie2,bowtie2_04,bowtie2_04_06,goal_oriented,I want to align single-end reads with sensitive settings
+bowtie2,bowtie2_04,bowtie2_04_07,expert,align single-end reads sensitive settings
+bowtie2,bowtie2_04,bowtie2_04_08,detailed,"I have data that I need to process: align single-end reads with sensitive settings, utilizing multiple CPU threads for speed, saving the result to a specified output file"
+bowtie2,bowtie2_04,bowtie2_04_09,informal,"Hey, can you help me align single-end reads with sensitive settings?"
+bowtie2,bowtie2_04,bowtie2_04_10,alternative,"With sensitive settings, align single-end reads"
+bowtie2,bowtie2_05,bowtie2_05_01,original,align paired-end reads and save the alignment statistics
+bowtie2,bowtie2_05,bowtie2_05_02,beginner,How do I align paired-end reads and save the alignment statistics?
+bowtie2,bowtie2_05,bowtie2_05_03,student,I need to align paired-end reads and save the alignment statistics
+bowtie2,bowtie2_05,bowtie2_05_04,polite,Please align paired-end reads and save the alignment statistics
+bowtie2,bowtie2_05,bowtie2_05_05,sysadmin,Use bowtie2 to align paired-end reads and save the alignment statistics
+bowtie2,bowtie2_05,bowtie2_05_06,goal_oriented,I want to align paired-end reads and save the alignment statistics
+bowtie2,bowtie2_05,bowtie2_05_07,expert,align paired-end reads save alignment statistics
+bowtie2,bowtie2_05,bowtie2_05_08,detailed,"I have data that I need to process: align paired-end reads and save the alignment statistics, utilizing multiple CPU threads for speed"
+bowtie2,bowtie2_05,bowtie2_05_09,informal,"Hey, can you help me align paired-end reads and save the alignment statistics?"
+bowtie2,bowtie2_05,bowtie2_05_10,alternative,Save the alignment statistics after align paired-end reads
+bowtie2,bowtie2_06,bowtie2_06_01,original,align paired-end reads with read group tags for GATK downstream analysis
+bowtie2,bowtie2_06,bowtie2_06_02,beginner,How do I align paired-end reads with read group tags for GATK downstream analysis?
+bowtie2,bowtie2_06,bowtie2_06_03,student,I need to align paired-end reads with read group tags for GATK downstream analysis
+bowtie2,bowtie2_06,bowtie2_06_04,polite,Please align paired-end reads with read group tags for GATK downstream analysis
+bowtie2,bowtie2_06,bowtie2_06_05,sysadmin,Use bowtie2 to align paired-end reads with read group tags for GATK downstream analysis
+bowtie2,bowtie2_06,bowtie2_06_06,goal_oriented,I want to align paired-end reads with read group tags for GATK downstream analysis
+bowtie2,bowtie2_06,bowtie2_06_07,expert,align paired-end reads read group tags GATK downstream analysis
+bowtie2,bowtie2_06,bowtie2_06_08,detailed,"I have data that I need to process: align paired-end reads with read group tags for GATK downstream analysis, utilizing multiple CPU threads for speed, saving the result to a specified output file"
+bowtie2,bowtie2_06,bowtie2_06_09,informal,"Hey, can you help me align paired-end reads with read group tags for GATK downstream analysis?"
+bowtie2,bowtie2_06,bowtie2_06_10,alternative,"With read group tags for GATK downstream analysis, align paired-end reads"
+bowtie2,bowtie2_07,bowtie2_07_01,original,align in local mode to allow soft-clipping of read ends
+bowtie2,bowtie2_07,bowtie2_07_02,beginner,How do I align in local mode to allow soft-clipping of read ends?
+bowtie2,bowtie2_07,bowtie2_07_03,student,I need to align in local mode to allow soft-clipping of read ends
+bowtie2,bowtie2_07,bowtie2_07_04,polite,Please align in local mode to allow soft-clipping of read ends
+bowtie2,bowtie2_07,bowtie2_07_05,sysadmin,Use bowtie2 to align in local mode to allow soft-clipping of read ends
+bowtie2,bowtie2_07,bowtie2_07_06,goal_oriented,I want to align in local mode to allow soft-clipping of read ends
+bowtie2,bowtie2_07,bowtie2_07_07,expert,align local mode allow soft-clipping of read ends
+bowtie2,bowtie2_07,bowtie2_07_08,detailed,"I have data that I need to process: align in local mode to allow soft-clipping of read ends, utilizing multiple CPU threads for speed, saving the result to a specified output file"
+bowtie2,bowtie2_07,bowtie2_07_09,informal,"Hey, can you help me align in local mode to allow soft-clipping of read ends?"
+bowtie2,bowtie2_07,bowtie2_07_10,alternative,Output allow soft-clipping of read ends by performing: align in local mode
+bowtie2,bowtie2_08,bowtie2_08_01,original,align paired-end RNA-seq reads discarding unaligned reads
+bowtie2,bowtie2_08,bowtie2_08_02,beginner,How do I align paired-end RNA-seq reads discarding unaligned reads?
+bowtie2,bowtie2_08,bowtie2_08_03,student,I need to align paired-end RNA-seq reads discarding unaligned reads
+bowtie2,bowtie2_08,bowtie2_08_04,polite,Please align paired-end RNA-seq reads discarding unaligned reads
+bowtie2,bowtie2_08,bowtie2_08_05,sysadmin,Use bowtie2 to align paired-end RNA-seq reads discarding unaligned reads
+bowtie2,bowtie2_08,bowtie2_08_06,goal_oriented,I want to align paired-end RNA-seq reads discarding unaligned reads
+bowtie2,bowtie2_08,bowtie2_08_07,expert,align paired-end RNA-seq reads discarding unaligned reads
+bowtie2,bowtie2_08,bowtie2_08_08,detailed,"I have data that I need to process: align paired-end RNA-seq reads discarding unaligned reads, utilizing multiple CPU threads for speed, saving the result to a specified output file"
+bowtie2,bowtie2_08,bowtie2_08_09,informal,"Hey, can you help me align paired-end RNA-seq reads discarding unaligned reads?"
+bowtie2,bowtie2_08,bowtie2_08_10,alternative,Perform: align paired-end RNA-seq reads discarding unaligned reads
+bowtie2,bowtie2_09,bowtie2_09_01,original,align single-end reads in fast mode for a quick quality check
+bowtie2,bowtie2_09,bowtie2_09_02,beginner,How do I align single-end reads in fast mode for a quick quality check?
+bowtie2,bowtie2_09,bowtie2_09_03,student,I need to align single-end reads in fast mode for a quick quality check
+bowtie2,bowtie2_09,bowtie2_09_04,polite,Please align single-end reads in fast mode for a quick quality check
+bowtie2,bowtie2_09,bowtie2_09_05,sysadmin,Use bowtie2 to align single-end reads in fast mode for a quick quality check
+bowtie2,bowtie2_09,bowtie2_09_06,goal_oriented,I want to align single-end reads in fast mode for a quick quality check
+bowtie2,bowtie2_09,bowtie2_09_07,expert,align single-end reads fast mode quick quality check
+bowtie2,bowtie2_09,bowtie2_09_08,detailed,"I have data that I need to process: align single-end reads in fast mode for a quick quality check, utilizing multiple CPU threads for speed"
+bowtie2,bowtie2_09,bowtie2_09_09,informal,"Hey, can you help me align single-end reads in fast mode for a quick quality check?"
+bowtie2,bowtie2_09,bowtie2_09_10,alternative,Perform: align single-end reads in fast mode for a quick quality check
 bowtie2,bowtie2_10,bowtie2_10_01,original,align paired-end reads writing unmapped reads to separate files
 bowtie2,bowtie2_10,bowtie2_10_02,beginner,How do I align paired-end reads writing unmapped reads to separate files?
 bowtie2,bowtie2_10,bowtie2_10_03,student,I need to align paired-end reads writing unmapped reads to separate files

@@ -159,15 +159,15 @@ blast,blast_07,-query query.fasta -db genome_db -out blast_results.txt -outfmt 6
 blast,blast_08,-query proteins.faa -db /path/to/nr -out blastp_results.txt -outfmt '6 std stitle staxids' -evalue 1e-5 -num_threads 16 -max_target_seqs 5,search protein sequences against NR database and write output to a file,sequence-utilities
 blast,blast_09,-query contigs.fasta -db /path/to/swissprot -out blastx_results.txt -outfmt 6 -evalue 1e-5 -num_threads 8 -max_target_seqs 1 --quiet,run blastx to annotate nucleotide sequences against protein database in quiet mode,sequence-utilities
 blast,blast_10,-query query.fasta -db nr -out remote_blast.txt -outfmt 6 -remote -max_target_seqs 10,perform remote BLAST search against NCBI nr database with default parameters,sequence-utilities
-bowtie2,bowtie2_01,-build reference.fa reference_index,build a bowtie2 index from a reference FASTA,alignment
-bowtie2,bowtie2_02,-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 8 | samtools view -b -o aligned.bam,align paired-end reads to a reference genome using 8 threads,alignment
-bowtie2,bowtie2_03,-x reference_index -U reads.fastq.gz --very-sensitive -p 8 | samtools sort -o sorted.bam,align single-end reads with sensitive settings,alignment
-bowtie2,bowtie2_04,-x reference_index -1 R1.fq.gz -2 R2.fq.gz -p 8 --no-unal -S aligned.sam 2> align_stats.txt,align paired-end reads and save the alignment statistics,alignment
-bowtie2,bowtie2_05,-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 8 --rg-id sample1 --rg SM:sample1 --rg LB:lib1 --rg PL:ILLUMINA | samtools view -b -o sample1.bam,align paired-end reads with read group tags for GATK downstream analysis,alignment
-bowtie2,bowtie2_06,-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz --local --very-sensitive-local -p 8 | samtools view -b -o local_aligned.bam,align in local mode to allow soft-clipping of read ends,alignment
-bowtie2,bowtie2_07,-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 16 --no-unal | samtools sort -@ 4 -o sorted.bam,align paired-end RNA-seq reads discarding unaligned reads,alignment
-bowtie2,bowtie2_08,-x reference_index -U reads.fastq.gz --fast -p 4 -S quick_check.sam,align single-end reads in fast mode for a quick quality check,alignment
-bowtie2,bowtie2_09,-build --threads 8 reference.fa reference_index,build index for a large reference genome in multi-threaded mode,alignment
+bowtie2,bowtie2_01,bowtie2-build reference.fa reference_index,build a bowtie2 index from a reference FASTA file,alignment
+bowtie2,bowtie2_02,bowtie2-build --threads 8 reference.fa reference_index,build a bowtie2 index using multiple threads for a large genome,alignment
+bowtie2,bowtie2_03,-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 8 | samtools view -b -o aligned.bam,align paired-end reads to a reference genome using 8 threads,alignment
+bowtie2,bowtie2_04,-x reference_index -U reads.fastq.gz --very-sensitive -p 8 | samtools sort -o sorted.bam,align single-end reads with sensitive settings,alignment
+bowtie2,bowtie2_05,-x reference_index -1 R1.fq.gz -2 R2.fq.gz -p 8 --no-unal -S aligned.sam 2> align_stats.txt,align paired-end reads and save the alignment statistics,alignment
+bowtie2,bowtie2_06,-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 8 --rg-id sample1 --rg SM:sample1 --rg LB:lib1 --rg PL:ILLUMINA | samtools view -b -o sample1.bam,align paired-end reads with read group tags for GATK downstream analysis,alignment
+bowtie2,bowtie2_07,-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz --local --very-sensitive-local -p 8 | samtools view -b -o local_aligned.bam,align in local mode to allow soft-clipping of read ends,alignment
+bowtie2,bowtie2_08,-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 16 --no-unal | samtools sort -@ 4 -o sorted.bam,align paired-end RNA-seq reads discarding unaligned reads,alignment
+bowtie2,bowtie2_09,-x reference_index -U reads.fastq.gz --fast -p 4 -S quick_check.sam,align single-end reads in fast mode for a quick quality check,alignment
 bowtie2,bowtie2_10,-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 8 --un-conc unmapped_%.fq | samtools view -b -o aligned.bam,align paired-end reads writing unmapped reads to separate files,alignment
 bracken,bracken_01,-d /path/to/kraken2_db -i kraken_report.txt -o bracken_output.bracken -l S -r 150 -t 10,run Bracken on a Kraken2 report for species-level abundance estimation,metagenomics
 bracken,bracken_02,-d /path/to/kraken2_db -i kraken_report.txt -o bracken_genus.bracken -l G -r 150 -t 5,run Bracken for genus-level abundance estimation,metagenomics

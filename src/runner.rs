@@ -466,13 +466,16 @@ impl Runner {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
+            // Resolve companion binary (e.g., "bowtie2-build" when tool is "bowtie2")
+            let (eff_tool, eff_args) = effective_command(tool, &result.suggestion.args);
+
             // When verification is enabled, capture stderr for analysis.
             // stdout is still streamed to the terminal via inheritance.
             let (exit_code, success, captured_stderr) = if self.verify {
-                let output = Command::new(tool)
-                    .args(&result.suggestion.args)
+                let output = Command::new(eff_tool)
+                    .args(eff_args)
                     .output()
-                    .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
+                    .map_err(|e| OxoError::ToolNotFound(format!("{eff_tool}: {e}")))?;
 
                 // Stream captured output to terminal so the user still sees it.
                 use std::io::Write;
@@ -484,17 +487,17 @@ impl Runner {
                 let stderr_text = String::from_utf8_lossy(&output.stderr).into_owned();
                 (code, ok, stderr_text)
             } else {
-                let status = Command::new(tool)
-                    .args(&result.suggestion.args)
+                let status = Command::new(eff_tool)
+                    .args(eff_args)
                     .status()
-                    .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
+                    .map_err(|e| OxoError::ToolNotFound(format!("{eff_tool}: {e}")))?;
                 let code = status.code().unwrap_or(-1);
                 let ok = status.success();
                 (code, ok, String::new())
             };
 
-            // Detect tool version for provenance
-            let tool_version = detect_tool_version(tool);
+            // Detect tool version for provenance (use effective tool binary)
+            let tool_version = detect_tool_version(eff_tool);
 
             // Record in history with provenance
             let entry = HistoryEntry {
@@ -954,7 +957,11 @@ fn build_command_string(tool: &str, args: &[String]) -> String {
     if args.is_empty() {
         return tool.to_string();
     }
-    let args_str: Vec<String> = args
+    let (eff_tool, eff_args) = effective_command(tool, args);
+    if eff_args.is_empty() {
+        return eff_tool.to_string();
+    }
+    let args_str: Vec<String> = eff_args
         .iter()
         .map(|a| {
             // Quote arguments that contain spaces or shell metacharacters
@@ -965,7 +972,56 @@ fn build_command_string(tool: &str, args: &[String]) -> String {
             }
         })
         .collect();
-    format!("{tool} {}", args_str.join(" "))
+    format!("{eff_tool} {}", args_str.join(" "))
+}
+
+/// Resolve the effective (executable, args) pair.
+///
+/// When the LLM generates a companion binary as the first argument
+/// (e.g., `bowtie2-build` when the tool is `bowtie2`), the companion binary
+/// is extracted and used as the actual executable with the remaining slice as
+/// its arguments.  This lets a single skill cover a tool and its related
+/// binaries without requiring a separate skill file for each.
+///
+/// Detection rule: `args[0]` is treated as a companion binary when all of:
+/// 1. It does **not** start with `-` (flags start with a dash).
+/// 2. It starts with `{tool}-` or `{tool}_` (it is derived from the tool name).
+/// 3. It contains only `[A-Za-z0-9_-]` characters (looks like a binary name,
+///    not a file path or an argument value).
+pub(crate) fn effective_command<'a>(tool: &'a str, args: &'a [String]) -> (&'a str, &'a [String]) {
+    if let Some(first) = args.first()
+        && is_companion_binary(tool, first)
+    {
+        return (first.as_str(), &args[1..]);
+    }
+    (tool, args)
+}
+
+/// Returns `true` if `candidate` looks like a companion binary of `tool`.
+///
+/// A companion binary starts with `{tool}-` or `{tool}_`, contains only
+/// alphanumeric characters, hyphens, and underscores, and does not start with
+/// a dash (which would indicate a CLI flag instead).
+///
+/// Examples:
+/// - `is_companion_binary("bowtie2", "bowtie2-build")` → `true`
+/// - `is_companion_binary("hisat2", "hisat2-build")` → `true`
+/// - `is_companion_binary("bowtie2", "-x")` → `false`  (flag)
+/// - `is_companion_binary("bowtie2", "bowtie2-input.fq")` → `false` (dot in name)
+/// - `is_companion_binary("samtools", "sort")` → `false`  (no tool prefix)
+pub(crate) fn is_companion_binary(tool: &str, candidate: &str) -> bool {
+    if candidate.starts_with('-') {
+        return false; // CLI flag, not a binary
+    }
+    let hyphen_prefix = format!("{tool}-");
+    let underscore_prefix = format!("{tool}_");
+    if !candidate.starts_with(&hyphen_prefix) && !candidate.starts_with(&underscore_prefix) {
+        return false;
+    }
+    // Must look like a binary name: only alphanumeric, hyphen, underscore chars
+    candidate
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
 }
 
 /// Returns `true` if the argument contains characters that require quoting.
@@ -1431,6 +1487,94 @@ mod tests {
         assert!(
             cmd.contains("'\\'"),
             "single quote should be escaped as '\\'"
+        );
+    }
+
+    // ─── companion binary detection ───────────────────────────────────────────
+
+    #[test]
+    fn test_is_companion_binary_bowtie2_build() {
+        assert!(is_companion_binary("bowtie2", "bowtie2-build"));
+    }
+
+    #[test]
+    fn test_is_companion_binary_hisat2_build() {
+        assert!(is_companion_binary("hisat2", "hisat2-build"));
+    }
+
+    #[test]
+    fn test_is_companion_binary_flag_is_not_companion() {
+        assert!(!is_companion_binary("bowtie2", "-x"));
+        assert!(!is_companion_binary("bowtie2", "--no-unal"));
+    }
+
+    #[test]
+    fn test_is_companion_binary_filename_is_not_companion() {
+        // Has a dot — not a binary name
+        assert!(!is_companion_binary("bowtie2", "bowtie2-input.fq"));
+    }
+
+    #[test]
+    fn test_is_companion_binary_no_prefix_match() {
+        // "sort" does not start with "samtools-"
+        assert!(!is_companion_binary("samtools", "sort"));
+        assert!(!is_companion_binary("samtools", "index"));
+    }
+
+    #[test]
+    fn test_effective_command_companion_redirects_tool() {
+        let args: Vec<String> = vec![
+            "bowtie2-build".to_string(),
+            "reference.fa".to_string(),
+            "ref_idx".to_string(),
+        ];
+        let (eff_tool, eff_args) = effective_command("bowtie2", &args);
+        assert_eq!(eff_tool, "bowtie2-build");
+        assert_eq!(eff_args, &["reference.fa", "ref_idx"]);
+    }
+
+    #[test]
+    fn test_effective_command_normal_args_unchanged() {
+        let args: Vec<String> = vec![
+            "-x".to_string(),
+            "ref_idx".to_string(),
+            "-1".to_string(),
+            "R1.fq.gz".to_string(),
+        ];
+        let (eff_tool, eff_args) = effective_command("bowtie2", &args);
+        assert_eq!(eff_tool, "bowtie2");
+        assert_eq!(eff_args, args.as_slice());
+    }
+
+    #[test]
+    fn test_effective_command_samtools_subcommand_unchanged() {
+        // "sort" is a samtools subcommand, not a companion binary — must NOT redirect
+        let args: Vec<String> = vec![
+            "sort".to_string(),
+            "-@".to_string(),
+            "4".to_string(),
+            "-o".to_string(),
+            "sorted.bam".to_string(),
+        ];
+        let (eff_tool, eff_args) = effective_command("samtools", &args);
+        assert_eq!(eff_tool, "samtools");
+        assert_eq!(eff_args, args.as_slice());
+    }
+
+    #[test]
+    fn test_build_command_string_companion_binary() {
+        // When first arg is a companion binary, build_command_string should use
+        // that binary as the executable, not prepend the base tool name.
+        let args: Vec<String> = vec![
+            "bowtie2-build".to_string(),
+            "reference.fa".to_string(),
+            "ref_idx".to_string(),
+        ];
+        let cmd = build_command_string("bowtie2", &args);
+        assert_eq!(cmd, "bowtie2-build reference.fa ref_idx");
+        assert!(
+            !cmd.starts_with("bowtie2 bowtie2-build"),
+            "must not double the tool name"
         );
     }
 }
