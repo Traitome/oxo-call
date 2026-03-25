@@ -28,23 +28,23 @@ source_url: "http://velocyto.org/velocyto.py/tutorial/index.html"
 ## Examples
 
 ### run velocyto on a 10x CellRanger output directory
-**Args:** `velocyto run10x -m repeat_masker.bed /path/to/cellranger_output genes.gtf`
+**Args:** `run10x -m repeat_masker.bed /path/to/cellranger_output genes.gtf`
 **Explanation:** positional args: CellRanger dir and GTF; -m masks repeats to reduce spurious unspliced counts; uses filtered barcodes automatically
 
 ### run velocyto on a 10x BAM with explicit barcode file
-**Args:** `velocyto run -b filtered_barcodes.tsv -o loom_output/ --samtools-threads 8 cellranger_output/possorted_genome_bam.bam genes.gtf`
+**Args:** `run -b filtered_barcodes.tsv -o loom_output/ --samtools-threads 8 cellranger_output/possorted_genome_bam.bam genes.gtf`
 **Explanation:** -b explicit filtered barcodes; -o output directory; positional args are BAM then GTF; reads CB and UB tags
 
 ### run velocyto on Smart-seq2 plate data
-**Args:** `velocyto run-smartseq2 -o smartseq_loom/ -m repeat_masker.bed cells/*.bam genes.gtf`
+**Args:** `run-smartseq2 -o smartseq_loom/ -m repeat_masker.bed cells/*.bam genes.gtf`
 **Explanation:** run-smartseq2 takes a glob of per-cell BAMs; -o output directory; creates one loom with all cells
 
 ### run velocyto on a general BAM with cell barcodes from inDrops
-**Args:** `velocyto run -b barcodes.txt -e experiment_name -o loom_output/ sample.bam genes.gtf`
+**Args:** `run -b barcodes.txt -e experiment_name -o loom_output/ sample.bam genes.gtf`
 **Explanation:** -e sets the experiment name used as loom file prefix; -b provides cell barcodes file
 
 ### run velocyto with repeat masking and multiple threads
-**Args:** `velocyto run10x -m hg38_rmsk.bed --samtools-threads 16 /path/to/cellranger_output Homo_sapiens.GRCh38.gtf`
+**Args:** `run10x -m hg38_rmsk.bed --samtools-threads 16 /path/to/cellranger_output Homo_sapiens.GRCh38.gtf`
 **Explanation:** --samtools-threads 16 speeds up BAM reading; -m provides UCSC repeat masker BED to exclude repetitive loci
 
 ### merge multiple loom files from different samples into one

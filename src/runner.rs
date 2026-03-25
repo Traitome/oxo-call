@@ -999,29 +999,47 @@ pub(crate) fn effective_command<'a>(tool: &'a str, args: &'a [String]) -> (&'a s
 
 /// Returns `true` if `candidate` looks like a companion binary of `tool`.
 ///
-/// A companion binary starts with `{tool}-` or `{tool}_`, contains only
-/// alphanumeric characters, hyphens, and underscores, and does not start with
-/// a dash (which would indicate a CLI flag instead).
+/// A companion binary either:
+/// 1. Starts with `{tool}-` or `{tool}_` (forward prefix convention):
+///    e.g., `bowtie2-build` (tool: `bowtie2`), `hisat2-build` (tool: `hisat2`),
+///    `bismark_genome_preparation` (tool: `bismark`).
+/// 2. Ends with `_{tool}` (reverse suffix convention):
+///    e.g., `deduplicate_bismark` (tool: `bismark`), `rsem-calculate-expression`
+///    already covered by prefix.
+///
+/// In both cases the candidate must contain only `[A-Za-z0-9_-]` characters
+/// (looks like a binary name, not a file path) and must not start with `-`
+/// (which would indicate a CLI flag instead).
 ///
 /// Examples:
-/// - `is_companion_binary("bowtie2", "bowtie2-build")` → `true`
-/// - `is_companion_binary("hisat2", "hisat2-build")` → `true`
+/// - `is_companion_binary("bowtie2", "bowtie2-build")` → `true`  (prefix)
+/// - `is_companion_binary("hisat2", "hisat2-build")` → `true`   (prefix)
+/// - `is_companion_binary("bismark", "bismark_genome_preparation")` → `true` (prefix)
+/// - `is_companion_binary("bismark", "bismark_methylation_extractor")` → `true`
+/// - `is_companion_binary("bismark", "deduplicate_bismark")` → `true` (suffix)
 /// - `is_companion_binary("bowtie2", "-x")` → `false`  (flag)
-/// - `is_companion_binary("bowtie2", "bowtie2-input.fq")` → `false` (dot in name)
-/// - `is_companion_binary("samtools", "sort")` → `false`  (no tool prefix)
+/// - `is_companion_binary("bowtie2", "bowtie2-input.fq")` → `false` (dot)
+/// - `is_companion_binary("samtools", "sort")` → `false`  (no tool prefix/suffix)
 pub(crate) fn is_companion_binary(tool: &str, candidate: &str) -> bool {
     if candidate.starts_with('-') {
         return false; // CLI flag, not a binary
     }
-    let hyphen_prefix = format!("{tool}-");
-    let underscore_prefix = format!("{tool}_");
-    if !candidate.starts_with(&hyphen_prefix) && !candidate.starts_with(&underscore_prefix) {
-        return false;
-    }
     // Must look like a binary name: only alphanumeric, hyphen, underscore chars
-    candidate
+    if !candidate
         .chars()
         .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+    {
+        return false;
+    }
+    // Forward prefix: {tool}- or {tool}_
+    let hyphen_prefix = format!("{tool}-");
+    let underscore_prefix = format!("{tool}_");
+    if candidate.starts_with(&hyphen_prefix) || candidate.starts_with(&underscore_prefix) {
+        return true;
+    }
+    // Reverse suffix: _{tool} (covers deduplicate_bismark → bismark, etc.)
+    let underscore_suffix = format!("_{tool}");
+    candidate.ends_with(&underscore_suffix) && candidate.len() > underscore_suffix.len()
 }
 
 /// Returns `true` if the argument contains characters that require quoting.
@@ -1500,6 +1518,27 @@ mod tests {
     #[test]
     fn test_is_companion_binary_hisat2_build() {
         assert!(is_companion_binary("hisat2", "hisat2-build"));
+    }
+
+    #[test]
+    fn test_is_companion_binary_bismark_underscore_prefix() {
+        assert!(is_companion_binary("bismark", "bismark_genome_preparation"));
+        assert!(is_companion_binary(
+            "bismark",
+            "bismark_methylation_extractor"
+        ));
+    }
+
+    #[test]
+    fn test_is_companion_binary_reverse_suffix() {
+        // deduplicate_bismark ends with _bismark — detected as companion of bismark
+        assert!(is_companion_binary("bismark", "deduplicate_bismark"));
+    }
+
+    #[test]
+    fn test_is_companion_binary_reverse_suffix_requires_prefix() {
+        // The candidate must be longer than just "_{tool}" — tool name alone doesn't count
+        assert!(!is_companion_binary("bismark", "_bismark"));
     }
 
     #[test]

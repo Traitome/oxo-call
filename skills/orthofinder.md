@@ -28,25 +28,25 @@ source_url: "https://github.com/davidemms/OrthoFinder"
 ## Examples
 
 ### run OrthoFinder on a directory of species proteomes
-**Args:** `orthofinder -f proteomes/ -t 32 -a 8`
+**Args:** `-f proteomes/ -t 32 -a 8`
 **Explanation:** -f points to directory of protein FASTAs; -t 32 threads for DIAMOND search; -a 8 threads for orthogroup analysis
 
 ### run OrthoFinder with MSA-based gene trees using MAFFT and IQ-TREE
-**Args:** `orthofinder -f proteomes/ -M msa -S diamond -A mafft -T iqtree -t 32 -a 8`
+**Args:** `-f proteomes/ -M msa -S diamond -A mafft -T iqtree -t 32 -a 8`
 **Explanation:** -M msa builds gene trees from MSA; -A mafft for alignment; -T iqtree for tree inference; more accurate but slower
 
 ### infer orthogroups only without gene trees for fast proteome comparison
-**Args:** `orthofinder -f proteomes/ -og -t 32`
+**Args:** `-f proteomes/ -og -t 32`
 **Explanation:** -og stops after orthogroup assignment and statistics; much faster than full analysis with gene trees
 
 ### restart OrthoFinder from existing DIAMOND results (add a new species)
-**Args:** `orthofinder -b proteomes/OrthoFinder/Results_Jan01/ -f new_species/ -t 32 -a 8`
+**Args:** `-b proteomes/OrthoFinder/Results_Jan01/ -f new_species/ -t 32 -a 8`
 **Explanation:** -b provides existing results; -f provides new species FASTA directory; OrthoFinder re-runs only new comparisons
 
 ### use MMseqs2 instead of DIAMOND for faster all-vs-all search
-**Args:** `orthofinder -f proteomes/ -S mmseqs2 -t 32 -a 8`
+**Args:** `-f proteomes/ -S mmseqs2 -t 32 -a 8`
 **Explanation:** -S mmseqs2 substitutes MMseqs2 for the all-vs-all search step; faster for very large proteome sets
 
 ### run OrthoFinder with a fixed output directory name
-**Args:** `orthofinder -f proteomes/ -o results/orthofinder_run -t 32 -a 8`
+**Args:** `-f proteomes/ -o results/orthofinder_run -t 32 -a 8`
 **Explanation:** -o sets the output directory explicitly instead of using a timestamped directory inside the input folder
