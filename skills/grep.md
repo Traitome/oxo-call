@@ -25,7 +25,6 @@ source_url: "https://www.gnu.org/software/grep/manual/grep.html"
 - -i (case-insensitive) can significantly slow searches on large files with many matches; use with --max-count if only checking existence.
 - grep -v prints non-matching lines — it does NOT delete lines. To remove lines from a file, use sed: 'sed -i '/pattern/d' file'.
 - For counting total matches (not matching lines), use 'grep -o pattern file | wc -l' since -c counts matching LINES, not occurrences.
-- Never use placeholder values like 'keyword', 'pattern', or 'file.txt' in the output — always use the specific strings and filenames from the task description.
 
 ## Examples
 

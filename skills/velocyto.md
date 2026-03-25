@@ -47,6 +47,6 @@ source_url: "http://velocyto.org/velocyto.py/tutorial/index.html"
 **Args:** `run10x -m hg38_rmsk.bed --samtools-threads 16 /path/to/cellranger_output Homo_sapiens.GRCh38.gtf`
 **Explanation:** --samtools-threads 16 speeds up BAM reading; -m provides UCSC repeat masker BED to exclude repetitive loci
 
-### merge multiple loom files from different samples into one
-**Args:** `loompy combine sample1.loom sample2.loom sample3.loom combined.loom`
-**Explanation:** loompy combine (from the loompy package) merges loom files; use after running velocyto on each sample separately
+### run velocyto on multiple 10x samples with per-sample output loom files
+**Args:** `run10x -m repeat_masker.bed -o sample2_loom/ /path/to/sample2_cellranger_output genes.gtf`
+**Explanation:** run10x per sample with -o to set output directory; repeat independently for each sample; then merge loom files with loompy

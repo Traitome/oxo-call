@@ -1038,6 +1038,8 @@ pub(crate) fn is_companion_binary(tool: &str, candidate: &str) -> bool {
         return true;
     }
     // Reverse suffix: _{tool} (covers deduplicate_bismark → bismark, etc.)
+    // Require len > suffix len so that _{tool} alone (with no prefix) is not matched —
+    // a candidate exactly equal to "_{tool}" would be a degenerate binary name.
     let underscore_suffix = format!("_{tool}");
     candidate.ends_with(&underscore_suffix) && candidate.len() > underscore_suffix.len()
 }

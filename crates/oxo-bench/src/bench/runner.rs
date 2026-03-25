@@ -557,12 +557,10 @@ pub fn summarise_by_tool(trials: &[TrialResult]) -> Vec<ToolModelSummary> {
         .into_iter()
         .map(|((tool, model), trials)| {
             let n = trials.len() as f64;
-            // Re-use consistency logic for this subset.
-            let trial_refs: Vec<&TrialResult> = trials.clone();
             // Gather scenario-level consistency
             let mut groups: std::collections::HashMap<(&str, &str), Vec<&str>> =
                 std::collections::HashMap::new();
-            for t in &trial_refs {
+            for t in &trials {
                 groups
                     .entry((t.scenario_id.as_str(), t.desc_id.as_str()))
                     .or_default()
@@ -581,7 +579,7 @@ pub fn summarise_by_tool(trials: &[TrialResult]) -> Vec<ToolModelSummary> {
             };
 
             // Use category from first trial (all same tool → same category)
-            let category = trial_refs
+            let category = trials
                 .first()
                 .map(|t| t.category.clone())
                 .unwrap_or_default();
@@ -590,10 +588,10 @@ pub fn summarise_by_tool(trials: &[TrialResult]) -> Vec<ToolModelSummary> {
                 tool,
                 category,
                 model,
-                n_trials: trial_refs.len(),
-                accuracy: trial_refs.iter().map(|t| t.accuracy_score).sum::<f64>() / n,
-                exact_match_rate: trial_refs.iter().filter(|t| t.exact_match).count() as f64 / n,
-                avg_flag_recall: trial_refs.iter().map(|t| t.flag_recall).sum::<f64>() / n,
+                n_trials: trials.len(),
+                accuracy: trials.iter().map(|t| t.accuracy_score).sum::<f64>() / n,
+                exact_match_rate: trials.iter().filter(|t| t.exact_match).count() as f64 / n,
+                avg_flag_recall: trials.iter().map(|t| t.flag_recall).sum::<f64>() / n,
                 consistency,
             }
         })
