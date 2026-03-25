@@ -136,9 +136,9 @@ bedtools,bedtools_04,genomecov -ibam sorted.bam -bg > coverage.bedgraph,compute 
 bedtools,bedtools_05,closest -a query.bed -b annotations.bed -d,find closest non-overlapping feature in B for each interval in A,genomic-intervals
 bedtools,bedtools_06,intersect -a genes.bed -b reads.bam -c,count overlaps between A intervals and B features,genomic-intervals
 bedtools,bedtools_07,getfasta -fi reference.fa -bed intervals.bed -fo output.fa,get sequences for intervals in a BED file,genomic-intervals
-bedtools,bedtools_08,intersect -a query.bed -b features.bed -wa -o output.txt,find intervals in file A that overlap with file B and write output to a file,genomic-intervals
-bedtools,bedtools_09,subtract -a regions.bed -b blacklist.bed --quiet,subtract regions in B from regions in A in quiet mode,genomic-intervals
-bedtools,bedtools_10,merge -i input.bed,merge overlapping intervals in a BED file with default parameters,genomic-intervals
+bedtools,bedtools_08,genomecov -ibam sorted.bam -bga > coverage_all.bedgraph,compute coverage including zero-coverage positions,genomic-intervals
+bedtools,bedtools_09,intersect -a query.bed -b features.bed -wb,intersect two BED files and report original B intervals that overlap A,genomic-intervals
+bedtools,bedtools_10,makewindows -g genome.txt -w 1000 > windows.bed,make windows of fixed size across a genome,genomic-intervals
 bismark,bismark_01,bismark_genome_preparation /path/to/genome_directory/,prepare bisulfite genome index for alignment,epigenomics
 bismark,bismark_02,bismark --genome /path/to/genome_dir/ -1 R1.fastq.gz -2 R2.fastq.gz --output_dir bismark_output/ -p 4,align paired-end WGBS reads to bisulfite genome,epigenomics
 bismark,bismark_03,deduplicate_bismark --paired --bam sample_bismark_bt2_pe.bam,deduplicate bismark-aligned paired-end BAM file,epigenomics
@@ -163,12 +163,12 @@ bowtie2,bowtie2_01,-build reference.fa reference_index,build a bowtie2 index fro
 bowtie2,bowtie2_02,-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 8 | samtools view -b -o aligned.bam,align paired-end reads to a reference genome using 8 threads,alignment
 bowtie2,bowtie2_03,-x reference_index -U reads.fastq.gz --very-sensitive -p 8 | samtools sort -o sorted.bam,align single-end reads with sensitive settings,alignment
 bowtie2,bowtie2_04,-x reference_index -1 R1.fq.gz -2 R2.fq.gz -p 8 --no-unal -S aligned.sam 2> align_stats.txt,align paired-end reads and save the alignment statistics,alignment
-bowtie2,bowtie2_05,-build reference.fa reference_index,build a bowtie2 index from a reference FASTA with default parameters,alignment
-bowtie2,bowtie2_06,-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 8 | samtools view -b -o aligned.bam --verbose,align paired-end reads to a reference genome using 8 threads with verbose output,alignment
-bowtie2,bowtie2_07,-x reference_index -U reads.fastq.gz --very-sensitive -p 8 | samtools sort -o sorted.bam -t 4,align single-end reads with sensitive settings using multiple threads,alignment
-bowtie2,bowtie2_08,-x reference_index -1 R1.fq.gz -2 R2.fq.gz -p 8 --no-unal -S aligned.sam 2> align_stats.txt -o output.txt,align paired-end reads and save the alignment statistics and write output to a file,alignment
-bowtie2,bowtie2_09,-build reference.fa reference_index --quiet,build a bowtie2 index from a reference FASTA in quiet mode,alignment
-bowtie2,bowtie2_10,-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 8 | samtools view -b -o aligned.bam,align paired-end reads to a reference genome using 8 threads with default parameters,alignment
+bowtie2,bowtie2_05,-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 8 --rg-id sample1 --rg SM:sample1 --rg LB:lib1 --rg PL:ILLUMINA | samtools view -b -o sample1.bam,align paired-end reads with read group tags for GATK downstream analysis,alignment
+bowtie2,bowtie2_06,-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz --local --very-sensitive-local -p 8 | samtools view -b -o local_aligned.bam,align in local mode to allow soft-clipping of read ends,alignment
+bowtie2,bowtie2_07,-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 16 --no-unal | samtools sort -@ 4 -o sorted.bam,align paired-end RNA-seq reads discarding unaligned reads,alignment
+bowtie2,bowtie2_08,-x reference_index -U reads.fastq.gz --fast -p 4 -S quick_check.sam,align single-end reads in fast mode for a quick quality check,alignment
+bowtie2,bowtie2_09,-build --threads 8 reference.fa reference_index,build index for a large reference genome in multi-threaded mode,alignment
+bowtie2,bowtie2_10,-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 8 --un-conc unmapped_%.fq | samtools view -b -o aligned.bam,align paired-end reads writing unmapped reads to separate files,alignment
 bracken,bracken_01,-d /path/to/kraken2_db -i kraken_report.txt -o bracken_output.bracken -l S -r 150 -t 10,run Bracken on a Kraken2 report for species-level abundance estimation,metagenomics
 bracken,bracken_02,-d /path/to/kraken2_db -i kraken_report.txt -o bracken_genus.bracken -l G -r 150 -t 5,run Bracken for genus-level abundance estimation,metagenomics
 bracken,bracken_03,--files sample1.bracken sample2.bracken sample3.bracken --output combined_abundance.txt,combine Bracken results from multiple samples into one table,metagenomics
@@ -204,11 +204,11 @@ bwa,bwa_02,mem -t 8 reference.fa R1.fastq.gz R2.fastq.gz,align paired-end reads 
 bwa,bwa_03,mem -t 4 -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA' reference.fa reads.fastq.gz,align single-end reads and save as BAM with read group for GATK,alignment
 bwa,bwa_04,mem -x ont2d reference.fa reads.fastq,align long reads (PacBio/Oxford Nanopore) to reference,alignment
 bwa,bwa_05,mem -t 8 reference.fa R1.fastq.gz R2.fastq.gz | samtools sort -@ 4 -o sorted.bam,align paired-end reads and sort the output directly to a BAM file,alignment
-bwa,bwa_06,index reference.fa --verbose,index a reference genome FASTA file with verbose output,alignment
-bwa,bwa_07,mem -t 8 reference.fa R1.fastq.gz R2.fastq.gz,align paired-end reads to a reference genome using 8 threads using multiple threads,alignment
-bwa,bwa_08,mem -t 4 -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA' reference.fa reads.fastq.gz -o output.txt,align single-end reads and save as BAM with read group for GATK and write output to a file,alignment
-bwa,bwa_09,mem -x ont2d reference.fa reads.fastq --quiet,align long reads (PacBio/Oxford Nanopore) to reference in quiet mode,alignment
-bwa,bwa_10,mem -t 8 reference.fa R1.fastq.gz R2.fastq.gz | samtools sort -@ 4 -o sorted.bam,align paired-end reads and sort the output directly to a BAM file with default parameters,alignment
+bwa,bwa_06,mem -t 8 -R '@RG\tID:run1\tSM:patient1\tLB:lib1\tPL:ILLUMINA\tPU:unit1' reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o sample1.bam,align paired-end reads with complete read group for GATK HaplotypeCaller,alignment
+bwa,bwa_07,mem -t 8 reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -F 4 -o mapped.bam,align paired-end reads and report only mapped reads,alignment
+bwa,bwa_08,mem -t 4 -B 4 -O 6 -E 1 reference.fa reads.fastq.gz > aligned.sam,align with specific gap extension and mismatch penalties,alignment
+bwa,bwa_09,mem -t 8 -R '@RG\tID:sample2\tSM:sample2\tLB:lib2\tPL:ILLUMINA' reference.fa R1.fastq.gz R2.fastq.gz | samtools sort -@ 4 -o sample2_sorted.bam && samtools index sample2_sorted.bam,align paired-end reads in a pipeline saving both BAM and stats,alignment
+bwa,bwa_10,mem -t 8 -Y reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o sv_aligned.bam,align with soft-clipping allowed for structural variant discovery,alignment
 canu,canu_01,-p ecoli_assembly -d canu_ecoli/ genomeSize=5m -nanopore reads.fastq.gz maxMemory=16g maxThreads=8,assemble bacterial genome from ONT reads,assembly
 canu,canu_02,-p hifi_assembly -d canu_hifi/ genomeSize=3g -pacbio-hifi hifi_reads.fastq.gz maxMemory=64g maxThreads=32,assemble genome from PacBio HiFi reads,assembly
 canu,canu_03,-p metagenome -d canu_meta/ genomeSize=100m -nanopore meta_reads.fastq.gz maxMemory=128g maxThreads=32 useGrid=false,assemble metagenome from ONT reads,assembly

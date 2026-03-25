@@ -15,6 +15,7 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 - samtools view filters reads: -F N excludes reads with flag N set; -f N keeps only reads with flag N set. Common flags: 4=unmapped, 256=secondary, 2048=supplementary.
 - CRAM output requires --reference /path/to/ref.fa because it stores differences from the reference.
 - Many subcommands (view, sort, flagstat) accept a region like chr1:1000-2000 to limit output.
+- Complete PCR duplicate marking workflow: (1) sort by name with 'sort -n', (2) fixmate with '-m', (3) sort by coordinate, (4) markdup.
 
 ## Pitfalls
 
@@ -24,6 +25,7 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 - samtools view without -b or -O bam outputs SAM text, not BAM — the file will be much larger.
 - samtools sort -n sorts by read name (needed before fixmate/markdup); the default is coordinate sort.
 - Piping samtools sort to samtools index does not work — sort must complete and write a file first.
+- markdup requires fixmate -m to have been run first; running markdup directly on coordinate-sorted BAM without fixmate will not correctly detect duplicates.
 
 ## Examples
 
@@ -53,7 +55,7 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 
 ### mark PCR duplicates
 **Args:** `markdup -@ 4 -f stats.txt input_namesorted.bam output_markdup.bam`
-**Explanation:** input must be name-sorted (samtools sort -n), then fixmate'd; -f writes stats
+**Explanation:** input must be name-sorted (samtools sort -n), then fixmate'd; -f writes duplicate marking statistics
 
 ### merge multiple BAM files into one
 **Args:** `merge -@ 4 -f merged.bam sample1.bam sample2.bam sample3.bam`
@@ -66,3 +68,23 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 ### view the BAM header
 **Args:** `view -H input.bam`
 **Explanation:** outputs only the header lines (starting with @) to stdout
+
+### sort BAM by read name for fixmate preprocessing
+**Args:** `sort -n -@ 4 -o namesorted.bam input.bam`
+**Explanation:** -n sorts by read name (required before fixmate and markdup); -@ 4 uses 4 threads
+
+### add mate information required for duplicate marking
+**Args:** `fixmate -m -@ 4 namesorted.bam fixmate.bam`
+**Explanation:** -m adds mate score tags needed by markdup; input must be name-sorted; output is still name-sorted
+
+### convert BAM to CRAM with reference for smaller storage
+**Args:** `view -C --reference reference.fa -o output.cram input.bam`
+**Explanation:** -C outputs CRAM format; --reference is required for CRAM; much smaller than BAM for WGS data
+
+### calculate insert size and coverage statistics
+**Args:** `stats -@ 4 input.bam > stats.txt`
+**Explanation:** outputs comprehensive statistics including insert size distribution, coverage, and error rates
+
+### sort BAM using coordinate sort with temporary directory
+**Args:** `sort -@ 8 -m 2G -T /tmp/sort_tmp -o sorted.bam input.bam`
+**Explanation:** -m limits per-thread memory; -T sets temporary directory to avoid filling default tmpdir

@@ -18,7 +18,7 @@ source_url: "https://www.gnu.org/software/sed/manual/sed.html"
 
 ## Pitfalls
 
-- DANGER: 'sed -i' modifies the file in-place without a backup. Test without -i first to verify the substitution output, then add -i. Use 'sed -i.bak' to create a backup.
+- 'sed -i' modifies the file in-place without creating a backup by default. Use 'sed -i.bak' to save the original as a backup file before modifying.
 - sed -i syntax differs between GNU sed and BSD sed (macOS): GNU accepts 'sed -i "s/x/y/"'; BSD requires 'sed -i "" "s/x/y/"'. For portability, use 'sed -i.bak'.
 - The substitution pattern is a regex, not a fixed string: special chars (., *, [, ^, $, \) must be escaped. Use 'sed 's/1\.0/2.0/g'' to replace literal '1.0'.
 - Without the 'g' flag, only the FIRST occurrence on each line is replaced. Add 'g' after the closing delimiter to replace all occurrences.
@@ -66,3 +66,23 @@ source_url: "https://www.gnu.org/software/sed/manual/sed.html"
 ### insert a line after a matching pattern
 **Args:** `'/^\[section\]/a new_key=value' config.ini`
 **Explanation:** 'a' appends the text after every line matching the address pattern
+
+### replace old string with new string across multiple files in-place
+**Args:** `-i 's/old/new/g' file1.txt file2.txt file3.txt`
+**Explanation:** -i edits all listed files in-place; g replaces every occurrence per line across all files
+
+### substitute a path separator in file paths
+**Args:** `'s|/old/path/|/new/path/|g' paths.txt`
+**Explanation:** using | as delimiter avoids escaping forward slashes; replaces all occurrences of the path prefix
+
+### delete a range of lines between two patterns
+**Args:** `'/^START/,/^END/d' file.txt`
+**Explanation:** deletes all lines from the first line matching START through the first line matching END (inclusive)
+
+### replace the second occurrence of a pattern on each line
+**Args:** `'s/pattern/replacement/2' file.txt`
+**Explanation:** the number 2 after the closing delimiter replaces only the second occurrence per line
+
+### strip HTML tags from a file
+**Args:** `'s/<[^>]*>//g' page.html`
+**Explanation:** [^>]* matches any tag content; g removes all tags on each line; output is tag-free text
