@@ -32,11 +32,11 @@ source_url: "https://bedops.readthedocs.io/"
 **Explanation:** sort-bed is required before any bedops/bedmap operation; output is written to stdout, redirect to file
 
 ### intersect two sorted BED files (intervals present in both)
-**Args:** `bedops --intersect a.sorted.bed b.sorted.bed > intersection.bed`
+**Args:** `--intersect a.sorted.bed b.sorted.bed > intersection.bed`
 **Explanation:** --intersect returns intervals that overlap between both files; equivalent to BEDtools -u -a -b
 
 ### find intervals in file A that do not overlap file B
-**Args:** `bedops --difference a.sorted.bed b.sorted.bed > a_not_b.bed`
+**Args:** `--difference a.sorted.bed b.sorted.bed > a_not_b.bed`
 **Explanation:** --difference returns elements of the first file that have no overlap with any element in subsequent files
 
 ### compute coverage (sum of signal) from bigwig/bedgraph mapped to gene windows
@@ -52,5 +52,5 @@ source_url: "https://bedops.readthedocs.io/"
 **Explanation:** fast random-access retrieval from sorted BED; much faster than grep for targeted region queries
 
 ### merge overlapping intervals and compute union across three BED files
-**Args:** `bedops --merge a.sorted.bed b.sorted.bed c.sorted.bed > merged_union.bed`
+**Args:** `--merge a.sorted.bed b.sorted.bed c.sorted.bed > merged_union.bed`
 **Explanation:** --merge unions all intervals and collapses overlapping ones into a single interval

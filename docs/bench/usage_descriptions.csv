@@ -1449,56 +1449,56 @@ bismark,bismark_05,bismark_05_07,expert,align RRBS data MspI site handling
 bismark,bismark_05,bismark_05_08,detailed,"I have data that I need to process: align RRBS data with MspI site handling, utilizing multiple CPU threads for speed, saving the result to a specified output file"
 bismark,bismark_05,bismark_05_09,informal,"Hey, can you help me align RRBS data with MspI site handling?"
 bismark,bismark_05,bismark_05_10,alternative,"With MspI site handling, align RRBS data"
-bismark,bismark_06,bismark_06_01,original,prepare bisulfite genome index for alignment with verbose output
-bismark,bismark_06,bismark_06_02,beginner,How do I prepare bisulfite genome index for alignment with verbose output?
-bismark,bismark_06,bismark_06_03,student,I need to prepare bisulfite genome index for alignment with verbose output
-bismark,bismark_06,bismark_06_04,polite,Please prepare bisulfite genome index for alignment with verbose output
-bismark,bismark_06,bismark_06_05,sysadmin,Use bismark to prepare bisulfite genome index for alignment with verbose output
-bismark,bismark_06,bismark_06_06,goal_oriented,I want to prepare bisulfite genome index for alignment with verbose output
-bismark,bismark_06,bismark_06_07,expert,prepare bisulfite genome index alignment verbose output
-bismark,bismark_06,bismark_06_08,detailed,I have data that I need to process: prepare bisulfite genome index for alignment with verbose output
-bismark,bismark_06,bismark_06_09,informal,"Hey, can you help me prepare bisulfite genome index for alignment with verbose output?"
-bismark,bismark_06,bismark_06_10,alternative,"With verbose output, prepare bisulfite genome index for alignment"
-bismark,bismark_07,bismark_07_01,original,align paired-end WGBS reads to bisulfite genome using multiple threads
-bismark,bismark_07,bismark_07_02,beginner,How do I align paired-end WGBS reads to bisulfite genome using multiple threads?
-bismark,bismark_07,bismark_07_03,student,I need to align paired-end WGBS reads to bisulfite genome using multiple threads
-bismark,bismark_07,bismark_07_04,polite,Please align paired-end WGBS reads to bisulfite genome using multiple threads
-bismark,bismark_07,bismark_07_05,sysadmin,Use bismark to align paired-end WGBS reads to bisulfite genome using multiple threads
-bismark,bismark_07,bismark_07_06,goal_oriented,I want to align paired-end WGBS reads to bisulfite genome using multiple threads
-bismark,bismark_07,bismark_07_07,expert,align paired-end WGBS reads bisulfite genome multiple threads
-bismark,bismark_07,bismark_07_08,detailed,"I have data that I need to process: align paired-end WGBS reads to bisulfite genome using multiple threads, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-bismark,bismark_07,bismark_07_09,informal,"Hey, can you help me align paired-end WGBS reads to bisulfite genome using multiple threads?"
-bismark,bismark_07,bismark_07_10,alternative,Output bisulfite genome using multiple threads by performing: align paired-end WGBS reads
-bismark,bismark_08,bismark_08_01,original,deduplicate bismark-aligned paired-end BAM file and write output to a file
-bismark,bismark_08,bismark_08_02,beginner,How do I deduplicate bismark-aligned paired-end BAM file and write output to a file?
-bismark,bismark_08,bismark_08_03,student,I need to deduplicate bismark-aligned paired-end BAM file and write output to a file
-bismark,bismark_08,bismark_08_04,polite,Please deduplicate bismark-aligned paired-end BAM file and write output to a file
-bismark,bismark_08,bismark_08_05,sysadmin,Use bismark to deduplicate bismark-aligned paired-end BAM file and write output to a file
-bismark,bismark_08,bismark_08_06,goal_oriented,I want to deduplicate bismark-aligned paired-end BAM file and write output to a file
-bismark,bismark_08,bismark_08_07,expert,deduplicate bismark-aligned paired-end BAM file write output file
-bismark,bismark_08,bismark_08_08,detailed,"I have data that I need to process: deduplicate bismark-aligned paired-end BAM file and write output to a file, saving the result to a specified output file"
-bismark,bismark_08,bismark_08_09,informal,"Hey, can you help me deduplicate bismark-aligned paired-end BAM file and write output to a file?"
-bismark,bismark_08,bismark_08_10,alternative,Write output to a file after deduplicate bismark-aligned paired-end BAM file
-bismark,bismark_09,bismark_09_01,original,extract methylation information from deduplicated BAM in quiet mode
-bismark,bismark_09,bismark_09_02,beginner,How do I extract methylation information from deduplicated BAM in quiet mode?
-bismark,bismark_09,bismark_09_03,student,I need to extract methylation information from deduplicated BAM in quiet mode
-bismark,bismark_09,bismark_09_04,polite,Please extract methylation information from deduplicated BAM in quiet mode
-bismark,bismark_09,bismark_09_05,sysadmin,Use bismark to extract methylation information from deduplicated BAM in quiet mode
-bismark,bismark_09,bismark_09_06,goal_oriented,I want to extract methylation information from deduplicated BAM in quiet mode
-bismark,bismark_09,bismark_09_07,expert,extract methylation information deduplicated BAM quiet mode
-bismark,bismark_09,bismark_09_08,detailed,"I have data that I need to process: extract methylation information from deduplicated BAM in quiet mode, saving the result to a specified output file"
-bismark,bismark_09,bismark_09_09,informal,"Hey, can you help me extract methylation information from deduplicated BAM in quiet mode?"
-bismark,bismark_09,bismark_09_10,alternative,Perform: extract methylation information from deduplicated BAM in quiet mode
-bismark,bismark_10,bismark_10_01,original,align RRBS data with MspI site handling with default parameters
-bismark,bismark_10,bismark_10_02,beginner,How do I align RRBS data with MspI site handling with default parameters?
-bismark,bismark_10,bismark_10_03,student,I need to align RRBS data with MspI site handling with default parameters
-bismark,bismark_10,bismark_10_04,polite,Please align RRBS data with MspI site handling with default parameters
-bismark,bismark_10,bismark_10_05,sysadmin,Use bismark to align RRBS data with MspI site handling with default parameters
-bismark,bismark_10,bismark_10_06,goal_oriented,I want to align RRBS data with MspI site handling with default parameters
-bismark,bismark_10,bismark_10_07,expert,align RRBS data MspI site handling default parameters
-bismark,bismark_10,bismark_10_08,detailed,"I have data that I need to process: align RRBS data with MspI site handling with default parameters, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-bismark,bismark_10,bismark_10_09,informal,"Hey, can you help me align RRBS data with MspI site handling with default parameters?"
-bismark,bismark_10,bismark_10_10,alternative,"With MspI site handling with default parameters, align RRBS data"
+bismark,bismark_06,bismark_06_01,original,align single-end WGBS reads with HISAT2 aligner
+bismark,bismark_06,bismark_06_02,beginner,How do I align single-end WGBS reads with HISAT2 aligner?
+bismark,bismark_06,bismark_06_03,student,I need to align single-end WGBS reads with HISAT2 aligner
+bismark,bismark_06,bismark_06_04,polite,Please align single-end WGBS reads with HISAT2 aligner
+bismark,bismark_06,bismark_06_05,sysadmin,Use bismark to align single-end WGBS reads with HISAT2 aligner
+bismark,bismark_06,bismark_06_06,goal_oriented,I want to align single-end WGBS reads with HISAT2 aligner
+bismark,bismark_06,bismark_06_07,expert,align single-end WGBS reads HISAT2 aligner
+bismark,bismark_06,bismark_06_08,detailed,"I have data that I need to process: align single-end WGBS reads with HISAT2 aligner, utilizing multiple CPU threads for speed, saving the result to a specified output file"
+bismark,bismark_06,bismark_06_09,informal,"Hey, can you help me align single-end WGBS reads with HISAT2 aligner?"
+bismark,bismark_06,bismark_06_10,alternative,"With HISAT2 aligner, align single-end WGBS reads"
+bismark,bismark_07,bismark_07_01,original,align PBAT or scBS-seq (non-directional) library
+bismark,bismark_07,bismark_07_02,beginner,How do I align PBAT or scBS-seq (non-directional) library?
+bismark,bismark_07,bismark_07_03,student,I need to align PBAT or scBS-seq (non-directional) library
+bismark,bismark_07,bismark_07_04,polite,Please align PBAT or scBS-seq (non-directional) library
+bismark,bismark_07,bismark_07_05,sysadmin,Use bismark to align PBAT or scBS-seq (non-directional) library
+bismark,bismark_07,bismark_07_06,goal_oriented,I want to align PBAT or scBS-seq (non-directional) library
+bismark,bismark_07,bismark_07_07,expert,align PBAT or scBS-seq (non-directional) library
+bismark,bismark_07,bismark_07_08,detailed,"I have data that I need to process: align PBAT or scBS-seq (non-directional) library, utilizing multiple CPU threads for speed, saving the result to a specified output file"
+bismark,bismark_07,bismark_07_09,informal,"Hey, can you help me align PBAT or scBS-seq (non-directional) library?"
+bismark,bismark_07,bismark_07_10,alternative,Perform: align PBAT or scBS-seq (non-directional) library
+bismark,bismark_08,bismark_08_01,original,extract CpG methylation and generate bedGraph coverage file
+bismark,bismark_08,bismark_08_02,beginner,How do I extract CpG methylation and generate bedGraph coverage file?
+bismark,bismark_08,bismark_08_03,student,I need to extract CpG methylation and generate bedGraph coverage file
+bismark,bismark_08,bismark_08_04,polite,Please extract CpG methylation and generate bedGraph coverage file
+bismark,bismark_08,bismark_08_05,sysadmin,Use bismark to extract CpG methylation and generate bedGraph coverage file
+bismark,bismark_08,bismark_08_06,goal_oriented,I want to extract CpG methylation and generate bedGraph coverage file
+bismark,bismark_08,bismark_08_07,expert,extract CpG methylation generate bedGraph coverage file
+bismark,bismark_08,bismark_08_08,detailed,"I have data that I need to process: extract CpG methylation and generate bedGraph coverage file, saving the result to a specified output file"
+bismark,bismark_08,bismark_08_09,informal,"Hey, can you help me extract CpG methylation and generate bedGraph coverage file?"
+bismark,bismark_08,bismark_08_10,alternative,Generate bedGraph coverage file after extract CpG methylation
+bismark,bismark_09,bismark_09_01,original,prepare bisulfite index for HISAT2-based alignment
+bismark,bismark_09,bismark_09_02,beginner,How do I prepare bisulfite index for HISAT2-based alignment?
+bismark,bismark_09,bismark_09_03,student,I need to prepare bisulfite index for HISAT2-based alignment
+bismark,bismark_09,bismark_09_04,polite,Please prepare bisulfite index for HISAT2-based alignment
+bismark,bismark_09,bismark_09_05,sysadmin,Use bismark to prepare bisulfite index for HISAT2-based alignment
+bismark,bismark_09,bismark_09_06,goal_oriented,I want to prepare bisulfite index for HISAT2-based alignment
+bismark,bismark_09,bismark_09_07,expert,prepare bisulfite index HISAT2-based alignment
+bismark,bismark_09,bismark_09_08,detailed,I have data that I need to process: prepare bisulfite index for HISAT2-based alignment
+bismark,bismark_09,bismark_09_09,informal,"Hey, can you help me prepare bisulfite index for HISAT2-based alignment?"
+bismark,bismark_09,bismark_09_10,alternative,Perform: prepare bisulfite index for HISAT2-based alignment
+bismark,bismark_10,bismark_10_01,original,generate M-bias plot to identify read-end bias in methylation calls
+bismark,bismark_10,bismark_10_02,beginner,How do I generate M-bias plot to identify read-end bias in methylation calls?
+bismark,bismark_10,bismark_10_03,student,I need to generate M-bias plot to identify read-end bias in methylation calls
+bismark,bismark_10,bismark_10_04,polite,Please generate M-bias plot to identify read-end bias in methylation calls
+bismark,bismark_10,bismark_10_05,sysadmin,Use bismark to generate M-bias plot to identify read-end bias in methylation calls
+bismark,bismark_10,bismark_10_06,goal_oriented,I want to generate M-bias plot to identify read-end bias in methylation calls
+bismark,bismark_10,bismark_10_07,expert,generate M-bias plot identify read-end bias methylation calls
+bismark,bismark_10,bismark_10_08,detailed,"I have data that I need to process: generate M-bias plot to identify read-end bias in methylation calls, saving the result to a specified output file"
+bismark,bismark_10,bismark_10_09,informal,"Hey, can you help me generate M-bias plot to identify read-end bias in methylation calls?"
+bismark,bismark_10,bismark_10_10,alternative,Output identify read-end bias in methylation calls by performing: generate M-bias plot
 blast,blast_01,blast_01_01,original,build a nucleotide BLAST database from a FASTA file
 blast,blast_01,blast_01_02,beginner,How do I build a nucleotide BLAST database from a FASTA file?
 blast,blast_01,blast_01_03,student,I need to build a nucleotide BLAST database from a FASTA file
@@ -2509,16 +2509,16 @@ centrifuge,centrifuge_01,centrifuge_01_07,expert,classify paired-end reads again
 centrifuge,centrifuge_01,centrifuge_01_08,detailed,"I have data that I need to process: classify paired-end reads against a pre-built bacterial/viral database, utilizing multiple CPU threads for speed"
 centrifuge,centrifuge_01,centrifuge_01_09,informal,"Hey, can you help me classify paired-end reads against a pre-built bacterial/viral database?"
 centrifuge,centrifuge_01,centrifuge_01_10,alternative,Perform: classify paired-end reads against a pre-built bacterial/viral database
-centrifuge,centrifuge_02,centrifuge_02_01,original,classify single-end reads and generate Kraken-style report
-centrifuge,centrifuge_02,centrifuge_02_02,beginner,How do I classify single-end reads and generate Kraken-style report?
-centrifuge,centrifuge_02,centrifuge_02_03,student,I need to classify single-end reads and generate Kraken-style report
-centrifuge,centrifuge_02,centrifuge_02_04,polite,Please classify single-end reads and generate Kraken-style report
-centrifuge,centrifuge_02,centrifuge_02_05,sysadmin,Use centrifuge to classify single-end reads and generate Kraken-style report
-centrifuge,centrifuge_02,centrifuge_02_06,goal_oriented,I want to classify single-end reads and generate Kraken-style report
-centrifuge,centrifuge_02,centrifuge_02_07,expert,classify single-end reads generate Kraken-style report
-centrifuge,centrifuge_02,centrifuge_02_08,detailed,"I have data that I need to process: classify single-end reads and generate Kraken-style report, utilizing multiple CPU threads for speed"
-centrifuge,centrifuge_02,centrifuge_02_09,informal,"Hey, can you help me classify single-end reads and generate Kraken-style report?"
-centrifuge,centrifuge_02,centrifuge_02_10,alternative,Generate Kraken-style report after classify single-end reads
+centrifuge,centrifuge_02,centrifuge_02_01,original,classify single-end reads against the NT database
+centrifuge,centrifuge_02,centrifuge_02_02,beginner,How do I classify single-end reads against the NT database?
+centrifuge,centrifuge_02,centrifuge_02_03,student,I need to classify single-end reads against the NT database
+centrifuge,centrifuge_02,centrifuge_02_04,polite,Please classify single-end reads against the NT database
+centrifuge,centrifuge_02,centrifuge_02_05,sysadmin,Use centrifuge to classify single-end reads against the NT database
+centrifuge,centrifuge_02,centrifuge_02_06,goal_oriented,I want to classify single-end reads against the NT database
+centrifuge,centrifuge_02,centrifuge_02_07,expert,classify single-end reads against NT database
+centrifuge,centrifuge_02,centrifuge_02_08,detailed,"I have data that I need to process: classify single-end reads against the NT database, utilizing multiple CPU threads for speed"
+centrifuge,centrifuge_02,centrifuge_02_09,informal,"Hey, can you help me classify single-end reads against the NT database?"
+centrifuge,centrifuge_02,centrifuge_02_10,alternative,Perform: classify single-end reads against the NT database
 centrifuge,centrifuge_03,centrifuge_03_01,original,build a custom centrifuge index from bacterial reference genomes
 centrifuge,centrifuge_03,centrifuge_03_02,beginner,How do I build a custom centrifuge index from bacterial reference genomes?
 centrifuge,centrifuge_03,centrifuge_03_03,student,I need to build a custom centrifuge index from bacterial reference genomes
@@ -2539,16 +2539,16 @@ centrifuge,centrifuge_04,centrifuge_04_07,expert,classify reads increased sensit
 centrifuge,centrifuge_04,centrifuge_04_08,detailed,"I have data that I need to process: classify reads with increased sensitivity for viral detection, utilizing multiple CPU threads for speed"
 centrifuge,centrifuge_04,centrifuge_04_09,informal,"Hey, can you help me classify reads with increased sensitivity for viral detection?"
 centrifuge,centrifuge_04,centrifuge_04_10,alternative,"With increased sensitivity for viral detection, classify reads"
-centrifuge,centrifuge_05,centrifuge_05_01,original,convert centrifuge output to Krona-compatible format
-centrifuge,centrifuge_05,centrifuge_05_02,beginner,How do I convert centrifuge output to Krona-compatible format?
-centrifuge,centrifuge_05,centrifuge_05_03,student,I need to convert centrifuge output to Krona-compatible format
-centrifuge,centrifuge_05,centrifuge_05_04,polite,Please convert centrifuge output to Krona-compatible format
-centrifuge,centrifuge_05,centrifuge_05_05,sysadmin,Use centrifuge to convert centrifuge output to Krona-compatible format
-centrifuge,centrifuge_05,centrifuge_05_06,goal_oriented,I want to convert centrifuge output to Krona-compatible format
-centrifuge,centrifuge_05,centrifuge_05_07,expert,convert centrifuge output Krona-compatible format
-centrifuge,centrifuge_05,centrifuge_05_08,detailed,"I have data that I need to process: convert centrifuge output to Krona-compatible format, saving the result to a specified output file"
-centrifuge,centrifuge_05,centrifuge_05_09,informal,"Hey, can you help me convert centrifuge output to Krona-compatible format?"
-centrifuge,centrifuge_05,centrifuge_05_10,alternative,Output Krona-compatible format by performing: convert centrifuge output
+centrifuge,centrifuge_05,centrifuge_05_01,original,convert centrifuge output to Kraken-style report for Pavian/Krona
+centrifuge,centrifuge_05,centrifuge_05_02,beginner,How do I convert centrifuge output to Kraken-style report for Pavian/Krona?
+centrifuge,centrifuge_05,centrifuge_05_03,student,I need to convert centrifuge output to Kraken-style report for Pavian/Krona
+centrifuge,centrifuge_05,centrifuge_05_04,polite,Please convert centrifuge output to Kraken-style report for Pavian/Krona
+centrifuge,centrifuge_05,centrifuge_05_05,sysadmin,Use centrifuge to convert centrifuge output to Kraken-style report for Pavian/Krona
+centrifuge,centrifuge_05,centrifuge_05_06,goal_oriented,I want to convert centrifuge output to Kraken-style report for Pavian/Krona
+centrifuge,centrifuge_05,centrifuge_05_07,expert,convert centrifuge output Kraken-style report Pavian/Krona
+centrifuge,centrifuge_05,centrifuge_05_08,detailed,I have data that I need to process: convert centrifuge output to Kraken-style report for Pavian/Krona
+centrifuge,centrifuge_05,centrifuge_05_09,informal,"Hey, can you help me convert centrifuge output to Kraken-style report for Pavian/Krona?"
+centrifuge,centrifuge_05,centrifuge_05_10,alternative,Output Kraken-style report for Pavian/Krona by performing: convert centrifuge output
 centrifuge,centrifuge_06,centrifuge_06_01,original,remove human reads by classifying against human genome and excluding matches
 centrifuge,centrifuge_06,centrifuge_06_02,beginner,How do I remove human reads by classifying against human genome and excluding matches?
 centrifuge,centrifuge_06,centrifuge_06_03,student,I need to remove human reads by classifying against human genome and excluding matches
@@ -2559,46 +2559,46 @@ centrifuge,centrifuge_06,centrifuge_06_07,expert,remove human reads by classifyi
 centrifuge,centrifuge_06,centrifuge_06_08,detailed,"I have data that I need to process: remove human reads by classifying against human genome and excluding matches, utilizing multiple CPU threads for speed"
 centrifuge,centrifuge_06,centrifuge_06_09,informal,"Hey, can you help me remove human reads by classifying against human genome and excluding matches?"
 centrifuge,centrifuge_06,centrifuge_06_10,alternative,Excluding matches after remove human reads by classifying against human genome
-centrifuge,centrifuge_07,centrifuge_07_01,original,classify paired-end reads against a pre-built bacterial/viral database using multiple threads
-centrifuge,centrifuge_07,centrifuge_07_02,beginner,How do I classify paired-end reads against a pre-built bacterial/viral database using multiple threads?
-centrifuge,centrifuge_07,centrifuge_07_03,student,I need to classify paired-end reads against a pre-built bacterial/viral database using multiple threads
-centrifuge,centrifuge_07,centrifuge_07_04,polite,Please classify paired-end reads against a pre-built bacterial/viral database using multiple threads
-centrifuge,centrifuge_07,centrifuge_07_05,sysadmin,Use centrifuge to classify paired-end reads against a pre-built bacterial/viral database using multiple threads
-centrifuge,centrifuge_07,centrifuge_07_06,goal_oriented,I want to classify paired-end reads against a pre-built bacterial/viral database using multiple threads
-centrifuge,centrifuge_07,centrifuge_07_07,expert,classify paired-end reads against pre-built bacterial/viral database multiple threads
-centrifuge,centrifuge_07,centrifuge_07_08,detailed,"I have data that I need to process: classify paired-end reads against a pre-built bacterial/viral database using multiple threads, utilizing multiple CPU threads for speed"
-centrifuge,centrifuge_07,centrifuge_07_09,informal,"Hey, can you help me classify paired-end reads against a pre-built bacterial/viral database using multiple threads?"
-centrifuge,centrifuge_07,centrifuge_07_10,alternative,Perform: classify paired-end reads against a pre-built bacterial/viral database using multiple threads
-centrifuge,centrifuge_08,centrifuge_08_01,original,classify single-end reads and generate Kraken-style report and write output to a file
-centrifuge,centrifuge_08,centrifuge_08_02,beginner,How do I classify single-end reads and generate Kraken-style report and write output to a file?
-centrifuge,centrifuge_08,centrifuge_08_03,student,I need to classify single-end reads and generate Kraken-style report and write output to a file
-centrifuge,centrifuge_08,centrifuge_08_04,polite,Please classify single-end reads and generate Kraken-style report and write output to a file
-centrifuge,centrifuge_08,centrifuge_08_05,sysadmin,Use centrifuge to classify single-end reads and generate Kraken-style report and write output to a file
-centrifuge,centrifuge_08,centrifuge_08_06,goal_oriented,I want to classify single-end reads and generate Kraken-style report and write output to a file
-centrifuge,centrifuge_08,centrifuge_08_07,expert,classify single-end reads generate Kraken-style report write output file
-centrifuge,centrifuge_08,centrifuge_08_08,detailed,"I have data that I need to process: classify single-end reads and generate Kraken-style report and write output to a file, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-centrifuge,centrifuge_08,centrifuge_08_09,informal,"Hey, can you help me classify single-end reads and generate Kraken-style report and write output to a file?"
-centrifuge,centrifuge_08,centrifuge_08_10,alternative,Generate Kraken-style report and write output to a file after classify single-end reads
-centrifuge,centrifuge_09,centrifuge_09_01,original,build a custom centrifuge index from bacterial reference genomes in quiet mode
-centrifuge,centrifuge_09,centrifuge_09_02,beginner,How do I build a custom centrifuge index from bacterial reference genomes in quiet mode?
-centrifuge,centrifuge_09,centrifuge_09_03,student,I need to build a custom centrifuge index from bacterial reference genomes in quiet mode
-centrifuge,centrifuge_09,centrifuge_09_04,polite,Please build a custom centrifuge index from bacterial reference genomes in quiet mode
-centrifuge,centrifuge_09,centrifuge_09_05,sysadmin,Use centrifuge to build a custom centrifuge index from bacterial reference genomes in quiet mode
-centrifuge,centrifuge_09,centrifuge_09_06,goal_oriented,I want to build a custom centrifuge index from bacterial reference genomes in quiet mode
-centrifuge,centrifuge_09,centrifuge_09_07,expert,build custom centrifuge index bacterial reference genomes quiet mode
-centrifuge,centrifuge_09,centrifuge_09_08,detailed,"I have data that I need to process: build a custom centrifuge index from bacterial reference genomes in quiet mode, utilizing multiple CPU threads for speed"
-centrifuge,centrifuge_09,centrifuge_09_09,informal,"Hey, can you help me build a custom centrifuge index from bacterial reference genomes in quiet mode?"
-centrifuge,centrifuge_09,centrifuge_09_10,alternative,Perform: build a custom centrifuge index from bacterial reference genomes in quiet mode
-centrifuge,centrifuge_10,centrifuge_10_01,original,classify reads with increased sensitivity for viral detection with default parameters
-centrifuge,centrifuge_10,centrifuge_10_02,beginner,How do I classify reads with increased sensitivity for viral detection with default parameters?
-centrifuge,centrifuge_10,centrifuge_10_03,student,I need to classify reads with increased sensitivity for viral detection with default parameters
-centrifuge,centrifuge_10,centrifuge_10_04,polite,Please classify reads with increased sensitivity for viral detection with default parameters
-centrifuge,centrifuge_10,centrifuge_10_05,sysadmin,Use centrifuge to classify reads with increased sensitivity for viral detection with default parameters
-centrifuge,centrifuge_10,centrifuge_10_06,goal_oriented,I want to classify reads with increased sensitivity for viral detection with default parameters
-centrifuge,centrifuge_10,centrifuge_10_07,expert,classify reads increased sensitivity viral detection default parameters
-centrifuge,centrifuge_10,centrifuge_10_08,detailed,"I have data that I need to process: classify reads with increased sensitivity for viral detection with default parameters, utilizing multiple CPU threads for speed"
-centrifuge,centrifuge_10,centrifuge_10_09,informal,"Hey, can you help me classify reads with increased sensitivity for viral detection with default parameters?"
-centrifuge,centrifuge_10,centrifuge_10_10,alternative,"With increased sensitivity for viral detection with default parameters, classify reads"
+centrifuge,centrifuge_07,centrifuge_07_01,original,build centrifuge index from viral reference sequences
+centrifuge,centrifuge_07,centrifuge_07_02,beginner,How do I build centrifuge index from viral reference sequences?
+centrifuge,centrifuge_07,centrifuge_07_03,student,I need to build centrifuge index from viral reference sequences
+centrifuge,centrifuge_07,centrifuge_07_04,polite,Please build centrifuge index from viral reference sequences
+centrifuge,centrifuge_07,centrifuge_07_05,sysadmin,Use centrifuge to build centrifuge index from viral reference sequences
+centrifuge,centrifuge_07,centrifuge_07_06,goal_oriented,I want to build centrifuge index from viral reference sequences
+centrifuge,centrifuge_07,centrifuge_07_07,expert,build centrifuge index viral reference sequences
+centrifuge,centrifuge_07,centrifuge_07_08,detailed,"I have data that I need to process: build centrifuge index from viral reference sequences, utilizing multiple CPU threads for speed"
+centrifuge,centrifuge_07,centrifuge_07_09,informal,"Hey, can you help me build centrifuge index from viral reference sequences?"
+centrifuge,centrifuge_07,centrifuge_07_10,alternative,Perform: build centrifuge index from viral reference sequences
+centrifuge,centrifuge_08,centrifuge_08_01,original,classify reads and save unclassified reads for downstream assembly
+centrifuge,centrifuge_08,centrifuge_08_02,beginner,How do I classify reads and save unclassified reads for downstream assembly?
+centrifuge,centrifuge_08,centrifuge_08_03,student,I need to classify reads and save unclassified reads for downstream assembly
+centrifuge,centrifuge_08,centrifuge_08_04,polite,Please classify reads and save unclassified reads for downstream assembly
+centrifuge,centrifuge_08,centrifuge_08_05,sysadmin,Use centrifuge to classify reads and save unclassified reads for downstream assembly
+centrifuge,centrifuge_08,centrifuge_08_06,goal_oriented,I want to classify reads and save unclassified reads for downstream assembly
+centrifuge,centrifuge_08,centrifuge_08_07,expert,classify reads save unclassified reads downstream assembly
+centrifuge,centrifuge_08,centrifuge_08_08,detailed,"I have data that I need to process: classify reads and save unclassified reads for downstream assembly, utilizing multiple CPU threads for speed"
+centrifuge,centrifuge_08,centrifuge_08_09,informal,"Hey, can you help me classify reads and save unclassified reads for downstream assembly?"
+centrifuge,centrifuge_08,centrifuge_08_10,alternative,Save unclassified reads for downstream assembly after classify reads
+centrifuge,centrifuge_09,centrifuge_09_01,original,use high minimum hit length for precision metagenomic classification
+centrifuge,centrifuge_09,centrifuge_09_02,beginner,How do I use high minimum hit length for precision metagenomic classification?
+centrifuge,centrifuge_09,centrifuge_09_03,student,I need to use high minimum hit length for precision metagenomic classification
+centrifuge,centrifuge_09,centrifuge_09_04,polite,Please use high minimum hit length for precision metagenomic classification
+centrifuge,centrifuge_09,centrifuge_09_05,sysadmin,Use centrifuge to use high minimum hit length for precision metagenomic classification
+centrifuge,centrifuge_09,centrifuge_09_06,goal_oriented,I want to use high minimum hit length for precision metagenomic classification
+centrifuge,centrifuge_09,centrifuge_09_07,expert,use high minimum hit length precision metagenomic classification
+centrifuge,centrifuge_09,centrifuge_09_08,detailed,"I have data that I need to process: use high minimum hit length for precision metagenomic classification, utilizing multiple CPU threads for speed"
+centrifuge,centrifuge_09,centrifuge_09_09,informal,"Hey, can you help me use high minimum hit length for precision metagenomic classification?"
+centrifuge,centrifuge_09,centrifuge_09_10,alternative,Perform: use high minimum hit length for precision metagenomic classification
+centrifuge,centrifuge_10,centrifuge_10_01,original,classify paired-end metagenome against custom host-depleted database
+centrifuge,centrifuge_10,centrifuge_10_02,beginner,How do I classify paired-end metagenome against custom host-depleted database?
+centrifuge,centrifuge_10,centrifuge_10_03,student,I need to classify paired-end metagenome against custom host-depleted database
+centrifuge,centrifuge_10,centrifuge_10_04,polite,Please classify paired-end metagenome against custom host-depleted database
+centrifuge,centrifuge_10,centrifuge_10_05,sysadmin,Use centrifuge to classify paired-end metagenome against custom host-depleted database
+centrifuge,centrifuge_10,centrifuge_10_06,goal_oriented,I want to classify paired-end metagenome against custom host-depleted database
+centrifuge,centrifuge_10,centrifuge_10_07,expert,classify paired-end metagenome against custom host-depleted database
+centrifuge,centrifuge_10,centrifuge_10_08,detailed,"I have data that I need to process: classify paired-end metagenome against custom host-depleted database, utilizing multiple CPU threads for speed"
+centrifuge,centrifuge_10,centrifuge_10_09,informal,"Hey, can you help me classify paired-end metagenome against custom host-depleted database?"
+centrifuge,centrifuge_10,centrifuge_10_10,alternative,Perform: classify paired-end metagenome against custom host-depleted database
 checkm2,checkm2_01,checkm2_01_01,original,assess quality of all MAG bins in a directory
 checkm2,checkm2_01,checkm2_01_02,beginner,How do I assess quality of all MAG bins in a directory?
 checkm2,checkm2_01,checkm2_01_03,student,I need to assess quality of all MAG bins in a directory
@@ -5759,46 +5759,46 @@ hisat2,hisat2_06,hisat2_06_07,expert,build splice-site aware index GTF annotatio
 hisat2,hisat2_06,hisat2_06_08,detailed,"I have data that I need to process: build splice-site aware index using GTF annotation for improved RNA-seq, utilizing multiple CPU threads for speed"
 hisat2,hisat2_06,hisat2_06_09,informal,"Hey, can you help me build splice-site aware index using GTF annotation for improved RNA-seq?"
 hisat2,hisat2_06,hisat2_06_10,alternative,Perform: build splice-site aware index using GTF annotation for improved RNA-seq
-hisat2,hisat2_07,hisat2_07_01,original,build a HISAT2 genome index from a reference FASTA using multiple threads
-hisat2,hisat2_07,hisat2_07_02,beginner,How do I build a HISAT2 genome index from a reference FASTA using multiple threads?
-hisat2,hisat2_07,hisat2_07_03,student,I need to build a HISAT2 genome index from a reference FASTA using multiple threads
-hisat2,hisat2_07,hisat2_07_04,polite,Please build a HISAT2 genome index from a reference FASTA using multiple threads
-hisat2,hisat2_07,hisat2_07_05,sysadmin,Use hisat2 to build a HISAT2 genome index from a reference FASTA using multiple threads
-hisat2,hisat2_07,hisat2_07_06,goal_oriented,I want to build a HISAT2 genome index from a reference FASTA using multiple threads
-hisat2,hisat2_07,hisat2_07_07,expert,build HISAT2 genome index reference FASTA multiple threads
-hisat2,hisat2_07,hisat2_07_08,detailed,"I have data that I need to process: build a HISAT2 genome index from a reference FASTA using multiple threads, utilizing multiple CPU threads for speed"
-hisat2,hisat2_07,hisat2_07_09,informal,"Hey, can you help me build a HISAT2 genome index from a reference FASTA using multiple threads?"
-hisat2,hisat2_07,hisat2_07_10,alternative,Perform: build a HISAT2 genome index from a reference FASTA using multiple threads
-hisat2,hisat2_08,hisat2_08_01,original,align paired-end RNA-seq reads to the genome with 8 threads and write output to a file
-hisat2,hisat2_08,hisat2_08_02,beginner,How do I align paired-end RNA-seq reads to the genome with 8 threads and write output to a file?
-hisat2,hisat2_08,hisat2_08_03,student,I need to align paired-end RNA-seq reads to the genome with 8 threads and write output to a file
-hisat2,hisat2_08,hisat2_08_04,polite,Please align paired-end RNA-seq reads to the genome with 8 threads and write output to a file
-hisat2,hisat2_08,hisat2_08_05,sysadmin,Use hisat2 to align paired-end RNA-seq reads to the genome with 8 threads and write output to a file
-hisat2,hisat2_08,hisat2_08_06,goal_oriented,I want to align paired-end RNA-seq reads to the genome with 8 threads and write output to a file
-hisat2,hisat2_08,hisat2_08_07,expert,align paired-end RNA-seq reads genome 8 threads write output file
-hisat2,hisat2_08,hisat2_08_08,detailed,"I have data that I need to process: align paired-end RNA-seq reads to the genome with 8 threads and write output to a file, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-hisat2,hisat2_08,hisat2_08_09,informal,"Hey, can you help me align paired-end RNA-seq reads to the genome with 8 threads and write output to a file?"
-hisat2,hisat2_08,hisat2_08_10,alternative,Write output to a file after align paired-end RNA-seq reads to the genome with 8 threads
-hisat2,hisat2_09,hisat2_09_01,original,align paired-end RNA-seq reads and output sorted BAM directly in quiet mode
-hisat2,hisat2_09,hisat2_09_02,beginner,How do I align paired-end RNA-seq reads and output sorted BAM directly in quiet mode?
-hisat2,hisat2_09,hisat2_09_03,student,I need to align paired-end RNA-seq reads and output sorted BAM directly in quiet mode
-hisat2,hisat2_09,hisat2_09_04,polite,Please align paired-end RNA-seq reads and output sorted BAM directly in quiet mode
-hisat2,hisat2_09,hisat2_09_05,sysadmin,Use hisat2 to align paired-end RNA-seq reads and output sorted BAM directly in quiet mode
-hisat2,hisat2_09,hisat2_09_06,goal_oriented,I want to align paired-end RNA-seq reads and output sorted BAM directly in quiet mode
-hisat2,hisat2_09,hisat2_09_07,expert,align paired-end RNA-seq reads output sorted BAM directly quiet mode
-hisat2,hisat2_09,hisat2_09_08,detailed,"I have data that I need to process: align paired-end RNA-seq reads and output sorted BAM directly in quiet mode, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-hisat2,hisat2_09,hisat2_09_09,informal,"Hey, can you help me align paired-end RNA-seq reads and output sorted BAM directly in quiet mode?"
-hisat2,hisat2_09,hisat2_09_10,alternative,Output sorted BAM directly in quiet mode after align paired-end RNA-seq reads
-hisat2,hisat2_10,hisat2_10_01,original,align strand-specific paired-end RNA-seq (reverse-strand library) with default parameters
-hisat2,hisat2_10,hisat2_10_02,beginner,How do I align strand-specific paired-end RNA-seq (reverse-strand library) with default parameters?
-hisat2,hisat2_10,hisat2_10_03,student,I need to align strand-specific paired-end RNA-seq (reverse-strand library) with default parameters
-hisat2,hisat2_10,hisat2_10_04,polite,Please align strand-specific paired-end RNA-seq (reverse-strand library) with default parameters
-hisat2,hisat2_10,hisat2_10_05,sysadmin,Use hisat2 to align strand-specific paired-end RNA-seq (reverse-strand library) with default parameters
-hisat2,hisat2_10,hisat2_10_06,goal_oriented,I want to align strand-specific paired-end RNA-seq (reverse-strand library) with default parameters
-hisat2,hisat2_10,hisat2_10_07,expert,align strand-specific paired-end RNA-seq (reverse-strand library) default parameters
-hisat2,hisat2_10,hisat2_10_08,detailed,"I have data that I need to process: align strand-specific paired-end RNA-seq (reverse-strand library) with default parameters, utilizing multiple CPU threads for speed"
-hisat2,hisat2_10,hisat2_10_09,informal,"Hey, can you help me align strand-specific paired-end RNA-seq (reverse-strand library) with default parameters?"
-hisat2,hisat2_10,hisat2_10_10,alternative,"With default parameters, align strand-specific paired-end RNA-seq (reverse-strand library)"
+hisat2,hisat2_07,hisat2_07_01,original,align paired-end reads with strand information and save alignment statistics
+hisat2,hisat2_07,hisat2_07_02,beginner,How do I align paired-end reads with strand information and save alignment statistics?
+hisat2,hisat2_07,hisat2_07_03,student,I need to align paired-end reads with strand information and save alignment statistics
+hisat2,hisat2_07,hisat2_07_04,polite,Please align paired-end reads with strand information and save alignment statistics
+hisat2,hisat2_07,hisat2_07_05,sysadmin,Use hisat2 to align paired-end reads with strand information and save alignment statistics
+hisat2,hisat2_07,hisat2_07_06,goal_oriented,I want to align paired-end reads with strand information and save alignment statistics
+hisat2,hisat2_07,hisat2_07_07,expert,align paired-end reads strand information save alignment statistics
+hisat2,hisat2_07,hisat2_07_08,detailed,"I have data that I need to process: align paired-end reads with strand information and save alignment statistics, utilizing multiple CPU threads for speed"
+hisat2,hisat2_07,hisat2_07_09,informal,"Hey, can you help me align paired-end reads with strand information and save alignment statistics?"
+hisat2,hisat2_07,hisat2_07_10,alternative,Save alignment statistics after align paired-end reads with strand information
+hisat2,hisat2_08,hisat2_08_01,original,align single-end reads in genomic (non-spliced) mode for DNA-seq
+hisat2,hisat2_08,hisat2_08_02,beginner,How do I align single-end reads in genomic (non-spliced) mode for DNA-seq?
+hisat2,hisat2_08,hisat2_08_03,student,I need to align single-end reads in genomic (non-spliced) mode for DNA-seq
+hisat2,hisat2_08,hisat2_08_04,polite,Please align single-end reads in genomic (non-spliced) mode for DNA-seq
+hisat2,hisat2_08,hisat2_08_05,sysadmin,Use hisat2 to align single-end reads in genomic (non-spliced) mode for DNA-seq
+hisat2,hisat2_08,hisat2_08_06,goal_oriented,I want to align single-end reads in genomic (non-spliced) mode for DNA-seq
+hisat2,hisat2_08,hisat2_08_07,expert,align single-end reads genomic (non-spliced) mode DNA-seq
+hisat2,hisat2_08,hisat2_08_08,detailed,"I have data that I need to process: align single-end reads in genomic (non-spliced) mode for DNA-seq, utilizing multiple CPU threads for speed"
+hisat2,hisat2_08,hisat2_08_09,informal,"Hey, can you help me align single-end reads in genomic (non-spliced) mode for DNA-seq?"
+hisat2,hisat2_08,hisat2_08_10,alternative,Perform: align single-end reads in genomic (non-spliced) mode for DNA-seq
+hisat2,hisat2_09,hisat2_09_01,original,align paired-end reads and discard unmapped reads
+hisat2,hisat2_09,hisat2_09_02,beginner,How do I align paired-end reads and discard unmapped reads?
+hisat2,hisat2_09,hisat2_09_03,student,I need to align paired-end reads and discard unmapped reads
+hisat2,hisat2_09,hisat2_09_04,polite,Please align paired-end reads and discard unmapped reads
+hisat2,hisat2_09,hisat2_09_05,sysadmin,Use hisat2 to align paired-end reads and discard unmapped reads
+hisat2,hisat2_09,hisat2_09_06,goal_oriented,I want to align paired-end reads and discard unmapped reads
+hisat2,hisat2_09,hisat2_09_07,expert,align paired-end reads discard unmapped reads
+hisat2,hisat2_09,hisat2_09_08,detailed,"I have data that I need to process: align paired-end reads and discard unmapped reads, utilizing multiple CPU threads for speed"
+hisat2,hisat2_09,hisat2_09_09,informal,"Hey, can you help me align paired-end reads and discard unmapped reads?"
+hisat2,hisat2_09,hisat2_09_10,alternative,Discard unmapped reads after align paired-end reads
+hisat2,hisat2_10,hisat2_10_01,original,align paired-end reads and output only uniquely mapped reads
+hisat2,hisat2_10,hisat2_10_02,beginner,How do I align paired-end reads and output only uniquely mapped reads?
+hisat2,hisat2_10,hisat2_10_03,student,I need to align paired-end reads and output only uniquely mapped reads
+hisat2,hisat2_10,hisat2_10_04,polite,Please align paired-end reads and output only uniquely mapped reads
+hisat2,hisat2_10,hisat2_10_05,sysadmin,Use hisat2 to align paired-end reads and output only uniquely mapped reads
+hisat2,hisat2_10,hisat2_10_06,goal_oriented,I want to align paired-end reads and output only uniquely mapped reads
+hisat2,hisat2_10,hisat2_10_07,expert,align paired-end reads output only uniquely mapped reads
+hisat2,hisat2_10,hisat2_10_08,detailed,"I have data that I need to process: align paired-end reads and output only uniquely mapped reads, utilizing multiple CPU threads for speed, saving the result to a specified output file"
+hisat2,hisat2_10,hisat2_10_09,informal,"Hey, can you help me align paired-end reads and output only uniquely mapped reads?"
+hisat2,hisat2_10,hisat2_10_10,alternative,Output only uniquely mapped reads after align paired-end reads
 hmmer,hmmer_01,hmmer_01_01,original,search a protein database against Pfam HMM profiles (domain annotation)
 hmmer,hmmer_01,hmmer_01_02,beginner,How do I search a protein database against Pfam HMM profiles (domain annotation)?
 hmmer,hmmer_01,hmmer_01_03,student,I need to search a protein database against Pfam HMM profiles (domain annotation)
@@ -12049,56 +12049,56 @@ rsem,rsem_05,rsem_05_07,expert,generate count matrix multiple RSEM results files
 rsem,rsem_05,rsem_05_08,detailed,I have data that I need to process: generate count matrix from multiple RSEM results files for DESeq2
 rsem,rsem_05,rsem_05_09,informal,"Hey, can you help me generate count matrix from multiple RSEM results files for DESeq2?"
 rsem,rsem_05,rsem_05_10,alternative,Perform: generate count matrix from multiple RSEM results files for DESeq2
-rsem,rsem_06,rsem_06_01,original,prepare RSEM reference from genome FASTA and GTF annotation with verbose output
-rsem,rsem_06,rsem_06_02,beginner,How do I prepare RSEM reference from genome FASTA and GTF annotation with verbose output?
-rsem,rsem_06,rsem_06_03,student,I need to prepare RSEM reference from genome FASTA and GTF annotation with verbose output
-rsem,rsem_06,rsem_06_04,polite,Please prepare RSEM reference from genome FASTA and GTF annotation with verbose output
-rsem,rsem_06,rsem_06_05,sysadmin,Use rsem to prepare RSEM reference from genome FASTA and GTF annotation with verbose output
-rsem,rsem_06,rsem_06_06,goal_oriented,I want to prepare RSEM reference from genome FASTA and GTF annotation with verbose output
-rsem,rsem_06,rsem_06_07,expert,prepare RSEM reference genome FASTA GTF annotation verbose output
-rsem,rsem_06,rsem_06_08,detailed,I have data that I need to process: prepare RSEM reference from genome FASTA and GTF annotation with verbose output
-rsem,rsem_06,rsem_06_09,informal,"Hey, can you help me prepare RSEM reference from genome FASTA and GTF annotation with verbose output?"
-rsem,rsem_06,rsem_06_10,alternative,GTF annotation with verbose output after prepare RSEM reference from genome FASTA
-rsem,rsem_07,rsem_07_01,original,quantify paired-end RNA-seq reads using RSEM with Bowtie2 using multiple threads
-rsem,rsem_07,rsem_07_02,beginner,How do I quantify paired-end RNA-seq reads using RSEM with Bowtie2 using multiple threads?
-rsem,rsem_07,rsem_07_03,student,I need to quantify paired-end RNA-seq reads using RSEM with Bowtie2 using multiple threads
-rsem,rsem_07,rsem_07_04,polite,Please quantify paired-end RNA-seq reads using RSEM with Bowtie2 using multiple threads
-rsem,rsem_07,rsem_07_05,sysadmin,Use rsem to quantify paired-end RNA-seq reads using RSEM with Bowtie2 using multiple threads
-rsem,rsem_07,rsem_07_06,goal_oriented,I want to quantify paired-end RNA-seq reads using RSEM with Bowtie2 using multiple threads
-rsem,rsem_07,rsem_07_07,expert,quantify paired-end RNA-seq reads RSEM Bowtie2 multiple threads
-rsem,rsem_07,rsem_07_08,detailed,I have data that I need to process: quantify paired-end RNA-seq reads using RSEM with Bowtie2 using multiple threads
-rsem,rsem_07,rsem_07_09,informal,"Hey, can you help me quantify paired-end RNA-seq reads using RSEM with Bowtie2 using multiple threads?"
-rsem,rsem_07,rsem_07_10,alternative,"With Bowtie2 using multiple threads, quantify paired-end RNA-seq reads using RSEM"
-rsem,rsem_08,rsem_08_01,original,quantify RNA-seq using RSEM with STAR aligner and write output to a file
-rsem,rsem_08,rsem_08_02,beginner,How do I quantify RNA-seq using RSEM with STAR aligner and write output to a file?
-rsem,rsem_08,rsem_08_03,student,I need to quantify RNA-seq using RSEM with STAR aligner and write output to a file
-rsem,rsem_08,rsem_08_04,polite,Please quantify RNA-seq using RSEM with STAR aligner and write output to a file
-rsem,rsem_08,rsem_08_05,sysadmin,Use rsem to quantify RNA-seq using RSEM with STAR aligner and write output to a file
-rsem,rsem_08,rsem_08_06,goal_oriented,I want to quantify RNA-seq using RSEM with STAR aligner and write output to a file
-rsem,rsem_08,rsem_08_07,expert,quantify RNA-seq RSEM STAR aligner write output file
-rsem,rsem_08,rsem_08_08,detailed,"I have data that I need to process: quantify RNA-seq using RSEM with STAR aligner and write output to a file, saving the result to a specified output file"
-rsem,rsem_08,rsem_08_09,informal,"Hey, can you help me quantify RNA-seq using RSEM with STAR aligner and write output to a file?"
-rsem,rsem_08,rsem_08_10,alternative,Write output to a file after quantify RNA-seq using RSEM with STAR aligner
-rsem,rsem_09,rsem_09_01,original,prepare RSEM reference directly from transcriptome FASTA in quiet mode
-rsem,rsem_09,rsem_09_02,beginner,How do I prepare RSEM reference directly from transcriptome FASTA in quiet mode?
-rsem,rsem_09,rsem_09_03,student,I need to prepare RSEM reference directly from transcriptome FASTA in quiet mode
-rsem,rsem_09,rsem_09_04,polite,Please prepare RSEM reference directly from transcriptome FASTA in quiet mode
-rsem,rsem_09,rsem_09_05,sysadmin,Use rsem to prepare RSEM reference directly from transcriptome FASTA in quiet mode
-rsem,rsem_09,rsem_09_06,goal_oriented,I want to prepare RSEM reference directly from transcriptome FASTA in quiet mode
-rsem,rsem_09,rsem_09_07,expert,prepare RSEM reference directly transcriptome FASTA quiet mode
-rsem,rsem_09,rsem_09_08,detailed,I have data that I need to process: prepare RSEM reference directly from transcriptome FASTA in quiet mode
-rsem,rsem_09,rsem_09_09,informal,"Hey, can you help me prepare RSEM reference directly from transcriptome FASTA in quiet mode?"
-rsem,rsem_09,rsem_09_10,alternative,Perform: prepare RSEM reference directly from transcriptome FASTA in quiet mode
-rsem,rsem_10,rsem_10_01,original,generate count matrix from multiple RSEM results files for DESeq2 with default parameters
-rsem,rsem_10,rsem_10_02,beginner,How do I generate count matrix from multiple RSEM results files for DESeq2 with default parameters?
-rsem,rsem_10,rsem_10_03,student,I need to generate count matrix from multiple RSEM results files for DESeq2 with default parameters
-rsem,rsem_10,rsem_10_04,polite,Please generate count matrix from multiple RSEM results files for DESeq2 with default parameters
-rsem,rsem_10,rsem_10_05,sysadmin,Use rsem to generate count matrix from multiple RSEM results files for DESeq2 with default parameters
-rsem,rsem_10,rsem_10_06,goal_oriented,I want to generate count matrix from multiple RSEM results files for DESeq2 with default parameters
-rsem,rsem_10,rsem_10_07,expert,generate count matrix multiple RSEM results files DESeq2 default parameters
-rsem,rsem_10,rsem_10_08,detailed,I have data that I need to process: generate count matrix from multiple RSEM results files for DESeq2 with default parameters
-rsem,rsem_10,rsem_10_09,informal,"Hey, can you help me generate count matrix from multiple RSEM results files for DESeq2 with default parameters?"
-rsem,rsem_10,rsem_10_10,alternative,"With default parameters, generate count matrix from multiple RSEM results files for DESeq2"
+rsem,rsem_06,rsem_06_01,original,quantify single-end RNA-seq reads using RSEM
+rsem,rsem_06,rsem_06_02,beginner,How do I quantify single-end RNA-seq reads using RSEM?
+rsem,rsem_06,rsem_06_03,student,I need to quantify single-end RNA-seq reads using RSEM
+rsem,rsem_06,rsem_06_04,polite,Please quantify single-end RNA-seq reads using RSEM
+rsem,rsem_06,rsem_06_05,sysadmin,Use rsem to quantify single-end RNA-seq reads using RSEM
+rsem,rsem_06,rsem_06_06,goal_oriented,I want to quantify single-end RNA-seq reads using RSEM
+rsem,rsem_06,rsem_06_07,expert,quantify single-end RNA-seq reads RSEM
+rsem,rsem_06,rsem_06_08,detailed,I have data that I need to process: quantify single-end RNA-seq reads using RSEM
+rsem,rsem_06,rsem_06_09,informal,"Hey, can you help me quantify single-end RNA-seq reads using RSEM?"
+rsem,rsem_06,rsem_06_10,alternative,Perform: quantify single-end RNA-seq reads using RSEM
+rsem,rsem_07,rsem_07_01,original,prepare RSEM reference with Bowtie2 and poly-A trimming for scRNA-seq
+rsem,rsem_07,rsem_07_02,beginner,How do I prepare RSEM reference with Bowtie2 and poly-A trimming for scRNA-seq?
+rsem,rsem_07,rsem_07_03,student,I need to prepare RSEM reference with Bowtie2 and poly-A trimming for scRNA-seq
+rsem,rsem_07,rsem_07_04,polite,Please prepare RSEM reference with Bowtie2 and poly-A trimming for scRNA-seq
+rsem,rsem_07,rsem_07_05,sysadmin,Use rsem to prepare RSEM reference with Bowtie2 and poly-A trimming for scRNA-seq
+rsem,rsem_07,rsem_07_06,goal_oriented,I want to prepare RSEM reference with Bowtie2 and poly-A trimming for scRNA-seq
+rsem,rsem_07,rsem_07_07,expert,prepare RSEM reference Bowtie2 poly-A trimming scRNA-seq
+rsem,rsem_07,rsem_07_08,detailed,I have data that I need to process: prepare RSEM reference with Bowtie2 and poly-A trimming for scRNA-seq
+rsem,rsem_07,rsem_07_09,informal,"Hey, can you help me prepare RSEM reference with Bowtie2 and poly-A trimming for scRNA-seq?"
+rsem,rsem_07,rsem_07_10,alternative,Poly-A trimming for scRNA-seq after prepare RSEM reference with Bowtie2
+rsem,rsem_08,rsem_08_01,original,quantify with RSEM and estimate read start position distribution
+rsem,rsem_08,rsem_08_02,beginner,How do I quantify with RSEM and estimate read start position distribution?
+rsem,rsem_08,rsem_08_03,student,I need to quantify with RSEM and estimate read start position distribution
+rsem,rsem_08,rsem_08_04,polite,Please quantify with RSEM and estimate read start position distribution
+rsem,rsem_08,rsem_08_05,sysadmin,Use rsem to quantify with RSEM and estimate read start position distribution
+rsem,rsem_08,rsem_08_06,goal_oriented,I want to quantify with RSEM and estimate read start position distribution
+rsem,rsem_08,rsem_08_07,expert,quantify RSEM estimate read start position distribution
+rsem,rsem_08,rsem_08_08,detailed,I have data that I need to process: quantify with RSEM and estimate read start position distribution
+rsem,rsem_08,rsem_08_09,informal,"Hey, can you help me quantify with RSEM and estimate read start position distribution?"
+rsem,rsem_08,rsem_08_10,alternative,Estimate read start position distribution after quantify with RSEM
+rsem,rsem_09,rsem_09_01,original,extract TPM values for gene-level expression across samples
+rsem,rsem_09,rsem_09_02,beginner,How do I extract TPM values for gene-level expression across samples?
+rsem,rsem_09,rsem_09_03,student,I need to extract TPM values for gene-level expression across samples
+rsem,rsem_09,rsem_09_04,polite,Please extract TPM values for gene-level expression across samples
+rsem,rsem_09,rsem_09_05,sysadmin,Use rsem to extract TPM values for gene-level expression across samples
+rsem,rsem_09,rsem_09_06,goal_oriented,I want to extract TPM values for gene-level expression across samples
+rsem,rsem_09,rsem_09_07,expert,extract TPM values gene-level expression across samples
+rsem,rsem_09,rsem_09_08,detailed,I have data that I need to process: extract TPM values for gene-level expression across samples
+rsem,rsem_09,rsem_09_09,informal,"Hey, can you help me extract TPM values for gene-level expression across samples?"
+rsem,rsem_09,rsem_09_10,alternative,Perform: extract TPM values for gene-level expression across samples
+rsem,rsem_10,rsem_10_01,original,calculate expression with confidence intervals for uncertainty estimation
+rsem,rsem_10,rsem_10_02,beginner,How do I calculate expression with confidence intervals for uncertainty estimation?
+rsem,rsem_10,rsem_10_03,student,I need to calculate expression with confidence intervals for uncertainty estimation
+rsem,rsem_10,rsem_10_04,polite,Please calculate expression with confidence intervals for uncertainty estimation
+rsem,rsem_10,rsem_10_05,sysadmin,Use rsem to calculate expression with confidence intervals for uncertainty estimation
+rsem,rsem_10,rsem_10_06,goal_oriented,I want to calculate expression with confidence intervals for uncertainty estimation
+rsem,rsem_10,rsem_10_07,expert,calculate expression confidence intervals uncertainty estimation
+rsem,rsem_10,rsem_10_08,detailed,I have data that I need to process: calculate expression with confidence intervals for uncertainty estimation
+rsem,rsem_10,rsem_10_09,informal,"Hey, can you help me calculate expression with confidence intervals for uncertainty estimation?"
+rsem,rsem_10,rsem_10_10,alternative,"With confidence intervals for uncertainty estimation, calculate expression"
 rseqc,rseqc_01,rseqc_01_01,original,infer library strandedness from a BAM
 rseqc,rseqc_01,rseqc_01_02,beginner,How do I infer library strandedness from a BAM?
 rseqc,rseqc_01,rseqc_01_03,student,I need to infer library strandedness from a BAM
