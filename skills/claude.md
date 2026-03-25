@@ -22,7 +22,7 @@ source_url: "https://docs.anthropic.com/en/docs/claude-code/overview"
 
 ## Pitfalls
 
-- DANGER: running Claude in agentic mode with write/execute tools enabled allows it to modify files and run commands; always review the proposed plan before confirming destructive or irreversible actions.
+- running Claude in agentic mode with write/execute tools enabled allows it to modify files and run commands; always review the proposed plan before confirming destructive or irreversible actions.
 - `claude -p` print mode is non-interactive and exits after one response; do NOT use it for multi-turn tasks — use the interactive REPL (`claude`) instead.
 - Long conversations accumulate tokens and may hit context limits; use `/compact` or start a fresh session with `/clear` to stay within the model's context window.
 - The `--output-format json` flag changes the exit code behaviour: the process always exits 0 even on model errors; check the `error` field in the JSON response when scripting.
@@ -32,9 +32,9 @@ source_url: "https://docs.anthropic.com/en/docs/claude-code/overview"
 
 ## Examples
 
-### start an interactive chat session
-**Args:** ``
-**Explanation:** launches the interactive REPL with no arguments; type queries freely and use slash commands (/help, /tools, /clear, /compact) to manage the session
+### start an interactive chat session with no tool access
+**Args:** `--no-tools`
+**Explanation:** launches the interactive REPL with all tools disabled; safe for pure conversational use without file or shell access
 
 ### ask a one-shot question and print the answer
 **Args:** `-p "What is the difference between RNA-seq and scRNA-seq?"`

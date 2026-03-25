@@ -21,7 +21,7 @@ source_url: "https://mummer4.github.io/"
 - Default minimum cluster length is 65 bp (`nucmer -c 65`); lower for short sequences or highly similar genomes.
 
 ## Pitfalls
-- DANGER: not using `delta-filter -1` before `show-snps` reports duplicated SNPs from repetitive regions; always filter for 1-to-1 alignments before SNP analysis.
+- not using `delta-filter -1` before `show-snps` reports duplicated SNPs from repetitive regions; always filter for 1-to-1 alignments before SNP analysis.
 - `nucmer` creates a `out.delta` in the CWD by default; use `--prefix` to specify a different output base name and avoid file collisions in multi-genome runs.
 - Very large genomes (>500 Mb) are slow with default parameters; increase `-l` (minimum MUM length) and `-c` (minimum cluster length) to speed up.
 - Chromosome naming must be unique within each FASTA; duplicate sequence names cause incorrect alignment assignments.

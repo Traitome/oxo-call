@@ -21,7 +21,7 @@ source_url: "http://qualimap.conesalab.org/"
 - Qualimap can run without a reference genome; the `--genome-gc-distr` flag enables GC bias calculation against pre-computed GC profiles.
 
 ## Pitfalls
-- DANGER: running `qualimap bamqc` on a very large (>100 GB) BAM without `--java-mem-size` causes OutOfMemoryError; always set at least `--java-mem-size 8G` for WGS data.
+- running `qualimap bamqc` on a very large (>100 GB) BAM without `--java-mem-size` causes OutOfMemoryError; always set at least `--java-mem-size 8G` for WGS data.
 - Qualimap requires the BAM to be sorted and indexed; run `samtools sort` and `samtools index` first.
 - `rnaseq` module strand direction (`-p`) must match the library; wrong setting leads to incorrect read assignment rates and misleading reports.
 - Not specifying `-outdir` causes all output to go into the current directory with a name derived from the BAM; collisions can occur in batch runs.

@@ -18,10 +18,10 @@ source_url: "https://www.gnu.org/software/coreutils/manual/html_node/rm-invocati
 
 ## Pitfalls
 
-- EXTREME DANGER: Never run 'rm -rf /' or 'rm -rf /*' — this destroys the entire filesystem and renders the system unbootable. Most modern systems have --no-preserve-root as a safety guard, but do not rely on it.
-- DANGER: 'rm -rf .' or 'rm -rf ./' deletes the current directory and everything inside it. Confirm your working directory with 'pwd' before running recursive rm.
-- DANGER: A space between a path and a wildcard can cause catastrophic deletion: 'rm -rf /data/ *.bak' deletes /data/ AND all *.bak files in the current directory. Quote or brace expansions carefully.
-- DANGER: 'rm -rf <variable>' where the variable is empty or unset becomes 'rm -rf ' or 'rm -rf /' in some shells. Always check that path variables are non-empty before using them in rm.
+- Never run 'rm -rf /' or 'rm -rf /*' — this destroys the entire filesystem and renders the system unbootable. Most modern systems have --no-preserve-root as a safety guard, but do not rely on it.
+- 'rm -rf .' or 'rm -rf ./' deletes the current directory and everything inside it. Confirm your working directory with 'pwd' before running recursive rm.
+- A space between a path and a wildcard can cause catastrophic deletion: 'rm -rf /data/ *.bak' deletes /data/ AND all *.bak files in the current directory. Quote or brace expansions carefully.
+- 'rm -rf <variable>' where the variable is empty or unset becomes 'rm -rf ' or 'rm -rf /' in some shells. Always check that path variables are non-empty before using them in rm.
 - rm -f suppresses 'no such file' errors silently — combine with -v to see what was actually deleted, or omit -f when debugging.
 - Prefer 'rm -i' or 'rm --interactive' for deletions in unfamiliar directories. For bulk cleanup scripts, log deleted paths with -v and redirect to a log file.
 
@@ -47,9 +47,9 @@ source_url: "https://www.gnu.org/software/coreutils/manual/html_node/rm-invocati
 **Args:** `-rf temp_build/`
 **Explanation:** -rf is irreversible — verify the path with 'ls temp_build/' before running; no confirmation is given
 
-### remove files older than 30 days using find as a safer alternative
-**Args:** ``
-**Explanation:** use 'find /path -mtime +30 -name "*.log" -delete' instead of rm for age-based cleanup — find -delete is equivalent and lets you preview with -print first
+### force-remove a stale build directory
+**Args:** `-rf /tmp/stale_dir/`
+**Explanation:** -rf removes the directory and its contents non-interactively; always verify the path with 'ls /tmp/stale_dir/' before running
 
 ### remove a file with a name starting with a dash
 **Args:** `-- -weirdfile.txt`

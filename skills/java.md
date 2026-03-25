@@ -22,7 +22,7 @@ source_url: "https://docs.oracle.com/en/java/index.html"
 - Java 17 LTS is required by GATK 4.4+; Java 11 is required by many older bioinformatics tools.
 
 ## Pitfalls
-- DANGER: forgetting `-Xmx` causes the JVM to use a default heap (often 25% of RAM or 256 MB), leading to `OutOfMemoryError` in GATK and Picard on large datasets.
+- forgetting `-Xmx` causes the JVM to use a default heap (often 25% of RAM or 256 MB), leading to `OutOfMemoryError` in GATK and Picard on large datasets.
 - `-Xmx` must be set lower than the total available RAM; leave at least 2–4 GB for the OS and other processes.
 - Mismatched Java version: GATK 4 requires Java 8 or 17; using Java 11 or 21 may cause subtle errors or outright failure.
 - On HPC, avoid using the system Java if the version is too old; load the correct module with `module load java/17` before running pipelines.

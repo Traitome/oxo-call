@@ -23,7 +23,7 @@ source_url: "https://docs.openclaw.ai/"
 - Requires **Node.js ≥ 22** (Node 24 recommended); runs on macOS, Linux, and Windows (WSL2).
 
 ## Pitfalls
-- DANGER: deleting `~/.openclaw/credentials/` removes all stored API keys and channel auth tokens; re-authentication is required.
+- deleting `~/.openclaw/credentials/` removes all stored API keys and channel auth tokens; re-authentication is required.
 - Running `openclaw gateway` without `--install-daemon` starts a foreground process; use `--install-daemon` for persistent background operation (via systemd on Linux, launchd on macOS).
 - Config changes in `openclaw.json` require a gateway restart to take effect; use `openclaw gateway restart`.
 - `OPENCLAW_STATE_DIR` must be set before starting the gateway; changing it after creation means the gateway won't find existing sessions or skills.

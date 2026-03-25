@@ -23,7 +23,7 @@ source_url: "https://www.nextflow.io/docs/latest/"
 - Pipeline assets cache: `~/.nextflow/assets/<org>/<pipeline>/` — cloned or updated with `nextflow pull` or on first run.
 
 ## Pitfalls
-- DANGER: deleting `work/` breaks `-resume` for all past runs; keep `work/` until you are sure you no longer need to resume.
+- deleting `work/` breaks `-resume` for all past runs; keep `work/` until you are sure you no longer need to resume.
 - Not setting `NXF_SINGULARITY_CACHEDIR` on HPC causes Nextflow to pull Singularity images into `work/` repeatedly, wasting space and quota.
 - Memory expressions: `'8.GB'` is a Nextflow `MemoryUnit`; `'8g'` is a string (for Java flags) — do NOT confuse them in `nextflow.config`.
 - `process.executor = 'slurm'` alone is insufficient on some clusters; also set `clusterOptions`, `queue`, and `time` for proper job submission.

@@ -21,7 +21,7 @@ source_url: "https://meme-suite.org/meme/doc/overview.html"
 - Streme is faster than MEME for large input sets and finds shorter motifs; use it when MEME is too slow.
 
 ## Pitfalls
-- DANGER: `meme` uses only the first `-maxsites` sequences if the input is large; for ChIP-seq datasets, pre-filter to the top 500–1000 peaks by signal strength.
+- `meme` uses only the first `-maxsites` sequences if the input is large; for ChIP-seq datasets, pre-filter to the top 500–1000 peaks by signal strength.
 - Large `-nmotifs` values greatly increase runtime; start with `-nmotifs 5` and increase only if needed.
 - Not masking repeats before running MEME leads to repetitive-element motifs dominating results; always run RepeatMasker or `bedtools maskfasta` first.
 - FIMO without `--max-strand` reports hits on both strands; for strand-specific analyses, filter the output by strand column.

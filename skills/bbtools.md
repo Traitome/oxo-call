@@ -21,7 +21,7 @@ source_url: "https://jgi.doe.gov/data-and-tools/software-tools/bbtools/"
 
 ## Pitfalls
 - BBTools requires Java 8 or later; ensure `JAVA_HOME` points to a compatible JVM or load the java module on HPC.
-- DANGER: `bbmap.sh` `nodisk=t` stores the reference index in RAM only; fine for short references but will fail with OutOfMemoryError for large genomes without sufficient heap.
+- `bbmap.sh` `nodisk=t` stores the reference index in RAM only; fine for short references but will fail with OutOfMemoryError for large genomes without sufficient heap.
 - `k=` (kmer length) in BBDuk affects sensitivity: shorter k (e.g. k=21) catches more adapter contamination but increases false positives; default k=23 is a good balance.
 - BBDuk `trimq=` and `qtrim=rl` (trim both ends) are separate from `maq=` (minimum average quality for read discard); use both together for comprehensive QC.
 - BBMap output SAM/BAM: by default, outputs SAM; add `bamscript=bs.sh; sh bs.sh` or pipe to `samtools` to get a sorted BAM.

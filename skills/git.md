@@ -21,8 +21,8 @@ source_url: "https://git-scm.com/docs"
 - For 'git clone', always include the repository URL as the last argument, e.g. 'git clone --depth 1 https://github.com/user/repo.git'. Omitting the URL will cause an error.
 - For 'git commit', do not mix 'git add' and 'git commit' in a single args string with '&&'. Use 'git commit -a -m "message"' to stage all tracked changes and commit in one command.
 - Commit messages with spaces must be quoted: 'git commit -m "fix: correct index off-by-one"'. Multi-word messages without quotes will be interpreted as multiple arguments.
-- DANGER: 'git reset --hard HEAD~N' and 'git push --force' permanently rewrite history — never use on shared/public branches without team consensus.
-- DANGER: 'git rm -r --force .' removes all tracked files recursively without confirmation. Always verify the scope with 'git status' before running destructive git rm commands.
+- 'git reset --hard HEAD~N' and 'git push --force' permanently rewrite history — never use on shared/public branches without team consensus.
+- 'git rm -r --force .' removes all tracked files recursively without confirmation. Always verify the scope with 'git status' before running destructive git rm commands.
 - git push requires specifying the remote and branch the first time: 'git push -u origin main'. After that, 'git push' uses the cached upstream.
 
 ## Examples

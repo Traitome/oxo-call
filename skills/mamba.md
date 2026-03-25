@@ -20,7 +20,7 @@ source_url: "https://mamba.readthedocs.io/"
 - The base Mambaforge/Miniforge installation activates automatically; child envs are activated on top with `mamba activate`.
 
 ## Pitfalls
-- DANGER: `mamba env remove -n <env>` permanently deletes the environment and all packages within it.
+- `mamba env remove -n <env>` permanently deletes the environment and all packages within it.
 - `mamba install` without an active non-base environment modifies the base environment; always activate a project env first.
 - Mixing pip installs inside a mamba environment can break dependency resolution; install conda packages first, pip packages last.
 - `mamba update --all` may downgrade packages to satisfy constraints; review the plan before accepting.
