@@ -39,66 +39,66 @@ admixture,admixture_04,admixture_04_07,expert,run ADMIXTURE across multiple K va
 admixture,admixture_04,admixture_04_08,detailed,I have data that I need to process: run ADMIXTURE across multiple K values (shell loop)
 admixture,admixture_04,admixture_04_09,informal,"Hey, can you help me run ADMIXTURE across multiple K values (shell loop)?"
 admixture,admixture_04,admixture_04_10,alternative,Perform: run ADMIXTURE across multiple K values (shell loop)
-admixture,admixture_05,admixture_05_01,original,run ADMIXTURE for K=5 ancestral populations with default parameters
-admixture,admixture_05,admixture_05_02,beginner,How do I run ADMIXTURE for K=5 ancestral populations with default parameters?
-admixture,admixture_05,admixture_05_03,student,I need to run ADMIXTURE for K=5 ancestral populations with default parameters
-admixture,admixture_05,admixture_05_04,polite,Please run ADMIXTURE for K=5 ancestral populations with default parameters
-admixture,admixture_05,admixture_05_05,sysadmin,Use admixture to run ADMIXTURE for K=5 ancestral populations with default parameters
-admixture,admixture_05,admixture_05_06,goal_oriented,I want to run ADMIXTURE for K=5 ancestral populations with default parameters
-admixture,admixture_05,admixture_05_07,expert,run ADMIXTURE K=5 ancestral populations default parameters
-admixture,admixture_05,admixture_05_08,detailed,I have data that I need to process: run ADMIXTURE for K=5 ancestral populations with default parameters
-admixture,admixture_05,admixture_05_09,informal,"Hey, can you help me run ADMIXTURE for K=5 ancestral populations with default parameters?"
-admixture,admixture_05,admixture_05_10,alternative,"With default parameters, run ADMIXTURE for K=5 ancestral populations"
-admixture,admixture_06,admixture_06_01,original,run ADMIXTURE with reproducible seed with verbose output
-admixture,admixture_06,admixture_06_02,beginner,How do I run ADMIXTURE with reproducible seed with verbose output?
-admixture,admixture_06,admixture_06_03,student,I need to run ADMIXTURE with reproducible seed with verbose output
-admixture,admixture_06,admixture_06_04,polite,Please run ADMIXTURE with reproducible seed with verbose output
-admixture,admixture_06,admixture_06_05,sysadmin,Use admixture to run ADMIXTURE with reproducible seed with verbose output
-admixture,admixture_06,admixture_06_06,goal_oriented,I want to run ADMIXTURE with reproducible seed with verbose output
-admixture,admixture_06,admixture_06_07,expert,run ADMIXTURE reproducible seed verbose output
-admixture,admixture_06,admixture_06_08,detailed,I have data that I need to process: run ADMIXTURE with reproducible seed with verbose output
-admixture,admixture_06,admixture_06_09,informal,"Hey, can you help me run ADMIXTURE with reproducible seed with verbose output?"
-admixture,admixture_06,admixture_06_10,alternative,"With reproducible seed with verbose output, run ADMIXTURE"
-admixture,admixture_07,admixture_07_01,original,run supervised ADMIXTURE with known reference populations using multiple threads
-admixture,admixture_07,admixture_07_02,beginner,How do I run supervised ADMIXTURE with known reference populations using multiple threads?
-admixture,admixture_07,admixture_07_03,student,I need to run supervised ADMIXTURE with known reference populations using multiple threads
-admixture,admixture_07,admixture_07_04,polite,Please run supervised ADMIXTURE with known reference populations using multiple threads
-admixture,admixture_07,admixture_07_05,sysadmin,Use admixture to run supervised ADMIXTURE with known reference populations using multiple threads
-admixture,admixture_07,admixture_07_06,goal_oriented,I want to run supervised ADMIXTURE with known reference populations using multiple threads
-admixture,admixture_07,admixture_07_07,expert,run supervised ADMIXTURE known reference populations multiple threads
-admixture,admixture_07,admixture_07_08,detailed,"I have data that I need to process: run supervised ADMIXTURE with known reference populations using multiple threads, utilizing multiple CPU threads for speed"
-admixture,admixture_07,admixture_07_09,informal,"Hey, can you help me run supervised ADMIXTURE with known reference populations using multiple threads?"
-admixture,admixture_07,admixture_07_10,alternative,"With known reference populations using multiple threads, run supervised ADMIXTURE"
-admixture,admixture_08,admixture_08_01,original,run ADMIXTURE across multiple K values (shell loop) and write output to a file
-admixture,admixture_08,admixture_08_02,beginner,How do I run ADMIXTURE across multiple K values (shell loop) and write output to a file?
-admixture,admixture_08,admixture_08_03,student,I need to run ADMIXTURE across multiple K values (shell loop) and write output to a file
-admixture,admixture_08,admixture_08_04,polite,Please run ADMIXTURE across multiple K values (shell loop) and write output to a file
-admixture,admixture_08,admixture_08_05,sysadmin,Use admixture to run ADMIXTURE across multiple K values (shell loop) and write output to a file
-admixture,admixture_08,admixture_08_06,goal_oriented,I want to run ADMIXTURE across multiple K values (shell loop) and write output to a file
-admixture,admixture_08,admixture_08_07,expert,run ADMIXTURE across multiple K values (shell loop) write output file
-admixture,admixture_08,admixture_08_08,detailed,"I have data that I need to process: run ADMIXTURE across multiple K values (shell loop) and write output to a file, saving the result to a specified output file"
-admixture,admixture_08,admixture_08_09,informal,"Hey, can you help me run ADMIXTURE across multiple K values (shell loop) and write output to a file?"
-admixture,admixture_08,admixture_08_10,alternative,Write output to a file after run ADMIXTURE across multiple K values (shell loop)
-admixture,admixture_09,admixture_09_01,original,run ADMIXTURE for K=5 ancestral populations in quiet mode
-admixture,admixture_09,admixture_09_02,beginner,How do I run ADMIXTURE for K=5 ancestral populations in quiet mode?
-admixture,admixture_09,admixture_09_03,student,I need to run ADMIXTURE for K=5 ancestral populations in quiet mode
-admixture,admixture_09,admixture_09_04,polite,Please run ADMIXTURE for K=5 ancestral populations in quiet mode
-admixture,admixture_09,admixture_09_05,sysadmin,Use admixture to run ADMIXTURE for K=5 ancestral populations in quiet mode
-admixture,admixture_09,admixture_09_06,goal_oriented,I want to run ADMIXTURE for K=5 ancestral populations in quiet mode
-admixture,admixture_09,admixture_09_07,expert,run ADMIXTURE K=5 ancestral populations quiet mode
-admixture,admixture_09,admixture_09_08,detailed,I have data that I need to process: run ADMIXTURE for K=5 ancestral populations in quiet mode
-admixture,admixture_09,admixture_09_09,informal,"Hey, can you help me run ADMIXTURE for K=5 ancestral populations in quiet mode?"
-admixture,admixture_09,admixture_09_10,alternative,Perform: run ADMIXTURE for K=5 ancestral populations in quiet mode
-admixture,admixture_10,admixture_10_01,original,run ADMIXTURE with reproducible seed with default parameters
-admixture,admixture_10,admixture_10_02,beginner,How do I run ADMIXTURE with reproducible seed with default parameters?
-admixture,admixture_10,admixture_10_03,student,I need to run ADMIXTURE with reproducible seed with default parameters
-admixture,admixture_10,admixture_10_04,polite,Please run ADMIXTURE with reproducible seed with default parameters
-admixture,admixture_10,admixture_10_05,sysadmin,Use admixture to run ADMIXTURE with reproducible seed with default parameters
-admixture,admixture_10,admixture_10_06,goal_oriented,I want to run ADMIXTURE with reproducible seed with default parameters
-admixture,admixture_10,admixture_10_07,expert,run ADMIXTURE reproducible seed default parameters
-admixture,admixture_10,admixture_10_08,detailed,I have data that I need to process: run ADMIXTURE with reproducible seed with default parameters
-admixture,admixture_10,admixture_10_09,informal,"Hey, can you help me run ADMIXTURE with reproducible seed with default parameters?"
-admixture,admixture_10,admixture_10_10,alternative,"With reproducible seed with default parameters, run ADMIXTURE"
+admixture,admixture_05,admixture_05_01,original,run ADMIXTURE with 100 bootstrap replicates for standard errors
+admixture,admixture_05,admixture_05_02,beginner,How do I run ADMIXTURE with 100 bootstrap replicates for standard errors?
+admixture,admixture_05,admixture_05_03,student,I need to run ADMIXTURE with 100 bootstrap replicates for standard errors
+admixture,admixture_05,admixture_05_04,polite,Please run ADMIXTURE with 100 bootstrap replicates for standard errors
+admixture,admixture_05,admixture_05_05,sysadmin,Use admixture to run ADMIXTURE with 100 bootstrap replicates for standard errors
+admixture,admixture_05,admixture_05_06,goal_oriented,I want to run ADMIXTURE with 100 bootstrap replicates for standard errors
+admixture,admixture_05,admixture_05_07,expert,run ADMIXTURE 100 bootstrap replicates standard errors
+admixture,admixture_05,admixture_05_08,detailed,I have data that I need to process: run ADMIXTURE with 100 bootstrap replicates for standard errors
+admixture,admixture_05,admixture_05_09,informal,"Hey, can you help me run ADMIXTURE with 100 bootstrap replicates for standard errors?"
+admixture,admixture_05,admixture_05_10,alternative,"With 100 bootstrap replicates for standard errors, run ADMIXTURE"
+admixture,admixture_06,admixture_06_01,original,run projection analysis onto a fixed P-matrix
+admixture,admixture_06,admixture_06_02,beginner,How do I run projection analysis onto a fixed P-matrix?
+admixture,admixture_06,admixture_06_03,student,I need to run projection analysis onto a fixed P-matrix
+admixture,admixture_06,admixture_06_04,polite,Please run projection analysis onto a fixed P-matrix
+admixture,admixture_06,admixture_06_05,sysadmin,Use admixture to run projection analysis onto a fixed P-matrix
+admixture,admixture_06,admixture_06_06,goal_oriented,I want to run projection analysis onto a fixed P-matrix
+admixture,admixture_06,admixture_06_07,expert,run projection analysis onto fixed P-matrix
+admixture,admixture_06,admixture_06_08,detailed,I have data that I need to process: run projection analysis onto a fixed P-matrix
+admixture,admixture_06,admixture_06_09,informal,"Hey, can you help me run projection analysis onto a fixed P-matrix?"
+admixture,admixture_06,admixture_06_10,alternative,Perform: run projection analysis onto a fixed P-matrix
+admixture,admixture_07,admixture_07_01,original,run multiple replicates for K=4 with different seeds to check convergence
+admixture,admixture_07,admixture_07_02,beginner,How do I run multiple replicates for K=4 with different seeds to check convergence?
+admixture,admixture_07,admixture_07_03,student,I need to run multiple replicates for K=4 with different seeds to check convergence
+admixture,admixture_07,admixture_07_04,polite,Please run multiple replicates for K=4 with different seeds to check convergence
+admixture,admixture_07,admixture_07_05,sysadmin,Use admixture to run multiple replicates for K=4 with different seeds to check convergence
+admixture,admixture_07,admixture_07_06,goal_oriented,I want to run multiple replicates for K=4 with different seeds to check convergence
+admixture,admixture_07,admixture_07_07,expert,run multiple replicates K=4 different seeds check convergence
+admixture,admixture_07,admixture_07_08,detailed,I have data that I need to process: run multiple replicates for K=4 with different seeds to check convergence
+admixture,admixture_07,admixture_07_09,informal,"Hey, can you help me run multiple replicates for K=4 with different seeds to check convergence?"
+admixture,admixture_07,admixture_07_10,alternative,"With different seeds to check convergence, run multiple replicates for K=4"
+admixture,admixture_08,admixture_08_01,original,compare cross-validation errors across K values
+admixture,admixture_08,admixture_08_02,beginner,How do I compare cross-validation errors across K values?
+admixture,admixture_08,admixture_08_03,student,I need to compare cross-validation errors across K values
+admixture,admixture_08,admixture_08_04,polite,Please compare cross-validation errors across K values
+admixture,admixture_08,admixture_08_05,sysadmin,Use admixture to compare cross-validation errors across K values
+admixture,admixture_08,admixture_08_06,goal_oriented,I want to compare cross-validation errors across K values
+admixture,admixture_08,admixture_08_07,expert,compare cross-validation errors across K values
+admixture,admixture_08,admixture_08_08,detailed,I have data that I need to process: compare cross-validation errors across K values
+admixture,admixture_08,admixture_08_09,informal,"Hey, can you help me compare cross-validation errors across K values?"
+admixture,admixture_08,admixture_08_10,alternative,Perform: compare cross-validation errors across K values
+admixture,admixture_09,admixture_09_01,original,filter for minor allele frequency before running ADMIXTURE
+admixture,admixture_09,admixture_09_02,beginner,How do I filter for minor allele frequency before running ADMIXTURE?
+admixture,admixture_09,admixture_09_03,student,I need to filter for minor allele frequency before running ADMIXTURE
+admixture,admixture_09,admixture_09_04,polite,Please filter for minor allele frequency before running ADMIXTURE
+admixture,admixture_09,admixture_09_05,sysadmin,Use admixture to filter for minor allele frequency before running ADMIXTURE
+admixture,admixture_09,admixture_09_06,goal_oriented,I want to filter for minor allele frequency before running ADMIXTURE
+admixture,admixture_09,admixture_09_07,expert,filter minor allele frequency before running ADMIXTURE
+admixture,admixture_09,admixture_09_08,detailed,I have data that I need to process: filter for minor allele frequency before running ADMIXTURE
+admixture,admixture_09,admixture_09_09,informal,"Hey, can you help me filter for minor allele frequency before running ADMIXTURE?"
+admixture,admixture_09,admixture_09_10,alternative,Perform: filter for minor allele frequency before running ADMIXTURE
+admixture,admixture_10,admixture_10_01,original,run ADMIXTURE with accelerated EM for faster convergence
+admixture,admixture_10,admixture_10_02,beginner,How do I run ADMIXTURE with accelerated EM for faster convergence?
+admixture,admixture_10,admixture_10_03,student,I need to run ADMIXTURE with accelerated EM for faster convergence
+admixture,admixture_10,admixture_10_04,polite,Please run ADMIXTURE with accelerated EM for faster convergence
+admixture,admixture_10,admixture_10_05,sysadmin,Use admixture to run ADMIXTURE with accelerated EM for faster convergence
+admixture,admixture_10,admixture_10_06,goal_oriented,I want to run ADMIXTURE with accelerated EM for faster convergence
+admixture,admixture_10,admixture_10_07,expert,run ADMIXTURE accelerated EM faster convergence
+admixture,admixture_10,admixture_10_08,detailed,I have data that I need to process: run ADMIXTURE with accelerated EM for faster convergence
+admixture,admixture_10,admixture_10_09,informal,"Hey, can you help me run ADMIXTURE with accelerated EM for faster convergence?"
+admixture,admixture_10,admixture_10_10,alternative,"With accelerated EM for faster convergence, run ADMIXTURE"
 agat,agat_01,agat_01_01,original,convert GFF3 to GTF format
 agat,agat_01,agat_01_02,beginner,How do I convert GFF3 to GTF format?
 agat,agat_01,agat_01_03,student,I need to convert GFF3 to GTF format
@@ -1079,26 +1079,26 @@ bbtools,bbtools_08,bbtools_08_07,expert,get detailed statistics FASTQ file
 bbtools,bbtools_08,bbtools_08_08,detailed,I have data that I need to process: get detailed statistics for a FASTQ file
 bbtools,bbtools_08,bbtools_08_09,informal,"Hey, can you help me get detailed statistics for a FASTQ file?"
 bbtools,bbtools_08,bbtools_08_10,alternative,Perform: get detailed statistics for a FASTQ file
-bbtools,bbtools_09,bbtools_09_01,original,trim adapters and quality-filter with BBDuk in quiet mode
-bbtools,bbtools_09,bbtools_09_02,beginner,How do I trim adapters and quality-filter with BBDuk in quiet mode?
-bbtools,bbtools_09,bbtools_09_03,student,I need to trim adapters and quality-filter with BBDuk in quiet mode
-bbtools,bbtools_09,bbtools_09_04,polite,Please trim adapters and quality-filter with BBDuk in quiet mode
-bbtools,bbtools_09,bbtools_09_05,sysadmin,Use bbtools to trim adapters and quality-filter with BBDuk in quiet mode
-bbtools,bbtools_09,bbtools_09_06,goal_oriented,I want to trim adapters and quality-filter with BBDuk in quiet mode
-bbtools,bbtools_09,bbtools_09_07,expert,trim adapters quality-filter BBDuk quiet mode
-bbtools,bbtools_09,bbtools_09_08,detailed,I have data that I need to process: trim adapters and quality-filter with BBDuk in quiet mode
-bbtools,bbtools_09,bbtools_09_09,informal,"Hey, can you help me trim adapters and quality-filter with BBDuk in quiet mode?"
-bbtools,bbtools_09,bbtools_09_10,alternative,Quality-filter with BBDuk in quiet mode after trim adapters
-bbtools,bbtools_10,bbtools_10_01,original,remove PhiX contamination from a FASTQ with default parameters
-bbtools,bbtools_10,bbtools_10_02,beginner,How do I remove PhiX contamination from a FASTQ with default parameters?
-bbtools,bbtools_10,bbtools_10_03,student,I need to remove PhiX contamination from a FASTQ with default parameters
-bbtools,bbtools_10,bbtools_10_04,polite,Please remove PhiX contamination from a FASTQ with default parameters
-bbtools,bbtools_10,bbtools_10_05,sysadmin,Use bbtools to remove PhiX contamination from a FASTQ with default parameters
-bbtools,bbtools_10,bbtools_10_06,goal_oriented,I want to remove PhiX contamination from a FASTQ with default parameters
-bbtools,bbtools_10,bbtools_10_07,expert,remove PhiX contamination FASTQ default parameters
-bbtools,bbtools_10,bbtools_10_08,detailed,I have data that I need to process: remove PhiX contamination from a FASTQ with default parameters
-bbtools,bbtools_10,bbtools_10_09,informal,"Hey, can you help me remove PhiX contamination from a FASTQ with default parameters?"
-bbtools,bbtools_10,bbtools_10_10,alternative,"With default parameters, remove PhiX contamination from a FASTQ"
+bbtools,bbtools_09,bbtools_09_01,original,remove duplicate reads with dedupe.sh
+bbtools,bbtools_09,bbtools_09_02,beginner,How do I remove duplicate reads with dedupe.sh?
+bbtools,bbtools_09,bbtools_09_03,student,I need to remove duplicate reads with dedupe.sh
+bbtools,bbtools_09,bbtools_09_04,polite,Please remove duplicate reads with dedupe.sh
+bbtools,bbtools_09,bbtools_09_05,sysadmin,Use bbtools to remove duplicate reads with dedupe.sh
+bbtools,bbtools_09,bbtools_09_06,goal_oriented,I want to remove duplicate reads with dedupe.sh
+bbtools,bbtools_09,bbtools_09_07,expert,remove duplicate reads dedupe.sh
+bbtools,bbtools_09,bbtools_09_08,detailed,I have data that I need to process: remove duplicate reads with dedupe.sh
+bbtools,bbtools_09,bbtools_09_09,informal,"Hey, can you help me remove duplicate reads with dedupe.sh?"
+bbtools,bbtools_09,bbtools_09_10,alternative,"With dedupe.sh, remove duplicate reads"
+bbtools,bbtools_10,bbtools_10_01,original,split reads by genome of origin for metagenomics
+bbtools,bbtools_10,bbtools_10_02,beginner,How do I split reads by genome of origin for metagenomics?
+bbtools,bbtools_10,bbtools_10_03,student,I need to split reads by genome of origin for metagenomics
+bbtools,bbtools_10,bbtools_10_04,polite,Please split reads by genome of origin for metagenomics
+bbtools,bbtools_10,bbtools_10_05,sysadmin,Use bbtools to split reads by genome of origin for metagenomics
+bbtools,bbtools_10,bbtools_10_06,goal_oriented,I want to split reads by genome of origin for metagenomics
+bbtools,bbtools_10,bbtools_10_07,expert,split reads by genome of origin metagenomics
+bbtools,bbtools_10,bbtools_10_08,detailed,I have data that I need to process: split reads by genome of origin for metagenomics
+bbtools,bbtools_10,bbtools_10_09,informal,"Hey, can you help me split reads by genome of origin for metagenomics?"
+bbtools,bbtools_10,bbtools_10_10,alternative,Perform: split reads by genome of origin for metagenomics
 bcftools,bcftools_01,bcftools_01_01,original,call variants from a BAM file against a reference genome
 bcftools,bcftools_01,bcftools_01_02,beginner,How do I call variants from a BAM file against a reference genome?
 bcftools,bcftools_01,bcftools_01_03,student,I need to call variants from a BAM file against a reference genome
@@ -2899,16 +2899,16 @@ chromap,chromap_10,chromap_10_07,expert,align paired-end ATAC-seq reads Chromap 
 chromap,chromap_10,chromap_10_08,detailed,"I have data that I need to process: align paired-end ATAC-seq reads with Chromap with default parameters, utilizing multiple CPU threads for speed, saving the result to a specified output file"
 chromap,chromap_10,chromap_10_09,informal,"Hey, can you help me align paired-end ATAC-seq reads with Chromap with default parameters?"
 chromap,chromap_10,chromap_10_10,alternative,"With Chromap with default parameters, align paired-end ATAC-seq reads"
-claude,claude_01,claude_01_01,original,start an interactive chat session
-claude,claude_01,claude_01_02,beginner,How do I start an interactive chat session?
-claude,claude_01,claude_01_03,student,I need to start an interactive chat session
-claude,claude_01,claude_01_04,polite,Please start an interactive chat session
-claude,claude_01,claude_01_05,sysadmin,Use claude to start an interactive chat session
-claude,claude_01,claude_01_06,goal_oriented,I want to start an interactive chat session
-claude,claude_01,claude_01_07,expert,start interactive chat session
-claude,claude_01,claude_01_08,detailed,I have data that I need to process: start an interactive chat session
-claude,claude_01,claude_01_09,informal,"Hey, can you help me start an interactive chat session?"
-claude,claude_01,claude_01_10,alternative,Perform: start an interactive chat session
+claude,claude_01,claude_01_01,original,start an interactive chat session with no tool access
+claude,claude_01,claude_01_02,beginner,How do I start an interactive chat session with no tool access?
+claude,claude_01,claude_01_03,student,I need to start an interactive chat session with no tool access
+claude,claude_01,claude_01_04,polite,Please start an interactive chat session with no tool access
+claude,claude_01,claude_01_05,sysadmin,Use claude to start an interactive chat session with no tool access
+claude,claude_01,claude_01_06,goal_oriented,I want to start an interactive chat session with no tool access
+claude,claude_01,claude_01_07,expert,start interactive chat session no tool access
+claude,claude_01,claude_01_08,detailed,I have data that I need to process: start an interactive chat session with no tool access
+claude,claude_01,claude_01_09,informal,"Hey, can you help me start an interactive chat session with no tool access?"
+claude,claude_01,claude_01_10,alternative,"With no tool access, start an interactive chat session"
 claude,claude_02,claude_02_01,original,ask a one-shot question and print the answer
 claude,claude_02,claude_02_02,beginner,How do I ask a one-shot question and print the answer?
 claude,claude_02,claude_02_03,student,I need to ask a one-shot question and print the answer
@@ -4639,66 +4639,66 @@ fasttree,fasttree_04,fasttree_04_07,expert,infer tree local support values
 fasttree,fasttree_04,fasttree_04_08,detailed,I have data that I need to process: infer tree with local support values
 fasttree,fasttree_04,fasttree_04_09,informal,"Hey, can you help me infer tree with local support values?"
 fasttree,fasttree_04,fasttree_04_10,alternative,"With local support values, infer tree"
-fasttree,fasttree_05,fasttree_05_01,original,infer phylogenetic tree from nucleotide alignment with default parameters
-fasttree,fasttree_05,fasttree_05_02,beginner,How do I infer phylogenetic tree from nucleotide alignment with default parameters?
-fasttree,fasttree_05,fasttree_05_03,student,I need to infer phylogenetic tree from nucleotide alignment with default parameters
-fasttree,fasttree_05,fasttree_05_04,polite,Please infer phylogenetic tree from nucleotide alignment with default parameters
-fasttree,fasttree_05,fasttree_05_05,sysadmin,Use fasttree to infer phylogenetic tree from nucleotide alignment with default parameters
-fasttree,fasttree_05,fasttree_05_06,goal_oriented,I want to infer phylogenetic tree from nucleotide alignment with default parameters
-fasttree,fasttree_05,fasttree_05_07,expert,infer phylogenetic tree nucleotide alignment default parameters
-fasttree,fasttree_05,fasttree_05_08,detailed,I have data that I need to process: infer phylogenetic tree from nucleotide alignment with default parameters
-fasttree,fasttree_05,fasttree_05_09,informal,"Hey, can you help me infer phylogenetic tree from nucleotide alignment with default parameters?"
-fasttree,fasttree_05,fasttree_05_10,alternative,"With default parameters, infer phylogenetic tree from nucleotide alignment"
-fasttree,fasttree_06,fasttree_06_01,original,infer phylogenetic tree from protein alignment with verbose output
-fasttree,fasttree_06,fasttree_06_02,beginner,How do I infer phylogenetic tree from protein alignment with verbose output?
-fasttree,fasttree_06,fasttree_06_03,student,I need to infer phylogenetic tree from protein alignment with verbose output
-fasttree,fasttree_06,fasttree_06_04,polite,Please infer phylogenetic tree from protein alignment with verbose output
-fasttree,fasttree_06,fasttree_06_05,sysadmin,Use fasttree to infer phylogenetic tree from protein alignment with verbose output
-fasttree,fasttree_06,fasttree_06_06,goal_oriented,I want to infer phylogenetic tree from protein alignment with verbose output
-fasttree,fasttree_06,fasttree_06_07,expert,infer phylogenetic tree protein alignment verbose output
-fasttree,fasttree_06,fasttree_06_08,detailed,I have data that I need to process: infer phylogenetic tree from protein alignment with verbose output
-fasttree,fasttree_06,fasttree_06_09,informal,"Hey, can you help me infer phylogenetic tree from protein alignment with verbose output?"
-fasttree,fasttree_06,fasttree_06_10,alternative,"With verbose output, infer phylogenetic tree from protein alignment"
-fasttree,fasttree_07,fasttree_07_01,original,infer tree with WAG protein substitution model using multiple threads
-fasttree,fasttree_07,fasttree_07_02,beginner,How do I infer tree with WAG protein substitution model using multiple threads?
-fasttree,fasttree_07,fasttree_07_03,student,I need to infer tree with WAG protein substitution model using multiple threads
-fasttree,fasttree_07,fasttree_07_04,polite,Please infer tree with WAG protein substitution model using multiple threads
-fasttree,fasttree_07,fasttree_07_05,sysadmin,Use fasttree to infer tree with WAG protein substitution model using multiple threads
-fasttree,fasttree_07,fasttree_07_06,goal_oriented,I want to infer tree with WAG protein substitution model using multiple threads
-fasttree,fasttree_07,fasttree_07_07,expert,infer tree WAG protein substitution model multiple threads
-fasttree,fasttree_07,fasttree_07_08,detailed,"I have data that I need to process: infer tree with WAG protein substitution model using multiple threads, utilizing multiple CPU threads for speed"
-fasttree,fasttree_07,fasttree_07_09,informal,"Hey, can you help me infer tree with WAG protein substitution model using multiple threads?"
-fasttree,fasttree_07,fasttree_07_10,alternative,"With WAG protein substitution model using multiple threads, infer tree"
-fasttree,fasttree_08,fasttree_08_01,original,infer tree with local support values and write output to a file
-fasttree,fasttree_08,fasttree_08_02,beginner,How do I infer tree with local support values and write output to a file?
-fasttree,fasttree_08,fasttree_08_03,student,I need to infer tree with local support values and write output to a file
-fasttree,fasttree_08,fasttree_08_04,polite,Please infer tree with local support values and write output to a file
-fasttree,fasttree_08,fasttree_08_05,sysadmin,Use fasttree to infer tree with local support values and write output to a file
-fasttree,fasttree_08,fasttree_08_06,goal_oriented,I want to infer tree with local support values and write output to a file
-fasttree,fasttree_08,fasttree_08_07,expert,infer tree local support values write output file
-fasttree,fasttree_08,fasttree_08_08,detailed,"I have data that I need to process: infer tree with local support values and write output to a file, saving the result to a specified output file"
-fasttree,fasttree_08,fasttree_08_09,informal,"Hey, can you help me infer tree with local support values and write output to a file?"
-fasttree,fasttree_08,fasttree_08_10,alternative,Write output to a file after infer tree with local support values
-fasttree,fasttree_09,fasttree_09_01,original,infer phylogenetic tree from nucleotide alignment in quiet mode
-fasttree,fasttree_09,fasttree_09_02,beginner,How do I infer phylogenetic tree from nucleotide alignment in quiet mode?
-fasttree,fasttree_09,fasttree_09_03,student,I need to infer phylogenetic tree from nucleotide alignment in quiet mode
-fasttree,fasttree_09,fasttree_09_04,polite,Please infer phylogenetic tree from nucleotide alignment in quiet mode
-fasttree,fasttree_09,fasttree_09_05,sysadmin,Use fasttree to infer phylogenetic tree from nucleotide alignment in quiet mode
-fasttree,fasttree_09,fasttree_09_06,goal_oriented,I want to infer phylogenetic tree from nucleotide alignment in quiet mode
-fasttree,fasttree_09,fasttree_09_07,expert,infer phylogenetic tree nucleotide alignment quiet mode
-fasttree,fasttree_09,fasttree_09_08,detailed,I have data that I need to process: infer phylogenetic tree from nucleotide alignment in quiet mode
-fasttree,fasttree_09,fasttree_09_09,informal,"Hey, can you help me infer phylogenetic tree from nucleotide alignment in quiet mode?"
-fasttree,fasttree_09,fasttree_09_10,alternative,Perform: infer phylogenetic tree from nucleotide alignment in quiet mode
-fasttree,fasttree_10,fasttree_10_01,original,infer phylogenetic tree from protein alignment with default parameters
-fasttree,fasttree_10,fasttree_10_02,beginner,How do I infer phylogenetic tree from protein alignment with default parameters?
-fasttree,fasttree_10,fasttree_10_03,student,I need to infer phylogenetic tree from protein alignment with default parameters
-fasttree,fasttree_10,fasttree_10_04,polite,Please infer phylogenetic tree from protein alignment with default parameters
-fasttree,fasttree_10,fasttree_10_05,sysadmin,Use fasttree to infer phylogenetic tree from protein alignment with default parameters
-fasttree,fasttree_10,fasttree_10_06,goal_oriented,I want to infer phylogenetic tree from protein alignment with default parameters
-fasttree,fasttree_10,fasttree_10_07,expert,infer phylogenetic tree protein alignment default parameters
-fasttree,fasttree_10,fasttree_10_08,detailed,I have data that I need to process: infer phylogenetic tree from protein alignment with default parameters
-fasttree,fasttree_10,fasttree_10_09,informal,"Hey, can you help me infer phylogenetic tree from protein alignment with default parameters?"
-fasttree,fasttree_10,fasttree_10_10,alternative,"With default parameters, infer phylogenetic tree from protein alignment"
+fasttree,fasttree_05,fasttree_05_01,original,infer tree using multithreaded FastTreeMP
+fasttree,fasttree_05,fasttree_05_02,beginner,How do I infer tree using multithreaded FastTreeMP?
+fasttree,fasttree_05,fasttree_05_03,student,I need to infer tree using multithreaded FastTreeMP
+fasttree,fasttree_05,fasttree_05_04,polite,Please infer tree using multithreaded FastTreeMP
+fasttree,fasttree_05,fasttree_05_05,sysadmin,Use fasttree to infer tree using multithreaded FastTreeMP
+fasttree,fasttree_05,fasttree_05_06,goal_oriented,I want to infer tree using multithreaded FastTreeMP
+fasttree,fasttree_05,fasttree_05_07,expert,infer tree multithreaded FastTreeMP
+fasttree,fasttree_05,fasttree_05_08,detailed,I have data that I need to process: infer tree using multithreaded FastTreeMP
+fasttree,fasttree_05,fasttree_05_09,informal,"Hey, can you help me infer tree using multithreaded FastTreeMP?"
+fasttree,fasttree_05,fasttree_05_10,alternative,Perform: infer tree using multithreaded FastTreeMP
+fasttree,fasttree_06,fasttree_06_01,original,infer protein tree with LG substitution model
+fasttree,fasttree_06,fasttree_06_02,beginner,How do I infer protein tree with LG substitution model?
+fasttree,fasttree_06,fasttree_06_03,student,I need to infer protein tree with LG substitution model
+fasttree,fasttree_06,fasttree_06_04,polite,Please infer protein tree with LG substitution model
+fasttree,fasttree_06,fasttree_06_05,sysadmin,Use fasttree to infer protein tree with LG substitution model
+fasttree,fasttree_06,fasttree_06_06,goal_oriented,I want to infer protein tree with LG substitution model
+fasttree,fasttree_06,fasttree_06_07,expert,infer protein tree LG substitution model
+fasttree,fasttree_06,fasttree_06_08,detailed,I have data that I need to process: infer protein tree with LG substitution model
+fasttree,fasttree_06,fasttree_06_09,informal,"Hey, can you help me infer protein tree with LG substitution model?"
+fasttree,fasttree_06,fasttree_06_10,alternative,"With LG substitution model, infer protein tree"
+fasttree,fasttree_07,fasttree_07_01,original,run faster but less thorough tree search
+fasttree,fasttree_07,fasttree_07_02,beginner,How do I run faster but less thorough tree search?
+fasttree,fasttree_07,fasttree_07_03,student,I need to run faster but less thorough tree search
+fasttree,fasttree_07,fasttree_07_04,polite,Please run faster but less thorough tree search
+fasttree,fasttree_07,fasttree_07_05,sysadmin,Use fasttree to run faster but less thorough tree search
+fasttree,fasttree_07,fasttree_07_06,goal_oriented,I want to run faster but less thorough tree search
+fasttree,fasttree_07,fasttree_07_07,expert,run faster but less thorough tree search
+fasttree,fasttree_07,fasttree_07_08,detailed,I have data that I need to process: run faster but less thorough tree search
+fasttree,fasttree_07,fasttree_07_09,informal,"Hey, can you help me run faster but less thorough tree search?"
+fasttree,fasttree_07,fasttree_07_10,alternative,Perform: run faster but less thorough tree search
+fasttree,fasttree_08,fasttree_08_01,original,infer tree with gamma-distributed rate variation
+fasttree,fasttree_08,fasttree_08_02,beginner,How do I infer tree with gamma-distributed rate variation?
+fasttree,fasttree_08,fasttree_08_03,student,I need to infer tree with gamma-distributed rate variation
+fasttree,fasttree_08,fasttree_08_04,polite,Please infer tree with gamma-distributed rate variation
+fasttree,fasttree_08,fasttree_08_05,sysadmin,Use fasttree to infer tree with gamma-distributed rate variation
+fasttree,fasttree_08,fasttree_08_06,goal_oriented,I want to infer tree with gamma-distributed rate variation
+fasttree,fasttree_08,fasttree_08_07,expert,infer tree gamma-distributed rate variation
+fasttree,fasttree_08,fasttree_08_08,detailed,I have data that I need to process: infer tree with gamma-distributed rate variation
+fasttree,fasttree_08,fasttree_08_09,informal,"Hey, can you help me infer tree with gamma-distributed rate variation?"
+fasttree,fasttree_08,fasttree_08_10,alternative,"With gamma-distributed rate variation, infer tree"
+fasttree,fasttree_09,fasttree_09_01,original,infer tree from PHYLIP format input
+fasttree,fasttree_09,fasttree_09_02,beginner,How do I infer tree from PHYLIP format input?
+fasttree,fasttree_09,fasttree_09_03,student,I need to infer tree from PHYLIP format input
+fasttree,fasttree_09,fasttree_09_04,polite,Please infer tree from PHYLIP format input
+fasttree,fasttree_09,fasttree_09_05,sysadmin,Use fasttree to infer tree from PHYLIP format input
+fasttree,fasttree_09,fasttree_09_06,goal_oriented,I want to infer tree from PHYLIP format input
+fasttree,fasttree_09,fasttree_09_07,expert,infer tree PHYLIP format input
+fasttree,fasttree_09,fasttree_09_08,detailed,I have data that I need to process: infer tree from PHYLIP format input
+fasttree,fasttree_09,fasttree_09_09,informal,"Hey, can you help me infer tree from PHYLIP format input?"
+fasttree,fasttree_09,fasttree_09_10,alternative,Perform: infer tree from PHYLIP format input
+fasttree,fasttree_10,fasttree_10_01,original,infer tree with more thorough nearest-neighbor interchange search
+fasttree,fasttree_10,fasttree_10_02,beginner,How do I infer tree with more thorough nearest-neighbor interchange search?
+fasttree,fasttree_10,fasttree_10_03,student,I need to infer tree with more thorough nearest-neighbor interchange search
+fasttree,fasttree_10,fasttree_10_04,polite,Please infer tree with more thorough nearest-neighbor interchange search
+fasttree,fasttree_10,fasttree_10_05,sysadmin,Use fasttree to infer tree with more thorough nearest-neighbor interchange search
+fasttree,fasttree_10,fasttree_10_06,goal_oriented,I want to infer tree with more thorough nearest-neighbor interchange search
+fasttree,fasttree_10,fasttree_10_07,expert,infer tree more thorough nearest-neighbor interchange search
+fasttree,fasttree_10,fasttree_10_08,detailed,I have data that I need to process: infer tree with more thorough nearest-neighbor interchange search
+fasttree,fasttree_10,fasttree_10_09,informal,"Hey, can you help me infer tree with more thorough nearest-neighbor interchange search?"
+fasttree,fasttree_10,fasttree_10_10,alternative,"With more thorough nearest-neighbor interchange search, infer tree"
 featurecounts,featurecounts_01,featurecounts_01_01,original,count reads per gene for paired-end RNA-seq with reverse-strand library
 featurecounts,featurecounts_01,featurecounts_01_02,beginner,How do I count reads per gene for paired-end RNA-seq with reverse-strand library?
 featurecounts,featurecounts_01,featurecounts_01_03,student,I need to count reads per gene for paired-end RNA-seq with reverse-strand library
@@ -11949,16 +11949,16 @@ rm,rm_05,rm_05_07,expert,force-remove directory its contents without prompts
 rm,rm_05,rm_05_08,detailed,I have data that I need to process: force-remove a directory and its contents without prompts
 rm,rm_05,rm_05_09,informal,"Hey, can you help me force-remove a directory and its contents without prompts?"
 rm,rm_05,rm_05_10,alternative,Its contents without prompts after force-remove a directory
-rm,rm_06,rm_06_01,original,remove files older than 30 days using find as a safer alternative
-rm,rm_06,rm_06_02,beginner,How do I remove files older than 30 days using find as a safer alternative?
-rm,rm_06,rm_06_03,student,I need to remove files older than 30 days using find as a safer alternative
-rm,rm_06,rm_06_04,polite,Please remove files older than 30 days using find as a safer alternative
-rm,rm_06,rm_06_05,sysadmin,Use rm to remove files older than 30 days using find as a safer alternative
-rm,rm_06,rm_06_06,goal_oriented,I want to remove files older than 30 days using find as a safer alternative
-rm,rm_06,rm_06_07,expert,remove files older than 30 days find as safer alternative
-rm,rm_06,rm_06_08,detailed,I have data that I need to process: remove files older than 30 days using find as a safer alternative
-rm,rm_06,rm_06_09,informal,"Hey, can you help me remove files older than 30 days using find as a safer alternative?"
-rm,rm_06,rm_06_10,alternative,Perform: remove files older than 30 days using find as a safer alternative
+rm,rm_06,rm_06_01,original,force-remove a stale build directory
+rm,rm_06,rm_06_02,beginner,How do I force-remove a stale build directory?
+rm,rm_06,rm_06_03,student,I need to force-remove a stale build directory
+rm,rm_06,rm_06_04,polite,Please force-remove a stale build directory
+rm,rm_06,rm_06_05,sysadmin,Use rm to force-remove a stale build directory
+rm,rm_06,rm_06_06,goal_oriented,I want to force-remove a stale build directory
+rm,rm_06,rm_06_07,expert,force-remove stale build directory
+rm,rm_06,rm_06_08,detailed,I have data that I need to process: force-remove a stale build directory
+rm,rm_06,rm_06_09,informal,"Hey, can you help me force-remove a stale build directory?"
+rm,rm_06,rm_06_10,alternative,Perform: force-remove a stale build directory
 rm,rm_07,rm_07_01,original,remove a file with a name starting with a dash
 rm,rm_07,rm_07_02,beginner,How do I remove a file with a name starting with a dash?
 rm,rm_07,rm_07_03,student,I need to remove a file with a name starting with a dash
@@ -11979,26 +11979,26 @@ rm,rm_08,rm_08_07,expert,remove empty directory
 rm,rm_08,rm_08_08,detailed,I have data that I need to process: remove an empty directory
 rm,rm_08,rm_08_09,informal,"Hey, can you help me remove an empty directory?"
 rm,rm_08,rm_08_10,alternative,Perform: remove an empty directory
-rm,rm_09,rm_09_01,original,remove a single file in quiet mode
-rm,rm_09,rm_09_02,beginner,How do I remove a single file in quiet mode?
-rm,rm_09,rm_09_03,student,I need to remove a single file in quiet mode
-rm,rm_09,rm_09_04,polite,Please remove a single file in quiet mode
-rm,rm_09,rm_09_05,sysadmin,Use rm to remove a single file in quiet mode
-rm,rm_09,rm_09_06,goal_oriented,I want to remove a single file in quiet mode
-rm,rm_09,rm_09_07,expert,remove single file quiet mode
-rm,rm_09,rm_09_08,detailed,I have data that I need to process: remove a single file in quiet mode
-rm,rm_09,rm_09_09,informal,"Hey, can you help me remove a single file in quiet mode?"
-rm,rm_09,rm_09_10,alternative,Perform: remove a single file in quiet mode
-rm,rm_10,rm_10_01,original,remove multiple files matching a pattern with default parameters
-rm,rm_10,rm_10_02,beginner,How do I remove multiple files matching a pattern with default parameters?
-rm,rm_10,rm_10_03,student,I need to remove multiple files matching a pattern with default parameters
-rm,rm_10,rm_10_04,polite,Please remove multiple files matching a pattern with default parameters
-rm,rm_10,rm_10_05,sysadmin,Use rm to remove multiple files matching a pattern with default parameters
-rm,rm_10,rm_10_06,goal_oriented,I want to remove multiple files matching a pattern with default parameters
-rm,rm_10,rm_10_07,expert,remove multiple files matching pattern default parameters
-rm,rm_10,rm_10_08,detailed,I have data that I need to process: remove multiple files matching a pattern with default parameters
-rm,rm_10,rm_10_09,informal,"Hey, can you help me remove multiple files matching a pattern with default parameters?"
-rm,rm_10,rm_10_10,alternative,"With default parameters, remove multiple files matching a pattern"
+rm,rm_09,rm_09_01,original,verbosely remove all files of a specific type in the current directory
+rm,rm_09,rm_09_02,beginner,How do I verbosely remove all files of a specific type in the current directory?
+rm,rm_09,rm_09_03,student,I need to verbosely remove all files of a specific type in the current directory
+rm,rm_09,rm_09_04,polite,Please verbosely remove all files of a specific type in the current directory
+rm,rm_09,rm_09_05,sysadmin,Use rm to verbosely remove all files of a specific type in the current directory
+rm,rm_09,rm_09_06,goal_oriented,I want to verbosely remove all files of a specific type in the current directory
+rm,rm_09,rm_09_07,expert,verbosely remove all files of specific type current directory
+rm,rm_09,rm_09_08,detailed,I have data that I need to process: verbosely remove all files of a specific type in the current directory
+rm,rm_09,rm_09_09,informal,"Hey, can you help me verbosely remove all files of a specific type in the current directory?"
+rm,rm_09,rm_09_10,alternative,Perform: verbosely remove all files of a specific type in the current directory
+rm,rm_10,rm_10_01,original,remove a symbolic link without following it to the target
+rm,rm_10,rm_10_02,beginner,How do I remove a symbolic link without following it to the target?
+rm,rm_10,rm_10_03,student,I need to remove a symbolic link without following it to the target
+rm,rm_10,rm_10_04,polite,Please remove a symbolic link without following it to the target
+rm,rm_10,rm_10_05,sysadmin,Use rm to remove a symbolic link without following it to the target
+rm,rm_10,rm_10_06,goal_oriented,I want to remove a symbolic link without following it to the target
+rm,rm_10,rm_10_07,expert,remove symbolic link without following it target
+rm,rm_10,rm_10_08,detailed,I have data that I need to process: remove a symbolic link without following it to the target
+rm,rm_10,rm_10_09,informal,"Hey, can you help me remove a symbolic link without following it to the target?"
+rm,rm_10,rm_10_10,alternative,Output the target by performing: remove a symbolic link without following it
 rsem,rsem_01,rsem_01_01,original,prepare RSEM reference from genome FASTA and GTF annotation
 rsem,rsem_01,rsem_01_02,beginner,How do I prepare RSEM reference from genome FASTA and GTF annotation?
 rsem,rsem_01,rsem_01_03,student,I need to prepare RSEM reference from genome FASTA and GTF annotation
@@ -13749,56 +13749,56 @@ sra-tools,sra-tools_05,sra-tools_05_07,expert,validate SRA file integrity
 sra-tools,sra-tools_05,sra-tools_05_08,detailed,I have data that I need to process: validate an SRA file integrity
 sra-tools,sra-tools_05,sra-tools_05_09,informal,"Hey, can you help me validate an SRA file integrity?"
 sra-tools,sra-tools_05,sra-tools_05_10,alternative,Perform: validate an SRA file integrity
-sra-tools,sra-tools_06,sra-tools_06_01,original,download and convert an SRA accession to FASTQ with verbose output
-sra-tools,sra-tools_06,sra-tools_06_02,beginner,How do I download and convert an SRA accession to FASTQ with verbose output?
-sra-tools,sra-tools_06,sra-tools_06_03,student,I need to download and convert an SRA accession to FASTQ with verbose output
-sra-tools,sra-tools_06,sra-tools_06_04,polite,Please download and convert an SRA accession to FASTQ with verbose output
-sra-tools,sra-tools_06,sra-tools_06_05,sysadmin,Use sra-tools to download and convert an SRA accession to FASTQ with verbose output
-sra-tools,sra-tools_06,sra-tools_06_06,goal_oriented,I want to download and convert an SRA accession to FASTQ with verbose output
-sra-tools,sra-tools_06,sra-tools_06_07,expert,download convert SRA accession FASTQ verbose output
-sra-tools,sra-tools_06,sra-tools_06_08,detailed,I have data that I need to process: download and convert an SRA accession to FASTQ with verbose output
-sra-tools,sra-tools_06,sra-tools_06_09,informal,"Hey, can you help me download and convert an SRA accession to FASTQ with verbose output?"
-sra-tools,sra-tools_06,sra-tools_06_10,alternative,Convert an SRA accession to FASTQ with verbose output after download
-sra-tools,sra-tools_07,sra-tools_07_01,original,download SRA file first then convert (more reliable) using multiple threads
-sra-tools,sra-tools_07,sra-tools_07_02,beginner,How do I download SRA file first then convert (more reliable) using multiple threads?
-sra-tools,sra-tools_07,sra-tools_07_03,student,I need to download SRA file first then convert (more reliable) using multiple threads
-sra-tools,sra-tools_07,sra-tools_07_04,polite,Please download SRA file first then convert (more reliable) using multiple threads
-sra-tools,sra-tools_07,sra-tools_07_05,sysadmin,Use sra-tools to download SRA file first then convert (more reliable) using multiple threads
-sra-tools,sra-tools_07,sra-tools_07_06,goal_oriented,I want to download SRA file first then convert (more reliable) using multiple threads
-sra-tools,sra-tools_07,sra-tools_07_07,expert,download SRA file first then convert (more reliable) multiple threads
-sra-tools,sra-tools_07,sra-tools_07_08,detailed,"I have data that I need to process: download SRA file first then convert (more reliable) using multiple threads, utilizing multiple CPU threads for speed"
-sra-tools,sra-tools_07,sra-tools_07_09,informal,"Hey, can you help me download SRA file first then convert (more reliable) using multiple threads?"
-sra-tools,sra-tools_07,sra-tools_07_10,alternative,Perform: download SRA file first then convert (more reliable) using multiple threads
-sra-tools,sra-tools_08,sra-tools_08_01,original,download multiple SRA accessions in batch and write output to a file
-sra-tools,sra-tools_08,sra-tools_08_02,beginner,How do I download multiple SRA accessions in batch and write output to a file?
-sra-tools,sra-tools_08,sra-tools_08_03,student,I need to download multiple SRA accessions in batch and write output to a file
-sra-tools,sra-tools_08,sra-tools_08_04,polite,Please download multiple SRA accessions in batch and write output to a file
-sra-tools,sra-tools_08,sra-tools_08_05,sysadmin,Use sra-tools to download multiple SRA accessions in batch and write output to a file
-sra-tools,sra-tools_08,sra-tools_08_06,goal_oriented,I want to download multiple SRA accessions in batch and write output to a file
-sra-tools,sra-tools_08,sra-tools_08_07,expert,download multiple SRA accessions batch write output file
-sra-tools,sra-tools_08,sra-tools_08_08,detailed,I have data that I need to process: download multiple SRA accessions in batch and write output to a file
-sra-tools,sra-tools_08,sra-tools_08_09,informal,"Hey, can you help me download multiple SRA accessions in batch and write output to a file?"
-sra-tools,sra-tools_08,sra-tools_08_10,alternative,Write output to a file after download multiple SRA accessions in batch
-sra-tools,sra-tools_09,sra-tools_09_01,original,convert SRA to compressed FASTQ in quiet mode
-sra-tools,sra-tools_09,sra-tools_09_02,beginner,How do I convert SRA to compressed FASTQ in quiet mode?
-sra-tools,sra-tools_09,sra-tools_09_03,student,I need to convert SRA to compressed FASTQ in quiet mode
-sra-tools,sra-tools_09,sra-tools_09_04,polite,Please convert SRA to compressed FASTQ in quiet mode
-sra-tools,sra-tools_09,sra-tools_09_05,sysadmin,Use sra-tools to convert SRA to compressed FASTQ in quiet mode
-sra-tools,sra-tools_09,sra-tools_09_06,goal_oriented,I want to convert SRA to compressed FASTQ in quiet mode
-sra-tools,sra-tools_09,sra-tools_09_07,expert,convert SRA compressed FASTQ quiet mode
-sra-tools,sra-tools_09,sra-tools_09_08,detailed,I have data that I need to process: convert SRA to compressed FASTQ in quiet mode
-sra-tools,sra-tools_09,sra-tools_09_09,informal,"Hey, can you help me convert SRA to compressed FASTQ in quiet mode?"
-sra-tools,sra-tools_09,sra-tools_09_10,alternative,Output compressed FASTQ in quiet mode by performing: convert SRA
-sra-tools,sra-tools_10,sra-tools_10_01,original,validate an SRA file integrity with default parameters
-sra-tools,sra-tools_10,sra-tools_10_02,beginner,How do I validate an SRA file integrity with default parameters?
-sra-tools,sra-tools_10,sra-tools_10_03,student,I need to validate an SRA file integrity with default parameters
-sra-tools,sra-tools_10,sra-tools_10_04,polite,Please validate an SRA file integrity with default parameters
-sra-tools,sra-tools_10,sra-tools_10_05,sysadmin,Use sra-tools to validate an SRA file integrity with default parameters
-sra-tools,sra-tools_10,sra-tools_10_06,goal_oriented,I want to validate an SRA file integrity with default parameters
-sra-tools,sra-tools_10,sra-tools_10_07,expert,validate SRA file integrity default parameters
-sra-tools,sra-tools_10,sra-tools_10_08,detailed,I have data that I need to process: validate an SRA file integrity with default parameters
-sra-tools,sra-tools_10,sra-tools_10_09,informal,"Hey, can you help me validate an SRA file integrity with default parameters?"
-sra-tools,sra-tools_10,sra-tools_10_10,alternative,"With default parameters, validate an SRA file integrity"
+sra-tools,sra-tools_06,sra-tools_06_01,original,get statistics for an SRA run without downloading reads
+sra-tools,sra-tools_06,sra-tools_06_02,beginner,How do I get statistics for an SRA run without downloading reads?
+sra-tools,sra-tools_06,sra-tools_06_03,student,I need to get statistics for an SRA run without downloading reads
+sra-tools,sra-tools_06,sra-tools_06_04,polite,Please get statistics for an SRA run without downloading reads
+sra-tools,sra-tools_06,sra-tools_06_05,sysadmin,Use sra-tools to get statistics for an SRA run without downloading reads
+sra-tools,sra-tools_06,sra-tools_06_06,goal_oriented,I want to get statistics for an SRA run without downloading reads
+sra-tools,sra-tools_06,sra-tools_06_07,expert,get statistics SRA run without downloading reads
+sra-tools,sra-tools_06,sra-tools_06_08,detailed,I have data that I need to process: get statistics for an SRA run without downloading reads
+sra-tools,sra-tools_06,sra-tools_06_09,informal,"Hey, can you help me get statistics for an SRA run without downloading reads?"
+sra-tools,sra-tools_06,sra-tools_06_10,alternative,Perform: get statistics for an SRA run without downloading reads
+sra-tools,sra-tools_07,sra-tools_07_01,original,download an ENA/EBI accession using prefetch
+sra-tools,sra-tools_07,sra-tools_07_02,beginner,How do I download an ENA/EBI accession using prefetch?
+sra-tools,sra-tools_07,sra-tools_07_03,student,I need to download an ENA/EBI accession using prefetch
+sra-tools,sra-tools_07,sra-tools_07_04,polite,Please download an ENA/EBI accession using prefetch
+sra-tools,sra-tools_07,sra-tools_07_05,sysadmin,Use sra-tools to download an ENA/EBI accession using prefetch
+sra-tools,sra-tools_07,sra-tools_07_06,goal_oriented,I want to download an ENA/EBI accession using prefetch
+sra-tools,sra-tools_07,sra-tools_07_07,expert,download ENA/EBI accession prefetch
+sra-tools,sra-tools_07,sra-tools_07_08,detailed,I have data that I need to process: download an ENA/EBI accession using prefetch
+sra-tools,sra-tools_07,sra-tools_07_09,informal,"Hey, can you help me download an ENA/EBI accession using prefetch?"
+sra-tools,sra-tools_07,sra-tools_07_10,alternative,Perform: download an ENA/EBI accession using prefetch
+sra-tools,sra-tools_08,sra-tools_08_01,original,list all reads in an SRA file
+sra-tools,sra-tools_08,sra-tools_08_02,beginner,How do I list all reads in an SRA file?
+sra-tools,sra-tools_08,sra-tools_08_03,student,I need to list all reads in an SRA file
+sra-tools,sra-tools_08,sra-tools_08_04,polite,Please list all reads in an SRA file
+sra-tools,sra-tools_08,sra-tools_08_05,sysadmin,Use sra-tools to list all reads in an SRA file
+sra-tools,sra-tools_08,sra-tools_08_06,goal_oriented,I want to list all reads in an SRA file
+sra-tools,sra-tools_08,sra-tools_08_07,expert,list all reads SRA file
+sra-tools,sra-tools_08,sra-tools_08_08,detailed,I have data that I need to process: list all reads in an SRA file
+sra-tools,sra-tools_08,sra-tools_08_09,informal,"Hey, can you help me list all reads in an SRA file?"
+sra-tools,sra-tools_08,sra-tools_08_10,alternative,Perform: list all reads in an SRA file
+sra-tools,sra-tools_09,sra-tools_09_01,original,check available disk space before a large download
+sra-tools,sra-tools_09,sra-tools_09_02,beginner,How do I check available disk space before a large download?
+sra-tools,sra-tools_09,sra-tools_09_03,student,I need to check available disk space before a large download
+sra-tools,sra-tools_09,sra-tools_09_04,polite,Please check available disk space before a large download
+sra-tools,sra-tools_09,sra-tools_09_05,sysadmin,Use sra-tools to check available disk space before a large download
+sra-tools,sra-tools_09,sra-tools_09_06,goal_oriented,I want to check available disk space before a large download
+sra-tools,sra-tools_09,sra-tools_09_07,expert,check available disk space before large download
+sra-tools,sra-tools_09,sra-tools_09_08,detailed,I have data that I need to process: check available disk space before a large download
+sra-tools,sra-tools_09,sra-tools_09_09,informal,"Hey, can you help me check available disk space before a large download?"
+sra-tools,sra-tools_09,sra-tools_09_10,alternative,Perform: check available disk space before a large download
+sra-tools,sra-tools_10,sra-tools_10_01,original,download a single-end SRA accession and skip technical reads
+sra-tools,sra-tools_10,sra-tools_10_02,beginner,How do I download a single-end SRA accession and skip technical reads?
+sra-tools,sra-tools_10,sra-tools_10_03,student,I need to download a single-end SRA accession and skip technical reads
+sra-tools,sra-tools_10,sra-tools_10_04,polite,Please download a single-end SRA accession and skip technical reads
+sra-tools,sra-tools_10,sra-tools_10_05,sysadmin,Use sra-tools to download a single-end SRA accession and skip technical reads
+sra-tools,sra-tools_10,sra-tools_10_06,goal_oriented,I want to download a single-end SRA accession and skip technical reads
+sra-tools,sra-tools_10,sra-tools_10_07,expert,download single-end SRA accession skip technical reads
+sra-tools,sra-tools_10,sra-tools_10_08,detailed,I have data that I need to process: download a single-end SRA accession and skip technical reads
+sra-tools,sra-tools_10,sra-tools_10_09,informal,"Hey, can you help me download a single-end SRA accession and skip technical reads?"
+sra-tools,sra-tools_10,sra-tools_10_10,alternative,Skip technical reads after download a single-end SRA accession
 ssh,ssh_01,ssh_01_01,original,connect to a remote server as a specific user
 ssh,ssh_01,ssh_01_02,beginner,How do I connect to a remote server as a specific user?
 ssh,ssh_01,ssh_01_03,student,I need to connect to a remote server as a specific user
@@ -14449,56 +14449,56 @@ tabix,tabix_05,tabix_05_07,expert,list all chromosomes/contigs indexed VCF
 tabix,tabix_05,tabix_05_08,detailed,I have data that I need to process: list all chromosomes/contigs in an indexed VCF
 tabix,tabix_05,tabix_05_09,informal,"Hey, can you help me list all chromosomes/contigs in an indexed VCF?"
 tabix,tabix_05,tabix_05_10,alternative,Perform: list all chromosomes/contigs in an indexed VCF
-tabix,tabix_06,tabix_06_01,original,compress a VCF file with bgzip and create tabix index with verbose output
-tabix,tabix_06,tabix_06_02,beginner,How do I compress a VCF file with bgzip and create tabix index with verbose output?
-tabix,tabix_06,tabix_06_03,student,I need to compress a VCF file with bgzip and create tabix index with verbose output
-tabix,tabix_06,tabix_06_04,polite,Please compress a VCF file with bgzip and create tabix index with verbose output
-tabix,tabix_06,tabix_06_05,sysadmin,Use tabix to compress a VCF file with bgzip and create tabix index with verbose output
-tabix,tabix_06,tabix_06_06,goal_oriented,I want to compress a VCF file with bgzip and create tabix index with verbose output
-tabix,tabix_06,tabix_06_07,expert,compress VCF file bgzip create tabix index verbose output
-tabix,tabix_06,tabix_06_08,detailed,I have data that I need to process: compress a VCF file with bgzip and create tabix index with verbose output
-tabix,tabix_06,tabix_06_09,informal,"Hey, can you help me compress a VCF file with bgzip and create tabix index with verbose output?"
-tabix,tabix_06,tabix_06_10,alternative,Create tabix index with verbose output after compress a VCF file with bgzip
-tabix,tabix_07,tabix_07_01,original,create tabix index for a bgzipped VCF file using multiple threads
-tabix,tabix_07,tabix_07_02,beginner,How do I create tabix index for a bgzipped VCF file using multiple threads?
-tabix,tabix_07,tabix_07_03,student,I need to create tabix index for a bgzipped VCF file using multiple threads
-tabix,tabix_07,tabix_07_04,polite,Please create tabix index for a bgzipped VCF file using multiple threads
-tabix,tabix_07,tabix_07_05,sysadmin,Use tabix to create tabix index for a bgzipped VCF file using multiple threads
-tabix,tabix_07,tabix_07_06,goal_oriented,I want to create tabix index for a bgzipped VCF file using multiple threads
-tabix,tabix_07,tabix_07_07,expert,create tabix index bgzipped VCF file multiple threads
-tabix,tabix_07,tabix_07_08,detailed,"I have data that I need to process: create tabix index for a bgzipped VCF file using multiple threads, utilizing multiple CPU threads for speed"
-tabix,tabix_07,tabix_07_09,informal,"Hey, can you help me create tabix index for a bgzipped VCF file using multiple threads?"
-tabix,tabix_07,tabix_07_10,alternative,Perform: create tabix index for a bgzipped VCF file using multiple threads
-tabix,tabix_08,tabix_08_01,original,query a specific genomic region from an indexed VCF and write output to a file
-tabix,tabix_08,tabix_08_02,beginner,How do I query a specific genomic region from an indexed VCF and write output to a file?
-tabix,tabix_08,tabix_08_03,student,I need to query a specific genomic region from an indexed VCF and write output to a file
-tabix,tabix_08,tabix_08_04,polite,Please query a specific genomic region from an indexed VCF and write output to a file
-tabix,tabix_08,tabix_08_05,sysadmin,Use tabix to query a specific genomic region from an indexed VCF and write output to a file
-tabix,tabix_08,tabix_08_06,goal_oriented,I want to query a specific genomic region from an indexed VCF and write output to a file
-tabix,tabix_08,tabix_08_07,expert,query specific genomic region indexed VCF write output file
-tabix,tabix_08,tabix_08_08,detailed,"I have data that I need to process: query a specific genomic region from an indexed VCF and write output to a file, saving the result to a specified output file"
-tabix,tabix_08,tabix_08_09,informal,"Hey, can you help me query a specific genomic region from an indexed VCF and write output to a file?"
-tabix,tabix_08,tabix_08_10,alternative,Write output to a file after query a specific genomic region from an indexed VCF
-tabix,tabix_09,tabix_09_01,original,create tabix index for a bgzipped BED file in quiet mode
-tabix,tabix_09,tabix_09_02,beginner,How do I create tabix index for a bgzipped BED file in quiet mode?
-tabix,tabix_09,tabix_09_03,student,I need to create tabix index for a bgzipped BED file in quiet mode
-tabix,tabix_09,tabix_09_04,polite,Please create tabix index for a bgzipped BED file in quiet mode
-tabix,tabix_09,tabix_09_05,sysadmin,Use tabix to create tabix index for a bgzipped BED file in quiet mode
-tabix,tabix_09,tabix_09_06,goal_oriented,I want to create tabix index for a bgzipped BED file in quiet mode
-tabix,tabix_09,tabix_09_07,expert,create tabix index bgzipped BED file quiet mode
-tabix,tabix_09,tabix_09_08,detailed,"I have data that I need to process: create tabix index for a bgzipped BED file in quiet mode, utilizing multiple CPU threads for speed"
-tabix,tabix_09,tabix_09_09,informal,"Hey, can you help me create tabix index for a bgzipped BED file in quiet mode?"
-tabix,tabix_09,tabix_09_10,alternative,Perform: create tabix index for a bgzipped BED file in quiet mode
-tabix,tabix_10,tabix_10_01,original,list all chromosomes/contigs in an indexed VCF with default parameters
-tabix,tabix_10,tabix_10_02,beginner,How do I list all chromosomes/contigs in an indexed VCF with default parameters?
-tabix,tabix_10,tabix_10_03,student,I need to list all chromosomes/contigs in an indexed VCF with default parameters
-tabix,tabix_10,tabix_10_04,polite,Please list all chromosomes/contigs in an indexed VCF with default parameters
-tabix,tabix_10,tabix_10_05,sysadmin,Use tabix to list all chromosomes/contigs in an indexed VCF with default parameters
-tabix,tabix_10,tabix_10_06,goal_oriented,I want to list all chromosomes/contigs in an indexed VCF with default parameters
-tabix,tabix_10,tabix_10_07,expert,list all chromosomes/contigs indexed VCF default parameters
-tabix,tabix_10,tabix_10_08,detailed,I have data that I need to process: list all chromosomes/contigs in an indexed VCF with default parameters
-tabix,tabix_10,tabix_10_09,informal,"Hey, can you help me list all chromosomes/contigs in an indexed VCF with default parameters?"
-tabix,tabix_10,tabix_10_10,alternative,"With default parameters, list all chromosomes/contigs in an indexed VCF"
+tabix,tabix_06,tabix_06_01,original,create a CSI index for large genomes with contigs >512 Mb
+tabix,tabix_06,tabix_06_02,beginner,How do I create a CSI index for large genomes with contigs >512 Mb?
+tabix,tabix_06,tabix_06_03,student,I need to create a CSI index for large genomes with contigs >512 Mb
+tabix,tabix_06,tabix_06_04,polite,Please create a CSI index for large genomes with contigs >512 Mb
+tabix,tabix_06,tabix_06_05,sysadmin,Use tabix to create a CSI index for large genomes with contigs >512 Mb
+tabix,tabix_06,tabix_06_06,goal_oriented,I want to create a CSI index for large genomes with contigs >512 Mb
+tabix,tabix_06,tabix_06_07,expert,create CSI index large genomes contigs >512 Mb
+tabix,tabix_06,tabix_06_08,detailed,I have data that I need to process: create a CSI index for large genomes with contigs >512 Mb
+tabix,tabix_06,tabix_06_09,informal,"Hey, can you help me create a CSI index for large genomes with contigs >512 Mb?"
+tabix,tabix_06,tabix_06_10,alternative,"With contigs >512 Mb, create a CSI index for large genomes"
+tabix,tabix_07,tabix_07_01,original,query multiple regions at once from an indexed VCF
+tabix,tabix_07,tabix_07_02,beginner,How do I query multiple regions at once from an indexed VCF?
+tabix,tabix_07,tabix_07_03,student,I need to query multiple regions at once from an indexed VCF
+tabix,tabix_07,tabix_07_04,polite,Please query multiple regions at once from an indexed VCF
+tabix,tabix_07,tabix_07_05,sysadmin,Use tabix to query multiple regions at once from an indexed VCF
+tabix,tabix_07,tabix_07_06,goal_oriented,I want to query multiple regions at once from an indexed VCF
+tabix,tabix_07,tabix_07_07,expert,query multiple regions at once indexed VCF
+tabix,tabix_07,tabix_07_08,detailed,I have data that I need to process: query multiple regions at once from an indexed VCF
+tabix,tabix_07,tabix_07_09,informal,"Hey, can you help me query multiple regions at once from an indexed VCF?"
+tabix,tabix_07,tabix_07_10,alternative,Perform: query multiple regions at once from an indexed VCF
+tabix,tabix_08,tabix_08_01,original,index a bgzipped GFF3 annotation file
+tabix,tabix_08,tabix_08_02,beginner,How do I index a bgzipped GFF3 annotation file?
+tabix,tabix_08,tabix_08_03,student,I need to index a bgzipped GFF3 annotation file
+tabix,tabix_08,tabix_08_04,polite,Please index a bgzipped GFF3 annotation file
+tabix,tabix_08,tabix_08_05,sysadmin,Use tabix to index a bgzipped GFF3 annotation file
+tabix,tabix_08,tabix_08_06,goal_oriented,I want to index a bgzipped GFF3 annotation file
+tabix,tabix_08,tabix_08_07,expert,index bgzipped GFF3 annotation file
+tabix,tabix_08,tabix_08_08,detailed,"I have data that I need to process: index a bgzipped GFF3 annotation file, utilizing multiple CPU threads for speed"
+tabix,tabix_08,tabix_08_09,informal,"Hey, can you help me index a bgzipped GFF3 annotation file?"
+tabix,tabix_08,tabix_08_10,alternative,Perform: index a bgzipped GFF3 annotation file
+tabix,tabix_09,tabix_09_01,original,fetch a remote indexed VCF region without downloading the whole file
+tabix,tabix_09,tabix_09_02,beginner,How do I fetch a remote indexed VCF region without downloading the whole file?
+tabix,tabix_09,tabix_09_03,student,I need to fetch a remote indexed VCF region without downloading the whole file
+tabix,tabix_09,tabix_09_04,polite,Please fetch a remote indexed VCF region without downloading the whole file
+tabix,tabix_09,tabix_09_05,sysadmin,Use tabix to fetch a remote indexed VCF region without downloading the whole file
+tabix,tabix_09,tabix_09_06,goal_oriented,I want to fetch a remote indexed VCF region without downloading the whole file
+tabix,tabix_09,tabix_09_07,expert,fetch remote indexed VCF region without downloading whole file
+tabix,tabix_09,tabix_09_08,detailed,I have data that I need to process: fetch a remote indexed VCF region without downloading the whole file
+tabix,tabix_09,tabix_09_09,informal,"Hey, can you help me fetch a remote indexed VCF region without downloading the whole file?"
+tabix,tabix_09,tabix_09_10,alternative,Perform: fetch a remote indexed VCF region without downloading the whole file
+tabix,tabix_10,tabix_10_01,original,reindex a tabix file using a custom sequence dictionary order
+tabix,tabix_10,tabix_10_02,beginner,How do I reindex a tabix file using a custom sequence dictionary order?
+tabix,tabix_10,tabix_10_03,student,I need to reindex a tabix file using a custom sequence dictionary order
+tabix,tabix_10,tabix_10_04,polite,Please reindex a tabix file using a custom sequence dictionary order
+tabix,tabix_10,tabix_10_05,sysadmin,Use tabix to reindex a tabix file using a custom sequence dictionary order
+tabix,tabix_10,tabix_10_06,goal_oriented,I want to reindex a tabix file using a custom sequence dictionary order
+tabix,tabix_10,tabix_10_07,expert,reindex tabix file custom sequence dictionary order
+tabix,tabix_10,tabix_10_08,detailed,I have data that I need to process: reindex a tabix file using a custom sequence dictionary order
+tabix,tabix_10,tabix_10_09,informal,"Hey, can you help me reindex a tabix file using a custom sequence dictionary order?"
+tabix,tabix_10,tabix_10_10,alternative,Perform: reindex a tabix file using a custom sequence dictionary order
 tar,tar_01,tar_01_01,original,create a gzip-compressed archive of a directory
 tar,tar_01,tar_01_02,beginner,How do I create a gzip-compressed archive of a directory?
 tar,tar_01,tar_01_03,student,I need to create a gzip-compressed archive of a directory

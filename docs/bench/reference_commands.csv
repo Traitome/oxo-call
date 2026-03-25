@@ -3,12 +3,12 @@ admixture,admixture_01,data.bed 5 --cv=10 -j8,run ADMIXTURE for K=5 ancestral po
 admixture,admixture_02,data.bed 3 --seed=42 --cv=10 -j8,run ADMIXTURE with reproducible seed,population-genomics
 admixture,admixture_03,data.bed 3 --supervised -j8,run supervised ADMIXTURE with known reference populations,population-genomics
 admixture,admixture_04,data.bed K --cv=10 -j8 > admixture_K.log,run ADMIXTURE across multiple K values (shell loop),population-genomics
-admixture,admixture_05,data.bed 5 --cv=10 -j8,run ADMIXTURE for K=5 ancestral populations with default parameters,population-genomics
-admixture,admixture_06,data.bed 3 --seed=42 --cv=10 -j8 --verbose,run ADMIXTURE with reproducible seed with verbose output,population-genomics
-admixture,admixture_07,data.bed 3 --supervised -j8 -t 4,run supervised ADMIXTURE with known reference populations using multiple threads,population-genomics
-admixture,admixture_08,data.bed K --cv=10 -j8 > admixture_K.log -o output.txt,run ADMIXTURE across multiple K values (shell loop) and write output to a file,population-genomics
-admixture,admixture_09,data.bed 5 --cv=10 -j8 --quiet,run ADMIXTURE for K=5 ancestral populations in quiet mode,population-genomics
-admixture,admixture_10,data.bed 3 --seed=42 --cv=10 -j8,run ADMIXTURE with reproducible seed with default parameters,population-genomics
+admixture,admixture_05,data.bed 5 -B100 -j8,run ADMIXTURE with 100 bootstrap replicates for standard errors,population-genomics
+admixture,admixture_06,data.bed 5 -P -j8,run projection analysis onto a fixed P-matrix,population-genomics
+admixture,admixture_07,data.bed 4 --seed=1 --cv=10 -j8 > run1.log,run multiple replicates for K=4 with different seeds to check convergence,population-genomics
+admixture,admixture_08,data.bed 6 --cv=10 -j8 | tee admixture_K6.log,compare cross-validation errors across K values,population-genomics
+admixture,admixture_09,data.bed 5 --maf=0.05 --cv=10 -j8,filter for minor allele frequency before running ADMIXTURE,population-genomics
+admixture,admixture_10,data.bed 5 --em --cv=10 -j8,run ADMIXTURE with accelerated EM for faster convergence,population-genomics
 agat,agat_01,agat_convert_sp_gff2gtf.pl --gff annotation.gff3 -o annotation.gtf,convert GFF3 to GTF format,annotation
 agat,agat_02,agat_sp_statistics.pl --gff annotation.gff3 -o statistics_report.txt,get annotation statistics from a GFF3 file,annotation
 agat,agat_03,agat_sp_filter_gene_by_length.pl --gff annotation.gff3 --size 300 -o filtered_annotation.gff3,filter genes by minimum length,annotation
@@ -107,8 +107,8 @@ bbtools,bbtools_05,reformat.sh in=large.fastq.gz out=subset.fastq.gz samplereads
 bbtools,bbtools_06,reformat.sh in=reads.fastq.gz out=reads.fa,convert FASTQ to FASTA,sequence-processing
 bbtools,bbtools_07,bbmap.sh in=sample.fastq.gz ref=human_genome.fa outm=host_reads.fastq.gz outu=non_host_reads.fastq.gz nodisk=t,remove host reads before metagenomics analysis,sequence-processing
 bbtools,bbtools_08,reformat.sh in=reads.fastq.gz,get detailed statistics for a FASTQ file,sequence-processing
-bbtools,bbtools_09,bbduk.sh in=R1.fastq.gz in2=R2.fastq.gz out=R1_trimmed.fastq.gz out2=R2_trimmed.fastq.gz ref=adapters.fa ktrim=r k=23 mink=11 hdist=1 tpe tbo qtrim=r trimq=20 minlen=50 --quiet,trim adapters and quality-filter with BBDuk in quiet mode,sequence-processing
-bbtools,bbtools_10,bbduk.sh in=R1.fastq.gz in2=R2.fastq.gz out=clean_R1.fastq.gz out2=clean_R2.fastq.gz ref=phix174_ill.ref.fa.gz k=31 hdist=1,remove PhiX contamination from a FASTQ with default parameters,sequence-processing
+bbtools,bbtools_09,dedupe.sh in=reads.fastq.gz out=deduped.fastq.gz,remove duplicate reads with dedupe.sh,sequence-processing
+bbtools,bbtools_10,"bbsplit.sh in=sample.fastq.gz ref=genome1.fa,genome2.fa out_genome1=reads_genome1.fastq.gz out_genome2=reads_genome2.fastq.gz",split reads by genome of origin for metagenomics,sequence-processing
 bcftools,bcftools_01,mpileup -f reference.fa -O u input.bam | bcftools call -m -v -O z -o variants.vcf.gz,call variants from a BAM file against a reference genome,variant-calling
 bcftools,bcftools_02,"view -i 'QUAL>30 && INFO/DP>10 && TYPE=""snp""' -O z -o filtered.vcf.gz input.vcf.gz","filter VCF to keep only high-quality SNPs (QUAL > 30, depth > 10)",variant-calling
 bcftools,bcftools_03,merge -O z -o merged.vcf.gz sample1.vcf.gz sample2.vcf.gz sample3.vcf.gz,merge multiple VCF files from different samples,variant-calling
@@ -289,7 +289,7 @@ chromap,chromap_07,--preset atac -x genome.index -r genome.fa -1 R1.fastq.gz -2 
 chromap,chromap_08,--preset chip -x genome.index -r genome.fa -1 R1.fastq.gz -2 R2.fastq.gz -o chip_aligned.bed -t 16,align ChIP-seq reads with Chromap and write output to a file,epigenomics
 chromap,chromap_09,-i -r genome.fa -o genome.index --quiet,build Chromap genome index in quiet mode,epigenomics
 chromap,chromap_10,--preset atac -x genome.index -r genome.fa -1 R1.fastq.gz -2 R2.fastq.gz -o fragments.bed -t 16,align paired-end ATAC-seq reads with Chromap with default parameters,epigenomics
-claude,claude_01,,start an interactive chat session,ai-assistant
+claude,claude_01,--no-tools,start an interactive chat session with no tool access,ai-assistant
 claude,claude_02,"-p ""What is the difference between RNA-seq and scRNA-seq?""",ask a one-shot question and print the answer,ai-assistant
 claude,claude_03,"-p ""Summarise this file in three bullet points""",summarise a file using stdin,ai-assistant
 claude,claude_04,"-p ""Explain what this script does"" --input-file analyse_samples.sh",ask Claude to explain a bash script,ai-assistant
@@ -463,12 +463,12 @@ fasttree,fasttree_01,-nt -gtr aligned_sequences.fasta > nucleotide_tree.nwk,infe
 fasttree,fasttree_02,aligned_proteins.fasta > protein_tree.nwk,infer phylogenetic tree from protein alignment,phylogenetics
 fasttree,fasttree_03,-wag aligned_proteins.fasta > wag_tree.nwk,infer tree with WAG protein substitution model,phylogenetics
 fasttree,fasttree_04,-nt -gtr -boot 1000 -seed 42 aligned_sequences.fasta > tree_with_support.nwk,infer tree with local support values,phylogenetics
-fasttree,fasttree_05,-nt -gtr aligned_sequences.fasta > nucleotide_tree.nwk,infer phylogenetic tree from nucleotide alignment with default parameters,phylogenetics
-fasttree,fasttree_06,aligned_proteins.fasta > protein_tree.nwk --verbose,infer phylogenetic tree from protein alignment with verbose output,phylogenetics
-fasttree,fasttree_07,-wag aligned_proteins.fasta > wag_tree.nwk -t 4,infer tree with WAG protein substitution model using multiple threads,phylogenetics
-fasttree,fasttree_08,-nt -gtr -boot 1000 -seed 42 aligned_sequences.fasta > tree_with_support.nwk -o output.txt,infer tree with local support values and write output to a file,phylogenetics
-fasttree,fasttree_09,-nt -gtr aligned_sequences.fasta > nucleotide_tree.nwk --quiet,infer phylogenetic tree from nucleotide alignment in quiet mode,phylogenetics
-fasttree,fasttree_10,aligned_proteins.fasta > protein_tree.nwk,infer phylogenetic tree from protein alignment with default parameters,phylogenetics
+fasttree,fasttree_05,-nt -gtr aligned_sequences.fasta > tree.nwk,infer tree using multithreaded FastTreeMP,phylogenetics
+fasttree,fasttree_06,-lg aligned_proteins.fasta > lg_tree.nwk,infer protein tree with LG substitution model,phylogenetics
+fasttree,fasttree_07,-nt -gtr -fastest aligned_sequences.fasta > fast_tree.nwk,run faster but less thorough tree search,phylogenetics
+fasttree,fasttree_08,-nt -gtr -gamma aligned_sequences.fasta > gamma_tree.nwk,infer tree with gamma-distributed rate variation,phylogenetics
+fasttree,fasttree_09,-nt -gtr -n 1 alignment.phy > phylip_tree.nwk,infer tree from PHYLIP format input,phylogenetics
+fasttree,fasttree_10,-nt -gtr -slownni aligned_sequences.fasta > thorough_tree.nwk,infer tree with more thorough nearest-neighbor interchange search,phylogenetics
 featurecounts,featurecounts_01,-T 8 -a genes.gtf -o counts.txt -p -s 2 sample1.bam sample2.bam sample3.bam,count reads per gene for paired-end RNA-seq with reverse-strand library,rna-seq
 featurecounts,featurecounts_02,-T 8 -a genes.gtf -o counts.txt -s 0 sample.bam,count reads per gene for unstranded single-end RNA-seq,rna-seq
 featurecounts,featurecounts_03,-T 8 -a genes.gtf -o counts.txt -p -s 2 --primary -M -O sample.bam,count reads allowing multi-mapping reads to be counted,rna-seq
@@ -1194,11 +1194,11 @@ rm,rm_02,-v *.tmp,remove multiple files matching a pattern,filesystem
 rm,rm_03,-r old_results/,remove a directory and all its contents,filesystem
 rm,rm_04,-i *.log,"interactively remove files, asking for confirmation before each deletion",filesystem
 rm,rm_05,-rf temp_build/,force-remove a directory and its contents without prompts,filesystem
-rm,rm_06,,remove files older than 30 days using find as a safer alternative,filesystem
+rm,rm_06,-rf /tmp/stale_dir/,force-remove a stale build directory,filesystem
 rm,rm_07,-- -weirdfile.txt,remove a file with a name starting with a dash,filesystem
 rm,rm_08,-d emptydir/,remove an empty directory,filesystem
-rm,rm_09,file.txt --quiet,remove a single file in quiet mode,filesystem
-rm,rm_10,-v *.tmp,remove multiple files matching a pattern with default parameters,filesystem
+rm,rm_09,-v *.bak,verbosely remove all files of a specific type in the current directory,filesystem
+rm,rm_10,symlink_name,remove a symbolic link without following it to the target,filesystem
 rsem,rsem_01,rsem-prepare-reference --gtf genes.gtf --num-threads 8 genome.fa rsem_index/genome,prepare RSEM reference from genome FASTA and GTF annotation,rna-seq
 rsem,rsem_02,rsem-calculate-expression --paired-end --num-threads 8 --strandedness reverse R1.fastq.gz R2.fastq.gz rsem_index/genome sample_output,quantify paired-end RNA-seq reads using RSEM with Bowtie2,rna-seq
 rsem,rsem_03,rsem-calculate-expression --paired-end --star --num-threads 8 R1.fastq.gz R2.fastq.gz rsem_index/genome sample_output,quantify RNA-seq using RSEM with STAR aligner,rna-seq
@@ -1374,11 +1374,11 @@ sra-tools,sra-tools_02,prefetch SRR123456 -O sra_downloads/,download SRA file fi
 sra-tools,sra-tools_03,prefetch --option-file accession_list.txt -O sra_downloads/,download multiple SRA accessions in batch,utilities
 sra-tools,sra-tools_04,fasterq-dump SRR123456 -O output/ -e 8 && gzip output/SRR123456_1.fastq output/SRR123456_2.fastq,convert SRA to compressed FASTQ,utilities
 sra-tools,sra-tools_05,vdb-validate SRR123456.sra,validate an SRA file integrity,utilities
-sra-tools,sra-tools_06,fasterq-dump SRR123456 -O output_directory/ -e 8 --verbose,download and convert an SRA accession to FASTQ with verbose output,utilities
-sra-tools,sra-tools_07,prefetch SRR123456 -O sra_downloads/ -t 4,download SRA file first then convert (more reliable) using multiple threads,utilities
-sra-tools,sra-tools_08,prefetch --option-file accession_list.txt -O sra_downloads/,download multiple SRA accessions in batch and write output to a file,utilities
-sra-tools,sra-tools_09,fasterq-dump SRR123456 -O output/ -e 8 && gzip output/SRR123456_1.fastq output/SRR123456_2.fastq --quiet,convert SRA to compressed FASTQ in quiet mode,utilities
-sra-tools,sra-tools_10,vdb-validate SRR123456.sra,validate an SRA file integrity with default parameters,utilities
+sra-tools,sra-tools_06,sra-stat --quick --xml SRR123456,get statistics for an SRA run without downloading reads,utilities
+sra-tools,sra-tools_07,prefetch ERR123456 -O sra_downloads/,download an ENA/EBI accession using prefetch,utilities
+sra-tools,sra-tools_08,fasterq-dump SRR123456 --stdout -e 4 | head -40,list all reads in an SRA file,utilities
+sra-tools,sra-tools_09,fasterq-dump SRR123456 --check-space,check available disk space before a large download,utilities
+sra-tools,sra-tools_10,fasterq-dump SRR123456 -O output/ -e 8 --skip-technical,download a single-end SRA accession and skip technical reads,utilities
 ssh,ssh_01,user@hostname,connect to a remote server as a specific user,networking
 ssh,ssh_02,-i ~/.ssh/id_ed25519 user@hostname,connect using a specific private key file,networking
 ssh,ssh_03,-p 2222 user@hostname,connect on a non-standard port,networking
@@ -1444,11 +1444,11 @@ tabix,tabix_02,-p vcf variants.vcf.gz,create tabix index for a bgzipped VCF file
 tabix,tabix_03,-h variants.vcf.gz chr1:1000000-2000000 > chr1_region.vcf,query a specific genomic region from an indexed VCF,utilities
 tabix,tabix_04,-p bed regions.bed.gz,create tabix index for a bgzipped BED file,utilities
 tabix,tabix_05,-l variants.vcf.gz,list all chromosomes/contigs in an indexed VCF,utilities
-tabix,tabix_06,variants.vcf.gz --verbose,compress a VCF file with bgzip and create tabix index with verbose output,utilities
-tabix,tabix_07,-p vcf variants.vcf.gz -t 4,create tabix index for a bgzipped VCF file using multiple threads,utilities
-tabix,tabix_08,-h variants.vcf.gz chr1:1000000-2000000 > chr1_region.vcf -o output.txt,query a specific genomic region from an indexed VCF and write output to a file,utilities
-tabix,tabix_09,-p bed regions.bed.gz --quiet,create tabix index for a bgzipped BED file in quiet mode,utilities
-tabix,tabix_10,-l variants.vcf.gz,list all chromosomes/contigs in an indexed VCF with default parameters,utilities
+tabix,tabix_06,-C variants.vcf.gz,create a CSI index for large genomes with contigs >512 Mb,utilities
+tabix,tabix_07,-h variants.vcf.gz chr1:1000000-2000000 chr2:500000-1000000 > multi_region.vcf,query multiple regions at once from an indexed VCF,utilities
+tabix,tabix_08,-p gff annotation.gff3.gz,index a bgzipped GFF3 annotation file,utilities
+tabix,tabix_09,-h https://example.com/variants.vcf.gz chr1:1000-2000 > remote_region.vcf,fetch a remote indexed VCF region without downloading the whole file,utilities
+tabix,tabix_10,-s 1 -b 2 -e 3 custom_format.bed.gz,reindex a tabix file using a custom sequence dictionary order,utilities
 tar,tar_01,-czf archive.tar.gz data/,create a gzip-compressed archive of a directory,filesystem
 tar,tar_02,-xzf archive.tar.gz,extract a gzip archive into the current directory,filesystem
 tar,tar_03,-xf archive.tar.gz -C /opt/myapp/,extract an archive into a specific directory,filesystem
