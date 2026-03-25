@@ -44,3 +44,27 @@ source_url: "https://dalexander.github.io/admixture/"
 ### run ADMIXTURE across multiple K values (shell loop)
 **Args:** `data.bed K --cv=10 -j8 > admixture_K.log`
 **Explanation:** run for K=2,3,4,5,etc in a loop; compare cross-validation errors to select optimal K
+
+### run ADMIXTURE with 100 bootstrap replicates for standard errors
+**Args:** `data.bed 5 -B100 -j8`
+**Explanation:** -B100 performs 100 bootstrap replicates to estimate standard errors on Q and P matrices; output includes .Q_se and .P_se files
+
+### run projection analysis onto a fixed P-matrix
+**Args:** `data.bed 5 -P -j8`
+**Explanation:** -P freezes allele frequency estimates (P-matrix) and only estimates Q; requires a pre-computed .5.P file from a reference run
+
+### run multiple replicates for K=4 with different seeds to check convergence
+**Args:** `data.bed 4 --seed=1 --cv=10 -j8 > run1.log`
+**Explanation:** repeat with --seed=2, --seed=3, etc.; compare log-likelihood values across replicates to identify the highest-likelihood solution
+
+### compare cross-validation errors across K values
+**Args:** `data.bed 6 --cv=10 -j8 | tee admixture_K6.log`
+**Explanation:** tee captures log while streaming; extract CV error lines with: grep "CV error" admixture_K*.log to compare across K values
+
+### filter for minor allele frequency before running ADMIXTURE
+**Args:** `data.bed 5 --maf=0.05 --cv=10 -j8`
+**Explanation:** --maf=0.05 filters SNPs with minor allele frequency below 5% at runtime; reduces noise from rare variants without pre-filtering with PLINK
+
+### run ADMIXTURE with accelerated EM for faster convergence
+**Args:** `data.bed 5 --em --cv=10 -j8`
+**Explanation:** --em uses the EM algorithm (slower per iteration but more reliable convergence than the default block relaxation); useful when default runs fail to converge

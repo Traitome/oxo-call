@@ -58,3 +58,11 @@ source_url: "https://www.gnu.org/software/coreutils/manual/html_node/rm-invocati
 ### remove an empty directory
 **Args:** `-d emptydir/`
 **Explanation:** -d removes empty directories like rmdir; fails if the directory is not empty
+
+### verbosely remove all files of a specific type in the current directory
+**Args:** `-v *.bak`
+**Explanation:** -v prints each filename as it is deleted; the shell expands *.bak before rm sees it; confirm matches first with: ls *.bak
+
+### remove a symbolic link without following it to the target
+**Args:** `symlink_name`
+**Explanation:** rm removes the symlink itself, not the file it points to; do NOT use -r on a symlink to a directory, as -r may follow it

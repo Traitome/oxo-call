@@ -61,3 +61,11 @@ source_url: "https://jgi.doe.gov/data-and-tools/software-tools/bbtools/"
 ### get detailed statistics for a FASTQ file
 **Args:** `reformat.sh in=reads.fastq.gz`
 **Explanation:** with no out= specified, reports read counts, length distribution, GC content, and quality score statistics without producing output files
+
+### remove duplicate reads with dedupe.sh
+**Args:** `dedupe.sh in=reads.fastq.gz out=deduped.fastq.gz`
+**Explanation:** removes exact and near-identical duplicate reads; useful before assembly or for reducing PCR duplicate bias in amplicon data
+
+### split reads by genome of origin for metagenomics
+**Args:** `bbsplit.sh in=sample.fastq.gz ref=genome1.fa,genome2.fa out_genome1=reads_genome1.fastq.gz out_genome2=reads_genome2.fastq.gz`
+**Explanation:** bbsplit.sh competitively maps reads to multiple references and bins them by best hit; reads with no match go to ambiguous output; useful for host/pathogen separation

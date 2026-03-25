@@ -48,3 +48,23 @@ source_url: "https://github.com/ncbi/sra-tools"
 ### validate an SRA file integrity
 **Args:** `vdb-validate SRR123456.sra`
 **Explanation:** vdb-validate checks SRA file integrity before conversion; useful after download
+
+### get statistics for an SRA run without downloading reads
+**Args:** `sra-stat --quick --xml SRR123456`
+**Explanation:** sra-stat retrieves run metadata (read count, base count, layout) in XML; --quick avoids full file scan
+
+### download an ENA/EBI accession using prefetch
+**Args:** `prefetch ERR123456 -O sra_downloads/`
+**Explanation:** prefetch supports ERR (ENA) and DRR (DDBJ) accessions in addition to SRR; stores .sra file for subsequent fasterq-dump conversion
+
+### list all reads in an SRA file
+**Args:** `fasterq-dump SRR123456 --stdout -e 4 | head -40`
+**Explanation:** --stdout streams FASTQ to standard output instead of writing files; pipe to head to preview reads without full download
+
+### check available disk space before a large download
+**Args:** `fasterq-dump SRR123456 --check-space`
+**Explanation:** --check-space estimates required disk space for the conversion and exits without downloading; prevents failures from insufficient storage
+
+### download a single-end SRA accession and skip technical reads
+**Args:** `fasterq-dump SRR123456 -O output/ -e 8 --skip-technical`
+**Explanation:** --skip-technical omits technical reads (e.g., barcodes, linkers) and outputs only biological reads; important for single-cell or 10x Genomics datasets
