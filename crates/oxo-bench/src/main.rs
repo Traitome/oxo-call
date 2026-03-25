@@ -16,7 +16,8 @@ use oxo_bench::{
         llm::{ModelBenchConfig, canonical_eval_tasks},
         runner::{
             ModelAggResult, OxoCallGenerator, TrialResult, aggregate_results, run_benchmark,
-            run_mock_benchmark, write_model_agg_csv, write_trials_csv,
+            run_mock_benchmark, summarise_by_tool, write_model_agg_csv,
+            write_tool_model_summary_csv, write_trials_csv,
         },
         scenario::{
             Scenario, UsageDescription, generate_descriptions, generate_scenarios,
@@ -822,6 +823,20 @@ fn cmd_eval(
             "✓".green().bold(),
             model_csv_path.display().to_string().cyan(),
             model_trials.len()
+        );
+    }
+
+    // Per-(tool, model) summary CSV.
+    let tool_model_csv_path = output_dir.join("model_summary_by_tool.csv");
+    {
+        let tool_summaries = summarise_by_tool(&all_trials);
+        let mut f = std::fs::File::create(&tool_model_csv_path)?;
+        write_tool_model_summary_csv(&mut f, &tool_summaries)?;
+        println!(
+            "{} {} ({} tool × model rows)",
+            "✓".green().bold(),
+            tool_model_csv_path.display().to_string().cyan(),
+            tool_summaries.len()
         );
     }
 

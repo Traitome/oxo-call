@@ -24,7 +24,7 @@ source_url: "https://perldoc.perl.org/"
 ## Pitfalls
 - Not using `use strict; use warnings;` leads to hard-to-debug variable typos and undefined-value warnings.
 - On macOS, the system perl at `/usr/bin/perl` is very old (5.18); use a Homebrew or perlbrew-managed version for modern bioinformatics.
-- DANGER: `perl -i` (without an extension) edits files in-place with no backup; always test with `-n` first.
+- `perl -i` (without an extension) edits files in-place with no backup; always test with `-n` first.
 - Module paths: if a bioinformatics script fails with "Can't locate Module.pm", add its parent dir to PERL5LIB: `export PERL5LIB=/path/to/lib:$PERL5LIB`.
 - `cpan` versus `cpanm`: prefer `cpanm` (App::cpanminus) for easier, faster installs; `cpan` asks many interactive questions during first run.
 - Encoding issues: legacy bioinformatics Perl scripts may break with wide characters; pass `use open ':std', ':utf8';` or `binmode STDOUT, ':utf8';`.

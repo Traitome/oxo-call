@@ -18,8 +18,8 @@ source_url: "https://pip.pypa.io/en/stable/cli/"
 
 ## Pitfalls
 
-- DANGER: 'pip install' without a virtual environment modifies the system Python, which can break system tools that depend on specific package versions. Always use a venv or conda environment.
-- DANGER: 'pip uninstall package -y' removes the package without confirmation and without removing packages that depended on it, potentially breaking other tools.
+- 'pip install' without a virtual environment modifies the system Python, which can break system tools that depend on specific package versions. Always use a venv or conda environment.
+- 'pip uninstall package -y' removes the package without confirmation and without removing packages that depended on it, potentially breaking other tools.
 - Avoid 'sudo pip install' — it installs into system Python and can break OS tools. Use --user or a virtual environment instead.
 - pip install does NOT check for circular dependencies or conflicts comprehensively. If you see version conflicts, consider using pip-tools or poetry for dependency management.
 - 'pip freeze' captures exact versions including sub-dependencies, making the file less portable. Consider 'pip-compile' (pip-tools) to maintain a clean top-level requirements.in.

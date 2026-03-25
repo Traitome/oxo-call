@@ -15,6 +15,7 @@ source_url: "https://www.gnu.org/software/gawk/manual/gawk.html"
 - Built-in variables: NR (current line/record number), NF (number of fields on current line), FS (field separator), OFS (output field separator), RS (record separator).
 - Arithmetic and string operations are built-in: NR>10 to skip first 10 lines, $3+0 to convert string to number, length($0) for string length, split(), sub(), gsub() for regex operations.
 - awk can accumulate values: 'awk '{sum+=$1} END{print sum}'' computes the sum of column 1. Use arrays for counting/grouping: 'awk '{count[$1]++} END{for(k in count) print k, count[k]}'.
+- Field numbering starts at 1. To print columns 1 and 3, use '{print $1,$3}' or '{print $1","$3}' — the exact field indices must match the task.
 
 ## Pitfalls
 
@@ -24,12 +25,13 @@ source_url: "https://www.gnu.org/software/gawk/manual/gawk.html"
 - printf in awk does not add a newline by default — use \n explicitly: printf "%s\n", $1. The print statement adds a newline automatically.
 - awk split() returns the number of fields, not the array. Indices of the resulting array start at 1.
 - Modifying $1 or other fields causes awk to reconstruct $0 using OFS (default space). If OFS is not set, columns may be joined with spaces even if input was comma-separated.
+- Always use the exact field indices from the task description — never substitute $1 for $3 or other field numbers.
 
 ## Examples
 
 ### print specific columns from a CSV file
 **Args:** `-F ',' '{print $1","$3}' file.csv`
-**Explanation:** -F ',' sets comma as delimiter; prints columns 1 and 3 with a comma separator
+**Explanation:** -F ',' sets comma as delimiter; prints columns 1 and 3 with a comma separator between them
 
 ### sum values in a column and print the total
 **Args:** `'{sum+=$2} END{print "Total:", sum}' data.txt`
@@ -66,3 +68,23 @@ source_url: "https://www.gnu.org/software/gawk/manual/gawk.html"
 ### print the last field of each line regardless of column count
 **Args:** `'{print $NF}' file.txt`
 **Explanation:** NF is the number of fields, so $NF always refers to the last field
+
+### print columns 2 and 4 from a tab-separated file
+**Args:** `-F '\t' '{print $2"\t"$4}' data.tsv`
+**Explanation:** -F '\t' tab separator; prints exactly the second and fourth fields with a tab between them
+
+### skip the header line and process data
+**Args:** `'NR>1 {print $1, $2, $3}' data.csv`
+**Explanation:** NR>1 skips line 1 (header); prints first three fields from all subsequent lines
+
+### extract fields 1 through 3 from a colon-separated file
+**Args:** `-F ':' '{print $1":"$2":"$3}' /etc/passwd`
+**Explanation:** -F ':' sets colon separator; prints the username, password field, and UID joined by colons
+
+### replace a value in a specific column
+**Args:** `-F '\t' 'BEGIN{OFS="\t"} $2=="old_value"{$2="new_value"} {print}' data.tsv`
+**Explanation:** OFS preserves tab output; conditionally replaces column 2 when it equals 'old_value'; prints all lines
+
+### compute frequency and percentage of values in column 3
+**Args:** `'{count[$3]++; total++} END{for(k in count) printf "%s\t%d\t%.2f%%\n", k, count[k], count[k]/total*100}' data.txt`
+**Explanation:** counts column 3 values; END iterates with k as the key and prints each value with its count and percentage; total tracks total row count

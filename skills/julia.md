@@ -23,7 +23,7 @@ source_url: "https://docs.julialang.org/"
 
 ## Pitfalls
 - First run of a script is slow due to JIT compilation ("Time To First Plot" problem); precompile packages or build a custom sysimage to mitigate.
-- DANGER: `Pkg.rm("Package")` removes a package from the current environment; `Pkg.gc()` then cleans unused artifacts from the depot.
+- `Pkg.rm("Package")` removes a package from the current environment; `Pkg.gc()` then cleans unused artifacts from the depot.
 - Mixing global and project environments causes version conflicts; always activate a project env before installing packages for a project.
 - `JULIA_NUM_THREADS` must be set *before* starting Julia; `Threads.nthreads()` shows the active count.
 - On HPC clusters with read-only system Julia, set `JULIA_DEPOT_PATH` to a writable location in your home/scratch before installing packages.

@@ -18,8 +18,8 @@ source_url: "https://docs.docker.com/reference/cli/docker/"
 
 ## Pitfalls
 
-- DANGER: 'docker rm' removes containers, 'docker rmi' removes images. 'docker system prune -a' removes ALL unused images, containers, and volumes — data that is not in a volume is permanently lost.
-- DANGER: 'docker rm -f <container>' force-removes a running container without warning. All in-container data not stored in volumes is destroyed immediately.
+- 'docker rm' removes containers, 'docker rmi' removes images. 'docker system prune -a' removes ALL unused images, containers, and volumes — data that is not in a volume is permanently lost.
+- 'docker rm -f <container>' force-removes a running container without warning. All in-container data not stored in volumes is destroyed immediately.
 - 'docker run' without --name generates a random container name. Always use --name for containers you intend to manage by name.
 - Port binding syntax is -p HOST_PORT:CONTAINER_PORT (host first, container second). Reversing them will bind the wrong ports.
 - Volume mounts with -v: use absolute paths for host directories (e.g., -v /home/user/data:/data), not relative paths, as relative paths may be interpreted as named volumes.

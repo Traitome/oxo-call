@@ -23,7 +23,7 @@ source_url: "https://snakemake.readthedocs.io/"
 - `--dry-run` (`-n`) shows what would be executed without running anything; pair with `-p` to also print shell commands.
 
 ## Pitfalls
-- DANGER: `snakemake --delete-all-output` removes all output files defined in the Snakefile; irreversible if outputs are not backed up.
+- `snakemake --delete-all-output` removes all output files defined in the Snakefile; irreversible if outputs are not backed up.
 - Not specifying `--cores` causes Snakemake to use only 1 core; always set `--cores all` for local runs or `--jobs N` for cluster runs.
 - Relative paths in rules are resolved relative to the Snakefile directory, not the working directory where `snakemake` is called; this causes confusion when calling from a different directory.
 - `expand()` with multiple wildcards creates a Cartesian product; use `zip()` inside `expand()` to pair samples with their units instead.

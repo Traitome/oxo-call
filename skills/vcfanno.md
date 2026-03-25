@@ -28,25 +28,25 @@ source_url: "https://github.com/brentp/vcfanno"
 ## Examples
 
 ### annotate a VCF with gnomAD allele frequencies
-**Args:** `vcfanno -p 8 config.toml input.vcf.gz > annotated.vcf`
+**Args:** `-p 8 config.toml input.vcf.gz > annotated.vcf`
 **Explanation:** -p 8 uses 8 threads; config.toml defines gnomAD VCF source; output to stdout, redirect to file
 
 ### annotate variants with ClinVar pathogenicity and a custom BED file
-**Args:** `vcfanno -p 16 clinvar_bed_config.toml input.vcf.gz | bgzip > annotated.vcf.gz`
+**Args:** `-p 16 clinvar_bed_config.toml input.vcf.gz | bgzip > annotated.vcf.gz`
 **Explanation:** pipe through bgzip for compressed output; config includes ClinVar VCF and custom BED annotation sources
 
 ### add a flag for variants overlapping a BED region of interest
-**Args:** `vcfanno -p 8 regions_config.toml input.vcf.gz > flagged.vcf`
+**Args:** `-p 8 regions_config.toml input.vcf.gz > flagged.vcf`
 **Explanation:** config uses op = ['flag'] with a BED file to add a boolean INFO field when a variant overlaps a region
 
 ### compute mean coverage at each variant position from a BAM file
-**Args:** `vcfanno -p 8 bam_config.toml input.vcf.gz > coverage_annotated.vcf`
+**Args:** `-p 8 bam_config.toml input.vcf.gz > coverage_annotated.vcf`
 **Explanation:** BAM annotation in config uses op = ['mean'] on depth field; vcfanno uses the BAM index for fast access
 
 ### use a Lua postannotation to combine scores into a final filter
-**Args:** `vcfanno -p 8 -lua filters.lua combined_config.toml input.vcf.gz > filtered_annotated.vcf`
+**Args:** `-p 8 -lua filters.lua combined_config.toml input.vcf.gz > filtered_annotated.vcf`
 **Explanation:** -lua loads a Lua script for postannotation; the script can combine gnomAD AF and CADD scores into a custom filter tag
 
 ### annotate indels with COSMIC and output only annotated variants
-**Args:** `vcfanno -p 8 cosmic_config.toml input.vcf.gz | bcftools view -f PASS > cosmic_annotated.vcf`
+**Args:** `-p 8 cosmic_config.toml input.vcf.gz | bcftools view -f PASS > cosmic_annotated.vcf`
 **Explanation:** pipe to bcftools view to keep only PASS variants after annotation; cosmic_config.toml specifies COSMIC VCF source

@@ -18,7 +18,7 @@ source_url: "https://www.gnu.org/software/findutils/manual/html_mono/find.html"
 
 ## Pitfalls
 
-- DANGER: 'find . -delete' deletes everything in the current directory tree. Always test with -print first: replace -delete with -print to preview matches before deleting.
+- 'find . -delete' deletes everything in the current directory tree. Always test with -print first: replace -delete with -print to preview matches before deleting.
 - find -name uses shell globs, not regex — use -name '*.txt' (quoted to prevent shell expansion), not -name *.txt (the shell may expand the glob before find sees it).
 - -mtime +N means 'more than N*24 hours ago'; -mtime -N means 'less than N*24 hours ago'. The sign is often confused: +7 means older than 7 days.
 - find . -name 'file' searches the current directory AND all subdirectories. Add -maxdepth 1 to search only the current directory.

@@ -21,7 +21,7 @@ source_url: "https://doc.rust-lang.org/cargo/"
 - `rustup show` prints the active toolchain, installed targets, and the location of the rust sysroot.
 
 ## Pitfalls
-- DANGER: `cargo clean` deletes the entire `target/` directory — all build artefacts; rebuilding from scratch can take minutes for large projects.
+- `cargo clean` deletes the entire `target/` directory — all build artefacts; rebuilding from scratch can take minutes for large projects.
 - `cargo install` builds and installs a binary to `~/.cargo/bin/`; it does NOT update existing installs — run `cargo install --force <crate>` to upgrade.
 - Adding many dependencies without features filtering bloats binary size and compile times; use `default-features = false` and enable only needed features.
 - The `Cargo.lock` file should be committed for binaries (reproducible builds) but often excluded from libraries (flexible consumer deps).

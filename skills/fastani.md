@@ -26,7 +26,7 @@ source_url: "https://github.com/ParBLiSS/FastANI"
 - Very large all-vs-all jobs (thousands of genomes) produce large output files and require significant memory; pre-filter genomes by MASH distance to reduce the pairwise space.
 - Do NOT use FastANI on metagenome-assembled genomes (MAGs) with >50% completeness issues; use checkm2 to verify completeness first.
 - Input genome paths in `--queryList` and `--refList` must be absolute or consistently relative to the working directory where FastANI is called.
-- DANGER: using compressed (gzip) FASTA without ensuring FastANI was compiled with zlib support may cause silent failures or wrong results.
+- using compressed (gzip) FASTA without ensuring FastANI was compiled with zlib support may cause silent failures or wrong results.
 
 ## Examples
 

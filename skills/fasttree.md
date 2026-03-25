@@ -44,3 +44,27 @@ source_url: "http://www.microbesonline.org/fasttree/"
 ### infer tree with local support values
 **Args:** `-nt -gtr -boot 1000 -seed 42 aligned_sequences.fasta > tree_with_support.nwk`
 **Explanation:** -boot 1000 local support values; -seed 42 for reproducibility
+
+### infer tree using multithreaded FastTreeMP
+**Args:** `-nt -gtr aligned_sequences.fasta > tree.nwk`
+**Explanation:** invoke as FastTreeMP (the multi-threaded binary) instead of FastTree; set OMP_NUM_THREADS=8 before the command to control thread count
+
+### infer protein tree with LG substitution model
+**Args:** `-lg aligned_proteins.fasta > lg_tree.nwk`
+**Explanation:** -lg uses the LG model, which is more accurate than JTT/WAG for many protein families; recommended over default JTT for modern analyses
+
+### run faster but less thorough tree search
+**Args:** `-nt -gtr -fastest aligned_sequences.fasta > fast_tree.nwk`
+**Explanation:** -fastest enables the fastest heuristic (reduces NNI rounds and neighbor comparisons); suitable for very large alignments where speed is critical
+
+### infer tree with gamma-distributed rate variation
+**Args:** `-nt -gtr -gamma aligned_sequences.fasta > gamma_tree.nwk`
+**Explanation:** -gamma uses the exact gamma model instead of CAT approximation; more accurate rate variation modeling at higher computational cost
+
+### infer tree from PHYLIP format input
+**Args:** `-nt -gtr -n 1 alignment.phy > phylip_tree.nwk`
+**Explanation:** FastTree accepts interleaved PHYLIP format; -n 1 specifies one alignment in the file; output is Newick format to stdout
+
+### infer tree with more thorough nearest-neighbor interchange search
+**Args:** `-nt -gtr -slownni aligned_sequences.fasta > thorough_tree.nwk`
+**Explanation:** -slownni performs a more exhaustive NNI search at each step; improves tree accuracy at the cost of speed; recommended for smaller alignments where precision matters

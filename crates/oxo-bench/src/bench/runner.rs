@@ -18,6 +18,7 @@ use std::time::Instant;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TrialResult {
     pub tool: String,
+    pub category: String,
     pub scenario_id: String,
     pub desc_id: String,
     pub model: String,
@@ -165,6 +166,7 @@ pub fn run_mock_benchmark(
 
             results.push(TrialResult {
                 tool: desc.tool.clone(),
+                category: scenario.category.clone(),
                 scenario_id: desc.scenario_id.clone(),
                 desc_id: desc.desc_id.clone(),
                 model: model.to_string(),
@@ -359,6 +361,7 @@ pub fn run_benchmark(
 
             results.push(TrialResult {
                 tool: desc.tool.clone(),
+                category: scenario.category.clone(),
                 scenario_id: desc.scenario_id.clone(),
                 desc_id: desc.desc_id.clone(),
                 model: model.to_string(),
@@ -451,7 +454,7 @@ fn compute_trial_consistency(trials: &[&TrialResult]) -> f64 {
 pub fn write_trials_csv<W: Write>(writer: &mut W, trials: &[TrialResult]) -> std::io::Result<()> {
     writeln!(
         writer,
-        "tool,scenario_id,desc_id,model,repeat,generated_args,reference_args,\
+        "tool,category,scenario_id,desc_id,model,repeat,generated_args,reference_args,\
          exact_match,token_jaccard,flag_recall,flag_precision,\
          flag_group_recall,flag_group_precision,subcommand_match,\
          accuracy_score,latency_ms,tokens,format_valid"
@@ -461,8 +464,9 @@ pub fn write_trials_csv<W: Write>(writer: &mut W, trials: &[TrialResult]) -> std
         let ref_esc = csv_escape(&t.reference_args);
         writeln!(
             writer,
-            "{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{},{}",
+            "{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{},{}",
             t.tool,
+            t.category,
             t.scenario_id,
             t.desc_id,
             t.model,
@@ -523,6 +527,106 @@ fn csv_escape(field: &str) -> String {
     } else {
         field.to_string()
     }
+}
+
+/// Aggregate metrics for a single (tool, model) pair.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ToolModelSummary {
+    pub tool: String,
+    pub category: String,
+    pub model: String,
+    pub n_trials: usize,
+    pub accuracy: f64,
+    pub exact_match_rate: f64,
+    pub avg_flag_recall: f64,
+    pub consistency: f64,
+}
+
+/// Summarise trial results per (tool, model) pair, sorted by tool then model.
+pub fn summarise_by_tool(trials: &[TrialResult]) -> Vec<ToolModelSummary> {
+    let mut by_tool_model: std::collections::HashMap<(String, String), Vec<&TrialResult>> =
+        std::collections::HashMap::new();
+    for t in trials {
+        by_tool_model
+            .entry((t.tool.clone(), t.model.clone()))
+            .or_default()
+            .push(t);
+    }
+
+    let mut summaries: Vec<ToolModelSummary> = by_tool_model
+        .into_iter()
+        .map(|((tool, model), trials)| {
+            let n = trials.len() as f64;
+            // Gather scenario-level consistency
+            let mut groups: std::collections::HashMap<(&str, &str), Vec<&str>> =
+                std::collections::HashMap::new();
+            for t in &trials {
+                groups
+                    .entry((t.scenario_id.as_str(), t.desc_id.as_str()))
+                    .or_default()
+                    .push(t.generated_args.as_str());
+            }
+            let consistency = if groups.is_empty() {
+                1.0
+            } else {
+                let consistent = groups
+                    .values()
+                    .filter(|responses| {
+                        responses.len() <= 1 || responses.iter().all(|r| *r == responses[0])
+                    })
+                    .count();
+                consistent as f64 / groups.len() as f64
+            };
+
+            // Use category from first trial (all same tool → same category)
+            let category = trials
+                .first()
+                .map(|t| t.category.clone())
+                .unwrap_or_default();
+
+            ToolModelSummary {
+                tool,
+                category,
+                model,
+                n_trials: trials.len(),
+                accuracy: trials.iter().map(|t| t.accuracy_score).sum::<f64>() / n,
+                exact_match_rate: trials.iter().filter(|t| t.exact_match).count() as f64 / n,
+                avg_flag_recall: trials.iter().map(|t| t.flag_recall).sum::<f64>() / n,
+                consistency,
+            }
+        })
+        .collect();
+
+    summaries.sort_by(|a, b| a.tool.cmp(&b.tool).then(a.model.cmp(&b.model)));
+    summaries
+}
+
+/// Write per-(tool, model) summary to CSV.
+///
+/// Columns: `tool,category,model,n_trials,accuracy,exact_match_rate,avg_flag_recall,consistency`
+pub fn write_tool_model_summary_csv<W: Write>(
+    writer: &mut W,
+    summaries: &[ToolModelSummary],
+) -> std::io::Result<()> {
+    writeln!(
+        writer,
+        "tool,category,model,n_trials,accuracy,exact_match_rate,avg_flag_recall,consistency"
+    )?;
+    for s in summaries {
+        writeln!(
+            writer,
+            "{},{},{},{},{:.4},{:.4},{:.4},{:.4}",
+            s.tool,
+            s.category,
+            s.model,
+            s.n_trials,
+            s.accuracy,
+            s.exact_match_rate,
+            s.avg_flag_recall,
+            s.consistency,
+        )?;
+    }
+    Ok(())
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
@@ -631,6 +735,7 @@ mod tests {
         let trials: Vec<TrialResult> = (0..3)
             .map(|i| TrialResult {
                 tool: "t".to_string(),
+                category: "testing".to_string(),
                 scenario_id: "s01".to_string(),
                 desc_id: "d01".to_string(),
                 model: "m".to_string(),
@@ -659,6 +764,7 @@ mod tests {
         let mut trials: Vec<TrialResult> = (0..3)
             .map(|i| TrialResult {
                 tool: "t".to_string(),
+                category: "testing".to_string(),
                 scenario_id: "s01".to_string(),
                 desc_id: "d01".to_string(),
                 model: "m".to_string(),
@@ -699,7 +805,7 @@ mod tests {
         let mut buf = Vec::new();
         write_trials_csv(&mut buf, &trials).unwrap();
         let text = String::from_utf8(buf).unwrap();
-        assert!(text.starts_with("tool,scenario_id,desc_id,model,repeat,"));
+        assert!(text.starts_with("tool,category,scenario_id,desc_id,model,repeat,"));
         // One header + one data row.
         let lines: Vec<&str> = text.lines().filter(|l| !l.is_empty()).collect();
         assert_eq!(lines.len(), 2);
@@ -789,5 +895,69 @@ mod tests {
     fn test_perturb_args_zero_rate() {
         let result = perturb_args("sort -@ 4 -o out.bam in.bam", "model", "d01", 0, 0.0);
         assert_eq!(result, "sort -@ 4 -o out.bam in.bam");
+    }
+
+    #[test]
+    fn test_summarise_by_tool_groups_correctly() {
+        // Two tools, two models, three repeats each.
+        let mut trials = Vec::new();
+        for model in &["gpt-4o", "gpt-4o-mini"] {
+            for (tool, sc, args_ref) in &[
+                ("samtools", "samtools_01", "sort -o out.bam in.bam"),
+                ("bwa", "bwa_01", "mem -t 8 ref.fa R1.fq R2.fq"),
+            ] {
+                for rep in 0..3usize {
+                    trials.push(TrialResult {
+                        tool: tool.to_string(),
+                        category: "alignment".to_string(),
+                        scenario_id: sc.to_string(),
+                        desc_id: format!("{sc}_01"),
+                        model: model.to_string(),
+                        repeat_idx: rep,
+                        generated_args: args_ref.to_string(),
+                        reference_args: args_ref.to_string(),
+                        exact_match: true,
+                        token_jaccard: 1.0,
+                        flag_recall: 1.0,
+                        flag_precision: 1.0,
+                        flag_group_recall: 1.0,
+                        flag_group_precision: 1.0,
+                        subcommand_match: true,
+                        accuracy_score: 1.0,
+                        latency_ms: 0.0,
+                        tokens: 5,
+                        format_valid: true,
+                    });
+                }
+            }
+        }
+        let summaries = summarise_by_tool(&trials);
+        // 2 tools × 2 models = 4 rows
+        assert_eq!(summaries.len(), 4);
+        // Sorted by tool then model
+        assert_eq!(summaries[0].tool, "bwa");
+        assert_eq!(summaries[2].tool, "samtools");
+        // All accuracy should be 1.0
+        assert!(summaries.iter().all(|s| (s.accuracy - 1.0).abs() < 1e-6));
+        assert!(summaries.iter().all(|s| (s.consistency - 1.0).abs() < 1e-6));
+    }
+
+    #[test]
+    fn test_write_tool_model_summary_csv_header_and_rows() {
+        let trials =
+            run_mock_benchmark("test-model", 2, &sample_descriptions(), &sample_scenarios());
+        let summaries = summarise_by_tool(&trials);
+        let mut buf = Vec::new();
+        write_tool_model_summary_csv(&mut buf, &summaries).unwrap();
+        let text = String::from_utf8(buf).unwrap();
+        assert!(text.starts_with(
+            "tool,category,model,n_trials,accuracy,exact_match_rate,avg_flag_recall,consistency"
+        ));
+        let data_lines: Vec<&str> = text.lines().skip(1).filter(|l| !l.is_empty()).collect();
+        assert_eq!(data_lines.len(), summaries.len());
+        // Each row has 8 comma-separated fields
+        for line in &data_lines {
+            assert_eq!(line.split(',').count(), 8, "bad row: {line}");
+        }
     }
 }

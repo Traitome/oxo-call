@@ -18,7 +18,7 @@ source_url: "https://rsync.samba.org/documentation.html"
 
 ## Pitfalls
 
-- DANGER: rsync with --delete will permanently remove destination files that are absent in the source. ALWAYS do a --dry-run first to preview deletions before adding --delete to a live sync.
+- rsync with --delete will permanently remove destination files that are absent in the source. ALWAYS do a --dry-run first to preview deletions before adding --delete to a live sync.
 - The trailing slash rule: 'rsync -a src/ dest/' and 'rsync -a src dest/' behave DIFFERENTLY. The first copies contents; the second copies the directory. Verify with --dry-run when unsure.
 - rsync -a preserves ownership only when run as root. For non-root transfers that need to preserve permissions, use --no-owner and --no-group if the destination owner differs.
 - Transfers over SSH to hosts not in known_hosts will prompt for host key confirmation or fail in non-interactive scripts. Add the host key first with 'ssh-keyscan host >> ~/.ssh/known_hosts'.

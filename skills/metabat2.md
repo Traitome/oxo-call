@@ -33,13 +33,13 @@ source_url: "https://bitbucket.org/berkeleylab/metabat"
 **Explanation:** jgi_summarize_bam_contig_depths from multiple samples; creates depth table for MetaBAT2
 
 ### bin metagenomic assembly contigs into MAGs
-**Args:** `metabat2 -i assembly.fasta -a contig_depths.txt -o bins/bin -m 2500 -t 8`
+**Args:** `-i assembly.fasta -a contig_depths.txt -o bins/bin -m 2500 -t 8`
 **Explanation:** -i assembly; -a depth file from jgi_summarize; -o output prefix for bin FASTA files; -m min contig length
 
 ### run MetaBAT2 binning without coverage information (tetranucleotide only)
-**Args:** `metabat2 -i assembly.fasta -o bins/bin -m 1500 -t 8`
+**Args:** `-i assembly.fasta -o bins/bin -m 1500 -t 8`
 **Explanation:** without -a coverage file, MetaBAT2 uses only tetranucleotide frequency; less accurate but usable
 
 ### bin with custom sensitivity settings
-**Args:** `metabat2 -i assembly.fasta -a contig_depths.txt -o bins/bin --sensitive -m 2000 -t 8`
+**Args:** `-i assembly.fasta -a contig_depths.txt -o bins/bin --sensitive -m 2000 -t 8`
 **Explanation:** --sensitive mode for more permissive binning; may produce more bins with lower purity

@@ -18,8 +18,8 @@ source_url: "https://docs.conda.io/projects/conda/en/stable/commands/"
 
 ## Pitfalls
 
-- DANGER: 'conda env remove -n myenv' permanently deletes the entire environment and all its packages. Export the environment first: 'conda env export > myenv.yml'.
-- DANGER: 'conda remove --all' in an activated environment removes ALL packages including conda itself from that environment, making it unusable.
+- 'conda env remove -n myenv' permanently deletes the entire environment and all its packages. Export the environment first: 'conda env export > myenv.yml'.
+- 'conda remove --all' in an activated environment removes ALL packages including conda itself from that environment, making it unusable.
 - Mixing pip and conda installs in the same environment can break dependency tracking. Always install with conda first; use pip only for packages unavailable in conda channels.
 - Without -y, conda prompts for confirmation before installing. In scripts, add -y to avoid interactive prompts.
 - conda update conda should be run in the base environment, not in a project environment. Activate base first: 'conda activate base && conda update conda'.

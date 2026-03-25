@@ -15,6 +15,7 @@ source_url: "https://www.gnu.org/software/grep/manual/grep.html"
 - Context options: -A N (N lines after match), -B N (N lines before match), -C N (N lines before and after). Useful for log analysis and code search.
 - Use -r / -R for recursive directory search. Combine with --include='*.py' to restrict to specific file types. Use --exclude-dir='.git' to skip directories.
 - grep returns exit code 0 if matches found, 1 if no matches, 2 on error. This makes it useful in shell conditionals: 'if grep -q pattern file; then ...; fi'.
+- Always use the exact pattern and filename values from the task description — never substitute generic placeholder names like 'keyword', 'file', or 'pattern'.
 
 ## Pitfalls
 
@@ -29,7 +30,7 @@ source_url: "https://www.gnu.org/software/grep/manual/grep.html"
 
 ### search for a keyword in a file, ignoring case, with line numbers
 **Args:** `-in "error" application.log`
-**Explanation:** -i case-insensitive; -n prints line numbers; output is in format linenum:line
+**Explanation:** -i case-insensitive; -n prints line numbers; searches for the exact string "error" in application.log
 
 ### recursively search all Python files for a function definition
 **Args:** `-rn "def connect" --include='*.py' src/`
@@ -66,3 +67,23 @@ source_url: "https://www.gnu.org/software/grep/manual/grep.html"
 ### search for a fixed string (no regex interpretation)
 **Args:** `-F "error[0]" debug.log`
 **Explanation:** -F treats the pattern as a literal string; brackets are NOT interpreted as regex character classes
+
+### search for a pattern and show only the first 5 matches
+**Args:** `-m 5 "WARN" application.log`
+**Explanation:** -m 5 stops after finding 5 matching lines; useful for large log files
+
+### search recursively excluding a directory
+**Args:** `-rn "TODO" --exclude-dir='.git' --exclude-dir='node_modules' .`
+**Explanation:** --exclude-dir skips the named directories during recursive search
+
+### find lines where a specific column matches a value
+**Args:** `-P "^\S+\s+200\s" access.log`
+**Explanation:** -P enables Perl regex; matches lines where the second whitespace-separated field is exactly 200
+
+### search for word boundary match (whole word only)
+**Args:** `-w "main" *.c`
+**Explanation:** -w matches only complete words; avoids matching 'main' inside 'maintain' or 'domain'
+
+### binary search: check if a pattern exists (no output, use exit code)
+**Args:** `-q "SUCCESS" results.log`
+**Explanation:** -q suppresses all output; exit code 0 if found, 1 if not; use in shell scripts: 'if grep -q ...'

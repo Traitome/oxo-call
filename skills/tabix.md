@@ -48,3 +48,23 @@ source_url: "http://www.htslib.org/doc/tabix.html"
 ### list all chromosomes/contigs in an indexed VCF
 **Args:** `-l variants.vcf.gz`
 **Explanation:** -l lists all contig names in the index; useful for scripting region-based iteration
+
+### create a CSI index for large genomes with contigs >512 Mb
+**Args:** `-C variants.vcf.gz`
+**Explanation:** -C creates a CSI index instead of TBI; required for chromosomes longer than 512 Mb (e.g., human chr1 in some assemblies)
+
+### query multiple regions at once from an indexed VCF
+**Args:** `-h variants.vcf.gz chr1:1000000-2000000 chr2:500000-1000000 > multi_region.vcf`
+**Explanation:** multiple region arguments are supported; -h includes the header; output is concatenated into one file
+
+### index a bgzipped GFF3 annotation file
+**Args:** `-p gff annotation.gff3.gz`
+**Explanation:** -p gff specifies GFF/GFF3 format; file must be sorted by seqname and start; creates annotation.gff3.gz.tbi
+
+### fetch a remote indexed VCF region without downloading the whole file
+**Args:** `-h https://example.com/variants.vcf.gz chr1:1000-2000 > remote_region.vcf`
+**Explanation:** tabix supports HTTP/HTTPS/FTP URLs; only the relevant index blocks are fetched; requires the .tbi file at the same URL
+
+### reindex a tabix file using a custom sequence dictionary order
+**Args:** `-s 1 -b 2 -e 3 custom_format.bed.gz`
+**Explanation:** -s specifies the sequence name column, -b the start column, -e the end column; use for non-standard tab-delimited files that tabix cannot auto-detect

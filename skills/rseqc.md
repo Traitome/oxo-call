@@ -24,7 +24,7 @@ source_url: "https://rseqc.sourceforge.net/"
 - BED reference file must match the genome assembly used for alignment (chromosome names must match exactly — chr1 vs 1); mismatches silently give incorrect results.
 - `infer_experiment.py` samples only 200,000 reads by default; increase with `-s 2000000` for more accurate strandedness detection in lowly expressed transcriptomes.
 - `tin.py` is very slow on large BAMs; limit to a representative subset of transcripts with `-c` to reduce runtime.
-- DANGER: interpreting `infer_experiment.py` results: "1++,1--" means reads map in sense direction (forward strand library); "1+-,1-+" means antisense; "Undetermined" means unstranded.
+- interpreting `infer_experiment.py` results: "1++,1--" means reads map in sense direction (forward strand library); "1+-,1-+" means antisense; "Undetermined" means unstranded.
 - RSeQC uses a lot of memory for WGS-scale BAMs; for RNA-seq QC, sub-sample to 20M reads first with `samtools view -s 0.1` if runtime is an issue.
 - Python 3 is required for RSeQC ≥ 4.0; older versions require Python 2.7; check with `python --version` and install via conda if needed.
 

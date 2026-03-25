@@ -28,25 +28,25 @@ source_url: "https://cellsnp-lite.readthedocs.io/"
 ## Examples
 
 ### pileup known SNPs in a 10x Chromium scRNA-seq BAM with cell barcodes
-**Args:** `cellsnp-lite -s possorted_genome_bam.bam -b barcodes.tsv -O cellsnp_out -R common_snps.vcf.gz -p 16 --minMAF 0.1 --minCOUNT 20`
+**Args:** `-s possorted_genome_bam.bam -b barcodes.tsv -O cellsnp_out -R common_snps.vcf.gz -p 16 --minMAF 0.1 --minCOUNT 20`
 **Explanation:** -s BAM; -b cell barcodes file; -O output dir; -R known SNP VCF; -p threads; --minMAF and --minCOUNT for quality filter
 
 ### pileup SNPs in a bulk BAM without cell barcodes
-**Args:** `cellsnp-lite -s bulk.bam -O bulk_snp_out -R common_snps.vcf.gz -p 16 --minMAF 0.05 --minCOUNT 10`
+**Args:** `-s bulk.bam -O bulk_snp_out -R common_snps.vcf.gz -p 16 --minMAF 0.05 --minCOUNT 10`
 **Explanation:** Mode 1a: no -b flag for bulk; -R provides known SNP positions; output has total AD/DP counts per SNP
 
 ### de novo SNP discovery in single-cell BAM (Mode 2)
-**Args:** `cellsnp-lite -s possorted_genome_bam.bam -b barcodes.tsv -O denovo_snp_out -p 16 --minMAF 0.1 --minCOUNT 100 --gzip`
+**Args:** `-s possorted_genome_bam.bam -b barcodes.tsv -O denovo_snp_out -p 16 --minMAF 0.1 --minCOUNT 100 --gzip`
 **Explanation:** Mode 2: no -R flag; discovers SNPs from the data; --gzip compresses output matrix files; higher --minCOUNT for quality
 
 ### pileup multiple BAMs from different samples at shared SNP positions
-**Args:** `cellsnp-lite -s sample1.bam,sample2.bam,sample3.bam -O multi_sample_out -R common_snps.vcf.gz -p 16 --minMAF 0.1 --minCOUNT 20`
+**Args:** `-s sample1.bam,sample2.bam,sample3.bam -O multi_sample_out -R common_snps.vcf.gz -p 16 --minMAF 0.1 --minCOUNT 20`
 **Explanation:** comma-separated BAM list for multi-sample bulk pileup; useful for genotyping donors for Vireo demultiplexing
 
 ### restrict pileup to specific chromosomes to reduce runtime
-**Args:** `cellsnp-lite -s possorted_genome_bam.bam -b barcodes.tsv -O chr1_out -R chr1_snps.vcf.gz --chrom 1 -p 8 --minMAF 0.1 --minCOUNT 20`
+**Args:** `-s possorted_genome_bam.bam -b barcodes.tsv -O chr1_out -R chr1_snps.vcf.gz --chrom 1 -p 8 --minMAF 0.1 --minCOUNT 20`
 **Explanation:** --chrom 1 restricts to chromosome 1; useful for testing or chromosome-level parallel jobs
 
 ### pileup with strict base quality filter for high-confidence allele counts
-**Args:** `cellsnp-lite -s possorted_genome_bam.bam -b barcodes.tsv -O hq_out -R snps.vcf.gz -p 16 --minMAF 0.1 --minCOUNT 20 --minBQ 30 --minMAPQ 30`
+**Args:** `-s possorted_genome_bam.bam -b barcodes.tsv -O hq_out -R snps.vcf.gz -p 16 --minMAF 0.1 --minCOUNT 20 --minBQ 30 --minMAPQ 30`
 **Explanation:** --minBQ 30 and --minMAPQ 30 filter low-quality bases and reads; recommended for variant-level analyses

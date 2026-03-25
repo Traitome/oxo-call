@@ -23,7 +23,7 @@ source_url: "https://www.gnu.org/software/bash/manual/"
 - Bash on macOS is version 3.2 (very old); install modern bash 5+ via `brew install bash` or use zsh.
 
 ## Pitfalls
-- DANGER: omitting quotes around variables (`rm $file` vs `rm "$file"`) causes word splitting and glob expansion on filenames with spaces.
+- omitting quotes around variables (`rm $file` vs `rm "$file"`) causes word splitting and glob expansion on filenames with spaces.
 - `set -e` alone does not catch failures in conditionals or pipelines; always pair with `-o pipefail`.
 - `/bin/sh` on Ubuntu/Debian is dash, not bash; scripts using bash-specific syntax (`[[ ]]`, arrays) will fail with `#!/bin/sh`.
 - Variables are global by default; use `local varname` inside functions to avoid leaking into the parent scope.

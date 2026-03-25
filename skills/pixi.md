@@ -20,7 +20,7 @@ source_url: "https://pixi.sh/latest/"
 - The `pixi.lock` lockfile pins exact package versions and hashes for fully reproducible installs across machines.
 
 ## Pitfalls
-- DANGER: `pixi global remove <pkg>` permanently removes the global environment for that package.
+- `pixi global remove <pkg>` permanently removes the global environment for that package.
 - Running `pixi add` without a `pixi.toml` in the working tree will fail; initialise the project first with `pixi init`.
 - Mixing pip (`pip install`) inside a pixi environment can break the lockfile; use `pixi add --pypi <pkg>` instead for PyPI-only packages.
 - `pixi update` regenerates `pixi.lock` and may change transitive dependency versions; review the diff before committing.

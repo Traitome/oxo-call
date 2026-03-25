@@ -107,6 +107,12 @@ fn system_prompt() -> &'static str {
      Rules: \
      (1) Only use flags/options explicitly present in the provided documentation or examples. \
      (2) Never include the tool name itself in ARGS — it is prepended automatically. \
+         COMPANION BINARY EXCEPTION: If the skill documentation says the task requires a \
+         related companion binary (e.g., 'bowtie2-build' when the tool is 'bowtie2', \
+         'hisat2-build' when the tool is 'hisat2'), start ARGS with that companion binary \
+         name as the very first token. The system detects companion binaries automatically \
+         (first token starts with '<tool>-' or '<tool>_') and uses them as the actual \
+         executable — do NOT add the base tool name before it. \
      (3) Always include any file names or paths mentioned in the task description. \
      (4) Prefer complete, production-ready commands with appropriate thread counts and output files. \
      (5) If the task is ambiguous, choose the most common bioinformatics convention \
@@ -158,6 +164,9 @@ fn build_prompt(tool: &str, documentation: &str, task: &str, skill: Option<&Skil
          \n\
          RULES:\n\
          - ARGS must NOT start with the tool name\n\
+         - COMPANION BINARY: If the skill says the task needs a companion binary (e.g., \
+           'bowtie2-build' for bowtie2 index building), put that companion binary name \
+           as the FIRST token in ARGS — the system will use it as the actual executable\n\
          - ARGS must only contain valid CLI flags and values (ASCII, tool syntax)\n\
          - EXPLANATION should be written in the same language as the Task above\n\
          - Include every file path mentioned in the task\n\

@@ -23,7 +23,7 @@ source_url: "https://docs.sylabs.io/guides/latest/user-guide/"
 - `apptainer` is the new command name (Linux Foundation fork); most `singularity` flags and images are fully compatible.
 
 ## Pitfalls
-- DANGER: `singularity build --sandbox` creates a writable directory container; changes are persistent but not reproducible — always `build` a final SIF from the sandbox.
+- `singularity build --sandbox` creates a writable directory container; changes are persistent but not reproducible — always `build` a final SIF from the sandbox.
 - Not setting `SINGULARITY_CACHEDIR` on HPC: the default `~/.singularity/cache/` fills home quota quickly when pulling large biocontainers (multi-GB images).
 - `--bind` paths must exist on the host; Singularity raises an error if a bind source does not exist; check paths before mounting.
 - Network inside the container is inherited from the host by default; GPU access requires `--nv` (NVIDIA) or `--rocm` (AMD ROCm) flags.

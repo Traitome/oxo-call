@@ -22,7 +22,7 @@ source_url: "https://www.r-project.org/"
 - The `R CMD BATCH` command runs a script and writes output to a `.Rout` file; useful for cluster job logs.
 
 ## Pitfalls
-- DANGER: `install.packages()` without specifying `lib` installs to the first writable path in `.libPaths()`; on shared systems this may be the system library.
+- `install.packages()` without specifying `lib` installs to the first writable path in `.libPaths()`; on shared systems this may be the system library.
 - Running R scripts that call `setwd()` can break relative paths if the working directory assumption is wrong; prefer `here::here()` for path resolution.
 - `Rscript -e` evaluates an expression; pass multi-line code with quoted semicolons or use a temporary script file instead of complex escaping.
 - Output buffering: use `message()` for stderr (unbuffered) and `cat()` or `print()` for stdout; avoid `print()` inside loops for large outputs.
