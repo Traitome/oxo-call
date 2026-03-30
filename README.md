@@ -6,16 +6,16 @@
 
 [![CI](https://github.com/Traitome/oxo-call/actions/workflows/ci.yml/badge.svg)](https://github.com/Traitome/oxo-call/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/oxo-call.svg)](https://crates.io/crates/oxo-call)
-[![Crates.io Downloads](https://img.shields.io/crates/d/oxo-call.svg)](https://crates.io/crates/oxo-call)
-[![Anaconda-Server Badge](https://anaconda.org/bioconda/oxo-call/badges/version.svg)](https://anaconda.org/bioconda/oxo-call)
-[![bioconda](https://img.shields.io/badge/install-via-bioconda-2ea24a.svg)](https://bioconda.github.io/)
-[![GitHub Releases](https://img.shields.io/github/downloads/Traitome/oxo-call/total.svg)](https://github.com/Traitome/oxo-call/releases)
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/oxo-call/README.html)
 [![License](https://img.shields.io/badge/license-Academic%20%7C%20Commercial-blue.svg)](#license)
 [![Rust](https://img.shields.io/badge/rust-2024_edition-orange.svg)](https://www.rust-lang.org/)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)](#data-storage)
 [![codecov](https://codecov.io/gh/Traitome/oxo-call/graph/badge.svg?token=HDGVNW96XB)](https://codecov.io/gh/Traitome/oxo-call)
 [![Docs](https://img.shields.io/badge/docs-guide-blue.svg)](https://traitome.github.io/oxo-call/documentation/)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Traitome/oxo-call)
+[![Conda](https://img.shields.io/conda/dn/bioconda/oxo-call.svg)](https://anaconda.org/bioconda/oxo-call/files)
+[![GitHub Releases](https://img.shields.io/github/downloads/Traitome/oxo-call/total.svg)](https://github.com/Traitome/oxo-call/releases)
+[![Crates.io Downloads](https://img.shields.io/crates/d/oxo-call.svg)](https://crates.io/crates/oxo-call)
 
 Describe your task in plain language — `oxo-call` fetches the tool's documentation, grounds the request with a built-in skill, and asks your LLM backend to generate the exact flags you need.
 
