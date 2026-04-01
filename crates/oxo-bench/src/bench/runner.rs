@@ -191,6 +191,212 @@ pub fn run_mock_benchmark(
     results
 }
 
+/// Run a mock **baseline** benchmark that simulates a bare LLM (no tool
+/// docs / skills).
+///
+/// The baseline uses significantly higher perturbation rates than the
+/// enhanced mock to reflect the lower accuracy of an LLM that has no
+/// domain-specific documentation to draw from:
+///
+/// - Model names containing "gpt-4o-mini" → ~45% perturbation
+/// - Model names containing "gpt-4o" (but not "mini") → ~25% perturbation
+/// - Model names containing "claude" → ~35% perturbation
+/// - Others → ~20% perturbation
+///
+/// Results carry the model name suffixed with `(baseline)` so they can
+/// be clearly distinguished from the enhanced results.
+pub fn run_mock_baseline(
+    model: &str,
+    repeats: usize,
+    descriptions: &[UsageDescription],
+    scenarios: &[Scenario],
+) -> Vec<TrialResult> {
+    let scenario_map: std::collections::HashMap<&str, &Scenario> = scenarios
+        .iter()
+        .map(|s| (s.scenario_id.as_str(), s))
+        .collect();
+
+    let mut results = Vec::new();
+
+    let perturbation_rate = if model.contains("gpt-4o-mini") {
+        0.45
+    } else if model.contains("gpt-4o") {
+        0.25
+    } else if model.contains("claude") {
+        0.35
+    } else {
+        0.20
+    };
+
+    let baseline_model = format!("{model} (baseline)");
+
+    for desc in descriptions {
+        let scenario = match scenario_map.get(desc.scenario_id.as_str()) {
+            Some(s) => s,
+            None => continue,
+        };
+
+        for repeat in 0..repeats {
+            let start = Instant::now();
+
+            // Use a distinct hash namespace ("baseline:") so the perturbation
+            // pattern differs from the enhanced mock.
+            let generated_args = perturb_args(
+                &scenario.reference_args,
+                &format!("baseline:{model}"),
+                &desc.desc_id,
+                repeat,
+                perturbation_rate,
+            );
+
+            let latency_ms = start.elapsed().as_secs_f64() * 1000.0;
+            let tokens = generated_args.split_whitespace().count();
+
+            let cmp = compare_commands(&generated_args, &scenario.reference_args);
+            let (fg_recall, fg_precision) =
+                compare_flag_groups(&generated_args, &scenario.reference_args);
+
+            results.push(TrialResult {
+                tool: desc.tool.clone(),
+                category: scenario.category.clone(),
+                scenario_id: desc.scenario_id.clone(),
+                desc_id: desc.desc_id.clone(),
+                model: baseline_model.clone(),
+                repeat_idx: repeat,
+                generated_args,
+                reference_args: scenario.reference_args.clone(),
+                exact_match: cmp.exact_match,
+                token_jaccard: cmp.token_jaccard,
+                flag_recall: cmp.flag_recall,
+                flag_precision: cmp.flag_precision,
+                flag_group_recall: fg_recall,
+                flag_group_precision: fg_precision,
+                subcommand_match: cmp.subcommand_match,
+                accuracy_score: cmp.accuracy_score(),
+                latency_ms,
+                tokens,
+                format_valid: true,
+            });
+        }
+    }
+
+    results
+}
+
+// ── Baseline comparison ──────────────────────────────────────────────────────
+
+/// Side-by-side comparison of a model's enhanced (with docs/skills) vs
+/// baseline (bare LLM) aggregate metrics.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct BaselineComparison {
+    pub model: String,
+    pub enhanced_accuracy: f64,
+    pub baseline_accuracy: f64,
+    pub accuracy_delta: f64,
+    pub enhanced_exact_match: f64,
+    pub baseline_exact_match: f64,
+    pub exact_match_delta: f64,
+    pub enhanced_flag_recall: f64,
+    pub baseline_flag_recall: f64,
+    pub flag_recall_delta: f64,
+    pub enhanced_consistency: f64,
+    pub baseline_consistency: f64,
+    pub consistency_delta: f64,
+}
+
+/// Compute per-model baseline comparisons from enhanced and baseline trials.
+///
+/// For each model that appears in *both* sets (ignoring the ` (baseline)`
+/// suffix on the baseline side), produce a [`BaselineComparison`].
+pub fn compute_baseline_comparison(
+    enhanced_trials: &[TrialResult],
+    baseline_trials: &[TrialResult],
+) -> Vec<BaselineComparison> {
+    let enhanced_agg = aggregate_results(enhanced_trials);
+    let baseline_agg = aggregate_results(baseline_trials);
+
+    // Build a lookup from the baseline model name (strip " (baseline)" suffix).
+    let baseline_map: std::collections::HashMap<String, &ModelAggResult> = baseline_agg
+        .iter()
+        .map(|a| {
+            let base = a
+                .model
+                .strip_suffix(" (baseline)")
+                .unwrap_or(&a.model)
+                .to_string();
+            (base, a)
+        })
+        .collect();
+
+    let mut comparisons: Vec<BaselineComparison> = enhanced_agg
+        .iter()
+        .filter_map(|enh| {
+            let base = baseline_map.get(&enh.model)?;
+            Some(BaselineComparison {
+                model: enh.model.clone(),
+                enhanced_accuracy: enh.accuracy,
+                baseline_accuracy: base.accuracy,
+                accuracy_delta: enh.accuracy - base.accuracy,
+                enhanced_exact_match: enh.exact_match_rate,
+                baseline_exact_match: base.exact_match_rate,
+                exact_match_delta: enh.exact_match_rate - base.exact_match_rate,
+                enhanced_flag_recall: enh.avg_flag_recall,
+                baseline_flag_recall: base.avg_flag_recall,
+                flag_recall_delta: enh.avg_flag_recall - base.avg_flag_recall,
+                enhanced_consistency: enh.consistency,
+                baseline_consistency: base.consistency,
+                consistency_delta: enh.consistency - base.consistency,
+            })
+        })
+        .collect();
+
+    comparisons.sort_by(|a, b| {
+        b.accuracy_delta
+            .partial_cmp(&a.accuracy_delta)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    comparisons
+}
+
+/// Write baseline comparison results to CSV.
+///
+/// Columns: `model,enhanced_accuracy,baseline_accuracy,accuracy_delta,
+///           enhanced_exact_match,baseline_exact_match,exact_match_delta,
+///           enhanced_flag_recall,baseline_flag_recall,flag_recall_delta,
+///           enhanced_consistency,baseline_consistency,consistency_delta`
+pub fn write_baseline_comparison_csv<W: Write>(
+    writer: &mut W,
+    comparisons: &[BaselineComparison],
+) -> std::io::Result<()> {
+    writeln!(
+        writer,
+        "model,enhanced_accuracy,baseline_accuracy,accuracy_delta,\
+         enhanced_exact_match,baseline_exact_match,exact_match_delta,\
+         enhanced_flag_recall,baseline_flag_recall,flag_recall_delta,\
+         enhanced_consistency,baseline_consistency,consistency_delta"
+    )?;
+    for c in comparisons {
+        writeln!(
+            writer,
+            "{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4}",
+            c.model,
+            c.enhanced_accuracy,
+            c.baseline_accuracy,
+            c.accuracy_delta,
+            c.enhanced_exact_match,
+            c.baseline_exact_match,
+            c.exact_match_delta,
+            c.enhanced_flag_recall,
+            c.baseline_flag_recall,
+            c.flag_recall_delta,
+            c.enhanced_consistency,
+            c.baseline_consistency,
+            c.consistency_delta,
+        )?;
+    }
+    Ok(())
+}
+
 /// Apply deterministic perturbation to reference args.
 ///
 /// Uses a simple hash of the inputs to decide whether to drop, reorder, or
@@ -959,5 +1165,106 @@ mod tests {
         for line in &data_lines {
             assert_eq!(line.split(',').count(), 8, "bad row: {line}");
         }
+    }
+
+    // ── Baseline tests ────────────────────────────────────────────────────
+
+    #[test]
+    fn test_run_mock_baseline() {
+        let trials = run_mock_baseline(
+            "gpt-4o-mini",
+            2,
+            &sample_descriptions(),
+            &sample_scenarios(),
+        );
+        // 2 descriptions × 2 repeats = 4 trials.
+        assert_eq!(trials.len(), 4);
+        // All should have format_valid = true.
+        assert!(trials.iter().all(|t| t.format_valid));
+        // Model name should carry "(baseline)" suffix.
+        assert!(trials.iter().all(|t| t.model == "gpt-4o-mini (baseline)"));
+    }
+
+    #[test]
+    fn test_baseline_worse_than_enhanced() {
+        let descs = sample_descriptions();
+        let scenarios = sample_scenarios();
+
+        // Use many repeats to expose the difference.
+        let enhanced = run_mock_benchmark("gpt-4o-mini", 20, &descs, &scenarios);
+        let baseline = run_mock_baseline("gpt-4o-mini", 20, &descs, &scenarios);
+
+        let enh_exact = enhanced.iter().filter(|t| t.exact_match).count();
+        let base_exact = baseline.iter().filter(|t| t.exact_match).count();
+
+        // Baseline has higher perturbation → fewer exact matches.
+        assert!(
+            enh_exact >= base_exact,
+            "enhanced ({enh_exact}) should have >= exact matches than baseline ({base_exact})"
+        );
+    }
+
+    #[test]
+    fn test_compute_baseline_comparison() {
+        let descs = sample_descriptions();
+        let scenarios = sample_scenarios();
+
+        let enhanced = run_mock_benchmark("gpt-4o", 3, &descs, &scenarios);
+        let baseline = run_mock_baseline("gpt-4o", 3, &descs, &scenarios);
+
+        let comparisons = compute_baseline_comparison(&enhanced, &baseline);
+        assert_eq!(comparisons.len(), 1);
+        assert_eq!(comparisons[0].model, "gpt-4o");
+        // Enhanced should be at least as good as baseline (delta >= 0).
+        assert!(
+            comparisons[0].accuracy_delta >= 0.0,
+            "enhanced should be >= baseline accuracy"
+        );
+    }
+
+    #[test]
+    fn test_compute_baseline_comparison_multiple_models() {
+        let descs = sample_descriptions();
+        let scenarios = sample_scenarios();
+
+        let mut enhanced = run_mock_benchmark("gpt-4o", 3, &descs, &scenarios);
+        enhanced.extend(run_mock_benchmark("gpt-4o-mini", 3, &descs, &scenarios));
+
+        let mut baseline = run_mock_baseline("gpt-4o", 3, &descs, &scenarios);
+        baseline.extend(run_mock_baseline("gpt-4o-mini", 3, &descs, &scenarios));
+
+        let comparisons = compute_baseline_comparison(&enhanced, &baseline);
+        assert_eq!(comparisons.len(), 2);
+        // Both models should appear.
+        let models: Vec<&str> = comparisons.iter().map(|c| c.model.as_str()).collect();
+        assert!(models.contains(&"gpt-4o"));
+        assert!(models.contains(&"gpt-4o-mini"));
+    }
+
+    #[test]
+    fn test_write_baseline_comparison_csv() {
+        let descs = sample_descriptions();
+        let scenarios = sample_scenarios();
+
+        let enhanced = run_mock_benchmark("gpt-4o", 3, &descs, &scenarios);
+        let baseline = run_mock_baseline("gpt-4o", 3, &descs, &scenarios);
+        let comparisons = compute_baseline_comparison(&enhanced, &baseline);
+
+        let mut buf = Vec::new();
+        write_baseline_comparison_csv(&mut buf, &comparisons).unwrap();
+        let text = String::from_utf8(buf).unwrap();
+        assert!(text.starts_with("model,enhanced_accuracy,baseline_accuracy,"));
+        let data_lines: Vec<&str> = text.lines().skip(1).filter(|l| !l.is_empty()).collect();
+        assert_eq!(data_lines.len(), 1);
+        // Each row has 13 comma-separated fields.
+        for line in &data_lines {
+            assert_eq!(line.split(',').count(), 13, "bad row: {line}");
+        }
+    }
+
+    #[test]
+    fn test_baseline_comparison_empty_inputs() {
+        let comparisons = compute_baseline_comparison(&[], &[]);
+        assert!(comparisons.is_empty());
     }
 }
