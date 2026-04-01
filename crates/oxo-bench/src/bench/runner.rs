@@ -1194,13 +1194,13 @@ mod tests {
         let enhanced = run_mock_benchmark("gpt-4o-mini", 20, &descs, &scenarios);
         let baseline = run_mock_baseline("gpt-4o-mini", 20, &descs, &scenarios);
 
-        let enh_exact = enhanced.iter().filter(|t| t.exact_match).count();
-        let base_exact = baseline.iter().filter(|t| t.exact_match).count();
+        let enhanced_exact_matches = enhanced.iter().filter(|t| t.exact_match).count();
+        let baseline_exact_matches = baseline.iter().filter(|t| t.exact_match).count();
 
         // Baseline has higher perturbation → fewer exact matches.
         assert!(
-            enh_exact >= base_exact,
-            "enhanced ({enh_exact}) should have >= exact matches than baseline ({base_exact})"
+            enhanced_exact_matches >= baseline_exact_matches,
+            "enhanced ({enhanced_exact_matches}) should have >= exact matches than baseline ({baseline_exact_matches})"
         );
     }
 

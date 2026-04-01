@@ -697,7 +697,7 @@ fn cmd_eval(
 
         for (i, model_entry) in config.models.iter().enumerate() {
             println!(
-                "[{}/{}] {} Evaluating {} (mock enhanced)...",
+                "[{}/{}] {} Evaluating {} (enhanced, with docs/skills)...",
                 i + 1,
                 config.models.len(),
                 "→".cyan().bold(),
