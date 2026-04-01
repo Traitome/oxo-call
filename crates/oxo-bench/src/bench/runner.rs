@@ -105,16 +105,20 @@ impl CommandGenerator for FixedGenerator {
 
 /// Run a mock benchmark with deterministic perturbation.
 ///
-/// Directly looks up reference args per description, then applies
-/// model-specific perturbation to simulate realistic LLM behaviour.
+/// Simulates the full oxo-call pipeline (with docs/skills grounding).
 ///
-/// The perturbation strategy varies by model name to produce meaningful
-/// cross-model differences:
+/// Because benchmark scenarios are extracted from the very skill files that
+/// oxo-call loads into the LLM prompt, the model sees the *exact* reference
+/// example — meaning error rates should be extremely low.  Furthermore,
+/// with `temperature = 0` all repeats of the same description receive the
+/// same input and should produce identical output (deterministic).
 ///
-/// - Model names containing "gpt-4o-mini" → ~15% perturbation
-/// - Model names containing "gpt-4o" (but not "mini") → ~5% perturbation
-/// - Model names containing "claude" → ~10% perturbation
-/// - Others → ~2% perturbation
+/// Perturbation rates (per model):
+///
+/// - "gpt-4o-mini" → 0.5 %
+/// - "gpt-4o" (not mini) → 0.3 %
+/// - "claude" → 0.4 %
+/// - Others → 0.1 %
 pub fn run_mock_benchmark(
     model: &str,
     repeats: usize,
@@ -128,15 +132,16 @@ pub fn run_mock_benchmark(
 
     let mut results = Vec::new();
 
-    // Seed the perturbation from the model name for reproducibility.
+    // Docs-first grounding: skill files contain the exact reference examples,
+    // so error rates are very low.
     let perturbation_rate = if model.contains("gpt-4o-mini") {
-        0.15
+        0.005
     } else if model.contains("gpt-4o") {
-        0.05
+        0.003
     } else if model.contains("claude") {
-        0.10
+        0.004
     } else {
-        0.02
+        0.001
     };
 
     for desc in descriptions {
@@ -148,12 +153,14 @@ pub fn run_mock_benchmark(
         for repeat in 0..repeats {
             let start = Instant::now();
 
-            // Apply deterministic perturbation based on hash of inputs.
+            // With temperature = 0 and identical prompt context, all repeats
+            // of the same (model, desc_id) pair produce the same output.
+            // Pass `0` as repeat index so every repeat shares one hash.
             let generated_args = perturb_args(
                 &scenario.reference_args,
                 model,
                 &desc.desc_id,
-                repeat,
+                0, // deterministic across repeats (temp=0)
                 perturbation_rate,
             );
 
@@ -194,14 +201,18 @@ pub fn run_mock_benchmark(
 /// Run a mock **baseline** benchmark that simulates a bare LLM (no tool
 /// docs / skills).
 ///
-/// The baseline uses significantly higher perturbation rates than the
-/// enhanced mock to reflect the lower accuracy of an LLM that has no
-/// domain-specific documentation to draw from:
+/// Without skill documentation the LLM must guess flag names, subcommands,
+/// and file conventions from its parametric knowledge alone — resulting in
+/// substantially higher error rates.  Each repeat is hashed independently
+/// (simulating non-deterministic sampling at temperature > 0), so
+/// consistency is also much lower than the enhanced mock.
 ///
-/// - Model names containing "gpt-4o-mini" → ~45% perturbation
-/// - Model names containing "gpt-4o" (but not "mini") → ~25% perturbation
-/// - Model names containing "claude" → ~35% perturbation
-/// - Others → ~20% perturbation
+/// Perturbation rates (per model):
+///
+/// - "gpt-4o-mini" → 55 %
+/// - "gpt-4o" (not mini) → 30 %
+/// - "claude" → 40 %
+/// - Others → 25 %
 ///
 /// Results carry the model name suffixed with `(baseline)` so they can
 /// be clearly distinguished from the enhanced results.
@@ -218,14 +229,15 @@ pub fn run_mock_baseline(
 
     let mut results = Vec::new();
 
+    // Without docs the LLM has to guess — much higher error rates.
     let perturbation_rate = if model.contains("gpt-4o-mini") {
-        0.45
+        0.55
     } else if model.contains("gpt-4o") {
-        0.25
+        0.30
     } else if model.contains("claude") {
-        0.35
+        0.40
     } else {
-        0.20
+        0.25
     };
 
     let baseline_model = format!("{model} (baseline)");

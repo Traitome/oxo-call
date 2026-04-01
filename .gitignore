@@ -36,3 +36,4 @@ lcov.info
 # Large benchmark trial CSVs (regenerate with: oxo-bench eval --mock)
 docs/bench/benchmark_trials.csv
 docs/bench/trials_*.csv
+docs/bench/baseline_trials.csv

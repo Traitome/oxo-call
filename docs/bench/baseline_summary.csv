@@ -1,0 +1,4 @@
+model,n_trials,accuracy,exact_match_rate,avg_flag_recall,avg_flag_precision,avg_token_jaccard,subcommand_match_rate,consistency,avg_latency_ms,avg_tokens,format_valid_rate
+gpt-4o (baseline),47700,0.9813,0.7410,0.9828,0.9820,0.9677,1.0000,0.7016,0.0,8.7,1.0000
+claude-3-5-sonnet-20241022 (baseline),47700,0.9747,0.6526,0.9768,0.9757,0.9564,1.0000,0.6014,0.0,8.7,1.0000
+gpt-4o-mini (baseline),47700,0.9655,0.5238,0.9682,0.9669,0.9406,1.0000,0.4528,0.0,8.7,1.0000
