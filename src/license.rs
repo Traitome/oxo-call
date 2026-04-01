@@ -124,7 +124,18 @@ pub enum LicenseError {
     },
 
     #[error(
-        "Failed to parse license file as JSON: {0}\n  Ensure the file is a valid oxo-call license."
+        "Failed to parse license file as JSON: {0}\n\
+         \n\
+         Common causes:\n\
+         • The file was modified or truncated — do not edit license files\n\
+         • The file was saved with a UTF-8 BOM (some Windows editors add this automatically)\n\
+         • The file was downloaded as an HTML page instead of raw JSON\n\
+         \n\
+         To fix:\n\
+         • Download the public test license (raw JSON) directly from:\n\
+           https://raw.githubusercontent.com/Traitome/oxo-call/main/docs/public-academic-test-license.oxo.json\n\
+         • Apply for a personal academic license: https://github.com/Traitome/oxo-call#license\n\
+         • Contact w_shixiang@163.com for a commercial license"
     )]
     ParseError(serde_json::Error),
 
@@ -274,7 +285,10 @@ pub fn load_and_verify(cli_path: Option<&Path>) -> Result<LicenseFile, LicenseEr
         source: e,
     })?;
 
-    let license: LicenseFile = serde_json::from_str(&content).map_err(LicenseError::ParseError)?;
+    // Strip UTF-8 BOM if present (some Windows editors prepend it automatically)
+    let content = content.strip_prefix('\u{FEFF}').unwrap_or(&content);
+
+    let license: LicenseFile = serde_json::from_str(content).map_err(LicenseError::ParseError)?;
 
     verify_license(&license)?;
 
