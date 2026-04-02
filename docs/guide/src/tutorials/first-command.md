@@ -18,6 +18,8 @@ We will use `samtools` — one of the most common tools in bioinformatics — to
 
 If you do not have `samtools` installed, you can still follow steps 1 and 3 using dry-run and the `docs add` command.
 
+Why start here? Because `samtools` is familiar enough to validate the result, but complex enough to show the value of docs-grounded command generation over manual flag lookup.
+
 ---
 
 ## Step 1: Verify your setup
@@ -44,7 +46,7 @@ If `config verify` fails, go back to the [Configuration guide](./configuration.m
 
 ## Step 2: Preview your first command (dry-run)
 
-The `dry-run` command asks the LLM to generate the right flags **but does not execute anything**. This is the safest way to start.
+The `dry-run` command asks the LLM to generate the right flags **but does not execute anything**. This is the safest way to start and the easiest way to learn how oxo-call reasons about a tool.
 
 ```bash
 oxo-call dry-run samtools "sort input.bam by coordinate and output to sorted.bam"
@@ -54,8 +56,8 @@ What happens behind the scenes:
 
 1. oxo-call runs `samtools --help` and caches the output (first time only)
 2. The built-in `samtools` skill injects expert knowledge into the prompt
-3. The LLM receives: task + docs + skill, and returns the correct flags
-4. The command is printed for you to inspect — nothing is executed
+3. The LLM receives task + docs + skill and returns the correct flags
+4. The command is printed with an explanation for you to inspect — nothing is executed
 
 Expected output:
 
@@ -64,7 +66,7 @@ Command: samtools sort -o sorted.bam input.bam
 Explanation: Uses -o to specify the output file; coordinate sort is the default behavior.
 ```
 
-> **Tip:** The `-o` flag is easy to forget with samtools. The skill knows this pitfall and guides the LLM to always include it.
+> **Tip:** The `-o` flag is easy to forget with samtools. The skill knows this pitfall and guides the LLM to always include it. This is a good example of oxo-call's engineering approach: it does not rely on the model alone.
 
 ---
 
@@ -98,7 +100,7 @@ Explanation: ...
 Execute? [y/N] y
 ```
 
-This is especially useful for destructive or long-running commands.
+This is especially useful for destructive or long-running commands, and for teaching or peer review where someone else should approve the generated shell before execution.
 
 ---
 
@@ -156,7 +158,7 @@ oxo-call dry-run samtools "count reads mapping to chromosome 1 between 1000000 a
 # → samtools view -c sorted.bam chr1:1000000-2000000
 ```
 
-Each of these uses the same pattern: describe what you want in plain English.
+Each of these uses the same pattern: describe what you want in plain English and let oxo-call translate that into explicit, inspectable CLI syntax.
 
 ---
 

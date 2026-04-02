@@ -25,7 +25,7 @@ cargo clippy -- -D warnings
 ```
 oxo-call/
 ├── src/              # Main CLI source code
-├── skills/           # 134+ built-in skill Markdown files (.md)
+├── skills/           # 159 built-in skill Markdown files (.md)
 ├── tests/            # Integration tests
 ├── crates/
 │   ├── license-issuer/   # Maintainer license signing tool
@@ -162,4 +162,3 @@ git tag -a v0.4.0 -m "v0.4.0"
 git push origin v0.4.0
 # CI generates the release notes automatically from cliff.toml
 ```
-

@@ -1,6 +1,6 @@
 # Introduction
 
-**oxo-call** is an AI-powered command orchestration tool for bioinformatics. Instead of memorizing hundreds of flags across dozens of tools, you describe what you want to accomplish — and oxo-call translates that into a correct, grounded command.
+**oxo-call** is an AI-powered command orchestration tool for bioinformatics. Instead of memorizing hundreds of flags across dozens of tools, you describe what you want to accomplish — and oxo-call translates that into a grounded command you can preview, explain, audit, and reproduce.
 
 ```bash
 # You write:
@@ -10,7 +10,7 @@ oxo-call dry-run samtools "sort input.bam by coordinate using 4 threads"
 samtools sort -@ 4 -o sorted.bam input.bam
 ```
 
-This is not a simple LLM chat. oxo-call fetches the tool's actual `--help` output, injects curated expert knowledge (called a *skill*), and only then asks the LLM — ensuring every generated command uses real flags, not hallucinations.
+This is not a simple LLM chat. oxo-call fetches the tool's actual `--help` output, injects curated expert knowledge (called a *skill*), and only then asks the LLM — making command generation substantially easier to trust in real research and engineering settings.
 
 ---
 
@@ -26,13 +26,23 @@ The docs answer *"what flags exist?"* The skill answers *"which flags should I u
 
 | Capability | What it means for you |
 |------------|----------------------|
-| **158 built-in skills** | Expert knowledge for samtools, STAR, BWA, GATK, bcftools, fastp, and 150+ more |
-| **Auto documentation** | `--help` cached on first use — no setup required |
-| **Dry-run mode** | Preview every command before it runs |
-| **Workflow engine** | Native DAG pipelines with Snakemake/Nextflow export |
-| **History with provenance** | Every command logged with tool version, model, docs hash |
-| **Local LLM support** | Run with Ollama for air-gapped or sensitive data |
-| **Job library** | Named command shortcuts with scheduling, run history, and LLM generation (`oxo-call job`) |
+| **159 built-in skills** | Start from domain-aware guidance for samtools, STAR, BWA, GATK, bcftools, fastp, and 150+ more tools |
+| **Auto documentation** | Reuse real `--help` text automatically instead of hunting through man pages before every task |
+| **Dry-run mode** | Inspect commands safely before they touch data or consume compute time |
+| **Workflow engine** | Move from one-off commands to reusable DAG pipelines with Snakemake/Nextflow export |
+| **History with provenance** | Keep auditable records of the generated command, tool version, model, and docs context |
+| **Local LLM support** | Run with Ollama when data governance, offline work, or latency matter |
+| **Job library** | Turn recurring commands into named, schedulable assets with history and LLM-assisted generation |
+
+---
+
+## Why It Feels Easier To Use
+
+- **Plain-language in, exact flags out** — describe the biology or data task instead of remembering syntax
+- **Preview before execution** — use `dry-run` to learn and verify before spending cluster time
+- **Explanations included** — generated commands come with reasoning, which helps onboarding and review
+- **Consistent from laptop to cluster** — the same interface works for local tools, remote docs, workflows, and HPC targets
+- **Evidence-backed** — the docs-first + skill-first design is benchmarked at scale, not just marketed as a prompt trick
 
 ---
 
@@ -50,7 +60,7 @@ The docs answer *"what flags exist?"* The skill answers *"which flags should I u
 
 ## How to Use This Guide
 
-This documentation is organized as a hands-on tutorial book:
+This documentation is organized to get you productive quickly and still support deep technical inspection when you need it:
 
 ### If you are new to oxo-call
 Start with **Getting Started**:
