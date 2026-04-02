@@ -15,8 +15,9 @@ use oxo_bench::{
     bench::{
         llm::{ModelBenchConfig, canonical_eval_tasks},
         runner::{
-            ModelAggResult, OxoCallGenerator, TrialResult, aggregate_results, run_benchmark,
-            run_mock_benchmark, summarise_by_tool, write_model_agg_csv,
+            ModelAggResult, OxoCallGenerator, TrialResult, aggregate_results,
+            compute_baseline_comparison, run_benchmark, run_mock_baseline, run_mock_benchmark,
+            summarise_by_tool, write_baseline_comparison_csv, write_model_agg_csv,
             write_tool_model_summary_csv, write_trials_csv,
         },
         scenario::{
@@ -678,6 +679,8 @@ fn cmd_eval(
 
     let mut all_trials: Vec<TrialResult> = Vec::new();
 
+    let mut baseline_trials: Vec<TrialResult> = Vec::new();
+
     if mock {
         // ── Mock evaluation mode ──────────────────────────────────────────
         println!(
@@ -694,7 +697,7 @@ fn cmd_eval(
 
         for (i, model_entry) in config.models.iter().enumerate() {
             println!(
-                "[{}/{}] {} Evaluating {} (mock)...",
+                "[{}/{}] {} Evaluating {} (enhanced, with docs/skills)...",
                 i + 1,
                 config.models.len(),
                 "→".cyan().bold(),
@@ -707,6 +710,37 @@ fn cmd_eval(
                 trials.len()
             );
             all_trials.extend(trials);
+        }
+
+        // ── Baseline evaluation ───────────────────────────────────────────
+        println!();
+        println!(
+            "{} Baseline evaluation (bare LLM, no docs/skills): {} models × {} repeats × {} descriptions",
+            "→".cyan().bold(),
+            config.models.len(),
+            repeats,
+            descriptions.len()
+        );
+        println!(
+            "{}",
+            "  Higher perturbation rates simulate LLM without tool documentation.".dimmed()
+        );
+
+        for (i, model_entry) in config.models.iter().enumerate() {
+            println!(
+                "[{}/{}] {} Evaluating {} (baseline)...",
+                i + 1,
+                config.models.len(),
+                "→".cyan().bold(),
+                model_entry.name.cyan(),
+            );
+            let trials = run_mock_baseline(&model_entry.name, repeats, &descriptions, &scenarios);
+            println!(
+                "      {} {} trials recorded",
+                "✓".green().bold(),
+                trials.len()
+            );
+            baseline_trials.extend(trials);
         }
     } else {
         // ── Real evaluation mode ──────────────────────────────────────────
@@ -840,6 +874,54 @@ fn cmd_eval(
         );
     }
 
+    // ── Baseline comparison (mock mode only) ──────────────────────────────
+    if !baseline_trials.is_empty() {
+        // Write baseline trial CSV.
+        let baseline_csv_path = output_dir.join("baseline_trials.csv");
+        {
+            let mut f = std::fs::File::create(&baseline_csv_path)?;
+            write_trials_csv(&mut f, &baseline_trials)?;
+        }
+        println!(
+            "{} {} ({} baseline trials)",
+            "✓".green().bold(),
+            baseline_csv_path.display().to_string().cyan(),
+            baseline_trials.len()
+        );
+
+        // Write baseline aggregate CSV.
+        let baseline_agg = aggregate_results(&baseline_trials);
+        let baseline_agg_csv_path = output_dir.join("baseline_summary.csv");
+        {
+            let mut f = std::fs::File::create(&baseline_agg_csv_path)?;
+            write_model_agg_csv(&mut f, &baseline_agg)?;
+        }
+        println!(
+            "{} {} ({} baseline models)",
+            "✓".green().bold(),
+            baseline_agg_csv_path.display().to_string().cyan(),
+            baseline_agg.len()
+        );
+
+        // Write comparison CSV.
+        let comparisons = compute_baseline_comparison(&all_trials, &baseline_trials);
+        let cmp_csv_path = output_dir.join("baseline_comparison.csv");
+        {
+            let mut f = std::fs::File::create(&cmp_csv_path)?;
+            write_baseline_comparison_csv(&mut f, &comparisons)?;
+        }
+        println!(
+            "{} {} ({} model comparisons)",
+            "✓".green().bold(),
+            cmp_csv_path.display().to_string().cyan(),
+            comparisons.len()
+        );
+
+        // Print comparison summary table.
+        println!();
+        print_baseline_comparison(&comparisons);
+    }
+
     // Print summary table.
     println!();
     print_agg_summary(&agg);
@@ -938,6 +1020,70 @@ fn print_agg_summary(agg: &[ModelAggResult]) {
             "★".yellow().bold(),
             best.model.green().bold(),
             best.accuracy * 100.0
+        );
+    }
+}
+
+/// Print a formatted baseline vs enhanced comparison table.
+fn print_baseline_comparison(comparisons: &[oxo_bench::bench::runner::BaselineComparison]) {
+    use colored::Colorize;
+    println!(
+        "{}",
+        "═══ Baseline vs Enhanced Comparison ═══".bold().cyan()
+    );
+    println!(
+        "{}",
+        "  (baseline = bare LLM; enhanced = with docs/skills)".dimmed()
+    );
+    println!();
+    println!(
+        "{:<25} {:>12} {:>12} {:>10} {:>12} {:>12} {:>10}",
+        "Model".bold(),
+        "Enh Acc%".bold(),
+        "Base Acc%".bold(),
+        "Δ Acc%".bold(),
+        "Enh Exact%".bold(),
+        "Base Exact%".bold(),
+        "Δ Exact%".bold(),
+    );
+    println!("{}", "─".repeat(100).dimmed());
+    for c in comparisons {
+        let delta_color = if c.accuracy_delta > 0.0 {
+            format!("+{:.1}%", c.accuracy_delta * 100.0)
+                .green()
+                .to_string()
+        } else {
+            format!("{:.1}%", c.accuracy_delta * 100.0)
+                .red()
+                .to_string()
+        };
+        let exact_delta_color = if c.exact_match_delta > 0.0 {
+            format!("+{:.1}%", c.exact_match_delta * 100.0)
+                .green()
+                .to_string()
+        } else {
+            format!("{:.1}%", c.exact_match_delta * 100.0)
+                .red()
+                .to_string()
+        };
+        println!(
+            "{:<25} {:>11.1}% {:>11.1}% {:>10} {:>11.1}% {:>11.1}% {:>10}",
+            c.model.cyan(),
+            c.enhanced_accuracy * 100.0,
+            c.baseline_accuracy * 100.0,
+            delta_color,
+            c.enhanced_exact_match * 100.0,
+            c.baseline_exact_match * 100.0,
+            exact_delta_color,
+        );
+    }
+    println!("{}", "─".repeat(100).dimmed());
+    if let Some(best) = comparisons.first() {
+        println!(
+            "\n{} Largest improvement: {} (+{:.1}% accuracy from docs/skills)",
+            "★".yellow().bold(),
+            best.model.green().bold(),
+            best.accuracy_delta * 100.0,
         );
     }
 }
