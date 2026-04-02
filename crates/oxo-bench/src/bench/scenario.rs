@@ -289,28 +289,60 @@ const VARIANT_QUIET: usize = 3;
 const VARIANT_DEFAULT: usize = 4;
 const NUM_VARIANT_TYPES: usize = 5;
 
+/// Return `true` when appending an extra flag to `args` would be unsafe,
+/// e.g. the command already uses a shell pipe (`|`) or output redirection
+/// (`>`), so an appended flag would land after the pipe/redirect rather than
+/// on the intended tool.
+fn has_shell_operator(args: &str) -> bool {
+    args.contains('|') || args.contains('>')
+}
+
 /// Create a synthetic variant of a scenario by adding/changing common flags.
-fn synthesise_variant(skill: &SkillFile, base: &Scenario, idx: usize) -> Scenario {
+///
+/// The function is conservative: it never appends flags to commands that
+/// contain shell operators (`|`, `>`), and it avoids appending `-t 4` when
+/// the command already uses `-t` or `--threads` (since `-t` has different
+/// semantics across tools — threads in some, tag/reference in others).
+fn synthesise_variant(_skill: &SkillFile, base: &Scenario, idx: usize) -> Scenario {
     let variant_type = idx % NUM_VARIANT_TYPES;
 
+    // If the base command contains shell operators, we never append flags
+    // because they would land after the pipe/redirect, not on the tool.
+    let shell_op = has_shell_operator(&base.reference_args);
+
     let suffix = match variant_type {
-        VARIANT_VERBOSE => " with verbose output",
-        VARIANT_THREADS => " using multiple threads",
-        VARIANT_OUTPUT => " and write output to a file",
-        VARIANT_QUIET => " in quiet mode",
+        VARIANT_VERBOSE if !shell_op => " with verbose output",
+        VARIANT_THREADS if !shell_op => " using multiple threads",
+        VARIANT_OUTPUT if !shell_op => " and write output to a file",
+        VARIANT_QUIET if !shell_op => " in quiet mode",
         VARIANT_DEFAULT => " with default parameters",
         _ => "",
     };
 
     let args_suffix = match variant_type {
+        _ if shell_op => "",
         VARIANT_VERBOSE => " --verbose",
+        // Only add -t 4 if the command does not already contain -t (which
+        // has tool-specific semantics), -@, -j, -p, or --threads.
         VARIANT_THREADS
-            if base.reference_args.contains("-t") || base.reference_args.contains("-@") =>
+            if base.reference_args.contains("-t ")
+                || base.reference_args.contains("-t\t")
+                || base.reference_args.contains("-@ ")
+                || base.reference_args.contains("-j ")
+                || base.reference_args.contains("-p ")
+                || base.reference_args.contains("--threads") =>
         {
             ""
         }
         VARIANT_THREADS => " -t 4",
-        VARIANT_OUTPUT if base.reference_args.contains("-o") => "",
+        // Only add -o if the command doesn't already write to a file.
+        VARIANT_OUTPUT
+            if base.reference_args.contains("-o ")
+                || base.reference_args.contains("-o\t")
+                || base.reference_args.contains("--output") =>
+        {
+            ""
+        }
         VARIANT_OUTPUT => " -o output.txt",
         VARIANT_QUIET => " --quiet",
         _ => "",
@@ -320,11 +352,11 @@ fn synthesise_variant(skill: &SkillFile, base: &Scenario, idx: usize) -> Scenari
     let new_task = format!("{}{}", base.task_description, suffix);
 
     Scenario {
-        tool: skill.name.clone(),
-        scenario_id: format!("{}_{:02}", skill.name, idx + 1),
+        tool: base.tool.clone(),
+        scenario_id: format!("{}_{:02}", base.tool, idx + 1),
         reference_args: new_args,
         task_description: new_task,
-        category: skill.category.clone(),
+        category: base.category.clone(),
     }
 }
 
@@ -805,5 +837,94 @@ source_url: "https://example.com"
                 skill.name
             );
         }
+    }
+
+    #[test]
+    fn test_synthesise_variant_no_append_after_pipe() {
+        let skill = SkillFile {
+            name: "bcftools".to_string(),
+            category: "variant-calling".to_string(),
+            description: "".to_string(),
+            tags: vec![],
+            source_url: "".to_string(),
+            examples: vec![],
+        };
+        let base = Scenario {
+            tool: "bcftools".to_string(),
+            scenario_id: "bcftools_01".to_string(),
+            reference_args: "mpileup -f ref.fa input.bam | bcftools call -mv -o out.vcf"
+                .to_string(),
+            task_description: "call variants".to_string(),
+            category: "variant-calling".to_string(),
+        };
+        // All variant types except DEFAULT should produce no args suffix
+        // when the base command contains a pipe.
+        for idx in 0..NUM_VARIANT_TYPES {
+            let v = synthesise_variant(&skill, &base, idx);
+            // The args should NOT have extra flags appended after the pipe.
+            assert!(
+                !v.reference_args.ends_with("--verbose")
+                    && !v.reference_args.ends_with("-t 4")
+                    && !v.reference_args.ends_with("-o output.txt")
+                    && !v.reference_args.ends_with("--quiet"),
+                "variant idx={idx} should not append flags after pipe: {}",
+                v.reference_args
+            );
+        }
+    }
+
+    #[test]
+    fn test_synthesise_variant_no_append_after_redirect() {
+        let skill = SkillFile {
+            name: "samtools".to_string(),
+            category: "alignment".to_string(),
+            description: "".to_string(),
+            tags: vec![],
+            source_url: "".to_string(),
+            examples: vec![],
+        };
+        let base = Scenario {
+            tool: "samtools".to_string(),
+            scenario_id: "samtools_01".to_string(),
+            reference_args: "stats input.bam > stats.txt".to_string(),
+            task_description: "get stats".to_string(),
+            category: "alignment".to_string(),
+        };
+        for idx in 0..NUM_VARIANT_TYPES {
+            let v = synthesise_variant(&skill, &base, idx);
+            assert!(
+                !v.reference_args.ends_with("--verbose")
+                    && !v.reference_args.ends_with("-t 4")
+                    && !v.reference_args.ends_with("-o output.txt")
+                    && !v.reference_args.ends_with("--quiet"),
+                "variant idx={idx} should not append flags after redirect: {}",
+                v.reference_args
+            );
+        }
+    }
+
+    #[test]
+    fn test_synthesise_variant_skips_threads_when_t_present() {
+        let skill = SkillFile {
+            name: "samtools".to_string(),
+            category: "alignment".to_string(),
+            description: "".to_string(),
+            tags: vec![],
+            source_url: "".to_string(),
+            examples: vec![],
+        };
+        let base = Scenario {
+            tool: "samtools".to_string(),
+            scenario_id: "samtools_01".to_string(),
+            reference_args: "sort -@ 4 -o sorted.bam input.bam".to_string(),
+            task_description: "sort BAM".to_string(),
+            category: "alignment".to_string(),
+        };
+        // VARIANT_THREADS (idx=1) should not add -t 4 because -@ is present.
+        let v = synthesise_variant(&skill, &base, VARIANT_THREADS);
+        assert!(
+            !v.reference_args.contains("-t 4"),
+            "should not add -t 4 when -@ is already present"
+        );
     }
 }

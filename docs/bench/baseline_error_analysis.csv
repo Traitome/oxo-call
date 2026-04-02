@@ -1,4 +1,4 @@
 model,total_errors,missing_flag,extra_flag,wrong_value,flag_reorder,wrong_subcommand,format_error,empty_output
-claude-3-5-sonnet-20241022 (baseline),16570,4364,4811,2916,4479,0,0,0
-gpt-4o (baseline),12353,3257,3589,2126,3381,0,0,0
-gpt-4o-mini (baseline),22715,5999,6599,3924,6193,0,0,0
+claude-3-5-sonnet-20241022 (baseline),16588,4367,4813,2933,4475,0,0,0
+gpt-4o (baseline),12358,3257,3588,2132,3381,0,0,0
+gpt-4o-mini (baseline),22730,5996,6594,3944,6196,0,0,0

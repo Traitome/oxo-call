@@ -1,4 +1,4 @@
 model,total_errors,missing_flag,extra_flag,wrong_value,flag_reorder,wrong_subcommand,format_error,empty_output
 claude-3-5-sonnet-20241022,183,48,60,24,51,0,0,0
 gpt-4o,159,42,69,0,48,0,0,0
-gpt-4o-mini,231,99,39,36,57,0,0,0
+gpt-4o-mini,234,99,39,39,57,0,0,0

@@ -276,19 +276,19 @@ angsd,angsd_08,angsd_08_04,polite,Please compute per-site allele frequency spect
 angsd,angsd_08,angsd_08_05,sysadmin,Use angsd to compute per-site allele frequency spectrum for a single population and write output to a file
 angsd,angsd_08,angsd_08_06,goal_oriented,I want to compute per-site allele frequency spectrum for a single population and write output to a file
 angsd,angsd_08,angsd_08_07,expert,compute per-site allele frequency spectrum single population write output file
-angsd,angsd_08,angsd_08_08,detailed,I have data that I need to process: compute per-site allele frequency spectrum for a single population and write output to a file
+angsd,angsd_08,angsd_08_08,detailed,"I have data that I need to process: compute per-site allele frequency spectrum for a single population and write output to a file, saving the result to a specified output file"
 angsd,angsd_08,angsd_08_09,informal,"Hey, can you help me compute per-site allele frequency spectrum for a single population and write output to a file?"
 angsd,angsd_08,angsd_08_10,alternative,Write output to a file after compute per-site allele frequency spectrum for a single population
-angsd,angsd_09,angsd_09_01,original,estimate 1D site frequency spectrum from doSaf output in quiet mode
-angsd,angsd_09,angsd_09_02,beginner,How do I estimate 1D site frequency spectrum from doSaf output in quiet mode?
-angsd,angsd_09,angsd_09_03,student,I need to estimate 1D site frequency spectrum from doSaf output in quiet mode
-angsd,angsd_09,angsd_09_04,polite,Please estimate 1D site frequency spectrum from doSaf output in quiet mode
-angsd,angsd_09,angsd_09_05,sysadmin,Use angsd to estimate 1D site frequency spectrum from doSaf output in quiet mode
-angsd,angsd_09,angsd_09_06,goal_oriented,I want to estimate 1D site frequency spectrum from doSaf output in quiet mode
-angsd,angsd_09,angsd_09_07,expert,estimate 1D site frequency spectrum doSaf output quiet mode
-angsd,angsd_09,angsd_09_08,detailed,I have data that I need to process: estimate 1D site frequency spectrum from doSaf output in quiet mode
-angsd,angsd_09,angsd_09_09,informal,"Hey, can you help me estimate 1D site frequency spectrum from doSaf output in quiet mode?"
-angsd,angsd_09,angsd_09_10,alternative,Perform: estimate 1D site frequency spectrum from doSaf output in quiet mode
+angsd,angsd_09,angsd_09_01,original,estimate 1D site frequency spectrum from doSaf output
+angsd,angsd_09,angsd_09_02,beginner,How do I estimate 1D site frequency spectrum from doSaf output?
+angsd,angsd_09,angsd_09_03,student,I need to estimate 1D site frequency spectrum from doSaf output
+angsd,angsd_09,angsd_09_04,polite,Please estimate 1D site frequency spectrum from doSaf output
+angsd,angsd_09,angsd_09_05,sysadmin,Use angsd to estimate 1D site frequency spectrum from doSaf output
+angsd,angsd_09,angsd_09_06,goal_oriented,I want to estimate 1D site frequency spectrum from doSaf output
+angsd,angsd_09,angsd_09_07,expert,estimate 1D site frequency spectrum doSaf output
+angsd,angsd_09,angsd_09_08,detailed,I have data that I need to process: estimate 1D site frequency spectrum from doSaf output
+angsd,angsd_09,angsd_09_09,informal,"Hey, can you help me estimate 1D site frequency spectrum from doSaf output?"
+angsd,angsd_09,angsd_09_10,alternative,Perform: estimate 1D site frequency spectrum from doSaf output
 angsd,angsd_10,angsd_10_01,original,estimate Watterson's theta and Tajima's D in sliding windows with default parameters
 angsd,angsd_10,angsd_10_02,beginner,How do I estimate Watterson's theta and Tajima's D in sliding windows with default parameters?
 angsd,angsd_10,angsd_10_03,student,I need to estimate Watterson's theta and Tajima's D in sliding windows with default parameters
@@ -549,46 +549,46 @@ augustus,augustus_05,augustus_05_07,expert,predict genes eukaryotic genome human
 augustus,augustus_05,augustus_05_08,detailed,I have data that I need to process: predict genes in a eukaryotic genome using human parameters with default parameters
 augustus,augustus_05,augustus_05_09,informal,"Hey, can you help me predict genes in a eukaryotic genome using human parameters with default parameters?"
 augustus,augustus_05,augustus_05_10,alternative,"With default parameters, predict genes in a eukaryotic genome using human parameters"
-augustus,augustus_06,augustus_06_01,original,predict genes with RNA-seq hints for improved accuracy with verbose output
-augustus,augustus_06,augustus_06_02,beginner,How do I predict genes with RNA-seq hints for improved accuracy with verbose output?
-augustus,augustus_06,augustus_06_03,student,I need to predict genes with RNA-seq hints for improved accuracy with verbose output
-augustus,augustus_06,augustus_06_04,polite,Please predict genes with RNA-seq hints for improved accuracy with verbose output
-augustus,augustus_06,augustus_06_05,sysadmin,Use augustus to predict genes with RNA-seq hints for improved accuracy with verbose output
-augustus,augustus_06,augustus_06_06,goal_oriented,I want to predict genes with RNA-seq hints for improved accuracy with verbose output
-augustus,augustus_06,augustus_06_07,expert,predict genes RNA-seq hints improved accuracy verbose output
-augustus,augustus_06,augustus_06_08,detailed,I have data that I need to process: predict genes with RNA-seq hints for improved accuracy with verbose output
-augustus,augustus_06,augustus_06_09,informal,"Hey, can you help me predict genes with RNA-seq hints for improved accuracy with verbose output?"
-augustus,augustus_06,augustus_06_10,alternative,"With RNA-seq hints for improved accuracy with verbose output, predict genes"
-augustus,augustus_07,augustus_07_01,original,predict genes and output protein sequences using multiple threads
-augustus,augustus_07,augustus_07_02,beginner,How do I predict genes and output protein sequences using multiple threads?
-augustus,augustus_07,augustus_07_03,student,I need to predict genes and output protein sequences using multiple threads
-augustus,augustus_07,augustus_07_04,polite,Please predict genes and output protein sequences using multiple threads
-augustus,augustus_07,augustus_07_05,sysadmin,Use augustus to predict genes and output protein sequences using multiple threads
-augustus,augustus_07,augustus_07_06,goal_oriented,I want to predict genes and output protein sequences using multiple threads
-augustus,augustus_07,augustus_07_07,expert,predict genes output protein sequences multiple threads
-augustus,augustus_07,augustus_07_08,detailed,"I have data that I need to process: predict genes and output protein sequences using multiple threads, utilizing multiple CPU threads for speed"
-augustus,augustus_07,augustus_07_09,informal,"Hey, can you help me predict genes and output protein sequences using multiple threads?"
-augustus,augustus_07,augustus_07_10,alternative,Output protein sequences using multiple threads after predict genes
-augustus,augustus_08,augustus_08_01,original,run Augustus on a repeat-masked genome and write output to a file
-augustus,augustus_08,augustus_08_02,beginner,How do I run Augustus on a repeat-masked genome and write output to a file?
-augustus,augustus_08,augustus_08_03,student,I need to run Augustus on a repeat-masked genome and write output to a file
-augustus,augustus_08,augustus_08_04,polite,Please run Augustus on a repeat-masked genome and write output to a file
-augustus,augustus_08,augustus_08_05,sysadmin,Use augustus to run Augustus on a repeat-masked genome and write output to a file
-augustus,augustus_08,augustus_08_06,goal_oriented,I want to run Augustus on a repeat-masked genome and write output to a file
-augustus,augustus_08,augustus_08_07,expert,run Augustus on repeat-masked genome write output file
-augustus,augustus_08,augustus_08_08,detailed,"I have data that I need to process: run Augustus on a repeat-masked genome and write output to a file, saving the result to a specified output file"
-augustus,augustus_08,augustus_08_09,informal,"Hey, can you help me run Augustus on a repeat-masked genome and write output to a file?"
-augustus,augustus_08,augustus_08_10,alternative,Write output to a file after run Augustus on a repeat-masked genome
-augustus,augustus_09,augustus_09_01,original,predict genes in a eukaryotic genome using human parameters in quiet mode
-augustus,augustus_09,augustus_09_02,beginner,How do I predict genes in a eukaryotic genome using human parameters in quiet mode?
-augustus,augustus_09,augustus_09_03,student,I need to predict genes in a eukaryotic genome using human parameters in quiet mode
-augustus,augustus_09,augustus_09_04,polite,Please predict genes in a eukaryotic genome using human parameters in quiet mode
-augustus,augustus_09,augustus_09_05,sysadmin,Use augustus to predict genes in a eukaryotic genome using human parameters in quiet mode
-augustus,augustus_09,augustus_09_06,goal_oriented,I want to predict genes in a eukaryotic genome using human parameters in quiet mode
-augustus,augustus_09,augustus_09_07,expert,predict genes eukaryotic genome human parameters quiet mode
-augustus,augustus_09,augustus_09_08,detailed,I have data that I need to process: predict genes in a eukaryotic genome using human parameters in quiet mode
-augustus,augustus_09,augustus_09_09,informal,"Hey, can you help me predict genes in a eukaryotic genome using human parameters in quiet mode?"
-augustus,augustus_09,augustus_09_10,alternative,Perform: predict genes in a eukaryotic genome using human parameters in quiet mode
+augustus,augustus_06,augustus_06_01,original,predict genes with RNA-seq hints for improved accuracy
+augustus,augustus_06,augustus_06_02,beginner,How do I predict genes with RNA-seq hints for improved accuracy?
+augustus,augustus_06,augustus_06_03,student,I need to predict genes with RNA-seq hints for improved accuracy
+augustus,augustus_06,augustus_06_04,polite,Please predict genes with RNA-seq hints for improved accuracy
+augustus,augustus_06,augustus_06_05,sysadmin,Use augustus to predict genes with RNA-seq hints for improved accuracy
+augustus,augustus_06,augustus_06_06,goal_oriented,I want to predict genes with RNA-seq hints for improved accuracy
+augustus,augustus_06,augustus_06_07,expert,predict genes RNA-seq hints improved accuracy
+augustus,augustus_06,augustus_06_08,detailed,I have data that I need to process: predict genes with RNA-seq hints for improved accuracy
+augustus,augustus_06,augustus_06_09,informal,"Hey, can you help me predict genes with RNA-seq hints for improved accuracy?"
+augustus,augustus_06,augustus_06_10,alternative,"With RNA-seq hints for improved accuracy, predict genes"
+augustus,augustus_07,augustus_07_01,original,predict genes and output protein sequences
+augustus,augustus_07,augustus_07_02,beginner,How do I predict genes and output protein sequences?
+augustus,augustus_07,augustus_07_03,student,I need to predict genes and output protein sequences
+augustus,augustus_07,augustus_07_04,polite,Please predict genes and output protein sequences
+augustus,augustus_07,augustus_07_05,sysadmin,Use augustus to predict genes and output protein sequences
+augustus,augustus_07,augustus_07_06,goal_oriented,I want to predict genes and output protein sequences
+augustus,augustus_07,augustus_07_07,expert,predict genes output protein sequences
+augustus,augustus_07,augustus_07_08,detailed,I have data that I need to process: predict genes and output protein sequences
+augustus,augustus_07,augustus_07_09,informal,"Hey, can you help me predict genes and output protein sequences?"
+augustus,augustus_07,augustus_07_10,alternative,Output protein sequences after predict genes
+augustus,augustus_08,augustus_08_01,original,run Augustus on a repeat-masked genome
+augustus,augustus_08,augustus_08_02,beginner,How do I run Augustus on a repeat-masked genome?
+augustus,augustus_08,augustus_08_03,student,I need to run Augustus on a repeat-masked genome
+augustus,augustus_08,augustus_08_04,polite,Please run Augustus on a repeat-masked genome
+augustus,augustus_08,augustus_08_05,sysadmin,Use augustus to run Augustus on a repeat-masked genome
+augustus,augustus_08,augustus_08_06,goal_oriented,I want to run Augustus on a repeat-masked genome
+augustus,augustus_08,augustus_08_07,expert,run Augustus on repeat-masked genome
+augustus,augustus_08,augustus_08_08,detailed,I have data that I need to process: run Augustus on a repeat-masked genome
+augustus,augustus_08,augustus_08_09,informal,"Hey, can you help me run Augustus on a repeat-masked genome?"
+augustus,augustus_08,augustus_08_10,alternative,Perform: run Augustus on a repeat-masked genome
+augustus,augustus_09,augustus_09_01,original,predict genes in a eukaryotic genome using human parameters
+augustus,augustus_09,augustus_09_02,beginner,How do I predict genes in a eukaryotic genome using human parameters?
+augustus,augustus_09,augustus_09_03,student,I need to predict genes in a eukaryotic genome using human parameters
+augustus,augustus_09,augustus_09_04,polite,Please predict genes in a eukaryotic genome using human parameters
+augustus,augustus_09,augustus_09_05,sysadmin,Use augustus to predict genes in a eukaryotic genome using human parameters
+augustus,augustus_09,augustus_09_06,goal_oriented,I want to predict genes in a eukaryotic genome using human parameters
+augustus,augustus_09,augustus_09_07,expert,predict genes eukaryotic genome human parameters
+augustus,augustus_09,augustus_09_08,detailed,I have data that I need to process: predict genes in a eukaryotic genome using human parameters
+augustus,augustus_09,augustus_09_09,informal,"Hey, can you help me predict genes in a eukaryotic genome using human parameters?"
+augustus,augustus_09,augustus_09_10,alternative,Perform: predict genes in a eukaryotic genome using human parameters
 augustus,augustus_10,augustus_10_01,original,predict genes with RNA-seq hints for improved accuracy with default parameters
 augustus,augustus_10,augustus_10_02,beginner,How do I predict genes with RNA-seq hints for improved accuracy with default parameters?
 augustus,augustus_10,augustus_10_03,student,I need to predict genes with RNA-seq hints for improved accuracy with default parameters
@@ -849,16 +849,16 @@ bamtools,bamtools_05,bamtools_05_07,expert,convert BAM FASTQ
 bamtools,bamtools_05,bamtools_05_08,detailed,I have data that I need to process: convert BAM to FASTQ
 bamtools,bamtools_05,bamtools_05_09,informal,"Hey, can you help me convert BAM to FASTQ?"
 bamtools,bamtools_05,bamtools_05_10,alternative,Output FASTQ by performing: convert BAM
-bamtools,bamtools_06,bamtools_06_01,original,get alignment statistics from a BAM file with verbose output
-bamtools,bamtools_06,bamtools_06_02,beginner,How do I get alignment statistics from a BAM file with verbose output?
-bamtools,bamtools_06,bamtools_06_03,student,I need to get alignment statistics from a BAM file with verbose output
-bamtools,bamtools_06,bamtools_06_04,polite,Please get alignment statistics from a BAM file with verbose output
-bamtools,bamtools_06,bamtools_06_05,sysadmin,Use bamtools to get alignment statistics from a BAM file with verbose output
-bamtools,bamtools_06,bamtools_06_06,goal_oriented,I want to get alignment statistics from a BAM file with verbose output
-bamtools,bamtools_06,bamtools_06_07,expert,get alignment statistics BAM file verbose output
-bamtools,bamtools_06,bamtools_06_08,detailed,I have data that I need to process: get alignment statistics from a BAM file with verbose output
-bamtools,bamtools_06,bamtools_06_09,informal,"Hey, can you help me get alignment statistics from a BAM file with verbose output?"
-bamtools,bamtools_06,bamtools_06_10,alternative,"With verbose output, get alignment statistics from a BAM file"
+bamtools,bamtools_06,bamtools_06_01,original,get alignment statistics from a BAM file
+bamtools,bamtools_06,bamtools_06_02,beginner,How do I get alignment statistics from a BAM file?
+bamtools,bamtools_06,bamtools_06_03,student,I need to get alignment statistics from a BAM file
+bamtools,bamtools_06,bamtools_06_04,polite,Please get alignment statistics from a BAM file
+bamtools,bamtools_06,bamtools_06_05,sysadmin,Use bamtools to get alignment statistics from a BAM file
+bamtools,bamtools_06,bamtools_06_06,goal_oriented,I want to get alignment statistics from a BAM file
+bamtools,bamtools_06,bamtools_06_07,expert,get alignment statistics BAM file
+bamtools,bamtools_06,bamtools_06_08,detailed,I have data that I need to process: get alignment statistics from a BAM file
+bamtools,bamtools_06,bamtools_06_09,informal,"Hey, can you help me get alignment statistics from a BAM file?"
+bamtools,bamtools_06,bamtools_06_10,alternative,Perform: get alignment statistics from a BAM file
 bamtools,bamtools_07,bamtools_07_01,original,count aligned reads in a BAM file using multiple threads
 bamtools,bamtools_07,bamtools_07_02,beginner,How do I count aligned reads in a BAM file using multiple threads?
 bamtools,bamtools_07,bamtools_07_03,student,I need to count aligned reads in a BAM file using multiple threads
@@ -876,7 +876,7 @@ bamtools,bamtools_08,bamtools_08_04,polite,"Please filter BAM to keep only mappe
 bamtools,bamtools_08,bamtools_08_05,sysadmin,"Use bamtools to filter BAM to keep only mapped, properly paired reads and write output to a file"
 bamtools,bamtools_08,bamtools_08_06,goal_oriented,"I want to filter BAM to keep only mapped, properly paired reads and write output to a file"
 bamtools,bamtools_08,bamtools_08_07,expert,"filter BAM keep only mapped, properly paired reads write output file"
-bamtools,bamtools_08,bamtools_08_08,detailed,"I have data that I need to process: filter BAM to keep only mapped, properly paired reads and write output to a file"
+bamtools,bamtools_08,bamtools_08_08,detailed,"I have data that I need to process: filter BAM to keep only mapped, properly paired reads and write output to a file, saving the result to a specified output file"
 bamtools,bamtools_08,bamtools_08_09,informal,"Hey, can you help me filter BAM to keep only mapped, properly paired reads and write output to a file?"
 bamtools,bamtools_08,bamtools_08_10,alternative,"Write output to a file after filter BAM to keep only mapped, properly paired reads"
 bamtools,bamtools_09,bamtools_09_01,original,merge multiple BAM files in quiet mode
@@ -1179,16 +1179,16 @@ bcftools,bcftools_08,bcftools_08_07,expert,annotate VCF reference VCF (add ID fi
 bcftools,bcftools_08,bcftools_08_08,detailed,"I have data that I need to process: annotate VCF with a reference VCF (add ID field from dbSNP), saving the result to a specified output file"
 bcftools,bcftools_08,bcftools_08_09,informal,"Hey, can you help me annotate VCF with a reference VCF (add ID field from dbSNP)?"
 bcftools,bcftools_08,bcftools_08_10,alternative,"With a reference VCF (add ID field from dbSNP), annotate VCF"
-bcftools,bcftools_09,bcftools_09_01,original,call variants from a BAM file against a reference genome in quiet mode
-bcftools,bcftools_09,bcftools_09_02,beginner,How do I call variants from a BAM file against a reference genome in quiet mode?
-bcftools,bcftools_09,bcftools_09_03,student,I need to call variants from a BAM file against a reference genome in quiet mode
-bcftools,bcftools_09,bcftools_09_04,polite,Please call variants from a BAM file against a reference genome in quiet mode
-bcftools,bcftools_09,bcftools_09_05,sysadmin,Use bcftools to call variants from a BAM file against a reference genome in quiet mode
-bcftools,bcftools_09,bcftools_09_06,goal_oriented,I want to call variants from a BAM file against a reference genome in quiet mode
-bcftools,bcftools_09,bcftools_09_07,expert,call variants BAM file against reference genome quiet mode
-bcftools,bcftools_09,bcftools_09_08,detailed,"I have data that I need to process: call variants from a BAM file against a reference genome in quiet mode, saving the result to a specified output file"
-bcftools,bcftools_09,bcftools_09_09,informal,"Hey, can you help me call variants from a BAM file against a reference genome in quiet mode?"
-bcftools,bcftools_09,bcftools_09_10,alternative,Perform: call variants from a BAM file against a reference genome in quiet mode
+bcftools,bcftools_09,bcftools_09_01,original,call variants from a BAM file against a reference genome
+bcftools,bcftools_09,bcftools_09_02,beginner,How do I call variants from a BAM file against a reference genome?
+bcftools,bcftools_09,bcftools_09_03,student,I need to call variants from a BAM file against a reference genome
+bcftools,bcftools_09,bcftools_09_04,polite,Please call variants from a BAM file against a reference genome
+bcftools,bcftools_09,bcftools_09_05,sysadmin,Use bcftools to call variants from a BAM file against a reference genome
+bcftools,bcftools_09,bcftools_09_06,goal_oriented,I want to call variants from a BAM file against a reference genome
+bcftools,bcftools_09,bcftools_09_07,expert,call variants BAM file against reference genome
+bcftools,bcftools_09,bcftools_09_08,detailed,"I have data that I need to process: call variants from a BAM file against a reference genome, saving the result to a specified output file"
+bcftools,bcftools_09,bcftools_09_09,informal,"Hey, can you help me call variants from a BAM file against a reference genome?"
+bcftools,bcftools_09,bcftools_09_10,alternative,Perform: call variants from a BAM file against a reference genome
 bcftools,bcftools_10,bcftools_10_01,original,"filter VCF to keep only high-quality SNPs (QUAL > 30, depth > 10) with default parameters"
 bcftools,bcftools_10,bcftools_10_02,beginner,"How do I filter VCF to keep only high-quality SNPs (QUAL > 30, depth > 10) with default parameters?"
 bcftools,bcftools_10,bcftools_10_03,student,"I need to filter VCF to keep only high-quality SNPs (QUAL > 30, depth > 10) with default parameters"
@@ -1269,26 +1269,26 @@ bedops,bedops_07,bedops_07_07,expert,merge overlapping intervals compute union a
 bedops,bedops_07,bedops_07_08,detailed,I have data that I need to process: merge overlapping intervals and compute union across three BED files
 bedops,bedops_07,bedops_07_09,informal,"Hey, can you help me merge overlapping intervals and compute union across three BED files?"
 bedops,bedops_07,bedops_07_10,alternative,Compute union across three BED files after merge overlapping intervals
-bedops,bedops_08,bedops_08_01,original,sort a BED file for use with BEDOPS tools and write output to a file
-bedops,bedops_08,bedops_08_02,beginner,How do I sort a BED file for use with BEDOPS tools and write output to a file?
-bedops,bedops_08,bedops_08_03,student,I need to sort a BED file for use with BEDOPS tools and write output to a file
-bedops,bedops_08,bedops_08_04,polite,Please sort a BED file for use with BEDOPS tools and write output to a file
-bedops,bedops_08,bedops_08_05,sysadmin,Use bedops to sort a BED file for use with BEDOPS tools and write output to a file
-bedops,bedops_08,bedops_08_06,goal_oriented,I want to sort a BED file for use with BEDOPS tools and write output to a file
-bedops,bedops_08,bedops_08_07,expert,sort BED file use BEDOPS tools write output file
-bedops,bedops_08,bedops_08_08,detailed,"I have data that I need to process: sort a BED file for use with BEDOPS tools and write output to a file, saving the result to a specified output file"
-bedops,bedops_08,bedops_08_09,informal,"Hey, can you help me sort a BED file for use with BEDOPS tools and write output to a file?"
-bedops,bedops_08,bedops_08_10,alternative,Write output to a file after sort a BED file for use with BEDOPS tools
-bedops,bedops_09,bedops_09_01,original,intersect two sorted BED files (intervals present in both) in quiet mode
-bedops,bedops_09,bedops_09_02,beginner,How do I intersect two sorted BED files (intervals present in both) in quiet mode?
-bedops,bedops_09,bedops_09_03,student,I need to intersect two sorted BED files (intervals present in both) in quiet mode
-bedops,bedops_09,bedops_09_04,polite,Please intersect two sorted BED files (intervals present in both) in quiet mode
-bedops,bedops_09,bedops_09_05,sysadmin,Use bedops to intersect two sorted BED files (intervals present in both) in quiet mode
-bedops,bedops_09,bedops_09_06,goal_oriented,I want to intersect two sorted BED files (intervals present in both) in quiet mode
-bedops,bedops_09,bedops_09_07,expert,intersect two sorted BED files (intervals present both) quiet mode
-bedops,bedops_09,bedops_09_08,detailed,I have data that I need to process: intersect two sorted BED files (intervals present in both) in quiet mode
-bedops,bedops_09,bedops_09_09,informal,"Hey, can you help me intersect two sorted BED files (intervals present in both) in quiet mode?"
-bedops,bedops_09,bedops_09_10,alternative,Perform: intersect two sorted BED files (intervals present in both) in quiet mode
+bedops,bedops_08,bedops_08_01,original,sort a BED file for use with BEDOPS tools
+bedops,bedops_08,bedops_08_02,beginner,How do I sort a BED file for use with BEDOPS tools?
+bedops,bedops_08,bedops_08_03,student,I need to sort a BED file for use with BEDOPS tools
+bedops,bedops_08,bedops_08_04,polite,Please sort a BED file for use with BEDOPS tools
+bedops,bedops_08,bedops_08_05,sysadmin,Use bedops to sort a BED file for use with BEDOPS tools
+bedops,bedops_08,bedops_08_06,goal_oriented,I want to sort a BED file for use with BEDOPS tools
+bedops,bedops_08,bedops_08_07,expert,sort BED file use BEDOPS tools
+bedops,bedops_08,bedops_08_08,detailed,I have data that I need to process: sort a BED file for use with BEDOPS tools
+bedops,bedops_08,bedops_08_09,informal,"Hey, can you help me sort a BED file for use with BEDOPS tools?"
+bedops,bedops_08,bedops_08_10,alternative,"With BEDOPS tools, sort a BED file for use"
+bedops,bedops_09,bedops_09_01,original,intersect two sorted BED files (intervals present in both)
+bedops,bedops_09,bedops_09_02,beginner,How do I intersect two sorted BED files (intervals present in both)?
+bedops,bedops_09,bedops_09_03,student,I need to intersect two sorted BED files (intervals present in both)
+bedops,bedops_09,bedops_09_04,polite,Please intersect two sorted BED files (intervals present in both)
+bedops,bedops_09,bedops_09_05,sysadmin,Use bedops to intersect two sorted BED files (intervals present in both)
+bedops,bedops_09,bedops_09_06,goal_oriented,I want to intersect two sorted BED files (intervals present in both)
+bedops,bedops_09,bedops_09_07,expert,intersect two sorted BED files (intervals present both)
+bedops,bedops_09,bedops_09_08,detailed,I have data that I need to process: intersect two sorted BED files (intervals present in both)
+bedops,bedops_09,bedops_09_09,informal,"Hey, can you help me intersect two sorted BED files (intervals present in both)?"
+bedops,bedops_09,bedops_09_10,alternative,Perform: intersect two sorted BED files (intervals present in both)
 bedops,bedops_10,bedops_10_01,original,find intervals in file A that do not overlap file B with default parameters
 bedops,bedops_10,bedops_10_02,beginner,How do I find intervals in file A that do not overlap file B with default parameters?
 bedops,bedops_10,bedops_10_03,student,I need to find intervals in file A that do not overlap file B with default parameters
@@ -1576,7 +1576,7 @@ blast,blast_08,blast_08_04,polite,Please search protein sequences against NR dat
 blast,blast_08,blast_08_05,sysadmin,Use blast to search protein sequences against NR database and write output to a file
 blast,blast_08,blast_08_06,goal_oriented,I want to search protein sequences against NR database and write output to a file
 blast,blast_08,blast_08_07,expert,search protein sequences against NR database write output file
-blast,blast_08,blast_08_08,detailed,I have data that I need to process: search protein sequences against NR database and write output to a file
+blast,blast_08,blast_08_08,detailed,"I have data that I need to process: search protein sequences against NR database and write output to a file, saving the result to a specified output file"
 blast,blast_08,blast_08_09,informal,"Hey, can you help me search protein sequences against NR database and write output to a file?"
 blast,blast_08,blast_08_10,alternative,Write output to a file after search protein sequences against NR database
 blast,blast_09,blast_09_01,original,run blastx to annotate nucleotide sequences against protein database in quiet mode
@@ -1949,16 +1949,16 @@ bwa-mem2,bwa-mem2_05,bwa-mem2_05_07,expert,align paired-end reads reference 16 t
 bwa-mem2,bwa-mem2_05,bwa-mem2_05_08,detailed,"I have data that I need to process: align paired-end reads to reference using 16 threads with default parameters, utilizing multiple CPU threads for speed, saving the result to a specified output file"
 bwa-mem2,bwa-mem2_05,bwa-mem2_05_09,informal,"Hey, can you help me align paired-end reads to reference using 16 threads with default parameters?"
 bwa-mem2,bwa-mem2_05,bwa-mem2_05_10,alternative,"With default parameters, align paired-end reads to reference using 16 threads"
-bwa-mem2,bwa-mem2_06,bwa-mem2_06_01,original,align paired-end reads with GATK read group with verbose output
-bwa-mem2,bwa-mem2_06,bwa-mem2_06_02,beginner,How do I align paired-end reads with GATK read group with verbose output?
-bwa-mem2,bwa-mem2_06,bwa-mem2_06_03,student,I need to align paired-end reads with GATK read group with verbose output
-bwa-mem2,bwa-mem2_06,bwa-mem2_06_04,polite,Please align paired-end reads with GATK read group with verbose output
-bwa-mem2,bwa-mem2_06,bwa-mem2_06_05,sysadmin,Use bwa-mem2 to align paired-end reads with GATK read group with verbose output
-bwa-mem2,bwa-mem2_06,bwa-mem2_06_06,goal_oriented,I want to align paired-end reads with GATK read group with verbose output
-bwa-mem2,bwa-mem2_06,bwa-mem2_06_07,expert,align paired-end reads GATK read group verbose output
-bwa-mem2,bwa-mem2_06,bwa-mem2_06_08,detailed,"I have data that I need to process: align paired-end reads with GATK read group with verbose output, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-bwa-mem2,bwa-mem2_06,bwa-mem2_06_09,informal,"Hey, can you help me align paired-end reads with GATK read group with verbose output?"
-bwa-mem2,bwa-mem2_06,bwa-mem2_06_10,alternative,"With GATK read group with verbose output, align paired-end reads"
+bwa-mem2,bwa-mem2_06,bwa-mem2_06_01,original,align paired-end reads with GATK read group
+bwa-mem2,bwa-mem2_06,bwa-mem2_06_02,beginner,How do I align paired-end reads with GATK read group?
+bwa-mem2,bwa-mem2_06,bwa-mem2_06_03,student,I need to align paired-end reads with GATK read group
+bwa-mem2,bwa-mem2_06,bwa-mem2_06_04,polite,Please align paired-end reads with GATK read group
+bwa-mem2,bwa-mem2_06,bwa-mem2_06_05,sysadmin,Use bwa-mem2 to align paired-end reads with GATK read group
+bwa-mem2,bwa-mem2_06,bwa-mem2_06_06,goal_oriented,I want to align paired-end reads with GATK read group
+bwa-mem2,bwa-mem2_06,bwa-mem2_06_07,expert,align paired-end reads GATK read group
+bwa-mem2,bwa-mem2_06,bwa-mem2_06_08,detailed,"I have data that I need to process: align paired-end reads with GATK read group, utilizing multiple CPU threads for speed, saving the result to a specified output file"
+bwa-mem2,bwa-mem2_06,bwa-mem2_06_09,informal,"Hey, can you help me align paired-end reads with GATK read group?"
+bwa-mem2,bwa-mem2_06,bwa-mem2_06_10,alternative,"With GATK read group, align paired-end reads"
 bwa-mem2,bwa-mem2_07,bwa-mem2_07_01,original,build BWA-MEM2 index from reference genome using multiple threads
 bwa-mem2,bwa-mem2_07,bwa-mem2_07_02,beginner,How do I build BWA-MEM2 index from reference genome using multiple threads?
 bwa-mem2,bwa-mem2_07,bwa-mem2_07_03,student,I need to build BWA-MEM2 index from reference genome using multiple threads
@@ -1969,26 +1969,26 @@ bwa-mem2,bwa-mem2_07,bwa-mem2_07_07,expert,build BWA-MEM2 index reference genome
 bwa-mem2,bwa-mem2_07,bwa-mem2_07_08,detailed,"I have data that I need to process: build BWA-MEM2 index from reference genome using multiple threads, utilizing multiple CPU threads for speed"
 bwa-mem2,bwa-mem2_07,bwa-mem2_07_09,informal,"Hey, can you help me build BWA-MEM2 index from reference genome using multiple threads?"
 bwa-mem2,bwa-mem2_07,bwa-mem2_07_10,alternative,Perform: build BWA-MEM2 index from reference genome using multiple threads
-bwa-mem2,bwa-mem2_08,bwa-mem2_08_01,original,align paired-end reads to reference using 16 threads and write output to a file
-bwa-mem2,bwa-mem2_08,bwa-mem2_08_02,beginner,How do I align paired-end reads to reference using 16 threads and write output to a file?
-bwa-mem2,bwa-mem2_08,bwa-mem2_08_03,student,I need to align paired-end reads to reference using 16 threads and write output to a file
-bwa-mem2,bwa-mem2_08,bwa-mem2_08_04,polite,Please align paired-end reads to reference using 16 threads and write output to a file
-bwa-mem2,bwa-mem2_08,bwa-mem2_08_05,sysadmin,Use bwa-mem2 to align paired-end reads to reference using 16 threads and write output to a file
-bwa-mem2,bwa-mem2_08,bwa-mem2_08_06,goal_oriented,I want to align paired-end reads to reference using 16 threads and write output to a file
-bwa-mem2,bwa-mem2_08,bwa-mem2_08_07,expert,align paired-end reads reference 16 threads write output file
-bwa-mem2,bwa-mem2_08,bwa-mem2_08_08,detailed,"I have data that I need to process: align paired-end reads to reference using 16 threads and write output to a file, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-bwa-mem2,bwa-mem2_08,bwa-mem2_08_09,informal,"Hey, can you help me align paired-end reads to reference using 16 threads and write output to a file?"
-bwa-mem2,bwa-mem2_08,bwa-mem2_08_10,alternative,Write output to a file after align paired-end reads to reference using 16 threads
-bwa-mem2,bwa-mem2_09,bwa-mem2_09_01,original,align paired-end reads with GATK read group in quiet mode
-bwa-mem2,bwa-mem2_09,bwa-mem2_09_02,beginner,How do I align paired-end reads with GATK read group in quiet mode?
-bwa-mem2,bwa-mem2_09,bwa-mem2_09_03,student,I need to align paired-end reads with GATK read group in quiet mode
-bwa-mem2,bwa-mem2_09,bwa-mem2_09_04,polite,Please align paired-end reads with GATK read group in quiet mode
-bwa-mem2,bwa-mem2_09,bwa-mem2_09_05,sysadmin,Use bwa-mem2 to align paired-end reads with GATK read group in quiet mode
-bwa-mem2,bwa-mem2_09,bwa-mem2_09_06,goal_oriented,I want to align paired-end reads with GATK read group in quiet mode
-bwa-mem2,bwa-mem2_09,bwa-mem2_09_07,expert,align paired-end reads GATK read group quiet mode
-bwa-mem2,bwa-mem2_09,bwa-mem2_09_08,detailed,"I have data that I need to process: align paired-end reads with GATK read group in quiet mode, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-bwa-mem2,bwa-mem2_09,bwa-mem2_09_09,informal,"Hey, can you help me align paired-end reads with GATK read group in quiet mode?"
-bwa-mem2,bwa-mem2_09,bwa-mem2_09_10,alternative,"With GATK read group in quiet mode, align paired-end reads"
+bwa-mem2,bwa-mem2_08,bwa-mem2_08_01,original,align paired-end reads to reference using 16 threads
+bwa-mem2,bwa-mem2_08,bwa-mem2_08_02,beginner,How do I align paired-end reads to reference using 16 threads?
+bwa-mem2,bwa-mem2_08,bwa-mem2_08_03,student,I need to align paired-end reads to reference using 16 threads
+bwa-mem2,bwa-mem2_08,bwa-mem2_08_04,polite,Please align paired-end reads to reference using 16 threads
+bwa-mem2,bwa-mem2_08,bwa-mem2_08_05,sysadmin,Use bwa-mem2 to align paired-end reads to reference using 16 threads
+bwa-mem2,bwa-mem2_08,bwa-mem2_08_06,goal_oriented,I want to align paired-end reads to reference using 16 threads
+bwa-mem2,bwa-mem2_08,bwa-mem2_08_07,expert,align paired-end reads reference 16 threads
+bwa-mem2,bwa-mem2_08,bwa-mem2_08_08,detailed,"I have data that I need to process: align paired-end reads to reference using 16 threads, utilizing multiple CPU threads for speed, saving the result to a specified output file"
+bwa-mem2,bwa-mem2_08,bwa-mem2_08_09,informal,"Hey, can you help me align paired-end reads to reference using 16 threads?"
+bwa-mem2,bwa-mem2_08,bwa-mem2_08_10,alternative,Output reference using 16 threads by performing: align paired-end reads
+bwa-mem2,bwa-mem2_09,bwa-mem2_09_01,original,align paired-end reads with GATK read group
+bwa-mem2,bwa-mem2_09,bwa-mem2_09_02,beginner,How do I align paired-end reads with GATK read group?
+bwa-mem2,bwa-mem2_09,bwa-mem2_09_03,student,I need to align paired-end reads with GATK read group
+bwa-mem2,bwa-mem2_09,bwa-mem2_09_04,polite,Please align paired-end reads with GATK read group
+bwa-mem2,bwa-mem2_09,bwa-mem2_09_05,sysadmin,Use bwa-mem2 to align paired-end reads with GATK read group
+bwa-mem2,bwa-mem2_09,bwa-mem2_09_06,goal_oriented,I want to align paired-end reads with GATK read group
+bwa-mem2,bwa-mem2_09,bwa-mem2_09_07,expert,align paired-end reads GATK read group
+bwa-mem2,bwa-mem2_09,bwa-mem2_09_08,detailed,"I have data that I need to process: align paired-end reads with GATK read group, utilizing multiple CPU threads for speed, saving the result to a specified output file"
+bwa-mem2,bwa-mem2_09,bwa-mem2_09_09,informal,"Hey, can you help me align paired-end reads with GATK read group?"
+bwa-mem2,bwa-mem2_09,bwa-mem2_09_10,alternative,"With GATK read group, align paired-end reads"
 bwa-mem2,bwa-mem2_10,bwa-mem2_10_01,original,build BWA-MEM2 index from reference genome with default parameters
 bwa-mem2,bwa-mem2_10,bwa-mem2_10_02,beginner,How do I build BWA-MEM2 index from reference genome with default parameters?
 bwa-mem2,bwa-mem2_10,bwa-mem2_10_03,student,I need to build BWA-MEM2 index from reference genome with default parameters
@@ -4049,36 +4049,36 @@ dorado,dorado_05,dorado_05_07,expert,run duplex basecalling highest accuracy pai
 dorado,dorado_05,dorado_05_08,detailed,I have data that I need to process: run duplex basecalling for highest accuracy paired reads
 dorado,dorado_05,dorado_05_09,informal,"Hey, can you help me run duplex basecalling for highest accuracy paired reads?"
 dorado,dorado_05,dorado_05_10,alternative,Perform: run duplex basecalling for highest accuracy paired reads
-dorado,dorado_06,dorado_06_01,original,basecall ONT POD5 files with high-accuracy model on GPU with verbose output
-dorado,dorado_06,dorado_06_02,beginner,How do I basecall ONT POD5 files with high-accuracy model on GPU with verbose output?
-dorado,dorado_06,dorado_06_03,student,I need to basecall ONT POD5 files with high-accuracy model on GPU with verbose output
-dorado,dorado_06,dorado_06_04,polite,Please basecall ONT POD5 files with high-accuracy model on GPU with verbose output
-dorado,dorado_06,dorado_06_05,sysadmin,Use dorado to basecall ONT POD5 files with high-accuracy model on GPU with verbose output
-dorado,dorado_06,dorado_06_06,goal_oriented,I want to basecall ONT POD5 files with high-accuracy model on GPU with verbose output
-dorado,dorado_06,dorado_06_07,expert,basecall ONT POD5 files high-accuracy model on GPU verbose output
-dorado,dorado_06,dorado_06_08,detailed,I have data that I need to process: basecall ONT POD5 files with high-accuracy model on GPU with verbose output
-dorado,dorado_06,dorado_06_09,informal,"Hey, can you help me basecall ONT POD5 files with high-accuracy model on GPU with verbose output?"
-dorado,dorado_06,dorado_06_10,alternative,"With high-accuracy model on GPU with verbose output, basecall ONT POD5 files"
-dorado,dorado_07,dorado_07_01,original,basecall with super-accuracy model and modified base calling using multiple threads
-dorado,dorado_07,dorado_07_02,beginner,How do I basecall with super-accuracy model and modified base calling using multiple threads?
-dorado,dorado_07,dorado_07_03,student,I need to basecall with super-accuracy model and modified base calling using multiple threads
-dorado,dorado_07,dorado_07_04,polite,Please basecall with super-accuracy model and modified base calling using multiple threads
-dorado,dorado_07,dorado_07_05,sysadmin,Use dorado to basecall with super-accuracy model and modified base calling using multiple threads
-dorado,dorado_07,dorado_07_06,goal_oriented,I want to basecall with super-accuracy model and modified base calling using multiple threads
-dorado,dorado_07,dorado_07_07,expert,basecall super-accuracy model modified base calling multiple threads
-dorado,dorado_07,dorado_07_08,detailed,"I have data that I need to process: basecall with super-accuracy model and modified base calling using multiple threads, utilizing multiple CPU threads for speed"
-dorado,dorado_07,dorado_07_09,informal,"Hey, can you help me basecall with super-accuracy model and modified base calling using multiple threads?"
-dorado,dorado_07,dorado_07_10,alternative,Modified base calling using multiple threads after basecall with super-accuracy model
-dorado,dorado_08,dorado_08_01,original,basecall and output FASTQ format and write output to a file
-dorado,dorado_08,dorado_08_02,beginner,How do I basecall and output FASTQ format and write output to a file?
-dorado,dorado_08,dorado_08_03,student,I need to basecall and output FASTQ format and write output to a file
-dorado,dorado_08,dorado_08_04,polite,Please basecall and output FASTQ format and write output to a file
-dorado,dorado_08,dorado_08_05,sysadmin,Use dorado to basecall and output FASTQ format and write output to a file
-dorado,dorado_08,dorado_08_06,goal_oriented,I want to basecall and output FASTQ format and write output to a file
-dorado,dorado_08,dorado_08_07,expert,basecall output FASTQ format write output file
-dorado,dorado_08,dorado_08_08,detailed,"I have data that I need to process: basecall and output FASTQ format and write output to a file, saving the result to a specified output file"
-dorado,dorado_08,dorado_08_09,informal,"Hey, can you help me basecall and output FASTQ format and write output to a file?"
-dorado,dorado_08,dorado_08_10,alternative,Output FASTQ format and write output to a file after basecall
+dorado,dorado_06,dorado_06_01,original,basecall ONT POD5 files with high-accuracy model on GPU
+dorado,dorado_06,dorado_06_02,beginner,How do I basecall ONT POD5 files with high-accuracy model on GPU?
+dorado,dorado_06,dorado_06_03,student,I need to basecall ONT POD5 files with high-accuracy model on GPU
+dorado,dorado_06,dorado_06_04,polite,Please basecall ONT POD5 files with high-accuracy model on GPU
+dorado,dorado_06,dorado_06_05,sysadmin,Use dorado to basecall ONT POD5 files with high-accuracy model on GPU
+dorado,dorado_06,dorado_06_06,goal_oriented,I want to basecall ONT POD5 files with high-accuracy model on GPU
+dorado,dorado_06,dorado_06_07,expert,basecall ONT POD5 files high-accuracy model on GPU
+dorado,dorado_06,dorado_06_08,detailed,I have data that I need to process: basecall ONT POD5 files with high-accuracy model on GPU
+dorado,dorado_06,dorado_06_09,informal,"Hey, can you help me basecall ONT POD5 files with high-accuracy model on GPU?"
+dorado,dorado_06,dorado_06_10,alternative,"With high-accuracy model on GPU, basecall ONT POD5 files"
+dorado,dorado_07,dorado_07_01,original,basecall with super-accuracy model and modified base calling
+dorado,dorado_07,dorado_07_02,beginner,How do I basecall with super-accuracy model and modified base calling?
+dorado,dorado_07,dorado_07_03,student,I need to basecall with super-accuracy model and modified base calling
+dorado,dorado_07,dorado_07_04,polite,Please basecall with super-accuracy model and modified base calling
+dorado,dorado_07,dorado_07_05,sysadmin,Use dorado to basecall with super-accuracy model and modified base calling
+dorado,dorado_07,dorado_07_06,goal_oriented,I want to basecall with super-accuracy model and modified base calling
+dorado,dorado_07,dorado_07_07,expert,basecall super-accuracy model modified base calling
+dorado,dorado_07,dorado_07_08,detailed,I have data that I need to process: basecall with super-accuracy model and modified base calling
+dorado,dorado_07,dorado_07_09,informal,"Hey, can you help me basecall with super-accuracy model and modified base calling?"
+dorado,dorado_07,dorado_07_10,alternative,Modified base calling after basecall with super-accuracy model
+dorado,dorado_08,dorado_08_01,original,basecall and output FASTQ format
+dorado,dorado_08,dorado_08_02,beginner,How do I basecall and output FASTQ format?
+dorado,dorado_08,dorado_08_03,student,I need to basecall and output FASTQ format
+dorado,dorado_08,dorado_08_04,polite,Please basecall and output FASTQ format
+dorado,dorado_08,dorado_08_05,sysadmin,Use dorado to basecall and output FASTQ format
+dorado,dorado_08,dorado_08_06,goal_oriented,I want to basecall and output FASTQ format
+dorado,dorado_08,dorado_08_07,expert,basecall output FASTQ format
+dorado,dorado_08,dorado_08_08,detailed,I have data that I need to process: basecall and output FASTQ format
+dorado,dorado_08,dorado_08_09,informal,"Hey, can you help me basecall and output FASTQ format?"
+dorado,dorado_08,dorado_08_10,alternative,Output FASTQ format after basecall
 dorado,dorado_09,dorado_09_01,original,demultiplex barcoded reads using Dorado in quiet mode
 dorado,dorado_09,dorado_09_02,beginner,How do I demultiplex barcoded reads using Dorado in quiet mode?
 dorado,dorado_09,dorado_09_03,student,I need to demultiplex barcoded reads using Dorado in quiet mode
@@ -4366,7 +4366,7 @@ fastp,fastp_07,fastp_07_04,polite,Please trim adapters from single-end reads and
 fastp,fastp_07,fastp_07_05,sysadmin,Use fastp to trim adapters from single-end reads and filter reads shorter than 50 bp using multiple threads
 fastp,fastp_07,fastp_07_06,goal_oriented,I want to trim adapters from single-end reads and filter reads shorter than 50 bp using multiple threads
 fastp,fastp_07,fastp_07_07,expert,trim adapters single-end reads filter reads shorter than 50 bp multiple threads
-fastp,fastp_07,fastp_07_08,detailed,"I have data that I need to process: trim adapters from single-end reads and filter reads shorter than 50 bp using multiple threads, utilizing multiple CPU threads for speed, saving the result to a specified output file"
+fastp,fastp_07,fastp_07_08,detailed,"I have data that I need to process: trim adapters from single-end reads and filter reads shorter than 50 bp using multiple threads, saving the result to a specified output file"
 fastp,fastp_07,fastp_07_09,informal,"Hey, can you help me trim adapters from single-end reads and filter reads shorter than 50 bp using multiple threads?"
 fastp,fastp_07,fastp_07_10,alternative,Filter reads shorter than 50 bp using multiple threads after trim adapters from single-end reads
 fastp,fastp_08,fastp_08_01,original,quality trim paired-end reads and set minimum quality to 20 and write output to a file
@@ -4476,7 +4476,7 @@ fastq-screen,fastq-screen_08,fastq-screen_08_04,polite,Please screen all reads (
 fastq-screen,fastq-screen_08,fastq-screen_08_05,sysadmin,Use fastq-screen to screen all reads (no subsampling) for thorough contamination check and write output to a file
 fastq-screen,fastq-screen_08,fastq-screen_08_06,goal_oriented,I want to screen all reads (no subsampling) for thorough contamination check and write output to a file
 fastq-screen,fastq-screen_08,fastq-screen_08_07,expert,screen all reads (no subsampling) thorough contamination check write output file
-fastq-screen,fastq-screen_08,fastq-screen_08_08,detailed,"I have data that I need to process: screen all reads (no subsampling) for thorough contamination check and write output to a file, utilizing multiple CPU threads for speed"
+fastq-screen,fastq-screen_08,fastq-screen_08_08,detailed,"I have data that I need to process: screen all reads (no subsampling) for thorough contamination check and write output to a file, utilizing multiple CPU threads for speed, saving the result to a specified output file"
 fastq-screen,fastq-screen_08,fastq-screen_08_09,informal,"Hey, can you help me screen all reads (no subsampling) for thorough contamination check and write output to a file?"
 fastq-screen,fastq-screen_08,fastq-screen_08_10,alternative,Write output to a file after screen all reads (no subsampling) for thorough contamination check
 fastq-screen,fastq-screen_09,fastq-screen_09_01,original,screen paired-end reads and report bisulfite alignment stats in quiet mode
@@ -4976,7 +4976,7 @@ flye,flye_08,flye_08_04,polite,Please assemble metagenomic community from ONT re
 flye,flye_08,flye_08_05,sysadmin,Use flye to assemble metagenomic community from ONT reads and write output to a file
 flye,flye_08,flye_08_06,goal_oriented,I want to assemble metagenomic community from ONT reads and write output to a file
 flye,flye_08,flye_08_07,expert,assemble metagenomic community ONT reads write output file
-flye,flye_08,flye_08_08,detailed,"I have data that I need to process: assemble metagenomic community from ONT reads and write output to a file, utilizing multiple CPU threads for speed"
+flye,flye_08,flye_08_08,detailed,"I have data that I need to process: assemble metagenomic community from ONT reads and write output to a file, utilizing multiple CPU threads for speed, saving the result to a specified output file"
 flye,flye_08,flye_08_09,informal,"Hey, can you help me assemble metagenomic community from ONT reads and write output to a file?"
 flye,flye_08,flye_08_10,alternative,Write output to a file after assemble metagenomic community from ONT reads
 flye,flye_09,flye_09_01,original,"assemble with high-quality ONT reads (R10, Q20+) in quiet mode"
@@ -5049,46 +5049,46 @@ freebayes,freebayes_05,freebayes_05_07,expert,call variants population priors VC
 freebayes,freebayes_05,freebayes_05_08,detailed,I have data that I need to process: call variants with population priors from a VCF
 freebayes,freebayes_05,freebayes_05_09,informal,"Hey, can you help me call variants with population priors from a VCF?"
 freebayes,freebayes_05,freebayes_05_10,alternative,"With population priors from a VCF, call variants"
-freebayes,freebayes_06,freebayes_06_01,original,call germline variants from a single sample BAM file with verbose output
-freebayes,freebayes_06,freebayes_06_02,beginner,How do I call germline variants from a single sample BAM file with verbose output?
-freebayes,freebayes_06,freebayes_06_03,student,I need to call germline variants from a single sample BAM file with verbose output
-freebayes,freebayes_06,freebayes_06_04,polite,Please call germline variants from a single sample BAM file with verbose output
-freebayes,freebayes_06,freebayes_06_05,sysadmin,Use freebayes to call germline variants from a single sample BAM file with verbose output
-freebayes,freebayes_06,freebayes_06_06,goal_oriented,I want to call germline variants from a single sample BAM file with verbose output
-freebayes,freebayes_06,freebayes_06_07,expert,call germline variants single sample BAM file verbose output
-freebayes,freebayes_06,freebayes_06_08,detailed,I have data that I need to process: call germline variants from a single sample BAM file with verbose output
-freebayes,freebayes_06,freebayes_06_09,informal,"Hey, can you help me call germline variants from a single sample BAM file with verbose output?"
-freebayes,freebayes_06,freebayes_06_10,alternative,"With verbose output, call germline variants from a single sample BAM file"
-freebayes,freebayes_07,freebayes_07_01,original,call variants with minimum coverage and allele frequency filters using multiple threads
-freebayes,freebayes_07,freebayes_07_02,beginner,How do I call variants with minimum coverage and allele frequency filters using multiple threads?
-freebayes,freebayes_07,freebayes_07_03,student,I need to call variants with minimum coverage and allele frequency filters using multiple threads
-freebayes,freebayes_07,freebayes_07_04,polite,Please call variants with minimum coverage and allele frequency filters using multiple threads
-freebayes,freebayes_07,freebayes_07_05,sysadmin,Use freebayes to call variants with minimum coverage and allele frequency filters using multiple threads
-freebayes,freebayes_07,freebayes_07_06,goal_oriented,I want to call variants with minimum coverage and allele frequency filters using multiple threads
-freebayes,freebayes_07,freebayes_07_07,expert,call variants minimum coverage allele frequency filters multiple threads
-freebayes,freebayes_07,freebayes_07_08,detailed,"I have data that I need to process: call variants with minimum coverage and allele frequency filters using multiple threads, utilizing multiple CPU threads for speed"
-freebayes,freebayes_07,freebayes_07_09,informal,"Hey, can you help me call variants with minimum coverage and allele frequency filters using multiple threads?"
-freebayes,freebayes_07,freebayes_07_10,alternative,Allele frequency filters using multiple threads after call variants with minimum coverage
-freebayes,freebayes_08,freebayes_08_01,original,call variants jointly from multiple samples and write output to a file
-freebayes,freebayes_08,freebayes_08_02,beginner,How do I call variants jointly from multiple samples and write output to a file?
-freebayes,freebayes_08,freebayes_08_03,student,I need to call variants jointly from multiple samples and write output to a file
-freebayes,freebayes_08,freebayes_08_04,polite,Please call variants jointly from multiple samples and write output to a file
-freebayes,freebayes_08,freebayes_08_05,sysadmin,Use freebayes to call variants jointly from multiple samples and write output to a file
-freebayes,freebayes_08,freebayes_08_06,goal_oriented,I want to call variants jointly from multiple samples and write output to a file
-freebayes,freebayes_08,freebayes_08_07,expert,call variants jointly multiple samples write output file
-freebayes,freebayes_08,freebayes_08_08,detailed,"I have data that I need to process: call variants jointly from multiple samples and write output to a file, saving the result to a specified output file"
-freebayes,freebayes_08,freebayes_08_09,informal,"Hey, can you help me call variants jointly from multiple samples and write output to a file?"
-freebayes,freebayes_08,freebayes_08_10,alternative,Write output to a file after call variants jointly from multiple samples
-freebayes,freebayes_09,freebayes_09_01,original,call variants restricted to a specific genomic region in quiet mode
-freebayes,freebayes_09,freebayes_09_02,beginner,How do I call variants restricted to a specific genomic region in quiet mode?
-freebayes,freebayes_09,freebayes_09_03,student,I need to call variants restricted to a specific genomic region in quiet mode
-freebayes,freebayes_09,freebayes_09_04,polite,Please call variants restricted to a specific genomic region in quiet mode
-freebayes,freebayes_09,freebayes_09_05,sysadmin,Use freebayes to call variants restricted to a specific genomic region in quiet mode
-freebayes,freebayes_09,freebayes_09_06,goal_oriented,I want to call variants restricted to a specific genomic region in quiet mode
-freebayes,freebayes_09,freebayes_09_07,expert,call variants restricted specific genomic region quiet mode
-freebayes,freebayes_09,freebayes_09_08,detailed,I have data that I need to process: call variants restricted to a specific genomic region in quiet mode
-freebayes,freebayes_09,freebayes_09_09,informal,"Hey, can you help me call variants restricted to a specific genomic region in quiet mode?"
-freebayes,freebayes_09,freebayes_09_10,alternative,Output a specific genomic region in quiet mode by performing: call variants restricted
+freebayes,freebayes_06,freebayes_06_01,original,call germline variants from a single sample BAM file
+freebayes,freebayes_06,freebayes_06_02,beginner,How do I call germline variants from a single sample BAM file?
+freebayes,freebayes_06,freebayes_06_03,student,I need to call germline variants from a single sample BAM file
+freebayes,freebayes_06,freebayes_06_04,polite,Please call germline variants from a single sample BAM file
+freebayes,freebayes_06,freebayes_06_05,sysadmin,Use freebayes to call germline variants from a single sample BAM file
+freebayes,freebayes_06,freebayes_06_06,goal_oriented,I want to call germline variants from a single sample BAM file
+freebayes,freebayes_06,freebayes_06_07,expert,call germline variants single sample BAM file
+freebayes,freebayes_06,freebayes_06_08,detailed,I have data that I need to process: call germline variants from a single sample BAM file
+freebayes,freebayes_06,freebayes_06_09,informal,"Hey, can you help me call germline variants from a single sample BAM file?"
+freebayes,freebayes_06,freebayes_06_10,alternative,Perform: call germline variants from a single sample BAM file
+freebayes,freebayes_07,freebayes_07_01,original,call variants with minimum coverage and allele frequency filters
+freebayes,freebayes_07,freebayes_07_02,beginner,How do I call variants with minimum coverage and allele frequency filters?
+freebayes,freebayes_07,freebayes_07_03,student,I need to call variants with minimum coverage and allele frequency filters
+freebayes,freebayes_07,freebayes_07_04,polite,Please call variants with minimum coverage and allele frequency filters
+freebayes,freebayes_07,freebayes_07_05,sysadmin,Use freebayes to call variants with minimum coverage and allele frequency filters
+freebayes,freebayes_07,freebayes_07_06,goal_oriented,I want to call variants with minimum coverage and allele frequency filters
+freebayes,freebayes_07,freebayes_07_07,expert,call variants minimum coverage allele frequency filters
+freebayes,freebayes_07,freebayes_07_08,detailed,I have data that I need to process: call variants with minimum coverage and allele frequency filters
+freebayes,freebayes_07,freebayes_07_09,informal,"Hey, can you help me call variants with minimum coverage and allele frequency filters?"
+freebayes,freebayes_07,freebayes_07_10,alternative,Allele frequency filters after call variants with minimum coverage
+freebayes,freebayes_08,freebayes_08_01,original,call variants jointly from multiple samples
+freebayes,freebayes_08,freebayes_08_02,beginner,How do I call variants jointly from multiple samples?
+freebayes,freebayes_08,freebayes_08_03,student,I need to call variants jointly from multiple samples
+freebayes,freebayes_08,freebayes_08_04,polite,Please call variants jointly from multiple samples
+freebayes,freebayes_08,freebayes_08_05,sysadmin,Use freebayes to call variants jointly from multiple samples
+freebayes,freebayes_08,freebayes_08_06,goal_oriented,I want to call variants jointly from multiple samples
+freebayes,freebayes_08,freebayes_08_07,expert,call variants jointly multiple samples
+freebayes,freebayes_08,freebayes_08_08,detailed,I have data that I need to process: call variants jointly from multiple samples
+freebayes,freebayes_08,freebayes_08_09,informal,"Hey, can you help me call variants jointly from multiple samples?"
+freebayes,freebayes_08,freebayes_08_10,alternative,Perform: call variants jointly from multiple samples
+freebayes,freebayes_09,freebayes_09_01,original,call variants restricted to a specific genomic region
+freebayes,freebayes_09,freebayes_09_02,beginner,How do I call variants restricted to a specific genomic region?
+freebayes,freebayes_09,freebayes_09_03,student,I need to call variants restricted to a specific genomic region
+freebayes,freebayes_09,freebayes_09_04,polite,Please call variants restricted to a specific genomic region
+freebayes,freebayes_09,freebayes_09_05,sysadmin,Use freebayes to call variants restricted to a specific genomic region
+freebayes,freebayes_09,freebayes_09_06,goal_oriented,I want to call variants restricted to a specific genomic region
+freebayes,freebayes_09,freebayes_09_07,expert,call variants restricted specific genomic region
+freebayes,freebayes_09,freebayes_09_08,detailed,I have data that I need to process: call variants restricted to a specific genomic region
+freebayes,freebayes_09,freebayes_09_09,informal,"Hey, can you help me call variants restricted to a specific genomic region?"
+freebayes,freebayes_09,freebayes_09_10,alternative,Output a specific genomic region by performing: call variants restricted
 freebayes,freebayes_10,freebayes_10_01,original,call variants with population priors from a VCF with default parameters
 freebayes,freebayes_10,freebayes_10_02,beginner,How do I call variants with population priors from a VCF with default parameters?
 freebayes,freebayes_10,freebayes_10_03,student,I need to call variants with population priors from a VCF with default parameters
@@ -5476,7 +5476,7 @@ gtdbtk,gtdbtk_08,gtdbtk_08_04,polite,Please classify genomes with custom GTDB da
 gtdbtk,gtdbtk_08,gtdbtk_08_05,sysadmin,Use gtdbtk to classify genomes with custom GTDB database path and write output to a file
 gtdbtk,gtdbtk_08,gtdbtk_08_06,goal_oriented,I want to classify genomes with custom GTDB database path and write output to a file
 gtdbtk,gtdbtk_08,gtdbtk_08_07,expert,classify genomes custom GTDB database path write output file
-gtdbtk,gtdbtk_08,gtdbtk_08_08,detailed,I have data that I need to process: classify genomes with custom GTDB database path and write output to a file
+gtdbtk,gtdbtk_08,gtdbtk_08_08,detailed,"I have data that I need to process: classify genomes with custom GTDB database path and write output to a file, saving the result to a specified output file"
 gtdbtk,gtdbtk_08,gtdbtk_08_09,informal,"Hey, can you help me classify genomes with custom GTDB database path and write output to a file?"
 gtdbtk,gtdbtk_08,gtdbtk_08_10,alternative,Write output to a file after classify genomes with custom GTDB database path
 gtdbtk,gtdbtk_09,gtdbtk_09_01,original,run only the identification step (marker gene identification) in quiet mode
@@ -5669,16 +5669,16 @@ hifiasm,hifiasm_07,hifiasm_07_07,expert,haplotype-resolved assembly Hi-C phasing
 hifiasm,hifiasm_07,hifiasm_07_08,detailed,"I have data that I need to process: haplotype-resolved assembly with Hi-C phasing data using multiple threads, utilizing multiple CPU threads for speed, saving the result to a specified output file"
 hifiasm,hifiasm_07,hifiasm_07_09,informal,"Hey, can you help me haplotype-resolved assembly with Hi-C phasing data using multiple threads?"
 hifiasm,hifiasm_07,hifiasm_07_10,alternative,"With Hi-C phasing data using multiple threads, haplotype-resolved assembly"
-hifiasm,hifiasm_08,hifiasm_08_01,original,convert hifiasm GFA output to FASTA and write output to a file
-hifiasm,hifiasm_08,hifiasm_08_02,beginner,How do I convert hifiasm GFA output to FASTA and write output to a file?
-hifiasm,hifiasm_08,hifiasm_08_03,student,I need to convert hifiasm GFA output to FASTA and write output to a file
-hifiasm,hifiasm_08,hifiasm_08_04,polite,Please convert hifiasm GFA output to FASTA and write output to a file
-hifiasm,hifiasm_08,hifiasm_08_05,sysadmin,Use hifiasm to convert hifiasm GFA output to FASTA and write output to a file
-hifiasm,hifiasm_08,hifiasm_08_06,goal_oriented,I want to convert hifiasm GFA output to FASTA and write output to a file
-hifiasm,hifiasm_08,hifiasm_08_07,expert,convert hifiasm GFA output FASTA write output file
-hifiasm,hifiasm_08,hifiasm_08_08,detailed,"I have data that I need to process: convert hifiasm GFA output to FASTA and write output to a file, saving the result to a specified output file"
-hifiasm,hifiasm_08,hifiasm_08_09,informal,"Hey, can you help me convert hifiasm GFA output to FASTA and write output to a file?"
-hifiasm,hifiasm_08,hifiasm_08_10,alternative,Write output to a file after convert hifiasm GFA output to FASTA
+hifiasm,hifiasm_08,hifiasm_08_01,original,convert hifiasm GFA output to FASTA
+hifiasm,hifiasm_08,hifiasm_08_02,beginner,How do I convert hifiasm GFA output to FASTA?
+hifiasm,hifiasm_08,hifiasm_08_03,student,I need to convert hifiasm GFA output to FASTA
+hifiasm,hifiasm_08,hifiasm_08_04,polite,Please convert hifiasm GFA output to FASTA
+hifiasm,hifiasm_08,hifiasm_08_05,sysadmin,Use hifiasm to convert hifiasm GFA output to FASTA
+hifiasm,hifiasm_08,hifiasm_08_06,goal_oriented,I want to convert hifiasm GFA output to FASTA
+hifiasm,hifiasm_08,hifiasm_08_07,expert,convert hifiasm GFA output FASTA
+hifiasm,hifiasm_08,hifiasm_08_08,detailed,I have data that I need to process: convert hifiasm GFA output to FASTA
+hifiasm,hifiasm_08,hifiasm_08_09,informal,"Hey, can you help me convert hifiasm GFA output to FASTA?"
+hifiasm,hifiasm_08,hifiasm_08_10,alternative,Output FASTA by performing: convert hifiasm GFA output
 hifiasm,hifiasm_09,hifiasm_09_01,original,assemble with ultra-long ONT reads for improved scaffolding in quiet mode
 hifiasm,hifiasm_09,hifiasm_09_02,beginner,How do I assemble with ultra-long ONT reads for improved scaffolding in quiet mode?
 hifiasm,hifiasm_09,hifiasm_09_03,student,I need to assemble with ultra-long ONT reads for improved scaffolding in quiet mode
@@ -5849,26 +5849,26 @@ hmmer,hmmer_05,hmmer_05_07,expert,search proteins phmmer (BLAST-like single sequ
 hmmer,hmmer_05,hmmer_05_08,detailed,I have data that I need to process: search proteins with phmmer (BLAST-like single sequence query)
 hmmer,hmmer_05,hmmer_05_09,informal,"Hey, can you help me search proteins with phmmer (BLAST-like single sequence query)?"
 hmmer,hmmer_05,hmmer_05_10,alternative,"With phmmer (BLAST-like single sequence query), search proteins"
-hmmer,hmmer_06,hmmer_06_01,original,search a protein database against Pfam HMM profiles (domain annotation) with verbose output
-hmmer,hmmer_06,hmmer_06_02,beginner,How do I search a protein database against Pfam HMM profiles (domain annotation) with verbose output?
-hmmer,hmmer_06,hmmer_06_03,student,I need to search a protein database against Pfam HMM profiles (domain annotation) with verbose output
-hmmer,hmmer_06,hmmer_06_04,polite,Please search a protein database against Pfam HMM profiles (domain annotation) with verbose output
-hmmer,hmmer_06,hmmer_06_05,sysadmin,Use hmmer to search a protein database against Pfam HMM profiles (domain annotation) with verbose output
-hmmer,hmmer_06,hmmer_06_06,goal_oriented,I want to search a protein database against Pfam HMM profiles (domain annotation) with verbose output
-hmmer,hmmer_06,hmmer_06_07,expert,search protein database against Pfam HMM profiles (domain annotation) verbose output
-hmmer,hmmer_06,hmmer_06_08,detailed,I have data that I need to process: search a protein database against Pfam HMM profiles (domain annotation) with verbose output
-hmmer,hmmer_06,hmmer_06_09,informal,"Hey, can you help me search a protein database against Pfam HMM profiles (domain annotation) with verbose output?"
-hmmer,hmmer_06,hmmer_06_10,alternative,"With verbose output, search a protein database against Pfam HMM profiles (domain annotation)"
-hmmer,hmmer_07,hmmer_07_01,original,search a protein HMM profile against a sequence database using multiple threads
-hmmer,hmmer_07,hmmer_07_02,beginner,How do I search a protein HMM profile against a sequence database using multiple threads?
-hmmer,hmmer_07,hmmer_07_03,student,I need to search a protein HMM profile against a sequence database using multiple threads
-hmmer,hmmer_07,hmmer_07_04,polite,Please search a protein HMM profile against a sequence database using multiple threads
-hmmer,hmmer_07,hmmer_07_05,sysadmin,Use hmmer to search a protein HMM profile against a sequence database using multiple threads
-hmmer,hmmer_07,hmmer_07_06,goal_oriented,I want to search a protein HMM profile against a sequence database using multiple threads
-hmmer,hmmer_07,hmmer_07_07,expert,search protein HMM profile against sequence database multiple threads
-hmmer,hmmer_07,hmmer_07_08,detailed,I have data that I need to process: search a protein HMM profile against a sequence database using multiple threads
-hmmer,hmmer_07,hmmer_07_09,informal,"Hey, can you help me search a protein HMM profile against a sequence database using multiple threads?"
-hmmer,hmmer_07,hmmer_07_10,alternative,Perform: search a protein HMM profile against a sequence database using multiple threads
+hmmer,hmmer_06,hmmer_06_01,original,search a protein database against Pfam HMM profiles (domain annotation)
+hmmer,hmmer_06,hmmer_06_02,beginner,How do I search a protein database against Pfam HMM profiles (domain annotation)?
+hmmer,hmmer_06,hmmer_06_03,student,I need to search a protein database against Pfam HMM profiles (domain annotation)
+hmmer,hmmer_06,hmmer_06_04,polite,Please search a protein database against Pfam HMM profiles (domain annotation)
+hmmer,hmmer_06,hmmer_06_05,sysadmin,Use hmmer to search a protein database against Pfam HMM profiles (domain annotation)
+hmmer,hmmer_06,hmmer_06_06,goal_oriented,I want to search a protein database against Pfam HMM profiles (domain annotation)
+hmmer,hmmer_06,hmmer_06_07,expert,search protein database against Pfam HMM profiles (domain annotation)
+hmmer,hmmer_06,hmmer_06_08,detailed,I have data that I need to process: search a protein database against Pfam HMM profiles (domain annotation)
+hmmer,hmmer_06,hmmer_06_09,informal,"Hey, can you help me search a protein database against Pfam HMM profiles (domain annotation)?"
+hmmer,hmmer_06,hmmer_06_10,alternative,Perform: search a protein database against Pfam HMM profiles (domain annotation)
+hmmer,hmmer_07,hmmer_07_01,original,search a protein HMM profile against a sequence database
+hmmer,hmmer_07,hmmer_07_02,beginner,How do I search a protein HMM profile against a sequence database?
+hmmer,hmmer_07,hmmer_07_03,student,I need to search a protein HMM profile against a sequence database
+hmmer,hmmer_07,hmmer_07_04,polite,Please search a protein HMM profile against a sequence database
+hmmer,hmmer_07,hmmer_07_05,sysadmin,Use hmmer to search a protein HMM profile against a sequence database
+hmmer,hmmer_07,hmmer_07_06,goal_oriented,I want to search a protein HMM profile against a sequence database
+hmmer,hmmer_07,hmmer_07_07,expert,search protein HMM profile against sequence database
+hmmer,hmmer_07,hmmer_07_08,detailed,I have data that I need to process: search a protein HMM profile against a sequence database
+hmmer,hmmer_07,hmmer_07_09,informal,"Hey, can you help me search a protein HMM profile against a sequence database?"
+hmmer,hmmer_07,hmmer_07_10,alternative,Perform: search a protein HMM profile against a sequence database
 hmmer,hmmer_08,hmmer_08_01,original,build a profile HMM from a multiple sequence alignment and write output to a file
 hmmer,hmmer_08,hmmer_08_02,beginner,How do I build a profile HMM from a multiple sequence alignment and write output to a file?
 hmmer,hmmer_08,hmmer_08_03,student,I need to build a profile HMM from a multiple sequence alignment and write output to a file
@@ -7376,7 +7376,7 @@ macs2,macs2_08,macs2_08_04,polite,Please call ATAC-seq peaks using nucleosome-fr
 macs2,macs2_08,macs2_08_05,sysadmin,Use macs2 to call ATAC-seq peaks using nucleosome-free region model and write output to a file
 macs2,macs2_08,macs2_08_06,goal_oriented,I want to call ATAC-seq peaks using nucleosome-free region model and write output to a file
 macs2,macs2_08,macs2_08_07,expert,call ATAC-seq peaks nucleosome-free region model write output file
-macs2,macs2_08,macs2_08_08,detailed,"I have data that I need to process: call ATAC-seq peaks using nucleosome-free region model and write output to a file, utilizing multiple CPU threads for speed"
+macs2,macs2_08,macs2_08_08,detailed,"I have data that I need to process: call ATAC-seq peaks using nucleosome-free region model and write output to a file, utilizing multiple CPU threads for speed, saving the result to a specified output file"
 macs2,macs2_08,macs2_08_09,informal,"Hey, can you help me call ATAC-seq peaks using nucleosome-free region model and write output to a file?"
 macs2,macs2_08,macs2_08_10,alternative,Write output to a file after call ATAC-seq peaks using nucleosome-free region model
 macs2,macs2_09,macs2_09_01,original,call peaks from paired-end ATAC-seq BAM in quiet mode
@@ -7449,46 +7449,46 @@ mafft,mafft_05,mafft_05_07,expert,add new sequences existing alignment
 mafft,mafft_05,mafft_05_08,detailed,I have data that I need to process: add new sequences to existing alignment
 mafft,mafft_05,mafft_05_09,informal,"Hey, can you help me add new sequences to existing alignment?"
 mafft,mafft_05,mafft_05_10,alternative,Output existing alignment by performing: add new sequences
-mafft,mafft_06,mafft_06_01,original,align multiple protein sequences with automatic algorithm selection with verbose output
-mafft,mafft_06,mafft_06_02,beginner,How do I align multiple protein sequences with automatic algorithm selection with verbose output?
-mafft,mafft_06,mafft_06_03,student,I need to align multiple protein sequences with automatic algorithm selection with verbose output
-mafft,mafft_06,mafft_06_04,polite,Please align multiple protein sequences with automatic algorithm selection with verbose output
-mafft,mafft_06,mafft_06_05,sysadmin,Use mafft to align multiple protein sequences with automatic algorithm selection with verbose output
-mafft,mafft_06,mafft_06_06,goal_oriented,I want to align multiple protein sequences with automatic algorithm selection with verbose output
-mafft,mafft_06,mafft_06_07,expert,align multiple protein sequences automatic algorithm selection verbose output
-mafft,mafft_06,mafft_06_08,detailed,I have data that I need to process: align multiple protein sequences with automatic algorithm selection with verbose output
-mafft,mafft_06,mafft_06_09,informal,"Hey, can you help me align multiple protein sequences with automatic algorithm selection with verbose output?"
-mafft,mafft_06,mafft_06_10,alternative,"With automatic algorithm selection with verbose output, align multiple protein sequences"
-mafft,mafft_07,mafft_07_01,original,highly accurate multiple sequence alignment for fewer than 200 sequences using multiple threads
-mafft,mafft_07,mafft_07_02,beginner,How do I highly accurate multiple sequence alignment for fewer than 200 sequences using multiple threads?
-mafft,mafft_07,mafft_07_03,student,I need to highly accurate multiple sequence alignment for fewer than 200 sequences using multiple threads
-mafft,mafft_07,mafft_07_04,polite,Please highly accurate multiple sequence alignment for fewer than 200 sequences using multiple threads
-mafft,mafft_07,mafft_07_05,sysadmin,Use mafft to highly accurate multiple sequence alignment for fewer than 200 sequences using multiple threads
-mafft,mafft_07,mafft_07_06,goal_oriented,I want to highly accurate multiple sequence alignment for fewer than 200 sequences using multiple threads
-mafft,mafft_07,mafft_07_07,expert,highly accurate multiple sequence alignment fewer than 200 sequences multiple threads
-mafft,mafft_07,mafft_07_08,detailed,I have data that I need to process: highly accurate multiple sequence alignment for fewer than 200 sequences using multiple threads
-mafft,mafft_07,mafft_07_09,informal,"Hey, can you help me highly accurate multiple sequence alignment for fewer than 200 sequences using multiple threads?"
-mafft,mafft_07,mafft_07_10,alternative,Perform: highly accurate multiple sequence alignment for fewer than 200 sequences using multiple threads
-mafft,mafft_08,mafft_08_01,original,align RNA sequences adjusting for strand orientation and write output to a file
-mafft,mafft_08,mafft_08_02,beginner,How do I align RNA sequences adjusting for strand orientation and write output to a file?
-mafft,mafft_08,mafft_08_03,student,I need to align RNA sequences adjusting for strand orientation and write output to a file
-mafft,mafft_08,mafft_08_04,polite,Please align RNA sequences adjusting for strand orientation and write output to a file
-mafft,mafft_08,mafft_08_05,sysadmin,Use mafft to align RNA sequences adjusting for strand orientation and write output to a file
-mafft,mafft_08,mafft_08_06,goal_oriented,I want to align RNA sequences adjusting for strand orientation and write output to a file
-mafft,mafft_08,mafft_08_07,expert,align RNA sequences adjusting strand orientation write output file
-mafft,mafft_08,mafft_08_08,detailed,"I have data that I need to process: align RNA sequences adjusting for strand orientation and write output to a file, saving the result to a specified output file"
-mafft,mafft_08,mafft_08_09,informal,"Hey, can you help me align RNA sequences adjusting for strand orientation and write output to a file?"
-mafft,mafft_08,mafft_08_10,alternative,Write output to a file after align RNA sequences adjusting for strand orientation
-mafft,mafft_09,mafft_09_01,original,align sequences and output in PHYLIP format for phylogenetic analysis in quiet mode
-mafft,mafft_09,mafft_09_02,beginner,How do I align sequences and output in PHYLIP format for phylogenetic analysis in quiet mode?
-mafft,mafft_09,mafft_09_03,student,I need to align sequences and output in PHYLIP format for phylogenetic analysis in quiet mode
-mafft,mafft_09,mafft_09_04,polite,Please align sequences and output in PHYLIP format for phylogenetic analysis in quiet mode
-mafft,mafft_09,mafft_09_05,sysadmin,Use mafft to align sequences and output in PHYLIP format for phylogenetic analysis in quiet mode
-mafft,mafft_09,mafft_09_06,goal_oriented,I want to align sequences and output in PHYLIP format for phylogenetic analysis in quiet mode
-mafft,mafft_09,mafft_09_07,expert,align sequences output PHYLIP format phylogenetic analysis quiet mode
-mafft,mafft_09,mafft_09_08,detailed,I have data that I need to process: align sequences and output in PHYLIP format for phylogenetic analysis in quiet mode
-mafft,mafft_09,mafft_09_09,informal,"Hey, can you help me align sequences and output in PHYLIP format for phylogenetic analysis in quiet mode?"
-mafft,mafft_09,mafft_09_10,alternative,Output in PHYLIP format for phylogenetic analysis in quiet mode after align sequences
+mafft,mafft_06,mafft_06_01,original,align multiple protein sequences with automatic algorithm selection
+mafft,mafft_06,mafft_06_02,beginner,How do I align multiple protein sequences with automatic algorithm selection?
+mafft,mafft_06,mafft_06_03,student,I need to align multiple protein sequences with automatic algorithm selection
+mafft,mafft_06,mafft_06_04,polite,Please align multiple protein sequences with automatic algorithm selection
+mafft,mafft_06,mafft_06_05,sysadmin,Use mafft to align multiple protein sequences with automatic algorithm selection
+mafft,mafft_06,mafft_06_06,goal_oriented,I want to align multiple protein sequences with automatic algorithm selection
+mafft,mafft_06,mafft_06_07,expert,align multiple protein sequences automatic algorithm selection
+mafft,mafft_06,mafft_06_08,detailed,I have data that I need to process: align multiple protein sequences with automatic algorithm selection
+mafft,mafft_06,mafft_06_09,informal,"Hey, can you help me align multiple protein sequences with automatic algorithm selection?"
+mafft,mafft_06,mafft_06_10,alternative,"With automatic algorithm selection, align multiple protein sequences"
+mafft,mafft_07,mafft_07_01,original,highly accurate multiple sequence alignment for fewer than 200 sequences
+mafft,mafft_07,mafft_07_02,beginner,How do I highly accurate multiple sequence alignment for fewer than 200 sequences?
+mafft,mafft_07,mafft_07_03,student,I need to highly accurate multiple sequence alignment for fewer than 200 sequences
+mafft,mafft_07,mafft_07_04,polite,Please highly accurate multiple sequence alignment for fewer than 200 sequences
+mafft,mafft_07,mafft_07_05,sysadmin,Use mafft to highly accurate multiple sequence alignment for fewer than 200 sequences
+mafft,mafft_07,mafft_07_06,goal_oriented,I want to highly accurate multiple sequence alignment for fewer than 200 sequences
+mafft,mafft_07,mafft_07_07,expert,highly accurate multiple sequence alignment fewer than 200 sequences
+mafft,mafft_07,mafft_07_08,detailed,I have data that I need to process: highly accurate multiple sequence alignment for fewer than 200 sequences
+mafft,mafft_07,mafft_07_09,informal,"Hey, can you help me highly accurate multiple sequence alignment for fewer than 200 sequences?"
+mafft,mafft_07,mafft_07_10,alternative,Perform: highly accurate multiple sequence alignment for fewer than 200 sequences
+mafft,mafft_08,mafft_08_01,original,align RNA sequences adjusting for strand orientation
+mafft,mafft_08,mafft_08_02,beginner,How do I align RNA sequences adjusting for strand orientation?
+mafft,mafft_08,mafft_08_03,student,I need to align RNA sequences adjusting for strand orientation
+mafft,mafft_08,mafft_08_04,polite,Please align RNA sequences adjusting for strand orientation
+mafft,mafft_08,mafft_08_05,sysadmin,Use mafft to align RNA sequences adjusting for strand orientation
+mafft,mafft_08,mafft_08_06,goal_oriented,I want to align RNA sequences adjusting for strand orientation
+mafft,mafft_08,mafft_08_07,expert,align RNA sequences adjusting strand orientation
+mafft,mafft_08,mafft_08_08,detailed,I have data that I need to process: align RNA sequences adjusting for strand orientation
+mafft,mafft_08,mafft_08_09,informal,"Hey, can you help me align RNA sequences adjusting for strand orientation?"
+mafft,mafft_08,mafft_08_10,alternative,Perform: align RNA sequences adjusting for strand orientation
+mafft,mafft_09,mafft_09_01,original,align sequences and output in PHYLIP format for phylogenetic analysis
+mafft,mafft_09,mafft_09_02,beginner,How do I align sequences and output in PHYLIP format for phylogenetic analysis?
+mafft,mafft_09,mafft_09_03,student,I need to align sequences and output in PHYLIP format for phylogenetic analysis
+mafft,mafft_09,mafft_09_04,polite,Please align sequences and output in PHYLIP format for phylogenetic analysis
+mafft,mafft_09,mafft_09_05,sysadmin,Use mafft to align sequences and output in PHYLIP format for phylogenetic analysis
+mafft,mafft_09,mafft_09_06,goal_oriented,I want to align sequences and output in PHYLIP format for phylogenetic analysis
+mafft,mafft_09,mafft_09_07,expert,align sequences output PHYLIP format phylogenetic analysis
+mafft,mafft_09,mafft_09_08,detailed,I have data that I need to process: align sequences and output in PHYLIP format for phylogenetic analysis
+mafft,mafft_09,mafft_09_09,informal,"Hey, can you help me align sequences and output in PHYLIP format for phylogenetic analysis?"
+mafft,mafft_09,mafft_09_10,alternative,Output in PHYLIP format for phylogenetic analysis after align sequences
 mafft,mafft_10,mafft_10_01,original,add new sequences to existing alignment with default parameters
 mafft,mafft_10,mafft_10_02,beginner,How do I add new sequences to existing alignment with default parameters?
 mafft,mafft_10,mafft_10_03,student,I need to add new sequences to existing alignment with default parameters
@@ -7666,7 +7666,7 @@ manta,manta_07,manta_07_04,polite,Please run Manta on WES data with capture regi
 manta,manta_07,manta_07_05,sysadmin,Use manta to run Manta on WES data with capture regions using multiple threads
 manta,manta_07,manta_07_06,goal_oriented,I want to run Manta on WES data with capture regions using multiple threads
 manta,manta_07,manta_07_07,expert,run Manta on WES data capture regions multiple threads
-manta,manta_07,manta_07_08,detailed,"I have data that I need to process: run Manta on WES data with capture regions using multiple threads, utilizing multiple CPU threads for speed"
+manta,manta_07,manta_07_08,detailed,I have data that I need to process: run Manta on WES data with capture regions using multiple threads
 manta,manta_07,manta_07_09,informal,"Hey, can you help me run Manta on WES data with capture regions using multiple threads?"
 manta,manta_07,manta_07_10,alternative,"With capture regions using multiple threads, run Manta on WES data"
 manta,manta_08,manta_08_01,original,run Manta for RNA fusion detection and write output to a file
@@ -7779,16 +7779,16 @@ mash,mash_08,mash_08_07,expert,compute pairwise distances between two genome ske
 mash,mash_08,mash_08_08,detailed,"I have data that I need to process: compute pairwise distances between two genome sketches and write output to a file, saving the result to a specified output file"
 mash,mash_08,mash_08_09,informal,"Hey, can you help me compute pairwise distances between two genome sketches and write output to a file?"
 mash,mash_08,mash_08_10,alternative,Write output to a file after compute pairwise distances between two genome sketches
-mash,mash_09,mash_09_01,original,query all genomes in a database against a query genome in quiet mode
-mash,mash_09,mash_09_02,beginner,How do I query all genomes in a database against a query genome in quiet mode?
-mash,mash_09,mash_09_03,student,I need to query all genomes in a database against a query genome in quiet mode
-mash,mash_09,mash_09_04,polite,Please query all genomes in a database against a query genome in quiet mode
-mash,mash_09,mash_09_05,sysadmin,Use mash to query all genomes in a database against a query genome in quiet mode
-mash,mash_09,mash_09_06,goal_oriented,I want to query all genomes in a database against a query genome in quiet mode
-mash,mash_09,mash_09_07,expert,query all genomes database against query genome quiet mode
-mash,mash_09,mash_09_08,detailed,"I have data that I need to process: query all genomes in a database against a query genome in quiet mode, utilizing multiple CPU threads for speed"
-mash,mash_09,mash_09_09,informal,"Hey, can you help me query all genomes in a database against a query genome in quiet mode?"
-mash,mash_09,mash_09_10,alternative,Perform: query all genomes in a database against a query genome in quiet mode
+mash,mash_09,mash_09_01,original,query all genomes in a database against a query genome
+mash,mash_09,mash_09_02,beginner,How do I query all genomes in a database against a query genome?
+mash,mash_09,mash_09_03,student,I need to query all genomes in a database against a query genome
+mash,mash_09,mash_09_04,polite,Please query all genomes in a database against a query genome
+mash,mash_09,mash_09_05,sysadmin,Use mash to query all genomes in a database against a query genome
+mash,mash_09,mash_09_06,goal_oriented,I want to query all genomes in a database against a query genome
+mash,mash_09,mash_09_07,expert,query all genomes database against query genome
+mash,mash_09,mash_09_08,detailed,"I have data that I need to process: query all genomes in a database against a query genome, utilizing multiple CPU threads for speed"
+mash,mash_09,mash_09_09,informal,"Hey, can you help me query all genomes in a database against a query genome?"
+mash,mash_09,mash_09_10,alternative,Perform: query all genomes in a database against a query genome
 mash,mash_10,mash_10_01,original,sketch raw sequencing reads with error filtering with default parameters
 mash,mash_10,mash_10_02,beginner,How do I sketch raw sequencing reads with error filtering with default parameters?
 mash,mash_10,mash_10_03,student,I need to sketch raw sequencing reads with error filtering with default parameters
@@ -7966,7 +7966,7 @@ megahit,megahit_07,megahit_07_04,polite,Please assemble metagenome from multiple
 megahit,megahit_07,megahit_07_05,sysadmin,Use megahit to assemble metagenome from multiple samples combined using multiple threads
 megahit,megahit_07,megahit_07_06,goal_oriented,I want to assemble metagenome from multiple samples combined using multiple threads
 megahit,megahit_07,megahit_07_07,expert,assemble metagenome multiple samples combined multiple threads
-megahit,megahit_07,megahit_07_08,detailed,"I have data that I need to process: assemble metagenome from multiple samples combined using multiple threads, saving the result to a specified output file"
+megahit,megahit_07,megahit_07_08,detailed,"I have data that I need to process: assemble metagenome from multiple samples combined using multiple threads, utilizing multiple CPU threads for speed, saving the result to a specified output file"
 megahit,megahit_07,megahit_07_09,informal,"Hey, can you help me assemble metagenome from multiple samples combined using multiple threads?"
 megahit,megahit_07,megahit_07_10,alternative,Perform: assemble metagenome from multiple samples combined using multiple threads
 megahit,megahit_08,megahit_08_01,original,assemble with custom k-mer range for specific data type and write output to a file
@@ -8076,7 +8076,7 @@ meme,meme_08,meme_08_04,polite,Please discover de novo motifs in ChIP-seq peak s
 meme,meme_08,meme_08_05,sysadmin,Use meme to discover de novo motifs in ChIP-seq peak sequences and write output to a file
 meme,meme_08,meme_08_06,goal_oriented,I want to discover de novo motifs in ChIP-seq peak sequences and write output to a file
 meme,meme_08,meme_08_07,expert,discover de novo motifs ChIP-seq peak sequences write output file
-meme,meme_08,meme_08_08,detailed,I have data that I need to process: discover de novo motifs in ChIP-seq peak sequences and write output to a file
+meme,meme_08,meme_08_08,detailed,"I have data that I need to process: discover de novo motifs in ChIP-seq peak sequences and write output to a file, saving the result to a specified output file"
 meme,meme_08,meme_08_09,informal,"Hey, can you help me discover de novo motifs in ChIP-seq peak sequences and write output to a file?"
 meme,meme_08,meme_08_10,alternative,Write output to a file after discover de novo motifs in ChIP-seq peak sequences
 meme,meme_09,meme_09_01,original,scan sequences for known TF binding motifs with FIMO in quiet mode
@@ -8269,16 +8269,16 @@ metaphlan,metaphlan_07,metaphlan_07_07,expert,save bowtie2 alignments faster re-
 metaphlan,metaphlan_07,metaphlan_07_08,detailed,"I have data that I need to process: save bowtie2 alignments for faster re-runs and profile using multiple threads, utilizing multiple CPU threads for speed, saving the result to a specified output file"
 metaphlan,metaphlan_07,metaphlan_07_09,informal,"Hey, can you help me save bowtie2 alignments for faster re-runs and profile using multiple threads?"
 metaphlan,metaphlan_07,metaphlan_07_10,alternative,Profile using multiple threads after save bowtie2 alignments for faster re-runs
-metaphlan,metaphlan_08,metaphlan_08_01,original,merge multiple MetaPhlAn profiles into a single table and write output to a file
-metaphlan,metaphlan_08,metaphlan_08_02,beginner,How do I merge multiple MetaPhlAn profiles into a single table and write output to a file?
-metaphlan,metaphlan_08,metaphlan_08_03,student,I need to merge multiple MetaPhlAn profiles into a single table and write output to a file
-metaphlan,metaphlan_08,metaphlan_08_04,polite,Please merge multiple MetaPhlAn profiles into a single table and write output to a file
-metaphlan,metaphlan_08,metaphlan_08_05,sysadmin,Use metaphlan to merge multiple MetaPhlAn profiles into a single table and write output to a file
-metaphlan,metaphlan_08,metaphlan_08_06,goal_oriented,I want to merge multiple MetaPhlAn profiles into a single table and write output to a file
-metaphlan,metaphlan_08,metaphlan_08_07,expert,merge multiple MetaPhlAn profiles single table write output file
-metaphlan,metaphlan_08,metaphlan_08_08,detailed,"I have data that I need to process: merge multiple MetaPhlAn profiles into a single table and write output to a file, saving the result to a specified output file"
-metaphlan,metaphlan_08,metaphlan_08_09,informal,"Hey, can you help me merge multiple MetaPhlAn profiles into a single table and write output to a file?"
-metaphlan,metaphlan_08,metaphlan_08_10,alternative,Write output to a file after merge multiple MetaPhlAn profiles into a single table
+metaphlan,metaphlan_08,metaphlan_08_01,original,merge multiple MetaPhlAn profiles into a single table
+metaphlan,metaphlan_08,metaphlan_08_02,beginner,How do I merge multiple MetaPhlAn profiles into a single table?
+metaphlan,metaphlan_08,metaphlan_08_03,student,I need to merge multiple MetaPhlAn profiles into a single table
+metaphlan,metaphlan_08,metaphlan_08_04,polite,Please merge multiple MetaPhlAn profiles into a single table
+metaphlan,metaphlan_08,metaphlan_08_05,sysadmin,Use metaphlan to merge multiple MetaPhlAn profiles into a single table
+metaphlan,metaphlan_08,metaphlan_08_06,goal_oriented,I want to merge multiple MetaPhlAn profiles into a single table
+metaphlan,metaphlan_08,metaphlan_08_07,expert,merge multiple MetaPhlAn profiles single table
+metaphlan,metaphlan_08,metaphlan_08_08,detailed,I have data that I need to process: merge multiple MetaPhlAn profiles into a single table
+metaphlan,metaphlan_08,metaphlan_08_09,informal,"Hey, can you help me merge multiple MetaPhlAn profiles into a single table?"
+metaphlan,metaphlan_08,metaphlan_08_10,alternative,Perform: merge multiple MetaPhlAn profiles into a single table
 metaphlan,metaphlan_09,metaphlan_09_01,original,profile microbial community from single-end FASTQ reads in quiet mode
 metaphlan,metaphlan_09,metaphlan_09_02,beginner,How do I profile microbial community from single-end FASTQ reads in quiet mode?
 metaphlan,metaphlan_09,metaphlan_09_03,student,I need to profile microbial community from single-end FASTQ reads in quiet mode
@@ -8429,16 +8429,16 @@ miniasm,miniasm_03,miniasm_03_07,expert,convert miniasm GFA output FASTA
 miniasm,miniasm_03,miniasm_03_08,detailed,I have data that I need to process: convert miniasm GFA output to FASTA
 miniasm,miniasm_03,miniasm_03_09,informal,"Hey, can you help me convert miniasm GFA output to FASTA?"
 miniasm,miniasm_03,miniasm_03_10,alternative,Output FASTA by performing: convert miniasm GFA output
-miniasm,miniasm_04,miniasm_04_01,original,compute all-vs-all overlaps for ONT reads with minimap2 in quiet mode
-miniasm,miniasm_04,miniasm_04_02,beginner,How do I compute all-vs-all overlaps for ONT reads with minimap2 in quiet mode?
-miniasm,miniasm_04,miniasm_04_03,student,I need to compute all-vs-all overlaps for ONT reads with minimap2 in quiet mode
-miniasm,miniasm_04,miniasm_04_04,polite,Please compute all-vs-all overlaps for ONT reads with minimap2 in quiet mode
-miniasm,miniasm_04,miniasm_04_05,sysadmin,Use miniasm to compute all-vs-all overlaps for ONT reads with minimap2 in quiet mode
-miniasm,miniasm_04,miniasm_04_06,goal_oriented,I want to compute all-vs-all overlaps for ONT reads with minimap2 in quiet mode
-miniasm,miniasm_04,miniasm_04_07,expert,compute all-vs-all overlaps ONT reads minimap2 quiet mode
-miniasm,miniasm_04,miniasm_04_08,detailed,"I have data that I need to process: compute all-vs-all overlaps for ONT reads with minimap2 in quiet mode, utilizing multiple CPU threads for speed"
-miniasm,miniasm_04,miniasm_04_09,informal,"Hey, can you help me compute all-vs-all overlaps for ONT reads with minimap2 in quiet mode?"
-miniasm,miniasm_04,miniasm_04_10,alternative,"With minimap2 in quiet mode, compute all-vs-all overlaps for ONT reads"
+miniasm,miniasm_04,miniasm_04_01,original,compute all-vs-all overlaps for ONT reads with minimap2
+miniasm,miniasm_04,miniasm_04_02,beginner,How do I compute all-vs-all overlaps for ONT reads with minimap2?
+miniasm,miniasm_04,miniasm_04_03,student,I need to compute all-vs-all overlaps for ONT reads with minimap2
+miniasm,miniasm_04,miniasm_04_04,polite,Please compute all-vs-all overlaps for ONT reads with minimap2
+miniasm,miniasm_04,miniasm_04_05,sysadmin,Use miniasm to compute all-vs-all overlaps for ONT reads with minimap2
+miniasm,miniasm_04,miniasm_04_06,goal_oriented,I want to compute all-vs-all overlaps for ONT reads with minimap2
+miniasm,miniasm_04,miniasm_04_07,expert,compute all-vs-all overlaps ONT reads minimap2
+miniasm,miniasm_04,miniasm_04_08,detailed,"I have data that I need to process: compute all-vs-all overlaps for ONT reads with minimap2, utilizing multiple CPU threads for speed"
+miniasm,miniasm_04,miniasm_04_09,informal,"Hey, can you help me compute all-vs-all overlaps for ONT reads with minimap2?"
+miniasm,miniasm_04,miniasm_04_10,alternative,"With minimap2, compute all-vs-all overlaps for ONT reads"
 miniasm,miniasm_05,miniasm_05_01,original,assemble ONT reads from precomputed overlaps with default parameters
 miniasm,miniasm_05,miniasm_05_02,beginner,How do I assemble ONT reads from precomputed overlaps with default parameters?
 miniasm,miniasm_05,miniasm_05_03,student,I need to assemble ONT reads from precomputed overlaps with default parameters
@@ -8449,46 +8449,46 @@ miniasm,miniasm_05,miniasm_05_07,expert,assemble ONT reads precomputed overlaps 
 miniasm,miniasm_05,miniasm_05_08,detailed,I have data that I need to process: assemble ONT reads from precomputed overlaps with default parameters
 miniasm,miniasm_05,miniasm_05_09,informal,"Hey, can you help me assemble ONT reads from precomputed overlaps with default parameters?"
 miniasm,miniasm_05,miniasm_05_10,alternative,"With default parameters, assemble ONT reads from precomputed overlaps"
-miniasm,miniasm_06,miniasm_06_01,original,convert miniasm GFA output to FASTA with verbose output
-miniasm,miniasm_06,miniasm_06_02,beginner,How do I convert miniasm GFA output to FASTA with verbose output?
-miniasm,miniasm_06,miniasm_06_03,student,I need to convert miniasm GFA output to FASTA with verbose output
-miniasm,miniasm_06,miniasm_06_04,polite,Please convert miniasm GFA output to FASTA with verbose output
-miniasm,miniasm_06,miniasm_06_05,sysadmin,Use miniasm to convert miniasm GFA output to FASTA with verbose output
-miniasm,miniasm_06,miniasm_06_06,goal_oriented,I want to convert miniasm GFA output to FASTA with verbose output
-miniasm,miniasm_06,miniasm_06_07,expert,convert miniasm GFA output FASTA verbose output
-miniasm,miniasm_06,miniasm_06_08,detailed,I have data that I need to process: convert miniasm GFA output to FASTA with verbose output
-miniasm,miniasm_06,miniasm_06_09,informal,"Hey, can you help me convert miniasm GFA output to FASTA with verbose output?"
-miniasm,miniasm_06,miniasm_06_10,alternative,"With verbose output, convert miniasm GFA output to FASTA"
-miniasm,miniasm_07,miniasm_07_01,original,compute all-vs-all overlaps for ONT reads with minimap2 using multiple threads
-miniasm,miniasm_07,miniasm_07_02,beginner,How do I compute all-vs-all overlaps for ONT reads with minimap2 using multiple threads?
-miniasm,miniasm_07,miniasm_07_03,student,I need to compute all-vs-all overlaps for ONT reads with minimap2 using multiple threads
-miniasm,miniasm_07,miniasm_07_04,polite,Please compute all-vs-all overlaps for ONT reads with minimap2 using multiple threads
-miniasm,miniasm_07,miniasm_07_05,sysadmin,Use miniasm to compute all-vs-all overlaps for ONT reads with minimap2 using multiple threads
-miniasm,miniasm_07,miniasm_07_06,goal_oriented,I want to compute all-vs-all overlaps for ONT reads with minimap2 using multiple threads
-miniasm,miniasm_07,miniasm_07_07,expert,compute all-vs-all overlaps ONT reads minimap2 multiple threads
-miniasm,miniasm_07,miniasm_07_08,detailed,"I have data that I need to process: compute all-vs-all overlaps for ONT reads with minimap2 using multiple threads, utilizing multiple CPU threads for speed"
-miniasm,miniasm_07,miniasm_07_09,informal,"Hey, can you help me compute all-vs-all overlaps for ONT reads with minimap2 using multiple threads?"
-miniasm,miniasm_07,miniasm_07_10,alternative,"With minimap2 using multiple threads, compute all-vs-all overlaps for ONT reads"
-miniasm,miniasm_08,miniasm_08_01,original,assemble ONT reads from precomputed overlaps and write output to a file
-miniasm,miniasm_08,miniasm_08_02,beginner,How do I assemble ONT reads from precomputed overlaps and write output to a file?
-miniasm,miniasm_08,miniasm_08_03,student,I need to assemble ONT reads from precomputed overlaps and write output to a file
-miniasm,miniasm_08,miniasm_08_04,polite,Please assemble ONT reads from precomputed overlaps and write output to a file
-miniasm,miniasm_08,miniasm_08_05,sysadmin,Use miniasm to assemble ONT reads from precomputed overlaps and write output to a file
-miniasm,miniasm_08,miniasm_08_06,goal_oriented,I want to assemble ONT reads from precomputed overlaps and write output to a file
-miniasm,miniasm_08,miniasm_08_07,expert,assemble ONT reads precomputed overlaps write output file
-miniasm,miniasm_08,miniasm_08_08,detailed,"I have data that I need to process: assemble ONT reads from precomputed overlaps and write output to a file, saving the result to a specified output file"
-miniasm,miniasm_08,miniasm_08_09,informal,"Hey, can you help me assemble ONT reads from precomputed overlaps and write output to a file?"
-miniasm,miniasm_08,miniasm_08_10,alternative,Write output to a file after assemble ONT reads from precomputed overlaps
-miniasm,miniasm_09,miniasm_09_01,original,convert miniasm GFA output to FASTA in quiet mode
-miniasm,miniasm_09,miniasm_09_02,beginner,How do I convert miniasm GFA output to FASTA in quiet mode?
-miniasm,miniasm_09,miniasm_09_03,student,I need to convert miniasm GFA output to FASTA in quiet mode
-miniasm,miniasm_09,miniasm_09_04,polite,Please convert miniasm GFA output to FASTA in quiet mode
-miniasm,miniasm_09,miniasm_09_05,sysadmin,Use miniasm to convert miniasm GFA output to FASTA in quiet mode
-miniasm,miniasm_09,miniasm_09_06,goal_oriented,I want to convert miniasm GFA output to FASTA in quiet mode
-miniasm,miniasm_09,miniasm_09_07,expert,convert miniasm GFA output FASTA quiet mode
-miniasm,miniasm_09,miniasm_09_08,detailed,I have data that I need to process: convert miniasm GFA output to FASTA in quiet mode
-miniasm,miniasm_09,miniasm_09_09,informal,"Hey, can you help me convert miniasm GFA output to FASTA in quiet mode?"
-miniasm,miniasm_09,miniasm_09_10,alternative,Output FASTA in quiet mode by performing: convert miniasm GFA output
+miniasm,miniasm_06,miniasm_06_01,original,convert miniasm GFA output to FASTA
+miniasm,miniasm_06,miniasm_06_02,beginner,How do I convert miniasm GFA output to FASTA?
+miniasm,miniasm_06,miniasm_06_03,student,I need to convert miniasm GFA output to FASTA
+miniasm,miniasm_06,miniasm_06_04,polite,Please convert miniasm GFA output to FASTA
+miniasm,miniasm_06,miniasm_06_05,sysadmin,Use miniasm to convert miniasm GFA output to FASTA
+miniasm,miniasm_06,miniasm_06_06,goal_oriented,I want to convert miniasm GFA output to FASTA
+miniasm,miniasm_06,miniasm_06_07,expert,convert miniasm GFA output FASTA
+miniasm,miniasm_06,miniasm_06_08,detailed,I have data that I need to process: convert miniasm GFA output to FASTA
+miniasm,miniasm_06,miniasm_06_09,informal,"Hey, can you help me convert miniasm GFA output to FASTA?"
+miniasm,miniasm_06,miniasm_06_10,alternative,Output FASTA by performing: convert miniasm GFA output
+miniasm,miniasm_07,miniasm_07_01,original,compute all-vs-all overlaps for ONT reads with minimap2
+miniasm,miniasm_07,miniasm_07_02,beginner,How do I compute all-vs-all overlaps for ONT reads with minimap2?
+miniasm,miniasm_07,miniasm_07_03,student,I need to compute all-vs-all overlaps for ONT reads with minimap2
+miniasm,miniasm_07,miniasm_07_04,polite,Please compute all-vs-all overlaps for ONT reads with minimap2
+miniasm,miniasm_07,miniasm_07_05,sysadmin,Use miniasm to compute all-vs-all overlaps for ONT reads with minimap2
+miniasm,miniasm_07,miniasm_07_06,goal_oriented,I want to compute all-vs-all overlaps for ONT reads with minimap2
+miniasm,miniasm_07,miniasm_07_07,expert,compute all-vs-all overlaps ONT reads minimap2
+miniasm,miniasm_07,miniasm_07_08,detailed,"I have data that I need to process: compute all-vs-all overlaps for ONT reads with minimap2, utilizing multiple CPU threads for speed"
+miniasm,miniasm_07,miniasm_07_09,informal,"Hey, can you help me compute all-vs-all overlaps for ONT reads with minimap2?"
+miniasm,miniasm_07,miniasm_07_10,alternative,"With minimap2, compute all-vs-all overlaps for ONT reads"
+miniasm,miniasm_08,miniasm_08_01,original,assemble ONT reads from precomputed overlaps
+miniasm,miniasm_08,miniasm_08_02,beginner,How do I assemble ONT reads from precomputed overlaps?
+miniasm,miniasm_08,miniasm_08_03,student,I need to assemble ONT reads from precomputed overlaps
+miniasm,miniasm_08,miniasm_08_04,polite,Please assemble ONT reads from precomputed overlaps
+miniasm,miniasm_08,miniasm_08_05,sysadmin,Use miniasm to assemble ONT reads from precomputed overlaps
+miniasm,miniasm_08,miniasm_08_06,goal_oriented,I want to assemble ONT reads from precomputed overlaps
+miniasm,miniasm_08,miniasm_08_07,expert,assemble ONT reads precomputed overlaps
+miniasm,miniasm_08,miniasm_08_08,detailed,I have data that I need to process: assemble ONT reads from precomputed overlaps
+miniasm,miniasm_08,miniasm_08_09,informal,"Hey, can you help me assemble ONT reads from precomputed overlaps?"
+miniasm,miniasm_08,miniasm_08_10,alternative,Perform: assemble ONT reads from precomputed overlaps
+miniasm,miniasm_09,miniasm_09_01,original,convert miniasm GFA output to FASTA
+miniasm,miniasm_09,miniasm_09_02,beginner,How do I convert miniasm GFA output to FASTA?
+miniasm,miniasm_09,miniasm_09_03,student,I need to convert miniasm GFA output to FASTA
+miniasm,miniasm_09,miniasm_09_04,polite,Please convert miniasm GFA output to FASTA
+miniasm,miniasm_09,miniasm_09_05,sysadmin,Use miniasm to convert miniasm GFA output to FASTA
+miniasm,miniasm_09,miniasm_09_06,goal_oriented,I want to convert miniasm GFA output to FASTA
+miniasm,miniasm_09,miniasm_09_07,expert,convert miniasm GFA output FASTA
+miniasm,miniasm_09,miniasm_09_08,detailed,I have data that I need to process: convert miniasm GFA output to FASTA
+miniasm,miniasm_09,miniasm_09_09,informal,"Hey, can you help me convert miniasm GFA output to FASTA?"
+miniasm,miniasm_09,miniasm_09_10,alternative,Output FASTA by performing: convert miniasm GFA output
 miniasm,miniasm_10,miniasm_10_01,original,compute all-vs-all overlaps for ONT reads with minimap2 with default parameters
 miniasm,miniasm_10,miniasm_10_02,beginner,How do I compute all-vs-all overlaps for ONT reads with minimap2 with default parameters?
 miniasm,miniasm_10,miniasm_10_03,student,I need to compute all-vs-all overlaps for ONT reads with minimap2 with default parameters
@@ -8569,26 +8569,26 @@ minimap2,minimap2_07,minimap2_07_07,expert,build reusable minimap2 index repeate
 minimap2,minimap2_07,minimap2_07_08,detailed,I have data that I need to process: build a reusable minimap2 index for repeated ONT alignments
 minimap2,minimap2_07,minimap2_07_09,informal,"Hey, can you help me build a reusable minimap2 index for repeated ONT alignments?"
 minimap2,minimap2_07,minimap2_07_10,alternative,Perform: build a reusable minimap2 index for repeated ONT alignments
-minimap2,minimap2_08,minimap2_08_01,original,align Oxford Nanopore reads to a reference genome and write output to a file
-minimap2,minimap2_08,minimap2_08_02,beginner,How do I align Oxford Nanopore reads to a reference genome and write output to a file?
-minimap2,minimap2_08,minimap2_08_03,student,I need to align Oxford Nanopore reads to a reference genome and write output to a file
-minimap2,minimap2_08,minimap2_08_04,polite,Please align Oxford Nanopore reads to a reference genome and write output to a file
-minimap2,minimap2_08,minimap2_08_05,sysadmin,Use minimap2 to align Oxford Nanopore reads to a reference genome and write output to a file
-minimap2,minimap2_08,minimap2_08_06,goal_oriented,I want to align Oxford Nanopore reads to a reference genome and write output to a file
-minimap2,minimap2_08,minimap2_08_07,expert,align Oxford Nanopore reads reference genome write output file
-minimap2,minimap2_08,minimap2_08_08,detailed,"I have data that I need to process: align Oxford Nanopore reads to a reference genome and write output to a file, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-minimap2,minimap2_08,minimap2_08_09,informal,"Hey, can you help me align Oxford Nanopore reads to a reference genome and write output to a file?"
-minimap2,minimap2_08,minimap2_08_10,alternative,Write output to a file after align Oxford Nanopore reads to a reference genome
-minimap2,minimap2_09,minimap2_09_01,original,align PacBio HiFi (CCS) reads to a reference genome in quiet mode
-minimap2,minimap2_09,minimap2_09_02,beginner,How do I align PacBio HiFi (CCS) reads to a reference genome in quiet mode?
-minimap2,minimap2_09,minimap2_09_03,student,I need to align PacBio HiFi (CCS) reads to a reference genome in quiet mode
-minimap2,minimap2_09,minimap2_09_04,polite,Please align PacBio HiFi (CCS) reads to a reference genome in quiet mode
-minimap2,minimap2_09,minimap2_09_05,sysadmin,Use minimap2 to align PacBio HiFi (CCS) reads to a reference genome in quiet mode
-minimap2,minimap2_09,minimap2_09_06,goal_oriented,I want to align PacBio HiFi (CCS) reads to a reference genome in quiet mode
-minimap2,minimap2_09,minimap2_09_07,expert,align PacBio HiFi (CCS) reads reference genome quiet mode
-minimap2,minimap2_09,minimap2_09_08,detailed,"I have data that I need to process: align PacBio HiFi (CCS) reads to a reference genome in quiet mode, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-minimap2,minimap2_09,minimap2_09_09,informal,"Hey, can you help me align PacBio HiFi (CCS) reads to a reference genome in quiet mode?"
-minimap2,minimap2_09,minimap2_09_10,alternative,Output a reference genome in quiet mode by performing: align PacBio HiFi (CCS) reads
+minimap2,minimap2_08,minimap2_08_01,original,align Oxford Nanopore reads to a reference genome
+minimap2,minimap2_08,minimap2_08_02,beginner,How do I align Oxford Nanopore reads to a reference genome?
+minimap2,minimap2_08,minimap2_08_03,student,I need to align Oxford Nanopore reads to a reference genome
+minimap2,minimap2_08,minimap2_08_04,polite,Please align Oxford Nanopore reads to a reference genome
+minimap2,minimap2_08,minimap2_08_05,sysadmin,Use minimap2 to align Oxford Nanopore reads to a reference genome
+minimap2,minimap2_08,minimap2_08_06,goal_oriented,I want to align Oxford Nanopore reads to a reference genome
+minimap2,minimap2_08,minimap2_08_07,expert,align Oxford Nanopore reads reference genome
+minimap2,minimap2_08,minimap2_08_08,detailed,"I have data that I need to process: align Oxford Nanopore reads to a reference genome, utilizing multiple CPU threads for speed, saving the result to a specified output file"
+minimap2,minimap2_08,minimap2_08_09,informal,"Hey, can you help me align Oxford Nanopore reads to a reference genome?"
+minimap2,minimap2_08,minimap2_08_10,alternative,Output a reference genome by performing: align Oxford Nanopore reads
+minimap2,minimap2_09,minimap2_09_01,original,align PacBio HiFi (CCS) reads to a reference genome
+minimap2,minimap2_09,minimap2_09_02,beginner,How do I align PacBio HiFi (CCS) reads to a reference genome?
+minimap2,minimap2_09,minimap2_09_03,student,I need to align PacBio HiFi (CCS) reads to a reference genome
+minimap2,minimap2_09,minimap2_09_04,polite,Please align PacBio HiFi (CCS) reads to a reference genome
+minimap2,minimap2_09,minimap2_09_05,sysadmin,Use minimap2 to align PacBio HiFi (CCS) reads to a reference genome
+minimap2,minimap2_09,minimap2_09_06,goal_oriented,I want to align PacBio HiFi (CCS) reads to a reference genome
+minimap2,minimap2_09,minimap2_09_07,expert,align PacBio HiFi (CCS) reads reference genome
+minimap2,minimap2_09,minimap2_09_08,detailed,"I have data that I need to process: align PacBio HiFi (CCS) reads to a reference genome, utilizing multiple CPU threads for speed, saving the result to a specified output file"
+minimap2,minimap2_09,minimap2_09_09,informal,"Hey, can you help me align PacBio HiFi (CCS) reads to a reference genome?"
+minimap2,minimap2_09,minimap2_09_10,alternative,Output a reference genome by performing: align PacBio HiFi (CCS) reads
 minimap2,minimap2_10,minimap2_10_01,original,align Nanopore cDNA reads for RNA-seq spliced alignment with default parameters
 minimap2,minimap2_10,minimap2_10_02,beginner,How do I align Nanopore cDNA reads for RNA-seq spliced alignment with default parameters?
 minimap2,minimap2_10,minimap2_10_03,student,I need to align Nanopore cDNA reads for RNA-seq spliced alignment with default parameters
@@ -9176,7 +9176,7 @@ muscle,muscle_08,muscle_08_04,polite,Please generate multiple alignment replicat
 muscle,muscle_08,muscle_08_05,sysadmin,Use muscle to generate multiple alignment replicates for uncertainty estimation and write output to a file
 muscle,muscle_08,muscle_08_06,goal_oriented,I want to generate multiple alignment replicates for uncertainty estimation and write output to a file
 muscle,muscle_08,muscle_08_07,expert,generate multiple alignment replicates uncertainty estimation write output file
-muscle,muscle_08,muscle_08_08,detailed,I have data that I need to process: generate multiple alignment replicates for uncertainty estimation and write output to a file
+muscle,muscle_08,muscle_08_08,detailed,"I have data that I need to process: generate multiple alignment replicates for uncertainty estimation and write output to a file, saving the result to a specified output file"
 muscle,muscle_08,muscle_08_09,informal,"Hey, can you help me generate multiple alignment replicates for uncertainty estimation and write output to a file?"
 muscle,muscle_08,muscle_08_10,alternative,Write output to a file after generate multiple alignment replicates for uncertainty estimation
 muscle,muscle_09,muscle_09_01,original,align multiple protein sequences with MUSCLE v5 in quiet mode
@@ -9276,7 +9276,7 @@ nanocomp,nanocomp_08,nanocomp_08_04,polite,Please compare multiple BAM files fro
 nanocomp,nanocomp_08,nanocomp_08_05,sysadmin,Use nanocomp to compare multiple BAM files from different samples and write output to a file
 nanocomp,nanocomp_08,nanocomp_08_06,goal_oriented,I want to compare multiple BAM files from different samples and write output to a file
 nanocomp,nanocomp_08,nanocomp_08_07,expert,compare multiple BAM files different samples write output file
-nanocomp,nanocomp_08,nanocomp_08_08,detailed,"I have data that I need to process: compare multiple BAM files from different samples and write output to a file, utilizing multiple CPU threads for speed"
+nanocomp,nanocomp_08,nanocomp_08_08,detailed,"I have data that I need to process: compare multiple BAM files from different samples and write output to a file, utilizing multiple CPU threads for speed, saving the result to a specified output file"
 nanocomp,nanocomp_08,nanocomp_08_09,informal,"Hey, can you help me compare multiple BAM files from different samples and write output to a file?"
 nanocomp,nanocomp_08,nanocomp_08_10,alternative,Write output to a file after compare multiple BAM files from different samples
 nanocomp,nanocomp_09,nanocomp_09_01,original,compare runs using sequencing summary files with ridge plots in quiet mode
@@ -9849,26 +9849,26 @@ pairtools,pairtools_05,pairtools_05_07,expert,parse Hi-C BWA alignments pairs fo
 pairtools,pairtools_05,pairtools_05_08,detailed,I have data that I need to process: parse Hi-C BWA alignments to pairs format with default parameters
 pairtools,pairtools_05,pairtools_05_09,informal,"Hey, can you help me parse Hi-C BWA alignments to pairs format with default parameters?"
 pairtools,pairtools_05,pairtools_05_10,alternative,"With default parameters, parse Hi-C BWA alignments to pairs format"
-pairtools,pairtools_06,pairtools_06_01,original,sort pairs file for deduplication with verbose output
-pairtools,pairtools_06,pairtools_06_02,beginner,How do I sort pairs file for deduplication with verbose output?
-pairtools,pairtools_06,pairtools_06_03,student,I need to sort pairs file for deduplication with verbose output
-pairtools,pairtools_06,pairtools_06_04,polite,Please sort pairs file for deduplication with verbose output
-pairtools,pairtools_06,pairtools_06_05,sysadmin,Use pairtools to sort pairs file for deduplication with verbose output
-pairtools,pairtools_06,pairtools_06_06,goal_oriented,I want to sort pairs file for deduplication with verbose output
-pairtools,pairtools_06,pairtools_06_07,expert,sort pairs file deduplication verbose output
-pairtools,pairtools_06,pairtools_06_08,detailed,I have data that I need to process: sort pairs file for deduplication with verbose output
-pairtools,pairtools_06,pairtools_06_09,informal,"Hey, can you help me sort pairs file for deduplication with verbose output?"
-pairtools,pairtools_06,pairtools_06_10,alternative,"With verbose output, sort pairs file for deduplication"
-pairtools,pairtools_07,pairtools_07_01,original,deduplicate sorted pairs file using multiple threads
-pairtools,pairtools_07,pairtools_07_02,beginner,How do I deduplicate sorted pairs file using multiple threads?
-pairtools,pairtools_07,pairtools_07_03,student,I need to deduplicate sorted pairs file using multiple threads
-pairtools,pairtools_07,pairtools_07_04,polite,Please deduplicate sorted pairs file using multiple threads
-pairtools,pairtools_07,pairtools_07_05,sysadmin,Use pairtools to deduplicate sorted pairs file using multiple threads
-pairtools,pairtools_07,pairtools_07_06,goal_oriented,I want to deduplicate sorted pairs file using multiple threads
-pairtools,pairtools_07,pairtools_07_07,expert,deduplicate sorted pairs file multiple threads
-pairtools,pairtools_07,pairtools_07_08,detailed,"I have data that I need to process: deduplicate sorted pairs file using multiple threads, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-pairtools,pairtools_07,pairtools_07_09,informal,"Hey, can you help me deduplicate sorted pairs file using multiple threads?"
-pairtools,pairtools_07,pairtools_07_10,alternative,Perform: deduplicate sorted pairs file using multiple threads
+pairtools,pairtools_06,pairtools_06_01,original,sort pairs file for deduplication
+pairtools,pairtools_06,pairtools_06_02,beginner,How do I sort pairs file for deduplication?
+pairtools,pairtools_06,pairtools_06_03,student,I need to sort pairs file for deduplication
+pairtools,pairtools_06,pairtools_06_04,polite,Please sort pairs file for deduplication
+pairtools,pairtools_06,pairtools_06_05,sysadmin,Use pairtools to sort pairs file for deduplication
+pairtools,pairtools_06,pairtools_06_06,goal_oriented,I want to sort pairs file for deduplication
+pairtools,pairtools_06,pairtools_06_07,expert,sort pairs file deduplication
+pairtools,pairtools_06,pairtools_06_08,detailed,I have data that I need to process: sort pairs file for deduplication
+pairtools,pairtools_06,pairtools_06_09,informal,"Hey, can you help me sort pairs file for deduplication?"
+pairtools,pairtools_06,pairtools_06_10,alternative,Perform: sort pairs file for deduplication
+pairtools,pairtools_07,pairtools_07_01,original,deduplicate sorted pairs file
+pairtools,pairtools_07,pairtools_07_02,beginner,How do I deduplicate sorted pairs file?
+pairtools,pairtools_07,pairtools_07_03,student,I need to deduplicate sorted pairs file
+pairtools,pairtools_07,pairtools_07_04,polite,Please deduplicate sorted pairs file
+pairtools,pairtools_07,pairtools_07_05,sysadmin,Use pairtools to deduplicate sorted pairs file
+pairtools,pairtools_07,pairtools_07_06,goal_oriented,I want to deduplicate sorted pairs file
+pairtools,pairtools_07,pairtools_07_07,expert,deduplicate sorted pairs file
+pairtools,pairtools_07,pairtools_07_08,detailed,"I have data that I need to process: deduplicate sorted pairs file, saving the result to a specified output file"
+pairtools,pairtools_07,pairtools_07_09,informal,"Hey, can you help me deduplicate sorted pairs file?"
+pairtools,pairtools_07,pairtools_07_10,alternative,Perform: deduplicate sorted pairs file
 pairtools,pairtools_08,pairtools_08_01,original,bin pairs into contact matrix using cooler and write output to a file
 pairtools,pairtools_08,pairtools_08_02,beginner,How do I bin pairs into contact matrix using cooler and write output to a file?
 pairtools,pairtools_08,pairtools_08_03,student,I need to bin pairs into contact matrix using cooler and write output to a file
@@ -9879,16 +9879,16 @@ pairtools,pairtools_08,pairtools_08_07,expert,bin pairs contact matrix cooler wr
 pairtools,pairtools_08,pairtools_08_08,detailed,"I have data that I need to process: bin pairs into contact matrix using cooler and write output to a file, saving the result to a specified output file"
 pairtools,pairtools_08,pairtools_08_09,informal,"Hey, can you help me bin pairs into contact matrix using cooler and write output to a file?"
 pairtools,pairtools_08,pairtools_08_10,alternative,Write output to a file after bin pairs into contact matrix using cooler
-pairtools,pairtools_09,pairtools_09_01,original,parse Hi-C BWA alignments to pairs format in quiet mode
-pairtools,pairtools_09,pairtools_09_02,beginner,How do I parse Hi-C BWA alignments to pairs format in quiet mode?
-pairtools,pairtools_09,pairtools_09_03,student,I need to parse Hi-C BWA alignments to pairs format in quiet mode
-pairtools,pairtools_09,pairtools_09_04,polite,Please parse Hi-C BWA alignments to pairs format in quiet mode
-pairtools,pairtools_09,pairtools_09_05,sysadmin,Use pairtools to parse Hi-C BWA alignments to pairs format in quiet mode
-pairtools,pairtools_09,pairtools_09_06,goal_oriented,I want to parse Hi-C BWA alignments to pairs format in quiet mode
-pairtools,pairtools_09,pairtools_09_07,expert,parse Hi-C BWA alignments pairs format quiet mode
-pairtools,pairtools_09,pairtools_09_08,detailed,I have data that I need to process: parse Hi-C BWA alignments to pairs format in quiet mode
-pairtools,pairtools_09,pairtools_09_09,informal,"Hey, can you help me parse Hi-C BWA alignments to pairs format in quiet mode?"
-pairtools,pairtools_09,pairtools_09_10,alternative,Output pairs format in quiet mode by performing: parse Hi-C BWA alignments
+pairtools,pairtools_09,pairtools_09_01,original,parse Hi-C BWA alignments to pairs format
+pairtools,pairtools_09,pairtools_09_02,beginner,How do I parse Hi-C BWA alignments to pairs format?
+pairtools,pairtools_09,pairtools_09_03,student,I need to parse Hi-C BWA alignments to pairs format
+pairtools,pairtools_09,pairtools_09_04,polite,Please parse Hi-C BWA alignments to pairs format
+pairtools,pairtools_09,pairtools_09_05,sysadmin,Use pairtools to parse Hi-C BWA alignments to pairs format
+pairtools,pairtools_09,pairtools_09_06,goal_oriented,I want to parse Hi-C BWA alignments to pairs format
+pairtools,pairtools_09,pairtools_09_07,expert,parse Hi-C BWA alignments pairs format
+pairtools,pairtools_09,pairtools_09_08,detailed,I have data that I need to process: parse Hi-C BWA alignments to pairs format
+pairtools,pairtools_09,pairtools_09_09,informal,"Hey, can you help me parse Hi-C BWA alignments to pairs format?"
+pairtools,pairtools_09,pairtools_09_10,alternative,Output pairs format by performing: parse Hi-C BWA alignments
 pairtools,pairtools_10,pairtools_10_01,original,sort pairs file for deduplication with default parameters
 pairtools,pairtools_10,pairtools_10_02,beginner,How do I sort pairs file for deduplication with default parameters?
 pairtools,pairtools_10,pairtools_10_03,student,I need to sort pairs file for deduplication with default parameters
@@ -9966,7 +9966,7 @@ pbccs,pbccs_07,pbccs_07_04,polite,Please generate HiFi reads with kinetics for m
 pbccs,pbccs_07,pbccs_07_05,sysadmin,Use pbccs to generate HiFi reads with kinetics for methylation calling using multiple threads
 pbccs,pbccs_07,pbccs_07_06,goal_oriented,I want to generate HiFi reads with kinetics for methylation calling using multiple threads
 pbccs,pbccs_07,pbccs_07_07,expert,generate HiFi reads kinetics methylation calling multiple threads
-pbccs,pbccs_07,pbccs_07_08,detailed,"I have data that I need to process: generate HiFi reads with kinetics for methylation calling using multiple threads, utilizing multiple CPU threads for speed"
+pbccs,pbccs_07,pbccs_07_08,detailed,I have data that I need to process: generate HiFi reads with kinetics for methylation calling using multiple threads
 pbccs,pbccs_07,pbccs_07_09,informal,"Hey, can you help me generate HiFi reads with kinetics for methylation calling using multiple threads?"
 pbccs,pbccs_07,pbccs_07_10,alternative,"With kinetics for methylation calling using multiple threads, generate HiFi reads"
 pbccs,pbccs_08,pbccs_08_01,original,generate HiFi reads using chunked processing for distributed computing and write output to a file
@@ -10976,7 +10976,7 @@ plink2,plink2_08,plink2_08_04,polite,Please perform LD pruning and compute PCA a
 plink2,plink2_08,plink2_08_05,sysadmin,Use plink2 to perform LD pruning and compute PCA and write output to a file
 plink2,plink2_08,plink2_08_06,goal_oriented,I want to perform LD pruning and compute PCA and write output to a file
 plink2,plink2_08,plink2_08_07,expert,perform LD pruning compute PCA write output file
-plink2,plink2_08,plink2_08_08,detailed,I have data that I need to process: perform LD pruning and compute PCA and write output to a file
+plink2,plink2_08,plink2_08_08,detailed,"I have data that I need to process: perform LD pruning and compute PCA and write output to a file, saving the result to a specified output file"
 plink2,plink2_08,plink2_08_09,informal,"Hey, can you help me perform LD pruning and compute PCA and write output to a file?"
 plink2,plink2_08,plink2_08_10,alternative,Compute PCA and write output to a file after perform LD pruning
 plink2,plink2_09,plink2_09_01,original,run genome-wide association study (GWAS) for binary phenotype in quiet mode
@@ -11276,7 +11276,7 @@ prokka,prokka_08,prokka_08_04,polite,Please annotate archaea genome and write ou
 prokka,prokka_08,prokka_08_05,sysadmin,Use prokka to annotate archaea genome and write output to a file
 prokka,prokka_08,prokka_08_06,goal_oriented,I want to annotate archaea genome and write output to a file
 prokka,prokka_08,prokka_08_07,expert,annotate archaea genome write output file
-prokka,prokka_08,prokka_08_08,detailed,I have data that I need to process: annotate archaea genome and write output to a file
+prokka,prokka_08,prokka_08_08,detailed,"I have data that I need to process: annotate archaea genome and write output to a file, saving the result to a specified output file"
 prokka,prokka_08,prokka_08_09,informal,"Hey, can you help me annotate archaea genome and write output to a file?"
 prokka,prokka_08,prokka_08_10,alternative,Write output to a file after annotate archaea genome
 prokka,prokka_09,prokka_09_01,original,annotate genome with custom protein database for improved annotation in quiet mode
@@ -11476,7 +11476,7 @@ qualimap,qualimap_08,qualimap_08_04,polite,"Please run BAM QC on a sorted, index
 qualimap,qualimap_08,qualimap_08_05,sysadmin,"Use qualimap to run BAM QC on a sorted, indexed BAM and write output to a file"
 qualimap,qualimap_08,qualimap_08_06,goal_oriented,"I want to run BAM QC on a sorted, indexed BAM and write output to a file"
 qualimap,qualimap_08,qualimap_08_07,expert,"run BAM QC on sorted, indexed BAM write output file"
-qualimap,qualimap_08,qualimap_08_08,detailed,"I have data that I need to process: run BAM QC on a sorted, indexed BAM and write output to a file"
+qualimap,qualimap_08,qualimap_08_08,detailed,"I have data that I need to process: run BAM QC on a sorted, indexed BAM and write output to a file, saving the result to a specified output file"
 qualimap,qualimap_08,qualimap_08_09,informal,"Hey, can you help me run BAM QC on a sorted, indexed BAM and write output to a file?"
 qualimap,qualimap_08,qualimap_08_10,alternative,"Write output to a file after run BAM QC on a sorted, indexed BAM"
 qualimap,qualimap_09,qualimap_09_01,original,run RNA-seq QC with strand information in quiet mode
@@ -11729,16 +11729,16 @@ racon,racon_03,racon_03_07,expert,run Racon polishing SAM alignment instead of P
 racon,racon_03,racon_03_08,detailed,"I have data that I need to process: run Racon polishing using SAM alignment instead of PAF, utilizing multiple CPU threads for speed"
 racon,racon_03,racon_03_09,informal,"Hey, can you help me run Racon polishing using SAM alignment instead of PAF?"
 racon,racon_03,racon_03_10,alternative,Perform: run Racon polishing using SAM alignment instead of PAF
-racon,racon_04,racon_04_01,original,run one round of Racon polishing on an ONT assembly in quiet mode
-racon,racon_04,racon_04_02,beginner,How do I run one round of Racon polishing on an ONT assembly in quiet mode?
-racon,racon_04,racon_04_03,student,I need to run one round of Racon polishing on an ONT assembly in quiet mode
-racon,racon_04,racon_04_04,polite,Please run one round of Racon polishing on an ONT assembly in quiet mode
-racon,racon_04,racon_04_05,sysadmin,Use racon to run one round of Racon polishing on an ONT assembly in quiet mode
-racon,racon_04,racon_04_06,goal_oriented,I want to run one round of Racon polishing on an ONT assembly in quiet mode
-racon,racon_04,racon_04_07,expert,run one round of Racon polishing on ONT assembly quiet mode
-racon,racon_04,racon_04_08,detailed,"I have data that I need to process: run one round of Racon polishing on an ONT assembly in quiet mode, utilizing multiple CPU threads for speed"
-racon,racon_04,racon_04_09,informal,"Hey, can you help me run one round of Racon polishing on an ONT assembly in quiet mode?"
-racon,racon_04,racon_04_10,alternative,Perform: run one round of Racon polishing on an ONT assembly in quiet mode
+racon,racon_04,racon_04_01,original,run one round of Racon polishing on an ONT assembly
+racon,racon_04,racon_04_02,beginner,How do I run one round of Racon polishing on an ONT assembly?
+racon,racon_04,racon_04_03,student,I need to run one round of Racon polishing on an ONT assembly
+racon,racon_04,racon_04_04,polite,Please run one round of Racon polishing on an ONT assembly
+racon,racon_04,racon_04_05,sysadmin,Use racon to run one round of Racon polishing on an ONT assembly
+racon,racon_04,racon_04_06,goal_oriented,I want to run one round of Racon polishing on an ONT assembly
+racon,racon_04,racon_04_07,expert,run one round of Racon polishing on ONT assembly
+racon,racon_04,racon_04_08,detailed,"I have data that I need to process: run one round of Racon polishing on an ONT assembly, utilizing multiple CPU threads for speed"
+racon,racon_04,racon_04_09,informal,"Hey, can you help me run one round of Racon polishing on an ONT assembly?"
+racon,racon_04,racon_04_10,alternative,Perform: run one round of Racon polishing on an ONT assembly
 racon,racon_05,racon_05_01,original,run second round of Racon polishing with default parameters
 racon,racon_05,racon_05_02,beginner,How do I run second round of Racon polishing with default parameters?
 racon,racon_05,racon_05_03,student,I need to run second round of Racon polishing with default parameters
@@ -11749,46 +11749,46 @@ racon,racon_05,racon_05_07,expert,run second round of Racon polishing default pa
 racon,racon_05,racon_05_08,detailed,"I have data that I need to process: run second round of Racon polishing with default parameters, utilizing multiple CPU threads for speed"
 racon,racon_05,racon_05_09,informal,"Hey, can you help me run second round of Racon polishing with default parameters?"
 racon,racon_05,racon_05_10,alternative,"With default parameters, run second round of Racon polishing"
-racon,racon_06,racon_06_01,original,run Racon polishing using SAM alignment instead of PAF with verbose output
-racon,racon_06,racon_06_02,beginner,How do I run Racon polishing using SAM alignment instead of PAF with verbose output?
-racon,racon_06,racon_06_03,student,I need to run Racon polishing using SAM alignment instead of PAF with verbose output
-racon,racon_06,racon_06_04,polite,Please run Racon polishing using SAM alignment instead of PAF with verbose output
-racon,racon_06,racon_06_05,sysadmin,Use racon to run Racon polishing using SAM alignment instead of PAF with verbose output
-racon,racon_06,racon_06_06,goal_oriented,I want to run Racon polishing using SAM alignment instead of PAF with verbose output
-racon,racon_06,racon_06_07,expert,run Racon polishing SAM alignment instead of PAF verbose output
-racon,racon_06,racon_06_08,detailed,"I have data that I need to process: run Racon polishing using SAM alignment instead of PAF with verbose output, utilizing multiple CPU threads for speed"
-racon,racon_06,racon_06_09,informal,"Hey, can you help me run Racon polishing using SAM alignment instead of PAF with verbose output?"
-racon,racon_06,racon_06_10,alternative,"With verbose output, run Racon polishing using SAM alignment instead of PAF"
-racon,racon_07,racon_07_01,original,run one round of Racon polishing on an ONT assembly using multiple threads
-racon,racon_07,racon_07_02,beginner,How do I run one round of Racon polishing on an ONT assembly using multiple threads?
-racon,racon_07,racon_07_03,student,I need to run one round of Racon polishing on an ONT assembly using multiple threads
-racon,racon_07,racon_07_04,polite,Please run one round of Racon polishing on an ONT assembly using multiple threads
-racon,racon_07,racon_07_05,sysadmin,Use racon to run one round of Racon polishing on an ONT assembly using multiple threads
-racon,racon_07,racon_07_06,goal_oriented,I want to run one round of Racon polishing on an ONT assembly using multiple threads
-racon,racon_07,racon_07_07,expert,run one round of Racon polishing on ONT assembly multiple threads
-racon,racon_07,racon_07_08,detailed,"I have data that I need to process: run one round of Racon polishing on an ONT assembly using multiple threads, utilizing multiple CPU threads for speed"
-racon,racon_07,racon_07_09,informal,"Hey, can you help me run one round of Racon polishing on an ONT assembly using multiple threads?"
-racon,racon_07,racon_07_10,alternative,Perform: run one round of Racon polishing on an ONT assembly using multiple threads
-racon,racon_08,racon_08_01,original,run second round of Racon polishing and write output to a file
-racon,racon_08,racon_08_02,beginner,How do I run second round of Racon polishing and write output to a file?
-racon,racon_08,racon_08_03,student,I need to run second round of Racon polishing and write output to a file
-racon,racon_08,racon_08_04,polite,Please run second round of Racon polishing and write output to a file
-racon,racon_08,racon_08_05,sysadmin,Use racon to run second round of Racon polishing and write output to a file
-racon,racon_08,racon_08_06,goal_oriented,I want to run second round of Racon polishing and write output to a file
-racon,racon_08,racon_08_07,expert,run second round of Racon polishing write output file
-racon,racon_08,racon_08_08,detailed,"I have data that I need to process: run second round of Racon polishing and write output to a file, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-racon,racon_08,racon_08_09,informal,"Hey, can you help me run second round of Racon polishing and write output to a file?"
-racon,racon_08,racon_08_10,alternative,Write output to a file after run second round of Racon polishing
-racon,racon_09,racon_09_01,original,run Racon polishing using SAM alignment instead of PAF in quiet mode
-racon,racon_09,racon_09_02,beginner,How do I run Racon polishing using SAM alignment instead of PAF in quiet mode?
-racon,racon_09,racon_09_03,student,I need to run Racon polishing using SAM alignment instead of PAF in quiet mode
-racon,racon_09,racon_09_04,polite,Please run Racon polishing using SAM alignment instead of PAF in quiet mode
-racon,racon_09,racon_09_05,sysadmin,Use racon to run Racon polishing using SAM alignment instead of PAF in quiet mode
-racon,racon_09,racon_09_06,goal_oriented,I want to run Racon polishing using SAM alignment instead of PAF in quiet mode
-racon,racon_09,racon_09_07,expert,run Racon polishing SAM alignment instead of PAF quiet mode
-racon,racon_09,racon_09_08,detailed,"I have data that I need to process: run Racon polishing using SAM alignment instead of PAF in quiet mode, utilizing multiple CPU threads for speed"
-racon,racon_09,racon_09_09,informal,"Hey, can you help me run Racon polishing using SAM alignment instead of PAF in quiet mode?"
-racon,racon_09,racon_09_10,alternative,Perform: run Racon polishing using SAM alignment instead of PAF in quiet mode
+racon,racon_06,racon_06_01,original,run Racon polishing using SAM alignment instead of PAF
+racon,racon_06,racon_06_02,beginner,How do I run Racon polishing using SAM alignment instead of PAF?
+racon,racon_06,racon_06_03,student,I need to run Racon polishing using SAM alignment instead of PAF
+racon,racon_06,racon_06_04,polite,Please run Racon polishing using SAM alignment instead of PAF
+racon,racon_06,racon_06_05,sysadmin,Use racon to run Racon polishing using SAM alignment instead of PAF
+racon,racon_06,racon_06_06,goal_oriented,I want to run Racon polishing using SAM alignment instead of PAF
+racon,racon_06,racon_06_07,expert,run Racon polishing SAM alignment instead of PAF
+racon,racon_06,racon_06_08,detailed,"I have data that I need to process: run Racon polishing using SAM alignment instead of PAF, utilizing multiple CPU threads for speed"
+racon,racon_06,racon_06_09,informal,"Hey, can you help me run Racon polishing using SAM alignment instead of PAF?"
+racon,racon_06,racon_06_10,alternative,Perform: run Racon polishing using SAM alignment instead of PAF
+racon,racon_07,racon_07_01,original,run one round of Racon polishing on an ONT assembly
+racon,racon_07,racon_07_02,beginner,How do I run one round of Racon polishing on an ONT assembly?
+racon,racon_07,racon_07_03,student,I need to run one round of Racon polishing on an ONT assembly
+racon,racon_07,racon_07_04,polite,Please run one round of Racon polishing on an ONT assembly
+racon,racon_07,racon_07_05,sysadmin,Use racon to run one round of Racon polishing on an ONT assembly
+racon,racon_07,racon_07_06,goal_oriented,I want to run one round of Racon polishing on an ONT assembly
+racon,racon_07,racon_07_07,expert,run one round of Racon polishing on ONT assembly
+racon,racon_07,racon_07_08,detailed,"I have data that I need to process: run one round of Racon polishing on an ONT assembly, utilizing multiple CPU threads for speed"
+racon,racon_07,racon_07_09,informal,"Hey, can you help me run one round of Racon polishing on an ONT assembly?"
+racon,racon_07,racon_07_10,alternative,Perform: run one round of Racon polishing on an ONT assembly
+racon,racon_08,racon_08_01,original,run second round of Racon polishing
+racon,racon_08,racon_08_02,beginner,How do I run second round of Racon polishing?
+racon,racon_08,racon_08_03,student,I need to run second round of Racon polishing
+racon,racon_08,racon_08_04,polite,Please run second round of Racon polishing
+racon,racon_08,racon_08_05,sysadmin,Use racon to run second round of Racon polishing
+racon,racon_08,racon_08_06,goal_oriented,I want to run second round of Racon polishing
+racon,racon_08,racon_08_07,expert,run second round of Racon polishing
+racon,racon_08,racon_08_08,detailed,"I have data that I need to process: run second round of Racon polishing, utilizing multiple CPU threads for speed"
+racon,racon_08,racon_08_09,informal,"Hey, can you help me run second round of Racon polishing?"
+racon,racon_08,racon_08_10,alternative,Perform: run second round of Racon polishing
+racon,racon_09,racon_09_01,original,run Racon polishing using SAM alignment instead of PAF
+racon,racon_09,racon_09_02,beginner,How do I run Racon polishing using SAM alignment instead of PAF?
+racon,racon_09,racon_09_03,student,I need to run Racon polishing using SAM alignment instead of PAF
+racon,racon_09,racon_09_04,polite,Please run Racon polishing using SAM alignment instead of PAF
+racon,racon_09,racon_09_05,sysadmin,Use racon to run Racon polishing using SAM alignment instead of PAF
+racon,racon_09,racon_09_06,goal_oriented,I want to run Racon polishing using SAM alignment instead of PAF
+racon,racon_09,racon_09_07,expert,run Racon polishing SAM alignment instead of PAF
+racon,racon_09,racon_09_08,detailed,"I have data that I need to process: run Racon polishing using SAM alignment instead of PAF, utilizing multiple CPU threads for speed"
+racon,racon_09,racon_09_09,informal,"Hey, can you help me run Racon polishing using SAM alignment instead of PAF?"
+racon,racon_09,racon_09_10,alternative,Perform: run Racon polishing using SAM alignment instead of PAF
 racon,racon_10,racon_10_01,original,run one round of Racon polishing on an ONT assembly with default parameters
 racon,racon_10,racon_10_02,beginner,How do I run one round of Racon polishing on an ONT assembly with default parameters?
 racon,racon_10,racon_10_03,student,I need to run one round of Racon polishing on an ONT assembly with default parameters
@@ -12759,36 +12759,36 @@ seqtk,seqtk_06,seqtk_06_07,expert,subsample 10% of reads reproducible seed
 seqtk,seqtk_06,seqtk_06_08,detailed,I have data that I need to process: subsample 10% of reads with reproducible seed
 seqtk,seqtk_06,seqtk_06_09,informal,"Hey, can you help me subsample 10% of reads with reproducible seed?"
 seqtk,seqtk_06,seqtk_06_10,alternative,"With reproducible seed, subsample 10% of reads"
-seqtk,seqtk_07,seqtk_07_01,original,subsample 1 million read pairs from paired-end FASTQ files using multiple threads
-seqtk,seqtk_07,seqtk_07_02,beginner,How do I subsample 1 million read pairs from paired-end FASTQ files using multiple threads?
-seqtk,seqtk_07,seqtk_07_03,student,I need to subsample 1 million read pairs from paired-end FASTQ files using multiple threads
-seqtk,seqtk_07,seqtk_07_04,polite,Please subsample 1 million read pairs from paired-end FASTQ files using multiple threads
-seqtk,seqtk_07,seqtk_07_05,sysadmin,Use seqtk to subsample 1 million read pairs from paired-end FASTQ files using multiple threads
-seqtk,seqtk_07,seqtk_07_06,goal_oriented,I want to subsample 1 million read pairs from paired-end FASTQ files using multiple threads
-seqtk,seqtk_07,seqtk_07_07,expert,subsample 1 million read pairs paired-end FASTQ files multiple threads
-seqtk,seqtk_07,seqtk_07_08,detailed,"I have data that I need to process: subsample 1 million read pairs from paired-end FASTQ files using multiple threads, utilizing multiple CPU threads for speed"
-seqtk,seqtk_07,seqtk_07_09,informal,"Hey, can you help me subsample 1 million read pairs from paired-end FASTQ files using multiple threads?"
-seqtk,seqtk_07,seqtk_07_10,alternative,Perform: subsample 1 million read pairs from paired-end FASTQ files using multiple threads
-seqtk,seqtk_08,seqtk_08_01,original,convert FASTQ to FASTA format and write output to a file
-seqtk,seqtk_08,seqtk_08_02,beginner,How do I convert FASTQ to FASTA format and write output to a file?
-seqtk,seqtk_08,seqtk_08_03,student,I need to convert FASTQ to FASTA format and write output to a file
-seqtk,seqtk_08,seqtk_08_04,polite,Please convert FASTQ to FASTA format and write output to a file
-seqtk,seqtk_08,seqtk_08_05,sysadmin,Use seqtk to convert FASTQ to FASTA format and write output to a file
-seqtk,seqtk_08,seqtk_08_06,goal_oriented,I want to convert FASTQ to FASTA format and write output to a file
-seqtk,seqtk_08,seqtk_08_07,expert,convert FASTQ FASTA format write output file
-seqtk,seqtk_08,seqtk_08_08,detailed,"I have data that I need to process: convert FASTQ to FASTA format and write output to a file, saving the result to a specified output file"
-seqtk,seqtk_08,seqtk_08_09,informal,"Hey, can you help me convert FASTQ to FASTA format and write output to a file?"
-seqtk,seqtk_08,seqtk_08_10,alternative,Write output to a file after convert FASTQ to FASTA format
-seqtk,seqtk_09,seqtk_09_01,original,reverse complement all sequences in a FASTA file in quiet mode
-seqtk,seqtk_09,seqtk_09_02,beginner,How do I reverse complement all sequences in a FASTA file in quiet mode?
-seqtk,seqtk_09,seqtk_09_03,student,I need to reverse complement all sequences in a FASTA file in quiet mode
-seqtk,seqtk_09,seqtk_09_04,polite,Please reverse complement all sequences in a FASTA file in quiet mode
-seqtk,seqtk_09,seqtk_09_05,sysadmin,Use seqtk to reverse complement all sequences in a FASTA file in quiet mode
-seqtk,seqtk_09,seqtk_09_06,goal_oriented,I want to reverse complement all sequences in a FASTA file in quiet mode
-seqtk,seqtk_09,seqtk_09_07,expert,reverse complement all sequences FASTA file quiet mode
-seqtk,seqtk_09,seqtk_09_08,detailed,I have data that I need to process: reverse complement all sequences in a FASTA file in quiet mode
-seqtk,seqtk_09,seqtk_09_09,informal,"Hey, can you help me reverse complement all sequences in a FASTA file in quiet mode?"
-seqtk,seqtk_09,seqtk_09_10,alternative,Perform: reverse complement all sequences in a FASTA file in quiet mode
+seqtk,seqtk_07,seqtk_07_01,original,subsample 1 million read pairs from paired-end FASTQ files
+seqtk,seqtk_07,seqtk_07_02,beginner,How do I subsample 1 million read pairs from paired-end FASTQ files?
+seqtk,seqtk_07,seqtk_07_03,student,I need to subsample 1 million read pairs from paired-end FASTQ files
+seqtk,seqtk_07,seqtk_07_04,polite,Please subsample 1 million read pairs from paired-end FASTQ files
+seqtk,seqtk_07,seqtk_07_05,sysadmin,Use seqtk to subsample 1 million read pairs from paired-end FASTQ files
+seqtk,seqtk_07,seqtk_07_06,goal_oriented,I want to subsample 1 million read pairs from paired-end FASTQ files
+seqtk,seqtk_07,seqtk_07_07,expert,subsample 1 million read pairs paired-end FASTQ files
+seqtk,seqtk_07,seqtk_07_08,detailed,I have data that I need to process: subsample 1 million read pairs from paired-end FASTQ files
+seqtk,seqtk_07,seqtk_07_09,informal,"Hey, can you help me subsample 1 million read pairs from paired-end FASTQ files?"
+seqtk,seqtk_07,seqtk_07_10,alternative,Perform: subsample 1 million read pairs from paired-end FASTQ files
+seqtk,seqtk_08,seqtk_08_01,original,convert FASTQ to FASTA format
+seqtk,seqtk_08,seqtk_08_02,beginner,How do I convert FASTQ to FASTA format?
+seqtk,seqtk_08,seqtk_08_03,student,I need to convert FASTQ to FASTA format
+seqtk,seqtk_08,seqtk_08_04,polite,Please convert FASTQ to FASTA format
+seqtk,seqtk_08,seqtk_08_05,sysadmin,Use seqtk to convert FASTQ to FASTA format
+seqtk,seqtk_08,seqtk_08_06,goal_oriented,I want to convert FASTQ to FASTA format
+seqtk,seqtk_08,seqtk_08_07,expert,convert FASTQ FASTA format
+seqtk,seqtk_08,seqtk_08_08,detailed,I have data that I need to process: convert FASTQ to FASTA format
+seqtk,seqtk_08,seqtk_08_09,informal,"Hey, can you help me convert FASTQ to FASTA format?"
+seqtk,seqtk_08,seqtk_08_10,alternative,Output FASTA format by performing: convert FASTQ
+seqtk,seqtk_09,seqtk_09_01,original,reverse complement all sequences in a FASTA file
+seqtk,seqtk_09,seqtk_09_02,beginner,How do I reverse complement all sequences in a FASTA file?
+seqtk,seqtk_09,seqtk_09_03,student,I need to reverse complement all sequences in a FASTA file
+seqtk,seqtk_09,seqtk_09_04,polite,Please reverse complement all sequences in a FASTA file
+seqtk,seqtk_09,seqtk_09_05,sysadmin,Use seqtk to reverse complement all sequences in a FASTA file
+seqtk,seqtk_09,seqtk_09_06,goal_oriented,I want to reverse complement all sequences in a FASTA file
+seqtk,seqtk_09,seqtk_09_07,expert,reverse complement all sequences FASTA file
+seqtk,seqtk_09,seqtk_09_08,detailed,I have data that I need to process: reverse complement all sequences in a FASTA file
+seqtk,seqtk_09,seqtk_09_09,informal,"Hey, can you help me reverse complement all sequences in a FASTA file?"
+seqtk,seqtk_09,seqtk_09_10,alternative,Perform: reverse complement all sequences in a FASTA file
 seqtk,seqtk_10,seqtk_10_01,original,extract specific sequences by name from a FASTQ file with default parameters
 seqtk,seqtk_10,seqtk_10_02,beginner,How do I extract specific sequences by name from a FASTQ file with default parameters?
 seqtk,seqtk_10,seqtk_10_03,student,I need to extract specific sequences by name from a FASTQ file with default parameters
@@ -12966,7 +12966,7 @@ shapeit4,shapeit4_07,shapeit4_07_04,polite,Please phase a chromosome using SHAPE
 shapeit4,shapeit4_07,shapeit4_07_05,sysadmin,Use shapeit4 to phase a chromosome using SHAPEIT4 using multiple threads
 shapeit4,shapeit4_07,shapeit4_07_06,goal_oriented,I want to phase a chromosome using SHAPEIT4 using multiple threads
 shapeit4,shapeit4_07,shapeit4_07_07,expert,phase chromosome SHAPEIT4 multiple threads
-shapeit4,shapeit4_07,shapeit4_07_08,detailed,"I have data that I need to process: phase a chromosome using SHAPEIT4 using multiple threads, saving the result to a specified output file"
+shapeit4,shapeit4_07,shapeit4_07_08,detailed,"I have data that I need to process: phase a chromosome using SHAPEIT4 using multiple threads, utilizing multiple CPU threads for speed, saving the result to a specified output file"
 shapeit4,shapeit4_07,shapeit4_07_09,informal,"Hey, can you help me phase a chromosome using SHAPEIT4 using multiple threads?"
 shapeit4,shapeit4_07,shapeit4_07_10,alternative,Perform: phase a chromosome using SHAPEIT4 using multiple threads
 shapeit4,shapeit4_08,shapeit4_08_01,original,phase with a reference haplotype scaffold panel and write output to a file
@@ -13449,46 +13449,46 @@ snpeff,snpeff_05,snpeff_05_07,expert,extract specific fields annotated VCF SnpSi
 snpeff,snpeff_05,snpeff_05_08,detailed,I have data that I need to process: extract specific fields from annotated VCF using SnpSift extractFields
 snpeff,snpeff_05,snpeff_05_09,informal,"Hey, can you help me extract specific fields from annotated VCF using SnpSift extractFields?"
 snpeff,snpeff_05,snpeff_05_10,alternative,Perform: extract specific fields from annotated VCF using SnpSift extractFields
-snpeff,snpeff_06,snpeff_06_01,original,annotate variants in a VCF file using the GRCh38 human genome database with verbose output
-snpeff,snpeff_06,snpeff_06_02,beginner,How do I annotate variants in a VCF file using the GRCh38 human genome database with verbose output?
-snpeff,snpeff_06,snpeff_06_03,student,I need to annotate variants in a VCF file using the GRCh38 human genome database with verbose output
-snpeff,snpeff_06,snpeff_06_04,polite,Please annotate variants in a VCF file using the GRCh38 human genome database with verbose output
-snpeff,snpeff_06,snpeff_06_05,sysadmin,Use snpeff to annotate variants in a VCF file using the GRCh38 human genome database with verbose output
-snpeff,snpeff_06,snpeff_06_06,goal_oriented,I want to annotate variants in a VCF file using the GRCh38 human genome database with verbose output
-snpeff,snpeff_06,snpeff_06_07,expert,annotate variants VCF file GRCh38 human genome database verbose output
-snpeff,snpeff_06,snpeff_06_08,detailed,I have data that I need to process: annotate variants in a VCF file using the GRCh38 human genome database with verbose output
-snpeff,snpeff_06,snpeff_06_09,informal,"Hey, can you help me annotate variants in a VCF file using the GRCh38 human genome database with verbose output?"
-snpeff,snpeff_06,snpeff_06_10,alternative,"With verbose output, annotate variants in a VCF file using the GRCh38 human genome database"
-snpeff,snpeff_07,snpeff_07_01,original,annotate variants and generate an HTML statistics report using multiple threads
-snpeff,snpeff_07,snpeff_07_02,beginner,How do I annotate variants and generate an HTML statistics report using multiple threads?
-snpeff,snpeff_07,snpeff_07_03,student,I need to annotate variants and generate an HTML statistics report using multiple threads
-snpeff,snpeff_07,snpeff_07_04,polite,Please annotate variants and generate an HTML statistics report using multiple threads
-snpeff,snpeff_07,snpeff_07_05,sysadmin,Use snpeff to annotate variants and generate an HTML statistics report using multiple threads
-snpeff,snpeff_07,snpeff_07_06,goal_oriented,I want to annotate variants and generate an HTML statistics report using multiple threads
-snpeff,snpeff_07,snpeff_07_07,expert,annotate variants generate HTML statistics report multiple threads
-snpeff,snpeff_07,snpeff_07_08,detailed,"I have data that I need to process: annotate variants and generate an HTML statistics report using multiple threads, utilizing multiple CPU threads for speed"
-snpeff,snpeff_07,snpeff_07_09,informal,"Hey, can you help me annotate variants and generate an HTML statistics report using multiple threads?"
-snpeff,snpeff_07,snpeff_07_10,alternative,Generate an HTML statistics report using multiple threads after annotate variants
-snpeff,snpeff_08,snpeff_08_01,original,annotate variants from hg19/GRCh37 genome and write output to a file
-snpeff,snpeff_08,snpeff_08_02,beginner,How do I annotate variants from hg19/GRCh37 genome and write output to a file?
-snpeff,snpeff_08,snpeff_08_03,student,I need to annotate variants from hg19/GRCh37 genome and write output to a file
-snpeff,snpeff_08,snpeff_08_04,polite,Please annotate variants from hg19/GRCh37 genome and write output to a file
-snpeff,snpeff_08,snpeff_08_05,sysadmin,Use snpeff to annotate variants from hg19/GRCh37 genome and write output to a file
-snpeff,snpeff_08,snpeff_08_06,goal_oriented,I want to annotate variants from hg19/GRCh37 genome and write output to a file
-snpeff,snpeff_08,snpeff_08_07,expert,annotate variants hg19/GRCh37 genome write output file
-snpeff,snpeff_08,snpeff_08_08,detailed,"I have data that I need to process: annotate variants from hg19/GRCh37 genome and write output to a file, saving the result to a specified output file"
-snpeff,snpeff_08,snpeff_08_09,informal,"Hey, can you help me annotate variants from hg19/GRCh37 genome and write output to a file?"
-snpeff,snpeff_08,snpeff_08_10,alternative,Write output to a file after annotate variants from hg19/GRCh37 genome
-snpeff,snpeff_09,snpeff_09_01,original,filter annotated VCF to keep only HIGH impact variants using SnpSift in quiet mode
-snpeff,snpeff_09,snpeff_09_02,beginner,How do I filter annotated VCF to keep only HIGH impact variants using SnpSift in quiet mode?
-snpeff,snpeff_09,snpeff_09_03,student,I need to filter annotated VCF to keep only HIGH impact variants using SnpSift in quiet mode
-snpeff,snpeff_09,snpeff_09_04,polite,Please filter annotated VCF to keep only HIGH impact variants using SnpSift in quiet mode
-snpeff,snpeff_09,snpeff_09_05,sysadmin,Use snpeff to filter annotated VCF to keep only HIGH impact variants using SnpSift in quiet mode
-snpeff,snpeff_09,snpeff_09_06,goal_oriented,I want to filter annotated VCF to keep only HIGH impact variants using SnpSift in quiet mode
-snpeff,snpeff_09,snpeff_09_07,expert,filter annotated VCF keep only HIGH impact variants SnpSift quiet mode
-snpeff,snpeff_09,snpeff_09_08,detailed,I have data that I need to process: filter annotated VCF to keep only HIGH impact variants using SnpSift in quiet mode
-snpeff,snpeff_09,snpeff_09_09,informal,"Hey, can you help me filter annotated VCF to keep only HIGH impact variants using SnpSift in quiet mode?"
-snpeff,snpeff_09,snpeff_09_10,alternative,Output keep only HIGH impact variants using SnpSift in quiet mode by performing: filter annotated VCF
+snpeff,snpeff_06,snpeff_06_01,original,annotate variants in a VCF file using the GRCh38 human genome database
+snpeff,snpeff_06,snpeff_06_02,beginner,How do I annotate variants in a VCF file using the GRCh38 human genome database?
+snpeff,snpeff_06,snpeff_06_03,student,I need to annotate variants in a VCF file using the GRCh38 human genome database
+snpeff,snpeff_06,snpeff_06_04,polite,Please annotate variants in a VCF file using the GRCh38 human genome database
+snpeff,snpeff_06,snpeff_06_05,sysadmin,Use snpeff to annotate variants in a VCF file using the GRCh38 human genome database
+snpeff,snpeff_06,snpeff_06_06,goal_oriented,I want to annotate variants in a VCF file using the GRCh38 human genome database
+snpeff,snpeff_06,snpeff_06_07,expert,annotate variants VCF file GRCh38 human genome database
+snpeff,snpeff_06,snpeff_06_08,detailed,I have data that I need to process: annotate variants in a VCF file using the GRCh38 human genome database
+snpeff,snpeff_06,snpeff_06_09,informal,"Hey, can you help me annotate variants in a VCF file using the GRCh38 human genome database?"
+snpeff,snpeff_06,snpeff_06_10,alternative,Perform: annotate variants in a VCF file using the GRCh38 human genome database
+snpeff,snpeff_07,snpeff_07_01,original,annotate variants and generate an HTML statistics report
+snpeff,snpeff_07,snpeff_07_02,beginner,How do I annotate variants and generate an HTML statistics report?
+snpeff,snpeff_07,snpeff_07_03,student,I need to annotate variants and generate an HTML statistics report
+snpeff,snpeff_07,snpeff_07_04,polite,Please annotate variants and generate an HTML statistics report
+snpeff,snpeff_07,snpeff_07_05,sysadmin,Use snpeff to annotate variants and generate an HTML statistics report
+snpeff,snpeff_07,snpeff_07_06,goal_oriented,I want to annotate variants and generate an HTML statistics report
+snpeff,snpeff_07,snpeff_07_07,expert,annotate variants generate HTML statistics report
+snpeff,snpeff_07,snpeff_07_08,detailed,I have data that I need to process: annotate variants and generate an HTML statistics report
+snpeff,snpeff_07,snpeff_07_09,informal,"Hey, can you help me annotate variants and generate an HTML statistics report?"
+snpeff,snpeff_07,snpeff_07_10,alternative,Generate an HTML statistics report after annotate variants
+snpeff,snpeff_08,snpeff_08_01,original,annotate variants from hg19/GRCh37 genome
+snpeff,snpeff_08,snpeff_08_02,beginner,How do I annotate variants from hg19/GRCh37 genome?
+snpeff,snpeff_08,snpeff_08_03,student,I need to annotate variants from hg19/GRCh37 genome
+snpeff,snpeff_08,snpeff_08_04,polite,Please annotate variants from hg19/GRCh37 genome
+snpeff,snpeff_08,snpeff_08_05,sysadmin,Use snpeff to annotate variants from hg19/GRCh37 genome
+snpeff,snpeff_08,snpeff_08_06,goal_oriented,I want to annotate variants from hg19/GRCh37 genome
+snpeff,snpeff_08,snpeff_08_07,expert,annotate variants hg19/GRCh37 genome
+snpeff,snpeff_08,snpeff_08_08,detailed,I have data that I need to process: annotate variants from hg19/GRCh37 genome
+snpeff,snpeff_08,snpeff_08_09,informal,"Hey, can you help me annotate variants from hg19/GRCh37 genome?"
+snpeff,snpeff_08,snpeff_08_10,alternative,Perform: annotate variants from hg19/GRCh37 genome
+snpeff,snpeff_09,snpeff_09_01,original,filter annotated VCF to keep only HIGH impact variants using SnpSift
+snpeff,snpeff_09,snpeff_09_02,beginner,How do I filter annotated VCF to keep only HIGH impact variants using SnpSift?
+snpeff,snpeff_09,snpeff_09_03,student,I need to filter annotated VCF to keep only HIGH impact variants using SnpSift
+snpeff,snpeff_09,snpeff_09_04,polite,Please filter annotated VCF to keep only HIGH impact variants using SnpSift
+snpeff,snpeff_09,snpeff_09_05,sysadmin,Use snpeff to filter annotated VCF to keep only HIGH impact variants using SnpSift
+snpeff,snpeff_09,snpeff_09_06,goal_oriented,I want to filter annotated VCF to keep only HIGH impact variants using SnpSift
+snpeff,snpeff_09,snpeff_09_07,expert,filter annotated VCF keep only HIGH impact variants SnpSift
+snpeff,snpeff_09,snpeff_09_08,detailed,I have data that I need to process: filter annotated VCF to keep only HIGH impact variants using SnpSift
+snpeff,snpeff_09,snpeff_09_09,informal,"Hey, can you help me filter annotated VCF to keep only HIGH impact variants using SnpSift?"
+snpeff,snpeff_09,snpeff_09_10,alternative,Output keep only HIGH impact variants using SnpSift by performing: filter annotated VCF
 snpeff,snpeff_10,snpeff_10_01,original,extract specific fields from annotated VCF using SnpSift extractFields with default parameters
 snpeff,snpeff_10,snpeff_10_02,beginner,How do I extract specific fields from annotated VCF using SnpSift extractFields with default parameters?
 snpeff,snpeff_10,snpeff_10_03,student,I need to extract specific fields from annotated VCF using SnpSift extractFields with default parameters
@@ -13966,7 +13966,7 @@ star,star_07,star_07_04,polite,Please align single-end RNA-seq reads with two-pa
 star,star_07,star_07_05,sysadmin,Use star to align single-end RNA-seq reads with two-pass mode for better junction detection using multiple threads
 star,star_07,star_07_06,goal_oriented,I want to align single-end RNA-seq reads with two-pass mode for better junction detection using multiple threads
 star,star_07,star_07_07,expert,align single-end RNA-seq reads two-pass mode better junction detection multiple threads
-star,star_07,star_07_08,detailed,I have data that I need to process: align single-end RNA-seq reads with two-pass mode for better junction detection using multiple threads
+star,star_07,star_07_08,detailed,"I have data that I need to process: align single-end RNA-seq reads with two-pass mode for better junction detection using multiple threads, utilizing multiple CPU threads for speed"
 star,star_07,star_07_09,informal,"Hey, can you help me align single-end RNA-seq reads with two-pass mode for better junction detection using multiple threads?"
 star,star_07,star_07_10,alternative,"With two-pass mode for better junction detection using multiple threads, align single-end RNA-seq reads"
 star,star_08,star_08_01,original,align reads and output unmapped reads to a FASTQ file and write output to a file
@@ -13976,7 +13976,7 @@ star,star_08,star_08_04,polite,Please align reads and output unmapped reads to a
 star,star_08,star_08_05,sysadmin,Use star to align reads and output unmapped reads to a FASTQ file and write output to a file
 star,star_08,star_08_06,goal_oriented,I want to align reads and output unmapped reads to a FASTQ file and write output to a file
 star,star_08,star_08_07,expert,align reads output unmapped reads FASTQ file write output file
-star,star_08,star_08_08,detailed,I have data that I need to process: align reads and output unmapped reads to a FASTQ file and write output to a file
+star,star_08,star_08_08,detailed,"I have data that I need to process: align reads and output unmapped reads to a FASTQ file and write output to a file, saving the result to a specified output file"
 star,star_08,star_08_09,informal,"Hey, can you help me align reads and output unmapped reads to a FASTQ file and write output to a file?"
 star,star_08,star_08_10,alternative,Output unmapped reads to a FASTQ file and write output to a file after align reads
 star,star_09,star_09_01,original,build genome index for STAR alignment in quiet mode
@@ -14076,7 +14076,7 @@ starsolo,starsolo_08,starsolo_08_04,polite,Please process 10x Chromium v2 scRNA-
 starsolo,starsolo_08,starsolo_08_05,sysadmin,Use starsolo to process 10x Chromium v2 scRNA-seq with STARsolo and write output to a file
 starsolo,starsolo_08,starsolo_08_06,goal_oriented,I want to process 10x Chromium v2 scRNA-seq with STARsolo and write output to a file
 starsolo,starsolo_08,starsolo_08_07,expert,process 10x Chromium v2 scRNA-seq STARsolo write output file
-starsolo,starsolo_08,starsolo_08_08,detailed,I have data that I need to process: process 10x Chromium v2 scRNA-seq with STARsolo and write output to a file
+starsolo,starsolo_08,starsolo_08_08,detailed,"I have data that I need to process: process 10x Chromium v2 scRNA-seq with STARsolo and write output to a file, saving the result to a specified output file"
 starsolo,starsolo_08,starsolo_08_09,informal,"Hey, can you help me process 10x Chromium v2 scRNA-seq with STARsolo and write output to a file?"
 starsolo,starsolo_08,starsolo_08_10,alternative,Write output to a file after process 10x Chromium v2 scRNA-seq with STARsolo
 starsolo,starsolo_09,starsolo_09_01,original,run STARsolo with RNA velocity output in quiet mode
@@ -14166,7 +14166,7 @@ strelka2,strelka2_07,strelka2_07_04,polite,Please run Strelka2 germline on WES d
 strelka2,strelka2_07,strelka2_07_05,sysadmin,Use strelka2 to run Strelka2 germline on WES data with target regions using multiple threads
 strelka2,strelka2_07,strelka2_07_06,goal_oriented,I want to run Strelka2 germline on WES data with target regions using multiple threads
 strelka2,strelka2_07,strelka2_07_07,expert,run Strelka2 germline on WES data target regions multiple threads
-strelka2,strelka2_07,strelka2_07_08,detailed,"I have data that I need to process: run Strelka2 germline on WES data with target regions using multiple threads, utilizing multiple CPU threads for speed"
+strelka2,strelka2_07,strelka2_07_08,detailed,I have data that I need to process: run Strelka2 germline on WES data with target regions using multiple threads
 strelka2,strelka2_07,strelka2_07_09,informal,"Hey, can you help me run Strelka2 germline on WES data with target regions using multiple threads?"
 strelka2,strelka2_07,strelka2_07_10,alternative,"With target regions using multiple threads, run Strelka2 germline on WES data"
 strelka2,strelka2_08,strelka2_08_01,original,run Strelka2 somatic with Manta indel candidates for improved accuracy and write output to a file
@@ -14766,7 +14766,7 @@ trimmomatic,trimmomatic_07,trimmomatic_07_04,polite,Please trim Nextera adapters
 trimmomatic,trimmomatic_07,trimmomatic_07_05,sysadmin,Use trimmomatic to trim Nextera adapters from paired-end reads using multiple threads
 trimmomatic,trimmomatic_07,trimmomatic_07_06,goal_oriented,I want to trim Nextera adapters from paired-end reads using multiple threads
 trimmomatic,trimmomatic_07,trimmomatic_07_07,expert,trim Nextera adapters paired-end reads multiple threads
-trimmomatic,trimmomatic_07,trimmomatic_07_08,detailed,I have data that I need to process: trim Nextera adapters from paired-end reads using multiple threads
+trimmomatic,trimmomatic_07,trimmomatic_07_08,detailed,"I have data that I need to process: trim Nextera adapters from paired-end reads using multiple threads, utilizing multiple CPU threads for speed"
 trimmomatic,trimmomatic_07,trimmomatic_07_09,informal,"Hey, can you help me trim Nextera adapters from paired-end reads using multiple threads?"
 trimmomatic,trimmomatic_07,trimmomatic_07_10,alternative,Perform: trim Nextera adapters from paired-end reads using multiple threads
 trimmomatic,trimmomatic_08,trimmomatic_08_01,original,aggressive quality trimming for low-quality paired-end data and write output to a file
@@ -15029,16 +15029,16 @@ varscan2,varscan2_03,varscan2_03_07,expert,filter somatic variants high-confiden
 varscan2,varscan2_03,varscan2_03_08,detailed,I have data that I need to process: filter somatic variants for high-confidence calls
 varscan2,varscan2_03,varscan2_03_09,informal,"Hey, can you help me filter somatic variants for high-confidence calls?"
 varscan2,varscan2_03,varscan2_03_10,alternative,Perform: filter somatic variants for high-confidence calls
-varscan2,varscan2_04,varscan2_04_01,original,call germline SNPs from a tumor or normal sample in quiet mode
-varscan2,varscan2_04,varscan2_04_02,beginner,How do I call germline SNPs from a tumor or normal sample in quiet mode?
-varscan2,varscan2_04,varscan2_04_03,student,I need to call germline SNPs from a tumor or normal sample in quiet mode
-varscan2,varscan2_04,varscan2_04_04,polite,Please call germline SNPs from a tumor or normal sample in quiet mode
-varscan2,varscan2_04,varscan2_04_05,sysadmin,Use varscan2 to call germline SNPs from a tumor or normal sample in quiet mode
-varscan2,varscan2_04,varscan2_04_06,goal_oriented,I want to call germline SNPs from a tumor or normal sample in quiet mode
-varscan2,varscan2_04,varscan2_04_07,expert,call germline SNPs tumor or normal sample quiet mode
-varscan2,varscan2_04,varscan2_04_08,detailed,"I have data that I need to process: call germline SNPs from a tumor or normal sample in quiet mode, saving the result to a specified output file"
-varscan2,varscan2_04,varscan2_04_09,informal,"Hey, can you help me call germline SNPs from a tumor or normal sample in quiet mode?"
-varscan2,varscan2_04,varscan2_04_10,alternative,Perform: call germline SNPs from a tumor or normal sample in quiet mode
+varscan2,varscan2_04,varscan2_04_01,original,call germline SNPs from a tumor or normal sample
+varscan2,varscan2_04,varscan2_04_02,beginner,How do I call germline SNPs from a tumor or normal sample?
+varscan2,varscan2_04,varscan2_04_03,student,I need to call germline SNPs from a tumor or normal sample
+varscan2,varscan2_04,varscan2_04_04,polite,Please call germline SNPs from a tumor or normal sample
+varscan2,varscan2_04,varscan2_04_05,sysadmin,Use varscan2 to call germline SNPs from a tumor or normal sample
+varscan2,varscan2_04,varscan2_04_06,goal_oriented,I want to call germline SNPs from a tumor or normal sample
+varscan2,varscan2_04,varscan2_04_07,expert,call germline SNPs tumor or normal sample
+varscan2,varscan2_04,varscan2_04_08,detailed,"I have data that I need to process: call germline SNPs from a tumor or normal sample, saving the result to a specified output file"
+varscan2,varscan2_04,varscan2_04_09,informal,"Hey, can you help me call germline SNPs from a tumor or normal sample?"
+varscan2,varscan2_04,varscan2_04_10,alternative,Perform: call germline SNPs from a tumor or normal sample
 varscan2,varscan2_05,varscan2_05_01,original,call somatic variants from tumor-normal pair with default parameters
 varscan2,varscan2_05,varscan2_05_02,beginner,How do I call somatic variants from tumor-normal pair with default parameters?
 varscan2,varscan2_05,varscan2_05_03,student,I need to call somatic variants from tumor-normal pair with default parameters
@@ -15059,16 +15059,16 @@ varscan2,varscan2_06,varscan2_06_07,expert,filter somatic variants high-confiden
 varscan2,varscan2_06,varscan2_06_08,detailed,I have data that I need to process: filter somatic variants for high-confidence calls with verbose output
 varscan2,varscan2_06,varscan2_06_09,informal,"Hey, can you help me filter somatic variants for high-confidence calls with verbose output?"
 varscan2,varscan2_06,varscan2_06_10,alternative,"With verbose output, filter somatic variants for high-confidence calls"
-varscan2,varscan2_07,varscan2_07_01,original,call germline SNPs from a tumor or normal sample using multiple threads
-varscan2,varscan2_07,varscan2_07_02,beginner,How do I call germline SNPs from a tumor or normal sample using multiple threads?
-varscan2,varscan2_07,varscan2_07_03,student,I need to call germline SNPs from a tumor or normal sample using multiple threads
-varscan2,varscan2_07,varscan2_07_04,polite,Please call germline SNPs from a tumor or normal sample using multiple threads
-varscan2,varscan2_07,varscan2_07_05,sysadmin,Use varscan2 to call germline SNPs from a tumor or normal sample using multiple threads
-varscan2,varscan2_07,varscan2_07_06,goal_oriented,I want to call germline SNPs from a tumor or normal sample using multiple threads
-varscan2,varscan2_07,varscan2_07_07,expert,call germline SNPs tumor or normal sample multiple threads
-varscan2,varscan2_07,varscan2_07_08,detailed,"I have data that I need to process: call germline SNPs from a tumor or normal sample using multiple threads, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-varscan2,varscan2_07,varscan2_07_09,informal,"Hey, can you help me call germline SNPs from a tumor or normal sample using multiple threads?"
-varscan2,varscan2_07,varscan2_07_10,alternative,Perform: call germline SNPs from a tumor or normal sample using multiple threads
+varscan2,varscan2_07,varscan2_07_01,original,call germline SNPs from a tumor or normal sample
+varscan2,varscan2_07,varscan2_07_02,beginner,How do I call germline SNPs from a tumor or normal sample?
+varscan2,varscan2_07,varscan2_07_03,student,I need to call germline SNPs from a tumor or normal sample
+varscan2,varscan2_07,varscan2_07_04,polite,Please call germline SNPs from a tumor or normal sample
+varscan2,varscan2_07,varscan2_07_05,sysadmin,Use varscan2 to call germline SNPs from a tumor or normal sample
+varscan2,varscan2_07,varscan2_07_06,goal_oriented,I want to call germline SNPs from a tumor or normal sample
+varscan2,varscan2_07,varscan2_07_07,expert,call germline SNPs tumor or normal sample
+varscan2,varscan2_07,varscan2_07_08,detailed,"I have data that I need to process: call germline SNPs from a tumor or normal sample, saving the result to a specified output file"
+varscan2,varscan2_07,varscan2_07_09,informal,"Hey, can you help me call germline SNPs from a tumor or normal sample?"
+varscan2,varscan2_07,varscan2_07_10,alternative,Perform: call germline SNPs from a tumor or normal sample
 varscan2,varscan2_08,varscan2_08_01,original,call somatic variants from tumor-normal pair and write output to a file
 varscan2,varscan2_08,varscan2_08_02,beginner,How do I call somatic variants from tumor-normal pair and write output to a file?
 varscan2,varscan2_08,varscan2_08_03,student,I need to call somatic variants from tumor-normal pair and write output to a file
@@ -15159,36 +15159,36 @@ vcfanno,vcfanno_06,vcfanno_06_07,expert,annotate indels COSMIC output only annot
 vcfanno,vcfanno_06,vcfanno_06_08,detailed,"I have data that I need to process: annotate indels with COSMIC and output only annotated variants, utilizing multiple CPU threads for speed"
 vcfanno,vcfanno_06,vcfanno_06_09,informal,"Hey, can you help me annotate indels with COSMIC and output only annotated variants?"
 vcfanno,vcfanno_06,vcfanno_06_10,alternative,Output only annotated variants after annotate indels with COSMIC
-vcfanno,vcfanno_07,vcfanno_07_01,original,annotate a VCF with gnomAD allele frequencies using multiple threads
-vcfanno,vcfanno_07,vcfanno_07_02,beginner,How do I annotate a VCF with gnomAD allele frequencies using multiple threads?
-vcfanno,vcfanno_07,vcfanno_07_03,student,I need to annotate a VCF with gnomAD allele frequencies using multiple threads
-vcfanno,vcfanno_07,vcfanno_07_04,polite,Please annotate a VCF with gnomAD allele frequencies using multiple threads
-vcfanno,vcfanno_07,vcfanno_07_05,sysadmin,Use vcfanno to annotate a VCF with gnomAD allele frequencies using multiple threads
-vcfanno,vcfanno_07,vcfanno_07_06,goal_oriented,I want to annotate a VCF with gnomAD allele frequencies using multiple threads
-vcfanno,vcfanno_07,vcfanno_07_07,expert,annotate VCF gnomAD allele frequencies multiple threads
-vcfanno,vcfanno_07,vcfanno_07_08,detailed,"I have data that I need to process: annotate a VCF with gnomAD allele frequencies using multiple threads, utilizing multiple CPU threads for speed"
-vcfanno,vcfanno_07,vcfanno_07_09,informal,"Hey, can you help me annotate a VCF with gnomAD allele frequencies using multiple threads?"
-vcfanno,vcfanno_07,vcfanno_07_10,alternative,"With gnomAD allele frequencies using multiple threads, annotate a VCF"
-vcfanno,vcfanno_08,vcfanno_08_01,original,annotate variants with ClinVar pathogenicity and a custom BED file and write output to a file
-vcfanno,vcfanno_08,vcfanno_08_02,beginner,How do I annotate variants with ClinVar pathogenicity and a custom BED file and write output to a file?
-vcfanno,vcfanno_08,vcfanno_08_03,student,I need to annotate variants with ClinVar pathogenicity and a custom BED file and write output to a file
-vcfanno,vcfanno_08,vcfanno_08_04,polite,Please annotate variants with ClinVar pathogenicity and a custom BED file and write output to a file
-vcfanno,vcfanno_08,vcfanno_08_05,sysadmin,Use vcfanno to annotate variants with ClinVar pathogenicity and a custom BED file and write output to a file
-vcfanno,vcfanno_08,vcfanno_08_06,goal_oriented,I want to annotate variants with ClinVar pathogenicity and a custom BED file and write output to a file
-vcfanno,vcfanno_08,vcfanno_08_07,expert,annotate variants ClinVar pathogenicity custom BED file write output file
-vcfanno,vcfanno_08,vcfanno_08_08,detailed,"I have data that I need to process: annotate variants with ClinVar pathogenicity and a custom BED file and write output to a file, utilizing multiple CPU threads for speed, saving the result to a specified output file"
-vcfanno,vcfanno_08,vcfanno_08_09,informal,"Hey, can you help me annotate variants with ClinVar pathogenicity and a custom BED file and write output to a file?"
-vcfanno,vcfanno_08,vcfanno_08_10,alternative,A custom BED file and write output to a file after annotate variants with ClinVar pathogenicity
-vcfanno,vcfanno_09,vcfanno_09_01,original,add a flag for variants overlapping a BED region of interest in quiet mode
-vcfanno,vcfanno_09,vcfanno_09_02,beginner,How do I add a flag for variants overlapping a BED region of interest in quiet mode?
-vcfanno,vcfanno_09,vcfanno_09_03,student,I need to add a flag for variants overlapping a BED region of interest in quiet mode
-vcfanno,vcfanno_09,vcfanno_09_04,polite,Please add a flag for variants overlapping a BED region of interest in quiet mode
-vcfanno,vcfanno_09,vcfanno_09_05,sysadmin,Use vcfanno to add a flag for variants overlapping a BED region of interest in quiet mode
-vcfanno,vcfanno_09,vcfanno_09_06,goal_oriented,I want to add a flag for variants overlapping a BED region of interest in quiet mode
-vcfanno,vcfanno_09,vcfanno_09_07,expert,add flag variants overlapping BED region of interest quiet mode
-vcfanno,vcfanno_09,vcfanno_09_08,detailed,"I have data that I need to process: add a flag for variants overlapping a BED region of interest in quiet mode, utilizing multiple CPU threads for speed"
-vcfanno,vcfanno_09,vcfanno_09_09,informal,"Hey, can you help me add a flag for variants overlapping a BED region of interest in quiet mode?"
-vcfanno,vcfanno_09,vcfanno_09_10,alternative,Perform: add a flag for variants overlapping a BED region of interest in quiet mode
+vcfanno,vcfanno_07,vcfanno_07_01,original,annotate a VCF with gnomAD allele frequencies
+vcfanno,vcfanno_07,vcfanno_07_02,beginner,How do I annotate a VCF with gnomAD allele frequencies?
+vcfanno,vcfanno_07,vcfanno_07_03,student,I need to annotate a VCF with gnomAD allele frequencies
+vcfanno,vcfanno_07,vcfanno_07_04,polite,Please annotate a VCF with gnomAD allele frequencies
+vcfanno,vcfanno_07,vcfanno_07_05,sysadmin,Use vcfanno to annotate a VCF with gnomAD allele frequencies
+vcfanno,vcfanno_07,vcfanno_07_06,goal_oriented,I want to annotate a VCF with gnomAD allele frequencies
+vcfanno,vcfanno_07,vcfanno_07_07,expert,annotate VCF gnomAD allele frequencies
+vcfanno,vcfanno_07,vcfanno_07_08,detailed,"I have data that I need to process: annotate a VCF with gnomAD allele frequencies, utilizing multiple CPU threads for speed"
+vcfanno,vcfanno_07,vcfanno_07_09,informal,"Hey, can you help me annotate a VCF with gnomAD allele frequencies?"
+vcfanno,vcfanno_07,vcfanno_07_10,alternative,"With gnomAD allele frequencies, annotate a VCF"
+vcfanno,vcfanno_08,vcfanno_08_01,original,annotate variants with ClinVar pathogenicity and a custom BED file
+vcfanno,vcfanno_08,vcfanno_08_02,beginner,How do I annotate variants with ClinVar pathogenicity and a custom BED file?
+vcfanno,vcfanno_08,vcfanno_08_03,student,I need to annotate variants with ClinVar pathogenicity and a custom BED file
+vcfanno,vcfanno_08,vcfanno_08_04,polite,Please annotate variants with ClinVar pathogenicity and a custom BED file
+vcfanno,vcfanno_08,vcfanno_08_05,sysadmin,Use vcfanno to annotate variants with ClinVar pathogenicity and a custom BED file
+vcfanno,vcfanno_08,vcfanno_08_06,goal_oriented,I want to annotate variants with ClinVar pathogenicity and a custom BED file
+vcfanno,vcfanno_08,vcfanno_08_07,expert,annotate variants ClinVar pathogenicity custom BED file
+vcfanno,vcfanno_08,vcfanno_08_08,detailed,"I have data that I need to process: annotate variants with ClinVar pathogenicity and a custom BED file, utilizing multiple CPU threads for speed"
+vcfanno,vcfanno_08,vcfanno_08_09,informal,"Hey, can you help me annotate variants with ClinVar pathogenicity and a custom BED file?"
+vcfanno,vcfanno_08,vcfanno_08_10,alternative,A custom BED file after annotate variants with ClinVar pathogenicity
+vcfanno,vcfanno_09,vcfanno_09_01,original,add a flag for variants overlapping a BED region of interest
+vcfanno,vcfanno_09,vcfanno_09_02,beginner,How do I add a flag for variants overlapping a BED region of interest?
+vcfanno,vcfanno_09,vcfanno_09_03,student,I need to add a flag for variants overlapping a BED region of interest
+vcfanno,vcfanno_09,vcfanno_09_04,polite,Please add a flag for variants overlapping a BED region of interest
+vcfanno,vcfanno_09,vcfanno_09_05,sysadmin,Use vcfanno to add a flag for variants overlapping a BED region of interest
+vcfanno,vcfanno_09,vcfanno_09_06,goal_oriented,I want to add a flag for variants overlapping a BED region of interest
+vcfanno,vcfanno_09,vcfanno_09_07,expert,add flag variants overlapping BED region of interest
+vcfanno,vcfanno_09,vcfanno_09_08,detailed,"I have data that I need to process: add a flag for variants overlapping a BED region of interest, utilizing multiple CPU threads for speed"
+vcfanno,vcfanno_09,vcfanno_09_09,informal,"Hey, can you help me add a flag for variants overlapping a BED region of interest?"
+vcfanno,vcfanno_09,vcfanno_09_10,alternative,Perform: add a flag for variants overlapping a BED region of interest
 vcfanno,vcfanno_10,vcfanno_10_01,original,compute mean coverage at each variant position from a BAM file with default parameters
 vcfanno,vcfanno_10,vcfanno_10_02,beginner,How do I compute mean coverage at each variant position from a BAM file with default parameters?
 vcfanno,vcfanno_10,vcfanno_10_03,student,I need to compute mean coverage at each variant position from a BAM file with default parameters
@@ -15276,7 +15276,7 @@ vcftools,vcftools_08,vcftools_08_04,polite,Please filter VCF to biallelic SNPs w
 vcftools,vcftools_08,vcftools_08_05,sysadmin,Use vcftools to filter VCF to biallelic SNPs with minimum depth and write output to a file
 vcftools,vcftools_08,vcftools_08_06,goal_oriented,I want to filter VCF to biallelic SNPs with minimum depth and write output to a file
 vcftools,vcftools_08,vcftools_08_07,expert,filter VCF biallelic SNPs minimum depth write output file
-vcftools,vcftools_08,vcftools_08_08,detailed,I have data that I need to process: filter VCF to biallelic SNPs with minimum depth and write output to a file
+vcftools,vcftools_08,vcftools_08_08,detailed,"I have data that I need to process: filter VCF to biallelic SNPs with minimum depth and write output to a file, saving the result to a specified output file"
 vcftools,vcftools_08,vcftools_08_09,informal,"Hey, can you help me filter VCF to biallelic SNPs with minimum depth and write output to a file?"
 vcftools,vcftools_08,vcftools_08_10,alternative,Write output to a file after filter VCF to biallelic SNPs with minimum depth
 vcftools,vcftools_09,vcftools_09_01,original,compute pairwise FST between two populations in quiet mode
@@ -15576,7 +15576,7 @@ verkko,verkko_08,verkko_08_04,polite,Please assemble a genome with both HiFi and
 verkko,verkko_08,verkko_08_05,sysadmin,Use verkko to assemble a genome with both HiFi and ONT reads for maximum continuity and write output to a file
 verkko,verkko_08,verkko_08_06,goal_oriented,I want to assemble a genome with both HiFi and ONT reads for maximum continuity and write output to a file
 verkko,verkko_08,verkko_08_07,expert,assemble genome both HiFi ONT reads maximum continuity write output file
-verkko,verkko_08,verkko_08_08,detailed,"I have data that I need to process: assemble a genome with both HiFi and ONT reads for maximum continuity and write output to a file, utilizing multiple CPU threads for speed"
+verkko,verkko_08,verkko_08_08,detailed,"I have data that I need to process: assemble a genome with both HiFi and ONT reads for maximum continuity and write output to a file, utilizing multiple CPU threads for speed, saving the result to a specified output file"
 verkko,verkko_08,verkko_08_09,informal,"Hey, can you help me assemble a genome with both HiFi and ONT reads for maximum continuity and write output to a file?"
 verkko,verkko_08,verkko_08_10,alternative,ONT reads for maximum continuity and write output to a file after assemble a genome with both HiFi
 verkko,verkko_09,verkko_09_01,original,perform haplotype-resolved assembly with trio binning in quiet mode

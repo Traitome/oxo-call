@@ -15,8 +15,8 @@ arriba,rna-seq,claude-3-5-sonnet-20241022,300,1.0000,1.0000,1.0000,1.0000
 arriba,rna-seq,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
 arriba,rna-seq,gpt-4o-mini,300,1.0000,1.0000,1.0000,1.0000
 augustus,annotation,claude-3-5-sonnet-20241022,300,0.9988,0.9900,0.9980,1.0000
-augustus,annotation,gpt-4o,300,0.9992,0.9900,0.9988,1.0000
-augustus,annotation,gpt-4o-mini,300,0.9992,0.9800,0.9988,1.0000
+augustus,annotation,gpt-4o,300,0.9990,0.9900,0.9983,1.0000
+augustus,annotation,gpt-4o-mini,300,0.9991,0.9800,0.9986,1.0000
 awk,text-processing,claude-3-5-sonnet-20241022,300,1.0000,1.0000,1.0000,1.0000
 awk,text-processing,gpt-4o,300,0.9993,0.9900,1.0000,1.0000
 awk,text-processing,gpt-4o-mini,300,1.0000,1.0000,1.0000,1.0000
@@ -37,7 +37,7 @@ bcftools,variant-calling,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
 bcftools,variant-calling,gpt-4o-mini,300,1.0000,1.0000,1.0000,1.0000
 bedops,genomic-arithmetic,claude-3-5-sonnet-20241022,300,1.0000,1.0000,1.0000,1.0000
 bedops,genomic-arithmetic,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
-bedops,genomic-arithmetic,gpt-4o-mini,300,0.9969,0.9800,0.9963,1.0000
+bedops,genomic-arithmetic,gpt-4o-mini,300,0.9964,0.9800,0.9955,1.0000
 bedtools,genomic-intervals,claude-3-5-sonnet-20241022,300,0.9975,0.9700,0.9983,1.0000
 bedtools,genomic-intervals,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
 bedtools,genomic-intervals,gpt-4o-mini,300,1.0000,1.0000,1.0000,1.0000
@@ -73,7 +73,7 @@ cellranger,single-cell,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
 cellranger,single-cell,gpt-4o-mini,300,1.0000,1.0000,1.0000,1.0000
 cellsnp-lite,single-cell,claude-3-5-sonnet-20241022,300,0.9992,0.9900,0.9993,1.0000
 cellsnp-lite,single-cell,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
-cellsnp-lite,single-cell,gpt-4o-mini,300,0.9996,0.9800,1.0000,1.0000
+cellsnp-lite,single-cell,gpt-4o-mini,300,0.9988,0.9700,0.9993,1.0000
 centrifuge,metagenomics,claude-3-5-sonnet-20241022,300,1.0000,1.0000,1.0000,1.0000
 centrifuge,metagenomics,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
 centrifuge,metagenomics,gpt-4o-mini,300,1.0000,1.0000,1.0000,1.0000
@@ -121,7 +121,7 @@ docker,containerization,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
 docker,containerization,gpt-4o-mini,300,1.0000,1.0000,1.0000,1.0000
 dorado,long-read,claude-3-5-sonnet-20241022,300,1.0000,1.0000,1.0000,1.0000
 dorado,long-read,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
-dorado,long-read,gpt-4o-mini,300,0.9992,0.9900,0.9988,1.0000
+dorado,long-read,gpt-4o-mini,300,0.9991,0.9900,0.9986,1.0000
 eggnog-mapper,functional-annotation,claude-3-5-sonnet-20241022,300,0.9995,0.9800,0.9992,1.0000
 eggnog-mapper,functional-annotation,gpt-4o,300,0.9995,0.9900,0.9992,1.0000
 eggnog-mapper,functional-annotation,gpt-4o-mini,300,1.0000,1.0000,1.0000,1.0000
@@ -150,7 +150,7 @@ flye,assembly,claude-3-5-sonnet-20241022,300,1.0000,1.0000,1.0000,1.0000
 flye,assembly,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
 flye,assembly,gpt-4o-mini,300,1.0000,1.0000,1.0000,1.0000
 freebayes,variant-calling,claude-3-5-sonnet-20241022,300,1.0000,1.0000,1.0000,1.0000
-freebayes,variant-calling,gpt-4o,300,0.9986,0.9700,0.9983,1.0000
+freebayes,variant-calling,gpt-4o,300,0.9985,0.9700,0.9983,1.0000
 freebayes,variant-calling,gpt-4o-mini,300,1.0000,1.0000,1.0000,1.0000
 gatk,variant-calling,claude-3-5-sonnet-20241022,300,1.0000,1.0000,1.0000,1.0000
 gatk,variant-calling,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
@@ -223,7 +223,7 @@ macs2,epigenomics,gpt-4o,300,0.9996,0.9800,1.0000,1.0000
 macs2,epigenomics,gpt-4o-mini,300,1.0000,1.0000,1.0000,1.0000
 mafft,phylogenetics,claude-3-5-sonnet-20241022,300,1.0000,1.0000,1.0000,1.0000
 mafft,phylogenetics,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
-mafft,phylogenetics,gpt-4o-mini,300,0.9973,0.9700,0.9975,1.0000
+mafft,phylogenetics,gpt-4o-mini,300,0.9971,0.9700,0.9971,1.0000
 mamba,package-management,claude-3-5-sonnet-20241022,300,1.0000,1.0000,1.0000,1.0000
 mamba,package-management,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
 mamba,package-management,gpt-4o-mini,300,1.0000,1.0000,1.0000,1.0000
@@ -421,7 +421,7 @@ star,alignment,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
 star,alignment,gpt-4o-mini,300,0.9998,0.9900,1.0000,1.0000
 starsolo,single-cell,claude-3-5-sonnet-20241022,300,0.9997,0.9900,0.9996,1.0000
 starsolo,single-cell,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
-starsolo,single-cell,gpt-4o-mini,300,0.9994,0.9800,0.9993,1.0000
+starsolo,single-cell,gpt-4o-mini,300,0.9995,0.9800,0.9993,1.0000
 strelka2,variant-calling,claude-3-5-sonnet-20241022,300,0.9993,0.9900,0.9994,1.0000
 strelka2,variant-calling,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
 strelka2,variant-calling,gpt-4o-mini,300,1.0000,1.0000,1.0000,1.0000
@@ -457,7 +457,7 @@ vcfanno,variant-annotation,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
 vcfanno,variant-annotation,gpt-4o-mini,300,1.0000,1.0000,1.0000,1.0000
 vcftools,variant-calling,claude-3-5-sonnet-20241022,300,1.0000,1.0000,1.0000,1.0000
 vcftools,variant-calling,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
-vcftools,variant-calling,gpt-4o-mini,300,0.9995,0.9900,0.9992,1.0000
+vcftools,variant-calling,gpt-4o-mini,300,0.9996,0.9900,0.9993,1.0000
 velocyto,single-cell,claude-3-5-sonnet-20241022,300,1.0000,1.0000,1.0000,1.0000
 velocyto,single-cell,gpt-4o,300,0.9995,0.9900,1.0000,1.0000
 velocyto,single-cell,gpt-4o-mini,300,0.9976,0.9800,0.9971,1.0000
