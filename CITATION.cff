@@ -13,8 +13,8 @@ authors:
     affiliation: Traitome
     orcid: "https://orcid.org/0000-0001-9855-7357"
   - name: Traitome
-version: 0.9.2
-date-released: "2026-03-22"
+version: 0.10.0
+date-released: "2026-04-02"
 license: LicenseRef-oxo-call-dual
 url: https://github.com/Traitome/oxo-call
 repository-code: https://github.com/Traitome/oxo-call
