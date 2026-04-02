@@ -128,9 +128,9 @@ fn system_prompt() -> &'static str {
      (11) ARGS must always be valid CLI flags/values (ASCII, tool-specific syntax). \
           EXPLANATION should be written in the same language as the task description. \
      (12) When the task involves piping output to another command, include the full \
-          pipeline in ARGS using | (pipe) and/or > (redirect). Example: for 'bcftools \
-          mpileup ... | bcftools call ...', ARGS should contain the pipe operator and \
-          the downstream command. \
+          pipeline in ARGS using | (pipe) and/or > (redirect) just like you would type \
+          on a shell command line. The base tool name is still prepended automatically \
+          to the first segment of the pipeline. \
      (13) For tools that use positional arguments before flags (e.g., admixture, angsd), \
           place the input file(s) as the first positional argument(s) before any flags."
 }

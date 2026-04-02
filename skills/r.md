@@ -20,7 +20,7 @@ source_url: "https://www.r-project.org/"
 - `pak` is a modern CRAN/GitHub package installer that resolves dependencies faster and in parallel.
 - In HPC/conda environments, R is commonly installed under `~/mambaforge/envs/<env>/lib/R/`; use `conda install -c conda-forge r-base`.
 - The `R CMD BATCH` command runs a script and writes output to a `.Rout` file; useful for cluster job logs.
-- The `r` tool name invokes R-related commands; use `Rscript` as the first argument for script execution, `R` for interactive or `R CMD ...` for R sub-commands.
+- Use `Rscript` as the primary way to run R scripts non-interactively; `R CMD ...` for R sub-commands like BATCH, INSTALL, or check.
 
 ## Pitfalls
 - `install.packages()` without specifying `lib` installs to the first writable path in `.libPaths()`; on shared systems this may be the system library.

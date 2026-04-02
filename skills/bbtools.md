@@ -28,7 +28,7 @@ source_url: "https://jgi.doe.gov/data-and-tools/software-tools/bbtools/"
 - BBMap output SAM/BAM: by default, outputs SAM; add `bamscript=bs.sh; sh bs.sh` or pipe to `samtools` to get a sorted BAM.
 - The `ref/` index directory is created in the working directory by default; set `path=` to change the index location.
 - Running multiple BBTools jobs in the same directory without specifying `path=` causes index conflicts; always specify unique paths.
-- BBTools scripts end in `.sh` (e.g., `bbduk.sh`, not `bbduk`). Always include the `.sh` suffix when invoking.
+- BBTools scripts typically end in `.sh` (e.g., `bbduk.sh`, not `bbduk`). Include the `.sh` suffix when invoking unless the environment provides wrapper symlinks (e.g., conda-installed BBTools).
 
 ## Examples
 
