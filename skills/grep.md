@@ -16,6 +16,7 @@ source_url: "https://www.gnu.org/software/grep/manual/grep.html"
 - Use -r / -R for recursive directory search. Combine with --include='*.py' to restrict to specific file types. Use --exclude-dir='.git' to skip directories.
 - grep returns exit code 0 if matches found, 1 if no matches, 2 on error. This makes it useful in shell conditionals: 'if grep -q pattern file; then ...; fi'.
 - Always use the exact pattern and filename values from the task description — never substitute generic placeholder names like 'keyword', 'file', or 'pattern'.
+- Options can be combined into a single flag group: -inr is equivalent to -i -n -r. Long options (--count, --include) cannot be combined this way.
 
 ## Pitfalls
 
@@ -25,6 +26,8 @@ source_url: "https://www.gnu.org/software/grep/manual/grep.html"
 - -i (case-insensitive) can significantly slow searches on large files with many matches; use with --max-count if only checking existence.
 - grep -v prints non-matching lines — it does NOT delete lines. To remove lines from a file, use sed: 'sed -i '/pattern/d' file'.
 - For counting total matches (not matching lines), use 'grep -o pattern file | wc -l' since -c counts matching LINES, not occurrences.
+- -w matches whole words only — useful to avoid partial matches (e.g., 'grep -w error' won't match 'errors' or 'terror').
+- When using -P (PCRE), some features like lookahead (?=...) and lookbehind (?<=...) are available but are not supported in BRE or ERE modes.
 
 ## Examples
 
@@ -87,3 +90,15 @@ source_url: "https://www.gnu.org/software/grep/manual/grep.html"
 ### binary search: check if a pattern exists (no output, use exit code)
 **Args:** `-q "SUCCESS" results.log`
 **Explanation:** -q suppresses all output; exit code 0 if found, 1 if not; use in shell scripts: 'if grep -q ...'
+
+### search using Perl-compatible regex with lookbehind
+**Args:** `-P "(?<=error:\s)\w+" debug.log`
+**Explanation:** -P enables PCRE; (?<=error:\s) is a lookbehind that matches word characters following 'error: '
+
+### count total occurrences of a pattern, not just matching lines
+**Args:** `-o "GET" access.log | wc -l`
+**Explanation:** -o outputs each match on its own line; piping to wc -l counts total matches (not lines)
+
+### search for lines matching one pattern but not another
+**Args:** `-E "error" app.log | grep -v "timeout"`
+**Explanation:** first grep finds error lines; piped grep -v excludes those containing timeout
