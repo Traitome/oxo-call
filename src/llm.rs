@@ -1,5 +1,6 @@
 use crate::config::Config;
 use crate::error::{OxoError, Result};
+use crate::runner::is_companion_binary;
 use crate::skill::Skill;
 use serde::{Deserialize, Serialize};
 
@@ -125,7 +126,13 @@ fn system_prompt() -> &'static str {
          (BAM vs SAM, gzipped vs plain, paired-end vs single-end). \
      (10) When the task mentions library strandedness, set the correct strand flag for the tool. \
      (11) ARGS must always be valid CLI flags/values (ASCII, tool-specific syntax). \
-          EXPLANATION should be written in the same language as the task description."
+          EXPLANATION should be written in the same language as the task description. \
+     (12) When the task involves piping output to another command, include the full \
+          pipeline in ARGS using | (pipe) and/or > (redirect) just like you would type \
+          on a shell command line. The base tool name is still prepended automatically \
+          to the first segment of the pipeline. \
+     (13) For tools that use positional arguments before flags (e.g., admixture, angsd), \
+          place the input file(s) as the first positional argument(s) before any flags."
 }
 
 // ─── User prompt ─────────────────────────────────────────────────────────────
@@ -173,7 +180,9 @@ fn build_prompt(tool: &str, documentation: &str, task: &str, skill: Option<&Skil
          - Use only flags documented above or shown in the skill examples\n\
          - Prefer flags from the skill examples when they match the task\n\
          - If no arguments are needed, write: ARGS: (none)\n\
-         - Do NOT add markdown, code fences, or extra explanation\n",
+         - Do NOT add markdown, code fences, or extra explanation\n\
+          - When the task involves piping (|) or redirection (>), include them in ARGS\n\
+          - For multi-step tasks, join steps with && in ARGS\n",
     );
 
     prompt
@@ -536,7 +545,10 @@ impl LlmClient {
                 };
 
                 let raw = self.call_api(&user_prompt).await?;
-                let suggestion = Self::parse_response(&raw)?;
+                let mut suggestion = Self::parse_response(&raw)?;
+
+                // Post-process: strip accidental tool name prefix
+                suggestion.args = sanitize_args(tool, suggestion.args);
 
                 if is_valid_suggestion(&suggestion) {
                     return Ok(suggestion);
@@ -909,7 +921,9 @@ impl LlmClient {
             args_line.clear();
         }
 
-        let args = parse_shell_args(&args_line);
+        // Strip markdown code fences that weak LLMs sometimes add
+        let cleaned = strip_code_fences(&args_line);
+        let args = parse_shell_args(cleaned);
 
         Ok(LlmCommandSuggestion {
             args,
@@ -923,6 +937,53 @@ impl LlmClient {
 fn is_valid_suggestion(suggestion: &LlmCommandSuggestion) -> bool {
     // At minimum we need an explanation (ARGS can legitimately be empty)
     !suggestion.explanation.is_empty()
+}
+
+/// Post-process LLM-generated args to fix common mistakes:
+/// - Strip the tool name if LLM accidentally included it as the first argument
+///   (unless it is a recognised companion binary)
+/// - Strip markdown code fences that weak models sometimes add around ARGS
+fn sanitize_args(tool: &str, args: Vec<String>) -> Vec<String> {
+    if args.is_empty() {
+        return args;
+    }
+
+    let mut result = args;
+
+    // If the first arg is exactly the tool name (case-insensitive) and is NOT a
+    // companion binary, drop it — the tool name is prepended by the runner.
+    if let Some(first) = result.first()
+        && first.eq_ignore_ascii_case(tool)
+        && !is_companion_binary(tool, first)
+    {
+        result.remove(0);
+    }
+
+    result
+}
+
+/// Strip markdown code fences from the raw ARGS line before parsing.
+/// Weak LLMs sometimes wrap the response in backticks or triple-backtick blocks.
+fn strip_code_fences(s: &str) -> &str {
+    let trimmed = s.trim();
+    // Triple backtick block: ```...```
+    if let Some(inner) = trimmed.strip_prefix("```") {
+        // May optionally have a language hint on the first line
+        let inner = inner.strip_prefix("bash").unwrap_or(inner);
+        let inner = inner.strip_prefix("sh").unwrap_or(inner);
+        let inner = inner.trim_start_matches('\n');
+        if let Some(inner) = inner.strip_suffix("```") {
+            return inner.trim();
+        }
+        return inner.trim();
+    }
+    // Single backtick wrapper: `...`
+    if let Some(inner) = trimmed.strip_prefix('`')
+        && let Some(inner) = inner.strip_suffix('`')
+    {
+        return inner.trim();
+    }
+    trimmed
 }
 
 // ─── Shell argument parser ────────────────────────────────────────────────────
@@ -2104,5 +2165,120 @@ SUGGESTIONS:
         let result = parse_shell_args("my\\ file.bam");
         // Backslash-space should be treated as escaped space
         assert!(!result.is_empty());
+    }
+
+    // ─── sanitize_args ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_sanitize_args_strips_tool_name() {
+        let args = vec![
+            "samtools".to_string(),
+            "sort".to_string(),
+            "-o".to_string(),
+            "out.bam".to_string(),
+            "in.bam".to_string(),
+        ];
+        let result = sanitize_args("samtools", args);
+        assert_eq!(result, vec!["sort", "-o", "out.bam", "in.bam"]);
+    }
+
+    #[test]
+    fn test_sanitize_args_preserves_companion_binary() {
+        let args = vec![
+            "bowtie2-build".to_string(),
+            "ref.fa".to_string(),
+            "idx".to_string(),
+        ];
+        let result = sanitize_args("bowtie2", args);
+        assert_eq!(result, vec!["bowtie2-build", "ref.fa", "idx"]);
+    }
+
+    #[test]
+    fn test_sanitize_args_no_change_for_flags() {
+        let args = vec!["-o".to_string(), "out.bam".to_string()];
+        let result = sanitize_args("samtools", args);
+        assert_eq!(result, vec!["-o", "out.bam"]);
+    }
+
+    #[test]
+    fn test_sanitize_args_empty() {
+        let result = sanitize_args("samtools", vec![]);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_sanitize_args_case_insensitive() {
+        let args = vec![
+            "Samtools".to_string(),
+            "sort".to_string(),
+            "in.bam".to_string(),
+        ];
+        let result = sanitize_args("samtools", args);
+        assert_eq!(result, vec!["sort", "in.bam"]);
+    }
+
+    // ─── strip_code_fences ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_strip_code_fences_backtick() {
+        assert_eq!(strip_code_fences("`-o out.bam`"), "-o out.bam");
+    }
+
+    #[test]
+    fn test_strip_code_fences_triple_backtick() {
+        assert_eq!(strip_code_fences("```\n-o out.bam\n```"), "-o out.bam");
+    }
+
+    #[test]
+    fn test_strip_code_fences_triple_backtick_with_lang() {
+        assert_eq!(strip_code_fences("```bash\n-o out.bam\n```"), "-o out.bam");
+    }
+
+    #[test]
+    fn test_strip_code_fences_no_fences() {
+        assert_eq!(strip_code_fences("-o out.bam"), "-o out.bam");
+    }
+
+    #[test]
+    fn test_strip_code_fences_preserves_inner_backtick() {
+        assert_eq!(strip_code_fences("in=R1.fastq.gz"), "in=R1.fastq.gz");
+    }
+
+    // ─── system prompt rules ────────────────────────────────────────────────
+
+    #[test]
+    fn test_system_prompt_contains_pipe_rule() {
+        let prompt = system_prompt();
+        assert!(
+            prompt.contains("pipe") || prompt.contains("|"),
+            "system prompt should contain pipe handling rule"
+        );
+    }
+
+    #[test]
+    fn test_system_prompt_contains_positional_arg_rule() {
+        let prompt = system_prompt();
+        assert!(
+            prompt.contains("positional"),
+            "system prompt should contain positional argument rule"
+        );
+    }
+
+    #[test]
+    fn test_build_prompt_contains_pipe_rule() {
+        let prompt = build_prompt("bcftools", "docs", "call variants", None);
+        assert!(
+            prompt.contains("piping") || prompt.contains("|"),
+            "build_prompt should contain pipe rule"
+        );
+    }
+
+    #[test]
+    fn test_build_prompt_contains_multistep_rule() {
+        let prompt = build_prompt("bcftools", "docs", "call variants", None);
+        assert!(
+            prompt.contains("&&"),
+            "build_prompt should contain multi-step rule"
+        );
     }
 }

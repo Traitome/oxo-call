@@ -20,6 +20,7 @@ source_url: "https://www.r-project.org/"
 - `pak` is a modern CRAN/GitHub package installer that resolves dependencies faster and in parallel.
 - In HPC/conda environments, R is commonly installed under `~/mambaforge/envs/<env>/lib/R/`; use `conda install -c conda-forge r-base`.
 - The `R CMD BATCH` command runs a script and writes output to a `.Rout` file; useful for cluster job logs.
+- Use `Rscript` as the primary way to run R scripts non-interactively; `R CMD ...` for R sub-commands like BATCH, INSTALL, or check.
 
 ## Pitfalls
 - `install.packages()` without specifying `lib` installs to the first writable path in `.libPaths()`; on shared systems this may be the system library.
@@ -80,3 +81,15 @@ source_url: "https://www.r-project.org/"
 ### run R CMD BATCH for HPC cluster jobs
 **Args:** `R CMD BATCH --vanilla analysis.R analysis.Rout`
 **Explanation:** runs the script and captures all output to analysis.Rout; --vanilla ensures clean environment; standard pattern for LSF/SLURM jobs
+
+### run an R script with a specific library path
+**Args:** `Rscript -e ".libPaths('/custom/lib'); source('analysis.R')"`
+**Explanation:** sets custom library path before sourcing script; useful when user library is on a different mount point
+
+### install an R package from GitHub using pak
+**Args:** `Rscript -e "pak::pkg_install('user/repo')"`
+**Explanation:** pak resolves and installs the package from GitHub; faster than remotes::install_github for complex dependency trees
+
+### generate a PDF report from an Rmarkdown document
+**Args:** `Rscript -e "rmarkdown::render('report.Rmd', output_format='pdf_document')"`
+**Explanation:** renders Rmd to PDF; requires a LaTeX installation (tinytex::install_tinytex() for lightweight setup)

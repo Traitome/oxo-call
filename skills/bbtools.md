@@ -18,6 +18,7 @@ source_url: "https://jgi.doe.gov/data-and-tools/software-tools/bbtools/"
 - BBMerge combines paired reads that overlap into single merged reads; useful before assembly or for amplicon analysis.
 - `reformat.sh` is a versatile conversion tool: FASTQ↔FASTA, interleaved↔paired, subsample, compress/decompress, rename reads.
 - Decontamination: `bbduk.sh ref=contaminants.fa` filters out reads matching the reference (host removal, PhiX spike removal).
+- BBTools uses `key=value` syntax for parameters, NOT the typical `-flag value` CLI pattern. E.g., `in=reads.fq out=clean.fq ref=adapters.fa`.
 
 ## Pitfalls
 - BBTools requires Java 8 or later; ensure `JAVA_HOME` points to a compatible JVM or load the java module on HPC.
@@ -27,6 +28,7 @@ source_url: "https://jgi.doe.gov/data-and-tools/software-tools/bbtools/"
 - BBMap output SAM/BAM: by default, outputs SAM; add `bamscript=bs.sh; sh bs.sh` or pipe to `samtools` to get a sorted BAM.
 - The `ref/` index directory is created in the working directory by default; set `path=` to change the index location.
 - Running multiple BBTools jobs in the same directory without specifying `path=` causes index conflicts; always specify unique paths.
+- BBTools scripts typically end in `.sh` (e.g., `bbduk.sh`, not `bbduk`). Include the `.sh` suffix when invoking unless the environment provides wrapper symlinks (e.g., conda-installed BBTools).
 
 ## Examples
 
@@ -69,3 +71,15 @@ source_url: "https://jgi.doe.gov/data-and-tools/software-tools/bbtools/"
 ### split reads by genome of origin for metagenomics
 **Args:** `bbsplit.sh in=sample.fastq.gz ref=genome1.fa,genome2.fa out_genome1=reads_genome1.fastq.gz out_genome2=reads_genome2.fastq.gz`
 **Explanation:** bbsplit.sh competitively maps reads to multiple references and bins them by best hit; reads with no match go to ambiguous output; useful for host/pathogen separation
+
+### quality-filter and trim adapters in a single step with memory control
+**Args:** `bbduk.sh -Xmx8g in=R1.fastq.gz in2=R2.fastq.gz out=R1_clean.fastq.gz out2=R2_clean.fastq.gz ref=adapters.fa ktrim=r k=23 mink=11 hdist=1 qtrim=rl trimq=20 minlen=50 threads=16`
+**Explanation:** -Xmx8g limits Java heap to 8GB; combines adapter trimming and quality filtering; threads=16 for parallel processing
+
+### interleave paired-end FASTQ files
+**Args:** `reformat.sh in=R1.fastq.gz in2=R2.fastq.gz out=interleaved.fastq.gz`
+**Explanation:** combines separate R1/R2 files into a single interleaved file; useful for tools that expect interleaved input
+
+### generate quality and length statistics for a FASTQ file
+**Args:** `bbduk.sh in=reads.fastq.gz bhist=base_hist.txt qhist=quality_hist.txt lhist=length_hist.txt`
+**Explanation:** bhist, qhist, and lhist output base composition, quality score, and length distribution histograms respectively

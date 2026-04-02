@@ -15,6 +15,7 @@ source_url: "https://www.gnu.org/software/tar/manual/tar.html"
 - Archive paths: by default tar preserves the directory structure relative to where it was created. Use -C when creating to control the root path stored in the archive.
 - GNU tar accepts operations as short flags (-czf) or long options (--create --gzip --file). Short flags can be combined without a leading dash: 'tar czf archive.tar.gz dir/'.
 - tar does NOT encrypt archives. For encrypted backups combine tar with gpg: 'tar czf - dir/ | gpg -c > archive.tar.gz.gpg'.
+- Flag ordering matters: -f must be the LAST flag in a combined group because it takes the next argument as the archive filename. 'tar -czf' is correct; 'tar -cfz' would treat 'z' as the filename.
 
 ## Pitfalls
 
@@ -24,6 +25,7 @@ source_url: "https://www.gnu.org/software/tar/manual/tar.html"
 - Extracting as root without --no-same-owner can change file ownership to match archive metadata. Use --no-same-owner when extracting community archives.
 - tar -u (update) only adds files newer than the archive copy, but it cannot remove files. For a clean archive, recreate it with -c.
 - On macOS (BSD tar) some GNU tar options (-J for xz, --zstd) may not be available. Install GNU tar via Homebrew: 'brew install gnu-tar'.
+- The flag order -czf is idiomatic and correct: operation (-c), compression (-z), file (-f). Reversing to -cfz is a common mistake.
 
 ## Examples
 
@@ -66,3 +68,15 @@ source_url: "https://www.gnu.org/software/tar/manual/tar.html"
 ### extract a single file from an archive
 **Args:** `-xzf archive.tar.gz path/inside/archive/file.txt`
 **Explanation:** specify the exact path inside the archive as the last argument to extract only that file
+
+### create a zstd-compressed archive
+**Args:** `--zstd -cf archive.tar.zst data/`
+**Explanation:** --zstd uses Zstandard compression (fast + good ratio); -c create; -f specifies archive name
+
+### extract an archive preserving permissions
+**Args:** `-xpzf archive.tar.gz -C /opt/app/`
+**Explanation:** -p preserves file permissions and ownership; -C extracts to the target directory
+
+### compare archive contents with the filesystem
+**Args:** `-dzf archive.tar.gz`
+**Explanation:** -d (diff) compares archive contents with files on disk; reports differences without extracting

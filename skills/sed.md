@@ -15,6 +15,8 @@ source_url: "https://www.gnu.org/software/sed/manual/sed.html"
 - Common commands: s (substitute), d (delete line), p (print line), a (append after), i (insert before), q (quit), y (transliterate). Chain with -e or separate by newline/semicolon.
 - sed uses BRE by default; use -E (or -r on some systems) for extended regex (ERE) which allows +, ?, |, () without escaping.
 - Capture groups: in BRE use \( \) and \1 \2 backreferences; in ERE (-E) use ( ) unescaped. E.g., sed -E 's/(foo)(bar)/\2\1/' swaps foo and bar.
+- Multiple expressions: use -e for each expression, e.g., sed -e 's/a/b/' -e 's/c/d/' file. Or separate with semicolons: sed 's/a/b/;s/c/d/' file.
+- The -n flag suppresses default output; only lines explicitly printed with p will appear. Combine -n with /pattern/p to mimic grep behavior.
 
 ## Pitfalls
 
@@ -24,6 +26,7 @@ source_url: "https://www.gnu.org/software/sed/manual/sed.html"
 - Without the 'g' flag, only the FIRST occurrence on each line is replaced. Add 'g' after the closing delimiter to replace all occurrences.
 - Newlines in the replacement: sed cannot insert newlines with \n in the replacement on all platforms. Use $'\n' or printf for portability.
 - sed 'd' deletes the entire matching line, not just the matching part. To delete only matched text, use 's/pattern//'.
+- When using alternate delimiters (s|pat|repl|), ensure the delimiter does not appear in the pattern or replacement unescaped.
 
 ## Examples
 
@@ -86,3 +89,15 @@ source_url: "https://www.gnu.org/software/sed/manual/sed.html"
 ### strip HTML tags from a file
 **Args:** `'s/<[^>]*>//g' page.html`
 **Explanation:** [^>]* matches any tag content; g removes all tags on each line; output is tag-free text
+
+### apply multiple substitutions in one invocation
+**Args:** `-e 's/red/blue/g' -e 's/old/new/g' file.txt`
+**Explanation:** -e applies each expression in order; both replacements are applied to each line
+
+### number all non-empty lines in a file
+**Args:** `'/./=' file.txt`
+**Explanation:** /./= prints the line number for every non-empty line; combine with -n for selective output
+
+### extract lines between two line numbers
+**Args:** `-n '10,20p' file.txt`
+**Explanation:** -n suppresses default output; 10,20p prints only lines 10 through 20 (inclusive)
