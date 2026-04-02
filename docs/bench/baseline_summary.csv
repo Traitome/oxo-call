@@ -1,4 +1,4 @@
 model,n_trials,accuracy,exact_match_rate,avg_flag_recall,avg_flag_precision,avg_token_jaccard,subcommand_match_rate,consistency,avg_latency_ms,avg_tokens,format_valid_rate
-gpt-4o (baseline),47700,0.9811,0.7409,0.9827,0.9819,0.9675,1.0000,0.7016,0.0,8.7,1.0000
+gpt-4o (baseline),47700,0.9812,0.7409,0.9827,0.9819,0.9675,1.0000,0.7016,0.0,8.7,1.0000
 claude-3-5-sonnet-20241022 (baseline),47700,0.9745,0.6524,0.9766,0.9755,0.9561,1.0000,0.6014,0.0,8.7,1.0000
-gpt-4o-mini (baseline),47700,0.9652,0.5237,0.9679,0.9667,0.9401,1.0000,0.4528,0.0,8.7,1.0000
+gpt-4o-mini (baseline),47700,0.9652,0.5238,0.9679,0.9667,0.9402,1.0000,0.4528,0.0,8.7,1.0000

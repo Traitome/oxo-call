@@ -988,13 +988,63 @@ fn build_command_string(tool: &str, args: &[String]) -> String {
 /// 2. It starts with `{tool}-` or `{tool}_` (it is derived from the tool name).
 /// 3. It contains only `[A-Za-z0-9_-]` characters (looks like a binary name,
 ///    not a file path or an argument value).
+///
+/// Additionally, if `args[0]` is a script-style executable (ends with `.sh`,
+/// `.py`, `.pl`, `.R`, `.rb`, or `.jl`), it is used as the command directly.
+/// This handles tool packages where the actual executables are standalone
+/// scripts with different names (e.g., BBtools → `bbduk.sh`, RSeQC →
+/// `infer_experiment.py`, Strelka2 → `configureStrelkaGermlineWorkflow.py`).
 pub(crate) fn effective_command<'a>(tool: &'a str, args: &'a [String]) -> (&'a str, &'a [String]) {
-    if let Some(first) = args.first()
-        && is_companion_binary(tool, first)
-    {
-        return (first.as_str(), &args[1..]);
+    if let Some(first) = args.first() {
+        if is_companion_binary(tool, first) {
+            return (first.as_str(), &args[1..]);
+        }
+        // Standalone script executables: if the first arg ends with a known
+        // script extension and the stem looks like a binary name (no slashes,
+        // no whitespace), treat it as the actual command.
+        if is_script_executable(first) {
+            return (first.as_str(), &args[1..]);
+        }
     }
     (tool, args)
+}
+
+/// Script extensions recognised as standalone executables.
+const SCRIPT_EXTENSIONS: &[&str] = &[".sh", ".py", ".pl", ".R", ".rb", ".jl"];
+
+/// Returns `true` if `candidate` looks like a standalone script executable.
+///
+/// The candidate must:
+/// 1. End with a known script extension (`.sh`, `.py`, `.pl`, `.R`, `.rb`, `.jl`).
+/// 2. Not contain path separators (`/`, `\`) — to avoid treating file paths as commands.
+/// 3. Have a stem (before extension) that contains only `[A-Za-z0-9_-]` characters.
+///
+/// Examples:
+/// - `is_script_executable("bbduk.sh")` → `true`
+/// - `is_script_executable("infer_experiment.py")` → `true`
+/// - `is_script_executable("script.py")` → `true`
+/// - `is_script_executable("input.fastq.gz")` → `false` (not a script extension)
+/// - `is_script_executable("/path/to/script.py")` → `false` (contains path separator)
+fn is_script_executable(candidate: &str) -> bool {
+    // Must not contain path separators.
+    if candidate.contains('/') || candidate.contains('\\') {
+        return false;
+    }
+    // Must not start with a dash (flag).
+    if candidate.starts_with('-') {
+        return false;
+    }
+    // Check for a known script extension.
+    for ext in SCRIPT_EXTENSIONS {
+        if let Some(stem) = candidate.strip_suffix(ext) {
+            // Stem must be non-empty and look like a binary name.
+            return !stem.is_empty()
+                && stem
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || c == '-' || c == '_');
+        }
+    }
+    false
 }
 
 /// Returns `true` if `candidate` looks like a companion binary of `tool`.
@@ -1686,5 +1736,60 @@ mod tests {
             eff_args,
             &["--bam", "input.bam", "--referenceFasta", "ref.fa"]
         );
+    }
+
+    #[test]
+    fn test_effective_command_standalone_script() {
+        // bbduk.sh is a standalone script from the bbtools package
+        let args: Vec<String> = vec![
+            "bbduk.sh".to_string(),
+            "in=reads.fq".to_string(),
+            "out=clean.fq".to_string(),
+            "ref=adapters.fa".to_string(),
+        ];
+        let (eff_tool, eff_args) = effective_command("bbtools", &args);
+        assert_eq!(eff_tool, "bbduk.sh");
+        assert_eq!(
+            eff_args,
+            &["in=reads.fq", "out=clean.fq", "ref=adapters.fa"]
+        );
+    }
+
+    #[test]
+    fn test_effective_command_rseqc_script() {
+        // infer_experiment.py is a standalone RSeQC script
+        let args: Vec<String> = vec![
+            "infer_experiment.py".to_string(),
+            "-i".to_string(),
+            "aligned.bam".to_string(),
+            "-r".to_string(),
+            "ref.bed".to_string(),
+        ];
+        let (eff_tool, eff_args) = effective_command("rseqc", &args);
+        assert_eq!(eff_tool, "infer_experiment.py");
+        assert_eq!(eff_args, &["-i", "aligned.bam", "-r", "ref.bed"]);
+    }
+
+    #[test]
+    fn test_is_script_executable() {
+        assert!(is_script_executable("bbduk.sh"));
+        assert!(is_script_executable("infer_experiment.py"));
+        assert!(is_script_executable("annotatePeaks.pl"));
+        assert!(is_script_executable("draw_fusions.R"));
+        assert!(is_script_executable("configureStrelkaGermlineWorkflow.py"));
+        // NOT script executables:
+        assert!(!is_script_executable("reads.fastq.gz")); // data file extension
+        assert!(!is_script_executable("-i")); // flag
+        assert!(!is_script_executable("/usr/bin/script.py")); // path
+        assert!(!is_script_executable("sort")); // no extension
+        assert!(!is_script_executable("input.bam")); // data file
+    }
+
+    #[test]
+    fn test_effective_command_data_file_not_script() {
+        // A data file like input.bam should NOT be treated as a script executable
+        let args: Vec<String> = vec!["input.bam".to_string(), "-o".to_string()];
+        let (eff_tool, _) = effective_command("samtools", &args);
+        assert_eq!(eff_tool, "samtools");
     }
 }

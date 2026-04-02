@@ -114,6 +114,11 @@ fn system_prompt() -> &'static str {
          name as the very first token. The system detects companion binaries automatically \
          (first token starts with '<tool>-' or '<tool>_') and uses them as the actual \
          executable — do NOT add the base tool name before it. \
+         SCRIPT EXECUTABLE EXCEPTION: Some tools are packages of standalone scripts \
+         (e.g., BBtools → 'bbduk.sh', RSeQC → 'infer_experiment.py', Strelka2 → \
+         'configureStrelkaGermlineWorkflow.py'). If the skill documentation shows a \
+         script name ending in .sh/.py/.pl/.R as the first token, use it directly \
+         as the first ARGS token — the system will detect it and run it as the command. \
      (3) Always include any file names or paths mentioned in the task description. \
      (4) Prefer complete, production-ready commands with appropriate thread counts and output files. \
      (5) If the task is ambiguous, choose the most common bioinformatics convention \
@@ -174,6 +179,9 @@ fn build_prompt(tool: &str, documentation: &str, task: &str, skill: Option<&Skil
          - COMPANION BINARY: If the skill says the task needs a companion binary (e.g., \
            'bowtie2-build' for bowtie2 index building), put that companion binary name \
            as the FIRST token in ARGS — the system will use it as the actual executable\n\
+         - SCRIPT EXECUTABLE: If the skill shows a script (e.g., 'bbduk.sh', \
+           'infer_experiment.py', 'configureStrelkaGermlineWorkflow.py') as the first \
+           token, use it directly — the system will detect and run it as the command\n\
          - ARGS must only contain valid CLI flags and values (ASCII, tool syntax)\n\
          - EXPLANATION should be written in the same language as the Task above\n\
          - Include every file path mentioned in the task\n\

@@ -561,12 +561,12 @@ hap_py,hap_py_09,-r reference.fa GIAB_truth.vcf.gz query_calls.vcf.gz -o benchma
 hap_py,hap_py_10,-r reference.fa truth.vcf.gz query.vcf.gz -o results --engine vcfeval -f confident.bed --report-prefix detailed_report --threads 8,benchmark with Stratification for SNPs and indels separately with default parameters,variant-calling
 hifiasm,hifiasm_01,-o assembly -t 32 hifi_reads.fastq.gz,assemble genome from PacBio HiFi reads,assembly
 hifiasm,hifiasm_02,-o phased_assembly -t 32 --h1 hic_R1.fastq.gz --h2 hic_R2.fastq.gz hifi_reads.fastq.gz,haplotype-resolved assembly with Hi-C phasing data,assembly
-hifiasm,hifiasm_03,"/^S/ {print "">""$2; print $3}",convert hifiasm GFA output to FASTA,assembly
+hifiasm,hifiasm_03,-o assembly -t 32 --n-hap 4 hifi_reads.fastq.gz,assemble genome with custom number of haplotype rounds,assembly
 hifiasm,hifiasm_04,-o assembly -t 32 --ul ultralong_reads.fastq.gz hifi_reads.fastq.gz,assemble with ultra-long ONT reads for improved scaffolding,assembly
 hifiasm,hifiasm_05,-o assembly -t 32 -l 3 hifi_reads.fastq.gz,assemble with aggressive duplicate purging,assembly
 hifiasm,hifiasm_06,-o assembly -t 32 hifi_reads.fastq.gz --verbose,assemble genome from PacBio HiFi reads with verbose output,assembly
 hifiasm,hifiasm_07,-o phased_assembly -t 32 --h1 hic_R1.fastq.gz --h2 hic_R2.fastq.gz hifi_reads.fastq.gz,haplotype-resolved assembly with Hi-C phasing data using multiple threads,assembly
-hifiasm,hifiasm_08,"/^S/ {print "">""$2; print $3}",convert hifiasm GFA output to FASTA,assembly
+hifiasm,hifiasm_08,-o assembly -t 32 --n-hap 4 hifi_reads.fastq.gz,assemble genome with custom number of haplotype rounds and write output to a file,assembly
 hifiasm,hifiasm_09,-o assembly -t 32 --ul ultralong_reads.fastq.gz hifi_reads.fastq.gz --quiet,assemble with ultra-long ONT reads for improved scaffolding in quiet mode,assembly
 hifiasm,hifiasm_10,-o assembly -t 32 -l 3 hifi_reads.fastq.gz,assemble with aggressive duplicate purging with default parameters,assembly
 hisat2,hisat2_01,hisat2-build -p 8 genome.fa genome_index,build a HISAT2 genome index from a reference FASTA,alignment

@@ -5619,16 +5619,16 @@ hifiasm,hifiasm_02,hifiasm_02_07,expert,haplotype-resolved assembly Hi-C phasing
 hifiasm,hifiasm_02,hifiasm_02_08,detailed,"I have data that I need to process: haplotype-resolved assembly with Hi-C phasing data, utilizing multiple CPU threads for speed, saving the result to a specified output file"
 hifiasm,hifiasm_02,hifiasm_02_09,informal,"Hey, can you help me haplotype-resolved assembly with Hi-C phasing data?"
 hifiasm,hifiasm_02,hifiasm_02_10,alternative,"With Hi-C phasing data, haplotype-resolved assembly"
-hifiasm,hifiasm_03,hifiasm_03_01,original,convert hifiasm GFA output to FASTA
-hifiasm,hifiasm_03,hifiasm_03_02,beginner,How do I convert hifiasm GFA output to FASTA?
-hifiasm,hifiasm_03,hifiasm_03_03,student,I need to convert hifiasm GFA output to FASTA
-hifiasm,hifiasm_03,hifiasm_03_04,polite,Please convert hifiasm GFA output to FASTA
-hifiasm,hifiasm_03,hifiasm_03_05,sysadmin,Use hifiasm to convert hifiasm GFA output to FASTA
-hifiasm,hifiasm_03,hifiasm_03_06,goal_oriented,I want to convert hifiasm GFA output to FASTA
-hifiasm,hifiasm_03,hifiasm_03_07,expert,convert hifiasm GFA output FASTA
-hifiasm,hifiasm_03,hifiasm_03_08,detailed,I have data that I need to process: convert hifiasm GFA output to FASTA
-hifiasm,hifiasm_03,hifiasm_03_09,informal,"Hey, can you help me convert hifiasm GFA output to FASTA?"
-hifiasm,hifiasm_03,hifiasm_03_10,alternative,Output FASTA by performing: convert hifiasm GFA output
+hifiasm,hifiasm_03,hifiasm_03_01,original,assemble genome with custom number of haplotype rounds
+hifiasm,hifiasm_03,hifiasm_03_02,beginner,How do I assemble genome with custom number of haplotype rounds?
+hifiasm,hifiasm_03,hifiasm_03_03,student,I need to assemble genome with custom number of haplotype rounds
+hifiasm,hifiasm_03,hifiasm_03_04,polite,Please assemble genome with custom number of haplotype rounds
+hifiasm,hifiasm_03,hifiasm_03_05,sysadmin,Use hifiasm to assemble genome with custom number of haplotype rounds
+hifiasm,hifiasm_03,hifiasm_03_06,goal_oriented,I want to assemble genome with custom number of haplotype rounds
+hifiasm,hifiasm_03,hifiasm_03_07,expert,assemble genome custom number of haplotype rounds
+hifiasm,hifiasm_03,hifiasm_03_08,detailed,"I have data that I need to process: assemble genome with custom number of haplotype rounds, utilizing multiple CPU threads for speed, saving the result to a specified output file"
+hifiasm,hifiasm_03,hifiasm_03_09,informal,"Hey, can you help me assemble genome with custom number of haplotype rounds?"
+hifiasm,hifiasm_03,hifiasm_03_10,alternative,"With custom number of haplotype rounds, assemble genome"
 hifiasm,hifiasm_04,hifiasm_04_01,original,assemble with ultra-long ONT reads for improved scaffolding
 hifiasm,hifiasm_04,hifiasm_04_02,beginner,How do I assemble with ultra-long ONT reads for improved scaffolding?
 hifiasm,hifiasm_04,hifiasm_04_03,student,I need to assemble with ultra-long ONT reads for improved scaffolding
@@ -5669,16 +5669,16 @@ hifiasm,hifiasm_07,hifiasm_07_07,expert,haplotype-resolved assembly Hi-C phasing
 hifiasm,hifiasm_07,hifiasm_07_08,detailed,"I have data that I need to process: haplotype-resolved assembly with Hi-C phasing data using multiple threads, utilizing multiple CPU threads for speed, saving the result to a specified output file"
 hifiasm,hifiasm_07,hifiasm_07_09,informal,"Hey, can you help me haplotype-resolved assembly with Hi-C phasing data using multiple threads?"
 hifiasm,hifiasm_07,hifiasm_07_10,alternative,"With Hi-C phasing data using multiple threads, haplotype-resolved assembly"
-hifiasm,hifiasm_08,hifiasm_08_01,original,convert hifiasm GFA output to FASTA
-hifiasm,hifiasm_08,hifiasm_08_02,beginner,How do I convert hifiasm GFA output to FASTA?
-hifiasm,hifiasm_08,hifiasm_08_03,student,I need to convert hifiasm GFA output to FASTA
-hifiasm,hifiasm_08,hifiasm_08_04,polite,Please convert hifiasm GFA output to FASTA
-hifiasm,hifiasm_08,hifiasm_08_05,sysadmin,Use hifiasm to convert hifiasm GFA output to FASTA
-hifiasm,hifiasm_08,hifiasm_08_06,goal_oriented,I want to convert hifiasm GFA output to FASTA
-hifiasm,hifiasm_08,hifiasm_08_07,expert,convert hifiasm GFA output FASTA
-hifiasm,hifiasm_08,hifiasm_08_08,detailed,I have data that I need to process: convert hifiasm GFA output to FASTA
-hifiasm,hifiasm_08,hifiasm_08_09,informal,"Hey, can you help me convert hifiasm GFA output to FASTA?"
-hifiasm,hifiasm_08,hifiasm_08_10,alternative,Output FASTA by performing: convert hifiasm GFA output
+hifiasm,hifiasm_08,hifiasm_08_01,original,assemble genome with custom number of haplotype rounds and write output to a file
+hifiasm,hifiasm_08,hifiasm_08_02,beginner,How do I assemble genome with custom number of haplotype rounds and write output to a file?
+hifiasm,hifiasm_08,hifiasm_08_03,student,I need to assemble genome with custom number of haplotype rounds and write output to a file
+hifiasm,hifiasm_08,hifiasm_08_04,polite,Please assemble genome with custom number of haplotype rounds and write output to a file
+hifiasm,hifiasm_08,hifiasm_08_05,sysadmin,Use hifiasm to assemble genome with custom number of haplotype rounds and write output to a file
+hifiasm,hifiasm_08,hifiasm_08_06,goal_oriented,I want to assemble genome with custom number of haplotype rounds and write output to a file
+hifiasm,hifiasm_08,hifiasm_08_07,expert,assemble genome custom number of haplotype rounds write output file
+hifiasm,hifiasm_08,hifiasm_08_08,detailed,"I have data that I need to process: assemble genome with custom number of haplotype rounds and write output to a file, utilizing multiple CPU threads for speed, saving the result to a specified output file"
+hifiasm,hifiasm_08,hifiasm_08_09,informal,"Hey, can you help me assemble genome with custom number of haplotype rounds and write output to a file?"
+hifiasm,hifiasm_08,hifiasm_08_10,alternative,Write output to a file after assemble genome with custom number of haplotype rounds
 hifiasm,hifiasm_09,hifiasm_09_01,original,assemble with ultra-long ONT reads for improved scaffolding in quiet mode
 hifiasm,hifiasm_09,hifiasm_09_02,beginner,How do I assemble with ultra-long ONT reads for improved scaffolding in quiet mode?
 hifiasm,hifiasm_09,hifiasm_09_03,student,I need to assemble with ultra-long ONT reads for improved scaffolding in quiet mode

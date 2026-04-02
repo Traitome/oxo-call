@@ -37,9 +37,9 @@ source_url: "https://github.com/chhylp123/hifiasm"
 **Args:** `-o phased_assembly -t 32 --h1 hic_R1.fastq.gz --h2 hic_R2.fastq.gz hifi_reads.fastq.gz`
 **Explanation:** --h1/--h2 provide Hi-C reads for haplotype phasing alongside HiFi reads
 
-### convert hifiasm GFA output to FASTA
-**Args:** `/^S/ {print ">"$2; print $3}`
-**Explanation:** awk command: awk '/^S/ {print ">"$2; print $3}' assembly.bp.hap1.p_ctg.gfa > hap1.fasta
+### assemble genome with custom number of haplotype rounds
+**Args:** `-o assembly -t 32 --n-hap 4 hifi_reads.fastq.gz`
+**Explanation:** --n-hap 4 sets expected ploidy level to 4; default is 2 for diploid assemblies
 
 ### assemble with ultra-long ONT reads for improved scaffolding
 **Args:** `-o assembly -t 32 --ul ultralong_reads.fastq.gz hifi_reads.fastq.gz`
