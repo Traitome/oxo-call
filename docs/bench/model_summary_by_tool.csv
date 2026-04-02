@@ -361,7 +361,7 @@ rm,filesystem,gpt-4o,300,0.9983,0.9900,1.0000,1.0000
 rm,filesystem,gpt-4o-mini,300,1.0000,1.0000,1.0000,1.0000
 rsem,rna-seq,claude-3-5-sonnet-20241022,300,1.0000,1.0000,1.0000,1.0000
 rsem,rna-seq,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
-rsem,rna-seq,gpt-4o-mini,300,0.9991,0.9900,0.9986,1.0000
+rsem,rna-seq,gpt-4o-mini,300,0.9990,0.9900,0.9983,1.0000
 rseqc,quality-control,claude-3-5-sonnet-20241022,300,1.0000,1.0000,1.0000,1.0000
 rseqc,quality-control,gpt-4o,300,0.9987,0.9800,1.0000,1.0000
 rseqc,quality-control,gpt-4o-mini,300,1.0000,1.0000,1.0000,1.0000

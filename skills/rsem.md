@@ -62,9 +62,9 @@ source_url: "https://deweylab.github.io/RSEM/"
 **Args:** `rsem-calculate-expression --paired-end --num-threads 8 --estimate-rspd --strandedness none R1.fq.gz R2.fq.gz rsem_index/genome sample`
 **Explanation:** --estimate-rspd corrects for non-uniform read start positions; --strandedness none for unstranded libraries
 
-### extract TPM values for gene-level expression across samples
-**Args:** `rsem-generate-data-matrix --tpm sample1.genes.results sample2.genes.results sample3.genes.results > tpm_matrix.txt`
-**Explanation:** --tpm flag produces TPM values instead of expected_count; useful for normalization-free visualization
+### extract TPM column from RSEM gene results for cross-sample comparison
+**Args:** `rsem-generate-data-matrix sample1.genes.results sample2.genes.results sample3.genes.results > count_matrix.txt`
+**Explanation:** rsem-generate-data-matrix extracts expected_count columns; for TPM use 'cut -f1,6' on individual .genes.results files
 
 ### calculate expression with confidence intervals for uncertainty estimation
 **Args:** `rsem-calculate-expression --paired-end --num-threads 8 --calc-ci R1.fastq.gz R2.fastq.gz rsem_index/genome sample_ci`

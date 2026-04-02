@@ -29,16 +29,16 @@ angsd,angsd_07,-bam bam_list.txt -GL 1 -doGlf 2 -doMaf 1 -SNP_pval 1e-6 -minMapQ
 angsd,angsd_08,-bam pop1_bams.txt -GL 1 -doSaf 1 -anc ancestral.fasta -minMapQ 30 -minQ 20 -nThreads 16 -out pop1 -o output.txt,compute per-site allele frequency spectrum for a single population and write output to a file,population-genomics
 angsd,angsd_09,realSFS pop1.saf.idx -P 16 > pop1.sfs,estimate 1D site frequency spectrum from doSaf output,population-genomics
 angsd,angsd_10,-bam pop1_bams.txt -GL 1 -doSaf 1 -doThetas 1 -pest pop1.sfs -anc ancestral.fasta -minMapQ 30 -minQ 20 -out pop1_thetas,estimate Watterson's theta and Tajima's D in sliding windows with default parameters,population-genomics
-annot8r,annot8r_01,emapper.py -i proteins.faa --output eggnog_annotation --output_dir eggnog_results/ -m diamond --cpu 16 --go_evidence non-electronic,"annotate proteins with eggNOG-mapper for GO, KEGG, and COG terms",annotation
-annot8r,annot8r_02,interproscan.sh -i proteins.faa -f tsv -o interpro_results.tsv --cpu 8 --goterms --pathways,run InterProScan for protein domain and GO annotation,annotation
-annot8r,annot8r_03,emapper.py -i proteins.faa --data_dir /path/to/eggnog_db/ --output annotation --cpu 16 --override,annotate with eggNOG-mapper using pre-downloaded database,annotation
-annot8r,annot8r_04,emapper.py -i proteins.faa --output eggnog_annotation --output_dir eggnog_results/ -m diamond --cpu 16 --go_evidence non-electronic --quiet,"annotate proteins with eggNOG-mapper for GO, KEGG, and COG terms in quiet mode",annotation
-annot8r,annot8r_05,interproscan.sh -i proteins.faa -f tsv -o interpro_results.tsv --cpu 8 --goterms --pathways,run InterProScan for protein domain and GO annotation with default parameters,annotation
-annot8r,annot8r_06,emapper.py -i proteins.faa --data_dir /path/to/eggnog_db/ --output annotation --cpu 16 --override --verbose,annotate with eggNOG-mapper using pre-downloaded database with verbose output,annotation
-annot8r,annot8r_07,emapper.py -i proteins.faa --output eggnog_annotation --output_dir eggnog_results/ -m diamond --cpu 16 --go_evidence non-electronic -t 4,"annotate proteins with eggNOG-mapper for GO, KEGG, and COG terms using multiple threads",annotation
-annot8r,annot8r_08,interproscan.sh -i proteins.faa -f tsv -o interpro_results.tsv --cpu 8 --goterms --pathways,run InterProScan for protein domain and GO annotation and write output to a file,annotation
-annot8r,annot8r_09,emapper.py -i proteins.faa --data_dir /path/to/eggnog_db/ --output annotation --cpu 16 --override --quiet,annotate with eggNOG-mapper using pre-downloaded database in quiet mode,annotation
-annot8r,annot8r_10,emapper.py -i proteins.faa --output eggnog_annotation --output_dir eggnog_results/ -m diamond --cpu 16 --go_evidence non-electronic,"annotate proteins with eggNOG-mapper for GO, KEGG, and COG terms with default parameters",annotation
+annot8r,annot8r_01,-blast blastp -in proteins.faa -db annot8r_db/go_db -evalue 1e-10 -out go_annotations.txt,run BLAST search for GO term annotation of protein sequences,annotation
+annot8r,annot8r_02,-blast blastx -in contigs.fasta -db annot8r_db/kegg_db -evalue 1e-5 -out kegg_annotations.txt,annotate nucleotide sequences with KEGG pathway terms,annotation
+annot8r,annot8r_03,-blast blastp -in proteins.faa -db annot8r_db/go_db -evalue 1e-20 -identity 70 -out stringent_go.txt,run GO annotation with strict identity threshold,annotation
+annot8r,annot8r_04,-blast blastp -in proteins.faa -db annot8r_db/ec_db -evalue 1e-10 -out ec_annotations.txt,annotate with EC number database for enzyme classification,annotation
+annot8r,annot8r_05,-blast blastp -in all_proteins.faa -db annot8r_db/go_db -evalue 1e-10 -cpu 8 -out batch_go_annotations.txt,batch annotate multiple FASTA files with GO terms,annotation
+annot8r,annot8r_06,-blast blastp -in proteins.faa -db annot8r_db/go_db -evalue 1e-10 -out go_annotations.txt --verbose,run BLAST search for GO term annotation of protein sequences with verbose output,annotation
+annot8r,annot8r_07,-blast blastx -in contigs.fasta -db annot8r_db/kegg_db -evalue 1e-5 -out kegg_annotations.txt -t 4,annotate nucleotide sequences with KEGG pathway terms using multiple threads,annotation
+annot8r,annot8r_08,-blast blastp -in proteins.faa -db annot8r_db/go_db -evalue 1e-20 -identity 70 -out stringent_go.txt -o output.txt,run GO annotation with strict identity threshold and write output to a file,annotation
+annot8r,annot8r_09,-blast blastp -in proteins.faa -db annot8r_db/ec_db -evalue 1e-10 -out ec_annotations.txt --quiet,annotate with EC number database for enzyme classification in quiet mode,annotation
+annot8r,annot8r_10,-blast blastp -in all_proteins.faa -db annot8r_db/go_db -evalue 1e-10 -cpu 8 -out batch_go_annotations.txt,batch annotate multiple FASTA files with GO terms with default parameters,annotation
 arriba,arriba_01,--runMode alignReads --genomeDir /star_index/ --readFilesIn R1.fastq.gz R2.fastq.gz --readFilesCommand zcat --runThreadN 8 --outSAMtype BAM SortedByCoordinate --outFileNamePrefix sample/ --chimSegmentMin 10 --chimOutType WithinBAM --chimJunctionOverhangMin 10 --chimScoreDropMax 30 --peOverlapNbasesMin 12,run STAR with chimeric output for Arriba fusion detection,rna-seq
 arriba,arriba_02,-x sample/Aligned.sortedByCoord.out.bam -o fusions.tsv -O discarded_fusions.tsv -g genome.fa -a genes.gtf -b blacklist_hg38_GRCh38_v2.4.0.tsv.gz,detect gene fusions with Arriba,rna-seq
 arriba,arriba_03,draw_fusions.R --fusions=fusions.tsv --alignments=sample/Aligned.sortedByCoord.out.bam --genome=genome.fa --annotation=genes.gtf --output=fusion_plots.pdf,visualize detected fusions with Arriba draw_fusions,rna-seq
@@ -1207,7 +1207,7 @@ rsem,rsem_05,rsem-generate-data-matrix sample1.genes.results sample2.genes.resul
 rsem,rsem_06,rsem-calculate-expression --num-threads 8 reads.fastq.gz rsem_index/genome sample_output,quantify single-end RNA-seq reads using RSEM,rna-seq
 rsem,rsem_07,rsem-prepare-reference --gtf genes.gtf --num-threads 8 --polyA genome.fa rsem_polyA_index/genome,prepare RSEM reference with Bowtie2 and poly-A trimming for scRNA-seq,rna-seq
 rsem,rsem_08,rsem-calculate-expression --paired-end --num-threads 8 --estimate-rspd --strandedness none R1.fq.gz R2.fq.gz rsem_index/genome sample,quantify with RSEM and estimate read start position distribution,rna-seq
-rsem,rsem_09,rsem-generate-data-matrix --tpm sample1.genes.results sample2.genes.results sample3.genes.results > tpm_matrix.txt,extract TPM values for gene-level expression across samples,rna-seq
+rsem,rsem_09,rsem-generate-data-matrix sample1.genes.results sample2.genes.results sample3.genes.results > count_matrix.txt,extract TPM column from RSEM gene results for cross-sample comparison,rna-seq
 rsem,rsem_10,rsem-calculate-expression --paired-end --num-threads 8 --calc-ci R1.fastq.gz R2.fastq.gz rsem_index/genome sample_ci,calculate expression with confidence intervals for uncertainty estimation,rna-seq
 rseqc,rseqc_01,infer_experiment.py -r hg38.bed -i sorted.bam -s 2000000,infer library strandedness from a BAM,quality-control
 rseqc,rseqc_02,read_distribution.py -r hg38.bed -i sorted.bam,get read distribution across genomic features,quality-control
@@ -1342,13 +1342,13 @@ sniffles,sniffles_10,--input tumor.bam --vcf mosaic_svs.vcf --mosaic --threads 8
 snpeff,snpeff_01,ann -v GRCh38.105 variants.vcf > annotated.vcf,annotate variants in a VCF file using the GRCh38 human genome database,variant-annotation
 snpeff,snpeff_02,ann -v -stats snpeff_summary.html GRCh38.105 variants.vcf > annotated.vcf,annotate variants and generate an HTML statistics report,variant-annotation
 snpeff,snpeff_03,ann -v hg19 variants.vcf > annotated_hg19.vcf,annotate variants from hg19/GRCh37 genome,variant-annotation
-snpeff,snpeff_04,"filter ""ANN[0].IMPACT = 'HIGH'"" annotated.vcf > high_impact.vcf",filter annotated VCF to keep only HIGH impact variants using SnpSift,variant-annotation
-snpeff,snpeff_05,"extractFields annotated.vcf CHROM POS REF ALT ""ANN[0].GENE"" ""ANN[0].EFFECT"" ""ANN[0].IMPACT"" > variants_table.txt",extract specific fields from annotated VCF using SnpSift extractFields,variant-annotation
+snpeff,snpeff_04,ann -v -no-downstream -no-upstream -no-intron -no-intergenic GRCh38.105 variants.vcf > coding_annotated.vcf,annotate variants and filter by quality for clinical reporting,variant-annotation
+snpeff,snpeff_05,build -gff3 -v MyGenome,build a custom SnpEff genome database from GFF3 annotation,variant-annotation
 snpeff,snpeff_06,ann -v GRCh38.105 variants.vcf > annotated.vcf,annotate variants in a VCF file using the GRCh38 human genome database,variant-annotation
 snpeff,snpeff_07,ann -v -stats snpeff_summary.html GRCh38.105 variants.vcf > annotated.vcf,annotate variants and generate an HTML statistics report,variant-annotation
 snpeff,snpeff_08,ann -v hg19 variants.vcf > annotated_hg19.vcf,annotate variants from hg19/GRCh37 genome,variant-annotation
-snpeff,snpeff_09,"filter ""ANN[0].IMPACT = 'HIGH'"" annotated.vcf > high_impact.vcf",filter annotated VCF to keep only HIGH impact variants using SnpSift,variant-annotation
-snpeff,snpeff_10,"extractFields annotated.vcf CHROM POS REF ALT ""ANN[0].GENE"" ""ANN[0].EFFECT"" ""ANN[0].IMPACT"" > variants_table.txt",extract specific fields from annotated VCF using SnpSift extractFields with default parameters,variant-annotation
+snpeff,snpeff_09,ann -v -no-downstream -no-upstream -no-intron -no-intergenic GRCh38.105 variants.vcf > coding_annotated.vcf,annotate variants and filter by quality for clinical reporting,variant-annotation
+snpeff,snpeff_10,build -gff3 -v MyGenome,build a custom SnpEff genome database from GFF3 annotation with default parameters,variant-annotation
 sourmash,sourmash_01,"sketch dna -p k=31,scaled=1000 genome.fasta -o genome.sig",sketch a genome FASTA file at default parameters,sequence-comparison
 sourmash,sourmash_02,"sketch dna -p k=31,scaled=1000 *.fasta --output-dir sigs/",sketch multiple genome files and store in one database,sequence-comparison
 sourmash,sourmash_03,compare sigs/*.sig --csv similarity_matrix.csv -k 31,compare all signatures in a directory and output similarity matrix,sequence-comparison

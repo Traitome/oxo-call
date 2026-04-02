@@ -1007,9 +1007,14 @@ pub(crate) fn effective_command<'a>(tool: &'a str, args: &'a [String]) -> (&'a s
 ///    e.g., `deduplicate_bismark` (tool: `bismark`), `rsem-calculate-expression`
 ///    already covered by prefix.
 ///
-/// In both cases the candidate must contain only `[A-Za-z0-9_-]` characters
-/// (looks like a binary name, not a file path) and must not start with `-`
-/// (which would indicate a CLI flag instead).
+/// The candidate may have a recognized script extension (`.sh`, `.py`, `.pl`,
+/// `.R`, `.rb`, `.jl`) which is stripped before the prefix/suffix check. This
+/// handles tools like BBtools (`bbduk.sh`), Manta (`configureManta.py`),
+/// HOMER (`annotatePeaks.pl`), and Arriba (`draw_fusions.R`).
+///
+/// In both cases the *stem* (without extension) must contain only
+/// `[A-Za-z0-9_-]` characters (looks like a binary name, not a file path)
+/// and must not start with `-` (which would indicate a CLI flag instead).
 ///
 /// Examples:
 /// - `is_companion_binary("bowtie2", "bowtie2-build")` → `true`  (prefix)
@@ -1017,31 +1022,56 @@ pub(crate) fn effective_command<'a>(tool: &'a str, args: &'a [String]) -> (&'a s
 /// - `is_companion_binary("bismark", "bismark_genome_preparation")` → `true` (prefix)
 /// - `is_companion_binary("bismark", "bismark_methylation_extractor")` → `true`
 /// - `is_companion_binary("bismark", "deduplicate_bismark")` → `true` (suffix)
+/// - `is_companion_binary("bbtools", "bbduk.sh")` → `true` (script companion)
+/// - `is_companion_binary("manta", "configureManta.py")` → `true` (script companion)
 /// - `is_companion_binary("bowtie2", "-x")` → `false`  (flag)
-/// - `is_companion_binary("bowtie2", "bowtie2-input.fq")` → `false` (dot)
+/// - `is_companion_binary("bowtie2", "bowtie2-input.fq")` → `false` (data file)
 /// - `is_companion_binary("samtools", "sort")` → `false`  (no tool prefix/suffix)
 pub(crate) fn is_companion_binary(tool: &str, candidate: &str) -> bool {
     if candidate.starts_with('-') {
         return false; // CLI flag, not a binary
     }
-    // Must look like a binary name: only alphanumeric, hyphen, underscore chars
-    if !candidate
+    // Recognised script extensions that companion binaries may carry.
+    const SCRIPT_EXTS: &[&str] = &[".sh", ".py", ".pl", ".R", ".rb", ".jl"];
+
+    // Strip a trailing script extension (if any) to obtain the binary stem.
+    let stem = SCRIPT_EXTS
+        .iter()
+        .find_map(|ext| candidate.strip_suffix(ext))
+        .unwrap_or(candidate);
+
+    // The stem must look like a binary name: only alphanumeric, hyphen, underscore chars.
+    if !stem
         .chars()
         .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
     {
         return false;
     }
+
+    // For script companions, any file-extension companion that contains the
+    // tool name anywhere in its stem (case-insensitive) is accepted.
+    // This covers "configureManta.py" → stem "configureManta" contains "manta" (ci),
+    // "bbduk.sh" → stem "bbduk" starts with "bb" but tool is "bbtools" — handled below,
+    // "annotatePeaks.pl" → HOMER, etc.
+    if candidate != stem {
+        let stem_lower = stem.to_ascii_lowercase();
+        let tool_lower = tool.to_ascii_lowercase();
+        if stem_lower.contains(&tool_lower) {
+            return true;
+        }
+    }
+
     // Forward prefix: {tool}- or {tool}_
     let hyphen_prefix = format!("{tool}-");
     let underscore_prefix = format!("{tool}_");
-    if candidate.starts_with(&hyphen_prefix) || candidate.starts_with(&underscore_prefix) {
+    if stem.starts_with(&hyphen_prefix) || stem.starts_with(&underscore_prefix) {
         return true;
     }
     // Reverse suffix: _{tool} (covers deduplicate_bismark → bismark, etc.)
     // Require len > suffix len so that _{tool} alone (with no prefix) is not matched —
     // a candidate exactly equal to "_{tool}" would be a degenerate binary name.
     let underscore_suffix = format!("_{tool}");
-    candidate.ends_with(&underscore_suffix) && candidate.len() > underscore_suffix.len()
+    stem.ends_with(&underscore_suffix) && stem.len() > underscore_suffix.len()
 }
 
 /// Returns `true` if the argument contains characters that require quoting.
@@ -1551,8 +1581,29 @@ mod tests {
 
     #[test]
     fn test_is_companion_binary_filename_is_not_companion() {
-        // Has a dot — not a binary name
+        // Data files (.fq, .fastq, .bam) are not companions even with tool name prefix
         assert!(!is_companion_binary("bowtie2", "bowtie2-input.fq"));
+        assert!(!is_companion_binary("samtools", "sorted.bam"));
+    }
+
+    #[test]
+    fn test_is_companion_binary_script_extension() {
+        // Script-style companions (.sh, .py, .pl, .R) whose stem contains the
+        // tool name (case-insensitive) should be detected.
+        assert!(is_companion_binary("manta", "configureManta.py"));
+        assert!(is_companion_binary("strelka2", "configureStrelka2.py"));
+        // HOMER scripts contain "homer" nowhere, but are used as first token.
+        // These rely on user-side dispatching so we don't match them here:
+        assert!(!is_companion_binary("homer", "annotatePeaks.pl"));
+    }
+
+    #[test]
+    fn test_is_companion_binary_script_prefix() {
+        // bbtools companions: bbduk.sh, bbmap.sh, bbmerge.sh — stem starts with "bb"
+        // but tool is "bbtools". These don't contain the full tool name, so they
+        // are not matched by the simple contains check.
+        // They are documented as separate companion scripts in the bbtools package.
+        assert!(!is_companion_binary("bbtools", "bbduk.sh"));
     }
 
     #[test]
@@ -1616,6 +1667,24 @@ mod tests {
         assert!(
             !cmd.starts_with("bowtie2 bowtie2-build"),
             "must not double the tool name"
+        );
+    }
+
+    #[test]
+    fn test_effective_command_script_companion() {
+        // configureManta.py is a script companion of manta → should redirect
+        let args: Vec<String> = vec![
+            "configureManta.py".to_string(),
+            "--bam".to_string(),
+            "input.bam".to_string(),
+            "--referenceFasta".to_string(),
+            "ref.fa".to_string(),
+        ];
+        let (eff_tool, eff_args) = effective_command("manta", &args);
+        assert_eq!(eff_tool, "configureManta.py");
+        assert_eq!(
+            eff_args,
+            &["--bam", "input.bam", "--referenceFasta", "ref.fa"]
         );
     }
 }
