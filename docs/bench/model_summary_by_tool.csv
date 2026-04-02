@@ -460,7 +460,7 @@ vcftools,variant-calling,gpt-4o,300,1.0000,1.0000,1.0000,1.0000
 vcftools,variant-calling,gpt-4o-mini,300,0.9995,0.9900,0.9992,1.0000
 velocyto,single-cell,claude-3-5-sonnet-20241022,300,1.0000,1.0000,1.0000,1.0000
 velocyto,single-cell,gpt-4o,300,0.9995,0.9900,1.0000,1.0000
-velocyto,single-cell,gpt-4o-mini,300,0.9975,0.9800,0.9969,1.0000
+velocyto,single-cell,gpt-4o-mini,300,0.9976,0.9800,0.9971,1.0000
 vep,variant-annotation,claude-3-5-sonnet-20241022,300,1.0000,1.0000,1.0000,1.0000
 vep,variant-annotation,gpt-4o,300,0.9996,0.9900,0.9993,1.0000
 vep,variant-annotation,gpt-4o-mini,300,1.0000,1.0000,1.0000,1.0000

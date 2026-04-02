@@ -1534,7 +1534,7 @@ velocyto,velocyto_02,run -b filtered_barcodes.tsv -o loom_output/ --samtools-thr
 velocyto,velocyto_03,run-smartseq2 -o smartseq_loom/ -m repeat_masker.bed cells/*.bam genes.gtf,run velocyto on Smart-seq2 plate data,single-cell
 velocyto,velocyto_04,run -b barcodes.txt -e experiment_name -o loom_output/ sample.bam genes.gtf,run velocyto on a general BAM with cell barcodes from inDrops,single-cell
 velocyto,velocyto_05,run10x -m hg38_rmsk.bed --samtools-threads 16 /path/to/cellranger_output Homo_sapiens.GRCh38.gtf,run velocyto with repeat masking and multiple threads,single-cell
-velocyto,velocyto_06,loompy combine sample1.loom sample2.loom sample3.loom combined.loom,merge multiple loom files from different samples into one,single-cell
+velocyto,velocyto_06,run10x -m repeat_masker.bed -o sample2_loom/ /path/to/sample2_cellranger_output genes.gtf,run velocyto on multiple 10x samples with per-sample output loom files,single-cell
 velocyto,velocyto_07,run10x -m repeat_masker.bed /path/to/cellranger_output genes.gtf -t 4,run velocyto on a 10x CellRanger output directory using multiple threads,single-cell
 velocyto,velocyto_08,run -b filtered_barcodes.tsv -o loom_output/ --samtools-threads 8 cellranger_output/possorted_genome_bam.bam genes.gtf,run velocyto on a 10x BAM with explicit barcode file and write output to a file,single-cell
 velocyto,velocyto_09,run-smartseq2 -o smartseq_loom/ -m repeat_masker.bed cells/*.bam genes.gtf --quiet,run velocyto on Smart-seq2 plate data in quiet mode,single-cell

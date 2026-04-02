@@ -15,9 +15,10 @@ use oxo_bench::{
     bench::{
         llm::{ModelBenchConfig, canonical_eval_tasks},
         runner::{
-            ModelAggResult, OxoCallGenerator, TrialResult, aggregate_results,
+            ModelAggResult, OxoCallGenerator, TrialResult, aggregate_results, analyse_errors,
             compute_baseline_comparison, run_benchmark, run_mock_baseline, run_mock_benchmark,
-            summarise_by_tool, write_baseline_comparison_csv, write_model_agg_csv,
+            summarise_by_category, summarise_by_tool, write_baseline_comparison_csv,
+            write_category_summary_csv, write_error_analysis_csv, write_model_agg_csv,
             write_tool_model_summary_csv, write_trials_csv,
         },
         scenario::{
@@ -874,6 +875,34 @@ fn cmd_eval(
         );
     }
 
+    // Per-(category, model) summary CSV.
+    let cat_csv_path = output_dir.join("model_summary_by_category.csv");
+    {
+        let cat_summaries = summarise_by_category(&all_trials);
+        let mut f = std::fs::File::create(&cat_csv_path)?;
+        write_category_summary_csv(&mut f, &cat_summaries)?;
+        println!(
+            "{} {} ({} category × model rows)",
+            "✓".green().bold(),
+            cat_csv_path.display().to_string().cyan(),
+            cat_summaries.len()
+        );
+    }
+
+    // Error analysis CSV.
+    let error_csv_path = output_dir.join("error_analysis.csv");
+    {
+        let errors = analyse_errors(&all_trials);
+        let mut f = std::fs::File::create(&error_csv_path)?;
+        write_error_analysis_csv(&mut f, &errors)?;
+        println!(
+            "{} {} ({} models analysed)",
+            "✓".green().bold(),
+            error_csv_path.display().to_string().cyan(),
+            errors.len()
+        );
+    }
+
     // ── Baseline comparison (mock mode only) ──────────────────────────────
     if !baseline_trials.is_empty() {
         // Write baseline trial CSV.
@@ -916,6 +945,20 @@ fn cmd_eval(
             cmp_csv_path.display().to_string().cyan(),
             comparisons.len()
         );
+
+        // Baseline error analysis CSV.
+        let baseline_error_csv_path = output_dir.join("baseline_error_analysis.csv");
+        {
+            let errors = analyse_errors(&baseline_trials);
+            let mut f = std::fs::File::create(&baseline_error_csv_path)?;
+            write_error_analysis_csv(&mut f, &errors)?;
+            println!(
+                "{} {} ({} baseline models analysed)",
+                "✓".green().bold(),
+                baseline_error_csv_path.display().to_string().cyan(),
+                errors.len()
+            );
+        }
 
         // Print comparison summary table.
         println!();

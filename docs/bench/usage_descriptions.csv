@@ -15349,16 +15349,16 @@ velocyto,velocyto_05,velocyto_05_07,expert,run velocyto repeat masking multiple 
 velocyto,velocyto_05,velocyto_05_08,detailed,I have data that I need to process: run velocyto with repeat masking and multiple threads
 velocyto,velocyto_05,velocyto_05_09,informal,"Hey, can you help me run velocyto with repeat masking and multiple threads?"
 velocyto,velocyto_05,velocyto_05_10,alternative,Multiple threads after run velocyto with repeat masking
-velocyto,velocyto_06,velocyto_06_01,original,merge multiple loom files from different samples into one
-velocyto,velocyto_06,velocyto_06_02,beginner,How do I merge multiple loom files from different samples into one?
-velocyto,velocyto_06,velocyto_06_03,student,I need to merge multiple loom files from different samples into one
-velocyto,velocyto_06,velocyto_06_04,polite,Please merge multiple loom files from different samples into one
-velocyto,velocyto_06,velocyto_06_05,sysadmin,Use velocyto to merge multiple loom files from different samples into one
-velocyto,velocyto_06,velocyto_06_06,goal_oriented,I want to merge multiple loom files from different samples into one
-velocyto,velocyto_06,velocyto_06_07,expert,merge multiple loom files different samples one
-velocyto,velocyto_06,velocyto_06_08,detailed,I have data that I need to process: merge multiple loom files from different samples into one
-velocyto,velocyto_06,velocyto_06_09,informal,"Hey, can you help me merge multiple loom files from different samples into one?"
-velocyto,velocyto_06,velocyto_06_10,alternative,Perform: merge multiple loom files from different samples into one
+velocyto,velocyto_06,velocyto_06_01,original,run velocyto on multiple 10x samples with per-sample output loom files
+velocyto,velocyto_06,velocyto_06_02,beginner,How do I run velocyto on multiple 10x samples with per-sample output loom files?
+velocyto,velocyto_06,velocyto_06_03,student,I need to run velocyto on multiple 10x samples with per-sample output loom files
+velocyto,velocyto_06,velocyto_06_04,polite,Please run velocyto on multiple 10x samples with per-sample output loom files
+velocyto,velocyto_06,velocyto_06_05,sysadmin,Use velocyto to run velocyto on multiple 10x samples with per-sample output loom files
+velocyto,velocyto_06,velocyto_06_06,goal_oriented,I want to run velocyto on multiple 10x samples with per-sample output loom files
+velocyto,velocyto_06,velocyto_06_07,expert,run velocyto on multiple 10x samples per-sample output loom files
+velocyto,velocyto_06,velocyto_06_08,detailed,"I have data that I need to process: run velocyto on multiple 10x samples with per-sample output loom files, saving the result to a specified output file"
+velocyto,velocyto_06,velocyto_06_09,informal,"Hey, can you help me run velocyto on multiple 10x samples with per-sample output loom files?"
+velocyto,velocyto_06,velocyto_06_10,alternative,"With per-sample output loom files, run velocyto on multiple 10x samples"
 velocyto,velocyto_07,velocyto_07_01,original,run velocyto on a 10x CellRanger output directory using multiple threads
 velocyto,velocyto_07,velocyto_07_02,beginner,How do I run velocyto on a 10x CellRanger output directory using multiple threads?
 velocyto,velocyto_07,velocyto_07_03,student,I need to run velocyto on a 10x CellRanger output directory using multiple threads
