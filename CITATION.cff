@@ -2,14 +2,17 @@
 # See https://citation-file-format.github.io/ for the specification.
 
 cff-version: 1.2.0
-title: "oxo-call: Model-intelligent orchestration for CLI bioinformatics"
+title: "oxo-call: Documentation-grounded LLM command generation for bioinformatics"
 message: >-
   If you use this software in your research, please cite it using
   the metadata from this file.
 type: software
 authors:
-  - family-names: Traitome
+  - family-names: Wang
+    given-names: Shixiang
     affiliation: Traitome
+    orcid: "https://orcid.org/0000-0001-9855-7357"
+  - name: Traitome
 version: 0.9.2
 date-released: "2026-03-22"
 license: LicenseRef-oxo-call-dual
@@ -22,8 +25,18 @@ keywords:
   - natural-language
   - workflow
   - genomics
+  - documentation-grounding
+  - benchmark
+  - skill-augmented-prompting
 abstract: >-
-  oxo-call transforms CLI bioinformatics by using LLM-powered parameter
-  generation grounded in tool documentation and expert knowledge skills.
-  Users describe tasks in natural language and receive exact command-line
-  flags for 150+ bioinformatics tools.
+  oxo-call is a documentation-grounded command-generation system for
+  bioinformatics that augments large language models (LLMs) with structured
+  tool documentation and curated domain-specific skill files. The system
+  implements a docs-first grounding strategy that loads complete tool
+  documentation and expert-curated examples into the LLM prompt before
+  command generation. Systematic evaluation across 286,200 trials spanning
+  159 tools and 44 analytical domains demonstrates 25-47 percentage-point
+  improvements in exact-match accuracy over bare LLM baselines, with all
+  models exceeding 99.5% exact match. The benchmark framework includes
+  per-category analysis with 95% confidence intervals, a seven-category
+  error taxonomy, and Cohen's h effect sizes.
