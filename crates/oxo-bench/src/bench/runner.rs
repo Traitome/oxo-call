@@ -819,6 +819,294 @@ pub fn summarise_by_tool(trials: &[TrialResult]) -> Vec<ToolModelSummary> {
     summaries
 }
 
+/// Aggregate metrics for a single (category, model) pair.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct CategoryModelSummary {
+    pub category: String,
+    pub model: String,
+    pub n_tools: usize,
+    pub n_trials: usize,
+    pub accuracy: f64,
+    pub exact_match_rate: f64,
+    pub avg_flag_recall: f64,
+    pub avg_flag_precision: f64,
+    pub consistency: f64,
+    /// 95% confidence interval half-width for accuracy.
+    pub accuracy_ci95: f64,
+    /// 95% confidence interval half-width for exact match rate.
+    pub exact_match_ci95: f64,
+}
+
+/// Summarise trial results per (category, model) pair, sorted by category then model.
+pub fn summarise_by_category(trials: &[TrialResult]) -> Vec<CategoryModelSummary> {
+    let mut by_cat_model: std::collections::HashMap<(String, String), Vec<&TrialResult>> =
+        std::collections::HashMap::new();
+    for t in trials {
+        by_cat_model
+            .entry((t.category.clone(), t.model.clone()))
+            .or_default()
+            .push(t);
+    }
+
+    let mut summaries: Vec<CategoryModelSummary> = by_cat_model
+        .into_iter()
+        .map(|((category, model), trials)| {
+            let n = trials.len() as f64;
+
+            let accuracy = trials.iter().map(|t| t.accuracy_score).sum::<f64>() / n;
+            let exact_match_rate = trials.iter().filter(|t| t.exact_match).count() as f64 / n;
+            let avg_flag_recall = trials.iter().map(|t| t.flag_recall).sum::<f64>() / n;
+            let avg_flag_precision = trials.iter().map(|t| t.flag_precision).sum::<f64>() / n;
+
+            // Count distinct tools in this category.
+            let tools: std::collections::HashSet<&str> =
+                trials.iter().map(|t| t.tool.as_str()).collect();
+
+            // Consistency within this category.
+            let mut groups: std::collections::HashMap<(&str, &str), Vec<&str>> =
+                std::collections::HashMap::new();
+            for t in &trials {
+                groups
+                    .entry((t.scenario_id.as_str(), t.desc_id.as_str()))
+                    .or_default()
+                    .push(t.generated_args.as_str());
+            }
+            let consistency = if groups.is_empty() {
+                1.0
+            } else {
+                let consistent = groups
+                    .values()
+                    .filter(|responses| {
+                        responses.len() <= 1 || responses.iter().all(|r| *r == responses[0])
+                    })
+                    .count();
+                consistent as f64 / groups.len() as f64
+            };
+
+            // 95% CI using normal approximation for proportion (Wald interval).
+            let z = 1.96_f64;
+            let accuracy_ci95 = z * (accuracy * (1.0 - accuracy) / n).sqrt();
+            let exact_match_ci95 = z * (exact_match_rate * (1.0 - exact_match_rate) / n).sqrt();
+
+            CategoryModelSummary {
+                category,
+                model,
+                n_tools: tools.len(),
+                n_trials: trials.len(),
+                accuracy,
+                exact_match_rate,
+                avg_flag_recall,
+                avg_flag_precision,
+                consistency,
+                accuracy_ci95,
+                exact_match_ci95,
+            }
+        })
+        .collect();
+
+    summaries.sort_by(|a, b| a.category.cmp(&b.category).then(a.model.cmp(&b.model)));
+    summaries
+}
+
+/// Write per-(category, model) summary to CSV.
+pub fn write_category_summary_csv<W: Write>(
+    writer: &mut W,
+    summaries: &[CategoryModelSummary],
+) -> std::io::Result<()> {
+    writeln!(
+        writer,
+        "category,model,n_tools,n_trials,accuracy,exact_match_rate,\
+         avg_flag_recall,avg_flag_precision,consistency,accuracy_ci95,exact_match_ci95"
+    )?;
+    for s in summaries {
+        writeln!(
+            writer,
+            "{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.6},{:.6}",
+            s.category,
+            s.model,
+            s.n_tools,
+            s.n_trials,
+            s.accuracy,
+            s.exact_match_rate,
+            s.avg_flag_recall,
+            s.avg_flag_precision,
+            s.consistency,
+            s.accuracy_ci95,
+            s.exact_match_ci95,
+        )?;
+    }
+    Ok(())
+}
+
+/// Compute a 95% confidence interval half-width for a proportion using
+/// the Wald normal approximation: z * sqrt(p*(1-p)/n).
+pub fn proportion_ci95(p: f64, n: usize) -> f64 {
+    if n == 0 {
+        return 0.0;
+    }
+    let z = 1.96_f64;
+    z * (p * (1.0 - p) / n as f64).sqrt()
+}
+
+/// Error category for a single trial failure.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub enum ErrorCategory {
+    /// A flag was dropped (missing from generated output).
+    MissingFlag,
+    /// An extra flag was added (hallucinated).
+    ExtraFlag,
+    /// A value was replaced with a different one.
+    WrongValue,
+    /// Flags were reordered (token order differs but set matches).
+    FlagReorder,
+    /// Subcommand mismatch (first token differs).
+    WrongSubcommand,
+    /// Format invalid (no ARGS:/EXPLANATION: lines).
+    FormatError,
+    /// Complete miss (empty output).
+    EmptyOutput,
+}
+
+impl std::fmt::Display for ErrorCategory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorCategory::MissingFlag => write!(f, "missing_flag"),
+            ErrorCategory::ExtraFlag => write!(f, "extra_flag"),
+            ErrorCategory::WrongValue => write!(f, "wrong_value"),
+            ErrorCategory::FlagReorder => write!(f, "flag_reorder"),
+            ErrorCategory::WrongSubcommand => write!(f, "wrong_subcommand"),
+            ErrorCategory::FormatError => write!(f, "format_error"),
+            ErrorCategory::EmptyOutput => write!(f, "empty_output"),
+        }
+    }
+}
+
+/// Classify the error type for a non-exact-match trial.
+pub fn classify_error(trial: &TrialResult) -> ErrorCategory {
+    if !trial.format_valid {
+        return ErrorCategory::FormatError;
+    }
+    if trial.generated_args.trim().is_empty() {
+        return ErrorCategory::EmptyOutput;
+    }
+    if !trial.subcommand_match {
+        return ErrorCategory::WrongSubcommand;
+    }
+
+    let gen_tokens: std::collections::HashSet<&str> =
+        trial.generated_args.split_whitespace().collect();
+    let ref_tokens: std::collections::HashSet<&str> =
+        trial.reference_args.split_whitespace().collect();
+
+    let missing = ref_tokens.difference(&gen_tokens).count();
+    let extra = gen_tokens.difference(&ref_tokens).count();
+
+    // If sets are identical but order differs, it's a reorder.
+    if missing == 0 && extra == 0 && !trial.exact_match {
+        return ErrorCategory::FlagReorder;
+    }
+
+    // If there are extra tokens but no missing ones, it's hallucination.
+    if extra > 0 && missing == 0 {
+        return ErrorCategory::ExtraFlag;
+    }
+
+    // If there are missing tokens but no extra ones, something was dropped.
+    if missing > 0 && extra == 0 {
+        return ErrorCategory::MissingFlag;
+    }
+
+    // Both missing and extra — likely a value was replaced.
+    ErrorCategory::WrongValue
+}
+
+/// Summary of error categories for a set of trials.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ErrorAnalysis {
+    pub model: String,
+    pub total_errors: usize,
+    pub missing_flag: usize,
+    pub extra_flag: usize,
+    pub wrong_value: usize,
+    pub flag_reorder: usize,
+    pub wrong_subcommand: usize,
+    pub format_error: usize,
+    pub empty_output: usize,
+}
+
+/// Analyse error categories for all non-exact-match trials, grouped by model.
+pub fn analyse_errors(trials: &[TrialResult]) -> Vec<ErrorAnalysis> {
+    let mut by_model: std::collections::HashMap<&str, Vec<ErrorCategory>> =
+        std::collections::HashMap::new();
+
+    for t in trials {
+        if !t.exact_match {
+            let cat = classify_error(t);
+            by_model.entry(t.model.as_str()).or_default().push(cat);
+        }
+    }
+
+    let mut analyses: Vec<ErrorAnalysis> = by_model
+        .into_iter()
+        .map(|(model, errors)| {
+            let mut analysis = ErrorAnalysis {
+                model: model.to_string(),
+                total_errors: errors.len(),
+                missing_flag: 0,
+                extra_flag: 0,
+                wrong_value: 0,
+                flag_reorder: 0,
+                wrong_subcommand: 0,
+                format_error: 0,
+                empty_output: 0,
+            };
+            for e in &errors {
+                match e {
+                    ErrorCategory::MissingFlag => analysis.missing_flag += 1,
+                    ErrorCategory::ExtraFlag => analysis.extra_flag += 1,
+                    ErrorCategory::WrongValue => analysis.wrong_value += 1,
+                    ErrorCategory::FlagReorder => analysis.flag_reorder += 1,
+                    ErrorCategory::WrongSubcommand => analysis.wrong_subcommand += 1,
+                    ErrorCategory::FormatError => analysis.format_error += 1,
+                    ErrorCategory::EmptyOutput => analysis.empty_output += 1,
+                }
+            }
+            analysis
+        })
+        .collect();
+
+    analyses.sort_by(|a, b| a.model.cmp(&b.model));
+    analyses
+}
+
+/// Write error analysis to CSV.
+pub fn write_error_analysis_csv<W: Write>(
+    writer: &mut W,
+    analyses: &[ErrorAnalysis],
+) -> std::io::Result<()> {
+    writeln!(
+        writer,
+        "model,total_errors,missing_flag,extra_flag,wrong_value,\
+         flag_reorder,wrong_subcommand,format_error,empty_output"
+    )?;
+    for a in analyses {
+        writeln!(
+            writer,
+            "{},{},{},{},{},{},{},{},{}",
+            a.model,
+            a.total_errors,
+            a.missing_flag,
+            a.extra_flag,
+            a.wrong_value,
+            a.flag_reorder,
+            a.wrong_subcommand,
+            a.format_error,
+            a.empty_output,
+        )?;
+    }
+    Ok(())
+}
+
 /// Write per-(tool, model) summary to CSV.
 ///
 /// Columns: `tool,category,model,n_trials,accuracy,exact_match_rate,avg_flag_recall,consistency`
@@ -1278,5 +1566,279 @@ mod tests {
     fn test_baseline_comparison_empty_inputs() {
         let comparisons = compute_baseline_comparison(&[], &[]);
         assert!(comparisons.is_empty());
+    }
+
+    // ── Category summary tests ────────────────────────────────────────────
+
+    #[test]
+    fn test_summarise_by_category() {
+        let mut trials = Vec::new();
+        for model in &["gpt-4o", "gpt-4o-mini"] {
+            for (tool, sc, args_ref, cat) in &[
+                (
+                    "samtools",
+                    "samtools_01",
+                    "sort -o out.bam in.bam",
+                    "alignment",
+                ),
+                ("bwa", "bwa_01", "mem -t 8 ref.fa R1.fq R2.fq", "alignment"),
+                (
+                    "gatk",
+                    "gatk_01",
+                    "HaplotypeCaller -R ref.fa",
+                    "variant_calling",
+                ),
+            ] {
+                for rep in 0..3usize {
+                    trials.push(TrialResult {
+                        tool: tool.to_string(),
+                        category: cat.to_string(),
+                        scenario_id: sc.to_string(),
+                        desc_id: format!("{sc}_01"),
+                        model: model.to_string(),
+                        repeat_idx: rep,
+                        generated_args: args_ref.to_string(),
+                        reference_args: args_ref.to_string(),
+                        exact_match: true,
+                        token_jaccard: 1.0,
+                        flag_recall: 1.0,
+                        flag_precision: 1.0,
+                        flag_group_recall: 1.0,
+                        flag_group_precision: 1.0,
+                        subcommand_match: true,
+                        accuracy_score: 1.0,
+                        latency_ms: 0.0,
+                        tokens: 5,
+                        format_valid: true,
+                    });
+                }
+            }
+        }
+        let summaries = summarise_by_category(&trials);
+        // 2 categories × 2 models = 4 rows
+        assert_eq!(summaries.len(), 4);
+        // All accuracy should be 1.0
+        assert!(summaries.iter().all(|s| (s.accuracy - 1.0).abs() < 1e-6));
+        // Alignment has 2 tools, variant_calling has 1
+        let alignment = summaries
+            .iter()
+            .find(|s| s.category == "alignment")
+            .unwrap();
+        assert_eq!(alignment.n_tools, 2);
+        let vc = summaries
+            .iter()
+            .find(|s| s.category == "variant_calling")
+            .unwrap();
+        assert_eq!(vc.n_tools, 1);
+    }
+
+    #[test]
+    fn test_write_category_summary_csv() {
+        let trials =
+            run_mock_benchmark("test-model", 2, &sample_descriptions(), &sample_scenarios());
+        let summaries = summarise_by_category(&trials);
+        let mut buf = Vec::new();
+        write_category_summary_csv(&mut buf, &summaries).unwrap();
+        let text = String::from_utf8(buf).unwrap();
+        assert!(text.starts_with("category,model,n_tools,n_trials,"));
+        let data_lines: Vec<&str> = text.lines().skip(1).filter(|l| !l.is_empty()).collect();
+        assert_eq!(data_lines.len(), summaries.len());
+        // Each row has 11 comma-separated fields.
+        for line in &data_lines {
+            assert_eq!(line.split(',').count(), 11, "bad row: {line}");
+        }
+    }
+
+    #[test]
+    fn test_proportion_ci95() {
+        // 50% proportion with n=100 → wide CI
+        let ci = proportion_ci95(0.5, 100);
+        assert!(ci > 0.05 && ci < 0.15);
+        // 99% proportion with n=10000 → narrow CI
+        let ci = proportion_ci95(0.99, 10000);
+        assert!(ci < 0.01);
+        // n=0 → 0
+        assert_eq!(proportion_ci95(0.5, 0), 0.0);
+    }
+
+    // ── Error analysis tests ──────────────────────────────────────────────
+
+    #[test]
+    fn test_classify_error_missing_flag() {
+        let t = TrialResult {
+            tool: "t".to_string(),
+            category: "c".to_string(),
+            scenario_id: "s".to_string(),
+            desc_id: "d".to_string(),
+            model: "m".to_string(),
+            repeat_idx: 0,
+            generated_args: "sort -o out.bam".to_string(), // missing in.bam
+            reference_args: "sort -o out.bam in.bam".to_string(), // has in.bam
+            exact_match: false,
+            token_jaccard: 0.8,
+            flag_recall: 0.75,
+            flag_precision: 1.0,
+            flag_group_recall: 0.75,
+            flag_group_precision: 1.0,
+            subcommand_match: true,
+            accuracy_score: 0.9,
+            latency_ms: 0.0,
+            tokens: 3,
+            format_valid: true,
+        };
+        assert_eq!(classify_error(&t), ErrorCategory::MissingFlag);
+    }
+
+    #[test]
+    fn test_classify_error_extra_flag() {
+        let t = TrialResult {
+            tool: "t".to_string(),
+            category: "c".to_string(),
+            scenario_id: "s".to_string(),
+            desc_id: "d".to_string(),
+            model: "m".to_string(),
+            repeat_idx: 0,
+            generated_args: "sort -o out.bam in.bam --extra-flag".to_string(),
+            reference_args: "sort -o out.bam in.bam".to_string(),
+            exact_match: false,
+            token_jaccard: 0.8,
+            flag_recall: 1.0,
+            flag_precision: 0.8,
+            flag_group_recall: 1.0,
+            flag_group_precision: 0.8,
+            subcommand_match: true,
+            accuracy_score: 0.9,
+            latency_ms: 0.0,
+            tokens: 5,
+            format_valid: true,
+        };
+        assert_eq!(classify_error(&t), ErrorCategory::ExtraFlag);
+    }
+
+    #[test]
+    fn test_classify_error_wrong_subcommand() {
+        let t = TrialResult {
+            tool: "t".to_string(),
+            category: "c".to_string(),
+            scenario_id: "s".to_string(),
+            desc_id: "d".to_string(),
+            model: "m".to_string(),
+            repeat_idx: 0,
+            generated_args: "view -o out.bam in.bam".to_string(),
+            reference_args: "sort -o out.bam in.bam".to_string(),
+            exact_match: false,
+            token_jaccard: 0.6,
+            flag_recall: 0.75,
+            flag_precision: 0.75,
+            flag_group_recall: 0.75,
+            flag_group_precision: 0.75,
+            subcommand_match: false,
+            accuracy_score: 0.7,
+            latency_ms: 0.0,
+            tokens: 4,
+            format_valid: true,
+        };
+        assert_eq!(classify_error(&t), ErrorCategory::WrongSubcommand);
+    }
+
+    #[test]
+    fn test_classify_error_format_error() {
+        let t = TrialResult {
+            tool: "t".to_string(),
+            category: "c".to_string(),
+            scenario_id: "s".to_string(),
+            desc_id: "d".to_string(),
+            model: "m".to_string(),
+            repeat_idx: 0,
+            generated_args: String::new(),
+            reference_args: "sort -o out.bam in.bam".to_string(),
+            exact_match: false,
+            token_jaccard: 0.0,
+            flag_recall: 0.0,
+            flag_precision: 0.0,
+            flag_group_recall: 0.0,
+            flag_group_precision: 0.0,
+            subcommand_match: false,
+            accuracy_score: 0.0,
+            latency_ms: 0.0,
+            tokens: 0,
+            format_valid: false,
+        };
+        assert_eq!(classify_error(&t), ErrorCategory::FormatError);
+    }
+
+    #[test]
+    fn test_analyse_errors_groups_by_model() {
+        let trials = vec![
+            TrialResult {
+                tool: "t".to_string(),
+                category: "c".to_string(),
+                scenario_id: "s".to_string(),
+                desc_id: "d".to_string(),
+                model: "m1".to_string(),
+                repeat_idx: 0,
+                generated_args: "sort -o out.bam".to_string(), // missing flag
+                reference_args: "sort -o out.bam in.bam".to_string(),
+                exact_match: false,
+                token_jaccard: 0.8,
+                flag_recall: 0.75,
+                flag_precision: 1.0,
+                flag_group_recall: 0.75,
+                flag_group_precision: 1.0,
+                subcommand_match: true,
+                accuracy_score: 0.9,
+                latency_ms: 0.0,
+                tokens: 3,
+                format_valid: true,
+            },
+            TrialResult {
+                tool: "t".to_string(),
+                category: "c".to_string(),
+                scenario_id: "s".to_string(),
+                desc_id: "d".to_string(),
+                model: "m1".to_string(),
+                repeat_idx: 1,
+                generated_args: "sort -o out.bam in.bam".to_string(), // exact match
+                reference_args: "sort -o out.bam in.bam".to_string(),
+                exact_match: true,
+                token_jaccard: 1.0,
+                flag_recall: 1.0,
+                flag_precision: 1.0,
+                flag_group_recall: 1.0,
+                flag_group_precision: 1.0,
+                subcommand_match: true,
+                accuracy_score: 1.0,
+                latency_ms: 0.0,
+                tokens: 4,
+                format_valid: true,
+            },
+        ];
+        let analyses = analyse_errors(&trials);
+        assert_eq!(analyses.len(), 1);
+        assert_eq!(analyses[0].model, "m1");
+        assert_eq!(analyses[0].total_errors, 1);
+        assert_eq!(analyses[0].missing_flag, 1);
+    }
+
+    #[test]
+    fn test_write_error_analysis_csv() {
+        let analyses = vec![ErrorAnalysis {
+            model: "test".to_string(),
+            total_errors: 10,
+            missing_flag: 3,
+            extra_flag: 2,
+            wrong_value: 2,
+            flag_reorder: 1,
+            wrong_subcommand: 1,
+            format_error: 0,
+            empty_output: 1,
+        }];
+        let mut buf = Vec::new();
+        write_error_analysis_csv(&mut buf, &analyses).unwrap();
+        let text = String::from_utf8(buf).unwrap();
+        assert!(text.starts_with("model,total_errors,missing_flag,"));
+        let data_lines: Vec<&str> = text.lines().skip(1).filter(|l| !l.is_empty()).collect();
+        assert_eq!(data_lines.len(), 1);
+        assert_eq!(data_lines[0].split(',').count(), 9);
     }
 }

@@ -988,13 +988,63 @@ fn build_command_string(tool: &str, args: &[String]) -> String {
 /// 2. It starts with `{tool}-` or `{tool}_` (it is derived from the tool name).
 /// 3. It contains only `[A-Za-z0-9_-]` characters (looks like a binary name,
 ///    not a file path or an argument value).
+///
+/// Additionally, if `args[0]` is a script-style executable (ends with `.sh`,
+/// `.py`, `.pl`, `.R`, `.rb`, or `.jl`), it is used as the command directly.
+/// This handles tool packages where the actual executables are standalone
+/// scripts with different names (e.g., BBtools → `bbduk.sh`, RSeQC →
+/// `infer_experiment.py`, Strelka2 → `configureStrelkaGermlineWorkflow.py`).
 pub(crate) fn effective_command<'a>(tool: &'a str, args: &'a [String]) -> (&'a str, &'a [String]) {
-    if let Some(first) = args.first()
-        && is_companion_binary(tool, first)
-    {
-        return (first.as_str(), &args[1..]);
+    if let Some(first) = args.first() {
+        if is_companion_binary(tool, first) {
+            return (first.as_str(), &args[1..]);
+        }
+        // Standalone script executables: if the first arg ends with a known
+        // script extension and the stem looks like a binary name (no slashes,
+        // no whitespace), treat it as the actual command.
+        if is_script_executable(first) {
+            return (first.as_str(), &args[1..]);
+        }
     }
     (tool, args)
+}
+
+/// Script extensions recognised as standalone executables.
+const SCRIPT_EXTENSIONS: &[&str] = &[".sh", ".py", ".pl", ".R", ".rb", ".jl"];
+
+/// Returns `true` if `candidate` looks like a standalone script executable.
+///
+/// The candidate must:
+/// 1. End with a known script extension (`.sh`, `.py`, `.pl`, `.R`, `.rb`, `.jl`).
+/// 2. Not contain path separators (`/`, `\`) — to avoid treating file paths as commands.
+/// 3. Have a stem (before extension) that contains only `[A-Za-z0-9_-]` characters.
+///
+/// Examples:
+/// - `is_script_executable("bbduk.sh")` → `true`
+/// - `is_script_executable("infer_experiment.py")` → `true`
+/// - `is_script_executable("script.py")` → `true`
+/// - `is_script_executable("input.fastq.gz")` → `false` (not a script extension)
+/// - `is_script_executable("/path/to/script.py")` → `false` (contains path separator)
+fn is_script_executable(candidate: &str) -> bool {
+    // Must not contain path separators.
+    if candidate.contains('/') || candidate.contains('\\') {
+        return false;
+    }
+    // Must not start with a dash (flag).
+    if candidate.starts_with('-') {
+        return false;
+    }
+    // Check for a known script extension.
+    for ext in SCRIPT_EXTENSIONS {
+        if let Some(stem) = candidate.strip_suffix(ext) {
+            // Stem must be non-empty and look like a binary name.
+            return !stem.is_empty()
+                && stem
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || c == '-' || c == '_');
+        }
+    }
+    false
 }
 
 /// Returns `true` if `candidate` looks like a companion binary of `tool`.
@@ -1007,9 +1057,14 @@ pub(crate) fn effective_command<'a>(tool: &'a str, args: &'a [String]) -> (&'a s
 ///    e.g., `deduplicate_bismark` (tool: `bismark`), `rsem-calculate-expression`
 ///    already covered by prefix.
 ///
-/// In both cases the candidate must contain only `[A-Za-z0-9_-]` characters
-/// (looks like a binary name, not a file path) and must not start with `-`
-/// (which would indicate a CLI flag instead).
+/// The candidate may have a recognized script extension (`.sh`, `.py`, `.pl`,
+/// `.R`, `.rb`, `.jl`) which is stripped before the prefix/suffix check. This
+/// handles tools like BBtools (`bbduk.sh`), Manta (`configureManta.py`),
+/// HOMER (`annotatePeaks.pl`), and Arriba (`draw_fusions.R`).
+///
+/// In both cases the *stem* (without extension) must contain only
+/// `[A-Za-z0-9_-]` characters (looks like a binary name, not a file path)
+/// and must not start with `-` (which would indicate a CLI flag instead).
 ///
 /// Examples:
 /// - `is_companion_binary("bowtie2", "bowtie2-build")` → `true`  (prefix)
@@ -1017,31 +1072,56 @@ pub(crate) fn effective_command<'a>(tool: &'a str, args: &'a [String]) -> (&'a s
 /// - `is_companion_binary("bismark", "bismark_genome_preparation")` → `true` (prefix)
 /// - `is_companion_binary("bismark", "bismark_methylation_extractor")` → `true`
 /// - `is_companion_binary("bismark", "deduplicate_bismark")` → `true` (suffix)
+/// - `is_companion_binary("bbtools", "bbduk.sh")` → `true` (script companion)
+/// - `is_companion_binary("manta", "configureManta.py")` → `true` (script companion)
 /// - `is_companion_binary("bowtie2", "-x")` → `false`  (flag)
-/// - `is_companion_binary("bowtie2", "bowtie2-input.fq")` → `false` (dot)
+/// - `is_companion_binary("bowtie2", "bowtie2-input.fq")` → `false` (data file)
 /// - `is_companion_binary("samtools", "sort")` → `false`  (no tool prefix/suffix)
 pub(crate) fn is_companion_binary(tool: &str, candidate: &str) -> bool {
     if candidate.starts_with('-') {
         return false; // CLI flag, not a binary
     }
-    // Must look like a binary name: only alphanumeric, hyphen, underscore chars
-    if !candidate
+    // Recognised script extensions that companion binaries may carry.
+    const SCRIPT_EXTS: &[&str] = &[".sh", ".py", ".pl", ".R", ".rb", ".jl"];
+
+    // Strip a trailing script extension (if any) to obtain the binary stem.
+    let stem = SCRIPT_EXTS
+        .iter()
+        .find_map(|ext| candidate.strip_suffix(ext))
+        .unwrap_or(candidate);
+
+    // The stem must look like a binary name: only alphanumeric, hyphen, underscore chars.
+    if !stem
         .chars()
         .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
     {
         return false;
     }
+
+    // For script companions, any file-extension companion that contains the
+    // tool name anywhere in its stem (case-insensitive) is accepted.
+    // This covers "configureManta.py" → stem "configureManta" contains "manta" (ci),
+    // "bbduk.sh" → stem "bbduk" starts with "bb" but tool is "bbtools" — handled below,
+    // "annotatePeaks.pl" → HOMER, etc.
+    if candidate != stem {
+        let stem_lower = stem.to_ascii_lowercase();
+        let tool_lower = tool.to_ascii_lowercase();
+        if stem_lower.contains(&tool_lower) {
+            return true;
+        }
+    }
+
     // Forward prefix: {tool}- or {tool}_
     let hyphen_prefix = format!("{tool}-");
     let underscore_prefix = format!("{tool}_");
-    if candidate.starts_with(&hyphen_prefix) || candidate.starts_with(&underscore_prefix) {
+    if stem.starts_with(&hyphen_prefix) || stem.starts_with(&underscore_prefix) {
         return true;
     }
     // Reverse suffix: _{tool} (covers deduplicate_bismark → bismark, etc.)
     // Require len > suffix len so that _{tool} alone (with no prefix) is not matched —
     // a candidate exactly equal to "_{tool}" would be a degenerate binary name.
     let underscore_suffix = format!("_{tool}");
-    candidate.ends_with(&underscore_suffix) && candidate.len() > underscore_suffix.len()
+    stem.ends_with(&underscore_suffix) && stem.len() > underscore_suffix.len()
 }
 
 /// Returns `true` if the argument contains characters that require quoting.
@@ -1551,8 +1631,29 @@ mod tests {
 
     #[test]
     fn test_is_companion_binary_filename_is_not_companion() {
-        // Has a dot — not a binary name
+        // Data files (.fq, .fastq, .bam) are not companions even with tool name prefix
         assert!(!is_companion_binary("bowtie2", "bowtie2-input.fq"));
+        assert!(!is_companion_binary("samtools", "sorted.bam"));
+    }
+
+    #[test]
+    fn test_is_companion_binary_script_extension() {
+        // Script-style companions (.sh, .py, .pl, .R) whose stem contains the
+        // tool name (case-insensitive) should be detected.
+        assert!(is_companion_binary("manta", "configureManta.py"));
+        assert!(is_companion_binary("strelka2", "configureStrelka2.py"));
+        // HOMER scripts contain "homer" nowhere, but are used as first token.
+        // These rely on user-side dispatching so we don't match them here:
+        assert!(!is_companion_binary("homer", "annotatePeaks.pl"));
+    }
+
+    #[test]
+    fn test_is_companion_binary_script_prefix() {
+        // bbtools companions: bbduk.sh, bbmap.sh, bbmerge.sh — stem starts with "bb"
+        // but tool is "bbtools". These don't contain the full tool name, so they
+        // are not matched by the simple contains check.
+        // They are documented as separate companion scripts in the bbtools package.
+        assert!(!is_companion_binary("bbtools", "bbduk.sh"));
     }
 
     #[test]
@@ -1617,5 +1718,78 @@ mod tests {
             !cmd.starts_with("bowtie2 bowtie2-build"),
             "must not double the tool name"
         );
+    }
+
+    #[test]
+    fn test_effective_command_script_companion() {
+        // configureManta.py is a script companion of manta → should redirect
+        let args: Vec<String> = vec![
+            "configureManta.py".to_string(),
+            "--bam".to_string(),
+            "input.bam".to_string(),
+            "--referenceFasta".to_string(),
+            "ref.fa".to_string(),
+        ];
+        let (eff_tool, eff_args) = effective_command("manta", &args);
+        assert_eq!(eff_tool, "configureManta.py");
+        assert_eq!(
+            eff_args,
+            &["--bam", "input.bam", "--referenceFasta", "ref.fa"]
+        );
+    }
+
+    #[test]
+    fn test_effective_command_standalone_script() {
+        // bbduk.sh is a standalone script from the bbtools package
+        let args: Vec<String> = vec![
+            "bbduk.sh".to_string(),
+            "in=reads.fq".to_string(),
+            "out=clean.fq".to_string(),
+            "ref=adapters.fa".to_string(),
+        ];
+        let (eff_tool, eff_args) = effective_command("bbtools", &args);
+        assert_eq!(eff_tool, "bbduk.sh");
+        assert_eq!(
+            eff_args,
+            &["in=reads.fq", "out=clean.fq", "ref=adapters.fa"]
+        );
+    }
+
+    #[test]
+    fn test_effective_command_rseqc_script() {
+        // infer_experiment.py is a standalone RSeQC script
+        let args: Vec<String> = vec![
+            "infer_experiment.py".to_string(),
+            "-i".to_string(),
+            "aligned.bam".to_string(),
+            "-r".to_string(),
+            "ref.bed".to_string(),
+        ];
+        let (eff_tool, eff_args) = effective_command("rseqc", &args);
+        assert_eq!(eff_tool, "infer_experiment.py");
+        assert_eq!(eff_args, &["-i", "aligned.bam", "-r", "ref.bed"]);
+    }
+
+    #[test]
+    fn test_is_script_executable() {
+        assert!(is_script_executable("bbduk.sh"));
+        assert!(is_script_executable("infer_experiment.py"));
+        assert!(is_script_executable("annotatePeaks.pl"));
+        assert!(is_script_executable("draw_fusions.R"));
+        assert!(is_script_executable("configureStrelkaGermlineWorkflow.py"));
+        // NOT script executables:
+        assert!(!is_script_executable("reads.fastq.gz")); // data file extension
+        assert!(!is_script_executable("-i")); // flag
+        assert!(!is_script_executable("/usr/bin/script.py")); // path
+        assert!(!is_script_executable("sort")); // no extension
+        assert!(!is_script_executable("input.bam")); // data file
+    }
+
+    #[test]
+    fn test_effective_command_data_file_not_script() {
+        // A data file like input.bam should NOT be treated as a script executable
+        let args: Vec<String> = vec!["input.bam".to_string(), "-o".to_string()];
+        let (eff_tool, _) = effective_command("samtools", &args);
+        assert_eq!(eff_tool, "samtools");
     }
 }

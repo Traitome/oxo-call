@@ -41,10 +41,10 @@ source_url: "https://pcingola.github.io/SnpEff/"
 **Args:** `ann -v hg19 variants.vcf > annotated_hg19.vcf`
 **Explanation:** hg19 is the UCSC genome database identifier; use GRCh37.75 for Ensembl equivalent
 
-### filter annotated VCF to keep only HIGH impact variants using SnpSift
-**Args:** `filter "ANN[0].IMPACT = 'HIGH'" annotated.vcf > high_impact.vcf`
-**Explanation:** SnpSift filter expression; ANN[0] is the first annotation; IMPACT = HIGH selects stopgain/frameshift
+### annotate variants and filter by quality for clinical reporting
+**Args:** `ann -v -no-downstream -no-upstream -no-intron -no-intergenic GRCh38.105 variants.vcf > coding_annotated.vcf`
+**Explanation:** -no-downstream/-no-upstream/-no-intron/-no-intergenic removes non-coding annotations; focuses on coding region effects for clinical interpretation
 
-### extract specific fields from annotated VCF using SnpSift extractFields
-**Args:** `extractFields annotated.vcf CHROM POS REF ALT "ANN[0].GENE" "ANN[0].EFFECT" "ANN[0].IMPACT" > variants_table.txt`
-**Explanation:** extractFields outputs tab-delimited table; ANN[0].GENE, EFFECT, IMPACT from first annotation per variant
+### build a custom SnpEff genome database from GFF3 annotation
+**Args:** `build -gff3 -v MyGenome`
+**Explanation:** builds a custom genome database; requires genome directory in snpEff data/ folder with sequences.fa and genes.gff3
