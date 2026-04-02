@@ -271,7 +271,7 @@ pub fn generate_scenarios(skill: &SkillFile) -> Vec<Scenario> {
 
         while scenarios.len() < SCENARIOS_PER_TOOL {
             let base = &originals[source_idx % originals.len()];
-            let variant = synthesise_variant(skill, base, idx);
+            let variant = synthesise_variant(base, idx);
             scenarios.push(variant);
             idx += 1;
             source_idx += 1;
@@ -303,7 +303,7 @@ fn has_shell_operator(args: &str) -> bool {
 /// contain shell operators (`|`, `>`), and it avoids appending `-t 4` when
 /// the command already uses `-t` or `--threads` (since `-t` has different
 /// semantics across tools — threads in some, tag/reference in others).
-fn synthesise_variant(_skill: &SkillFile, base: &Scenario, idx: usize) -> Scenario {
+fn synthesise_variant(base: &Scenario, idx: usize) -> Scenario {
     let variant_type = idx % NUM_VARIANT_TYPES;
 
     // If the base command contains shell operators, we never append flags
@@ -860,7 +860,7 @@ source_url: "https://example.com"
         // All variant types except DEFAULT should produce no args suffix
         // when the base command contains a pipe.
         for idx in 0..NUM_VARIANT_TYPES {
-            let v = synthesise_variant(&skill, &base, idx);
+            let v = synthesise_variant(&base, idx);
             // The args should NOT have extra flags appended after the pipe.
             assert!(
                 !v.reference_args.ends_with("--verbose")
@@ -891,7 +891,7 @@ source_url: "https://example.com"
             category: "alignment".to_string(),
         };
         for idx in 0..NUM_VARIANT_TYPES {
-            let v = synthesise_variant(&skill, &base, idx);
+            let v = synthesise_variant(&base, idx);
             assert!(
                 !v.reference_args.ends_with("--verbose")
                     && !v.reference_args.ends_with("-t 4")
@@ -921,7 +921,7 @@ source_url: "https://example.com"
             category: "alignment".to_string(),
         };
         // VARIANT_THREADS (idx=1) should not add -t 4 because -@ is present.
-        let v = synthesise_variant(&skill, &base, VARIANT_THREADS);
+        let v = synthesise_variant(&base, VARIANT_THREADS);
         assert!(
             !v.reference_args.contains("-t 4"),
             "should not add -t 4 when -@ is already present"
