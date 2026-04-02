@@ -12,6 +12,8 @@ oxo-call is a Rust workspace with three crates:
 | `crates/license-issuer` | Maintainer-only license signing tool | No |
 | `crates/oxo-bench` | Benchmarking and evaluation suite | No |
 
+The architecture is designed to make command generation usable in production science and engineering workflows, not just impressive in a demo. The key idea is that `oxo-call` reduces ambiguity before the model answers, then records enough provenance afterward for users to trust and reproduce the result.
+
 ## Module Structure
 
 The main CLI crate contains the following modules with clear separation of concerns:
@@ -73,3 +75,10 @@ lib.rs              — Programmatic API surface (re-exports all modules)
 4. **Skill-augmented prompting**: Domain knowledge injected without code changes
 5. **Platform independence**: WASM conditional compilation, cross-platform config dirs
 6. **Strict LLM contract**: ARGS:/EXPLANATION: format with retry on invalid response
+
+## Why This Matters In Practice
+
+- **Usability**: users can stay in natural language longer and only inspect flags when it matters
+- **Reliability**: docs-first grounding and a strict response contract reduce free-form model drift
+- **Scientific reproducibility**: provenance-rich history preserves the command, model, and context that produced each result
+- **Engineering extensibility**: skills, MCP providers, and workflow export let teams expand capability without rewriting the core pipeline

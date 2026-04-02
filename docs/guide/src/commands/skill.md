@@ -26,7 +26,7 @@ Skills can come from four sources (highest priority first):
 1. **User-defined** files in `~/.config/oxo-call/skills/`
 2. **Community-installed** files in `~/.local/share/oxo-call/skills/`
 3. **MCP servers** — remote skill providers using the Model Context Protocol
-4. **Built-in** — compiled into the binary (158 tools)
+4. **Built-in** — compiled into the binary (159 tools)
 
 ## Subcommands
 
@@ -159,5 +159,4 @@ source_url: https://tool-docs.example.com   # optional
 
 ## Built-in Skill Coverage
 
-oxo-call ships with 158 built-in skills covering all major omics domains. See [Skill System Reference](../reference/skill-system.md) for the full list.
-
+oxo-call ships with 159 built-in skills covering all major omics domains. See [Skill System Reference](../reference/skill-system.md) for the full list.
