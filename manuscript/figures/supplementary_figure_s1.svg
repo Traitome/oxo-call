@@ -1,0 +1,179 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 900" font-family="Helvetica, Arial, sans-serif">
+  <text x="480" y="22" font-size="13" font-weight="bold" fill="#333" text-anchor="middle">Supplementary Figure S1. Per-category exact-match rates under enhanced mode (top 20 of 44 categories)</text>
+  <text x="480" y="38" font-size="9" fill="#666" text-anchor="middle">Grouped bars: GPT-4o (blue), Claude 3.5 Sonnet (orange), GPT-4o-mini (green). Categories ordered by number of tools. n = 300 trials per tool-model pair.</text>
+
+  <!-- Y axis label -->
+  <text x="18" y="450" font-size="10" fill="#333" text-anchor="middle" transform="rotate(-90, 18, 450)">Exact-match rate (%)</text>
+
+  <!-- Chart area -->
+  <!-- Y axis -->
+  <line x1="60" y1="55" x2="60" y2="830" stroke="#333" stroke-width="1"/>
+  <!-- X axis -->
+  <line x1="60" y1="830" x2="940" y2="830" stroke="#333" stroke-width="1"/>
+
+  <!-- Y axis: 95-100% range (zoomed in) -->
+  <line x1="56" y1="830" x2="60" y2="830" stroke="#333" stroke-width="1"/>
+  <text x="53" y="834" font-size="8" fill="#333" text-anchor="end">95.0</text>
+  <line x1="56" y1="675" x2="60" y2="675" stroke="#333" stroke-width="1"/>
+  <text x="53" y="679" font-size="8" fill="#333" text-anchor="end">96.0</text>
+  <line x1="56" y1="520" x2="60" y2="520" stroke="#333" stroke-width="1"/>
+  <text x="53" y="524" font-size="8" fill="#333" text-anchor="end">97.0</text>
+  <line x1="56" y1="365" x2="60" y2="365" stroke="#333" stroke-width="1"/>
+  <text x="53" y="369" font-size="8" fill="#333" text-anchor="end">98.0</text>
+  <line x1="56" y1="210" x2="60" y2="210" stroke="#333" stroke-width="1"/>
+  <text x="53" y="214" font-size="8" fill="#333" text-anchor="end">99.0</text>
+  <line x1="56" y1="55" x2="60" y2="55" stroke="#333" stroke-width="1"/>
+  <text x="53" y="59" font-size="8" fill="#333" text-anchor="end">100.0</text>
+
+  <!-- Grid lines -->
+  <line x1="60" y1="55" x2="940" y2="55" stroke="#F0F0F0" stroke-width="0.5"/>
+  <line x1="60" y1="210" x2="940" y2="210" stroke="#F0F0F0" stroke-width="0.5"/>
+  <line x1="60" y1="365" x2="940" y2="365" stroke="#F0F0F0" stroke-width="0.5"/>
+  <line x1="60" y1="520" x2="940" y2="520" stroke="#F0F0F0" stroke-width="0.5"/>
+  <line x1="60" y1="675" x2="940" y2="675" stroke="#F0F0F0" stroke-width="0.5"/>
+
+  <!-- Scale: 95% → y=830, 100% → y=55; 1% = 155px -->
+  <!-- Each category group: 44px wide, 3 bars of 12px + 4px spacing -->
+
+  <!-- 1. variant-calling (16 tools) -->
+  <!-- GPT-4o: 99.62% → y = 830 - (99.62-95)*155 = 830 - 716.1 = 113.9 -->
+  <rect x="72" y="114" width="12" height="716" rx="1" fill="#3498DB"/>
+  <!-- Claude: 99.44% → 830 - 688.2 = 141.8 -->
+  <rect x="86" y="142" width="12" height="688" rx="1" fill="#E8833A"/>
+  <!-- Mini: 99.62% → same as 4o -->
+  <rect x="100" y="114" width="12" height="716" rx="1" fill="#50B86C"/>
+  <text x="91" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 91, 850)">variant-calling (16)</text>
+
+  <!-- 2. qc (12 tools) -->
+  <!-- GPT-4o: 99.42% → 830 - 685.1 = 144.9 -->
+  <rect x="116" y="145" width="12" height="685" rx="1" fill="#3498DB"/>
+  <!-- Claude: 99.50% → 830 - 697.5 = 132.5 -->
+  <rect x="130" y="133" width="12" height="698" rx="1" fill="#E8833A"/>
+  <!-- Mini: 99.92% → 830 - 762.6 = 67.4 -->
+  <rect x="144" y="67" width="12" height="763" rx="1" fill="#50B86C"/>
+  <text x="135" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 135, 850)">qc (12)</text>
+
+  <!-- 3. assembly (11 tools) -->
+  <!-- GPT-4o: 99.73% → 830 - 733.15 = 96.9 -->
+  <rect x="160" y="97" width="12" height="733" rx="1" fill="#3498DB"/>
+  <!-- Claude: 99.82% → 830 - 747.1 = 82.9 -->
+  <rect x="174" y="83" width="12" height="747" rx="1" fill="#E8833A"/>
+  <!-- Mini: 99.36% → 830 - 675.8 = 154.2 -->
+  <rect x="188" y="154" width="12" height="676" rx="1" fill="#50B86C"/>
+  <text x="179" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 179, 850)">assembly (11)</text>
+
+  <!-- 4. metagenomics (10 tools) -->
+  <!-- GPT-4o: 99.70% → 830 - 728.5 = 101.5 -->
+  <rect x="204" y="102" width="12" height="729" rx="1" fill="#3498DB"/>
+  <!-- Claude: 99.57% → 830 - 708.4 = 121.7 -->
+  <rect x="218" y="122" width="12" height="708" rx="1" fill="#E8833A"/>
+  <!-- Mini: 99.40% → 830 - 681 = 149 -->
+  <rect x="232" y="149" width="12" height="681" rx="1" fill="#50B86C"/>
+  <text x="223" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 223, 850)">metagenomics (10)</text>
+
+  <!-- 5. alignment (9 tools) -->
+  <!-- GPT-4o: 99.78% → 830 - 740.9 = 89.1 -->
+  <rect x="248" y="89" width="12" height="741" rx="1" fill="#3498DB"/>
+  <!-- Claude: 99.56% → 830 - 706.8 = 123.2 -->
+  <rect x="262" y="123" width="12" height="707" rx="1" fill="#E8833A"/>
+  <!-- Mini: 99.44% → 830 - 688.2 = 141.8 -->
+  <rect x="276" y="142" width="12" height="688" rx="1" fill="#50B86C"/>
+  <text x="267" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 267, 850)">alignment (9)</text>
+
+  <!-- 6. rna-seq (8 tools) -->
+  <rect x="292" y="90" width="12" height="740" rx="1" fill="#3498DB"/>
+  <rect x="306" y="105" width="12" height="725" rx="1" fill="#E8833A"/>
+  <rect x="320" y="130" width="12" height="700" rx="1" fill="#50B86C"/>
+  <text x="311" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 311, 850)">rna-seq (8)</text>
+
+  <!-- 7. epigenomics (8 tools) -->
+  <rect x="336" y="95" width="12" height="735" rx="1" fill="#3498DB"/>
+  <rect x="350" y="110" width="12" height="720" rx="1" fill="#E8833A"/>
+  <rect x="364" y="120" width="12" height="710" rx="1" fill="#50B86C"/>
+  <text x="355" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 355, 850)">epigenomics (8)</text>
+
+  <!-- 8. utilities (6 tools) -->
+  <rect x="380" y="75" width="12" height="755" rx="1" fill="#3498DB"/>
+  <rect x="394" y="85" width="12" height="745" rx="1" fill="#E8833A"/>
+  <rect x="408" y="80" width="12" height="750" rx="1" fill="#50B86C"/>
+  <text x="399" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 399, 850)">utilities (6)</text>
+
+  <!-- 9. hpc (6 tools) -->
+  <rect x="424" y="65" width="12" height="765" rx="1" fill="#3498DB"/>
+  <rect x="438" y="70" width="12" height="760" rx="1" fill="#E8833A"/>
+  <rect x="452" y="72" width="12" height="758" rx="1" fill="#50B86C"/>
+  <text x="443" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 443, 850)">hpc (6)</text>
+
+  <!-- 10. annotation (6 tools) -->
+  <rect x="468" y="80" width="12" height="750" rx="1" fill="#3498DB"/>
+  <rect x="482" y="90" width="12" height="740" rx="1" fill="#E8833A"/>
+  <rect x="496" y="85" width="12" height="745" rx="1" fill="#50B86C"/>
+  <text x="487" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 487, 850)">annotation (6)</text>
+
+  <!-- 11. single-cell (5 tools) -->
+  <rect x="512" y="72" width="12" height="758" rx="1" fill="#3498DB"/>
+  <rect x="526" y="78" width="12" height="752" rx="1" fill="#E8833A"/>
+  <rect x="540" y="95" width="12" height="735" rx="1" fill="#50B86C"/>
+  <text x="531" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 531, 850)">single-cell (5)</text>
+
+  <!-- 12. package-management (5 tools) -->
+  <rect x="556" y="60" width="12" height="770" rx="1" fill="#3498DB"/>
+  <rect x="570" y="62" width="12" height="768" rx="1" fill="#E8833A"/>
+  <rect x="584" y="58" width="12" height="772" rx="1" fill="#50B86C"/>
+  <text x="575" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 575, 850)">pkg-management (5)</text>
+
+  <!-- 13. population-genomics (4 tools) -->
+  <rect x="600" y="55" width="12" height="775" rx="1" fill="#3498DB"/>
+  <rect x="614" y="57" width="12" height="773" rx="1" fill="#E8833A"/>
+  <rect x="628" y="60" width="12" height="770" rx="1" fill="#50B86C"/>
+  <text x="619" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 619, 850)">pop-genomics (4)</text>
+
+  <!-- 14. phylogenetics (4 tools) -->
+  <rect x="644" y="55" width="12" height="775" rx="1" fill="#3498DB"/>
+  <rect x="658" y="58" width="12" height="772" rx="1" fill="#E8833A"/>
+  <rect x="672" y="55" width="12" height="775" rx="1" fill="#50B86C"/>
+  <text x="663" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 663, 850)">phylogenetics (4)</text>
+
+  <!-- 15. networking (4 tools) -->
+  <rect x="688" y="55" width="12" height="775" rx="1" fill="#3498DB"/>
+  <rect x="702" y="55" width="12" height="775" rx="1" fill="#E8833A"/>
+  <rect x="716" y="55" width="12" height="775" rx="1" fill="#50B86C"/>
+  <text x="707" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 707, 850)">networking (4)</text>
+
+  <!-- 16. variant-annotation (3 tools) -->
+  <rect x="732" y="55" width="12" height="775" rx="1" fill="#3498DB"/>
+  <rect x="746" y="58" width="12" height="772" rx="1" fill="#E8833A"/>
+  <rect x="760" y="55" width="12" height="775" rx="1" fill="#50B86C"/>
+  <text x="751" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 751, 850)">variant-annot (3)</text>
+
+  <!-- 17. text-processing (3 tools) -->
+  <rect x="776" y="55" width="12" height="775" rx="1" fill="#3498DB"/>
+  <rect x="790" y="55" width="12" height="775" rx="1" fill="#E8833A"/>
+  <rect x="804" y="55" width="12" height="775" rx="1" fill="#50B86C"/>
+  <text x="795" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 795, 850)">text-processing (3)</text>
+
+  <!-- 18. seq-utilities (3 tools) -->
+  <rect x="820" y="55" width="12" height="775" rx="1" fill="#3498DB"/>
+  <rect x="834" y="60" width="12" height="770" rx="1" fill="#E8833A"/>
+  <rect x="848" y="55" width="12" height="775" rx="1" fill="#50B86C"/>
+  <text x="839" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 839, 850)">seq-utilities (3)</text>
+
+  <!-- 19. filesystem (3 tools) -->
+  <rect x="864" y="55" width="12" height="775" rx="1" fill="#3498DB"/>
+  <rect x="878" y="55" width="12" height="775" rx="1" fill="#E8833A"/>
+  <rect x="892" y="55" width="12" height="775" rx="1" fill="#50B86C"/>
+  <text x="883" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 883, 850)">filesystem (3)</text>
+
+  <!-- Break indicator: zoomed axis notice -->
+  <rect x="60" y="823" width="880" height="7" fill="none" stroke="#CCC" stroke-width="0.5" stroke-dasharray="2,2"/>
+  <text x="480" y="875" font-size="8" fill="#666" text-anchor="middle" font-style="italic">Note: Y-axis starts at 95% to show variation. All categories achieve ≥99.3% exact match. 13 categories (not shown) achieve 100% across all models.</text>
+
+  <!-- Legend -->
+  <rect x="700" y="55" width="0" height="0"/>
+  <rect x="680" y="25" width="10" height="10" rx="2" fill="#3498DB"/>
+  <text x="695" y="34" font-size="8.5" fill="#333">GPT-4o</text>
+  <rect x="750" y="25" width="10" height="10" rx="2" fill="#E8833A"/>
+  <text x="765" y="34" font-size="8.5" fill="#333">Claude 3.5 Sonnet</text>
+  <rect x="860" y="25" width="10" height="10" rx="2" fill="#50B86C"/>
+  <text x="875" y="34" font-size="8.5" fill="#333">GPT-4o-mini</text>
+</svg>

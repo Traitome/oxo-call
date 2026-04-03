@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 350" font-family="Helvetica, Arial, sans-serif">
+  <text x="350" y="20" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Supplementary Figure S2. Workflow engine performance for built-in templates</text>
+  <text x="350" y="36" font-size="9" fill="#666" text-anchor="middle">Parse time (blue) and wildcard expand time (orange) in microseconds. All workflows verified cycle-free.</text>
+
+  <!-- Y axis label -->
+  <text x="16" y="190" font-size="9" fill="#333" text-anchor="middle" transform="rotate(-90, 16, 190)">Time (μs)</text>
+
+  <!-- Chart area -->
+  <line x1="55" y1="55" x2="55" y2="305" stroke="#333" stroke-width="1"/>
+  <line x1="55" y1="305" x2="680" y2="305" stroke="#333" stroke-width="1"/>
+
+  <!-- Y axis: 0 to 600 μs -->
+  <line x1="51" y1="305" x2="55" y2="305" stroke="#333" stroke-width="1"/>
+  <text x="48" y="309" font-size="8" fill="#333" text-anchor="end">0</text>
+  <line x1="51" y1="263" x2="55" y2="263" stroke="#333" stroke-width="1"/>
+  <text x="48" y="267" font-size="8" fill="#333" text-anchor="end">100</text>
+  <line x1="51" y1="222" x2="55" y2="222" stroke="#333" stroke-width="1"/>
+  <text x="48" y="226" font-size="8" fill="#333" text-anchor="end">200</text>
+  <line x1="51" y1="180" x2="55" y2="180" stroke="#333" stroke-width="1"/>
+  <text x="48" y="184" font-size="8" fill="#333" text-anchor="end">300</text>
+  <line x1="51" y1="138" x2="55" y2="138" stroke="#333" stroke-width="1"/>
+  <text x="48" y="142" font-size="8" fill="#333" text-anchor="end">400</text>
+  <line x1="51" y1="97" x2="55" y2="97" stroke="#333" stroke-width="1"/>
+  <text x="48" y="101" font-size="8" fill="#333" text-anchor="end">500</text>
+  <line x1="51" y1="55" x2="55" y2="55" stroke="#333" stroke-width="1"/>
+  <text x="48" y="59" font-size="8" fill="#333" text-anchor="end">600</text>
+
+  <!-- Grid -->
+  <line x1="55" y1="263" x2="680" y2="263" stroke="#F0F0F0" stroke-width="0.5"/>
+  <line x1="55" y1="222" x2="680" y2="222" stroke="#F0F0F0" stroke-width="0.5"/>
+  <line x1="55" y1="180" x2="680" y2="180" stroke="#F0F0F0" stroke-width="0.5"/>
+  <line x1="55" y1="138" x2="680" y2="138" stroke="#F0F0F0" stroke-width="0.5"/>
+  <line x1="55" y1="97" x2="680" y2="97" stroke="#F0F0F0" stroke-width="0.5"/>
+
+  <!-- Scale: 0 → y=305, 600 → y=55; 1μs = 0.4167px -->
+  <!-- Each workflow: 80px wide, 2 bars of 30px + 10px gap -->
+
+  <!-- 1. RNA-seq: 13 tasks, parse=398.3μs, expand=17.9μs -->
+  <rect x="75" y="139" width="30" height="166" rx="2" fill="#3498DB"/>
+  <rect x="108" y="298" width="30" height="7" rx="2" fill="#E8833A"/>
+  <text x="105" y="320" font-size="7.5" fill="#333" text-anchor="middle">RNA-seq</text>
+  <text x="105" y="330" font-size="6.5" fill="#999" text-anchor="middle">(13 tasks)</text>
+  <text x="90" y="135" font-size="7" fill="#3498DB" text-anchor="middle">398</text>
+
+  <!-- 2. WGS: 13 tasks, parse=446.8μs, expand=22.6μs -->
+  <rect x="155" y="119" width="30" height="186" rx="2" fill="#3498DB"/>
+  <rect x="188" y="296" width="30" height="9" rx="2" fill="#E8833A"/>
+  <text x="185" y="320" font-size="7.5" fill="#333" text-anchor="middle">WGS</text>
+  <text x="185" y="330" font-size="6.5" fill="#999" text-anchor="middle">(13 tasks)</text>
+  <text x="170" y="115" font-size="7" fill="#3498DB" text-anchor="middle">447</text>
+
+  <!-- 3. ATAC-seq: 11 tasks, parse=408.1μs, expand=20.0μs -->
+  <rect x="235" y="135" width="30" height="170" rx="2" fill="#3498DB"/>
+  <rect x="268" y="297" width="30" height="8" rx="2" fill="#E8833A"/>
+  <text x="265" y="320" font-size="7.5" fill="#333" text-anchor="middle">ATAC-seq</text>
+  <text x="265" y="330" font-size="6.5" fill="#999" text-anchor="middle">(11 tasks)</text>
+  <text x="250" y="131" font-size="7" fill="#3498DB" text-anchor="middle">408</text>
+
+  <!-- 4. Metagenomics: 9 tasks, parse=362.9μs, expand=17.6μs -->
+  <rect x="315" y="154" width="30" height="151" rx="2" fill="#3498DB"/>
+  <rect x="348" y="298" width="30" height="7" rx="2" fill="#E8833A"/>
+  <text x="345" y="320" font-size="7.5" fill="#333" text-anchor="middle">Metagenomic</text>
+  <text x="345" y="330" font-size="6.5" fill="#999" text-anchor="middle">(9 tasks)</text>
+  <text x="330" y="150" font-size="7" fill="#3498DB" text-anchor="middle">363</text>
+
+  <!-- 5. ChIP-seq: 19 tasks, parse=516.8μs, expand=22.7μs -->
+  <rect x="395" y="90" width="30" height="215" rx="2" fill="#3498DB"/>
+  <rect x="428" y="296" width="30" height="9" rx="2" fill="#E8833A"/>
+  <text x="425" y="320" font-size="7.5" fill="#333" text-anchor="middle">ChIP-seq</text>
+  <text x="425" y="330" font-size="6.5" fill="#999" text-anchor="middle">(19 tasks)</text>
+  <text x="410" y="86" font-size="7" fill="#3498DB" text-anchor="middle">517</text>
+
+  <!-- 6. scRNA-seq: 9 tasks, parse=448.4μs, expand=17.6μs -->
+  <rect x="475" y="118" width="30" height="187" rx="2" fill="#3498DB"/>
+  <rect x="508" y="298" width="30" height="7" rx="2" fill="#E8833A"/>
+  <text x="505" y="320" font-size="7.5" fill="#333" text-anchor="middle">scRNA-seq</text>
+  <text x="505" y="330" font-size="6.5" fill="#999" text-anchor="middle">(9 tasks)</text>
+  <text x="490" y="114" font-size="7" fill="#3498DB" text-anchor="middle">448</text>
+
+  <!-- 7. Long-reads: 11 tasks, parse=391.0μs, expand=19.3μs -->
+  <rect x="555" y="142" width="30" height="163" rx="2" fill="#3498DB"/>
+  <rect x="588" y="297" width="30" height="8" rx="2" fill="#E8833A"/>
+  <text x="585" y="320" font-size="7.5" fill="#333" text-anchor="middle">Long-reads</text>
+  <text x="585" y="330" font-size="6.5" fill="#999" text-anchor="middle">(11 tasks)</text>
+  <text x="570" y="138" font-size="7" fill="#3498DB" text-anchor="middle">391</text>
+
+  <!-- Legend -->
+  <rect x="400" y="50" width="12" height="12" rx="2" fill="#3498DB"/>
+  <text x="416" y="60" font-size="9" fill="#333">Parse time (μs)</text>
+  <rect x="510" y="50" width="12" height="12" rx="2" fill="#E8833A"/>
+  <text x="526" y="60" font-size="9" fill="#333">Expand time (μs)</text>
+
+  <!-- Note -->
+  <text x="350" y="348" font-size="8" fill="#666" text-anchor="middle" font-style="italic">Parse time &lt;520 μs and expand time &lt;23 μs across all templates — negligible relative to bioinformatics tool execution time.</text>
+</svg>
