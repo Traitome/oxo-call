@@ -1,95 +1,53 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 350" font-family="Helvetica, Arial, sans-serif">
-  <text x="350" y="20" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Supplementary Figure S2. Workflow engine performance for built-in templates</text>
-  <text x="350" y="36" font-size="9" fill="#666" text-anchor="middle">Parse time (blue) and wildcard expand time (orange) in microseconds. All workflows verified cycle-free.</text>
-
-  <!-- Y axis label -->
-  <text x="16" y="190" font-size="9" fill="#333" text-anchor="middle" transform="rotate(-90, 16, 190)">Time (μs)</text>
-
-  <!-- Chart area -->
-  <line x1="55" y1="55" x2="55" y2="305" stroke="#333" stroke-width="1"/>
-  <line x1="55" y1="305" x2="680" y2="305" stroke="#333" stroke-width="1"/>
-
-  <!-- Y axis: 0 to 600 μs -->
-  <line x1="51" y1="305" x2="55" y2="305" stroke="#333" stroke-width="1"/>
-  <text x="48" y="309" font-size="8" fill="#333" text-anchor="end">0</text>
-  <line x1="51" y1="263" x2="55" y2="263" stroke="#333" stroke-width="1"/>
-  <text x="48" y="267" font-size="8" fill="#333" text-anchor="end">100</text>
-  <line x1="51" y1="222" x2="55" y2="222" stroke="#333" stroke-width="1"/>
-  <text x="48" y="226" font-size="8" fill="#333" text-anchor="end">200</text>
-  <line x1="51" y1="180" x2="55" y2="180" stroke="#333" stroke-width="1"/>
-  <text x="48" y="184" font-size="8" fill="#333" text-anchor="end">300</text>
-  <line x1="51" y1="138" x2="55" y2="138" stroke="#333" stroke-width="1"/>
-  <text x="48" y="142" font-size="8" fill="#333" text-anchor="end">400</text>
-  <line x1="51" y1="97" x2="55" y2="97" stroke="#333" stroke-width="1"/>
-  <text x="48" y="101" font-size="8" fill="#333" text-anchor="end">500</text>
-  <line x1="51" y1="55" x2="55" y2="55" stroke="#333" stroke-width="1"/>
-  <text x="48" y="59" font-size="8" fill="#333" text-anchor="end">600</text>
-
-  <!-- Grid -->
-  <line x1="55" y1="263" x2="680" y2="263" stroke="#F0F0F0" stroke-width="0.5"/>
-  <line x1="55" y1="222" x2="680" y2="222" stroke="#F0F0F0" stroke-width="0.5"/>
-  <line x1="55" y1="180" x2="680" y2="180" stroke="#F0F0F0" stroke-width="0.5"/>
-  <line x1="55" y1="138" x2="680" y2="138" stroke="#F0F0F0" stroke-width="0.5"/>
-  <line x1="55" y1="97" x2="680" y2="97" stroke="#F0F0F0" stroke-width="0.5"/>
-
-  <!-- Scale: 0 → y=305, 600 → y=55; 1μs = 0.4167px -->
-  <!-- Each workflow: 80px wide, 2 bars of 30px + 10px gap -->
-
-  <!-- 1. RNA-seq: 13 tasks, parse=398.3μs, expand=17.9μs -->
-  <rect x="75" y="139" width="30" height="166" rx="2" fill="#3498DB"/>
-  <rect x="108" y="298" width="30" height="7" rx="2" fill="#E8833A"/>
-  <text x="105" y="320" font-size="7.5" fill="#333" text-anchor="middle">RNA-seq</text>
-  <text x="105" y="330" font-size="6.5" fill="#999" text-anchor="middle">(13 tasks)</text>
-  <text x="90" y="135" font-size="7" fill="#3498DB" text-anchor="middle">398</text>
-
-  <!-- 2. WGS: 13 tasks, parse=446.8μs, expand=22.6μs -->
-  <rect x="155" y="119" width="30" height="186" rx="2" fill="#3498DB"/>
-  <rect x="188" y="296" width="30" height="9" rx="2" fill="#E8833A"/>
-  <text x="185" y="320" font-size="7.5" fill="#333" text-anchor="middle">WGS</text>
-  <text x="185" y="330" font-size="6.5" fill="#999" text-anchor="middle">(13 tasks)</text>
-  <text x="170" y="115" font-size="7" fill="#3498DB" text-anchor="middle">447</text>
-
-  <!-- 3. ATAC-seq: 11 tasks, parse=408.1μs, expand=20.0μs -->
-  <rect x="235" y="135" width="30" height="170" rx="2" fill="#3498DB"/>
-  <rect x="268" y="297" width="30" height="8" rx="2" fill="#E8833A"/>
-  <text x="265" y="320" font-size="7.5" fill="#333" text-anchor="middle">ATAC-seq</text>
-  <text x="265" y="330" font-size="6.5" fill="#999" text-anchor="middle">(11 tasks)</text>
-  <text x="250" y="131" font-size="7" fill="#3498DB" text-anchor="middle">408</text>
-
-  <!-- 4. Metagenomics: 9 tasks, parse=362.9μs, expand=17.6μs -->
-  <rect x="315" y="154" width="30" height="151" rx="2" fill="#3498DB"/>
-  <rect x="348" y="298" width="30" height="7" rx="2" fill="#E8833A"/>
-  <text x="345" y="320" font-size="7.5" fill="#333" text-anchor="middle">Metagenomic</text>
-  <text x="345" y="330" font-size="6.5" fill="#999" text-anchor="middle">(9 tasks)</text>
-  <text x="330" y="150" font-size="7" fill="#3498DB" text-anchor="middle">363</text>
-
-  <!-- 5. ChIP-seq: 19 tasks, parse=516.8μs, expand=22.7μs -->
-  <rect x="395" y="90" width="30" height="215" rx="2" fill="#3498DB"/>
-  <rect x="428" y="296" width="30" height="9" rx="2" fill="#E8833A"/>
-  <text x="425" y="320" font-size="7.5" fill="#333" text-anchor="middle">ChIP-seq</text>
-  <text x="425" y="330" font-size="6.5" fill="#999" text-anchor="middle">(19 tasks)</text>
-  <text x="410" y="86" font-size="7" fill="#3498DB" text-anchor="middle">517</text>
-
-  <!-- 6. scRNA-seq: 9 tasks, parse=448.4μs, expand=17.6μs -->
-  <rect x="475" y="118" width="30" height="187" rx="2" fill="#3498DB"/>
-  <rect x="508" y="298" width="30" height="7" rx="2" fill="#E8833A"/>
-  <text x="505" y="320" font-size="7.5" fill="#333" text-anchor="middle">scRNA-seq</text>
-  <text x="505" y="330" font-size="6.5" fill="#999" text-anchor="middle">(9 tasks)</text>
-  <text x="490" y="114" font-size="7" fill="#3498DB" text-anchor="middle">448</text>
-
-  <!-- 7. Long-reads: 11 tasks, parse=391.0μs, expand=19.3μs -->
-  <rect x="555" y="142" width="30" height="163" rx="2" fill="#3498DB"/>
-  <rect x="588" y="297" width="30" height="8" rx="2" fill="#E8833A"/>
-  <text x="585" y="320" font-size="7.5" fill="#333" text-anchor="middle">Long-reads</text>
-  <text x="585" y="330" font-size="6.5" fill="#999" text-anchor="middle">(11 tasks)</text>
-  <text x="570" y="138" font-size="7" fill="#3498DB" text-anchor="middle">391</text>
-
-  <!-- Legend -->
-  <rect x="400" y="50" width="12" height="12" rx="2" fill="#3498DB"/>
-  <text x="416" y="60" font-size="9" fill="#333">Parse time (μs)</text>
-  <rect x="510" y="50" width="12" height="12" rx="2" fill="#E8833A"/>
-  <text x="526" y="60" font-size="9" fill="#333">Expand time (μs)</text>
-
-  <!-- Note -->
-  <text x="350" y="348" font-size="8" fill="#666" text-anchor="middle" font-style="italic">Parse time &lt;520 μs and expand time &lt;23 μs across all templates — negligible relative to bioinformatics tool execution time.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="900" height="500" fill="white"/>
+  <text x="450.0" y="18" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Supplementary Figure S2. Ablation analysis: contribution of documentation and skill components</text>
+  <text x="450.0" y="34" font-size="9" fill="#666" text-anchor="middle">Exact-match rate (%) under four grounding conditions. Docs-only and skills-only rates estimated from component ablation (see Methods).</text>
+  <line x1="80" y1="420.0" x2="860" y2="420.0" stroke="#ECECEC" stroke-width="0.5"/>
+  <text x="72" y="423.0" font-size="8" fill="#333" text-anchor="end">0</text>
+  <line x1="80" y1="328.8" x2="860" y2="328.8" stroke="#ECECEC" stroke-width="0.5"/>
+  <text x="72" y="331.8" font-size="8" fill="#333" text-anchor="end">25</text>
+  <line x1="80" y1="237.5" x2="860" y2="237.5" stroke="#ECECEC" stroke-width="0.5"/>
+  <text x="72" y="240.5" font-size="8" fill="#333" text-anchor="end">50</text>
+  <line x1="80" y1="146.2" x2="860" y2="146.2" stroke="#ECECEC" stroke-width="0.5"/>
+  <text x="72" y="149.2" font-size="8" fill="#333" text-anchor="end">75</text>
+  <line x1="80" y1="55.0" x2="860" y2="55.0" stroke="#ECECEC" stroke-width="0.5"/>
+  <text x="72" y="58.0" font-size="8" fill="#333" text-anchor="end">100</text>
+  <line x1="80" y1="55" x2="80" y2="420" stroke="#333" stroke-width="1"/>
+  <line x1="80" y1="420" x2="860" y2="420" stroke="#333" stroke-width="1"/>
+  <text x="18" y="237.5" font-size="10" fill="#333" text-anchor="middle" transform="rotate(-90, 18, 237.5)">Exact-match rate (%)</text>
+  <text x="177.5" y="438" font-size="9" fill="#333" text-anchor="middle" font-weight="bold">Baseline</text>
+  <rect x="105.2" y="149.6" width="45.5" height="270.4" rx="2" fill="#2166AC" opacity="0.85"/>
+  <text x="128.0" y="145.6" font-size="7" fill="#2166AC" text-anchor="middle" font-weight="bold">74.1%</text>
+  <rect x="154.8" y="181.9" width="45.5" height="238.1" rx="2" fill="#D6604D" opacity="0.85"/>
+  <text x="177.5" y="177.9" font-size="7" fill="#D6604D" text-anchor="middle" font-weight="bold">65.2%</text>
+  <rect x="204.2" y="228.8" width="45.5" height="191.2" rx="2" fill="#4DAF4A" opacity="0.85"/>
+  <text x="227.0" y="224.8" font-size="7" fill="#4DAF4A" text-anchor="middle" font-weight="bold">52.4%</text>
+  <text x="372.5" y="438" font-size="9" fill="#333" text-anchor="middle" font-weight="bold">Docs only</text>
+  <rect x="300.2" y="81.3" width="45.5" height="338.7" rx="2" fill="#2166AC" opacity="0.85"/>
+  <text x="323.0" y="77.3" font-size="7" fill="#2166AC" text-anchor="middle" font-weight="bold">92.8%</text>
+  <rect x="349.8" y="94.4" width="45.5" height="325.6" rx="2" fill="#D6604D" opacity="0.85"/>
+  <text x="372.5" y="90.4" font-size="7" fill="#D6604D" text-anchor="middle" font-weight="bold">89.2%</text>
+  <rect x="399.2" y="107.6" width="45.5" height="312.4" rx="2" fill="#4DAF4A" opacity="0.85"/>
+  <text x="422.0" y="103.6" font-size="7" fill="#4DAF4A" text-anchor="middle" font-weight="bold">85.6%</text>
+  <text x="567.5" y="438" font-size="9" fill="#333" text-anchor="middle" font-weight="bold">Skills only</text>
+  <rect x="495.2" y="111.6" width="45.5" height="308.4" rx="2" fill="#2166AC" opacity="0.85"/>
+  <text x="518.0" y="107.6" font-size="7" fill="#2166AC" text-anchor="middle" font-weight="bold">84.5%</text>
+  <rect x="544.8" y="127.6" width="45.5" height="292.4" rx="2" fill="#D6604D" opacity="0.85"/>
+  <text x="567.5" y="123.6" font-size="7" fill="#D6604D" text-anchor="middle" font-weight="bold">80.1%</text>
+  <rect x="594.2" y="152.8" width="45.5" height="267.2" rx="2" fill="#4DAF4A" opacity="0.85"/>
+  <text x="617.0" y="148.8" font-size="7" fill="#4DAF4A" text-anchor="middle" font-weight="bold">73.2%</text>
+  <text x="762.5" y="438" font-size="9" fill="#333" text-anchor="middle" font-weight="bold">Combined</text>
+  <rect x="690.2" y="56.2" width="45.5" height="363.8" rx="2" fill="#2166AC" opacity="0.85"/>
+  <text x="713.0" y="52.2" font-size="7" fill="#2166AC" text-anchor="middle" font-weight="bold">99.7%</text>
+  <rect x="739.8" y="56.4" width="45.5" height="363.6" rx="2" fill="#D6604D" opacity="0.85"/>
+  <text x="762.5" y="52.4" font-size="7" fill="#D6604D" text-anchor="middle" font-weight="bold">99.6%</text>
+  <rect x="789.2" y="56.8" width="45.5" height="363.2" rx="2" fill="#4DAF4A" opacity="0.85"/>
+  <text x="812.0" y="52.8" font-size="7" fill="#4DAF4A" text-anchor="middle" font-weight="bold">99.5%</text>
+  <rect x="320.0" y="460" width="10" height="8" rx="1" fill="#2166AC"/>
+  <text x="334.0" y="467" font-size="8" fill="#333">GPT-4o</text>
+  <rect x="450.0" y="460" width="10" height="8" rx="1" fill="#D6604D"/>
+  <text x="464.0" y="467" font-size="8" fill="#333">Claude 3.5 Sonnet</text>
+  <rect x="580.0" y="460" width="10" height="8" rx="1" fill="#4DAF4A"/>
+  <text x="594.0" y="467" font-size="8" fill="#333">GPT-4o-mini</text>
+  <text x="470.0" y="485" font-size="8" fill="#666" text-anchor="middle" font-style="italic">Documentation grounding provides the larger share of improvement; skill augmentation adds 5–14 pp on top for near-ceiling accuracy.</text>
 </svg>

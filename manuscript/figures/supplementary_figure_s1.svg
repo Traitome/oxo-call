@@ -1,179 +1,334 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 900" font-family="Helvetica, Arial, sans-serif">
-  <text x="480" y="22" font-size="13" font-weight="bold" fill="#333" text-anchor="middle">Supplementary Figure S1. Per-category exact-match rates under enhanced mode (top 20 of 44 categories)</text>
-  <text x="480" y="38" font-size="9" fill="#666" text-anchor="middle">Grouped bars: GPT-4o (blue), Claude 3.5 Sonnet (orange), GPT-4o-mini (green). Categories ordered by number of tools. n = 300 trials per tool-model pair.</text>
-
-  <!-- Y axis label -->
-  <text x="18" y="450" font-size="10" fill="#333" text-anchor="middle" transform="rotate(-90, 18, 450)">Exact-match rate (%)</text>
-
-  <!-- Chart area -->
-  <!-- Y axis -->
-  <line x1="60" y1="55" x2="60" y2="830" stroke="#333" stroke-width="1"/>
-  <!-- X axis -->
-  <line x1="60" y1="830" x2="940" y2="830" stroke="#333" stroke-width="1"/>
-
-  <!-- Y axis: 95-100% range (zoomed in) -->
-  <line x1="56" y1="830" x2="60" y2="830" stroke="#333" stroke-width="1"/>
-  <text x="53" y="834" font-size="8" fill="#333" text-anchor="end">95.0</text>
-  <line x1="56" y1="675" x2="60" y2="675" stroke="#333" stroke-width="1"/>
-  <text x="53" y="679" font-size="8" fill="#333" text-anchor="end">96.0</text>
-  <line x1="56" y1="520" x2="60" y2="520" stroke="#333" stroke-width="1"/>
-  <text x="53" y="524" font-size="8" fill="#333" text-anchor="end">97.0</text>
-  <line x1="56" y1="365" x2="60" y2="365" stroke="#333" stroke-width="1"/>
-  <text x="53" y="369" font-size="8" fill="#333" text-anchor="end">98.0</text>
-  <line x1="56" y1="210" x2="60" y2="210" stroke="#333" stroke-width="1"/>
-  <text x="53" y="214" font-size="8" fill="#333" text-anchor="end">99.0</text>
-  <line x1="56" y1="55" x2="60" y2="55" stroke="#333" stroke-width="1"/>
-  <text x="53" y="59" font-size="8" fill="#333" text-anchor="end">100.0</text>
-
-  <!-- Grid lines -->
-  <line x1="60" y1="55" x2="940" y2="55" stroke="#F0F0F0" stroke-width="0.5"/>
-  <line x1="60" y1="210" x2="940" y2="210" stroke="#F0F0F0" stroke-width="0.5"/>
-  <line x1="60" y1="365" x2="940" y2="365" stroke="#F0F0F0" stroke-width="0.5"/>
-  <line x1="60" y1="520" x2="940" y2="520" stroke="#F0F0F0" stroke-width="0.5"/>
-  <line x1="60" y1="675" x2="940" y2="675" stroke="#F0F0F0" stroke-width="0.5"/>
-
-  <!-- Scale: 95% → y=830, 100% → y=55; 1% = 155px -->
-  <!-- Each category group: 44px wide, 3 bars of 12px + 4px spacing -->
-
-  <!-- 1. variant-calling (16 tools) -->
-  <!-- GPT-4o: 99.62% → y = 830 - (99.62-95)*155 = 830 - 716.1 = 113.9 -->
-  <rect x="72" y="114" width="12" height="716" rx="1" fill="#3498DB"/>
-  <!-- Claude: 99.44% → 830 - 688.2 = 141.8 -->
-  <rect x="86" y="142" width="12" height="688" rx="1" fill="#E8833A"/>
-  <!-- Mini: 99.62% → same as 4o -->
-  <rect x="100" y="114" width="12" height="716" rx="1" fill="#50B86C"/>
-  <text x="91" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 91, 850)">variant-calling (16)</text>
-
-  <!-- 2. qc (12 tools) -->
-  <!-- GPT-4o: 99.42% → 830 - 685.1 = 144.9 -->
-  <rect x="116" y="145" width="12" height="685" rx="1" fill="#3498DB"/>
-  <!-- Claude: 99.50% → 830 - 697.5 = 132.5 -->
-  <rect x="130" y="133" width="12" height="698" rx="1" fill="#E8833A"/>
-  <!-- Mini: 99.92% → 830 - 762.6 = 67.4 -->
-  <rect x="144" y="67" width="12" height="763" rx="1" fill="#50B86C"/>
-  <text x="135" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 135, 850)">qc (12)</text>
-
-  <!-- 3. assembly (11 tools) -->
-  <!-- GPT-4o: 99.73% → 830 - 733.15 = 96.9 -->
-  <rect x="160" y="97" width="12" height="733" rx="1" fill="#3498DB"/>
-  <!-- Claude: 99.82% → 830 - 747.1 = 82.9 -->
-  <rect x="174" y="83" width="12" height="747" rx="1" fill="#E8833A"/>
-  <!-- Mini: 99.36% → 830 - 675.8 = 154.2 -->
-  <rect x="188" y="154" width="12" height="676" rx="1" fill="#50B86C"/>
-  <text x="179" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 179, 850)">assembly (11)</text>
-
-  <!-- 4. metagenomics (10 tools) -->
-  <!-- GPT-4o: 99.70% → 830 - 728.5 = 101.5 -->
-  <rect x="204" y="102" width="12" height="729" rx="1" fill="#3498DB"/>
-  <!-- Claude: 99.57% → 830 - 708.4 = 121.7 -->
-  <rect x="218" y="122" width="12" height="708" rx="1" fill="#E8833A"/>
-  <!-- Mini: 99.40% → 830 - 681 = 149 -->
-  <rect x="232" y="149" width="12" height="681" rx="1" fill="#50B86C"/>
-  <text x="223" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 223, 850)">metagenomics (10)</text>
-
-  <!-- 5. alignment (9 tools) -->
-  <!-- GPT-4o: 99.78% → 830 - 740.9 = 89.1 -->
-  <rect x="248" y="89" width="12" height="741" rx="1" fill="#3498DB"/>
-  <!-- Claude: 99.56% → 830 - 706.8 = 123.2 -->
-  <rect x="262" y="123" width="12" height="707" rx="1" fill="#E8833A"/>
-  <!-- Mini: 99.44% → 830 - 688.2 = 141.8 -->
-  <rect x="276" y="142" width="12" height="688" rx="1" fill="#50B86C"/>
-  <text x="267" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 267, 850)">alignment (9)</text>
-
-  <!-- 6. rna-seq (8 tools) -->
-  <rect x="292" y="90" width="12" height="740" rx="1" fill="#3498DB"/>
-  <rect x="306" y="105" width="12" height="725" rx="1" fill="#E8833A"/>
-  <rect x="320" y="130" width="12" height="700" rx="1" fill="#50B86C"/>
-  <text x="311" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 311, 850)">rna-seq (8)</text>
-
-  <!-- 7. epigenomics (8 tools) -->
-  <rect x="336" y="95" width="12" height="735" rx="1" fill="#3498DB"/>
-  <rect x="350" y="110" width="12" height="720" rx="1" fill="#E8833A"/>
-  <rect x="364" y="120" width="12" height="710" rx="1" fill="#50B86C"/>
-  <text x="355" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 355, 850)">epigenomics (8)</text>
-
-  <!-- 8. utilities (6 tools) -->
-  <rect x="380" y="75" width="12" height="755" rx="1" fill="#3498DB"/>
-  <rect x="394" y="85" width="12" height="745" rx="1" fill="#E8833A"/>
-  <rect x="408" y="80" width="12" height="750" rx="1" fill="#50B86C"/>
-  <text x="399" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 399, 850)">utilities (6)</text>
-
-  <!-- 9. hpc (6 tools) -->
-  <rect x="424" y="65" width="12" height="765" rx="1" fill="#3498DB"/>
-  <rect x="438" y="70" width="12" height="760" rx="1" fill="#E8833A"/>
-  <rect x="452" y="72" width="12" height="758" rx="1" fill="#50B86C"/>
-  <text x="443" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 443, 850)">hpc (6)</text>
-
-  <!-- 10. annotation (6 tools) -->
-  <rect x="468" y="80" width="12" height="750" rx="1" fill="#3498DB"/>
-  <rect x="482" y="90" width="12" height="740" rx="1" fill="#E8833A"/>
-  <rect x="496" y="85" width="12" height="745" rx="1" fill="#50B86C"/>
-  <text x="487" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 487, 850)">annotation (6)</text>
-
-  <!-- 11. single-cell (5 tools) -->
-  <rect x="512" y="72" width="12" height="758" rx="1" fill="#3498DB"/>
-  <rect x="526" y="78" width="12" height="752" rx="1" fill="#E8833A"/>
-  <rect x="540" y="95" width="12" height="735" rx="1" fill="#50B86C"/>
-  <text x="531" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 531, 850)">single-cell (5)</text>
-
-  <!-- 12. package-management (5 tools) -->
-  <rect x="556" y="60" width="12" height="770" rx="1" fill="#3498DB"/>
-  <rect x="570" y="62" width="12" height="768" rx="1" fill="#E8833A"/>
-  <rect x="584" y="58" width="12" height="772" rx="1" fill="#50B86C"/>
-  <text x="575" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 575, 850)">pkg-management (5)</text>
-
-  <!-- 13. population-genomics (4 tools) -->
-  <rect x="600" y="55" width="12" height="775" rx="1" fill="#3498DB"/>
-  <rect x="614" y="57" width="12" height="773" rx="1" fill="#E8833A"/>
-  <rect x="628" y="60" width="12" height="770" rx="1" fill="#50B86C"/>
-  <text x="619" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 619, 850)">pop-genomics (4)</text>
-
-  <!-- 14. phylogenetics (4 tools) -->
-  <rect x="644" y="55" width="12" height="775" rx="1" fill="#3498DB"/>
-  <rect x="658" y="58" width="12" height="772" rx="1" fill="#E8833A"/>
-  <rect x="672" y="55" width="12" height="775" rx="1" fill="#50B86C"/>
-  <text x="663" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 663, 850)">phylogenetics (4)</text>
-
-  <!-- 15. networking (4 tools) -->
-  <rect x="688" y="55" width="12" height="775" rx="1" fill="#3498DB"/>
-  <rect x="702" y="55" width="12" height="775" rx="1" fill="#E8833A"/>
-  <rect x="716" y="55" width="12" height="775" rx="1" fill="#50B86C"/>
-  <text x="707" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 707, 850)">networking (4)</text>
-
-  <!-- 16. variant-annotation (3 tools) -->
-  <rect x="732" y="55" width="12" height="775" rx="1" fill="#3498DB"/>
-  <rect x="746" y="58" width="12" height="772" rx="1" fill="#E8833A"/>
-  <rect x="760" y="55" width="12" height="775" rx="1" fill="#50B86C"/>
-  <text x="751" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 751, 850)">variant-annot (3)</text>
-
-  <!-- 17. text-processing (3 tools) -->
-  <rect x="776" y="55" width="12" height="775" rx="1" fill="#3498DB"/>
-  <rect x="790" y="55" width="12" height="775" rx="1" fill="#E8833A"/>
-  <rect x="804" y="55" width="12" height="775" rx="1" fill="#50B86C"/>
-  <text x="795" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 795, 850)">text-processing (3)</text>
-
-  <!-- 18. seq-utilities (3 tools) -->
-  <rect x="820" y="55" width="12" height="775" rx="1" fill="#3498DB"/>
-  <rect x="834" y="60" width="12" height="770" rx="1" fill="#E8833A"/>
-  <rect x="848" y="55" width="12" height="775" rx="1" fill="#50B86C"/>
-  <text x="839" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 839, 850)">seq-utilities (3)</text>
-
-  <!-- 19. filesystem (3 tools) -->
-  <rect x="864" y="55" width="12" height="775" rx="1" fill="#3498DB"/>
-  <rect x="878" y="55" width="12" height="775" rx="1" fill="#E8833A"/>
-  <rect x="892" y="55" width="12" height="775" rx="1" fill="#50B86C"/>
-  <text x="883" y="850" font-size="7" fill="#333" text-anchor="middle" transform="rotate(-35, 883, 850)">filesystem (3)</text>
-
-  <!-- Break indicator: zoomed axis notice -->
-  <rect x="60" y="823" width="880" height="7" fill="none" stroke="#CCC" stroke-width="0.5" stroke-dasharray="2,2"/>
-  <text x="480" y="875" font-size="8" fill="#666" text-anchor="middle" font-style="italic">Note: Y-axis starts at 95% to show variation. All categories achieve ≥99.3% exact match. 13 categories (not shown) achieve 100% across all models.</text>
-
-  <!-- Legend -->
-  <rect x="700" y="55" width="0" height="0"/>
-  <rect x="680" y="25" width="10" height="10" rx="2" fill="#3498DB"/>
-  <text x="695" y="34" font-size="8.5" fill="#333">GPT-4o</text>
-  <rect x="750" y="25" width="10" height="10" rx="2" fill="#E8833A"/>
-  <text x="765" y="34" font-size="8.5" fill="#333">Claude 3.5 Sonnet</text>
-  <rect x="860" y="25" width="10" height="10" rx="2" fill="#50B86C"/>
-  <text x="875" y="34" font-size="8.5" fill="#333">GPT-4o-mini</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1210" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="1000" height="1210" fill="white"/>
+  <text x="500.0" y="20" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Supplementary Figure S1. Per-category exact-match rates under enhanced mode</text>
+  <text x="500.0" y="36" font-size="9" fill="#666" text-anchor="middle">All 44 categories, 3 models. Y-axis range: 95–100%. Categories ordered by number of tools (shown in parentheses). n = 47,700 trials per model.</text>
+  <line x1="175.0" y1="60" x2="175.0" y2="1160" stroke="#ECECEC" stroke-width="0.5"/>
+  <text x="175.0" y="1175" font-size="8" fill="#333" text-anchor="middle">95%</text>
+  <line x1="328.0" y1="60" x2="328.0" y2="1160" stroke="#ECECEC" stroke-width="0.5"/>
+  <text x="328.0" y="1175" font-size="8" fill="#333" text-anchor="middle">96%</text>
+  <line x1="481.0" y1="60" x2="481.0" y2="1160" stroke="#ECECEC" stroke-width="0.5"/>
+  <text x="481.0" y="1175" font-size="8" fill="#333" text-anchor="middle">97%</text>
+  <line x1="634.0" y1="60" x2="634.0" y2="1160" stroke="#ECECEC" stroke-width="0.5"/>
+  <text x="634.0" y="1175" font-size="8" fill="#333" text-anchor="middle">98%</text>
+  <line x1="787.0" y1="60" x2="787.0" y2="1160" stroke="#ECECEC" stroke-width="0.5"/>
+  <text x="787.0" y="1175" font-size="8" fill="#333" text-anchor="middle">99%</text>
+  <line x1="940.0" y1="60" x2="940.0" y2="1160" stroke="#ECECEC" stroke-width="0.5"/>
+  <text x="940.0" y="1175" font-size="8" fill="#333" text-anchor="middle">100%</text>
+  <text x="557.5" y="1195" font-size="10" fill="#333" text-anchor="middle">Exact-match rate (%)</text>
+  <line x1="175" y1="60" x2="175" y2="1160" stroke="#333" stroke-width="1"/>
+  <line x1="175" y1="1160" x2="940" y2="1160" stroke="#333" stroke-width="1"/>
+  <text x="170" y="74.0" font-size="7.5" fill="#333" text-anchor="end">variant-calling (16)</text>
+  <rect x="175" y="62.0" width="706.9" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="884.9" y="67.5" font-size="6" fill="#2166AC">99.6</text>
+  <rect x="175" y="70.0" width="679.3" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="857.3" y="75.5" font-size="6" fill="#D6604D">99.4</text>
+  <rect x="175" y="78.0" width="706.9" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="884.9" y="83.5" font-size="6" fill="#4DAF4A">99.6</text>
+  <text x="170" y="99.0" font-size="7.5" fill="#333" text-anchor="end">qc (12)</text>
+  <rect x="175" y="87.0" width="676.3" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="854.3" y="92.5" font-size="6" fill="#2166AC">99.4</text>
+  <rect x="175" y="95.0" width="688.5" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="866.5" y="100.5" font-size="6" fill="#D6604D">99.5</text>
+  <rect x="175" y="103.0" width="752.8" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="930.8" y="108.5" font-size="6" fill="#4DAF4A">99.9</text>
+  <text x="170" y="124.0" font-size="7.5" fill="#333" text-anchor="end">assembly (11)</text>
+  <rect x="175" y="112.0" width="723.7" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="901.7" y="117.5" font-size="6" fill="#2166AC">99.7</text>
+  <rect x="175" y="120.0" width="737.5" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="915.5" y="125.5" font-size="6" fill="#D6604D">99.8</text>
+  <rect x="175" y="128.0" width="667.1" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="845.1" y="133.5" font-size="6" fill="#4DAF4A">99.4</text>
+  <text x="170" y="149.0" font-size="7.5" fill="#333" text-anchor="end">metagenomics (10)</text>
+  <rect x="175" y="137.0" width="719.1" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="897.1" y="142.5" font-size="6" fill="#2166AC">99.7</text>
+  <rect x="175" y="145.0" width="734.4" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="912.4" y="150.5" font-size="6" fill="#D6604D">99.8</text>
+  <rect x="175" y="153.0" width="734.4" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="912.4" y="158.5" font-size="6" fill="#4DAF4A">99.8</text>
+  <text x="170" y="174.0" font-size="7.5" fill="#333" text-anchor="end">alignment (9)</text>
+  <rect x="175" y="162.0" width="714.5" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="892.5" y="167.5" font-size="6" fill="#2166AC">99.7</text>
+  <rect x="175" y="170.0" width="697.7" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="875.7" y="175.5" font-size="6" fill="#D6604D">99.6</text>
+  <rect x="175" y="178.0" width="662.5" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="840.5" y="183.5" font-size="6" fill="#4DAF4A">99.3</text>
+  <text x="170" y="199.0" font-size="7.5" fill="#333" text-anchor="end">epigenomics (8)</text>
+  <rect x="175" y="187.0" width="688.5" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="866.5" y="192.5" font-size="6" fill="#2166AC">99.5</text>
+  <rect x="175" y="195.0" width="706.9" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="884.9" y="200.5" font-size="6" fill="#D6604D">99.6</text>
+  <rect x="175" y="203.0" width="688.5" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="866.5" y="208.5" font-size="6" fill="#4DAF4A">99.5</text>
+  <text x="170" y="224.0" font-size="7.5" fill="#333" text-anchor="end">rna-seq (8)</text>
+  <rect x="175" y="212.0" width="746.6" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="924.6" y="217.5" font-size="6" fill="#2166AC">99.9</text>
+  <rect x="175" y="220.0" width="746.6" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="924.6" y="225.5" font-size="6" fill="#D6604D">99.9</text>
+  <rect x="175" y="228.0" width="746.6" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="924.6" y="233.5" font-size="6" fill="#4DAF4A">99.9</text>
+  <text x="170" y="249.0" font-size="7.5" fill="#333" text-anchor="end">annotation (6)</text>
+  <rect x="175" y="237.0" width="688.5" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="866.5" y="242.5" font-size="6" fill="#2166AC">99.5</text>
+  <rect x="175" y="245.0" width="688.5" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="866.5" y="250.5" font-size="6" fill="#D6604D">99.5</text>
+  <rect x="175" y="253.0" width="688.5" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="866.5" y="258.5" font-size="6" fill="#4DAF4A">99.5</text>
+  <text x="170" y="274.0" font-size="7.5" fill="#333" text-anchor="end">hpc (6)</text>
+  <rect x="175" y="262.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="267.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="270.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="275.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="278.0" width="739.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="917.0" y="283.5" font-size="6" fill="#4DAF4A">99.8</text>
+  <text x="170" y="299.0" font-size="7.5" fill="#333" text-anchor="end">utilities (6)</text>
+  <rect x="175" y="287.0" width="662.5" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="840.5" y="292.5" font-size="6" fill="#2166AC">99.3</text>
+  <rect x="175" y="295.0" width="714.5" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="892.5" y="300.5" font-size="6" fill="#D6604D">99.7</text>
+  <rect x="175" y="303.0" width="739.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="917.0" y="308.5" font-size="6" fill="#4DAF4A">99.8</text>
+  <text x="170" y="324.0" font-size="7.5" fill="#333" text-anchor="end">package-management (5)</text>
+  <rect x="175" y="312.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="317.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="320.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="325.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="328.0" width="673.2" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="851.2" y="333.5" font-size="6" fill="#4DAF4A">99.4</text>
+  <text x="170" y="349.0" font-size="7.5" fill="#333" text-anchor="end">single-cell (5)</text>
+  <rect x="175" y="337.0" width="703.8" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="881.8" y="342.5" font-size="6" fill="#2166AC">99.6</text>
+  <rect x="175" y="345.0" width="673.2" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="851.2" y="350.5" font-size="6" fill="#D6604D">99.4</text>
+  <rect x="175" y="353.0" width="489.6" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="667.6" y="358.5" font-size="6" fill="#4DAF4A">98.2</text>
+  <text x="170" y="374.0" font-size="7.5" fill="#333" text-anchor="end">networking (4)</text>
+  <rect x="175" y="362.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="367.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="370.0" width="726.8" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="904.8" y="375.5" font-size="6" fill="#D6604D">99.8</text>
+  <rect x="175" y="378.0" width="497.3" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="675.3" y="383.5" font-size="6" fill="#4DAF4A">98.2</text>
+  <text x="170" y="399.0" font-size="7.5" fill="#333" text-anchor="end">phylogenetics (4)</text>
+  <rect x="175" y="387.0" width="726.8" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="904.8" y="392.5" font-size="6" fill="#2166AC">99.8</text>
+  <rect x="175" y="395.0" width="650.3" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="828.3" y="400.5" font-size="6" fill="#D6604D">99.2</text>
+  <rect x="175" y="403.0" width="535.5" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="713.5" y="408.5" font-size="6" fill="#4DAF4A">98.5</text>
+  <text x="170" y="424.0" font-size="7.5" fill="#333" text-anchor="end">population-genomics (4)</text>
+  <rect x="175" y="412.0" width="726.8" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="904.8" y="417.5" font-size="6" fill="#2166AC">99.8</text>
+  <rect x="175" y="420.0" width="726.8" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="904.8" y="425.5" font-size="6" fill="#D6604D">99.8</text>
+  <rect x="175" y="428.0" width="726.8" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="904.8" y="433.5" font-size="6" fill="#4DAF4A">99.8</text>
+  <text x="170" y="449.0" font-size="7.5" fill="#333" text-anchor="end">filesystem (3)</text>
+  <rect x="175" y="437.0" width="662.5" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="840.5" y="442.5" font-size="6" fill="#2166AC">99.3</text>
+  <rect x="175" y="445.0" width="714.5" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="892.5" y="450.5" font-size="6" fill="#D6604D">99.7</text>
+  <rect x="175" y="453.0" width="765.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="943.0" y="458.5" font-size="6" fill="#4DAF4A">100</text>
+  <text x="170" y="474.0" font-size="7.5" fill="#333" text-anchor="end">sequence-utilities (3)</text>
+  <rect x="175" y="462.0" width="714.5" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="892.5" y="467.5" font-size="6" fill="#2166AC">99.7</text>
+  <rect x="175" y="470.0" width="662.5" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="840.5" y="475.5" font-size="6" fill="#D6604D">99.3</text>
+  <rect x="175" y="478.0" width="662.5" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="840.5" y="483.5" font-size="6" fill="#4DAF4A">99.3</text>
+  <text x="170" y="499.0" font-size="7.5" fill="#333" text-anchor="end">text-processing (3)</text>
+  <rect x="175" y="487.0" width="662.5" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="840.5" y="492.5" font-size="6" fill="#2166AC">99.3</text>
+  <rect x="175" y="495.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="500.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="503.0" width="662.5" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="840.5" y="508.5" font-size="6" fill="#4DAF4A">99.3</text>
+  <text x="170" y="524.0" font-size="7.5" fill="#333" text-anchor="end">variant-annotation (3)</text>
+  <rect x="175" y="512.0" width="662.5" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="840.5" y="517.5" font-size="6" fill="#2166AC">99.3</text>
+  <rect x="175" y="520.0" width="714.5" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="892.5" y="525.5" font-size="6" fill="#D6604D">99.7</text>
+  <rect x="175" y="528.0" width="765.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="943.0" y="533.5" font-size="6" fill="#4DAF4A">100</text>
+  <text x="170" y="549.0" font-size="7.5" fill="#333" text-anchor="end">ai-assistant (2)</text>
+  <rect x="175" y="537.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="542.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="545.0" width="688.5" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="866.5" y="550.5" font-size="6" fill="#D6604D">99.5</text>
+  <rect x="175" y="553.0" width="765.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="943.0" y="558.5" font-size="6" fill="#4DAF4A">100</text>
+  <text x="170" y="574.0" font-size="7.5" fill="#333" text-anchor="end">comparative-genomics (2)</text>
+  <rect x="175" y="562.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="567.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="570.0" width="535.5" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="713.5" y="575.5" font-size="6" fill="#D6604D">98.5</text>
+  <rect x="175" y="578.0" width="535.5" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="713.5" y="583.5" font-size="6" fill="#4DAF4A">98.5</text>
+  <text x="170" y="599.0" font-size="7.5" fill="#333" text-anchor="end">containerization (2)</text>
+  <rect x="175" y="587.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="592.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="595.0" width="535.5" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="713.5" y="600.5" font-size="6" fill="#D6604D">98.5</text>
+  <rect x="175" y="603.0" width="535.5" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="713.5" y="608.5" font-size="6" fill="#4DAF4A">98.5</text>
+  <text x="170" y="624.0" font-size="7.5" fill="#333" text-anchor="end">long-read (2)</text>
+  <rect x="175" y="612.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="617.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="620.0" width="688.5" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="866.5" y="625.5" font-size="6" fill="#D6604D">99.5</text>
+  <rect x="175" y="628.0" width="688.5" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="866.5" y="633.5" font-size="6" fill="#4DAF4A">99.5</text>
+  <text x="170" y="649.0" font-size="7.5" fill="#333" text-anchor="end">quality-control (2)</text>
+  <rect x="175" y="637.0" width="612.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="790.0" y="642.5" font-size="6" fill="#2166AC">99.0</text>
+  <rect x="175" y="645.0" width="535.5" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="713.5" y="650.5" font-size="6" fill="#D6604D">98.5</text>
+  <rect x="175" y="653.0" width="765.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="943.0" y="658.5" font-size="6" fill="#4DAF4A">100</text>
+  <text x="170" y="674.0" font-size="7.5" fill="#333" text-anchor="end">scripting (2)</text>
+  <rect x="175" y="662.0" width="688.5" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="866.5" y="667.5" font-size="6" fill="#2166AC">99.5</text>
+  <rect x="175" y="670.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="675.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="678.0" width="765.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="943.0" y="683.5" font-size="6" fill="#4DAF4A">100</text>
+  <text x="170" y="699.0" font-size="7.5" fill="#333" text-anchor="end">sequence-comparison (2)</text>
+  <rect x="175" y="687.0" width="688.5" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="866.5" y="692.5" font-size="6" fill="#2166AC">99.5</text>
+  <rect x="175" y="695.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="700.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="703.0" width="688.5" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="866.5" y="708.5" font-size="6" fill="#4DAF4A">99.5</text>
+  <text x="170" y="724.0" font-size="7.5" fill="#333" text-anchor="end">workflow-manager (2)</text>
+  <rect x="175" y="712.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="717.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="720.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="725.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="728.0" width="765.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="943.0" y="733.5" font-size="6" fill="#4DAF4A">100</text>
+  <text x="170" y="749.0" font-size="7.5" fill="#333" text-anchor="end">assembly-polishing (1)</text>
+  <rect x="175" y="737.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="742.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="745.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="750.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="753.0" width="765.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="943.0" y="758.5" font-size="6" fill="#4DAF4A">100</text>
+  <text x="170" y="774.0" font-size="7.5" fill="#333" text-anchor="end">functional-annotation (1)</text>
+  <rect x="175" y="762.0" width="612.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="790.0" y="767.5" font-size="6" fill="#2166AC">99.0</text>
+  <rect x="175" y="770.0" width="459.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="637.0" y="775.5" font-size="6" fill="#D6604D">98.0</text>
+  <rect x="175" y="778.0" width="765.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="943.0" y="783.5" font-size="6" fill="#4DAF4A">100</text>
+  <text x="170" y="799.0" font-size="7.5" fill="#333" text-anchor="end">genome-alignment (1)</text>
+  <rect x="175" y="787.0" width="459.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="637.0" y="792.5" font-size="6" fill="#2166AC">98.0</text>
+  <rect x="175" y="795.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="800.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="803.0" width="765.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="943.0" y="808.5" font-size="6" fill="#4DAF4A">100</text>
+  <text x="170" y="824.0" font-size="7.5" fill="#333" text-anchor="end">genome-annotation (1)</text>
+  <rect x="175" y="812.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="817.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="820.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="825.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="828.0" width="765.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="943.0" y="833.5" font-size="6" fill="#4DAF4A">100</text>
+  <text x="170" y="849.0" font-size="7.5" fill="#333" text-anchor="end">genomic-arithmetic (1)</text>
+  <rect x="175" y="837.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="842.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="845.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="850.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="853.0" width="459.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="637.0" y="858.5" font-size="6" fill="#4DAF4A">98.0</text>
+  <text x="170" y="874.0" font-size="7.5" fill="#333" text-anchor="end">genomic-intervals (1)</text>
+  <rect x="175" y="862.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="867.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="870.0" width="306.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="484.0" y="875.5" font-size="6" fill="#D6604D">97.0</text>
+  <rect x="175" y="878.0" width="765.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="943.0" y="883.5" font-size="6" fill="#4DAF4A">100</text>
+  <text x="170" y="899.0" font-size="7.5" fill="#333" text-anchor="end">motif-analysis (1)</text>
+  <rect x="175" y="887.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="892.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="895.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="900.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="903.0" width="612.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="790.0" y="908.5" font-size="6" fill="#4DAF4A">99.0</text>
+  <text x="170" y="924.0" font-size="7.5" fill="#333" text-anchor="end">programming (1)</text>
+  <rect x="175" y="912.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="917.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="920.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="925.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="928.0" width="612.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="790.0" y="933.5" font-size="6" fill="#4DAF4A">99.0</text>
+  <text x="170" y="949.0" font-size="7.5" fill="#333" text-anchor="end">runtime (1)</text>
+  <rect x="175" y="937.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="942.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="945.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="950.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="953.0" width="765.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="943.0" y="958.5" font-size="6" fill="#4DAF4A">100</text>
+  <text x="170" y="974.0" font-size="7.5" fill="#333" text-anchor="end">scientific-computing (1)</text>
+  <rect x="175" y="962.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="967.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="970.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="975.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="978.0" width="612.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="790.0" y="983.5" font-size="6" fill="#4DAF4A">99.0</text>
+  <text x="170" y="999.0" font-size="7.5" fill="#333" text-anchor="end">sequence-manipulation (1)</text>
+  <rect x="175" y="987.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="992.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="995.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="1000.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="1003.0" width="765.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="943.0" y="1008.5" font-size="6" fill="#4DAF4A">100</text>
+  <text x="170" y="1024.0" font-size="7.5" fill="#333" text-anchor="end">sequence-processing (1)</text>
+  <rect x="175" y="1012.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="1017.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="1020.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="1025.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="1028.0" width="612.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="790.0" y="1033.5" font-size="6" fill="#4DAF4A">99.0</text>
+  <text x="170" y="1049.0" font-size="7.5" fill="#333" text-anchor="end">sequence-search (1)</text>
+  <rect x="175" y="1037.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="1042.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="1045.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="1050.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="1053.0" width="765.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="943.0" y="1058.5" font-size="6" fill="#4DAF4A">100</text>
+  <text x="170" y="1074.0" font-size="7.5" fill="#333" text-anchor="end">statistical-computing (1)</text>
+  <rect x="175" y="1062.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="1067.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="1070.0" width="612.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="790.0" y="1075.5" font-size="6" fill="#D6604D">99.0</text>
+  <rect x="175" y="1078.0" width="612.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="790.0" y="1083.5" font-size="6" fill="#4DAF4A">99.0</text>
+  <text x="170" y="1099.0" font-size="7.5" fill="#333" text-anchor="end">structural-variants (1)</text>
+  <rect x="175" y="1087.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="1092.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="1095.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="1100.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="1103.0" width="612.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="790.0" y="1108.5" font-size="6" fill="#4DAF4A">99.0</text>
+  <text x="170" y="1124.0" font-size="7.5" fill="#333" text-anchor="end">variant-benchmarking (1)</text>
+  <rect x="175" y="1112.0" width="612.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="790.0" y="1117.5" font-size="6" fill="#2166AC">99.0</text>
+  <rect x="175" y="1120.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="1125.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="1128.0" width="765.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="943.0" y="1133.5" font-size="6" fill="#4DAF4A">100</text>
+  <text x="170" y="1149.0" font-size="7.5" fill="#333" text-anchor="end">version-control (1)</text>
+  <rect x="175" y="1137.0" width="765.0" height="6" rx="1" fill="#2166AC" opacity="0.85"/>
+  <text x="943.0" y="1142.5" font-size="6" fill="#2166AC">100</text>
+  <rect x="175" y="1145.0" width="765.0" height="6" rx="1" fill="#D6604D" opacity="0.85"/>
+  <text x="943.0" y="1150.5" font-size="6" fill="#D6604D">100</text>
+  <rect x="175" y="1153.0" width="765.0" height="6" rx="1" fill="#4DAF4A" opacity="0.85"/>
+  <text x="943.0" y="1158.5" font-size="6" fill="#4DAF4A">100</text>
+  <rect x="427.5" y="1202" width="10" height="8" rx="1" fill="#2166AC"/>
+  <text x="441.5" y="1209" font-size="8" fill="#333">GPT-4o</text>
+  <rect x="547.5" y="1202" width="10" height="8" rx="1" fill="#D6604D"/>
+  <text x="561.5" y="1209" font-size="8" fill="#333">Claude 3.5 Sonnet</text>
+  <rect x="667.5" y="1202" width="10" height="8" rx="1" fill="#4DAF4A"/>
+  <text x="681.5" y="1209" font-size="8" fill="#333">GPT-4o-mini</text>
 </svg>
