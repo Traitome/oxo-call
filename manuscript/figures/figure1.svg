@@ -1,323 +1,308 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 750" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 680" font-family="Helvetica, Arial, sans-serif">
   <defs>
-    <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#333"/>
+    <marker id="ah" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0,7 2.5,0 5" fill="#444"/>
     </marker>
-    <marker id="arrowdown" markerWidth="6" markerHeight="8" refX="3" refY="8" orient="auto">
-      <polygon points="0 0, 6 0, 3 8" fill="#969696"/>
+    <marker id="ad" markerWidth="5" markerHeight="7" refX="2.5" refY="7" orient="auto">
+      <polygon points="0 0,5 0,2.5 7" fill="#888"/>
     </marker>
   </defs>
-
-  <!-- Panel A: Four-stage pipeline -->
-  <rect x="0" y="0" width="540" height="340" rx="4" fill="#F7F7F7" stroke="#E0E0E0" stroke-width="0.5"/>
-  <text x="15" y="22" font-size="16" font-weight="bold" fill="#333">a</text>
-  <text x="35" y="22" font-size="12" font-weight="bold" fill="#333">Four-stage pipeline</text>
-
-  <text x="18" y="60" font-size="8" fill="#555">User:</text>
-  <text x="18" y="70" font-size="7" fill="#555" font-style="italic">natural-language task</text>
-  <line x1="80" y1="65" x2="95" y2="65" stroke="#333" stroke-width="1" marker-end="url(#arrowhead)"/>
-
-  <!-- Stage 1: Documentation Resolution -->
-  <g transform="translate(100, 42)">
-    <rect x="0" y="0" width="100" height="150" rx="6" fill="white" stroke="#E0E0E0" stroke-width="0.75"/>
-    <rect x="0" y="0" width="100" height="4" rx="2" fill="#2166AC"/>
-    <text x="50" y="18" font-size="7.5" font-weight="bold" fill="#2166AC" text-anchor="middle">Documentation</text>
-    <text x="50" y="28" font-size="7.5" font-weight="bold" fill="#2166AC" text-anchor="middle">Resolution</text>
-    <line x1="10" y1="34" x2="90" y2="34" stroke="#E8E8E8" stroke-width="0.5"/>
-    <circle cx="16" cy="48" r="2" fill="#2166AC" opacity="0.5"/><text x="22" y="51" font-size="7" fill="#444">Local cache</text>
-    <circle cx="16" cy="64" r="2" fill="#2166AC" opacity="0.5"/><text x="22" y="67" font-size="7" fill="#444">Live --help capture</text>
-    <circle cx="16" cy="80" r="2" fill="#2166AC" opacity="0.5"/><text x="22" y="83" font-size="7" fill="#444">User docs</text>
-    <circle cx="16" cy="96" r="2" fill="#2166AC" opacity="0.5"/><text x="22" y="99" font-size="7" fill="#444">Remote sources</text>
-    <line x1="10" y1="115" x2="90" y2="115" stroke="#E8E8E8" stroke-width="0.5"/>
-    <text x="50" y="132" font-size="6.5" fill="#969696" font-style="italic" text-anchor="middle">SHA-256 hash</text>
-  </g>
-  <line x1="204" y1="117" x2="218" y2="117" stroke="#333" stroke-width="1" marker-end="url(#arrowhead)"/>
-
-  <!-- Stage 2: Skill Loading -->
-  <g transform="translate(222, 42)">
-    <rect x="0" y="0" width="100" height="150" rx="6" fill="white" stroke="#E0E0E0" stroke-width="0.75"/>
-    <rect x="0" y="0" width="100" height="4" rx="2" fill="#D6604D"/>
-    <text x="50" y="18" font-size="7.5" font-weight="bold" fill="#D6604D" text-anchor="middle">Skill</text>
-    <text x="50" y="28" font-size="7.5" font-weight="bold" fill="#D6604D" text-anchor="middle">Loading</text>
-    <line x1="10" y1="34" x2="90" y2="34" stroke="#E8E8E8" stroke-width="0.5"/>
-    <circle cx="16" cy="48" r="2" fill="#D6604D" opacity="0.5"/><text x="22" y="51" font-size="7" fill="#444">User skills</text>
-    <circle cx="16" cy="64" r="2" fill="#D6604D" opacity="0.5"/><text x="22" y="67" font-size="7" fill="#444">Community</text>
-    <circle cx="16" cy="80" r="2" fill="#D6604D" opacity="0.5"/><text x="22" y="83" font-size="7" fill="#444">MCP server</text>
-    <circle cx="16" cy="96" r="2" fill="#D6604D" opacity="0.5"/><text x="22" y="99" font-size="7" fill="#444">Built-in (159)</text>
-    <line x1="10" y1="115" x2="90" y2="115" stroke="#E8E8E8" stroke-width="0.5"/>
-    <text x="50" y="128" font-size="6.5" fill="#969696" font-style="italic" text-anchor="middle">Concepts + Pitfalls</text>
-    <text x="50" y="138" font-size="6.5" fill="#969696" font-style="italic" text-anchor="middle">+ Examples</text>
-  </g>
-  <line x1="326" y1="117" x2="340" y2="117" stroke="#333" stroke-width="1" marker-end="url(#arrowhead)"/>
-
-  <!-- Stage 3: LLM Generation -->
-  <g transform="translate(344, 42)">
-    <rect x="0" y="0" width="100" height="150" rx="6" fill="white" stroke="#E0E0E0" stroke-width="0.75"/>
-    <rect x="0" y="0" width="100" height="4" rx="2" fill="#4DAF4A"/>
-    <text x="50" y="18" font-size="7.5" font-weight="bold" fill="#4DAF4A" text-anchor="middle">LLM</text>
-    <text x="50" y="28" font-size="7.5" font-weight="bold" fill="#4DAF4A" text-anchor="middle">Generation</text>
-    <line x1="10" y1="34" x2="90" y2="34" stroke="#E8E8E8" stroke-width="0.5"/>
-    <circle cx="16" cy="48" r="2" fill="#4DAF4A" opacity="0.5"/><text x="22" y="51" font-size="6.5" fill="#444">System prompt (11 rules)</text>
-    <circle cx="16" cy="64" r="2" fill="#4DAF4A" opacity="0.5"/><text x="22" y="67" font-size="6.5" fill="#444">Docs + skill content</text>
-    <circle cx="16" cy="80" r="2" fill="#4DAF4A" opacity="0.5"/><text x="22" y="83" font-size="6.5" fill="#444">ARGS: / EXPLANATION:</text>
-    <circle cx="16" cy="96" r="2" fill="#4DAF4A" opacity="0.5"/><text x="22" y="99" font-size="6.5" fill="#444">Retry on malformed</text>
-    <line x1="10" y1="115" x2="90" y2="115" stroke="#E8E8E8" stroke-width="0.5"/>
-    <text x="50" y="132" font-size="6.5" fill="#969696" font-style="italic" text-anchor="middle">Strict output contract</text>
-  </g>
-  <line x1="448" y1="117" x2="462" y2="117" stroke="#333" stroke-width="1" marker-end="url(#arrowhead)"/>
-
-  <!-- Stage 4: Execute + Verify -->
-  <g transform="translate(466, 42)">
-    <rect x="0" y="0" width="100" height="150" rx="6" fill="white" stroke="#E0E0E0" stroke-width="0.75"/>
-    <rect x="0" y="0" width="100" height="4" rx="2" fill="#7570B3"/>
-    <text x="50" y="18" font-size="7.5" font-weight="bold" fill="#7570B3" text-anchor="middle">Execute</text>
-    <text x="50" y="28" font-size="7.5" font-weight="bold" fill="#7570B3" text-anchor="middle">+ Verify</text>
-    <line x1="10" y1="34" x2="90" y2="34" stroke="#E8E8E8" stroke-width="0.5"/>
-    <circle cx="16" cy="48" r="2" fill="#7570B3" opacity="0.5"/><text x="22" y="51" font-size="6.5" fill="#444">Command execution</text>
-    <circle cx="16" cy="64" r="2" fill="#7570B3" opacity="0.5"/><text x="22" y="67" font-size="6.5" fill="#444">Exit code analysis</text>
-    <circle cx="16" cy="80" r="2" fill="#7570B3" opacity="0.5"/><text x="22" y="83" font-size="6.5" fill="#444">Output verification</text>
-    <circle cx="16" cy="96" r="2" fill="#7570B3" opacity="0.5"/><text x="22" y="99" font-size="6.5" fill="#444">Provenance recording</text>
-    <line x1="10" y1="115" x2="90" y2="115" stroke="#E8E8E8" stroke-width="0.5"/>
-    <text x="50" y="132" font-size="6.5" fill="#969696" font-style="italic" text-anchor="middle">JSONL history</text>
-  </g>
-
-  <text x="270" y="220" font-size="7" fill="#969696" text-anchor="middle">docs-first grounding &#x2192; skill augmentation &#x2192; constrained generation &#x2192; auditable execution</text>
-
-  <!-- Panel B: Skill precedence hierarchy -->
-  <rect x="560" y="0" width="540" height="340" rx="4" fill="#F7F7F7" stroke="#E0E0E0" stroke-width="0.5"/>
-  <text x="575" y="22" font-size="16" font-weight="bold" fill="#333">b</text>
-  <text x="595" y="22" font-size="12" font-weight="bold" fill="#333">Skill precedence hierarchy</text>
-
-  <g transform="translate(830, 50)">
-    <rect x="-70" y="0" width="140" height="42" rx="6" fill="white" stroke="#D6604D" stroke-width="1.5"/>
-    <rect x="-70" y="0" width="5" height="42" rx="3" fill="#D6604D"/>
-    <text x="0" y="18" font-size="9" font-weight="bold" fill="#D6604D" text-anchor="middle">User-defined skills</text>
-    <text x="0" y="30" font-size="7" fill="#969696" text-anchor="middle">Highest priority</text>
-  </g>
-  <line x1="830" y1="94" x2="830" y2="114" stroke="#969696" stroke-width="1" marker-end="url(#arrowdown)"/>
-  <text x="850" y="108" font-size="6.5" fill="#969696" font-style="italic">overrides</text>
-
-  <g transform="translate(830, 118)">
-    <rect x="-85" y="0" width="170" height="42" rx="6" fill="white" stroke="#4DAF4A" stroke-width="1.5"/>
-    <rect x="-85" y="0" width="5" height="42" rx="3" fill="#4DAF4A"/>
-    <text x="0" y="18" font-size="9" font-weight="bold" fill="#4DAF4A" text-anchor="middle">Community skills</text>
-    <text x="0" y="30" font-size="7" fill="#969696" text-anchor="middle">Shared skill repository</text>
-  </g>
-  <line x1="830" y1="162" x2="830" y2="182" stroke="#969696" stroke-width="1" marker-end="url(#arrowdown)"/>
-  <text x="850" y="176" font-size="6.5" fill="#969696" font-style="italic">overrides</text>
-
-  <g transform="translate(830, 186)">
-    <rect x="-100" y="0" width="200" height="42" rx="6" fill="white" stroke="#7570B3" stroke-width="1.5"/>
-    <rect x="-100" y="0" width="5" height="42" rx="3" fill="#7570B3"/>
-    <text x="0" y="18" font-size="9" font-weight="bold" fill="#7570B3" text-anchor="middle">MCP server skills</text>
-    <text x="0" y="30" font-size="7" fill="#969696" text-anchor="middle">Remote tool providers (JSON-RPC)</text>
-  </g>
-  <line x1="830" y1="230" x2="830" y2="250" stroke="#969696" stroke-width="1" marker-end="url(#arrowdown)"/>
-  <text x="850" y="244" font-size="6.5" fill="#969696" font-style="italic">overrides</text>
-
-  <g transform="translate(830, 254)">
-    <rect x="-120" y="0" width="240" height="42" rx="6" fill="white" stroke="#2166AC" stroke-width="1.5"/>
-    <rect x="-120" y="0" width="5" height="42" rx="3" fill="#2166AC"/>
-    <text x="0" y="18" font-size="9" font-weight="bold" fill="#2166AC" text-anchor="middle">Built-in skills (159 tools)</text>
-    <text x="0" y="30" font-size="7" fill="#969696" text-anchor="middle">Curated: concepts, pitfalls, examples</text>
-  </g>
-
-  <line x1="695" y1="65" x2="695" y2="290" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="3,2"/>
-  <text x="692" y="60" font-size="7" fill="#969696" text-anchor="end">Higher priority</text>
-  <text x="692" y="298" font-size="7" fill="#969696" text-anchor="end">Lower priority</text>
-  <polygon points="695,65 691,73 699,73" fill="#CCCCCC"/>
-
-  <text x="830" y="318" font-size="7" fill="#969696" text-anchor="middle">user &gt; community &gt; mcp &gt; built-in</text>
-
-  <!-- Panel C: Skill distribution bar chart -->
-  <rect x="0" y="360" width="540" height="380" rx="4" fill="#F7F7F7" stroke="#E0E0E0" stroke-width="0.5"/>
-  <text x="15" y="382" font-size="16" font-weight="bold" fill="#333">c</text>
-  <text x="35" y="382" font-size="12" font-weight="bold" fill="#333">Skill distribution across 44 categories</text>
-
-  <line x1="130" y1="733" x2="520" y2="733" stroke="#CCCCCC" stroke-width="0.5"/>
-  <text x="325" y="748" font-size="7" fill="#666" text-anchor="middle">Number of tools</text>
-  <line x1="130" y1="733" x2="130" y2="736" stroke="#999" stroke-width="0.5"/>
-  <text x="130" y="742" font-size="6" fill="#999" text-anchor="middle">0</text>
-  <line x1="227.5" y1="733" x2="227.5" y2="736" stroke="#999" stroke-width="0.5"/>
-  <text x="227.5" y="742" font-size="6" fill="#999" text-anchor="middle">4</text>
-  <line x1="325" y1="733" x2="325" y2="736" stroke="#999" stroke-width="0.5"/>
-  <text x="325" y="742" font-size="6" fill="#999" text-anchor="middle">8</text>
-  <line x1="422.5" y1="733" x2="422.5" y2="736" stroke="#999" stroke-width="0.5"/>
-  <text x="422.5" y="742" font-size="6" fill="#999" text-anchor="middle">12</text>
-  <line x1="520" y1="733" x2="520" y2="736" stroke="#999" stroke-width="0.5"/>
-  <text x="520" y="742" font-size="6" fill="#999" text-anchor="middle">16</text>
-  <line x1="227.5" y1="393" x2="227.5" y2="733" stroke="#ECECEC" stroke-width="0.3"/>
-  <line x1="325" y1="393" x2="325" y2="733" stroke="#ECECEC" stroke-width="0.3"/>
-  <line x1="422.5" y1="393" x2="422.5" y2="733" stroke="#ECECEC" stroke-width="0.3"/>
-  <line x1="520" y1="393" x2="520" y2="733" stroke="#ECECEC" stroke-width="0.3"/>
-  <text x="127" y="399.0" font-size="7" fill="#444" text-anchor="end">variant-calling</text>
-  <rect x="130" y="393.0" width="390.0" height="7" rx="1" fill="#2166AC"/>
-  <text x="523.0" y="399.0" font-size="6" fill="#444">16</text>
-  <text x="127" y="406.7" font-size="7" fill="#444" text-anchor="end">qc</text>
-  <rect x="130" y="400.7" width="292.5" height="7" rx="1" fill="#2166AC"/>
-  <text x="425.5" y="406.7" font-size="6" fill="#444">12</text>
-  <text x="127" y="414.4" font-size="7" fill="#444" text-anchor="end">assembly</text>
-  <rect x="130" y="408.4" width="268.1" height="7" rx="1" fill="#2166AC"/>
-  <text x="401.1" y="414.4" font-size="6" fill="#444">11</text>
-  <text x="127" y="422.1" font-size="7" fill="#444" text-anchor="end">metagenomics</text>
-  <rect x="130" y="416.1" width="243.8" height="7" rx="1" fill="#2166AC"/>
-  <text x="376.8" y="422.1" font-size="6" fill="#444">10</text>
-  <text x="127" y="429.8" font-size="7" fill="#444" text-anchor="end">alignment</text>
-  <rect x="130" y="423.8" width="219.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="352.4" y="429.8" font-size="6" fill="#444">9</text>
-  <text x="127" y="437.5" font-size="7" fill="#444" text-anchor="end">rna-seq</text>
-  <rect x="130" y="431.5" width="195.0" height="7" rx="1" fill="#2166AC"/>
-  <text x="328.0" y="437.5" font-size="6" fill="#444">8</text>
-  <text x="127" y="445.2" font-size="7" fill="#444" text-anchor="end">epigenomics</text>
-  <rect x="130" y="439.2" width="195.0" height="7" rx="1" fill="#2166AC"/>
-  <text x="328.0" y="445.2" font-size="6" fill="#444">8</text>
-  <text x="127" y="452.9" font-size="7" fill="#444" text-anchor="end">utilities</text>
-  <rect x="130" y="446.9" width="146.2" height="7" rx="1" fill="#2166AC"/>
-  <text x="279.2" y="452.9" font-size="6" fill="#444">6</text>
-  <text x="127" y="460.6" font-size="7" fill="#444" text-anchor="end">hpc</text>
-  <rect x="130" y="454.6" width="146.2" height="7" rx="1" fill="#2166AC"/>
-  <text x="279.2" y="460.6" font-size="6" fill="#444">6</text>
-  <text x="127" y="468.3" font-size="7" fill="#444" text-anchor="end">annotation</text>
-  <rect x="130" y="462.3" width="146.2" height="7" rx="1" fill="#2166AC"/>
-  <text x="279.2" y="468.3" font-size="6" fill="#444">6</text>
-  <text x="127" y="476.0" font-size="7" fill="#444" text-anchor="end">single-cell</text>
-  <rect x="130" y="470.0" width="121.9" height="7" rx="1" fill="#2166AC"/>
-  <text x="254.9" y="476.0" font-size="6" fill="#444">5</text>
-  <text x="127" y="483.7" font-size="7" fill="#444" text-anchor="end">package-management</text>
-  <rect x="130" y="477.7" width="121.9" height="7" rx="1" fill="#2166AC"/>
-  <text x="254.9" y="483.7" font-size="6" fill="#444">5</text>
-  <text x="127" y="491.4" font-size="7" fill="#444" text-anchor="end">population-genomics</text>
-  <rect x="130" y="485.4" width="97.5" height="7" rx="1" fill="#2166AC"/>
-  <text x="230.5" y="491.4" font-size="6" fill="#444">4</text>
-  <text x="127" y="499.1" font-size="7" fill="#444" text-anchor="end">phylogenetics</text>
-  <rect x="130" y="493.1" width="97.5" height="7" rx="1" fill="#2166AC"/>
-  <text x="230.5" y="499.1" font-size="6" fill="#444">4</text>
-  <text x="127" y="506.8" font-size="7" fill="#444" text-anchor="end">networking</text>
-  <rect x="130" y="500.8" width="97.5" height="7" rx="1" fill="#2166AC"/>
-  <text x="230.5" y="506.8" font-size="6" fill="#444">4</text>
-  <text x="127" y="514.5" font-size="7" fill="#444" text-anchor="end">variant-annotation</text>
-  <rect x="130" y="508.5" width="73.1" height="7" rx="1" fill="#2166AC"/>
-  <text x="206.1" y="514.5" font-size="6" fill="#444">3</text>
-  <text x="127" y="522.2" font-size="7" fill="#444" text-anchor="end">text-processing</text>
-  <rect x="130" y="516.2" width="73.1" height="7" rx="1" fill="#2166AC"/>
-  <text x="206.1" y="522.2" font-size="6" fill="#444">3</text>
-  <text x="127" y="529.9" font-size="7" fill="#444" text-anchor="end">sequence-utilities</text>
-  <rect x="130" y="523.9" width="73.1" height="7" rx="1" fill="#2166AC"/>
-  <text x="206.1" y="529.9" font-size="6" fill="#444">3</text>
-  <text x="127" y="537.6" font-size="7" fill="#444" text-anchor="end">filesystem</text>
-  <rect x="130" y="531.6" width="73.1" height="7" rx="1" fill="#2166AC"/>
-  <text x="206.1" y="537.6" font-size="6" fill="#444">3</text>
-  <text x="127" y="545.3" font-size="7" fill="#444" text-anchor="end">workflow-manager</text>
-  <rect x="130" y="539.3" width="48.8" height="7" rx="1" fill="#2166AC"/>
-  <text x="181.8" y="545.3" font-size="6" fill="#444">2</text>
-  <text x="127" y="553.0" font-size="7" fill="#444" text-anchor="end">sequence-comparison</text>
-  <rect x="130" y="547.0" width="48.8" height="7" rx="1" fill="#2166AC"/>
-  <text x="181.8" y="553.0" font-size="6" fill="#444">2</text>
-  <text x="127" y="560.7" font-size="7" fill="#444" text-anchor="end">scripting</text>
-  <rect x="130" y="554.7" width="48.8" height="7" rx="1" fill="#2166AC"/>
-  <text x="181.8" y="560.7" font-size="6" fill="#444">2</text>
-  <text x="127" y="568.4" font-size="7" fill="#444" text-anchor="end">quality-control</text>
-  <rect x="130" y="562.4" width="48.8" height="7" rx="1" fill="#2166AC"/>
-  <text x="181.8" y="568.4" font-size="6" fill="#444">2</text>
-  <text x="127" y="576.1" font-size="7" fill="#444" text-anchor="end">long-read</text>
-  <rect x="130" y="570.1" width="48.8" height="7" rx="1" fill="#2166AC"/>
-  <text x="181.8" y="576.1" font-size="6" fill="#444">2</text>
-  <text x="127" y="583.8" font-size="7" fill="#444" text-anchor="end">containerization</text>
-  <rect x="130" y="577.8" width="48.8" height="7" rx="1" fill="#2166AC"/>
-  <text x="181.8" y="583.8" font-size="6" fill="#444">2</text>
-  <text x="127" y="591.5" font-size="7" fill="#444" text-anchor="end">comparative-genomics</text>
-  <rect x="130" y="585.5" width="48.8" height="7" rx="1" fill="#2166AC"/>
-  <text x="181.8" y="591.5" font-size="6" fill="#444">2</text>
-  <text x="127" y="599.2" font-size="7" fill="#444" text-anchor="end">ai-assistant</text>
-  <rect x="130" y="593.2" width="48.8" height="7" rx="1" fill="#2166AC"/>
-  <text x="181.8" y="599.2" font-size="6" fill="#444">2</text>
-  <text x="127" y="606.9" font-size="7" fill="#444" text-anchor="end">version-control</text>
-  <rect x="130" y="600.9" width="24.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="157.4" y="606.9" font-size="6" fill="#444">1</text>
-  <text x="127" y="614.6" font-size="7" fill="#444" text-anchor="end">variant-benchmarking</text>
-  <rect x="130" y="608.6" width="24.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="157.4" y="614.6" font-size="6" fill="#444">1</text>
-  <text x="127" y="622.3" font-size="7" fill="#444" text-anchor="end">structural-variants</text>
-  <rect x="130" y="616.3" width="24.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="157.4" y="622.3" font-size="6" fill="#444">1</text>
-  <text x="127" y="630.0" font-size="7" fill="#444" text-anchor="end">statistical-computing</text>
-  <rect x="130" y="624.0" width="24.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="157.4" y="630.0" font-size="6" fill="#444">1</text>
-  <text x="127" y="637.7" font-size="7" fill="#444" text-anchor="end">sequence-search</text>
-  <rect x="130" y="631.7" width="24.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="157.4" y="637.7" font-size="6" fill="#444">1</text>
-  <text x="127" y="645.4" font-size="7" fill="#444" text-anchor="end">sequence-processing</text>
-  <rect x="130" y="639.4" width="24.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="157.4" y="645.4" font-size="6" fill="#444">1</text>
-  <text x="127" y="653.1" font-size="7" fill="#444" text-anchor="end">sequence-manipulation</text>
-  <rect x="130" y="647.1" width="24.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="157.4" y="653.1" font-size="6" fill="#444">1</text>
-  <text x="127" y="660.8" font-size="7" fill="#444" text-anchor="end">scientific-computing</text>
-  <rect x="130" y="654.8" width="24.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="157.4" y="660.8" font-size="6" fill="#444">1</text>
-  <text x="127" y="668.5" font-size="7" fill="#444" text-anchor="end">runtime</text>
-  <rect x="130" y="662.5" width="24.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="157.4" y="668.5" font-size="6" fill="#444">1</text>
-  <text x="127" y="676.2" font-size="7" fill="#444" text-anchor="end">programming</text>
-  <rect x="130" y="670.2" width="24.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="157.4" y="676.2" font-size="6" fill="#444">1</text>
-  <text x="127" y="683.9" font-size="7" fill="#444" text-anchor="end">motif-analysis</text>
-  <rect x="130" y="677.9" width="24.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="157.4" y="683.9" font-size="6" fill="#444">1</text>
-  <text x="127" y="691.6" font-size="7" fill="#444" text-anchor="end">genomic-intervals</text>
-  <rect x="130" y="685.6" width="24.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="157.4" y="691.6" font-size="6" fill="#444">1</text>
-  <text x="127" y="699.3" font-size="7" fill="#444" text-anchor="end">genomic-arithmetic</text>
-  <rect x="130" y="693.3" width="24.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="157.4" y="699.3" font-size="6" fill="#444">1</text>
-  <text x="127" y="707.0" font-size="7" fill="#444" text-anchor="end">genome-annotation</text>
-  <rect x="130" y="701.0" width="24.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="157.4" y="707.0" font-size="6" fill="#444">1</text>
-  <text x="127" y="714.7" font-size="7" fill="#444" text-anchor="end">genome-alignment</text>
-  <rect x="130" y="708.7" width="24.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="157.4" y="714.7" font-size="6" fill="#444">1</text>
-  <text x="127" y="722.4" font-size="7" fill="#444" text-anchor="end">functional-annotation</text>
-  <rect x="130" y="716.4" width="24.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="157.4" y="722.4" font-size="6" fill="#444">1</text>
-  <text x="127" y="730.1" font-size="7" fill="#444" text-anchor="end">assembly-polishing</text>
-  <rect x="130" y="724.1" width="24.4" height="7" rx="1" fill="#2166AC"/>
-  <text x="157.4" y="730.1" font-size="6" fill="#444">1</text>
-
-  <!-- Panel D: Provenance metadata record -->
-  <rect x="560" y="360" width="540" height="380" rx="4" fill="#F7F7F7" stroke="#E0E0E0" stroke-width="0.5"/>
-  <text x="575" y="382" font-size="16" font-weight="bold" fill="#333">d</text>
-  <text x="595" y="382" font-size="12" font-weight="bold" fill="#333">Provenance metadata record</text>
-
-  <text x="830" y="410" font-size="9" fill="#555" text-anchor="middle" font-weight="bold">Example JSONL provenance record</text>
-
-  <rect x="610" y="420" width="440" height="250" rx="6" fill="white" stroke="#CCCCCC" stroke-width="1"/>
-
-  <text font-family="Menlo, Monaco, 'Courier New', monospace" font-size="9" fill="#333">
-    <tspan x="625" y="442" fill="#969696">{</tspan>
-    <tspan x="640" y="460" fill="#2166AC">"id"</tspan><tspan fill="#969696">: </tspan><tspan fill="#333">"a3f7c2e1-..."</tspan><tspan fill="#969696">,</tspan>
-    <tspan x="640" y="478" fill="#2166AC">"timestamp"</tspan><tspan fill="#969696">: </tspan><tspan fill="#333">"2024-11-15T10:23:41Z"</tspan><tspan fill="#969696">,</tspan>
-    <tspan x="640" y="496" fill="#2166AC">"tool"</tspan><tspan fill="#969696">: </tspan><tspan fill="#333">"bwa"</tspan><tspan fill="#969696">,</tspan>
-    <tspan x="640" y="514" fill="#2166AC">"task"</tspan><tspan fill="#969696">: </tspan><tspan fill="#333">"align paired-end reads to hg38"</tspan><tspan fill="#969696">,</tspan>
-    <tspan x="640" y="532" fill="#2166AC">"command"</tspan><tspan fill="#969696">: </tspan><tspan fill="#333">"bwa mem -t 8 hg38.fa R1.fq R2.fq"</tspan><tspan fill="#969696">,</tspan>
-    <tspan x="640" y="550" fill="#2166AC">"exit_code"</tspan><tspan fill="#969696">: </tspan><tspan fill="#4DAF4A">0</tspan><tspan fill="#969696">,</tspan>
-    <tspan x="640" y="568" fill="#2166AC">"doc_hash"</tspan><tspan fill="#969696">: </tspan><tspan fill="#333">"sha256:8f3a1b..."</tspan><tspan fill="#969696">,</tspan>
-    <tspan x="640" y="586" fill="#2166AC">"skill"</tspan><tspan fill="#969696">: </tspan><tspan fill="#333">"bwa (built-in v1.0)"</tspan><tspan fill="#969696">,</tspan>
-    <tspan x="640" y="604" fill="#2166AC">"model"</tspan><tspan fill="#969696">: </tspan><tspan fill="#333">"gpt-4o-2024-08-06"</tspan><tspan fill="#969696">,</tspan>
-    <tspan x="640" y="622" fill="#2166AC">"tool_version"</tspan><tspan fill="#969696">: </tspan><tspan fill="#333">"bwa 0.7.18"</tspan>
-    <tspan x="625" y="642" fill="#969696">}</tspan>
+  <!-- Panel A -->
+  <text x="10" y="14" font-size="13" font-weight="bold" fill="#222222">a</text>
+  <text x="15" y="62" font-size="7.5" fill="#555555">Natural-language</text>
+  <text x="15" y="71" font-size="7.5" fill="#555555">task input</text>
+  <line x1="68" y1="66" x2="82" y2="66" stroke="#444" stroke-width="1" marker-end="url(#ah)"/>
+  <rect x="86" y="30" width="100" height="125" rx="4" fill="white" stroke="#CCCCCC" stroke-width="0.75"/>
+  <rect x="86" y="30" width="100" height="3" rx="2" fill="#2166AC"/>
+  <text x="136.0" y="46" font-size="8" font-weight="bold" fill="#2166AC" text-anchor="middle">Documentation</text>
+  <text x="136.0" y="56" font-size="8" font-weight="bold" fill="#2166AC" text-anchor="middle">Resolution</text>
+  <line x1="94" y1="62" x2="178" y2="62" stroke="#DDDDDD" stroke-width="0.5"/>
+  <circle cx="100" cy="76" r="1.5" fill="#2166AC" opacity="0.6"/>
+  <text x="106" y="79" font-size="7" fill="#222222">Local cache</text>
+  <circle cx="100" cy="90" r="1.5" fill="#2166AC" opacity="0.6"/>
+  <text x="106" y="93" font-size="7" fill="#222222">--help capture</text>
+  <circle cx="100" cy="104" r="1.5" fill="#2166AC" opacity="0.6"/>
+  <text x="106" y="107" font-size="7" fill="#222222">User docs</text>
+  <circle cx="100" cy="118" r="1.5" fill="#2166AC" opacity="0.6"/>
+  <text x="106" y="121" font-size="7" fill="#222222">Remote URLs</text>
+  <line x1="94" y1="137" x2="178" y2="137" stroke="#DDDDDD" stroke-width="0.5"/>
+  <text x="136.0" y="149" font-size="6" fill="#888888" font-style="italic" text-anchor="middle">SHA-256 hash</text>
+  <line x1="188" y1="92.5" x2="196" y2="92.5" stroke="#444" stroke-width="0.75" marker-end="url(#ah)"/>
+  <rect x="198" y="30" width="100" height="125" rx="4" fill="white" stroke="#CCCCCC" stroke-width="0.75"/>
+  <rect x="198" y="30" width="100" height="3" rx="2" fill="#D6604D"/>
+  <text x="248.0" y="46" font-size="8" font-weight="bold" fill="#D6604D" text-anchor="middle">Skill</text>
+  <text x="248.0" y="56" font-size="8" font-weight="bold" fill="#D6604D" text-anchor="middle">Loading</text>
+  <line x1="206" y1="62" x2="290" y2="62" stroke="#DDDDDD" stroke-width="0.5"/>
+  <circle cx="212" cy="76" r="1.5" fill="#D6604D" opacity="0.6"/>
+  <text x="218" y="79" font-size="7" fill="#222222">User skills</text>
+  <circle cx="212" cy="90" r="1.5" fill="#D6604D" opacity="0.6"/>
+  <text x="218" y="93" font-size="7" fill="#222222">Community</text>
+  <circle cx="212" cy="104" r="1.5" fill="#D6604D" opacity="0.6"/>
+  <text x="218" y="107" font-size="7" fill="#222222">MCP server</text>
+  <circle cx="212" cy="118" r="1.5" fill="#D6604D" opacity="0.6"/>
+  <text x="218" y="121" font-size="7" fill="#222222">Built-in (159)</text>
+  <line x1="206" y1="137" x2="290" y2="137" stroke="#DDDDDD" stroke-width="0.5"/>
+  <text x="248.0" y="149" font-size="6" fill="#888888" font-style="italic" text-anchor="middle">Concepts · Pitfalls · Examples</text>
+  <line x1="300" y1="92.5" x2="308" y2="92.5" stroke="#444" stroke-width="0.75" marker-end="url(#ah)"/>
+  <rect x="310" y="30" width="100" height="125" rx="4" fill="white" stroke="#CCCCCC" stroke-width="0.75"/>
+  <rect x="310" y="30" width="100" height="3" rx="2" fill="#4DAF4A"/>
+  <text x="360.0" y="46" font-size="8" font-weight="bold" fill="#4DAF4A" text-anchor="middle">LLM</text>
+  <text x="360.0" y="56" font-size="8" font-weight="bold" fill="#4DAF4A" text-anchor="middle">Generation</text>
+  <line x1="318" y1="62" x2="402" y2="62" stroke="#DDDDDD" stroke-width="0.5"/>
+  <circle cx="324" cy="76" r="1.5" fill="#4DAF4A" opacity="0.6"/>
+  <text x="330" y="79" font-size="7" fill="#222222">System prompt</text>
+  <circle cx="324" cy="90" r="1.5" fill="#4DAF4A" opacity="0.6"/>
+  <text x="330" y="93" font-size="7" fill="#222222">Docs + skills</text>
+  <circle cx="324" cy="104" r="1.5" fill="#4DAF4A" opacity="0.6"/>
+  <text x="330" y="107" font-size="7" fill="#222222">ARGS: / EXPLANATION:</text>
+  <circle cx="324" cy="118" r="1.5" fill="#4DAF4A" opacity="0.6"/>
+  <text x="330" y="121" font-size="7" fill="#222222">Retry logic</text>
+  <line x1="318" y1="137" x2="402" y2="137" stroke="#DDDDDD" stroke-width="0.5"/>
+  <text x="360.0" y="149" font-size="6" fill="#888888" font-style="italic" text-anchor="middle">Strict output contract</text>
+  <line x1="412" y1="92.5" x2="420" y2="92.5" stroke="#444" stroke-width="0.75" marker-end="url(#ah)"/>
+  <rect x="422" y="30" width="100" height="125" rx="4" fill="white" stroke="#CCCCCC" stroke-width="0.75"/>
+  <rect x="422" y="30" width="100" height="3" rx="2" fill="#7570B3"/>
+  <text x="472.0" y="46" font-size="8" font-weight="bold" fill="#7570B3" text-anchor="middle">Execute</text>
+  <text x="472.0" y="56" font-size="8" font-weight="bold" fill="#7570B3" text-anchor="middle">& Verify</text>
+  <line x1="430" y1="62" x2="514" y2="62" stroke="#DDDDDD" stroke-width="0.5"/>
+  <circle cx="436" cy="76" r="1.5" fill="#7570B3" opacity="0.6"/>
+  <text x="442" y="79" font-size="7" fill="#222222">Command exec</text>
+  <circle cx="436" cy="90" r="1.5" fill="#7570B3" opacity="0.6"/>
+  <text x="442" y="93" font-size="7" fill="#222222">Exit code check</text>
+  <circle cx="436" cy="104" r="1.5" fill="#7570B3" opacity="0.6"/>
+  <text x="442" y="107" font-size="7" fill="#222222">Output verify</text>
+  <circle cx="436" cy="118" r="1.5" fill="#7570B3" opacity="0.6"/>
+  <text x="442" y="121" font-size="7" fill="#222222">Provenance log</text>
+  <line x1="430" y1="137" x2="514" y2="137" stroke="#DDDDDD" stroke-width="0.5"/>
+  <text x="472.0" y="149" font-size="6" fill="#888888" font-style="italic" text-anchor="middle">JSONL history</text>
+  <text x="136" y="28" font-size="8" fill="#888888" text-anchor="middle">①</text>
+  <text x="248" y="28" font-size="8" fill="#888888" text-anchor="middle">②</text>
+  <text x="360" y="28" font-size="8" fill="#888888" text-anchor="middle">③</text>
+  <text x="472" y="28" font-size="8" fill="#888888" text-anchor="middle">④</text>
+  <text x="310" y="172" font-size="6.5" fill="#888888" text-anchor="middle" font-style="italic">Documentation grounding → Skill augmentation → Constrained generation → Auditable execution</text>
+  <!-- Panel B -->
+  <text x="540" y="14" font-size="13" font-weight="bold" fill="#222222">b</text>
+  <rect x="670.0" y="30" width="120" height="36" rx="4" fill="white" stroke="#D6604D" stroke-width="0.75" opacity="1.0"/>
+  <text x="730" y="45" font-size="8" font-weight="bold" fill="#D6604D" text-anchor="middle">User-defined skills</text>
+  <text x="730" y="57" font-size="6.5" fill="#888888" text-anchor="middle">Highest priority</text>
+  <line x1="730" y1="68" x2="730" y2="78" stroke="#888888" stroke-width="0.75" marker-end="url(#ad)"/>
+  <text x="742" y="76" font-size="5.5" fill="#888888" font-style="italic">overrides</text>
+  <rect x="655.0" y="80" width="150" height="36" rx="4" fill="white" stroke="#D6604D" stroke-width="0.75" opacity="0.85"/>
+  <text x="730" y="95" font-size="8" font-weight="bold" fill="#D6604D" text-anchor="middle">Community skills</text>
+  <text x="730" y="107" font-size="6.5" fill="#888888" text-anchor="middle">Shared repository</text>
+  <line x1="730" y1="118" x2="730" y2="128" stroke="#888888" stroke-width="0.75" marker-end="url(#ad)"/>
+  <text x="742" y="126" font-size="5.5" fill="#888888" font-style="italic">overrides</text>
+  <rect x="640.0" y="130" width="180" height="36" rx="4" fill="white" stroke="#D6604D" stroke-width="0.75" opacity="0.7"/>
+  <text x="730" y="145" font-size="8" font-weight="bold" fill="#D6604D" text-anchor="middle">MCP server skills</text>
+  <text x="730" y="157" font-size="6.5" fill="#888888" text-anchor="middle">Organizational libraries</text>
+  <line x1="730" y1="168" x2="730" y2="178" stroke="#888888" stroke-width="0.75" marker-end="url(#ad)"/>
+  <text x="742" y="176" font-size="5.5" fill="#888888" font-style="italic">overrides</text>
+  <rect x="620.0" y="180" width="220" height="36" rx="4" fill="white" stroke="#D6604D" stroke-width="0.75" opacity="0.55"/>
+  <text x="730" y="195" font-size="8" font-weight="bold" fill="#D6604D" text-anchor="middle">Built-in skills (159 tools)</text>
+  <text x="730" y="207" font-size="6.5" fill="#888888" text-anchor="middle">Compiled into binary</text>
+  <text x="590" y="90" font-size="6.5" fill="#888888" text-anchor="middle" transform="rotate(-90,590,130)">← Higher priority</text>
+  <!-- Panel C -->
+  <text x="10" y="206" font-size="13" font-weight="bold" fill="#222222">c</text>
+  <line x1="135.0" y1="216" x2="135.0" y2="656" stroke="#DDDDDD" stroke-width="0.4"/>
+  <text x="135.0" y="666" font-size="6.5" fill="#555555" text-anchor="middle">0</text>
+  <line x1="223.8" y1="216" x2="223.8" y2="656" stroke="#DDDDDD" stroke-width="0.4"/>
+  <text x="223.8" y="666" font-size="6.5" fill="#555555" text-anchor="middle">4</text>
+  <line x1="312.5" y1="216" x2="312.5" y2="656" stroke="#DDDDDD" stroke-width="0.4"/>
+  <text x="312.5" y="666" font-size="6.5" fill="#555555" text-anchor="middle">8</text>
+  <line x1="401.2" y1="216" x2="401.2" y2="656" stroke="#DDDDDD" stroke-width="0.4"/>
+  <text x="401.2" y="666" font-size="6.5" fill="#555555" text-anchor="middle">12</text>
+  <line x1="490.0" y1="216" x2="490.0" y2="656" stroke="#DDDDDD" stroke-width="0.4"/>
+  <text x="490.0" y="666" font-size="6.5" fill="#555555" text-anchor="middle">16</text>
+  <text x="312.5" y="678" font-size="7.5" fill="#222222" text-anchor="middle">Number of tools</text>
+  <line x1="135" y1="216" x2="135" y2="656" stroke="#999" stroke-width="0.5"/>
+  <line x1="135" y1="656" x2="490" y2="656" stroke="#999" stroke-width="0.5"/>
+  <rect x="135" y="217.4" width="355.0" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="223.5" font-size="6" fill="#222222" text-anchor="end">variant calling</text>
+  <text x="494.0" y="223.5" font-size="6" fill="#2166AC" font-weight="bold">16</text>
+  <rect x="135" y="227.4" width="266.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="233.5" font-size="6" fill="#222222" text-anchor="end">qc</text>
+  <text x="405.2" y="233.5" font-size="6" fill="#2166AC" font-weight="bold">12</text>
+  <rect x="135" y="237.4" width="244.1" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="243.5" font-size="6" fill="#222222" text-anchor="end">assembly</text>
+  <text x="383.1" y="243.5" font-size="6" fill="#2166AC" font-weight="bold">11</text>
+  <rect x="135" y="247.4" width="221.9" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="253.5" font-size="6" fill="#222222" text-anchor="end">metagenomics</text>
+  <text x="360.9" y="253.5" font-size="6" fill="#2166AC" font-weight="bold">10</text>
+  <rect x="135" y="257.4" width="199.7" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="263.5" font-size="6" fill="#222222" text-anchor="end">alignment</text>
+  <text x="338.7" y="263.5" font-size="6" fill="#2166AC" font-weight="bold">9</text>
+  <rect x="135" y="267.4" width="177.5" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="273.5" font-size="6" fill="#222222" text-anchor="end">epigenomics</text>
+  <text x="316.5" y="273.5" font-size="6" fill="#2166AC" font-weight="bold">8</text>
+  <rect x="135" y="277.4" width="177.5" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="283.5" font-size="6" fill="#222222" text-anchor="end">rna seq</text>
+  <text x="316.5" y="283.5" font-size="6" fill="#2166AC" font-weight="bold">8</text>
+  <rect x="135" y="287.4" width="133.1" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="293.5" font-size="6" fill="#222222" text-anchor="end">annotation</text>
+  <text x="272.1" y="293.5" font-size="6" fill="#2166AC" font-weight="bold">6</text>
+  <rect x="135" y="297.4" width="133.1" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="303.5" font-size="6" fill="#222222" text-anchor="end">hpc</text>
+  <text x="272.1" y="303.5" font-size="6" fill="#2166AC" font-weight="bold">6</text>
+  <rect x="135" y="307.4" width="133.1" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="313.5" font-size="6" fill="#222222" text-anchor="end">utilities</text>
+  <text x="272.1" y="313.5" font-size="6" fill="#2166AC" font-weight="bold">6</text>
+  <rect x="135" y="317.4" width="110.9" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="323.5" font-size="6" fill="#222222" text-anchor="end">package management</text>
+  <text x="249.9" y="323.5" font-size="6" fill="#2166AC" font-weight="bold">5</text>
+  <rect x="135" y="327.4" width="110.9" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="333.5" font-size="6" fill="#222222" text-anchor="end">single cell</text>
+  <text x="249.9" y="333.5" font-size="6" fill="#2166AC" font-weight="bold">5</text>
+  <rect x="135" y="337.4" width="88.8" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="343.5" font-size="6" fill="#222222" text-anchor="end">networking</text>
+  <text x="227.8" y="343.5" font-size="6" fill="#2166AC" font-weight="bold">4</text>
+  <rect x="135" y="347.4" width="88.8" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="353.5" font-size="6" fill="#222222" text-anchor="end">phylogenetics</text>
+  <text x="227.8" y="353.5" font-size="6" fill="#2166AC" font-weight="bold">4</text>
+  <rect x="135" y="357.4" width="88.8" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="363.5" font-size="6" fill="#222222" text-anchor="end">population genomics</text>
+  <text x="227.8" y="363.5" font-size="6" fill="#2166AC" font-weight="bold">4</text>
+  <rect x="135" y="367.4" width="66.6" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="373.5" font-size="6" fill="#222222" text-anchor="end">filesystem</text>
+  <text x="205.6" y="373.5" font-size="6" fill="#2166AC" font-weight="bold">3</text>
+  <rect x="135" y="377.4" width="66.6" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="383.5" font-size="6" fill="#222222" text-anchor="end">sequence utilities</text>
+  <text x="205.6" y="383.5" font-size="6" fill="#2166AC" font-weight="bold">3</text>
+  <rect x="135" y="387.4" width="66.6" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="393.5" font-size="6" fill="#222222" text-anchor="end">text processing</text>
+  <text x="205.6" y="393.5" font-size="6" fill="#2166AC" font-weight="bold">3</text>
+  <rect x="135" y="397.4" width="66.6" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="403.5" font-size="6" fill="#222222" text-anchor="end">variant annotation</text>
+  <text x="205.6" y="403.5" font-size="6" fill="#2166AC" font-weight="bold">3</text>
+  <rect x="135" y="407.4" width="44.4" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="413.5" font-size="6" fill="#222222" text-anchor="end">ai assistant</text>
+  <text x="183.4" y="413.5" font-size="6" fill="#2166AC" font-weight="bold">2</text>
+  <rect x="135" y="417.4" width="44.4" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="423.5" font-size="6" fill="#222222" text-anchor="end">comparative genomics</text>
+  <text x="183.4" y="423.5" font-size="6" fill="#2166AC" font-weight="bold">2</text>
+  <rect x="135" y="427.4" width="44.4" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="433.5" font-size="6" fill="#222222" text-anchor="end">containerization</text>
+  <text x="183.4" y="433.5" font-size="6" fill="#2166AC" font-weight="bold">2</text>
+  <rect x="135" y="437.4" width="44.4" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="443.5" font-size="6" fill="#222222" text-anchor="end">long read</text>
+  <text x="183.4" y="443.5" font-size="6" fill="#2166AC" font-weight="bold">2</text>
+  <rect x="135" y="447.4" width="44.4" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="453.5" font-size="6" fill="#222222" text-anchor="end">quality control</text>
+  <text x="183.4" y="453.5" font-size="6" fill="#2166AC" font-weight="bold">2</text>
+  <rect x="135" y="457.4" width="44.4" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="463.5" font-size="6" fill="#222222" text-anchor="end">scripting</text>
+  <text x="183.4" y="463.5" font-size="6" fill="#2166AC" font-weight="bold">2</text>
+  <rect x="135" y="467.4" width="44.4" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="473.5" font-size="6" fill="#222222" text-anchor="end">sequence comparison</text>
+  <text x="183.4" y="473.5" font-size="6" fill="#2166AC" font-weight="bold">2</text>
+  <rect x="135" y="477.4" width="44.4" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="483.5" font-size="6" fill="#222222" text-anchor="end">workflow manager</text>
+  <text x="183.4" y="483.5" font-size="6" fill="#2166AC" font-weight="bold">2</text>
+  <rect x="135" y="487.4" width="22.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="493.5" font-size="6" fill="#222222" text-anchor="end">assembly polishing</text>
+  <text x="161.2" y="493.5" font-size="6" fill="#2166AC" font-weight="bold">1</text>
+  <rect x="135" y="497.4" width="22.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="503.5" font-size="6" fill="#222222" text-anchor="end">functional annotation</text>
+  <text x="161.2" y="503.5" font-size="6" fill="#2166AC" font-weight="bold">1</text>
+  <rect x="135" y="507.4" width="22.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="513.5" font-size="6" fill="#222222" text-anchor="end">genome alignment</text>
+  <text x="161.2" y="513.5" font-size="6" fill="#2166AC" font-weight="bold">1</text>
+  <rect x="135" y="517.4" width="22.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="523.5" font-size="6" fill="#222222" text-anchor="end">genome annotation</text>
+  <text x="161.2" y="523.5" font-size="6" fill="#2166AC" font-weight="bold">1</text>
+  <rect x="135" y="527.4" width="22.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="533.5" font-size="6" fill="#222222" text-anchor="end">genomic arithmetic</text>
+  <text x="161.2" y="533.5" font-size="6" fill="#2166AC" font-weight="bold">1</text>
+  <rect x="135" y="537.4" width="22.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="543.5" font-size="6" fill="#222222" text-anchor="end">genomic intervals</text>
+  <text x="161.2" y="543.5" font-size="6" fill="#2166AC" font-weight="bold">1</text>
+  <rect x="135" y="547.4" width="22.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="553.5" font-size="6" fill="#222222" text-anchor="end">motif analysis</text>
+  <text x="161.2" y="553.5" font-size="6" fill="#2166AC" font-weight="bold">1</text>
+  <rect x="135" y="557.4" width="22.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="563.5" font-size="6" fill="#222222" text-anchor="end">programming</text>
+  <text x="161.2" y="563.5" font-size="6" fill="#2166AC" font-weight="bold">1</text>
+  <rect x="135" y="567.4" width="22.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="573.5" font-size="6" fill="#222222" text-anchor="end">runtime</text>
+  <text x="161.2" y="573.5" font-size="6" fill="#2166AC" font-weight="bold">1</text>
+  <rect x="135" y="577.4" width="22.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="583.5" font-size="6" fill="#222222" text-anchor="end">scientific computing</text>
+  <text x="161.2" y="583.5" font-size="6" fill="#2166AC" font-weight="bold">1</text>
+  <rect x="135" y="587.4" width="22.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="593.5" font-size="6" fill="#222222" text-anchor="end">sequence manipulation</text>
+  <text x="161.2" y="593.5" font-size="6" fill="#2166AC" font-weight="bold">1</text>
+  <rect x="135" y="597.4" width="22.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="603.5" font-size="6" fill="#222222" text-anchor="end">sequence processing</text>
+  <text x="161.2" y="603.5" font-size="6" fill="#2166AC" font-weight="bold">1</text>
+  <rect x="135" y="607.4" width="22.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="613.5" font-size="6" fill="#222222" text-anchor="end">sequence search</text>
+  <text x="161.2" y="613.5" font-size="6" fill="#2166AC" font-weight="bold">1</text>
+  <rect x="135" y="617.4" width="22.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="623.5" font-size="6" fill="#222222" text-anchor="end">statistical computing</text>
+  <text x="161.2" y="623.5" font-size="6" fill="#2166AC" font-weight="bold">1</text>
+  <rect x="135" y="627.4" width="22.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="633.5" font-size="6" fill="#222222" text-anchor="end">structural variants</text>
+  <text x="161.2" y="633.5" font-size="6" fill="#2166AC" font-weight="bold">1</text>
+  <rect x="135" y="637.4" width="22.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="643.5" font-size="6" fill="#222222" text-anchor="end">variant benchmarking</text>
+  <text x="161.2" y="643.5" font-size="6" fill="#2166AC" font-weight="bold">1</text>
+  <rect x="135" y="647.4" width="22.2" height="7.2" rx="1.5" fill="#2166AC" opacity="0.8"/>
+  <text x="131" y="653.5" font-size="6" fill="#222222" text-anchor="end">version control</text>
+  <text x="161.2" y="653.5" font-size="6" fill="#2166AC" font-weight="bold">1</text>
+  <!-- Panel D -->
+  <text x="540" y="206" font-size="13" font-weight="bold" fill="#222222">d</text>
+  <text x="560" y="206" font-size="8" fill="#555555">Example JSONL provenance record</text>
+  <rect x="555" y="218" width="420" height="200" rx="4" fill="#FAFAFA" stroke="#CCCCCC" stroke-width="0.75"/>
+  <text x="567" y="234" font-size="7.5" font-family="'SF Mono', 'Menlo', 'Consolas', monospace">
+    <tspan fill="#222222">{</tspan>
   </text>
-
-  <text x="830" y="690" font-size="7.5" fill="#969696" text-anchor="middle" font-style="italic">Fields enable exact reconstruction of generation context for reproducibility.</text>
-
-  <g font-size="7" fill="#969696" font-style="italic">
-    <line x1="1000" y1="458" x2="1035" y2="458" stroke="#E0E0E0" stroke-width="0.5"/>
-    <text x="1038" y="461">UUID v4</text>
-    <line x1="980" y1="530" x2="1035" y2="530" stroke="#E0E0E0" stroke-width="0.5"/>
-    <text x="1038" y="533">user intent</text>
-    <line x1="1000" y1="548" x2="1035" y2="548" stroke="#E0E0E0" stroke-width="0.5"/>
-    <text x="1038" y="551">generated</text>
-    <line x1="960" y1="566" x2="1035" y2="566" stroke="#E0E0E0" stroke-width="0.5"/>
-    <text x="1038" y="569">doc fingerprint</text>
-  </g>
-
+  <text x="567" y="249" font-size="7.5" font-family="'SF Mono', 'Menlo', 'Consolas', monospace">
+    <tspan fill="#2166AC">  "id"</tspan>
+    <tspan fill="#222222">: "a3f7c2e1-89b4-4d6a-b3c1-..."</tspan>
+  </text>
+  <text x="567" y="264" font-size="7.5" font-family="'SF Mono', 'Menlo', 'Consolas', monospace">
+    <tspan fill="#2166AC">  "timestamp"</tspan>
+    <tspan fill="#222222">: "2024-11-15T10:23:41Z"</tspan>
+  </text>
+  <text x="567" y="279" font-size="7.5" font-family="'SF Mono', 'Menlo', 'Consolas', monospace">
+    <tspan fill="#2166AC">  "tool"</tspan>
+    <tspan fill="#222222">: "bwa"</tspan>
+  </text>
+  <text x="567" y="294" font-size="7.5" font-family="'SF Mono', 'Menlo', 'Consolas', monospace">
+    <tspan fill="#2166AC">  "task"</tspan>
+    <tspan fill="#222222">: "align paired-end reads to hg38"</tspan>
+  </text>
+  <text x="567" y="309" font-size="7.5" font-family="'SF Mono', 'Menlo', 'Consolas', monospace">
+    <tspan fill="#2166AC">  "command"</tspan>
+    <tspan fill="#222222">: "bwa mem -t 8 hg38.fa R1.fq R2.fq"</tspan>
+  </text>
+  <text x="567" y="324" font-size="7.5" font-family="'SF Mono', 'Menlo', 'Consolas', monospace">
+    <tspan fill="#2166AC">  "exit_code"</tspan>
+    <tspan fill="#B5651D">: 0</tspan>
+  </text>
+  <text x="567" y="339" font-size="7.5" font-family="'SF Mono', 'Menlo', 'Consolas', monospace">
+    <tspan fill="#2166AC">  "doc_hash"</tspan>
+    <tspan fill="#222222">: "sha256:8f3a1b2c..."</tspan>
+  </text>
+  <text x="567" y="354" font-size="7.5" font-family="'SF Mono', 'Menlo', 'Consolas', monospace">
+    <tspan fill="#2166AC">  "skill"</tspan>
+    <tspan fill="#222222">: "bwa (built-in v1.0)"</tspan>
+  </text>
+  <text x="567" y="369" font-size="7.5" font-family="'SF Mono', 'Menlo', 'Consolas', monospace">
+    <tspan fill="#2166AC">  "model"</tspan>
+    <tspan fill="#222222">: "gpt-4o-2024-08-06"</tspan>
+  </text>
+  <text x="567" y="384" font-size="7.5" font-family="'SF Mono', 'Menlo', 'Consolas', monospace">
+    <tspan fill="#2166AC">  "tool_version"</tspan>
+    <tspan fill="#222222">: "bwa 0.7.18"</tspan>
+  </text>
+  <text x="567" y="399" font-size="7.5" font-family="'SF Mono', 'Menlo', 'Consolas', monospace">
+    <tspan fill="#222222">}</tspan>
+  </text>
+  <text x="765.0" y="436" font-size="7" fill="#888888" text-anchor="middle" font-style="italic">Each field enables exact reconstruction of generation context for reproducibility.</text>
+  <text x="565" y="456" font-size="6.5" font-family="'SF Mono', monospace" fill="#2166AC">doc_hash</text>
+  <text x="630" y="456" font-size="6.5" fill="#555555">— SHA-256 of the tool documentation used, ensuring version traceability</text>
+  <text x="565" y="470" font-size="6.5" font-family="'SF Mono', monospace" fill="#2166AC">skill</text>
+  <text x="630" y="470" font-size="6.5" fill="#555555">— Skill file identifier and source (built-in, user, community, or MCP)</text>
+  <text x="565" y="484" font-size="6.5" font-family="'SF Mono', monospace" fill="#2166AC">model</text>
+  <text x="630" y="484" font-size="6.5" fill="#555555">— LLM model identifier for generation reproducibility</text>
 </svg>
