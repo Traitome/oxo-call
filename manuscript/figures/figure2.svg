@@ -1,248 +1,312 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" font-family="Helvetica, Arial, sans-serif">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 800" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif">
   <defs>
-    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#333"/>
-    </marker>
+    <style>
+      .panel-bg { fill: #F7F7F7; stroke: #E0E0E0; stroke-width: 1; }
+      .panel-label { font-size: 16px; font-weight: bold; fill: #333; }
+      .panel-title { font-size: 10px; fill: #555; }
+      .axis-label { font-size: 9px; fill: #444; }
+      .tick-label { font-size: 8px; fill: #666; }
+      .value-label { font-size: 7.5px; fill: #333; font-weight: 600; }
+      .value-label-sm { font-size: 7px; fill: #333; font-weight: 600; }
+      .gridline { stroke: #E8E8E8; stroke-width: 0.5; stroke-dasharray: 3,3; }
+      .axis-line { stroke: #999; stroke-width: 0.75; }
+      .legend-text { font-size: 8px; fill: #555; }
+      .annotation { font-size: 8.5px; fill: #666; font-style: italic; }
+      .annotation-bold { font-size: 9px; fill: #444; font-weight: bold; }
+    </style>
   </defs>
 
-  <!-- ====== Panel A: Enhanced vs Baseline Performance ====== -->
-  <text x="12" y="18" font-size="16" font-weight="bold" fill="#000">a</text>
-  <text x="225" y="18" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Exact-match rate (%)</text>
-  <text x="675" y="18" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Accuracy score (%)</text>
+  <!-- ==================== PANEL A: Enhanced-mode performance ==================== -->
+  <rect x="5" y="5" width="530" height="370" rx="4" class="panel-bg"/>
+  <text x="15" y="22" class="panel-label">a</text>
+  <text x="35" y="22" class="panel-title">Enhanced-mode performance (n = 47,700 per model)</text>
 
-  <!-- Left chart: Exact match -->
-  <!-- Y axis -->
-  <line x1="80" y1="30" x2="80" y2="195" stroke="#333" stroke-width="1"/>
-  <!-- X axis -->
-  <line x1="80" y1="195" x2="400" y2="195" stroke="#333" stroke-width="1"/>
+  <!-- Panel A: Left sub-chart - Exact-match rate (%) -->
+  <text x="155" y="48" text-anchor="middle" class="axis-label" font-weight="600">Exact-match rate (%)</text>
 
-  <!-- Y axis ticks and labels -->
-  <line x1="76" y1="195" x2="80" y2="195" stroke="#333" stroke-width="1"/>
-  <text x="73" y="199" font-size="8" fill="#333" text-anchor="end">0</text>
-  <line x1="76" y1="162" x2="80" y2="162" stroke="#333" stroke-width="1"/>
-  <text x="73" y="166" font-size="8" fill="#333" text-anchor="end">25</text>
-  <line x1="76" y1="129" x2="80" y2="129" stroke="#333" stroke-width="1"/>
-  <text x="73" y="133" font-size="8" fill="#333" text-anchor="end">50</text>
-  <line x1="76" y1="96" x2="80" y2="96" stroke="#333" stroke-width="1"/>
-  <text x="73" y="100" font-size="8" fill="#333" text-anchor="end">75</text>
-  <line x1="76" y1="63" x2="80" y2="63" stroke="#333" stroke-width="1"/>
-  <text x="73" y="67" font-size="8" fill="#333" text-anchor="end">100</text>
+  <!-- Left sub-chart axes area: x=40..270, y=55..300 -->
+  <!-- Y-axis gridlines and labels -->
+  <line x1="60" y1="295" x2="265" y2="295" class="gridline"/><!-- 0% -->
+  <line x1="60" y1="234" x2="265" y2="234" class="gridline"/><!-- 25% -->
+  <line x1="60" y1="173" x2="265" y2="173" class="gridline"/><!-- 50% -->
+  <line x1="60" y1="112" x2="265" y2="112" class="gridline"/><!-- 75% -->
+  <line x1="60" y1="51" x2="265" y2="51" class="gridline"/><!-- 100% -->
 
-  <!-- Grid lines -->
-  <line x1="80" y1="63" x2="400" y2="63" stroke="#EEE" stroke-width="0.5"/>
-  <line x1="80" y1="96" x2="400" y2="96" stroke="#EEE" stroke-width="0.5"/>
-  <line x1="80" y1="129" x2="400" y2="129" stroke="#EEE" stroke-width="0.5"/>
-  <line x1="80" y1="162" x2="400" y2="162" stroke="#EEE" stroke-width="0.5"/>
+  <text x="55" y="298" text-anchor="end" class="tick-label">0</text>
+  <text x="55" y="237" text-anchor="end" class="tick-label">25</text>
+  <text x="55" y="176" text-anchor="end" class="tick-label">50</text>
+  <text x="55" y="115" text-anchor="end" class="tick-label">75</text>
+  <text x="55" y="54" text-anchor="end" class="tick-label">100</text>
 
-  <!-- GPT-4o bars -->
-  <!-- Baseline: 74.10% → y = 195 - (74.10/100)*132 = 195-97.8 = 97.2 -->
-  <rect x="105" y="97" width="32" height="98" rx="2" fill="#BDC3C7"/>
-  <!-- Enhanced: 99.67% → y = 195 - (99.67/100)*132 = 195-131.6 = 63.4 -->
-  <rect x="140" y="63.4" width="32" height="131.6" rx="2" fill="#3498DB"/>
-  <text x="138" y="210" font-size="8" fill="#333" text-anchor="middle">GPT-4o</text>
+  <!-- Y-axis line -->
+  <line x1="60" y1="51" x2="60" y2="295" class="axis-line"/>
+  <!-- X-axis line -->
+  <line x1="60" y1="295" x2="265" y2="295" class="axis-line"/>
 
-  <!-- Claude bars -->
-  <!-- Baseline: 65.26% → y = 195 - 86.1 = 108.9 -->
-  <rect x="205" y="109" width="32" height="86" rx="2" fill="#BDC3C7"/>
-  <!-- Enhanced: 99.62% → y = 63.5 -->
-  <rect x="240" y="63.5" width="32" height="131.5" rx="2" fill="#E8833A"/>
-  <text x="238" y="210" font-size="8" fill="#333" text-anchor="middle">Claude 3.5</text>
+  <!-- GPT-4o bars (baseline=74.09%, enhanced=99.67%) -->
+  <!-- baseline: h = 74.09/100 * 244 = 180.8 => y = 295 - 180.8 = 114.2 -->
+  <rect x="70" y="114.2" width="22" height="180.8" rx="2" fill="#BDBDBD"/>
+  <text x="81" y="110" text-anchor="middle" class="value-label">74.1%</text>
+  <!-- enhanced: h = 99.67/100 * 244 = 243.2 => y = 295 - 243.2 = 51.8 -->
+  <rect x="94" y="51.8" width="22" height="243.2" rx="2" fill="#2166AC"/>
+  <text x="105" y="48" text-anchor="middle" class="value-label">99.7%</text>
 
-  <!-- GPT-4o-mini bars -->
-  <!-- Baseline: 52.38% → y = 195 - 69.1 = 125.9 -->
-  <rect x="305" y="126" width="32" height="69" rx="2" fill="#BDC3C7"/>
-  <!-- Enhanced: 99.51% → y = 63.6 -->
-  <rect x="340" y="63.7" width="32" height="131.3" rx="2" fill="#50B86C"/>
-  <text x="338" y="210" font-size="8" fill="#333" text-anchor="middle">GPT-4o-mini</text>
+  <!-- Claude 3.5 bars (baseline=65.24%, enhanced=99.62%) -->
+  <!-- baseline: h = 65.24/100 * 244 = 159.2 => y = 295 - 159.2 = 135.8 -->
+  <rect x="132" y="135.8" width="22" height="159.2" rx="2" fill="#BDBDBD"/>
+  <text x="143" y="131.5" text-anchor="middle" class="value-label">65.2%</text>
+  <!-- enhanced: h = 99.62/100 * 244 = 243.1 => y = 295 - 243.1 = 51.9 -->
+  <rect x="156" y="51.9" width="22" height="243.1" rx="2" fill="#D6604D"/>
+  <text x="167" y="48" text-anchor="middle" class="value-label">99.6%</text>
 
-  <!-- Value labels on bars -->
-  <text x="121" y="93" font-size="7.5" fill="#666" text-anchor="middle">74.1%</text>
-  <text x="156" y="59" font-size="7.5" fill="#3498DB" text-anchor="middle" font-weight="bold">99.7%</text>
+  <!-- GPT-4o-mini bars (baseline=52.38%, enhanced=99.51%) -->
+  <!-- baseline: h = 52.38/100 * 244 = 127.8 => y = 295 - 127.8 = 167.2 -->
+  <rect x="194" y="167.2" width="22" height="127.8" rx="2" fill="#BDBDBD"/>
+  <text x="205" y="163" text-anchor="middle" class="value-label">52.4%</text>
+  <!-- enhanced: h = 99.51/100 * 244 = 242.8 => y = 295 - 242.8 = 52.2 -->
+  <rect x="218" y="52.2" width="22" height="242.8" rx="2" fill="#4DAF4A"/>
+  <text x="229" y="48" text-anchor="middle" class="value-label">99.5%</text>
 
-  <text x="221" y="105" font-size="7.5" fill="#666" text-anchor="middle">65.3%</text>
-  <text x="256" y="59" font-size="7.5" fill="#E8833A" text-anchor="middle" font-weight="bold">99.6%</text>
+  <!-- Left sub-chart x-axis labels -->
+  <text x="93" y="310" text-anchor="middle" class="tick-label">GPT-4o</text>
+  <text x="155" y="310" text-anchor="middle" class="tick-label">Claude 3.5</text>
+  <text x="217" y="310" text-anchor="middle" class="tick-label">GPT-4o-mini</text>
 
-  <text x="321" y="122" font-size="7.5" fill="#666" text-anchor="middle">52.4%</text>
-  <text x="356" y="59" font-size="7.5" fill="#50B86C" text-anchor="middle" font-weight="bold">99.5%</text>
+  <!-- Panel A: Right sub-chart - Accuracy score (%) -->
+  <text x="405" y="48" text-anchor="middle" class="axis-label" font-weight="600">Accuracy score (%)</text>
 
-  <!-- Right chart: Accuracy score -->
-  <!-- Y axis -->
-  <line x1="530" y1="30" x2="530" y2="195" stroke="#333" stroke-width="1"/>
-  <!-- X axis -->
-  <line x1="530" y1="195" x2="850" y2="195" stroke="#333" stroke-width="1"/>
+  <!-- Right sub-chart axes area: x=300..515, y=55..300 -->
+  <!-- Y-axis gridlines and labels -->
+  <line x1="310" y1="295" x2="510" y2="295" class="gridline"/>
+  <line x1="310" y1="234" x2="510" y2="234" class="gridline"/>
+  <line x1="310" y1="173" x2="510" y2="173" class="gridline"/>
+  <line x1="310" y1="112" x2="510" y2="112" class="gridline"/>
+  <line x1="310" y1="51" x2="510" y2="51" class="gridline"/>
 
-  <!-- Y axis ticks -->
-  <line x1="526" y1="195" x2="530" y2="195" stroke="#333" stroke-width="1"/>
-  <text x="523" y="199" font-size="8" fill="#333" text-anchor="end">0</text>
-  <line x1="526" y1="162" x2="530" y2="162" stroke="#333" stroke-width="1"/>
-  <text x="523" y="166" font-size="8" fill="#333" text-anchor="end">25</text>
-  <line x1="526" y1="129" x2="530" y2="129" stroke="#333" stroke-width="1"/>
-  <text x="523" y="133" font-size="8" fill="#333" text-anchor="end">50</text>
-  <line x1="526" y1="96" x2="530" y2="96" stroke="#333" stroke-width="1"/>
-  <text x="523" y="100" font-size="8" fill="#333" text-anchor="end">75</text>
-  <line x1="526" y1="63" x2="530" y2="63" stroke="#333" stroke-width="1"/>
-  <text x="523" y="67" font-size="8" fill="#333" text-anchor="end">100</text>
+  <!-- Scale: 95-100% to show differences better -->
+  <text x="305" y="298" text-anchor="end" class="tick-label">95</text>
+  <text x="305" y="237" text-anchor="end" class="tick-label">96.25</text>
+  <text x="305" y="176" text-anchor="end" class="tick-label">97.5</text>
+  <text x="305" y="115" text-anchor="end" class="tick-label">98.75</text>
+  <text x="305" y="54" text-anchor="end" class="tick-label">100</text>
 
-  <!-- Grid -->
-  <line x1="530" y1="63" x2="850" y2="63" stroke="#EEE" stroke-width="0.5"/>
-  <line x1="530" y1="96" x2="850" y2="96" stroke="#EEE" stroke-width="0.5"/>
-  <line x1="530" y1="129" x2="850" y2="129" stroke="#EEE" stroke-width="0.5"/>
-  <line x1="530" y1="162" x2="850" y2="162" stroke="#EEE" stroke-width="0.5"/>
+  <line x1="310" y1="51" x2="310" y2="295" class="axis-line"/>
+  <line x1="310" y1="295" x2="510" y2="295" class="axis-line"/>
 
-  <!-- GPT-4o accuracy bars -->
-  <!-- Baseline: 98.13% → y = 195 - 129.5 = 65.5 -->
-  <rect x="555" y="65.5" width="32" height="129.5" rx="2" fill="#BDC3C7"/>
-  <!-- Enhanced: 99.98% → y = 63.0 -->
-  <rect x="590" y="63" width="32" height="132" rx="2" fill="#3498DB"/>
-  <text x="588" y="210" font-size="8" fill="#333" text-anchor="middle">GPT-4o</text>
+  <!-- GPT-4o accuracy (baseline=98.12%, enhanced=99.98%) -->
+  <!-- Scale: 95-100 range = 5 units over 244px => 1 unit = 48.8px -->
+  <!-- baseline: (98.12-95)/5 * 244 = 152.3 => y = 295 - 152.3 = 142.7 -->
+  <rect x="320" y="142.7" width="22" height="152.3" rx="2" fill="#BDBDBD"/>
+  <text x="331" y="138.5" text-anchor="middle" class="value-label">98.1%</text>
+  <!-- enhanced: (99.98-95)/5 * 244 = 243.2 => y = 295 - 243.2 = 51.8 -->
+  <rect x="344" y="51.8" width="22" height="243.2" rx="2" fill="#2166AC"/>
+  <text x="355" y="48" text-anchor="middle" class="value-label">100.0%</text>
 
-  <!-- Claude accuracy -->
-  <!-- Baseline: 97.47% → y = 66.3 -->
-  <rect x="655" y="66.3" width="32" height="128.7" rx="2" fill="#BDC3C7"/>
-  <!-- Enhanced: 99.97% → y = 63.0 -->
-  <rect x="690" y="63" width="32" height="132" rx="2" fill="#E8833A"/>
-  <text x="688" y="210" font-size="8" fill="#333" text-anchor="middle">Claude 3.5</text>
+  <!-- Claude 3.5 accuracy (baseline=97.45%, enhanced=99.97%) -->
+  <!-- baseline: (97.45-95)/5 * 244 = 119.6 => y = 295 - 119.6 = 175.4 -->
+  <rect x="382" y="175.4" width="22" height="119.6" rx="2" fill="#BDBDBD"/>
+  <text x="393" y="171" text-anchor="middle" class="value-label">97.5%</text>
+  <!-- enhanced: (99.97-95)/5 * 244 = 242.7 => y = 295 - 242.7 = 52.3 -->
+  <rect x="406" y="52.3" width="22" height="242.7" rx="2" fill="#D6604D"/>
+  <text x="417" y="48" text-anchor="middle" class="value-label">100.0%</text>
 
-  <!-- GPT-4o-mini accuracy -->
-  <!-- Baseline: 96.55% → y = 67.6 -->
-  <rect x="755" y="67.6" width="32" height="127.4" rx="2" fill="#BDC3C7"/>
-  <!-- Enhanced: 99.96% → y = 63.1 -->
-  <rect x="790" y="63.1" width="32" height="131.9" rx="2" fill="#50B86C"/>
-  <text x="788" y="210" font-size="8" fill="#333" text-anchor="middle">GPT-4o-mini</text>
+  <!-- GPT-4o-mini accuracy (baseline=96.52%, enhanced=99.96%) -->
+  <!-- baseline: (96.52-95)/5 * 244 = 74.2 => y = 295 - 74.2 = 220.8 -->
+  <rect x="444" y="220.8" width="22" height="74.2" rx="2" fill="#BDBDBD"/>
+  <text x="455" y="216.5" text-anchor="middle" class="value-label">96.5%</text>
+  <!-- enhanced: (99.96-95)/5 * 244 = 242.2 => y = 295 - 242.2 = 52.8 -->
+  <rect x="468" y="52.8" width="22" height="242.2" rx="2" fill="#4DAF4A"/>
+  <text x="479" y="48" text-anchor="middle" class="value-label">100.0%</text>
 
-  <!-- Value labels -->
-  <text x="571" y="61" font-size="7.5" fill="#666" text-anchor="middle">98.1%</text>
-  <text x="606" y="59" font-size="7.5" fill="#3498DB" text-anchor="middle" font-weight="bold">100.0%</text>
-  <text x="671" y="62" font-size="7.5" fill="#666" text-anchor="middle">97.5%</text>
-  <text x="706" y="59" font-size="7.5" fill="#E8833A" text-anchor="middle" font-weight="bold">100.0%</text>
-  <text x="771" y="63" font-size="7.5" fill="#666" text-anchor="middle">96.6%</text>
-  <text x="806" y="59" font-size="7.5" fill="#50B86C" text-anchor="middle" font-weight="bold">100.0%</text>
+  <!-- Right sub-chart x-axis labels -->
+  <text x="343" y="310" text-anchor="middle" class="tick-label">GPT-4o</text>
+  <text x="405" y="310" text-anchor="middle" class="tick-label">Claude 3.5</text>
+  <text x="467" y="310" text-anchor="middle" class="tick-label">GPT-4o-mini</text>
 
-  <!-- Legend for Panel A -->
-  <rect x="105" y="223" width="10" height="10" rx="2" fill="#BDC3C7"/>
-  <text x="120" y="232" font-size="8.5" fill="#333">Baseline (bare LLM)</text>
-  <rect x="215" y="223" width="10" height="10" rx="2" fill="#3498DB"/>
-  <text x="230" y="232" font-size="8.5" fill="#333">Enhanced (oxo-call)</text>
-  <text x="345" y="232" font-size="8" fill="#666" font-style="italic">n = 47,700 trials per model per mode</text>
+  <!-- Panel A Legend -->
+  <rect x="80" y="335" width="10" height="10" rx="1" fill="#BDBDBD"/>
+  <text x="94" y="344" class="legend-text">Baseline (no grounding)</text>
+  <rect x="210" y="335" width="10" height="10" rx="1" fill="#2166AC"/>
+  <text x="224" y="344" class="legend-text">GPT-4o</text>
+  <rect x="275" y="335" width="10" height="10" rx="1" fill="#D6604D"/>
+  <text x="289" y="344" class="legend-text">Claude 3.5 Sonnet</text>
+  <rect x="390" y="335" width="10" height="10" rx="1" fill="#4DAF4A"/>
+  <text x="404" y="344" class="legend-text">GPT-4o-mini</text>
 
-  <!-- ====== Panel B: Improvement (Delta) ====== -->
-  <text x="12" y="268" font-size="16" font-weight="bold" fill="#000">b</text>
-  <text x="225" y="268" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Exact-match improvement (percentage points)</text>
+  <!-- ==================== PANEL B: Improvement from grounding ==================== -->
+  <rect x="555" y="5" width="540" height="370" rx="4" class="panel-bg"/>
+  <text x="570" y="22" class="panel-label">b</text>
+  <text x="590" y="22" class="panel-title">Exact-match improvement (Δ percentage points)</text>
 
-  <!-- Horizontal bar chart -->
-  <!-- GPT-4o: +25.56 pp -->
-  <rect x="115" y="280" width="204" height="24" rx="3" fill="#3498DB"/>
-  <text x="110" y="296" font-size="9" fill="#333" text-anchor="end">GPT-4o</text>
-  <text x="325" y="296" font-size="9" fill="#333" font-weight="bold">+25.6 pp</text>
+  <!-- Horizontal bar chart area: x=690..1060, y=70..280 -->
+  <!-- X-axis: 0 to 50 -->
+  <!-- Gridlines -->
+  <line x1="690" y1="70" x2="690" y2="280" class="gridline"/><!-- 0 -->
+  <line x1="764" y1="70" x2="764" y2="280" class="gridline"/><!-- 10 -->
+  <line x1="838" y1="70" x2="838" y2="280" class="gridline"/><!-- 20 -->
+  <line x1="912" y1="70" x2="912" y2="280" class="gridline"/><!-- 30 -->
+  <line x1="986" y1="70" x2="986" y2="280" class="gridline"/><!-- 40 -->
+  <line x1="1060" y1="70" x2="1060" y2="280" class="gridline"/><!-- 50 -->
 
-  <!-- Claude: +34.35 pp -->
-  <rect x="115" y="310" width="275" height="24" rx="3" fill="#E8833A"/>
-  <text x="110" y="326" font-size="9" fill="#333" text-anchor="end">Claude 3.5</text>
-  <text x="396" y="326" font-size="9" fill="#333" font-weight="bold">+34.4 pp</text>
+  <!-- X-axis -->
+  <line x1="690" y1="280" x2="1060" y2="280" class="axis-line"/>
+  <!-- Y-axis -->
+  <line x1="690" y1="70" x2="690" y2="280" class="axis-line"/>
 
-  <!-- GPT-4o-mini: +47.14 pp -->
-  <rect x="115" y="340" width="377" height="24" rx="3" fill="#50B86C"/>
-  <text x="110" y="356" font-size="9" fill="#333" text-anchor="end">GPT-4o-mini</text>
-  <text x="498" y="356" font-size="9" fill="#333" font-weight="bold">+47.1 pp</text>
+  <!-- X-axis tick labels -->
+  <text x="690" y="295" text-anchor="middle" class="tick-label">0</text>
+  <text x="764" y="295" text-anchor="middle" class="tick-label">10</text>
+  <text x="838" y="295" text-anchor="middle" class="tick-label">20</text>
+  <text x="912" y="295" text-anchor="middle" class="tick-label">30</text>
+  <text x="986" y="295" text-anchor="middle" class="tick-label">40</text>
+  <text x="1060" y="295" text-anchor="middle" class="tick-label">50</text>
+
+  <text x="875" y="310" text-anchor="middle" class="axis-label">Percentage points</text>
+
+  <!-- GPT-4o-mini: +47.13 pp => width = 47.13/50 * 370 = 348.8 -->
+  <text x="685" y="118" text-anchor="end" class="tick-label">GPT-4o-mini</text>
+  <rect x="690" y="100" width="348.8" height="30" rx="2" fill="#4DAF4A"/>
+  <text x="1044" y="120" text-anchor="start" class="value-label">+47.13 pp</text>
+
+  <!-- Claude 3.5 Sonnet: +34.38 pp => width = 34.38/50 * 370 = 254.4 -->
+  <text x="685" y="178" text-anchor="end" class="tick-label">Claude 3.5 Sonnet</text>
+  <rect x="690" y="160" width="254.4" height="30" rx="2" fill="#D6604D"/>
+  <text x="949" y="180" text-anchor="start" class="value-label">+34.38 pp</text>
+
+  <!-- GPT-4o: +25.57 pp => width = 25.57/50 * 370 = 189.2 -->
+  <text x="685" y="238" text-anchor="end" class="tick-label">GPT-4o</text>
+  <rect x="690" y="220" width="189.2" height="30" rx="2" fill="#2166AC"/>
+  <text x="884" y="240" text-anchor="start" class="value-label">+25.57 pp</text>
 
   <!-- Annotation -->
-  <text x="550" y="310" font-size="8.5" fill="#666" font-style="italic">Weaker baseline models</text>
-  <text x="550" y="322" font-size="8.5" fill="#666" font-style="italic">benefit most from grounding</text>
+  <text x="875" y="340" text-anchor="middle" class="annotation">Improvement inversely proportional to baseline capability</text>
 
-  <!-- ====== Panel C: Error analysis - Enhanced mode ====== -->
-  <text x="12" y="400" font-size="16" font-weight="bold" fill="#000">c</text>
-  <text x="225" y="400" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Error distribution — Enhanced mode</text>
+  <!-- ==================== PANEL C: Enhanced-mode error analysis ==================== -->
+  <rect x="5" y="400" width="530" height="385" rx="4" class="panel-bg"/>
+  <text x="15" y="422" class="panel-label">c</text>
+  <text x="35" y="422" class="panel-title">Error distribution — enhanced mode</text>
 
-  <!-- Stacked bars for enhanced errors -->
-  <!-- Scale: total width 350 for GPT-4o-mini (234 errors) -->
+  <!-- Stacked horizontal bar chart area: x=120..470, y=450..640 -->
+  <!-- X-axis: 0 to 250 -->
+  <!-- Scale: 350px for 250 => 1 unit = 1.4px -->
+  <line x1="120" y1="450" x2="120" y2="640" class="gridline"/><!-- 0 -->
+  <line x1="190" y1="450" x2="190" y2="640" class="gridline"/><!-- 50 -->
+  <line x1="260" y1="450" x2="260" y2="640" class="gridline"/><!-- 100 -->
+  <line x1="330" y1="450" x2="330" y2="640" class="gridline"/><!-- 150 -->
+  <line x1="400" y1="450" x2="400" y2="640" class="gridline"/><!-- 200 -->
+  <line x1="470" y1="450" x2="470" y2="640" class="gridline"/><!-- 250 -->
 
-  <!-- GPT-4o: 159 total errors → width = 159/234*350 = 238 -->
-  <text x="78" y="422" font-size="9" fill="#333" text-anchor="end">GPT-4o</text>
-  <text x="78" y="433" font-size="7" fill="#999" text-anchor="end">(159 errors)</text>
-  <!-- Missing: 42 → 42/234*350=63 -->
-  <rect x="85" y="415" width="63" height="22" rx="0" fill="#E74C3C"/>
-  <!-- Extra: 69 → 103 -->
-  <rect x="148" y="415" width="103" height="22" rx="0" fill="#F39C12"/>
-  <!-- Wrong value: 0 → 0 -->
-  <!-- Reorder: 48 → 72 -->
-  <rect x="251" y="415" width="72" height="22" rx="0" fill="#9B59B6"/>
-  <text x="330" y="430" font-size="7.5" fill="#333">0.33% error rate</text>
+  <line x1="120" y1="640" x2="470" y2="640" class="axis-line"/>
+  <line x1="120" y1="450" x2="120" y2="640" class="axis-line"/>
 
-  <!-- Claude: 183 total → 274 -->
-  <text x="78" y="452" font-size="9" fill="#333" text-anchor="end">Claude 3.5</text>
-  <text x="78" y="463" font-size="7" fill="#999" text-anchor="end">(183 errors)</text>
-  <!-- Missing: 48 → 72 -->
-  <rect x="85" y="445" width="72" height="22" rx="0" fill="#E74C3C"/>
-  <!-- Extra: 60 → 90 -->
-  <rect x="157" y="445" width="90" height="22" rx="0" fill="#F39C12"/>
-  <!-- Wrong value: 24 → 36 -->
-  <rect x="247" y="445" width="36" height="22" rx="0" fill="#3498DB"/>
-  <!-- Reorder: 51 → 76 -->
-  <rect x="283" y="445" width="76" height="22" rx="0" fill="#9B59B6"/>
-  <text x="366" y="460" font-size="7.5" fill="#333">0.38% error rate</text>
+  <text x="120" y="658" text-anchor="middle" class="tick-label">0</text>
+  <text x="190" y="658" text-anchor="middle" class="tick-label">50</text>
+  <text x="260" y="658" text-anchor="middle" class="tick-label">100</text>
+  <text x="330" y="658" text-anchor="middle" class="tick-label">150</text>
+  <text x="400" y="658" text-anchor="middle" class="tick-label">200</text>
+  <text x="470" y="658" text-anchor="middle" class="tick-label">250</text>
 
-  <!-- GPT-4o-mini: 234 total → 350 -->
-  <text x="78" y="482" font-size="9" fill="#333" text-anchor="end">GPT-4o-mini</text>
-  <text x="78" y="493" font-size="7" fill="#999" text-anchor="end">(234 errors)</text>
-  <!-- Missing: 99 → 148 -->
-  <rect x="85" y="475" width="148" height="22" rx="0" fill="#E74C3C"/>
-  <!-- Extra: 39 → 58 -->
-  <rect x="233" y="475" width="58" height="22" rx="0" fill="#F39C12"/>
-  <!-- Wrong value: 36 → 54 -->
-  <rect x="291" y="475" width="54" height="22" rx="0" fill="#3498DB"/>
-  <!-- Reorder: 57 → 85 (trim to fit) -->
-  <rect x="345" y="475" width="85" height="22" rx="0" fill="#9B59B6"/>
-  <text x="437" y="490" font-size="7.5" fill="#333">0.49% error rate</text>
+  <text x="295" y="672" text-anchor="middle" class="axis-label">Error count</text>
 
-  <!-- Legend for error types -->
-  <rect x="85" y="505" width="10" height="10" rx="2" fill="#E74C3C"/>
-  <text x="100" y="514" font-size="8" fill="#333">Missing flag</text>
-  <rect x="170" y="505" width="10" height="10" rx="2" fill="#F39C12"/>
-  <text x="185" y="514" font-size="8" fill="#333">Extra flag</text>
-  <rect x="240" y="505" width="10" height="10" rx="2" fill="#3498DB"/>
-  <text x="255" y="514" font-size="8" fill="#333">Wrong value</text>
-  <rect x="320" y="505" width="10" height="10" rx="2" fill="#9B59B6"/>
-  <text x="335" y="514" font-size="8" fill="#333">Flag reorder</text>
+  <!-- GPT-4o: 42 missing, 69 extra, 0 wrong, 48 reorder = 159 -->
+  <!-- 1 unit = 350/250 = 1.4px -->
+  <text x="115" y="488" text-anchor="end" class="tick-label">GPT-4o</text>
+  <rect x="120" y="472" width="58.8" height="28" rx="2" fill="#FDB863"/><!-- missing: 42*1.4=58.8 -->
+  <rect x="178.8" y="472" width="96.6" height="28" rx="2" fill="#E66101"/><!-- extra: 69*1.4=96.6 -->
+  <!-- wrong_value: 0 => 0px -->
+  <rect x="275.4" y="472" width="67.2" height="28" rx="2" fill="#5E3C99"/><!-- reorder: 48*1.4=67.2 -->
+  <text x="348" y="490" text-anchor="start" class="value-label">159</text>
 
-  <!-- ====== Panel D: Error analysis - Baseline mode ====== -->
-  <text x="12" y="548" font-size="16" font-weight="bold" fill="#000">d</text>
-  <text x="450" y="548" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Error counts — Baseline vs Enhanced (log scale comparison)</text>
+  <!-- Claude 3.5: 48 missing, 60 extra, 24 wrong, 51 reorder = 183 -->
+  <text x="115" y="543" text-anchor="end" class="tick-label">Claude 3.5</text>
+  <rect x="120" y="527" width="67.2" height="28" rx="2" fill="#FDB863"/><!-- missing: 48*1.4=67.2 -->
+  <rect x="187.2" y="527" width="84" height="28" rx="2" fill="#E66101"/><!-- extra: 60*1.4=84 -->
+  <rect x="271.2" y="527" width="33.6" height="28" rx="2" fill="#B2ABD2"/><!-- wrong: 24*1.4=33.6 -->
+  <rect x="304.8" y="527" width="71.4" height="28" rx="2" fill="#5E3C99"/><!-- reorder: 51*1.4=71.4 -->
+  <text x="381" y="545" text-anchor="start" class="value-label">183</text>
 
-  <!-- Bar pairs for baseline vs enhanced -->
-  <!-- GPT-4o -->
-  <text x="195" y="575" font-size="9" fill="#333" text-anchor="middle">GPT-4o</text>
-  <!-- Baseline: 12,357 → bar width proportional, max width for 22717 = 500px -->
-  <!-- 12357/22717*500 = 272 -->
-  <rect x="85" y="580" width="272" height="16" rx="2" fill="#BDC3C7"/>
-  <text x="362" y="592" font-size="8" fill="#666">12,357</text>
-  <!-- Enhanced: 159 → 159/22717*500 = 3.5, min 6 for visibility -->
-  <rect x="85" y="600" width="6" height="16" rx="2" fill="#3498DB"/>
-  <text x="96" y="612" font-size="8" fill="#3498DB" font-weight="bold">159 (78× reduction)</text>
+  <!-- GPT-4o-mini: 99 missing, 39 extra, 39 wrong, 57 reorder = 234 -->
+  <text x="115" y="598" text-anchor="end" class="tick-label">GPT-4o-mini</text>
+  <rect x="120" y="582" width="138.6" height="28" rx="2" fill="#FDB863"/><!-- missing: 99*1.4=138.6 -->
+  <rect x="258.6" y="582" width="54.6" height="28" rx="2" fill="#E66101"/><!-- extra: 39*1.4=54.6 -->
+  <rect x="313.2" y="582" width="54.6" height="28" rx="2" fill="#B2ABD2"/><!-- wrong: 39*1.4=54.6 -->
+  <rect x="367.8" y="582" width="79.8" height="28" rx="2" fill="#5E3C99"/><!-- reorder: 57*1.4=79.8 -->
+  <text x="453" y="600" text-anchor="start" class="value-label">234</text>
 
-  <!-- Claude -->
-  <text x="495" y="575" font-size="9" fill="#333" text-anchor="middle">Claude 3.5 Sonnet</text>
-  <!-- Baseline: 16,580 → 365 -->
-  <rect x="385" y="580" width="365" height="16" rx="2" fill="#BDC3C7"/>
-  <text x="756" y="592" font-size="8" fill="#666">16,580</text>
-  <!-- Enhanced: 183 → 4 -->
-  <rect x="385" y="600" width="6" height="16" rx="2" fill="#E8833A"/>
-  <text x="396" y="612" font-size="8" fill="#E8833A" font-weight="bold">183 (91× reduction)</text>
+  <!-- Panel C Legend -->
+  <rect x="80" y="690" width="10" height="10" rx="1" fill="#FDB863"/>
+  <text x="94" y="699" class="legend-text">Missing flag</text>
+  <rect x="170" y="690" width="10" height="10" rx="1" fill="#E66101"/>
+  <text x="184" y="699" class="legend-text">Extra flag</text>
+  <rect x="245" y="690" width="10" height="10" rx="1" fill="#B2ABD2"/>
+  <text x="259" y="699" class="legend-text">Wrong value</text>
+  <rect x="335" y="690" width="10" height="10" rx="1" fill="#5E3C99"/>
+  <text x="349" y="699" class="legend-text">Flag reorder</text>
 
-  <!-- GPT-4o-mini -->
-  <text x="195" y="635" font-size="9" fill="#333" text-anchor="middle">GPT-4o-mini</text>
-  <!-- Baseline: 22,717 → 500 -->
-  <rect x="85" y="640" width="500" height="16" rx="2" fill="#BDC3C7"/>
-  <text x="590" y="652" font-size="8" fill="#666">22,717</text>
-  <!-- Enhanced: 234 → 5 -->
-  <rect x="85" y="660" width="7" height="16" rx="2" fill="#50B86C"/>
-  <text x="97" y="672" font-size="8" fill="#50B86C" font-weight="bold">234 (97× reduction)</text>
+  <!-- ==================== PANEL D: Baseline-mode error analysis ==================== -->
+  <rect x="555" y="400" width="540" height="385" rx="4" class="panel-bg"/>
+  <text x="570" y="422" class="panel-label">d</text>
+  <text x="590" y="422" class="panel-title">Error distribution — baseline mode</text>
 
-  <!-- Legend for panel D -->
-  <rect x="480" y="658" width="10" height="10" rx="2" fill="#BDC3C7"/>
-  <text x="495" y="667" font-size="8" fill="#333">Baseline errors (n = 47,700 trials)</text>
-  <rect x="660" y="658" width="10" height="10" rx="2" fill="#3498DB"/>
-  <text x="675" y="667" font-size="8" fill="#333">Enhanced errors</text>
+  <!-- Stacked horizontal bar chart area: x=670..1060, y=450..640 -->
+  <!-- X-axis: 0 to 25,000 -->
+  <!-- Scale: 390px for 25000 => 1 unit = 0.0156px -->
+  <line x1="670" y1="450" x2="670" y2="640" class="gridline"/><!-- 0 -->
+  <line x1="748" y1="450" x2="748" y2="640" class="gridline"/><!-- 5000 -->
+  <line x1="826" y1="450" x2="826" y2="640" class="gridline"/><!-- 10000 -->
+  <line x1="904" y1="450" x2="904" y2="640" class="gridline"/><!-- 15000 -->
+  <line x1="982" y1="450" x2="982" y2="640" class="gridline"/><!-- 20000 -->
+  <line x1="1060" y1="450" x2="1060" y2="640" class="gridline"/><!-- 25000 -->
 
-  <!-- Bottom annotation -->
-  <text x="450" y="695" font-size="8.5" fill="#666" text-anchor="middle" font-style="italic">Total evaluation: 286,200 trials (143,100 enhanced + 143,100 baseline) across 159 tools, 44 categories, 3 models, 3 repeats</text>
+  <line x1="670" y1="640" x2="1060" y2="640" class="axis-line"/>
+  <line x1="670" y1="450" x2="670" y2="640" class="axis-line"/>
+
+  <text x="670" y="658" text-anchor="middle" class="tick-label">0</text>
+  <text x="748" y="658" text-anchor="middle" class="tick-label">5,000</text>
+  <text x="826" y="658" text-anchor="middle" class="tick-label">10,000</text>
+  <text x="904" y="658" text-anchor="middle" class="tick-label">15,000</text>
+  <text x="982" y="658" text-anchor="middle" class="tick-label">20,000</text>
+  <text x="1060" y="658" text-anchor="middle" class="tick-label">25,000</text>
+
+  <text x="865" y="672" text-anchor="middle" class="axis-label">Error count</text>
+
+  <!-- Scale: 390px / 25000 = 0.0156 px per unit -->
+  <!-- GPT-4o: 3257 missing, 3588 extra, 2131 wrong, 3381 reorder = 12357 -->
+  <text x="665" y="488" text-anchor="end" class="tick-label">GPT-4o</text>
+  <rect x="670" y="472" width="50.8" height="28" rx="2" fill="#FDB863"/><!-- 3257*0.0156=50.8 -->
+  <rect x="720.8" y="472" width="56" height="28" rx="2" fill="#E66101"/><!-- 3588*0.0156=56.0 -->
+  <rect x="776.8" y="472" width="33.2" height="28" rx="2" fill="#B2ABD2"/><!-- 2131*0.0156=33.2 -->
+  <rect x="810" y="472" width="52.7" height="28" rx="2" fill="#5E3C99"/><!-- 3381*0.0156=52.7 -->
+  <text x="868" y="490" text-anchor="start" class="value-label">12,357</text>
+
+  <!-- Claude 3.5: 4367 missing, 4813 extra, 2925 wrong, 4475 reorder = 16580 -->
+  <text x="665" y="543" text-anchor="end" class="tick-label">Claude 3.5</text>
+  <rect x="670" y="527" width="68.1" height="28" rx="2" fill="#FDB863"/><!-- 4367*0.0156=68.1 -->
+  <rect x="738.1" y="527" width="75.1" height="28" rx="2" fill="#E66101"/><!-- 4813*0.0156=75.1 -->
+  <rect x="813.2" y="527" width="45.6" height="28" rx="2" fill="#B2ABD2"/><!-- 2925*0.0156=45.6 -->
+  <rect x="858.8" y="527" width="69.8" height="28" rx="2" fill="#5E3C99"/><!-- 4475*0.0156=69.8 -->
+  <text x="934" y="545" text-anchor="start" class="value-label">16,580</text>
+
+  <!-- GPT-4o-mini: 5996 missing, 6594 extra, 3931 wrong, 6196 reorder = 22717 -->
+  <text x="665" y="598" text-anchor="end" class="tick-label">GPT-4o-mini</text>
+  <rect x="670" y="582" width="93.5" height="28" rx="2" fill="#FDB863"/><!-- 5996*0.0156=93.5 -->
+  <rect x="763.5" y="582" width="102.9" height="28" rx="2" fill="#E66101"/><!-- 6594*0.0156=102.9 -->
+  <rect x="866.4" y="582" width="61.3" height="28" rx="2" fill="#B2ABD2"/><!-- 3931*0.0156=61.3 -->
+  <rect x="927.7" y="582" width="96.7" height="28" rx="2" fill="#5E3C99"/><!-- 6196*0.0156=96.7 -->
+  <text x="1030" y="600" text-anchor="start" class="value-label">22,717</text>
+
+  <!-- Panel D Legend -->
+  <rect x="630" y="690" width="10" height="10" rx="1" fill="#FDB863"/>
+  <text x="644" y="699" class="legend-text">Missing flag</text>
+  <rect x="720" y="690" width="10" height="10" rx="1" fill="#E66101"/>
+  <text x="734" y="699" class="legend-text">Extra flag</text>
+  <rect x="795" y="690" width="10" height="10" rx="1" fill="#B2ABD2"/>
+  <text x="809" y="699" class="legend-text">Wrong value</text>
+  <rect x="885" y="690" width="10" height="10" rx="1" fill="#5E3C99"/>
+  <text x="899" y="699" class="legend-text">Flag reorder</text>
+
+  <!-- Panel D Annotation -->
+  <text x="865" y="725" text-anchor="middle" class="annotation-bold">78–97× more errors without grounding</text>
+
 </svg>
