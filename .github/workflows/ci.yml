@@ -183,6 +183,8 @@ jobs:
           - x86_64-unknown-linux-musl
           - aarch64-unknown-linux-gnu
           - aarch64-unknown-linux-musl
+          - armv7-unknown-linux-gnueabihf
+          - armv7-unknown-linux-musleabihf
 
     steps:
       - uses: actions/checkout@v6
@@ -294,16 +296,20 @@ jobs:
     name: Build Windows (${{ matrix.target }})
     permissions:
       contents: read
-    runs-on: windows-latest
+    runs-on: ${{ matrix.runner }}
     needs: [test]
     # always() breaks the skip-cascade from sync-version through test.
     if: always() && needs.test.result == 'success'
     strategy:
       fail-fast: false
       matrix:
-        target:
-          - x86_64-pc-windows-msvc
-          - aarch64-pc-windows-msvc
+        include:
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+          - target: aarch64-pc-windows-msvc
+            runner: windows-latest
+          - target: i686-pc-windows-msvc
+            runner: windows-latest
 
     steps:
       - uses: actions/checkout@v6
