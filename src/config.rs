@@ -17,6 +17,17 @@ const ENV_LLM_MAX_TOKENS: &str = "OXO_CALL_LLM_MAX_TOKENS";
 const ENV_LLM_TEMPERATURE: &str = "OXO_CALL_LLM_TEMPERATURE";
 const ENV_DOCS_AUTO_UPDATE: &str = "OXO_CALL_DOCS_AUTO_UPDATE";
 
+/// All recognised `config set` / `config get` key names.
+const VALID_CONFIG_KEYS: &[&str] = &[
+    "llm.provider",
+    "llm.api_token",
+    "llm.api_base",
+    "llm.model",
+    "llm.max_tokens",
+    "llm.temperature",
+    "docs.auto_update",
+];
+
 // ─── MCP configuration ────────────────────────────────────────────────────────
 
 /// Configuration for a single MCP skill provider server.
@@ -226,7 +237,8 @@ impl Config {
             }
             _ => {
                 return Err(OxoError::ConfigError(format!(
-                    "Unknown config key: {key}. Valid keys: llm.provider, llm.api_token, llm.api_base, llm.model, llm.max_tokens, llm.temperature, docs.auto_update"
+                    "Unknown config key: {key}. Valid keys: {}",
+                    VALID_CONFIG_KEYS.join(", ")
                 )));
             }
         }

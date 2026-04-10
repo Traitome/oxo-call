@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # Run cargo run -p license-issuer issue --help 
 # Issue (sign) a new license file
@@ -20,7 +20,6 @@ set -e
 # Example:
 # ./issue-license.sh "Shixiang Wang" "w_shixiang@163.com" academic ~/Downloads/oxo-call-license.json
 
-# 检查参数数量
 if [ $# -lt 4 ]; then
     echo "Usage: $0 <org_name> <email> <type> <output_file>"
     echo "  org_name:    Full legal name of the organization (or individual for academic)"
@@ -33,10 +32,33 @@ if [ $# -lt 4 ]; then
     exit 1
 fi
 
-# 使用 "$@" 或 "\"$1\"" 等方式引用带空格的参数
 ORG="$1"
 EMAIL="$2"
 TYPE="$3"
 OUTPUT="$4"
 
-cargo run -p license-issuer issue --org "$ORG" --email "$EMAIL" --type "$TYPE" -o "$OUTPUT"
+# Validate that arguments are non-empty
+if [ -z "$ORG" ]; then
+    echo "Error: org_name must not be empty" >&2
+    exit 1
+fi
+if [ -z "$EMAIL" ]; then
+    echo "Error: email must not be empty" >&2
+    exit 1
+fi
+if [ "$TYPE" != "academic" ] && [ "$TYPE" != "commercial" ]; then
+    echo "Error: type must be 'academic' or 'commercial', got '$TYPE'" >&2
+    exit 1
+fi
+if [ -z "$OUTPUT" ]; then
+    echo "Error: output_file must not be empty" >&2
+    exit 1
+fi
+
+# Verify cargo is available
+if ! command -v cargo &> /dev/null; then
+    echo "Error: cargo is not installed or not in PATH" >&2
+    exit 1
+fi
+
+cargo run -p license-issuer -- issue --org "$ORG" --email "$EMAIL" --type "$TYPE" -o "$OUTPUT"
