@@ -714,7 +714,7 @@ impl LlmClient {
             let provider = self.config.effective_provider();
             let token = self.config.effective_api_token().ok_or_else(|| {
                 let token_hint = match provider.as_str() {
-                    "github-copilot" => "  For GitHub Copilot, use a GitHub token with copilot scope:\n    https://github.com/settings/tokens",
+                    "github-copilot" => "  For GitHub Copilot, use a GitHub token with copilot scope:\n    https://github.com/settings/personal-access-tokens",
                     "openai" => "  For OpenAI, create an API key at:\n    https://platform.openai.com/api-keys",
                     "anthropic" => "  For Anthropic, create an API key at:\n    https://console.anthropic.com/settings/keys",
                     "ollama" => "  For Ollama (local), no token is usually needed.\n    Set OXO_CALL_LLM_API_TOKEN if your instance requires auth.",

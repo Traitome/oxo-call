@@ -32,8 +32,8 @@ export GH_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
 
 Get a token:
 
-1. Go to [github.com/settings/tokens](https://github.com/settings/tokens)
-2. Create a new token with `read:user` and GitHub Copilot access
+1. Go to [https://github.com/settings/personal-access-tokens](https://github.com/settings/personal-access-tokens)
+2. Create a new token with [GitHub Copilot access](https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/authenticate-copilot-cli#authenticating-with-environment-variables)
 3. Or use the GitHub CLI: `gh auth token`
 
 ---
