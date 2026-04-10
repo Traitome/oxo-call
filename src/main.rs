@@ -41,6 +41,10 @@ async fn main() {
     }
 }
 
+/// Default model used when `oxo-call config login` sets up a new github-copilot
+/// configuration and no model has been explicitly configured yet.
+const DEFAULT_COPILOT_LOGIN_MODEL: &str = "gpt-4o-mini";
+
 async fn run(cli: Cli) -> error::Result<()> {
     // Commands that are permitted without a valid license file.
     // `--help` and `--version` are handled by clap before reaching this function.
@@ -692,7 +696,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                         cfg.llm.api_token = Some(token);
                         // Default to a free/lightweight model when none is set.
                         if cfg.llm.model.is_none() {
-                            cfg.llm.model = Some("gpt-4o-mini".to_string());
+                            cfg.llm.model = Some(DEFAULT_COPILOT_LOGIN_MODEL.to_string());
                         }
                         cfg.save()?;
 
@@ -701,7 +705,10 @@ async fn run(cli: Cli) -> error::Result<()> {
                         println!("  provider  github-copilot");
                         println!(
                             "  model     {} (change with `oxo-call config set llm.model <model>`)",
-                            cfg.llm.model.as_deref().unwrap_or("gpt-4o-mini")
+                            cfg.llm
+                                .model
+                                .as_deref()
+                                .unwrap_or(DEFAULT_COPILOT_LOGIN_MODEL)
                         );
                         println!();
                         println!("  Run `oxo-call config verify` to confirm everything works.");

@@ -259,7 +259,7 @@ fn test_config_verify_insecure_remote_api_base_fails_with_guidance() {
 
 #[test]
 fn test_config_verify_verbose_flag_is_accepted() {
-    // --verbose should be accepted without error (still fails the API call, but flag parses).
+    // --verbose should be accepted and produce "Raw error detail:" on failure.
     let output = oxo_call()
         .env("OXO_CALL_LLM_PROVIDER", "openai")
         .env("OXO_CALL_LLM_API_TOKEN", "dummy-token")
@@ -267,12 +267,35 @@ fn test_config_verify_verbose_flag_is_accepted() {
         .args(["config", "verify", "--verbose"])
         .output()
         .expect("failed to run oxo-call");
-    // Still fails (insecure URL), but we shouldn't get a "unexpected argument" clap error.
+    // Still fails (insecure URL), but the verbose flag must be accepted.
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
         !stderr.contains("unexpected argument"),
         "flag should be accepted: {stderr}"
+    );
+    // With --verbose, the raw error detail section must appear.
+    assert!(
+        stderr.contains("Raw error detail:"),
+        "--verbose should show raw error detail: {stderr}"
+    );
+}
+
+#[test]
+fn test_config_verify_without_verbose_omits_raw_detail() {
+    // Without --verbose, the "Raw error detail:" block must NOT appear.
+    let output = oxo_call()
+        .env("OXO_CALL_LLM_PROVIDER", "openai")
+        .env("OXO_CALL_LLM_API_TOKEN", "dummy-token")
+        .env("OXO_CALL_LLM_API_BASE", "http://example.com/v1")
+        .args(["config", "verify"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        !stderr.contains("Raw error detail:"),
+        "raw detail section should be absent without --verbose: {stderr}"
     );
 }
 

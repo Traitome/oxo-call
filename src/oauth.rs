@@ -21,6 +21,14 @@ use std::time::Duration;
 const DEVICE_CODE_URL: &str = "https://github.com/login/device/code";
 const TOKEN_URL: &str = "https://github.com/login/oauth/access_token";
 
+/// Buffer subtracted from the device code's `expires_in` to avoid racing the
+/// expiry window during the last polling iteration.
+const EXPIRY_BUFFER_SECS: u64 = 5;
+
+/// Minimum polling interval enforced even if the server returns a shorter value.
+/// RFC 8628 recommends at least 5 seconds between poll attempts.
+const MIN_POLL_INTERVAL_SECS: u64 = 5;
+
 // ── Wire types ───────────────────────────────────────────────────────────────
 
 /// Percent-encode a string for use in an `application/x-www-form-urlencoded` body.
@@ -148,8 +156,9 @@ pub async fn run_device_flow(
     );
 
     // Step 3 – poll for the token
-    let interval = Duration::from_secs(dc.interval.max(5));
-    let deadline = std::time::Instant::now() + Duration::from_secs(dc.expires_in.saturating_sub(5));
+    let interval = Duration::from_secs(dc.interval.max(MIN_POLL_INTERVAL_SECS));
+    let deadline = std::time::Instant::now()
+        + Duration::from_secs(dc.expires_in.saturating_sub(EXPIRY_BUFFER_SECS));
 
     loop {
         if std::time::Instant::now() >= deadline {
@@ -179,7 +188,7 @@ pub async fn run_device_flow(
             .await
             .map_err(|e| OxoError::ConfigError(format!("Failed to parse token response: {e}")))?;
 
-        if let Some(token) = tok.access_token.filter(|t: &String| !t.is_empty()) {
+        if let Some(token) = tok.access_token.filter(|t| !t.is_empty()) {
             return Ok(token);
         }
 
@@ -189,7 +198,7 @@ pub async fn run_device_flow(
             }
             Some("slow_down") => {
                 // Server asked us to back off
-                tokio::time::sleep(Duration::from_secs(5)).await;
+                tokio::time::sleep(Duration::from_secs(MIN_POLL_INTERVAL_SECS)).await;
             }
             Some("expired_token") => {
                 return Err(OxoError::ConfigError(
