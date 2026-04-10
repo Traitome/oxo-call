@@ -469,13 +469,27 @@ impl Runner {
             // Resolve companion binary (e.g., "bowtie2-build" when tool is "bowtie2")
             let (eff_tool, eff_args) = effective_command(tool, &result.suggestion.args);
 
+            // When the args contain shell operators (&&, ||, ;, |, >, …) the command
+            // must be dispatched through a shell so those operators are interpreted as
+            // shell syntax rather than being passed as literal strings to the tool.
+            // `full_cmd` already has shell operators unquoted and all other args
+            // properly single-quoted, so it is safe to pass directly to `sh -c`.
+            let use_shell = args_require_shell(&result.suggestion.args);
+
             // When verification is enabled, capture stderr for analysis.
             // stdout is still streamed to the terminal via inheritance.
             let (exit_code, success, captured_stderr) = if self.verify {
-                let output = Command::new(eff_tool)
-                    .args(eff_args)
-                    .output()
-                    .map_err(|e| OxoError::ToolNotFound(format!("{eff_tool}: {e}")))?;
+                let output = if use_shell {
+                    Command::new("sh")
+                        .args(["-c", &full_cmd])
+                        .output()
+                        .map_err(|e| OxoError::ExecutionError(format!("sh: {e}")))?
+                } else {
+                    Command::new(eff_tool)
+                        .args(eff_args)
+                        .output()
+                        .map_err(|e| OxoError::ToolNotFound(format!("{eff_tool}: {e}")))?
+                };
 
                 // Stream captured output to terminal so the user still sees it.
                 use std::io::Write;
@@ -487,10 +501,17 @@ impl Runner {
                 let stderr_text = String::from_utf8_lossy(&output.stderr).into_owned();
                 (code, ok, stderr_text)
             } else {
-                let status = Command::new(eff_tool)
-                    .args(eff_args)
-                    .status()
-                    .map_err(|e| OxoError::ToolNotFound(format!("{eff_tool}: {e}")))?;
+                let status = if use_shell {
+                    Command::new("sh")
+                        .args(["-c", &full_cmd])
+                        .status()
+                        .map_err(|e| OxoError::ExecutionError(format!("sh: {e}")))?
+                } else {
+                    Command::new(eff_tool)
+                        .args(eff_args)
+                        .status()
+                        .map_err(|e| OxoError::ToolNotFound(format!("{eff_tool}: {e}")))?
+                };
                 let code = status.code().unwrap_or(-1);
                 let ok = status.success();
                 (code, ok, String::new())
@@ -964,8 +985,13 @@ fn build_command_string(tool: &str, args: &[String]) -> String {
     let args_str: Vec<String> = eff_args
         .iter()
         .map(|a| {
-            // Quote arguments that contain spaces or shell metacharacters
-            if needs_quoting(a) {
+            // Shell operators (&&, ||, ;, |, >, …) are shell syntax, not values —
+            // they must never be quoted, otherwise the shell would treat them as
+            // literal string arguments to the tool.
+            if is_shell_operator(a) {
+                a.clone()
+            } else if needs_quoting(a) {
+                // Quote arguments that contain spaces or shell metacharacters
                 format!("'{}'", a.replace('\'', "'\\''"))
             } else {
                 a.clone()
@@ -1122,6 +1148,35 @@ pub(crate) fn is_companion_binary(tool: &str, candidate: &str) -> bool {
     // a candidate exactly equal to "_{tool}" would be a degenerate binary name.
     let underscore_suffix = format!("_{tool}");
     stem.ends_with(&underscore_suffix) && stem.len() > underscore_suffix.len()
+}
+
+/// Returns `true` if `arg` is a standalone shell control operator.
+///
+/// These tokens are shell syntax, not argument values, and must **never** be
+/// quoted in the display string produced by `build_command_string`.  They also
+/// signal that the full command string must be dispatched via `sh -c` rather
+/// than being passed directly to `execve`.
+///
+/// Note: a bare `&` (background operator) is intentionally excluded because it
+/// can legitimately appear as part of samtools/awk filter expressions when the
+/// LLM tokenizes `flag & 0x4` as three separate tokens.  Only unambiguous
+/// multi-character operators and the most common single-character I/O operators
+/// are listed here.
+fn is_shell_operator(arg: &str) -> bool {
+    matches!(
+        arg,
+        "&&" | "||" | ";" | ";;" | "|" | ">" | ">>" | "<" | "<<" | "2>" | "2>>"
+    )
+}
+
+/// Returns `true` if any argument is a standalone shell control operator.
+///
+/// When this returns `true` the generated command must be executed through a
+/// shell (`sh -c`) so that operators such as `&&`, `|`, `>` are interpreted as
+/// shell syntax rather than being passed as literal argument strings to the
+/// first tool.
+fn args_require_shell(args: &[String]) -> bool {
+    args.iter().any(|a| is_shell_operator(a))
 }
 
 /// Returns `true` if the argument contains characters that require quoting.
@@ -1366,6 +1421,107 @@ mod tests {
         let args: Vec<String> = vec!["--filter".to_string(), "flag & 0x4".to_string()];
         let cmd = build_command_string("samtools", &args);
         assert!(cmd.contains("'flag"), "args with & should be quoted");
+    }
+
+    #[test]
+    fn test_build_command_string_does_not_quote_shell_and_and() {
+        // && is a shell operator — must appear unquoted so sh -c can interpret it
+        let args: Vec<String> = vec![
+            "sort".to_string(),
+            "-o".to_string(),
+            "sorted.bam".to_string(),
+            "input.bam".to_string(),
+            "&&".to_string(),
+            "samtools".to_string(),
+            "index".to_string(),
+            "sorted.bam".to_string(),
+        ];
+        let cmd = build_command_string("samtools", &args);
+        assert!(cmd.contains(" && "), "cmd should contain unquoted &&");
+        assert!(!cmd.contains("'&&'"), "&& must not be single-quoted");
+        assert!(
+            cmd.contains("samtools index"),
+            "second subcommand must be present"
+        );
+    }
+
+    #[test]
+    fn test_build_command_string_does_not_quote_pipe() {
+        let args: Vec<String> = vec![
+            "view".to_string(),
+            "input.bam".to_string(),
+            "|".to_string(),
+            "grep".to_string(),
+            "^SQ".to_string(),
+        ];
+        let cmd = build_command_string("samtools", &args);
+        assert!(cmd.contains(" | "), "cmd should contain unquoted |");
+        assert!(!cmd.contains("'|'"), "| must not be single-quoted");
+    }
+
+    // ─── is_shell_operator ────────────────────────────────────────────────────
+
+    #[test]
+    fn test_is_shell_operator_known_operators() {
+        assert!(is_shell_operator("&&"));
+        assert!(is_shell_operator("||"));
+        assert!(is_shell_operator(";"));
+        assert!(is_shell_operator("|"));
+        assert!(is_shell_operator(">"));
+        assert!(is_shell_operator(">>"));
+        assert!(is_shell_operator("<"));
+        assert!(is_shell_operator("2>"));
+        assert!(is_shell_operator("2>>"));
+    }
+
+    #[test]
+    fn test_is_shell_operator_rejects_non_operators() {
+        assert!(!is_shell_operator("-o"));
+        assert!(!is_shell_operator("out.bam"));
+        // Bare & is intentionally excluded — it appears in filter expressions
+        // like `flag & 0x4` which `parse_shell_args` may tokenize as ["flag", "&", "0x4"]
+        assert!(!is_shell_operator("&"));
+        assert!(!is_shell_operator("flag & 0x4"));
+        assert!(!is_shell_operator("samtools"));
+        assert!(!is_shell_operator(""));
+    }
+
+    // ─── args_require_shell ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_args_require_shell_with_double_ampersand() {
+        let args: Vec<String> = vec![
+            "sort".to_string(),
+            "-o".to_string(),
+            "sorted.bam".to_string(),
+            "&&".to_string(),
+            "samtools".to_string(),
+            "index".to_string(),
+            "sorted.bam".to_string(),
+        ];
+        assert!(args_require_shell(&args));
+    }
+
+    #[test]
+    fn test_args_require_shell_with_pipe() {
+        let args: Vec<String> = vec!["view".to_string(), "|".to_string(), "grep".to_string()];
+        assert!(args_require_shell(&args));
+    }
+
+    #[test]
+    fn test_args_require_shell_without_operators() {
+        let args: Vec<String> = vec![
+            "sort".to_string(),
+            "-o".to_string(),
+            "out.bam".to_string(),
+            "input.bam".to_string(),
+        ];
+        assert!(!args_require_shell(&args));
+    }
+
+    #[test]
+    fn test_args_require_shell_empty() {
+        assert!(!args_require_shell(&[]));
     }
 
     // ─── needs_quoting ────────────────────────────────────────────────────────
