@@ -58,9 +58,20 @@ Environment variables override `config.toml` values. Provider-specific token var
 ## LLM Provider Details
 
 ### GitHub Copilot (Default)
-- Default model: auto-selected
-- API base: `https://api.githubcopilot.com`
-- Token: GitHub personal access token with Copilot access
+- Default model: `gpt-4o-mini`
+- API base: `https://api.individual.githubcopilot.com`
+- Authentication: Use `oxo-call config login` for interactive OAuth login
+- **Important**: Requires GitHub App token (`ghu_`), not Personal Access Token (`ghp_`)
+
+```bash
+# Recommended: Interactive login
+oxo-call config login
+
+# Manual setup (if you have a ghu_ token)
+oxo-call config set llm.api_token ghu_xxxxxxxxxxxxxxxxxxxx
+```
+
+**Note**: GitHub Copilot ignores `GITHUB_TOKEN` and `OXO_CALL_LLM_API_TOKEN` environment variables because they often contain Personal Access Tokens that don't work with Copilot's token exchange endpoint. Always use `oxo-call config login` or manually set a `ghu_` token.
 
 ### OpenAI
 - Default model: `gpt-4o`

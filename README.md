@@ -117,7 +117,10 @@ export OXO_CALL_LICENSE=/path/to/license.oxo.json
 ### 3. Configure your LLM and run
 
 ```bash
-# GitHub Copilot (default)
+# GitHub Copilot (default) - Interactive OAuth login
+oxo-call config login
+
+# Or set manually with a GitHub token
 oxo-call config set llm.api_token <your-github-token>
 
 # Preview a command without running it

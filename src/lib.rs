@@ -16,6 +16,7 @@
 //! library interface.
 
 pub mod config;
+pub mod copilot_auth;
 pub mod docs;
 pub mod engine;
 pub mod error;

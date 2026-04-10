@@ -5,6 +5,7 @@ Read and write LLM and behavior settings.
 ## Synopsis
 
 ```
+oxo-call config login
 oxo-call config set    <KEY> <VALUE>
 oxo-call config get    <KEY>
 oxo-call config show
@@ -13,6 +14,23 @@ oxo-call config path
 ```
 
 ## Subcommands
+
+### `config login`
+
+Interactive OAuth login for GitHub Copilot (recommended for GitHub Copilot users):
+
+```bash
+oxo-call config login
+```
+
+This command:
+1. Initiates OAuth device flow with GitHub
+2. Opens a browser window for authentication
+3. Waits for you to authorize the application
+4. Stores the GitHub App token (`ghu_`) securely
+5. Sets the default model to `gpt-4o-mini`
+
+**Important**: For GitHub Copilot, you must use a GitHub App token (`ghu_`), not a Personal Access Token (`ghp_`). The `config login` command handles this automatically.
 
 ### `config set`
 

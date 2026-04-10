@@ -17,24 +17,53 @@ This guide shows you how to change the LLM backend that oxo-call uses for comman
 
 ## GitHub Copilot (Default)
 
-GitHub Copilot is the default provider. You need a GitHub personal access token (PAT) with the `copilot` scope, or use a token from `gh auth token`.
+GitHub Copilot is the default provider. The recommended way to authenticate is using the interactive OAuth login:
+
+```bash
+# Interactive OAuth login (recommended)
+oxo-call config login
+```
+
+This will:
+1. Open a browser window for GitHub authentication
+2. Complete OAuth device flow automatically
+3. Store the token securely in your config
+4. Set the default model to `gpt-4o-mini`
+
+### Manual Token Setup
+
+Alternatively, you can set a GitHub token manually:
 
 ```bash
 # Set via config
 oxo-call config set llm.provider github-copilot
-oxo-call config set llm.api_token ghp_xxxxxxxxxxxxxxxxxxxx
+oxo-call config set llm.api_token ghu_xxxxxxxxxxxxxxxxxxxx
 
-# Or use environment variables
-export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
-# or
-export GH_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+# Verify
+oxo-call config verify
 ```
 
-Get a token:
+**Important**: For GitHub Copilot, you must use a GitHub App token (starts with `ghu_`), not a Personal Access Token (starts with `ghp_`). The `oxo-call config login` command handles this automatically.
 
-1. Go to [https://github.com/settings/personal-access-tokens](https://github.com/settings/personal-access-tokens)
-2. Create a new token with [GitHub Copilot access](https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/authenticate-copilot-cli#authenticating-with-environment-variables)
-3. Or use the GitHub CLI: `gh auth token`
+### Environment Variables (Not Recommended for Copilot)
+
+For other providers, environment variables work well, but for GitHub Copilot, environment variables like `GITHUB_TOKEN` often contain Personal Access Tokens that don't work with Copilot's token exchange endpoint. Therefore, GitHub Copilot **ignores** these environment variables and only uses the stored config token from `oxo-call config login`:
+
+```bash
+# These are IGNORED for github-copilot provider:
+# export GITHUB_TOKEN=ghp_xxxx  # Won't work
+# export OXO_CALL_LLM_API_TOKEN=ghp_xxxx  # Won't work
+
+# Instead, use:
+oxo-call config login
+```
+
+### Get a Token Manually
+
+If you need to obtain a token manually:
+
+1. Use `oxo-call config login` (recommended)
+2. Or use the GitHub CLI: `gh auth token` (returns a `ghu_` token if you have Copilot access)
 
 ---
 

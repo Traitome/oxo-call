@@ -261,14 +261,24 @@ impl Config {
     }
 
     pub fn effective_api_token(&self) -> Option<String> {
+        // For github-copilot, only use stored config token (from `oxo-call config login`)
+        // Environment variables like GITHUB_TOKEN often contain PAT tokens that don't work
+        // with Copilot's token exchange endpoint
+        if self.effective_provider() == "github-copilot" {
+            if let Some(token) = &self.llm.api_token
+                && !token.is_empty()
+            {
+                return Some(token.clone());
+            }
+            return None;
+        }
+
+        // For other providers, check environment variables first
         if let Some(token) = Self::env_string(ENV_LLM_API_TOKEN) {
             return Some(token);
         }
         // Backward-compatible provider-specific fallbacks
         let legacy_env_token = match self.effective_provider().as_str() {
-            "github-copilot" => std::env::var("GITHUB_TOKEN")
-                .or_else(|_| std::env::var("GH_TOKEN"))
-                .ok(),
             "openai" => std::env::var("OPENAI_API_KEY").ok(),
             "anthropic" => std::env::var("ANTHROPIC_API_KEY").ok(),
             _ => std::env::var("OXO_API_TOKEN").ok(),
@@ -295,7 +305,7 @@ impl Config {
             return base.clone();
         }
         match self.effective_provider().as_str() {
-            "github-copilot" => "https://api.githubcopilot.com".to_string(),
+            "github-copilot" => "https://api.individual.githubcopilot.com".to_string(),
             "openai" => "https://api.openai.com/v1".to_string(),
             "anthropic" => "https://api.anthropic.com/v1".to_string(),
             "ollama" => "http://localhost:11434/v1".to_string(),
@@ -361,15 +371,25 @@ impl Config {
                 }
             }
             "llm.api_token" => {
+                // For github-copilot, only use stored config token
+                if self.effective_provider() == "github-copilot" {
+                    if self
+                        .llm
+                        .api_token
+                        .as_deref()
+                        .is_some_and(|token| !token.is_empty())
+                    {
+                        return Ok("stored config".to_string());
+                    }
+                    return Ok("unset".to_string());
+                }
+
+                // For other providers, check environment variables first
                 if Self::env_string(ENV_LLM_API_TOKEN).is_some() {
                     return Ok(format!("env:{ENV_LLM_API_TOKEN}"));
                 }
                 let provider = self.effective_provider();
                 let legacy_env = match provider.as_str() {
-                    "github-copilot" => std::env::var("GITHUB_TOKEN")
-                        .ok()
-                        .map(|_| "GITHUB_TOKEN")
-                        .or_else(|| std::env::var("GH_TOKEN").ok().map(|_| "GH_TOKEN")),
                     "openai" => std::env::var("OPENAI_API_KEY")
                         .ok()
                         .map(|_| "OPENAI_API_KEY"),
@@ -635,7 +655,10 @@ mod tests {
             std::env::remove_var("OXO_CALL_LLM_PROVIDER");
         }
         let cfg = Config::default();
-        assert_eq!(cfg.effective_api_base(), "https://api.githubcopilot.com");
+        assert_eq!(
+            cfg.effective_api_base(),
+            "https://api.individual.githubcopilot.com"
+        );
     }
 
     #[test]
@@ -1031,6 +1054,7 @@ mod tests {
             std::env::set_var("OXO_CALL_LLM_API_TOKEN", "env-token-xyz");
         }
         let mut cfg = Config::default();
+        cfg.llm.provider = "openai".to_string(); // Use openai to test env var precedence
         cfg.llm.api_token = Some("stored-token".to_string());
         assert_eq!(
             cfg.effective_api_token().as_deref(),
@@ -1039,6 +1063,30 @@ mod tests {
         );
         unsafe {
             std::env::remove_var("OXO_CALL_LLM_API_TOKEN");
+        }
+    }
+
+    #[test]
+    fn test_effective_api_token_github_copilot_ignores_env_vars() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::set_var("OXO_CALL_LLM_API_TOKEN", "env-token-should-be-ignored");
+            std::env::set_var("GITHUB_TOKEN", "github-token-should-be-ignored");
+            std::env::set_var("GH_TOKEN", "gh-token-should-be-ignored");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "github-copilot".to_string();
+        cfg.llm.api_token = Some("stored-copilot-token".to_string());
+        // github-copilot should only use stored config token, ignoring env vars
+        assert_eq!(
+            cfg.effective_api_token().as_deref(),
+            Some("stored-copilot-token"),
+            "github-copilot should ignore env vars and use stored token"
+        );
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_TOKEN");
+            std::env::remove_var("GITHUB_TOKEN");
+            std::env::remove_var("GH_TOKEN");
         }
     }
 
@@ -1197,24 +1245,6 @@ mod tests {
         assert_eq!(cfg.effective_model(), "gpt-4o");
     }
 
-    // ─── effective_api_token: GH_TOKEN fallback ───────────────────────────────
-
-    #[test]
-    fn test_effective_api_token_gh_token_fallback() {
-        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
-        unsafe {
-            std::env::remove_var("OXO_CALL_LLM_API_TOKEN");
-            std::env::remove_var("GITHUB_TOKEN");
-            std::env::set_var("GH_TOKEN", "gh-legacy-token");
-        }
-        let cfg = Config::default(); // default provider is github-copilot
-        let token = cfg.effective_api_token();
-        assert_eq!(token.as_deref(), Some("gh-legacy-token"));
-        unsafe {
-            std::env::remove_var("GH_TOKEN");
-        }
-    }
-
     // ─── effective_source with env vars set ──────────────────────────────────
 
     #[test]
@@ -1251,7 +1281,8 @@ mod tests {
         unsafe {
             std::env::set_var("OXO_CALL_LLM_API_TOKEN", "env-token");
         }
-        let cfg = Config::default();
+        let mut cfg = Config::default();
+        cfg.llm.provider = "openai".to_string(); // Use openai to test env var behavior
         let src = cfg.effective_source("llm.api_token").unwrap();
         assert!(src.contains("OXO_CALL_LLM_API_TOKEN") || src.contains("env"));
         unsafe {
@@ -1395,6 +1426,7 @@ mod tests {
             std::env::set_var("OXO_CALL_LLM_API_TOKEN", "env-token");
         }
         let mut cfg = Config::default();
+        cfg.llm.provider = "openai".to_string(); // Use openai to test env var precedence
         cfg.llm.api_token = Some("config-token".to_string());
         let token = cfg.effective_api_token();
         assert_eq!(token.as_deref(), Some("env-token"));

@@ -1,5 +1,6 @@
 mod cli;
 mod config;
+mod copilot_auth;
 mod docs;
 mod engine;
 mod error;
@@ -10,7 +11,6 @@ mod job;
 mod license;
 mod llm;
 mod mcp;
-mod oauth;
 mod runner;
 mod sanitize;
 mod server;
@@ -624,94 +624,83 @@ async fn run(cli: Cli) -> error::Result<()> {
                 let path = config::Config::config_path()?;
                 println!("{}", path.display());
             }
-            ConfigCommands::Login {
-                provider,
-                client_id,
-            } => {
+            ConfigCommands::Login { provider } => {
                 match provider.as_str() {
                     "github-copilot" => {
                         println!("{}", "Authenticating with GitHub Copilot...".bold());
                         println!();
 
-                        // Try `gh auth token` first — most Copilot users already have gh.
-                        let token = match oauth::try_gh_auth_token() {
-                            Ok(t) => {
-                                println!(
-                                    "  {} Retrieved token from the GitHub CLI (`gh auth token`).",
-                                    "✓".green()
-                                );
-                                t
-                            }
-                            Err(gh_err) => {
-                                // gh not available or not authenticated — fall back to device flow.
-                                println!(
-                                    "  {} GitHub CLI not available or not authenticated: {gh_err}",
-                                    "!".yellow()
-                                );
-                                println!();
+                        // Use the built-in Copilot CLI GitHub App client ID
+                        // This produces ghu_ tokens that work with the Copilot internal API
+                        println!("  Starting GitHub OAuth device-authorization flow…");
+                        println!("  (Using Copilot CLI's GitHub App for compatibility)");
+                        println!();
 
-                                let cid = match client_id {
-                                    Some(c) => c,
-                                    None => {
-                                        eprintln!(
-                                            "{} No `--client-id` supplied for device flow.",
-                                            "error:".bold().red()
-                                        );
-                                        eprintln!();
-                                        eprintln!(
-                                            "To authenticate without the `gh` CLI, provide a"
-                                        );
-                                        eprintln!("GitHub OAuth App client ID:");
-                                        eprintln!(
-                                            "  oxo-call config login --client-id <YOUR_CLIENT_ID>"
-                                        );
-                                        eprintln!();
-                                        eprintln!(
-                                            "Or install and authenticate with the GitHub CLI:"
-                                        );
-                                        eprintln!("  https://cli.github.com");
-                                        eprintln!("  gh auth login");
-                                        std::process::exit(1);
-                                    }
-                                };
+                        #[cfg(not(target_arch = "wasm32"))]
+                        {
+                            let manager = copilot_auth::get_token_manager();
+                            let github_token = manager.run_device_flow().await?;
 
-                                println!("  Starting GitHub OAuth device-authorization flow…");
-                                #[cfg(not(target_arch = "wasm32"))]
-                                {
-                                    let http = reqwest::Client::new();
-                                    oauth::run_device_flow(&http, &cid, "read:user").await?
+                            // Verify the token works by exchanging for a Copilot session token
+                            println!();
+                            println!("  Verifying token...");
+                            match manager.exchange_token(&github_token).await {
+                                Ok(copilot_token) => {
+                                    println!("  {} Token verified successfully!", "✓".green());
+                                    println!(
+                                        "  Session token expires in {} seconds.",
+                                        copilot_token.refresh_in
+                                    );
                                 }
-                                #[cfg(target_arch = "wasm32")]
-                                {
-                                    return Err(error::OxoError::ConfigError(
-                                        "Device flow is not supported in WebAssembly.".to_string(),
-                                    ));
+                                Err(e) => {
+                                    eprintln!(
+                                        "{} Token verification failed: {e}",
+                                        "error:".bold().red()
+                                    );
+                                    eprintln!();
+                                    eprintln!("  This usually means:");
+                                    eprintln!(
+                                        "    1. You don't have a GitHub Copilot subscription"
+                                    );
+                                    eprintln!(
+                                        "    2. Your organization hasn't enabled Copilot for you"
+                                    );
+                                    eprintln!();
+                                    eprintln!(
+                                        "  Visit https://github.com/settings/copilot to check your subscription."
+                                    );
+                                    std::process::exit(1);
                                 }
                             }
-                        };
 
-                        // Save the token and provider to config.
-                        let mut cfg = config::Config::load()?;
-                        cfg.llm.provider = "github-copilot".to_string();
-                        cfg.llm.api_token = Some(token);
-                        // Default to a free/lightweight model when none is set.
-                        if cfg.llm.model.is_none() {
-                            cfg.llm.model = Some(DEFAULT_COPILOT_LOGIN_MODEL.to_string());
+                            let mut cfg = config::Config::load()?;
+                            cfg.llm.provider = "github-copilot".to_string();
+                            cfg.llm.api_token = Some(github_token);
+                            // Default to a free/lightweight model when none is set.
+                            if cfg.llm.model.is_none() {
+                                cfg.llm.model = Some(DEFAULT_COPILOT_LOGIN_MODEL.to_string());
+                            }
+                            cfg.save()?;
+
+                            println!();
+                            println!("{} Authenticated with GitHub Copilot.", "✓".green().bold());
+                            println!("  provider  github-copilot");
+                            println!(
+                                "  model     {} (change with `oxo-call config set llm.model <model>`)",
+                                cfg.llm
+                                    .model
+                                    .as_deref()
+                                    .unwrap_or(DEFAULT_COPILOT_LOGIN_MODEL)
+                            );
+                            println!();
+                            println!("  Run `oxo-call config verify` to confirm everything works.");
                         }
-                        cfg.save()?;
-
-                        println!();
-                        println!("{} Authenticated with GitHub Copilot.", "✓".green().bold());
-                        println!("  provider  github-copilot");
-                        println!(
-                            "  model     {} (change with `oxo-call config set llm.model <model>`)",
-                            cfg.llm
-                                .model
-                                .as_deref()
-                                .unwrap_or(DEFAULT_COPILOT_LOGIN_MODEL)
-                        );
-                        println!();
-                        println!("  Run `oxo-call config verify` to confirm everything works.");
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            return Err(error::OxoError::ConfigError(
+                                "Device flow is not supported in WebAssembly.".to_string(),
+                            ));
+                        }
                     }
                     other => {
                         eprintln!(
