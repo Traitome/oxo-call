@@ -17,7 +17,6 @@ pub enum OxoError {
     #[error("Index error: {0}")]
     IndexError(String),
 
-    #[allow(dead_code)]
     #[error("Command execution failed: {0}")]
     ExecutionError(String),
 

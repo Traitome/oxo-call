@@ -234,7 +234,7 @@ pub fn expand(def: &WorkflowDef) -> Result<Vec<ConcreteTask>> {
         if step.gather || !wc || combos.len() <= 1 {
             // ── Single task (gather, no-wildcard, or only one combo) ────────
             let bindings: HashMap<String, String> = if !step.gather && wc && combos.len() == 1 {
-                combos[0].clone()
+                combos.first().expect("combos.len() == 1").clone()
             } else {
                 HashMap::new()
             };

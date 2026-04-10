@@ -1048,8 +1048,7 @@ fn parse_shell_args(input: &str) -> Vec<String> {
             }
             ' ' | '\t' if !in_single_quote && !in_double_quote => {
                 if !current.is_empty() {
-                    args.push(current.clone());
-                    current.clear();
+                    args.push(std::mem::take(&mut current));
                 }
             }
             '\\' if !in_single_quote => {

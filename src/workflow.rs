@@ -230,10 +230,12 @@ fn parse_workflow_response(raw: &str, engine: &str) -> Option<GeneratedWorkflow>
         return None;
     }
 
-    let content = raw[workflow_start + "WORKFLOW:".len()..workflow_end]
+    let content = raw
+        .get(workflow_start + "WORKFLOW:".len()..workflow_end)?
         .trim()
         .to_string();
-    let explanation = raw[explanation_start + "EXPLANATION:".len()..]
+    let explanation = raw
+        .get(explanation_start + "EXPLANATION:".len()..)?
         .trim()
         .to_string();
 

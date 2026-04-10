@@ -90,7 +90,7 @@ impl McpClient {
             http: reqwest::Client::builder()
                 .timeout(Duration::from_secs(MCP_TIMEOUT_SECS))
                 .build()
-                .unwrap_or_default(),
+                .expect("failed to build HTTP client with timeout"),
         }
     }
 
