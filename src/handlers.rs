@@ -52,7 +52,10 @@ pub fn config_verify_suggestions(cfg: &config::Config, message: &str) -> Vec<Str
     }
     if message.contains("Personal Access Tokens are not supported") {
         suggestions.push(
-            "The selected endpoint rejected a personal access token. For `github-copilot`, use a Copilot-compatible authentication flow/token, or switch to `openai`, `anthropic`, or `ollama`."
+            "The selected endpoint rejected a personal access token. \
+             For `github-copilot`, authenticate with the GitHub CLI OAuth flow:\n  \
+               oxo-call config login\n\
+             Or switch to `openai`, `anthropic`, or `ollama` and supply a provider API key."
                 .to_string(),
         );
     }

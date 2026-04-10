@@ -10,6 +10,7 @@ mod job;
 mod license;
 mod llm;
 mod mcp;
+mod oauth;
 mod runner;
 mod sanitize;
 mod server;
@@ -39,6 +40,10 @@ async fn main() {
         std::process::exit(1);
     }
 }
+
+/// Default model used when `oxo-call config login` sets up a new github-copilot
+/// configuration and no model has been explicitly configured yet.
+const DEFAULT_COPILOT_LOGIN_MODEL: &str = "gpt-4o-mini";
 
 async fn run(cli: Cli) -> error::Result<()> {
     // Commands that are permitted without a valid license file.
@@ -522,7 +527,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                     )
                 );
             }
-            ConfigCommands::Verify => {
+            ConfigCommands::Verify { verbose } => {
                 let cfg = config::Config::load()?;
                 let client = llm::LlmClient::new(cfg.clone());
 
@@ -602,6 +607,11 @@ async fn run(cli: Cli) -> error::Result<()> {
                     }
                     Err(error::OxoError::LlmError(message)) => {
                         eprintln!("{} {}", "configuration check failed:".bold().red(), message);
+                        if verbose {
+                            eprintln!();
+                            eprintln!("{}", "Raw error detail:".bold());
+                            eprintln!("  {message}");
+                        }
                         for suggestion in config_verify_suggestions(&cfg, &message) {
                             eprintln!("  - {}", suggestion);
                         }
@@ -613,6 +623,108 @@ async fn run(cli: Cli) -> error::Result<()> {
             ConfigCommands::Path => {
                 let path = config::Config::config_path()?;
                 println!("{}", path.display());
+            }
+            ConfigCommands::Login {
+                provider,
+                client_id,
+            } => {
+                match provider.as_str() {
+                    "github-copilot" => {
+                        println!("{}", "Authenticating with GitHub Copilot...".bold());
+                        println!();
+
+                        // Try `gh auth token` first — most Copilot users already have gh.
+                        let token = match oauth::try_gh_auth_token() {
+                            Ok(t) => {
+                                println!(
+                                    "  {} Retrieved token from the GitHub CLI (`gh auth token`).",
+                                    "✓".green()
+                                );
+                                t
+                            }
+                            Err(gh_err) => {
+                                // gh not available or not authenticated — fall back to device flow.
+                                println!(
+                                    "  {} GitHub CLI not available or not authenticated: {gh_err}",
+                                    "!".yellow()
+                                );
+                                println!();
+
+                                let cid = match client_id {
+                                    Some(c) => c,
+                                    None => {
+                                        eprintln!(
+                                            "{} No `--client-id` supplied for device flow.",
+                                            "error:".bold().red()
+                                        );
+                                        eprintln!();
+                                        eprintln!(
+                                            "To authenticate without the `gh` CLI, provide a"
+                                        );
+                                        eprintln!("GitHub OAuth App client ID:");
+                                        eprintln!(
+                                            "  oxo-call config login --client-id <YOUR_CLIENT_ID>"
+                                        );
+                                        eprintln!();
+                                        eprintln!(
+                                            "Or install and authenticate with the GitHub CLI:"
+                                        );
+                                        eprintln!("  https://cli.github.com");
+                                        eprintln!("  gh auth login");
+                                        std::process::exit(1);
+                                    }
+                                };
+
+                                println!("  Starting GitHub OAuth device-authorization flow…");
+                                #[cfg(not(target_arch = "wasm32"))]
+                                {
+                                    let http = reqwest::Client::new();
+                                    oauth::run_device_flow(&http, &cid, "read:user").await?
+                                }
+                                #[cfg(target_arch = "wasm32")]
+                                {
+                                    return Err(error::OxoError::ConfigError(
+                                        "Device flow is not supported in WebAssembly.".to_string(),
+                                    ));
+                                }
+                            }
+                        };
+
+                        // Save the token and provider to config.
+                        let mut cfg = config::Config::load()?;
+                        cfg.llm.provider = "github-copilot".to_string();
+                        cfg.llm.api_token = Some(token);
+                        // Default to a free/lightweight model when none is set.
+                        if cfg.llm.model.is_none() {
+                            cfg.llm.model = Some(DEFAULT_COPILOT_LOGIN_MODEL.to_string());
+                        }
+                        cfg.save()?;
+
+                        println!();
+                        println!("{} Authenticated with GitHub Copilot.", "✓".green().bold());
+                        println!("  provider  github-copilot");
+                        println!(
+                            "  model     {} (change with `oxo-call config set llm.model <model>`)",
+                            cfg.llm
+                                .model
+                                .as_deref()
+                                .unwrap_or(DEFAULT_COPILOT_LOGIN_MODEL)
+                        );
+                        println!();
+                        println!("  Run `oxo-call config verify` to confirm everything works.");
+                    }
+                    other => {
+                        eprintln!(
+                            "{} Interactive login is not supported for provider `{other}`.",
+                            "error:".bold().red()
+                        );
+                        eprintln!();
+                        eprintln!("Set the token manually:");
+                        eprintln!("  oxo-call config set llm.provider {other}");
+                        eprintln!("  oxo-call config set llm.api_token <your-token>");
+                        std::process::exit(1);
+                    }
+                }
             }
         },
 
