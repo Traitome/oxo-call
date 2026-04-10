@@ -124,7 +124,13 @@ fn system_prompt() -> &'static str {
      (5) If the task is ambiguous, choose the most common bioinformatics convention \
          (e.g., paired-end, coordinate-sorted BAM, human hg38 genome build). \
      (6) Never hallucinate flags that are not in the documentation. \
-     (7) For multi-step tools (configure+run workflows), include both steps joined with &&. \
+     (7) For multi-step tasks, join steps with &&. IMPORTANT: the tool name is \
+         auto-prepended ONLY to the very first segment — every command that follows \
+         && or || must include its full binary name. \
+         Example for 'samtools sort then index': \
+           ARGS: sort -@ 4 -o sorted.bam input.bam && samtools index sorted.bam \
+           → results in: samtools sort -@ 4 -o sorted.bam input.bam && samtools index sorted.bam \
+         (NOT: sort ... && index ...) \
      (8) Use best practices: include -@ or -t flags for multithreading when available, \
          use -o for output files, and include index/reference files when required by the tool. \
      (9) Always match file format flags to the actual input/output types \
@@ -190,7 +196,11 @@ fn build_prompt(tool: &str, documentation: &str, task: &str, skill: Option<&Skil
          - If no arguments are needed, write: ARGS: (none)\n\
          - Do NOT add markdown, code fences, or extra explanation\n\
           - When the task involves piping (|) or redirection (>), include them in ARGS\n\
-          - For multi-step tasks, join steps with && in ARGS\n",
+          - For multi-step tasks, join steps with && in ARGS; the tool name is only \
+             auto-prepended to the FIRST segment — each command after && or || must \
+             include its own full binary name \
+             (e.g., 'sort ... && samtools index ...', NOT 'sort ... && index ...')\
+",
     );
 
     prompt
