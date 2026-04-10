@@ -392,9 +392,33 @@ pub enum ConfigCommands {
     /// Show all current configuration
     Show,
     /// Verify the effective LLM configuration with a real API call
-    Verify,
+    Verify {
+        /// Show the raw API response body when an error occurs
+        #[arg(short, long)]
+        verbose: bool,
+    },
     /// Show the path to the configuration file
     Path,
+    /// Authenticate with a provider using an interactive login flow.
+    ///
+    /// For `github-copilot` this tries the GitHub CLI first (`gh auth token`)
+    /// and falls back to the OAuth 2.0 device-authorization flow if the CLI is
+    /// not available.  On success the token and provider are saved to config.
+    ///
+    /// Examples:
+    ///   oxo-call config login
+    ///   oxo-call config login --provider github-copilot
+    ///   oxo-call config login --provider github-copilot --client-id <YOUR_APP_CLIENT_ID>
+    Login {
+        /// Provider to authenticate with (default: github-copilot)
+        #[arg(long, default_value = "github-copilot")]
+        provider: String,
+        /// GitHub OAuth App client ID used for the device-authorization flow.
+        /// Required when the `gh` CLI is not available and the provider is
+        /// `github-copilot`.
+        #[arg(long)]
+        client_id: Option<String>,
+    },
 }
 
 #[derive(Subcommand, Debug)]

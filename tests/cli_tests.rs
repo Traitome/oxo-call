@@ -258,6 +258,73 @@ fn test_config_verify_insecure_remote_api_base_fails_with_guidance() {
 }
 
 #[test]
+fn test_config_verify_verbose_flag_is_accepted() {
+    // --verbose should be accepted without error (still fails the API call, but flag parses).
+    let output = oxo_call()
+        .env("OXO_CALL_LLM_PROVIDER", "openai")
+        .env("OXO_CALL_LLM_API_TOKEN", "dummy-token")
+        .env("OXO_CALL_LLM_API_BASE", "http://example.com/v1")
+        .args(["config", "verify", "--verbose"])
+        .output()
+        .expect("failed to run oxo-call");
+    // Still fails (insecure URL), but we shouldn't get a "unexpected argument" clap error.
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        !stderr.contains("unexpected argument"),
+        "flag should be accepted: {stderr}"
+    );
+}
+
+#[test]
+fn test_config_verify_short_v_flag_is_accepted() {
+    let output = oxo_call()
+        .env("OXO_CALL_LLM_PROVIDER", "openai")
+        .env("OXO_CALL_LLM_API_TOKEN", "dummy-token")
+        .env("OXO_CALL_LLM_API_BASE", "http://example.com/v1")
+        .args(["config", "verify", "-v"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        !stderr.contains("unexpected argument"),
+        "short -v flag should be accepted: {stderr}"
+    );
+}
+
+#[test]
+fn test_config_login_help_shows_expected_options() {
+    let output = oxo_call()
+        .args(["config", "login", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("provider") || stdout.contains("client-id"),
+        "login help should mention provider/client-id: {stdout}"
+    );
+}
+
+#[test]
+fn test_config_login_unsupported_provider_exits_nonzero() {
+    let output = oxo_call()
+        .args(["config", "login", "--provider", "openai"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        !output.status.success(),
+        "unsupported provider should exit non-zero"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("openai") || stderr.contains("not supported"),
+        "should mention unsupported provider: {stderr}"
+    );
+}
+
+#[test]
 fn test_index_list_empty_or_filled() {
     let output = oxo_call()
         .args(["index", "list"])
