@@ -239,6 +239,56 @@ pub fn load_skills_from_dir(dir: &Path) -> anyhow::Result<Vec<SkillFile>> {
     Ok(skills)
 }
 
+// ── Benchmark tool exclusion ─────────────────────────────────────────────────
+
+/// Tools excluded from benchmarks.
+///
+/// These fall into three categories per the project guidelines:
+/// - **Package managers** — conda, mamba, pip, pixi, cargo, docker, singularity
+/// - **HPC schedulers** — slurm, pbs, sge, lsf, htcondor, kubectl
+/// - **AI assistants** — claude, openclaw
+///
+/// The benchmark targets basic bash/shell commands + bioconda bioinformatics
+/// tools only.
+pub const EXCLUDED_TOOLS: &[&str] = &[
+    // Package managers / containers
+    "conda",
+    "mamba",
+    "pip",
+    "pixi",
+    "cargo",
+    "docker",
+    "singularity",
+    // HPC schedulers
+    "slurm",
+    "pbs",
+    "sge",
+    "lsf",
+    "htcondor",
+    "kubectl",
+    // AI assistants
+    "claude",
+    "openclaw",
+];
+
+/// Return `true` if the tool should be excluded from benchmark evaluation.
+pub fn is_excluded_tool(name: &str) -> bool {
+    EXCLUDED_TOOLS.contains(&name)
+}
+
+/// Load skill files from a directory, excluding tools not suitable for
+/// benchmarking (package managers, HPC schedulers, AI assistants).
+pub fn load_skills_for_bench(dir: &Path) -> anyhow::Result<Vec<SkillFile>> {
+    let mut skills = load_skills_from_dir(dir)?;
+    let before = skills.len();
+    skills.retain(|s| !is_excluded_tool(&s.name));
+    let excluded = before - skills.len();
+    if excluded > 0 {
+        eprintln!("  info: excluded {excluded} non-benchmark tool(s) (pkg managers, HPC, AI)");
+    }
+    Ok(skills)
+}
+
 // ── Scenario generation ──────────────────────────────────────────────────────
 
 /// Number of scenarios to generate per tool.
@@ -926,5 +976,52 @@ source_url: "https://example.com"
             !v.reference_args.contains("-t 4"),
             "should not add -t 4 when -@ is already present"
         );
+    }
+
+    #[test]
+    fn test_is_excluded_tool() {
+        // Package managers
+        assert!(is_excluded_tool("conda"));
+        assert!(is_excluded_tool("docker"));
+        assert!(is_excluded_tool("pip"));
+        // HPC schedulers
+        assert!(is_excluded_tool("slurm"));
+        assert!(is_excluded_tool("kubectl"));
+        // AI assistants
+        assert!(is_excluded_tool("claude"));
+        assert!(is_excluded_tool("openclaw"));
+        // Non-excluded tools
+        assert!(!is_excluded_tool("samtools"));
+        assert!(!is_excluded_tool("bwa"));
+        assert!(!is_excluded_tool("bash"));
+        assert!(!is_excluded_tool("fastp"));
+    }
+
+    #[test]
+    fn test_load_skills_for_bench_excludes_tools() {
+        let skills_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("skills");
+        if !skills_dir.exists() {
+            return;
+        }
+        let all_skills = load_skills_from_dir(&skills_dir).unwrap();
+        let bench_skills = load_skills_for_bench(&skills_dir).unwrap();
+        // Should have fewer skills after exclusion.
+        assert!(
+            bench_skills.len() < all_skills.len(),
+            "bench skills ({}) should be fewer than all skills ({})",
+            bench_skills.len(),
+            all_skills.len()
+        );
+        // No excluded tools should appear.
+        for skill in &bench_skills {
+            assert!(
+                !is_excluded_tool(&skill.name),
+                "excluded tool '{}' should not be in bench skills",
+                skill.name
+            );
+        }
     }
 }

@@ -22,6 +22,7 @@ pub struct TrialResult {
     pub scenario_id: String,
     pub desc_id: String,
     pub model: String,
+    pub ablation: String,
     pub repeat_idx: usize,
     pub generated_args: String,
     pub reference_args: String,
@@ -177,6 +178,7 @@ pub fn run_mock_benchmark(
                 scenario_id: desc.scenario_id.clone(),
                 desc_id: desc.desc_id.clone(),
                 model: model.to_string(),
+                ablation: "full".to_string(),
                 repeat_idx: repeat,
                 generated_args,
                 reference_args: scenario.reference_args.clone(),
@@ -274,6 +276,7 @@ pub fn run_mock_baseline(
                 scenario_id: desc.scenario_id.clone(),
                 desc_id: desc.desc_id.clone(),
                 model: baseline_model.clone(),
+                ablation: "bare".to_string(),
                 repeat_idx: repeat,
                 generated_args,
                 reference_args: scenario.reference_args.clone(),
@@ -483,15 +486,48 @@ fn simple_hash(input: &str) -> u64 {
 }
 
 /// Generator that calls `oxo-call dry-run --json` as a subprocess.
+///
+/// Supports ablation scenarios via `--no-skill`, `--no-doc`, and `--no-prompt`
+/// flags, and provider/API base configuration via environment variables.
 pub struct OxoCallGenerator {
     pub binary_path: String,
+    /// Ablation scenario controlling which grounding sources are available.
+    pub scenario: crate::config::AblationScenario,
+    /// Optional provider hint (e.g. "ollama").
+    pub provider: Option<String>,
+    /// Optional API base URL (e.g. "http://localhost:11434").
+    pub api_base: Option<String>,
+    /// Optional API key.
+    pub api_key: Option<String>,
 }
 
 impl CommandGenerator for OxoCallGenerator {
     fn generate(&self, tool: &str, task: &str, model: &str) -> GeneratedCommand {
-        let output = std::process::Command::new(&self.binary_path)
-            .args(["dry-run", "--json", "-m", model, tool, task])
-            .output();
+        let mut cmd = std::process::Command::new(&self.binary_path);
+        cmd.args(["dry-run", "--json", "-m", model]);
+
+        // Ablation flags.
+        if !self.scenario.use_skill() {
+            cmd.arg("--no-skill");
+        }
+        if !self.scenario.use_doc() {
+            cmd.arg("--no-doc");
+        }
+        if !self.scenario.use_prompt() {
+            cmd.arg("--no-prompt");
+        }
+
+        cmd.args([tool, task]);
+
+        // Pass provider configuration via environment.
+        if let Some(ref base) = self.api_base {
+            cmd.env("OXO_CALL_API_BASE", base);
+        }
+        if let Some(ref key) = self.api_key {
+            cmd.env("OXO_CALL_API_KEY", key);
+        }
+
+        let output = cmd.output();
 
         match output {
             Ok(out) if out.status.success() => {
@@ -547,12 +583,16 @@ fn parse_dry_run_json(json_str: &str) -> GeneratedCommand {
 ///
 /// For each description, calls the generator `repeats` times and records
 /// comparison metrics against the corresponding scenario reference command.
+///
+/// `ablation_label` is stored in each trial result for downstream analysis
+/// (e.g. "full", "bare", "skill", etc.).
 pub fn run_benchmark(
     model: &str,
     repeats: usize,
     descriptions: &[UsageDescription],
     scenarios: &[Scenario],
     generator: &dyn CommandGenerator,
+    ablation_label: &str,
 ) -> Vec<TrialResult> {
     // Build scenario lookup map.
     let scenario_map: std::collections::HashMap<&str, &Scenario> = scenarios
@@ -583,6 +623,7 @@ pub fn run_benchmark(
                 scenario_id: desc.scenario_id.clone(),
                 desc_id: desc.desc_id.clone(),
                 model: model.to_string(),
+                ablation: ablation_label.to_string(),
                 repeat_idx: repeat,
                 generated_args: resp.args,
                 reference_args: scenario.reference_args.clone(),
@@ -672,7 +713,7 @@ fn compute_trial_consistency(trials: &[&TrialResult]) -> f64 {
 pub fn write_trials_csv<W: Write>(writer: &mut W, trials: &[TrialResult]) -> std::io::Result<()> {
     writeln!(
         writer,
-        "tool,category,scenario_id,desc_id,model,repeat,generated_args,reference_args,\
+        "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,\
          exact_match,token_jaccard,flag_recall,flag_precision,\
          flag_group_recall,flag_group_precision,subcommand_match,\
          accuracy_score,latency_ms,tokens,format_valid"
@@ -682,12 +723,13 @@ pub fn write_trials_csv<W: Write>(writer: &mut W, trials: &[TrialResult]) -> std
         let ref_esc = csv_escape(&t.reference_args);
         writeln!(
             writer,
-            "{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{},{}",
             t.tool,
             t.category,
             t.scenario_id,
             t.desc_id,
             t.model,
+            t.ablation,
             t.repeat_idx,
             gen_esc,
             ref_esc,
@@ -1192,6 +1234,7 @@ mod tests {
             &sample_descriptions(),
             &sample_scenarios(),
             &gtor,
+            "full",
         );
         // 2 descriptions × 2 repeats = 4 trials
         assert_eq!(trials.len(), 4);
@@ -1210,6 +1253,7 @@ mod tests {
             &sample_descriptions(),
             &sample_scenarios(),
             &gtor,
+            "full",
         );
         assert_eq!(trials.len(), 2);
         // The descriptions don't match the reference args.
@@ -1228,6 +1272,7 @@ mod tests {
             &sample_descriptions(),
             &sample_scenarios(),
             &gtor,
+            "full",
         );
         let agg = aggregate_results(&trials);
         assert_eq!(agg.len(), 1);
@@ -1245,6 +1290,7 @@ mod tests {
                 scenario_id: "s01".to_string(),
                 desc_id: "d01".to_string(),
                 model: "m".to_string(),
+                ablation: "full".to_string(),
                 repeat_idx: i,
                 generated_args: "sort -o out.bam in.bam".to_string(),
                 reference_args: "sort -o out.bam in.bam".to_string(),
@@ -1274,6 +1320,7 @@ mod tests {
                 scenario_id: "s01".to_string(),
                 desc_id: "d01".to_string(),
                 model: "m".to_string(),
+                ablation: "full".to_string(),
                 repeat_idx: i,
                 generated_args: "sort -o out.bam in.bam".to_string(),
                 reference_args: "sort -o out.bam in.bam".to_string(),
@@ -1307,11 +1354,12 @@ mod tests {
             &sample_descriptions()[..1],
             &sample_scenarios(),
             &gtor,
+            "full",
         );
         let mut buf = Vec::new();
         write_trials_csv(&mut buf, &trials).unwrap();
         let text = String::from_utf8(buf).unwrap();
-        assert!(text.starts_with("tool,category,scenario_id,desc_id,model,repeat,"));
+        assert!(text.starts_with("tool,category,scenario_id,desc_id,model,ablation,repeat,"));
         // One header + one data row.
         let lines: Vec<&str> = text.lines().filter(|l| !l.is_empty()).collect();
         assert_eq!(lines.len(), 2);
@@ -1419,6 +1467,7 @@ mod tests {
                         scenario_id: sc.to_string(),
                         desc_id: format!("{sc}_01"),
                         model: model.to_string(),
+                        ablation: "full".to_string(),
                         repeat_idx: rep,
                         generated_args: args_ref.to_string(),
                         reference_args: args_ref.to_string(),
@@ -1596,6 +1645,7 @@ mod tests {
                         scenario_id: sc.to_string(),
                         desc_id: format!("{sc}_01"),
                         model: model.to_string(),
+                        ablation: "full".to_string(),
                         repeat_idx: rep,
                         generated_args: args_ref.to_string(),
                         reference_args: args_ref.to_string(),
@@ -1671,6 +1721,7 @@ mod tests {
             scenario_id: "s".to_string(),
             desc_id: "d".to_string(),
             model: "m".to_string(),
+            ablation: "full".to_string(),
             repeat_idx: 0,
             generated_args: "sort -o out.bam".to_string(), // missing in.bam
             reference_args: "sort -o out.bam in.bam".to_string(), // has in.bam
@@ -1697,6 +1748,7 @@ mod tests {
             scenario_id: "s".to_string(),
             desc_id: "d".to_string(),
             model: "m".to_string(),
+            ablation: "full".to_string(),
             repeat_idx: 0,
             generated_args: "sort -o out.bam in.bam --extra-flag".to_string(),
             reference_args: "sort -o out.bam in.bam".to_string(),
@@ -1723,6 +1775,7 @@ mod tests {
             scenario_id: "s".to_string(),
             desc_id: "d".to_string(),
             model: "m".to_string(),
+            ablation: "full".to_string(),
             repeat_idx: 0,
             generated_args: "view -o out.bam in.bam".to_string(),
             reference_args: "sort -o out.bam in.bam".to_string(),
@@ -1749,6 +1802,7 @@ mod tests {
             scenario_id: "s".to_string(),
             desc_id: "d".to_string(),
             model: "m".to_string(),
+            ablation: "full".to_string(),
             repeat_idx: 0,
             generated_args: String::new(),
             reference_args: "sort -o out.bam in.bam".to_string(),
@@ -1776,6 +1830,7 @@ mod tests {
                 scenario_id: "s".to_string(),
                 desc_id: "d".to_string(),
                 model: "m1".to_string(),
+                ablation: "full".to_string(),
                 repeat_idx: 0,
                 generated_args: "sort -o out.bam".to_string(), // missing flag
                 reference_args: "sort -o out.bam in.bam".to_string(),
@@ -1797,6 +1852,7 @@ mod tests {
                 scenario_id: "s".to_string(),
                 desc_id: "d".to_string(),
                 model: "m1".to_string(),
+                ablation: "full".to_string(),
                 repeat_idx: 1,
                 generated_args: "sort -o out.bam in.bam".to_string(), // exact match
                 reference_args: "sort -o out.bam in.bam".to_string(),

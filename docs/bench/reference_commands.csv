@@ -29,16 +29,6 @@ angsd,angsd_07,-bam bam_list.txt -GL 1 -doGlf 2 -doMaf 1 -SNP_pval 1e-6 -minMapQ
 angsd,angsd_08,-bam pop1_bams.txt -GL 1 -doSaf 1 -anc ancestral.fasta -minMapQ 30 -minQ 20 -nThreads 16 -out pop1 -o output.txt,compute per-site allele frequency spectrum for a single population and write output to a file,population-genomics
 angsd,angsd_09,realSFS pop1.saf.idx -P 16 > pop1.sfs,estimate 1D site frequency spectrum from doSaf output,population-genomics
 angsd,angsd_10,-bam pop1_bams.txt -GL 1 -doSaf 1 -doThetas 1 -pest pop1.sfs -anc ancestral.fasta -minMapQ 30 -minQ 20 -out pop1_thetas,estimate Watterson's theta and Tajima's D in sliding windows with default parameters,population-genomics
-annot8r,annot8r_01,-blast blastp -in proteins.faa -db annot8r_db/go_db -evalue 1e-10 -out go_annotations.txt,run BLAST search for GO term annotation of protein sequences,annotation
-annot8r,annot8r_02,-blast blastx -in contigs.fasta -db annot8r_db/kegg_db -evalue 1e-5 -out kegg_annotations.txt,annotate nucleotide sequences with KEGG pathway terms,annotation
-annot8r,annot8r_03,-blast blastp -in proteins.faa -db annot8r_db/go_db -evalue 1e-20 -identity 70 -out stringent_go.txt,run GO annotation with strict identity threshold,annotation
-annot8r,annot8r_04,-blast blastp -in proteins.faa -db annot8r_db/ec_db -evalue 1e-10 -out ec_annotations.txt,annotate with EC number database for enzyme classification,annotation
-annot8r,annot8r_05,-blast blastp -in all_proteins.faa -db annot8r_db/go_db -evalue 1e-10 -cpu 8 -out batch_go_annotations.txt,batch annotate multiple FASTA files with GO terms,annotation
-annot8r,annot8r_06,-blast blastp -in proteins.faa -db annot8r_db/go_db -evalue 1e-10 -out go_annotations.txt --verbose,run BLAST search for GO term annotation of protein sequences with verbose output,annotation
-annot8r,annot8r_07,-blast blastx -in contigs.fasta -db annot8r_db/kegg_db -evalue 1e-5 -out kegg_annotations.txt -t 4,annotate nucleotide sequences with KEGG pathway terms using multiple threads,annotation
-annot8r,annot8r_08,-blast blastp -in proteins.faa -db annot8r_db/go_db -evalue 1e-20 -identity 70 -out stringent_go.txt -o output.txt,run GO annotation with strict identity threshold and write output to a file,annotation
-annot8r,annot8r_09,-blast blastp -in proteins.faa -db annot8r_db/ec_db -evalue 1e-10 -out ec_annotations.txt --quiet,annotate with EC number database for enzyme classification in quiet mode,annotation
-annot8r,annot8r_10,-blast blastp -in all_proteins.faa -db annot8r_db/go_db -evalue 1e-10 -cpu 8 -out batch_go_annotations.txt,batch annotate multiple FASTA files with GO terms with default parameters,annotation
 arriba,arriba_01,--runMode alignReads --genomeDir /star_index/ --readFilesIn R1.fastq.gz R2.fastq.gz --readFilesCommand zcat --runThreadN 8 --outSAMtype BAM SortedByCoordinate --outFileNamePrefix sample/ --chimSegmentMin 10 --chimOutType WithinBAM --chimJunctionOverhangMin 10 --chimScoreDropMax 30 --peOverlapNbasesMin 12,run STAR with chimeric output for Arriba fusion detection,rna-seq
 arriba,arriba_02,-x sample/Aligned.sortedByCoord.out.bam -o fusions.tsv -O discarded_fusions.tsv -g genome.fa -a genes.gtf -b blacklist_hg38_GRCh38_v2.4.0.tsv.gz,detect gene fusions with Arriba,rna-seq
 arriba,arriba_03,draw_fusions.R --fusions=fusions.tsv --alignments=sample/Aligned.sortedByCoord.out.bam --genome=genome.fa --annotation=genes.gtf --output=fusion_plots.pdf,visualize detected fusions with Arriba draw_fusions,rna-seq
@@ -219,16 +209,6 @@ canu,canu_07,-p metagenome -d canu_meta/ genomeSize=100m -nanopore meta_reads.fa
 canu,canu_08,-p assembly_only -d canu_assembly_only/ -assemble genomeSize=5m -nanopore-corrected corrected_reads.fasta maxMemory=16g maxThreads=8 -o output.txt,run only the assembly stage (skip correction and trimming) and write output to a file,assembly
 canu,canu_09,-p ecoli_assembly -d canu_ecoli/ genomeSize=5m -nanopore reads.fastq.gz maxMemory=16g maxThreads=8 --quiet,assemble bacterial genome from ONT reads in quiet mode,assembly
 canu,canu_10,-p hifi_assembly -d canu_hifi/ genomeSize=3g -pacbio-hifi hifi_reads.fastq.gz maxMemory=64g maxThreads=32,assemble genome from PacBio HiFi reads with default parameters,assembly
-cargo,cargo_01,build,build a project in debug mode,package-management
-cargo,cargo_02,build --release,build an optimised release binary,package-management
-cargo,cargo_03,run,run the project binary directly,package-management
-cargo,cargo_04,test,run all tests,package-management
-cargo,cargo_05,test -- --test-threads 1 my_test_name,run tests with a specific filter,package-management
-cargo,cargo_06,add serde --features derive,add a dependency to Cargo.toml,package-management
-cargo,cargo_07,install ripgrep,install a binary crate,package-management
-cargo,cargo_08,tree,show the dependency tree,package-management
-cargo,cargo_09,check,check code for errors without producing a binary,package-management
-cargo,cargo_10,clippy -- -D warnings,run clippy lints on the project,package-management
 cellranger,cellranger_01,count --id=sample_output --transcriptome=/path/to/refdata-gex-GRCh38-2020-A --fastqs=/path/to/fastqs/ --sample=sample_name --localcores=16 --localmem=64,count gene expression from 10x scRNA-seq FASTQ files,single-cell
 cellranger,cellranger_02,arc count --id=multiome_output --reference=/path/to/arc_ref/ --libraries=libraries.csv --localcores=16 --localmem=128,process 10x multiome (RNA+ATAC) data with Cell Ranger ARC,single-cell
 cellranger,cellranger_03,mkref --genome=custom_genome --fasta=genome.fa --genes=genes.gtf --nthreads=8,build a custom Cell Ranger reference from genome FASTA and GTF,single-cell
@@ -289,16 +269,6 @@ chromap,chromap_07,--preset atac -x genome.index -r genome.fa -1 R1.fastq.gz -2 
 chromap,chromap_08,--preset chip -x genome.index -r genome.fa -1 R1.fastq.gz -2 R2.fastq.gz -o chip_aligned.bed -t 16,align ChIP-seq reads with Chromap and write output to a file,epigenomics
 chromap,chromap_09,-i -r genome.fa -o genome.index --quiet,build Chromap genome index in quiet mode,epigenomics
 chromap,chromap_10,--preset atac -x genome.index -r genome.fa -1 R1.fastq.gz -2 R2.fastq.gz -o fragments.bed -t 16,align paired-end ATAC-seq reads with Chromap with default parameters,epigenomics
-claude,claude_01,--no-tools,start an interactive chat session with no tool access,ai-assistant
-claude,claude_02,"-p ""What is the difference between RNA-seq and scRNA-seq?""",ask a one-shot question and print the answer,ai-assistant
-claude,claude_03,"-p ""Summarise this file in three bullet points""",summarise a file using stdin,ai-assistant
-claude,claude_04,"-p ""Explain what this script does"" --input-file analyse_samples.sh",ask Claude to explain a bash script,ai-assistant
-claude,claude_05,"-p ""Design a nextflow pipeline for bulk RNA-seq analysis"" --model claude-opus-4-5",use a specific model (Opus) for a complex task,ai-assistant
-claude,claude_06,"-p ""List five popular bioinformatics tools in JSON array format"" --output-format json",output the response as JSON for scripting,ai-assistant
-claude,claude_07,-c,continue the most recent conversation,ai-assistant
-claude,claude_08,sessions list,list past sessions and resume a specific one,ai-assistant
-claude,claude_09,"-p ""Generate a Python one-liner to count lines in a FASTQ file""",set model via environment and run a quick query,ai-assistant
-claude,claude_10,--version,check the installed version,ai-assistant
 cnvkit,cnvkit_01,batch tumor.bam --normal normal.bam --targets targets.bed --annotate refFlat.txt --fasta reference.fa --access access.hg38.bed --output-reference normal_reference.cnn --output-dir cnvkit_output/ -p 8,run CNVkit batch workflow for tumor-normal WES,variant-calling
 cnvkit,cnvkit_02,batch tumor.bam --reference normal_reference.cnn --targets targets.bed --output-dir cnvkit_tumor_only/ -p 4,run CNVkit on tumor-only WES with pre-built reference,variant-calling
 cnvkit,cnvkit_03,scatter tumor.cnr -s tumor.cns -o cnv_scatter.pdf,visualize CNV scatter plot,variant-calling
@@ -309,16 +279,6 @@ cnvkit,cnvkit_07,scatter tumor.cnr -s tumor.cns -o cnv_scatter.pdf -t 4,visualiz
 cnvkit,cnvkit_08,call tumor.cns -o tumor.call.cns --center median --purity 0.8,call integer copy numbers from segments and write output to a file,variant-calling
 cnvkit,cnvkit_09,batch tumor.bam --normal normal.bam --targets targets.bed --annotate refFlat.txt --fasta reference.fa --access access.hg38.bed --output-reference normal_reference.cnn --output-dir cnvkit_output/ -p 8 --quiet,run CNVkit batch workflow for tumor-normal WES in quiet mode,variant-calling
 cnvkit,cnvkit_10,batch tumor.bam --reference normal_reference.cnn --targets targets.bed --output-dir cnvkit_tumor_only/ -p 4,run CNVkit on tumor-only WES with pre-built reference with default parameters,variant-calling
-conda,conda_01,create -n myproject python=3.11,create a new Python environment with a specific version,package-management
-conda,conda_02,install -c conda-forge numpy pandas matplotlib,install packages into the active environment from conda-forge,package-management
-conda,conda_03,env create -f environment.yml,create an environment from a YAML specification file,package-management
-conda,conda_04,env export --no-builds -f environment.yml,export current environment to a YAML file for sharing,package-management
-conda,conda_05,list,list all installed packages in the active environment,package-management
-conda,conda_06,update --all -y,update all packages in the active environment,package-management
-conda,conda_07,remove old-package -y,remove a package from the active environment,package-management
-conda,conda_08,env list,list all environments,package-management
-conda,conda_09,search -c conda-forge bioconductor-deseq2,search for available versions of a package,package-management
-conda,conda_10,run -n myenv python script.py,run a command in a specific environment without activating,package-management
 crossmap,crossmap_01,bed hg19ToHg38.over.chain.gz input_hg19.bed output_hg38.bed,convert BED file from hg19 to hg38 coordinates,utilities
 crossmap,crossmap_02,vcf hg19ToHg38.over.chain.gz input_hg19.vcf hg38_reference.fa output_hg38.vcf,convert VCF file from hg19 to hg38 with target reference,utilities
 crossmap,crossmap_03,gff hg19ToHg38.over.chain.gz annotation_hg19.gtf output_hg38.gtf,convert GFF/GTF annotation from one assembly to another,utilities
@@ -389,16 +349,6 @@ diamond,diamond_07,blastp -q proteins.faa -d nr_diamond -o blastp_results.tsv --
 diamond,diamond_08,blastx -q reads.fastq.gz -d nr_diamond -o blastx_results.tsv --outfmt 6 --threads 16 --evalue 1e-5 --max-target-seqs 1,search DNA reads against protein database using blastx (translated search) and write output to a file,metagenomics
 diamond,diamond_09,blastp -q proteins.faa -d uniprot_diamond -o detailed_results.tsv --outfmt '6 qseqid sseqid pident length evalue bitscore stitle' --more-sensitive --threads 8 --quiet,sensitive mode search with custom output fields in quiet mode,metagenomics
 diamond,diamond_10,blastx -q metagenome.faa -d nr_diamond --taxonmap prot.accession2taxid.gz --taxonnodes nodes.dmp -o results_tax.tsv --outfmt '6 qseqid sseqid pident evalue bitscore staxids sscinames' --threads 16,search with taxonomy-aware output for functional annotation with default parameters,metagenomics
-docker,docker_01,run -d -p 8080:80 --name my-web nginx,run a container in the background with port mapping and a name,containerization
-docker,docker_02,build -t myapp:1.0 .,build a Docker image from a Dockerfile in the current directory,containerization
-docker,docker_03,exec -it my-web bash,get an interactive shell inside a running container,containerization
-docker,docker_04,ps -a,list all containers including stopped ones,containerization
-docker,docker_05,logs -f --tail 100 my-web,view logs of a container and follow new output,containerization
-docker,docker_06,run -d -v /data/app:/app -e APP_ENV=production --name app myimage:latest,mount a local directory as a volume and set environment variables,containerization
-docker,docker_07,rm my-web,remove a stopped container,containerization
-docker,docker_08,rmi myapp:1.0,remove a Docker image,containerization
-docker,docker_09,container prune,remove all stopped containers to free disk space,containerization
-docker,docker_10,pull python:3.12-slim,pull the latest version of an image from Docker Hub,containerization
 dorado,dorado_01,basecaller hac pod5_files/ --device cuda:0 > calls.bam,basecall ONT POD5 files with high-accuracy model on GPU,long-read
 dorado,dorado_02,basecaller sup pod5_files/ --modified-bases 5mCG_5hmCG --device cuda:0 > calls_mods.bam,basecall with super-accuracy model and modified base calling,long-read
 dorado,dorado_03,basecaller hac pod5_files/ --emit-fastq --device cuda:0 | gzip > basecalled_reads.fastq.gz,basecall and output FASTQ format,long-read
@@ -599,16 +549,6 @@ homer,homer_07,pos2bed.pl peaks.txt > peaks.bed,convert HOMER peak file to BED f
 homer,homer_08,makeTagDirectory chipseq_tags/ sample.bam -genome hg38 -checkGC -o output.txt,create a HOMER tag directory from a BAM file and write output to a file,epigenomics
 homer,homer_09,findPeaks chipseq_tags/ -style factor -i input_tags/ -o peaks.txt --quiet,call narrow transcription factor peaks with an input control in quiet mode,epigenomics
 homer,homer_10,findPeaks chipseq_tags/ -style histone -i input_tags/ -o broad_peaks.txt,"call broad histone modification peaks (e.g., H3K27me3) with default parameters",epigenomics
-htcondor,htcondor_01,condor_submit job.sub,submit a basic job from a submit file,hpc
-htcondor,htcondor_02,condor_q -nobatch,check your queued and running jobs,hpc
-htcondor,htcondor_03,condor_q -better-analyze 12345.0,get detailed analysis of why a job is idle,hpc
-htcondor,htcondor_04,condor_rm 12345,remove a specific job or all your jobs,hpc
-htcondor,htcondor_05,condor_status -compact,check available compute resources in the pool,hpc
-htcondor,htcondor_06,condor_q -l 12345.0,view detailed job information including resource usage,hpc
-htcondor,htcondor_07,"condor_submit -append ""queue 100"" job.sub",submit a parametric sweep (array-like) job,hpc
-htcondor,htcondor_08,condor_hold 12345.0,hold and release a job,hpc
-htcondor,htcondor_09,condor_history -limit 20 -af ClusterId ProcId RemoteWallClockTime MemoryUsage ExitCode,check historical completed job information,hpc
-htcondor,htcondor_10,condor_submit docker_job.sub,submit a Docker-containerized bioinformatics job,hpc
 humann3,humann3_01,--input reads.fastq.gz --output humann3_output/ --threads 16 --nucleotide-database /path/to/chocophlan --protein-database /path/to/uniref90,run HUMAnN3 functional profiling on metagenomic reads,metagenomics
 humann3,humann3_02,--input merged_R1R2.fastq.gz --output humann3_output/ --threads 16 --bypass-nucleotide-index,run HUMAnN3 on concatenated paired-end reads,metagenomics
 humann3,humann3_03,--input sample_genefamilies.tsv --output sample_genefamilies_relab.tsv --units relab,normalize HUMAnN3 gene family output to relative abundance,metagenomics
@@ -689,16 +629,6 @@ kraken2,kraken2_07,--db /path/to/kraken2_db --threads 8 --output kraken_out.txt 
 kraken2,kraken2_08,--db /path/to/kraken2_db --paired --threads 8 --output kraken_out.txt --report kraken_report.txt --classified-out classified#.fastq R1.fastq.gz R2.fastq.gz,classify reads and extract classified reads for downstream analysis and write output to a file,metagenomics
 kraken2,kraken2_09,--db /path/to/kraken2_db --paired --threads 8 --output kraken_output.txt --report kraken_report.txt R1.fastq.gz R2.fastq.gz --quiet,classify paired-end metagenomic reads against the standard database in quiet mode,metagenomics
 kraken2,kraken2_10,--db /path/to/kraken2_db --paired --confidence 0.1 --threads 8 --output kraken_out.txt --report kraken_report.txt --unclassified-out unclassified#.fastq R1.fastq.gz R2.fastq.gz,classify reads with confidence threshold and save unclassified reads with default parameters,metagenomics
-kubectl,kubectl_01,get pods -o wide,list all pods in the current namespace,hpc
-kubectl,kubectl_02,logs pod-name --tail=100 -f,view logs from a specific pod,hpc
-kubectl,kubectl_03,create job fastp-qc --image=biocontainers/fastp:0.23.4 -- fastp -i /data/reads_R1.fq.gz -I /data/reads_R2.fq.gz -o /output/clean_R1.fq.gz -O /output/clean_R2.fq.gz,run a one-time bioinformatics job,hpc
-kubectl,kubectl_04,apply -f alignment-job.yaml,apply a YAML manifest to create or update resources,hpc
-kubectl,kubectl_05,exec -it pod-name -- bash,execute a command inside a running pod,hpc
-kubectl,kubectl_06,describe pod pod-name,get detailed information about a pod (including events and status),hpc
-kubectl,kubectl_07,top nodes,check cluster node resources and capacity,hpc
-kubectl,kubectl_08,scale deployment alignment-workers --replicas=10,scale a deployment up or down,hpc
-kubectl,kubectl_09,delete jobs --field-selector status.successful=1,delete completed jobs and their pods,hpc
-kubectl,kubectl_10,top pods --sort-by=cpu -A,view resource usage of pods sorted by CPU,hpc
 liftoff,liftoff_01,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -u unmapped.txt,lift annotations from reference GFF3 to a new assembly,genome-annotation
 liftoff,liftoff_02,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -copies -u unmapped.txt,lift annotations and copy multi-copy gene families,genome-annotation
 liftoff,liftoff_03,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -s 0.85 -a 0.85 -u unmapped.txt,lift annotations between closely related species with lower identity threshold,genome-annotation
@@ -719,16 +649,6 @@ longshot,longshot_07,-b sorted.bam -f reference.fa -o snps.vcf -t 4,call SNPs fr
 longshot,longshot_08,-b sorted.bam -f reference.fa -o chr1_snps.vcf -r chr1:1000000-2000000,call SNPs restricted to a specific region and write output to a file,variant-calling
 longshot,longshot_09,-b sorted.bam -f reference.fa -o snps_filtered.vcf -m 10 -q 20 --quiet,call SNPs with minimum coverage filter in quiet mode,variant-calling
 longshot,longshot_10,-b sorted.bam -f reference.fa -o snps.vcf,call SNPs from Oxford Nanopore aligned reads with default parameters,variant-calling
-lsf,lsf_01,"bsub -J align_job -q normal -n 8 -R ""rusage[mem=4000] span[hosts=1]"" -W 4:00 -o align_%J.out < job.lsf",submit a basic batch job script,hpc
-lsf,lsf_02,"bsub -Is -q interactive -n 4 -R ""rusage[mem=4000] span[hosts=1]"" -W 2:00 bash",run an interactive session on a compute node,hpc
-lsf,lsf_03,"bsub -J ""fastp_qc[1-96]%24"" -q normal -n 4 -R ""rusage[mem=2000]"" -W 1:00 -o logs/fastp_%J_%I.out < qc_array.lsf",submit a sample-parallel array job,hpc
-lsf,lsf_04,bjobs -u $USER -w,check your running and pending jobs,hpc
-lsf,lsf_05,bjobs -l 12345,get detailed information about a specific job,hpc
-lsf,lsf_06,bqueues -l normal,check available queues and their limits,hpc
-lsf,lsf_07,bhosts -w,check host status and available resources,hpc
-lsf,lsf_08,bkill 12345,delete a specific job or all your jobs,hpc
-lsf,lsf_09,"bsub -w ""done(12345)"" -J step2 -q normal -n 4 -W 2:00 < step2.lsf",submit a job with dependency on a previous job,hpc
-lsf,lsf_10,bhist -l 12345,check historical resource usage of completed jobs,hpc
 macs2,macs2_01,callpeak -t chip.bam -c input.bam -f BAM -g hs -n sample_chip -q 0.05 --outdir chip_peaks/,call narrow peaks from ChIP-seq data with input control,epigenomics
 macs2,macs2_02,callpeak -t h3k27me3.bam -c input.bam -f BAM -g hs --broad --broad-cutoff 0.1 -n h3k27me3 --outdir broad_peaks/,call broad peaks for histone mark (H3K27me3) ChIP-seq,epigenomics
 macs2,macs2_03,callpeak -t atac.bam -f BAM -g hs --nomodel --shift -100 --extsize 200 -n atac_sample -q 0.05 --outdir atac_peaks/,call ATAC-seq peaks using nucleosome-free region model,epigenomics
@@ -749,16 +669,6 @@ mafft,mafft_07,--localpair --maxiterate 1000 --thread 8 sequences.fasta > aligne
 mafft,mafft_08,--auto --adjustdirectionaccurately --thread 8 rna_sequences.fasta > aligned_rna.fasta,align RNA sequences adjusting for strand orientation,phylogenetics
 mafft,mafft_09,--auto --thread 8 --phylipout sequences.fasta > aligned.phy,align sequences and output in PHYLIP format for phylogenetic analysis,phylogenetics
 mafft,mafft_10,--add new_sequences.fasta --thread 8 existing_alignment.fasta > updated_alignment.fasta,add new sequences to existing alignment with default parameters,phylogenetics
-mamba,mamba_01,create -n myenv python=3.11,create a new environment named myenv with python 3.11,package-management
-mamba,mamba_02,install -n biotools -c bioconda -c conda-forge samtools bwa,install samtools and bwa in the biotools environment,package-management
-mamba,mamba_03,env create -f environment.yml,create environment from YAML specification file,package-management
-mamba,mamba_04,env export -n myenv --no-builds > environment.yml,export current environment as YAML,package-management
-mamba,mamba_05,activate rnaseq,activate the rnaseq environment (bash),package-management
-mamba,mamba_06,env list,list all conda/mamba environments and their locations,package-management
-mamba,mamba_07,search -c conda-forge -c bioconda star,search for a package across conda-forge and bioconda channels,package-management
-mamba,mamba_08,clean -y --all,remove unused packages and tarballs from the package cache,package-management
-mamba,mamba_09,update -n ngs --all,update all packages in the ngs environment,package-management
-mamba,mamba_10,install -n myenv -c conda-forge numpy=1.26,install a specific package version,package-management
 manta,manta_01,configureManta.py --bam sorted.bam --referenceFasta reference.fa --runDir manta_output && python manta_output/runWorkflow.py -m local -j 8,configure and run Manta germline SV calling,variant-calling
 manta,manta_02,configureManta.py --normalBam normal.bam --tumorBam tumor.bam --referenceFasta reference.fa --runDir manta_somatic && python manta_somatic/runWorkflow.py -m local -j 8,run Manta somatic SV calling for tumor-normal pair,variant-calling
 manta,manta_03,configureManta.py --bam sample.bam --referenceFasta reference.fa --exome --callRegions targets.bed.gz --runDir manta_wes && python manta_wes/runWorkflow.py -m local -j 8,run Manta on WES data with capture regions,variant-calling
@@ -959,16 +869,6 @@ nextflow,nextflow_07,clean -but last,clean up work directory keeping only the la
 nextflow,nextflow_08,run nf-core/rnaseq -profile singularity --singularity.cacheDir /shared/singularity-cache --input samplesheet.csv,run a pipeline with Singularity image cache set,workflow-manager
 nextflow,nextflow_09,-version,check Nextflow version and environment,workflow-manager
 nextflow,nextflow_10,run main.nf -with-report report.html -with-timeline timeline.html,generate a run report and timeline,workflow-manager
-openclaw,openclaw_01,onboard --install-daemon,run the interactive onboarding wizard and install the gateway daemon,ai-assistant
-openclaw,openclaw_02,gateway --port 18789 --verbose,start the gateway in the foreground with verbose output,ai-assistant
-openclaw,openclaw_03,health,check gateway and overall service health,ai-assistant
-openclaw,openclaw_04,gateway status,"show gateway status (running, port, version)",ai-assistant
-openclaw,openclaw_05,gateway restart,restart the gateway daemon,ai-assistant
-openclaw,openclaw_06,gateway stop,stop the gateway daemon,ai-assistant
-openclaw,openclaw_07,channels login,login and connect a messaging channel,ai-assistant
-openclaw,openclaw_08,skills list,list all installed skills,ai-assistant
-openclaw,openclaw_09,setup,run the setup wizard (config + workspace bootstrap),ai-assistant
-openclaw,openclaw_10,"message send --to +1234567890 --message ""Hello from openclaw""",send a message to a contact through the assistant,ai-assistant
 orthofinder,orthofinder_01,-f proteomes/ -t 32 -a 8,run OrthoFinder on a directory of species proteomes,comparative-genomics
 orthofinder,orthofinder_02,-f proteomes/ -M msa -S diamond -A mafft -T iqtree -t 32 -a 8,run OrthoFinder with MSA-based gene trees using MAFFT and IQ-TREE,comparative-genomics
 orthofinder,orthofinder_03,-f proteomes/ -og -t 32,infer orthogroups only without gene trees for fast proteome comparison,comparative-genomics
@@ -1019,16 +919,6 @@ pbmm2,pbmm2_07,index reference.fa reference.mmi -t 4,index reference genome for 
 pbmm2,pbmm2_08,align --preset SUBREAD --sort -j 16 reference.fa subreads.bam clr_aligned.bam -o output.txt,align CLR (subread) PacBio reads and write output to a file,alignment
 pbmm2,pbmm2_09,align --preset HIFI --sort -j 16 --sort-threads 4 reference.fa hifi_reads.bam aligned_sorted.bam --quiet,align PacBio HiFi reads to reference genome in quiet mode,alignment
 pbmm2,pbmm2_10,align --preset ISOSEQ --sort -j 8 reference.fa isoseq_reads.bam isoseq_aligned.bam,align PacBio IsoSeq transcriptome reads with default parameters,alignment
-pbs,pbs_01,qsub -N alignment -q batch -l select=1:ncpus=8:mem=32gb -l walltime=04:00:00 job.pbs,submit a basic batch job script,hpc
-pbs,pbs_02,qsub -N fastp_qc -q normal -l nodes=1:ppn=4 -l mem=16gb -l walltime=02:00:00 qc.pbs,submit a job script with Torque-style resource specification,hpc
-pbs,pbs_03,qsub -I -q interactive -l select=1:ncpus=4:mem=16gb -l walltime=02:00:00,run an interactive session on a compute node,hpc
-pbs,pbs_04,qsub -J 1-96 -N fastp_array -q batch -l select=1:ncpus=4:mem=8gb -l walltime=01:00:00 qc_array.pbs,submit a sample-parallel array job,hpc
-pbs,pbs_05,qstat -u $USER -a,check your running and queued jobs,hpc
-pbs,pbs_06,qstat -f 12345.pbs-server,get detailed information about a specific job,hpc
-pbs,pbs_07,qdel 12345.pbs-server,delete a job or all your jobs,hpc
-pbs,pbs_08,qstat -Q -f,list available queues and their resource limits,hpc
-pbs,pbs_09,pbsnodes -a -F dsv,check node availability and resources,hpc
-pbs,pbs_10,qsub -W depend=afterok:12345.pbs-server -N step2 -q batch -l walltime=02:00:00 step2.pbs,submit a job with dependency on a previous job,hpc
 pbsv,pbsv_01,discover --hifi sorted.bam sample.svsig.gz,discover SV signatures from PacBio HiFi aligned BAM,variant-calling
 pbsv,pbsv_02,call --hifi reference.fa sample.svsig.gz output_svs.vcf,call SVs from a single sample's signature file,variant-calling
 pbsv,pbsv_03,call --hifi reference.fa sample1.svsig.gz sample2.svsig.gz sample3.svsig.gz cohort_svs.vcf,call SVs jointly from multiple samples,variant-calling
@@ -1069,26 +959,6 @@ pilon,pilon_07,-Xmx64g -jar pilon.jar --genome draft.fasta --frags aligned.sorte
 pilon,pilon_08,-Xmx128g -jar pilon.jar --genome draft.fasta --frags pe.sorted.bam --jumps mp.sorted.bam --output polished_v2 --threads 16,polish with mate-pair and paired-end libraries combined and write output to a file,assembly-polishing
 pilon,pilon_09,-Xmx64g -jar pilon.jar --genome draft.fasta --frags aligned.sorted.bam --output polished --fix bases --threads 16 --quiet,run Pilon fixing only SNPs and small indels (not structural) in quiet mode,assembly-polishing
 pilon,pilon_10,-Xmx64g -jar pilon.jar --genome draft.fasta --frags aligned.sorted.bam --output variants --variant --threads 16,generate a VCF of variants found in the assembly with default parameters,assembly-polishing
-pip,pip_01,install requests,install a package from PyPI,package-management
-pip,pip_02,install numpy==1.26.4,install a specific version of a package,package-management
-pip,pip_03,install -r requirements.txt,install all packages from a requirements file,package-management
-pip,pip_04,install --upgrade pandas,upgrade a package to the latest version,package-management
-pip,pip_05,uninstall -y scipy,uninstall a package with confirmation skip,package-management
-pip,pip_06,freeze > requirements.txt,save current environment packages to requirements.txt,package-management
-pip,pip_07,list,list all installed packages,package-management
-pip,pip_08,list --outdated,show outdated packages,package-management
-pip,pip_09,install -e git+https://github.com/user/repo.git#egg=packagename,install a package from a local directory or git repository,package-management
-pip,pip_10,install --no-build-isolation pysam,install package without build isolation (for packages needing system libs),package-management
-pixi,pixi_01,init,initialise a new pixi project in the current directory,package-management
-pixi,pixi_02,"config set default-channels '[""conda-forge"", ""bioconda""]'",configure pixi to use bioconda in addition to conda-forge globally,package-management
-pixi,pixi_03,global install samtools,install samtools globally so it is available system-wide,package-management
-pixi,pixi_04,add bwa,add a package dependency to the current project,package-management
-pixi,pixi_05,add -c bioconda star,add a package from a specific channel to the current project,package-management
-pixi,pixi_06,run samtools sort -@ 4 -o sorted.bam input.bam,run a command inside the project environment without activating it,package-management
-pixi,pixi_07,shell,open an interactive shell with the project environment activated,package-management
-pixi,pixi_08,global install fastp multiqc fastqc,install multiple bioinformatics tools globally in one command,package-management
-pixi,pixi_09,update,update all packages in the current project to their latest compatible versions,package-management
-pixi,pixi_10,list,list all packages installed in the current project environment,package-management
 plink2,plink2_01,"--vcf variants.vcf --make-pgen --out plink_dataset --set-missing-var-ids @:#[b37]\$r,\$a --max-alleles 2",convert VCF to PLINK2 binary format,population-genomics
 plink2,plink2_02,--pfile plink_dataset --maf 0.01 --geno 0.05 --mind 0.1 --hwe 1e-6 --make-pgen --out qc_filtered,perform quality control filtering on PLINK dataset,population-genomics
 plink2,plink2_03,--pfile plink_dataset --indep-pairwise 50 10 0.1 --out ld_prune && plink2 --pfile plink_dataset --extract ld_prune.prune.in --pca 20 --out pca_results,perform LD pruning and compute PCA,population-genomics
@@ -1279,16 +1149,6 @@ seqtk,seqtk_07,sample -s 42 R1.fastq.gz 1000000 | gzip > sub_R1.fastq.gz,subsamp
 seqtk,seqtk_08,seq -a reads.fastq.gz > reads.fasta,convert FASTQ to FASTA format,sequence-utilities
 seqtk,seqtk_09,seq -r sequences.fasta > revcomp.fasta,reverse complement all sequences in a FASTA file,sequence-utilities
 seqtk,seqtk_10,subseq reads.fastq.gz read_names.txt > extracted_reads.fastq,extract specific sequences by name from a FASTQ file with default parameters,sequence-utilities
-sge,sge_01,qsub -N align_job -q all.q -l h_rt=04:00:00 -l h_vmem=4G -pe smp 8 -cwd job.sh,submit a basic batch job,hpc
-sge,sge_02,qsub -t 1-96 -tc 24 -N fastp_array -q all.q -l h_rt=01:00:00 -l h_vmem=2G -pe smp 4 -cwd qc_array.sh,submit a sample-parallel array job,hpc
-sge,sge_03,qrsh -q interactive.q -l h_rt=02:00:00 -l h_vmem=4G -pe smp 4,run an interactive session on a compute node,hpc
-sge,sge_04,qstat -u $USER -r,check your running and queued jobs,hpc
-sge,sge_05,qstat -j 12345,get detailed information about a specific job,hpc
-sge,sge_06,qconf -sql && qconf -sq all.q,check available queues and their resource limits,hpc
-sge,sge_07,qhost -q,check cluster node status and available resources,hpc
-sge,sge_08,qdel 12345,delete a specific job or all your jobs,hpc
-sge,sge_09,qsub -hold_jid 12345 -N step2 -q all.q -l h_rt=02:00:00 -cwd step2.sh,submit a job with dependency on a previous job,hpc
-sge,sge_10,qacct -j 12345,check accounting information for completed jobs,hpc
 shapeit4,shapeit4_01,--input variants.vcf.gz --map genetic_map_chr1.txt --region chr1 --output phased_chr1.vcf.gz --thread 8,phase a chromosome using SHAPEIT4,population-genomics
 shapeit4,shapeit4_02,--input variants.vcf.gz --scaffold reference_panel.vcf.gz --map genetic_map_chr22.txt --region chr22 --output phased_chr22.vcf.gz --thread 8,phase with a reference haplotype scaffold panel,population-genomics
 shapeit4,shapeit4_03,"--input variants.vcf.gz --map genetic_map.txt --region chr1 --sequencing --output phased.vcf.gz --thread 16 --mcmc-iterations 8b,1p,1b,1p,1b,1p,5m",phase sequencing data with higher accuracy settings,population-genomics
@@ -1299,26 +1159,6 @@ shapeit4,shapeit4_07,--input variants.vcf.gz --map genetic_map_chr1.txt --region
 shapeit4,shapeit4_08,--input variants.vcf.gz --scaffold reference_panel.vcf.gz --map genetic_map_chr22.txt --region chr22 --output phased_chr22.vcf.gz --thread 8,phase with a reference haplotype scaffold panel and write output to a file,population-genomics
 shapeit4,shapeit4_09,"--input variants.vcf.gz --map genetic_map.txt --region chr1 --sequencing --output phased.vcf.gz --thread 16 --mcmc-iterations 8b,1p,1b,1p,1b,1p,5m --quiet",phase sequencing data with higher accuracy settings in quiet mode,population-genomics
 shapeit4,shapeit4_10,--input variants.vcf.gz --map genetic_map_chr1.txt --region chr1 --output phased_chr1.vcf.gz --thread 8,phase a chromosome using SHAPEIT4 with default parameters,population-genomics
-singularity,singularity_01,pull --dir /scratch/sif/ docker://biocontainers/samtools:1.19,pull a Docker image and convert to SIF,containerization
-singularity,singularity_02,exec -B /data:/data samtools.sif samtools flagstat /data/input.bam,run a bioinformatics tool inside a container,containerization
-singularity,singularity_03,shell -B /scratch samtools.sif,open an interactive shell for debugging,containerization
-singularity,singularity_04,exec --nv cuda.sif python train.py,run a container with GPU support (NVIDIA),containerization
-singularity,singularity_05,build myenv.sif myenv.def,build a SIF from a definition file,containerization
-singularity,singularity_06,pull --dir /project/containers docker://nfcore/rnaseq:3.14,pull an image with a custom cache directory,containerization
-singularity,singularity_07,exec -B $PWD:/mnt nfcore_rnaseq.sif nextflow run nf-core/rnaseq --input samplesheet.csv,run a Nextflow pipeline using local Singularity images,containerization
-singularity,singularity_08,exec -B /dev/null:/dev/null docker://ubuntu:22.04 echo 'cached',cache image to a shared HPC location (bash),containerization
-singularity,singularity_09,inspect --labels myenv.sif,inspect the contents and metadata of a SIF image,containerization
-singularity,singularity_10,cache list,list all cached Singularity images,containerization
-slurm,slurm_01,sbatch --job-name=align --partition=compute --time=04:00:00 --cpus-per-task=8 --mem=32G job.sh,submit a basic batch job script,hpc
-slurm,slurm_02,srun --partition=interactive --time=02:00:00 --cpus-per-task=4 --mem=16G --pty bash,run an interactive session on a compute node,hpc
-slurm,slurm_03,sbatch --array=1-96 --job-name=fastp_qc --partition=compute --cpus-per-task=4 --mem=8G --time=01:00:00 --output=logs/fastp_%A_%a.out qc_array.sh,submit a sample-parallel array job for bioinformatics,hpc
-slurm,slurm_04,"squeue -u $USER --format=""%.10i %.20j %.8T %.10M %.6D %.4C %.10m %R""",check your running and pending jobs,hpc
-slurm,slurm_05,scancel 12345,cancel a specific job or all your jobs,hpc
-slurm,slurm_06,"sacct -j 12345 --format=JobID,JobName,Partition,AllocCPUS,MaxRSS,MaxVMSize,Elapsed,State,ExitCode",check resource usage of a completed job,hpc
-slurm,slurm_07,"sinfo --format=""%20P %5a %10l %6D %6t %N"" --sort=P",query available partitions and their limits,hpc
-slurm,slurm_08,sbatch --dependency=afterok:12345 --job-name=step2 --partition=compute --time=02:00:00 step2.sh,submit a job with dependency on a previous job,hpc
-slurm,slurm_09,sbatch --partition=gpu --gres=gpu:1 --cpus-per-task=8 --mem=64G --time=24:00:00 gpu_job.sh,submit a GPU job for deep learning or variant calling,hpc
-slurm,slurm_10,"sinfo -N -l --format=""%20N %10P %6t %10c %10m %30f %20G""",check cluster-wide resource availability,hpc
 snakemake,snakemake_01,--cores all --use-conda,run a workflow using all available cores,workflow-manager
 snakemake,snakemake_02,--dry-run --printshellcmds,dry-run to see what would be executed,workflow-manager
 snakemake,snakemake_03,--executor slurm --jobs 50 --default-resources mem_mb=4096 runtime=60 --use-conda,run a workflow on a Slurm cluster,workflow-manager
