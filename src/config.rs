@@ -306,6 +306,18 @@ impl Config {
         None
     }
 
+    /// Returns `true` if the current provider requires an API token to function.
+    ///
+    /// Local providers such as Ollama typically run without authentication, so
+    /// callers should use this to skip the token-required check for those providers.
+    ///
+    /// Currently only `ollama` is treated as tokenless because it is the only
+    /// built-in provider designed for local, unauthenticated use.  If a future
+    /// provider also runs without a token, add it to the match arm here.
+    pub fn provider_requires_token(&self) -> bool {
+        !matches!(self.effective_provider().as_str(), "ollama")
+    }
+
     /// Resolve the effective API base URL for the current provider
     pub fn effective_api_base(&self) -> String {
         if let Some(base) = Self::env_string(ENV_LLM_API_BASE) {

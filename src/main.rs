@@ -474,10 +474,16 @@ async fn run(cli: Cli) -> error::Result<()> {
                         "set".green(),
                         cfg.effective_source("llm.api_token")?.dimmed()
                     )
-                } else {
+                } else if cfg.provider_requires_token() {
                     format!(
                         "{} [{}]",
                         "not set".red(),
+                        cfg.effective_source("llm.api_token")?.dimmed()
+                    )
+                } else {
+                    format!(
+                        "{} [{}]",
+                        "not required".dimmed(),
                         cfg.effective_source("llm.api_token")?.dimmed()
                     )
                 };
@@ -580,10 +586,16 @@ async fn run(cli: Cli) -> error::Result<()> {
                             "set".green(),
                             cfg.effective_source("llm.api_token")?.dimmed()
                         )
-                    } else {
+                    } else if cfg.provider_requires_token() {
                         format!(
                             "{} [{}]",
                             "not set".red(),
+                            cfg.effective_source("llm.api_token")?.dimmed()
+                        )
+                    } else {
+                        format!(
+                            "{} [{}]",
+                            "not required".dimmed(),
                             cfg.effective_source("llm.api_token")?.dimmed()
                         )
                     }
