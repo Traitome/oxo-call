@@ -12,6 +12,7 @@
 ///    available for HPC environments that require those formats.
 #[cfg(not(target_arch = "wasm32"))]
 use crate::config::Config;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::error::{OxoError, Result};
 use colored::Colorize;
 use serde::{Deserialize, Serialize};

@@ -233,6 +233,7 @@ impl DocsFetcher {
         None
     }
 
+    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     fn run_help_flag(&self, tool: &str, flag: &str) -> Result<String> {
         #[cfg(not(target_arch = "wasm32"))]
         {

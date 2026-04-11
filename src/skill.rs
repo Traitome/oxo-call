@@ -813,6 +813,7 @@ impl SkillManager {
     ///
     /// Both `.md` (YAML front-matter + Markdown, preferred) and legacy `.toml`
     /// formats are accepted; the format is detected from the downloaded content.
+    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn install_from_url(&self, tool: &str, url: &str) -> Result<Skill> {
         if !url.starts_with("https://") && !url.starts_with("http://") {
             return Err(OxoError::IndexError(

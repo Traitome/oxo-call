@@ -3,6 +3,7 @@ use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
 #[cfg(not(target_arch = "wasm32"))]
 use crate::history::{CommandProvenance, HistoryEntry, HistoryStore};
+#[cfg(not(target_arch = "wasm32"))]
 use crate::job;
 use crate::llm::{LlmClient, LlmCommandSuggestion};
 use crate::skill::SkillManager;
@@ -297,6 +298,7 @@ impl Runner {
     /// dry-run: show the command that would be executed without running it.
     /// Records the generated command in history with `dry_run = true`.
     /// Pass `server` to tag the history entry with the remote server name.
+    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn dry_run(
         &self,
         tool: &str,

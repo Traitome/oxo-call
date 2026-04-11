@@ -1390,7 +1390,6 @@ fn test_workflow_export_to_nextflow() {
 
 #[test]
 fn test_workflow_run_from_file() {
-    use std::io::Write;
     let dir = tempfile::tempdir().expect("tempdir");
     let wf_path = dir.path().join("test.toml");
     let out_path = dir.path().join("out.txt");

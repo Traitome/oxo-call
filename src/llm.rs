@@ -1,4 +1,5 @@
 use crate::config::Config;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::copilot_auth;
 use crate::error::{OxoError, Result};
 use crate::runner::is_companion_binary;
@@ -538,6 +539,7 @@ impl LlmClient {
 
     /// Generate command arguments, using skill knowledge for better prompts.
     /// Retries up to `MAX_RETRIES` times when the response format is invalid.
+    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn suggest_command(
         &self,
         tool: &str,
@@ -614,6 +616,7 @@ impl LlmClient {
     ///
     /// Returns the refined task text on success, or falls back to the original task
     /// if the LLM response is not parseable.  Errors from the API are propagated.
+    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn optimize_task(&self, tool: &str, raw_task: &str) -> Result<String> {
         #[cfg(target_arch = "wasm32")]
         return Err(OxoError::LlmError(
@@ -643,6 +646,7 @@ impl LlmClient {
     ///
     /// `output_files` is a list of `(path, Option<file_size_bytes>)` pairs — a
     /// `None` size means the file was not found on disk.
+    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn verify_run_result(
         &self,
         tool: &str,
@@ -698,6 +702,7 @@ impl LlmClient {
 
     /// Core HTTP call.  Accepts an explicit system prompt so callers can use a
     /// role-specific prompt (e.g., the verification analyst persona).
+    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     async fn request_with_system(
         &self,
         sys_prompt: &str,
@@ -826,6 +831,7 @@ impl LlmClient {
     /// Ask the LLM to review a skill file for quality and completeness.
     ///
     /// Returns a structured `LlmSkillVerification` with findings and suggestions.
+    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn verify_skill(
         &self,
         tool: &str,
@@ -856,6 +862,7 @@ impl LlmClient {
     /// The LLM is instructed to preserve the tool name and all correct information
     /// while adding missing concepts/pitfalls/examples, fixing format issues, and
     /// improving clarity.
+    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn polish_skill(&self, tool: &str, skill_content: &str) -> Result<String> {
         #[cfg(target_arch = "wasm32")]
         return Err(OxoError::LlmError(
@@ -881,6 +888,7 @@ impl LlmClient {
     /// Use LLM to generate an initial skill template pre-filled with domain knowledge.
     ///
     /// Returns a Markdown-format skill file (YAML front-matter + body sections).
+    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn generate_skill_template(&self, tool: &str) -> Result<String> {
         #[cfg(target_arch = "wasm32")]
         return Err(OxoError::LlmError(
@@ -906,6 +914,7 @@ impl LlmClient {
     ///
     /// Returns `(command, explanation)`.  The command is a ready-to-run shell
     /// string; the explanation is a brief one-liner.
+    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn generate_shell_command(&self, description: &str) -> Result<(String, String)> {
         #[cfg(target_arch = "wasm32")]
         return Err(OxoError::LlmError(
