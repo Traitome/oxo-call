@@ -239,6 +239,56 @@ pub fn load_skills_from_dir(dir: &Path) -> anyhow::Result<Vec<SkillFile>> {
     Ok(skills)
 }
 
+// ── Benchmark tool exclusion ─────────────────────────────────────────────────
+
+/// Tools excluded from benchmarks.
+///
+/// These fall into three categories per the project guidelines:
+/// - **Package managers** — conda, mamba, pip, pixi, cargo, docker, singularity
+/// - **HPC schedulers** — slurm, pbs, sge, lsf, htcondor, kubectl
+/// - **AI assistants** — claude, openclaw
+///
+/// The benchmark targets basic bash/shell commands + bioconda bioinformatics
+/// tools only.
+pub const EXCLUDED_TOOLS: &[&str] = &[
+    // Package managers / containers
+    "conda",
+    "mamba",
+    "pip",
+    "pixi",
+    "cargo",
+    "docker",
+    "singularity",
+    // HPC schedulers
+    "slurm",
+    "pbs",
+    "sge",
+    "lsf",
+    "htcondor",
+    "kubectl",
+    // AI assistants
+    "claude",
+    "openclaw",
+];
+
+/// Return `true` if the tool should be excluded from benchmark evaluation.
+pub fn is_excluded_tool(name: &str) -> bool {
+    EXCLUDED_TOOLS.contains(&name)
+}
+
+/// Load skill files from a directory, excluding tools not suitable for
+/// benchmarking (package managers, HPC schedulers, AI assistants).
+pub fn load_skills_for_bench(dir: &Path) -> anyhow::Result<Vec<SkillFile>> {
+    let mut skills = load_skills_from_dir(dir)?;
+    let before = skills.len();
+    skills.retain(|s| !is_excluded_tool(&s.name));
+    let excluded = before - skills.len();
+    if excluded > 0 {
+        eprintln!("  info: excluded {excluded} non-benchmark tool(s) (pkg managers, HPC, AI)");
+    }
+    Ok(skills)
+}
+
 // ── Scenario generation ──────────────────────────────────────────────────────
 
 /// Number of scenarios to generate per tool.

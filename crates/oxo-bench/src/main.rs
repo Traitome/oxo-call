@@ -23,7 +23,7 @@ use oxo_bench::{
         },
         scenario::{
             Scenario, UsageDescription, generate_descriptions, generate_scenarios,
-            load_skills_from_dir, write_descriptions_csv, write_scenarios_csv,
+            load_skills_for_bench, write_descriptions_csv, write_scenarios_csv,
         },
         workflow::bench_workflow_expand,
     },
@@ -161,8 +161,9 @@ enum Commands {
     /// `generate` step), calls `oxo-call dry-run --json` for each description,
     /// and compares the generated command with the reference.
     ///
-    /// Supports multiple models via a TOML configuration file.  Each model
-    /// can be evaluated in serial or parallel, with configurable repeat counts.
+    /// Supports multiple models via a TOML configuration file or --models flag.
+    /// Each model can be evaluated in serial or parallel, with configurable
+    /// repeat counts and ablation scenarios.
     Eval {
         /// Path to benchmark config TOML (generates default if missing)
         #[arg(short, long, default_value = "bench_config.toml")]
@@ -187,6 +188,22 @@ enum Commands {
         /// rates so that different models show different accuracy levels.
         #[arg(long)]
         mock: bool,
+        /// Override model list from config (comma-separated).
+        ///
+        /// Convenient for quick benchmarks: --models "qwen3.5:9b,mistral:7b"
+        #[arg(short, long)]
+        models: Option<String>,
+        /// Ablation scenarios to evaluate (comma-separated).
+        ///
+        /// Valid values: bare, prompt, skill, doc, full (default: from config).
+        /// Example: --scenarios "bare,full"
+        #[arg(long)]
+        scenarios: Option<String>,
+        /// Ollama API base URL (applied to all models when set).
+        ///
+        /// Example: --api-base "http://localhost:11434"
+        #[arg(long)]
+        api_base: Option<String>,
     },
 
     /// Print cross-model comparison summary from benchmark results
@@ -509,6 +526,9 @@ fn run(cli: Cli) -> anyhow::Result<()> {
             tools,
             repeats,
             mock,
+            models,
+            scenarios,
+            api_base,
         } => {
             cmd_eval(
                 &config,
@@ -518,6 +538,9 @@ fn run(cli: Cli) -> anyhow::Result<()> {
                 tools.as_deref(),
                 repeats,
                 mock,
+                models.as_deref(),
+                scenarios.as_deref(),
+                api_base.as_deref(),
             )?;
         }
 
@@ -561,7 +584,7 @@ fn cmd_generate(
         skills_dir.display().to_string().cyan()
     );
 
-    let mut skills = load_skills_from_dir(skills_dir)?;
+    let mut skills = load_skills_for_bench(skills_dir)?;
 
     // Apply tool filter if specified.
     if let Some(filter) = tools_filter {
@@ -634,9 +657,12 @@ fn cmd_eval(
     tools_filter: Option<&str>,
     repeats_override: Option<usize>,
     mock: bool,
+    models_override: Option<&str>,
+    scenarios_override: Option<&str>,
+    api_base_override: Option<&str>,
 ) -> anyhow::Result<()> {
     // Load or generate config.
-    let config = if config_path.exists() {
+    let mut config = if config_path.exists() {
         BenchConfig::load(config_path)?
     } else {
         println!(
@@ -645,6 +671,37 @@ fn cmd_eval(
         );
         BenchConfig::default()
     };
+
+    // Override models from CLI.
+    if let Some(models_str) = models_override {
+        config.models = models_str
+            .split(',')
+            .map(|s| {
+                let name = s.trim().to_string();
+                oxo_bench::config::ModelEntry {
+                    name,
+                    provider: api_base_override.map(|_| "ollama".to_string()),
+                    api_base: api_base_override.map(|s| s.to_string()),
+                    api_key: None,
+                }
+            })
+            .collect();
+    } else if let Some(base) = api_base_override {
+        // Apply api_base to all configured models.
+        for m in &mut config.models {
+            if m.api_base.is_none() {
+                m.api_base = Some(base.to_string());
+            }
+            if m.provider.is_none() {
+                m.provider = Some("ollama".to_string());
+            }
+        }
+    }
+
+    // Override ablation scenarios from CLI.
+    if let Some(sc_str) = scenarios_override {
+        config.benchmark.scenarios = sc_str.split(',').map(|s| s.trim().to_string()).collect();
+    }
 
     let repeats = repeats_override.unwrap_or(config.benchmark.repeats);
 
@@ -755,61 +812,92 @@ fn cmd_eval(
             binary.cyan()
         );
 
-        if config.benchmark.parallel && config.models.len() > 1 {
+        // Parse ablation scenarios from config.
+        let ablation_scenarios = config.ablation_scenarios()?;
+
+        for scenario in &ablation_scenarios {
             println!(
-                "{} Evaluating {} models in parallel ({} repeats each)...",
+                "\n{} Ablation scenario: {} (skill={}, doc={}, prompt={})",
                 "→".cyan().bold(),
-                config.models.len(),
-                repeats,
+                scenario.name().cyan(),
+                if scenario.use_skill() { "✓" } else { "✗" },
+                if scenario.use_doc() { "✓" } else { "✗" },
+                if scenario.use_prompt() { "✓" } else { "✗" },
             );
 
-            let results: Vec<Vec<TrialResult>> = std::thread::scope(|scope| {
-                let handles: Vec<_> = config
-                    .models
-                    .iter()
-                    .map(|model_entry| {
-                        let binary = binary.clone();
-                        let descriptions = &descriptions;
-                        let scenarios = &scenarios;
-                        scope.spawn(move || {
-                            let gtor = OxoCallGenerator {
-                                binary_path: binary,
-                            };
-                            run_benchmark(
-                                &model_entry.name,
-                                repeats,
-                                descriptions,
-                                scenarios,
-                                &gtor,
-                            )
-                        })
-                    })
-                    .collect();
-
-                handles.into_iter().map(|h| h.join().unwrap()).collect()
-            });
-
-            for model_trials in results {
-                all_trials.extend(model_trials);
-            }
-        } else {
-            for (i, model_entry) in config.models.iter().enumerate() {
+            if config.benchmark.parallel && config.models.len() > 1 {
                 println!(
-                    "[{}/{}] {} Evaluating {} ({} repeats × {} descriptions)...",
-                    i + 1,
-                    config.models.len(),
+                    "{} Evaluating {} models in parallel ({} repeats each)...",
                     "→".cyan().bold(),
-                    model_entry.name.cyan(),
+                    config.models.len(),
                     repeats,
-                    descriptions.len(),
                 );
 
-                let gtor = OxoCallGenerator {
-                    binary_path: binary.clone(),
-                };
-                let trials =
-                    run_benchmark(&model_entry.name, repeats, &descriptions, &scenarios, &gtor);
-                all_trials.extend(trials);
+                let results: Vec<Vec<TrialResult>> = std::thread::scope(|scope| {
+                    let handles: Vec<_> = config
+                        .models
+                        .iter()
+                        .map(|model_entry| {
+                            let binary = binary.clone();
+                            let descriptions = &descriptions;
+                            let scenarios = &scenarios;
+                            let ablation = *scenario;
+                            scope.spawn(move || {
+                                let gtor = OxoCallGenerator {
+                                    binary_path: binary,
+                                    scenario: ablation,
+                                    provider: model_entry.provider.clone(),
+                                    api_base: model_entry.api_base.clone(),
+                                    api_key: model_entry.api_key.clone(),
+                                };
+                                run_benchmark(
+                                    &model_entry.name,
+                                    repeats,
+                                    descriptions,
+                                    scenarios,
+                                    &gtor,
+                                    ablation.name(),
+                                )
+                            })
+                        })
+                        .collect();
+
+                    handles.into_iter().map(|h| h.join().unwrap()).collect()
+                });
+
+                for model_trials in results {
+                    all_trials.extend(model_trials);
+                }
+            } else {
+                for (i, model_entry) in config.models.iter().enumerate() {
+                    println!(
+                        "[{}/{}] {} Evaluating {} [{}] ({} repeats × {} descriptions)...",
+                        i + 1,
+                        config.models.len(),
+                        "→".cyan().bold(),
+                        model_entry.name.cyan(),
+                        scenario.name(),
+                        repeats,
+                        descriptions.len(),
+                    );
+
+                    let gtor = OxoCallGenerator {
+                        binary_path: binary.clone(),
+                        scenario: *scenario,
+                        provider: model_entry.provider.clone(),
+                        api_base: model_entry.api_base.clone(),
+                        api_key: model_entry.api_key.clone(),
+                    };
+                    let trials = run_benchmark(
+                        &model_entry.name,
+                        repeats,
+                        &descriptions,
+                        &scenarios,
+                        &gtor,
+                        scenario.name(),
+                    );
+                    all_trials.extend(trials);
+                }
             }
         }
     }

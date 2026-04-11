@@ -431,7 +431,6 @@ pub static BUILTIN_SKILLS: &[(&str, &str)] = &[
     builtin!("augustus"),
     builtin!("agat"),
     builtin!("repeatmasker"),
-    builtin!("annot8r"),
     // ── Sequence utilities ───────────────────────────────────────────────────
     builtin!("seqtk"),
     builtin!("blast"),
