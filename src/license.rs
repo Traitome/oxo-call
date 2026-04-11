@@ -343,6 +343,7 @@ Full license texts: LICENSE-ACADEMIC  |  LICENSE-COMMERCIAL
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use crate::ENV_LOCK;
     use base64::{Engine as _, engine::general_purpose::STANDARD};
     use ed25519_dalek::{Signer, SigningKey};
 
@@ -564,6 +565,7 @@ pub mod tests {
 
     #[test]
     fn test_find_license_path_from_env_var() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().to_path_buf();
         unsafe {
@@ -579,6 +581,7 @@ pub mod tests {
 
     #[test]
     fn test_find_license_path_from_cli_arg_takes_precedence_over_env() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         let cli_path = PathBuf::from("/tmp/cli-license.json");
         let env_path = PathBuf::from("/tmp/env-license.json");
         unsafe {
