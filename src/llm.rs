@@ -2429,6 +2429,41 @@ SUGGESTIONS:
         );
     }
 
+    #[test]
+    fn test_sanitize_args_mixed_operators() {
+        // sort && index || flagstat — both && and || segments missing tool name
+        let args = vec![
+            "sort".to_string(),
+            "-o".to_string(),
+            "sorted.bam".to_string(),
+            "input.bam".to_string(),
+            "&&".to_string(),
+            "index".to_string(),
+            "sorted.bam".to_string(),
+            "||".to_string(),
+            "flagstat".to_string(),
+            "sorted.bam".to_string(),
+        ];
+        let result = sanitize_args("samtools", args);
+        assert_eq!(
+            result,
+            vec![
+                "sort",
+                "-o",
+                "sorted.bam",
+                "input.bam",
+                "&&",
+                "samtools",
+                "index",
+                "sorted.bam",
+                "||",
+                "samtools",
+                "flagstat",
+                "sorted.bam"
+            ]
+        );
+    }
+
     // ─── strip_code_fences ──────────────────────────────────────────────────
 
     #[test]
