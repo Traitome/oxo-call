@@ -718,28 +718,36 @@ impl LlmClient {
         #[cfg(not(target_arch = "wasm32"))]
         {
             let provider = self.config.effective_provider();
-            let token = self.config.effective_api_token().ok_or_else(|| {
-                let token_hint = match provider.as_str() {
-                    "github-copilot" => "  For GitHub Copilot, run: oxo-call config login",
-                    "openai" => "  For OpenAI, create an API key at:\n    https://platform.openai.com/api-keys",
-                    "anthropic" => "  For Anthropic, create an API key at:\n    https://console.anthropic.com/settings/keys",
-                    "ollama" => "  For Ollama (local), no token is usually needed.\n    Set OXO_CALL_LLM_API_TOKEN if your instance requires auth.",
-                    _ => "  Check your provider's documentation for token setup.",
-                };
-                OxoError::LlmError(
-                    format!(
-                        "No API token configured for provider '{provider}'.\n\n\
-                        Option 1 — Interactive login (recommended for github-copilot):\n  \
-                          oxo-call config login\n\n\
-                        Option 2 — Set via config:\n  \
-                          oxo-call config set llm.api_token <your-token>\n\n\
-                        Option 3 — Set via environment variable:\n  \
-                          export OXO_CALL_LLM_API_TOKEN=<your-token>\n\n\
-                        How to get a token:\n{token_hint}\n\n\
-                        Test your setup: oxo-call config verify"
-                    ),
-                )
-            })?;
+            let token_opt = self.config.effective_api_token();
+            // Local providers such as Ollama do not require an API token.
+            let token = if self.config.provider_requires_token() {
+                token_opt.ok_or_else(|| {
+                    let token_hint = match provider.as_str() {
+                        "github-copilot" => "  For GitHub Copilot, run: oxo-call config login",
+                        "openai" => "  For OpenAI, create an API key at:\n    https://platform.openai.com/api-keys",
+                        "anthropic" => "  For Anthropic, create an API key at:\n    https://console.anthropic.com/settings/keys",
+                        _ => "  Check your provider's documentation for token setup.",
+                    };
+                    OxoError::LlmError(
+                        format!(
+                            "No API token configured for provider '{provider}'.\n\n\
+                            Option 1 — Interactive login (recommended for github-copilot):\n  \
+                              oxo-call config login\n\n\
+                            Option 2 — Set via config:\n  \
+                              oxo-call config set llm.api_token <your-token>\n\n\
+                            Option 3 — Set via environment variable:\n  \
+                              export OXO_CALL_LLM_API_TOKEN=<your-token>\n\n\
+                            How to get a token:\n{token_hint}\n\n\
+                            Test your setup: oxo-call config verify"
+                        ),
+                    )
+                })?
+            } else {
+                // For token-optional providers (e.g. Ollama), fall back to an
+                // empty string.  An empty token means no Authorization header
+                // will be added (see the auth header construction below).
+                token_opt.unwrap_or_default()
+            };
 
             let api_base = self.config.effective_api_base();
 
@@ -800,7 +808,15 @@ impl LlmClient {
                         .header("Editor-Version", "vscode/1.85.0")
                         .header("Editor-Plugin-Version", "copilot/1.0.0")
                 }
-                _ => req_builder.header("Authorization", format!("Bearer {auth_token}")),
+                _ => {
+                    // Only add Authorization header when a token is actually present
+                    // (e.g. local Ollama instances usually run without authentication)
+                    if auth_token.is_empty() {
+                        req_builder
+                    } else {
+                        req_builder.header("Authorization", format!("Bearer {auth_token}"))
+                    }
+                }
             };
 
             let response = req_builder

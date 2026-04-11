@@ -282,12 +282,18 @@ pub async fn generate_workflow(
         },
     ];
 
-    let token = config.effective_api_token().ok_or_else(|| {
-        OxoError::LlmError(
-            "No API token configured. Set it with:\n  oxo-call config set llm.api_token <token>"
-                .to_string(),
-        )
-    })?;
+    let token_opt = config.effective_api_token();
+    // Local providers such as Ollama do not require an API token.
+    let token = if config.provider_requires_token() {
+        Some(token_opt.ok_or_else(|| {
+            OxoError::LlmError(
+                "No API token configured. Set it with:\n  oxo-call config set llm.api_token <token>"
+                    .to_string(),
+            )
+        })?)
+    } else {
+        token_opt
+    };
 
     let api_base = config.effective_api_base();
     if !api_base.starts_with("https://")
@@ -318,10 +324,11 @@ pub async fn generate_workflow(
 
     let url = format!("{api_base}/chat/completions");
 
-    let resp = client
-        .post(&url)
-        .bearer_auth(&token)
-        .json(&request)
+    let mut req_builder = client.post(&url).json(&request);
+    if let Some(ref t) = token {
+        req_builder = req_builder.bearer_auth(t);
+    }
+    let resp = req_builder
         .send()
         .await
         .map_err(|e| OxoError::LlmError(format!("HTTP error: {e}")))?;
@@ -373,10 +380,11 @@ pub async fn generate_workflow(
         temperature,
     };
 
-    let resp2 = client
-        .post(&url)
-        .bearer_auth(&token)
-        .json(&request2)
+    let mut req2_builder = client.post(&url).json(&request2);
+    if let Some(ref t) = token {
+        req2_builder = req2_builder.bearer_auth(t);
+    }
+    let resp2 = req2_builder
         .send()
         .await
         .map_err(|e| OxoError::LlmError(format!("HTTP error on retry: {e}")))?;
@@ -669,12 +677,18 @@ pub async fn infer_workflow(
         },
     ];
 
-    let token = config.effective_api_token().ok_or_else(|| {
-        OxoError::LlmError(
-            "No API token configured. Set it with:\n  oxo-call config set llm.api_token <token>"
-                .to_string(),
-        )
-    })?;
+    let token_opt = config.effective_api_token();
+    // Local providers such as Ollama do not require an API token.
+    let token = if config.provider_requires_token() {
+        Some(token_opt.ok_or_else(|| {
+            OxoError::LlmError(
+                "No API token configured. Set it with:\n  oxo-call config set llm.api_token <token>"
+                    .to_string(),
+            )
+        })?)
+    } else {
+        token_opt
+    };
 
     let api_base = config.effective_api_base();
     if !api_base.starts_with("https://")
@@ -705,10 +719,11 @@ pub async fn infer_workflow(
 
     let url = format!("{api_base}/chat/completions");
 
-    let resp = client
-        .post(&url)
-        .bearer_auth(&token)
-        .json(&request)
+    let mut req_builder = client.post(&url).json(&request);
+    if let Some(ref t) = token {
+        req_builder = req_builder.bearer_auth(t);
+    }
+    let resp = req_builder
         .send()
         .await
         .map_err(|e| OxoError::LlmError(format!("HTTP error: {e}")))?;
@@ -760,10 +775,11 @@ pub async fn infer_workflow(
         temperature,
     };
 
-    let resp2 = client
-        .post(&url)
-        .bearer_auth(&token)
-        .json(&request2)
+    let mut req2_builder = client.post(&url).json(&request2);
+    if let Some(ref t) = token {
+        req2_builder = req2_builder.bearer_auth(t);
+    }
+    let resp2 = req2_builder
         .send()
         .await
         .map_err(|e| OxoError::LlmError(format!("HTTP error on retry: {e}")))?;
