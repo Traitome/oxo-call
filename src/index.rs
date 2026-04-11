@@ -279,13 +279,10 @@ impl IndexManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ENV_LOCK;
     use crate::config::Config;
     use crate::docs::DocsFetcher;
     use chrono::Utc;
-    use std::sync::Mutex;
-
-    // Mutex to serialize tests that mutate OXO_CALL_DATA_DIR
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     fn make_entry(tool: &str, size: usize) -> IndexEntry {
         IndexEntry {

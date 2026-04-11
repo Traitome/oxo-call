@@ -20,8 +20,6 @@
 /// To obtain a license:
 ///   Academic : <https://github.com/Traitome/oxo-call#license>
 ///   Commercial: w_shixiang@163.com
-use base64::{Engine as _, engine::general_purpose::STANDARD};
-use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -36,6 +34,17 @@ pub const SCHEMA_VERSION: &str = "oxo-call-license-v1";
 /// used by tests so CI continues to verify against the embedded public key
 /// without needing the private issuer key.
 pub const EMBEDDED_PUBLIC_KEY_BASE64: &str = "SOTbyPWS8fSF+XS9dqEg9cFyag0wPO/YMA5LhI4PXw4=";
+
+/// Shared config consumed by `oxo-license`.
+pub static OXO_CALL_CONFIG: oxo_license::LicenseConfig = oxo_license::LicenseConfig {
+    schema_version: SCHEMA_VERSION,
+    public_key_base64: EMBEDDED_PUBLIC_KEY_BASE64,
+    license_env_var: "OXO_CALL_LICENSE",
+    app_qualifier: "io",
+    app_org: "traitome",
+    app_name: "oxo-call",
+    license_filename: "license.oxo.json",
+};
 
 // ── Data structures ──────────────────────────────────────────────────────────
 
@@ -165,7 +174,7 @@ pub enum LicenseError {
 ///
 /// Returns `Ok(())` when the license is valid, or a descriptive [`LicenseError`].
 pub fn verify_license(license: &LicenseFile) -> Result<(), LicenseError> {
-    verify_license_with_key(license, EMBEDDED_PUBLIC_KEY_BASE64)
+    verify_license_with_key(license, OXO_CALL_CONFIG.public_key_base64)
 }
 
 /// Verify a [`LicenseFile`] against an arbitrary Base64-encoded public key.
@@ -176,42 +185,9 @@ pub fn verify_license_with_key(
     license: &LicenseFile,
     pubkey_base64: &str,
 ) -> Result<(), LicenseError> {
-    // 1. Schema check
-    if license.payload.schema != SCHEMA_VERSION {
-        return Err(LicenseError::InvalidSchema {
-            expected: SCHEMA_VERSION.to_string(),
-            found: license.payload.schema.clone(),
-        });
-    }
-
-    // 2. Decode the embedded public key
-    let pubkey_bytes = STANDARD
-        .decode(pubkey_base64)
-        .map_err(|e| LicenseError::InvalidPublicKey(e.to_string()))?;
-    let pubkey_array: [u8; 32] = pubkey_bytes
-        .try_into()
-        .map_err(|_| LicenseError::InvalidPublicKey("expected exactly 32 bytes".to_string()))?;
-    let verifying_key = VerifyingKey::from_bytes(&pubkey_array)
-        .map_err(|e| LicenseError::InvalidPublicKey(e.to_string()))?;
-
-    // 3. Decode the signature from the license file
-    let sig_bytes = STANDARD
-        .decode(&license.signature)
-        .map_err(|e| LicenseError::InvalidSignatureEncoding(e.to_string()))?;
-    let sig_array: [u8; 64] = sig_bytes.try_into().map_err(|_| {
-        LicenseError::InvalidSignatureEncoding("expected exactly 64 bytes".to_string())
-    })?;
-    let signature = Signature::from_bytes(&sig_array);
-
-    // 4. Canonical payload bytes (field order defined by LicensePayload declaration)
-    let payload_bytes = serde_json::to_vec(&license.payload).map_err(LicenseError::ParseError)?;
-
-    // 5. Verify
-    verifying_key
-        .verify(&payload_bytes, &signature)
-        .map_err(|_| LicenseError::InvalidSignature)?;
-
-    Ok(())
+    let oxo_license = to_oxo_license_file(license);
+    oxo_license::verify_license_with_key(&oxo_license, pubkey_base64, SCHEMA_VERSION)
+        .map_err(map_oxo_error)
 }
 
 // ── Discovery ────────────────────────────────────────────────────────────────
@@ -256,18 +232,10 @@ fn default_license_candidates() -> Vec<PathBuf> {
 /// 3. First existing path among the platform config dir and the legacy Unix
 ///    fallback `~/.config/oxo-call/license.oxo.json`
 pub fn find_license_path(cli_path: Option<&Path>) -> Option<PathBuf> {
-    if let Some(p) = cli_path {
-        return Some(p.to_path_buf());
-    }
-    if let Ok(p) = std::env::var("OXO_CALL_LICENSE") {
-        return Some(PathBuf::from(p));
-    }
-    let candidates = default_license_candidates();
-    candidates
-        .iter()
-        .find(|path| path.exists())
-        .cloned()
-        .or_else(|| candidates.into_iter().next())
+    oxo_license::find_license_path(cli_path, &OXO_CALL_CONFIG).or_else(|| {
+        let candidates = default_license_candidates();
+        candidates.into_iter().next()
+    })
 }
 
 /// Load the license file from `cli_path` (or the default search path) and
@@ -293,6 +261,40 @@ pub fn load_and_verify(cli_path: Option<&Path>) -> Result<LicenseFile, LicenseEr
     verify_license(&license)?;
 
     Ok(license)
+}
+
+fn to_oxo_license_file(license: &LicenseFile) -> oxo_license::LicenseFile {
+    oxo_license::LicenseFile {
+        payload: oxo_license::LicensePayload {
+            schema: license.payload.schema.clone(),
+            license_id: license.payload.license_id.clone(),
+            issued_to_org: license.payload.issued_to_org.clone(),
+            contact_email: license.payload.contact_email.clone(),
+            license_type: license.payload.license_type.to_string(),
+            scope: license.payload.scope.clone(),
+            perpetual: license.payload.perpetual,
+            issued_at: license.payload.issued_at.clone(),
+        },
+        signature: license.signature.clone(),
+    }
+}
+
+fn map_oxo_error(error: oxo_license::LicenseError) -> LicenseError {
+    match error {
+        oxo_license::LicenseError::NotFound => LicenseError::NotFound,
+        oxo_license::LicenseError::ReadError { path, source } => {
+            LicenseError::ReadError { path, source }
+        }
+        oxo_license::LicenseError::ParseError(err) => LicenseError::ParseError(err),
+        oxo_license::LicenseError::InvalidSchema { expected, found } => {
+            LicenseError::InvalidSchema { expected, found }
+        }
+        oxo_license::LicenseError::InvalidSignature => LicenseError::InvalidSignature,
+        oxo_license::LicenseError::InvalidPublicKey(err) => LicenseError::InvalidPublicKey(err),
+        oxo_license::LicenseError::InvalidSignatureEncoding(err) => {
+            LicenseError::InvalidSignatureEncoding(err)
+        }
+    }
 }
 
 // ── Legacy display helpers (kept for `oxo-call license`) ─────────────────────
@@ -341,6 +343,8 @@ Full license texts: LICENSE-ACADEMIC  |  LICENSE-COMMERCIAL
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use crate::ENV_LOCK;
+    use base64::{Engine as _, engine::general_purpose::STANDARD};
     use ed25519_dalek::{Signer, SigningKey};
 
     /// Generate an ephemeral signing key and return (signing_key, public_key_base64).
@@ -561,6 +565,7 @@ pub mod tests {
 
     #[test]
     fn test_find_license_path_from_env_var() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().to_path_buf();
         unsafe {
@@ -576,6 +581,7 @@ pub mod tests {
 
     #[test]
     fn test_find_license_path_from_cli_arg_takes_precedence_over_env() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         let cli_path = PathBuf::from("/tmp/cli-license.json");
         let env_path = PathBuf::from("/tmp/env-license.json");
         unsafe {
