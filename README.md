@@ -40,7 +40,7 @@ oxo-call is an AI-powered CLI assistant for bioinformatics. Instead of memorizin
 - 🔍 **Dry-run mode** — preview every command before it runs
 - 📜 **History** — every execution is logged with provenance metadata
 - 📋 **Job library** — save named command shortcuts with scheduling, history, and LLM generation (`oxo-call job`)
-- 📊 **Benchmarked** — [286,200 evaluation trials](docs/bench/BENCHMARK.md) showing 25–47 pp exact-match improvement over bare LLM
+- 📊 **Benchmarked** — [Systematic evaluation framework](docs/bench/BENCHMARK.md) across 143 bioinformatics tools with 14,300 descriptions; run `oxo-bench eval` with your own API key to measure real LLM accuracy
 
 ## Why teams adopt oxo-call
 

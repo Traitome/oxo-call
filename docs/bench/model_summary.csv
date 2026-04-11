@@ -1,4 +1,0 @@
-model,n_trials,accuracy,exact_match_rate,avg_flag_recall,avg_flag_precision,avg_token_jaccard,subcommand_match_rate,consistency,avg_latency_ms,avg_tokens,format_valid_rate
-gpt-4o,42900,0.9998,0.9964,0.9998,0.9998,0.9996,1.0000,1.0000,0.0,9.0,1.0000
-claude-3-5-sonnet-20241022,42900,0.9998,0.9960,0.9998,0.9998,0.9996,1.0000,1.0000,0.0,9.0,1.0000
-gpt-4o-mini,42900,0.9996,0.9950,0.9995,0.9998,0.9994,1.0000,1.0000,0.0,9.0,1.0000
