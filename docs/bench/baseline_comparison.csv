@@ -1,4 +1,0 @@
-model,enhanced_accuracy,baseline_accuracy,accuracy_delta,enhanced_exact_match,baseline_exact_match,exact_match_delta,enhanced_flag_recall,baseline_flag_recall,flag_recall_delta,enhanced_consistency,baseline_consistency,consistency_delta
-gpt-4o-mini,0.9996,0.9667,0.0329,0.9950,0.5152,0.4798,0.9995,0.9688,0.0308,1.0000,0.4504,0.5496
-claude-3-5-sonnet-20241022,0.9998,0.9756,0.0242,0.9960,0.6459,0.3501,0.9998,0.9772,0.0226,1.0000,0.5995,0.4005
-gpt-4o,0.9998,0.9820,0.0178,0.9964,0.7363,0.2601,0.9998,0.9832,0.0166,1.0000,0.7008,0.2992

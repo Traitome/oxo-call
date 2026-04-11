@@ -1,18 +1,21 @@
-# Systematic Evaluation of Documentation-Grounded LLM Command Generation for Bioinformatics Tools
+# Systematic Evaluation Framework for Documentation-Grounded LLM Command Generation
 
 ## 1. Overview
 
-This document presents the evaluation framework and results for **oxo-call**, a
-documentation-grounded command-generation system for bioinformatics. We
-systematically assess whether augmenting large language models (LLMs) with
-structured tool documentation and domain-specific skill files produces
-clinically reliable command-line invocations across 143 bioinformatics tools
-spanning 40 analytical domains.
+This document describes the **evaluation framework** for **oxo-call**, a
+documentation-grounded command-generation system for bioinformatics. The framework
+enables systematic assessment of whether augmenting large language models (LLMs)
+with structured tool documentation and domain-specific skill files produces
+correct command-line invocations across 143 bioinformatics tools spanning 40
+analytical domains.
 
-The central finding is that oxo-call's docs-first grounding and skill-augmented
-prompting yield **25–47 percentage-point improvements in exact-match accuracy**
-over bare LLM baselines, raising all models above 99.5% exact match across
-257,400 total evaluation trials.
+> **⚠ Important — No Mock Benchmark Results**
+>
+> This document does not present benchmark results derived from mock/simulated
+> evaluation. The mock mode (`--mock`) exists solely for **CI regression testing**
+> of the evaluation pipeline itself (see §4.2 and §13.1). All accuracy numbers
+> reported in production should come from real LLM API evaluations (`oxo-bench
+> eval --config bench_config.toml`). See §12 for instructions.
 
 ### 1.1 Scope and Scale
 
@@ -22,13 +25,9 @@ over bare LLM baselines, raising all models above 99.5% exact match across
 | Analytical domains | 40 |
 | Reference scenarios | 1,430 (10 per tool) |
 | Natural-language descriptions | 14,300 (10 phrasings per scenario) |
-| Models evaluated | 3 (GPT-4o, Claude 3.5 Sonnet, GPT-4o-mini) |
-| Repeats per trial | 3 |
-| Trials per mode | 128,700 |
-| **Total trials (enhanced + baseline)** | **257,400** |
+| Ablation scenarios | 5 (bare, prompt, skill, doc, full) |
 | Evaluation task catalog | 74 curated LLM evaluation tasks |
 | Simulated experimental scenarios | 10 omics assay types |
-| Ablation scenarios | 5 (bare, prompt, skill, doc, full) |
 
 ---
 
@@ -63,12 +62,17 @@ each grounding component:
 | `doc` | ✓ | ✗ | ✓ | LLM + prompt + tool --help index |
 | `full` | ✓ | ✓ | ✓ | Complete oxo-call pipeline |
 
-### 2.4 Deterministic Evaluation via Mock Perturbation
+### 2.4 Offline Pipeline Validation via Mock Mode
 
-To enable fully offline, reproducible evaluation without API costs, the
-benchmark framework implements a **deterministic mock generator** that simulates
-LLM behavior through controlled perturbation of reference commands. This allows
-CI-integrated regression testing of the evaluation pipeline itself.
+To enable fully offline, reproducible **testing of the evaluation pipeline
+itself** without API costs, the framework implements a **deterministic mock
+generator** that applies controlled perturbations to reference commands. This
+allows CI-integrated regression testing to verify that metric computation,
+CSV output, and aggregation logic are all correct.
+
+**Mock mode is NOT for producing benchmark results.** It simulates LLM behavior
+with hard-coded perturbation rates, not real model inference. See §13.1 for
+the full list of limitations.
 
 ### 2.5 Multi-Provider Support
 
@@ -113,6 +117,16 @@ assistants). For each skill file containing *N* examples (*N* ≤ 10):
    user expertise level (original, beginner, expert, abbreviated, verbose,
    contextual, etc.), yielding 14,300 descriptions in `usage_descriptions.csv`.
 
+> **Note on Data Leakage in Enhanced Evaluation**
+>
+> In the `full` (enhanced) ablation, the LLM prompt contains the exact skill
+> file from which benchmark scenarios are derived. This represents a best-case
+> scenario where documentation perfectly matches the user's intent — essentially
+> providing the model with the answer key. Enhanced results should therefore
+> be interpreted as an upper bound on performance with ideal documentation
+> coverage, not as a general accuracy claim. For unbiased evaluation, always
+> also report `bare` ablation results.
+
 ### 3.2 Domain Coverage
 
 The 143 tools span 40 bioinformatics and computational biology domains:
@@ -128,9 +142,8 @@ The 143 tools span 40 bioinformatics and computational biology domains:
 > text-processing, utilities, variant-annotation, variant-benchmarking,
 > variant-calling, version-control, workflow-manager
 
-The largest domains by tool count are: variant-calling (16 tools, 4,800 trials),
-qc (12 tools, 3,600 trials), assembly (11 tools, 3,300 trials), and
-metagenomics (10 tools, 3,000 trials).
+The largest domains by tool count are: variant-calling (16 tools), qc (12 tools),
+assembly (11 tools), and metagenomics (10 tools).
 
 ### 3.3 Simulated Experimental Scenarios
 
@@ -178,13 +191,18 @@ For each `(description, scenario, model, repeat)` tuple:
 | API key required | No | Yes (OpenAI / Anthropic) |
 | Cost | Zero | Per-token API costs |
 | Reproducibility | Fully deterministic | Stochastic (temperature-dependent) |
-| Purpose | CI regression testing, methodology validation | Production accuracy measurement |
+| Purpose | **CI regression testing, pipeline validation only** | Production accuracy measurement |
 
-#### 4.2.1 Mock Perturbation Model
+**Mock mode must not be used to generate benchmark results.** It applies
+hard-coded perturbation rates that are not derived from empirical LLM behavior.
+Any "accuracy" numbers from mock mode reflect the configured perturbation
+probability, not real model capabilities.
 
-The mock generator simulates LLM behavior by applying controlled perturbations
-to reference commands. Perturbation type is selected deterministically by
-hashing the input tuple `(scenario_id, desc_id, model, repeat)`:
+#### 4.2.1 Mock Perturbation Model (CI Pipeline Testing Only)
+
+The mock generator applies controlled perturbations to reference commands.
+Perturbation type is selected deterministically by hashing the input tuple
+`(scenario_id, desc_id, model, repeat)`:
 
 | Perturbation | Operation | Simulates |
 |--------------|-----------|-----------|
@@ -193,24 +211,17 @@ hashing the input tuple `(scenario_id, desc_id, model, repeat)`:
 | Add flag | Insert a hallucinated flag (`--verbose`, `--debug`, etc.) | Extra flag precision loss |
 | Replace value | Change a numeric or path value | Wrong value substitution |
 
-**Enhanced mode perturbation rates** reflect that the model sees the reference
-example directly in the skill file, and deterministic decoding (`temperature=0`)
-eliminates sampling variance:
+The perturbation rates are **arbitrary** and chosen only to exercise all
+metric code paths in CI:
 
-| Model | Perturbation Rate | Rationale |
-|-------|-------------------|-----------|
-| GPT-4o | 0.3% | Highest instruction-following fidelity |
-| Claude 3.5 Sonnet | 0.4% | Slightly higher paraphrasing tendency |
-| GPT-4o-mini | 0.5% | Smaller model, marginally less precise |
-
-**Baseline mode perturbation rates** simulate reliance on parametric knowledge
-alone. Each repeat is hashed independently, modeling non-deterministic sampling:
-
-| Model | Perturbation Rate | Rationale |
-|-------|-------------------|-----------|
-| GPT-4o | 30% | Best parametric knowledge of CLI tools |
-| Claude 3.5 Sonnet | 40% | Moderate parametric recall |
-| GPT-4o-mini | 55% | Smallest model, weakest parametric memory |
+| Mode | Model | Perturbation Rate |
+|------|-------|-------------------|
+| Enhanced (mock) | GPT-4o | 0.3% |
+| Enhanced (mock) | Claude 3.5 Sonnet | 0.4% |
+| Enhanced (mock) | GPT-4o-mini | 0.5% |
+| Baseline (mock) | GPT-4o | 30% |
+| Baseline (mock) | Claude 3.5 Sonnet | 40% |
+| Baseline (mock) | GPT-4o-mini | 55% |
 
 ### 4.3 Metrics
 
@@ -218,25 +229,47 @@ alone. Each repeat is hashed independently, modeling non-deterministic sampling:
 
 Each trial produces the following measurements (columns in `benchmark_trials.csv`):
 
-| Metric | Formula | Description |
-|--------|---------|-------------|
-| `exact_match` | `generated == reference` (whitespace-normalized) | Strict string equality — the primary metric |
-| `token_jaccard` | \|A ∩ B\| / \|A ∪ B\| over token sets A, B | Order-insensitive token overlap |
-| `flag_recall` | \|A ∩ B\| / \|B\| | Fraction of reference tokens present in output |
-| `flag_precision` | \|A ∩ B\| / \|A\| | Fraction of generated tokens matching reference |
-| `flag_group_recall` | Flag–value pair recall | Grouped flag-argument recall |
-| `flag_group_precision` | Flag–value pair precision | Grouped flag-argument precision |
+| Metric | Formula / Description | Notes |
+|--------|----------------------|-------|
+| `exact_match` | `generated == reference` (whitespace-normalized) | Primary metric — strict string equality |
+| `token_jaccard` | \|A ∩ B\| / \|A ∪ B\| over raw token sets A, B | Legacy; order-insensitive, retained for backward compatibility |
+| `flag_recall` | \|A ∩ B\| / \|B\| over raw token sets | Legacy; prefer `flag_group_recall` |
+| `flag_precision` | \|A ∩ B\| / \|A\| over raw token sets | Legacy; prefer `flag_group_precision` |
+| `flag_group_recall` | Fraction of reference flag–value groups found in generated output | **Preferred** — penalises `8 --threads` when reference is `--threads 8` |
+| `flag_group_precision` | Fraction of generated flag–value groups matching reference | **Preferred** — group-aware precision |
+| `flag_group_jaccard` | Jaccard over flag–value group sets | **Preferred** — group-aware Jaccard |
+| `positional_order_match` | 1.0 if reference positional args appear in correct relative order, 0.0 otherwise | Penalises swapped positional argument order |
 | `subcommand_match` | `tokens[0]_gen == tokens[0]_ref` | Correct subcommand selection |
-| `accuracy_score` | 0.40 × recall + 0.30 × precision + 0.20 × jaccard + 0.10 × subcommand | Composite weighted accuracy ∈ [0, 1] |
+| `accuracy_score` | 0.40 × flag_group_recall + 0.25 × flag_group_precision + 0.20 × flag_group_jaccard + 0.10 × subcommand + 0.05 × positional_order | Composite weighted score ∈ [0, 1] |
 | `format_valid` | Response contains `ARGS:` and `EXPLANATION:` lines | LLM response format compliance |
 | `latency_ms` | Wall-clock time per LLM call | API response latency |
 
+#### Why Flag-Group Metrics?
+
+The legacy token-set metrics (Jaccard, recall, precision) treat every
+whitespace-separated token as an unordered set element. This means that
+`--threads 8` and `8 --threads` score identically — even though the latter
+is semantically wrong for most CLI tools (the parser would receive `8` as a
+positional argument and `--threads` without a value).
+
+The flag-group metrics group each named flag (`-f` / `--flag`) with its
+immediately-following non-flag value token. For example:
+
+| Command | Flag groups |
+|---------|-------------|
+| `cmd --threads 8 input.txt` | `["cmd"]`, `["--threads", "8"]`, `["input.txt"]` |
+| `cmd 8 --threads input.txt` | `["cmd"]`, `["8"]`, `["--threads"]`, `["input.txt"]` |
+| `cmd --8 threads input.txt` | `["cmd"]`, `["--8", "threads"]`, `["input.txt"]` |
+
+The three forms above produce different flag-group sets and thus different
+`flag_group_recall` / `flag_group_precision` / `flag_group_jaccard` scores.
+The `accuracy_score` is computed over these group-aware metrics.
+
 #### Model-Level Aggregates
 
-Model-level statistics are computed as means over all *n* = 42,900 trials per
-model and reported in `model_summary.csv`. Self-consistency is defined as the
-fraction of `(scenario, description)` groups where all 3 repeats produce
-identical output.
+Model-level statistics are computed as means over all trials per model and
+reported in `model_summary.csv`. Self-consistency is defined as the fraction
+of `(scenario, description)` groups where all repeats produce identical output.
 
 ---
 
@@ -259,101 +292,15 @@ documentation or skill examples, isolating the model's parametric knowledge.
 
 ## 6. Results
 
-### 6.1 Primary Results — Enhanced Mode (with docs + skills)
-
-*n* = 42,900 trials per model (143 tools × 10 scenarios × 10 descriptions × 3 repeats).
-
-| Model | Accuracy | Exact Match | Flag Recall | Flag Precision | Jaccard | Consistency |
-|-------|----------|-------------|-------------|----------------|---------|-------------|
-| GPT-4o | 99.98% | 99.67% | 99.99% | 99.98% | 99.97% | 100.00% |
-| Claude 3.5 Sonnet | 99.97% | 99.62% | 99.98% | 99.98% | 99.96% | 100.00% |
-| GPT-4o-mini | 99.96% | 99.52% | 99.96% | 99.98% | 99.94% | 100.00% |
-
-All three models achieve >99.5% exact match and 100.0% self-consistency.
-Subcommand match rate and format validity are 100.0% across all models.
-
-### 6.2 Baseline Results — Bare LLM (no docs, no skills)
-
-*n* = 42,900 trials per model under identical evaluation protocol.
-
-| Model | Accuracy | Exact Match | Flag Recall | Flag Precision | Jaccard | Consistency |
-|-------|----------|-------------|-------------|----------------|---------|-------------|
-| GPT-4o (baseline) | 98.13% | 74.10% | 98.28% | 98.20% | 96.77% | 70.16% |
-| Claude 3.5 Sonnet (baseline) | 97.47% | 65.26% | 97.68% | 97.57% | 95.64% | 60.14% |
-| GPT-4o-mini (baseline) | 96.55% | 52.38% | 96.82% | 96.70% | 94.06% | 45.28% |
-
-### 6.3 Enhanced vs. Baseline — Head-to-Head Comparison
-
-| Model | Enhanced Exact Match | Baseline Exact Match | **Δ Exact Match** | Enhanced Consistency | Baseline Consistency | **Δ Consistency** |
-|-------|---------------------|---------------------|-------------------|---------------------|---------------------|-------------------|
-| GPT-4o-mini | 99.52% | 52.38% | **+47.14 pp** | 100.00% | 45.28% | **+54.72 pp** |
-| Claude 3.5 Sonnet | 99.62% | 65.26% | **+34.35 pp** | 100.00% | 60.14% | **+39.86 pp** |
-| GPT-4o | 99.67% | 74.10% | **+25.56 pp** | 100.00% | 70.16% | **+29.84 pp** |
-
-The improvement is **inversely proportional to baseline model capability**: the
-weakest baseline model (GPT-4o-mini) benefits most from documentation grounding
-(+47.14 pp exact match), while the strongest baseline (GPT-4o) still gains
-+25.56 pp. This demonstrates that docs-first grounding compensates for
-parametric knowledge gaps, effectively equalizing performance across model tiers.
-
-Additional metric deltas:
-
-| Model | Δ Accuracy | Δ Flag Recall | Δ Jaccard |
-|-------|-----------|---------------|-----------|
-| GPT-4o | +1.85 pp | +1.71 pp | +3.20 pp |
-| Claude 3.5 Sonnet | +2.51 pp | +2.30 pp | +4.32 pp |
-| GPT-4o-mini | +3.41 pp | +3.14 pp | +5.88 pp |
+*Real benchmark results will be populated here after running `oxo-bench eval`
+with real LLM API calls. See §12 for instructions.*
 
 ---
 
-## 7. Per-Category Analysis
-
-### 7.1 Category-Level Results (Enhanced Mode)
-
-Results are stratified across all 40 analytical domains with 95% confidence
-intervals computed via normal approximation on the binomial proportion. Selected
-categories shown below; full data in `model_summary_by_category.csv`.
-
-#### Core Bioinformatics Domains
-
-| Category | Model | Tools | Trials | Accuracy (95% CI) | Exact Match (95% CI) | Consistency |
-|----------|-------|-------|--------|-------------------|---------------------|-------------|
-| variant-calling | GPT-4o | 16 | 4,800 | 99.98% (±0.04%) | 99.62% (±0.17%) | 100.0% |
-| variant-calling | Claude 3.5 Sonnet | 16 | 4,800 | 99.97% (±0.05%) | 99.44% (±0.21%) | 100.0% |
-| variant-calling | GPT-4o-mini | 16 | 4,800 | 99.97% (±0.05%) | 99.62% (±0.17%) | 100.0% |
-| qc | GPT-4o | 12 | 3,600 | 99.97% (±0.05%) | 99.42% (±0.25%) | 100.0% |
-| qc | Claude 3.5 Sonnet | 12 | 3,600 | 99.98% (±0.05%) | 99.50% (±0.23%) | 100.0% |
-| qc | GPT-4o-mini | 12 | 3,600 | 99.99% (±0.02%) | 99.92% (±0.09%) | 100.0% |
-| assembly | GPT-4o | 11 | 3,300 | 99.99% (±0.04%) | 99.73% (±0.18%) | 100.0% |
-| assembly | Claude 3.5 Sonnet | 11 | 3,300 | 99.99% (±0.03%) | 99.82% (±0.15%) | 100.0% |
-| assembly | GPT-4o-mini | 11 | 3,300 | 99.98% (±0.04%) | 99.36% (±0.27%) | 100.0% |
-| metagenomics | GPT-4o | 10 | 3,000 | 99.99% (±0.03%) | 99.70% (±0.20%) | 100.0% |
-| metagenomics | Claude 3.5 Sonnet | 10 | 3,000 | 99.99% (±0.04%) | 99.80% (±0.16%) | 100.0% |
-| metagenomics | GPT-4o-mini | 10 | 3,000 | 99.99% (±0.03%) | 99.80% (±0.16%) | 100.0% |
-| alignment | GPT-4o | 9 | 2,700 | 99.99% (±0.05%) | 99.67% (±0.22%) | 100.0% |
-| alignment | Claude 3.5 Sonnet | 9 | 2,700 | 99.97% (±0.06%) | 99.56% (±0.25%) | 100.0% |
-| alignment | GPT-4o-mini | 9 | 2,700 | 99.94% (±0.09%) | 99.33% (±0.31%) | 100.0% |
-| rna-seq | GPT-4o | 8 | 2,400 | 99.99% (±0.03%) | 99.88% (±0.14%) | 100.0% |
-| rna-seq | Claude 3.5 Sonnet | 8 | 2,400 | 100.00% (±0.00%) | 99.88% (±0.14%) | 100.0% |
-| rna-seq | GPT-4o-mini | 8 | 2,400 | 99.99% (±0.04%) | 99.88% (±0.14%) | 100.0% |
-| epigenomics | GPT-4o | 8 | 2,400 | 99.99% (±0.04%) | 99.50% (±0.28%) | 100.0% |
-| epigenomics | Claude 3.5 Sonnet | 8 | 2,400 | 99.99% (±0.03%) | 99.62% (±0.24%) | 100.0% |
-| epigenomics | GPT-4o-mini | 8 | 2,400 | 99.98% (±0.06%) | 99.50% (±0.28%) | 100.0% |
-| single-cell | GPT-4o | 5 | 1,500 | 99.98% (±0.08%) | 99.60% (±0.32%) | 100.0% |
-| single-cell | Claude 3.5 Sonnet | 5 | 1,500 | 99.97% (±0.09%) | 99.40% (±0.39%) | 100.0% |
-| single-cell | GPT-4o-mini | 5 | 1,500 | 99.93% (±0.14%) | 98.40% (±0.64%) | 100.0% |
-
-#### Categories with Perfect Scores (100% Exact Match, All Models)
-
-The following 13 categories achieved 100.0% exact match across all three
-models: assembly-polishing, genome-annotation, genomic-arithmetic (GPT-4o),
-motif-analysis (GPT-4o), runtime, scripting (Claude, GPT-4o-mini),
-sequence-manipulation, sequence-search, version-control, and workflow-manager.
-
-### 7.2 Workflow Engine Performance
+## 7. Workflow Engine Performance
 
 The DAG-based workflow engine (`src/engine.rs`) was profiled across 7 standard
-bioinformatics workflows:
+bioinformatics workflows (from `bench_workflow.csv`):
 
 | Workflow | Tasks | Parse (μs) | Expand (μs) | Cycle-Free |
 |----------|-------|-----------|------------|------------|
@@ -366,7 +313,8 @@ bioinformatics workflows:
 | Long-reads | 11 | 391.0 | 19.3 | ✓ |
 
 All workflows parse in <520 μs and expand in <23 μs, confirming negligible
-overhead for DAG scheduling.
+overhead for DAG scheduling. These numbers are from real measurements of the
+Rust workflow engine (not mock-generated).
 
 ---
 
@@ -382,19 +330,7 @@ augmentation components:
 | **Tool documentation** (`--help` output) | Authoritative flag vocabulary, syntax rules, valid value ranges | Eliminates hallucinated flags, corrects value formats |
 | **Skill files** (curated examples) | Few-shot exemplars with exact ARGS, domain concepts, pitfalls | Provides correct flag combinations, ordering conventions |
 
-### 8.2 Observed Effects
-
-The baseline-to-enhanced delta can be decomposed by error type (see §9):
-
-- **Missing flags** reduced by 98.7% (GPT-4o: 3,257 → 42 errors)
-- **Extra/hallucinated flags** reduced by 98.1% (GPT-4o: 3,589 → 69 errors)
-- **Wrong values** reduced by 100% for GPT-4o (2,126 → 0) and 99.1% for
-  GPT-4o-mini (3,924 → 36)
-- **Flag reordering** reduced by 98.6% (GPT-4o: 3,381 → 48 errors)
-
-The near-total elimination of wrong-value errors for GPT-4o (0 in enhanced vs.
-2,126 in baseline) suggests that documentation grounding completely resolves
-value-format ambiguities for the highest-capability model.
+*Observed component contribution figures will be reported after real API evaluation.*
 
 ---
 
@@ -414,58 +350,13 @@ Errors are classified into seven mutually exclusive categories:
 | `format_error` | LLM response missing `ARGS:` or `EXPLANATION:` lines |
 | `empty_output` | No output generated |
 
-### 9.2 Enhanced Mode Error Distribution
-
-Total errors across 42,900 trials per model:
-
-| Model | Total Errors | Missing Flag | Extra Flag | Wrong Value | Flag Reorder | Wrong Subcmd | Format Error |
-|-------|-------------|-------------|-----------|------------|-------------|-------------|-------------|
-| GPT-4o | 159 | 42 (26.4%) | 69 (43.4%) | 0 (0.0%) | 48 (30.2%) | 0 | 0 |
-| Claude 3.5 Sonnet | 183 | 48 (26.2%) | 60 (32.8%) | 24 (13.1%) | 51 (27.9%) | 0 | 0 |
-| GPT-4o-mini | 231 | 99 (42.9%) | 39 (16.9%) | 36 (15.6%) | 57 (24.7%) | 0 | 0 |
-
-**Error rate (enhanced)**: 0.33% (GPT-4o), 0.38% (Claude 3.5 Sonnet), 0.48%
-(GPT-4o-mini). No subcommand, format, or empty-output errors were observed in
-any model under the enhanced condition.
-
-Notable patterns:
-- GPT-4o produces **zero wrong-value errors**, suggesting its instruction-following
-  is sufficient to exactly reproduce values when documentation is provided.
-- GPT-4o-mini's dominant failure mode is **missing flags** (42.9% of its errors),
-  indicating occasional under-generation even with full context.
-- GPT-4o's dominant failure mode is **extra flags** (43.4%), suggesting slight
-  over-generation tendencies.
-
-### 9.3 Baseline Error Distribution
-
-Total errors across 42,900 trials per model (bare LLM, no docs/skills):
-
-| Model | Total Errors | Missing Flag | Extra Flag | Wrong Value | Flag Reorder | Wrong Subcmd | Format Error |
-|-------|-------------|-------------|-----------|------------|-------------|-------------|-------------|
-| GPT-4o (baseline) | 12,353 | 3,257 (26.4%) | 3,589 (29.1%) | 2,126 (17.2%) | 3,381 (27.4%) | 0 | 0 |
-| Claude 3.5 Sonnet (baseline) | 16,570 | 4,364 (26.3%) | 4,811 (29.0%) | 2,916 (17.6%) | 4,479 (27.0%) | 0 | 0 |
-| GPT-4o-mini (baseline) | 22,715 | 5,999 (26.4%) | 6,599 (29.1%) | 3,924 (17.3%) | 6,193 (27.3%) | 0 | 0 |
-
-**Error rate (baseline)**: 25.90% (GPT-4o), 34.74% (Claude 3.5 Sonnet), 47.62%
-(GPT-4o-mini). Error types are approximately uniformly distributed in the
-baseline, consistent with random perturbation from parametric uncertainty.
-
-### 9.4 Error Reduction Summary
-
-| Model | Baseline Errors | Enhanced Errors | **Reduction** | Reduction Factor |
-|-------|----------------|----------------|---------------|-----------------|
-| GPT-4o | 12,353 | 159 | **98.71%** | 77.7× |
-| Claude 3.5 Sonnet | 16,570 | 183 | **98.90%** | 90.5× |
-| GPT-4o-mini | 22,715 | 231 | **98.98%** | 98.3× |
-
-Documentation grounding reduces errors by approximately **two orders of
-magnitude** across all models.
+*Error distribution tables will be reported after real API evaluation.*
 
 ---
 
 ## 10. Statistical Analysis
 
-### 10.1 Confidence Intervals
+### 10.1 Confidence Interval Method
 
 Per-category 95% confidence intervals are computed using the Wald normal
 approximation on the binomial proportion:
@@ -476,35 +367,14 @@ where $\hat{p}$ is the observed proportion and $n$ is the number of trials.
 These are reported in the `accuracy_ci95` and `exact_match_ci95` columns of
 `model_summary_by_category.csv`.
 
-For model-level aggregates (*n* = 42,900), the 95% CI half-widths are:
+### 10.2 Effect Size Method
 
-| Model | Exact Match | 95% CI Half-Width | 95% CI |
-|-------|------------|-------------------|--------|
-| GPT-4o | 99.67% | ±0.08% | [99.59%, 99.75%] |
-| Claude 3.5 Sonnet | 99.62% | ±0.09% | [99.53%, 99.71%] |
-| GPT-4o-mini | 99.52% | ±0.10% | [99.42%, 99.62%] |
+The enhanced-vs-baseline comparison reports Cohen's *h* using the arcsine
+transformation of two proportions:
 
-### 10.2 Effect Sizes
+$$h = 2\arcsin(\sqrt{p_1}) - 2\arcsin(\sqrt{p_2})$$
 
-The enhanced-vs-baseline comparison yields large effect sizes by any standard
-measure:
-
-| Model | Δ Exact Match (pp) | Cohen's *h* | Interpretation |
-|-------|-------------------|-------------|----------------|
-| GPT-4o | +25.56 | 0.70 | Large |
-| Claude 3.5 Sonnet | +34.35 | 0.88 | Large |
-| GPT-4o-mini | +47.14 | 1.16 | Very large |
-
-Cohen's *h* is computed as $h = 2\arcsin(\sqrt{p_1}) - 2\arcsin(\sqrt{p_2})$
-for the arcsine transformation of two proportions. All effects exceed the
-conventional threshold of 0.8 for a "large" effect.
-
-### 10.3 Consistency Analysis
-
-Self-consistency (fraction of description groups where all 3 repeats produce
-identical output) is 100.0% for all enhanced models, compared to 45.28–70.16%
-for baselines. This reflects both the determinism of documentation-grounded
-prompting and the temperature=0 decoding strategy.
+*Computed effect sizes will be reported after real API evaluation.*
 
 ---
 
@@ -540,22 +410,54 @@ oxo-call run bowtie2 "build index from reference.fa"  # uses bowtie2-build autom
 
 ## 12. Reproducibility
 
-### 12.1 Regenerating Benchmark Data
+### 12.1 Generating Reference Data
 
-All benchmark data can be regenerated deterministically from the skill files:
+The reference commands and usage descriptions are deterministically generated
+from skill files:
 
 ```bash
-# Step 1: Generate reference commands and usage descriptions from skill files
+# Generate reference commands and usage descriptions from skill files
 ./target/debug/oxo-bench generate --skills-dir skills/ --output docs/bench/
-
-# Step 2: Run mock evaluation (offline, no API key required)
-./target/debug/oxo-bench eval --mock --data-dir docs/bench/ --output docs/bench/
-
-# Step 3 (optional): Run real evaluation against live LLM APIs
-./target/debug/oxo-bench eval --config bench_config.toml --data-dir docs/bench/ --output bench_results/
 ```
 
-### 12.2 Adding New Benchmarks
+### 12.2 Running Real Evaluation
+
+To obtain real benchmark results, run evaluation against live LLM APIs:
+
+```bash
+# Initialize a benchmark configuration template
+./target/debug/oxo-bench init-config --output bench_config.toml
+
+# Edit bench_config.toml to configure models, API keys, and scenarios
+
+# Run real evaluation (requires API keys)
+./target/debug/oxo-bench eval --config bench_config.toml \
+                              --data-dir docs/bench/ \
+                              --output bench_results/
+
+# Or evaluate specific models with CLI overrides
+./target/debug/oxo-bench eval --models "gpt-4o,gpt-4o-mini" \
+                              --scenarios "bare,full" \
+                              --data-dir docs/bench/ \
+                              --output bench_results/
+```
+
+### 12.3 CI Pipeline Validation (Mock Mode)
+
+Mock mode is provided **exclusively** for validating the evaluation pipeline
+itself in CI, without requiring API keys or incurring costs:
+
+```bash
+# Validate pipeline metrics and CSV output (CI use only)
+./target/debug/oxo-bench eval --mock --data-dir docs/bench/ --output /tmp/mock_out/
+```
+
+The mock output verifies that metric computation, CSV serialization, and
+aggregation logic are working correctly. **Do not use mock output as benchmark
+results.** The perturbation rates are arbitrary and the results have no
+relationship to real LLM behavior.
+
+### 12.4 Adding New Benchmarks
 
 1. **New tool**: Add a `skills/<tool>.md` with ≥5 examples following the
    standard YAML front-matter format, then run `oxo-bench generate` to
@@ -567,40 +469,37 @@ All benchmark data can be regenerated deterministically from the skill files:
 3. **New model**: Add a `[[models]]` entry to `bench_config.toml` (generate
    a template with `oxo-bench init-config`).
 
-### 12.3 CI Integration
-
-The following benchmark data files are committed to the repository as
-deterministic snapshots and are regeneratable at any time:
-
-- `reference_commands.csv`, `usage_descriptions.csv` — generated from skill files
-- `model_summary.csv`, `model_summary_by_tool.csv`, `model_summary_by_category.csv`
-  — aggregate evaluation results
-- `baseline_summary.csv`, `baseline_comparison.csv` — baseline comparison data
-- `error_analysis.csv`, `baseline_error_analysis.csv` — error type breakdowns
-- `bench_scenarios.csv`, `bench_eval_tasks.csv`, `bench_workflow.csv` — scenario metadata
-
-Large per-trial CSVs (`benchmark_trials.csv`, `baseline_trials.csv`,
-`trials_*.csv`) are listed in `.gitignore` and excluded from version control.
-
 ---
 
 ## 13. Limitations
 
-### 13.1 Mock vs. Real Evaluation
+### 13.1 Mock Mode is Not Real Evaluation
 
-The results presented in this document are from the deterministic mock
-evaluation. While the mock faithfully models the *evaluation pipeline* and
-*metric computation*, it simulates LLM behavior through controlled perturbation
-rather than actual model inference. Key implications:
+Mock mode (`--mock`) simulates LLM behavior through deterministic perturbation
+of reference commands. It is designed exclusively for:
 
-- **Format validity** is 100% in mock mode because the mock generator always
-  produces valid `ARGS:` / `EXPLANATION:` output. Real LLMs occasionally produce
-  malformed responses.
-- **Perturbation rates** are calibrated to approximate real model behavior but
-  are not derived from empirical LLM error distributions.
-- **Latency** is 0 ms in mock mode and is not representative of API latency.
-- Real API evaluation with `--config bench_config.toml` should be used for
-  production accuracy claims.
+- **CI regression testing**: ensuring the evaluation pipeline doesn't break
+  when the codebase changes
+- **Methodology validation**: verifying that metric computation (exact_match,
+  flag_group_jaccard, etc.) produces correct values on known inputs
+
+Mock mode results **cannot** be used as accuracy claims because:
+
+1. **Circular reasoning**: The "error rates" reflect the hard-coded perturbation
+   probability, not real model behavior. Claiming "GPT-4o achieves 99.7% exact
+   match" from mock data is equivalent to saying "we programmed it to fail 0.3%
+   of the time."
+
+2. **Fabricated error distribution**: Error categories (missing flags, extra
+   flags, etc.) in mock mode reflect the perturbation operators, not real LLM
+   failure modes.
+
+3. **No real inference**: Format validity is always 100% in mock mode; latency
+   is always 0 ms. Neither is representative.
+
+4. **Data leakage in enhanced mode**: The reference examples are drawn directly
+   from the same skill files that are injected into the LLM prompt. Even in
+   real evaluation, enhanced results represent an upper bound.
 
 ### 13.2 Skill File Overlap
 
@@ -608,8 +507,7 @@ In the enhanced condition, the LLM prompt contains the exact skill file from
 which benchmark scenarios are derived. This represents a best-case scenario
 where the documentation perfectly matches the user's intent. In production
 usage, the skill file may not contain an example matching every possible user
-request, and performance is expected to be lower than the benchmarked 99.5%+
-exact match.
+request, and performance is expected to be lower than the enhanced benchmark.
 
 ### 13.3 Generalizability
 
@@ -618,12 +516,19 @@ not exhaustive coverage of the bioinformatics ecosystem. Tools not represented
 in the skill library rely solely on `--help` documentation grounding, and their
 accuracy is expected to lie between the baseline and enhanced performance levels.
 
-### 13.4 Token Set Metrics
+### 13.4 Flag-Group Metric Limitations
 
-The token-set metrics (Jaccard, recall, precision) treat each whitespace-delimited
-token as an unordered set element. This means that `--threads 8` and `8 --threads`
-receive identical scores despite semantic differences. The `exact_match` metric
-captures such ordering sensitivity and is therefore the primary evaluation criterion.
+The flag-group parser uses a simple heuristic: a flag token (starting with `-`)
+followed by a non-flag token is treated as a flag–value pair. This heuristic
+may be wrong for:
+
+- Boolean flags: `--verbose` followed by a positional may incorrectly consume
+  the positional as a value (e.g., `--verbose input.bam` → group `["--verbose", "input.bam"]`)
+- Multi-value flags: `--include A B` — only the first value `A` is captured
+  in the group
+
+The `exact_match` metric is immune to these parser limitations and remains the
+most reliable evaluation criterion.
 
 ---
 
@@ -633,22 +538,19 @@ captures such ordering sensitivity and is therefore the primary evaluation crite
 |------|------|-------------|
 | `reference_commands.csv` | 1,430 | Ground-truth ARGS for 143 tools × 10 scenarios |
 | `usage_descriptions.csv` | 14,300 | 10 natural-language phrasings per scenario |
-| `model_summary.csv` | 3 | Aggregate accuracy metrics per LLM model |
-| `model_summary_by_tool.csv` | 429 | Per-(tool, model) accuracy breakdown |
-| `model_summary_by_category.csv` | 120 | Per-(category, model) accuracy with 95% CIs |
-| `baseline_summary.csv` | 3 | Aggregate metrics for baseline (bare LLM, no docs) |
-| `baseline_comparison.csv` | 3 | Side-by-side enhanced vs. baseline comparison per model |
-| `error_analysis.csv` | 3 | Error type distribution (enhanced mode) |
-| `baseline_error_analysis.csv` | 3 | Error type distribution (baseline mode) |
 | `bench_scenarios.csv` | 9 | Simulated omics experimental scenarios |
 | `bench_eval_tasks.csv` | 74 | Curated LLM evaluation task catalog with required flag patterns |
-| `bench_workflow.csv` | 7 | Workflow parsing/expansion timing |
-| `benchmark_trials.csv`* | 128,700 | Full per-trial results (enhanced mode) |
-| `baseline_trials.csv`* | 128,700 | Full per-trial results (baseline mode) |
-| `trials_gpt-4o.csv`* | 42,900 | Per-model trial detail |
-| `trials_claude-3-5-sonnet-20241022.csv`* | 42,900 | Per-model trial detail |
-| `trials_gpt-4o-mini.csv`* | 42,900 | Per-model trial detail |
+| `bench_workflow.csv` | 7 | Workflow parsing/expansion timing (real measurements) |
 
-\* Large files excluded from version control (`.gitignore`). Regenerate with
-`oxo-bench eval --mock`.
+**Aggregate result CSVs** (`model_summary.csv`, `baseline_summary.csv`,
+`baseline_comparison.csv`, `error_analysis.csv`, `baseline_error_analysis.csv`,
+`model_summary_by_tool.csv`, `model_summary_by_category.csv`) are **not
+committed** to the repository. They must be generated by running real API
+evaluation:
 
+```bash
+oxo-bench eval --config bench_config.toml --data-dir docs/bench/ --output bench_results/
+```
+
+Large per-trial CSVs (`benchmark_trials.csv`, `baseline_trials.csv`,
+`trials_*.csv`) are also excluded from version control (see `.gitignore`).

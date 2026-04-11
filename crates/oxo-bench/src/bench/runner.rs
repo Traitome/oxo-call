@@ -7,7 +7,7 @@
 //! The generator is injected as a trait so that unit tests can substitute a
 //! mock without requiring a real API token or the `oxo-call` binary.
 
-use crate::bench::compare::{compare_commands, compare_flag_groups};
+use crate::bench::compare::compare_commands;
 use crate::bench::scenario::{Scenario, UsageDescription};
 use std::io::Write;
 use std::time::Instant;
@@ -32,6 +32,10 @@ pub struct TrialResult {
     pub flag_precision: f64,
     pub flag_group_recall: f64,
     pub flag_group_precision: f64,
+    /// Jaccard similarity over flag–value groups (order-aware pairing).
+    pub flag_group_jaccard: f64,
+    /// Whether positional arguments appear in the correct relative order.
+    pub positional_order_match: f64,
     pub subcommand_match: bool,
     pub accuracy_score: f64,
     pub latency_ms: f64,
@@ -169,8 +173,6 @@ pub fn run_mock_benchmark(
             let tokens = generated_args.split_whitespace().count();
 
             let cmp = compare_commands(&generated_args, &scenario.reference_args);
-            let (fg_recall, fg_precision) =
-                compare_flag_groups(&generated_args, &scenario.reference_args);
 
             results.push(TrialResult {
                 tool: desc.tool.clone(),
@@ -186,8 +188,10 @@ pub fn run_mock_benchmark(
                 token_jaccard: cmp.token_jaccard,
                 flag_recall: cmp.flag_recall,
                 flag_precision: cmp.flag_precision,
-                flag_group_recall: fg_recall,
-                flag_group_precision: fg_precision,
+                flag_group_recall: cmp.flag_group_recall,
+                flag_group_precision: cmp.flag_group_precision,
+                flag_group_jaccard: cmp.flag_group_jaccard,
+                positional_order_match: cmp.positional_order_match,
                 subcommand_match: cmp.subcommand_match,
                 accuracy_score: cmp.accuracy_score(),
                 latency_ms,
@@ -267,8 +271,6 @@ pub fn run_mock_baseline(
             let tokens = generated_args.split_whitespace().count();
 
             let cmp = compare_commands(&generated_args, &scenario.reference_args);
-            let (fg_recall, fg_precision) =
-                compare_flag_groups(&generated_args, &scenario.reference_args);
 
             results.push(TrialResult {
                 tool: desc.tool.clone(),
@@ -284,8 +286,10 @@ pub fn run_mock_baseline(
                 token_jaccard: cmp.token_jaccard,
                 flag_recall: cmp.flag_recall,
                 flag_precision: cmp.flag_precision,
-                flag_group_recall: fg_recall,
-                flag_group_precision: fg_precision,
+                flag_group_recall: cmp.flag_group_recall,
+                flag_group_precision: cmp.flag_group_precision,
+                flag_group_jaccard: cmp.flag_group_jaccard,
+                positional_order_match: cmp.positional_order_match,
                 subcommand_match: cmp.subcommand_match,
                 accuracy_score: cmp.accuracy_score(),
                 latency_ms,
@@ -614,8 +618,6 @@ pub fn run_benchmark(
             let latency_ms = start.elapsed().as_secs_f64() * 1000.0;
 
             let cmp = compare_commands(&resp.args, &scenario.reference_args);
-            let (fg_recall, fg_precision) =
-                compare_flag_groups(&resp.args, &scenario.reference_args);
 
             results.push(TrialResult {
                 tool: desc.tool.clone(),
@@ -631,8 +633,10 @@ pub fn run_benchmark(
                 token_jaccard: cmp.token_jaccard,
                 flag_recall: cmp.flag_recall,
                 flag_precision: cmp.flag_precision,
-                flag_group_recall: fg_recall,
-                flag_group_precision: fg_precision,
+                flag_group_recall: cmp.flag_group_recall,
+                flag_group_precision: cmp.flag_group_precision,
+                flag_group_jaccard: cmp.flag_group_jaccard,
+                positional_order_match: cmp.positional_order_match,
                 subcommand_match: cmp.subcommand_match,
                 accuracy_score: cmp.accuracy_score(),
                 latency_ms,
@@ -715,15 +719,15 @@ pub fn write_trials_csv<W: Write>(writer: &mut W, trials: &[TrialResult]) -> std
         writer,
         "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,\
          exact_match,token_jaccard,flag_recall,flag_precision,\
-         flag_group_recall,flag_group_precision,subcommand_match,\
-         accuracy_score,latency_ms,tokens,format_valid"
+         flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,\
+         subcommand_match,accuracy_score,latency_ms,tokens,format_valid"
     )?;
     for t in trials {
         let gen_esc = csv_escape(&t.generated_args);
         let ref_esc = csv_escape(&t.reference_args);
         writeln!(
             writer,
-            "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{},{}",
             t.tool,
             t.category,
             t.scenario_id,
@@ -739,6 +743,8 @@ pub fn write_trials_csv<W: Write>(writer: &mut W, trials: &[TrialResult]) -> std
             t.flag_precision,
             t.flag_group_recall,
             t.flag_group_precision,
+            t.flag_group_jaccard,
+            t.positional_order_match,
             t.subcommand_match,
             t.accuracy_score,
             t.latency_ms,
@@ -1300,6 +1306,8 @@ mod tests {
                 flag_precision: 1.0,
                 flag_group_recall: 1.0,
                 flag_group_precision: 1.0,
+                flag_group_jaccard: 1.0,
+                positional_order_match: 1.0,
                 subcommand_match: true,
                 accuracy_score: 1.0,
                 latency_ms: 100.0,
@@ -1330,6 +1338,8 @@ mod tests {
                 flag_precision: 1.0,
                 flag_group_recall: 1.0,
                 flag_group_precision: 1.0,
+                flag_group_jaccard: 1.0,
+                positional_order_match: 1.0,
                 subcommand_match: true,
                 accuracy_score: 1.0,
                 latency_ms: 100.0,
@@ -1477,6 +1487,8 @@ mod tests {
                         flag_precision: 1.0,
                         flag_group_recall: 1.0,
                         flag_group_precision: 1.0,
+                        flag_group_jaccard: 1.0,
+                        positional_order_match: 1.0,
                         subcommand_match: true,
                         accuracy_score: 1.0,
                         latency_ms: 0.0,
@@ -1655,6 +1667,8 @@ mod tests {
                         flag_precision: 1.0,
                         flag_group_recall: 1.0,
                         flag_group_precision: 1.0,
+                        flag_group_jaccard: 1.0,
+                        positional_order_match: 1.0,
                         subcommand_match: true,
                         accuracy_score: 1.0,
                         latency_ms: 0.0,
@@ -1731,6 +1745,8 @@ mod tests {
             flag_precision: 1.0,
             flag_group_recall: 0.75,
             flag_group_precision: 1.0,
+            flag_group_jaccard: 0.75,
+            positional_order_match: 1.0,
             subcommand_match: true,
             accuracy_score: 0.9,
             latency_ms: 0.0,
@@ -1758,6 +1774,8 @@ mod tests {
             flag_precision: 0.8,
             flag_group_recall: 1.0,
             flag_group_precision: 0.8,
+            flag_group_jaccard: 0.8,
+            positional_order_match: 1.0,
             subcommand_match: true,
             accuracy_score: 0.9,
             latency_ms: 0.0,
@@ -1785,6 +1803,8 @@ mod tests {
             flag_precision: 0.75,
             flag_group_recall: 0.75,
             flag_group_precision: 0.75,
+            flag_group_jaccard: 0.6,
+            positional_order_match: 1.0,
             subcommand_match: false,
             accuracy_score: 0.7,
             latency_ms: 0.0,
@@ -1812,6 +1832,8 @@ mod tests {
             flag_precision: 0.0,
             flag_group_recall: 0.0,
             flag_group_precision: 0.0,
+            flag_group_jaccard: 0.0,
+            positional_order_match: 0.0,
             subcommand_match: false,
             accuracy_score: 0.0,
             latency_ms: 0.0,
@@ -1840,6 +1862,8 @@ mod tests {
                 flag_precision: 1.0,
                 flag_group_recall: 0.75,
                 flag_group_precision: 1.0,
+                flag_group_jaccard: 0.75,
+                positional_order_match: 1.0,
                 subcommand_match: true,
                 accuracy_score: 0.9,
                 latency_ms: 0.0,
@@ -1862,6 +1886,8 @@ mod tests {
                 flag_precision: 1.0,
                 flag_group_recall: 1.0,
                 flag_group_precision: 1.0,
+                flag_group_jaccard: 1.0,
+                positional_order_match: 1.0,
                 subcommand_match: true,
                 accuracy_score: 1.0,
                 latency_ms: 0.0,

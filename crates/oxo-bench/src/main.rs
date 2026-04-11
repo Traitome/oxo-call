@@ -742,6 +742,20 @@ fn cmd_eval(
     if mock {
         // ── Mock evaluation mode ──────────────────────────────────────────
         println!(
+            "{} {}",
+            "⚠ WARNING:".yellow().bold(),
+            "Mock mode is for CI pipeline validation only — NOT for benchmark results.".yellow()
+        );
+        println!(
+            "{}",
+            "  Mock output uses hard-coded perturbation rates and does not call any LLM.".dimmed()
+        );
+        println!(
+            "{}",
+            "  For real benchmark results, run: oxo-bench eval --config bench_config.toml".dimmed()
+        );
+        println!();
+        println!(
             "{} Mock evaluation: {} models × {} repeats × {} descriptions",
             "→".cyan().bold(),
             config.models.len(),
@@ -1056,6 +1070,24 @@ fn cmd_eval(
     // Print summary table.
     println!();
     print_agg_summary(&agg);
+
+    if mock {
+        println!();
+        println!(
+            "{} {}",
+            "⚠ REMINDER:".yellow().bold(),
+            "These results are from mock mode (deterministic perturbation, no real LLM calls)."
+                .yellow()
+        );
+        println!(
+            "{}",
+            "  Do not use mock output as benchmark accuracy claims.".dimmed()
+        );
+        println!(
+            "{}",
+            "  For real results: oxo-bench eval --config bench_config.toml".dimmed()
+        );
+    }
 
     Ok(())
 }

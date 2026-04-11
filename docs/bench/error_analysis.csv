@@ -1,4 +1,0 @@
-model,total_errors,missing_flag,extra_flag,wrong_value,flag_reorder,wrong_subcommand,format_error,empty_output
-claude-3-5-sonnet-20241022,171,45,57,21,48,0,0,0
-gpt-4o,156,42,66,0,48,0,0,0
-gpt-4o-mini,213,96,33,36,48,0,0,0
