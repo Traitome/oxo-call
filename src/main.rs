@@ -1,5 +1,6 @@
 mod cli;
 mod config;
+#[cfg(not(target_arch = "wasm32"))]
 mod copilot_auth;
 mod docs;
 mod engine;

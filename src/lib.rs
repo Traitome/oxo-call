@@ -16,6 +16,7 @@
 //! library interface.
 
 pub mod config;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod copilot_auth;
 pub mod docs;
 pub mod engine;
