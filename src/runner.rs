@@ -1053,7 +1053,7 @@ const SCRIPT_EXTENSIONS: &[&str] = &[".sh", ".py", ".pl", ".R", ".rb", ".jl"];
 /// - `is_script_executable("script.py")` → `true`
 /// - `is_script_executable("input.fastq.gz")` → `false` (not a script extension)
 /// - `is_script_executable("/path/to/script.py")` → `false` (contains path separator)
-fn is_script_executable(candidate: &str) -> bool {
+pub(crate) fn is_script_executable(candidate: &str) -> bool {
     // Must not contain path separators.
     if candidate.contains('/') || candidate.contains('\\') {
         return false;
