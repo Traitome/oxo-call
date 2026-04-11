@@ -2,7 +2,7 @@ use crate::config::Config;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::copilot_auth;
 use crate::error::{OxoError, Result};
-use crate::runner::is_companion_binary;
+use crate::runner::{is_companion_binary, is_script_executable};
 use crate::skill::Skill;
 use serde::{Deserialize, Serialize};
 
@@ -1019,6 +1019,29 @@ fn sanitize_args(tool: &str, args: Vec<String>) -> Vec<String> {
         && !is_companion_binary(tool, first)
     {
         result.remove(0);
+    }
+
+    // After each && or || operator, inject the tool name when the following
+    // token is not already the tool name, not a companion binary, and not a
+    // script executable.  This corrects the common LLM failure where multi-step
+    // commands omit the tool name for steps after the first, e.g.:
+    //   sort ... && index ...  →  sort ... && samtools index ...
+    let mut i = 0;
+    while i < result.len() {
+        if (result[i] == "&&" || result[i] == "||") && i + 1 < result.len() {
+            let next = &result[i + 1];
+            let needs_injection = !next.eq_ignore_ascii_case(tool)
+                && !is_companion_binary(tool, next)
+                && !is_script_executable(next);
+            if needs_injection {
+                result.insert(i + 1, tool.to_string());
+                i += 2; // skip the inserted tool name token
+            } else {
+                i += 1;
+            }
+        } else {
+            i += 1;
+        }
     }
 
     result
@@ -2276,6 +2299,169 @@ SUGGESTIONS:
         ];
         let result = sanitize_args("samtools", args);
         assert_eq!(result, vec!["sort", "in.bam"]);
+    }
+
+    #[test]
+    fn test_sanitize_args_injects_tool_after_and_and() {
+        // LLM generates: sort ... && index ...
+        // Expected:       sort ... && samtools index ...
+        let args = vec![
+            "sort".to_string(),
+            "-@".to_string(),
+            "4".to_string(),
+            "-o".to_string(),
+            "sorted.bam".to_string(),
+            "celegans.bam".to_string(),
+            "&&".to_string(),
+            "index".to_string(),
+            "sorted.bam".to_string(),
+        ];
+        let result = sanitize_args("samtools", args);
+        assert_eq!(
+            result,
+            vec![
+                "sort",
+                "-@",
+                "4",
+                "-o",
+                "sorted.bam",
+                "celegans.bam",
+                "&&",
+                "samtools",
+                "index",
+                "sorted.bam"
+            ]
+        );
+    }
+
+    #[test]
+    fn test_sanitize_args_no_injection_when_tool_already_present() {
+        // LLM correctly generates: sort ... && samtools index ...
+        // Nothing should change.
+        let args = vec![
+            "sort".to_string(),
+            "-o".to_string(),
+            "sorted.bam".to_string(),
+            "input.bam".to_string(),
+            "&&".to_string(),
+            "samtools".to_string(),
+            "index".to_string(),
+            "sorted.bam".to_string(),
+        ];
+        let result = sanitize_args("samtools", args.clone());
+        assert_eq!(result, args);
+    }
+
+    #[test]
+    fn test_sanitize_args_injects_after_or_or() {
+        // LLM generates: view -h input.bam || flagstat input.bam
+        let args = vec![
+            "view".to_string(),
+            "-h".to_string(),
+            "input.bam".to_string(),
+            "||".to_string(),
+            "flagstat".to_string(),
+            "input.bam".to_string(),
+        ];
+        let result = sanitize_args("samtools", args);
+        assert_eq!(
+            result,
+            vec![
+                "view",
+                "-h",
+                "input.bam",
+                "||",
+                "samtools",
+                "flagstat",
+                "input.bam"
+            ]
+        );
+    }
+
+    #[test]
+    fn test_sanitize_args_preserves_companion_binary_after_and_and() {
+        // bowtie2-build is a companion binary and must NOT get "bowtie2" injected
+        let args = vec![
+            "bowtie2-build".to_string(),
+            "ref.fa".to_string(),
+            "idx".to_string(),
+            "&&".to_string(),
+            "bowtie2-build".to_string(),
+            "ref2.fa".to_string(),
+            "idx2".to_string(),
+        ];
+        let result = sanitize_args("bowtie2", args.clone());
+        assert_eq!(result, args);
+    }
+
+    #[test]
+    fn test_sanitize_args_multiple_steps() {
+        // Three-step: sort && index && flagstat — second and third missing tool name
+        let args = vec![
+            "sort".to_string(),
+            "-o".to_string(),
+            "sorted.bam".to_string(),
+            "input.bam".to_string(),
+            "&&".to_string(),
+            "index".to_string(),
+            "sorted.bam".to_string(),
+            "&&".to_string(),
+            "flagstat".to_string(),
+            "sorted.bam".to_string(),
+        ];
+        let result = sanitize_args("samtools", args);
+        assert_eq!(
+            result,
+            vec![
+                "sort",
+                "-o",
+                "sorted.bam",
+                "input.bam",
+                "&&",
+                "samtools",
+                "index",
+                "sorted.bam",
+                "&&",
+                "samtools",
+                "flagstat",
+                "sorted.bam"
+            ]
+        );
+    }
+
+    #[test]
+    fn test_sanitize_args_mixed_operators() {
+        // sort && index || flagstat — both && and || segments missing tool name
+        let args = vec![
+            "sort".to_string(),
+            "-o".to_string(),
+            "sorted.bam".to_string(),
+            "input.bam".to_string(),
+            "&&".to_string(),
+            "index".to_string(),
+            "sorted.bam".to_string(),
+            "||".to_string(),
+            "flagstat".to_string(),
+            "sorted.bam".to_string(),
+        ];
+        let result = sanitize_args("samtools", args);
+        assert_eq!(
+            result,
+            vec![
+                "sort",
+                "-o",
+                "sorted.bam",
+                "input.bam",
+                "&&",
+                "samtools",
+                "index",
+                "sorted.bam",
+                "||",
+                "samtools",
+                "flagstat",
+                "sorted.bam"
+            ]
+        );
     }
 
     // ─── strip_code_fences ──────────────────────────────────────────────────
