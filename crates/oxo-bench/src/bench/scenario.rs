@@ -977,4 +977,51 @@ source_url: "https://example.com"
             "should not add -t 4 when -@ is already present"
         );
     }
+
+    #[test]
+    fn test_is_excluded_tool() {
+        // Package managers
+        assert!(is_excluded_tool("conda"));
+        assert!(is_excluded_tool("docker"));
+        assert!(is_excluded_tool("pip"));
+        // HPC schedulers
+        assert!(is_excluded_tool("slurm"));
+        assert!(is_excluded_tool("kubectl"));
+        // AI assistants
+        assert!(is_excluded_tool("claude"));
+        assert!(is_excluded_tool("openclaw"));
+        // Non-excluded tools
+        assert!(!is_excluded_tool("samtools"));
+        assert!(!is_excluded_tool("bwa"));
+        assert!(!is_excluded_tool("bash"));
+        assert!(!is_excluded_tool("fastp"));
+    }
+
+    #[test]
+    fn test_load_skills_for_bench_excludes_tools() {
+        let skills_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("skills");
+        if !skills_dir.exists() {
+            return;
+        }
+        let all_skills = load_skills_from_dir(&skills_dir).unwrap();
+        let bench_skills = load_skills_for_bench(&skills_dir).unwrap();
+        // Should have fewer skills after exclusion.
+        assert!(
+            bench_skills.len() < all_skills.len(),
+            "bench skills ({}) should be fewer than all skills ({})",
+            bench_skills.len(),
+            all_skills.len()
+        );
+        // No excluded tools should appear.
+        for skill in &bench_skills {
+            assert!(
+                !is_excluded_tool(&skill.name),
+                "excluded tool '{}' should not be in bench skills",
+                skill.name
+            );
+        }
+    }
 }
