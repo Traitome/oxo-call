@@ -232,8 +232,8 @@ pub fn compare_flag_groups(generated: &str, reference: &str) -> (f64, f64) {
 ///
 /// Positional tokens are those that do NOT start with `-`.  If either side
 /// produces no positional tokens the score is `1.0` (vacuous match).
-/// If all positional tokens from the reference appear in `generated` in the
-/// same relative order the score is `1.0`; otherwise `0.0`.
+/// If all reference positional tokens appear in `generated` as a left-to-right
+/// subsequence the score is `1.0`; otherwise `0.0`.
 ///
 /// This penalises, for example, `input.bam output.bam` vs `output.bam input.bam`
 /// for tools that interpret positional arguments by position.
@@ -251,39 +251,18 @@ pub fn positional_order_match(generated: &str, reference: &str) -> f64 {
         return 1.0;
     }
 
-    // Check if the reference positionals appear as a subsequence in generated
-    // in the same relative order.
-    let mut gen_iter = gen_pos.iter();
+    // Greedy left-to-right subsequence search: find each reference positional
+    // in generated in order.  If we can match all of them, order is preserved.
     let mut matched = 0usize;
-    for ref_tok in &ref_pos {
-        if gen_iter.any(|g| g == ref_tok) {
-            matched += 1;
-        }
-    }
-
-    if matched < ref_pos.len() {
-        // Not all reference positionals appeared; can't verify order.
-        return 0.0;
-    }
-
-    // All matched — verify they appear in the same relative order.
-    // Build the sub-sequence of gen_pos that matches ref_pos tokens in order.
-    let mut pos_in_gen: Vec<usize> = Vec::new();
     let mut search_start = 0;
     for ref_tok in &ref_pos {
         if let Some(idx) = gen_pos[search_start..].iter().position(|g| g == ref_tok) {
-            pos_in_gen.push(search_start + idx);
+            matched += 1;
             search_start += idx + 1;
         }
     }
 
-    // pos_in_gen should already be strictly increasing (we searched left-to-right).
-    // If the number of matched indices equals ref_pos.len(), order is preserved.
-    if pos_in_gen.len() == ref_pos.len() {
-        1.0
-    } else {
-        0.0
-    }
+    if matched == ref_pos.len() { 1.0 } else { 0.0 }
 }
 
 /// Normalise an ARGS string into a canonical token list.
