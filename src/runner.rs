@@ -192,7 +192,10 @@ impl Runner {
         // Ablation: optionally skip documentation fetching
         let docs = if self.no_doc {
             if self.verbose {
-                eprintln!("{} [Ablation] Skipping documentation (--no-doc)", "[verbose]".dimmed());
+                eprintln!(
+                    "{} [Ablation] Skipping documentation (--no-doc)",
+                    "[verbose]".dimmed()
+                );
             }
             String::new()
         } else {
@@ -259,7 +262,10 @@ impl Runner {
         // Ablation: optionally skip skill loading
         let skill = if self.no_skill {
             if self.verbose {
-                eprintln!("{} [Ablation] Skipping skill (--no-skill)", "[verbose]".dimmed());
+                eprintln!(
+                    "{} [Ablation] Skipping skill (--no-skill)",
+                    "[verbose]".dimmed()
+                );
             }
             None
         } else {
@@ -272,7 +278,7 @@ impl Runner {
                 self.skill_manager.load(tool)
             }
         };
-        
+
         let skill_name = skill.as_ref().map(|s| s.meta.name.clone());
         let skill_label = if skill.is_some() {
             format!(" (skill: {})", tool)

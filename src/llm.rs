@@ -151,7 +151,13 @@ fn system_prompt() -> &'static str {
 // ─── User prompt ─────────────────────────────────────────────────────────────
 
 /// Build the enriched user prompt, injecting skill knowledge when available.
-fn build_prompt(tool: &str, documentation: &str, task: &str, skill: Option<&Skill>, no_prompt: bool) -> String {
+fn build_prompt(
+    tool: &str,
+    documentation: &str,
+    task: &str,
+    skill: Option<&Skill>,
+    no_prompt: bool,
+) -> String {
     // Ablation: bare LLM mode - just the task, no context
     if no_prompt {
         return format!(
@@ -1326,6 +1332,7 @@ mod tests {
             "samtools --help output here",
             "sort bam file",
             None,
+            false,
         );
         assert!(prompt.contains("samtools"));
         assert!(prompt.contains("samtools --help output here"));
@@ -1353,7 +1360,7 @@ mod tests {
                 explanation: "sort by coordinate".to_string(),
             }],
         };
-        let prompt = build_prompt("samtools", "docs", "sort bam", Some(&skill));
+        let prompt = build_prompt("samtools", "docs", "sort bam", Some(&skill), false);
         assert!(prompt.contains("samtools"));
         assert!(prompt.contains("concept 1"));
         assert!(prompt.contains("pitfall 1"));
@@ -1362,7 +1369,7 @@ mod tests {
 
     #[test]
     fn test_build_prompt_format_instructions() {
-        let prompt = build_prompt("bwa", "bwa mem --help", "align reads", None);
+        let prompt = build_prompt("bwa", "bwa mem --help", "align reads", None, false);
         assert!(
             prompt.contains("ARGS:"),
             "should contain ARGS: format instruction"
@@ -1379,7 +1386,7 @@ mod tests {
     #[test]
     fn test_build_retry_prompt_contains_prev_response() {
         let prev = "THIS IS WRONG FORMAT";
-        let prompt = build_retry_prompt("samtools", "docs", "sort bam", None, prev);
+        let prompt = build_retry_prompt("samtools", "docs", "sort bam", None, prev, false);
         assert!(
             prompt.contains(prev),
             "retry prompt should include previous response"
@@ -1805,7 +1812,13 @@ mod tests {
 
             let client = LlmClient::new(mock_config(&server.uri()));
             let result = client
-                .suggest_command("samtools", "samtools --help output", "sort bam", None)
+                .suggest_command(
+                    "samtools",
+                    "samtools --help output",
+                    "sort bam",
+                    None,
+                    false,
+                )
                 .await;
 
             assert!(result.is_ok(), "should succeed: {:?}", result.err());
@@ -1825,10 +1838,8 @@ mod tests {
 
             let client = LlmClient::new(mock_config(&server.uri()));
             let result = client
-                .suggest_command("samtools", "docs", "sort", None)
+                .suggest_command("samtools", "docs", "sort", None, false)
                 .await;
-
-            assert!(result.is_err(), "500 should produce an error");
             let msg = result.unwrap_err().to_string();
             assert!(
                 msg.contains("500") || msg.contains("Internal Server Error"),
@@ -1859,7 +1870,7 @@ mod tests {
 
             let client = LlmClient::new(mock_config(&server.uri()));
             let result = client
-                .suggest_command("samtools", "docs", "sort bam", None)
+                .suggest_command("samtools", "docs", "sort bam", None, false)
                 .await;
 
             assert!(result.is_ok());
@@ -2091,7 +2102,7 @@ mod tests {
             let client = LlmClient::new(cfg);
             // Calling through suggest_command which uses request_with_system internally
             let result = client
-                .suggest_command("samtools", "docs", "sort", None)
+                .suggest_command("samtools", "docs", "sort", None, false)
                 .await;
 
             assert!(result.is_ok());
@@ -2112,7 +2123,7 @@ mod tests {
 
             let client = LlmClient::new(mock_config(&server.uri()));
             let result = client
-                .suggest_command("samtools", "docs", "sort", None)
+                .suggest_command("samtools", "docs", "sort", None, false)
                 .await;
 
             // Empty choices → empty string → parse_response returns empty suggestion
@@ -2207,7 +2218,7 @@ SUGGESTIONS:
     #[test]
     fn test_build_prompt_truncates_long_docs() {
         let long_docs = "a".repeat(200_000);
-        let prompt = build_prompt("tool", &long_docs, "task", None);
+        let prompt = build_prompt("tool", &long_docs, "task", None, false);
         // Should still produce a valid prompt (may be truncated internally)
         assert!(prompt.contains("tool"));
         assert!(prompt.contains("task"));
@@ -2215,7 +2226,7 @@ SUGGESTIONS:
 
     #[test]
     fn test_build_prompt_empty_task() {
-        let prompt = build_prompt("samtools", "some docs", "", None);
+        let prompt = build_prompt("samtools", "some docs", "", None, false);
         assert!(prompt.contains("samtools"));
     }
 
@@ -2227,6 +2238,7 @@ SUGGESTIONS:
             "sort a BAM file",
             None,
             "invalid resp",
+            false,
         );
         assert!(prompt.contains("samtools"));
         assert!(prompt.contains("sort a BAM file"));
@@ -2526,7 +2538,7 @@ SUGGESTIONS:
 
     #[test]
     fn test_build_prompt_contains_pipe_rule() {
-        let prompt = build_prompt("bcftools", "docs", "call variants", None);
+        let prompt = build_prompt("bcftools", "docs", "call variants", None, false);
         assert!(
             prompt.contains("piping") || prompt.contains("|"),
             "build_prompt should contain pipe rule"
@@ -2535,7 +2547,7 @@ SUGGESTIONS:
 
     #[test]
     fn test_build_prompt_contains_multistep_rule() {
-        let prompt = build_prompt("bcftools", "docs", "call variants", None);
+        let prompt = build_prompt("bcftools", "docs", "call variants", None, false);
         assert!(
             prompt.contains("&&"),
             "build_prompt should contain multi-step rule"
