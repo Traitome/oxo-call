@@ -1651,7 +1651,7 @@ mod tests {
         let trials =
             run_mock_benchmark("test-model", 2, &sample_descriptions(), &sample_scenarios());
         let summaries = summarise_by_tool(&trials);
-        let mut buf = Vec:: new();
+        let mut buf = Vec::new();
         write_tool_model_summary_csv(&mut buf, &summaries).unwrap();
         let text = String::from_utf8(buf).unwrap();
         assert!(text.starts_with(
