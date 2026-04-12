@@ -695,8 +695,16 @@ async fn run(cli: Cli) -> error::Result<()> {
                             let mut cfg = config::Config::load()?;
                             cfg.llm.provider = "github-copilot".to_string();
                             cfg.llm.api_token = Some(github_token);
-                            // Default to a free/lightweight model when none is set.
-                            if cfg.llm.model.is_none() {
+                            // Default to a free/lightweight model when none is set, or when the
+                            // stored value is the legacy "auto-selected" placeholder that was
+                            // written by older versions of oxo-call and is not a real model name.
+                            let model_is_placeholder = cfg
+                                .llm
+                                .model
+                                .as_deref()
+                                .map(|m| m.is_empty() || m == "auto-selected")
+                                .unwrap_or(true);
+                            if model_is_placeholder {
                                 cfg.llm.model = Some(DEFAULT_COPILOT_LOGIN_MODEL.to_string());
                             }
                             cfg.save()?;

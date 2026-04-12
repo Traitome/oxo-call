@@ -344,6 +344,7 @@ impl Config {
         }
         if let Some(model) = &self.llm.model
             && !model.is_empty()
+            && model != "auto-selected"
         {
             return model.clone();
         }
@@ -456,7 +457,7 @@ impl Config {
                     .llm
                     .model
                     .as_deref()
-                    .is_some_and(|model| !model.is_empty())
+                    .is_some_and(|model| !model.is_empty() && model != "auto-selected")
                 {
                     Ok("stored config".to_string())
                 } else {
