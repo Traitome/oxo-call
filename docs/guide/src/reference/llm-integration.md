@@ -8,7 +8,7 @@ oxo-call supports four LLM providers for command generation:
 
 | Provider | Default Model | Token Required |
 |----------|--------------|----------------|
-| GitHub Copilot | gpt-4o-mini | Yes (GitHub App token via `oxo-call config login`) |
+| GitHub Copilot | gpt-4.1-mini (⭐ free tier) | Yes (GitHub App token via `oxo-call config login`) |
 | OpenAI | gpt-4o | Yes |
 | Anthropic | claude-3-5-sonnet-20241022 | Yes |
 | Ollama | llama3.2 | No (local) |
