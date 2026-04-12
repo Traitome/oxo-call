@@ -1,6 +1,6 @@
 ---
 name: pilon
-category: assembly-polishing
+category: assembly
 description: Whole-genome assembly improvement and variant detection using short-read alignments
 tags: [polishing, assembly, illumina, variant-calling, indel, snp, genome-improvement]
 author: oxo-call built-in

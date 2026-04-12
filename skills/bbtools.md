@@ -1,6 +1,6 @@
 ---
 name: bbtools
-category: sequence-processing
+category: sequence-utilities
 description: BBTools suite — BBDuk (adapter/quality trimming), BBMap (alignment), BBMerge (paired-end merging), reformat.sh, and related tools for FASTQ/FASTA processing
 tags: [bbtools, bbduk, bbmap, bbmerge, reformat, adapter-trimming, decontamination, fastq, fasta, ngs]
 author: oxo-call built-in

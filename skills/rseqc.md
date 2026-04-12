@@ -1,6 +1,6 @@
 ---
 name: rseqc
-category: quality-control
+category: qc
 description: RSeQC — RNA-seq quality control toolkit; infer_experiment, read_distribution, junction_annotation, bam_stat, tin for comprehensive RNA-seq QC
 tags: [rseqc, rna-seq, qc, strand, read-distribution, junction, bam, rnaseq-qc, tin, infer-experiment]
 author: oxo-call built-in

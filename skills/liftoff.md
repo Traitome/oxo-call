@@ -1,6 +1,6 @@
 ---
 name: liftoff
-category: genome-annotation
+category: annotation
 description: Accurate transfer of genome annotations between assemblies of the same or related species
 tags: [annotation, liftover, gff, genes, genome, comparative-genomics, transfer]
 author: oxo-call built-in

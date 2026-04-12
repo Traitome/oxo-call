@@ -1,6 +1,6 @@
 ---
 name: eggnog-mapper
-category: functional-annotation
+category: annotation
 description: Fast functional annotation of proteins or genes via eggNOG ortholog database
 tags: [annotation, ortholog, go-terms, kegg, cog, proteins, metagenomics]
 author: oxo-call built-in

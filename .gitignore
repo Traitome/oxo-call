@@ -47,3 +47,5 @@ docs/bench/error_analysis.csv
 docs/bench/baseline_error_analysis.csv
 docs/bench/model_summary_by_category.csv
 docs/bench/model_summary_by_tool.csv
+docs/bench/reference_commands.csv.bak
+docs/bench/usage_descriptions.csv.bak

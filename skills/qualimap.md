@@ -1,6 +1,6 @@
 ---
 name: qualimap
-category: quality-control
+category: qc
 description: Qualimap — Java-based BAM/RNA-seq quality control tool; bamqc, rnaseq, multi-bamqc, and counts modules for comprehensive sequencing QC
 tags: [qualimap, bamqc, rnaseq, qc, bam, sequencing, coverage, gc-bias, rna-seq, ngs]
 author: oxo-call built-in

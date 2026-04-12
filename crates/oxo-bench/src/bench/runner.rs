@@ -47,6 +47,7 @@ pub struct TrialResult {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ModelAggResult {
     pub model: String,
+    pub ablation: String,
     pub n_trials: usize,
     pub accuracy: f64,
     pub exact_match_rate: f64,
@@ -598,6 +599,19 @@ pub fn run_benchmark(
     generator: &dyn CommandGenerator,
     ablation_label: &str,
 ) -> Vec<TrialResult> {
+    run_benchmark_with_callback(model, repeats, descriptions, scenarios, generator, ablation_label, None)
+}
+
+/// Run benchmark with optional callback for incremental result writing.
+pub fn run_benchmark_with_callback(
+    model: &str,
+    repeats: usize,
+    descriptions: &[UsageDescription],
+    scenarios: &[Scenario],
+    generator: &dyn CommandGenerator,
+    ablation_label: &str,
+    callback: Option<&dyn TrialCallback>,
+) -> Vec<TrialResult> {
     // Build scenario lookup map.
     let scenario_map: std::collections::HashMap<&str, &Scenario> = scenarios
         .iter()
@@ -619,7 +633,7 @@ pub fn run_benchmark(
 
             let cmp = compare_commands(&resp.args, &scenario.reference_args);
 
-            results.push(TrialResult {
+            let trial = TrialResult {
                 tool: desc.tool.clone(),
                 category: scenario.category.clone(),
                 scenario_id: desc.scenario_id.clone(),
@@ -642,7 +656,13 @@ pub fn run_benchmark(
                 latency_ms,
                 tokens: resp.tokens,
                 format_valid: resp.format_valid,
-            });
+            };
+            
+            if let Some(cb) = callback {
+                cb.on_trial(&trial);
+            }
+            
+            results.push(trial);
         }
     }
 
@@ -651,18 +671,22 @@ pub fn run_benchmark(
 
 /// Aggregate trial results into per-model summary metrics.
 pub fn aggregate_results(trials: &[TrialResult]) -> Vec<ModelAggResult> {
-    let mut by_model: std::collections::HashMap<&str, Vec<&TrialResult>> =
+    let mut by_model_ablation: std::collections::HashMap<(&str, &str), Vec<&TrialResult>> =
         std::collections::HashMap::new();
     for t in trials {
-        by_model.entry(t.model.as_str()).or_default().push(t);
+        by_model_ablation
+            .entry((t.model.as_str(), t.ablation.as_str()))
+            .or_default()
+            .push(t);
     }
 
-    let mut agg: Vec<ModelAggResult> = by_model
+    let mut agg: Vec<ModelAggResult> = by_model_ablation
         .into_iter()
-        .map(|(model, trials)| {
+        .map(|((model, ablation), trials)| {
             let n = trials.len() as f64;
             ModelAggResult {
                 model: model.to_string(),
+                ablation: ablation.to_string(),
                 n_trials: trials.len(),
                 accuracy: trials.iter().map(|t| t.accuracy_score).sum::<f64>() / n,
                 exact_match_rate: trials.iter().filter(|t| t.exact_match).count() as f64 / n,
@@ -762,15 +786,16 @@ pub fn write_model_agg_csv<W: Write>(
 ) -> std::io::Result<()> {
     writeln!(
         writer,
-        "model,n_trials,accuracy,exact_match_rate,avg_flag_recall,avg_flag_precision,\
+        "model,ablation,n_trials,accuracy,exact_match_rate,avg_flag_recall,avg_flag_precision,\
          avg_token_jaccard,subcommand_match_rate,consistency,avg_latency_ms,avg_tokens,\
          format_valid_rate"
     )?;
     for a in agg {
         writeln!(
             writer,
-            "{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.1},{:.1},{:.4}",
+            "{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.1},{:.1},{:.4}",
             a.model,
+            a.ablation,
             a.n_trials,
             a.accuracy,
             a.exact_match_rate,
@@ -801,6 +826,7 @@ pub struct ToolModelSummary {
     pub tool: String,
     pub category: String,
     pub model: String,
+    pub ablation: String,
     pub n_trials: usize,
     pub accuracy: f64,
     pub exact_match_rate: f64,
@@ -808,20 +834,20 @@ pub struct ToolModelSummary {
     pub consistency: f64,
 }
 
-/// Summarise trial results per (tool, model) pair, sorted by tool then model.
+/// Summarise trial results per (tool, model, ablation) tuple, sorted by tool then model.
 pub fn summarise_by_tool(trials: &[TrialResult]) -> Vec<ToolModelSummary> {
-    let mut by_tool_model: std::collections::HashMap<(String, String), Vec<&TrialResult>> =
+    let mut by_tool_model_ablation: std::collections::HashMap<(String, String, String), Vec<&TrialResult>> =
         std::collections::HashMap::new();
     for t in trials {
-        by_tool_model
-            .entry((t.tool.clone(), t.model.clone()))
+        by_tool_model_ablation
+            .entry((t.tool.clone(), t.model.clone(), t.ablation.clone()))
             .or_default()
             .push(t);
     }
 
-    let mut summaries: Vec<ToolModelSummary> = by_tool_model
+    let mut summaries: Vec<ToolModelSummary> = by_tool_model_ablation
         .into_iter()
-        .map(|((tool, model), trials)| {
+        .map(|((tool, model, ablation), trials)| {
             let n = trials.len() as f64;
             // Gather scenario-level consistency
             let mut groups: std::collections::HashMap<(&str, &str), Vec<&str>> =
@@ -854,6 +880,7 @@ pub fn summarise_by_tool(trials: &[TrialResult]) -> Vec<ToolModelSummary> {
                 tool,
                 category,
                 model,
+                ablation,
                 n_trials: trials.len(),
                 accuracy: trials.iter().map(|t| t.accuracy_score).sum::<f64>() / n,
                 exact_match_rate: trials.iter().filter(|t| t.exact_match).count() as f64 / n,
@@ -863,7 +890,7 @@ pub fn summarise_by_tool(trials: &[TrialResult]) -> Vec<ToolModelSummary> {
         })
         .collect();
 
-    summaries.sort_by(|a, b| a.tool.cmp(&b.tool).then(a.model.cmp(&b.model)));
+    summaries.sort_by(|a, b| a.tool.cmp(&b.tool).then(a.model.cmp(&b.model)).then(a.ablation.cmp(&b.ablation)));
     summaries
 }
 
@@ -872,6 +899,7 @@ pub fn summarise_by_tool(trials: &[TrialResult]) -> Vec<ToolModelSummary> {
 pub struct CategoryModelSummary {
     pub category: String,
     pub model: String,
+    pub ablation: String,
     pub n_tools: usize,
     pub n_trials: usize,
     pub accuracy: f64,
@@ -885,20 +913,20 @@ pub struct CategoryModelSummary {
     pub exact_match_ci95: f64,
 }
 
-/// Summarise trial results per (category, model) pair, sorted by category then model.
+/// Summarise trial results per (category, model, ablation) tuple, sorted by category then model.
 pub fn summarise_by_category(trials: &[TrialResult]) -> Vec<CategoryModelSummary> {
-    let mut by_cat_model: std::collections::HashMap<(String, String), Vec<&TrialResult>> =
+    let mut by_cat_model_ablation: std::collections::HashMap<(String, String, String), Vec<&TrialResult>> =
         std::collections::HashMap::new();
     for t in trials {
-        by_cat_model
-            .entry((t.category.clone(), t.model.clone()))
+        by_cat_model_ablation
+            .entry((t.category.clone(), t.model.clone(), t.ablation.clone()))
             .or_default()
             .push(t);
     }
 
-    let mut summaries: Vec<CategoryModelSummary> = by_cat_model
+    let mut summaries: Vec<CategoryModelSummary> = by_cat_model_ablation
         .into_iter()
-        .map(|((category, model), trials)| {
+        .map(|((category, model, ablation), trials)| {
             let n = trials.len() as f64;
 
             let accuracy = trials.iter().map(|t| t.accuracy_score).sum::<f64>() / n;
@@ -939,6 +967,7 @@ pub fn summarise_by_category(trials: &[TrialResult]) -> Vec<CategoryModelSummary
             CategoryModelSummary {
                 category,
                 model,
+                ablation,
                 n_tools: tools.len(),
                 n_trials: trials.len(),
                 accuracy,
@@ -956,22 +985,23 @@ pub fn summarise_by_category(trials: &[TrialResult]) -> Vec<CategoryModelSummary
     summaries
 }
 
-/// Write per-(category, model) summary to CSV.
+/// Write per-(category, model, ablation) summary to CSV.
 pub fn write_category_summary_csv<W: Write>(
     writer: &mut W,
     summaries: &[CategoryModelSummary],
 ) -> std::io::Result<()> {
     writeln!(
         writer,
-        "category,model,n_tools,n_trials,accuracy,exact_match_rate,\
+        "category,model,ablation,n_tools,n_trials,accuracy,exact_match_rate,\
          avg_flag_recall,avg_flag_precision,consistency,accuracy_ci95,exact_match_ci95"
     )?;
     for s in summaries {
         writeln!(
             writer,
-            "{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.6},{:.6}",
+            "{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.6},{:.6}",
             s.category,
             s.model,
+            s.ablation,
             s.n_tools,
             s.n_trials,
             s.accuracy,
@@ -1072,6 +1102,7 @@ pub fn classify_error(trial: &TrialResult) -> ErrorCategory {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ErrorAnalysis {
     pub model: String,
+    pub ablation: String,
     pub total_errors: usize,
     pub missing_flag: usize,
     pub extra_flag: usize,
@@ -1082,23 +1113,27 @@ pub struct ErrorAnalysis {
     pub empty_output: usize,
 }
 
-/// Analyse error categories for all non-exact-match trials, grouped by model.
+/// Analyse error categories for all non-exact-match trials, grouped by model and ablation.
 pub fn analyse_errors(trials: &[TrialResult]) -> Vec<ErrorAnalysis> {
-    let mut by_model: std::collections::HashMap<&str, Vec<ErrorCategory>> =
+    let mut by_model_ablation: std::collections::HashMap<(&str, &str), Vec<ErrorCategory>> =
         std::collections::HashMap::new();
 
     for t in trials {
         if !t.exact_match {
             let cat = classify_error(t);
-            by_model.entry(t.model.as_str()).or_default().push(cat);
+            by_model_ablation
+                .entry((t.model.as_str(), t.ablation.as_str()))
+                .or_default()
+                .push(cat);
         }
     }
 
-    let mut analyses: Vec<ErrorAnalysis> = by_model
+    let mut analyses: Vec<ErrorAnalysis> = by_model_ablation
         .into_iter()
-        .map(|(model, errors)| {
+        .map(|((model, ablation), errors)| {
             let mut analysis = ErrorAnalysis {
                 model: model.to_string(),
+                ablation: ablation.to_string(),
                 total_errors: errors.len(),
                 missing_flag: 0,
                 extra_flag: 0,
@@ -1134,14 +1169,15 @@ pub fn write_error_analysis_csv<W: Write>(
 ) -> std::io::Result<()> {
     writeln!(
         writer,
-        "model,total_errors,missing_flag,extra_flag,wrong_value,\
+        "model,ablation,total_errors,missing_flag,extra_flag,wrong_value,\
          flag_reorder,wrong_subcommand,format_error,empty_output"
     )?;
     for a in analyses {
         writeln!(
             writer,
-            "{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{}",
             a.model,
+            a.ablation,
             a.total_errors,
             a.missing_flag,
             a.extra_flag,
@@ -1155,24 +1191,25 @@ pub fn write_error_analysis_csv<W: Write>(
     Ok(())
 }
 
-/// Write per-(tool, model) summary to CSV.
+/// Write per-(tool, model, ablation) summary to CSV.
 ///
-/// Columns: `tool,category,model,n_trials,accuracy,exact_match_rate,avg_flag_recall,consistency`
+/// Columns: `tool,category,model,ablation,n_trials,accuracy,exact_match_rate,avg_flag_recall,consistency`
 pub fn write_tool_model_summary_csv<W: Write>(
     writer: &mut W,
     summaries: &[ToolModelSummary],
 ) -> std::io::Result<()> {
     writeln!(
         writer,
-        "tool,category,model,n_trials,accuracy,exact_match_rate,avg_flag_recall,consistency"
+        "tool,category,model,ablation,n_trials,accuracy,exact_match_rate,avg_flag_recall,consistency"
     )?;
     for s in summaries {
         writeln!(
             writer,
-            "{},{},{},{},{:.4},{:.4},{:.4},{:.4}",
+            "{},{},{},{},{},{:.4},{:.4},{:.4},{:.4}",
             s.tool,
             s.category,
             s.model,
+            s.ablation,
             s.n_trials,
             s.accuracy,
             s.exact_match_rate,
@@ -1379,6 +1416,7 @@ mod tests {
     fn test_write_model_agg_csv() {
         let agg = vec![ModelAggResult {
             model: "mock".to_string(),
+            ablation: "full".to_string(),
             n_trials: 10,
             accuracy: 0.85,
             exact_match_rate: 0.5,
@@ -1394,8 +1432,9 @@ mod tests {
         let mut buf = Vec::new();
         write_model_agg_csv(&mut buf, &agg).unwrap();
         let text = String::from_utf8(buf).unwrap();
-        assert!(text.starts_with("model,n_trials,accuracy,"));
+        assert!(text.starts_with("model,ablation,n_trials,accuracy,"));
         assert!(text.contains("mock"));
+        assert!(text.contains("full"));
     }
 
     #[test]
@@ -1906,6 +1945,7 @@ mod tests {
     fn test_write_error_analysis_csv() {
         let analyses = vec![ErrorAnalysis {
             model: "test".to_string(),
+            ablation: "full".to_string(),
             total_errors: 10,
             missing_flag: 3,
             extra_flag: 2,
@@ -1918,9 +1958,155 @@ mod tests {
         let mut buf = Vec::new();
         write_error_analysis_csv(&mut buf, &analyses).unwrap();
         let text = String::from_utf8(buf).unwrap();
-        assert!(text.starts_with("model,total_errors,missing_flag,"));
+        assert!(text.starts_with("model,ablation,total_errors,missing_flag,"));
         let data_lines: Vec<&str> = text.lines().skip(1).filter(|l| !l.is_empty()).collect();
         assert_eq!(data_lines.len(), 1);
-        assert_eq!(data_lines[0].split(',').count(), 9);
+        assert_eq!(data_lines[0].split(',').count(), 10);
+    }
+}
+
+// ── Incremental result writer ───────────────────────────────────────────────
+
+/// Callback trait for handling trial results as they are generated.
+pub trait TrialCallback: Send + Sync {
+    fn on_trial(&self, trial: &TrialResult);
+    fn on_model_complete(&self, model: &str, ablation: &str, agg: &ModelAggResult, trials: &[TrialResult]);
+}
+
+/// Incremental CSV writer that appends trial results as they complete.
+pub struct IncrementalCsvWriter {
+    trials_file: std::sync::Mutex<std::fs::File>,
+    output_dir: std::path::PathBuf,
+}
+
+impl IncrementalCsvWriter {
+    pub fn new(output_dir: &std::path::Path) -> std::io::Result<Self> {
+        std::fs::create_dir_all(output_dir)?;
+        
+        let trials_path = output_dir.join("benchmark_trials.csv");
+        let mut trials_file = std::fs::File::create(&trials_path)?;
+        writeln!(trials_file, "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,exact_match,token_jaccard,flag_recall,flag_precision,flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,subcommand_match,accuracy_score,latency_ms,tokens,format_valid")?;
+        
+        Ok(Self {
+            trials_file: std::sync::Mutex::new(trials_file),
+            output_dir: output_dir.to_path_buf(),
+        })
+    }
+    
+    pub fn append_trial(&self, trial: &TrialResult) -> std::io::Result<()> {
+        let mut file = self.trials_file.lock().unwrap();
+        writeln!(
+            file,
+            "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{},{}",
+            csv_escape(&trial.tool),
+            csv_escape(&trial.category),
+            csv_escape(&trial.scenario_id),
+            csv_escape(&trial.desc_id),
+            csv_escape(&trial.model),
+            csv_escape(&trial.ablation),
+            trial.repeat_idx,
+            csv_escape(&trial.generated_args),
+            csv_escape(&trial.reference_args),
+            trial.exact_match,
+            trial.token_jaccard,
+            trial.flag_recall,
+            trial.flag_precision,
+            trial.flag_group_recall,
+            trial.flag_group_precision,
+            trial.flag_group_jaccard,
+            trial.positional_order_match,
+            trial.subcommand_match,
+            trial.accuracy_score,
+            trial.latency_ms,
+            trial.tokens,
+            trial.format_valid,
+        )?;
+        file.sync_all()?;
+        Ok(())
+    }
+    
+    pub fn write_model_summary(&self, agg: &[ModelAggResult]) -> std::io::Result<()> {
+        let path = self.output_dir.join("model_summary.csv");
+        let mut file = std::fs::File::create(&path)?;
+        write_model_agg_csv(&mut file, agg)?;
+        Ok(())
+    }
+    
+    pub fn write_model_trials(&self, model: &str, trials: &[TrialResult]) -> std::io::Result<()> {
+        let safe_name = model.replace(['/', ':'], "_");
+        let path = self.output_dir.join(format!("trials_{safe_name}.csv"));
+        let file_exists = path.exists() && path.metadata().map(|m| m.len() > 0).unwrap_or(false);
+        
+        let mut file = if file_exists {
+            std::fs::OpenOptions::new().append(true).open(&path)?
+        } else {
+            let mut f = std::fs::File::create(&path)?;
+            writeln!(f, "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,exact_match,token_jaccard,flag_recall,flag_precision,flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,subcommand_match,accuracy_score,latency_ms,tokens,format_valid")?;
+            f
+        };
+        
+        for trial in trials {
+            writeln!(
+                file,
+                "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{},{}",
+                csv_escape(&trial.tool),
+                csv_escape(&trial.category),
+                csv_escape(&trial.scenario_id),
+                csv_escape(&trial.desc_id),
+                csv_escape(&trial.model),
+                csv_escape(&trial.ablation),
+                trial.repeat_idx,
+                csv_escape(&trial.generated_args),
+                csv_escape(&trial.reference_args),
+                trial.exact_match,
+                trial.token_jaccard,
+                trial.flag_recall,
+                trial.flag_precision,
+                trial.flag_group_recall,
+                trial.flag_group_precision,
+                trial.flag_group_jaccard,
+                trial.positional_order_match,
+                trial.subcommand_match,
+                trial.accuracy_score,
+                trial.latency_ms,
+                trial.tokens,
+                trial.format_valid,
+            )?;
+        }
+        Ok(())
+    }
+    
+    pub fn write_summaries(&self, all_trials: &[TrialResult]) -> std::io::Result<()> {
+        let tool_summaries = summarise_by_tool(all_trials);
+        let path = self.output_dir.join("model_summary_by_tool.csv");
+        let mut file = std::fs::File::create(&path)?;
+        write_tool_model_summary_csv(&mut file, &tool_summaries)?;
+        
+        let cat_summaries = summarise_by_category(all_trials);
+        let path = self.output_dir.join("model_summary_by_category.csv");
+        let mut file = std::fs::File::create(&path)?;
+        write_category_summary_csv(&mut file, &cat_summaries)?;
+        
+        let errors = analyse_errors(all_trials);
+        let path = self.output_dir.join("error_analysis.csv");
+        let mut file = std::fs::File::create(&path)?;
+        write_error_analysis_csv(&mut file, &errors)?;
+        
+        Ok(())
+    }
+}
+
+impl TrialCallback for IncrementalCsvWriter {
+    fn on_trial(&self, trial: &TrialResult) {
+        if let Err(e) = self.append_trial(trial) {
+            eprintln!("Warning: failed to write trial: {}", e);
+        }
+    }
+    
+    fn on_model_complete(&self, model: &str, ablation: &str, agg: &ModelAggResult, trials: &[TrialResult]) {
+        let _ = (model, ablation, agg);
+        if let Err(e) = self.write_model_trials(model, trials) {
+            eprintln!("Warning: failed to write model trials: {}", e);
+        }
     }
 }

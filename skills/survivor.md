@@ -1,6 +1,6 @@
 ---
 name: survivor
-category: structural-variants
+category: variant-calling
 description: SV simulation, merging, and comparison of structural variant calls across multiple callers and samples
 tags: [sv, structural-variants, merging, vcf, long-read, benchmarking, consensus]
 author: oxo-call built-in

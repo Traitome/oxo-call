@@ -1,6 +1,6 @@
 ---
 name: julia
-category: scientific-computing
+category: programming
 description: Julia programming language interpreter; high-performance scientific computing, bioinformatics, data analysis, and statistical modelling
 tags: [julia, scientific-computing, biojulia, pkg, depot, statistics, high-performance, pluto]
 author: oxo-call built-in

@@ -135,6 +135,9 @@ async fn run(cli: Cli) -> error::Result<()> {
             no_cache,
             json,
             optimize_task,
+            no_skill,
+            no_doc,
+            no_prompt,
             vars,
             input_list,
             input_items,
@@ -174,7 +177,10 @@ async fn run(cli: Cli) -> error::Result<()> {
             let runner = runner::Runner::new(cfg)
                 .with_verbose(verbose)
                 .with_no_cache(no_cache)
-                .with_optimize_task(optimize_task);
+                .with_optimize_task(optimize_task)
+                .with_no_skill(no_skill)
+                .with_no_doc(no_doc)
+                .with_no_prompt(no_prompt);
             #[cfg(not(target_arch = "wasm32"))]
             let runner = runner.with_vars(var_map).with_input_items(all_items);
             runner.dry_run(&tool, &task, json, None).await?;

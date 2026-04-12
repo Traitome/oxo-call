@@ -1,6 +1,6 @@
 ---
 name: perl
-category: scripting
+category: programming
 description: Perl interpreter; scripting language widely used in legacy bioinformatics pipelines, text processing, BioPerl, and system automation
 tags: [perl, bioperl, cpan, scripting, text-processing, one-liner, regex, bioinformatics]
 author: oxo-call built-in

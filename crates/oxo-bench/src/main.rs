@@ -15,11 +15,11 @@ use oxo_bench::{
     bench::{
         llm::{ModelBenchConfig, canonical_eval_tasks},
         runner::{
-            ModelAggResult, OxoCallGenerator, TrialResult, aggregate_results, analyse_errors,
-            compute_baseline_comparison, run_benchmark, run_mock_baseline, run_mock_benchmark,
-            summarise_by_category, summarise_by_tool, write_baseline_comparison_csv,
-            write_category_summary_csv, write_error_analysis_csv, write_model_agg_csv,
-            write_tool_model_summary_csv, write_trials_csv,
+            IncrementalCsvWriter, ModelAggResult, OxoCallGenerator, TrialCallback, TrialResult,
+            aggregate_results, analyse_errors, compute_baseline_comparison, run_benchmark,
+            run_benchmark_with_callback, run_mock_baseline, run_mock_benchmark,
+            write_baseline_comparison_csv,
+            write_error_analysis_csv, write_model_agg_csv, write_trials_csv,
         },
         scenario::{
             Scenario, UsageDescription, generate_descriptions, generate_scenarios,
@@ -735,7 +735,9 @@ fn cmd_eval(
 
     std::fs::create_dir_all(output_dir)?;
 
+    let incremental_writer = IncrementalCsvWriter::new(output_dir)?;
     let mut all_trials: Vec<TrialResult> = Vec::new();
+    let mut all_agg: Vec<ModelAggResult> = Vec::new();
 
     let mut baseline_trials: Vec<TrialResult> = Vec::new();
 
@@ -902,108 +904,66 @@ fn cmd_eval(
                         api_base: model_entry.api_base.clone(),
                         api_key: model_entry.api_key.clone(),
                     };
-                    let trials = run_benchmark(
+                    let trials = run_benchmark_with_callback(
                         &model_entry.name,
                         repeats,
                         &descriptions,
                         &scenarios,
                         &gtor,
                         scenario.name(),
+                        Some(&incremental_writer),
                     );
+                    
+                    let agg = aggregate_results(&trials);
+                    if let Err(e) = incremental_writer.write_model_summary(&agg) {
+                        eprintln!("Warning: failed to write model summary: {}", e);
+                    }
+                    incremental_writer.on_model_complete(&model_entry.name, scenario.name(), &agg[0], &trials);
+                    
                     all_trials.extend(trials);
+                    all_agg.extend(agg);
                 }
             }
         }
     }
 
-    // ── Write result CSVs ─────────────────────────────────────────────────
-    let trials_csv_path = output_dir.join("benchmark_trials.csv");
-    {
-        let mut f = std::fs::File::create(&trials_csv_path)?;
-        write_trials_csv(&mut f, &all_trials)?;
-    }
+    // ── Write final summary CSVs ─────────────────────────────────────────────────
     println!(
         "{} {} ({} trials)",
         "✓".green().bold(),
-        trials_csv_path.display().to_string().cyan(),
+        output_dir.join("benchmark_trials.csv").display().to_string().cyan(),
         all_trials.len()
     );
 
-    let agg = aggregate_results(&all_trials);
-    let agg_csv_path = output_dir.join("model_summary.csv");
-    {
-        let mut f = std::fs::File::create(&agg_csv_path)?;
-        write_model_agg_csv(&mut f, &agg)?;
+    if let Err(e) = incremental_writer.write_model_summary(&all_agg) {
+        eprintln!("Warning: failed to write model summary: {}", e);
     }
     println!(
         "{} {} ({} models)",
         "✓".green().bold(),
-        agg_csv_path.display().to_string().cyan(),
-        agg.len()
+        output_dir.join("model_summary.csv").display().to_string().cyan(),
+        all_agg.len()
     );
 
-    // Per-model detailed CSVs.
-    for model_agg in &agg {
-        let model_trials: Vec<TrialResult> = all_trials
-            .iter()
-            .filter(|t| t.model == model_agg.model)
-            .cloned()
-            .collect();
-        let safe_name = model_agg.model.replace(['/', ':'], "_");
-        let model_csv_path = output_dir.join(format!("trials_{safe_name}.csv"));
-        {
-            let mut f = std::fs::File::create(&model_csv_path)?;
-            write_trials_csv(&mut f, &model_trials)?;
-        }
-        println!(
-            "  {} {} ({} trials)",
-            "✓".green().bold(),
-            model_csv_path.display().to_string().cyan(),
-            model_trials.len()
-        );
+    if let Err(e) = incremental_writer.write_summaries(&all_trials) {
+        eprintln!("Warning: failed to write summaries: {}", e);
     }
-
-    // Per-(tool, model) summary CSV.
-    let tool_model_csv_path = output_dir.join("model_summary_by_tool.csv");
-    {
-        let tool_summaries = summarise_by_tool(&all_trials);
-        let mut f = std::fs::File::create(&tool_model_csv_path)?;
-        write_tool_model_summary_csv(&mut f, &tool_summaries)?;
-        println!(
-            "{} {} ({} tool × model rows)",
-            "✓".green().bold(),
-            tool_model_csv_path.display().to_string().cyan(),
-            tool_summaries.len()
-        );
-    }
-
-    // Per-(category, model) summary CSV.
-    let cat_csv_path = output_dir.join("model_summary_by_category.csv");
-    {
-        let cat_summaries = summarise_by_category(&all_trials);
-        let mut f = std::fs::File::create(&cat_csv_path)?;
-        write_category_summary_csv(&mut f, &cat_summaries)?;
-        println!(
-            "{} {} ({} category × model rows)",
-            "✓".green().bold(),
-            cat_csv_path.display().to_string().cyan(),
-            cat_summaries.len()
-        );
-    }
-
-    // Error analysis CSV.
-    let error_csv_path = output_dir.join("error_analysis.csv");
-    {
-        let errors = analyse_errors(&all_trials);
-        let mut f = std::fs::File::create(&error_csv_path)?;
-        write_error_analysis_csv(&mut f, &errors)?;
-        println!(
-            "{} {} ({} models analysed)",
-            "✓".green().bold(),
-            error_csv_path.display().to_string().cyan(),
-            errors.len()
-        );
-    }
+    println!(
+        "{} {} (tool × model rows)",
+        "✓".green().bold(),
+        output_dir.join("model_summary_by_tool.csv").display().to_string().cyan()
+    );
+    println!(
+        "{} {} (category × model rows)",
+        "✓".green().bold(),
+        output_dir.join("model_summary_by_category.csv").display().to_string().cyan()
+    );
+    println!(
+        "{} {} ({} models analysed)",
+        "✓".green().bold(),
+        output_dir.join("error_analysis.csv").display().to_string().cyan(),
+        all_agg.len()
+    );
 
     // ── Baseline comparison (mock mode only) ──────────────────────────────
     if !baseline_trials.is_empty() {
@@ -1069,7 +1029,7 @@ fn cmd_eval(
 
     // Print summary table.
     println!();
-    print_agg_summary(&agg);
+    print_agg_summary(&all_agg);
 
     if mock {
         println!();
@@ -1304,20 +1264,21 @@ fn load_model_agg_csv(path: &std::path::Path) -> anyhow::Result<Vec<ModelAggResu
             continue;
         }
         let fields = parse_csv_line(line);
-        if fields.len() >= 12 {
+        if fields.len() >= 13 {
             results.push(ModelAggResult {
                 model: fields[0].clone(),
-                n_trials: fields[1].parse().unwrap_or(0),
-                accuracy: fields[2].parse().unwrap_or(0.0),
-                exact_match_rate: fields[3].parse().unwrap_or(0.0),
-                avg_flag_recall: fields[4].parse().unwrap_or(0.0),
-                avg_flag_precision: fields[5].parse().unwrap_or(0.0),
-                avg_token_jaccard: fields[6].parse().unwrap_or(0.0),
-                subcommand_match_rate: fields[7].parse().unwrap_or(0.0),
-                consistency: fields[8].parse().unwrap_or(0.0),
-                avg_latency_ms: fields[9].parse().unwrap_or(0.0),
-                avg_tokens: fields[10].parse().unwrap_or(0.0),
-                format_valid_rate: fields[11].parse().unwrap_or(0.0),
+                ablation: fields[1].clone(),
+                n_trials: fields[2].parse().unwrap_or(0),
+                accuracy: fields[3].parse().unwrap_or(0.0),
+                exact_match_rate: fields[4].parse().unwrap_or(0.0),
+                avg_flag_recall: fields[5].parse().unwrap_or(0.0),
+                avg_flag_precision: fields[6].parse().unwrap_or(0.0),
+                avg_token_jaccard: fields[7].parse().unwrap_or(0.0),
+                subcommand_match_rate: fields[8].parse().unwrap_or(0.0),
+                consistency: fields[9].parse().unwrap_or(0.0),
+                avg_latency_ms: fields[10].parse().unwrap_or(0.0),
+                avg_tokens: fields[11].parse().unwrap_or(0.0),
+                format_valid_rate: fields[12].parse().unwrap_or(0.0),
             });
         }
     }

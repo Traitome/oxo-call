@@ -1,6 +1,6 @@
 ---
 name: sourmash
-category: sequence-comparison
+category: sequence-utilities
 description: K-mer sketching, genome comparison, and taxonomic classification using MinHash and FracMinHash
 tags: [kmer, sketching, taxonomy, metagenomics, comparison, minhash, gather]
 author: oxo-call built-in

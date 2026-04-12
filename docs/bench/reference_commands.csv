@@ -79,26 +79,26 @@ bamtools,bamtools_07,count -in input.bam -t 4,count aligned reads in a BAM file 
 bamtools,bamtools_08,filter -in input.bam -out filtered.bam -isMapped true -isProperPair true -o output.txt,"filter BAM to keep only mapped, properly paired reads and write output to a file",utilities
 bamtools,bamtools_09,merge -in sample1.bam -in sample2.bam -in sample3.bam -out merged.bam --quiet,merge multiple BAM files in quiet mode,utilities
 bamtools,bamtools_10,convert -in input.bam -format fastq -out reads.fastq,convert BAM to FASTQ with default parameters,utilities
-bash,bash_01,script.sh arg1 arg2,run a bash script,scripting
-bash,bash_02,-euo pipefail -c 'command1 | command2',run a script with strict error handling,scripting
-bash,bash_03,-c 'source ~/.bashrc && printenv',source a configuration file into the current shell,scripting
-bash,bash_04,--version,check bash version,scripting
-bash,bash_05,-x script.sh,run a script and print each command as it executes (debugging),scripting
-bash,bash_06,-c 'declare -f; alias',list all loaded functions and aliases,scripting
-bash,bash_07,-c 'export MY_VAR=test && echo $MY_VAR',execute a command in a subshell without affecting the current environment,scripting
-bash,bash_08,-c 'diff <(sort file1.txt) <(sort file2.txt)',write a multi-command pipeline using process substitution,scripting
-bash,bash_09,"-c 'long_running_command &; PID=$!; wait $PID; echo ""exit: $?""'",run a background pipeline job and capture its PID,scripting
-bash,bash_10,"-c 'for f in *.bam; do samtools flagstat ""$f"" > ""${f%.bam}.stats""; done'",loop over a list of files and process each,scripting
-bbtools,bbtools_01,bbduk.sh in=R1.fastq.gz in2=R2.fastq.gz out=R1_trimmed.fastq.gz out2=R2_trimmed.fastq.gz ref=adapters.fa ktrim=r k=23 mink=11 hdist=1 tpe tbo qtrim=r trimq=20 minlen=50,trim adapters and quality-filter with BBDuk,sequence-processing
-bbtools,bbtools_02,bbduk.sh in=R1.fastq.gz in2=R2.fastq.gz out=clean_R1.fastq.gz out2=clean_R2.fastq.gz ref=phix174_ill.ref.fa.gz k=31 hdist=1,remove PhiX contamination from a FASTQ,sequence-processing
-bbtools,bbtools_03,bbmap.sh in=reads.fastq.gz ref=genome.fa out=aligned.sam,align reads to a reference genome,sequence-processing
-bbtools,bbtools_04,bbmerge.sh in=R1.fastq.gz in2=R2.fastq.gz out=merged.fastq.gz outu=unmerged_R1.fastq.gz outu2=unmerged_R2.fastq.gz,merge overlapping paired-end reads,sequence-processing
-bbtools,bbtools_05,reformat.sh in=large.fastq.gz out=subset.fastq.gz samplereadstarget=1000000,subsample a FASTQ file to a specific number of reads,sequence-processing
-bbtools,bbtools_06,reformat.sh in=reads.fastq.gz out=reads.fa,convert FASTQ to FASTA,sequence-processing
-bbtools,bbtools_07,bbmap.sh in=sample.fastq.gz ref=human_genome.fa outm=host_reads.fastq.gz outu=non_host_reads.fastq.gz nodisk=t,remove host reads before metagenomics analysis,sequence-processing
-bbtools,bbtools_08,reformat.sh in=reads.fastq.gz,get detailed statistics for a FASTQ file,sequence-processing
-bbtools,bbtools_09,dedupe.sh in=reads.fastq.gz out=deduped.fastq.gz,remove duplicate reads with dedupe.sh,sequence-processing
-bbtools,bbtools_10,"bbsplit.sh in=sample.fastq.gz ref=genome1.fa,genome2.fa out_genome1=reads_genome1.fastq.gz out_genome2=reads_genome2.fastq.gz",split reads by genome of origin for metagenomics,sequence-processing
+bash,bash_01,script.sh arg1 arg2,run a bash script,programming
+bash,bash_02,-euo pipefail -c 'command1 | command2',run a script with strict error handling,programming
+bash,bash_03,-c 'source ~/.bashrc && printenv',source a configuration file into the current shell,programming
+bash,bash_04,--version,check bash version,programming
+bash,bash_05,-x script.sh,run a script and print each command as it executes (debugging),programming
+bash,bash_06,-c 'declare -f; alias',list all loaded functions and aliases,programming
+bash,bash_07,-c 'export MY_VAR=test && echo $MY_VAR',execute a command in a subshell without affecting the current environment,programming
+bash,bash_08,-c 'diff <(sort file1.txt) <(sort file2.txt)',write a multi-command pipeline using process substitution,programming
+bash,bash_09,"-c 'long_running_command &; PID=$!; wait $PID; echo ""exit: $?""'",run a background pipeline job and capture its PID,programming
+bash,bash_10,"-c 'for f in *.bam; do samtools flagstat ""$f"" > ""${f%.bam}.stats""; done'",loop over a list of files and process each,programming
+bbtools,bbtools_01,bbduk.sh in=R1.fastq.gz in2=R2.fastq.gz out=R1_trimmed.fastq.gz out2=R2_trimmed.fastq.gz ref=adapters.fa ktrim=r k=23 mink=11 hdist=1 tpe tbo qtrim=r trimq=20 minlen=50,trim adapters and quality-filter with BBDuk,sequence-utilities
+bbtools,bbtools_02,bbduk.sh in=R1.fastq.gz in2=R2.fastq.gz out=clean_R1.fastq.gz out2=clean_R2.fastq.gz ref=phix174_ill.ref.fa.gz k=31 hdist=1,remove PhiX contamination from a FASTQ,sequence-utilities
+bbtools,bbtools_03,bbmap.sh in=reads.fastq.gz ref=genome.fa out=aligned.sam,align reads to a reference genome,sequence-utilities
+bbtools,bbtools_04,bbmerge.sh in=R1.fastq.gz in2=R2.fastq.gz out=merged.fastq.gz outu=unmerged_R1.fastq.gz outu2=unmerged_R2.fastq.gz,merge overlapping paired-end reads,sequence-utilities
+bbtools,bbtools_05,reformat.sh in=large.fastq.gz out=subset.fastq.gz samplereadstarget=1000000,subsample a FASTQ file to a specific number of reads,sequence-utilities
+bbtools,bbtools_06,reformat.sh in=reads.fastq.gz out=reads.fa,convert FASTQ to FASTA,sequence-utilities
+bbtools,bbtools_07,bbmap.sh in=sample.fastq.gz ref=human_genome.fa outm=host_reads.fastq.gz outu=non_host_reads.fastq.gz nodisk=t,remove host reads before metagenomics analysis,sequence-utilities
+bbtools,bbtools_08,reformat.sh in=reads.fastq.gz,get detailed statistics for a FASTQ file,sequence-utilities
+bbtools,bbtools_09,dedupe.sh in=reads.fastq.gz out=deduped.fastq.gz,remove duplicate reads with dedupe.sh,sequence-utilities
+bbtools,bbtools_10,"bbsplit.sh in=sample.fastq.gz ref=genome1.fa,genome2.fa out_genome1=reads_genome1.fastq.gz out_genome2=reads_genome2.fastq.gz",split reads by genome of origin for metagenomics,sequence-utilities
 bcftools,bcftools_01,mpileup -f reference.fa -O u input.bam | bcftools call -m -v -O z -o variants.vcf.gz,call variants from a BAM file against a reference genome,variant-calling
 bcftools,bcftools_02,"view -i 'QUAL>30 && INFO/DP>10 && TYPE=""snp""' -O z -o filtered.vcf.gz input.vcf.gz","filter VCF to keep only high-quality SNPs (QUAL > 30, depth > 10)",variant-calling
 bcftools,bcftools_03,merge -O z -o merged.vcf.gz sample1.vcf.gz sample2.vcf.gz sample3.vcf.gz,merge multiple VCF files from different samples,variant-calling
@@ -109,16 +109,16 @@ bcftools,bcftools_07,view -v snps -O z -o snps.vcf.gz input.vcf.gz,select only S
 bcftools,bcftools_08,annotate -a dbsnp.vcf.gz -c ID -O z -o annotated.vcf.gz input.vcf.gz,annotate VCF with a reference VCF (add ID field from dbSNP),variant-calling
 bcftools,bcftools_09,mpileup -f reference.fa -O u input.bam | bcftools call -m -v -O z -o variants.vcf.gz,call variants from a BAM file against a reference genome,variant-calling
 bcftools,bcftools_10,"view -i 'QUAL>30 && INFO/DP>10 && TYPE=""snp""' -O z -o filtered.vcf.gz input.vcf.gz","filter VCF to keep only high-quality SNPs (QUAL > 30, depth > 10) with default parameters",variant-calling
-bedops,bedops_01,sort-bed input.bed > input.sorted.bed,sort a BED file for use with BEDOPS tools,genomic-arithmetic
-bedops,bedops_02,--intersect a.sorted.bed b.sorted.bed > intersection.bed,intersect two sorted BED files (intervals present in both),genomic-arithmetic
-bedops,bedops_03,--difference a.sorted.bed b.sorted.bed > a_not_b.bed,find intervals in file A that do not overlap file B,genomic-arithmetic
-bedops,bedops_04,bedmap --echo --sum --delim '\t' genes.sorted.bed signal.sorted.bedgraph > genes_with_coverage.bed,compute coverage (sum of signal) from bigwig/bedgraph mapped to gene windows,genomic-arithmetic
-bedops,bedops_05,starch input.sorted.bed > input.starch,compress a sorted BED file to starch format,genomic-arithmetic
-bedops,bedops_06,bedextract chr1:100000-200000 input.sorted.bed,extract all intervals overlapping a specific region,genomic-arithmetic
-bedops,bedops_07,--merge a.sorted.bed b.sorted.bed c.sorted.bed > merged_union.bed,merge overlapping intervals and compute union across three BED files,genomic-arithmetic
-bedops,bedops_08,sort-bed input.bed > input.sorted.bed,sort a BED file for use with BEDOPS tools,genomic-arithmetic
-bedops,bedops_09,--intersect a.sorted.bed b.sorted.bed > intersection.bed,intersect two sorted BED files (intervals present in both),genomic-arithmetic
-bedops,bedops_10,--difference a.sorted.bed b.sorted.bed > a_not_b.bed,find intervals in file A that do not overlap file B with default parameters,genomic-arithmetic
+bedops,bedops_01,sort-bed input.bed > input.sorted.bed,sort a BED file for use with BEDOPS tools,genomic-intervals
+bedops,bedops_02,--intersect a.sorted.bed b.sorted.bed > intersection.bed,intersect two sorted BED files (intervals present in both),genomic-intervals
+bedops,bedops_03,--difference a.sorted.bed b.sorted.bed > a_not_b.bed,find intervals in file A that do not overlap file B,genomic-intervals
+bedops,bedops_04,bedmap --echo --sum --delim '\t' genes.sorted.bed signal.sorted.bedgraph > genes_with_coverage.bed,compute coverage (sum of signal) from bigwig/bedgraph mapped to gene windows,genomic-intervals
+bedops,bedops_05,starch input.sorted.bed > input.starch,compress a sorted BED file to starch format,genomic-intervals
+bedops,bedops_06,bedextract chr1:100000-200000 input.sorted.bed,extract all intervals overlapping a specific region,genomic-intervals
+bedops,bedops_07,--merge a.sorted.bed b.sorted.bed c.sorted.bed > merged_union.bed,merge overlapping intervals and compute union across three BED files,genomic-intervals
+bedops,bedops_08,sort-bed input.bed > input.sorted.bed,sort a BED file for use with BEDOPS tools,genomic-intervals
+bedops,bedops_09,--intersect a.sorted.bed b.sorted.bed > intersection.bed,intersect two sorted BED files (intervals present in both),genomic-intervals
+bedops,bedops_10,--difference a.sorted.bed b.sorted.bed > a_not_b.bed,find intervals in file A that do not overlap file B with default parameters,genomic-intervals
 bedtools,bedtools_01,intersect -a query.bed -b features.bed -wa,find intervals in file A that overlap with file B,genomic-intervals
 bedtools,bedtools_02,subtract -a regions.bed -b blacklist.bed,subtract regions in B from regions in A,genomic-intervals
 bedtools,bedtools_03,merge -i input.bed,merge overlapping intervals in a BED file,genomic-intervals
@@ -209,16 +209,6 @@ canu,canu_07,-p metagenome -d canu_meta/ genomeSize=100m -nanopore meta_reads.fa
 canu,canu_08,-p assembly_only -d canu_assembly_only/ -assemble genomeSize=5m -nanopore-corrected corrected_reads.fasta maxMemory=16g maxThreads=8 -o output.txt,run only the assembly stage (skip correction and trimming) and write output to a file,assembly
 canu,canu_09,-p ecoli_assembly -d canu_ecoli/ genomeSize=5m -nanopore reads.fastq.gz maxMemory=16g maxThreads=8 --quiet,assemble bacterial genome from ONT reads in quiet mode,assembly
 canu,canu_10,-p hifi_assembly -d canu_hifi/ genomeSize=3g -pacbio-hifi hifi_reads.fastq.gz maxMemory=64g maxThreads=32,assemble genome from PacBio HiFi reads with default parameters,assembly
-cellranger,cellranger_01,count --id=sample_output --transcriptome=/path/to/refdata-gex-GRCh38-2020-A --fastqs=/path/to/fastqs/ --sample=sample_name --localcores=16 --localmem=64,count gene expression from 10x scRNA-seq FASTQ files,single-cell
-cellranger,cellranger_02,arc count --id=multiome_output --reference=/path/to/arc_ref/ --libraries=libraries.csv --localcores=16 --localmem=128,process 10x multiome (RNA+ATAC) data with Cell Ranger ARC,single-cell
-cellranger,cellranger_03,mkref --genome=custom_genome --fasta=genome.fa --genes=genes.gtf --nthreads=8,build a custom Cell Ranger reference from genome FASTA and GTF,single-cell
-cellranger,cellranger_04,atac count --id=atac_output --reference=/path/to/refdata-cellranger-arc-GRCh38-2020-A-2.0.0 --fastqs=/path/to/atac_fastqs/ --sample=atac_sample --localcores=16 --localmem=64,process 10x ATAC-seq data with Cell Ranger ATAC,single-cell
-cellranger,cellranger_05,count --id=sample_output --transcriptome=/path/to/refdata-gex-GRCh38-2020-A --fastqs=/path/to/fastqs/ --sample=sample_name --localcores=16 --localmem=64,count gene expression from 10x scRNA-seq FASTQ files with default parameters,single-cell
-cellranger,cellranger_06,arc count --id=multiome_output --reference=/path/to/arc_ref/ --libraries=libraries.csv --localcores=16 --localmem=128 --verbose,process 10x multiome (RNA+ATAC) data with Cell Ranger ARC with verbose output,single-cell
-cellranger,cellranger_07,mkref --genome=custom_genome --fasta=genome.fa --genes=genes.gtf --nthreads=8 -t 4,build a custom Cell Ranger reference from genome FASTA and GTF using multiple threads,single-cell
-cellranger,cellranger_08,atac count --id=atac_output --reference=/path/to/refdata-cellranger-arc-GRCh38-2020-A-2.0.0 --fastqs=/path/to/atac_fastqs/ --sample=atac_sample --localcores=16 --localmem=64 -o output.txt,process 10x ATAC-seq data with Cell Ranger ATAC and write output to a file,single-cell
-cellranger,cellranger_09,count --id=sample_output --transcriptome=/path/to/refdata-gex-GRCh38-2020-A --fastqs=/path/to/fastqs/ --sample=sample_name --localcores=16 --localmem=64 --quiet,count gene expression from 10x scRNA-seq FASTQ files in quiet mode,single-cell
-cellranger,cellranger_10,arc count --id=multiome_output --reference=/path/to/arc_ref/ --libraries=libraries.csv --localcores=16 --localmem=128,process 10x multiome (RNA+ATAC) data with Cell Ranger ARC with default parameters,single-cell
 cellsnp-lite,cellsnp-lite_01,-s possorted_genome_bam.bam -b barcodes.tsv -O cellsnp_out -R common_snps.vcf.gz -p 16 --minMAF 0.1 --minCOUNT 20,pileup known SNPs in a 10x Chromium scRNA-seq BAM with cell barcodes,single-cell
 cellsnp-lite,cellsnp-lite_02,-s bulk.bam -O bulk_snp_out -R common_snps.vcf.gz -p 16 --minMAF 0.05 --minCOUNT 10,pileup SNPs in a bulk BAM without cell barcodes,single-cell
 cellsnp-lite,cellsnp-lite_03,-s possorted_genome_bam.bam -b barcodes.tsv -O denovo_snp_out -p 16 --minMAF 0.1 --minCOUNT 100 --gzip,de novo SNP discovery in single-cell BAM (Mode 2),single-cell
@@ -319,16 +309,6 @@ deeptools,deeptools_07,bamCoverage -b sorted.bam -o output.bw --normalizeUsing R
 deeptools,deeptools_08,bamCompare -b1 chip.bam -b2 input.bam -o chip_vs_input_log2.bw --normalizeUsing RPKM --binSize 10 -p 8,create log2 ratio (ChIP/Input) bigWig track and write output to a file,epigenomics
 deeptools,deeptools_09,computeMatrix reference-point -S chip.bw -R genes.bed --referencePoint TSS -b 3000 -a 3000 -o matrix.gz -p 8 --quiet,compute signal matrix around TSS for heatmap visualization in quiet mode,epigenomics
 deeptools,deeptools_10,plotHeatmap -m matrix.gz -out heatmap.png --colorMap RdBu_r --whatToShow 'heatmap and colorbar',plot heatmap of signal around genomic regions with default parameters,epigenomics
-deepvariant,deepvariant_01,run_deepvariant --model_type WGS --ref reference.fa --input_bam sorted.bam --output_vcf output.vcf --output_gvcf output.g.vcf --num_shards 16,call variants from Illumina WGS data using DeepVariant,variant-calling
-deepvariant,deepvariant_02,run_deepvariant --model_type PACBIO --ref reference.fa --input_bam hifi_sorted.bam --output_vcf pacbio_variants.vcf --output_gvcf pacbio.g.vcf --num_shards 16,call variants from PacBio HiFi data,variant-calling
-deepvariant,deepvariant_03,run_deepvariant --model_type ONT --ref reference.fa --input_bam ont_sorted.bam --output_vcf ont_variants.vcf --output_gvcf ont.g.vcf --num_shards 16,call variants from Oxford Nanopore reads,variant-calling
-deepvariant,deepvariant_04,run_deepvariant --model_type WES --ref reference.fa --input_bam wes_sorted.bam --regions targets.bed --output_vcf wes_variants.vcf --output_gvcf wes.g.vcf --num_shards 8,call variants from WES data,variant-calling
-deepvariant,deepvariant_05,run_deepvariant --model_type WGS --ref reference.fa --input_bam sorted.bam --output_vcf output.vcf --output_gvcf output.g.vcf --num_shards 16,call variants from Illumina WGS data using DeepVariant with default parameters,variant-calling
-deepvariant,deepvariant_06,run_deepvariant --model_type PACBIO --ref reference.fa --input_bam hifi_sorted.bam --output_vcf pacbio_variants.vcf --output_gvcf pacbio.g.vcf --num_shards 16 --verbose,call variants from PacBio HiFi data with verbose output,variant-calling
-deepvariant,deepvariant_07,run_deepvariant --model_type ONT --ref reference.fa --input_bam ont_sorted.bam --output_vcf ont_variants.vcf --output_gvcf ont.g.vcf --num_shards 16 -t 4,call variants from Oxford Nanopore reads using multiple threads,variant-calling
-deepvariant,deepvariant_08,run_deepvariant --model_type WES --ref reference.fa --input_bam wes_sorted.bam --regions targets.bed --output_vcf wes_variants.vcf --output_gvcf wes.g.vcf --num_shards 8,call variants from WES data and write output to a file,variant-calling
-deepvariant,deepvariant_09,run_deepvariant --model_type WGS --ref reference.fa --input_bam sorted.bam --output_vcf output.vcf --output_gvcf output.g.vcf --num_shards 16 --quiet,call variants from Illumina WGS data using DeepVariant in quiet mode,variant-calling
-deepvariant,deepvariant_10,run_deepvariant --model_type PACBIO --ref reference.fa --input_bam hifi_sorted.bam --output_vcf pacbio_variants.vcf --output_gvcf pacbio.g.vcf --num_shards 16,call variants from PacBio HiFi data with default parameters,variant-calling
 delly,delly_01,call -g reference.fa -o sample_svs.bcf sample.bam,call structural variants from a single sample,variant-calling
 delly,delly_02,call -g reference.fa -x hg38.excl -o sample_svs.bcf sample.bam,call SVs with repetitive region exclusion list,variant-calling
 delly,delly_03,call -g reference.fa -x hg38.excl -o somatic_svs.bcf tumor.bam normal.bam,call somatic SVs from tumor-normal pair,variant-calling
@@ -349,36 +329,6 @@ diamond,diamond_07,blastp -q proteins.faa -d nr_diamond -o blastp_results.tsv --
 diamond,diamond_08,blastx -q reads.fastq.gz -d nr_diamond -o blastx_results.tsv --outfmt 6 --threads 16 --evalue 1e-5 --max-target-seqs 1,search DNA reads against protein database using blastx (translated search) and write output to a file,metagenomics
 diamond,diamond_09,blastp -q proteins.faa -d uniprot_diamond -o detailed_results.tsv --outfmt '6 qseqid sseqid pident length evalue bitscore stitle' --more-sensitive --threads 8 --quiet,sensitive mode search with custom output fields in quiet mode,metagenomics
 diamond,diamond_10,blastx -q metagenome.faa -d nr_diamond --taxonmap prot.accession2taxid.gz --taxonnodes nodes.dmp -o results_tax.tsv --outfmt '6 qseqid sseqid pident evalue bitscore staxids sscinames' --threads 16,search with taxonomy-aware output for functional annotation with default parameters,metagenomics
-dorado,dorado_01,basecaller hac pod5_files/ --device cuda:0 > calls.bam,basecall ONT POD5 files with high-accuracy model on GPU,long-read
-dorado,dorado_02,basecaller sup pod5_files/ --modified-bases 5mCG_5hmCG --device cuda:0 > calls_mods.bam,basecall with super-accuracy model and modified base calling,long-read
-dorado,dorado_03,basecaller hac pod5_files/ --emit-fastq --device cuda:0 | gzip > basecalled_reads.fastq.gz,basecall and output FASTQ format,long-read
-dorado,dorado_04,demux --kit-name SQK-NBD114-24 --output-dir demux_output/ --emit-fastq reads.bam,demultiplex barcoded reads using Dorado,long-read
-dorado,dorado_05,duplex sup pod5_files/ --device cuda:0 > duplex_calls.bam,run duplex basecalling for highest accuracy paired reads,long-read
-dorado,dorado_06,basecaller hac pod5_files/ --device cuda:0 > calls.bam,basecall ONT POD5 files with high-accuracy model on GPU,long-read
-dorado,dorado_07,basecaller sup pod5_files/ --modified-bases 5mCG_5hmCG --device cuda:0 > calls_mods.bam,basecall with super-accuracy model and modified base calling,long-read
-dorado,dorado_08,basecaller hac pod5_files/ --emit-fastq --device cuda:0 | gzip > basecalled_reads.fastq.gz,basecall and output FASTQ format,long-read
-dorado,dorado_09,demux --kit-name SQK-NBD114-24 --output-dir demux_output/ --emit-fastq reads.bam --quiet,demultiplex barcoded reads using Dorado in quiet mode,long-read
-dorado,dorado_10,duplex sup pod5_files/ --device cuda:0 > duplex_calls.bam,run duplex basecalling for highest accuracy paired reads with default parameters,long-read
-eggnog-mapper,eggnog-mapper_01,-m diamond -i proteins.fasta --itype proteins --data_dir /data/eggnog_db -o results --cpu 16 --override,annotate a protein FASTA file with eggNOG using diamond,functional-annotation
-eggnog-mapper,eggnog-mapper_02,-m diamond -i proteins.fasta --itype proteins --tax_scope 2 --data_dir /data/eggnog_db -o bact_results --cpu 16,annotate proteins and restrict to bacterial orthologs,functional-annotation
-eggnog-mapper,eggnog-mapper_03,-m diamond -i genes.fna --itype CDS --translate --data_dir /data/eggnog_db -o cds_results --cpu 16,annotate a nucleotide CDS file,functional-annotation
-eggnog-mapper,eggnog-mapper_04,-m mmseqs -i meta_proteins.fasta --itype proteins --data_dir /data/eggnog_db -o meta_results --cpu 32,use mmseqs2 mode for fast annotation of large metagenomic protein set,functional-annotation
-eggnog-mapper,eggnog-mapper_05,-m diamond -i proteins.fasta --itype proteins --data_dir /data/eggnog_db -o results --cpu 16 --resume,resume an interrupted annotation run,functional-annotation
-eggnog-mapper,eggnog-mapper_06,-m diamond -i genome.fna --itype genome --data_dir /data/eggnog_db -o genome_results --cpu 16 --genepred prodigal,annotate a genome with gene prediction first,functional-annotation
-eggnog-mapper,eggnog-mapper_07,-m diamond -i proteins.fasta --itype proteins --data_dir /data/eggnog_db -o results --cpu 16 --override -t 4,annotate a protein FASTA file with eggNOG using diamond using multiple threads,functional-annotation
-eggnog-mapper,eggnog-mapper_08,-m diamond -i proteins.fasta --itype proteins --tax_scope 2 --data_dir /data/eggnog_db -o bact_results --cpu 16,annotate proteins and restrict to bacterial orthologs and write output to a file,functional-annotation
-eggnog-mapper,eggnog-mapper_09,-m diamond -i genes.fna --itype CDS --translate --data_dir /data/eggnog_db -o cds_results --cpu 16 --quiet,annotate a nucleotide CDS file in quiet mode,functional-annotation
-eggnog-mapper,eggnog-mapper_10,-m mmseqs -i meta_proteins.fasta --itype proteins --data_dir /data/eggnog_db -o meta_results --cpu 32,use mmseqs2 mode for fast annotation of large metagenomic protein set with default parameters,functional-annotation
-fastani,fastani_01,--query query.fasta --ref reference.fasta --output result.txt,compute ANI between two genomes,comparative-genomics
-fastani,fastani_02,--queryList genomes.list --refList genomes.list --output all_vs_all.tsv --threads 16,all-vs-all comparison of a genome collection,comparative-genomics
-fastani,fastani_03,--query new_isolate.fa --refList reference_db.list --output ani_results.tsv --threads 8,one-to-many comparison: one query vs many references,comparative-genomics
-fastani,fastani_04,--queryList genomes.list --refList genomes.list --output raw.tsv --minFraction 0.5 --threads 16,filter results to show only high-ANI pairs (same species),comparative-genomics
-fastani,fastani_05,--query q.fa --ref r.fa --output result.txt --fragLen 1500,adjust fragment length for highly similar genomes,comparative-genomics
-fastani,fastani_06,find /genomes -name '*.fna' > genomes.list,build a genome list file for batch comparison,comparative-genomics
-fastani,fastani_07,--version,check FastANI version,comparative-genomics
-fastani,fastani_08,--query query.fasta --ref reference.fasta --output result.txt,compute ANI between two genomes and write output to a file,comparative-genomics
-fastani,fastani_09,--queryList genomes.list --refList genomes.list --output all_vs_all.tsv --threads 16 --quiet,all-vs-all comparison of a genome collection in quiet mode,comparative-genomics
-fastani,fastani_10,--query new_isolate.fa --refList reference_db.list --output ani_results.tsv --threads 8,one-to-many comparison: one query vs many references with default parameters,comparative-genomics
 fastp,fastp_01,-i R1.fastq.gz -I R2.fastq.gz -o clean_R1.fastq.gz -O clean_R2.fastq.gz -h report.html -j report.json -w 8,quality trim and filter paired-end FASTQ reads with 8 threads,qc
 fastp,fastp_02,-i reads.fastq.gz -o clean_reads.fastq.gz -l 50 -h report.html -j report.json,trim adapters from single-end reads and filter reads shorter than 50 bp,qc
 fastp,fastp_03,-i R1.fq.gz -I R2.fq.gz -o out_R1.fq.gz -O out_R2.fq.gz -q 20 -l 36 -w 8 -h qc.html -j qc.json,quality trim paired-end reads and set minimum quality to 20,qc
@@ -549,16 +499,6 @@ homer,homer_07,pos2bed.pl peaks.txt > peaks.bed,convert HOMER peak file to BED f
 homer,homer_08,makeTagDirectory chipseq_tags/ sample.bam -genome hg38 -checkGC -o output.txt,create a HOMER tag directory from a BAM file and write output to a file,epigenomics
 homer,homer_09,findPeaks chipseq_tags/ -style factor -i input_tags/ -o peaks.txt --quiet,call narrow transcription factor peaks with an input control in quiet mode,epigenomics
 homer,homer_10,findPeaks chipseq_tags/ -style histone -i input_tags/ -o broad_peaks.txt,"call broad histone modification peaks (e.g., H3K27me3) with default parameters",epigenomics
-humann3,humann3_01,--input reads.fastq.gz --output humann3_output/ --threads 16 --nucleotide-database /path/to/chocophlan --protein-database /path/to/uniref90,run HUMAnN3 functional profiling on metagenomic reads,metagenomics
-humann3,humann3_02,--input merged_R1R2.fastq.gz --output humann3_output/ --threads 16 --bypass-nucleotide-index,run HUMAnN3 on concatenated paired-end reads,metagenomics
-humann3,humann3_03,--input sample_genefamilies.tsv --output sample_genefamilies_relab.tsv --units relab,normalize HUMAnN3 gene family output to relative abundance,metagenomics
-humann3,humann3_04,--input humann3_results/ --output merged_genefamilies.tsv,join multiple HUMAnN3 gene family tables into one matrix,metagenomics
-humann3,humann3_05,--input reads.fastq.gz --output humann3_output/ --threads 16 --nucleotide-database /path/to/chocophlan --protein-database /path/to/uniref90,run HUMAnN3 functional profiling on metagenomic reads with default parameters,metagenomics
-humann3,humann3_06,--input merged_R1R2.fastq.gz --output humann3_output/ --threads 16 --bypass-nucleotide-index --verbose,run HUMAnN3 on concatenated paired-end reads with verbose output,metagenomics
-humann3,humann3_07,--input sample_genefamilies.tsv --output sample_genefamilies_relab.tsv --units relab -t 4,normalize HUMAnN3 gene family output to relative abundance using multiple threads,metagenomics
-humann3,humann3_08,--input humann3_results/ --output merged_genefamilies.tsv,join multiple HUMAnN3 gene family tables into one matrix and write output to a file,metagenomics
-humann3,humann3_09,--input reads.fastq.gz --output humann3_output/ --threads 16 --nucleotide-database /path/to/chocophlan --protein-database /path/to/uniref90 --quiet,run HUMAnN3 functional profiling on metagenomic reads in quiet mode,metagenomics
-humann3,humann3_10,--input merged_R1R2.fastq.gz --output humann3_output/ --threads 16 --bypass-nucleotide-index,run HUMAnN3 on concatenated paired-end reads with default parameters,metagenomics
 igvtools,igvtools_01,count -z 5 -w 25 sorted.bam coverage.tdf hg38,create coverage TDF track from BAM file,utilities
 igvtools,igvtools_02,index variants.vcf,index a VCF file for IGV,utilities
 igvtools,igvtools_03,sort input.bed sorted.bed,sort a BED file for IGV indexing,utilities
@@ -579,26 +519,26 @@ iqtree2,iqtree2_07,-s alignment.fasta -m MFP -B 1000 --bnni --prefix bootstrap_t
 iqtree2,iqtree2_08,-s protein_alignment.fasta -st AA -m TEST -B 1000 --bnni --prefix protein_tree -T 8 -o output.txt,infer phylogenetic tree for protein sequences and write output to a file,phylogenetics
 iqtree2,iqtree2_09,-s alignment.fasta -m MFP -B 1000 --prefix main_tree -T 8 --gcf gene_trees.txt --scfl 100 --quiet,infer concordance factor analysis for assessing gene tree discordance in quiet mode,phylogenetics
 iqtree2,iqtree2_10,-s alignment.fasta -m MFP -b 100 -o outgroup_taxon --prefix rooted_tree -T 8,infer tree with standard bootstrap and specified outgroup with default parameters,phylogenetics
-java,java_01,-version,check installed Java version,runtime
-java,java_02,-Xmx16g -jar picard.jar SortSam I=input.bam O=sorted.bam SORT_ORDER=coordinate,run a JAR-based tool with increased heap memory,runtime
-java,java_03,-Xmx8g -XX:+UseG1GC -Djava.io.tmpdir=/scratch/tmp -jar gatk.jar HaplotypeCaller -R ref.fa -I input.bam -O out.vcf,run GATK with custom tmp directory and GC settings,runtime
-java,java_04,-Xmx2g -jar fastqc.jar --threads 4 sample.fastq.gz,run FastQC via its JAR directly,runtime
-java,java_05,-XshowSettings:all -version,show all system properties and JVM settings,runtime
-java,java_06,-XX:+PrintFlagsFinal -version,list available JVM garbage collectors and tuning flags,runtime
-java,java_07,-Xmx4g -jar trimmomatic.jar PE -threads 8 R1.fastq.gz R2.fastq.gz R1_trimmed.fastq.gz R1_unpaired.fastq.gz R2_trimmed.fastq.gz R2_unpaired.fastq.gz ILLUMINACLIP:adapters.fa:2:30:10,run Trimmomatic via its JAR,runtime
-java,java_08,-XX:+PrintFlagsFinal -version 2>&1,check available JVM memory settings,runtime
-java,java_09,-cp /path/to/lib1.jar:/path/to/lib2.jar com.example.MainClass arg1 arg2,run a JAR with a custom classpath,runtime
-java,java_10,-version,check installed Java version with default parameters,runtime
-julia,julia_01,script.jl,run a Julia script,scientific-computing
-julia,julia_02,--project=. script.jl,run a script in a specific project environment,scientific-computing
-julia,julia_03,--threads auto script.jl,run a script with multiple threads,scientific-computing
-julia,julia_04,"-e 'using Pkg; Pkg.add(""BioSequences"")'",install a package from the Julia REPL (batch mode),scientific-computing
-julia,julia_05,-e 'using Pkg; Pkg.status()',show installed packages in the current environment,scientific-computing
-julia,julia_06,"-e 'using Pkg; Pkg.add([""BioSequences"",""FASTX"",""GenomicFeatures""])'",add BioJulia packages for bioinformatics,scientific-computing
-julia,julia_07,--startup-file=no --project=. script.jl,run script without loading startup.jl (for CI/pipelines),scientific-computing
-julia,julia_08,-e 'println(VERSION); println(DEPOT_PATH)',check Julia version and depot paths,scientific-computing
-julia,julia_09,--compile=all -O2 script.jl,compile a script ahead of time to reduce startup latency,scientific-computing
-julia,julia_10,-e 'import Pluto; Pluto.run(port=1234)',run a Pluto notebook server on a specific port,scientific-computing
+java,java_01,-version,check installed Java version,programming
+java,java_02,-Xmx16g -jar picard.jar SortSam I=input.bam O=sorted.bam SORT_ORDER=coordinate,run a JAR-based tool with increased heap memory,programming
+java,java_03,-Xmx8g -XX:+UseG1GC -Djava.io.tmpdir=/scratch/tmp -jar gatk.jar HaplotypeCaller -R ref.fa -I input.bam -O out.vcf,run GATK with custom tmp directory and GC settings,programming
+java,java_04,-Xmx2g -jar fastqc.jar --threads 4 sample.fastq.gz,run FastQC via its JAR directly,programming
+java,java_05,-XshowSettings:all -version,show all system properties and JVM settings,programming
+java,java_06,-XX:+PrintFlagsFinal -version,list available JVM garbage collectors and tuning flags,programming
+java,java_07,-Xmx4g -jar trimmomatic.jar PE -threads 8 R1.fastq.gz R2.fastq.gz R1_trimmed.fastq.gz R1_unpaired.fastq.gz R2_trimmed.fastq.gz R2_unpaired.fastq.gz ILLUMINACLIP:adapters.fa:2:30:10,run Trimmomatic via its JAR,programming
+java,java_08,-XX:+PrintFlagsFinal -version 2>&1,check available JVM memory settings,programming
+java,java_09,-cp /path/to/lib1.jar:/path/to/lib2.jar com.example.MainClass arg1 arg2,run a JAR with a custom classpath,programming
+java,java_10,-version,check installed Java version with default parameters,programming
+julia,julia_01,script.jl,run a Julia script,programming
+julia,julia_02,--project=. script.jl,run a script in a specific project environment,programming
+julia,julia_03,--threads auto script.jl,run a script with multiple threads,programming
+julia,julia_04,"-e 'using Pkg; Pkg.add(""BioSequences"")'",install a package from the Julia REPL (batch mode),programming
+julia,julia_05,-e 'using Pkg; Pkg.status()',show installed packages in the current environment,programming
+julia,julia_06,"-e 'using Pkg; Pkg.add([""BioSequences"",""FASTX"",""GenomicFeatures""])'",add BioJulia packages for bioinformatics,programming
+julia,julia_07,--startup-file=no --project=. script.jl,run script without loading startup.jl (for CI/pipelines),programming
+julia,julia_08,-e 'println(VERSION); println(DEPOT_PATH)',check Julia version and depot paths,programming
+julia,julia_09,--compile=all -O2 script.jl,compile a script ahead of time to reduce startup latency,programming
+julia,julia_10,-e 'import Pluto; Pluto.run(port=1234)',run a Pluto notebook server on a specific port,programming
 kallisto,kallisto_01,index -i transcriptome.idx transcriptome.fa,build a kallisto index from a transcriptome FASTA,rna-seq
 kallisto,kallisto_02,quant -i transcriptome.idx -o sample_output -b 100 --threads 8 R1.fastq.gz R2.fastq.gz,quantify paired-end RNA-seq reads,rna-seq
 kallisto,kallisto_03,quant -i transcriptome.idx -o sample_output --single -l 200 -s 20 -b 100 --threads 8 reads.fastq.gz,quantify single-end RNA-seq reads with fragment length parameters,rna-seq
@@ -629,16 +569,16 @@ kraken2,kraken2_07,--db /path/to/kraken2_db --threads 8 --output kraken_out.txt 
 kraken2,kraken2_08,--db /path/to/kraken2_db --paired --threads 8 --output kraken_out.txt --report kraken_report.txt --classified-out classified#.fastq R1.fastq.gz R2.fastq.gz,classify reads and extract classified reads for downstream analysis and write output to a file,metagenomics
 kraken2,kraken2_09,--db /path/to/kraken2_db --paired --threads 8 --output kraken_output.txt --report kraken_report.txt R1.fastq.gz R2.fastq.gz --quiet,classify paired-end metagenomic reads against the standard database in quiet mode,metagenomics
 kraken2,kraken2_10,--db /path/to/kraken2_db --paired --confidence 0.1 --threads 8 --output kraken_out.txt --report kraken_report.txt --unclassified-out unclassified#.fastq R1.fastq.gz R2.fastq.gz,classify reads with confidence threshold and save unclassified reads with default parameters,metagenomics
-liftoff,liftoff_01,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -u unmapped.txt,lift annotations from reference GFF3 to a new assembly,genome-annotation
-liftoff,liftoff_02,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -copies -u unmapped.txt,lift annotations and copy multi-copy gene families,genome-annotation
-liftoff,liftoff_03,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -s 0.85 -a 0.85 -u unmapped.txt,lift annotations between closely related species with lower identity threshold,genome-annotation
-liftoff,liftoff_04,target.fasta reference.fasta -db reference.db -o lifted.gff3 -u unmapped.txt,speed up repeated runs using a pre-built gffutils database,genome-annotation
-liftoff,liftoff_05,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -dir scratch_dir/ -p 16 -u unmapped.txt,lift annotations and write output to a specific directory with minimap2 intermediates,genome-annotation
-liftoff,liftoff_06,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -f gene -u unmapped.txt,"lift only specific feature types (e.g., just genes)",genome-annotation
-liftoff,liftoff_07,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -u unmapped.txt -t 4,lift annotations from reference GFF3 to a new assembly using multiple threads,genome-annotation
-liftoff,liftoff_08,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -copies -u unmapped.txt,lift annotations and copy multi-copy gene families and write output to a file,genome-annotation
-liftoff,liftoff_09,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -s 0.85 -a 0.85 -u unmapped.txt --quiet,lift annotations between closely related species with lower identity threshold in quiet mode,genome-annotation
-liftoff,liftoff_10,target.fasta reference.fasta -db reference.db -o lifted.gff3 -u unmapped.txt,speed up repeated runs using a pre-built gffutils database with default parameters,genome-annotation
+liftoff,liftoff_01,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -u unmapped.txt,lift annotations from reference GFF3 to a new assembly,annotation
+liftoff,liftoff_02,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -copies -u unmapped.txt,lift annotations and copy multi-copy gene families,annotation
+liftoff,liftoff_03,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -s 0.85 -a 0.85 -u unmapped.txt,lift annotations between closely related species with lower identity threshold,annotation
+liftoff,liftoff_04,target.fasta reference.fasta -db reference.db -o lifted.gff3 -u unmapped.txt,speed up repeated runs using a pre-built gffutils database,annotation
+liftoff,liftoff_05,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -dir scratch_dir/ -p 16 -u unmapped.txt,lift annotations and write output to a specific directory with minimap2 intermediates,annotation
+liftoff,liftoff_06,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -f gene -u unmapped.txt,"lift only specific feature types (e.g., just genes)",annotation
+liftoff,liftoff_07,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -u unmapped.txt -t 4,lift annotations from reference GFF3 to a new assembly using multiple threads,annotation
+liftoff,liftoff_08,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -copies -u unmapped.txt,lift annotations and copy multi-copy gene families and write output to a file,annotation
+liftoff,liftoff_09,target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -s 0.85 -a 0.85 -u unmapped.txt --quiet,lift annotations between closely related species with lower identity threshold in quiet mode,annotation
+liftoff,liftoff_10,target.fasta reference.fasta -db reference.db -o lifted.gff3 -u unmapped.txt,speed up repeated runs using a pre-built gffutils database with default parameters,annotation
 longshot,longshot_01,-b sorted.bam -f reference.fa -o snps.vcf,call SNPs from Oxford Nanopore aligned reads,variant-calling
 longshot,longshot_02,-b sorted.bam -f reference.fa -o chr1_snps.vcf -r chr1:1000000-2000000,call SNPs restricted to a specific region,variant-calling
 longshot,longshot_03,-b sorted.bam -f reference.fa -o snps_filtered.vcf -m 10 -q 20,call SNPs with minimum coverage filter,variant-calling
@@ -669,26 +609,16 @@ mafft,mafft_07,--localpair --maxiterate 1000 --thread 8 sequences.fasta > aligne
 mafft,mafft_08,--auto --adjustdirectionaccurately --thread 8 rna_sequences.fasta > aligned_rna.fasta,align RNA sequences adjusting for strand orientation,phylogenetics
 mafft,mafft_09,--auto --thread 8 --phylipout sequences.fasta > aligned.phy,align sequences and output in PHYLIP format for phylogenetic analysis,phylogenetics
 mafft,mafft_10,--add new_sequences.fasta --thread 8 existing_alignment.fasta > updated_alignment.fasta,add new sequences to existing alignment with default parameters,phylogenetics
-manta,manta_01,configureManta.py --bam sorted.bam --referenceFasta reference.fa --runDir manta_output && python manta_output/runWorkflow.py -m local -j 8,configure and run Manta germline SV calling,variant-calling
-manta,manta_02,configureManta.py --normalBam normal.bam --tumorBam tumor.bam --referenceFasta reference.fa --runDir manta_somatic && python manta_somatic/runWorkflow.py -m local -j 8,run Manta somatic SV calling for tumor-normal pair,variant-calling
-manta,manta_03,configureManta.py --bam sample.bam --referenceFasta reference.fa --exome --callRegions targets.bed.gz --runDir manta_wes && python manta_wes/runWorkflow.py -m local -j 8,run Manta on WES data with capture regions,variant-calling
-manta,manta_04,configureManta.py --rna --bam rna_sorted.bam --referenceFasta reference.fa --runDir manta_rna && python manta_rna/runWorkflow.py -m local -j 8,run Manta for RNA fusion detection,variant-calling
-manta,manta_05,configureManta.py --bam sorted.bam --referenceFasta reference.fa --runDir manta_output && python manta_output/runWorkflow.py -m local -j 8,configure and run Manta germline SV calling with default parameters,variant-calling
-manta,manta_06,configureManta.py --normalBam normal.bam --tumorBam tumor.bam --referenceFasta reference.fa --runDir manta_somatic && python manta_somatic/runWorkflow.py -m local -j 8 --verbose,run Manta somatic SV calling for tumor-normal pair with verbose output,variant-calling
-manta,manta_07,configureManta.py --bam sample.bam --referenceFasta reference.fa --exome --callRegions targets.bed.gz --runDir manta_wes && python manta_wes/runWorkflow.py -m local -j 8,run Manta on WES data with capture regions using multiple threads,variant-calling
-manta,manta_08,configureManta.py --rna --bam rna_sorted.bam --referenceFasta reference.fa --runDir manta_rna && python manta_rna/runWorkflow.py -m local -j 8 -o output.txt,run Manta for RNA fusion detection and write output to a file,variant-calling
-manta,manta_09,configureManta.py --bam sorted.bam --referenceFasta reference.fa --runDir manta_output && python manta_output/runWorkflow.py -m local -j 8 --quiet,configure and run Manta germline SV calling in quiet mode,variant-calling
-manta,manta_10,configureManta.py --normalBam normal.bam --tumorBam tumor.bam --referenceFasta reference.fa --runDir manta_somatic && python manta_somatic/runWorkflow.py -m local -j 8,run Manta somatic SV calling for tumor-normal pair with default parameters,variant-calling
-mash,mash_01,sketch -o genomes_db *.fasta,sketch a collection of genome FASTA files into a single database,sequence-comparison
-mash,mash_02,dist genome1.fasta genome2.fasta,compute pairwise distances between two genome sketches,sequence-comparison
-mash,mash_03,dist -p 16 genomes_db.msh query.fasta | sort -k3 -n | head -20,query all genomes in a database against a query genome,sequence-comparison
-mash,mash_04,sketch -m 2 -s 10000 -o reads_sketch reads.fastq.gz,sketch raw sequencing reads with error filtering,sequence-comparison
-mash,mash_05,screen -w -p 8 refdb.msh metagenome.fastq.gz | sort -gr -k1 > screen_results.txt,screen a metagenome for known reference genomes,sequence-comparison
-mash,mash_06,triangle -p 16 genomes_db.msh > distances.tsv,compute all-vs-all distance triangle for genome clustering,sequence-comparison
-mash,mash_07,sketch -o genomes_db *.fasta -t 4,sketch a collection of genome FASTA files into a single database using multiple threads,sequence-comparison
-mash,mash_08,dist genome1.fasta genome2.fasta -o output.txt,compute pairwise distances between two genome sketches and write output to a file,sequence-comparison
-mash,mash_09,dist -p 16 genomes_db.msh query.fasta | sort -k3 -n | head -20,query all genomes in a database against a query genome,sequence-comparison
-mash,mash_10,sketch -m 2 -s 10000 -o reads_sketch reads.fastq.gz,sketch raw sequencing reads with error filtering with default parameters,sequence-comparison
+mash,mash_01,sketch -o genomes_db *.fasta,sketch a collection of genome FASTA files into a single database,sequence-utilities
+mash,mash_02,dist genome1.fasta genome2.fasta,compute pairwise distances between two genome sketches,sequence-utilities
+mash,mash_03,dist -p 16 genomes_db.msh query.fasta | sort -k3 -n | head -20,query all genomes in a database against a query genome,sequence-utilities
+mash,mash_04,sketch -m 2 -s 10000 -o reads_sketch reads.fastq.gz,sketch raw sequencing reads with error filtering,sequence-utilities
+mash,mash_05,screen -w -p 8 refdb.msh metagenome.fastq.gz | sort -gr -k1 > screen_results.txt,screen a metagenome for known reference genomes,sequence-utilities
+mash,mash_06,triangle -p 16 genomes_db.msh > distances.tsv,compute all-vs-all distance triangle for genome clustering,sequence-utilities
+mash,mash_07,sketch -o genomes_db *.fasta -t 4,sketch a collection of genome FASTA files into a single database using multiple threads,sequence-utilities
+mash,mash_08,dist genome1.fasta genome2.fasta -o output.txt,compute pairwise distances between two genome sketches and write output to a file,sequence-utilities
+mash,mash_09,dist -p 16 genomes_db.msh query.fasta | sort -k3 -n | head -20,query all genomes in a database against a query genome,sequence-utilities
+mash,mash_10,sketch -m 2 -s 10000 -o reads_sketch reads.fastq.gz,sketch raw sequencing reads with error filtering with default parameters,sequence-utilities
 medaka,medaka_01,medaka_consensus -i reads.fastq.gz -d draft_assembly.fasta -o medaka_output/ -t 8 -m r941_min_hac_g507,polish an ONT assembly with Medaka (all-in-one pipeline),variant-calling
 medaka,medaka_02,medaka_haploid_variant -i reads.fastq.gz -r reference.fasta -o medaka_variants/ -t 8 -m r941_min_hac_g507,call variants from ONT reads (haploid),variant-calling
 medaka,medaka_03,tools list_models,list available Medaka models,variant-calling
@@ -709,16 +639,16 @@ megahit,megahit_07,"-1 s1_R1.fq.gz,s2_R1.fq.gz -2 s1_R2.fq.gz,s2_R2.fq.gz -o coa
 megahit,megahit_08,-1 R1.fastq.gz -2 R2.fastq.gz -o custom_k/ --num-cpu-threads 16 --k-min 27 --k-max 127 --k-step 10,assemble with custom k-mer range for specific data type and write output to a file,assembly
 megahit,megahit_09,-1 R1.fastq.gz -2 R2.fastq.gz -o megahit_output/ --num-cpu-threads 16 --min-contig-len 500 --quiet,assemble a metagenome from paired-end reads in quiet mode,assembly
 megahit,megahit_10,-1 R1.fastq.gz -2 R2.fastq.gz -o large_meta/ --num-cpu-threads 32 --presets meta-large --min-contig-len 500,assemble a large complex metagenome with meta-large preset with default parameters,assembly
-meme,meme_01,-dna -mod zoops -nmotifs 10 -minw 6 -maxw 20 -oc meme_output peaks.fasta,discover de novo motifs in ChIP-seq peak sequences,motif-analysis
-meme,meme_02,fimo --thresh 1e-4 --oc fimo_output $MEME/share/meme/db/motif_databases/JASPAR/JASPAR2022_CORE_vertebrates_non-redundant_v2.meme peaks.fasta,scan sequences for known TF binding motifs with FIMO,motif-analysis
-meme,meme_03,tomtom -oc tomtom_output meme_output/meme.xml $MEME/share/meme/db/motif_databases/JASPAR/JASPAR2022_CORE_vertebrates_non-redundant_v2.meme,compare discovered motifs against a known database with TOMTOM,motif-analysis
-meme,meme_04,ame --oc ame_output --control shuffled_bg.fasta peaks.fasta $MEME/share/meme/db/motif_databases/HOCOMOCO/HOCOMOCOv11_core_HUMAN_mono_meme_format.meme,test motif enrichment in a foreground vs background with AME,motif-analysis
-meme,meme_05,streme --oc streme_output --dna --p peaks.fasta --n shuffled.fasta,run STREME for fast short motif discovery,motif-analysis
-meme,meme_06,bedtools getfasta -fi genome.fa -bed peaks.bed -fo peaks.fasta,extract sequences for peak regions using bedtools first,motif-analysis
-meme,meme_07,-dna -revcomp -mod zoops -nmotifs 5 -oc meme_rc peaks.fasta,run MEME with reverse complement consideration,motif-analysis
-meme,meme_08,-dna -mod zoops -nmotifs 10 -minw 6 -maxw 20 -oc meme_output peaks.fasta -o output.txt,discover de novo motifs in ChIP-seq peak sequences and write output to a file,motif-analysis
-meme,meme_09,fimo --thresh 1e-4 --oc fimo_output $MEME/share/meme/db/motif_databases/JASPAR/JASPAR2022_CORE_vertebrates_non-redundant_v2.meme peaks.fasta --quiet,scan sequences for known TF binding motifs with FIMO in quiet mode,motif-analysis
-meme,meme_10,tomtom -oc tomtom_output meme_output/meme.xml $MEME/share/meme/db/motif_databases/JASPAR/JASPAR2022_CORE_vertebrates_non-redundant_v2.meme,compare discovered motifs against a known database with TOMTOM with default parameters,motif-analysis
+meme,meme_01,-dna -mod zoops -nmotifs 10 -minw 6 -maxw 20 -oc meme_output peaks.fasta,discover de novo motifs in ChIP-seq peak sequences,utilities
+meme,meme_02,fimo --thresh 1e-4 --oc fimo_output $MEME/share/meme/db/motif_databases/JASPAR/JASPAR2022_CORE_vertebrates_non-redundant_v2.meme peaks.fasta,scan sequences for known TF binding motifs with FIMO,utilities
+meme,meme_03,tomtom -oc tomtom_output meme_output/meme.xml $MEME/share/meme/db/motif_databases/JASPAR/JASPAR2022_CORE_vertebrates_non-redundant_v2.meme,compare discovered motifs against a known database with TOMTOM,utilities
+meme,meme_04,ame --oc ame_output --control shuffled_bg.fasta peaks.fasta $MEME/share/meme/db/motif_databases/HOCOMOCO/HOCOMOCOv11_core_HUMAN_mono_meme_format.meme,test motif enrichment in a foreground vs background with AME,utilities
+meme,meme_05,streme --oc streme_output --dna --p peaks.fasta --n shuffled.fasta,run STREME for fast short motif discovery,utilities
+meme,meme_06,bedtools getfasta -fi genome.fa -bed peaks.bed -fo peaks.fasta,extract sequences for peak regions using bedtools first,utilities
+meme,meme_07,-dna -revcomp -mod zoops -nmotifs 5 -oc meme_rc peaks.fasta,run MEME with reverse complement consideration,utilities
+meme,meme_08,-dna -mod zoops -nmotifs 10 -minw 6 -maxw 20 -oc meme_output peaks.fasta -o output.txt,discover de novo motifs in ChIP-seq peak sequences and write output to a file,utilities
+meme,meme_09,fimo --thresh 1e-4 --oc fimo_output $MEME/share/meme/db/motif_databases/JASPAR/JASPAR2022_CORE_vertebrates_non-redundant_v2.meme peaks.fasta --quiet,scan sequences for known TF binding motifs with FIMO in quiet mode,utilities
+meme,meme_10,tomtom -oc tomtom_output meme_output/meme.xml $MEME/share/meme/db/motif_databases/JASPAR/JASPAR2022_CORE_vertebrates_non-redundant_v2.meme,compare discovered motifs against a known database with TOMTOM with default parameters,utilities
 metabat2,metabat2_01,jgi_summarize_bam_contig_depths --outputDepth contig_depths.txt sample1.bam sample2.bam sample3.bam,compute contig depths from BAM files for MetaBAT2,metagenomics
 metabat2,metabat2_02,-i assembly.fasta -a contig_depths.txt -o bins/bin -m 2500 -t 8,bin metagenomic assembly contigs into MAGs,metagenomics
 metabat2,metabat2_03,-i assembly.fasta -o bins/bin -m 1500 -t 8,run MetaBAT2 binning without coverage information (tetranucleotide only),metagenomics
@@ -739,16 +669,6 @@ metaphlan,metaphlan_07,--input_type fastq --bowtie2db /path/to/mpa_db --index mp
 metaphlan,metaphlan_08,sample1_profile.txt sample2_profile.txt sample3_profile.txt > merged_profiles.txt,merge multiple MetaPhlAn profiles into a single table,metagenomics
 metaphlan,metaphlan_09,--input_type fastq --bowtie2db /path/to/mpa_db --index mpa_vJan21_CHOCOPhlAnSGB_202103 --nproc 8 reads.fastq.gz -o sample_profile.txt --quiet,profile microbial community from single-end FASTQ reads in quiet mode,metagenomics
 metaphlan,metaphlan_10,"--input_type fastq --bowtie2db /path/to/mpa_db --index mpa_vJan21_CHOCOPhlAnSGB_202103 --nproc 8 -o sample_profile.txt R1.fastq.gz,R2.fastq.gz",profile paired-end metagenomic reads with default parameters,metagenomics
-methyldackel,methyldackel_01,extract reference.fa sorted_bisulfite.bam -o sample_methylation,extract CpG methylation from bisulfite-aligned BAM,epigenomics
-methyldackel,methyldackel_02,extract --CHG --CHH reference.fa sorted_bisulfite.bam -o sample_all_contexts,"extract all cytosine contexts (CpG, CHG, CHH)",epigenomics
-methyldackel,methyldackel_03,mbias reference.fa sorted_bisulfite.bam sample_mbias,detect M-bias before extraction,epigenomics
-methyldackel,methyldackel_04,extract --ignore 5 5 reference.fa sorted_bisulfite.bam -o trimmed_methylation,extract methylation ignoring biased read ends,epigenomics
-methyldackel,methyldackel_05,extract reference.fa sorted_bisulfite.bam -o sample_methylation,extract CpG methylation from bisulfite-aligned BAM with default parameters,epigenomics
-methyldackel,methyldackel_06,extract --CHG --CHH reference.fa sorted_bisulfite.bam -o sample_all_contexts --verbose,"extract all cytosine contexts (CpG, CHG, CHH) with verbose output",epigenomics
-methyldackel,methyldackel_07,mbias reference.fa sorted_bisulfite.bam sample_mbias -t 4,detect M-bias before extraction using multiple threads,epigenomics
-methyldackel,methyldackel_08,extract --ignore 5 5 reference.fa sorted_bisulfite.bam -o trimmed_methylation,extract methylation ignoring biased read ends and write output to a file,epigenomics
-methyldackel,methyldackel_09,extract reference.fa sorted_bisulfite.bam -o sample_methylation --quiet,extract CpG methylation from bisulfite-aligned BAM in quiet mode,epigenomics
-methyldackel,methyldackel_10,extract --CHG --CHH reference.fa sorted_bisulfite.bam -o sample_all_contexts,"extract all cytosine contexts (CpG, CHG, CHH) with default parameters",epigenomics
 miniasm,miniasm_01,-x ava-ont -t 16 reads.fastq.gz reads.fastq.gz | gzip > overlaps.paf.gz,compute all-vs-all overlaps for ONT reads with minimap2,assembly
 miniasm,miniasm_02,-f reads.fastq.gz overlaps.paf.gz > assembly.gfa,assemble ONT reads from precomputed overlaps,assembly
 miniasm,miniasm_03,"/^S/ {print "">""$2""\n""$3}",convert miniasm GFA output to FASTA,assembly
@@ -769,16 +689,16 @@ minimap2,minimap2_07,-d reference_ont.mmi -x map-ont reference.fa,build a reusab
 minimap2,minimap2_08,-ax map-ont -t 8 reference.fa nanopore_reads.fastq.gz | samtools sort -@ 4 -o aligned_sorted.bam,align Oxford Nanopore reads to a reference genome,alignment
 minimap2,minimap2_09,-ax map-hifi -t 8 reference.fa hifi_reads.fastq.gz | samtools sort -@ 4 -o hifi_aligned.bam,align PacBio HiFi (CCS) reads to a reference genome,alignment
 minimap2,minimap2_10,-ax splice -t 8 --junc-bed known_junctions.bed reference.fa rna_reads.fastq.gz | samtools sort -o rna_aligned.bam,align Nanopore cDNA reads for RNA-seq spliced alignment with default parameters,alignment
-mmseqs2,mmseqs2_01,easy-search query.fasta uniref50.fasta results.m8 tmp --format-mode 0 --threads 16 -s 7.5,search protein FASTA against UniRef50 and output BLAST tabular results,sequence-search
-mmseqs2,mmseqs2_02,easy-cluster proteins.fasta cluster_90 tmp --min-seq-id 0.9 -c 0.8 --cov-mode 0 --threads 16,cluster protein sequences at 90% identity,sequence-search
-mmseqs2,mmseqs2_03,easy-linclust proteins.fasta cluster_50 tmp --min-seq-id 0.5 -c 0.8 --threads 32,fast linear-time clustering of large metagenomic protein set at 50% identity,sequence-search
-mmseqs2,mmseqs2_04,createdb proteins.fasta proteinsDB,build an MMseqs2 database from a FASTA file,sequence-search
-mmseqs2,mmseqs2_05,search queryDB targetDB resultDB tmp -s 6 --threads 16 && convertalis queryDB targetDB resultDB results.tsv --format-mode 4,search one MMseqs2 DB against another and convert results to TSV,sequence-search
-mmseqs2,mmseqs2_06,result2repseq proteinsDB proteinsDB cluster_result repseqDB && convert2fasta repseqDB representatives.fasta,extract representative sequences from a cluster result,sequence-search
-mmseqs2,mmseqs2_07,easy-search reads.fasta proteins.fasta hits.m8 tmp --search-type 2 --threads 16,perform translated nucleotide-to-protein search,sequence-search
-mmseqs2,mmseqs2_08,easy-search query.fasta uniref50.fasta results.m8 tmp --format-mode 0 --threads 16 -s 7.5 -o output.txt,search protein FASTA against UniRef50 and output BLAST tabular results and write output to a file,sequence-search
-mmseqs2,mmseqs2_09,easy-cluster proteins.fasta cluster_90 tmp --min-seq-id 0.9 -c 0.8 --cov-mode 0 --threads 16 --quiet,cluster protein sequences at 90% identity in quiet mode,sequence-search
-mmseqs2,mmseqs2_10,easy-linclust proteins.fasta cluster_50 tmp --min-seq-id 0.5 -c 0.8 --threads 32,fast linear-time clustering of large metagenomic protein set at 50% identity with default parameters,sequence-search
+mmseqs2,mmseqs2_01,easy-search query.fasta uniref50.fasta results.m8 tmp --format-mode 0 --threads 16 -s 7.5,search protein FASTA against UniRef50 and output BLAST tabular results,sequence-utilities
+mmseqs2,mmseqs2_02,easy-cluster proteins.fasta cluster_90 tmp --min-seq-id 0.9 -c 0.8 --cov-mode 0 --threads 16,cluster protein sequences at 90% identity,sequence-utilities
+mmseqs2,mmseqs2_03,easy-linclust proteins.fasta cluster_50 tmp --min-seq-id 0.5 -c 0.8 --threads 32,fast linear-time clustering of large metagenomic protein set at 50% identity,sequence-utilities
+mmseqs2,mmseqs2_04,createdb proteins.fasta proteinsDB,build an MMseqs2 database from a FASTA file,sequence-utilities
+mmseqs2,mmseqs2_05,search queryDB targetDB resultDB tmp -s 6 --threads 16 && convertalis queryDB targetDB resultDB results.tsv --format-mode 4,search one MMseqs2 DB against another and convert results to TSV,sequence-utilities
+mmseqs2,mmseqs2_06,result2repseq proteinsDB proteinsDB cluster_result repseqDB && convert2fasta repseqDB representatives.fasta,extract representative sequences from a cluster result,sequence-utilities
+mmseqs2,mmseqs2_07,easy-search reads.fasta proteins.fasta hits.m8 tmp --search-type 2 --threads 16,perform translated nucleotide-to-protein search,sequence-utilities
+mmseqs2,mmseqs2_08,easy-search query.fasta uniref50.fasta results.m8 tmp --format-mode 0 --threads 16 -s 7.5 -o output.txt,search protein FASTA against UniRef50 and output BLAST tabular results and write output to a file,sequence-utilities
+mmseqs2,mmseqs2_09,easy-cluster proteins.fasta cluster_90 tmp --min-seq-id 0.9 -c 0.8 --cov-mode 0 --threads 16 --quiet,cluster protein sequences at 90% identity in quiet mode,sequence-utilities
+mmseqs2,mmseqs2_10,easy-linclust proteins.fasta cluster_50 tmp --min-seq-id 0.5 -c 0.8 --threads 32,fast linear-time clustering of large metagenomic protein set at 50% identity with default parameters,sequence-utilities
 modkit,modkit_01,pileup --ref reference.fasta --mod-code m --cpg input.bam output.bedmethyl --threads 16,generate a bedMethyl pileup of 5mC methylation from a BAM file,epigenomics
 modkit,modkit_02,pileup --ref reference.fasta --cpg --combine-strands -t 16 input.bam output_combined.bedmethyl,generate bedMethyl and combine CpG sites on both strands,epigenomics
 modkit,modkit_03,extract --ref reference.fasta --mod-code m input.bam per_read_mods.tsv --threads 16,extract per-read modification data to TSV,epigenomics
@@ -809,16 +729,16 @@ multiqc,multiqc_07,/path/to/results/ -o /path/to/qc_summary/ -n project_qc_repor
 multiqc,multiqc_08,/results/ --ignore /results/old_run/ -o multiqc_output/ -f,run multiqc ignoring a specific subdirectory and write output to a file,qc
 multiqc,multiqc_09,. --flat -o flat_report/ -f --quiet,generate a multiqc report with flat (non-interactive) output suitable for PDF in quiet mode,qc
 multiqc,multiqc_10,fastqc_results/ trimmomatic_logs/ -o summary_qc/ -f,run multiqc on only FastQC and Trimmomatic outputs with default parameters,qc
-mummer,mummer_01,nucmer --prefix=myrun reference.fna query.fna,align a query genome to a reference genome,genome-alignment
-mummer,mummer_02,dnadiff reference.fna query.fna,generate a comprehensive pairwise genome comparison report,genome-alignment
-mummer,mummer_03,delta-filter -1 myrun.delta > myrun.filtered.delta && show-snps -Clr myrun.filtered.delta > myrun.snps,filter alignments to 1-to-1 (unique) and extract SNPs,genome-alignment
-mummer,mummer_04,show-coords -r -c -l myrun.delta > myrun.coords,show alignment coordinates,genome-alignment
-mummer,mummer_05,mummerplot --png --prefix=dotplot myrun.delta,generate a synteny dot-plot image,genome-alignment
-mummer,mummer_06,nucmer --mum -p compare reference.fa query.fa && show-snps -Clrx compare.delta,compare two genomes with verbose SNP output,genome-alignment
-mummer,mummer_07,nucmer -c 100 -l 20 --prefix large_genome ref.fa query.fa,align with a custom minimum match length,genome-alignment
-mummer,mummer_08,nucmer --prefix=myrun reference.fna query.fna -o output.txt,align a query genome to a reference genome and write output to a file,genome-alignment
-mummer,mummer_09,dnadiff reference.fna query.fna --quiet,generate a comprehensive pairwise genome comparison report in quiet mode,genome-alignment
-mummer,mummer_10,delta-filter -1 myrun.delta > myrun.filtered.delta && show-snps -Clr myrun.filtered.delta > myrun.snps,filter alignments to 1-to-1 (unique) and extract SNPs with default parameters,genome-alignment
+mummer,mummer_01,nucmer --prefix=myrun reference.fna query.fna,align a query genome to a reference genome,alignment
+mummer,mummer_02,dnadiff reference.fna query.fna,generate a comprehensive pairwise genome comparison report,alignment
+mummer,mummer_03,delta-filter -1 myrun.delta > myrun.filtered.delta && show-snps -Clr myrun.filtered.delta > myrun.snps,filter alignments to 1-to-1 (unique) and extract SNPs,alignment
+mummer,mummer_04,show-coords -r -c -l myrun.delta > myrun.coords,show alignment coordinates,alignment
+mummer,mummer_05,mummerplot --png --prefix=dotplot myrun.delta,generate a synteny dot-plot image,alignment
+mummer,mummer_06,nucmer --mum -p compare reference.fa query.fa && show-snps -Clrx compare.delta,compare two genomes with verbose SNP output,alignment
+mummer,mummer_07,nucmer -c 100 -l 20 --prefix large_genome ref.fa query.fa,align with a custom minimum match length,alignment
+mummer,mummer_08,nucmer --prefix=myrun reference.fna query.fna -o output.txt,align a query genome to a reference genome and write output to a file,alignment
+mummer,mummer_09,dnadiff reference.fna query.fna --quiet,generate a comprehensive pairwise genome comparison report in quiet mode,alignment
+mummer,mummer_10,delta-filter -1 myrun.delta > myrun.filtered.delta && show-snps -Clr myrun.filtered.delta > myrun.snps,filter alignments to 1-to-1 (unique) and extract SNPs with default parameters,alignment
 muscle,muscle_01,-align proteins.fasta -output aligned_proteins.fasta -threads 8,align multiple protein sequences with MUSCLE v5,phylogenetics
 muscle,muscle_02,-super5 large_dataset.fasta -output large_aligned.fasta -threads 16,align a large dataset with MUSCLE v5 super5 mode,phylogenetics
 muscle,muscle_03,-in sequences.fasta -out aligned.fasta,align sequences with MUSCLE v3 syntax (legacy),phylogenetics
@@ -829,36 +749,6 @@ muscle,muscle_07,-in sequences.fasta -out aligned.fasta -t 4,align sequences wit
 muscle,muscle_08,-align sequences.fasta -output aligned.fasta -replicates 5 -threads 8 -o output.txt,generate multiple alignment replicates for uncertainty estimation and write output to a file,phylogenetics
 muscle,muscle_09,-align proteins.fasta -output aligned_proteins.fasta -threads 8 --quiet,align multiple protein sequences with MUSCLE v5 in quiet mode,phylogenetics
 muscle,muscle_10,-super5 large_dataset.fasta -output large_aligned.fasta -threads 16,align a large dataset with MUSCLE v5 super5 mode with default parameters,phylogenetics
-nanocomp,nanocomp_01,NanoComp --fastq run1.fastq.gz run2.fastq.gz run3.fastq.gz --names Run1 Run2 Run3 --outdir nanocomp_out/ --threads 8,compare quality and length of reads from multiple FASTQ files,qc
-nanocomp,nanocomp_02,NanoComp --bam sample1.bam sample2.bam sample3.bam --names Sample1 Sample2 Sample3 --outdir bam_comparison/ --threads 8,compare multiple BAM files from different samples,qc
-nanocomp,nanocomp_03,NanoComp --summary run1_summary.txt run2_summary.txt --names Run1 Run2 --plot ridge --outdir summary_comparison/ --threads 4,compare runs using sequencing summary files with ridge plots,qc
-nanocomp,nanocomp_04,NanoComp --fastq *.fastq.gz --names $(ls *.fastq.gz | sed 's/.fastq.gz//') --minlength 1000 --outdir filtered_comparison/,compare samples filtering out reads shorter than 1 kb,qc
-nanocomp,nanocomp_05,NanoComp --bam sample1.bam sample2.bam --names S1 S2 --downsample 50000 --outdir quick_compare/ --threads 4,downsample to 50000 reads per sample for quick comparison,qc
-nanocomp,nanocomp_06,NanoComp --fastq run1.fastq.gz run2.fastq.gz --names Run1 Run2 --outdir results/ --prefix batch01 --threads 8,generate comparison with custom output file prefix,qc
-nanocomp,nanocomp_07,NanoComp --fastq run1.fastq.gz run2.fastq.gz run3.fastq.gz --names Run1 Run2 Run3 --outdir nanocomp_out/ --threads 8,compare quality and length of reads from multiple FASTQ files using multiple threads,qc
-nanocomp,nanocomp_08,NanoComp --bam sample1.bam sample2.bam sample3.bam --names Sample1 Sample2 Sample3 --outdir bam_comparison/ --threads 8 -o output.txt,compare multiple BAM files from different samples and write output to a file,qc
-nanocomp,nanocomp_09,NanoComp --summary run1_summary.txt run2_summary.txt --names Run1 Run2 --plot ridge --outdir summary_comparison/ --threads 4 --quiet,compare runs using sequencing summary files with ridge plots in quiet mode,qc
-nanocomp,nanocomp_10,NanoComp --fastq *.fastq.gz --names $(ls *.fastq.gz | sed 's/.fastq.gz//') --minlength 1000 --outdir filtered_comparison/,compare samples filtering out reads shorter than 1 kb with default parameters,qc
-nanoplot,nanoplot_01,--fastq reads.fastq.gz -o nanoplot_output/ -p sample_qc --threads 8,generate quality plots from Oxford Nanopore FASTQ reads,qc
-nanoplot,nanoplot_02,--summary sequencing_summary.txt -o nanoplot_summary/ -p run_qc --threads 4,generate quality statistics from ONT sequencing summary file,qc
-nanoplot,nanoplot_03,--bam sorted.bam -o bam_qc/ -p aligned_sample --threads 8,plot quality statistics for aligned BAM file,qc
-nanoplot,nanoplot_04,--fastq reads.fastq.gz --minlength 1000 --minqual 9 -o filtered_qc/ -p hq_reads --threads 4,plot quality statistics with read length and quality filters,qc
-nanoplot,nanoplot_05,--fastq reads.fastq.gz -o nanoplot_output/ -p sample_qc --threads 8,generate quality plots from Oxford Nanopore FASTQ reads with default parameters,qc
-nanoplot,nanoplot_06,--summary sequencing_summary.txt -o nanoplot_summary/ -p run_qc --threads 4 --verbose,generate quality statistics from ONT sequencing summary file with verbose output,qc
-nanoplot,nanoplot_07,--bam sorted.bam -o bam_qc/ -p aligned_sample --threads 8,plot quality statistics for aligned BAM file using multiple threads,qc
-nanoplot,nanoplot_08,--fastq reads.fastq.gz --minlength 1000 --minqual 9 -o filtered_qc/ -p hq_reads --threads 4,plot quality statistics with read length and quality filters and write output to a file,qc
-nanoplot,nanoplot_09,--fastq reads.fastq.gz -o nanoplot_output/ -p sample_qc --threads 8 --quiet,generate quality plots from Oxford Nanopore FASTQ reads in quiet mode,qc
-nanoplot,nanoplot_10,--summary sequencing_summary.txt -o nanoplot_summary/ -p run_qc --threads 4,generate quality statistics from ONT sequencing summary file with default parameters,qc
-nanostat,nanostat_01,--fastq reads.fastq.gz -t 4 --name sample_name,get statistics for ONT FASTQ reads,qc
-nanostat,nanostat_02,--summary sequencing_summary.txt -t 4 --name run_qc,get statistics from ONT sequencing summary,qc
-nanostat,nanostat_03,--bam aligned_sorted.bam -t 4 --name aligned_stats,get statistics from aligned BAM file,qc
-nanostat,nanostat_04,--fastq reads.fastq.gz -t 4 --name sample_name --quiet,get statistics for ONT FASTQ reads in quiet mode,qc
-nanostat,nanostat_05,--summary sequencing_summary.txt -t 4 --name run_qc,get statistics from ONT sequencing summary with default parameters,qc
-nanostat,nanostat_06,--bam aligned_sorted.bam -t 4 --name aligned_stats --verbose,get statistics from aligned BAM file with verbose output,qc
-nanostat,nanostat_07,--fastq reads.fastq.gz -t 4 --name sample_name,get statistics for ONT FASTQ reads using multiple threads,qc
-nanostat,nanostat_08,--summary sequencing_summary.txt -t 4 --name run_qc -o output.txt,get statistics from ONT sequencing summary and write output to a file,qc
-nanostat,nanostat_09,--bam aligned_sorted.bam -t 4 --name aligned_stats --quiet,get statistics from aligned BAM file in quiet mode,qc
-nanostat,nanostat_10,--fastq reads.fastq.gz -t 4 --name sample_name,get statistics for ONT FASTQ reads with default parameters,qc
 nextflow,nextflow_01,"run nf-core/rnaseq -profile singularity,slurm --input samplesheet.csv --genome GRCh38 -resume",run an nf-core pipeline with Singularity on a Slurm cluster,workflow-manager
 nextflow,nextflow_02,run main.nf -work-dir /scratch/$USER/nxf-work,run a pipeline with a custom work directory,workflow-manager
 nextflow,nextflow_03,pull nf-core/sarek -revision 3.4.0,pull a specific pipeline version from nf-core,workflow-manager
@@ -889,16 +779,6 @@ pairtools,pairtools_07,dedup --nproc 16 --output-stats dedup_stats.txt sample_so
 pairtools,pairtools_08,cload pairs --chrom1 2 --pos1 3 --chrom2 4 --pos2 5 chromsizes.txt:5000 sample_dedup.pairs.gz sample_5kb.cool -o output.txt,bin pairs into contact matrix using cooler and write output to a file,epigenomics
 pairtools,pairtools_09,parse --min-mapq 30 --walks-policy mask --max-inter-align-gap 30 -N sample --chroms-path chromsizes.txt sorted.bam > sample.pairs.gz,parse Hi-C BWA alignments to pairs format,epigenomics
 pairtools,pairtools_10,sort sample.pairs.gz --nproc 16 --tmpdir /tmp/ > sample_sorted.pairs.gz,sort pairs file for deduplication with default parameters,epigenomics
-pbccs,pbccs_01,subreads.bam hifi_reads.bam -j 32 --min-rq 0.99,generate HiFi reads from PacBio subreads BAM,long-read
-pbccs,pbccs_02,subreads.bam hifi_reads.bam -j 32 --min-rq 0.99 --min-passes 3,generate HiFi reads with minimum 3 SMRTbell passes,long-read
-pbccs,pbccs_03,subreads.bam hifi_reads_kinetics.bam -j 32 --min-rq 0.99 --hifi-kinetics,generate HiFi reads with kinetics for methylation calling,long-read
-pbccs,pbccs_04,subreads.bam chunk1.bam -j 16 --min-rq 0.99 --chunk 1/4,generate HiFi reads using chunked processing for distributed computing,long-read
-pbccs,pbccs_05,subreads.bam hifi_reads.bam -j 32 --min-rq 0.99,generate HiFi reads from PacBio subreads BAM with default parameters,long-read
-pbccs,pbccs_06,subreads.bam hifi_reads.bam -j 32 --min-rq 0.99 --min-passes 3 --verbose,generate HiFi reads with minimum 3 SMRTbell passes with verbose output,long-read
-pbccs,pbccs_07,subreads.bam hifi_reads_kinetics.bam -j 32 --min-rq 0.99 --hifi-kinetics,generate HiFi reads with kinetics for methylation calling using multiple threads,long-read
-pbccs,pbccs_08,subreads.bam chunk1.bam -j 16 --min-rq 0.99 --chunk 1/4 -o output.txt,generate HiFi reads using chunked processing for distributed computing and write output to a file,long-read
-pbccs,pbccs_09,subreads.bam hifi_reads.bam -j 32 --min-rq 0.99 --quiet,generate HiFi reads from PacBio subreads BAM in quiet mode,long-read
-pbccs,pbccs_10,subreads.bam hifi_reads.bam -j 32 --min-rq 0.99 --min-passes 3,generate HiFi reads with minimum 3 SMRTbell passes with default parameters,long-read
 pbfusion,pbfusion_01,--bam isoseq_aligned.bam --gtf genes.gtf --output-dir fusion_output/ --threads 8,detect gene fusions from PacBio IsoSeq aligned data,rna-seq
 pbfusion,pbfusion_02,--bam isoseq_aligned.bam --gtf genes.gtf --output-dir fusion_output/ --min-support 3 --threads 8,detect fusions with minimum supporting reads,rna-seq
 pbfusion,pbfusion_03,--bam isoseq_aligned.bam --gtf genes.gtf --output-dir fusion_output/ --threads 8,detect gene fusions from PacBio IsoSeq aligned data and write output to a file,rna-seq
@@ -929,16 +809,16 @@ pbsv,pbsv_07,call --hifi reference.fa sample1.svsig.gz sample2.svsig.gz sample3.
 pbsv,pbsv_08,discover --hifi --tandem-repeats hg38.trf.bed sorted.bam sample.svsig.gz -o output.txt,discover with tandem repeat annotation for better accuracy and write output to a file,variant-calling
 pbsv,pbsv_09,discover --hifi sorted.bam sample.svsig.gz --quiet,discover SV signatures from PacBio HiFi aligned BAM in quiet mode,variant-calling
 pbsv,pbsv_10,call --hifi reference.fa sample.svsig.gz output_svs.vcf,call SVs from a single sample's signature file with default parameters,variant-calling
-perl,perl_01,script.pl input.txt,run a Perl script,scripting
-perl,perl_02,-V,print the Perl version and module search paths,scripting
-perl,perl_03,-ne 'print if /^>/' sequences.fasta,one-liner: print lines matching a pattern,scripting
-perl,perl_04,"-lane 'print join(""\t"", @F[0,2,4])' data.tsv",one-liner: extract specific columns from a TSV,scripting
-perl,perl_05,-i.bak -pe 's/chr/Chr/g' genome.fa,in-place substitution (edit file directly),scripting
-perl,perl_06,"-ne '$c++ if /^>/; END { print ""$c sequences\n"" }' input.fa",count FASTA sequences in a file,scripting
-perl,perl_07,"-MCPAN -e 'CPAN::Shell->install(""Bio::SeqIO"")'",install a module via CPAN one-liner,scripting
-perl,perl_08,-Mlocal::lib,set up a local user-space Perl module directory,scripting
-perl,perl_09,-MBio::SeqIO -e 1,check if a required module is installed,scripting
-perl,perl_10,-I /path/to/bioperl-lib script.pl input.fasta,run a bioinformatics script with a custom library path,scripting
+perl,perl_01,script.pl input.txt,run a Perl script,programming
+perl,perl_02,-V,print the Perl version and module search paths,programming
+perl,perl_03,-ne 'print if /^>/' sequences.fasta,one-liner: print lines matching a pattern,programming
+perl,perl_04,"-lane 'print join(""\t"", @F[0,2,4])' data.tsv",one-liner: extract specific columns from a TSV,programming
+perl,perl_05,-i.bak -pe 's/chr/Chr/g' genome.fa,in-place substitution (edit file directly),programming
+perl,perl_06,"-ne '$c++ if /^>/; END { print ""$c sequences\n"" }' input.fa",count FASTA sequences in a file,programming
+perl,perl_07,"-MCPAN -e 'CPAN::Shell->install(""Bio::SeqIO"")'",install a module via CPAN one-liner,programming
+perl,perl_08,-Mlocal::lib,set up a local user-space Perl module directory,programming
+perl,perl_09,-MBio::SeqIO -e 1,check if a required module is installed,programming
+perl,perl_10,-I /path/to/bioperl-lib script.pl input.fasta,run a bioinformatics script with a custom library path,programming
 picard,picard_01,MarkDuplicates -I sorted.bam -O marked_dup.bam -M markdup_metrics.txt --CREATE_INDEX true,mark PCR duplicates in a sorted BAM file,alignment
 picard,picard_02,AddOrReplaceReadGroups -I input.bam -O rg_added.bam --RGLB lib1 --RGPL ILLUMINA --RGPU unit1 --RGSM sample1 --CREATE_INDEX true,add or replace read groups in a BAM file,alignment
 picard,picard_03,SortSam -I input.bam -O sorted.bam --SORT_ORDER coordinate --CREATE_INDEX true,sort a BAM file by coordinate using Picard,alignment
@@ -949,16 +829,16 @@ picard,picard_07,ValidateSamFile -I input.bam -O validation_report.txt --MODE SU
 picard,picard_08,MarkDuplicates -I sorted.bam -O marked_dup.bam -M markdup_metrics.txt --CREATE_INDEX true -o output.txt,mark PCR duplicates in a sorted BAM file and write output to a file,alignment
 picard,picard_09,AddOrReplaceReadGroups -I input.bam -O rg_added.bam --RGLB lib1 --RGPL ILLUMINA --RGPU unit1 --RGSM sample1 --CREATE_INDEX true --quiet,add or replace read groups in a BAM file in quiet mode,alignment
 picard,picard_10,SortSam -I input.bam -O sorted.bam --SORT_ORDER coordinate --CREATE_INDEX true,sort a BAM file by coordinate using Picard with default parameters,alignment
-pilon,pilon_01,-Xmx64g -jar pilon.jar --genome draft.fasta --frags aligned.sorted.bam --output polished --changes --threads 16,polish a draft assembly with paired-end Illumina reads,assembly-polishing
-pilon,pilon_02,-Xmx128g -jar pilon.jar --genome draft.fasta --frags pe.sorted.bam --jumps mp.sorted.bam --output polished_v2 --threads 16,polish with mate-pair and paired-end libraries combined,assembly-polishing
-pilon,pilon_03,-Xmx64g -jar pilon.jar --genome draft.fasta --frags aligned.sorted.bam --output polished --fix bases --threads 16,run Pilon fixing only SNPs and small indels (not structural),assembly-polishing
-pilon,pilon_04,-Xmx64g -jar pilon.jar --genome draft.fasta --frags aligned.sorted.bam --output variants --variant --threads 16,generate a VCF of variants found in the assembly,assembly-polishing
-pilon,pilon_05,-Xmx32g -jar pilon.jar --genome contigs.fasta --frags aligned.sorted.bam --output polished_contigs --targets contig_list.txt --threads 8,"polish a specific set of sequences (e.g., unplaced contigs only)",assembly-polishing
-pilon,pilon_06,-Xmx64g -jar pilon.jar --genome polished.fasta --frags re_aligned.sorted.bam --output polished_r2 --changes --threads 16,second round of polishing after re-aligning reads to first round output,assembly-polishing
-pilon,pilon_07,-Xmx64g -jar pilon.jar --genome draft.fasta --frags aligned.sorted.bam --output polished --changes --threads 16,polish a draft assembly with paired-end Illumina reads using multiple threads,assembly-polishing
-pilon,pilon_08,-Xmx128g -jar pilon.jar --genome draft.fasta --frags pe.sorted.bam --jumps mp.sorted.bam --output polished_v2 --threads 16,polish with mate-pair and paired-end libraries combined and write output to a file,assembly-polishing
-pilon,pilon_09,-Xmx64g -jar pilon.jar --genome draft.fasta --frags aligned.sorted.bam --output polished --fix bases --threads 16 --quiet,run Pilon fixing only SNPs and small indels (not structural) in quiet mode,assembly-polishing
-pilon,pilon_10,-Xmx64g -jar pilon.jar --genome draft.fasta --frags aligned.sorted.bam --output variants --variant --threads 16,generate a VCF of variants found in the assembly with default parameters,assembly-polishing
+pilon,pilon_01,-Xmx64g -jar pilon.jar --genome draft.fasta --frags aligned.sorted.bam --output polished --changes --threads 16,polish a draft assembly with paired-end Illumina reads,assembly
+pilon,pilon_02,-Xmx128g -jar pilon.jar --genome draft.fasta --frags pe.sorted.bam --jumps mp.sorted.bam --output polished_v2 --threads 16,polish with mate-pair and paired-end libraries combined,assembly
+pilon,pilon_03,-Xmx64g -jar pilon.jar --genome draft.fasta --frags aligned.sorted.bam --output polished --fix bases --threads 16,run Pilon fixing only SNPs and small indels (not structural),assembly
+pilon,pilon_04,-Xmx64g -jar pilon.jar --genome draft.fasta --frags aligned.sorted.bam --output variants --variant --threads 16,generate a VCF of variants found in the assembly,assembly
+pilon,pilon_05,-Xmx32g -jar pilon.jar --genome contigs.fasta --frags aligned.sorted.bam --output polished_contigs --targets contig_list.txt --threads 8,"polish a specific set of sequences (e.g., unplaced contigs only)",assembly
+pilon,pilon_06,-Xmx64g -jar pilon.jar --genome polished.fasta --frags re_aligned.sorted.bam --output polished_r2 --changes --threads 16,second round of polishing after re-aligning reads to first round output,assembly
+pilon,pilon_07,-Xmx64g -jar pilon.jar --genome draft.fasta --frags aligned.sorted.bam --output polished --changes --threads 16,polish a draft assembly with paired-end Illumina reads using multiple threads,assembly
+pilon,pilon_08,-Xmx128g -jar pilon.jar --genome draft.fasta --frags pe.sorted.bam --jumps mp.sorted.bam --output polished_v2 --threads 16,polish with mate-pair and paired-end libraries combined and write output to a file,assembly
+pilon,pilon_09,-Xmx64g -jar pilon.jar --genome draft.fasta --frags aligned.sorted.bam --output polished --fix bases --threads 16 --quiet,run Pilon fixing only SNPs and small indels (not structural) in quiet mode,assembly
+pilon,pilon_10,-Xmx64g -jar pilon.jar --genome draft.fasta --frags aligned.sorted.bam --output variants --variant --threads 16,generate a VCF of variants found in the assembly with default parameters,assembly
 plink2,plink2_01,"--vcf variants.vcf --make-pgen --out plink_dataset --set-missing-var-ids @:#[b37]\$r,\$a --max-alleles 2",convert VCF to PLINK2 binary format,population-genomics
 plink2,plink2_02,--pfile plink_dataset --maf 0.01 --geno 0.05 --mind 0.1 --hwe 1e-6 --make-pgen --out qc_filtered,perform quality control filtering on PLINK dataset,population-genomics
 plink2,plink2_03,--pfile plink_dataset --indep-pairwise 50 10 0.1 --out ld_prune && plink2 --pfile plink_dataset --extract ld_prune.prune.in --pca 20 --out pca_results,perform LD pruning and compute PCA,population-genomics
@@ -1009,16 +889,16 @@ python,python_07,-u pipeline_script.py,run a script with unbuffered output (for 
 python,python_08,-m cProfile -s cumtime slow_script.py,profile a script and show cumulative time,programming
 python,python_09,--version,check Python version,programming
 python,python_10,-W all script.py,run a script with a warning filter to show all deprecation warnings,programming
-qualimap,qualimap_01,bamqc -bam sorted.bam --java-mem-size 8G -nt 8 -outdir qualimap_results/,"run BAM QC on a sorted, indexed BAM",quality-control
-qualimap,qualimap_02,rnaseq -bam sorted.bam -gtf annotation.gtf -p strand-specific-reverse --java-mem-size 8G -outdir qualimap_rnaseq/,run RNA-seq QC with strand information,quality-control
-qualimap,qualimap_03,multi-bamqc -d samples.txt --java-mem-size 4G -outdir multiqc_qualimap/,run multi-sample QC and aggregate report,quality-control
-qualimap,qualimap_04,bamqc -bam sorted.bam -gd HUMAN --java-mem-size 8G -nt 8 -outdir qualimap_gc/,run BAM QC with GC bias correction (human),quality-control
-qualimap,qualimap_05,bamqc -bam sorted.bam -outformat PDF:HTML --java-mem-size 4G -outdir qualimap_output/,generate PDF and HTML reports,quality-control
-qualimap,qualimap_06,bamqc -bam wgs.bam -gd HUMAN --java-mem-size 16G -nt 16 --paint-chromosome-limits -outdir wgs_qualimap/,run BAM QC on whole-genome sequencing data,quality-control
-qualimap,qualimap_07,counts -d counts.txt -c 2 -s C -outdir counts_qc/,count QC for differential expression count matrices,quality-control
-qualimap,qualimap_08,bamqc -bam sorted.bam --java-mem-size 8G -nt 8 -outdir qualimap_results/ -o output.txt,"run BAM QC on a sorted, indexed BAM and write output to a file",quality-control
-qualimap,qualimap_09,rnaseq -bam sorted.bam -gtf annotation.gtf -p strand-specific-reverse --java-mem-size 8G -outdir qualimap_rnaseq/ --quiet,run RNA-seq QC with strand information in quiet mode,quality-control
-qualimap,qualimap_10,multi-bamqc -d samples.txt --java-mem-size 4G -outdir multiqc_qualimap/,run multi-sample QC and aggregate report with default parameters,quality-control
+qualimap,qualimap_01,bamqc -bam sorted.bam --java-mem-size 8G -nt 8 -outdir qualimap_results/,"run BAM QC on a sorted, indexed BAM",qc
+qualimap,qualimap_02,rnaseq -bam sorted.bam -gtf annotation.gtf -p strand-specific-reverse --java-mem-size 8G -outdir qualimap_rnaseq/,run RNA-seq QC with strand information,qc
+qualimap,qualimap_03,multi-bamqc -d samples.txt --java-mem-size 4G -outdir multiqc_qualimap/,run multi-sample QC and aggregate report,qc
+qualimap,qualimap_04,bamqc -bam sorted.bam -gd HUMAN --java-mem-size 8G -nt 8 -outdir qualimap_gc/,run BAM QC with GC bias correction (human),qc
+qualimap,qualimap_05,bamqc -bam sorted.bam -outformat PDF:HTML --java-mem-size 4G -outdir qualimap_output/,generate PDF and HTML reports,qc
+qualimap,qualimap_06,bamqc -bam wgs.bam -gd HUMAN --java-mem-size 16G -nt 16 --paint-chromosome-limits -outdir wgs_qualimap/,run BAM QC on whole-genome sequencing data,qc
+qualimap,qualimap_07,counts -d counts.txt -c 2 -s C -outdir counts_qc/,count QC for differential expression count matrices,qc
+qualimap,qualimap_08,bamqc -bam sorted.bam --java-mem-size 8G -nt 8 -outdir qualimap_results/ -o output.txt,"run BAM QC on a sorted, indexed BAM and write output to a file",qc
+qualimap,qualimap_09,rnaseq -bam sorted.bam -gtf annotation.gtf -p strand-specific-reverse --java-mem-size 8G -outdir qualimap_rnaseq/ --quiet,run RNA-seq QC with strand information in quiet mode,qc
+qualimap,qualimap_10,multi-bamqc -d samples.txt --java-mem-size 4G -outdir multiqc_qualimap/,run multi-sample QC and aggregate report with default parameters,qc
 quast,quast_01,-r reference.fasta -g genes.gff assembly.fasta -o quast_output/ --threads 8,assess assembly quality with reference genome,assembly
 quast,quast_02,spades_assembly.fasta megahit_assembly.fasta flye_assembly.fasta -o assembly_comparison/ --threads 8,compare multiple assemblies without reference genome,assembly
 quast,quast_03,"metaquast.py -r reference1.fasta,reference2.fasta assembly.fasta -o metaquast_output/ --threads 16",assess metagenome assembly quality with metaQUAST,assembly
@@ -1029,16 +909,16 @@ quast,quast_07,"metaquast.py -r reference1.fasta,reference2.fasta assembly.fasta
 quast,quast_08,-r reference.fasta assembly.fasta -o quast_out/ --min-contig 1000 --threads 8,assess assembly with minimum contig length filter and write output to a file,assembly
 quast,quast_09,-r reference.fasta -g genes.gff assembly.fasta -o quast_output/ --threads 8 --quiet,assess assembly quality with reference genome in quiet mode,assembly
 quast,quast_10,spades_assembly.fasta megahit_assembly.fasta flye_assembly.fasta -o assembly_comparison/ --threads 8,compare multiple assemblies without reference genome with default parameters,assembly
-r,r_01,Rscript analysis.R,run an R script non-interactively,statistical-computing
-r,r_02,Rscript analysis.R --input data.csv --output results.csv,run an R script with command-line arguments,statistical-computing
-r,r_03,"Rscript -e ""cat(paste(1:10, collapse=','), '\n')""",execute a one-liner R expression,statistical-computing
-r,r_04,"Rscript -e ""install.packages('ggplot2', repos='https://cloud.r-project.org', lib=Sys.getenv('R_LIBS_USER'))""",install a CRAN package into the user library,statistical-computing
-r,r_05,"Rscript -e ""BiocManager::install(c('DESeq2','edgeR'))""",install Bioconductor packages,statistical-computing
-r,r_06,"Rscript -e ""packageVersion('DESeq2')""",check installed package version,statistical-computing
-r,r_07,"Rscript -e ""ip <- installed.packages(lib.loc=.libPaths()[1]); cat(paste(ip[,'Package'],ip[,'Version'],sep='='), sep='\n')""",list user-installed packages and their versions,statistical-computing
-r,r_08,Rscript --vanilla --quiet analysis.R,run R script suppressing startup messages,statistical-computing
-r,r_09,"Rscript -e "".libPaths()""",show R library paths,statistical-computing
-r,r_10,"Rscript -e ""rmarkdown::render('report.Rmd', output_format='html_document')""",render an Rmarkdown document to HTML,statistical-computing
+r,r_01,Rscript analysis.R,run an R script non-interactively,programming
+r,r_02,Rscript analysis.R --input data.csv --output results.csv,run an R script with command-line arguments,programming
+r,r_03,"Rscript -e ""cat(paste(1:10, collapse=','), '\n')""",execute a one-liner R expression,programming
+r,r_04,"Rscript -e ""install.packages('ggplot2', repos='https://cloud.r-project.org', lib=Sys.getenv('R_LIBS_USER'))""",install a CRAN package into the user library,programming
+r,r_05,"Rscript -e ""BiocManager::install(c('DESeq2','edgeR'))""",install Bioconductor packages,programming
+r,r_06,"Rscript -e ""packageVersion('DESeq2')""",check installed package version,programming
+r,r_07,"Rscript -e ""ip <- installed.packages(lib.loc=.libPaths()[1]); cat(paste(ip[,'Package'],ip[,'Version'],sep='='), sep='\n')""",list user-installed packages and their versions,programming
+r,r_08,Rscript --vanilla --quiet analysis.R,run R script suppressing startup messages,programming
+r,r_09,"Rscript -e "".libPaths()""",show R library paths,programming
+r,r_10,"Rscript -e ""rmarkdown::render('report.Rmd', output_format='html_document')""",render an Rmarkdown document to HTML,programming
 racon,racon_01,-t 16 reads.fastq.gz mapping.paf draft_assembly.fasta > polished_round1.fasta,run one round of Racon polishing on an ONT assembly,assembly
 racon,racon_02,-t 16 reads.fastq.gz round2_mapping.paf polished_round1.fasta > polished_round2.fasta,run second round of Racon polishing,assembly
 racon,racon_03,-t 16 reads.fastq.gz alignment.sam draft_assembly.fasta > polished_assembly.fasta,run Racon polishing using SAM alignment instead of PAF,assembly
@@ -1079,16 +959,16 @@ rsem,rsem_07,rsem-prepare-reference --gtf genes.gtf --num-threads 8 --polyA geno
 rsem,rsem_08,rsem-calculate-expression --paired-end --num-threads 8 --estimate-rspd --strandedness none R1.fq.gz R2.fq.gz rsem_index/genome sample,quantify with RSEM and estimate read start position distribution,rna-seq
 rsem,rsem_09,rsem-generate-data-matrix sample1.genes.results sample2.genes.results sample3.genes.results > count_matrix.txt,extract TPM column from RSEM gene results for cross-sample comparison,rna-seq
 rsem,rsem_10,rsem-calculate-expression --paired-end --num-threads 8 --calc-ci R1.fastq.gz R2.fastq.gz rsem_index/genome sample_ci,calculate expression with confidence intervals for uncertainty estimation,rna-seq
-rseqc,rseqc_01,infer_experiment.py -r hg38.bed -i sorted.bam -s 2000000,infer library strandedness from a BAM,quality-control
-rseqc,rseqc_02,read_distribution.py -r hg38.bed -i sorted.bam,get read distribution across genomic features,quality-control
-rseqc,rseqc_03,junction_annotation.py -r hg38.bed -i sorted.bam -o sample_junctions,annotate splice junctions,quality-control
-rseqc,rseqc_04,junction_saturation.py -r hg38.bed -i sorted.bam -o sample_sat,check saturation of junction detection,quality-control
-rseqc,rseqc_05,bam_stat.py -i sorted.bam,compute BAM statistics,quality-control
-rseqc,rseqc_06,tin.py -i sorted.bam -r hg38.bed,measure transcript integrity (RNA quality),quality-control
-rseqc,rseqc_07,inner_distance.py -r hg38.bed -i sorted.bam -o inner_dist,estimate inner distance for paired-end RNA-seq,quality-control
-rseqc,rseqc_08,read_duplication.py -i sorted.bam -o duplication,check for read duplication rate,quality-control
-rseqc,rseqc_09,infer_experiment.py -r hg38.bed -i sorted.bam -s 2000000 --quiet,infer library strandedness from a BAM in quiet mode,quality-control
-rseqc,rseqc_10,read_distribution.py -r hg38.bed -i sorted.bam,get read distribution across genomic features with default parameters,quality-control
+rseqc,rseqc_01,infer_experiment.py -r hg38.bed -i sorted.bam -s 2000000,infer library strandedness from a BAM,qc
+rseqc,rseqc_02,read_distribution.py -r hg38.bed -i sorted.bam,get read distribution across genomic features,qc
+rseqc,rseqc_03,junction_annotation.py -r hg38.bed -i sorted.bam -o sample_junctions,annotate splice junctions,qc
+rseqc,rseqc_04,junction_saturation.py -r hg38.bed -i sorted.bam -o sample_sat,check saturation of junction detection,qc
+rseqc,rseqc_05,bam_stat.py -i sorted.bam,compute BAM statistics,qc
+rseqc,rseqc_06,tin.py -i sorted.bam -r hg38.bed,measure transcript integrity (RNA quality),qc
+rseqc,rseqc_07,inner_distance.py -r hg38.bed -i sorted.bam -o inner_dist,estimate inner distance for paired-end RNA-seq,qc
+rseqc,rseqc_08,read_duplication.py -i sorted.bam -o duplication,check for read duplication rate,qc
+rseqc,rseqc_09,infer_experiment.py -r hg38.bed -i sorted.bam -s 2000000 --quiet,infer library strandedness from a BAM in quiet mode,qc
+rseqc,rseqc_10,read_distribution.py -r hg38.bed -i sorted.bam,get read distribution across genomic features with default parameters,qc
 rsync,rsync_01,-avz /local/data/ user@remote:/remote/data/,sync a local directory to a remote server with verbose output and compression,networking
 rsync,rsync_02,-avzn /source/ /dest/,dry-run to preview what would be transferred,networking
 rsync,rsync_03,-avz --delete /source/ /dest/,"mirror source to destination, deleting removed files",networking
@@ -1129,16 +1009,16 @@ sed,sed_07,'s/^/PREFIX: /' input.txt,add a prefix to every line in a file,text-p
 sed,sed_08,-E 's/[[:space:]]+$//' file.txt,remove trailing whitespace from all lines,text-processing
 sed,sed_09,'10s/old/new/' file.txt,replace only on a specific line number,text-processing
 sed,sed_10,'/^\[section\]/a new_key=value' config.ini,insert a line after a matching pattern,text-processing
-seqkit,seqkit_01,stats -a reads.fastq.gz,"get basic statistics of a FASTQ file (read count, total bases, average length)",sequence-manipulation
-seqkit,seqkit_02,seq -m 100 -j 4 -o filtered.fastq.gz input.fastq.gz,filter reads shorter than 100 bp and write to a new file,sequence-manipulation
-seqkit,seqkit_03,seq -r -p -j 4 input.fa -o revcomp.fa,get the reverse complement of all sequences in a FASTA file,sequence-manipulation
-seqkit,seqkit_04,grep -f id_list.txt input.fa -o subset.fa,extract sequences by name from a list file,sequence-manipulation
-seqkit,seqkit_05,sample -n 10000 -s 42 -j 4 -o sample.fastq.gz input.fastq.gz,randomly sample 10000 reads from a large FASTQ file,sequence-manipulation
-seqkit,seqkit_06,fq2fa -j 4 input.fastq.gz -o output.fa.gz,convert FASTQ to FASTA,sequence-manipulation
-seqkit,seqkit_07,split2 -s 1000 -j 4 -O split_output input.fa,split FASTA file into chunks of 1000 sequences each,sequence-manipulation
-seqkit,seqkit_08,stats -a reads.fastq.gz -o output.txt,"get basic statistics of a FASTQ file (read count, total bases, average length) and write output to a file",sequence-manipulation
-seqkit,seqkit_09,seq -m 100 -j 4 -o filtered.fastq.gz input.fastq.gz --quiet,filter reads shorter than 100 bp and write to a new file in quiet mode,sequence-manipulation
-seqkit,seqkit_10,seq -r -p -j 4 input.fa -o revcomp.fa,get the reverse complement of all sequences in a FASTA file with default parameters,sequence-manipulation
+seqkit,seqkit_01,stats -a reads.fastq.gz,"get basic statistics of a FASTQ file (read count, total bases, average length)",sequence-utilities
+seqkit,seqkit_02,seq -m 100 -j 4 -o filtered.fastq.gz input.fastq.gz,filter reads shorter than 100 bp and write to a new file,sequence-utilities
+seqkit,seqkit_03,seq -r -p -j 4 input.fa -o revcomp.fa,get the reverse complement of all sequences in a FASTA file,sequence-utilities
+seqkit,seqkit_04,grep -f id_list.txt input.fa -o subset.fa,extract sequences by name from a list file,sequence-utilities
+seqkit,seqkit_05,sample -n 10000 -s 42 -j 4 -o sample.fastq.gz input.fastq.gz,randomly sample 10000 reads from a large FASTQ file,sequence-utilities
+seqkit,seqkit_06,fq2fa -j 4 input.fastq.gz -o output.fa.gz,convert FASTQ to FASTA,sequence-utilities
+seqkit,seqkit_07,split2 -s 1000 -j 4 -O split_output input.fa,split FASTA file into chunks of 1000 sequences each,sequence-utilities
+seqkit,seqkit_08,stats -a reads.fastq.gz -o output.txt,"get basic statistics of a FASTQ file (read count, total bases, average length) and write output to a file",sequence-utilities
+seqkit,seqkit_09,seq -m 100 -j 4 -o filtered.fastq.gz input.fastq.gz --quiet,filter reads shorter than 100 bp and write to a new file in quiet mode,sequence-utilities
+seqkit,seqkit_10,seq -r -p -j 4 input.fa -o revcomp.fa,get the reverse complement of all sequences in a FASTA file with default parameters,sequence-utilities
 seqtk,seqtk_01,sample -s 42 R1.fastq.gz 1000000 | gzip > sub_R1.fastq.gz,subsample 1 million read pairs from paired-end FASTQ files,sequence-utilities
 seqtk,seqtk_02,seq -a reads.fastq.gz > reads.fasta,convert FASTQ to FASTA format,sequence-utilities
 seqtk,seqtk_03,seq -r sequences.fasta > revcomp.fasta,reverse complement all sequences in a FASTA file,sequence-utilities
@@ -1189,16 +1069,16 @@ snpeff,snpeff_07,ann -v -stats snpeff_summary.html GRCh38.105 variants.vcf > ann
 snpeff,snpeff_08,ann -v hg19 variants.vcf > annotated_hg19.vcf,annotate variants from hg19/GRCh37 genome,variant-annotation
 snpeff,snpeff_09,ann -v -no-downstream -no-upstream -no-intron -no-intergenic GRCh38.105 variants.vcf > coding_annotated.vcf,annotate variants and filter by quality for clinical reporting,variant-annotation
 snpeff,snpeff_10,build -gff3 -v MyGenome,build a custom SnpEff genome database from GFF3 annotation with default parameters,variant-annotation
-sourmash,sourmash_01,"sketch dna -p k=31,scaled=1000 genome.fasta -o genome.sig",sketch a genome FASTA file at default parameters,sequence-comparison
-sourmash,sourmash_02,"sketch dna -p k=31,scaled=1000 *.fasta --output-dir sigs/",sketch multiple genome files and store in one database,sequence-comparison
-sourmash,sourmash_03,compare sigs/*.sig --csv similarity_matrix.csv -k 31,compare all signatures in a directory and output similarity matrix,sequence-comparison
-sourmash,sourmash_04,gather sample.sig gtdb_rs207.k31.zip -k 31 --threshold-bp 50000 -o gather_results.csv,decompose a metagenome sample against a reference database,sequence-comparison
-sourmash,sourmash_05,taxonomy annotate -g gather_results.csv -t gtdb-rs207.taxonomy.csv -o annotated_results.csv,add taxonomy to gather results,sequence-comparison
-sourmash,sourmash_06,search query.sig refdb.zip -k 31 --threshold 0.1 -n 20 -o search_results.csv,search a signature against a database for top hits,sequence-comparison
-sourmash,sourmash_07,index refdb.zip sigs/*.sig -k 31,build an indexed database from many signature files for fast search,sequence-comparison
-sourmash,sourmash_08,"sketch dna -p k=31,scaled=1000 genome.fasta -o genome.sig",sketch a genome FASTA file at default parameters and write output to a file,sequence-comparison
-sourmash,sourmash_09,"sketch dna -p k=31,scaled=1000 *.fasta --output-dir sigs/ --quiet",sketch multiple genome files and store in one database in quiet mode,sequence-comparison
-sourmash,sourmash_10,compare sigs/*.sig --csv similarity_matrix.csv -k 31,compare all signatures in a directory and output similarity matrix with default parameters,sequence-comparison
+sourmash,sourmash_01,"sketch dna -p k=31,scaled=1000 genome.fasta -o genome.sig",sketch a genome FASTA file at default parameters,sequence-utilities
+sourmash,sourmash_02,"sketch dna -p k=31,scaled=1000 *.fasta --output-dir sigs/",sketch multiple genome files and store in one database,sequence-utilities
+sourmash,sourmash_03,compare sigs/*.sig --csv similarity_matrix.csv -k 31,compare all signatures in a directory and output similarity matrix,sequence-utilities
+sourmash,sourmash_04,gather sample.sig gtdb_rs207.k31.zip -k 31 --threshold-bp 50000 -o gather_results.csv,decompose a metagenome sample against a reference database,sequence-utilities
+sourmash,sourmash_05,taxonomy annotate -g gather_results.csv -t gtdb-rs207.taxonomy.csv -o annotated_results.csv,add taxonomy to gather results,sequence-utilities
+sourmash,sourmash_06,search query.sig refdb.zip -k 31 --threshold 0.1 -n 20 -o search_results.csv,search a signature against a database for top hits,sequence-utilities
+sourmash,sourmash_07,index refdb.zip sigs/*.sig -k 31,build an indexed database from many signature files for fast search,sequence-utilities
+sourmash,sourmash_08,"sketch dna -p k=31,scaled=1000 genome.fasta -o genome.sig",sketch a genome FASTA file at default parameters and write output to a file,sequence-utilities
+sourmash,sourmash_09,"sketch dna -p k=31,scaled=1000 *.fasta --output-dir sigs/ --quiet",sketch multiple genome files and store in one database in quiet mode,sequence-utilities
+sourmash,sourmash_10,compare sigs/*.sig --csv similarity_matrix.csv -k 31,compare all signatures in a directory and output similarity matrix with default parameters,sequence-utilities
 spades,spades_01,-1 R1.fastq.gz -2 R2.fastq.gz -o spades_output/ --threads 16 --memory 32 --careful,assemble a bacterial genome from paired-end reads,assembly
 spades,spades_02,--meta -1 R1.fastq.gz -2 R2.fastq.gz -o metaspades_output/ --threads 32 --memory 128,assemble a metagenome from paired-end reads,assembly
 spades,spades_03,--plasmid -1 R1.fastq.gz -2 R2.fastq.gz -o plasmidspades_output/ --threads 8 --memory 16,assemble plasmids from paired-end reads,assembly
@@ -1269,16 +1149,16 @@ stringtie,stringtie_07,--merge -G genes.gtf -o merged.gtf sample1.gtf sample2.gt
 stringtie,stringtie_08,-e -B -G merged.gtf -o sample1_re/sample1.gtf -p 8 --rf sample1_sorted.bam,re-quantify known and assembled transcripts using merged annotation (for count extraction) and write output to a file,rna-seq
 stringtie,stringtie_09,-o novel_transcripts.gtf -p 8 --rf sample1_sorted.bam --quiet,assemble and quantify without reference annotation (novel transcript discovery) in quiet mode,rna-seq
 stringtie,stringtie_10,-i sample_list.txt -g gene_count_matrix.csv -e transcript_count_matrix.csv,extract count matrix from StringTie -e output for DESeq2 with prepDE.py3 with default parameters,rna-seq
-survivor,survivor_01,merge vcf_list.txt 500 2 1 1 0 50 merged_svs.vcf,merge SV VCFs from multiple callers requiring support from at least 2 callers,structural-variants
-survivor,survivor_02,merge sample_vcfs.txt 1000 1 1 1 0 50 cohort_svs.vcf,merge SV calls from a single caller across multiple samples,structural-variants
-survivor,survivor_03,stats -i calls.vcf -o sv_stats.txt,get summary statistics for SVs in a VCF,structural-variants
-survivor,survivor_04,filter -i calls.vcf -o filtered.vcf -s 50 -e 100000 -f 0,filter SVs to a high-confidence set by size and minimum quality,structural-variants
-survivor,survivor_05,simSV reference.fasta parameter_file.txt 0 0 simulated,simulate structural variants on a reference genome for benchmarking,structural-variants
-survivor,survivor_06,ls sniffles.vcf pbsv.vcf cutesv.vcf > vcf_list.txt && merge vcf_list.txt 500 2 1 1 0 50 consensus_svs.vcf,create a VCF list file and merge three caller outputs,structural-variants
-survivor,survivor_07,merge vcf_list.txt 500 2 1 1 0 50 merged_svs.vcf -t 4,merge SV VCFs from multiple callers requiring support from at least 2 callers using multiple threads,structural-variants
-survivor,survivor_08,merge sample_vcfs.txt 1000 1 1 1 0 50 cohort_svs.vcf -o output.txt,merge SV calls from a single caller across multiple samples and write output to a file,structural-variants
-survivor,survivor_09,stats -i calls.vcf -o sv_stats.txt --quiet,get summary statistics for SVs in a VCF in quiet mode,structural-variants
-survivor,survivor_10,filter -i calls.vcf -o filtered.vcf -s 50 -e 100000 -f 0,filter SVs to a high-confidence set by size and minimum quality with default parameters,structural-variants
+survivor,survivor_01,merge vcf_list.txt 500 2 1 1 0 50 merged_svs.vcf,merge SV VCFs from multiple callers requiring support from at least 2 callers,variant-calling
+survivor,survivor_02,merge sample_vcfs.txt 1000 1 1 1 0 50 cohort_svs.vcf,merge SV calls from a single caller across multiple samples,variant-calling
+survivor,survivor_03,stats -i calls.vcf -o sv_stats.txt,get summary statistics for SVs in a VCF,variant-calling
+survivor,survivor_04,filter -i calls.vcf -o filtered.vcf -s 50 -e 100000 -f 0,filter SVs to a high-confidence set by size and minimum quality,variant-calling
+survivor,survivor_05,simSV reference.fasta parameter_file.txt 0 0 simulated,simulate structural variants on a reference genome for benchmarking,variant-calling
+survivor,survivor_06,ls sniffles.vcf pbsv.vcf cutesv.vcf > vcf_list.txt && merge vcf_list.txt 500 2 1 1 0 50 consensus_svs.vcf,create a VCF list file and merge three caller outputs,variant-calling
+survivor,survivor_07,merge vcf_list.txt 500 2 1 1 0 50 merged_svs.vcf -t 4,merge SV VCFs from multiple callers requiring support from at least 2 callers using multiple threads,variant-calling
+survivor,survivor_08,merge sample_vcfs.txt 1000 1 1 1 0 50 cohort_svs.vcf -o output.txt,merge SV calls from a single caller across multiple samples and write output to a file,variant-calling
+survivor,survivor_09,stats -i calls.vcf -o sv_stats.txt --quiet,get summary statistics for SVs in a VCF in quiet mode,variant-calling
+survivor,survivor_10,filter -i calls.vcf -o filtered.vcf -s 50 -e 100000 -f 0,filter SVs to a high-confidence set by size and minimum quality with default parameters,variant-calling
 tabix,tabix_01,variants.vcf.gz,compress a VCF file with bgzip and create tabix index,utilities
 tabix,tabix_02,-p vcf variants.vcf.gz,create tabix index for a bgzipped VCF file,utilities
 tabix,tabix_03,-h variants.vcf.gz chr1:1000000-2000000 > chr1_region.vcf,query a specific genomic region from an indexed VCF,utilities
@@ -1329,16 +1209,16 @@ trinity,trinity_07,--seqType fq --single reads.fastq.gz --max_memory 32G --CPU 8
 trinity,trinity_08,--seqType fq --left R1.fastq.gz --right R2.fastq.gz --SS_lib_type RF --max_memory 50G --CPU 16 --output stranded_trinity/,Trinity assembly with strand-specific library and write output to a file,rna-seq
 trinity,trinity_09,--seqType fq --left R1.fastq.gz --right R2.fastq.gz --max_memory 50G --CPU 16 --output trinity_output/ --quiet,de novo transcriptome assembly from paired-end RNA-seq reads in quiet mode,rna-seq
 trinity,trinity_10,--genome_guided_bam star_aligned.bam --genome_guided_max_intron 10000 --max_memory 50G --CPU 16 --output genome_guided_trinity/,genome-guided Trinity assembly using STAR alignments with default parameters,rna-seq
-truvari,truvari_01,bench -b truth.vcf.gz -c calls.vcf.gz -f reference.fasta -o bench_output --passonly --sizemin 50,benchmark a structural variant caller VCF against a truth set,variant-benchmarking
-truvari,truvari_02,bench -b truth.vcf.gz -c calls.vcf.gz -f reference.fasta -o bench_output --refdist 1000 --pctsize 0.7 --passonly,benchmark with relaxed position tolerance for long-read SV calls,variant-benchmarking
-truvari,truvari_03,collapse -i calls.vcf.gz -o collapsed.vcf --passonly --sizemin 50 --refdist 500,collapse redundant SV calls within a single caller VCF,variant-benchmarking
-truvari,truvari_04,collapse -i multi_caller.vcf.gz -o merged.vcf --chain --keep common,merge SV calls from multiple callers into a consensus VCF,variant-benchmarking
-truvari,truvari_05,refine --reference reference.fasta --regions bench_output/candidate.refine.bed bench_output/,run truvari refine to improve benchmarking accuracy with sequence realignment,variant-benchmarking
-truvari,truvari_06,bench -b truth.vcf.gz -c calls.vcf.gz -f reference.fasta -o bench_output --sizemin 50 --sizemax 10000 --passonly,filter SV VCF to a specific size range before benchmarking,variant-benchmarking
-truvari,truvari_07,bench -b truth.vcf.gz -c calls.vcf.gz -f reference.fasta -o bench_output --passonly --sizemin 50 -t 4,benchmark a structural variant caller VCF against a truth set using multiple threads,variant-benchmarking
-truvari,truvari_08,bench -b truth.vcf.gz -c calls.vcf.gz -f reference.fasta -o bench_output --refdist 1000 --pctsize 0.7 --passonly,benchmark with relaxed position tolerance for long-read SV calls and write output to a file,variant-benchmarking
-truvari,truvari_09,collapse -i calls.vcf.gz -o collapsed.vcf --passonly --sizemin 50 --refdist 500 --quiet,collapse redundant SV calls within a single caller VCF in quiet mode,variant-benchmarking
-truvari,truvari_10,collapse -i multi_caller.vcf.gz -o merged.vcf --chain --keep common,merge SV calls from multiple callers into a consensus VCF with default parameters,variant-benchmarking
+truvari,truvari_01,bench -b truth.vcf.gz -c calls.vcf.gz -f reference.fasta -o bench_output --passonly --sizemin 50,benchmark a structural variant caller VCF against a truth set,utilities
+truvari,truvari_02,bench -b truth.vcf.gz -c calls.vcf.gz -f reference.fasta -o bench_output --refdist 1000 --pctsize 0.7 --passonly,benchmark with relaxed position tolerance for long-read SV calls,utilities
+truvari,truvari_03,collapse -i calls.vcf.gz -o collapsed.vcf --passonly --sizemin 50 --refdist 500,collapse redundant SV calls within a single caller VCF,utilities
+truvari,truvari_04,collapse -i multi_caller.vcf.gz -o merged.vcf --chain --keep common,merge SV calls from multiple callers into a consensus VCF,utilities
+truvari,truvari_05,refine --reference reference.fasta --regions bench_output/candidate.refine.bed bench_output/,run truvari refine to improve benchmarking accuracy with sequence realignment,utilities
+truvari,truvari_06,bench -b truth.vcf.gz -c calls.vcf.gz -f reference.fasta -o bench_output --sizemin 50 --sizemax 10000 --passonly,filter SV VCF to a specific size range before benchmarking,utilities
+truvari,truvari_07,bench -b truth.vcf.gz -c calls.vcf.gz -f reference.fasta -o bench_output --passonly --sizemin 50 -t 4,benchmark a structural variant caller VCF against a truth set using multiple threads,utilities
+truvari,truvari_08,bench -b truth.vcf.gz -c calls.vcf.gz -f reference.fasta -o bench_output --refdist 1000 --pctsize 0.7 --passonly,benchmark with relaxed position tolerance for long-read SV calls and write output to a file,utilities
+truvari,truvari_09,collapse -i calls.vcf.gz -o collapsed.vcf --passonly --sizemin 50 --refdist 500 --quiet,collapse redundant SV calls within a single caller VCF in quiet mode,utilities
+truvari,truvari_10,collapse -i multi_caller.vcf.gz -o merged.vcf --chain --keep common,merge SV calls from multiple callers into a consensus VCF with default parameters,utilities
 varscan2,varscan2_01,mpileup2snp --min-coverage 8 --min-reads2 2 --min-avg-qual 15 --min-var-freq 0.01 --p-value 0.99 --output-vcf 1 > snps.vcf,call germline SNPs from a tumor or normal sample,variant-calling
 varscan2,varscan2_02,somatic normal_pileup.pileup tumor_pileup.pileup --output-snp somatic.snp.vcf --output-indel somatic.indel.vcf --output-vcf 1 --min-coverage 8 --min-var-freq 0.1 --somatic-p-value 0.05,call somatic variants from tumor-normal pair,variant-calling
 varscan2,varscan2_03,processSomatic somatic.snp.vcf --min-tumor-freq 0.1 --max-normal-freq 0.05 --p-value 0.05,filter somatic variants for high-confidence calls,variant-calling
@@ -1369,16 +1249,6 @@ vcftools,vcftools_07,--vcf variants.vcf --site-pi --TajimaD 10000 --out popgen_s
 vcftools,vcftools_08,--vcf variants.vcf --remove-indels --min-alleles 2 --max-alleles 2 --minDP 10 --recode --recode-INFO-all --out snps_only -o output.txt,filter VCF to biallelic SNPs with minimum depth and write output to a file,variant-calling
 vcftools,vcftools_09,--vcf variants.vcf --weir-fst-pop pop1_samples.txt --weir-fst-pop pop2_samples.txt --fst-window-size 50000 --out fst_results --quiet,compute pairwise FST between two populations in quiet mode,variant-calling
 vcftools,vcftools_10,--vcf variants.vcf --plink --out plink_dataset,convert VCF to PLINK format for downstream analysis with default parameters,variant-calling
-velocyto,velocyto_01,run10x -m repeat_masker.bed /path/to/cellranger_output genes.gtf,run velocyto on a 10x CellRanger output directory,single-cell
-velocyto,velocyto_02,run -b filtered_barcodes.tsv -o loom_output/ --samtools-threads 8 cellranger_output/possorted_genome_bam.bam genes.gtf,run velocyto on a 10x BAM with explicit barcode file,single-cell
-velocyto,velocyto_03,run-smartseq2 -o smartseq_loom/ -m repeat_masker.bed cells/*.bam genes.gtf,run velocyto on Smart-seq2 plate data,single-cell
-velocyto,velocyto_04,run -b barcodes.txt -e experiment_name -o loom_output/ sample.bam genes.gtf,run velocyto on a general BAM with cell barcodes from inDrops,single-cell
-velocyto,velocyto_05,run10x -m hg38_rmsk.bed --samtools-threads 16 /path/to/cellranger_output Homo_sapiens.GRCh38.gtf,run velocyto with repeat masking and multiple threads,single-cell
-velocyto,velocyto_06,run10x -m repeat_masker.bed -o sample2_loom/ /path/to/sample2_cellranger_output genes.gtf,run velocyto on multiple 10x samples with per-sample output loom files,single-cell
-velocyto,velocyto_07,run10x -m repeat_masker.bed /path/to/cellranger_output genes.gtf -t 4,run velocyto on a 10x CellRanger output directory using multiple threads,single-cell
-velocyto,velocyto_08,run -b filtered_barcodes.tsv -o loom_output/ --samtools-threads 8 cellranger_output/possorted_genome_bam.bam genes.gtf,run velocyto on a 10x BAM with explicit barcode file and write output to a file,single-cell
-velocyto,velocyto_09,run-smartseq2 -o smartseq_loom/ -m repeat_masker.bed cells/*.bam genes.gtf --quiet,run velocyto on Smart-seq2 plate data in quiet mode,single-cell
-velocyto,velocyto_10,run -b barcodes.txt -e experiment_name -o loom_output/ sample.bam genes.gtf,run velocyto on a general BAM with cell barcodes from inDrops with default parameters,single-cell
 vep,vep_01,--input_file variants.vcf --output_file annotated.vcf --vcf --cache --dir_cache /path/to/cache/ --assembly GRCh38 --fork 8 --offline,annotate VCF variants with VEP using offline cache,variant-annotation
 vep,vep_02,--input_file variants.vcf --output_file annotated.vcf --vcf --cache --dir_cache /path/to/cache/ --assembly GRCh38 --everything --fork 8 --offline,annotate with all standard functional predictions,variant-annotation
 vep,vep_03,--input_file variants.vcf --output_file annotated.vcf --vcf --cache --dir_cache /path/to/cache/ --assembly GRCh38 --pick --fork 8 --offline,annotate and pick single most severe consequence per variant,variant-annotation

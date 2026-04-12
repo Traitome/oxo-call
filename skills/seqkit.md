@@ -1,6 +1,6 @@
 ---
 name: seqkit
-category: sequence-manipulation
+category: sequence-utilities
 description: Cross-platform ultrafast toolkit for FASTA/Q file manipulation
 tags: [fasta, fastq, sequence, qc, statistics, manipulation, filtering]
 author: oxo-call built-in

@@ -1,6 +1,6 @@
 ---
 name: mmseqs2
-category: sequence-search
+category: sequence-utilities
 description: Ultra-fast protein and nucleotide sequence search and clustering
 tags: [protein, clustering, search, homology, database, metagenomics]
 author: oxo-call built-in

@@ -1,6 +1,6 @@
 ---
 name: bash
-category: scripting
+category: programming
 description: Bash shell interpreter and scripting language; pipeline automation, job control, file management, and text processing
 tags: [bash, shell, scripting, pipeline, automation, cron, configuration, bashrc, profile]
 author: oxo-call built-in

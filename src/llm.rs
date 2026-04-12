@@ -151,7 +151,18 @@ fn system_prompt() -> &'static str {
 // ─── User prompt ─────────────────────────────────────────────────────────────
 
 /// Build the enriched user prompt, injecting skill knowledge when available.
-fn build_prompt(tool: &str, documentation: &str, task: &str, skill: Option<&Skill>) -> String {
+fn build_prompt(tool: &str, documentation: &str, task: &str, skill: Option<&Skill>, no_prompt: bool) -> String {
+    // Ablation: bare LLM mode - just the task, no context
+    if no_prompt {
+        return format!(
+            "Generate command-line arguments for the tool '{}' to accomplish this task:\n\n{}\n\n\
+             Respond with EXACTLY two lines:\n\
+             ARGS: <command-line arguments without the tool name>\n\
+             EXPLANATION: <brief explanation>",
+            tool, task
+        );
+    }
+
     let mut prompt = String::new();
 
     prompt.push_str(&format!("# Tool: `{tool}`\n\n"));
@@ -509,8 +520,9 @@ fn build_retry_prompt(
     task: &str,
     skill: Option<&Skill>,
     prev_raw: &str,
+    no_prompt: bool,
 ) -> String {
-    let base = build_prompt(tool, documentation, task, skill);
+    let base = build_prompt(tool, documentation, task, skill, no_prompt);
     format!(
         "{base}\n\
          ## Correction Note\n\
@@ -546,6 +558,7 @@ impl LlmClient {
         documentation: &str,
         task: &str,
         skill: Option<&Skill>,
+        no_prompt: bool,
     ) -> Result<LlmCommandSuggestion> {
         #[cfg(target_arch = "wasm32")]
         return Err(OxoError::LlmError(
@@ -560,9 +573,9 @@ impl LlmClient {
 
             for attempt in 0..=MAX_RETRIES {
                 let user_prompt = if attempt == 0 {
-                    build_prompt(tool, documentation, task, skill)
+                    build_prompt(tool, documentation, task, skill, no_prompt)
                 } else {
-                    build_retry_prompt(tool, documentation, task, skill, &last_raw)
+                    build_retry_prompt(tool, documentation, task, skill, &last_raw, no_prompt)
                 };
 
                 let raw = self.call_api(&user_prompt).await?;

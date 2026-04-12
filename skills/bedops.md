@@ -1,6 +1,6 @@
 ---
 name: bedops
-category: genomic-arithmetic
+category: genomic-intervals
 description: Fast and highly scalable set operations and arithmetic on BED, GFF, VCF, and SAM genomic intervals
 tags: [bed, intervals, genomic-arithmetic, intersection, union, complement, sort]
 author: oxo-call built-in

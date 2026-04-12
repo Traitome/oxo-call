@@ -57,6 +57,12 @@ pub struct Runner {
     /// When true, use LLM to optimize/expand the user's task description before
     /// building the command generation prompt.
     optimize_task: bool,
+    /// [Ablation] When true, do not load the skill file for the tool.
+    no_skill: bool,
+    /// [Ablation] When true, do not load tool documentation (--help output).
+    no_doc: bool,
+    /// [Ablation] When true, do not use the oxo-call system prompt.
+    no_prompt: bool,
     /// Named variables substituted into the task description before the LLM call.
     #[cfg(not(target_arch = "wasm32"))]
     vars: HashMap<String, String>,
@@ -82,6 +88,9 @@ impl Runner {
             no_cache: false,
             verify: false,
             optimize_task: false,
+            no_skill: false,
+            no_doc: false,
+            no_prompt: false,
             #[cfg(not(target_arch = "wasm32"))]
             vars: HashMap::new(),
             #[cfg(not(target_arch = "wasm32"))]
@@ -114,6 +123,24 @@ impl Runner {
     /// Enable LLM-based task description optimization before generating the command.
     pub fn with_optimize_task(mut self, optimize_task: bool) -> Self {
         self.optimize_task = optimize_task;
+        self
+    }
+
+    /// [Ablation] Do not load the skill file for the tool.
+    pub fn with_no_skill(mut self, no_skill: bool) -> Self {
+        self.no_skill = no_skill;
+        self
+    }
+
+    /// [Ablation] Do not load tool documentation (--help output).
+    pub fn with_no_doc(mut self, no_doc: bool) -> Self {
+        self.no_doc = no_doc;
+        self
+    }
+
+    /// [Ablation] Do not use the oxo-call system prompt.
+    pub fn with_no_prompt(mut self, no_prompt: bool) -> Self {
+        self.no_prompt = no_prompt;
         self
     }
 
@@ -162,19 +189,27 @@ impl Runner {
 
     /// Core logic: fetch docs → (optionally optimize task) → load skill → call LLM → return suggestion + provenance.
     async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
-        let spinner = make_spinner(&format!("Fetching documentation for '{tool}'..."));
-        let docs = match self.resolve_docs(tool).await {
-            Ok(d) => {
-                spinner.finish_and_clear();
-                d
+        // Ablation: optionally skip documentation fetching
+        let docs = if self.no_doc {
+            if self.verbose {
+                eprintln!("{} [Ablation] Skipping documentation (--no-doc)", "[verbose]".dimmed());
             }
-            Err(e) => {
-                spinner.finish_and_clear();
-                return Err(e);
+            String::new()
+        } else {
+            let spinner = make_spinner(&format!("Fetching documentation for '{tool}'..."));
+            match self.resolve_docs(tool).await {
+                Ok(d) => {
+                    spinner.finish_and_clear();
+                    d
+                }
+                Err(e) => {
+                    spinner.finish_and_clear();
+                    return Err(e);
+                }
             }
         };
 
-        if self.verbose {
+        if self.verbose && !self.no_doc {
             eprintln!(
                 "{} Documentation: {} chars{}",
                 "[verbose]".dimmed(),
@@ -221,10 +256,23 @@ impl Runner {
             task.to_string()
         };
 
-        #[cfg(not(target_arch = "wasm32"))]
-        let skill = self.skill_manager.load_async(tool).await;
-        #[cfg(target_arch = "wasm32")]
-        let skill = self.skill_manager.load(tool);
+        // Ablation: optionally skip skill loading
+        let skill = if self.no_skill {
+            if self.verbose {
+                eprintln!("{} [Ablation] Skipping skill (--no-skill)", "[verbose]".dimmed());
+            }
+            None
+        } else {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                self.skill_manager.load_async(tool).await
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                self.skill_manager.load(tool)
+            }
+        };
+        
         let skill_name = skill.as_ref().map(|s| s.meta.name.clone());
         let skill_label = if skill.is_some() {
             format!(" (skill: {})", tool)
@@ -242,7 +290,7 @@ impl Runner {
                     s.context.pitfalls.len(),
                     s.examples.len()
                 );
-            } else {
+            } else if !self.no_skill {
                 eprintln!("{} No skill found for '{}'", "[verbose]".dimmed(), tool);
             }
             eprintln!(
@@ -260,7 +308,7 @@ impl Runner {
         ));
         let suggestion = match self
             .llm
-            .suggest_command(tool, &docs, &effective_task, skill.as_ref())
+            .suggest_command(tool, &docs, &effective_task, skill.as_ref(), self.no_prompt)
             .await
         {
             Ok(s) => {

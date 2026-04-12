@@ -1,6 +1,6 @@
 ---
 name: meme
-category: motif-analysis
+category: utilities
 description: MEME Suite — motif discovery and analysis; meme, fimo, tomtom, mast, ame for finding transcription factor binding sites and sequence motifs
 tags: [meme, fimo, tomtom, motif, transcription-factor, chip-seq, atac-seq, sequence-motif, pwm]
 author: oxo-call built-in

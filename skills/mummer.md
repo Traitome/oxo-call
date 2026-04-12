@@ -1,6 +1,6 @@
 ---
 name: mummer
-category: genome-alignment
+category: alignment
 description: MUMmer4 whole-genome alignment suite; nucmer, promer, dnadiff, and mummerplot for comparing large genomes at the nucleotide and protein level
 tags: [mummer, nucmer, promer, dnadiff, whole-genome-alignment, comparative-genomics, snps, indels]
 author: oxo-call built-in

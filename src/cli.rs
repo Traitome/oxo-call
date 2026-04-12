@@ -149,6 +149,15 @@ EXAMPLES:\n  \
         /// the task description for better accuracy
         #[arg(long)]
         optimize_task: bool,
+        /// [Ablation] Do not load the skill file for this tool
+        #[arg(long, hide = true)]
+        no_skill: bool,
+        /// [Ablation] Do not load tool documentation (--help output)
+        #[arg(long, hide = true)]
+        no_doc: bool,
+        /// [Ablation] Do not use the oxo-call system prompt
+        #[arg(long, hide = true)]
+        no_prompt: bool,
         /// Set a named variable for `{KEY}` substitution in the task description (repeatable)
         ///
         /// Example: --var SAMPLE=sample1 --var THREADS=8
