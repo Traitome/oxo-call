@@ -45,20 +45,78 @@ async fn main() {
 
 /// GitHub Copilot models available for selection during `config login`.
 /// Each entry is (model_id, display_description, is_free_tier).
-/// Only models confirmed to work with the GitHub Copilot API are listed here.
+/// Sourced from: https://docs.github.com/en/copilot/reference/ai-models/supported-models
+/// Only GA models are listed; models in "Closing down" or "Public preview" status are omitted.
 const COPILOT_MODELS: &[(&str, &str, bool)] = &[
+    // ── OpenAI ──────────────────────────────────────────────────────────────────
     (
         "gpt-5-mini",
-        "GPT-5 Mini         · newest lightweight",
+        "GPT-5 Mini         · OpenAI, fast lightweight",
         true,
     ),
     (
-        "gpt-4.1-mini",
-        "GPT-4.1 Mini       · lightweight, fast",
-        true,
+        "gpt-4.1",
+        "GPT-4.1            · OpenAI, general-purpose",
+        false,
     ),
-    ("gpt-4.1", "GPT-4.1            · standard accuracy", false),
-    ("o3-mini", "o3-mini            · reasoning model", false),
+    (
+        "gpt-5.2",
+        "GPT-5.2            · OpenAI, deep reasoning",
+        false,
+    ),
+    (
+        "gpt-5.2-codex",
+        "GPT-5.2-Codex      · OpenAI, agentic coding",
+        false,
+    ),
+    (
+        "gpt-5.3-codex",
+        "GPT-5.3-Codex      · OpenAI, agentic coding",
+        false,
+    ),
+    (
+        "gpt-5.4",
+        "GPT-5.4            · OpenAI, frontier reasoning",
+        false,
+    ),
+    (
+        "gpt-5.4-mini",
+        "GPT-5.4 Mini       · OpenAI, agentic lightweight",
+        false,
+    ),
+    // ── Anthropic ───────────────────────────────────────────────────────────────
+    (
+        "claude-haiku-4.5",
+        "Claude Haiku 4.5   · Anthropic, fast",
+        false,
+    ),
+    ("claude-sonnet-4", "Claude Sonnet 4    · Anthropic", false),
+    (
+        "claude-sonnet-4.5",
+        "Claude Sonnet 4.5  · Anthropic, agent tasks",
+        false,
+    ),
+    (
+        "claude-sonnet-4.6",
+        "Claude Sonnet 4.6  · Anthropic, newest sonnet",
+        false,
+    ),
+    (
+        "claude-opus-4.5",
+        "Claude Opus 4.5    · Anthropic, most capable",
+        false,
+    ),
+    (
+        "claude-opus-4.6",
+        "Claude Opus 4.6    · Anthropic, newest opus",
+        false,
+    ),
+    // ── Google ──────────────────────────────────────────────────────────────────
+    (
+        "gemini-2.5-pro",
+        "Gemini 2.5 Pro     · Google, deep reasoning",
+        false,
+    ),
 ];
 
 async fn run(cli: Cli) -> error::Result<()> {

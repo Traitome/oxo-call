@@ -58,7 +58,7 @@ Environment variables override `config.toml` values. Provider-specific token var
 ## LLM Provider Details
 
 ### GitHub Copilot (Default)
-- Default model: `gpt-4.1-mini` (lightweight, free tier ⭐)
+- Default model: `gpt-5-mini` (lightweight, free tier ⭐)
 - API base: `https://api.individual.githubcopilot.com`
 - Authentication: Use `oxo-call config login` for interactive OAuth login
 - **Important**: Requires GitHub App token (`ghu_`), not Personal Access Token (`ghp_`)
