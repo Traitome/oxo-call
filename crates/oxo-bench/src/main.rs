@@ -683,7 +683,7 @@ fn cmd_eval(
         BenchConfig::load(config_path)?
     } else {
         println!(
-            "{} Config not found, using defaults (3 models, 3 repeats).",
+            "{} No config file found, using CLI parameters.",
             "→".cyan().bold()
         );
         BenchConfig::default()
