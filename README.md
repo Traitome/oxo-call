@@ -120,9 +120,6 @@ export OXO_CALL_LICENSE=/path/to/license.oxo.json
 # GitHub Copilot (default) - Interactive OAuth login
 oxo-call config login
 
-# Or set manually with a GitHub token
-oxo-call config set llm.api_token <your-github-token>
-
 # Preview a command without running it
 oxo-call dry-run samtools "sort input.bam by coordinate and output to sorted.bam"
 # → samtools sort -o sorted.bam input.bam
