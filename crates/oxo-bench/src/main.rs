@@ -204,6 +204,17 @@ enum Commands {
         /// Example: --api-base "http://localhost:11434"
         #[arg(long)]
         api_base: Option<String>,
+        /// Worker ID for parallel execution (1-indexed).
+        ///
+        /// When set, only processes descriptions where (index % total_workers == worker_id - 1).
+        /// Used with --total-workers for parallel benchmark execution.
+        #[arg(long)]
+        worker_id: Option<usize>,
+        /// Total number of parallel workers.
+        ///
+        /// Must be used with --worker-id. Splits work across N workers.
+        #[arg(long)]
+        total_workers: Option<usize>,
     },
 
     /// Print cross-model comparison summary from benchmark results
@@ -529,6 +540,8 @@ fn run(cli: Cli) -> anyhow::Result<()> {
             models,
             scenarios,
             api_base,
+            worker_id,
+            total_workers,
         } => {
             cmd_eval(
                 &config,
@@ -541,6 +554,8 @@ fn run(cli: Cli) -> anyhow::Result<()> {
                 models.as_deref(),
                 scenarios.as_deref(),
                 api_base.as_deref(),
+                worker_id,
+                total_workers,
             )?;
         }
 
@@ -660,6 +675,8 @@ fn cmd_eval(
     models_override: Option<&str>,
     scenarios_override: Option<&str>,
     api_base_override: Option<&str>,
+    worker_id: Option<usize>,
+    total_workers: Option<usize>,
 ) -> anyhow::Result<()> {
     // Load or generate config.
     let mut config = if config_path.exists() {
@@ -724,6 +741,29 @@ fn cmd_eval(
     if let Some(filter) = tools_filter {
         let allowed: std::collections::HashSet<&str> = filter.split(',').collect();
         descriptions.retain(|d| allowed.contains(d.tool.as_str()));
+    }
+
+    // Apply worker filter for parallel execution.
+    if let (Some(wid), Some(total)) = (worker_id, total_workers) {
+        if wid == 0 || wid > total {
+            anyhow::bail!("worker_id must be between 1 and total_workers (inclusive)");
+        }
+        let before = descriptions.len();
+        descriptions.retain(|d| {
+            let idx = d.desc_id.as_str();
+            let hash = idx
+                .bytes()
+                .fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u64));
+            (hash % total as u64) == (wid - 1) as u64
+        });
+        println!(
+            "{} Worker {}/{}: processing {} of {} descriptions",
+            "→".cyan().bold(),
+            wid,
+            total,
+            descriptions.len(),
+            before
+        );
     }
 
     println!(

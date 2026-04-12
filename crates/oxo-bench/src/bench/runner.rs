@@ -75,7 +75,7 @@ pub struct GeneratedCommand {
 }
 
 /// Trait for pluggable command generators (real oxo-call or mock).
-pub trait CommandGenerator {
+pub trait CommandGenerator: Send + Sync {
     fn generate(&self, tool: &str, task: &str, model: &str) -> GeneratedCommand;
 }
 
@@ -596,7 +596,7 @@ pub fn run_benchmark(
     repeats: usize,
     descriptions: &[UsageDescription],
     scenarios: &[Scenario],
-    generator: &dyn CommandGenerator,
+    generator: &(dyn CommandGenerator + 'static),
     ablation_label: &str,
 ) -> Vec<TrialResult> {
     run_benchmark_with_callback(
@@ -616,7 +616,7 @@ pub fn run_benchmark_with_callback(
     repeats: usize,
     descriptions: &[UsageDescription],
     scenarios: &[Scenario],
-    generator: &dyn CommandGenerator,
+    generator: &(dyn CommandGenerator + 'static),
     ablation_label: &str,
     callback: Option<&dyn TrialCallback>,
 ) -> Vec<TrialResult> {
