@@ -101,8 +101,13 @@ pub struct LlmConfig {
     pub api_token: Option<String>,
     /// API base URL (override for local/custom endpoints)
     pub api_base: Option<String>,
-    /// Model name (e.g. "gpt-4o", "claude-3-5-sonnet-20241022", "gemma2")
+    /// Active model name (e.g. "gpt-5-mini", "gpt-4.1", "claude-3-5-sonnet-20241022").
+    /// Use `oxo-call config model use <id>` to switch between configured models.
     pub model: Option<String>,
+    /// User-configured model list for quick switching via `config model use`.
+    /// Populated automatically during `config login` and editable with `config model add/remove`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub models: Vec<String>,
     /// Max tokens to generate
     pub max_tokens: u32,
     /// Temperature for generation
@@ -137,6 +142,7 @@ impl Default for Config {
                 api_token: None,
                 api_base: None,
                 model: None,
+                models: Vec::new(),
                 max_tokens: DEFAULT_MAX_TOKENS,
                 temperature: DEFAULT_TEMPERATURE,
             },
@@ -349,7 +355,7 @@ impl Config {
             return model.clone();
         }
         match self.effective_provider().as_str() {
-            "github-copilot" => "gpt-4.1-mini".to_string(),
+            "github-copilot" => "gpt-5-mini".to_string(),
             "openai" => "gpt-4o".to_string(),
             "anthropic" => "claude-3-5-sonnet-20241022".to_string(),
             "ollama" => "llama3.2".to_string(),
@@ -769,7 +775,7 @@ mod tests {
             std::env::remove_var("OXO_CALL_LLM_PROVIDER");
         }
         let cfg = Config::default();
-        assert_eq!(cfg.effective_model(), "gpt-4.1-mini");
+        assert_eq!(cfg.effective_model(), "gpt-5-mini");
     }
 
     #[test]

@@ -27,7 +27,8 @@ pub(crate) static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 use clap::{CommandFactory, Parser};
 use cli::{
     Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, JobCommands,
-    LicenseCommands, ServerCommands, ShellType, SkillCommands, SkillMcpCommands, WorkflowCommands,
+    LicenseCommands, ModelCommands, ServerCommands, ShellType, SkillCommands, SkillMcpCommands,
+    WorkflowCommands,
 };
 use colored::Colorize;
 use handlers::{config_verify_suggestions, print_index_table, with_source};
@@ -44,29 +45,19 @@ async fn main() {
 
 /// GitHub Copilot models available for selection during `config login`.
 /// Each entry is (model_id, display_description, is_free_tier).
+/// Only models confirmed to work with the GitHub Copilot API are listed here.
 const COPILOT_MODELS: &[(&str, &str, bool)] = &[
-    (
-        "gpt-4.1-mini",
-        "GPT-4.1 Mini       · lightweight, fast",
-        true,
-    ),
-    ("gpt-4.1", "GPT-4.1            · standard accuracy", false),
     (
         "gpt-5-mini",
         "GPT-5 Mini         · newest lightweight",
         true,
     ),
     (
-        "gpt-5",
-        "GPT-5              · most capable, frontier",
-        false,
+        "gpt-4.1-mini",
+        "GPT-4.1 Mini       · lightweight, fast",
+        true,
     ),
-    ("claude-3.5-sonnet", "Claude 3.5 Sonnet  · Anthropic", false),
-    (
-        "claude-sonnet-4",
-        "Claude Sonnet 4    · Anthropic, newest",
-        false,
-    ),
+    ("gpt-4.1", "GPT-4.1            · standard accuracy", false),
     ("o3-mini", "o3-mini            · reasoning model", false),
 ];
 
@@ -476,6 +467,15 @@ async fn run(cli: Cli) -> error::Result<()> {
                 );
                 println!("  {:<25} {}", "max_tokens", cfg.llm.max_tokens);
                 println!("  {:<25} {}", "temperature", cfg.llm.temperature);
+                println!(
+                    "  {:<25} {}",
+                    "models",
+                    if cfg.llm.models.is_empty() {
+                        "(none)".to_string()
+                    } else {
+                        cfg.llm.models.join(", ")
+                    }
+                );
                 println!();
                 println!("  {} ", "[docs]".bold().cyan());
                 println!("  {:<25} {}", "auto_update", cfg.docs.auto_update);
@@ -787,17 +787,25 @@ async fn run(cli: Cli) -> error::Result<()> {
                             cfg.llm.provider = "github-copilot".to_string();
                             cfg.llm.api_token = Some(github_token);
                             cfg.llm.model = Some(selected_model.clone());
+                            // Pre-populate the model list with all available Copilot models
+                            // so the user can switch quickly with `config model use`.
+                            for (id, _, _) in COPILOT_MODELS {
+                                if !cfg.llm.models.contains(&id.to_string()) {
+                                    cfg.llm.models.push(id.to_string());
+                                }
+                            }
                             cfg.save()?;
 
                             println!();
                             println!("{} Authenticated with GitHub Copilot.", "✓".green().bold());
                             println!("  provider  github-copilot");
                             println!(
-                                "  model     {} (change with `oxo-call config set llm.model <model>`)",
+                                "  model     {} (switch with `oxo-call config model use <model>`)",
                                 selected_model
                             );
                             println!();
                             println!("  Run `oxo-call config verify` to confirm everything works.");
+                            println!("  Run `oxo-call config model list` to see available models.");
                         }
                         #[cfg(target_arch = "wasm32")]
                         {
@@ -816,6 +824,75 @@ async fn run(cli: Cli) -> error::Result<()> {
                         eprintln!("  oxo-call config set llm.provider {other}");
                         eprintln!("  oxo-call config set llm.api_token <your-token>");
                         std::process::exit(1);
+                    }
+                }
+            }
+            ConfigCommands::Model { command } => {
+                let mut cfg = config::Config::load()?;
+                match command {
+                    ModelCommands::List => {
+                        let active = cfg.effective_model();
+                        if cfg.llm.models.is_empty() {
+                            println!("{}", "No models configured.".yellow());
+                            println!();
+                            println!("  Add models with `oxo-call config model add <model-id>`");
+                            println!(
+                                "  or run `oxo-call config login` to populate the list automatically."
+                            );
+                        } else {
+                            println!("{}", "Configured models:".bold());
+                            println!();
+                            for m in &cfg.llm.models {
+                                if m == &active {
+                                    println!("  {} {}", "★".yellow().bold(), m.green().bold());
+                                } else {
+                                    println!("    {}", m);
+                                }
+                            }
+                            println!();
+                            println!(
+                                "  {} {} (active model — switch with `oxo-call config model use <model>`)",
+                                "★".yellow(),
+                                active.green()
+                            );
+                        }
+                    }
+                    ModelCommands::Add { model } => {
+                        if cfg.llm.models.contains(&model) {
+                            println!("{} Model '{}' is already in the list.", "⚠".yellow(), model);
+                        } else {
+                            cfg.llm.models.push(model.clone());
+                            cfg.save()?;
+                            println!("{} Added '{}' to model list.", "✓".green().bold(), model);
+                        }
+                    }
+                    ModelCommands::Remove { model } => {
+                        let before = cfg.llm.models.len();
+                        cfg.llm.models.retain(|m| m != &model);
+                        if cfg.llm.models.len() == before {
+                            eprintln!(
+                                "{} Model '{}' not found in list.",
+                                "error:".bold().red(),
+                                model
+                            );
+                            std::process::exit(1);
+                        }
+                        cfg.save()?;
+                        println!(
+                            "{} Removed '{}' from model list.",
+                            "✓".green().bold(),
+                            model
+                        );
+                    }
+                    ModelCommands::Use { model } => {
+                        cfg.llm.model = Some(model.clone());
+                        cfg.save()?;
+                        println!(
+                            "{} Active model set to '{}'.",
+                            "✓".green().bold(),
+                            model.green()
+                        );
+                        println!("  Run `oxo-call config verify` to confirm the model works.");
                     }
                 }
             }
