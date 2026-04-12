@@ -53,6 +53,10 @@ pub struct BenchmarkSettings {
     /// Whether to evaluate models in parallel using threads (default: false).
     #[serde(default)]
     pub parallel: bool,
+    /// Number of parallel threads for description processing (default: 3).
+    /// Only used when `parallel` is true.
+    #[serde(default = "default_parallel_threads")]
+    pub parallel_threads: usize,
     /// Path to the skills/ directory (default: "skills").
     #[serde(default = "default_skills_dir")]
     pub skills_dir: String,
@@ -85,6 +89,10 @@ pub struct ModelEntry {
 }
 
 fn default_repeats() -> usize {
+    3
+}
+
+fn default_parallel_threads() -> usize {
     3
 }
 
@@ -172,6 +180,7 @@ impl Default for BenchConfig {
             benchmark: BenchmarkSettings {
                 repeats: 3,
                 parallel: false,
+                parallel_threads: 3,
                 skills_dir: "skills".to_string(),
                 output_dir: "bench_results".to_string(),
                 scenarios: vec!["full".to_string()],
@@ -359,6 +368,7 @@ api_base = "http://localhost:11434"
             benchmark: BenchmarkSettings {
                 repeats: 1,
                 parallel: false,
+                parallel_threads: 3,
                 skills_dir: "skills".to_string(),
                 output_dir: "out".to_string(),
                 scenarios: vec![
@@ -404,6 +414,7 @@ api_base = "http://localhost:11434"
             benchmark: BenchmarkSettings {
                 repeats: 1,
                 parallel: false,
+                parallel_threads: 3,
                 skills_dir: "skills".to_string(),
                 output_dir: "out".to_string(),
                 scenarios: vec!["invalid_scenario".to_string()],

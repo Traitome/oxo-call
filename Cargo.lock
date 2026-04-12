@@ -1346,6 +1346,7 @@ dependencies = [
  "colored",
  "criterion",
  "rand 0.8.5",
+ "rayon",
  "serde",
  "serde_json",
  "tempfile",

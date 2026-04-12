@@ -16,7 +16,7 @@ use oxo_bench::{
         llm::{ModelBenchConfig, canonical_eval_tasks},
         runner::{
             IncrementalCsvWriter, ModelAggResult, OxoCallGenerator, TrialCallback, TrialResult,
-            aggregate_results, analyse_errors, compute_baseline_comparison, run_benchmark,
+            aggregate_results, analyse_errors, compute_baseline_comparison, run_benchmark_parallel,
             run_benchmark_with_callback, run_mock_baseline, run_mock_benchmark,
             write_baseline_comparison_csv, write_error_analysis_csv, write_model_agg_csv,
             write_trials_csv,
@@ -881,69 +881,61 @@ fn cmd_eval(
                 if scenario.use_prompt() { "✓" } else { "✗" },
             );
 
-            if config.benchmark.parallel && config.models.len() > 1 {
+            for (i, model_entry) in config.models.iter().enumerate() {
                 println!(
-                    "{} Evaluating {} models in parallel ({} repeats each)...",
-                    "→".cyan().bold(),
+                    "[{}/{}] {} Evaluating {} [{}] ({} repeats × {} descriptions)...",
+                    i + 1,
                     config.models.len(),
+                    "→".cyan().bold(),
+                    model_entry.name.cyan(),
+                    scenario.name(),
                     repeats,
+                    descriptions.len(),
                 );
 
-                let results: Vec<Vec<TrialResult>> = std::thread::scope(|scope| {
-                    let handles: Vec<_> = config
-                        .models
-                        .iter()
-                        .map(|model_entry| {
-                            let binary = binary.clone();
-                            let descriptions = &descriptions;
-                            let scenarios = &scenarios;
-                            let ablation = *scenario;
-                            scope.spawn(move || {
-                                let gtor = OxoCallGenerator {
-                                    binary_path: binary,
-                                    scenario: ablation,
-                                    provider: model_entry.provider.clone(),
-                                    api_base: model_entry.api_base.clone(),
-                                    api_key: model_entry.api_key.clone(),
-                                };
-                                run_benchmark(
-                                    &model_entry.name,
-                                    repeats,
-                                    descriptions,
-                                    scenarios,
-                                    &gtor,
-                                    ablation.name(),
-                                )
-                            })
-                        })
-                        .collect();
+                let gtor = OxoCallGenerator {
+                    binary_path: binary.clone(),
+                    scenario: *scenario,
+                    provider: model_entry.provider.clone(),
+                    api_base: model_entry.api_base.clone(),
+                    api_key: model_entry.api_key.clone(),
+                };
 
-                    handles.into_iter().map(|h| h.join().unwrap()).collect()
-                });
-
-                for model_trials in results {
-                    all_trials.extend(model_trials);
-                }
-            } else {
-                for (i, model_entry) in config.models.iter().enumerate() {
+                if config.benchmark.parallel {
+                    let num_threads = config.benchmark.parallel_threads;
                     println!(
-                        "[{}/{}] {} Evaluating {} [{}] ({} repeats × {} descriptions)...",
-                        i + 1,
-                        config.models.len(),
+                        "  {} Using {} parallel threads",
                         "→".cyan().bold(),
-                        model_entry.name.cyan(),
-                        scenario.name(),
-                        repeats,
-                        descriptions.len(),
+                        num_threads,
                     );
 
-                    let gtor = OxoCallGenerator {
-                        binary_path: binary.clone(),
-                        scenario: *scenario,
-                        provider: model_entry.provider.clone(),
-                        api_base: model_entry.api_base.clone(),
-                        api_key: model_entry.api_key.clone(),
-                    };
+                    let trials = run_benchmark_parallel(
+                        &model_entry.name,
+                        repeats,
+                        &descriptions,
+                        &scenarios,
+                        &gtor,
+                        scenario.name(),
+                        Some(&incremental_writer),
+                        num_threads,
+                    );
+
+                    let agg = aggregate_results(&trials);
+                    if let Err(e) = incremental_writer.write_model_summary(&agg) {
+                        eprintln!("Warning: failed to write model summary: {}", e);
+                    }
+                    if !agg.is_empty() {
+                        incremental_writer.on_model_complete(
+                            &model_entry.name,
+                            scenario.name(),
+                            &agg[0],
+                            &trials,
+                        );
+                    }
+
+                    all_trials.extend(trials);
+                    all_agg.extend(agg);
+                } else {
                     let trials = run_benchmark_with_callback(
                         &model_entry.name,
                         repeats,
@@ -958,12 +950,14 @@ fn cmd_eval(
                     if let Err(e) = incremental_writer.write_model_summary(&agg) {
                         eprintln!("Warning: failed to write model summary: {}", e);
                     }
-                    incremental_writer.on_model_complete(
-                        &model_entry.name,
-                        scenario.name(),
-                        &agg[0],
-                        &trials,
-                    );
+                    if !agg.is_empty() {
+                        incremental_writer.on_model_complete(
+                            &model_entry.name,
+                            scenario.name(),
+                            &agg[0],
+                            &trials,
+                        );
+                    }
 
                     all_trials.extend(trials);
                     all_agg.extend(agg);

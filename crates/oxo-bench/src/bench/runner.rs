@@ -719,6 +719,87 @@ pub fn aggregate_results(trials: &[TrialResult]) -> Vec<ModelAggResult> {
     agg
 }
 
+/// Run benchmark with parallel processing of descriptions.
+///
+/// Uses rayon to process descriptions in parallel while maintaining
+/// thread-safe incremental result writing through the callback.
+pub fn run_benchmark_parallel(
+    model: &str,
+    repeats: usize,
+    descriptions: &[UsageDescription],
+    scenarios: &[Scenario],
+    generator: &(dyn CommandGenerator + 'static),
+    ablation_label: &str,
+    callback: Option<&dyn TrialCallback>,
+    num_threads: usize,
+) -> Vec<TrialResult> {
+    use rayon::prelude::*;
+
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(num_threads)
+        .build()
+        .unwrap();
+
+    let scenario_map: std::collections::HashMap<&str, &Scenario> = scenarios
+        .iter()
+        .map(|s| (s.scenario_id.as_str(), s))
+        .collect();
+
+    let model = model.to_string();
+    let ablation_label = ablation_label.to_string();
+
+    pool.install(|| {
+        descriptions
+            .par_iter()
+            .filter_map(|desc| {
+                let scenario = scenario_map.get(desc.scenario_id.as_str())?;
+
+                let mut trials = Vec::new();
+                for repeat in 0..repeats {
+                    let start = Instant::now();
+                    let resp = generator.generate(&desc.tool, &desc.description, &model);
+                    let latency_ms = start.elapsed().as_secs_f64() * 1000.0;
+
+                    let cmp = compare_commands(&resp.args, &scenario.reference_args);
+
+                    let trial = TrialResult {
+                        tool: desc.tool.clone(),
+                        category: scenario.category.clone(),
+                        scenario_id: desc.scenario_id.clone(),
+                        desc_id: desc.desc_id.clone(),
+                        model: model.clone(),
+                        ablation: ablation_label.clone(),
+                        repeat_idx: repeat,
+                        generated_args: resp.args,
+                        reference_args: scenario.reference_args.clone(),
+                        exact_match: cmp.exact_match,
+                        token_jaccard: cmp.token_jaccard,
+                        flag_recall: cmp.flag_recall,
+                        flag_precision: cmp.flag_precision,
+                        flag_group_recall: cmp.flag_group_recall,
+                        flag_group_precision: cmp.flag_group_precision,
+                        flag_group_jaccard: cmp.flag_group_jaccard,
+                        positional_order_match: cmp.positional_order_match,
+                        subcommand_match: cmp.subcommand_match,
+                        accuracy_score: cmp.accuracy_score(),
+                        latency_ms,
+                        tokens: resp.tokens,
+                        format_valid: resp.format_valid,
+                    };
+
+                    if let Some(cb) = callback {
+                        cb.on_trial(&trial);
+                    }
+
+                    trials.push(trial);
+                }
+                Some(trials)
+            })
+            .flatten()
+            .collect()
+    })
+}
+
 /// Compute consistency: for each (scenario_id, desc_id) group, check if all
 /// repeat runs produced the same generated_args.
 fn compute_trial_consistency(trials: &[&TrialResult]) -> f64 {
@@ -1570,17 +1651,17 @@ mod tests {
         let trials =
             run_mock_benchmark("test-model", 2, &sample_descriptions(), &sample_scenarios());
         let summaries = summarise_by_tool(&trials);
-        let mut buf = Vec::new();
+        let mut buf = Vec:: new();
         write_tool_model_summary_csv(&mut buf, &summaries).unwrap();
         let text = String::from_utf8(buf).unwrap();
         assert!(text.starts_with(
-            "tool,category,model,n_trials,accuracy,exact_match_rate,avg_flag_recall,consistency"
+            "tool,category,model,ablation,n_trials,accuracy,exact_match_rate,avg_flag_recall,consistency"
         ));
         let data_lines: Vec<&str> = text.lines().skip(1).filter(|l| !l.is_empty()).collect();
         assert_eq!(data_lines.len(), summaries.len());
-        // Each row has 8 comma-separated fields
+        // Each row has 9 comma-separated fields (added ablation)
         for line in &data_lines {
-            assert_eq!(line.split(',').count(), 8, "bad row: {line}");
+            assert_eq!(line.split(',').count(), 9, "bad row: {line}");
         }
     }
 
@@ -1760,12 +1841,12 @@ mod tests {
         let mut buf = Vec::new();
         write_category_summary_csv(&mut buf, &summaries).unwrap();
         let text = String::from_utf8(buf).unwrap();
-        assert!(text.starts_with("category,model,n_tools,n_trials,"));
+        assert!(text.starts_with("category,model,ablation,n_tools,n_trials,"));
         let data_lines: Vec<&str> = text.lines().skip(1).filter(|l| !l.is_empty()).collect();
         assert_eq!(data_lines.len(), summaries.len());
-        // Each row has 11 comma-separated fields.
+        // Each row has 12 comma-separated fields (added ablation).
         for line in &data_lines {
-            assert_eq!(line.split(',').count(), 11, "bad row: {line}");
+            assert_eq!(line.split(',').count(), 12, "bad row: {line}");
         }
     }
 
