@@ -28,7 +28,33 @@ This will:
 1. Open a browser window for GitHub authentication
 2. Complete OAuth device flow automatically
 3. Store the token securely in your config
-4. Prompt you to choose a model (default: `gpt-4.1-mini`, lightweight free tier ⭐)
+4. Prompts you to choose a model (default: `gpt-5-mini`, lightweight free tier ⭐)
+5. Saves all GA models to `llm.models` for quick switching
+
+### Supported GitHub Copilot Models
+
+The following GA models are available as of the latest GitHub Copilot docs.
+Use `oxo-call config model use <id>` to switch between them at any time.
+
+| Model ID | Display Name | Provider |
+|----------|-------------|----------|
+| `gpt-5-mini` ⭐ | GPT-5 Mini | OpenAI |
+| `gpt-4.1` | GPT-4.1 | OpenAI |
+| `gpt-5.2` | GPT-5.2 | OpenAI |
+| `gpt-5.2-codex` | GPT-5.2-Codex | OpenAI |
+| `gpt-5.3-codex` | GPT-5.3-Codex | OpenAI |
+| `gpt-5.4` | GPT-5.4 | OpenAI |
+| `gpt-5.4-mini` | GPT-5.4 Mini | OpenAI |
+| `claude-haiku-4.5` | Claude Haiku 4.5 | Anthropic |
+| `claude-sonnet-4` | Claude Sonnet 4 | Anthropic |
+| `claude-sonnet-4.5` | Claude Sonnet 4.5 | Anthropic |
+| `claude-sonnet-4.6` | Claude Sonnet 4.6 | Anthropic |
+| `claude-opus-4.5` | Claude Opus 4.5 | Anthropic |
+| `claude-opus-4.6` | Claude Opus 4.6 | Anthropic |
+| `gemini-2.5-pro` | Gemini 2.5 Pro | Google |
+
+⭐ = available on all Copilot plans including free tier.
+For the full authoritative list, see the [GitHub Copilot supported models](https://docs.github.com/en/copilot/reference/ai-models/supported-models) documentation.
 
 ### Manual Token Setup
 

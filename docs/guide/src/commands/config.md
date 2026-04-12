@@ -11,6 +11,7 @@ oxo-call config get    <KEY>
 oxo-call config show
 oxo-call config verify
 oxo-call config path
+oxo-call config model  <SUBCOMMAND>
 ```
 
 ## Subcommands
@@ -28,7 +29,8 @@ This command:
 2. Opens a browser window for authentication
 3. Waits for you to authorize the application
 4. Stores the GitHub App token (`ghu_`) securely
-5. Prompts you to select a GitHub Copilot model (default: `gpt-4.1-mini`, lightweight free tier ⭐)
+5. Prompts you to select a GitHub Copilot model (default: `gpt-5-mini`, lightweight free tier ⭐)
+6. Saves all available models to `llm.models` for quick switching
 
 **Important**: For GitHub Copilot, you must use a GitHub App token (`ghu_`), not a Personal Access Token (`ghp_`). The `config login` command handles this automatically.
 
@@ -73,6 +75,29 @@ Print the path to `config.toml`:
 ```bash
 oxo-call config path
 ```
+
+### `config model`
+
+Manage the configured model list and switch the active model without re-running login.
+The active model is displayed with a ★ marker.
+
+```bash
+# List configured models
+oxo-call config model list
+
+# Add a model to your list
+oxo-call config model add gpt-5.4
+
+# Switch the active model
+oxo-call config model use gpt-4.1        # alias: switch
+oxo-call config model switch gemini-2.5-pro
+
+# Remove a model from the list
+oxo-call config model remove claude-sonnet-4
+```
+
+After `config login`, the full list of supported GitHub Copilot models is automatically populated.
+You can use `config model add <id>` to add models not included in the login selection (e.g., preview models).
 
 ## Configuration Reference
 

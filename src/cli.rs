@@ -422,6 +422,52 @@ pub enum ConfigCommands {
         #[arg(long, default_value = "github-copilot")]
         provider: String,
     },
+    /// Manage the configured model list and switch the active model.
+    ///
+    /// Models are stored in config and can be switched instantly without re-running login.
+    /// The active model (used for all LLM calls) is displayed with a ★ marker.
+    ///
+    /// Examples:
+    ///   oxo-call config model list
+    ///   oxo-call config model add gpt-4.1
+    ///   oxo-call config model use gpt-5-mini
+    ///   oxo-call config model remove gpt-4.1
+    #[command(visible_alias = "models")]
+    Model {
+        #[command(subcommand)]
+        command: ModelCommands,
+    },
+}
+
+/// Subcommands for `config model`
+#[derive(Subcommand, Debug)]
+pub enum ModelCommands {
+    /// List all configured models (active model is marked with ★)
+    #[command(visible_alias = "ls")]
+    List,
+    /// Add a model ID to the configured model list
+    Add {
+        /// Model ID to add (e.g. gpt-5-mini, gpt-4.1, o3-mini)
+        model: String,
+    },
+    /// Remove a model ID from the configured model list
+    #[command(visible_alias = "rm")]
+    Remove {
+        /// Model ID to remove
+        model: String,
+    },
+    /// Switch the active model (sets llm.model in config)
+    ///
+    /// The model does not need to be in the configured list — any valid model ID is accepted.
+    ///
+    /// Examples:
+    ///   oxo-call config model use gpt-5-mini
+    ///   oxo-call config model use gpt-4.1
+    #[command(visible_alias = "switch")]
+    Use {
+        /// Model ID to activate
+        model: String,
+    },
 }
 
 #[derive(Subcommand, Debug)]
