@@ -18,8 +18,8 @@ use oxo_bench::{
             IncrementalCsvWriter, ModelAggResult, OxoCallGenerator, TrialCallback, TrialResult,
             aggregate_results, analyse_errors, compute_baseline_comparison, run_benchmark,
             run_benchmark_with_callback, run_mock_baseline, run_mock_benchmark,
-            write_baseline_comparison_csv,
-            write_error_analysis_csv, write_model_agg_csv, write_trials_csv,
+            write_baseline_comparison_csv, write_error_analysis_csv, write_model_agg_csv,
+            write_trials_csv,
         },
         scenario::{
             Scenario, UsageDescription, generate_descriptions, generate_scenarios,
@@ -913,13 +913,18 @@ fn cmd_eval(
                         scenario.name(),
                         Some(&incremental_writer),
                     );
-                    
+
                     let agg = aggregate_results(&trials);
                     if let Err(e) = incremental_writer.write_model_summary(&agg) {
                         eprintln!("Warning: failed to write model summary: {}", e);
                     }
-                    incremental_writer.on_model_complete(&model_entry.name, scenario.name(), &agg[0], &trials);
-                    
+                    incremental_writer.on_model_complete(
+                        &model_entry.name,
+                        scenario.name(),
+                        &agg[0],
+                        &trials,
+                    );
+
                     all_trials.extend(trials);
                     all_agg.extend(agg);
                 }
@@ -931,7 +936,11 @@ fn cmd_eval(
     println!(
         "{} {} ({} trials)",
         "✓".green().bold(),
-        output_dir.join("benchmark_trials.csv").display().to_string().cyan(),
+        output_dir
+            .join("benchmark_trials.csv")
+            .display()
+            .to_string()
+            .cyan(),
         all_trials.len()
     );
 
@@ -941,7 +950,11 @@ fn cmd_eval(
     println!(
         "{} {} ({} models)",
         "✓".green().bold(),
-        output_dir.join("model_summary.csv").display().to_string().cyan(),
+        output_dir
+            .join("model_summary.csv")
+            .display()
+            .to_string()
+            .cyan(),
         all_agg.len()
     );
 
@@ -951,17 +964,29 @@ fn cmd_eval(
     println!(
         "{} {} (tool × model rows)",
         "✓".green().bold(),
-        output_dir.join("model_summary_by_tool.csv").display().to_string().cyan()
+        output_dir
+            .join("model_summary_by_tool.csv")
+            .display()
+            .to_string()
+            .cyan()
     );
     println!(
         "{} {} (category × model rows)",
         "✓".green().bold(),
-        output_dir.join("model_summary_by_category.csv").display().to_string().cyan()
+        output_dir
+            .join("model_summary_by_category.csv")
+            .display()
+            .to_string()
+            .cyan()
     );
     println!(
         "{} {} ({} models analysed)",
         "✓".green().bold(),
-        output_dir.join("error_analysis.csv").display().to_string().cyan(),
+        output_dir
+            .join("error_analysis.csv")
+            .display()
+            .to_string()
+            .cyan(),
         all_agg.len()
     );
 
