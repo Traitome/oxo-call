@@ -28,7 +28,7 @@ This command:
 2. Opens a browser window for authentication
 3. Waits for you to authorize the application
 4. Stores the GitHub App token (`ghu_`) securely
-5. Sets the default model to `gpt-4o-mini`
+5. Prompts you to select a GitHub Copilot model (default: `gpt-4.1-mini`, lightweight free tier ⭐)
 
 **Important**: For GitHub Copilot, you must use a GitHub App token (`ghu_`), not a Personal Access Token (`ghp_`). The `config login` command handles this automatically.
 

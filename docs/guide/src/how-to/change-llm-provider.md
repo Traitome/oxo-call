@@ -28,7 +28,7 @@ This will:
 1. Open a browser window for GitHub authentication
 2. Complete OAuth device flow automatically
 3. Store the token securely in your config
-4. Set the default model to `gpt-4o-mini`
+4. Prompt you to choose a model (default: `gpt-4.1-mini`, lightweight free tier ⭐)
 
 ### Manual Token Setup
 

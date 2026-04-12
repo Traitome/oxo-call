@@ -349,7 +349,7 @@ impl Config {
             return model.clone();
         }
         match self.effective_provider().as_str() {
-            "github-copilot" => "gpt-4o".to_string(),
+            "github-copilot" => "gpt-4.1-mini".to_string(),
             "openai" => "gpt-4o".to_string(),
             "anthropic" => "claude-3-5-sonnet-20241022".to_string(),
             "ollama" => "llama3.2".to_string(),
@@ -769,7 +769,7 @@ mod tests {
             std::env::remove_var("OXO_CALL_LLM_PROVIDER");
         }
         let cfg = Config::default();
-        assert_eq!(cfg.effective_model(), "gpt-4o");
+        assert_eq!(cfg.effective_model(), "gpt-4.1-mini");
     }
 
     #[test]

@@ -42,9 +42,33 @@ async fn main() {
     }
 }
 
-/// Default model used when `oxo-call config login` sets up a new github-copilot
-/// configuration and no model has been explicitly configured yet.
-const DEFAULT_COPILOT_LOGIN_MODEL: &str = "gpt-4o-mini";
+/// GitHub Copilot models available for selection during `config login`.
+/// Each entry is (model_id, display_description, is_free_tier).
+const COPILOT_MODELS: &[(&str, &str, bool)] = &[
+    (
+        "gpt-4.1-mini",
+        "GPT-4.1 Mini       · lightweight, fast",
+        true,
+    ),
+    ("gpt-4.1", "GPT-4.1            · standard accuracy", false),
+    (
+        "gpt-5-mini",
+        "GPT-5 Mini         · newest lightweight",
+        true,
+    ),
+    (
+        "gpt-5",
+        "GPT-5              · most capable, frontier",
+        false,
+    ),
+    ("claude-3.5-sonnet", "Claude 3.5 Sonnet  · Anthropic", false),
+    (
+        "claude-sonnet-4",
+        "Claude Sonnet 4    · Anthropic, newest",
+        false,
+    ),
+    ("o3-mini", "o3-mini            · reasoning model", false),
+];
 
 async fn run(cli: Cli) -> error::Result<()> {
     // Commands that are permitted without a valid license file.
@@ -692,21 +716,77 @@ async fn run(cli: Cli) -> error::Result<()> {
                                 }
                             }
 
+                            // --- Interactive model selection ---
+                            println!();
+                            println!("  {}", "Select a GitHub Copilot model:".bold());
+                            println!();
+                            for (i, (id, desc, is_free)) in COPILOT_MODELS.iter().enumerate() {
+                                let free_tag = if *is_free {
+                                    format!(" {}", "[free tier ⭐]".green())
+                                } else {
+                                    String::new()
+                                };
+                                let default_tag = if i == 0 {
+                                    format!(" {}", "[default]".dimmed())
+                                } else {
+                                    String::new()
+                                };
+                                println!(
+                                    "    {}. {}{}{}",
+                                    (i + 1).to_string().bold(),
+                                    desc,
+                                    free_tag,
+                                    default_tag
+                                );
+                                // Print the model id indented under the description
+                                println!("       {}", id.dimmed());
+                            }
+                            println!();
+                            println!(
+                                "  💡 {}",
+                                "Free-tier models (⭐) work on all GitHub Copilot plans.".dimmed()
+                            );
+                            println!();
+
+                            use std::io::IsTerminal as _;
+                            let selected_model = if std::io::stdin().is_terminal() {
+                                use std::io::Write as _;
+                                print!(
+                                    "  Enter number [1–{}], or press {} for default ({}): ",
+                                    COPILOT_MODELS.len(),
+                                    "Enter".bold(),
+                                    COPILOT_MODELS[0].0.green()
+                                );
+                                std::io::stdout().flush().ok();
+                                let mut sel = String::new();
+                                std::io::stdin().read_line(&mut sel).ok();
+                                let sel = sel.trim();
+                                if sel.is_empty() {
+                                    COPILOT_MODELS[0].0.to_string()
+                                } else if let Ok(n) = sel.parse::<usize>() {
+                                    if n >= 1 && n <= COPILOT_MODELS.len() {
+                                        COPILOT_MODELS[n - 1].0.to_string()
+                                    } else {
+                                        println!(
+                                            "  {} Invalid number, using default ({}).",
+                                            "⚠".yellow(),
+                                            COPILOT_MODELS[0].0
+                                        );
+                                        COPILOT_MODELS[0].0.to_string()
+                                    }
+                                } else {
+                                    // User typed a raw model name
+                                    sel.to_string()
+                                }
+                            } else {
+                                // Non-interactive (piped/script), use default silently
+                                COPILOT_MODELS[0].0.to_string()
+                            };
+
                             let mut cfg = config::Config::load()?;
                             cfg.llm.provider = "github-copilot".to_string();
                             cfg.llm.api_token = Some(github_token);
-                            // Default to a free/lightweight model when none is set, or when the
-                            // stored value is the legacy "auto-selected" placeholder that was
-                            // written by older versions of oxo-call and is not a real model name.
-                            let model_is_placeholder = cfg
-                                .llm
-                                .model
-                                .as_deref()
-                                .map(|m| m.is_empty() || m == "auto-selected")
-                                .unwrap_or(true);
-                            if model_is_placeholder {
-                                cfg.llm.model = Some(DEFAULT_COPILOT_LOGIN_MODEL.to_string());
-                            }
+                            cfg.llm.model = Some(selected_model.clone());
                             cfg.save()?;
 
                             println!();
@@ -714,10 +794,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                             println!("  provider  github-copilot");
                             println!(
                                 "  model     {} (change with `oxo-call config set llm.model <model>`)",
-                                cfg.llm
-                                    .model
-                                    .as_deref()
-                                    .unwrap_or(DEFAULT_COPILOT_LOGIN_MODEL)
+                                selected_model
                             );
                             println!();
                             println!("  Run `oxo-call config verify` to confirm everything works.");
