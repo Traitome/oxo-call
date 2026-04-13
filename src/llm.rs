@@ -319,8 +319,8 @@ fn build_verification_prompt(
         "## Analysis Instructions\n\
          Determine whether this command ran successfully by evaluating:\n\
          1. **Exit code**: 0 = success for most tools. Some tools use non-zero for \
-            warnings (e.g., samtools returns 1 for certain warnings). Treat exit code \
-            137 as OOM-killed and 139 as segfault.\n\
+            warnings (e.g., samtools returns 1 for certain warnings). Exit code \
+            137 (SIGKILL, often OOM-killed) and 139 (SIGSEGV, segfault) signal crashes.\n\
          2. **Error signals in stderr**: ERROR, FATAL, Exception, Traceback, \
             Segmentation fault, Killed, Out of memory, core dumped, No such file, \
             Permission denied, invalid header, truncated file.\n\
@@ -407,7 +407,8 @@ fn skill_reviewer_system_prompt() -> &'static str {
      (2) A '## Concepts' section with ≥3 bullet points — specific, actionable facts about \
          the tool's data model, I/O formats, and key behaviours. \
      (3) A '## Pitfalls' section with ≥3 bullet points — common mistakes WITH consequences. \
-         Never use 'DANGER:' or 'EXTREME DANGER:' prefixes (they trigger LLM safety refusals). \
+         Never use 'DANGER:' or 'EXTREME DANGER:' prefixes (they can cause overly cautious \
+         or refused responses from the LLM). \
      (4) An '## Examples' section with ≥5 subsections: '### <task>', '**Args:** `<flags>`', \
          '**Explanation:** <sentence>'. Args must NEVER start with the tool name. For companion \
          binaries (e.g., bowtie2-build), use the companion name as the first Args token. \
