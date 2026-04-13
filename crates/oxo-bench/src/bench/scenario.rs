@@ -289,6 +289,275 @@ pub fn load_skills_for_bench(dir: &Path) -> anyhow::Result<Vec<SkillFile>> {
     Ok(skills)
 }
 
+// ── File token extraction & task enrichment ──────────────────────────────────
+
+/// Known file extensions common in bioinformatics, genomics, and general CLI
+/// workflows.  Used by [`extract_file_tokens`] to identify file-like tokens
+/// inside a reference-args string.
+const KNOWN_FILE_EXTENSIONS: &[&str] = &[
+    // Alignment / mapping
+    "bam",
+    "sam",
+    "cram",
+    "bai",
+    "csi",
+    // Sequence
+    "fasta",
+    "fa",
+    "fna",
+    "faa",
+    "fastq",
+    "fq",
+    // Compressed
+    "gz",
+    "bz2",
+    "xz",
+    "zip",
+    "tar",
+    // Variant calling
+    "vcf",
+    "bcf",
+    // Annotation
+    "gff",
+    "gff3",
+    "gtf",
+    "bed",
+    "bedgraph",
+    "bedmethyl",
+    // Tabular / text
+    "txt",
+    "tsv",
+    "csv",
+    "log",
+    "out",
+    "tbl",
+    "table",
+    "results",
+    // Report / visualisation
+    "html",
+    "pdf",
+    "png",
+    "svg",
+    "json",
+    "xml",
+    // Config
+    "yaml",
+    "yml",
+    "toml",
+    "conf",
+    "cfg",
+    "config",
+    "ini",
+    // Index files
+    "idx",
+    "tbi",
+    "fai",
+    "dict",
+    "index",
+    "mmi",
+    // Genomics-specific
+    "bw",
+    "bigwig",
+    "wig",
+    "tdf",
+    "paf",
+    "delta",
+    "coords",
+    "hmm",
+    "meme",
+    "sfs",
+    "2dsfs",
+    "saf",
+    "pileup",
+    "nwk",
+    "phy",
+    "bracken",
+    "starch",
+    "cool",
+    "h5",
+    "hdf5",
+    "loom",
+    "h5ad",
+    "npz",
+    "sra",
+    "gbk",
+    "maf",
+    "m8",
+    "gfa",
+    "snf",
+    "sig",
+    "meryl",
+    "iso",
+    "cnn",
+    "cns",
+    "cnr",
+    "5m",
+    "db",
+    "dmp",
+    "snps",
+    "msh",
+    "map",
+    "add",
+    "sto",
+    "excl",
+    "list",
+    "in",
+    // Script / companion-binary extensions (important for the LLM)
+    "py",
+    "pl",
+    "sh",
+    "jl",
+    "nf",
+    "lua",
+    // R scripts (case-sensitive, handled separately)
+    "r",
+    "rmd",
+    // Archive / Java
+    "jar",
+    // Env
+    "env",
+];
+
+/// Simple shell-like tokenisation: split by whitespace while respecting
+/// single- and double-quoted spans.
+fn shell_tokenize(s: &str) -> Vec<String> {
+    let mut tokens = Vec::new();
+    let mut current = String::new();
+    let mut in_single = false;
+    let mut in_double = false;
+
+    for ch in s.chars() {
+        match ch {
+            '\'' if !in_double => {
+                in_single = !in_single;
+                current.push(ch);
+            }
+            '"' if !in_single => {
+                in_double = !in_double;
+                current.push(ch);
+            }
+            ' ' | '\t' if !in_single && !in_double => {
+                if !current.is_empty() {
+                    tokens.push(std::mem::take(&mut current));
+                }
+            }
+            _ => current.push(ch),
+        }
+    }
+    if !current.is_empty() {
+        tokens.push(current);
+    }
+    tokens
+}
+
+/// Return `true` when `token` looks like a file path (contains a dot with a
+/// known extension).
+fn is_file_like_token(token: &str) -> bool {
+    if token.is_empty() || token.starts_with('-') || token.contains("://") {
+        return false;
+    }
+    if !token.contains('.') {
+        return false;
+    }
+    // Skip pure numbers (e.g. "1e6", "0.05")
+    if token.parse::<f64>().is_ok() {
+        return false;
+    }
+
+    // Check for known extension.  We compare lower-case except for the
+    // special R extensions (.R, .Rmd) which are matched case-insensitively
+    // by the lower-cased KNOWN_FILE_EXTENSIONS list.
+    let lower = token.to_lowercase();
+    KNOWN_FILE_EXTENSIONS
+        .iter()
+        .any(|ext| lower.ends_with(&format!(".{ext}")))
+}
+
+/// Shell metacharacters to strip from candidate tokens before checking if
+/// they look like file paths.
+const SHELL_METACHARS: &[char] = &[
+    '\'', '"', '(', ')', '<', '>', ';', '&', '|', '`', '$', '{', '}',
+];
+
+/// Extract file-like tokens from a reference-args string.
+///
+/// Handles bare tokens (`input.bam`), key=value pairs (`in=reads.fastq.gz`),
+/// `--flag=value` forms (`--output=results.vcf`), colon-separated fields
+/// (`ILLUMINACLIP:TruSeq3-PE.fa:2:30:10`), and files embedded in quoted
+/// shell commands (`-c 'sort file.txt'`).  Returns unique tokens in the
+/// order they first appear.
+pub fn extract_file_tokens(args: &str) -> Vec<String> {
+    let mut files = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+
+    let mut try_add =
+        |candidate: &str, seen: &mut std::collections::HashSet<String>, files: &mut Vec<String>| {
+            let c = candidate.trim_matches(|ch: char| SHELL_METACHARS.contains(&ch));
+            if is_file_like_token(c) && seen.insert(c.to_string()) {
+                files.push(c.to_string());
+            }
+            // Also try colon-separated sub-parts (e.g. ILLUMINACLIP:TruSeq3-PE.fa:2:30:10,
+            // or chromsizes.txt:5000).
+            if c.contains(':') {
+                for part in c.split(':') {
+                    let part = part.trim_matches(|ch: char| SHELL_METACHARS.contains(&ch));
+                    if is_file_like_token(part) && seen.insert(part.to_string()) {
+                        files.push(part.to_string());
+                    }
+                }
+            }
+        };
+
+    for raw in shell_tokenize(args) {
+        // For quoted strings, also search inside the quoted content.
+        let is_quoted = (raw.starts_with('\'') && raw.ends_with('\''))
+            || (raw.starts_with('"') && raw.ends_with('"'));
+        if is_quoted && raw.len() > 2 {
+            let inner = &raw[1..raw.len() - 1];
+            for sub in inner.split_whitespace() {
+                try_add(sub, &mut seen, &mut files);
+            }
+            continue;
+        }
+
+        // Collect candidate values: either the whole token or the rhs of `=`.
+        let candidates: Vec<&str> = if raw.contains('=') {
+            // Both `key=value` and `--flag=value` forms.
+            raw.splitn(2, '=')
+                .nth(1)
+                .map(|v| vec![v])
+                .unwrap_or_default()
+        } else {
+            vec![raw.as_str()]
+        };
+
+        for c in &candidates {
+            try_add(c, &mut seen, &mut files);
+        }
+    }
+    files
+}
+
+/// Enrich a task description by appending file/path tokens from `args` that
+/// are not already mentioned in `task`.
+///
+/// If no new files need to be added the original task string is returned
+/// unchanged.
+pub fn enrich_task_with_files(task: &str, args: &str) -> String {
+    let files = extract_file_tokens(args);
+    let missing: Vec<&str> = files
+        .iter()
+        .filter(|f| !task.contains(f.as_str()))
+        .map(|s| s.as_str())
+        .collect();
+
+    if missing.is_empty() {
+        return task.to_string();
+    }
+
+    format!("{} ({})", task, missing.join(", "))
+}
+
 // ── Scenario generation ──────────────────────────────────────────────────────
 
 /// Number of scenarios to generate per tool.
@@ -298,6 +567,10 @@ pub const SCENARIOS_PER_TOOL: usize = 10;
 ///
 /// If the skill has fewer than 10 examples the remaining slots are filled with
 /// synthesised variants that recombine flags from existing examples.
+///
+/// Every scenario's `task_description` is enriched with file/path tokens
+/// extracted from `reference_args` so that the LLM has enough context to
+/// reproduce the exact filenames used in the reference command.
 pub fn generate_scenarios(skill: &SkillFile) -> Vec<Scenario> {
     let mut scenarios: Vec<Scenario> = skill
         .examples
@@ -326,6 +599,12 @@ pub fn generate_scenarios(skill: &SkillFile) -> Vec<Scenario> {
             idx += 1;
             source_idx += 1;
         }
+    }
+
+    // ── Enrich task descriptions with file references ─────────────────────
+    for scenario in &mut scenarios {
+        scenario.task_description =
+            enrich_task_with_files(&scenario.task_description, &scenario.reference_args);
     }
 
     scenarios
@@ -1021,6 +1300,190 @@ source_url: "https://example.com"
                 !is_excluded_tool(&skill.name),
                 "excluded tool '{}' should not be in bench skills",
                 skill.name
+            );
+        }
+    }
+
+    // ── File extraction & task enrichment tests ──────────────────────────────
+
+    #[test]
+    fn test_extract_file_tokens_simple() {
+        let files = extract_file_tokens("sort -@ 4 -o sorted.bam input.bam");
+        assert_eq!(files, vec!["sorted.bam", "input.bam"]);
+    }
+
+    #[test]
+    fn test_extract_file_tokens_key_value() {
+        let files =
+            extract_file_tokens("bbduk.sh in=R1.fastq.gz out=R1_trimmed.fastq.gz ref=adapters.fa");
+        assert!(files.contains(&"R1.fastq.gz".to_string()));
+        assert!(files.contains(&"R1_trimmed.fastq.gz".to_string()));
+        assert!(files.contains(&"adapters.fa".to_string()));
+        assert!(files.contains(&"bbduk.sh".to_string()));
+    }
+
+    #[test]
+    fn test_extract_file_tokens_skips_flags_and_numbers() {
+        let files = extract_file_tokens("--threads 8 --seed=42 -j8 1e-6");
+        assert!(files.is_empty(), "should not extract flags or numbers");
+    }
+
+    #[test]
+    fn test_extract_file_tokens_piped_command() {
+        let files = extract_file_tokens(
+            "mpileup -f reference.fa -O u input.bam | bcftools call -m -v -O z -o variants.vcf.gz",
+        );
+        assert!(files.contains(&"reference.fa".to_string()));
+        assert!(files.contains(&"input.bam".to_string()));
+        assert!(files.contains(&"variants.vcf.gz".to_string()));
+    }
+
+    #[test]
+    fn test_extract_file_tokens_redirect() {
+        let files = extract_file_tokens("stats input.bam > stats.txt");
+        assert!(files.contains(&"input.bam".to_string()));
+        assert!(files.contains(&"stats.txt".to_string()));
+    }
+
+    #[test]
+    fn test_extract_file_tokens_skips_urls() {
+        let files = extract_file_tokens("-I https://example.com");
+        assert!(files.is_empty(), "URLs should not be extracted as files");
+    }
+
+    #[test]
+    fn test_extract_file_tokens_colon_separated() {
+        let files = extract_file_tokens("ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3");
+        assert!(
+            files.contains(&"TruSeq3-PE.fa".to_string()),
+            "should extract file from ILLUMINACLIP:file:params"
+        );
+    }
+
+    #[test]
+    fn test_extract_file_tokens_colon_file_number() {
+        let files = extract_file_tokens("chromsizes.txt:5000");
+        assert!(
+            files.contains(&"chromsizes.txt".to_string()),
+            "should extract file from file:number"
+        );
+    }
+
+    #[test]
+    fn test_extract_file_tokens_quoted_shell_command() {
+        let files = extract_file_tokens("-c 'diff <(sort file1.txt) <(sort file2.txt)'");
+        // file1.txt and file2.txt are inside subshell, but within the
+        // single-quoted string they should be discovered.
+        assert!(
+            files.contains(&"file1.txt".to_string()),
+            "should find files inside quoted shell command"
+        );
+        assert!(
+            files.contains(&"file2.txt".to_string()),
+            "should find files inside quoted shell command"
+        );
+    }
+
+    #[test]
+    fn test_extract_file_tokens_no_duplicates() {
+        let files = extract_file_tokens("view -b input.bam -o input.bam");
+        assert_eq!(files.len(), 1, "duplicate files should be deduplicated");
+    }
+
+    #[test]
+    fn test_is_file_like_token_common_extensions() {
+        assert!(is_file_like_token("input.bam"));
+        assert!(is_file_like_token("reads.fastq.gz"));
+        assert!(is_file_like_token("reference.fa"));
+        assert!(is_file_like_token("output.vcf"));
+        assert!(is_file_like_token("script.py"));
+        assert!(is_file_like_token("annotation.gff3"));
+    }
+
+    #[test]
+    fn test_is_file_like_token_rejects_non_files() {
+        assert!(!is_file_like_token("--output"));
+        assert!(!is_file_like_token("-o"));
+        assert!(!is_file_like_token("42"));
+        assert!(!is_file_like_token(""));
+        assert!(!is_file_like_token("https://example.com"));
+    }
+
+    #[test]
+    fn test_enrich_task_no_files() {
+        let result = enrich_task_with_files("run analysis", "--threads 8 -j4");
+        assert_eq!(result, "run analysis", "no files → no change");
+    }
+
+    #[test]
+    fn test_enrich_task_with_missing_files() {
+        let result = enrich_task_with_files(
+            "sort a BAM file by genomic coordinates",
+            "sort -@ 4 -o sorted.bam input.bam",
+        );
+        assert!(
+            result.contains("sorted.bam"),
+            "enriched task should mention sorted.bam"
+        );
+        assert!(
+            result.contains("input.bam"),
+            "enriched task should mention input.bam"
+        );
+    }
+
+    #[test]
+    fn test_enrich_task_skips_already_mentioned() {
+        let result = enrich_task_with_files(
+            "run basic analysis on input.txt",
+            "analyze -i input.txt -o output.txt",
+        );
+        assert!(
+            result.contains("output.txt"),
+            "should add missing output.txt"
+        );
+        // input.txt is already in the task, so no parenthetical needed for it
+        // but output.txt triggers the parenthetical
+        assert!(result.starts_with("run basic analysis on input.txt ("));
+    }
+
+    #[test]
+    fn test_enrich_task_all_files_present() {
+        let result = enrich_task_with_files(
+            "sort input.bam to sorted.bam",
+            "sort -o sorted.bam input.bam",
+        );
+        assert_eq!(
+            result, "sort input.bam to sorted.bam",
+            "all files already present → no change"
+        );
+    }
+
+    #[test]
+    fn test_generate_scenarios_enriches_tasks() {
+        let skill = parse_skill_file(SAMPLE_SKILL).unwrap();
+        let scenarios = generate_scenarios(&skill);
+        // First scenario: task "run basic analysis on input.txt",
+        // args "analyze -i input.txt -o output.txt".
+        // input.txt is in the task already; output.txt is not → enriched.
+        assert!(
+            scenarios[0].task_description.contains("output.txt"),
+            "task should be enriched with missing output.txt, got: {}",
+            scenarios[0].task_description
+        );
+    }
+
+    #[test]
+    fn test_generate_scenarios_enriched_tasks_flow_to_descriptions() {
+        let skill = parse_skill_file(SAMPLE_SKILL).unwrap();
+        let scenarios = generate_scenarios(&skill);
+        let descs = generate_descriptions(&scenarios[0]);
+        // All description variants should contain the file reference.
+        for d in &descs {
+            assert!(
+                d.description.contains("output.txt"),
+                "description '{}' (level={}) should contain output.txt",
+                d.description,
+                d.user_level
             );
         }
     }
