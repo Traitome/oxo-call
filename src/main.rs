@@ -43,81 +43,196 @@ async fn main() {
     }
 }
 
-/// GitHub Copilot models available for selection during `config login`.
-/// Each entry is (model_id, display_description, is_free_tier).
-/// Sourced from: https://docs.github.com/en/copilot/reference/ai-models/supported-models
-/// Only GA models are listed; models in "Closing down" or "Public preview" status are omitted.
-const COPILOT_MODELS: &[(&str, &str, bool)] = &[
+/// GitHub Copilot models available as a *static fallback* when the live catalog
+/// cannot be reached.  Each entry is (model_id, display_description, is_low_tier).
+///
+/// This list contains only models that are confirmed available on GitHub Copilot
+/// as of the last update.  During `config login` the tool first tries to fetch
+/// the live catalog from `https://models.github.ai/catalog/models` and only
+/// falls back to this list when the network request fails.
+const COPILOT_MODELS_FALLBACK: &[(&str, &str, bool)] = &[
     // ── OpenAI ──────────────────────────────────────────────────────────────────
     (
         "gpt-5-mini",
-        "GPT-5 Mini         · OpenAI, fast lightweight",
-        true,
+        "OpenAI gpt-5-mini          · OpenAI, fast lightweight",
+        false,
     ),
     (
         "gpt-4.1",
-        "GPT-4.1            · OpenAI, general-purpose",
+        "OpenAI GPT-4.1             · OpenAI, general-purpose",
         false,
     ),
     (
-        "gpt-5.2",
-        "GPT-5.2            · OpenAI, deep reasoning",
+        "gpt-4.1-mini",
+        "OpenAI GPT-4.1-mini        · OpenAI, balanced",
+        true,
+    ),
+    (
+        "gpt-4.1-nano",
+        "OpenAI GPT-4.1-nano        · OpenAI, ultra-fast",
+        true,
+    ),
+    (
+        "gpt-4o",
+        "OpenAI GPT-4o              · OpenAI, multimodal",
         false,
     ),
     (
-        "gpt-5.2-codex",
-        "GPT-5.2-Codex      · OpenAI, agentic coding",
+        "gpt-4o-mini",
+        "OpenAI GPT-4o mini         · OpenAI, lightweight",
+        true,
+    ),
+    (
+        "o3",
+        "OpenAI o3                  · OpenAI, deep reasoning",
         false,
     ),
     (
-        "gpt-5.3-codex",
-        "GPT-5.3-Codex      · OpenAI, agentic coding",
+        "o3-mini",
+        "OpenAI o3-mini             · OpenAI, fast reasoning",
         false,
     ),
     (
-        "gpt-5.4",
-        "GPT-5.4            · OpenAI, frontier reasoning",
+        "o4-mini",
+        "OpenAI o4-mini             · OpenAI, agentic reasoning",
         false,
     ),
-    (
-        "gpt-5.4-mini",
-        "GPT-5.4 Mini       · OpenAI, agentic lightweight",
-        false,
-    ),
-    // ── Anthropic ───────────────────────────────────────────────────────────────
+    // ── Anthropic (Copilot-exclusive) ───────────────────────────────────────────
     (
         "claude-haiku-4.5",
-        "Claude Haiku 4.5   · Anthropic, fast",
+        "Claude Haiku 4.5           · Anthropic, fast",
         false,
     ),
-    ("claude-sonnet-4", "Claude Sonnet 4    · Anthropic", false),
+    (
+        "claude-sonnet-4",
+        "Claude Sonnet 4            · Anthropic",
+        false,
+    ),
     (
         "claude-sonnet-4.5",
-        "Claude Sonnet 4.5  · Anthropic, agent tasks",
+        "Claude Sonnet 4.5          · Anthropic, agent tasks",
         false,
     ),
-    (
-        "claude-sonnet-4.6",
-        "Claude Sonnet 4.6  · Anthropic, newest sonnet",
-        false,
-    ),
-    (
-        "claude-opus-4.5",
-        "Claude Opus 4.5    · Anthropic, most capable",
-        false,
-    ),
-    (
-        "claude-opus-4.6",
-        "Claude Opus 4.6    · Anthropic, newest opus",
-        false,
-    ),
-    // ── Google ──────────────────────────────────────────────────────────────────
+    // ── Google (Copilot-exclusive) ───────────────────────────────────────────────
     (
         "gemini-2.5-pro",
-        "Gemini 2.5 Pro     · Google, deep reasoning",
+        "Gemini 2.5 Pro             · Google, deep reasoning",
         false,
     ),
 ];
+
+/// A GitHub Models catalog entry (only the fields we need).
+#[derive(Debug, serde::Deserialize)]
+struct CatalogModel {
+    id: String,
+    name: String,
+    publisher: String,
+    #[serde(default)]
+    rate_limit_tier: Option<String>,
+    #[serde(default)]
+    supported_output_modalities: Option<Vec<String>>,
+    #[serde(default)]
+    capabilities: Option<Vec<String>>,
+}
+
+/// Fetch the live GitHub Models catalog and return
+/// `(model_id, display_description, is_low_tier)` tuples ready for the
+/// interactive model-selection prompt.
+///
+/// The catalog endpoint is publicly accessible without authentication.
+/// Returns `None` on any network or parse error so the caller can fall back to
+/// [`COPILOT_MODELS_FALLBACK`].
+#[cfg(not(target_arch = "wasm32"))]
+async fn fetch_github_catalog_models() -> Option<Vec<(String, String, bool)>> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .ok()?;
+
+    let resp = client
+        .get("https://models.github.ai/catalog/models")
+        .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2026-03-10")
+        .header("User-Agent", "oxo-call/1.0")
+        .send()
+        .await
+        .ok()?;
+
+    if !resp.status().is_success() {
+        return None;
+    }
+
+    let models: Vec<CatalogModel> = resp.json().await.ok()?;
+
+    // Keep only text-output, streaming-capable models (drop embeddings, image-gen, etc.)
+    let mut result: Vec<(String, String, bool)> = models
+        .into_iter()
+        .filter(|m| {
+            let has_text_out = m
+                .supported_output_modalities
+                .as_deref()
+                .map(|mods| mods.iter().any(|s| s == "text"))
+                .unwrap_or(false);
+            let has_streaming = m
+                .capabilities
+                .as_deref()
+                .map(|caps| caps.iter().any(|s| s == "streaming"))
+                .unwrap_or(false);
+            has_text_out && has_streaming
+        })
+        .map(|m| {
+            // Copilot uses the short model ID (without the "publisher/" prefix).
+            let short_id =
+                m.id.split_once('/')
+                    .map(|x| x.1)
+                    .unwrap_or(&m.id)
+                    .to_string();
+            let tier = m.rate_limit_tier.as_deref().unwrap_or("high");
+            let is_low_tier = tier == "low";
+            // Display: use the official name from the catalog.
+            let desc = format!("{:<30} · {}", m.name, m.publisher);
+            (short_id, desc, is_low_tier)
+        })
+        .collect();
+
+    // Append known Copilot-exclusive models (Anthropic, Google) that are not
+    // listed in the GitHub Models catalog.
+    let copilot_exclusive: &[(&str, &str, bool)] = &[
+        (
+            "claude-haiku-4.5",
+            "Claude Haiku 4.5               · Anthropic, fast",
+            false,
+        ),
+        (
+            "claude-sonnet-4",
+            "Claude Sonnet 4                · Anthropic",
+            false,
+        ),
+        (
+            "claude-sonnet-4.5",
+            "Claude Sonnet 4.5              · Anthropic, agent tasks",
+            false,
+        ),
+        (
+            "gemini-2.5-pro",
+            "Gemini 2.5 Pro                 · Google, deep reasoning",
+            false,
+        ),
+    ];
+    for (id, desc, is_low) in copilot_exclusive {
+        if !result.iter().any(|(eid, _, _)| eid == id) {
+            result.push((id.to_string(), desc.to_string(), *is_low));
+        }
+    }
+
+    // Always promote gpt-5-mini to the first position (it is the default).
+    if let Some(pos) = result.iter().position(|(id, _, _)| id == "gpt-5-mini") {
+        let item = result.remove(pos);
+        result.insert(0, item);
+    }
+
+    Some(result)
+}
 
 async fn run(cli: Cli) -> error::Result<()> {
     // Commands that are permitted without a valid license file.
@@ -778,9 +893,35 @@ async fn run(cli: Cli) -> error::Result<()> {
                             println!();
                             println!("  {}", "Select a GitHub Copilot model:".bold());
                             println!();
-                            for (i, (id, desc, is_free)) in COPILOT_MODELS.iter().enumerate() {
-                                let free_tag = if *is_free {
-                                    format!(" {}", "[free tier ⭐]".green())
+
+                            // Try to fetch the live model catalog; fall back to the static list.
+                            use std::io::Write as _;
+                            print!("  📡 Fetching available models from GitHub catalog… ");
+                            std::io::stdout().flush().ok();
+                            let (model_entries, catalog_source) =
+                                match fetch_github_catalog_models().await {
+                                    Some(live) => {
+                                        println!("{}", "✓ (live)".green());
+                                        (live, "live")
+                                    }
+                                    None => {
+                                        println!("{}", "✗ (offline, using built-in list)".yellow());
+                                        (
+                                            COPILOT_MODELS_FALLBACK
+                                                .iter()
+                                                .map(|&(id, desc, free)| {
+                                                    (id.to_string(), desc.to_string(), free)
+                                                })
+                                                .collect::<Vec<_>>(),
+                                            "built-in",
+                                        )
+                                    }
+                                };
+                            println!();
+
+                            for (i, (id, desc, is_low)) in model_entries.iter().enumerate() {
+                                let low_tag = if *is_low {
+                                    format!(" {}", "[low tier ⭐]".green())
                                 } else {
                                     String::new()
                                 };
@@ -793,63 +934,74 @@ async fn run(cli: Cli) -> error::Result<()> {
                                     "    {}. {}{}{}",
                                     (i + 1).to_string().bold(),
                                     desc,
-                                    free_tag,
+                                    low_tag,
                                     default_tag
                                 );
-                                // Print the model id indented under the description
                                 println!("       {}", id.dimmed());
                             }
                             println!();
-                            println!(
-                                "  💡 {}",
-                                "Free-tier models (⭐) work on all GitHub Copilot plans.".dimmed()
-                            );
+                            if catalog_source == "live" {
+                                println!(
+                                    "  💡 {}",
+                                    "Low-tier models (⭐) have relaxed rate limits on all Copilot plans."
+                                        .dimmed()
+                                );
+                            } else {
+                                println!(
+                                    "  💡 {}",
+                                    "Run `oxo-call config login` online to see the latest model list."
+                                        .dimmed()
+                                );
+                            }
                             println!();
 
                             use std::io::IsTerminal as _;
+                            let default_id = model_entries
+                                .first()
+                                .map(|(id, _, _)| id.as_str())
+                                .unwrap_or("gpt-5-mini");
                             let selected_model = if std::io::stdin().is_terminal() {
-                                use std::io::Write as _;
                                 print!(
                                     "  Enter number [1–{}], or press {} for default ({}): ",
-                                    COPILOT_MODELS.len(),
+                                    model_entries.len(),
                                     "Enter".bold(),
-                                    COPILOT_MODELS[0].0.green()
+                                    default_id.green()
                                 );
                                 std::io::stdout().flush().ok();
                                 let mut sel = String::new();
                                 std::io::stdin().read_line(&mut sel).ok();
                                 let sel = sel.trim();
                                 if sel.is_empty() {
-                                    COPILOT_MODELS[0].0.to_string()
+                                    default_id.to_string()
                                 } else if let Ok(n) = sel.parse::<usize>() {
-                                    if n >= 1 && n <= COPILOT_MODELS.len() {
-                                        COPILOT_MODELS[n - 1].0.to_string()
+                                    if n >= 1 && n <= model_entries.len() {
+                                        model_entries[n - 1].0.clone()
                                     } else {
                                         println!(
                                             "  {} Invalid number, using default ({}).",
                                             "⚠".yellow(),
-                                            COPILOT_MODELS[0].0
+                                            default_id
                                         );
-                                        COPILOT_MODELS[0].0.to_string()
+                                        default_id.to_string()
                                     }
                                 } else {
-                                    // User typed a raw model name
+                                    // User typed a raw model name directly
                                     sel.to_string()
                                 }
                             } else {
-                                // Non-interactive (piped/script), use default silently
-                                COPILOT_MODELS[0].0.to_string()
+                                // Non-interactive (piped/script): use the default silently
+                                default_id.to_string()
                             };
 
                             let mut cfg = config::Config::load()?;
                             cfg.llm.provider = "github-copilot".to_string();
                             cfg.llm.api_token = Some(github_token);
                             cfg.llm.model = Some(selected_model.clone());
-                            // Pre-populate the model list with all available Copilot models
-                            // so the user can switch quickly with `config model use`.
-                            for (id, _, _) in COPILOT_MODELS {
-                                if !cfg.llm.models.contains(&id.to_string()) {
-                                    cfg.llm.models.push(id.to_string());
+                            // Pre-populate the model list with all discovered models so the user
+                            // can switch quickly with `config model use`.
+                            for (id, _, _) in &model_entries {
+                                if !cfg.llm.models.contains(id) {
+                                    cfg.llm.models.push(id.clone());
                                 }
                             }
                             cfg.save()?;
