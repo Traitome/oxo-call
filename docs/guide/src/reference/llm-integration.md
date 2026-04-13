@@ -29,19 +29,35 @@ Each role uses a separate system prompt so the LLM behaves appropriately for the
 
 ### System Prompt
 
-The command generation system prompt contains 11 rules that constrain the LLM's behavior:
+The command generation system prompt constrains the LLM's behavior with 16 rules organised into four categories:
 
-1. Only use flags documented in the provided documentation
-2. Never include the tool name in the ARGS output
-3. Use realistic filenames from the user's task description
-4. Generate production-ready commands
-5. Follow bioinformatics conventions
-6. Never hallucinate flags or options
-7. Support multi-step operations
-8. Use threading when available
-9. Match the output format to the task
-10. Handle strand-specific protocols correctly
-11. Output ASCII-only characters
+**Critical Output Rules (1–3)**
+
+1. Respond with EXACTLY two labeled lines: `ARGS:` and `EXPLANATION:`. No other text.
+2. ARGS must be valid ASCII CLI flags and values — no markdown, code fences, or backticks.
+3. EXPLANATION should be in the same language as the task description.
+
+**Tool Invocation Rules (4–6)**
+
+4. Never start ARGS with the tool name (it is prepended automatically). Companion binary and script executable exceptions allow the first token to be a companion binary (e.g., `bowtie2-build`) or a script (e.g., `bbduk.sh`).
+5. For tools with subcommands, put the subcommand as the first ARGS token.
+6. For tools using positional arguments before flags, place input files before flags.
+
+**Multi-Step and Pipeline Rules (7–8)**
+
+7. Join multi-step tasks with `&&`; the tool name is auto-prepended only to the first segment.
+8. Include piping (`|`) and redirection (`>`) directly in ARGS.
+
+**Accuracy and Bioinformatics Best Practices (9–16)**
+
+9. Only use flags from the provided documentation or skill examples — never hallucinate.
+10. Include every file name and path from the task description.
+11. Prefer flags from the skill examples when they match the task.
+12. Include thread counts, explicit output files, and reference/index files.
+13. Use common bioinformatics conventions for ambiguous tasks (paired-end, coordinate-sorted BAM, hg38, gzipped FASTQ, Phred+33).
+14. Match file format flags to actual input/output types.
+15. Set correct strand-specific flags when library strandedness is mentioned.
+16. Write `ARGS: (none)` when no arguments are needed.
 
 ### Response Format
 
@@ -91,18 +107,24 @@ sort input.bam by coordinate and output to sorted.bam
 ## Output Format (STRICT — do not add any other text)
 Respond with EXACTLY two lines:
 
-ARGS: <all command-line arguments, space-separated, WITHOUT the tool name itself>
-EXPLANATION: <one concise sentence explaining what the command does>
+ARGS: <all command-line arguments, space-separated, WITHOUT the tool name>
+EXPLANATION: <one concise sentence — same language as the Task>
 
 RULES:
-- ARGS must NOT start with the tool name
-- ARGS must only contain valid CLI flags and values (ASCII, tool syntax)
-- EXPLANATION should be written in the same language as the Task above
-- Include every file path mentioned in the task
-- Use only flags documented above or shown in the skill examples
+- ARGS must NOT start with the tool name (it is prepended by the system)
+- COMPANION BINARY: if the skill says the task needs a companion binary
+  (e.g., 'bowtie2-build'), put it as the FIRST token in ARGS
+- SCRIPT EXECUTABLE: if the skill shows a script (e.g., 'bbduk.sh',
+  'infer_experiment.py') as the first token, use it directly in ARGS
+- Use ONLY flags from the documentation or skill examples above — never invent flags
 - Prefer flags from the skill examples when they match the task
+- Include every file path mentioned in the task
+- ARGS must be valid ASCII CLI flags and values — no markdown, no code fences
 - If no arguments are needed, write: ARGS: (none)
-- Do NOT add markdown, code fences, or extra explanation
+- Piping (|) and redirection (>) go directly in ARGS
+- Multi-step: join with '&&'; the tool name is auto-prepended ONLY to the
+  first segment — each subsequent command MUST include its full binary name
+  (e.g., 'sort ... && samtools index ...', NOT 'sort ... && index ...')
 ```
 
 Use `--verbose` mode to see the actual prompt for any command:
@@ -115,9 +137,10 @@ oxo-call dry-run --verbose samtools "sort input.bam by coordinate"
 
 When `--optimize-task` is set, an extra LLM call is made **before** command generation. The LLM is asked to rewrite the user's task into a precise bioinformatics instruction:
 
-- Clarifies ambiguous terms (e.g., "sort bam" → "sort BAM file input.bam by coordinate …")
-- Infers bioinformatics defaults (paired-end, hg38, 8 threads, gzipped output, etc.)
-- Preserves all file names and paths from the original task
+- Expands ambiguous terms into specific operations (e.g., "sort bam" → "sort BAM file input.bam by genomic coordinate and write to sorted.bam")
+- Infers bioinformatics defaults (paired-end reads, hg38, 8 threads, gzipped output, Phred+33 encoding)
+- Specifies output file names when omitted (derived from input names)
+- Preserves all file names, paths, and sample identifiers from the original task
 - Responds in the same language as the original task
 
 The optimized task is shown to the user when it differs from the original and replaces the original in the command generation prompt.
@@ -126,9 +149,11 @@ The optimized task is shown to the user when it differs from the original and re
 
 When `--verify` is set on `run` or `workflow run`, an extra LLM call is made **after** execution. The LLM acts as a bioinformatics QC analyst and analyses:
 
-- The exit code of the completed command
-- Any stderr output (error keywords, tool-specific patterns, alignment rates, etc.)
-- Declared output files — their existence and sizes
+- The exit code (with awareness that some tools use non-zero for warnings, exit 137 = OOM, exit 139 = segfault)
+- Error signals in stderr (ERROR, FATAL, Exception, Traceback, Segmentation fault, OOM, Permission denied, etc.)
+- Declared output files — their existence and sizes (zero-byte = suspicious)
+- Tool-specific patterns (e.g., samtools truncated-BAM warnings, STAR alignment rate, GATK exceptions, BWA reference errors)
+- Distinguishes fatal failures from harmless noise (progress bars, INFO/NOTE messages, version banners)
 
 The structured response includes:
 
