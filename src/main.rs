@@ -184,7 +184,7 @@ async fn fetch_github_catalog_models() -> Option<Vec<(String, String, bool)>> {
             // Copilot uses the short model ID (without the "publisher/" prefix).
             let short_id =
                 m.id.split_once('/')
-                    .map(|x| x.1)
+                    .map(|(_publisher, model_id)| model_id)
                     .unwrap_or(&m.id)
                     .to_string();
             let tier = m.rate_limit_tier.as_deref().unwrap_or("high");
@@ -921,7 +921,7 @@ async fn run(cli: Cli) -> error::Result<()> {
 
                             for (i, (id, desc, is_low)) in model_entries.iter().enumerate() {
                                 let low_tag = if *is_low {
-                                    format!(" {}", "[low tier ⭐]".green())
+                                    format!(" {}", "[relaxed limits ⭐]".green())
                                 } else {
                                     String::new()
                                 };
@@ -943,7 +943,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                             if catalog_source == "live" {
                                 println!(
                                     "  💡 {}",
-                                    "Low-tier models (⭐) have relaxed rate limits on all Copilot plans."
+                                    "Models marked ⭐ have a relaxed-rate-limit tier on all Copilot plans."
                                         .dimmed()
                                 );
                             } else {
