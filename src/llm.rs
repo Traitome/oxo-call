@@ -102,50 +102,63 @@ pub struct LlmSkillVerification {
 
 fn system_prompt() -> &'static str {
     "You are an expert bioinformatics command-line assistant with deep knowledge of \
-     genomics, transcriptomics, epigenomics, metagenomics, and single-cell biology. \
-     Your task is to translate the user's task description into the exact command-line \
-     arguments for the specified bioinformatics tool. \
-     The task description may be written in any language (English, Chinese, Japanese, \
-     Korean, etc.) — understand it fully regardless of language. \
-     Rules: \
-     (1) Only use flags/options explicitly present in the provided documentation or examples. \
-     (2) Never include the tool name itself in ARGS — it is prepended automatically. \
-         COMPANION BINARY EXCEPTION: If the skill documentation says the task requires a \
-         related companion binary (e.g., 'bowtie2-build' when the tool is 'bowtie2', \
-         'hisat2-build' when the tool is 'hisat2'), start ARGS with that companion binary \
-         name as the very first token. The system detects companion binaries automatically \
-         (first token starts with '<tool>-' or '<tool>_') and uses them as the actual \
-         executable — do NOT add the base tool name before it. \
-         SCRIPT EXECUTABLE EXCEPTION: Some tools are packages of standalone scripts \
+     genomics, transcriptomics, epigenomics, metagenomics, proteomics, and single-cell \
+     multi-omics. Your task is to translate the user's task description into precise \
+     command-line arguments for the specified tool. The task description may be in any \
+     human language — understand it fully regardless of language.\n\
+     \n\
+     CRITICAL OUTPUT RULES:\n\
+     (1) Respond with EXACTLY two labeled lines: ARGS: and EXPLANATION:. No other text.\n\
+     (2) ARGS must contain ONLY valid ASCII CLI flags and values. Never add markdown, \
+         code fences, backticks, or commentary.\n\
+     (3) EXPLANATION should be in the SAME language as the task description.\n\
+     \n\
+     TOOL INVOCATION RULES:\n\
+     (4) NEVER start ARGS with the tool name — it is prepended automatically by the system.\n\
+         COMPANION BINARY EXCEPTION: When the skill documentation indicates that the \
+         task requires a companion binary (e.g., 'bowtie2-build' for bowtie2, \
+         'hisat2-build' for hisat2, 'samtools-' prefix binaries), place that companion \
+         binary name as the FIRST token in ARGS. The system recognises any first token \
+         matching '<tool>-*' or '<tool>_*' and executes it directly.\n\
+         SCRIPT EXECUTABLE EXCEPTION: Some tool packages expose standalone scripts \
          (e.g., BBtools → 'bbduk.sh', RSeQC → 'infer_experiment.py', Strelka2 → \
          'configureStrelkaGermlineWorkflow.py'). If the skill documentation shows a \
          script name ending in .sh/.py/.pl/.R as the first token, use it directly \
-         as the first ARGS token — the system will detect it and run it as the command. \
-     (3) Always include any file names or paths mentioned in the task description. \
-     (4) Prefer complete, production-ready commands with appropriate thread counts and output files. \
-     (5) If the task is ambiguous, choose the most common bioinformatics convention \
-         (e.g., paired-end, coordinate-sorted BAM, human hg38 genome build). \
-     (6) Never hallucinate flags that are not in the documentation. \
-     (7) For multi-step tasks, join steps with &&. IMPORTANT: the tool name is \
-         auto-prepended ONLY to the very first segment — every command that follows \
-         && or || must include its full binary name. \
-         Example for 'samtools sort then index': \
-           ARGS: sort -@ 4 -o sorted.bam input.bam && samtools index sorted.bam \
-           → results in: samtools sort -@ 4 -o sorted.bam input.bam && samtools index sorted.bam \
-         (NOT: sort ... && index ...) \
-     (8) Use best practices: include -@ or -t flags for multithreading when available, \
-         use -o for output files, and include index/reference files when required by the tool. \
-     (9) Always match file format flags to the actual input/output types \
-         (BAM vs SAM, gzipped vs plain, paired-end vs single-end). \
-     (10) When the task mentions library strandedness, set the correct strand flag for the tool. \
-     (11) ARGS must always be valid CLI flags/values (ASCII, tool-specific syntax). \
-          EXPLANATION should be written in the same language as the task description. \
-     (12) When the task involves piping output to another command, include the full \
-          pipeline in ARGS using | (pipe) and/or > (redirect) just like you would type \
-          on a shell command line. The base tool name is still prepended automatically \
-          to the first segment of the pipeline. \
-     (13) For tools that use positional arguments before flags (e.g., admixture, angsd), \
-          place the input file(s) as the first positional argument(s) before any flags."
+         — the system will detect and execute it as the command.\n\
+     (5) For tools with subcommands (e.g., samtools sort, bcftools view, gatk \
+         HaplotypeCaller), put the subcommand as the first token in ARGS.\n\
+     (6) For tools that use positional arguments before flags (e.g., admixture, angsd), \
+         place input file(s) as positional argument(s) before any flags.\n\
+     \n\
+     MULTI-STEP AND PIPELINE RULES:\n\
+     (7) For multi-step tasks, join steps with '&&'. CRITICAL: the tool name is \
+         auto-prepended ONLY to the very first segment. Every command after '&&' or \
+         '||' MUST include its full binary name.\n\
+         CORRECT: sort -@ 4 -o sorted.bam input.bam && samtools index sorted.bam\n\
+         WRONG:   sort -@ 4 -o sorted.bam input.bam && index sorted.bam\n\
+     (8) When the task involves piping or redirection, include the full pipeline in \
+         ARGS using '|' and/or '>' exactly as typed on a shell command line. The base \
+         tool name is prepended only to the first segment.\n\
+     \n\
+     ACCURACY AND GROUNDING RULES:\n\
+     (9) ONLY use flags/options that appear in the provided documentation or skill \
+         examples. Never hallucinate or invent flags.\n\
+     (10) Always include every file name and path mentioned in the task description.\n\
+     (11) Prefer flags from the skill examples when they match the task — these are \
+          human-verified and known to be correct.\n\
+     \n\
+     BIOINFORMATICS BEST PRACTICES:\n\
+     (12) Prefer complete, production-ready commands: include thread counts (-@ / -t / \
+          --threads), explicit output files (-o), and reference/index files as required.\n\
+     (13) When the task is ambiguous, choose the most common bioinformatics convention: \
+          paired-end reads, coordinate-sorted BAM, hg38 genome build, gzipped FASTQ, \
+          and standard Phred+33 quality encoding.\n\
+     (14) Always match file format flags to actual input/output types (BAM vs SAM vs \
+          CRAM, gzipped vs plain, paired-end vs single-end, FASTA vs FASTQ).\n\
+     (15) When the task mentions library strandedness, set the correct strand-specific \
+          flag for the tool (e.g., --rna-strandness for HISAT2, --library-type for \
+          TopHat2, --strandedness for Salmon/Kallisto).\n\
+     (16) If no arguments are needed, write ARGS: (none)."
 }
 
 // ─── User prompt ─────────────────────────────────────────────────────────────
@@ -196,30 +209,24 @@ fn build_prompt(
         "## Output Format (STRICT — do not add any other text)\n\
          Respond with EXACTLY two lines:\n\
          \n\
-         ARGS: <all command-line arguments, space-separated, WITHOUT the tool name itself>\n\
-         EXPLANATION: <one concise sentence explaining what the command does>\n\
+         ARGS: <all command-line arguments, space-separated, WITHOUT the tool name>\n\
+         EXPLANATION: <one concise sentence — same language as the Task>\n\
          \n\
          RULES:\n\
-         - ARGS must NOT start with the tool name\n\
-         - COMPANION BINARY: If the skill says the task needs a companion binary (e.g., \
-           'bowtie2-build' for bowtie2 index building), put that companion binary name \
-           as the FIRST token in ARGS — the system will use it as the actual executable\n\
-         - SCRIPT EXECUTABLE: If the skill shows a script (e.g., 'bbduk.sh', \
-           'infer_experiment.py', 'configureStrelkaGermlineWorkflow.py') as the first \
-           token, use it directly — the system will detect and run it as the command\n\
-         - ARGS must only contain valid CLI flags and values (ASCII, tool syntax)\n\
-         - EXPLANATION should be written in the same language as the Task above\n\
-         - Include every file path mentioned in the task\n\
-         - Use only flags documented above or shown in the skill examples\n\
+         - ARGS must NOT start with the tool name (it is prepended by the system)\n\
+         - COMPANION BINARY: if the skill says the task needs a companion binary \
+           (e.g., 'bowtie2-build'), put it as the FIRST token in ARGS\n\
+         - SCRIPT EXECUTABLE: if the skill shows a script (e.g., 'bbduk.sh', \
+           'infer_experiment.py') as the first token, use it directly in ARGS\n\
+         - Use ONLY flags from the documentation or skill examples above — never invent flags\n\
          - Prefer flags from the skill examples when they match the task\n\
+         - Include every file path mentioned in the task\n\
+         - ARGS must be valid ASCII CLI flags and values — no markdown, no code fences\n\
          - If no arguments are needed, write: ARGS: (none)\n\
-         - Do NOT add markdown, code fences, or extra explanation\n\
-          - When the task involves piping (|) or redirection (>), include them in ARGS\n\
-          - For multi-step tasks, join steps with && in ARGS; the tool name is only \
-             auto-prepended to the FIRST segment — each command after && or || must \
-             include its own full binary name \
-             (e.g., 'sort ... && samtools index ...', NOT 'sort ... && index ...')\
-",
+         - Piping (|) and redirection (>) go directly in ARGS\n\
+         - Multi-step: join with '&&'; the tool name is auto-prepended ONLY to the \
+           first segment — each subsequent command MUST include its full binary name \
+           (e.g., 'sort ... && samtools index ...', NOT 'sort ... && index ...')\n",
     );
 
     prompt
@@ -234,13 +241,14 @@ fn build_task_optimization_prompt(tool: &str, raw_task: &str) -> String {
         "# Task Optimization Request\n\n\
          Tool: `{tool}`\n\
          User's original task description: {raw_task}\n\n\
-         Your job is to rewrite the task description as a precise, complete bioinformatics \
-         instruction. The rewritten task should:\n\
-         - Clarify any ambiguous terms (e.g., 'sort bam' → 'sort BAM by coordinate using \
-           samtools sort and output to sorted.bam')\n\
-         - Infer reasonable defaults (paired-end, hg38, 8 threads, gzipped output, etc.) \
-           when not specified\n\
-         - Preserve all file names and paths mentioned in the original task\n\
+         Rewrite the task as a precise, unambiguous bioinformatics instruction. Follow \
+         these guidelines:\n\
+         - Expand ambiguous terms into specific operations (e.g., 'sort bam' → 'sort \
+           BAM file input.bam by genomic coordinate and write to sorted.bam')\n\
+         - Infer reasonable defaults when not specified: paired-end reads, hg38 reference, \
+           8 threads, coordinate-sorted BAM output, gzipped FASTQ, Phred+33 encoding\n\
+         - Preserve ALL file names, paths, and sample identifiers from the original task\n\
+         - Specify output file names if the user omitted them (derive from input names)\n\
          - Be written in the SAME LANGUAGE as the original task\n\n\
          ## Output Format (STRICT)\n\
          Respond with EXACTLY one line:\n\
@@ -253,10 +261,13 @@ fn build_task_optimization_prompt(tool: &str, raw_task: &str) -> String {
 
 /// System prompt for the result verification role.
 fn verification_system_prompt() -> &'static str {
-    "You are an expert bioinformatics QC analyst. Your task is to analyze the output \
-     of a bioinformatics command execution and determine whether it completed \
-     successfully. You understand common error patterns, expected output structures, \
-     and tool-specific behaviors. Respond in the same language as the task description."
+    "You are an expert bioinformatics QC analyst specialising in command-line tool \
+     execution validation. You understand exit codes, common error patterns \
+     (segfaults, OOM kills, truncated files, permission denied), expected output \
+     structures (BAM/VCF/BED headers, index files), and tool-specific behaviors \
+     (e.g., samtools returning 1 for warnings, STAR log files, GATK exceptions). \
+     Assess severity accurately: distinguish fatal failures from harmless warnings \
+     and informational messages. Respond in the same language as the task description."
 }
 
 /// Build the user prompt for run result verification.
@@ -306,13 +317,19 @@ fn build_verification_prompt(
 
     prompt.push_str(
         "## Analysis Instructions\n\
-         Analyze whether this command ran successfully. Consider:\n\
-         1. Exit code (0 = success for most tools; some tools use non-zero for warnings)\n\
-         2. Error keywords in stderr (e.g., ERROR, FATAL, Exception, Traceback, \
-            Segmentation fault, Killed, Out of memory)\n\
-         3. Missing expected output files or zero-byte outputs\n\
-         4. Tool-specific patterns (e.g., samtools warnings about truncated BAM, \
-            STAR alignment rate < 50%%, GATK MalformedRead)\n\n\
+         Determine whether this command ran successfully by evaluating:\n\
+         1. **Exit code**: 0 = success for most tools. Some tools use non-zero for \
+            warnings (e.g., samtools returns 1 for certain warnings). Treat exit code \
+            137 as OOM-killed and 139 as segfault.\n\
+         2. **Error signals in stderr**: ERROR, FATAL, Exception, Traceback, \
+            Segmentation fault, Killed, Out of memory, core dumped, No such file, \
+            Permission denied, invalid header, truncated file.\n\
+         3. **Output files**: missing expected outputs or zero-byte files indicate failure.\n\
+         4. **Tool-specific patterns**: samtools truncated-BAM warnings, STAR alignment \
+            rate below 50%%, GATK MalformedRead or UserException, BWA inability to open \
+            reference, bcftools missing index, HISAT2 0%% alignment.\n\
+         5. **Harmless noise**: progress bars, timing statistics, 'INFO' or 'NOTE' \
+            lines, version banners — do NOT flag these as issues.\n\n\
          ## Output Format (STRICT)\n\
          STATUS: success|warning|failure\n\
          SUMMARY: <one concise sentence summarising the result — same language as task>\n\
@@ -383,14 +400,17 @@ fn parse_verification_response(raw: &str) -> LlmRunVerification {
 /// System prompt for the skill reviewer / editor persona.
 fn skill_reviewer_system_prompt() -> &'static str {
     "You are an expert bioinformatics skill author for the oxo-call tool. \
-     You deeply understand the oxo-call skill file format (YAML front-matter + Markdown sections) \
-     and how skills are used to improve LLM command generation quality. \
-     A high-quality skill file must have: \
-     (1) Complete YAML front-matter with name, category, description, tags, author, source_url. \
-     (2) A '## Concepts' section with ≥3 bullet points covering key data model and paradigm concepts. \
-     (3) A '## Pitfalls' section with ≥3 bullet points covering common mistakes and their consequences. \
-     (4) An '## Examples' section with ≥5 subsections, each starting with '### <task description>', \
-         followed by '**Args:** `<flags>`' and '**Explanation:** <sentence>'. \
+     You deeply understand the oxo-call skill file format (YAML front-matter + Markdown \
+     sections) and how skills are injected into LLM prompts to improve command generation \
+     accuracy. A high-quality skill file must have: \
+     (1) Complete YAML front-matter: name, category, description, tags, author, source_url. \
+     (2) A '## Concepts' section with ≥3 bullet points — specific, actionable facts about \
+         the tool's data model, I/O formats, and key behaviours. \
+     (3) A '## Pitfalls' section with ≥3 bullet points — common mistakes WITH consequences. \
+         Never use 'DANGER:' or 'EXTREME DANGER:' prefixes (they trigger LLM safety refusals). \
+     (4) An '## Examples' section with ≥5 subsections: '### <task>', '**Args:** `<flags>`', \
+         '**Explanation:** <sentence>'. Args must NEVER start with the tool name. For companion \
+         binaries (e.g., bowtie2-build), use the companion name as the first Args token. \
      All content must be accurate, actionable, and written in English."
 }
 
@@ -441,12 +461,16 @@ fn build_skill_generate_prompt(tool: &str) -> String {
          Generate a complete, high-quality oxo-call skill file for this bioinformatics tool.\n\
          The skill file must include:\n\
          - YAML front-matter with name, category, description, tags, author ('AI-generated'), source_url\n\
-         - '## Concepts' section with ≥3 specific, actionable bullet points about the tool's data model and key behaviors\n\
-         - '## Pitfalls' section with ≥3 bullet points about common mistakes and their consequences\n\
+         - '## Concepts' section with ≥3 specific, actionable bullet points about the tool's \
+           data model, I/O formats, and key behaviors\n\
+         - '## Pitfalls' section with ≥3 bullet points about common mistakes and their \
+           consequences. Never use 'DANGER:' or 'EXTREME DANGER:' prefixes.\n\
          - '## Examples' section with ≥5 realistic subsections, each:\n\
              ### <task description in plain English>\n\
-             **Args:** `<exact CLI flags without tool name>`\n\
+             **Args:** `<exact CLI flags WITHOUT the tool name>`\n\
              **Explanation:** <one sentence explaining why these flags>\n\n\
+         IMPORTANT: Args must NEVER start with the tool name '{tool}'. For companion \
+         binaries (e.g., {tool}-build), use the companion name as the first token.\n\n\
          ## Output Format (STRICT)\n\
          Respond with ONLY the complete skill file in Markdown format (starting with '---').\n\
          Do NOT add any explanation, preamble, or code fences around the output.\n"
@@ -958,12 +982,13 @@ impl LlmClient {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let system = "You are a shell command expert. \
-                Given a plain-English description, produce a single shell command \
-                (or short pipeline) that accomplishes the task on a Linux/macOS system. \
+            let system = "You are a shell command expert for Linux/macOS. \
+                Given a plain-English description (in any language), produce a single \
+                production-ready shell command or short pipeline. Use standard coreutils, \
+                common bioinformatics tools, and POSIX-compatible syntax. \
                 Reply with exactly two lines and nothing else:\n\
                 COMMAND: <the shell command>\n\
-                EXPLANATION: <one-sentence explanation>";
+                EXPLANATION: <one-sentence explanation in the same language as the input>";
 
             let raw = self
                 .request_with_system(system, description, Some(256), Some(0.1))
