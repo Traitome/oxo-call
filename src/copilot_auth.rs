@@ -293,6 +293,248 @@ fn url_encode(s: &str) -> String {
     out
 }
 
+// ─── GitHub Models catalog ────────────────────────────────────────────────────
+
+/// URL of the public GitHub Models catalog endpoint (no authentication required).
+pub const GITHUB_MODELS_CATALOG_URL: &str = "https://models.github.ai/catalog/models";
+
+/// A single entry in the Copilot model-selection prompt.
+#[derive(Debug, Clone)]
+pub struct CopilotModelEntry {
+    /// Model ID used in API requests (e.g. `"gpt-5-mini"`).
+    pub id: String,
+    /// Human-readable description shown in the selection list.
+    pub description: String,
+    /// `true` when the model is in the "low" (relaxed-rate-limit) tier.
+    pub is_low_tier: bool,
+}
+
+/// GitHub Copilot models available as a *static fallback* when the live catalog
+/// cannot be reached.  Each entry is `(model_id, display_description, is_low_tier)`.
+///
+/// This list contains only models confirmed available on GitHub Copilot.
+/// During `config login` the tool first tries to fetch the live catalog from
+/// [`GITHUB_MODELS_CATALOG_URL`] and only falls back to this list on failure.
+pub const COPILOT_MODELS_FALLBACK: &[(&str, &str, bool)] = &[
+    // ── OpenAI ──────────────────────────────────────────────────────────────────
+    (
+        "gpt-5-mini",
+        "OpenAI gpt-5-mini          · OpenAI, fast lightweight",
+        false,
+    ),
+    (
+        "gpt-4.1",
+        "OpenAI GPT-4.1             · OpenAI, general-purpose",
+        false,
+    ),
+    (
+        "gpt-4.1-mini",
+        "OpenAI GPT-4.1-mini        · OpenAI, balanced",
+        true,
+    ),
+    (
+        "gpt-4.1-nano",
+        "OpenAI GPT-4.1-nano        · OpenAI, ultra-fast",
+        true,
+    ),
+    (
+        "gpt-4o",
+        "OpenAI GPT-4o              · OpenAI, multimodal",
+        false,
+    ),
+    (
+        "gpt-4o-mini",
+        "OpenAI GPT-4o mini         · OpenAI, lightweight",
+        true,
+    ),
+    (
+        "o3",
+        "OpenAI o3                  · OpenAI, deep reasoning",
+        false,
+    ),
+    (
+        "o3-mini",
+        "OpenAI o3-mini             · OpenAI, fast reasoning",
+        false,
+    ),
+    (
+        "o4-mini",
+        "OpenAI o4-mini             · OpenAI, agentic reasoning",
+        false,
+    ),
+    // ── Anthropic (Copilot-exclusive) ───────────────────────────────────────────
+    (
+        "claude-haiku-4.5",
+        "Claude Haiku 4.5           · Anthropic, fast",
+        false,
+    ),
+    (
+        "claude-sonnet-4",
+        "Claude Sonnet 4            · Anthropic",
+        false,
+    ),
+    (
+        "claude-sonnet-4.5",
+        "Claude Sonnet 4.5          · Anthropic, agent tasks",
+        false,
+    ),
+    // ── Google (Copilot-exclusive) ───────────────────────────────────────────────
+    (
+        "gemini-2.5-pro",
+        "Gemini 2.5 Pro             · Google, deep reasoning",
+        false,
+    ),
+];
+
+/// Convert the static `COPILOT_MODELS_FALLBACK` slice into owned [`CopilotModelEntry`] values.
+pub fn fallback_model_entries() -> Vec<CopilotModelEntry> {
+    COPILOT_MODELS_FALLBACK
+        .iter()
+        .map(|&(id, desc, is_low)| CopilotModelEntry {
+            id: id.to_string(),
+            description: desc.to_string(),
+            is_low_tier: is_low,
+        })
+        .collect()
+}
+
+/// A GitHub Models catalog entry (only the fields needed for filtering).
+#[derive(Debug, serde::Deserialize)]
+struct CatalogModel {
+    id: String,
+    name: String,
+    publisher: String,
+    #[serde(default)]
+    rate_limit_tier: Option<String>,
+    #[serde(default)]
+    supported_output_modalities: Option<Vec<String>>,
+    #[serde(default)]
+    capabilities: Option<Vec<String>>,
+}
+
+/// Returns `true` for text-output, streaming-capable models (i.e., chat models).
+/// Filters out embeddings, image-generation, and other non-chat modalities.
+fn is_chat_capable(m: &CatalogModel) -> bool {
+    let has_text_out = m
+        .supported_output_modalities
+        .as_deref()
+        .map(|mods| mods.iter().any(|s| s == "text"))
+        .unwrap_or(false);
+    let has_streaming = m
+        .capabilities
+        .as_deref()
+        .map(|caps| caps.iter().any(|s| s == "streaming"))
+        .unwrap_or(false);
+    has_text_out && has_streaming
+}
+
+/// Convert a raw [`CatalogModel`] into a [`CopilotModelEntry`].
+///
+/// Strips the `publisher/` prefix from the model ID (Copilot uses the short form).
+fn catalog_model_to_entry(m: CatalogModel) -> CopilotModelEntry {
+    // Copilot uses the short model ID (without the "publisher/" prefix).
+    let short_id =
+        m.id.split_once('/')
+            .map(|(_publisher, model_id)| model_id)
+            .unwrap_or(&m.id)
+            .to_string();
+    let tier = m.rate_limit_tier.as_deref().unwrap_or("high");
+    let is_low_tier = tier == "low";
+    // Display: use the official name from the catalog.
+    let description = format!("{:<30} · {}", m.name, m.publisher);
+    CopilotModelEntry {
+        id: short_id,
+        description,
+        is_low_tier,
+    }
+}
+
+/// Promote the default model (`gpt-5-mini`) to the first position in the list.
+pub fn promote_default_model(entries: &mut Vec<CopilotModelEntry>) {
+    if let Some(pos) = entries.iter().position(|e| e.id == "gpt-5-mini") {
+        let item = entries.remove(pos);
+        entries.insert(0, item);
+    }
+}
+
+/// Known Copilot-exclusive models (Anthropic, Google) not listed in the
+/// GitHub Models catalog.  These are appended to the live catalog list if
+/// absent.
+const COPILOT_EXCLUSIVE: &[(&str, &str, bool)] = &[
+    (
+        "claude-haiku-4.5",
+        "Claude Haiku 4.5               · Anthropic, fast",
+        false,
+    ),
+    (
+        "claude-sonnet-4",
+        "Claude Sonnet 4                · Anthropic",
+        false,
+    ),
+    (
+        "claude-sonnet-4.5",
+        "Claude Sonnet 4.5              · Anthropic, agent tasks",
+        false,
+    ),
+    (
+        "gemini-2.5-pro",
+        "Gemini 2.5 Pro                 · Google, deep reasoning",
+        false,
+    ),
+];
+
+/// Fetch the live GitHub Models catalog and return a list of
+/// [`CopilotModelEntry`] values ready for the interactive model-selection
+/// prompt.
+///
+/// The catalog endpoint ([`GITHUB_MODELS_CATALOG_URL`]) is publicly accessible
+/// without authentication.  Returns `None` on any network or parse error so
+/// the caller can fall back to [`COPILOT_MODELS_FALLBACK`] via
+/// [`fallback_model_entries`].
+pub async fn fetch_github_catalog_models() -> Option<Vec<CopilotModelEntry>> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .ok()?;
+
+    let resp = client
+        .get(GITHUB_MODELS_CATALOG_URL)
+        .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2026-03-10")
+        .header("User-Agent", "oxo-call/1.0")
+        .send()
+        .await
+        .ok()?;
+
+    if !resp.status().is_success() {
+        return None;
+    }
+
+    let models: Vec<CatalogModel> = resp.json().await.ok()?;
+
+    let mut result: Vec<CopilotModelEntry> = models
+        .into_iter()
+        .filter(is_chat_capable)
+        .map(catalog_model_to_entry)
+        .collect();
+
+    // Append known Copilot-exclusive models not listed in the GitHub catalog.
+    for (id, desc, is_low) in COPILOT_EXCLUSIVE {
+        if !result.iter().any(|e| e.id == *id) {
+            result.push(CopilotModelEntry {
+                id: id.to_string(),
+                description: desc.to_string(),
+                is_low_tier: *is_low,
+            });
+        }
+    }
+
+    // Always promote gpt-5-mini to the first position (it is the default).
+    promote_default_model(&mut result);
+
+    Some(result)
+}
+
 /// Global token manager instance.
 static TOKEN_MANAGER: std::sync::OnceLock<CopilotTokenManager> = std::sync::OnceLock::new();
 
@@ -337,5 +579,194 @@ mod tests {
         assert_eq!(url_encode("hello"), "hello");
         assert_eq!(url_encode("read:user"), "read%3Auser");
         assert_eq!(url_encode("hello world"), "hello+world");
+    }
+
+    // ── Catalog filtering tests ───────────────────────────────────────────────
+
+    fn make_catalog_model(
+        id: &str,
+        name: &str,
+        publisher: &str,
+        modalities: Option<Vec<&str>>,
+        capabilities: Option<Vec<&str>>,
+        tier: Option<&str>,
+    ) -> CatalogModel {
+        CatalogModel {
+            id: id.to_string(),
+            name: name.to_string(),
+            publisher: publisher.to_string(),
+            rate_limit_tier: tier.map(|s| s.to_string()),
+            supported_output_modalities: modalities
+                .map(|v| v.into_iter().map(|s| s.to_string()).collect()),
+            capabilities: capabilities.map(|v| v.into_iter().map(|s| s.to_string()).collect()),
+        }
+    }
+
+    #[test]
+    fn test_is_chat_capable_accepts_text_streaming() {
+        let m = make_catalog_model(
+            "openai/gpt-5-mini",
+            "GPT-5 Mini",
+            "OpenAI",
+            Some(vec!["text"]),
+            Some(vec!["streaming", "tool_call"]),
+            Some("high"),
+        );
+        assert!(is_chat_capable(&m));
+    }
+
+    #[test]
+    fn test_is_chat_capable_rejects_missing_text_output() {
+        // embeddings / image-gen models have no text output
+        let m = make_catalog_model(
+            "openai/text-embedding-3-small",
+            "Text Embedding 3 Small",
+            "OpenAI",
+            Some(vec!["embedding"]),
+            Some(vec!["streaming"]),
+            Some("high"),
+        );
+        assert!(!is_chat_capable(&m));
+    }
+
+    #[test]
+    fn test_is_chat_capable_rejects_missing_streaming() {
+        let m = make_catalog_model(
+            "openai/some-batch-model",
+            "Batch Model",
+            "OpenAI",
+            Some(vec!["text"]),
+            Some(vec!["tool_call"]), // no streaming
+            Some("high"),
+        );
+        assert!(!is_chat_capable(&m));
+    }
+
+    #[test]
+    fn test_is_chat_capable_rejects_none_modalities() {
+        let m = make_catalog_model(
+            "openai/unknown",
+            "Unknown",
+            "OpenAI",
+            None, // no output modalities field
+            Some(vec!["streaming"]),
+            None,
+        );
+        assert!(!is_chat_capable(&m));
+    }
+
+    #[test]
+    fn test_catalog_model_to_entry_strips_publisher_prefix() {
+        let m = make_catalog_model(
+            "openai/gpt-5-mini",
+            "GPT-5 Mini",
+            "OpenAI",
+            Some(vec!["text"]),
+            Some(vec!["streaming"]),
+            Some("high"),
+        );
+        let entry = catalog_model_to_entry(m);
+        assert_eq!(entry.id, "gpt-5-mini");
+        assert!(!entry.is_low_tier);
+    }
+
+    #[test]
+    fn test_catalog_model_to_entry_no_prefix() {
+        // Some catalog entries may not have the publisher/ prefix
+        let m = make_catalog_model(
+            "gpt-4o",
+            "GPT-4o",
+            "OpenAI",
+            Some(vec!["text"]),
+            Some(vec!["streaming"]),
+            Some("low"),
+        );
+        let entry = catalog_model_to_entry(m);
+        assert_eq!(entry.id, "gpt-4o");
+        assert!(entry.is_low_tier);
+    }
+
+    #[test]
+    fn test_catalog_model_to_entry_low_tier_flag() {
+        let m_low = make_catalog_model(
+            "openai/gpt-4.1-mini",
+            "GPT-4.1 Mini",
+            "OpenAI",
+            Some(vec!["text"]),
+            Some(vec!["streaming"]),
+            Some("low"),
+        );
+        let m_high = make_catalog_model(
+            "openai/gpt-4.1",
+            "GPT-4.1",
+            "OpenAI",
+            Some(vec!["text"]),
+            Some(vec!["streaming"]),
+            Some("high"),
+        );
+        assert!(catalog_model_to_entry(m_low).is_low_tier);
+        assert!(!catalog_model_to_entry(m_high).is_low_tier);
+    }
+
+    #[test]
+    fn test_promote_default_model_moves_to_front() {
+        let mut entries = vec![
+            CopilotModelEntry {
+                id: "gpt-4.1".to_string(),
+                description: "GPT-4.1".to_string(),
+                is_low_tier: false,
+            },
+            CopilotModelEntry {
+                id: "gpt-5-mini".to_string(),
+                description: "GPT-5 Mini".to_string(),
+                is_low_tier: false,
+            },
+            CopilotModelEntry {
+                id: "claude-sonnet-4".to_string(),
+                description: "Claude Sonnet 4".to_string(),
+                is_low_tier: false,
+            },
+        ];
+        promote_default_model(&mut entries);
+        assert_eq!(entries[0].id, "gpt-5-mini");
+        assert_eq!(entries.len(), 3);
+    }
+
+    #[test]
+    fn test_promote_default_model_no_op_when_absent() {
+        let mut entries = vec![
+            CopilotModelEntry {
+                id: "gpt-4.1".to_string(),
+                description: "GPT-4.1".to_string(),
+                is_low_tier: false,
+            },
+            CopilotModelEntry {
+                id: "claude-sonnet-4".to_string(),
+                description: "Claude Sonnet 4".to_string(),
+                is_low_tier: false,
+            },
+        ];
+        promote_default_model(&mut entries);
+        // order unchanged
+        assert_eq!(entries[0].id, "gpt-4.1");
+        assert_eq!(entries.len(), 2);
+    }
+
+    #[test]
+    fn test_fallback_model_entries_round_trips() {
+        let entries = fallback_model_entries();
+        // All static entries should be present
+        assert_eq!(entries.len(), COPILOT_MODELS_FALLBACK.len());
+        for (i, (id, desc, is_low)) in COPILOT_MODELS_FALLBACK.iter().enumerate() {
+            assert_eq!(entries[i].id, *id);
+            assert_eq!(entries[i].description, *desc);
+            assert_eq!(entries[i].is_low_tier, *is_low);
+        }
+    }
+
+    #[test]
+    fn test_fallback_first_entry_is_gpt5_mini() {
+        // gpt-5-mini must always be the first entry (default model).
+        assert_eq!(COPILOT_MODELS_FALLBACK[0].0, "gpt-5-mini");
     }
 }
