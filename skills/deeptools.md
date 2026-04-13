@@ -29,26 +29,26 @@ source_url: "https://deeptools.readthedocs.io/"
 
 ## Examples
 
-### generate normalized bigWig coverage track from a BAM file
+### generate normalized bigWig coverage track with bamCoverage
 **Args:** `bamCoverage -b sorted.bam -o output.bw --normalizeUsing RPKM --binSize 10 -p 8`
 **Explanation:** -b input BAM; -o output bigWig; --normalizeUsing RPKM normalizes by reads per kilobase per million; --binSize 10bp resolution
 
-### create log2 ratio (ChIP/Input) bigWig track
+### create log2 ratio (ChIP/Input) bigWig track with bamCompare
 **Args:** `bamCompare -b1 chip.bam -b2 input.bam -o chip_vs_input_log2.bw --normalizeUsing RPKM --binSize 10 -p 8`
 **Explanation:** -b1 treatment; -b2 control; outputs log2(ChIP/Input) bigWig for visualization
 
-### compute signal matrix around TSS for heatmap visualization
+### compute signal matrix around TSS with computeMatrix
 **Args:** `computeMatrix reference-point -S chip.bw -R genes.bed --referencePoint TSS -b 3000 -a 3000 -o matrix.gz -p 8`
 **Explanation:** -S bigWig input; -R regions BED/GTF; -b/-a bases before/after reference point; -o matrix for plotting
 
-### plot heatmap of signal around genomic regions
+### plot heatmap of signal around genomic regions with plotHeatmap
 **Args:** `plotHeatmap -m matrix.gz -out heatmap.png --colorMap RdBu_r --whatToShow 'heatmap and colorbar'`
 **Explanation:** -m matrix from computeMatrix; --colorMap color scheme; outputs PNG heatmap
 
-### compute read count correlation between multiple BAM files
+### compute read count correlation with multiBamSummary
 **Args:** `multiBamSummary bins -b sample1.bam sample2.bam sample3.bam -o readCounts.npz -p 8`
 **Explanation:** bins mode computes genome-wide 10kb bin counts; output .npz matrix for plotCorrelation and plotPCA
 
-### generate ATAC-seq normalized bigWig with Tn5 shift correction
+### generate ATAC-seq normalized bigWig with bamCoverage
 **Args:** `bamCoverage -b atac_sorted.bam -o atac_signal.bw --ATACshift --normalizeUsing RPGC --effectiveGenomeSize 2913022398 --binSize 10 -p 8`
 **Explanation:** --ATACshift corrects for Tn5 insertion offset; --RPGC normalization with hg38 effective genome size

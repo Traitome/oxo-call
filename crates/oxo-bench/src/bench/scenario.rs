@@ -464,6 +464,27 @@ fn is_file_like_token(token: &str) -> bool {
         return false;
     }
 
+    // Skip tokens that look like qualified function / method calls (e.g.
+    // `Pkg.add`, `sys.stdin`, `os.path`) — the "extension" part is a
+    // function/attribute name, not a file extension.  A file extension is
+    // typically all-lowercase and 1-6 chars; reject tokens where the part
+    // after the last dot is a common programming method name.
+    if let Some(stem) = token.rsplit('.').nth(1) {
+        // If the stem starts with an uppercase letter and ends with a
+        // lower-case part, it's likely Module.function (e.g. Pkg.add).
+        if stem.starts_with(|ch: char| ch.is_ascii_uppercase()) {
+            let ext_part = token.rsplit('.').next().unwrap_or("");
+            let common_methods = [
+                "add", "install", "load", "read", "write", "open", "close", "get", "set", "run",
+                "call", "new", "init", "start", "stop", "stdin", "stdout", "stderr", "path",
+                "join",
+            ];
+            if common_methods.contains(&ext_part.to_lowercase().as_str()) {
+                return false;
+            }
+        }
+    }
+
     // Check for known extension.  We compare lower-case except for the
     // special R extensions (.R, .Rmd) which are matched case-insensitively
     // by the lower-cased KNOWN_FILE_EXTENSIONS list.
@@ -479,18 +500,26 @@ const SHELL_METACHARS: &[char] = &[
     '\'', '"', '(', ')', '<', '>', ';', '&', '|', '`', '$', '{', '}',
 ];
 
+/// Characters used to split sub-tokens inside quoted expressions (commas,
+/// semicolons, parentheses, etc.) so that file names embedded in function
+/// calls like `rmarkdown::render('report.Rmd', ...)` are discovered.
+const INNER_SPLIT_CHARS: &[char] = &[',', ';', '(', ')', '[', ']'];
+
 /// Extract file-like tokens from a reference-args string.
 ///
 /// Handles bare tokens (`input.bam`), key=value pairs (`in=reads.fastq.gz`),
 /// `--flag=value` forms (`--output=results.vcf`), colon-separated fields
 /// (`ILLUMINACLIP:TruSeq3-PE.fa:2:30:10`), and files embedded in quoted
-/// shell commands (`-c 'sort file.txt'`).  Returns unique tokens in the
-/// order they first appear.
+/// shell commands (`-c 'sort file.txt'`).  Also splits by commas,
+/// semicolons, and parentheses inside quoted strings so that files inside
+/// function calls (e.g. `render('report.Rmd', ...)`) are found.
+///
+/// Returns unique tokens in the order they first appear.
 pub fn extract_file_tokens(args: &str) -> Vec<String> {
     let mut files = Vec::new();
     let mut seen = std::collections::HashSet::new();
 
-    let mut try_add =
+    let try_add =
         |candidate: &str, seen: &mut std::collections::HashSet<String>, files: &mut Vec<String>| {
             let c = candidate.trim_matches(|ch: char| SHELL_METACHARS.contains(&ch));
             if is_file_like_token(c) && seen.insert(c.to_string()) {
@@ -514,8 +543,18 @@ pub fn extract_file_tokens(args: &str) -> Vec<String> {
             || (raw.starts_with('"') && raw.ends_with('"'));
         if is_quoted && raw.len() > 2 {
             let inner = &raw[1..raw.len() - 1];
+            // Split by whitespace first, then by inner-split chars
+            // (commas, parens, semicolons) to find files inside function
+            // calls like render('report.Rmd', output_format=...).
             for sub in inner.split_whitespace() {
                 try_add(sub, &mut seen, &mut files);
+                // Further split by commas, semicolons, parentheses.
+                for part in sub.split(|ch: char| INNER_SPLIT_CHARS.contains(&ch)) {
+                    let part = part.trim();
+                    if !part.is_empty() {
+                        try_add(part, &mut seen, &mut files);
+                    }
+                }
             }
             continue;
         }
@@ -538,15 +577,166 @@ pub fn extract_file_tokens(args: &str) -> Vec<String> {
     files
 }
 
-/// Enrich a task description by appending file/path tokens from `args` that
-/// are not already mentioned in `task`.
+/// Extract package / module identifiers from a reference-args string.
 ///
-/// If no new files need to be added the original task string is returned
+/// Recognises:
+///
+/// - **R packages** — names inside `install.packages('PKG')`,
+///   `packageVersion('PKG')`, `BiocManager::install(c('PKG1','PKG2'))`,
+///   `library(PKG)`, `require(PKG)`, `pak::pkg_install('user/repo')`.
+/// - **Python modules** — `import MODULE`, `from MODULE import ...`.
+///
+/// Returns unique identifiers in the order they first appear.  Identifiers
+/// that look like file paths (contain a known extension) are excluded since
+/// they are already handled by [`extract_file_tokens`].
+pub fn extract_package_identifiers(args: &str) -> Vec<String> {
+    let mut pkgs = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+
+    // Helper: add a candidate if it looks like a valid package/module name
+    // and is not a known file.
+    let mut try_add = |name: &str| {
+        let name = name.trim().trim_matches(|ch: char| {
+            ch == '\'' || ch == '"' || ch == '(' || ch == ')' || ch == ',' || ch == ' '
+        });
+        if name.is_empty() || name.len() < 2 {
+            return;
+        }
+        // Skip if it looks like a file (already handled by extract_file_tokens).
+        if is_file_like_token(name) {
+            return;
+        }
+        // Skip URLs.
+        if name.contains("://") {
+            return;
+        }
+        // Skip pure numbers or very short strings.
+        if name.parse::<f64>().is_ok() {
+            return;
+        }
+        // Must look like a valid identifier: starts with a letter, contains
+        // only alphanumeric, dots, hyphens, underscores, or slashes (for
+        // user/repo GitHub references).
+        if !name.starts_with(|ch: char| ch.is_ascii_alphabetic()) {
+            return;
+        }
+        if !name
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || ".-_/".contains(ch))
+        {
+            return;
+        }
+        if seen.insert(name.to_string()) {
+            pkgs.push(name.to_string());
+        }
+    };
+
+    // ── R package patterns ───────────────────────────────────────────────
+    let r_patterns = [
+        "install.packages(",
+        "packageVersion(",
+        "BiocManager::install(",
+        "library(",
+        "require(",
+        "pak::pkg_install(",
+        "pak::pak(",
+        "remotes::install_github(",
+        "devtools::install_github(",
+        "rmarkdown::render(",
+    ];
+
+    for pat in &r_patterns {
+        let search = args;
+        let mut start = 0;
+        while let Some(pos) = search[start..].find(pat) {
+            let abs_pos = start + pos + pat.len();
+            // Find the closing paren (handle nested parens for c(...)).
+            if let Some(close) = find_matching_paren(&search[abs_pos..]) {
+                let inner = &search[abs_pos..abs_pos + close];
+                // Split by comma and extract quoted names.
+                for part in inner.split(',') {
+                    let part = part
+                        .trim()
+                        .trim_matches(|ch: char| ch == '\'' || ch == '"' || ch == ' ');
+                    // Handle c('A','B') wrapper.
+                    let part = part.strip_prefix("c(").unwrap_or(part);
+                    let part = part
+                        .trim_matches(|ch: char| ch == '\'' || ch == '"' || ch == '(' || ch == ')');
+                    try_add(part);
+                }
+            }
+            start = abs_pos;
+        }
+    }
+
+    // ── Python import patterns ───────────────────────────────────────────
+    // `import json`, `from os import path`, `import sys`
+    for keyword in &["import ", "from "] {
+        let search = args;
+        let mut start = 0;
+        while let Some(pos) = search[start..].find(keyword) {
+            let abs_pos = start + pos;
+            // Ensure the keyword is preceded by whitespace, semicolon,
+            // quote, or is at the start of the string.
+            let valid_prefix = abs_pos == 0 || {
+                let prev = search.as_bytes()[abs_pos - 1];
+                prev.is_ascii_whitespace() || prev == b';' || prev == b'"' || prev == b'\''
+            };
+            if valid_prefix {
+                let after = &search[abs_pos + keyword.len()..];
+                // Grab the first word (the module name).
+                let mod_name: String = after
+                    .chars()
+                    .take_while(|ch| ch.is_ascii_alphanumeric() || *ch == '_' || *ch == '.')
+                    .collect();
+                if !mod_name.is_empty() {
+                    // Only include the top-level module name for brevity.
+                    let top = mod_name.split('.').next().unwrap_or(&mod_name);
+                    try_add(top);
+                }
+            }
+            start = abs_pos + keyword.len();
+        }
+    }
+
+    pkgs
+}
+
+/// Find the position of the matching closing parenthesis for an opening
+/// paren that has already been consumed.  Returns `None` if not found.
+fn find_matching_paren(s: &str) -> Option<usize> {
+    let mut depth: i32 = 1;
+    let mut in_single = false;
+    let mut in_double = false;
+    for (i, ch) in s.char_indices() {
+        match ch {
+            '\'' if !in_double => in_single = !in_single,
+            '"' if !in_single => in_double = !in_double,
+            '(' if !in_single && !in_double => depth += 1,
+            ')' if !in_single && !in_double => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(i);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+/// Enrich a task description by appending file/path tokens **and** package
+/// identifiers from `args` that are not already mentioned in `task`.
+///
+/// If no new tokens need to be added the original task string is returned
 /// unchanged.
 pub fn enrich_task_with_files(task: &str, args: &str) -> String {
     let files = extract_file_tokens(args);
+    let packages = extract_package_identifiers(args);
+
     let missing: Vec<&str> = files
         .iter()
+        .chain(packages.iter())
         .filter(|f| !task.contains(f.as_str()))
         .map(|s| s.as_str())
         .collect();
@@ -555,7 +745,12 @@ pub fn enrich_task_with_files(task: &str, args: &str) -> String {
         return task.to_string();
     }
 
-    format!("{} ({})", task, missing.join(", "))
+    // Deduplicate while preserving order (files already deduped, but
+    // packages may overlap).
+    let mut seen = std::collections::HashSet::new();
+    let deduped: Vec<&str> = missing.into_iter().filter(|s| seen.insert(*s)).collect();
+
+    format!("{} ({})", task, deduped.join(", "))
 }
 
 // ── Scenario generation ──────────────────────────────────────────────────────
@@ -1486,5 +1681,152 @@ source_url: "https://example.com"
                 d.user_level
             );
         }
+    }
+
+    // ── Package / identifier extraction tests ────────────────────────────────
+
+    #[test]
+    fn test_extract_package_identifiers_r_install_packages() {
+        let pkgs = extract_package_identifiers(
+            "Rscript -e \"install.packages('ggplot2', repos='https://cloud.r-project.org')\"",
+        );
+        assert!(
+            pkgs.contains(&"ggplot2".to_string()),
+            "should extract ggplot2 from install.packages(): got {:?}",
+            pkgs
+        );
+    }
+
+    #[test]
+    fn test_extract_package_identifiers_r_biocmanager() {
+        let pkgs =
+            extract_package_identifiers("Rscript -e \"BiocManager::install(c('DESeq2','edgeR'))\"");
+        assert!(
+            pkgs.contains(&"DESeq2".to_string()),
+            "should extract DESeq2: got {:?}",
+            pkgs
+        );
+        assert!(
+            pkgs.contains(&"edgeR".to_string()),
+            "should extract edgeR: got {:?}",
+            pkgs
+        );
+    }
+
+    #[test]
+    fn test_extract_package_identifiers_r_package_version() {
+        let pkgs = extract_package_identifiers("Rscript -e \"packageVersion('DESeq2')\"");
+        assert!(
+            pkgs.contains(&"DESeq2".to_string()),
+            "should extract DESeq2 from packageVersion(): got {:?}",
+            pkgs
+        );
+    }
+
+    #[test]
+    fn test_extract_package_identifiers_python_import() {
+        let pkgs = extract_package_identifiers(
+            "-c \"import json,sys; data=json.load(sys.stdin); print(data)\"",
+        );
+        assert!(
+            pkgs.contains(&"json".to_string()),
+            "should extract json from import: got {:?}",
+            pkgs
+        );
+    }
+
+    #[test]
+    fn test_extract_package_identifiers_skips_urls() {
+        let pkgs = extract_package_identifiers(
+            "Rscript -e \"install.packages('ggplot2', repos='https://cloud.r-project.org')\"",
+        );
+        // Should NOT contain the URL
+        for pkg in &pkgs {
+            assert!(
+                !pkg.contains("://"),
+                "should not extract URLs as packages: got {:?}",
+                pkgs
+            );
+        }
+    }
+
+    #[test]
+    fn test_extract_package_identifiers_skips_files() {
+        let pkgs = extract_package_identifiers(
+            "Rscript -e \"rmarkdown::render('report.Rmd', output_format='html_document')\"",
+        );
+        // report.Rmd is a file, not a package — it should be excluded from
+        // package identifiers (handled by extract_file_tokens instead).
+        assert!(
+            !pkgs.contains(&"report.Rmd".to_string()),
+            "should not extract files as packages: got {:?}",
+            pkgs
+        );
+    }
+
+    #[test]
+    fn test_extract_package_identifiers_github_repo() {
+        let pkgs = extract_package_identifiers("Rscript -e \"pak::pkg_install('user/repo')\"");
+        assert!(
+            pkgs.contains(&"user/repo".to_string()),
+            "should extract GitHub repo reference: got {:?}",
+            pkgs
+        );
+    }
+
+    #[test]
+    fn test_extract_file_tokens_rmd_in_r_expression() {
+        let files = extract_file_tokens(
+            "Rscript -e \"rmarkdown::render('report.Rmd', output_format='html_document')\"",
+        );
+        assert!(
+            files.contains(&"report.Rmd".to_string()),
+            "should extract report.Rmd from R expression: got {:?}",
+            files
+        );
+    }
+
+    #[test]
+    fn test_enrich_task_with_r_packages() {
+        let result = enrich_task_with_files(
+            "check installed package version",
+            "Rscript -e \"packageVersion('DESeq2')\"",
+        );
+        assert!(
+            result.contains("DESeq2"),
+            "enriched task should mention DESeq2, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_enrich_task_with_bioconductor_packages() {
+        let result = enrich_task_with_files(
+            "install Bioconductor packages",
+            "Rscript -e \"BiocManager::install(c('DESeq2','edgeR'))\"",
+        );
+        assert!(
+            result.contains("DESeq2"),
+            "enriched task should mention DESeq2, got: {}",
+            result
+        );
+        assert!(
+            result.contains("edgeR"),
+            "enriched task should mention edgeR, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_enrich_task_with_rmd_file() {
+        let result = enrich_task_with_files(
+            "render an Rmarkdown document to HTML",
+            "Rscript -e \"rmarkdown::render('report.Rmd', output_format='html_document')\"",
+        );
+        assert!(
+            result.contains("report.Rmd"),
+            "enriched task should mention report.Rmd, got: {}",
+            result
+        );
     }
 }

@@ -10049,16 +10049,16 @@ python,python_05,python_05_07,expert,run script additional module search path
 python,python_05,python_05_08,detailed,I have data that I need to process: run a script with an additional module search path
 python,python_05,python_05_09,informal,"Hey, can you help me run a script with an additional module search path?"
 python,python_05,python_05_10,alternative,"With an additional module search path, run a script"
-python,python_06,python_06_01,original,process JSON from stdin with a one-liner
-python,python_06,python_06_02,beginner,How do I process JSON from stdin with a one-liner?
-python,python_06,python_06_03,student,I need to process JSON from stdin with a one-liner
-python,python_06,python_06_04,polite,Please process JSON from stdin with a one-liner
-python,python_06,python_06_05,sysadmin,Use python to process JSON from stdin with a one-liner
-python,python_06,python_06_06,goal_oriented,I want to process JSON from stdin with a one-liner
-python,python_06,python_06_07,expert,process JSON stdin one-liner
-python,python_06,python_06_08,detailed,I have data that I need to process: process JSON from stdin with a one-liner
-python,python_06,python_06_09,informal,"Hey, can you help me process JSON from stdin with a one-liner?"
-python,python_06,python_06_10,alternative,"With a one-liner, process JSON from stdin"
+python,python_06,python_06_01,original,process JSON from stdin with a one-liner (json)
+python,python_06,python_06_02,beginner,How do I process JSON from stdin with a one-liner (json)?
+python,python_06,python_06_03,student,I need to process JSON from stdin with a one-liner (json)
+python,python_06,python_06_04,polite,Please process JSON from stdin with a one-liner (json)
+python,python_06,python_06_05,sysadmin,Use python to process JSON from stdin with a one-liner (json)
+python,python_06,python_06_06,goal_oriented,I want to process JSON from stdin with a one-liner (json)
+python,python_06,python_06_07,expert,process JSON stdin one-liner (json)
+python,python_06,python_06_08,detailed,I have data that I need to process: process JSON from stdin with a one-liner (json)
+python,python_06,python_06_09,informal,"Hey, can you help me process JSON from stdin with a one-liner (json)?"
+python,python_06,python_06_10,alternative,"With a one-liner (json), process JSON from stdin"
 python,python_07,python_07_01,original,run a script with unbuffered output (for pipelines) (pipeline_script.py)
 python,python_07,python_07_02,beginner,How do I run a script with unbuffered output (for pipelines) (pipeline_script.py)?
 python,python_07,python_07_03,student,I need to run a script with unbuffered output (for pipelines) (pipeline_script.py)
@@ -10329,36 +10329,36 @@ r,r_03,r_03_07,expert,execute one-liner R expression
 r,r_03,r_03_08,detailed,I have data that I need to process: execute a one-liner R expression
 r,r_03,r_03_09,informal,"Hey, can you help me execute a one-liner R expression?"
 r,r_03,r_03_10,alternative,Perform: execute a one-liner R expression
-r,r_04,r_04_01,original,install a CRAN package into the user library
-r,r_04,r_04_02,beginner,How do I install a CRAN package into the user library?
-r,r_04,r_04_03,student,I need to install a CRAN package into the user library
-r,r_04,r_04_04,polite,Please install a CRAN package into the user library
-r,r_04,r_04_05,sysadmin,Use r to install a CRAN package into the user library
-r,r_04,r_04_06,goal_oriented,I want to install a CRAN package into the user library
-r,r_04,r_04_07,expert,install CRAN package user library
-r,r_04,r_04_08,detailed,I have data that I need to process: install a CRAN package into the user library
-r,r_04,r_04_09,informal,"Hey, can you help me install a CRAN package into the user library?"
-r,r_04,r_04_10,alternative,Perform: install a CRAN package into the user library
-r,r_05,r_05_01,original,install Bioconductor packages
-r,r_05,r_05_02,beginner,How do I install Bioconductor packages?
-r,r_05,r_05_03,student,I need to install Bioconductor packages
-r,r_05,r_05_04,polite,Please install Bioconductor packages
-r,r_05,r_05_05,sysadmin,Use r to install Bioconductor packages
-r,r_05,r_05_06,goal_oriented,I want to install Bioconductor packages
-r,r_05,r_05_07,expert,install Bioconductor packages
-r,r_05,r_05_08,detailed,I have data that I need to process: install Bioconductor packages
-r,r_05,r_05_09,informal,"Hey, can you help me install Bioconductor packages?"
-r,r_05,r_05_10,alternative,Perform: install Bioconductor packages
-r,r_06,r_06_01,original,check installed package version
-r,r_06,r_06_02,beginner,How do I check installed package version?
-r,r_06,r_06_03,student,I need to check installed package version
-r,r_06,r_06_04,polite,Please check installed package version
-r,r_06,r_06_05,sysadmin,Use r to check installed package version
-r,r_06,r_06_06,goal_oriented,I want to check installed package version
-r,r_06,r_06_07,expert,check installed package version
-r,r_06,r_06_08,detailed,I have data that I need to process: check installed package version
-r,r_06,r_06_09,informal,"Hey, can you help me check installed package version?"
-r,r_06,r_06_10,alternative,Perform: check installed package version
+r,r_04,r_04_01,original,install a CRAN package into the user library (ggplot2)
+r,r_04,r_04_02,beginner,How do I install a CRAN package into the user library (ggplot2)?
+r,r_04,r_04_03,student,I need to install a CRAN package into the user library (ggplot2)
+r,r_04,r_04_04,polite,Please install a CRAN package into the user library (ggplot2)
+r,r_04,r_04_05,sysadmin,Use r to install a CRAN package into the user library (ggplot2)
+r,r_04,r_04_06,goal_oriented,I want to install a CRAN package into the user library (ggplot2)
+r,r_04,r_04_07,expert,install CRAN package user library (ggplot2)
+r,r_04,r_04_08,detailed,I have data that I need to process: install a CRAN package into the user library (ggplot2)
+r,r_04,r_04_09,informal,"Hey, can you help me install a CRAN package into the user library (ggplot2)?"
+r,r_04,r_04_10,alternative,Perform: install a CRAN package into the user library (ggplot2)
+r,r_05,r_05_01,original,"install Bioconductor packages (DESeq2, edgeR)"
+r,r_05,r_05_02,beginner,"How do I install Bioconductor packages (DESeq2, edgeR)?"
+r,r_05,r_05_03,student,"I need to install Bioconductor packages (DESeq2, edgeR)"
+r,r_05,r_05_04,polite,"Please install Bioconductor packages (DESeq2, edgeR)"
+r,r_05,r_05_05,sysadmin,"Use r to install Bioconductor packages (DESeq2, edgeR)"
+r,r_05,r_05_06,goal_oriented,"I want to install Bioconductor packages (DESeq2, edgeR)"
+r,r_05,r_05_07,expert,"install Bioconductor packages (DESeq2, edgeR)"
+r,r_05,r_05_08,detailed,"I have data that I need to process: install Bioconductor packages (DESeq2, edgeR)"
+r,r_05,r_05_09,informal,"Hey, can you help me install Bioconductor packages (DESeq2, edgeR)?"
+r,r_05,r_05_10,alternative,"Perform: install Bioconductor packages (DESeq2, edgeR)"
+r,r_06,r_06_01,original,check installed package version (DESeq2)
+r,r_06,r_06_02,beginner,How do I check installed package version (DESeq2)?
+r,r_06,r_06_03,student,I need to check installed package version (DESeq2)
+r,r_06,r_06_04,polite,Please check installed package version (DESeq2)
+r,r_06,r_06_05,sysadmin,Use r to check installed package version (DESeq2)
+r,r_06,r_06_06,goal_oriented,I want to check installed package version (DESeq2)
+r,r_06,r_06_07,expert,check installed package version (DESeq2)
+r,r_06,r_06_08,detailed,I have data that I need to process: check installed package version (DESeq2)
+r,r_06,r_06_09,informal,"Hey, can you help me check installed package version (DESeq2)?"
+r,r_06,r_06_10,alternative,Perform: check installed package version (DESeq2)
 r,r_07,r_07_01,original,list user-installed packages and their versions
 r,r_07,r_07_02,beginner,How do I list user-installed packages and their versions?
 r,r_07,r_07_03,student,I need to list user-installed packages and their versions
@@ -10389,16 +10389,16 @@ r,r_09,r_09_07,expert,show R library paths
 r,r_09,r_09_08,detailed,I have data that I need to process: show R library paths
 r,r_09,r_09_09,informal,"Hey, can you help me show R library paths?"
 r,r_09,r_09_10,alternative,Perform: show R library paths
-r,r_10,r_10_01,original,render an Rmarkdown document to HTML
-r,r_10,r_10_02,beginner,How do I render an Rmarkdown document to HTML?
-r,r_10,r_10_03,student,I need to render an Rmarkdown document to HTML
-r,r_10,r_10_04,polite,Please render an Rmarkdown document to HTML
-r,r_10,r_10_05,sysadmin,Use r to render an Rmarkdown document to HTML
-r,r_10,r_10_06,goal_oriented,I want to render an Rmarkdown document to HTML
-r,r_10,r_10_07,expert,render Rmarkdown document HTML
-r,r_10,r_10_08,detailed,I have data that I need to process: render an Rmarkdown document to HTML
-r,r_10,r_10_09,informal,"Hey, can you help me render an Rmarkdown document to HTML?"
-r,r_10,r_10_10,alternative,Output HTML by performing: render an Rmarkdown document
+r,r_10,r_10_01,original,render an Rmarkdown document to HTML (report.Rmd)
+r,r_10,r_10_02,beginner,How do I render an Rmarkdown document to HTML (report.Rmd)?
+r,r_10,r_10_03,student,I need to render an Rmarkdown document to HTML (report.Rmd)
+r,r_10,r_10_04,polite,Please render an Rmarkdown document to HTML (report.Rmd)
+r,r_10,r_10_05,sysadmin,Use r to render an Rmarkdown document to HTML (report.Rmd)
+r,r_10,r_10_06,goal_oriented,I want to render an Rmarkdown document to HTML (report.Rmd)
+r,r_10,r_10_07,expert,render Rmarkdown document HTML (report.Rmd)
+r,r_10,r_10_08,detailed,I have data that I need to process: render an Rmarkdown document to HTML (report.Rmd)
+r,r_10,r_10_09,informal,"Hey, can you help me render an Rmarkdown document to HTML (report.Rmd)?"
+r,r_10,r_10_10,alternative,Output HTML (report.Rmd) by performing: render an Rmarkdown document
 racon,racon_01,racon_01_01,original,"run one round of Racon polishing on an ONT assembly (reads.fastq.gz, mapping.paf, draft_assembly.fasta, polished_round1.fasta)"
 racon,racon_01,racon_01_02,beginner,"How do I run one round of Racon polishing on an ONT assembly (reads.fastq.gz, mapping.paf, draft_assembly.fasta, polished_round1.fasta)?"
 racon,racon_01,racon_01_03,student,"I need to run one round of Racon polishing on an ONT assembly (reads.fastq.gz, mapping.paf, draft_assembly.fasta, polished_round1.fasta)"

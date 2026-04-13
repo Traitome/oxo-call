@@ -27,30 +27,30 @@ source_url: "http://homer.ucsd.edu/homer/ngs/index.html"
 
 ## Examples
 
-### create a HOMER tag directory from a BAM file
+### create a HOMER tag directory with makeTagDirectory
 **Args:** `makeTagDirectory chipseq_tags/ sample.bam -genome hg38 -checkGC`
 **Explanation:** -genome hg38 sets chromosome sizes; -checkGC reports GC content for bias assessment
 
-### call narrow transcription factor peaks with an input control
+### call narrow transcription factor peaks with findPeaks
 **Args:** `findPeaks chipseq_tags/ -style factor -i input_tags/ -o peaks.txt`
 **Explanation:** -style factor is for sharp TF peaks; -i supplies the matched input control directory
 
-### call broad histone modification peaks (e.g., H3K27me3)
+### call broad histone modification peaks with findPeaks
 **Args:** `findPeaks chipseq_tags/ -style histone -i input_tags/ -o broad_peaks.txt`
 **Explanation:** -style histone uses a sliding window approach suited for broad chromatin domains
 
-### annotate peaks with genomic features using hg38 RefSeq annotation
+### annotate peaks with annotatePeaks.pl using hg38 RefSeq annotation
 **Args:** `annotatePeaks.pl peaks.txt hg38 -gtf genes.gtf > annotated_peaks.txt`
 **Explanation:** maps each peak to promoter/exon/intron/intergenic regions; -gtf overrides default HOMER annotation
 
-### run de novo and known motif analysis on ChIP-seq peaks
+### run de novo and known motif analysis with findMotifsGenome.pl
 **Args:** `findMotifsGenome.pl peaks.txt hg38 motif_output/ -size 200 -mask -p 8`
 **Explanation:** -size 200 uses 200 bp window centered on peak summit; -mask soft-masks repeats; -p 8 uses 8 threads
 
-### merge peak files from two ChIP-seq replicates
+### merge peak files from two replicates with mergePeaks
 **Args:** `mergePeaks rep1_peaks.txt rep2_peaks.txt -d 100 -prefix merged_peaks -venn venn.txt`
 **Explanation:** -d 100 merges peaks within 100 bp; -prefix names output files; -venn reports overlap statistics
 
-### convert HOMER peak file to BED format
+### convert HOMER peak file to BED with pos2bed.pl
 **Args:** `pos2bed.pl peaks.txt > peaks.bed`
 **Explanation:** converts HOMER peak coordinates (1-based) to standard BED format (0-based) for downstream tools

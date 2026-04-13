@@ -1004,7 +1004,7 @@ python,python_02,"-c ""print('Hello, World!')""",run a Python one-liner,programm
 python,python_03,-m http.server 8080,"run a module as a script (e.g., start an HTTP server)",programming
 python,python_04,-m venv .venv,create a virtual environment,programming
 python,python_05,-m pytest tests/ -v,run a script with an additional module search path,programming
-python,python_06,"-c ""import json,sys; data=json.load(sys.stdin); [print(r['name']) for r in data]""",process JSON from stdin with a one-liner,programming
+python,python_06,"-c ""import json,sys; data=json.load(sys.stdin); [print(r['name']) for r in data]""",process JSON from stdin with a one-liner (json),programming
 python,python_07,-u pipeline_script.py,run a script with unbuffered output (for pipelines) (pipeline_script.py),programming
 python,python_08,-m cProfile -s cumtime slow_script.py,profile a script and show cumulative time (slow_script.py),programming
 python,python_09,--version,check Python version,programming
@@ -1032,13 +1032,13 @@ quast,quast_10,spades_assembly.fasta megahit_assembly.fasta flye_assembly.fasta 
 r,r_01,Rscript analysis.R,run an R script non-interactively (analysis.R),programming
 r,r_02,Rscript analysis.R --input data.csv --output results.csv,"run an R script with command-line arguments (analysis.R, data.csv, results.csv)",programming
 r,r_03,"Rscript -e ""cat(paste(1:10, collapse=','), '\n')""",execute a one-liner R expression,programming
-r,r_04,"Rscript -e ""install.packages('ggplot2', repos='https://cloud.r-project.org', lib=Sys.getenv('R_LIBS_USER'))""",install a CRAN package into the user library,programming
-r,r_05,"Rscript -e ""BiocManager::install(c('DESeq2','edgeR'))""",install Bioconductor packages,programming
-r,r_06,"Rscript -e ""packageVersion('DESeq2')""",check installed package version,programming
+r,r_04,"Rscript -e ""install.packages('ggplot2', repos='https://cloud.r-project.org', lib=Sys.getenv('R_LIBS_USER'))""",install a CRAN package into the user library (ggplot2),programming
+r,r_05,"Rscript -e ""BiocManager::install(c('DESeq2','edgeR'))""","install Bioconductor packages (DESeq2, edgeR)",programming
+r,r_06,"Rscript -e ""packageVersion('DESeq2')""",check installed package version (DESeq2),programming
 r,r_07,"Rscript -e ""ip <- installed.packages(lib.loc=.libPaths()[1]); cat(paste(ip[,'Package'],ip[,'Version'],sep='='), sep='\n')""",list user-installed packages and their versions,programming
 r,r_08,Rscript --vanilla --quiet analysis.R,run R script suppressing startup messages (analysis.R),programming
 r,r_09,"Rscript -e "".libPaths()""",show R library paths,programming
-r,r_10,"Rscript -e ""rmarkdown::render('report.Rmd', output_format='html_document')""",render an Rmarkdown document to HTML,programming
+r,r_10,"Rscript -e ""rmarkdown::render('report.Rmd', output_format='html_document')""",render an Rmarkdown document to HTML (report.Rmd),programming
 racon,racon_01,-t 16 reads.fastq.gz mapping.paf draft_assembly.fasta > polished_round1.fasta,"run one round of Racon polishing on an ONT assembly (reads.fastq.gz, mapping.paf, draft_assembly.fasta, polished_round1.fasta)",assembly
 racon,racon_02,-t 16 reads.fastq.gz round2_mapping.paf polished_round1.fasta > polished_round2.fasta,"run second round of Racon polishing (reads.fastq.gz, round2_mapping.paf, polished_round1.fasta, polished_round2.fasta)",assembly
 racon,racon_03,-t 16 reads.fastq.gz alignment.sam draft_assembly.fasta > polished_assembly.fasta,"run Racon polishing using SAM alignment instead of PAF (reads.fastq.gz, alignment.sam, draft_assembly.fasta, polished_assembly.fasta)",assembly

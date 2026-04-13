@@ -28,18 +28,18 @@ source_url: "https://github.com/Illumina/manta"
 
 ## Examples
 
-### configure and run Manta germline SV calling
+### configure and run Manta germline SV calling (configureManta.py)
 **Args:** `configureManta.py --bam sorted.bam --referenceFasta reference.fa --runDir manta_output && python manta_output/runWorkflow.py -m local -j 8`
 **Explanation:** configure sets up runDir; execute with -m local and -j 8 threads; results in manta_output/results/variants/
 
-### run Manta somatic SV calling for tumor-normal pair
+### run Manta somatic SV calling for tumor-normal pair (configureManta.py)
 **Args:** `configureManta.py --normalBam normal.bam --tumorBam tumor.bam --referenceFasta reference.fa --runDir manta_somatic && python manta_somatic/runWorkflow.py -m local -j 8`
 **Explanation:** --normalBam and --tumorBam for somatic mode; outputs somaticSV.vcf.gz in results/variants/
 
-### run Manta on WES data with capture regions
+### run Manta on WES data with capture regions (configureManta.py)
 **Args:** `configureManta.py --bam sample.bam --referenceFasta reference.fa --exome --callRegions targets.bed.gz --runDir manta_wes && python manta_wes/runWorkflow.py -m local -j 8`
 **Explanation:** --exome adjusts parameters for WES; --callRegions restricts to target regions (bgzipped + tabix-indexed BED)
 
-### run Manta for RNA fusion detection
+### run Manta for RNA fusion detection (configureManta.py)
 **Args:** `configureManta.py --rna --bam rna_sorted.bam --referenceFasta reference.fa --runDir manta_rna && python manta_rna/runWorkflow.py -m local -j 8`
 **Explanation:** --rna mode detects RNA fusions; outputs rnaSV.vcf.gz

@@ -29,22 +29,22 @@ source_url: "https://github.com/bbuchfink/diamond"
 
 ## Examples
 
-### build a DIAMOND protein database from a FASTA file
+### build a DIAMOND protein database with makedb
 **Args:** `makedb --in nr.faa -d nr_diamond --threads 8`
 **Explanation:** --in protein FASTA; -d output database prefix; creates nr_diamond.dmnd
 
-### search protein sequences against a DIAMOND database (blastp)
+### search protein sequences against a DIAMOND database with blastp
 **Args:** `blastp -q proteins.faa -d nr_diamond -o blastp_results.tsv --outfmt 6 --threads 8 --evalue 1e-5`
 **Explanation:** -q query proteins; -d database; -o output; --outfmt 6 tabular; --evalue E-value cutoff
 
-### search DNA reads against protein database using blastx (translated search)
+### search DNA reads against protein database with blastx
 **Args:** `blastx -q reads.fastq.gz -d nr_diamond -o blastx_results.tsv --outfmt 6 --threads 16 --evalue 1e-5 --max-target-seqs 1`
 **Explanation:** blastx translates DNA to protein in all 6 frames; --max-target-seqs 1 keeps best hit per read
 
-### sensitive mode search with custom output fields
+### sensitive blastp search with custom output fields
 **Args:** `blastp -q proteins.faa -d uniprot_diamond -o detailed_results.tsv --outfmt '6 qseqid sseqid pident length evalue bitscore stitle' --more-sensitive --threads 8`
 **Explanation:** --more-sensitive for higher accuracy; custom --outfmt includes stitle (subject description)
 
-### search with taxonomy-aware output for functional annotation
+### taxonomy-aware blastx search for functional annotation
 **Args:** `blastx -q metagenome.faa -d nr_diamond --taxonmap prot.accession2taxid.gz --taxonnodes nodes.dmp -o results_tax.tsv --outfmt '6 qseqid sseqid pident evalue bitscore staxids sscinames' --threads 16`
 **Explanation:** --taxonmap and --taxonnodes enable taxonomy annotation; staxids/sscinames in output

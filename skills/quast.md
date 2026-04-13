@@ -37,7 +37,7 @@ source_url: "https://quast.sourceforge.net/"
 **Args:** `spades_assembly.fasta megahit_assembly.fasta flye_assembly.fasta -o assembly_comparison/ --threads 8`
 **Explanation:** multiple assembly FASTAs compared side-by-side; --no-icarus to skip large interactive browser
 
-### assess metagenome assembly quality with metaQUAST
+### assess metagenome assembly quality with metaquast.py
 **Args:** `metaquast.py -r reference1.fasta,reference2.fasta assembly.fasta -o metaquast_output/ --threads 16`
 **Explanation:** metaquast.py for metagenome assemblies; -r multiple references; or use --auto-ref for automatic
 

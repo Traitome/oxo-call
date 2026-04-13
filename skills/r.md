@@ -46,15 +46,15 @@ source_url: "https://www.r-project.org/"
 **Args:** `Rscript -e "cat(paste(1:10, collapse=','), '\n')"`
 **Explanation:** -e evaluates the expression directly without a script file; useful for quick computations and CI checks
 
-### install a CRAN package into the user library
+### install ggplot2 from CRAN into the user library
 **Args:** `Rscript -e "install.packages('ggplot2', repos='https://cloud.r-project.org', lib=Sys.getenv('R_LIBS_USER'))"`
 **Explanation:** specifying repos avoids interactive mirror selection; lib ensures installation to the user library path
 
-### install Bioconductor packages
+### install Bioconductor packages DESeq2 and edgeR
 **Args:** `Rscript -e "BiocManager::install(c('DESeq2','edgeR'))"`
 **Explanation:** BiocManager installs packages from Bioconductor; version must match installed R; use BiocManager::version() to check
 
-### check installed package version
+### check installed version of DESeq2
 **Args:** `Rscript -e "packageVersion('DESeq2')"`
 **Explanation:** prints the installed version of the named package; useful for reproducibility checks
 
@@ -70,7 +70,7 @@ source_url: "https://www.r-project.org/"
 **Args:** `Rscript -e ".libPaths()"`
 **Explanation:** prints the ordered list of library directories R searches for packages; first writable path is the user library
 
-### render an Rmarkdown document to HTML
+### render report.Rmd to HTML
 **Args:** `Rscript -e "rmarkdown::render('report.Rmd', output_format='html_document')"`
 **Explanation:** rmarkdown::render() knits the .Rmd file; output_format controls the output type; output written to the same directory
 
@@ -78,7 +78,7 @@ source_url: "https://www.r-project.org/"
 **Args:** `R --vanilla -f analysis.R --args input.csv`
 **Explanation:** -f reads a script file; --args passes positional arguments; --vanilla for clean reproducible execution
 
-### run R CMD BATCH for HPC cluster jobs
+### run analysis.R with R CMD BATCH for HPC cluster jobs
 **Args:** `R CMD BATCH --vanilla analysis.R analysis.Rout`
 **Explanation:** runs the script and captures all output to analysis.Rout; --vanilla ensures clean environment; standard pattern for LSF/SLURM jobs
 
@@ -90,6 +90,6 @@ source_url: "https://www.r-project.org/"
 **Args:** `Rscript -e "pak::pkg_install('user/repo')"`
 **Explanation:** pak resolves and installs the package from GitHub; faster than remotes::install_github for complex dependency trees
 
-### generate a PDF report from an Rmarkdown document
+### generate a PDF report from report.Rmd
 **Args:** `Rscript -e "rmarkdown::render('report.Rmd', output_format='pdf_document')"`
 **Explanation:** renders Rmd to PDF; requires a LaTeX installation (tinytex::install_tinytex() for lightweight setup)

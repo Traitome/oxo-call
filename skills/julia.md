@@ -44,7 +44,7 @@ source_url: "https://docs.julialang.org/"
 **Args:** `--threads auto script.jl`
 **Explanation:** --threads auto uses all available CPU cores; equivalent to setting JULIA_NUM_THREADS=auto before invoking Julia
 
-### install a package from the Julia REPL (batch mode)
+### install BioSequences package from the Julia REPL (batch mode)
 **Args:** `-e 'using Pkg; Pkg.add("BioSequences")'`
 **Explanation:** -e evaluates the expression; installs BioSequences into the currently active environment; prefer --project for reproducibility
 
@@ -52,7 +52,7 @@ source_url: "https://docs.julialang.org/"
 **Args:** `-e 'using Pkg; Pkg.status()'`
 **Explanation:** lists all installed packages with their versions in the active environment; useful for debugging dependency issues
 
-### add BioJulia packages for bioinformatics
+### add BioJulia packages BioSequences, FASTX, and GenomicFeatures
 **Args:** `-e 'using Pkg; Pkg.add(["BioSequences","FASTX","GenomicFeatures"])'`
 **Explanation:** installs multiple BioJulia packages in one call; packages are resolved together for compatible versions
 

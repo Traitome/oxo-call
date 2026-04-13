@@ -26,18 +26,18 @@ source_url: "https://github.com/NBISweden/AGAT"
 
 ## Examples
 
-### convert GFF3 to GTF format
+### convert GFF3 to GTF format with agat_convert_sp_gff2gtf.pl
 **Args:** `agat_convert_sp_gff2gtf.pl --gff annotation.gff3 -o annotation.gtf`
 **Explanation:** converts GFF3 to GTF; handles feature hierarchy; -o output GTF file
 
-### get annotation statistics from a GFF3 file
+### get annotation statistics with agat_sp_statistics.pl
 **Args:** `agat_sp_statistics.pl --gff annotation.gff3 -o statistics_report.txt`
 **Explanation:** outputs gene count, mRNA count, exon statistics, intron size distribution
 
-### filter genes by minimum length
+### filter genes by minimum length with agat_sp_filter_gene_by_length.pl
 **Args:** `agat_sp_filter_gene_by_length.pl --gff annotation.gff3 --size 300 -o filtered_annotation.gff3`
 **Explanation:** --size 300 keeps only genes ≥300 bp in length
 
-### fix and standardize a malformed GFF3 file
+### fix and standardize a malformed GFF3 file with agat_convert_sp_gxf2gxf.pl
 **Args:** `agat_convert_sp_gxf2gxf.pl -g malformed.gff3 -o fixed.gff3`
 **Explanation:** repairs common GFF3 errors, adds missing parent features, standardizes format
