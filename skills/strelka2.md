@@ -29,18 +29,18 @@ source_url: "https://github.com/Illumina/strelka"
 
 ## Examples
 
-### configure and run Strelka2 germline variant calling
+### configure and run Strelka2 germline variant calling (configureStrelkaGermlineWorkflow.py)
 **Args:** `configureStrelkaGermlineWorkflow.py --bam sorted.bam --referenceFasta reference.fa --runDir strelka_germline && python strelka_germline/runWorkflow.py -m local -j 8`
 **Explanation:** configure creates runDir; then execute with -m local for local machine execution and -j 8 threads
 
-### configure and run Strelka2 somatic variant calling for tumor-normal pair
+### configure and run Strelka2 somatic variant calling (configureStrelkaSomaticWorkflow.py)
 **Args:** `configureStrelkaSomaticWorkflow.py --normalBam normal.bam --tumourBam tumor.bam --referenceFasta reference.fa --runDir strelka_somatic && python strelka_somatic/runWorkflow.py -m local -j 8`
 **Explanation:** --normalBam and --tumourBam specify the matched normal and tumor BAM files
 
-### run Strelka2 germline on WES data with target regions
+### run Strelka2 germline on WES data with target regions (configureStrelkaGermlineWorkflow.py)
 **Args:** `configureStrelkaGermlineWorkflow.py --bam sorted.bam --referenceFasta reference.fa --exome --callRegions targets.bed.gz --runDir strelka_wes && python strelka_wes/runWorkflow.py -m local -j 8`
 **Explanation:** --exome adjusts for targeted sequencing; --callRegions restricts calling to target BED regions (bgzipped + tabix)
 
-### run Strelka2 somatic with Manta indel candidates for improved accuracy
+### run Strelka2 somatic with Manta indel candidates (configureStrelkaSomaticWorkflow.py)
 **Args:** `configureStrelkaSomaticWorkflow.py --normalBam normal.bam --tumourBam tumor.bam --referenceFasta reference.fa --indelCandidates manta_results/results/variants/candidateSmallIndels.vcf.gz --runDir strelka_with_manta && python strelka_with_manta/runWorkflow.py -m local -j 8`
 **Explanation:** --indelCandidates from Manta improves indel calling accuracy; Manta must be run first

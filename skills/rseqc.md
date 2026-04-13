@@ -30,23 +30,23 @@ source_url: "https://rseqc.sourceforge.net/"
 
 ## Examples
 
-### infer library strandedness from a BAM
+### infer library strandedness with infer_experiment.py
 **Args:** `infer_experiment.py -r hg38.bed -i sorted.bam -s 2000000`
 **Explanation:** -r provides the BED12 gene model; -s 2000000 samples 2M reads for accuracy; output shows fraction of reads supporting each strand orientation
 
-### get read distribution across genomic features
+### get read distribution with read_distribution.py
 **Args:** `read_distribution.py -r hg38.bed -i sorted.bam`
 **Explanation:** reports percentage of reads in CDS exon, UTR, intron, intergenic etc.; useful for detecting genomic contamination or rRNA enrichment
 
-### annotate splice junctions
+### annotate splice junctions with junction_annotation.py
 **Args:** `junction_annotation.py -r hg38.bed -i sorted.bam -o sample_junctions`
 **Explanation:** -o sets the output prefix; produces sample_junctions.junction.bed, .xls, .r, and .pdf files; classifies novel vs known junctions
 
-### check saturation of junction detection
+### check saturation of junction detection with junction_saturation.py
 **Args:** `junction_saturation.py -r hg38.bed -i sorted.bam -o sample_sat`
 **Explanation:** estimates how many more junctions would be discovered with more sequencing depth; plots detection saturation curve
 
-### compute BAM statistics
+### compute BAM statistics with bam_stat.py
 **Args:** `bam_stat.py -i sorted.bam`
 **Explanation:** prints total reads, mapped, paired, uniquely mapped, duplicates; quick sanity check for alignment success before downstream analysis
 
@@ -54,10 +54,10 @@ source_url: "https://rseqc.sourceforge.net/"
 **Args:** `tin.py -i sorted.bam -r hg38.bed`
 **Explanation:** computes TIN score per transcript (0-100); median TIN < 70 indicates RNA degradation; output tab-delimited; generates summary.txt and .xls
 
-### estimate inner distance for paired-end RNA-seq
+### estimate inner distance with inner_distance.py
 **Args:** `inner_distance.py -r hg38.bed -i sorted.bam -o inner_dist`
 **Explanation:** estimates fragment insert size distribution; output .pdf shows inner distance histogram; median value guides STAR/HISAT2 settings
 
-### check for read duplication rate
+### check read duplication rate with read_duplication.py
 **Args:** `read_duplication.py -i sorted.bam -o duplication`
 **Explanation:** plots read duplication rate by read occurrence count; high duplication (>50%) indicates over-amplification or low-complexity library
