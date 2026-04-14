@@ -609,7 +609,7 @@ impl LlmClient {
                     build_retry_prompt(tool, documentation, task, skill, &last_raw, no_prompt)
                 };
 
-                let raw = self.call_api(&user_prompt).await?;
+                let raw = self.call_api(&user_prompt, no_prompt).await?;
                 let mut suggestion = Self::parse_response(&raw)?;
 
                 // Post-process: strip accidental tool name prefix
@@ -724,8 +724,10 @@ impl LlmClient {
     }
 
     /// Make the raw API call and return the assistant message content.
-    async fn call_api(&self, user_prompt: &str) -> Result<String> {
-        self.request_with_system(system_prompt(), user_prompt, None, None)
+    /// When no_prompt is true (bare mode), no system prompt is sent to test raw LLM capability.
+    async fn call_api(&self, user_prompt: &str, no_prompt: bool) -> Result<String> {
+        let sys_prompt = if no_prompt { "" } else { system_prompt() };
+        self.request_with_system(sys_prompt, user_prompt, None, None)
             .await
     }
 
