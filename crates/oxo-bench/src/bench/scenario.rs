@@ -763,9 +763,10 @@ pub const SCENARIOS_PER_TOOL: usize = 10;
 /// If the skill has fewer than 10 examples the remaining slots are filled with
 /// synthesised variants that recombine flags from existing examples.
 ///
-/// Every scenario's `task_description` is enriched with file/path tokens
-/// extracted from `reference_args` so that the LLM has enough context to
-/// reproduce the exact filenames used in the reference command.
+/// File and path tokens in reference_args are **substituted** with alternative
+/// names to avoid information leakage from the original skill examples.  The
+/// task description is then enriched with the substituted names so the LLM has
+/// the correct filenames.
 pub fn generate_scenarios(skill: &SkillFile) -> Vec<Scenario> {
     let mut scenarios: Vec<Scenario> = skill
         .examples
@@ -796,6 +797,11 @@ pub fn generate_scenarios(skill: &SkillFile) -> Vec<Scenario> {
         }
     }
 
+    // ── Substitute file/path tokens to avoid information leakage ─────────
+    for scenario in &mut scenarios {
+        substitute_file_tokens(scenario);
+    }
+
     // ── Enrich task descriptions with file references ─────────────────────
     for scenario in &mut scenarios {
         scenario.task_description =
@@ -803,6 +809,162 @@ pub fn generate_scenarios(skill: &SkillFile) -> Vec<Scenario> {
     }
 
     scenarios
+}
+
+// ── File token substitution (anti-leakage) ───────────────────────────────────
+
+/// Alternative base names for file substitution, grouped by semantic role.
+/// These replace the original base names from skill.md examples so that
+/// benchmark scenarios use different (but realistic) file names.
+const ALT_BASES: &[&str] = &[
+    "sample",
+    "reads",
+    "genome",
+    "results",
+    "aligned",
+    "filtered",
+    "merged",
+    "variants",
+    "counts",
+    "matrix",
+    "report",
+    "analysis",
+    "processed",
+    "raw",
+    "reference",
+    "assembly",
+    "trimmed",
+    "sorted",
+    "annotated",
+    "mapping",
+];
+
+/// Deterministic hash for selecting alternative names.
+fn scenario_hash(input: &str) -> u64 {
+    let mut h: u64 = 14695981039346656037; // FNV-1a offset basis
+    for byte in input.bytes() {
+        h ^= byte as u64;
+        h = h.wrapping_mul(1099511628211); // FNV-1a prime
+    }
+    h
+}
+
+/// Generate an alternative base name for a file token, preserving the
+/// extension and any directory prefix.
+///
+/// E.g. `input.bam` → `sample.bam`, `data/reads.fastq.gz` → `data/mapping.fastq.gz`
+fn alternative_filename(original: &str, scenario_id: &str) -> String {
+    // Split off directory prefix if present.
+    let (dir_prefix, filename) = if let Some(pos) = original.rfind('/') {
+        (&original[..=pos], &original[pos + 1..])
+    } else {
+        ("", original)
+    };
+
+    // Split filename into base and extension(s).
+    // Handle compound extensions like .fastq.gz, .vcf.gz, .tar.gz
+    let (base, ext) = split_base_ext(filename);
+
+    // Pick an alternative base name deterministically.
+    let h = scenario_hash(&format!("{scenario_id}:{original}"));
+    let alt_base = ALT_BASES[h as usize % ALT_BASES.len()];
+
+    // Avoid collision: if the alternative is the same as the original base,
+    // pick the next one.
+    let alt_base = if alt_base == base {
+        ALT_BASES[(h as usize + 1) % ALT_BASES.len()]
+    } else {
+        alt_base
+    };
+
+    format!("{dir_prefix}{alt_base}{ext}")
+}
+
+/// Split a filename into (base, extension_including_dot).
+/// Handles compound extensions: "reads.fastq.gz" → ("reads", ".fastq.gz").
+fn split_base_ext(filename: &str) -> (&str, &str) {
+    // Known compound extensions (checked first).
+    let compound_exts = [
+        ".fastq.gz",
+        ".fasta.gz",
+        ".fa.gz",
+        ".fq.gz",
+        ".vcf.gz",
+        ".bed.gz",
+        ".gff.gz",
+        ".gtf.gz",
+        ".sam.gz",
+        ".tsv.gz",
+        ".csv.gz",
+        ".txt.gz",
+        ".tar.gz",
+        ".tar.bz2",
+        ".tar.xz",
+        ".saf.idx",
+        ".saf.gz",
+    ];
+
+    let lower = filename.to_lowercase();
+    for ext in &compound_exts {
+        if lower.ends_with(ext) {
+            let base_end = filename.len() - ext.len();
+            return (&filename[..base_end], &filename[base_end..]);
+        }
+    }
+
+    // Single extension.
+    if let Some(dot_pos) = filename.rfind('.') {
+        if dot_pos > 0 {
+            return (&filename[..dot_pos], &filename[dot_pos..]);
+        }
+    }
+
+    (filename, "")
+}
+
+/// Replace file/path tokens in a scenario's `reference_args` (and
+/// `task_description`) with alternative names to prevent information leakage
+/// from the original skill file examples.
+///
+/// The substitution is deterministic (based on the scenario_id) so that the
+/// benchmark is fully reproducible.
+fn substitute_file_tokens(scenario: &mut Scenario) {
+    let file_tokens = extract_file_tokens(&scenario.reference_args);
+    if file_tokens.is_empty() {
+        return;
+    }
+
+    // Build the substitution map (original → alternative).
+    let mut subs: Vec<(String, String)> = Vec::new();
+    for token in &file_tokens {
+        let alt = alternative_filename(token, &scenario.scenario_id);
+        if alt != *token {
+            subs.push((token.clone(), alt));
+        }
+    }
+
+    if subs.is_empty() {
+        return;
+    }
+
+    // Sort by decreasing length so that longer paths are replaced first
+    // (e.g. "data/input.bam" before "input.bam").
+    subs.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
+
+    // Apply substitutions to reference_args.
+    let mut new_args = scenario.reference_args.clone();
+    for (from, to) in &subs {
+        new_args = new_args.replace(from.as_str(), to.as_str());
+    }
+    scenario.reference_args = new_args;
+
+    // Also apply to task_description (file names may be embedded in the task
+    // text, e.g. "sort input.bam by coordinate").
+    let mut new_task = scenario.task_description.clone();
+    for (from, to) in &subs {
+        new_task = new_task.replace(from.as_str(), to.as_str());
+    }
+    scenario.task_description = new_task;
 }
 
 /// Synthetic variant types used to pad scenarios to [`SCENARIOS_PER_TOOL`].
@@ -1163,11 +1325,10 @@ source_url: "https://example.com"
             "should always produce exactly {} scenarios",
             SCENARIOS_PER_TOOL
         );
-        // First 5 come from the original examples.
-        assert_eq!(
-            scenarios[0].reference_args,
-            "analyze -i input.txt -o output.txt"
-        );
+        // First 5 come from the original examples (with substituted file names).
+        // Verify the args contain the expected flags (the file names are substituted).
+        assert!(scenarios[0].reference_args.contains("analyze -i "));
+        assert!(scenarios[0].reference_args.contains(".txt"));
         // All scenario IDs are unique.
         let ids: std::collections::HashSet<&str> =
             scenarios.iter().map(|s| s.scenario_id.as_str()).collect();
@@ -1657,14 +1818,23 @@ source_url: "https://example.com"
     fn test_generate_scenarios_enriches_tasks() {
         let skill = parse_skill_file(SAMPLE_SKILL).unwrap();
         let scenarios = generate_scenarios(&skill);
-        // First scenario: task "run basic analysis on input.txt",
-        // args "analyze -i input.txt -o output.txt".
-        // input.txt is in the task already; output.txt is not → enriched.
-        assert!(
-            scenarios[0].task_description.contains("output.txt"),
-            "task should be enriched with missing output.txt, got: {}",
-            scenarios[0].task_description
-        );
+        // First scenario: original task was "run basic analysis on input.txt",
+        // args were "analyze -i input.txt -o output.txt".
+        // After substitution, file names change but extensions stay .txt.
+        // The enrichment step adds any file tokens from args that are missing
+        // from the task description.
+        let task = &scenarios[0].task_description;
+        let args = &scenarios[0].reference_args;
+        // All file tokens from args should appear in the enriched task.
+        let file_tokens = extract_file_tokens(args);
+        for ft in &file_tokens {
+            assert!(
+                task.contains(ft.as_str()),
+                "task should contain substituted file '{}', got: {}",
+                ft,
+                task
+            );
+        }
     }
 
     #[test]
@@ -1672,15 +1842,21 @@ source_url: "https://example.com"
         let skill = parse_skill_file(SAMPLE_SKILL).unwrap();
         let scenarios = generate_scenarios(&skill);
         let descs = generate_descriptions(&scenarios[0]);
-        // All description variants should contain the file reference.
-        for d in &descs {
-            assert!(
-                d.description.contains("output.txt"),
-                "description '{}' (level={}) should contain output.txt",
-                d.description,
-                d.user_level
-            );
-        }
+        // Extract file tokens from the scenario's reference_args.
+        let file_tokens = extract_file_tokens(&scenarios[0].reference_args);
+        assert!(!file_tokens.is_empty(), "should have file tokens in args");
+        // All description variants that include the full task should
+        // contain at least one of the file tokens from the enriched task.
+        let has_any_file = descs.iter().all(|d| {
+            file_tokens
+                .iter()
+                .any(|ft| d.description.contains(ft.as_str()))
+                || d.user_level == "expert" // expert level strips filler words
+        });
+        assert!(
+            has_any_file,
+            "descriptions should propagate file references from enriched tasks"
+        );
     }
 
     // ── Package / identifier extraction tests ────────────────────────────────
@@ -1828,5 +2004,141 @@ source_url: "https://example.com"
             "enriched task should mention report.Rmd, got: {}",
             result
         );
+    }
+
+    // ── File token substitution tests ────────────────────────────────────────
+
+    #[test]
+    fn test_split_base_ext_simple() {
+        let (base, ext) = split_base_ext("input.bam");
+        assert_eq!(base, "input");
+        assert_eq!(ext, ".bam");
+    }
+
+    #[test]
+    fn test_split_base_ext_compound() {
+        let (base, ext) = split_base_ext("reads.fastq.gz");
+        assert_eq!(base, "reads");
+        assert_eq!(ext, ".fastq.gz");
+    }
+
+    #[test]
+    fn test_split_base_ext_no_ext() {
+        let (base, ext) = split_base_ext("noext");
+        assert_eq!(base, "noext");
+        assert_eq!(ext, "");
+    }
+
+    #[test]
+    fn test_alternative_filename_preserves_extension() {
+        let alt = alternative_filename("input.bam", "samtools_01");
+        assert!(
+            alt.ends_with(".bam"),
+            "should preserve .bam extension: {alt}"
+        );
+        assert_ne!(alt, "input.bam", "should differ from original");
+    }
+
+    #[test]
+    fn test_alternative_filename_compound_extension() {
+        let alt = alternative_filename("reads.fastq.gz", "bwa_01");
+        assert!(
+            alt.ends_with(".fastq.gz"),
+            "should preserve .fastq.gz: {alt}"
+        );
+        assert_ne!(alt, "reads.fastq.gz");
+    }
+
+    #[test]
+    fn test_alternative_filename_preserves_directory() {
+        let alt = alternative_filename("data/input.bam", "samtools_01");
+        assert!(alt.starts_with("data/"), "should preserve directory: {alt}");
+        assert!(alt.ends_with(".bam"));
+    }
+
+    #[test]
+    fn test_alternative_filename_deterministic() {
+        let a1 = alternative_filename("input.bam", "samtools_01");
+        let a2 = alternative_filename("input.bam", "samtools_01");
+        assert_eq!(a1, a2, "should be deterministic");
+    }
+
+    #[test]
+    fn test_substitute_file_tokens_changes_filenames() {
+        let mut scenario = Scenario {
+            tool: "samtools".to_string(),
+            scenario_id: "samtools_01".to_string(),
+            reference_args: "sort -o sorted.bam input.bam".to_string(),
+            task_description: "sort input.bam by genomic coordinates".to_string(),
+            category: "alignment".to_string(),
+        };
+        let original_args = scenario.reference_args.clone();
+        substitute_file_tokens(&mut scenario);
+        // File names should be different from originals.
+        assert_ne!(
+            scenario.reference_args, original_args,
+            "file tokens should be substituted"
+        );
+        // Extensions should be preserved.
+        assert!(
+            scenario.reference_args.contains(".bam"),
+            "should still contain .bam extension"
+        );
+        // Flags should be preserved.
+        assert!(
+            scenario.reference_args.contains("sort -o "),
+            "flags should be preserved"
+        );
+    }
+
+    #[test]
+    fn test_substitute_file_tokens_updates_task_description() {
+        let mut scenario = Scenario {
+            tool: "samtools".to_string(),
+            scenario_id: "samtools_02".to_string(),
+            reference_args: "sort -o sorted.bam input.bam".to_string(),
+            task_description: "sort input.bam by coordinate".to_string(),
+            category: "alignment".to_string(),
+        };
+        substitute_file_tokens(&mut scenario);
+        // Task description should not mention the original file names.
+        assert!(
+            !scenario.task_description.contains("input.bam"),
+            "task should not contain original filename: {}",
+            scenario.task_description
+        );
+    }
+
+    #[test]
+    fn test_substitute_preserves_args_without_files() {
+        let mut scenario = Scenario {
+            tool: "date".to_string(),
+            scenario_id: "date_01".to_string(),
+            reference_args: "+%Y-%m-%d".to_string(),
+            task_description: "show current date".to_string(),
+            category: "utility".to_string(),
+        };
+        let original_args = scenario.reference_args.clone();
+        substitute_file_tokens(&mut scenario);
+        assert_eq!(
+            scenario.reference_args, original_args,
+            "args without file tokens should be unchanged"
+        );
+    }
+
+    #[test]
+    fn test_generate_scenarios_substitutes_files() {
+        let skill = parse_skill_file(SAMPLE_SKILL).unwrap();
+        let scenarios = generate_scenarios(&skill);
+        // The original skill has "input.txt" in examples — after substitution,
+        // scenarios should NOT contain "input.txt".
+        for s in &scenarios {
+            assert!(
+                !s.reference_args.contains("input.txt"),
+                "scenario {} should not contain original filename 'input.txt': {}",
+                s.scenario_id,
+                s.reference_args
+            );
+        }
     }
 }
