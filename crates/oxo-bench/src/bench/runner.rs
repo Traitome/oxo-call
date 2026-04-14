@@ -902,10 +902,12 @@ pub fn write_model_agg_csv<W: Write>(
 }
 
 fn csv_escape(field: &str) -> String {
-    if field.contains(',') || field.contains('"') || field.contains('\n') {
-        format!("\"{}\"", field.replace('"', "\"\""))
+    // Normalize newlines and carriage returns to spaces to prevent CSV corruption
+    let normalized = field.replace('\r', " ").replace('\n', " ");
+    if normalized.contains(',') || normalized.contains('"') {
+        format!("\"{}\"", normalized.replace('"', "\"\""))
     } else {
-        field.to_string()
+        normalized
     }
 }
 
