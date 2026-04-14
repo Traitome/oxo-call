@@ -104,11 +104,25 @@ When `--json` is used for a single-item dry-run, the output is a JSON object:
   "command": "samtools flagstat input.bam",
   "args": ["flagstat", "input.bam"],
   "explanation": "Generates alignment statistics for the BAM file",
+  "inference_ms": 342.5,
   "dry_run": true,
   "skill": "samtools",
   "model": "gpt-4o"
 }
 ```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tool` | string | Tool name |
+| `task` | string | Original task description |
+| `effective_task` | string | Task after `--optimize-task` (same as `task` if unused) |
+| `command` | string | Full shell command (tool + args) |
+| `args` | array | Argument tokens (without tool name prefix) |
+| `explanation` | string | LLM-generated explanation |
+| `inference_ms` | number | Time (ms) spent in LLM API inference (sum of all retries) |
+| `dry_run` | boolean | Always `true` |
+| `skill` | string/null | Matched skill file name |
+| `model` | string | LLM model used |
 
 For batch dry-run (`--input-list` / `--input-items`) with `--json`:
 
