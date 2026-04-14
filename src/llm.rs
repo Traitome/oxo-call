@@ -1018,9 +1018,10 @@ impl LlmClient {
         let mut explanation_line = String::new();
 
         for line in raw.lines() {
-            if let Some(rest) = line.strip_prefix("ARGS:") {
+            let trimmed = line.trim_start();
+            if let Some(rest) = trimmed.strip_prefix("ARGS:") {
                 args_line = rest.trim().to_string();
-            } else if let Some(rest) = line.strip_prefix("EXPLANATION:") {
+            } else if let Some(rest) = trimmed.strip_prefix("EXPLANATION:") {
                 explanation_line = rest.trim().to_string();
             }
         }
@@ -1044,8 +1045,9 @@ impl LlmClient {
 
 /// Check whether a suggestion looks valid enough to return without retrying.
 fn is_valid_suggestion(suggestion: &LlmCommandSuggestion) -> bool {
-    // At minimum we need an explanation (ARGS can legitimately be empty)
-    !suggestion.explanation.is_empty()
+    // Require both explanation and non-empty args to be considered valid.
+    // Empty args usually indicates the LLM failed to follow the output format.
+    !suggestion.explanation.is_empty() && !suggestion.args.is_empty()
 }
 
 /// Post-process LLM-generated args to fix common mistakes:
