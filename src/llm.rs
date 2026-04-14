@@ -13,6 +13,9 @@ pub struct LlmCommandSuggestion {
     pub explanation: String,
     #[allow(dead_code)]
     pub raw_response: String,
+    /// Cumulative time (ms) spent in LLM API inference calls for this
+    /// suggestion.  When retries occur, all attempts are summed.
+    pub inference_ms: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -601,6 +604,7 @@ impl LlmClient {
             const MAX_RETRIES: usize = 2;
 
             let mut last_raw = String::new();
+            let mut total_inference_ms: f64 = 0.0;
 
             for attempt in 0..=MAX_RETRIES {
                 let user_prompt = if attempt == 0 {
@@ -609,8 +613,12 @@ impl LlmClient {
                     build_retry_prompt(tool, documentation, task, skill, &last_raw, no_prompt)
                 };
 
+                let api_start = std::time::Instant::now();
                 let raw = self.call_api(&user_prompt, no_prompt).await?;
+                total_inference_ms += api_start.elapsed().as_secs_f64() * 1000.0;
+
                 let mut suggestion = Self::parse_response(&raw)?;
+                suggestion.inference_ms = total_inference_ms;
 
                 // Post-process: strip accidental tool name prefix
                 suggestion.args = sanitize_args(tool, suggestion.args);
@@ -1039,6 +1047,7 @@ impl LlmClient {
             args,
             explanation: explanation_line,
             raw_response: raw.to_string(),
+            inference_ms: 0.0, // Set by caller (suggest_command)
         })
     }
 }
@@ -1314,6 +1323,7 @@ mod tests {
             explanation: "Sort the BAM file by coordinate.".to_string(),
             raw_response: "ARGS: -o out.bam\nEXPLANATION: Sort the BAM file by coordinate."
                 .to_string(),
+            inference_ms: 0.0,
         };
         assert!(is_valid_suggestion(&s));
     }
@@ -1324,19 +1334,21 @@ mod tests {
             args: vec!["-o".to_string()],
             explanation: String::new(),
             raw_response: "ARGS: -o\nEXPLANATION:".to_string(),
+            inference_ms: 0.0,
         };
         assert!(!is_valid_suggestion(&s));
     }
 
     #[test]
-    fn test_is_valid_suggestion_empty_args_but_has_explanation() {
+    fn test_is_valid_suggestion_empty_args_is_invalid() {
         let s = LlmCommandSuggestion {
             args: vec![],
             explanation: "Run the tool with default arguments.".to_string(),
             raw_response: "ARGS:\nEXPLANATION: Run the tool with default arguments.".to_string(),
+            inference_ms: 0.0,
         };
-        // ARGS can be empty, explanation is what matters
-        assert!(is_valid_suggestion(&s));
+        // Empty args means the LLM failed to follow the output format.
+        assert!(!is_valid_suggestion(&s));
     }
 
     // ─── LlmRunVerification struct ────────────────────────────────────────────
@@ -1732,6 +1744,7 @@ mod tests {
             args: vec!["sort".to_string()],
             explanation: "sort it".to_string(),
             raw_response: "raw".to_string(),
+            inference_ms: 0.0,
         };
         let dbg = format!("{s:?}");
         assert!(dbg.contains("sort"));
