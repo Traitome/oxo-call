@@ -2089,6 +2089,31 @@ impl IncrementalCsvWriter {
     pub fn new(output_dir: &std::path::Path) -> std::io::Result<Self> {
         std::fs::create_dir_all(output_dir)?;
 
+        // Clean up existing result files to avoid data duplication
+        let files_to_clean = [
+            "benchmark_trials.csv",
+            "model_summary.csv",
+            "model_summary_by_tool.csv",
+            "model_summary_by_category.csv",
+            "error_analysis.csv",
+        ];
+        for filename in &files_to_clean {
+            let path = output_dir.join(filename);
+            if path.exists() {
+                std::fs::remove_file(&path)?;
+            }
+        }
+        // Also clean up any existing trials_*.csv files
+        if let Ok(entries) = std::fs::read_dir(output_dir) {
+            for entry in entries.flatten() {
+                if let Ok(name) = entry.file_name().into_string() {
+                    if name.starts_with("trials_") && name.ends_with(".csv") {
+                        let _ = std::fs::remove_file(entry.path());
+                    }
+                }
+            }
+        }
+
         let trials_path = output_dir.join("benchmark_trials.csv");
         let mut trials_file = std::fs::File::create(&trials_path)?;
         writeln!(
@@ -2136,8 +2161,35 @@ impl IncrementalCsvWriter {
 
     pub fn write_model_summary(&self, agg: &[ModelAggResult]) -> std::io::Result<()> {
         let path = self.output_dir.join("model_summary.csv");
-        let mut file = std::fs::File::create(&path)?;
-        write_model_agg_csv(&mut file, agg)?;
+        let file_exists = path.exists() && path.metadata().map(|m| m.len() > 0).unwrap_or(false);
+
+        let mut file = if file_exists {
+            std::fs::OpenOptions::new().append(true).open(&path)?
+        } else {
+            std::fs::File::create(&path)?
+        };
+
+        // Write only data rows (skip header if file already exists)
+        for a in agg {
+            writeln!(
+                file,
+                "{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.1},{:.1},{:.4}",
+                a.model,
+                a.ablation,
+                a.n_trials,
+                a.accuracy,
+                a.exact_match_rate,
+                a.avg_flag_recall,
+                a.avg_flag_precision,
+                a.avg_token_jaccard,
+                a.subcommand_match_rate,
+                a.consistency,
+                a.avg_latency_ms,
+                a.avg_tokens,
+                a.format_valid_rate,
+            )?;
+        }
+        file.sync_all()?;
         Ok(())
     }
 
