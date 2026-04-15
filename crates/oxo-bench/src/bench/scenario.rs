@@ -753,6 +753,110 @@ pub fn enrich_task_with_files(task: &str, args: &str) -> String {
     format!("{} ({})", task, deduped.join(", "))
 }
 
+// ── Shell metacharacter stripping ─────────────────────────────────────────────
+
+/// Strip shell metacharacters from a reference-args string to produce a clean
+/// single-command invocation suitable for benchmark evaluation.
+///
+/// Specifically:
+/// - **Pipes** (`|`): only the first command in the pipeline is kept
+///   (e.g. `mpileup -f ref.fa input.bam | call -m` → `mpileup -f ref.fa input.bam`).
+/// - **Output redirections** (`>`, `>>`, `2>`, `2>>`): the redirection and its
+///   target are removed.
+/// - **Input redirections** (`<`): the `<` operator is removed but the file
+///   target is kept (it becomes a positional argument).
+/// - **Tee** (`| tee file`): treated as a pipe and removed.
+/// - **Subshell / process substitution** is left as-is when inside quotes
+///   (the shell_tokenize function handles this).
+///
+/// The function preserves content inside single- and double-quoted strings
+/// to avoid mangling embedded shell commands (e.g. `awk '{print $1}'`).
+pub fn strip_shell_metacharacters(args: &str) -> String {
+    // Step 1: Truncate at the first unquoted pipe `|`.
+    let truncated = truncate_at_pipe(args);
+
+    // Step 2: Remove output redirections (>, >>, 2>, 2>>).
+    let cleaned = remove_redirections(truncated.trim());
+
+    cleaned.trim().to_string()
+}
+
+/// Truncate a command string at the first unquoted pipe (`|`).
+///
+/// Handles single- and double-quoted strings so that pipes inside quotes
+/// (e.g. `awk -F'|' '{print $1}'`) are not treated as pipeline separators.
+fn truncate_at_pipe(s: &str) -> &str {
+    let mut in_single = false;
+    let mut in_double = false;
+
+    for (i, ch) in s.char_indices() {
+        match ch {
+            '\'' if !in_double => in_single = !in_single,
+            '"' if !in_single => in_double = !in_double,
+            '|' if !in_single && !in_double => return &s[..i],
+            _ => {}
+        }
+    }
+    s
+}
+
+/// Remove output-redirection operators and their target tokens.
+///
+/// Handles `>file`, `> file`, `>>file`, `>> file`, `2>file`, `2> file`,
+/// `2>>file`, and `2>> file`.  The `<` (input redirect) operator is removed
+/// but its target is kept as a positional argument.
+fn remove_redirections(s: &str) -> String {
+    let tokens = shell_tokenize(s);
+    let mut result = Vec::new();
+    let mut skip_next = false;
+
+    for (i, token) in tokens.iter().enumerate() {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+
+        let t = token.as_str();
+
+        // Patterns: ">", ">>", "2>", "2>>" — skip this token and the next one
+        if t == ">" || t == ">>" || t == "2>" || t == "2>>" {
+            skip_next = true;
+            continue;
+        }
+
+        // Pattern: ">file" or ">>file" — skip entire token
+        if t.starts_with(">>") || (t.starts_with('>') && t.len() > 1) {
+            continue;
+        }
+
+        // Pattern: "2>file" or "2>>file" — skip entire token
+        if t.starts_with("2>>") || (t.starts_with("2>") && t.len() > 2) {
+            continue;
+        }
+
+        // Pattern: "<" — remove the operator but keep the target file
+        if t == "<" {
+            // Keep the next token (the file) as a positional argument
+            continue;
+        }
+
+        // Pattern: "<file" — strip the < prefix, keep the file
+        if t.starts_with('<') && t.len() > 1 {
+            let file = &t[1..];
+            // Check next isn't also consumed
+            if !file.is_empty() {
+                result.push(file.to_string());
+            }
+            continue;
+        }
+
+        let _ = i; // suppress unused warning
+        result.push(token.clone());
+    }
+
+    result.join(" ")
+}
+
 // ── Scenario generation ──────────────────────────────────────────────────────
 
 /// Number of scenarios to generate per tool.
@@ -776,7 +880,7 @@ pub fn generate_scenarios(skill: &SkillFile) -> Vec<Scenario> {
         .map(|(i, ex)| Scenario {
             tool: skill.name.clone(),
             scenario_id: format!("{}_{:02}", skill.name, i + 1),
-            reference_args: ex.args.clone(),
+            reference_args: strip_shell_metacharacters(&ex.args),
             task_description: ex.task.clone(),
             category: skill.category.clone(),
         })
@@ -1316,11 +1420,13 @@ pub fn write_descriptions_csv<W: Write>(
 }
 
 /// RFC 4180 CSV field escaping: double any internal quotes and wrap in quotes.
+/// Also normalises carriage returns to prevent CSV corruption.
 fn csv_escape(field: &str) -> String {
-    if field.contains(',') || field.contains('"') || field.contains('\n') {
-        format!("\"{}\"", field.replace('"', "\"\""))
+    let normalized = field.replace('\r', " ");
+    if normalized.contains(',') || normalized.contains('"') || normalized.contains('\n') {
+        format!("\"{}\"", normalized.replace('"', "\"\""))
     } else {
-        field.to_string()
+        normalized
     }
 }
 
@@ -2241,5 +2347,70 @@ source_url: "https://example.com"
                 "variant idx={idx} must not modify reference_args"
             );
         }
+    }
+
+    // ── Shell metacharacter stripping tests ──────────────────────────────────
+
+    #[test]
+    fn test_strip_shell_metacharacters_no_change() {
+        assert_eq!(
+            strip_shell_metacharacters("sort -@ 4 -o sorted.bam input.bam"),
+            "sort -@ 4 -o sorted.bam input.bam"
+        );
+    }
+
+    #[test]
+    fn test_strip_shell_metacharacters_pipe() {
+        assert_eq!(
+            strip_shell_metacharacters("mpileup -f ref.fa input.bam | bcftools call -m"),
+            "mpileup -f ref.fa input.bam"
+        );
+    }
+
+    #[test]
+    fn test_strip_shell_metacharacters_redirect() {
+        assert_eq!(
+            strip_shell_metacharacters("sort -@ 4 input.bam > sorted.bam"),
+            "sort -@ 4 input.bam"
+        );
+    }
+
+    #[test]
+    fn test_strip_shell_metacharacters_pipe_and_redirect() {
+        assert_eq!(
+            strip_shell_metacharacters("view -bS input.sam | sort -o sorted.bam > /dev/null"),
+            "view -bS input.sam"
+        );
+    }
+
+    #[test]
+    fn test_strip_shell_metacharacters_preserves_quoted_pipe() {
+        // Pipes inside quotes should not be treated as shell operators.
+        assert_eq!(
+            strip_shell_metacharacters("awk -F'|' '{print $1}' input.txt"),
+            "awk -F'|' '{print $1}' input.txt"
+        );
+    }
+
+    #[test]
+    fn test_strip_shell_metacharacters_stderr_redirect() {
+        assert_eq!(
+            strip_shell_metacharacters("run -i input.bam 2> error.log"),
+            "run -i input.bam"
+        );
+    }
+
+    #[test]
+    fn test_strip_shell_metacharacters_append_redirect() {
+        assert_eq!(
+            strip_shell_metacharacters("run -i input.bam >> output.log"),
+            "run -i input.bam"
+        );
+    }
+
+    #[test]
+    fn test_csv_escape_carriage_return() {
+        let result = csv_escape("hello\rworld");
+        assert_eq!(result, "hello world");
     }
 }
