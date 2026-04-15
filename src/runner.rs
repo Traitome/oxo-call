@@ -299,13 +299,17 @@ impl Runner {
             } else if !self.no_skill {
                 eprintln!("{} No skill found for '{}'", "[verbose]".dimmed(), tool);
             }
+            let ctx_window = self.config.effective_context_window();
+            let tier = crate::llm::prompt_tier(ctx_window);
             eprintln!(
-                "{} LLM: provider={}, model={}, max_tokens={}, temperature={}",
+                "{} LLM: provider={}, model={}, max_tokens={}, temperature={}, context_window={}, prompt_tier={:?}",
                 "[verbose]".dimmed(),
                 self.config.effective_provider(),
                 self.config.effective_model(),
                 self.config.effective_max_tokens().unwrap_or(2048),
-                self.config.effective_temperature().unwrap_or(0.0)
+                self.config.effective_temperature().unwrap_or(0.0),
+                ctx_window,
+                tier
             );
         }
 

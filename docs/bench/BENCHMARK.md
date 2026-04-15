@@ -380,6 +380,20 @@ augmentation components:
 
 *Observed component contribution figures will be reported after real API evaluation.*
 
+### 8.2 Adaptive Prompt Compression
+
+For models with limited context windows (e.g. Ollama mini models), oxo-call
+automatically compresses prompts to fit the available budget:
+
+| Tier | Context Window | Strategy |
+|------|---------------|----------|
+| Full | ≥ 16,384 tokens | No compression; full system prompt + all skill examples + full docs |
+| Medium | 4,096 – 16,383 | Full system prompt; ≤ 5 skill examples; docs truncated to fit |
+| Compact | ≤ 4,095 | Ultra-compact system prompt (~200 chars); top-3 examples + 3 concepts + 2 pitfalls; docs heavily truncated |
+
+The context window is configurable via `llm.context_window` or auto-detected
+from model name patterns (e.g. `:0.5b` → 2,048, `:16b` → 8,192).
+
 ---
 
 ## 9. Error Analysis

@@ -181,3 +181,54 @@ This approach is critical for accuracy, especially with:
 - Complex tools with hundreds of options
 - Tools with version-specific flag differences
 - Smaller or weaker LLM models
+
+## Adaptive Prompt Compression
+
+When `llm.context_window` is configured (or auto-detected from the model
+name), oxo-call automatically compresses prompts to fit the model's context
+budget.  Three tiers are used:
+
+| Tier | Context Window | System Prompt | Skill Examples | Documentation | Format Instructions |
+|------|---------------|---------------|----------------|---------------|---------------------|
+| **Full** | ≥ 16k or unknown | Full (16 rules) | All (up to 10) | Full | Full |
+| **Medium** | 4k – 16k | Full | Up to 5 | Truncated to fit | Compact |
+| **Compact** | ≤ 4k | Ultra-compact (3 rules) | Top 3 only, 3 concepts, 2 pitfalls | Heavily truncated or omitted | Minimal |
+
+### Auto-Detection
+
+The context window is inferred from common model name patterns:
+
+| Model Name Pattern | Detected Context | Tier |
+|-------------------|-----------------|------|
+| `qwen2.5-coder:0.5b`, `phi-3:3b` | 2,048 | Compact |
+| `llama3:8b`, `deepseek-coder-v2:16b` | 8,192 | Medium |
+| `qwen2.5:72b`, `llama3:70b` | 32,768 | Full |
+| `gpt-4o`, `gpt-5-mini` | 128,000 | Full |
+| `claude-3-5-sonnet` | 200,000 | Full |
+
+### Manual Configuration
+
+Override auto-detection in `config.toml`:
+
+```toml
+[llm]
+context_window = 4096   # force Medium tier
+```
+
+Or set per-invocation:
+
+```bash
+oxo-call config set llm.context_window 2048
+```
+
+### Design Rationale
+
+Mini models (≤ 3B parameters) suffer from **context overflow** — when the
+prompt exceeds their effective context, the output quality degrades sharply
+(empty output, format violations, hallucinated flags).  The Compact tier
+addresses this by:
+
+1. **Reducing system prompt** from ~1,600 to ~200 characters
+2. **Limiting to 3 most-relevant examples** instead of all 5–10
+3. **Truncating documentation** to fit remaining budget
+4. **Simplifying format instructions** to the essentials (`ARGS:` / `EXPLANATION:`)

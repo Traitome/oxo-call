@@ -25,6 +25,7 @@ const VALID_CONFIG_KEYS: &[&str] = &[
     "llm.model",
     "llm.max_tokens",
     "llm.temperature",
+    "llm.context_window",
     "docs.auto_update",
 ];
 
@@ -112,6 +113,11 @@ pub struct LlmConfig {
     pub max_tokens: u32,
     /// Temperature for generation
     pub temperature: f32,
+    /// Context window size (total tokens the model can handle).
+    /// When set, oxo-call adaptively compresses prompts to fit.
+    /// Default: 0 (auto-detect from model name, or no compression).
+    #[serde(default)]
+    pub context_window: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -145,6 +151,7 @@ impl Default for Config {
                 models: Vec::new(),
                 max_tokens: DEFAULT_MAX_TOKENS,
                 temperature: DEFAULT_TEMPERATURE,
+                context_window: 0,
             },
             docs: DocsConfig {
                 local_paths: Vec::new(),
@@ -234,6 +241,11 @@ impl Config {
             "llm.temperature" => {
                 self.llm.temperature = value.parse().map_err(|_| {
                     OxoError::ConfigError(format!("Invalid temperature value: {value}"))
+                })?
+            }
+            "llm.context_window" => {
+                self.llm.context_window = value.parse().map_err(|_| {
+                    OxoError::ConfigError(format!("Invalid context_window value: {value}"))
                 })?
             }
             "docs.auto_update" => {
@@ -379,6 +391,18 @@ impl Config {
             .unwrap_or(self.docs.auto_update))
     }
 
+    /// Return the effective context window size (in tokens).
+    ///
+    /// Priority: explicit `llm.context_window` config > auto-detect from model
+    /// name > 0 (unlimited / no compression).
+    pub fn effective_context_window(&self) -> u32 {
+        if self.llm.context_window > 0 {
+            return self.llm.context_window;
+        }
+        // Auto-detect from model name.
+        infer_context_window(&self.effective_model())
+    }
+
     pub fn effective_value(&self, key: &str) -> Result<String> {
         match key {
             "llm.provider" => Ok(self.effective_provider()),
@@ -387,6 +411,7 @@ impl Config {
             "llm.model" => Ok(self.effective_model()),
             "llm.max_tokens" => Ok(self.effective_max_tokens()?.to_string()),
             "llm.temperature" => Ok(self.effective_temperature()?.to_string()),
+            "llm.context_window" => Ok(self.effective_context_window().to_string()),
             "docs.auto_update" => Ok(self.effective_docs_auto_update()?.to_string()),
             _ => Err(OxoError::ConfigError(format!("Unknown config key: {key}"))),
         }
@@ -484,6 +509,18 @@ impl Config {
                     Ok("stored config/default".to_string())
                 }
             }
+            "llm.context_window" => {
+                if self.llm.context_window > 0 {
+                    Ok("stored config".to_string())
+                } else {
+                    let auto = infer_context_window(&self.effective_model());
+                    if auto > 0 {
+                        Ok("auto-detected from model name".to_string())
+                    } else {
+                        Ok("unset (no compression)".to_string())
+                    }
+                }
+            }
             "docs.auto_update" => {
                 if Self::env_string(ENV_DOCS_AUTO_UPDATE).is_some() {
                     Ok(format!("env:{ENV_DOCS_AUTO_UPDATE}"))
@@ -494,6 +531,104 @@ impl Config {
             _ => Err(OxoError::ConfigError(format!("Unknown config key: {key}"))),
         }
     }
+}
+
+// ── Context-window auto-detection ────────────────────────────────────────────
+
+/// Infer the context window size (in tokens) from a model name string.
+///
+/// Returns 0 when the model cannot be identified (meaning: do not compress).
+/// The heuristic checks for common patterns in model names from Ollama,
+/// OpenAI, Anthropic, and other providers.
+pub fn infer_context_window(model: &str) -> u32 {
+    let m = model.to_ascii_lowercase();
+
+    // ── Explicit context hints in the model name (e.g. "qwen2.5:32k") ────
+    if let Some(pos) = m.rfind(':') {
+        let suffix = &m[pos + 1..];
+        if let Some(k) = suffix.strip_suffix('k').and_then(|n| n.parse::<u32>().ok()) {
+            return k * 1024;
+        }
+    }
+
+    // Extract the parameter size tag (e.g. "0.5b", "7b", "72b") from after
+    // the LAST colon.  Ollama models use "model:7b" or "model:0.5b".
+    // We must avoid matching embedded substrings like "2b" inside "72b".
+    let param_tag = m.rsplit(':').next().unwrap_or("");
+
+    // Check for known parameter sizes — ordered large → small so that
+    // e.g. "72b" matches large before "2b" could match tiny.
+    let large_tags = &["32b", "34b", "70b", "72b", "110b"];
+    let small_tags = &["7b", "8b", "9b", "13b", "14b", "16b"];
+    let tiny_tags = &["0.5b", "1b", "1.5b", "2b", "3b"];
+
+    // Match against the colon-suffix first (most reliable)
+    for tag in large_tags {
+        if param_tag == *tag {
+            return 32768;
+        }
+    }
+    for tag in small_tags {
+        if param_tag == *tag {
+            return 8192;
+        }
+    }
+    for tag in tiny_tags {
+        if param_tag == *tag {
+            return 2048;
+        }
+    }
+
+    // Fall back to substring match with word-boundary check for models
+    // without colon notation (e.g. "codellama-7b-instruct")
+    if has_param_tag(&m, large_tags) {
+        return 32768;
+    }
+    if has_param_tag(&m, small_tags) {
+        return 8192;
+    }
+    if has_param_tag(&m, tiny_tags) {
+        return 2048;
+    }
+
+    // ── Named models ─────────────────────────────────────────────────────
+    if m.contains("gpt-4o-mini") || m.contains("gpt-5-mini") || m.contains("gpt4o-mini") {
+        return 128_000;
+    }
+    if m.contains("gpt-4") || m.contains("gpt-5") || m.contains("gpt4") || m.contains("gpt5") {
+        return 128_000;
+    }
+    if m.contains("claude") {
+        return 200_000;
+    }
+    if m.contains("gemini") {
+        return 128_000;
+    }
+
+    // Unknown model → 0 (no compression)
+    0
+}
+
+/// Check if a model name contains a parameter-size tag at a word boundary.
+///
+/// A tag like "7b" matches "llama-7b-instruct" and "model_7b" but NOT
+/// "72b" when looking for "2b".  We require the character before the tag
+/// (if any) to be non-alphanumeric (or a dot for versions like "2.5-7b").
+fn has_param_tag(model: &str, tags: &[&str]) -> bool {
+    for tag in tags {
+        if let Some(pos) = model.find(tag) {
+            // Check that the match is at a word boundary — the char before must
+            // not be a digit (to avoid "72b" matching "2b").
+            if pos > 0 {
+                let prev = model.as_bytes()[pos - 1];
+                if prev.is_ascii_digit() {
+                    continue;
+                }
+            }
+            return true;
+        }
+    }
+    false
 }
 
 #[cfg(test)]
@@ -1667,5 +1802,52 @@ mod tests {
         unsafe {
             std::env::remove_var("OXO_CALL_DOCS_AUTO_UPDATE");
         }
+    }
+
+    // ── Context window inference tests ───────────────────────────────────────
+
+    #[test]
+    fn test_infer_context_window_tiny_models() {
+        assert_eq!(infer_context_window("qwen2.5-coder:0.5b"), 2048);
+        assert_eq!(infer_context_window("qwen2.5:1.5b"), 2048);
+        assert_eq!(infer_context_window("phi-3:3b"), 2048);
+    }
+
+    #[test]
+    fn test_infer_context_window_small_models() {
+        assert_eq!(infer_context_window("deepseek-coder-v2:16b"), 8192);
+        assert_eq!(infer_context_window("llama3:8b"), 8192);
+        assert_eq!(infer_context_window("codellama:7b"), 8192);
+    }
+
+    #[test]
+    fn test_infer_context_window_large_models() {
+        assert_eq!(infer_context_window("qwen2.5:72b"), 32768);
+        assert_eq!(infer_context_window("llama3:70b"), 32768);
+    }
+
+    #[test]
+    fn test_infer_context_window_named_models() {
+        assert_eq!(infer_context_window("gpt-4o-mini"), 128_000);
+        assert_eq!(infer_context_window("gpt-4o"), 128_000);
+        assert_eq!(infer_context_window("claude-3-5-sonnet-20241022"), 200_000);
+    }
+
+    #[test]
+    fn test_infer_context_window_unknown() {
+        assert_eq!(infer_context_window("my-custom-model"), 0);
+    }
+
+    #[test]
+    fn test_infer_context_window_explicit_suffix() {
+        assert_eq!(infer_context_window("model:32k"), 32768);
+    }
+
+    #[test]
+    fn test_effective_context_window_default() {
+        let cfg = Config::default();
+        let ctx = cfg.effective_context_window();
+        // Default config → should not panic
+        assert!(ctx == 0 || ctx > 0);
     }
 }

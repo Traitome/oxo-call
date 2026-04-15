@@ -544,27 +544,50 @@ pub static BUILTIN_SKILLS: &[(&str, &str)] = &[
 impl Skill {
     /// Render this skill as a section to be injected into the LLM system prompt.
     pub fn to_prompt_section(&self) -> String {
+        self.to_prompt_section_limited(usize::MAX)
+    }
+
+    /// Generate a prompt section with a limited number of examples.
+    ///
+    /// When `max_examples` is smaller than the total number of examples,
+    /// only the first `max_examples` are included.  Concepts and pitfalls
+    /// are also trimmed: for `max_examples <= 3`, only the top concepts
+    /// and pitfalls are kept to save context budget.
+    pub fn to_prompt_section_limited(&self, max_examples: usize) -> String {
         let mut s = String::new();
 
+        let compact = max_examples <= 3;
+
         if !self.context.concepts.is_empty() {
+            let limit = if compact {
+                self.context.concepts.len().min(3)
+            } else {
+                self.context.concepts.len()
+            };
             s.push_str("## Expert Domain Knowledge\n");
-            for (i, c) in self.context.concepts.iter().enumerate() {
+            for (i, c) in self.context.concepts.iter().take(limit).enumerate() {
                 s.push_str(&format!("{}. {}\n", i + 1, c));
             }
             s.push('\n');
         }
 
         if !self.context.pitfalls.is_empty() {
+            let limit = if compact {
+                self.context.pitfalls.len().min(2)
+            } else {
+                self.context.pitfalls.len()
+            };
             s.push_str("## Common Pitfalls to Avoid\n");
-            for p in &self.context.pitfalls {
+            for p in self.context.pitfalls.iter().take(limit) {
                 s.push_str(&format!("- {p}\n"));
             }
             s.push('\n');
         }
 
         if !self.examples.is_empty() {
+            let limit = self.examples.len().min(max_examples);
             s.push_str("## Worked Reference Examples\n");
-            for (i, ex) in self.examples.iter().enumerate() {
+            for (i, ex) in self.examples.iter().take(limit).enumerate() {
                 s.push_str(&format!("Example {}:\n", i + 1));
                 s.push_str(&format!("  Task:        {}\n", ex.task));
                 s.push_str(&format!("  ARGS:        {}\n", ex.args));
