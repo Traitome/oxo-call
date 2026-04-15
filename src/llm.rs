@@ -406,16 +406,23 @@ fn build_prompt_compact(
 /// description.  Prioritizes the beginning of the docs (typically the usage
 /// summary and most important flags).
 fn truncate_documentation(docs: &str, max_chars: usize) -> String {
+    /// Minimum character budget below which documentation is too short to be
+    /// useful (a single flag description is typically 40+ chars).
+    const MIN_USEFUL_DOC_CHARS: usize = 40;
+    /// Reserve space for the "[...truncated]" suffix appended when content is
+    /// cut (14 chars for the marker + newline + small safety margin).
+    const TRUNCATION_MARKER_RESERVE: usize = 20;
+
     if docs.len() <= max_chars {
         return docs.to_string();
     }
-    if max_chars < 40 {
-        return String::new(); // Too small to be useful
+    if max_chars < MIN_USEFUL_DOC_CHARS {
+        return String::new();
     }
 
     let mut result = String::new();
     for line in docs.lines() {
-        if result.len() + line.len() + 1 > max_chars.saturating_sub(20) {
+        if result.len() + line.len() + 1 > max_chars.saturating_sub(TRUNCATION_MARKER_RESERVE) {
             break;
         }
         if !result.is_empty() {
