@@ -810,7 +810,7 @@ fn remove_redirections(s: &str) -> String {
     let mut result = Vec::new();
     let mut skip_next = false;
 
-    for (i, token) in tokens.iter().enumerate() {
+    for token in &tokens {
         if skip_next {
             skip_next = false;
             continue;
@@ -843,14 +843,12 @@ fn remove_redirections(s: &str) -> String {
         // Pattern: "<file" — strip the < prefix, keep the file
         if t.starts_with('<') && t.len() > 1 {
             let file = &t[1..];
-            // Check next isn't also consumed
             if !file.is_empty() {
                 result.push(file.to_string());
             }
             continue;
         }
 
-        let _ = i; // suppress unused warning
         result.push(token.clone());
     }
 

@@ -564,9 +564,12 @@ impl CommandGenerator for OxoCallGenerator {
                 if result.args.trim().is_empty() && result.error_message.is_empty() {
                     let stderr = String::from_utf8_lossy(&out.stderr);
                     result.error_message = if stderr.trim().is_empty() {
-                        "empty args from successful dry-run".to_string()
+                        "dry-run succeeded but produced no command arguments".to_string()
                     } else {
-                        format!("empty args; stderr: {}", stderr.trim())
+                        format!(
+                            "dry-run succeeded but produced no command arguments; stderr: {}",
+                            stderr.trim()
+                        )
                     };
                 }
                 result
