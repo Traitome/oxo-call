@@ -38,7 +38,12 @@ pub struct TrialResult {
     pub positional_order_match: f64,
     pub subcommand_match: bool,
     pub accuracy_score: f64,
+    /// Total wall-clock latency (ms) for this trial, including model inference.
     pub latency_ms: f64,
+    /// oxo-call overhead (ms) = `latency_ms - inference_ms`.  This excludes
+    /// the LLM inference time, measuring only the time spent in documentation
+    /// fetching, skill loading, prompt construction, and response parsing.
+    pub overhead_ms: f64,
     pub tokens: usize,
     pub format_valid: bool,
 }
@@ -57,6 +62,8 @@ pub struct ModelAggResult {
     pub subcommand_match_rate: f64,
     pub consistency: f64,
     pub avg_latency_ms: f64,
+    /// Average oxo-call overhead (ms), excluding LLM inference time.
+    pub avg_overhead_ms: f64,
     pub avg_tokens: f64,
     pub format_valid_rate: f64,
 }
@@ -72,6 +79,9 @@ pub struct GeneratedCommand {
     pub format_valid: bool,
     /// Approximate number of tokens in the raw response.
     pub tokens: usize,
+    /// Time (ms) the LLM spent on inference (reported by the generator).
+    /// `0.0` when the generator does not report this (e.g. mock generators).
+    pub inference_ms: f64,
 }
 
 /// Trait for pluggable command generators (real oxo-call or mock).
@@ -89,6 +99,7 @@ impl CommandGenerator for EchoGenerator {
             args: task.to_string(),
             format_valid: true,
             tokens: task.split_whitespace().count(),
+            inference_ms: 0.0,
         }
     }
 }
@@ -105,6 +116,7 @@ impl CommandGenerator for FixedGenerator {
             args: self.args.clone(),
             format_valid: self.format_valid,
             tokens: self.args.split_whitespace().count(),
+            inference_ms: 0.0,
         }
     }
 }
@@ -196,6 +208,7 @@ pub fn run_mock_benchmark(
                 subcommand_match: cmp.subcommand_match,
                 accuracy_score: cmp.accuracy_score(),
                 latency_ms,
+                overhead_ms: latency_ms,
                 tokens,
                 format_valid: true,
             });
@@ -294,6 +307,7 @@ pub fn run_mock_baseline(
                 subcommand_match: cmp.subcommand_match,
                 accuracy_score: cmp.accuracy_score(),
                 latency_ms,
+                overhead_ms: latency_ms,
                 tokens,
                 format_valid: true,
             });
@@ -543,41 +557,69 @@ impl CommandGenerator for OxoCallGenerator {
                 args: String::new(),
                 format_valid: false,
                 tokens: 0,
+                inference_ms: 0.0,
             },
         }
     }
 }
 
 /// Parse the JSON output of `oxo-call dry-run --json`.
+///
+/// The `args` field may be either a string (`"sort -o out.bam in.bam"`) or a
+/// JSON array (`["sort", "-o", "out.bam", "in.bam"]`).  Both forms are
+/// accepted; when it is an array, the elements are space-joined.  If `args`
+/// is absent or empty, the function falls back to extracting args from the
+/// `command` field by stripping the leading tool name.
 fn parse_dry_run_json(json_str: &str) -> GeneratedCommand {
-    // Expected format: { "command": "tool args ...", "args": "args ...", ... }
     if let Ok(value) = serde_json::from_str::<serde_json::Value>(json_str) {
-        let args = value
-            .get("args")
-            .and_then(|v| v.as_str())
+        // Try `args` as a string first, then as an array of strings.
+        let args_opt: Option<String> = value.get("args").and_then(|v| {
+            if let Some(s) = v.as_str() {
+                Some(s.to_string())
+            } else if let Some(arr) = v.as_array() {
+                let parts: Vec<&str> = arr.iter().filter_map(|e| e.as_str()).collect();
+                if parts.is_empty() {
+                    None
+                } else {
+                    Some(parts.join(" "))
+                }
+            } else {
+                None
+            }
+        });
+
+        // Fallback: extract args from "command" by removing the tool prefix.
+        let args = args_opt
             .or_else(|| {
-                // Fallback: extract args from "command" by removing the tool prefix.
                 value.get("command").and_then(|v| {
-                    v.as_str()
-                        .map(|cmd| cmd.split_once(' ').map(|(_, rest)| rest).unwrap_or(cmd))
+                    v.as_str().map(|cmd| {
+                        cmd.split_once(' ')
+                            .map(|(_, rest)| rest.to_string())
+                            .unwrap_or_default()
+                    })
                 })
             })
-            .unwrap_or("")
-            .to_string();
+            .unwrap_or_default();
 
-        // Estimate token count from the generated args (not the full JSON envelope).
         let tokens = args.split_whitespace().count();
+
+        let inference_ms = value
+            .get("inference_ms")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
 
         GeneratedCommand {
             args,
             format_valid: true,
             tokens,
+            inference_ms,
         }
     } else {
         GeneratedCommand {
             args: String::new(),
             format_valid: false,
             tokens: 0,
+            inference_ms: 0.0,
         }
     }
 }
@@ -641,6 +683,7 @@ pub fn run_benchmark_with_callback(
 
             let cmp = compare_commands(&resp.args, &scenario.reference_args);
 
+            let overhead_ms = (latency_ms - resp.inference_ms).max(0.0);
             let trial = TrialResult {
                 tool: desc.tool.clone(),
                 category: scenario.category.clone(),
@@ -662,6 +705,7 @@ pub fn run_benchmark_with_callback(
                 subcommand_match: cmp.subcommand_match,
                 accuracy_score: cmp.accuracy_score(),
                 latency_ms,
+                overhead_ms,
                 tokens: resp.tokens,
                 format_valid: resp.format_valid,
             };
@@ -705,6 +749,7 @@ pub fn aggregate_results(trials: &[TrialResult]) -> Vec<ModelAggResult> {
                     / n,
                 consistency: compute_trial_consistency(&trials),
                 avg_latency_ms: trials.iter().map(|t| t.latency_ms).sum::<f64>() / n,
+                avg_overhead_ms: trials.iter().map(|t| t.overhead_ms).sum::<f64>() / n,
                 avg_tokens: trials.iter().map(|t| t.tokens as f64).sum::<f64>() / n,
                 format_valid_rate: trials.iter().filter(|t| t.format_valid).count() as f64 / n,
             }
@@ -762,6 +807,7 @@ pub fn run_benchmark_parallel(
 
                     let cmp = compare_commands(&resp.args, &scenario.reference_args);
 
+                    let overhead_ms = (latency_ms - resp.inference_ms).max(0.0);
                     let trial = TrialResult {
                         tool: desc.tool.clone(),
                         category: scenario.category.clone(),
@@ -783,6 +829,7 @@ pub fn run_benchmark_parallel(
                         subcommand_match: cmp.subcommand_match,
                         accuracy_score: cmp.accuracy_score(),
                         latency_ms,
+                        overhead_ms,
                         tokens: resp.tokens,
                         format_valid: resp.format_valid,
                     };
@@ -833,14 +880,14 @@ pub fn write_trials_csv<W: Write>(writer: &mut W, trials: &[TrialResult]) -> std
         "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,\
          exact_match,token_jaccard,flag_recall,flag_precision,\
          flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,\
-         subcommand_match,accuracy_score,latency_ms,tokens,format_valid"
+         subcommand_match,accuracy_score,latency_ms,overhead_ms,tokens,format_valid"
     )?;
     for t in trials {
         let gen_esc = csv_escape(&t.generated_args);
         let ref_esc = csv_escape(&t.reference_args);
         writeln!(
             writer,
-            "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{:.1},{},{}",
             t.tool,
             t.category,
             t.scenario_id,
@@ -861,6 +908,7 @@ pub fn write_trials_csv<W: Write>(writer: &mut W, trials: &[TrialResult]) -> std
             t.subcommand_match,
             t.accuracy_score,
             t.latency_ms,
+            t.overhead_ms,
             t.tokens,
             t.format_valid,
         )?;
@@ -876,13 +924,13 @@ pub fn write_model_agg_csv<W: Write>(
     writeln!(
         writer,
         "model,ablation,n_trials,accuracy,exact_match_rate,avg_flag_recall,avg_flag_precision,\
-         avg_token_jaccard,subcommand_match_rate,consistency,avg_latency_ms,avg_tokens,\
+         avg_token_jaccard,subcommand_match_rate,consistency,avg_latency_ms,avg_overhead_ms,avg_tokens,\
          format_valid_rate"
     )?;
     for a in agg {
         writeln!(
             writer,
-            "{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.1},{:.1},{:.4}",
+            "{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.1},{:.1},{:.1},{:.4}",
             a.model,
             a.ablation,
             a.n_trials,
@@ -894,6 +942,7 @@ pub fn write_model_agg_csv<W: Write>(
             a.subcommand_match_rate,
             a.consistency,
             a.avg_latency_ms,
+            a.avg_overhead_ms,
             a.avg_tokens,
             a.format_valid_rate,
         )?;
@@ -1448,6 +1497,7 @@ mod tests {
                 subcommand_match: true,
                 accuracy_score: 1.0,
                 latency_ms: 100.0,
+                overhead_ms: 100.0,
                 tokens: 10,
                 format_valid: true,
             })
@@ -1480,6 +1530,7 @@ mod tests {
                 subcommand_match: true,
                 accuracy_score: 1.0,
                 latency_ms: 100.0,
+                overhead_ms: 100.0,
                 tokens: 10,
                 format_valid: true,
             })
@@ -1526,6 +1577,7 @@ mod tests {
             subcommand_match_rate: 0.95,
             consistency: 0.7,
             avg_latency_ms: 250.0,
+            avg_overhead_ms: 0.0,
             avg_tokens: 50.0,
             format_valid_rate: 1.0,
         }];
@@ -1550,6 +1602,23 @@ mod tests {
         let resp = parse_dry_run_json("not json");
         assert!(!resp.format_valid);
         assert!(resp.args.is_empty());
+    }
+
+    #[test]
+    fn test_parse_dry_run_json_args_as_array() {
+        let json = r#"{"tool":"samtools","args":["sort","-o","out.bam","in.bam"],"command":"samtools sort -o out.bam in.bam","dry_run":true}"#;
+        let resp = parse_dry_run_json(json);
+        assert_eq!(resp.args, "sort -o out.bam in.bam");
+        assert!(resp.format_valid);
+    }
+
+    #[test]
+    fn test_parse_dry_run_json_empty_args_falls_back_to_command() {
+        let json = r#"{"tool":"bwa","args":[],"command":"bwa","dry_run":true}"#;
+        let resp = parse_dry_run_json(json);
+        // Empty args array → fallback to command field; "bwa" has no space so
+        // split_once returns None → empty string.
+        assert!(resp.format_valid);
     }
 
     #[test]
@@ -1631,6 +1700,7 @@ mod tests {
                         subcommand_match: true,
                         accuracy_score: 1.0,
                         latency_ms: 0.0,
+                        overhead_ms: 0.0,
                         tokens: 5,
                         format_valid: true,
                     });
@@ -1811,6 +1881,7 @@ mod tests {
                         subcommand_match: true,
                         accuracy_score: 1.0,
                         latency_ms: 0.0,
+                        overhead_ms: 0.0,
                         tokens: 5,
                         format_valid: true,
                     });
@@ -1889,6 +1960,7 @@ mod tests {
             subcommand_match: true,
             accuracy_score: 0.9,
             latency_ms: 0.0,
+            overhead_ms: 0.0,
             tokens: 3,
             format_valid: true,
         };
@@ -1918,6 +1990,7 @@ mod tests {
             subcommand_match: true,
             accuracy_score: 0.9,
             latency_ms: 0.0,
+            overhead_ms: 0.0,
             tokens: 5,
             format_valid: true,
         };
@@ -1947,6 +2020,7 @@ mod tests {
             subcommand_match: false,
             accuracy_score: 0.7,
             latency_ms: 0.0,
+            overhead_ms: 0.0,
             tokens: 4,
             format_valid: true,
         };
@@ -1976,6 +2050,7 @@ mod tests {
             subcommand_match: false,
             accuracy_score: 0.0,
             latency_ms: 0.0,
+            overhead_ms: 0.0,
             tokens: 0,
             format_valid: false,
         };
@@ -2006,6 +2081,7 @@ mod tests {
                 subcommand_match: true,
                 accuracy_score: 0.9,
                 latency_ms: 0.0,
+                overhead_ms: 0.0,
                 tokens: 3,
                 format_valid: true,
             },
@@ -2030,6 +2106,7 @@ mod tests {
                 subcommand_match: true,
                 accuracy_score: 1.0,
                 latency_ms: 0.0,
+                overhead_ms: 0.0,
                 tokens: 4,
                 format_valid: true,
             },
@@ -2118,7 +2195,7 @@ impl IncrementalCsvWriter {
         let mut trials_file = std::fs::File::create(&trials_path)?;
         writeln!(
             trials_file,
-            "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,exact_match,token_jaccard,flag_recall,flag_precision,flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,subcommand_match,accuracy_score,latency_ms,tokens,format_valid"
+            "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,exact_match,token_jaccard,flag_recall,flag_precision,flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,subcommand_match,accuracy_score,latency_ms,overhead_ms,tokens,format_valid"
         )?;
 
         Ok(Self {
@@ -2131,7 +2208,7 @@ impl IncrementalCsvWriter {
         let mut file = self.trials_file.lock().unwrap();
         writeln!(
             file,
-            "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{:.1},{},{}",
             csv_escape(&trial.tool),
             csv_escape(&trial.category),
             csv_escape(&trial.scenario_id),
@@ -2152,6 +2229,7 @@ impl IncrementalCsvWriter {
             trial.subcommand_match,
             trial.accuracy_score,
             trial.latency_ms,
+            trial.overhead_ms,
             trial.tokens,
             trial.format_valid,
         )?;
@@ -2173,7 +2251,7 @@ impl IncrementalCsvWriter {
         for a in agg {
             writeln!(
                 file,
-                "{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.1},{:.1},{:.4}",
+                "{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.1},{:.1},{:.1},{:.4}",
                 a.model,
                 a.ablation,
                 a.n_trials,
@@ -2185,6 +2263,7 @@ impl IncrementalCsvWriter {
                 a.subcommand_match_rate,
                 a.consistency,
                 a.avg_latency_ms,
+                a.avg_overhead_ms,
                 a.avg_tokens,
                 a.format_valid_rate,
             )?;
@@ -2204,7 +2283,7 @@ impl IncrementalCsvWriter {
             let mut f = std::fs::File::create(&path)?;
             writeln!(
                 f,
-                "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,exact_match,token_jaccard,flag_recall,flag_precision,flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,subcommand_match,accuracy_score,latency_ms,tokens,format_valid"
+                "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,exact_match,token_jaccard,flag_recall,flag_precision,flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,subcommand_match,accuracy_score,latency_ms,overhead_ms,tokens,format_valid"
             )?;
             f
         };
@@ -2212,7 +2291,7 @@ impl IncrementalCsvWriter {
         for trial in trials {
             writeln!(
                 file,
-                "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{},{}",
+                "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{:.1},{},{}",
                 csv_escape(&trial.tool),
                 csv_escape(&trial.category),
                 csv_escape(&trial.scenario_id),
@@ -2233,6 +2312,7 @@ impl IncrementalCsvWriter {
                 trial.subcommand_match,
                 trial.accuracy_score,
                 trial.latency_ms,
+                trial.overhead_ms,
                 trial.tokens,
                 trial.format_valid,
             )?;

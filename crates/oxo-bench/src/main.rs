@@ -1323,7 +1323,7 @@ fn load_model_agg_csv(path: &std::path::Path) -> anyhow::Result<Vec<ModelAggResu
             continue;
         }
         let fields = parse_csv_line(line);
-        if fields.len() >= 13 {
+        if fields.len() >= 14 {
             results.push(ModelAggResult {
                 model: fields[0].clone(),
                 ablation: fields[1].clone(),
@@ -1336,8 +1336,9 @@ fn load_model_agg_csv(path: &std::path::Path) -> anyhow::Result<Vec<ModelAggResu
                 subcommand_match_rate: fields[8].parse().unwrap_or(0.0),
                 consistency: fields[9].parse().unwrap_or(0.0),
                 avg_latency_ms: fields[10].parse().unwrap_or(0.0),
-                avg_tokens: fields[11].parse().unwrap_or(0.0),
-                format_valid_rate: fields[12].parse().unwrap_or(0.0),
+                avg_overhead_ms: fields[11].parse().unwrap_or(0.0),
+                avg_tokens: fields[12].parse().unwrap_or(0.0),
+                format_valid_rate: fields[13].parse().unwrap_or(0.0),
             });
         }
     }

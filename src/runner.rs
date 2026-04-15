@@ -410,6 +410,7 @@ impl Runner {
                 "command": full_cmd,
                 "args": result.suggestion.args,
                 "explanation": result.suggestion.explanation,
+                "inference_ms": result.suggestion.inference_ms,
                 "dry_run": true,
                 "skill": result.skill_name,
                 "model": self.config.effective_model(),
