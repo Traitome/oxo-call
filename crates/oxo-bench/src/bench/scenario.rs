@@ -853,6 +853,7 @@ fn scenario_hash(input: &str) -> u64 {
 /// extension and any directory prefix.
 ///
 /// E.g. `input.bam` → `sample.bam`, `data/reads.fastq.gz` → `data/mapping.fastq.gz`
+#[cfg(test)]
 fn alternative_filename(original: &str, scenario_id: &str) -> String {
     // Split off directory prefix if present.
     let (dir_prefix, filename) = if let Some(pos) = original.rfind('/') {
@@ -878,6 +879,44 @@ fn alternative_filename(original: &str, scenario_id: &str) -> String {
     };
 
     format!("{dir_prefix}{alt_base}{ext}")
+}
+
+/// Like [`alternative_filename`] but ensures the generated name is unique
+/// within the current scenario by checking against `used`.  If the initial
+/// candidate collides, it rotates through `ALT_BASES` until a unique name is
+/// found.
+fn alternative_filename_unique(
+    original: &str,
+    scenario_id: &str,
+    used: &mut std::collections::HashSet<String>,
+) -> String {
+    let (dir_prefix, filename) = if let Some(pos) = original.rfind('/') {
+        (&original[..=pos], &original[pos + 1..])
+    } else {
+        ("", original)
+    };
+
+    let (base, ext) = split_base_ext(filename);
+    let h = scenario_hash(&format!("{scenario_id}:{original}"));
+
+    // Try up to ALT_BASES.len() rotations to find a unique name.
+    for offset in 0..ALT_BASES.len() {
+        let candidate = ALT_BASES[(h as usize + offset) % ALT_BASES.len()];
+        // Skip if same as the original base name.
+        if candidate == base {
+            continue;
+        }
+        let full = format!("{dir_prefix}{candidate}{ext}");
+        if used.insert(full.clone()) {
+            return full;
+        }
+    }
+
+    // Fallback: if all ALT_BASES exhausted (unlikely with 20 candidates),
+    // append a numeric suffix.
+    let fallback = format!("{dir_prefix}{base}_{}{ext}", h % 100);
+    used.insert(fallback.clone());
+    fallback
 }
 
 /// Split a filename into (base, extension_including_dot).
@@ -922,9 +961,69 @@ fn split_base_ext(filename: &str) -> (&str, &str) {
     (filename, "")
 }
 
+/// Recognised script extensions for companion-binary / script-executable
+/// detection within the benchmark scenario generator.  These are tokens that
+/// should **never** be renamed by the anti-leakage substitution because they
+/// are part of the command syntax, not data file names.
+const SCRIPT_EXTS: &[&str] = &[".sh", ".py", ".pl", ".R", ".rb", ".jl", ".nf", ".lua"];
+
+/// Return `true` when `token` looks like a script executable name
+/// (e.g. `agat_convert_sp_gff2gtf.pl`, `bbduk.sh`, `infer_experiment.py`).
+fn is_script_name(token: &str) -> bool {
+    // Must not contain path separators (then it's a path, not a bare script name).
+    if token.contains('/') || token.contains('\\') {
+        return false;
+    }
+    for ext in SCRIPT_EXTS {
+        if let Some(stem) = token.strip_suffix(ext) {
+            return !stem.is_empty()
+                && stem
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || c == '-' || c == '_');
+        }
+    }
+    false
+}
+
+/// Return `true` when `token` is a path to a script (e.g.
+/// `strelka_germline/runWorkflow.py`) — these should not be renamed because
+/// they are part of the command invocation, not data files.
+fn is_script_path(token: &str) -> bool {
+    for ext in SCRIPT_EXTS {
+        if token.ends_with(ext) {
+            // The basename (after the last /) should look like a script name.
+            if let Some(pos) = token.rfind('/') {
+                let basename = &token[pos + 1..];
+                if let Some(stem) = basename.strip_suffix(ext) {
+                    return !stem.is_empty()
+                        && stem
+                            .chars()
+                            .all(|c| c.is_alphanumeric() || c == '-' || c == '_');
+                }
+            }
+            return false;
+        }
+    }
+    false
+}
+
+/// Extract the first whitespace-separated token from `args`.  This is the
+/// subcommand or script/binary name and must never be renamed.
+fn first_arg_token(args: &str) -> &str {
+    args.split_whitespace().next().unwrap_or("")
+}
+
 /// Replace file/path tokens in a scenario's `reference_args` (and
 /// `task_description`) with alternative names to prevent information leakage
 /// from the original skill file examples.
+///
+/// **Tokens that are never substituted**:
+/// - The first token in `reference_args` (subcommand / script / companion binary)
+/// - Any token that looks like a script executable (`.pl`, `.py`, `.sh`, …)
+///
+/// **Collision avoidance**: If two different original tokens would map to the
+/// same alternative name, the second one is rotated to the next candidate
+/// until a unique name is found.
 ///
 /// The substitution is deterministic (based on the scenario_id) so that the
 /// benchmark is fully reproducible.
@@ -934,10 +1033,26 @@ fn substitute_file_tokens(scenario: &mut Scenario) {
         return;
     }
 
+    // Identify the leading command token — never substitute it.
+    let first = first_arg_token(&scenario.reference_args);
+
+    // Track already-used alternative names (keyed by extension) to avoid
+    // two different originals mapping to the same alternative.
+    let mut used: std::collections::HashSet<String> = std::collections::HashSet::new();
+
     // Build the substitution map (original → alternative).
     let mut subs: Vec<(String, String)> = Vec::new();
     for token in &file_tokens {
-        let alt = alternative_filename(token, &scenario.scenario_id);
+        // Skip the leading command/subcommand/script token.
+        if token == first {
+            continue;
+        }
+        // Skip tokens that look like script executables (part of command
+        // syntax, not data files).
+        if is_script_name(token) || is_script_path(token) {
+            continue;
+        }
+        let alt = alternative_filename_unique(token, &scenario.scenario_id, &mut used);
         if alt != *token {
             subs.push((token.clone(), alt));
         }
@@ -968,79 +1083,42 @@ fn substitute_file_tokens(scenario: &mut Scenario) {
 }
 
 /// Synthetic variant types used to pad scenarios to [`SCENARIOS_PER_TOOL`].
-const VARIANT_VERBOSE: usize = 0;
-const VARIANT_THREADS: usize = 1;
-const VARIANT_OUTPUT: usize = 2;
-const VARIANT_QUIET: usize = 3;
-const VARIANT_DEFAULT: usize = 4;
+///
+/// When a tool has fewer than 10 skill examples, variants are generated by
+/// appending a descriptive suffix to the task description **without modifying
+/// the reference args**.  This avoids injecting flags (like `--verbose` or
+/// `-t 4`) that many tools do not support, which would create invalid
+/// reference commands.
+const VARIANT_DEFAULT: usize = 0;
+const VARIANT_CONFIRM: usize = 1;
+const VARIANT_EXPLAIN: usize = 2;
+const VARIANT_STANDARD: usize = 3;
+const VARIANT_BASIC: usize = 4;
 const NUM_VARIANT_TYPES: usize = 5;
 
-/// Return `true` when appending an extra flag to `args` would be unsafe,
-/// e.g. the command already uses a shell pipe (`|`) or output redirection
-/// (`>`), so an appended flag would land after the pipe/redirect rather than
-/// on the intended tool.
-fn has_shell_operator(args: &str) -> bool {
-    args.contains('|') || args.contains('>')
-}
-
-/// Create a synthetic variant of a scenario by adding/changing common flags.
+/// Create a synthetic variant of a scenario.
 ///
-/// The function is conservative: it never appends flags to commands that
-/// contain shell operators (`|`, `>`), and it avoids appending `-t 4` when
-/// the command already uses `-t` or `--threads` (since `-t` has different
-/// semantics across tools — threads in some, tag/reference in others).
+/// Variants only change the **task description** (not the reference args) to
+/// provide description-level diversity.  The reference_args are copied verbatim
+/// from the source scenario so they remain valid commands.
 fn synthesise_variant(base: &Scenario, idx: usize) -> Scenario {
     let variant_type = idx % NUM_VARIANT_TYPES;
 
-    // If the base command contains shell operators, we never append flags
-    // because they would land after the pipe/redirect, not on the tool.
-    let shell_op = has_shell_operator(&base.reference_args);
-
     let suffix = match variant_type {
-        VARIANT_VERBOSE if !shell_op => " with verbose output",
-        VARIANT_THREADS if !shell_op => " using multiple threads",
-        VARIANT_OUTPUT if !shell_op => " and write output to a file",
-        VARIANT_QUIET if !shell_op => " in quiet mode",
         VARIANT_DEFAULT => " with default parameters",
+        VARIANT_CONFIRM => " and verify the output",
+        VARIANT_EXPLAIN => " step by step",
+        VARIANT_STANDARD => " using standard settings",
+        VARIANT_BASIC => " for a typical analysis",
         _ => "",
     };
 
-    let args_suffix = match variant_type {
-        _ if shell_op => "",
-        VARIANT_VERBOSE => " --verbose",
-        // Only add -t 4 if the command does not already contain -t (which
-        // has tool-specific semantics), -@, -j, -p, or --threads.
-        VARIANT_THREADS
-            if base.reference_args.contains("-t ")
-                || base.reference_args.contains("-t\t")
-                || base.reference_args.contains("-@ ")
-                || base.reference_args.contains("-j ")
-                || base.reference_args.contains("-p ")
-                || base.reference_args.contains("--threads") =>
-        {
-            ""
-        }
-        VARIANT_THREADS => " -t 4",
-        // Only add -o if the command doesn't already write to a file.
-        VARIANT_OUTPUT
-            if base.reference_args.contains("-o ")
-                || base.reference_args.contains("-o\t")
-                || base.reference_args.contains("--output") =>
-        {
-            ""
-        }
-        VARIANT_OUTPUT => " -o output.txt",
-        VARIANT_QUIET => " --quiet",
-        _ => "",
-    };
-
-    let new_args = format!("{}{}", base.reference_args, args_suffix);
     let new_task = format!("{}{}", base.task_description, suffix);
 
     Scenario {
         tool: base.tool.clone(),
         scenario_id: format!("{}_{:02}", base.tool, idx + 1),
-        reference_args: new_args,
+        reference_args: base.reference_args.clone(),
         task_description: new_task,
         category: base.category.clone(),
     }
@@ -1525,15 +1603,7 @@ source_url: "https://example.com"
     }
 
     #[test]
-    fn test_synthesise_variant_no_append_after_pipe() {
-        let skill = SkillFile {
-            name: "bcftools".to_string(),
-            category: "variant-calling".to_string(),
-            description: "".to_string(),
-            tags: vec![],
-            source_url: "".to_string(),
-            examples: vec![],
-        };
+    fn test_synthesise_variant_never_modifies_args() {
         let base = Scenario {
             tool: "bcftools".to_string(),
             scenario_id: "bcftools_01".to_string(),
@@ -1542,62 +1612,18 @@ source_url: "https://example.com"
             task_description: "call variants".to_string(),
             category: "variant-calling".to_string(),
         };
-        // All variant types except DEFAULT should produce no args suffix
-        // when the base command contains a pipe.
+        // All variant types must preserve reference_args exactly.
         for idx in 0..NUM_VARIANT_TYPES {
             let v = synthesise_variant(&base, idx);
-            // The args should NOT have extra flags appended after the pipe.
-            assert!(
-                !v.reference_args.ends_with("--verbose")
-                    && !v.reference_args.ends_with("-t 4")
-                    && !v.reference_args.ends_with("-o output.txt")
-                    && !v.reference_args.ends_with("--quiet"),
-                "variant idx={idx} should not append flags after pipe: {}",
-                v.reference_args
+            assert_eq!(
+                v.reference_args, base.reference_args,
+                "variant idx={idx} must not modify reference_args"
             );
         }
     }
 
     #[test]
-    fn test_synthesise_variant_no_append_after_redirect() {
-        let skill = SkillFile {
-            name: "samtools".to_string(),
-            category: "alignment".to_string(),
-            description: "".to_string(),
-            tags: vec![],
-            source_url: "".to_string(),
-            examples: vec![],
-        };
-        let base = Scenario {
-            tool: "samtools".to_string(),
-            scenario_id: "samtools_01".to_string(),
-            reference_args: "stats input.bam > stats.txt".to_string(),
-            task_description: "get stats".to_string(),
-            category: "alignment".to_string(),
-        };
-        for idx in 0..NUM_VARIANT_TYPES {
-            let v = synthesise_variant(&base, idx);
-            assert!(
-                !v.reference_args.ends_with("--verbose")
-                    && !v.reference_args.ends_with("-t 4")
-                    && !v.reference_args.ends_with("-o output.txt")
-                    && !v.reference_args.ends_with("--quiet"),
-                "variant idx={idx} should not append flags after redirect: {}",
-                v.reference_args
-            );
-        }
-    }
-
-    #[test]
-    fn test_synthesise_variant_skips_threads_when_t_present() {
-        let skill = SkillFile {
-            name: "samtools".to_string(),
-            category: "alignment".to_string(),
-            description: "".to_string(),
-            tags: vec![],
-            source_url: "".to_string(),
-            examples: vec![],
-        };
+    fn test_synthesise_variant_adds_task_suffix() {
         let base = Scenario {
             tool: "samtools".to_string(),
             scenario_id: "samtools_01".to_string(),
@@ -1605,12 +1631,15 @@ source_url: "https://example.com"
             task_description: "sort BAM".to_string(),
             category: "alignment".to_string(),
         };
-        // VARIANT_THREADS (idx=1) should not add -t 4 because -@ is present.
-        let v = synthesise_variant(&base, VARIANT_THREADS);
+        // Variant 0 should add "with default parameters".
+        let v = synthesise_variant(&base, 0);
         assert!(
-            !v.reference_args.contains("-t 4"),
-            "should not add -t 4 when -@ is already present"
+            v.task_description.contains("with default parameters"),
+            "variant 0 should add default suffix: {}",
+            v.task_description
         );
+        // Args must be unchanged.
+        assert_eq!(v.reference_args, base.reference_args);
     }
 
     #[test]
@@ -2138,6 +2167,78 @@ source_url: "https://example.com"
                 "scenario {} should not contain original filename 'input.txt': {}",
                 s.scenario_id,
                 s.reference_args
+            );
+        }
+    }
+
+    #[test]
+    fn test_substitute_preserves_script_names() {
+        // AGAT-style scenario where the first token is a script executable.
+        let mut scenario = Scenario {
+            tool: "agat".to_string(),
+            scenario_id: "agat_01".to_string(),
+            reference_args: "agat_convert_sp_gff2gtf.pl --gff annotation.gff3 -o annotation.gtf"
+                .to_string(),
+            task_description: "convert GFF3 to GTF format with agat_convert_sp_gff2gtf.pl"
+                .to_string(),
+            category: "annotation".to_string(),
+        };
+        substitute_file_tokens(&mut scenario);
+        // Script name must be preserved.
+        assert!(
+            scenario
+                .reference_args
+                .contains("agat_convert_sp_gff2gtf.pl"),
+            "script name should not be substituted: {}",
+            scenario.reference_args
+        );
+        // But data files should be substituted.
+        assert!(
+            !scenario.reference_args.contains("annotation.gff3"),
+            "data file should be substituted: {}",
+            scenario.reference_args
+        );
+    }
+
+    #[test]
+    fn test_is_script_name() {
+        assert!(is_script_name("agat_convert_sp_gff2gtf.pl"));
+        assert!(is_script_name("bbduk.sh"));
+        assert!(is_script_name("infer_experiment.py"));
+        assert!(is_script_name("configureStrelkaGermlineWorkflow.py"));
+        // Not script names:
+        assert!(!is_script_name("input.bam"));
+        assert!(!is_script_name("reads.fastq.gz"));
+        assert!(!is_script_name("/path/to/script.py"));
+        assert!(!is_script_name("-f"));
+    }
+
+    #[test]
+    fn test_is_script_path() {
+        assert!(is_script_path("strelka_germline/runWorkflow.py"));
+        assert!(is_script_path("strelka_somatic/runWorkflow.py"));
+        assert!(is_script_path("scripts/run_analysis.sh"));
+        // Not script paths:
+        assert!(!is_script_path("runWorkflow.py")); // no path separator
+        assert!(!is_script_path("data/reads.fastq.gz")); // not a script ext
+        assert!(!is_script_path("sorted.bam"));
+    }
+
+    #[test]
+    fn test_synthesise_variant_never_adds_invalid_flags() {
+        // Ensure no variant ever adds --verbose, -t, -o, or --quiet to args.
+        let base = Scenario {
+            tool: "fastqc".to_string(),
+            scenario_id: "fastqc_01".to_string(),
+            reference_args: "sample.fastq.gz -o qc_results/".to_string(),
+            task_description: "run quality control".to_string(),
+            category: "qc".to_string(),
+        };
+        for idx in 0..20 {
+            let v = synthesise_variant(&base, idx);
+            assert_eq!(
+                v.reference_args, base.reference_args,
+                "variant idx={idx} must not modify reference_args"
             );
         }
     }
