@@ -112,6 +112,17 @@ assistants). For each skill file containing *N* examples (*N* ≤ 10):
    `<tool>_10`), yielding 1,430 reference commands stored in
    `reference_commands.csv`.
 
+   **Shell metacharacter stripping**: Reference args are automatically cleaned
+   of shell-specific constructs that oxo-call does not generate.  Specifically:
+   - **Pipes** (`|`): only the first command in a pipeline is retained.
+   - **Output redirections** (`>`, `>>`, `2>`, `2>>`): the operator and target
+     file are removed.
+   - **Input redirections** (`<`): the operator is removed, keeping the file
+     as a positional argument.
+   Content inside single- or double-quoted strings (e.g. awk patterns) is
+   preserved.  This ensures reference commands represent clean single-command
+   invocations that match what oxo-call produces.
+
    **Anti-leakage file substitution**: To prevent information leakage between
    skill files and benchmark data, all file and path tokens in the reference
    args are deterministically **substituted** with alternative realistic names.
@@ -259,6 +270,27 @@ Each trial produces the following measurements (columns in `benchmark_trials.csv
 | `format_valid` | Response contains `ARGS:` and `EXPLANATION:` lines | LLM response format compliance |
 | `latency_ms` | Wall-clock time per trial (ms), including LLM inference | End-to-end response latency |
 | `overhead_ms` | `latency_ms` − LLM inference time (ms) | oxo-call processing overhead (doc fetch, skill load, prompt build, response parse) |
+| `error_message` | Error text from the generator | Empty on success; contains stderr or error details on failure |
+
+#### Latency Decomposition
+
+The benchmark reports two timing metrics to separate oxo-call's own overhead
+from the model's inference time:
+
+- **`latency_ms`** measures the complete wall-clock time from sending the
+  request to receiving and parsing the response. This includes documentation
+  fetching, skill loading, prompt construction, HTTP POST to the LLM API,
+  model inference (TTFB + token generation), and response parsing.
+
+- **`overhead_ms`** = `latency_ms` − `inference_ms`, where `inference_ms` is
+  the model-reported inference time (when available). This isolates the time
+  spent in oxo-call itself: documentation cache lookup, skill file loading,
+  prompt template rendering, and `ARGS:`/`EXPLANATION:` parsing.
+
+For local models (e.g. Ollama), the inference time dominates `latency_ms`.
+To accurately assess oxo-call's own performance, focus on `overhead_ms`.
+When the LLM API does not report inference time, `overhead_ms` equals
+`latency_ms` (conservative upper bound).
 
 #### Why Flag-Group Metrics?
 
@@ -347,6 +379,20 @@ augmentation components:
 | **Skill files** (curated examples) | Few-shot exemplars with exact ARGS, domain concepts, pitfalls | Provides correct flag combinations, ordering conventions |
 
 *Observed component contribution figures will be reported after real API evaluation.*
+
+### 8.2 Adaptive Prompt Compression
+
+For models with limited context windows (e.g. Ollama mini models), oxo-call
+automatically compresses prompts to fit the available budget:
+
+| Tier | Context Window | Strategy |
+|------|---------------|----------|
+| Full | ≥ 16,384 tokens | No compression; full system prompt + all skill examples + full docs |
+| Medium | 4,096 – 16,383 | Full system prompt; ≤ 5 skill examples; docs truncated to fit |
+| Compact | ≤ 4,095 | Ultra-compact system prompt (~200 chars); top-3 examples + 3 concepts + 2 pitfalls; docs heavily truncated |
+
+The context window is configurable via `llm.context_window` or auto-detected
+from model name patterns (e.g. `:0.5b` → 2,048, `:16b` → 8,192).
 
 ---
 
@@ -532,7 +578,16 @@ not exhaustive coverage of the bioinformatics ecosystem. Tools not represented
 in the skill library rely solely on `--help` documentation grounding, and their
 accuracy is expected to lie between the baseline and enhanced performance levels.
 
-### 13.4 Flag-Group Metric Limitations
+### 13.4 Shell Metacharacter Stripping
+
+Reference commands are automatically cleaned of shell pipes (`|`), output
+redirections (`>`, `>>`, `2>`), and input redirections (`<`).  This is correct
+because oxo-call generates single-command invocations, not shell pipelines.
+However, some skill-file examples intentionally demonstrate piped workflows
+(e.g. `bcftools mpileup | bcftools call`); in these cases only the first
+command in the pipeline is benchmarked.
+
+### 13.5 Flag-Group Metric Limitations
 
 The flag-group parser uses a simple heuristic: a flag token (starting with `-`)
 followed by a non-flag token is treated as a flag–value pair. This heuristic

@@ -2,11 +2,11 @@ tool,scenario_id,reference_args,task_description,category
 admixture,admixture_01,data.bed 5 --cv=10 -j8,run ADMIXTURE for K=5 ancestral populations (data.bed),population-genomics
 admixture,admixture_02,data.bed 3 --seed=42 --cv=10 -j8,run ADMIXTURE with reproducible seed (data.bed),population-genomics
 admixture,admixture_03,data.bed 3 --supervised -j8,run supervised ADMIXTURE with known reference populations (data.bed),population-genomics
-admixture,admixture_04,data.bed K --cv=10 -j8 > genome.log,"run ADMIXTURE across multiple K values (shell loop) (data.bed, genome.log)",population-genomics
+admixture,admixture_04,data.bed K --cv=10 -j8,run ADMIXTURE across multiple K values (shell loop) (data.bed),population-genomics
 admixture,admixture_05,data.bed 5 -B100 -j8,run ADMIXTURE with 100 bootstrap replicates for standard errors (data.bed),population-genomics
 admixture,admixture_06,data.bed 5 -P -j8,run projection analysis onto a fixed P-matrix (data.bed),population-genomics
-admixture,admixture_07,data.bed 4 --seed=1 --cv=10 -j8 > merged.log,"run multiple replicates for K=4 with different seeds to check convergence (data.bed, merged.log)",population-genomics
-admixture,admixture_08,data.bed 6 --cv=10 -j8 | tee aligned.log,"compare cross-validation errors across K values (data.bed, aligned.log)",population-genomics
+admixture,admixture_07,data.bed 4 --seed=1 --cv=10 -j8,run multiple replicates for K=4 with different seeds to check convergence (data.bed),population-genomics
+admixture,admixture_08,data.bed 6 --cv=10 -j8,compare cross-validation errors across K values (data.bed),population-genomics
 admixture,admixture_09,data.bed 5 --maf=0.05 --cv=10 -j8,filter for minor allele frequency before running ADMIXTURE (data.bed),population-genomics
 admixture,admixture_10,data.bed 5 --em --cv=10 -j8,run ADMIXTURE with accelerated EM for faster convergence (data.bed),population-genomics
 agat,agat_01,agat_convert_sp_gff2gtf.pl --gff results.gff3 -o counts.gtf,"convert GFF3 to GTF format with agat_convert_sp_gff2gtf.pl (results.gff3, counts.gtf)",annotation
@@ -21,13 +21,13 @@ agat,agat_09,agat_convert_sp_gff2gtf.pl --gff results.gff3 -o processed.gtf,"con
 agat,agat_10,agat_sp_statistics.pl --gff reads.gff3 -o reference.txt,"get annotation statistics with agat_sp_statistics.pl for a typical analysis (reads.gff3, reference.txt)",annotation
 angsd,angsd_01,-bam mapping.txt -GL 1 -doGlf 2 -doMaf 1 -SNP_pval 1e-6 -minMapQ 30 -minQ 20 -nThreads 16 -out output,compute genotype likelihoods and allele frequencies for a set of BAMs (mapping.txt),population-genomics
 angsd,angsd_02,-bam filtered.txt -GL 1 -doSaf 1 -anc sorted.fasta -minMapQ 30 -minQ 20 -nThreads 16 -out pop1,"compute per-site allele frequency spectrum for a single population (filtered.txt, sorted.fasta)",population-genomics
-angsd,angsd_03,realSFS sorted.saf.idx -P 16 > aligned.sfs,"estimate 1D site frequency spectrum from doSaf output (sorted.saf.idx, aligned.sfs)",population-genomics
+angsd,angsd_03,realSFS sorted.saf.idx -P 16,estimate 1D site frequency spectrum from doSaf output (sorted.saf.idx),population-genomics
 angsd,angsd_04,-bam results.txt -GL 1 -doSaf 1 -doThetas 1 -pest results.sfs -anc analysis.fasta -minMapQ 30 -minQ 20 -out pop1_thetas,"estimate Watterson's theta and Tajima's D in sliding windows (results.txt, results.sfs, analysis.fasta)",population-genomics
-angsd,angsd_05,realSFS analysis.saf.idx merged.saf.idx -P 16 > annotated.2dsfs && realSFS fst index analysis.saf.idx merged.saf.idx -sfs annotated.2dsfs -fstout pop1_pop2,"compute Fst between two populations using 2D SFS (analysis.saf.idx, merged.saf.idx, annotated.2dsfs)",population-genomics
+angsd,angsd_05,realSFS analysis.saf.idx merged.saf.idx -P 16 && realSFS fst index analysis.saf.idx merged.saf.idx -sfs annotated.2dsfs -fstout pop1_pop2,"compute Fst between two populations using 2D SFS (analysis.saf.idx, merged.saf.idx, annotated.2dsfs)",population-genomics
 angsd,angsd_06,-bam counts.txt -GL 1 -doGlf 2 -doMaf 1 -SNP_pval 1e-6 -minMapQ 30 -minQ 20 -nInd 50 -minInd 40 -nThreads 16 -out snps_for_pca,call SNPs and compute principal component analysis input (counts.txt),population-genomics
 angsd,angsd_07,-bam filtered.txt -GL 1 -doGlf 2 -doMaf 1 -SNP_pval 1e-6 -minMapQ 30 -minQ 20 -nThreads 16 -out output,compute genotype likelihoods and allele frequencies for a set of BAMs and verify the output (filtered.txt),population-genomics
 angsd,angsd_08,-bam results.txt -GL 1 -doSaf 1 -anc results.fasta -minMapQ 30 -minQ 20 -nThreads 16 -out pop1,"compute per-site allele frequency spectrum for a single population step by step (results.txt, results.fasta)",population-genomics
-angsd,angsd_09,realSFS mapping.saf.idx -P 16 > merged.sfs,"estimate 1D site frequency spectrum from doSaf output using standard settings (mapping.saf.idx, merged.sfs)",population-genomics
+angsd,angsd_09,realSFS mapping.saf.idx -P 16,estimate 1D site frequency spectrum from doSaf output using standard settings (mapping.saf.idx),population-genomics
 angsd,angsd_10,-bam report.txt -GL 1 -doSaf 1 -doThetas 1 -pest processed.sfs -anc merged.fasta -minMapQ 30 -minQ 20 -out pop1_thetas,"estimate Watterson's theta and Tajima's D in sliding windows for a typical analysis (report.txt, processed.sfs, merged.fasta)",population-genomics
 arriba,arriba_01,--runMode alignReads --genomeDir /star_index/ --readFilesIn assembly.fastq.gz counts.fastq.gz --readFilesCommand zcat --runThreadN 8 --outSAMtype BAM SortedByCoordinate --outFileNamePrefix sample/ --chimSegmentMin 10 --chimOutType WithinBAM --chimJunctionOverhangMin 10 --chimScoreDropMax 30 --peOverlapNbasesMin 12,"run STAR with chimeric output for Arriba fusion detection (assembly.fastq.gz, counts.fastq.gz)",rna-seq
 arriba,arriba_02,-x sample/results.bam -o matrix.tsv -O sorted.tsv -g variants.fa -a processed.gtf -b trimmed.tsv.gz,"detect gene fusions with Arriba (sample/results.bam, matrix.tsv, sorted.tsv, variants.fa, processed.gtf, trimmed.tsv.gz)",rna-seq
@@ -39,16 +39,16 @@ arriba,arriba_07,--runMode alignReads --genomeDir /star_index/ --readFilesIn sor
 arriba,arriba_08,-x sample/filtered.bam -o analysis.tsv -O mapping.tsv -g reads.fa -a merged.gtf -b annotated.tsv.gz,"detect gene fusions with Arriba step by step (sample/filtered.bam, analysis.tsv, mapping.tsv, reads.fa, merged.gtf, annotated.tsv.gz)",rna-seq
 arriba,arriba_09,draw_fusions.R --fusions=trimmed.tsv --alignments=sample/processed.bam --genome=annotated.fa --annotation=raw.gtf --output=matrix.pdf,"visualize detected fusions with Arriba draw_fusions using standard settings (draw_fusions.R, trimmed.tsv, sample/processed.bam, annotated.fa, raw.gtf, matrix.pdf)",rna-seq
 arriba,arriba_10,--runMode alignReads --genomeDir /star_index/ --readFilesIn raw.fastq.gz annotated.fastq.gz --readFilesCommand zcat --runThreadN 8 --outSAMtype BAM SortedByCoordinate --outFileNamePrefix sample/ --chimSegmentMin 10 --chimOutType WithinBAM --chimJunctionOverhangMin 10 --chimScoreDropMax 30 --peOverlapNbasesMin 12,"run STAR with chimeric output for Arriba fusion detection for a typical analysis (raw.fastq.gz, annotated.fastq.gz)",rna-seq
-augustus,augustus_01,--species=human merged.fasta --gff3=on > trimmed.gff3,"predict genes in a eukaryotic genome using human parameters (merged.fasta, trimmed.gff3)",annotation
-augustus,augustus_02,--species=arabidopsis --hintsfile=variants.gff --extrinsicCfgFile=sample.cfg reads.fasta --gff3=on > annotated.gff3,"predict genes with RNA-seq hints for improved accuracy (variants.gff, sample.cfg, reads.fasta, annotated.gff3)",annotation
-augustus,augustus_03,--species=fly --gff3=on --protein=on --codingseq=on counts.fasta > merged.gff3,"predict genes and output protein sequences (counts.fasta, merged.gff3)",annotation
-augustus,augustus_04,--species=zebrafish counts.fasta --gff3=on --softmasking=1 > trimmed.gff3,"run Augustus on a repeat-masked genome (counts.fasta, trimmed.gff3)",annotation
-augustus,augustus_05,--species=human annotated.fasta --gff3=on > processed.gff3,"predict genes in a eukaryotic genome using human parameters for a typical analysis (annotated.fasta, processed.gff3)",annotation
-augustus,augustus_06,--species=arabidopsis --hintsfile=assembly.gff --extrinsicCfgFile=counts.cfg sorted.fasta --gff3=on > genome.gff3,"predict genes with RNA-seq hints for improved accuracy with default parameters (assembly.gff, counts.cfg, sorted.fasta, genome.gff3)",annotation
-augustus,augustus_07,--species=fly --gff3=on --protein=on --codingseq=on aligned.fasta > annotated.gff3,"predict genes and output protein sequences and verify the output (aligned.fasta, annotated.gff3)",annotation
-augustus,augustus_08,--species=zebrafish processed.fasta --gff3=on --softmasking=1 > sample.gff3,"run Augustus on a repeat-masked genome step by step (processed.fasta, sample.gff3)",annotation
-augustus,augustus_09,--species=human reference.fasta --gff3=on > sample.gff3,"predict genes in a eukaryotic genome using human parameters using standard settings (reference.fasta, sample.gff3)",annotation
-augustus,augustus_10,--species=arabidopsis --hintsfile=genome.gff --extrinsicCfgFile=assembly.cfg counts.fasta --gff3=on > reads.gff3,"predict genes with RNA-seq hints for improved accuracy for a typical analysis (genome.gff, assembly.cfg, counts.fasta, reads.gff3)",annotation
+augustus,augustus_01,--species=human merged.fasta --gff3=on,predict genes in a eukaryotic genome using human parameters (merged.fasta),annotation
+augustus,augustus_02,--species=arabidopsis --hintsfile=variants.gff --extrinsicCfgFile=sample.cfg reads.fasta --gff3=on,"predict genes with RNA-seq hints for improved accuracy (variants.gff, sample.cfg, reads.fasta)",annotation
+augustus,augustus_03,--species=fly --gff3=on --protein=on --codingseq=on counts.fasta,predict genes and output protein sequences (counts.fasta),annotation
+augustus,augustus_04,--species=zebrafish counts.fasta --gff3=on --softmasking=1,run Augustus on a repeat-masked genome (counts.fasta),annotation
+augustus,augustus_05,--species=human annotated.fasta --gff3=on,predict genes in a eukaryotic genome using human parameters for a typical analysis (annotated.fasta),annotation
+augustus,augustus_06,--species=arabidopsis --hintsfile=assembly.gff --extrinsicCfgFile=counts.cfg sorted.fasta --gff3=on,"predict genes with RNA-seq hints for improved accuracy with default parameters (assembly.gff, counts.cfg, sorted.fasta)",annotation
+augustus,augustus_07,--species=fly --gff3=on --protein=on --codingseq=on aligned.fasta,predict genes and output protein sequences and verify the output (aligned.fasta),annotation
+augustus,augustus_08,--species=zebrafish processed.fasta --gff3=on --softmasking=1,run Augustus on a repeat-masked genome step by step (processed.fasta),annotation
+augustus,augustus_09,--species=human reference.fasta --gff3=on,predict genes in a eukaryotic genome using human parameters using standard settings (reference.fasta),annotation
+augustus,augustus_10,--species=arabidopsis --hintsfile=genome.gff --extrinsicCfgFile=assembly.cfg counts.fasta --gff3=on,"predict genes with RNA-seq hints for improved accuracy for a typical analysis (genome.gff, assembly.cfg, counts.fasta)",annotation
 awk,awk_01,"-F ',' '{print $1"",""$3}' genome.csv",print specific columns from a CSV file (genome.csv),text-processing
 awk,awk_02,"'{sum+=$2} END{print ""Total:"", sum}' mapping.txt",sum values in a column and print the total (mapping.txt),text-processing
 awk,awk_03,'$3 > 100 {print $0}' analysis.tsv,filter and print lines where a column exceeds a threshold (analysis.tsv),text-processing
@@ -69,12 +69,12 @@ bakta,bakta_07,--db /path/to/bakta_db/ --threads 8 --output annotation/ --prefix
 bakta,bakta_08,--db /path/to/bakta_db/ --compliant --locus-tag MYORG --genus Escherichia --species coli --threads 8 --output ncbi_annotation/ --prefix ecoli_K12 sorted.fasta,annotate genome for NCBI submission step by step (sorted.fasta),annotation
 bakta,bakta_09,--db /path/to/bakta_db/ --plasmid --threads 4 --output plasmid_annotation/ --prefix plasmid variants.fasta,annotate plasmid sequence using standard settings (variants.fasta),annotation
 bakta,bakta_10,--db /path/to/bakta_db/ --threads 8 --output annotation/ --prefix genome_annotation annotated.fasta,annotate a bacterial genome with Bakta for a typical analysis (annotated.fasta),annotation
-bamtools,bamtools_01,stats -in sample.bam > reads.txt,"get alignment statistics from a BAM file (sample.bam, reads.txt)",utilities
+bamtools,bamtools_01,stats -in sample.bam,get alignment statistics from a BAM file (sample.bam),utilities
 bamtools,bamtools_02,count -in reads.bam,count aligned reads in a BAM file (reads.bam),utilities
 bamtools,bamtools_03,filter -in genome.bam -out merged.bam -isMapped true -isProperPair true,"filter BAM to keep only mapped, properly paired reads (genome.bam, merged.bam)",utilities
 bamtools,bamtools_04,merge -in genome.bam -in analysis.bam -in counts.bam -out sorted.bam,"merge multiple BAM files (genome.bam, analysis.bam, counts.bam, sorted.bam)",utilities
 bamtools,bamtools_05,convert -in aligned.bam -format fastq -out processed.fastq,"convert BAM to FASTQ (aligned.bam, processed.fastq)",utilities
-bamtools,bamtools_06,stats -in sorted.bam > processed.txt,"get alignment statistics from a BAM file with default parameters (sorted.bam, processed.txt)",utilities
+bamtools,bamtools_06,stats -in sorted.bam,get alignment statistics from a BAM file with default parameters (sorted.bam),utilities
 bamtools,bamtools_07,count -in reference.bam,count aligned reads in a BAM file and verify the output (reference.bam),utilities
 bamtools,bamtools_08,filter -in analysis.bam -out reference.bam -isMapped true -isProperPair true,"filter BAM to keep only mapped, properly paired reads step by step (analysis.bam, reference.bam)",utilities
 bamtools,bamtools_09,merge -in raw.bam -in trimmed.bam -in mapping.bam -out processed.bam,"merge multiple BAM files using standard settings (raw.bam, trimmed.bam, mapping.bam, processed.bam)",utilities
@@ -99,36 +99,36 @@ bbtools,bbtools_07,bbmap.sh in=merged.fastq.gz ref=sample.fa outm=trimmed.fastq.
 bbtools,bbtools_08,reformat.sh in=counts.fastq.gz,get detailed FASTQ statistics with reformat.sh (counts.fastq.gz),sequence-utilities
 bbtools,bbtools_09,dedupe.sh in=genome.fastq.gz out=genome.fastq.gz,remove duplicate reads with dedupe.sh (genome.fastq.gz),sequence-utilities
 bbtools,bbtools_10,bbsplit.sh in=report.fastq.gz ref=analysis.fa out_genome1=annotated.fastq.gz out_genome2=sorted.fastq.gz,"split reads by genome of origin with bbsplit.sh (report.fastq.gz, analysis.fa, annotated.fastq.gz, sorted.fastq.gz)",sequence-utilities
-bcftools,bcftools_01,mpileup -f assembly.fa -O u variants.bam | bcftools call -m -v -O z -o assembly.vcf.gz,"call variants from a BAM file against a reference genome (assembly.fa, variants.bam, assembly.vcf.gz)",variant-calling
+bcftools,bcftools_01,mpileup -f assembly.fa -O u variants.bam,"call variants from a BAM file against a reference genome (assembly.fa, variants.bam)",variant-calling
 bcftools,bcftools_02,"view -i 'QUAL>30 && INFO/DP>10 && TYPE=""snp""' -O z -o sorted.vcf.gz aligned.vcf.gz","filter VCF to keep only high-quality SNPs (QUAL > 30, depth > 10) (sorted.vcf.gz, aligned.vcf.gz)",variant-calling
 bcftools,bcftools_03,merge -O z -o variants.vcf.gz reference.vcf.gz matrix.vcf.gz processed.vcf.gz,"merge multiple VCF files from different samples (variants.vcf.gz, reference.vcf.gz, matrix.vcf.gz, processed.vcf.gz)",variant-calling
 bcftools,bcftools_04,view -s SAMPLE_NAME -O z -o counts.vcf.gz results.vcf.gz,"extract a specific sample from a multi-sample VCF (counts.vcf.gz, results.vcf.gz)",variant-calling
 bcftools,bcftools_05,norm -m -any -f assembly.fa -O z -o reference.vcf.gz results.vcf.gz,"normalize indels and split multi-allelic variants (assembly.fa, reference.vcf.gz, results.vcf.gz)",variant-calling
-bcftools,bcftools_06,stats trimmed.vcf.gz > raw.txt,"compute variant statistics for a VCF file (trimmed.vcf.gz, raw.txt)",variant-calling
+bcftools,bcftools_06,stats trimmed.vcf.gz,compute variant statistics for a VCF file (trimmed.vcf.gz),variant-calling
 bcftools,bcftools_07,view -v snps -O z -o results.vcf.gz matrix.vcf.gz,"select only SNPs from a VCF file (results.vcf.gz, matrix.vcf.gz)",variant-calling
 bcftools,bcftools_08,annotate -a raw.vcf.gz -c ID -O z -o reference.vcf.gz merged.vcf.gz,"annotate VCF with a reference VCF (add ID field from dbSNP) (raw.vcf.gz, reference.vcf.gz, merged.vcf.gz)",variant-calling
-bcftools,bcftools_09,mpileup -f analysis.fa -O u analysis.bam | bcftools call -m -v -O z -o assembly.vcf.gz,"call variants from a BAM file against a reference genome using standard settings (analysis.fa, analysis.bam, assembly.vcf.gz)",variant-calling
+bcftools,bcftools_09,mpileup -f analysis.fa -O u analysis.bam,"call variants from a BAM file against a reference genome using standard settings (analysis.fa, analysis.bam)",variant-calling
 bcftools,bcftools_10,"view -i 'QUAL>30 && INFO/DP>10 && TYPE=""snp""' -O z -o merged.vcf.gz filtered.vcf.gz","filter VCF to keep only high-quality SNPs (QUAL > 30, depth > 10) for a typical analysis (merged.vcf.gz, filtered.vcf.gz)",variant-calling
-bedops,bedops_01,sort-bed matrix.bed > annotated.bed,"sort a BED file for use with BEDOPS tools (matrix.bed, annotated.bed)",genomic-intervals
-bedops,bedops_02,--intersect sample.bed results.bed > analysis.bed,"intersect two sorted BED files (intervals present in both) (sample.bed, results.bed, analysis.bed)",genomic-intervals
-bedops,bedops_03,--difference matrix.bed reference.bed > variants.bed,"find intervals in file A that do not overlap file B (matrix.bed, reference.bed, variants.bed)",genomic-intervals
-bedops,bedops_04,bedmap --echo --sum --delim '\t' raw.bed results.bedgraph > counts.bed,"compute coverage (sum of signal) from bigwig/bedgraph mapped to gene windows (raw.bed, results.bedgraph, counts.bed)",genomic-intervals
-bedops,bedops_05,starch merged.bed > sorted.starch,"compress a sorted BED file to starch format (merged.bed, sorted.starch)",genomic-intervals
+bedops,bedops_01,sort-bed matrix.bed,sort a BED file for use with BEDOPS tools (matrix.bed),genomic-intervals
+bedops,bedops_02,--intersect sample.bed results.bed,"intersect two sorted BED files (intervals present in both) (sample.bed, results.bed)",genomic-intervals
+bedops,bedops_03,--difference matrix.bed reference.bed,"find intervals in file A that do not overlap file B (matrix.bed, reference.bed)",genomic-intervals
+bedops,bedops_04,bedmap --echo --sum --delim '\t' raw.bed results.bedgraph,"compute coverage (sum of signal) from bigwig/bedgraph mapped to gene windows (raw.bed, results.bedgraph)",genomic-intervals
+bedops,bedops_05,starch merged.bed,compress a sorted BED file to starch format (merged.bed),genomic-intervals
 bedops,bedops_06,bedextract chr1:100000-200000 matrix.bed,extract all intervals overlapping a specific region (matrix.bed),genomic-intervals
-bedops,bedops_07,--merge reads.bed reference.bed assembly.bed > results.bed,"merge overlapping intervals and compute union across three BED files (reads.bed, reference.bed, assembly.bed, results.bed)",genomic-intervals
-bedops,bedops_08,sort-bed reference.bed > results.bed,"sort a BED file for use with BEDOPS tools step by step (reference.bed, results.bed)",genomic-intervals
-bedops,bedops_09,--intersect analysis.bed sample.bed > reads.bed,"intersect two sorted BED files (intervals present in both) using standard settings (analysis.bed, sample.bed, reads.bed)",genomic-intervals
-bedops,bedops_10,--difference raw.bed genome.bed > analysis.bed,"find intervals in file A that do not overlap file B for a typical analysis (raw.bed, genome.bed, analysis.bed)",genomic-intervals
+bedops,bedops_07,--merge reads.bed reference.bed assembly.bed,"merge overlapping intervals and compute union across three BED files (reads.bed, reference.bed, assembly.bed)",genomic-intervals
+bedops,bedops_08,sort-bed reference.bed,sort a BED file for use with BEDOPS tools step by step (reference.bed),genomic-intervals
+bedops,bedops_09,--intersect analysis.bed sample.bed,"intersect two sorted BED files (intervals present in both) using standard settings (analysis.bed, sample.bed)",genomic-intervals
+bedops,bedops_10,--difference raw.bed genome.bed,"find intervals in file A that do not overlap file B for a typical analysis (raw.bed, genome.bed)",genomic-intervals
 bedtools,bedtools_01,intersect -a sample.bed -b matrix.bed -wa,"find intervals in file A that overlap with file B (sample.bed, matrix.bed)",genomic-intervals
 bedtools,bedtools_02,subtract -a aligned.bed -b genome.bed,"subtract regions in B from regions in A (aligned.bed, genome.bed)",genomic-intervals
 bedtools,bedtools_03,merge -i report.bed,merge overlapping intervals in a BED file (report.bed),genomic-intervals
-bedtools,bedtools_04,genomecov -ibam filtered.bam -bg > mapping.bedgraph,"compute per-base coverage from a BAM file (filtered.bam, mapping.bedgraph)",genomic-intervals
+bedtools,bedtools_04,genomecov -ibam filtered.bam -bg,compute per-base coverage from a BAM file (filtered.bam),genomic-intervals
 bedtools,bedtools_05,closest -a counts.bed -b reference.bed -d,"find closest non-overlapping feature in B for each interval in A (counts.bed, reference.bed)",genomic-intervals
 bedtools,bedtools_06,intersect -a assembly.bed -b analysis.bam -c,"count overlaps between A intervals and B features (assembly.bed, analysis.bam)",genomic-intervals
 bedtools,bedtools_07,getfasta -fi reads.fa -bed sample.bed -fo mapping.fa,"get sequences for intervals in a BED file (reads.fa, sample.bed, mapping.fa)",genomic-intervals
-bedtools,bedtools_08,genomecov -ibam matrix.bam -bga > mapping.bedgraph,"compute coverage including zero-coverage positions (matrix.bam, mapping.bedgraph)",genomic-intervals
+bedtools,bedtools_08,genomecov -ibam matrix.bam -bga,compute coverage including zero-coverage positions (matrix.bam),genomic-intervals
 bedtools,bedtools_09,intersect -a processed.bed -b raw.bed -wb,"intersect two BED files and report original B intervals that overlap A (processed.bed, raw.bed)",genomic-intervals
-bedtools,bedtools_10,makewindows -g report.txt -w 1000 > mapping.bed,"make windows of fixed size across a genome (report.txt, mapping.bed)",genomic-intervals
+bedtools,bedtools_10,makewindows -g report.txt -w 1000,make windows of fixed size across a genome (report.txt),genomic-intervals
 bismark,bismark_01,bismark_genome_preparation /path/to/genome_directory/,prepare bisulfite genome index for alignment,epigenomics
 bismark,bismark_02,--genome /path/to/genome_dir/ -1 counts.fastq.gz -2 variants.fastq.gz --output_dir bismark_output/ -p 4,"align paired-end WGBS reads to bisulfite genome (counts.fastq.gz, variants.fastq.gz)",epigenomics
 bismark,bismark_03,deduplicate_bismark --paired --bam reads.bam,deduplicate bismark-aligned paired-end BAM file (reads.bam),epigenomics
@@ -151,14 +151,14 @@ blast,blast_09,-query raw.fasta -db /path/to/swissprot -out trimmed.txt -outfmt 
 blast,blast_10,-query annotated.fasta -db nr -out report.txt -outfmt 6 -remote -max_target_seqs 10,"perform remote BLAST search against NCBI nr database for a typical analysis (annotated.fasta, report.txt)",sequence-utilities
 bowtie2,bowtie2_01,bowtie2-build mapping.fa reference_index,build a bowtie2 index from a reference FASTA file (mapping.fa),alignment
 bowtie2,bowtie2_02,bowtie2-build --threads 8 aligned.fa reference_index,build a bowtie2 index using multiple threads for a large genome (aligned.fa),alignment
-bowtie2,bowtie2_03,-x reference_index -1 reference.fastq.gz -2 matrix.fastq.gz -p 8 | samtools view -b -o filtered.bam,"align paired-end reads to a reference genome using 8 threads (reference.fastq.gz, matrix.fastq.gz, filtered.bam)",alignment
-bowtie2,bowtie2_04,-x reference_index -U mapping.fastq.gz --very-sensitive -p 8 | samtools sort -o filtered.bam,"align single-end reads with sensitive settings (mapping.fastq.gz, filtered.bam)",alignment
-bowtie2,bowtie2_05,-x reference_index -1 processed.fq.gz -2 raw.fq.gz -p 8 --no-unal -S filtered.sam 2> genome.txt,"align paired-end reads and save the alignment statistics (processed.fq.gz, raw.fq.gz, filtered.sam, genome.txt)",alignment
-bowtie2,bowtie2_06,-x reference_index -1 filtered.fastq.gz -2 reference.fastq.gz -p 8 --rg-id sample1 --rg SM:sample1 --rg LB:lib1 --rg PL:ILLUMINA | samtools view -b -o results.bam,"align paired-end reads with read group tags for GATK downstream analysis (filtered.fastq.gz, reference.fastq.gz, results.bam)",alignment
-bowtie2,bowtie2_07,-x reference_index -1 annotated.fastq.gz -2 matrix.fastq.gz --local --very-sensitive-local -p 8 | samtools view -b -o reads.bam,"align in local mode to allow soft-clipping of read ends (annotated.fastq.gz, matrix.fastq.gz, reads.bam)",alignment
-bowtie2,bowtie2_08,-x reference_index -1 results.fastq.gz -2 processed.fastq.gz -p 16 --no-unal | samtools sort -@ 4 -o raw.bam,"align paired-end RNA-seq reads discarding unaligned reads (results.fastq.gz, processed.fastq.gz, raw.bam)",alignment
+bowtie2,bowtie2_03,-x reference_index -1 reference.fastq.gz -2 matrix.fastq.gz -p 8,"align paired-end reads to a reference genome using 8 threads (reference.fastq.gz, matrix.fastq.gz)",alignment
+bowtie2,bowtie2_04,-x reference_index -U mapping.fastq.gz --very-sensitive -p 8,align single-end reads with sensitive settings (mapping.fastq.gz),alignment
+bowtie2,bowtie2_05,-x reference_index -1 processed.fq.gz -2 raw.fq.gz -p 8 --no-unal -S filtered.sam,"align paired-end reads and save the alignment statistics (processed.fq.gz, raw.fq.gz, filtered.sam)",alignment
+bowtie2,bowtie2_06,-x reference_index -1 filtered.fastq.gz -2 reference.fastq.gz -p 8 --rg-id sample1 --rg SM:sample1 --rg LB:lib1 --rg PL:ILLUMINA,"align paired-end reads with read group tags for GATK downstream analysis (filtered.fastq.gz, reference.fastq.gz)",alignment
+bowtie2,bowtie2_07,-x reference_index -1 annotated.fastq.gz -2 matrix.fastq.gz --local --very-sensitive-local -p 8,"align in local mode to allow soft-clipping of read ends (annotated.fastq.gz, matrix.fastq.gz)",alignment
+bowtie2,bowtie2_08,-x reference_index -1 results.fastq.gz -2 processed.fastq.gz -p 16 --no-unal,"align paired-end RNA-seq reads discarding unaligned reads (results.fastq.gz, processed.fastq.gz)",alignment
 bowtie2,bowtie2_09,-x reference_index -U report.fastq.gz --fast -p 4 -S sample.sam,"align single-end reads in fast mode for a quick quality check (report.fastq.gz, sample.sam)",alignment
-bowtie2,bowtie2_10,-x reference_index -1 annotated.fastq.gz -2 filtered.fastq.gz -p 8 --un-conc sample.fq | samtools view -b -o filtered.bam,"align paired-end reads writing unmapped reads to separate files (annotated.fastq.gz, filtered.fastq.gz, sample.fq, filtered.bam)",alignment
+bowtie2,bowtie2_10,-x reference_index -1 annotated.fastq.gz -2 filtered.fastq.gz -p 8 --un-conc sample.fq,"align paired-end reads writing unmapped reads to separate files (annotated.fastq.gz, filtered.fastq.gz, sample.fq)",alignment
 bracken,bracken_01,-d /path/to/kraken2_db -i sample.txt -o assembly.bracken -l S -r 150 -t 10,"run Bracken on a Kraken2 report for species-level abundance estimation (sample.txt, assembly.bracken)",metagenomics
 bracken,bracken_02,-d /path/to/kraken2_db -i filtered.txt -o filtered.bracken -l G -r 150 -t 5,"run Bracken for genus-level abundance estimation (filtered.txt, filtered.bracken)",metagenomics
 bracken,bracken_03,--files trimmed.bracken reads.bracken report.bracken --output genome.txt,"combine Bracken results from multiple samples into one table (trimmed.bracken, reads.bracken, report.bracken, genome.txt)",metagenomics
@@ -180,25 +180,25 @@ busco,busco_08,-i sample.faa -o busco_proteome -l fungi_odb10 -m proteins -c 8,a
 busco,busco_09,-i variants.fasta -o busco_transcriptome -l vertebrata_odb10 -m transcriptome -c 8,assess transcriptome completeness using standard settings (variants.fasta),assembly
 busco,busco_10,-i mapping.fasta -o busco_autolineage -m genome --auto-lineage -c 16,run BUSCO with automatic lineage detection for a typical analysis (mapping.fasta),assembly
 bwa-mem2,bwa-mem2_01,index reads.fa,build BWA-MEM2 index from reference genome (reads.fa),alignment
-bwa-mem2,bwa-mem2_02,mem -t 16 genome.fa results.fastq.gz processed.fastq.gz | samtools sort -@ 4 -o annotated.bam,"align paired-end reads to reference using 16 threads (genome.fa, results.fastq.gz, processed.fastq.gz, annotated.bam)",alignment
-bwa-mem2,bwa-mem2_03,mem -t 16 -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA' mapping.fa counts.fastq.gz assembly.fastq.gz | samtools view -b -o assembly.bam,"align paired-end reads with GATK read group (mapping.fa, counts.fastq.gz, assembly.fastq.gz, assembly.bam)",alignment
+bwa-mem2,bwa-mem2_02,mem -t 16 genome.fa results.fastq.gz processed.fastq.gz,"align paired-end reads to reference using 16 threads (genome.fa, results.fastq.gz, processed.fastq.gz)",alignment
+bwa-mem2,bwa-mem2_03,mem -t 16 -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA' mapping.fa counts.fastq.gz assembly.fastq.gz,"align paired-end reads with GATK read group (mapping.fa, counts.fastq.gz, assembly.fastq.gz)",alignment
 bwa-mem2,bwa-mem2_04,index aligned.fa,build BWA-MEM2 index from reference genome using standard settings (aligned.fa),alignment
-bwa-mem2,bwa-mem2_05,mem -t 16 raw.fa annotated.fastq.gz sorted.fastq.gz | samtools sort -@ 4 -o reference.bam,"align paired-end reads to reference using 16 threads for a typical analysis (raw.fa, annotated.fastq.gz, sorted.fastq.gz, reference.bam)",alignment
-bwa-mem2,bwa-mem2_06,mem -t 16 -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA' merged.fa variants.fastq.gz counts.fastq.gz | samtools view -b -o filtered.bam,"align paired-end reads with GATK read group with default parameters (merged.fa, variants.fastq.gz, counts.fastq.gz, filtered.bam)",alignment
+bwa-mem2,bwa-mem2_05,mem -t 16 raw.fa annotated.fastq.gz sorted.fastq.gz,"align paired-end reads to reference using 16 threads for a typical analysis (raw.fa, annotated.fastq.gz, sorted.fastq.gz)",alignment
+bwa-mem2,bwa-mem2_06,mem -t 16 -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA' merged.fa variants.fastq.gz counts.fastq.gz,"align paired-end reads with GATK read group with default parameters (merged.fa, variants.fastq.gz, counts.fastq.gz)",alignment
 bwa-mem2,bwa-mem2_07,index results.fa,build BWA-MEM2 index from reference genome and verify the output (results.fa),alignment
-bwa-mem2,bwa-mem2_08,mem -t 16 sample.fa raw.fastq.gz reference.fastq.gz | samtools sort -@ 4 -o mapping.bam,"align paired-end reads to reference using 16 threads step by step (sample.fa, raw.fastq.gz, reference.fastq.gz, mapping.bam)",alignment
-bwa-mem2,bwa-mem2_09,mem -t 16 -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA' reads.fa merged.fastq.gz raw.fastq.gz | samtools view -b -o matrix.bam,"align paired-end reads with GATK read group using standard settings (reads.fa, merged.fastq.gz, raw.fastq.gz, matrix.bam)",alignment
+bwa-mem2,bwa-mem2_08,mem -t 16 sample.fa raw.fastq.gz reference.fastq.gz,"align paired-end reads to reference using 16 threads step by step (sample.fa, raw.fastq.gz, reference.fastq.gz)",alignment
+bwa-mem2,bwa-mem2_09,mem -t 16 -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA' reads.fa merged.fastq.gz raw.fastq.gz,"align paired-end reads with GATK read group using standard settings (reads.fa, merged.fastq.gz, raw.fastq.gz)",alignment
 bwa-mem2,bwa-mem2_10,index mapping.fa,build BWA-MEM2 index from reference genome for a typical analysis (mapping.fa),alignment
 bwa,bwa_01,index matrix.fa,index a reference genome FASTA file (matrix.fa),alignment
 bwa,bwa_02,mem -t 8 genome.fa assembly.fastq.gz sample.fastq.gz,"align paired-end reads to a reference genome using 8 threads (genome.fa, assembly.fastq.gz, sample.fastq.gz)",alignment
 bwa,bwa_03,mem -t 4 -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA' mapping.fa mapping.fastq.gz,"align single-end reads and save as BAM with read group for GATK (mapping.fa, mapping.fastq.gz)",alignment
 bwa,bwa_04,mem -x ont2d processed.fa genome.fastq,"align long reads (PacBio/Oxford Nanopore) to reference (processed.fa, genome.fastq)",alignment
-bwa,bwa_05,mem -t 8 sorted.fa merged.fastq.gz sorted.fastq.gz | samtools sort -@ 4 -o report.bam,"align paired-end reads and sort the output directly to a BAM file (sorted.fa, merged.fastq.gz, sorted.fastq.gz, report.bam)",alignment
-bwa,bwa_06,mem -t 8 -R '@RG\tID:run1\tSM:patient1\tLB:lib1\tPL:ILLUMINA\tPU:unit1' assembly.fa variants.fastq.gz processed.fastq.gz | samtools view -b -o matrix.bam,"align paired-end reads with complete read group for GATK HaplotypeCaller (assembly.fa, variants.fastq.gz, processed.fastq.gz, matrix.bam)",alignment
-bwa,bwa_07,mem -t 8 variants.fa aligned.fastq.gz analysis.fastq.gz | samtools view -b -F 4 -o genome.bam,"align paired-end reads and report only mapped reads (variants.fa, aligned.fastq.gz, analysis.fastq.gz, genome.bam)",alignment
-bwa,bwa_08,mem -t 4 -B 4 -O 6 -E 1 counts.fa raw.fastq.gz > filtered.sam,"align with specific gap extension and mismatch penalties (counts.fa, raw.fastq.gz, filtered.sam)",alignment
-bwa,bwa_09,mem -t 8 -R '@RG\tID:sample2\tSM:sample2\tLB:lib2\tPL:ILLUMINA' reads.fa merged.fastq.gz sorted.fastq.gz | samtools sort -@ 4 -o analysis.bam && samtools index analysis.bam,"align paired-end reads in a pipeline saving both BAM and stats (reads.fa, merged.fastq.gz, sorted.fastq.gz, analysis.bam)",alignment
-bwa,bwa_10,mem -t 8 -Y mapping.fa sample.fastq.gz assembly.fastq.gz | samtools view -b -o variants.bam,"align with soft-clipping allowed for structural variant discovery (mapping.fa, sample.fastq.gz, assembly.fastq.gz, variants.bam)",alignment
+bwa,bwa_05,mem -t 8 sorted.fa merged.fastq.gz sorted.fastq.gz,"align paired-end reads and sort the output directly to a BAM file (sorted.fa, merged.fastq.gz, sorted.fastq.gz)",alignment
+bwa,bwa_06,mem -t 8 -R '@RG\tID:run1\tSM:patient1\tLB:lib1\tPL:ILLUMINA\tPU:unit1' assembly.fa variants.fastq.gz processed.fastq.gz,"align paired-end reads with complete read group for GATK HaplotypeCaller (assembly.fa, variants.fastq.gz, processed.fastq.gz)",alignment
+bwa,bwa_07,mem -t 8 variants.fa aligned.fastq.gz analysis.fastq.gz,"align paired-end reads and report only mapped reads (variants.fa, aligned.fastq.gz, analysis.fastq.gz)",alignment
+bwa,bwa_08,mem -t 4 -B 4 -O 6 -E 1 counts.fa raw.fastq.gz,"align with specific gap extension and mismatch penalties (counts.fa, raw.fastq.gz)",alignment
+bwa,bwa_09,mem -t 8 -R '@RG\tID:sample2\tSM:sample2\tLB:lib2\tPL:ILLUMINA' reads.fa merged.fastq.gz sorted.fastq.gz,"align paired-end reads in a pipeline saving both BAM and stats (reads.fa, merged.fastq.gz, sorted.fastq.gz)",alignment
+bwa,bwa_10,mem -t 8 -Y mapping.fa sample.fastq.gz assembly.fastq.gz,"align with soft-clipping allowed for structural variant discovery (mapping.fa, sample.fastq.gz, assembly.fastq.gz)",alignment
 canu,canu_01,-p ecoli_assembly -d canu_ecoli/ genomeSize=5m -nanopore raw.fastq.gz maxMemory=16g maxThreads=8,assemble bacterial genome from ONT reads (raw.fastq.gz),assembly
 canu,canu_02,-p hifi_assembly -d canu_hifi/ genomeSize=3g -pacbio-hifi assembly.fastq.gz maxMemory=64g maxThreads=32,assemble genome from PacBio HiFi reads (assembly.fastq.gz),assembly
 canu,canu_03,-p metagenome -d canu_meta/ genomeSize=100m -nanopore reads.fastq.gz maxMemory=128g maxThreads=32 useGrid=false,assemble metagenome from ONT reads (reads.fastq.gz),assembly
@@ -233,7 +233,7 @@ centrifuge,centrifuge_01,-x /databases/bv_bacteria -1 sample.fastq.gz -2 mapping
 centrifuge,centrifuge_02,-x /databases/nt -U matrix.fastq.gz -S merged.tsv --report-file matrix.tsv -p 16,"classify single-end reads against the NT database (matrix.fastq.gz, merged.tsv, matrix.tsv)",metagenomics
 centrifuge,centrifuge_03,centrifuge-build -p 16 --taxonomy-tree raw.dmp --name-table sample.dmp --conversion-table results.map report.fasta custom_db,"build a custom centrifuge index from bacterial reference genomes (raw.dmp, sample.dmp, results.map, report.fasta)",metagenomics
 centrifuge,centrifuge_04,-x /databases/viral -U assembly.fastq.gz -S reference.tsv --report-file assembly.tsv -p 8 --min-hitlen 16,"classify reads with increased sensitivity for viral detection (assembly.fastq.gz, reference.tsv, assembly.tsv)",metagenomics
-centrifuge,centrifuge_05,centrifuge-kreport -x /databases/bv_bacteria variants.tsv > report.txt,"convert centrifuge output to Kraken-style report for Pavian/Krona (variants.tsv, report.txt)",metagenomics
+centrifuge,centrifuge_05,centrifuge-kreport -x /databases/bv_bacteria variants.tsv,convert centrifuge output to Kraken-style report for Pavian/Krona (variants.tsv),metagenomics
 centrifuge,centrifuge_06,-x /databases/hg38 -1 filtered.fastq.gz -2 merged.fastq.gz -S sample.tsv -p 16 --un-conc raw.fastq.gz,"remove human reads by classifying against human genome and excluding matches (filtered.fastq.gz, merged.fastq.gz, sample.tsv, raw.fastq.gz)",metagenomics
 centrifuge,centrifuge_07,centrifuge-build -p 8 --taxonomy-tree sorted.dmp --name-table counts.dmp --conversion-table assembly.map filtered.fasta viral_db,"build centrifuge index from viral reference sequences (sorted.dmp, counts.dmp, assembly.map, filtered.fasta)",metagenomics
 centrifuge,centrifuge_08,-x /databases/bv_bacteria -1 variants.fastq.gz -2 trimmed.fastq.gz -S aligned.tsv --report-file results.tsv -p 16 --un-conc sorted.fastq.gz,"classify reads and save unclassified reads for downstream assembly (variants.fastq.gz, trimmed.fastq.gz, aligned.tsv, results.tsv, sorted.fastq.gz)",metagenomics
@@ -349,16 +349,16 @@ diamond,diamond_07,blastp -q results.faa -d nr_diamond -o sorted.tsv --outfmt 6 
 diamond,diamond_08,blastx -q analysis.fastq.gz -d nr_diamond -o merged.tsv --outfmt 6 --threads 16 --evalue 1e-5 --max-target-seqs 1,"search DNA reads against protein database with blastx step by step (analysis.fastq.gz, merged.tsv)",metagenomics
 diamond,diamond_09,blastp -q filtered.faa -d uniprot_diamond -o filtered.tsv --outfmt '6 qseqid sseqid pident length evalue bitscore stitle' --more-sensitive --threads 8,"sensitive blastp search with custom output fields using standard settings (filtered.faa, filtered.tsv)",metagenomics
 diamond,diamond_10,blastx -q results.faa -d nr_diamond --taxonmap variants.gz --taxonnodes raw.dmp -o sample.tsv --outfmt '6 qseqid sseqid pident evalue bitscore staxids sscinames' --threads 16,"taxonomy-aware blastx search for functional annotation for a typical analysis (results.faa, variants.gz, raw.dmp, sample.tsv)",metagenomics
-dorado,dorado_01,basecaller hac pod5_files/ --device cuda:0 > assembly.bam,basecall ONT POD5 files with high-accuracy model on GPU (assembly.bam),long-read
-dorado,dorado_02,basecaller sup pod5_files/ --modified-bases 5mCG_5hmCG --device cuda:0 > report.bam,basecall with super-accuracy model and modified base calling (report.bam),long-read
-dorado,dorado_03,basecaller hac pod5_files/ --emit-fastq --device cuda:0 | gzip > genome.fastq.gz,basecall and output FASTQ format (genome.fastq.gz),long-read
+dorado,dorado_01,basecaller hac pod5_files/ --device cuda:0,basecall ONT POD5 files with high-accuracy model on GPU,long-read
+dorado,dorado_02,basecaller sup pod5_files/ --modified-bases 5mCG_5hmCG --device cuda:0,basecall with super-accuracy model and modified base calling,long-read
+dorado,dorado_03,basecaller hac pod5_files/ --emit-fastq --device cuda:0,basecall and output FASTQ format,long-read
 dorado,dorado_04,demux --kit-name SQK-NBD114-24 --output-dir demux_output/ --emit-fastq sample.bam,demultiplex barcoded reads using Dorado (sample.bam),long-read
-dorado,dorado_05,duplex sup pod5_files/ --device cuda:0 > merged.bam,run duplex basecalling for highest accuracy paired reads (merged.bam),long-read
-dorado,dorado_06,basecaller hac pod5_files/ --device cuda:0 > merged.bam,basecall ONT POD5 files with high-accuracy model on GPU with default parameters (merged.bam),long-read
-dorado,dorado_07,basecaller sup pod5_files/ --modified-bases 5mCG_5hmCG --device cuda:0 > assembly.bam,basecall with super-accuracy model and modified base calling and verify the output (assembly.bam),long-read
-dorado,dorado_08,basecaller hac pod5_files/ --emit-fastq --device cuda:0 | gzip > mapping.fastq.gz,basecall and output FASTQ format step by step (mapping.fastq.gz),long-read
+dorado,dorado_05,duplex sup pod5_files/ --device cuda:0,run duplex basecalling for highest accuracy paired reads,long-read
+dorado,dorado_06,basecaller hac pod5_files/ --device cuda:0,basecall ONT POD5 files with high-accuracy model on GPU with default parameters,long-read
+dorado,dorado_07,basecaller sup pod5_files/ --modified-bases 5mCG_5hmCG --device cuda:0,basecall with super-accuracy model and modified base calling and verify the output,long-read
+dorado,dorado_08,basecaller hac pod5_files/ --emit-fastq --device cuda:0,basecall and output FASTQ format step by step,long-read
 dorado,dorado_09,demux --kit-name SQK-NBD114-24 --output-dir demux_output/ --emit-fastq results.bam,demultiplex barcoded reads using Dorado using standard settings (results.bam),long-read
-dorado,dorado_10,duplex sup pod5_files/ --device cuda:0 > sample.bam,run duplex basecalling for highest accuracy paired reads for a typical analysis (sample.bam),long-read
+dorado,dorado_10,duplex sup pod5_files/ --device cuda:0,run duplex basecalling for highest accuracy paired reads for a typical analysis,long-read
 eggnog-mapper,eggnog-mapper_01,-m diamond -i analysis.fasta --itype proteins --data_dir /data/eggnog_db -o results --cpu 16 --override,annotate a protein FASTA file with eggNOG using diamond (analysis.fasta),annotation
 eggnog-mapper,eggnog-mapper_02,-m diamond -i trimmed.fasta --itype proteins --tax_scope 2 --data_dir /data/eggnog_db -o bact_results --cpu 16,annotate proteins and restrict to bacterial orthologs (trimmed.fasta),annotation
 eggnog-mapper,eggnog-mapper_03,-m diamond -i reads.fna --itype CDS --translate --data_dir /data/eggnog_db -o cds_results --cpu 16,annotate a nucleotide CDS file (reads.fna),annotation
@@ -374,7 +374,7 @@ fastani,fastani_02,--queryList trimmed.list --refList trimmed.list --output proc
 fastani,fastani_03,--query genome.fa --refList filtered.list --output variants.tsv --threads 8,"one-to-many comparison: one query vs many references (genome.fa, filtered.list, variants.tsv)",comparative-genomics
 fastani,fastani_04,--queryList reference.list --refList reference.list --output variants.tsv --minFraction 0.5 --threads 16,"filter results to show only high-ANI pairs (same species) (reference.list, variants.tsv)",comparative-genomics
 fastani,fastani_05,--query reads.fa --ref report.fa --output counts.txt --fragLen 1500,"adjust fragment length for highly similar genomes (reads.fa, report.fa, counts.txt)",comparative-genomics
-fastani,fastani_06,find /genomes -name 'mapping.fna' > counts.list,"build a genome list file for batch comparison (mapping.fna, counts.list)",comparative-genomics
+fastani,fastani_06,find /genomes -name 'mapping.fna',build a genome list file for batch comparison (mapping.fna),comparative-genomics
 fastani,fastani_07,--version,check FastANI version,comparative-genomics
 fastani,fastani_08,--query reads.fasta --ref processed.fasta --output filtered.txt,"compute ANI between two genomes step by step (reads.fasta, processed.fasta, filtered.txt)",comparative-genomics
 fastani,fastani_09,--queryList analysis.list --refList analysis.list --output mapping.tsv --threads 16,"all-vs-all comparison of a genome collection using standard settings (analysis.list, mapping.tsv)",comparative-genomics
@@ -409,16 +409,16 @@ fastqc,fastqc_07,-t 4 -o qc_results/ reference.fastq.gz matrix.fastq.gz,"run qua
 fastqc,fastqc_08,--noextract -t 8 -o qc_output/ filtered.fastq.gz reference.fastq.gz counts.fastq.gz results.fastq.gz,"run quality control on multiple samples and keep zip files without extracting step by step (filtered.fastq.gz, reference.fastq.gz, counts.fastq.gz, results.fastq.gz)",qc
 fastqc,fastqc_09,-t 4 -o qc_results/ variants.bam,run fastqc on a BAM file using standard settings (variants.bam),qc
 fastqc,fastqc_10,-f fastq -a variants.txt -t 4 -o qc_results/ aligned.fastq.gz,"run fastqc with custom adapter sequences and format specification for a typical analysis (variants.txt, aligned.fastq.gz)",qc
-fasttree,fasttree_01,-nt -gtr mapping.fasta > counts.nwk,"infer phylogenetic tree from nucleotide alignment (mapping.fasta, counts.nwk)",phylogenetics
-fasttree,fasttree_02,aligned_proteins.fasta > genome.nwk,"infer phylogenetic tree from protein alignment (aligned_proteins.fasta, genome.nwk)",phylogenetics
-fasttree,fasttree_03,-wag analysis.fasta > raw.nwk,"infer tree with WAG protein substitution model (analysis.fasta, raw.nwk)",phylogenetics
-fasttree,fasttree_04,-nt -gtr -boot 1000 -seed 42 processed.fasta > raw.nwk,"infer tree with local support values (processed.fasta, raw.nwk)",phylogenetics
-fasttree,fasttree_05,-nt -gtr analysis.fasta > matrix.nwk,"infer tree using multithreaded FastTreeMP (analysis.fasta, matrix.nwk)",phylogenetics
-fasttree,fasttree_06,-lg merged.fasta > counts.nwk,"infer protein tree with LG substitution model (merged.fasta, counts.nwk)",phylogenetics
-fasttree,fasttree_07,-nt -gtr -fastest raw.fasta > annotated.nwk,"run faster but less thorough tree search (raw.fasta, annotated.nwk)",phylogenetics
-fasttree,fasttree_08,-nt -gtr -gamma counts.fasta > merged.nwk,"infer tree with gamma-distributed rate variation (counts.fasta, merged.nwk)",phylogenetics
-fasttree,fasttree_09,-nt -gtr -n 1 matrix.phy > annotated.nwk,"infer tree from PHYLIP format input (matrix.phy, annotated.nwk)",phylogenetics
-fasttree,fasttree_10,-nt -gtr -slownni filtered.fasta > merged.nwk,"infer tree with more thorough nearest-neighbor interchange search (filtered.fasta, merged.nwk)",phylogenetics
+fasttree,fasttree_01,-nt -gtr mapping.fasta,infer phylogenetic tree from nucleotide alignment (mapping.fasta),phylogenetics
+fasttree,fasttree_02,aligned_proteins.fasta,infer phylogenetic tree from protein alignment (aligned_proteins.fasta),phylogenetics
+fasttree,fasttree_03,-wag analysis.fasta,infer tree with WAG protein substitution model (analysis.fasta),phylogenetics
+fasttree,fasttree_04,-nt -gtr -boot 1000 -seed 42 processed.fasta,infer tree with local support values (processed.fasta),phylogenetics
+fasttree,fasttree_05,-nt -gtr analysis.fasta,infer tree using multithreaded FastTreeMP (analysis.fasta),phylogenetics
+fasttree,fasttree_06,-lg merged.fasta,infer protein tree with LG substitution model (merged.fasta),phylogenetics
+fasttree,fasttree_07,-nt -gtr -fastest raw.fasta,run faster but less thorough tree search (raw.fasta),phylogenetics
+fasttree,fasttree_08,-nt -gtr -gamma counts.fasta,infer tree with gamma-distributed rate variation (counts.fasta),phylogenetics
+fasttree,fasttree_09,-nt -gtr -n 1 matrix.phy,infer tree from PHYLIP format input (matrix.phy),phylogenetics
+fasttree,fasttree_10,-nt -gtr -slownni filtered.fasta,infer tree with more thorough nearest-neighbor interchange search (filtered.fasta),phylogenetics
 featurecounts,featurecounts_01,-T 8 -a sample.gtf -o mapping.txt -p -s 2 processed.bam matrix.bam report.bam,"count reads per gene for paired-end RNA-seq with reverse-strand library (sample.gtf, mapping.txt, processed.bam, matrix.bam, report.bam)",rna-seq
 featurecounts,featurecounts_02,-T 8 -a matrix.gtf -o processed.txt -s 0 annotated.bam,"count reads per gene for unstranded single-end RNA-seq (matrix.gtf, processed.txt, annotated.bam)",rna-seq
 featurecounts,featurecounts_03,-T 8 -a annotated.gtf -o filtered.txt -p -s 2 --primary -M -O mapping.bam,"count reads allowing multi-mapping reads to be counted (annotated.gtf, filtered.txt, mapping.bam)",rna-seq
@@ -449,16 +449,16 @@ flye,flye_07,--pacbio-hifi variants.fastq.gz --genome-size 3g --out-dir hifi_ass
 flye,flye_08,--meta --nano-raw results.fastq.gz --out-dir meta_flye/ --threads 32,assemble metagenomic community from ONT reads step by step (results.fastq.gz),assembly
 flye,flye_09,--nano-hq report.fastq.gz --genome-size reads.5m --out-dir hq_assembly/ --threads 16 --iterations 2,"assemble with high-quality ONT reads (R10, Q20+) using standard settings (report.fastq.gz, reads.5m)",assembly
 flye,flye_10,--nano-raw merged.fastq.gz --genome-size 5m --out-dir flye_output/ --threads 16 --resume,resume an interrupted Flye assembly for a typical analysis (merged.fastq.gz),assembly
-freebayes,freebayes_01,-f filtered.fa -b raw.bam > genome.vcf,"call germline variants from a single sample BAM file (filtered.fa, raw.bam, genome.vcf)",variant-calling
-freebayes,freebayes_02,-f assembly.fa --min-alternate-count 3 --min-alternate-fraction 0.2 -b merged.bam > matrix.vcf,"call variants with minimum coverage and allele frequency filters (assembly.fa, merged.bam, matrix.vcf)",variant-calling
-freebayes,freebayes_03,-f variants.fa merged.bam assembly.bam trimmed.bam > sample.vcf,"call variants jointly from multiple samples (variants.fa, merged.bam, assembly.bam, trimmed.bam, sample.vcf)",variant-calling
-freebayes,freebayes_04,-f counts.fa -r chr1 -b counts.bam > processed.vcf,"call variants restricted to a specific genomic region (counts.fa, counts.bam, processed.vcf)",variant-calling
-freebayes,freebayes_05,-f reads.fa --variant-input merged.vcf --only-use-input-alleles -b sorted.bam > analysis.vcf,"call variants with population priors from a VCF (reads.fa, merged.vcf, sorted.bam, analysis.vcf)",variant-calling
-freebayes,freebayes_06,-f merged.fa -b annotated.bam > reads.vcf,"call germline variants from a single sample BAM file with default parameters (merged.fa, annotated.bam, reads.vcf)",variant-calling
-freebayes,freebayes_07,-f variants.fa --min-alternate-count 3 --min-alternate-fraction 0.2 -b assembly.bam > genome.vcf,"call variants with minimum coverage and allele frequency filters and verify the output (variants.fa, assembly.bam, genome.vcf)",variant-calling
-freebayes,freebayes_08,-f processed.fa variants.bam merged.bam filtered.bam > filtered.vcf,"call variants jointly from multiple samples step by step (processed.fa, variants.bam, merged.bam, filtered.bam, filtered.vcf)",variant-calling
-freebayes,freebayes_09,-f sorted.fa -r chr1 -b sorted.bam > analysis.vcf,"call variants restricted to a specific genomic region using standard settings (sorted.fa, sorted.bam, analysis.vcf)",variant-calling
-freebayes,freebayes_10,-f results.fa --variant-input trimmed.vcf --only-use-input-alleles -b results.bam > sorted.vcf,"call variants with population priors from a VCF for a typical analysis (results.fa, trimmed.vcf, results.bam, sorted.vcf)",variant-calling
+freebayes,freebayes_01,-f filtered.fa -b raw.bam,"call germline variants from a single sample BAM file (filtered.fa, raw.bam)",variant-calling
+freebayes,freebayes_02,-f assembly.fa --min-alternate-count 3 --min-alternate-fraction 0.2 -b merged.bam,"call variants with minimum coverage and allele frequency filters (assembly.fa, merged.bam)",variant-calling
+freebayes,freebayes_03,-f variants.fa merged.bam assembly.bam trimmed.bam,"call variants jointly from multiple samples (variants.fa, merged.bam, assembly.bam, trimmed.bam)",variant-calling
+freebayes,freebayes_04,-f counts.fa -r chr1 -b counts.bam,"call variants restricted to a specific genomic region (counts.fa, counts.bam)",variant-calling
+freebayes,freebayes_05,-f reads.fa --variant-input merged.vcf --only-use-input-alleles -b sorted.bam,"call variants with population priors from a VCF (reads.fa, merged.vcf, sorted.bam)",variant-calling
+freebayes,freebayes_06,-f merged.fa -b annotated.bam,"call germline variants from a single sample BAM file with default parameters (merged.fa, annotated.bam)",variant-calling
+freebayes,freebayes_07,-f variants.fa --min-alternate-count 3 --min-alternate-fraction 0.2 -b assembly.bam,"call variants with minimum coverage and allele frequency filters and verify the output (variants.fa, assembly.bam)",variant-calling
+freebayes,freebayes_08,-f processed.fa variants.bam merged.bam filtered.bam,"call variants jointly from multiple samples step by step (processed.fa, variants.bam, merged.bam, filtered.bam)",variant-calling
+freebayes,freebayes_09,-f sorted.fa -r chr1 -b sorted.bam,"call variants restricted to a specific genomic region using standard settings (sorted.fa, sorted.bam)",variant-calling
+freebayes,freebayes_10,-f results.fa --variant-input trimmed.vcf --only-use-input-alleles -b results.bam,"call variants with population priors from a VCF for a typical analysis (results.fa, trimmed.vcf, results.bam)",variant-calling
 gatk,gatk_01,HaplotypeCaller -R sample.fa -I report.bam -O report.vcf.gz -ERC GVCF,"call germline variants from a BAM file using HaplotypeCaller (sample.fa, report.bam, report.vcf.gz)",variant-calling
 gatk,gatk_02,HaplotypeCaller -R mapping.fa -I raw.bam -O analysis.vcf.gz,"genotype a single sample directly (not GVCF mode) (mapping.fa, raw.bam, analysis.vcf.gz)",variant-calling
 gatk,gatk_03,MarkDuplicates -I trimmed.bam -O genome.bam -M reads.txt,"mark PCR duplicates in a BAM file (trimmed.bam, genome.bam, reads.txt)",variant-calling
@@ -521,31 +521,31 @@ hifiasm,hifiasm_09,-o assembly -t 32 --ul report.fastq.gz sample.fastq.gz,"assem
 hifiasm,hifiasm_10,-o assembly -t 32 -l 3 reference.fastq.gz,assemble with aggressive duplicate purging for a typical analysis (reference.fastq.gz),assembly
 hisat2,hisat2_01,hisat2-build -p 8 trimmed.fa genome_index,build a HISAT2 genome index from a reference FASTA (trimmed.fa),alignment
 hisat2,hisat2_02,-p 8 -x genome_index -1 counts.fastq.gz -2 analysis.fastq.gz --dta -S counts.sam,"align paired-end RNA-seq reads to the genome with 8 threads (counts.fastq.gz, analysis.fastq.gz, counts.sam)",alignment
-hisat2,hisat2_03,-p 8 -x genome_index -1 assembly.fastq.gz -2 sample.fastq.gz --dta | samtools sort -@ 4 -o raw.bam,"align paired-end RNA-seq reads and output sorted BAM directly (assembly.fastq.gz, sample.fastq.gz, raw.bam)",alignment
+hisat2,hisat2_03,-p 8 -x genome_index -1 assembly.fastq.gz -2 sample.fastq.gz --dta,"align paired-end RNA-seq reads and output sorted BAM directly (assembly.fastq.gz, sample.fastq.gz)",alignment
 hisat2,hisat2_04,-p 8 -x genome_index -1 report.fastq.gz -2 raw.fastq.gz --rna-strandness RF --dta -S report.sam,"align strand-specific paired-end RNA-seq (reverse-strand library) (report.fastq.gz, raw.fastq.gz, report.sam)",alignment
 hisat2,hisat2_05,-p 4 -x genome_index -U sorted.fastq.gz --dta -S raw.sam,"align single-end RNA-seq reads (sorted.fastq.gz, raw.sam)",alignment
 hisat2,hisat2_06,hisat2-build -p 8 raw.fa genome_spliceaware_index --ss annotated.txt --exon mapping.txt,"build splice-site aware index using GTF annotation for improved RNA-seq (raw.fa, annotated.txt, mapping.txt)",alignment
-hisat2,hisat2_07,-p 8 -x genome_index -1 results.fastq.gz -2 sample.fastq.gz --rna-strandness RF --dta -S results.sam 2> genome.txt,"align paired-end reads with strand information and save alignment statistics (results.fastq.gz, sample.fastq.gz, results.sam, genome.txt)",alignment
+hisat2,hisat2_07,-p 8 -x genome_index -1 results.fastq.gz -2 sample.fastq.gz --rna-strandness RF --dta -S results.sam,"align paired-end reads with strand information and save alignment statistics (results.fastq.gz, sample.fastq.gz, results.sam)",alignment
 hisat2,hisat2_08,-p 8 -x genome_index -U aligned.fastq.gz --no-spliced-alignment -S reference.sam,"align single-end reads in genomic (non-spliced) mode for DNA-seq (aligned.fastq.gz, reference.sam)",alignment
 hisat2,hisat2_09,-p 8 -x genome_index -1 matrix.fastq.gz -2 reference.fastq.gz --dta --no-unal -S matrix.sam,"align paired-end reads and discard unmapped reads (matrix.fastq.gz, reference.fastq.gz, matrix.sam)",alignment
-hisat2,hisat2_10,-p 8 -x genome_index -1 variants.fastq.gz -2 processed.fastq.gz --dta | samtools view -b -q 1 -o aligned.bam,"align paired-end reads and output only uniquely mapped reads (variants.fastq.gz, processed.fastq.gz, aligned.bam)",alignment
-hmmer,hmmer_01,hmmscan --cpu 8 --tblout raw.tbl --domtblout aligned.tbl -E 1e-5 counts.hmm trimmed.faa > processed.txt,"search a protein database against Pfam HMM profiles (domain annotation) (raw.tbl, aligned.tbl, counts.hmm, trimmed.faa, processed.txt)",sequence-utilities
-hmmer,hmmer_02,hmmsearch --cpu 8 --tblout analysis.tbl --domtblout sample.tbl -E 1e-10 raw.hmm variants.faa > processed.txt,"search a protein HMM profile against a sequence database (analysis.tbl, sample.tbl, raw.hmm, variants.faa, processed.txt)",sequence-utilities
+hisat2,hisat2_10,-p 8 -x genome_index -1 variants.fastq.gz -2 processed.fastq.gz --dta,"align paired-end reads and output only uniquely mapped reads (variants.fastq.gz, processed.fastq.gz)",alignment
+hmmer,hmmer_01,hmmscan --cpu 8 --tblout raw.tbl --domtblout aligned.tbl -E 1e-5 counts.hmm trimmed.faa,"search a protein database against Pfam HMM profiles (domain annotation) (raw.tbl, aligned.tbl, counts.hmm, trimmed.faa)",sequence-utilities
+hmmer,hmmer_02,hmmsearch --cpu 8 --tblout analysis.tbl --domtblout sample.tbl -E 1e-10 raw.hmm variants.faa,"search a protein HMM profile against a sequence database (analysis.tbl, sample.tbl, raw.hmm, variants.faa)",sequence-utilities
 hmmer,hmmer_03,hmmbuild --cpu 8 reference.hmm results.sto,"build a profile HMM from a multiple sequence alignment (reference.hmm, results.sto)",sequence-utilities
 hmmer,hmmer_04,hmmpress matrix.hmm,press Pfam database for hmmscan indexing (matrix.hmm),sequence-utilities
-hmmer,hmmer_05,phmmer --cpu 8 --tblout genome.tbl -E 1e-5 sample.faa assembly.faa > annotated.txt,"search proteins with phmmer (BLAST-like single sequence query) (genome.tbl, sample.faa, assembly.faa, annotated.txt)",sequence-utilities
-hmmer,hmmer_06,hmmscan --cpu 8 --tblout aligned.tbl --domtblout results.tbl -E 1e-5 assembly.hmm assembly.faa > matrix.txt,"search a protein database against Pfam HMM profiles (domain annotation) with default parameters (aligned.tbl, results.tbl, assembly.hmm, assembly.faa, matrix.txt)",sequence-utilities
-hmmer,hmmer_07,hmmsearch --cpu 8 --tblout genome.tbl --domtblout mapping.tbl -E 1e-10 report.hmm aligned.faa > variants.txt,"search a protein HMM profile against a sequence database and verify the output (genome.tbl, mapping.tbl, report.hmm, aligned.faa, variants.txt)",sequence-utilities
+hmmer,hmmer_05,phmmer --cpu 8 --tblout genome.tbl -E 1e-5 sample.faa assembly.faa,"search proteins with phmmer (BLAST-like single sequence query) (genome.tbl, sample.faa, assembly.faa)",sequence-utilities
+hmmer,hmmer_06,hmmscan --cpu 8 --tblout aligned.tbl --domtblout results.tbl -E 1e-5 assembly.hmm assembly.faa,"search a protein database against Pfam HMM profiles (domain annotation) with default parameters (aligned.tbl, results.tbl, assembly.hmm, assembly.faa)",sequence-utilities
+hmmer,hmmer_07,hmmsearch --cpu 8 --tblout genome.tbl --domtblout mapping.tbl -E 1e-10 report.hmm aligned.faa,"search a protein HMM profile against a sequence database and verify the output (genome.tbl, mapping.tbl, report.hmm, aligned.faa)",sequence-utilities
 hmmer,hmmer_08,hmmbuild --cpu 8 results.hmm genome.sto,"build a profile HMM from a multiple sequence alignment step by step (results.hmm, genome.sto)",sequence-utilities
 hmmer,hmmer_09,hmmpress counts.hmm,press Pfam database for hmmscan indexing using standard settings (counts.hmm),sequence-utilities
-hmmer,hmmer_10,phmmer --cpu 8 --tblout processed.tbl -E 1e-5 genome.faa filtered.faa > counts.txt,"search proteins with phmmer (BLAST-like single sequence query) for a typical analysis (processed.tbl, genome.faa, filtered.faa, counts.txt)",sequence-utilities
+hmmer,hmmer_10,phmmer --cpu 8 --tblout processed.tbl -E 1e-5 genome.faa filtered.faa,"search proteins with phmmer (BLAST-like single sequence query) for a typical analysis (processed.tbl, genome.faa, filtered.faa)",sequence-utilities
 homer,homer_01,makeTagDirectory chipseq_tags/ counts.bam -genome hg38 -checkGC,create a HOMER tag directory with makeTagDirectory (counts.bam),epigenomics
 homer,homer_02,findPeaks chipseq_tags/ -style factor -i input_tags/ -o assembly.txt,call narrow transcription factor peaks with findPeaks (assembly.txt),epigenomics
 homer,homer_03,findPeaks chipseq_tags/ -style histone -i input_tags/ -o variants.txt,call broad histone modification peaks with findPeaks (variants.txt),epigenomics
-homer,homer_04,annotatePeaks.pl sorted.txt hg38 -gtf trimmed.gtf > report.txt,"annotate peaks with annotatePeaks.pl using hg38 RefSeq annotation (sorted.txt, trimmed.gtf, report.txt)",epigenomics
+homer,homer_04,annotatePeaks.pl sorted.txt hg38 -gtf trimmed.gtf,"annotate peaks with annotatePeaks.pl using hg38 RefSeq annotation (sorted.txt, trimmed.gtf)",epigenomics
 homer,homer_05,findMotifsGenome.pl genome.txt hg38 motif_output/ -size 200 -mask -p 8,run de novo and known motif analysis with findMotifsGenome.pl (genome.txt),epigenomics
 homer,homer_06,mergePeaks sample.txt sorted.txt -d 100 -prefix merged_peaks -venn trimmed.txt,"merge peak files from two replicates with mergePeaks (sample.txt, sorted.txt, trimmed.txt)",epigenomics
-homer,homer_07,pos2bed.pl aligned.txt > mapping.bed,"convert HOMER peak file to BED with pos2bed.pl (aligned.txt, mapping.bed)",epigenomics
+homer,homer_07,pos2bed.pl aligned.txt,convert HOMER peak file to BED with pos2bed.pl (aligned.txt),epigenomics
 homer,homer_08,makeTagDirectory chipseq_tags/ reads.bam -genome hg38 -checkGC,create a HOMER tag directory with makeTagDirectory step by step (reads.bam),epigenomics
 homer,homer_09,findPeaks chipseq_tags/ -style factor -i input_tags/ -o genome.txt,call narrow transcription factor peaks with findPeaks using standard settings (genome.txt),epigenomics
 homer,homer_10,findPeaks chipseq_tags/ -style histone -i input_tags/ -o mapping.txt,call broad histone modification peaks with findPeaks for a typical analysis (mapping.txt),epigenomics
@@ -586,7 +586,7 @@ java,java_04,-Xmx2g -jar raw.jar --threads 4 counts.fastq.gz,"run FastQC via its
 java,java_05,-XshowSettings:all -version,show all system properties and JVM settings,programming
 java,java_06,-XX:+PrintFlagsFinal -version,list available JVM garbage collectors and tuning flags,programming
 java,java_07,-Xmx4g -jar sample.jar PE -threads 8 trimmed.fastq.gz assembly.fastq.gz sorted.fastq.gz reads.fastq.gz processed.fastq.gz raw.fastq.gz ILLUMINACLIP:merged.fa:2:30:10,"run Trimmomatic via its JAR (sample.jar, trimmed.fastq.gz, assembly.fastq.gz, sorted.fastq.gz, reads.fastq.gz, processed.fastq.gz, raw.fastq.gz, merged.fa)",programming
-java,java_08,-XX:+PrintFlagsFinal -version 2>&1,check available JVM memory settings,programming
+java,java_08,-XX:+PrintFlagsFinal -version,check available JVM memory settings,programming
 java,java_09,-cp /path/to/filtered.jar:/path/to/sample.jar com.example.MainClass arg1 arg2,"run a JAR with a custom classpath (/path/to/filtered.jar:/path/to/sample.jar, /path/to/filtered.jar, /path/to/sample.jar)",programming
 java,java_10,-version,check installed Java version for a typical analysis,programming
 julia,julia_01,script.jl,run a Julia script (script.jl),programming
@@ -659,16 +659,16 @@ macs2,macs2_07,callpeak -t matrix.bam -c variants.bam -f BAM -g hs --broad --bro
 macs2,macs2_08,callpeak -t results.bam -f BAM -g hs --nomodel --shift -100 --extsize 200 -n atac_sample -q 0.05 --outdir atac_peaks/,call ATAC-seq peaks using nucleosome-free region model step by step (results.bam),epigenomics
 macs2,macs2_09,callpeak -t sample.bam -f BAMPE -g hs -n atac_pe_sample -q 0.05 --outdir atac_pe_peaks/,call peaks from paired-end ATAC-seq BAM using standard settings (sample.bam),epigenomics
 macs2,macs2_10,callpeak -t trimmed.bam -f BAM -g hs --nomodel --shift -100 --extsize 200 --keep-dup all -n open_chromatin --outdir atac_out/,call peaks without control for ATAC-seq open chromatin for a typical analysis (trimmed.bam),epigenomics
-mafft,mafft_01,--auto --thread 8 reference.fasta > variants.fasta,"align multiple protein sequences with automatic algorithm selection (reference.fasta, variants.fasta)",phylogenetics
-mafft,mafft_02,--localpair --maxiterate 1000 --thread 8 assembly.fasta > reads.fasta,"highly accurate multiple sequence alignment for fewer than 200 sequences (assembly.fasta, reads.fasta)",phylogenetics
-mafft,mafft_03,--auto --adjustdirectionaccurately --thread 8 trimmed.fasta > report.fasta,"align RNA sequences adjusting for strand orientation (trimmed.fasta, report.fasta)",phylogenetics
-mafft,mafft_04,--auto --thread 8 --phylipout filtered.fasta > sorted.phy,"align sequences and output in PHYLIP format for phylogenetic analysis (filtered.fasta, sorted.phy)",phylogenetics
-mafft,mafft_05,--add variants.fasta --thread 8 matrix.fasta > reads.fasta,"add new sequences to existing alignment (variants.fasta, matrix.fasta, reads.fasta)",phylogenetics
-mafft,mafft_06,--auto --thread 8 reads.fasta > aligned.fasta,"align multiple protein sequences with automatic algorithm selection with default parameters (reads.fasta, aligned.fasta)",phylogenetics
-mafft,mafft_07,--localpair --maxiterate 1000 --thread 8 processed.fasta > report.fasta,"highly accurate multiple sequence alignment for fewer than 200 sequences and verify the output (processed.fasta, report.fasta)",phylogenetics
-mafft,mafft_08,--auto --adjustdirectionaccurately --thread 8 reads.fasta > analysis.fasta,"align RNA sequences adjusting for strand orientation step by step (reads.fasta, analysis.fasta)",phylogenetics
-mafft,mafft_09,--auto --thread 8 --phylipout annotated.fasta > genome.phy,"align sequences and output in PHYLIP format for phylogenetic analysis using standard settings (annotated.fasta, genome.phy)",phylogenetics
-mafft,mafft_10,--add reads.fasta --thread 8 variants.fasta > analysis.fasta,"add new sequences to existing alignment for a typical analysis (reads.fasta, variants.fasta, analysis.fasta)",phylogenetics
+mafft,mafft_01,--auto --thread 8 reference.fasta,align multiple protein sequences with automatic algorithm selection (reference.fasta),phylogenetics
+mafft,mafft_02,--localpair --maxiterate 1000 --thread 8 assembly.fasta,highly accurate multiple sequence alignment for fewer than 200 sequences (assembly.fasta),phylogenetics
+mafft,mafft_03,--auto --adjustdirectionaccurately --thread 8 trimmed.fasta,align RNA sequences adjusting for strand orientation (trimmed.fasta),phylogenetics
+mafft,mafft_04,--auto --thread 8 --phylipout filtered.fasta,align sequences and output in PHYLIP format for phylogenetic analysis (filtered.fasta),phylogenetics
+mafft,mafft_05,--add variants.fasta --thread 8 matrix.fasta,"add new sequences to existing alignment (variants.fasta, matrix.fasta)",phylogenetics
+mafft,mafft_06,--auto --thread 8 reads.fasta,align multiple protein sequences with automatic algorithm selection with default parameters (reads.fasta),phylogenetics
+mafft,mafft_07,--localpair --maxiterate 1000 --thread 8 processed.fasta,highly accurate multiple sequence alignment for fewer than 200 sequences and verify the output (processed.fasta),phylogenetics
+mafft,mafft_08,--auto --adjustdirectionaccurately --thread 8 reads.fasta,align RNA sequences adjusting for strand orientation step by step (reads.fasta),phylogenetics
+mafft,mafft_09,--auto --thread 8 --phylipout annotated.fasta,align sequences and output in PHYLIP format for phylogenetic analysis using standard settings (annotated.fasta),phylogenetics
+mafft,mafft_10,--add reads.fasta --thread 8 variants.fasta,"add new sequences to existing alignment for a typical analysis (reads.fasta, variants.fasta)",phylogenetics
 manta,manta_01,configureManta.py --bam analysis.bam --referenceFasta aligned.fa --runDir manta_output && python manta_output/runWorkflow.py -m local -j 8,"configure and run Manta germline SV calling (configureManta.py) (analysis.bam, aligned.fa, manta_output/runWorkflow.py)",variant-calling
 manta,manta_02,configureManta.py --normalBam annotated.bam --tumorBam counts.bam --referenceFasta assembly.fa --runDir manta_somatic && python manta_somatic/runWorkflow.py -m local -j 8,"run Manta somatic SV calling for tumor-normal pair (configureManta.py) (annotated.bam, counts.bam, assembly.fa, manta_somatic/runWorkflow.py)",variant-calling
 manta,manta_03,configureManta.py --bam reference.bam --referenceFasta genome.fa --exome --callRegions aligned.bed.gz --runDir manta_wes && python manta_wes/runWorkflow.py -m local -j 8,"run Manta on WES data with capture regions (configureManta.py) (reference.bam, genome.fa, aligned.bed.gz, manta_wes/runWorkflow.py)",variant-calling
@@ -681,13 +681,13 @@ manta,manta_09,configureManta.py --bam analysis.bam --referenceFasta sample.fa -
 manta,manta_10,configureManta.py --normalBam variants.bam --tumorBam mapping.bam --referenceFasta genome.fa --runDir manta_somatic && python manta_somatic/runWorkflow.py -m local -j 8,"run Manta somatic SV calling for tumor-normal pair (configureManta.py) for a typical analysis (variants.bam, mapping.bam, genome.fa, manta_somatic/runWorkflow.py)",variant-calling
 mash,mash_01,sketch -o genomes_db reads.fasta,sketch a collection of genome FASTA files into a single database (reads.fasta),sequence-utilities
 mash,mash_02,dist report.fasta mapping.fasta,"compute pairwise distances between two genome sketches (report.fasta, mapping.fasta)",sequence-utilities
-mash,mash_03,dist -p 16 matrix.msh reads.fasta | sort -k3 -n | head -20,"query all genomes in a database against a query genome (matrix.msh, reads.fasta)",sequence-utilities
+mash,mash_03,dist -p 16 matrix.msh reads.fasta,"query all genomes in a database against a query genome (matrix.msh, reads.fasta)",sequence-utilities
 mash,mash_04,sketch -m 2 -s 10000 -o reads_sketch trimmed.fastq.gz,sketch raw sequencing reads with error filtering (trimmed.fastq.gz),sequence-utilities
-mash,mash_05,screen -w -p 8 raw.msh merged.fastq.gz | sort -gr -k1 > assembly.txt,"screen a metagenome for known reference genomes (raw.msh, merged.fastq.gz, assembly.txt)",sequence-utilities
-mash,mash_06,triangle -p 16 counts.msh > report.tsv,"compute all-vs-all distance triangle for genome clustering (counts.msh, report.tsv)",sequence-utilities
+mash,mash_05,screen -w -p 8 raw.msh merged.fastq.gz,"screen a metagenome for known reference genomes (raw.msh, merged.fastq.gz)",sequence-utilities
+mash,mash_06,triangle -p 16 counts.msh,compute all-vs-all distance triangle for genome clustering (counts.msh),sequence-utilities
 mash,mash_07,sketch -o genomes_db mapping.fasta,sketch a collection of genome FASTA files into a single database and verify the output (mapping.fasta),sequence-utilities
 mash,mash_08,dist aligned.fasta raw.fasta,"compute pairwise distances between two genome sketches step by step (aligned.fasta, raw.fasta)",sequence-utilities
-mash,mash_09,dist -p 16 assembly.msh analysis.fasta | sort -k3 -n | head -20,"query all genomes in a database against a query genome using standard settings (assembly.msh, analysis.fasta)",sequence-utilities
+mash,mash_09,dist -p 16 assembly.msh analysis.fasta,"query all genomes in a database against a query genome using standard settings (assembly.msh, analysis.fasta)",sequence-utilities
 mash,mash_10,sketch -m 2 -s 10000 -o reads_sketch assembly.fastq.gz,sketch raw sequencing reads with error filtering for a typical analysis (assembly.fastq.gz),sequence-utilities
 medaka,medaka_01,medaka_consensus -i filtered.fastq.gz -d mapping.fasta -o medaka_output/ -t 8 -m r941_min_hac_g507,"polish an ONT assembly with Medaka (all-in-one pipeline) (filtered.fastq.gz, mapping.fasta)",variant-calling
 medaka,medaka_02,medaka_haploid_variant -i annotated.fastq.gz -r assembly.fasta -o medaka_variants/ -t 8 -m r941_min_hac_g507,"call variants from ONT reads (haploid) (annotated.fastq.gz, assembly.fasta)",variant-calling
@@ -732,11 +732,11 @@ metabat2,metabat2_10,-i report.fasta -a report.txt -o bins/bin -m 2500 -t 8,"bin
 metaphlan,metaphlan_01,--input_type fastq --bowtie2db /path/to/mpa_db --index mpa_vJan21_CHOCOPhlAnSGB_202103 --nproc 8 reference.fastq.gz -o filtered.txt,"profile microbial community from single-end FASTQ reads (reference.fastq.gz, filtered.txt)",metagenomics
 metaphlan,metaphlan_02,--input_type fastq --bowtie2db /path/to/mpa_db --index mpa_vJan21_CHOCOPhlAnSGB_202103 --nproc 8 -o merged.txt assembly.fastq.gz,"profile paired-end metagenomic reads (merged.txt, assembly.fastq.gz)",metagenomics
 metaphlan,metaphlan_03,--input_type fastq --bowtie2db /path/to/mpa_db --index mpa_vJan21_CHOCOPhlAnSGB_202103 --nproc 8 --bowtie2out sorted.bz2 -o results.txt counts.fastq.gz,"save bowtie2 alignments for faster re-runs and profile (sorted.bz2, results.txt, counts.fastq.gz)",metagenomics
-metaphlan,metaphlan_04,sample1_profile.txt merged.txt filtered.txt > variants.txt,"merge multiple MetaPhlAn profiles into a single table (sample1_profile.txt, merged.txt, filtered.txt, variants.txt)",metagenomics
+metaphlan,metaphlan_04,sample1_profile.txt merged.txt filtered.txt,"merge multiple MetaPhlAn profiles into a single table (sample1_profile.txt, merged.txt, filtered.txt)",metagenomics
 metaphlan,metaphlan_05,--input_type fastq --bowtie2db /path/to/mpa_db --index mpa_vJan21_CHOCOPhlAnSGB_202103 --nproc 8 reference.fastq.gz -o sorted.txt,"profile microbial community from single-end FASTQ reads for a typical analysis (reference.fastq.gz, sorted.txt)",metagenomics
 metaphlan,metaphlan_06,--input_type fastq --bowtie2db /path/to/mpa_db --index mpa_vJan21_CHOCOPhlAnSGB_202103 --nproc 8 -o merged.txt variants.fastq.gz,"profile paired-end metagenomic reads with default parameters (merged.txt, variants.fastq.gz)",metagenomics
 metaphlan,metaphlan_07,--input_type fastq --bowtie2db /path/to/mpa_db --index mpa_vJan21_CHOCOPhlAnSGB_202103 --nproc 8 --bowtie2out raw.bz2 -o assembly.txt trimmed.fastq.gz,"save bowtie2 alignments for faster re-runs and profile and verify the output (raw.bz2, assembly.txt, trimmed.fastq.gz)",metagenomics
-metaphlan,metaphlan_08,sample1_profile.txt reference.txt raw.txt > results.txt,"merge multiple MetaPhlAn profiles into a single table step by step (sample1_profile.txt, reference.txt, raw.txt, results.txt)",metagenomics
+metaphlan,metaphlan_08,sample1_profile.txt reference.txt raw.txt,"merge multiple MetaPhlAn profiles into a single table step by step (sample1_profile.txt, reference.txt, raw.txt)",metagenomics
 metaphlan,metaphlan_09,--input_type fastq --bowtie2db /path/to/mpa_db --index mpa_vJan21_CHOCOPhlAnSGB_202103 --nproc 8 report.fastq.gz -o sorted.txt,"profile microbial community from single-end FASTQ reads using standard settings (report.fastq.gz, sorted.txt)",metagenomics
 metaphlan,metaphlan_10,--input_type fastq --bowtie2db /path/to/mpa_db --index mpa_vJan21_CHOCOPhlAnSGB_202103 --nproc 8 -o variants.txt counts.fastq.gz,"profile paired-end metagenomic reads for a typical analysis (variants.txt, counts.fastq.gz)",metagenomics
 methyldackel,methyldackel_01,extract report.fa variants.bam -o sample_methylation,"extract CpG methylation from bisulfite-aligned BAM (report.fa, variants.bam)",epigenomics
@@ -749,26 +749,26 @@ methyldackel,methyldackel_07,mbias sample.fa raw.bam sample_mbias,"detect M-bias
 methyldackel,methyldackel_08,extract --ignore 5 5 results.fa genome.bam -o trimmed_methylation,"extract methylation ignoring biased read ends step by step (results.fa, genome.bam)",epigenomics
 methyldackel,methyldackel_09,extract report.fa results.bam -o sample_methylation,"extract CpG methylation from bisulfite-aligned BAM using standard settings (report.fa, results.bam)",epigenomics
 methyldackel,methyldackel_10,extract --CHG --CHH processed.fa reads.bam -o sample_all_contexts,"extract all cytosine contexts (CpG, CHG, CHH) for a typical analysis (processed.fa, reads.bam)",epigenomics
-miniasm,miniasm_01,-x ava-ont -t 16 counts.fastq.gz counts.fastq.gz | gzip > variants.gz,"compute all-vs-all overlaps for ONT reads with minimap2 (counts.fastq.gz, variants.gz)",assembly
-miniasm,miniasm_02,-f variants.fastq.gz annotated.gz > counts.gfa,"assemble ONT reads from precomputed overlaps (variants.fastq.gz, annotated.gz, counts.gfa)",assembly
+miniasm,miniasm_01,-x ava-ont -t 16 counts.fastq.gz counts.fastq.gz,compute all-vs-all overlaps for ONT reads with minimap2 (counts.fastq.gz),assembly
+miniasm,miniasm_02,-f variants.fastq.gz annotated.gz,"assemble ONT reads from precomputed overlaps (variants.fastq.gz, annotated.gz)",assembly
 miniasm,miniasm_03,"/^S/ {print "">""$2""\n""$3}",convert miniasm GFA output to FASTA,assembly
-miniasm,miniasm_04,-x ava-ont -t 16 matrix.fastq.gz matrix.fastq.gz | gzip > sample.gz,"compute all-vs-all overlaps for ONT reads with minimap2 using standard settings (matrix.fastq.gz, sample.gz)",assembly
-miniasm,miniasm_05,-f aligned.fastq.gz mapping.gz > mapping.gfa,"assemble ONT reads from precomputed overlaps for a typical analysis (aligned.fastq.gz, mapping.gz, mapping.gfa)",assembly
+miniasm,miniasm_04,-x ava-ont -t 16 matrix.fastq.gz matrix.fastq.gz,compute all-vs-all overlaps for ONT reads with minimap2 using standard settings (matrix.fastq.gz),assembly
+miniasm,miniasm_05,-f aligned.fastq.gz mapping.gz,"assemble ONT reads from precomputed overlaps for a typical analysis (aligned.fastq.gz, mapping.gz)",assembly
 miniasm,miniasm_06,"/^S/ {print "">""$2""\n""$3}",convert miniasm GFA output to FASTA with default parameters,assembly
-miniasm,miniasm_07,-x ava-ont -t 16 genome.fastq.gz genome.fastq.gz | gzip > sorted.gz,"compute all-vs-all overlaps for ONT reads with minimap2 and verify the output (genome.fastq.gz, sorted.gz)",assembly
-miniasm,miniasm_08,-f matrix.fastq.gz trimmed.gz > reference.gfa,"assemble ONT reads from precomputed overlaps step by step (matrix.fastq.gz, trimmed.gz, reference.gfa)",assembly
+miniasm,miniasm_07,-x ava-ont -t 16 genome.fastq.gz genome.fastq.gz,compute all-vs-all overlaps for ONT reads with minimap2 and verify the output (genome.fastq.gz),assembly
+miniasm,miniasm_08,-f matrix.fastq.gz trimmed.gz,"assemble ONT reads from precomputed overlaps step by step (matrix.fastq.gz, trimmed.gz)",assembly
 miniasm,miniasm_09,"/^S/ {print "">""$2""\n""$3}",convert miniasm GFA output to FASTA using standard settings,assembly
-miniasm,miniasm_10,-x ava-ont -t 16 merged.fastq.gz merged.fastq.gz | gzip > reads.gz,"compute all-vs-all overlaps for ONT reads with minimap2 for a typical analysis (merged.fastq.gz, reads.gz)",assembly
-minimap2,minimap2_01,-ax map-ont -t 8 assembly.fa processed.fastq.gz | samtools sort -@ 4 -o sample.bam,"align Oxford Nanopore reads to a reference genome (assembly.fa, processed.fastq.gz, sample.bam)",alignment
-minimap2,minimap2_02,-ax map-hifi -t 8 filtered.fa reads.fastq.gz | samtools sort -@ 4 -o genome.bam,"align PacBio HiFi (CCS) reads to a reference genome (filtered.fa, reads.fastq.gz, genome.bam)",alignment
-minimap2,minimap2_03,-ax splice -t 8 --junc-bed sample.bed counts.fa reads.fastq.gz | samtools sort -o annotated.bam,"align Nanopore cDNA reads for RNA-seq spliced alignment (sample.bed, counts.fa, reads.fastq.gz, annotated.bam)",alignment
-minimap2,minimap2_04,-ax asm5 -t 8 analysis.fa merged.fa | samtools sort -o variants.bam,"compare two genome assemblies (assembly vs reference) (analysis.fa, merged.fa, variants.bam)",alignment
-minimap2,minimap2_05,-x map-ont -t 8 -c report.fa assembly.fastq.gz > results.paf,"map long reads and output in PAF format for structural variant analysis (report.fa, assembly.fastq.gz, results.paf)",alignment
-minimap2,minimap2_06,-x ava-ont -t 16 trimmed.fastq.gz trimmed.fastq.gz | gzip > variants.gz,"compute all-vs-all overlaps for de novo ONT assembly (trimmed.fastq.gz, variants.gz)",alignment
+miniasm,miniasm_10,-x ava-ont -t 16 merged.fastq.gz merged.fastq.gz,compute all-vs-all overlaps for ONT reads with minimap2 for a typical analysis (merged.fastq.gz),assembly
+minimap2,minimap2_01,-ax map-ont -t 8 assembly.fa processed.fastq.gz,"align Oxford Nanopore reads to a reference genome (assembly.fa, processed.fastq.gz)",alignment
+minimap2,minimap2_02,-ax map-hifi -t 8 filtered.fa reads.fastq.gz,"align PacBio HiFi (CCS) reads to a reference genome (filtered.fa, reads.fastq.gz)",alignment
+minimap2,minimap2_03,-ax splice -t 8 --junc-bed sample.bed counts.fa reads.fastq.gz,"align Nanopore cDNA reads for RNA-seq spliced alignment (sample.bed, counts.fa, reads.fastq.gz)",alignment
+minimap2,minimap2_04,-ax asm5 -t 8 analysis.fa merged.fa,"compare two genome assemblies (assembly vs reference) (analysis.fa, merged.fa)",alignment
+minimap2,minimap2_05,-x map-ont -t 8 -c report.fa assembly.fastq.gz,"map long reads and output in PAF format for structural variant analysis (report.fa, assembly.fastq.gz)",alignment
+minimap2,minimap2_06,-x ava-ont -t 16 trimmed.fastq.gz trimmed.fastq.gz,compute all-vs-all overlaps for de novo ONT assembly (trimmed.fastq.gz),alignment
 minimap2,minimap2_07,-d annotated.mmi -x map-ont trimmed.fa,"build a reusable minimap2 index for repeated ONT alignments (annotated.mmi, trimmed.fa)",alignment
-minimap2,minimap2_08,-ax map-ont -t 8 analysis.fa assembly.fastq.gz | samtools sort -@ 4 -o sorted.bam,"align Oxford Nanopore reads to a reference genome step by step (analysis.fa, assembly.fastq.gz, sorted.bam)",alignment
-minimap2,minimap2_09,-ax map-hifi -t 8 annotated.fa trimmed.fastq.gz | samtools sort -@ 4 -o matrix.bam,"align PacBio HiFi (CCS) reads to a reference genome using standard settings (annotated.fa, trimmed.fastq.gz, matrix.bam)",alignment
-minimap2,minimap2_10,-ax splice -t 8 --junc-bed trimmed.bed counts.fa filtered.fastq.gz | samtools sort -o genome.bam,"align Nanopore cDNA reads for RNA-seq spliced alignment for a typical analysis (trimmed.bed, counts.fa, filtered.fastq.gz, genome.bam)",alignment
+minimap2,minimap2_08,-ax map-ont -t 8 analysis.fa assembly.fastq.gz,"align Oxford Nanopore reads to a reference genome step by step (analysis.fa, assembly.fastq.gz)",alignment
+minimap2,minimap2_09,-ax map-hifi -t 8 annotated.fa trimmed.fastq.gz,"align PacBio HiFi (CCS) reads to a reference genome using standard settings (annotated.fa, trimmed.fastq.gz)",alignment
+minimap2,minimap2_10,-ax splice -t 8 --junc-bed trimmed.bed counts.fa filtered.fastq.gz,"align Nanopore cDNA reads for RNA-seq spliced alignment for a typical analysis (trimmed.bed, counts.fa, filtered.fastq.gz)",alignment
 mmseqs2,mmseqs2_01,easy-search reference.fasta report.fasta annotated.m8 tmp --format-mode 0 --threads 16 -s 7.5,"search protein FASTA against UniRef50 and output BLAST tabular results (reference.fasta, report.fasta, annotated.m8)",sequence-utilities
 mmseqs2,mmseqs2_02,easy-cluster results.fasta cluster_90 tmp --min-seq-id 0.9 -c 0.8 --cov-mode 0 --threads 16,cluster protein sequences at 90% identity (results.fasta),sequence-utilities
 mmseqs2,mmseqs2_03,easy-linclust annotated.fasta cluster_50 tmp --min-seq-id 0.5 -c 0.8 --threads 32,fast linear-time clustering of large metagenomic protein set at 50% identity (annotated.fasta),sequence-utilities
@@ -783,7 +783,7 @@ modkit,modkit_01,pileup --ref matrix.fasta --mod-code m --cpg filtered.bam merge
 modkit,modkit_02,pileup --ref counts.fasta --cpg --combine-strands -t 16 processed.bam raw.bedmethyl,"generate bedMethyl and combine CpG sites on both strands (counts.fasta, processed.bam, raw.bedmethyl)",epigenomics
 modkit,modkit_03,extract --ref analysis.fasta --mod-code m analysis.bam reference.tsv --threads 16,"extract per-read modification data to TSV (analysis.fasta, analysis.bam, reference.tsv)",epigenomics
 modkit,modkit_04,summary merged.bam --threads 8,get a summary of modification calls in a BAM (merged.bam),epigenomics
-modkit,modkit_05,motif-bed filtered.fasta CG 0 > matrix.bed,"generate a BED file of all CpG positions in a reference for use as motif targets (filtered.fasta, matrix.bed)",epigenomics
+modkit,modkit_05,motif-bed filtered.fasta CG 0,generate a BED file of all CpG positions in a reference for use as motif targets (filtered.fasta),epigenomics
 modkit,modkit_06,pileup --ref trimmed.fasta --region chr1:1-10000000 --mod-code m sample.bam trimmed.bedmethyl --threads 8,"pileup restricted to a specific genomic region (trimmed.fasta, sample.bam, trimmed.bedmethyl)",epigenomics
 modkit,modkit_07,sample-probs --mod-code m assembly.bam --threads 8,sample modification probabilities to assess threshold distribution (assembly.bam),epigenomics
 modkit,modkit_08,pileup --ref genome.fasta --mod-code m --cpg report.bam results.bedmethyl --threads 16,"generate a bedMethyl pileup of 5mC methylation from a BAM file step by step (genome.fasta, report.bam, results.bedmethyl)",epigenomics
@@ -811,14 +811,14 @@ multiqc,multiqc_09,. --flat -o flat_report/ -f,generate a multiqc report with fl
 multiqc,multiqc_10,fastqc_results/ trimmomatic_logs/ -o summary_qc/ -f,run multiqc on only FastQC and Trimmomatic outputs for a typical analysis,qc
 mummer,mummer_01,nucmer --prefix=myrun assembly.fna results.fna,"align a query genome to a reference genome (assembly.fna, results.fna)",alignment
 mummer,mummer_02,dnadiff analysis.fna merged.fna,"generate a comprehensive pairwise genome comparison report (analysis.fna, merged.fna)",alignment
-mummer,mummer_03,delta-filter -1 results.delta > counts.delta && show-snps -Clr counts.delta > assembly.snps,"filter alignments to 1-to-1 (unique) and extract SNPs (results.delta, counts.delta, assembly.snps)",alignment
-mummer,mummer_04,show-coords -r -c -l merged.delta > reference.coords,"show alignment coordinates (merged.delta, reference.coords)",alignment
+mummer,mummer_03,delta-filter -1 results.delta && show-snps -Clr counts.delta,"filter alignments to 1-to-1 (unique) and extract SNPs (results.delta, counts.delta)",alignment
+mummer,mummer_04,show-coords -r -c -l merged.delta,show alignment coordinates (merged.delta),alignment
 mummer,mummer_05,mummerplot --png --prefix=dotplot reads.delta,generate a synteny dot-plot image (reads.delta),alignment
 mummer,mummer_06,nucmer --mum -p compare reads.fa genome.fa && show-snps -Clrx trimmed.delta,"compare two genomes with verbose SNP output (reads.fa, genome.fa, trimmed.delta)",alignment
 mummer,mummer_07,nucmer -c 100 -l 20 --prefix large_genome sample.fa assembly.fa,"align with a custom minimum match length (sample.fa, assembly.fa)",alignment
 mummer,mummer_08,nucmer --prefix=myrun reads.fna trimmed.fna,"align a query genome to a reference genome step by step (reads.fna, trimmed.fna)",alignment
 mummer,mummer_09,dnadiff genome.fna results.fna,"generate a comprehensive pairwise genome comparison report using standard settings (genome.fna, results.fna)",alignment
-mummer,mummer_10,delta-filter -1 assembly.delta > counts.delta && show-snps -Clr counts.delta > assembly.snps,"filter alignments to 1-to-1 (unique) and extract SNPs for a typical analysis (assembly.delta, counts.delta, assembly.snps)",alignment
+mummer,mummer_10,delta-filter -1 assembly.delta && show-snps -Clr counts.delta,"filter alignments to 1-to-1 (unique) and extract SNPs for a typical analysis (assembly.delta, counts.delta)",alignment
 muscle,muscle_01,-align raw.fasta -output counts.fasta -threads 8,"align multiple protein sequences with MUSCLE v5 (raw.fasta, counts.fasta)",phylogenetics
 muscle,muscle_02,-super5 counts.fasta -output aligned.fasta -threads 16,"align a large dataset with MUSCLE v5 super5 mode (counts.fasta, aligned.fasta)",phylogenetics
 muscle,muscle_03,-in sorted.fasta -out mapping.fasta,"align sequences with MUSCLE v3 syntax (legacy) (sorted.fasta, mapping.fasta)",phylogenetics
@@ -832,13 +832,13 @@ muscle,muscle_10,-super5 mapping.fasta -output results.fasta -threads 16,"align 
 nanocomp,nanocomp_01,NanoComp --fastq merged.fastq.gz filtered.fastq.gz processed.fastq.gz --names Run1 Run2 Run3 --outdir nanocomp_out/ --threads 8,"compare quality and length of reads from multiple FASTQ files (merged.fastq.gz, filtered.fastq.gz, processed.fastq.gz)",qc
 nanocomp,nanocomp_02,NanoComp --bam genome.bam analysis.bam counts.bam --names Sample1 Sample2 Sample3 --outdir bam_comparison/ --threads 8,"compare multiple BAM files from different samples (genome.bam, analysis.bam, counts.bam)",qc
 nanocomp,nanocomp_03,NanoComp --summary variants.txt reference.txt --names Run1 Run2 --plot ridge --outdir summary_comparison/ --threads 4,"compare runs using sequencing summary files with ridge plots (variants.txt, reference.txt)",qc
-nanocomp,nanocomp_04,NanoComp --fastq matrix.fastq.gz --names $(ls matrix.fastq.gz | sed 's/.fastq.gz//') --minlength 1000 --outdir filtered_comparison/,compare samples filtering out reads shorter than 1 kb (matrix.fastq.gz),qc
+nanocomp,nanocomp_04,NanoComp --fastq matrix.fastq.gz --names $(ls matrix.fastq.gz,compare samples filtering out reads shorter than 1 kb (matrix.fastq.gz),qc
 nanocomp,nanocomp_05,NanoComp --bam analysis.bam report.bam --names S1 S2 --downsample 50000 --outdir quick_compare/ --threads 4,"downsample to 50000 reads per sample for quick comparison (analysis.bam, report.bam)",qc
 nanocomp,nanocomp_06,NanoComp --fastq analysis.fastq.gz counts.fastq.gz --names Run1 Run2 --outdir results/ --prefix batch01 --threads 8,"generate comparison with custom output file prefix (analysis.fastq.gz, counts.fastq.gz)",qc
 nanocomp,nanocomp_07,NanoComp --fastq sample.fastq.gz variants.fastq.gz merged.fastq.gz --names Run1 Run2 Run3 --outdir nanocomp_out/ --threads 8,"compare quality and length of reads from multiple FASTQ files and verify the output (sample.fastq.gz, variants.fastq.gz, merged.fastq.gz)",qc
 nanocomp,nanocomp_08,NanoComp --bam sample.bam sorted.bam annotated.bam --names Sample1 Sample2 Sample3 --outdir bam_comparison/ --threads 8,"compare multiple BAM files from different samples step by step (sample.bam, sorted.bam, annotated.bam)",qc
 nanocomp,nanocomp_09,NanoComp --summary reads.txt aligned.txt --names Run1 Run2 --plot ridge --outdir summary_comparison/ --threads 4,"compare runs using sequencing summary files with ridge plots using standard settings (reads.txt, aligned.txt)",qc
-nanocomp,nanocomp_10,NanoComp --fastq genome.fastq.gz --names $(ls genome.fastq.gz | sed 's/.fastq.gz//') --minlength 1000 --outdir filtered_comparison/,compare samples filtering out reads shorter than 1 kb for a typical analysis (genome.fastq.gz),qc
+nanocomp,nanocomp_10,NanoComp --fastq genome.fastq.gz --names $(ls genome.fastq.gz,compare samples filtering out reads shorter than 1 kb for a typical analysis (genome.fastq.gz),qc
 nanoplot,nanoplot_01,--fastq matrix.fastq.gz -o nanoplot_output/ -p sample_qc --threads 8,generate quality plots from Oxford Nanopore FASTQ reads (matrix.fastq.gz),qc
 nanoplot,nanoplot_02,--summary processed.txt -o nanoplot_summary/ -p run_qc --threads 4,generate quality statistics from ONT sequencing summary file (processed.txt),qc
 nanoplot,nanoplot_03,--bam raw.bam -o bam_qc/ -p aligned_sample --threads 8,plot quality statistics for aligned BAM file (raw.bam),qc
@@ -879,16 +879,16 @@ orthofinder,orthofinder_07,-f proteomes/ -t 32 -a 8,run OrthoFinder on a directo
 orthofinder,orthofinder_08,-f proteomes/ -M msa -S diamond -A mafft -T iqtree -t 32 -a 8,run OrthoFinder with MSA-based gene trees using MAFFT and IQ-TREE step by step,comparative-genomics
 orthofinder,orthofinder_09,-f proteomes/ -og -t 32,infer orthogroups only without gene trees for fast proteome comparison using standard settings,comparative-genomics
 orthofinder,orthofinder_10,-b proteomes/OrthoFinder/Results_Jan01/ -f new_species/ -t 32 -a 8,restart OrthoFinder from existing DIAMOND results (add a new species) for a typical analysis,comparative-genomics
-pairtools,pairtools_01,parse --min-mapq 30 --walks-policy mask --max-inter-align-gap 30 -N sample --chroms-path filtered.txt variants.bam > trimmed.gz,"parse Hi-C BWA alignments to pairs format (filtered.txt, variants.bam, trimmed.gz)",epigenomics
-pairtools,pairtools_02,sort sorted.gz --nproc 16 --tmpdir /tmp/ > variants.gz,"sort pairs file for deduplication (sorted.gz, variants.gz)",epigenomics
-pairtools,pairtools_03,dedup --nproc 16 --output-stats aligned.txt report.gz > variants.gz,"deduplicate sorted pairs file (aligned.txt, report.gz, variants.gz)",epigenomics
+pairtools,pairtools_01,parse --min-mapq 30 --walks-policy mask --max-inter-align-gap 30 -N sample --chroms-path filtered.txt variants.bam,"parse Hi-C BWA alignments to pairs format (filtered.txt, variants.bam)",epigenomics
+pairtools,pairtools_02,sort sorted.gz --nproc 16 --tmpdir /tmp/,sort pairs file for deduplication (sorted.gz),epigenomics
+pairtools,pairtools_03,dedup --nproc 16 --output-stats aligned.txt report.gz,"deduplicate sorted pairs file (aligned.txt, report.gz)",epigenomics
 pairtools,pairtools_04,cload pairs --chrom1 2 --pos1 3 --chrom2 4 --pos2 5 processed.txt:5000 merged.gz raw.cool,"bin pairs into contact matrix using cooler (processed.txt, merged.gz, raw.cool)",epigenomics
-pairtools,pairtools_05,parse --min-mapq 30 --walks-policy mask --max-inter-align-gap 30 -N sample --chroms-path matrix.txt results.bam > trimmed.gz,"parse Hi-C BWA alignments to pairs format for a typical analysis (matrix.txt, results.bam, trimmed.gz)",epigenomics
-pairtools,pairtools_06,sort raw.gz --nproc 16 --tmpdir /tmp/ > variants.gz,"sort pairs file for deduplication with default parameters (raw.gz, variants.gz)",epigenomics
-pairtools,pairtools_07,dedup --nproc 16 --output-stats counts.txt genome.gz > results.gz,"deduplicate sorted pairs file and verify the output (counts.txt, genome.gz, results.gz)",epigenomics
+pairtools,pairtools_05,parse --min-mapq 30 --walks-policy mask --max-inter-align-gap 30 -N sample --chroms-path matrix.txt results.bam,"parse Hi-C BWA alignments to pairs format for a typical analysis (matrix.txt, results.bam)",epigenomics
+pairtools,pairtools_06,sort raw.gz --nproc 16 --tmpdir /tmp/,sort pairs file for deduplication with default parameters (raw.gz),epigenomics
+pairtools,pairtools_07,dedup --nproc 16 --output-stats counts.txt genome.gz,"deduplicate sorted pairs file and verify the output (counts.txt, genome.gz)",epigenomics
 pairtools,pairtools_08,cload pairs --chrom1 2 --pos1 3 --chrom2 4 --pos2 5 sample.txt:5000 genome.gz raw.cool,"bin pairs into contact matrix using cooler step by step (sample.txt, genome.gz, raw.cool)",epigenomics
-pairtools,pairtools_09,parse --min-mapq 30 --walks-policy mask --max-inter-align-gap 30 -N sample --chroms-path raw.txt analysis.bam > trimmed.gz,"parse Hi-C BWA alignments to pairs format using standard settings (raw.txt, analysis.bam, trimmed.gz)",epigenomics
-pairtools,pairtools_10,sort reference.gz --nproc 16 --tmpdir /tmp/ > merged.gz,"sort pairs file for deduplication for a typical analysis (reference.gz, merged.gz)",epigenomics
+pairtools,pairtools_09,parse --min-mapq 30 --walks-policy mask --max-inter-align-gap 30 -N sample --chroms-path raw.txt analysis.bam,"parse Hi-C BWA alignments to pairs format using standard settings (raw.txt, analysis.bam)",epigenomics
+pairtools,pairtools_10,sort reference.gz --nproc 16 --tmpdir /tmp/,sort pairs file for deduplication for a typical analysis (reference.gz),epigenomics
 pbccs,pbccs_01,subreads.bam counts.bam -j 32 --min-rq 0.99,"generate HiFi reads from PacBio subreads BAM (subreads.bam, counts.bam)",long-read
 pbccs,pbccs_02,subreads.bam analysis.bam -j 32 --min-rq 0.99 --min-passes 3,"generate HiFi reads with minimum 3 SMRTbell passes (subreads.bam, analysis.bam)",long-read
 pbccs,pbccs_03,subreads.bam analysis.bam -j 32 --min-rq 0.99 --hifi-kinetics,"generate HiFi reads with kinetics for methylation calling (subreads.bam, analysis.bam)",long-read
@@ -1039,16 +1039,16 @@ r,r_07,"Rscript -e ""ip <- installed.packages(lib.loc=.libPaths()[1]); cat(paste
 r,r_08,Rscript --vanilla --quiet analysis.R,run R script suppressing startup messages (analysis.R),programming
 r,r_09,"Rscript -e "".libPaths()""",show R library paths,programming
 r,r_10,"Rscript -e ""rmarkdown::render('processed.Rmd', output_format='html_document')""",render processed.Rmd to HTML,programming
-racon,racon_01,-t 16 filtered.fastq.gz results.paf assembly.fasta > raw.fasta,"run one round of Racon polishing on an ONT assembly (filtered.fastq.gz, results.paf, assembly.fasta, raw.fasta)",assembly
-racon,racon_02,-t 16 reference.fastq.gz matrix.paf trimmed.fasta > sorted.fasta,"run second round of Racon polishing (reference.fastq.gz, matrix.paf, trimmed.fasta, sorted.fasta)",assembly
-racon,racon_03,-t 16 results.fastq.gz genome.sam filtered.fasta > processed.fasta,"run Racon polishing using SAM alignment instead of PAF (results.fastq.gz, genome.sam, filtered.fasta, processed.fasta)",assembly
-racon,racon_04,-t 16 sample.fastq.gz aligned.paf annotated.fasta > report.fasta,"run one round of Racon polishing on an ONT assembly using standard settings (sample.fastq.gz, aligned.paf, annotated.fasta, report.fasta)",assembly
-racon,racon_05,-t 16 sorted.fastq.gz reference.paf raw.fasta > trimmed.fasta,"run second round of Racon polishing for a typical analysis (sorted.fastq.gz, reference.paf, raw.fasta, trimmed.fasta)",assembly
-racon,racon_06,-t 16 annotated.fastq.gz reads.sam counts.fasta > mapping.fasta,"run Racon polishing using SAM alignment instead of PAF with default parameters (annotated.fastq.gz, reads.sam, counts.fasta, mapping.fasta)",assembly
-racon,racon_07,-t 16 mapping.fastq.gz reads.paf reads.fasta > variants.fasta,"run one round of Racon polishing on an ONT assembly and verify the output (mapping.fastq.gz, reads.paf, reads.fasta, variants.fasta)",assembly
-racon,racon_08,-t 16 counts.fastq.gz mapping.paf merged.fasta > analysis.fasta,"run second round of Racon polishing step by step (counts.fastq.gz, mapping.paf, merged.fasta, analysis.fasta)",assembly
-racon,racon_09,-t 16 raw.fastq.gz aligned.sam mapping.fasta > merged.fasta,"run Racon polishing using SAM alignment instead of PAF using standard settings (raw.fastq.gz, aligned.sam, mapping.fasta, merged.fasta)",assembly
-racon,racon_10,-t 16 variants.fastq.gz filtered.paf filtered.fasta > assembly.fasta,"run one round of Racon polishing on an ONT assembly for a typical analysis (variants.fastq.gz, filtered.paf, filtered.fasta, assembly.fasta)",assembly
+racon,racon_01,-t 16 filtered.fastq.gz results.paf assembly.fasta,"run one round of Racon polishing on an ONT assembly (filtered.fastq.gz, results.paf, assembly.fasta)",assembly
+racon,racon_02,-t 16 reference.fastq.gz matrix.paf trimmed.fasta,"run second round of Racon polishing (reference.fastq.gz, matrix.paf, trimmed.fasta)",assembly
+racon,racon_03,-t 16 results.fastq.gz genome.sam filtered.fasta,"run Racon polishing using SAM alignment instead of PAF (results.fastq.gz, genome.sam, filtered.fasta)",assembly
+racon,racon_04,-t 16 sample.fastq.gz aligned.paf annotated.fasta,"run one round of Racon polishing on an ONT assembly using standard settings (sample.fastq.gz, aligned.paf, annotated.fasta)",assembly
+racon,racon_05,-t 16 sorted.fastq.gz reference.paf raw.fasta,"run second round of Racon polishing for a typical analysis (sorted.fastq.gz, reference.paf, raw.fasta)",assembly
+racon,racon_06,-t 16 annotated.fastq.gz reads.sam counts.fasta,"run Racon polishing using SAM alignment instead of PAF with default parameters (annotated.fastq.gz, reads.sam, counts.fasta)",assembly
+racon,racon_07,-t 16 mapping.fastq.gz reads.paf reads.fasta,"run one round of Racon polishing on an ONT assembly and verify the output (mapping.fastq.gz, reads.paf, reads.fasta)",assembly
+racon,racon_08,-t 16 counts.fastq.gz mapping.paf merged.fasta,"run second round of Racon polishing step by step (counts.fastq.gz, mapping.paf, merged.fasta)",assembly
+racon,racon_09,-t 16 raw.fastq.gz aligned.sam mapping.fasta,"run Racon polishing using SAM alignment instead of PAF using standard settings (raw.fastq.gz, aligned.sam, mapping.fasta)",assembly
+racon,racon_10,-t 16 variants.fastq.gz filtered.paf filtered.fasta,"run one round of Racon polishing on an ONT assembly for a typical analysis (variants.fastq.gz, filtered.paf, filtered.fasta)",assembly
 repeatmasker,repeatmasker_01,-species human -xsmall -pa 16 -dir repeatmasker_output/ analysis.fasta,softmask repeats in a mammalian genome assembly (analysis.fasta),annotation
 repeatmasker,repeatmasker_02,-species arabidopsis -pa 8 -dir masked_output/ trimmed.fasta,hard-mask repeats in a plant genome (trimmed.fasta),annotation
 repeatmasker,repeatmasker_03,-lib counts.fasta -xsmall -pa 8 -dir custom_masked/ reads.fasta,"mask repeats using a custom library (counts.fasta, reads.fasta)",annotation
@@ -1073,11 +1073,11 @@ rsem,rsem_01,rsem-prepare-reference --gtf analysis.gtf --num-threads 8 processed
 rsem,rsem_02,rsem-calculate-expression --paired-end --num-threads 8 --strandedness reverse sample.fastq.gz analysis.fastq.gz rsem_index/genome sample_output,"quantify paired-end RNA-seq reads using RSEM with Bowtie2 (sample.fastq.gz, analysis.fastq.gz)",rna-seq
 rsem,rsem_03,rsem-calculate-expression --paired-end --star --num-threads 8 variants.fastq.gz trimmed.fastq.gz rsem_index/genome sample_output,"quantify RNA-seq using RSEM with STAR aligner (variants.fastq.gz, trimmed.fastq.gz)",rna-seq
 rsem,rsem_04,rsem-prepare-reference --num-threads 4 filtered.fa rsem_transcript_index/transcripts,prepare RSEM reference directly from transcriptome FASTA (filtered.fa),rna-seq
-rsem,rsem_05,rsem-generate-data-matrix reads.results aligned.results mapping.results > filtered.txt,"generate count matrix from multiple RSEM results files for DESeq2 (reads.results, aligned.results, mapping.results, filtered.txt)",rna-seq
+rsem,rsem_05,rsem-generate-data-matrix reads.results aligned.results mapping.results,"generate count matrix from multiple RSEM results files for DESeq2 (reads.results, aligned.results, mapping.results)",rna-seq
 rsem,rsem_06,rsem-calculate-expression --num-threads 8 annotated.fastq.gz rsem_index/genome sample_output,quantify single-end RNA-seq reads using RSEM (annotated.fastq.gz),rna-seq
 rsem,rsem_07,rsem-prepare-reference --gtf raw.gtf --num-threads 8 --polyA report.fa rsem_polyA_index/genome,"prepare RSEM reference with Bowtie2 and poly-A trimming for scRNA-seq (raw.gtf, report.fa)",rna-seq
 rsem,rsem_08,rsem-calculate-expression --paired-end --num-threads 8 --estimate-rspd --strandedness none annotated.fq.gz analysis.fq.gz rsem_index/genome sample,"quantify with RSEM and estimate read start position distribution (annotated.fq.gz, analysis.fq.gz)",rna-seq
-rsem,rsem_09,rsem-generate-data-matrix matrix.results sample.results mapping.results > assembly.txt,"extract TPM column from RSEM gene results for cross-sample comparison (matrix.results, sample.results, mapping.results, assembly.txt)",rna-seq
+rsem,rsem_09,rsem-generate-data-matrix matrix.results sample.results mapping.results,"extract TPM column from RSEM gene results for cross-sample comparison (matrix.results, sample.results, mapping.results)",rna-seq
 rsem,rsem_10,rsem-calculate-expression --paired-end --num-threads 8 --calc-ci results.fastq.gz processed.fastq.gz rsem_index/genome sample_ci,"calculate expression with confidence intervals for uncertainty estimation (results.fastq.gz, processed.fastq.gz)",rna-seq
 rseqc,rseqc_01,infer_experiment.py -r reference.bed -i reference.bam -s 2000000,"infer library strandedness with infer_experiment.py (reference.bed, reference.bam)",qc
 rseqc,rseqc_02,read_distribution.py -r raw.bed -i annotated.bam,"get read distribution with read_distribution.py (raw.bed, annotated.bam)",qc
@@ -1139,16 +1139,16 @@ seqkit,seqkit_07,split2 -s 1000 -j 4 -O split_output matrix.fa,split FASTA file 
 seqkit,seqkit_08,stats -a counts.fastq.gz,"get basic statistics of a FASTQ file (read count, total bases, average length) step by step (counts.fastq.gz)",sequence-utilities
 seqkit,seqkit_09,seq -m 100 -j 4 -o assembly.fastq.gz annotated.fastq.gz,"filter reads shorter than 100 bp and write to a new file using standard settings (assembly.fastq.gz, annotated.fastq.gz)",sequence-utilities
 seqkit,seqkit_10,seq -r -p -j 4 reads.fa -o mapping.fa,"get the reverse complement of all sequences in a FASTA file for a typical analysis (reads.fa, mapping.fa)",sequence-utilities
-seqtk,seqtk_01,sample -s 42 report.fastq.gz 1000000 | gzip > assembly.fastq.gz,"subsample 1 million read pairs from paired-end FASTQ files (report.fastq.gz, assembly.fastq.gz)",sequence-utilities
-seqtk,seqtk_02,seq -a results.fastq.gz > aligned.fasta,"convert FASTQ to FASTA format (results.fastq.gz, aligned.fasta)",sequence-utilities
-seqtk,seqtk_03,seq -r processed.fasta > sample.fasta,"reverse complement all sequences in a FASTA file (processed.fasta, sample.fasta)",sequence-utilities
-seqtk,seqtk_04,subseq genome.fastq.gz filtered.txt > reads.fastq,"extract specific sequences by name from a FASTQ file (genome.fastq.gz, filtered.txt, reads.fastq)",sequence-utilities
-seqtk,seqtk_05,trimfq -q 0.05 processed.fastq.gz | gzip > sorted.fastq.gz,"quality trim reads below Phred 20 from both ends (processed.fastq.gz, sorted.fastq.gz)",sequence-utilities
-seqtk,seqtk_06,sample -s 100 analysis.fastq.gz 0.1 > genome.fastq,"subsample 10% of reads with reproducible seed (analysis.fastq.gz, genome.fastq)",sequence-utilities
-seqtk,seqtk_07,sample -s 42 trimmed.fastq.gz 1000000 | gzip > filtered.fastq.gz,"subsample 1 million read pairs from paired-end FASTQ files and verify the output (trimmed.fastq.gz, filtered.fastq.gz)",sequence-utilities
-seqtk,seqtk_08,seq -a raw.fastq.gz > report.fasta,"convert FASTQ to FASTA format step by step (raw.fastq.gz, report.fasta)",sequence-utilities
-seqtk,seqtk_09,seq -r annotated.fasta > genome.fasta,"reverse complement all sequences in a FASTA file using standard settings (annotated.fasta, genome.fasta)",sequence-utilities
-seqtk,seqtk_10,subseq genome.fastq.gz merged.txt > trimmed.fastq,"extract specific sequences by name from a FASTQ file for a typical analysis (genome.fastq.gz, merged.txt, trimmed.fastq)",sequence-utilities
+seqtk,seqtk_01,sample -s 42 report.fastq.gz 1000000,subsample 1 million read pairs from paired-end FASTQ files (report.fastq.gz),sequence-utilities
+seqtk,seqtk_02,seq -a results.fastq.gz,convert FASTQ to FASTA format (results.fastq.gz),sequence-utilities
+seqtk,seqtk_03,seq -r processed.fasta,reverse complement all sequences in a FASTA file (processed.fasta),sequence-utilities
+seqtk,seqtk_04,subseq genome.fastq.gz filtered.txt,"extract specific sequences by name from a FASTQ file (genome.fastq.gz, filtered.txt)",sequence-utilities
+seqtk,seqtk_05,trimfq -q 0.05 processed.fastq.gz,quality trim reads below Phred 20 from both ends (processed.fastq.gz),sequence-utilities
+seqtk,seqtk_06,sample -s 100 analysis.fastq.gz 0.1,subsample 10% of reads with reproducible seed (analysis.fastq.gz),sequence-utilities
+seqtk,seqtk_07,sample -s 42 trimmed.fastq.gz 1000000,subsample 1 million read pairs from paired-end FASTQ files and verify the output (trimmed.fastq.gz),sequence-utilities
+seqtk,seqtk_08,seq -a raw.fastq.gz,convert FASTQ to FASTA format step by step (raw.fastq.gz),sequence-utilities
+seqtk,seqtk_09,seq -r annotated.fasta,reverse complement all sequences in a FASTA file using standard settings (annotated.fasta),sequence-utilities
+seqtk,seqtk_10,subseq genome.fastq.gz merged.txt,"extract specific sequences by name from a FASTQ file for a typical analysis (genome.fastq.gz, merged.txt)",sequence-utilities
 shapeit4,shapeit4_01,--input matrix.vcf.gz --map genome.txt --region chr1 --output raw.vcf.gz --thread 8,"phase a chromosome using SHAPEIT4 (matrix.vcf.gz, genome.txt, raw.vcf.gz)",population-genomics
 shapeit4,shapeit4_02,--input sample.vcf.gz --scaffold annotated.vcf.gz --map merged.txt --region chr22 --output sorted.vcf.gz --thread 8,"phase with a reference haplotype scaffold panel (sample.vcf.gz, annotated.vcf.gz, merged.txt, sorted.vcf.gz)",population-genomics
 shapeit4,shapeit4_03,"--input counts.vcf.gz --map matrix.txt --region chr1 --sequencing --output genome.vcf.gz --thread 16 --mcmc-iterations 8b,1p,1b,1p,1b,1p,5m","phase sequencing data with higher accuracy settings (counts.vcf.gz, matrix.txt, genome.vcf.gz)",population-genomics
@@ -1166,7 +1166,7 @@ snakemake,snakemake_04,--configfile config/report.yaml --cores 8,run with a conf
 snakemake,snakemake_05,--profile slurm,use a named profile for cluster execution,workflow-manager
 snakemake,snakemake_06,--forcerun trimming alignment --cores 16,force re-run of specific rules,workflow-manager
 snakemake,snakemake_07,--unlock,unlock a workflow after a crash,workflow-manager
-snakemake,snakemake_08,--dag | dot -Tpng > sorted.png,generate a rule dependency graph (DAG) (sorted.png),workflow-manager
+snakemake,snakemake_08,--dag,generate a rule dependency graph (DAG),workflow-manager
 snakemake,snakemake_09,--rerun-incomplete --cores all,clean up incomplete output files and restart,workflow-manager
 snakemake,snakemake_10,--use-singularity --singularity-args '--bind /scratch' --cores 8,run with Singularity containers,workflow-manager
 sniffles,sniffles_01,--input genome.bam --vcf sample.vcf --threads 8,"call SVs from a single Oxford Nanopore BAM file (genome.bam, sample.vcf)",variant-calling
@@ -1179,15 +1179,15 @@ sniffles,sniffles_07,--input trimmed.bam --vcf merged.vcf --minsupport 5 --minsv
 sniffles,sniffles_08,--input analysis.bam --snf merged.snf --vcf aligned.vcf --threads 8,"generate SNF file for multi-sample population SV calling step by step (analysis.bam, merged.snf, aligned.vcf)",variant-calling
 sniffles,sniffles_09,--input matrix.snf aligned.snf mapping.snf --vcf genome.vcf --threads 8,"combine multiple SNF files for population-level SV calling using standard settings (matrix.snf, aligned.snf, mapping.snf, genome.vcf)",variant-calling
 sniffles,sniffles_10,--input aligned.bam --vcf analysis.vcf --mosaic --threads 8,"call mosaic or somatic SVs with low frequency support for a typical analysis (aligned.bam, analysis.vcf)",variant-calling
-snpeff,snpeff_01,ann -v GRCh38.105 sample.vcf > aligned.vcf,"annotate variants in a VCF file using the GRCh38 human genome database (sample.vcf, aligned.vcf)",variant-annotation
-snpeff,snpeff_02,ann -v -stats trimmed.html GRCh38.105 counts.vcf > raw.vcf,"annotate variants and generate an HTML statistics report (trimmed.html, counts.vcf, raw.vcf)",variant-annotation
-snpeff,snpeff_03,ann -v hg19 merged.vcf > annotated.vcf,"annotate variants from hg19/GRCh37 genome (merged.vcf, annotated.vcf)",variant-annotation
-snpeff,snpeff_04,ann -v -no-downstream -no-upstream -no-intron -no-intergenic GRCh38.105 raw.vcf > annotated.vcf,"annotate variants and filter by quality for clinical reporting (raw.vcf, annotated.vcf)",variant-annotation
+snpeff,snpeff_01,ann -v GRCh38.105 sample.vcf,annotate variants in a VCF file using the GRCh38 human genome database (sample.vcf),variant-annotation
+snpeff,snpeff_02,ann -v -stats trimmed.html GRCh38.105 counts.vcf,"annotate variants and generate an HTML statistics report (trimmed.html, counts.vcf)",variant-annotation
+snpeff,snpeff_03,ann -v hg19 merged.vcf,annotate variants from hg19/GRCh37 genome (merged.vcf),variant-annotation
+snpeff,snpeff_04,ann -v -no-downstream -no-upstream -no-intron -no-intergenic GRCh38.105 raw.vcf,annotate variants and filter by quality for clinical reporting (raw.vcf),variant-annotation
 snpeff,snpeff_05,build -gff3 -v MyGenome,build a custom SnpEff genome database from GFF3 annotation,variant-annotation
-snpeff,snpeff_06,ann -v GRCh38.105 mapping.vcf > sorted.vcf,"annotate variants in a VCF file using the GRCh38 human genome database with default parameters (mapping.vcf, sorted.vcf)",variant-annotation
-snpeff,snpeff_07,ann -v -stats results.html GRCh38.105 reference.vcf > genome.vcf,"annotate variants and generate an HTML statistics report and verify the output (results.html, reference.vcf, genome.vcf)",variant-annotation
-snpeff,snpeff_08,ann -v hg19 raw.vcf > filtered.vcf,"annotate variants from hg19/GRCh37 genome step by step (raw.vcf, filtered.vcf)",variant-annotation
-snpeff,snpeff_09,ann -v -no-downstream -no-upstream -no-intron -no-intergenic GRCh38.105 aligned.vcf > mapping.vcf,"annotate variants and filter by quality for clinical reporting using standard settings (aligned.vcf, mapping.vcf)",variant-annotation
+snpeff,snpeff_06,ann -v GRCh38.105 mapping.vcf,annotate variants in a VCF file using the GRCh38 human genome database with default parameters (mapping.vcf),variant-annotation
+snpeff,snpeff_07,ann -v -stats results.html GRCh38.105 reference.vcf,"annotate variants and generate an HTML statistics report and verify the output (results.html, reference.vcf)",variant-annotation
+snpeff,snpeff_08,ann -v hg19 raw.vcf,annotate variants from hg19/GRCh37 genome step by step (raw.vcf),variant-annotation
+snpeff,snpeff_09,ann -v -no-downstream -no-upstream -no-intron -no-intergenic GRCh38.105 aligned.vcf,annotate variants and filter by quality for clinical reporting using standard settings (aligned.vcf),variant-annotation
 snpeff,snpeff_10,build -gff3 -v MyGenome,build a custom SnpEff genome database from GFF3 annotation for a typical analysis,variant-annotation
 sourmash,sourmash_01,"sketch dna -p k=31,scaled=1000 variants.fasta -o variants.sig","sketch a genome FASTA file at default parameters (variants.fasta, variants.sig)",sequence-utilities
 sourmash,sourmash_02,"sketch dna -p k=31,scaled=1000 mapping.fasta --output-dir sigs/",sketch multiple genome files and store in one database (mapping.fasta),sequence-utilities
@@ -1216,7 +1216,7 @@ sra-tools,sra-tools_04,fasterq-dump SRR123456 -O output/ -e 8 && gzip output/res
 sra-tools,sra-tools_05,vdb-validate analysis.sra,validate an SRA file integrity (analysis.sra),utilities
 sra-tools,sra-tools_06,sra-stat --quick --xml SRR123456,get statistics for an SRA run without downloading reads,utilities
 sra-tools,sra-tools_07,prefetch ERR123456 -O sra_downloads/,download an ENA/EBI accession using prefetch,utilities
-sra-tools,sra-tools_08,fasterq-dump SRR123456 --stdout -e 4 | head -40,list all reads in an SRA file,utilities
+sra-tools,sra-tools_08,fasterq-dump SRR123456 --stdout -e 4,list all reads in an SRA file,utilities
 sra-tools,sra-tools_09,fasterq-dump SRR123456 --check-space,check available disk space before a large download,utilities
 sra-tools,sra-tools_10,fasterq-dump SRR123456 -O output/ -e 8 --skip-technical,download a single-end SRA accession and skip technical reads,utilities
 ssh,ssh_01,user@hostname,connect to a remote server as a specific user,networking
@@ -1274,20 +1274,20 @@ survivor,survivor_02,merge sorted.txt 1000 1 1 1 0 50 raw.vcf,"merge SV calls fr
 survivor,survivor_03,stats -i variants.vcf -o report.txt,"get summary statistics for SVs in a VCF (variants.vcf, report.txt)",variant-calling
 survivor,survivor_04,filter -i merged.vcf -o counts.vcf -s 50 -e 100000 -f 0,"filter SVs to a high-confidence set by size and minimum quality (merged.vcf, counts.vcf)",variant-calling
 survivor,survivor_05,simSV variants.fasta analysis.txt 0 0 simulated,"simulate structural variants on a reference genome for benchmarking (variants.fasta, analysis.txt)",variant-calling
-survivor,survivor_06,ls sorted.vcf genome.vcf results.vcf > reference.txt && merge reference.txt 500 2 1 1 0 50 mapping.vcf,"create a VCF list file and merge three caller outputs (sorted.vcf, genome.vcf, results.vcf, reference.txt, mapping.vcf)",variant-calling
+survivor,survivor_06,ls sorted.vcf genome.vcf results.vcf && merge reference.txt 500 2 1 1 0 50 mapping.vcf,"create a VCF list file and merge three caller outputs (sorted.vcf, genome.vcf, results.vcf, reference.txt, mapping.vcf)",variant-calling
 survivor,survivor_07,merge analysis.txt 500 2 1 1 0 50 sorted.vcf,"merge SV VCFs from multiple callers requiring support from at least 2 callers and verify the output (analysis.txt, sorted.vcf)",variant-calling
 survivor,survivor_08,merge results.txt 1000 1 1 1 0 50 results.vcf,"merge SV calls from a single caller across multiple samples step by step (results.txt, results.vcf)",variant-calling
 survivor,survivor_09,stats -i reads.vcf -o sample.txt,"get summary statistics for SVs in a VCF using standard settings (reads.vcf, sample.txt)",variant-calling
 survivor,survivor_10,filter -i mapping.vcf -o results.vcf -s 50 -e 100000 -f 0,"filter SVs to a high-confidence set by size and minimum quality for a typical analysis (mapping.vcf, results.vcf)",variant-calling
 tabix,tabix_01,variants.vcf.gz,compress a VCF file with bgzip and create tabix index (variants.vcf.gz),utilities
 tabix,tabix_02,-p vcf processed.vcf.gz,create tabix index for a bgzipped VCF file (processed.vcf.gz),utilities
-tabix,tabix_03,-h analysis.vcf.gz chr1:1000000-2000000 > mapping.vcf,"query a specific genomic region from an indexed VCF (analysis.vcf.gz, mapping.vcf)",utilities
+tabix,tabix_03,-h analysis.vcf.gz chr1:1000000-2000000,query a specific genomic region from an indexed VCF (analysis.vcf.gz),utilities
 tabix,tabix_04,-p bed mapping.bed.gz,create tabix index for a bgzipped BED file (mapping.bed.gz),utilities
 tabix,tabix_05,-l raw.vcf.gz,list all chromosomes/contigs in an indexed VCF (raw.vcf.gz),utilities
 tabix,tabix_06,-C aligned.vcf.gz,create a CSI index for large genomes with contigs >512 Mb (aligned.vcf.gz),utilities
-tabix,tabix_07,-h mapping.vcf.gz chr1:1000000-2000000 chr2:500000-1000000 > aligned.vcf,"query multiple regions at once from an indexed VCF (mapping.vcf.gz, aligned.vcf)",utilities
+tabix,tabix_07,-h mapping.vcf.gz chr1:1000000-2000000 chr2:500000-1000000,query multiple regions at once from an indexed VCF (mapping.vcf.gz),utilities
 tabix,tabix_08,-p gff merged.gz,index a bgzipped GFF3 annotation file (merged.gz),utilities
-tabix,tabix_09,-h https://example.com/filtered.vcf.gz chr1:1000-2000 > matrix.vcf,"fetch a remote indexed VCF region without downloading the whole file (//example.com/filtered.vcf.gz, matrix.vcf)",utilities
+tabix,tabix_09,-h https://example.com/filtered.vcf.gz chr1:1000-2000,fetch a remote indexed VCF region without downloading the whole file (//example.com/filtered.vcf.gz),utilities
 tabix,tabix_10,-s 1 -b 2 -e 3 report.bed.gz,reindex a tabix file using a custom sequence dictionary order (report.bed.gz),utilities
 tar,tar_01,-czf genome.tar.gz data/,create a gzip-compressed archive of a directory (genome.tar.gz),filesystem
 tar,tar_02,-xzf filtered.tar.gz,extract a gzip archive into the current directory (filtered.tar.gz),filesystem
@@ -1339,26 +1339,26 @@ truvari,truvari_07,bench -b results.vcf.gz -c analysis.vcf.gz -f report.fasta -o
 truvari,truvari_08,bench -b sample.vcf.gz -c trimmed.vcf.gz -f assembly.fasta -o bench_output --refdist 1000 --pctsize 0.7 --passonly,"benchmark with relaxed position tolerance for long-read SV calls step by step (sample.vcf.gz, trimmed.vcf.gz, assembly.fasta)",utilities
 truvari,truvari_09,collapse -i sorted.vcf.gz -o merged.vcf --passonly --sizemin 50 --refdist 500,"collapse redundant SV calls within a single caller VCF using standard settings (sorted.vcf.gz, merged.vcf)",utilities
 truvari,truvari_10,collapse -i mapping.vcf.gz -o filtered.vcf --chain --keep common,"merge SV calls from multiple callers into a consensus VCF for a typical analysis (mapping.vcf.gz, filtered.vcf)",utilities
-varscan2,varscan2_01,mpileup2snp --min-coverage 8 --min-reads2 2 --min-avg-qual 15 --min-var-freq 0.01 --p-value 0.99 --output-vcf 1 > report.vcf,call germline SNPs from a tumor or normal sample (report.vcf),variant-calling
+varscan2,varscan2_01,mpileup2snp --min-coverage 8 --min-reads2 2 --min-avg-qual 15 --min-var-freq 0.01 --p-value 0.99 --output-vcf 1,call germline SNPs from a tumor or normal sample,variant-calling
 varscan2,varscan2_02,somatic processed.pileup trimmed.pileup --output-snp counts.vcf --output-indel variants.vcf --output-vcf 1 --min-coverage 8 --min-var-freq 0.1 --somatic-p-value 0.05,"call somatic variants from tumor-normal pair (processed.pileup, trimmed.pileup, counts.vcf, variants.vcf)",variant-calling
 varscan2,varscan2_03,processSomatic variants.vcf --min-tumor-freq 0.1 --max-normal-freq 0.05 --p-value 0.05,filter somatic variants for high-confidence calls (variants.vcf),variant-calling
-varscan2,varscan2_04,mpileup2snp --min-coverage 8 --min-reads2 2 --min-avg-qual 15 --min-var-freq 0.01 --p-value 0.99 --output-vcf 1 > variants.vcf,call germline SNPs from a tumor or normal sample using standard settings (variants.vcf),variant-calling
+varscan2,varscan2_04,mpileup2snp --min-coverage 8 --min-reads2 2 --min-avg-qual 15 --min-var-freq 0.01 --p-value 0.99 --output-vcf 1,call germline SNPs from a tumor or normal sample using standard settings,variant-calling
 varscan2,varscan2_05,somatic assembly.pileup matrix.pileup --output-snp filtered.vcf --output-indel merged.vcf --output-vcf 1 --min-coverage 8 --min-var-freq 0.1 --somatic-p-value 0.05,"call somatic variants from tumor-normal pair for a typical analysis (assembly.pileup, matrix.pileup, filtered.vcf, merged.vcf)",variant-calling
 varscan2,varscan2_06,processSomatic sample.vcf --min-tumor-freq 0.1 --max-normal-freq 0.05 --p-value 0.05,filter somatic variants for high-confidence calls with default parameters (sample.vcf),variant-calling
-varscan2,varscan2_07,mpileup2snp --min-coverage 8 --min-reads2 2 --min-avg-qual 15 --min-var-freq 0.01 --p-value 0.99 --output-vcf 1 > trimmed.vcf,call germline SNPs from a tumor or normal sample and verify the output (trimmed.vcf),variant-calling
+varscan2,varscan2_07,mpileup2snp --min-coverage 8 --min-reads2 2 --min-avg-qual 15 --min-var-freq 0.01 --p-value 0.99 --output-vcf 1,call germline SNPs from a tumor or normal sample and verify the output,variant-calling
 varscan2,varscan2_08,somatic report.pileup reference.pileup --output-snp reference.vcf --output-indel sorted.vcf --output-vcf 1 --min-coverage 8 --min-var-freq 0.1 --somatic-p-value 0.05,"call somatic variants from tumor-normal pair step by step (report.pileup, reference.pileup, reference.vcf, sorted.vcf)",variant-calling
 varscan2,varscan2_09,processSomatic filtered.vcf --min-tumor-freq 0.1 --max-normal-freq 0.05 --p-value 0.05,filter somatic variants for high-confidence calls using standard settings (filtered.vcf),variant-calling
-varscan2,varscan2_10,mpileup2snp --min-coverage 8 --min-reads2 2 --min-avg-qual 15 --min-var-freq 0.01 --p-value 0.99 --output-vcf 1 > sample.vcf,call germline SNPs from a tumor or normal sample for a typical analysis (sample.vcf),variant-calling
-vcfanno,vcfanno_01,-p 8 trimmed.toml processed.vcf.gz > matrix.vcf,"annotate a VCF with gnomAD allele frequencies (trimmed.toml, processed.vcf.gz, matrix.vcf)",variant-annotation
-vcfanno,vcfanno_02,-p 16 results.toml variants.vcf.gz | bgzip > analysis.vcf.gz,"annotate variants with ClinVar pathogenicity and a custom BED file (results.toml, variants.vcf.gz, analysis.vcf.gz)",variant-annotation
-vcfanno,vcfanno_03,-p 8 counts.toml merged.vcf.gz > reads.vcf,"add a flag for variants overlapping a BED region of interest (counts.toml, merged.vcf.gz, reads.vcf)",variant-annotation
-vcfanno,vcfanno_04,-p 8 processed.toml sorted.vcf.gz > reads.vcf,"compute mean coverage at each variant position from a BAM file (processed.toml, sorted.vcf.gz, reads.vcf)",variant-annotation
-vcfanno,vcfanno_05,-p 8 -lua filters.lua sample.toml aligned.vcf.gz > matrix.vcf,"use a Lua postannotation to combine scores into a final filter (filters.lua, sample.toml, aligned.vcf.gz, matrix.vcf)",variant-annotation
-vcfanno,vcfanno_06,-p 8 annotated.toml variants.vcf.gz | bcftools view -f PASS > mapping.vcf,"annotate indels with COSMIC and output only annotated variants (annotated.toml, variants.vcf.gz, mapping.vcf)",variant-annotation
-vcfanno,vcfanno_07,-p 8 merged.toml annotated.vcf.gz > mapping.vcf,"annotate a VCF with gnomAD allele frequencies and verify the output (merged.toml, annotated.vcf.gz, mapping.vcf)",variant-annotation
-vcfanno,vcfanno_08,-p 16 matrix.toml sorted.vcf.gz | bgzip > raw.vcf.gz,"annotate variants with ClinVar pathogenicity and a custom BED file step by step (matrix.toml, sorted.vcf.gz, raw.vcf.gz)",variant-annotation
-vcfanno,vcfanno_09,-p 8 reference.toml processed.vcf.gz > analysis.vcf,"add a flag for variants overlapping a BED region of interest using standard settings (reference.toml, processed.vcf.gz, analysis.vcf)",variant-annotation
-vcfanno,vcfanno_10,-p 8 raw.toml reference.vcf.gz > annotated.vcf,"compute mean coverage at each variant position from a BAM file for a typical analysis (raw.toml, reference.vcf.gz, annotated.vcf)",variant-annotation
+varscan2,varscan2_10,mpileup2snp --min-coverage 8 --min-reads2 2 --min-avg-qual 15 --min-var-freq 0.01 --p-value 0.99 --output-vcf 1,call germline SNPs from a tumor or normal sample for a typical analysis,variant-calling
+vcfanno,vcfanno_01,-p 8 trimmed.toml processed.vcf.gz,"annotate a VCF with gnomAD allele frequencies (trimmed.toml, processed.vcf.gz)",variant-annotation
+vcfanno,vcfanno_02,-p 16 results.toml variants.vcf.gz,"annotate variants with ClinVar pathogenicity and a custom BED file (results.toml, variants.vcf.gz)",variant-annotation
+vcfanno,vcfanno_03,-p 8 counts.toml merged.vcf.gz,"add a flag for variants overlapping a BED region of interest (counts.toml, merged.vcf.gz)",variant-annotation
+vcfanno,vcfanno_04,-p 8 processed.toml sorted.vcf.gz,"compute mean coverage at each variant position from a BAM file (processed.toml, sorted.vcf.gz)",variant-annotation
+vcfanno,vcfanno_05,-p 8 -lua filters.lua sample.toml aligned.vcf.gz,"use a Lua postannotation to combine scores into a final filter (filters.lua, sample.toml, aligned.vcf.gz)",variant-annotation
+vcfanno,vcfanno_06,-p 8 annotated.toml variants.vcf.gz,"annotate indels with COSMIC and output only annotated variants (annotated.toml, variants.vcf.gz)",variant-annotation
+vcfanno,vcfanno_07,-p 8 merged.toml annotated.vcf.gz,"annotate a VCF with gnomAD allele frequencies and verify the output (merged.toml, annotated.vcf.gz)",variant-annotation
+vcfanno,vcfanno_08,-p 16 matrix.toml sorted.vcf.gz,"annotate variants with ClinVar pathogenicity and a custom BED file step by step (matrix.toml, sorted.vcf.gz)",variant-annotation
+vcfanno,vcfanno_09,-p 8 reference.toml processed.vcf.gz,"add a flag for variants overlapping a BED region of interest using standard settings (reference.toml, processed.vcf.gz)",variant-annotation
+vcfanno,vcfanno_10,-p 8 raw.toml reference.vcf.gz,"compute mean coverage at each variant position from a BAM file for a typical analysis (raw.toml, reference.vcf.gz)",variant-annotation
 vcftools,vcftools_01,--vcf processed.vcf --maf 0.05 --max-missing 0.9 --recode --recode-INFO-all --out filtered_variants,filter VCF by minor allele frequency and missingness (processed.vcf),variant-calling
 vcftools,vcftools_02,--vcf mapping.vcf --site-pi --TajimaD 10000 --out popgen_stats,calculate per-site nucleotide diversity and Tajima's D statistics (mapping.vcf),variant-calling
 vcftools,vcftools_03,--vcf genome.vcf --remove-indels --min-alleles 2 --max-alleles 2 --minDP 10 --recode --recode-INFO-all --out snps_only,filter VCF to biallelic SNPs with minimum depth (genome.vcf),variant-calling

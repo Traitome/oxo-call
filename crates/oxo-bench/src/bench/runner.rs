@@ -46,6 +46,8 @@ pub struct TrialResult {
     pub overhead_ms: f64,
     pub tokens: usize,
     pub format_valid: bool,
+    /// Error message from the generator (empty on success).
+    pub error_message: String,
 }
 
 /// Aggregate metrics for a single model across all trials.
@@ -82,6 +84,8 @@ pub struct GeneratedCommand {
     /// Time (ms) the LLM spent on inference (reported by the generator).
     /// `0.0` when the generator does not report this (e.g. mock generators).
     pub inference_ms: f64,
+    /// Error message if the generation failed (empty string on success).
+    pub error_message: String,
 }
 
 /// Trait for pluggable command generators (real oxo-call or mock).
@@ -100,6 +104,7 @@ impl CommandGenerator for EchoGenerator {
             format_valid: true,
             tokens: task.split_whitespace().count(),
             inference_ms: 0.0,
+            error_message: String::new(),
         }
     }
 }
@@ -117,6 +122,7 @@ impl CommandGenerator for FixedGenerator {
             format_valid: self.format_valid,
             tokens: self.args.split_whitespace().count(),
             inference_ms: 0.0,
+            error_message: String::new(),
         }
     }
 }
@@ -211,6 +217,7 @@ pub fn run_mock_benchmark(
                 overhead_ms: latency_ms,
                 tokens,
                 format_valid: true,
+                error_message: String::new(),
             });
         }
     }
@@ -310,6 +317,7 @@ pub fn run_mock_baseline(
                 overhead_ms: latency_ms,
                 tokens,
                 format_valid: true,
+                error_message: String::new(),
             });
         }
     }
@@ -551,14 +559,45 @@ impl CommandGenerator for OxoCallGenerator {
         match output {
             Ok(out) if out.status.success() => {
                 let stdout = String::from_utf8_lossy(&out.stdout);
-                parse_dry_run_json(&stdout)
+                let mut result = parse_dry_run_json(&stdout);
+                // If args are empty after successful exit, note it as a warning.
+                if result.args.trim().is_empty() && result.error_message.is_empty() {
+                    let stderr = String::from_utf8_lossy(&out.stderr);
+                    result.error_message = if stderr.trim().is_empty() {
+                        "dry-run succeeded but produced no command arguments".to_string()
+                    } else {
+                        format!(
+                            "dry-run succeeded but produced no command arguments; stderr: {}",
+                            stderr.trim()
+                        )
+                    };
+                }
+                result
             }
-            _ => GeneratedCommand {
-                args: String::new(),
-                format_valid: false,
-                tokens: 0,
-                inference_ms: 0.0,
-            },
+            Ok(out) => {
+                let stderr = String::from_utf8_lossy(&out.stderr);
+                let exit_code = out.status.code().unwrap_or(-1);
+                let msg = format!("dry-run failed (exit {}): {}", exit_code, stderr.trim());
+                eprintln!("  error [{}]: {}", tool, msg);
+                GeneratedCommand {
+                    args: String::new(),
+                    format_valid: false,
+                    tokens: 0,
+                    inference_ms: 0.0,
+                    error_message: msg,
+                }
+            }
+            Err(e) => {
+                let msg = format!("failed to execute dry-run: {}", e);
+                eprintln!("  error [{}]: {}", tool, msg);
+                GeneratedCommand {
+                    args: String::new(),
+                    format_valid: false,
+                    tokens: 0,
+                    inference_ms: 0.0,
+                    error_message: msg,
+                }
+            }
         }
     }
 }
@@ -613,6 +652,7 @@ fn parse_dry_run_json(json_str: &str) -> GeneratedCommand {
             format_valid: true,
             tokens,
             inference_ms,
+            error_message: String::new(),
         }
     } else {
         GeneratedCommand {
@@ -620,6 +660,10 @@ fn parse_dry_run_json(json_str: &str) -> GeneratedCommand {
             format_valid: false,
             tokens: 0,
             inference_ms: 0.0,
+            error_message: format!(
+                "invalid JSON: {}",
+                json_str.chars().take(200).collect::<String>()
+            ),
         }
     }
 }
@@ -708,6 +752,7 @@ pub fn run_benchmark_with_callback(
                 overhead_ms,
                 tokens: resp.tokens,
                 format_valid: resp.format_valid,
+                error_message: resp.error_message,
             };
 
             if let Some(cb) = callback {
@@ -832,6 +877,7 @@ pub fn run_benchmark_parallel(
                         overhead_ms,
                         tokens: resp.tokens,
                         format_valid: resp.format_valid,
+                        error_message: resp.error_message,
                     };
 
                     if let Some(cb) = callback {
@@ -880,14 +926,15 @@ pub fn write_trials_csv<W: Write>(writer: &mut W, trials: &[TrialResult]) -> std
         "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,\
          exact_match,token_jaccard,flag_recall,flag_precision,\
          flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,\
-         subcommand_match,accuracy_score,latency_ms,overhead_ms,tokens,format_valid"
+         subcommand_match,accuracy_score,latency_ms,overhead_ms,tokens,format_valid,error_message"
     )?;
     for t in trials {
         let gen_esc = csv_escape(&t.generated_args);
         let ref_esc = csv_escape(&t.reference_args);
+        let err_esc = csv_escape(&t.error_message);
         writeln!(
             writer,
-            "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{:.1},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{:.1},{},{},{}",
             t.tool,
             t.category,
             t.scenario_id,
@@ -911,6 +958,7 @@ pub fn write_trials_csv<W: Write>(writer: &mut W, trials: &[TrialResult]) -> std
             t.overhead_ms,
             t.tokens,
             t.format_valid,
+            err_esc,
         )?;
     }
     Ok(())
@@ -1500,6 +1548,7 @@ mod tests {
                 overhead_ms: 100.0,
                 tokens: 10,
                 format_valid: true,
+                error_message: String::new(),
             })
             .collect();
         let refs: Vec<&TrialResult> = trials.iter().collect();
@@ -1533,6 +1582,7 @@ mod tests {
                 overhead_ms: 100.0,
                 tokens: 10,
                 format_valid: true,
+                error_message: String::new(),
             })
             .collect();
         trials[2].generated_args = "sort -o different.bam in.bam".to_string();
@@ -1558,6 +1608,11 @@ mod tests {
         write_trials_csv(&mut buf, &trials).unwrap();
         let text = String::from_utf8(buf).unwrap();
         assert!(text.starts_with("tool,category,scenario_id,desc_id,model,ablation,repeat,"));
+        // Header should include error_message column.
+        assert!(
+            text.lines().next().unwrap().contains("error_message"),
+            "header should include error_message column"
+        );
         // One header + one data row.
         let lines: Vec<&str> = text.lines().filter(|l| !l.is_empty()).collect();
         assert_eq!(lines.len(), 2);
@@ -1602,6 +1657,10 @@ mod tests {
         let resp = parse_dry_run_json("not json");
         assert!(!resp.format_valid);
         assert!(resp.args.is_empty());
+        assert!(
+            !resp.error_message.is_empty(),
+            "invalid JSON should produce an error message"
+        );
     }
 
     #[test]
@@ -1635,6 +1694,8 @@ mod tests {
         assert!(trials.iter().all(|t| t.format_valid));
         // All should have non-empty reference_args.
         assert!(trials.iter().all(|t| !t.reference_args.is_empty()));
+        // All mock trials should have empty error_message.
+        assert!(trials.iter().all(|t| t.error_message.is_empty()));
     }
 
     #[test]
@@ -1703,6 +1764,7 @@ mod tests {
                         overhead_ms: 0.0,
                         tokens: 5,
                         format_valid: true,
+                        error_message: String::new(),
                     });
                 }
             }
@@ -1884,6 +1946,7 @@ mod tests {
                         overhead_ms: 0.0,
                         tokens: 5,
                         format_valid: true,
+                        error_message: String::new(),
                     });
                 }
             }
@@ -1963,6 +2026,7 @@ mod tests {
             overhead_ms: 0.0,
             tokens: 3,
             format_valid: true,
+            error_message: String::new(),
         };
         assert_eq!(classify_error(&t), ErrorCategory::MissingFlag);
     }
@@ -1993,6 +2057,7 @@ mod tests {
             overhead_ms: 0.0,
             tokens: 5,
             format_valid: true,
+            error_message: String::new(),
         };
         assert_eq!(classify_error(&t), ErrorCategory::ExtraFlag);
     }
@@ -2023,6 +2088,7 @@ mod tests {
             overhead_ms: 0.0,
             tokens: 4,
             format_valid: true,
+            error_message: String::new(),
         };
         assert_eq!(classify_error(&t), ErrorCategory::WrongSubcommand);
     }
@@ -2053,6 +2119,7 @@ mod tests {
             overhead_ms: 0.0,
             tokens: 0,
             format_valid: false,
+            error_message: String::new(),
         };
         assert_eq!(classify_error(&t), ErrorCategory::FormatError);
     }
@@ -2084,6 +2151,7 @@ mod tests {
                 overhead_ms: 0.0,
                 tokens: 3,
                 format_valid: true,
+                error_message: String::new(),
             },
             TrialResult {
                 tool: "t".to_string(),
@@ -2109,6 +2177,7 @@ mod tests {
                 overhead_ms: 0.0,
                 tokens: 4,
                 format_valid: true,
+                error_message: String::new(),
             },
         ];
         let analyses = analyse_errors(&trials);
@@ -2195,7 +2264,7 @@ impl IncrementalCsvWriter {
         let mut trials_file = std::fs::File::create(&trials_path)?;
         writeln!(
             trials_file,
-            "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,exact_match,token_jaccard,flag_recall,flag_precision,flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,subcommand_match,accuracy_score,latency_ms,overhead_ms,tokens,format_valid"
+            "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,exact_match,token_jaccard,flag_recall,flag_precision,flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,subcommand_match,accuracy_score,latency_ms,overhead_ms,tokens,format_valid,error_message"
         )?;
 
         Ok(Self {
@@ -2208,7 +2277,7 @@ impl IncrementalCsvWriter {
         let mut file = self.trials_file.lock().unwrap();
         writeln!(
             file,
-            "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{:.1},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{:.1},{},{},{}",
             csv_escape(&trial.tool),
             csv_escape(&trial.category),
             csv_escape(&trial.scenario_id),
@@ -2232,6 +2301,7 @@ impl IncrementalCsvWriter {
             trial.overhead_ms,
             trial.tokens,
             trial.format_valid,
+            csv_escape(&trial.error_message),
         )?;
         file.sync_all()?;
         Ok(())
@@ -2244,10 +2314,16 @@ impl IncrementalCsvWriter {
         let mut file = if file_exists {
             std::fs::OpenOptions::new().append(true).open(&path)?
         } else {
-            std::fs::File::create(&path)?
+            let mut f = std::fs::File::create(&path)?;
+            writeln!(
+                f,
+                "model,ablation,n_trials,accuracy,exact_match_rate,avg_flag_recall,avg_flag_precision,\
+                 avg_token_jaccard,subcommand_match_rate,consistency,avg_latency_ms,avg_overhead_ms,avg_tokens,\
+                 format_valid_rate"
+            )?;
+            f
         };
 
-        // Write only data rows (skip header if file already exists)
         for a in agg {
             writeln!(
                 file,
@@ -2283,7 +2359,7 @@ impl IncrementalCsvWriter {
             let mut f = std::fs::File::create(&path)?;
             writeln!(
                 f,
-                "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,exact_match,token_jaccard,flag_recall,flag_precision,flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,subcommand_match,accuracy_score,latency_ms,overhead_ms,tokens,format_valid"
+                "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,exact_match,token_jaccard,flag_recall,flag_precision,flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,subcommand_match,accuracy_score,latency_ms,overhead_ms,tokens,format_valid,error_message"
             )?;
             f
         };
@@ -2291,7 +2367,7 @@ impl IncrementalCsvWriter {
         for trial in trials {
             writeln!(
                 file,
-                "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{:.1},{},{}",
+                "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{:.1},{},{},{}",
                 csv_escape(&trial.tool),
                 csv_escape(&trial.category),
                 csv_escape(&trial.scenario_id),
@@ -2315,6 +2391,7 @@ impl IncrementalCsvWriter {
                 trial.overhead_ms,
                 trial.tokens,
                 trial.format_valid,
+                csv_escape(&trial.error_message),
             )?;
         }
         Ok(())

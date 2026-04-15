@@ -164,15 +164,65 @@ fn system_prompt() -> &'static str {
      (16) If no arguments are needed, write ARGS: (none)."
 }
 
+/// Ultra-compact system prompt for mini models (≤ 3B parameters).
+///
+/// Optimized for models with very limited context windows (≤ 2048 tokens)
+/// where the standard system prompt would consume too much of the budget.
+fn system_prompt_compact() -> &'static str {
+    "You translate tasks into CLI arguments.\n\
+     Output EXACTLY two lines:\n\
+     ARGS: <flags and values, NO tool name>\n\
+     EXPLANATION: <brief explanation>\n\
+     Rules: never start ARGS with the tool name. Use only documented flags."
+}
+
+// ── Token estimation ─────────────────────────────────────────────────────────
+
+/// Rough token count estimate for prompt budgeting.
+///
+/// Uses the heuristic ~4 characters per token (covers English text, CLI flags,
+/// and file paths).  This is intentionally conservative — real tokenizers
+/// produce fewer tokens for structured text.
+pub fn estimate_tokens(text: &str) -> usize {
+    text.len().div_ceil(4)
+}
+
+/// Context budget tiers used to select prompt compression level.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PromptTier {
+    /// Full prompt — no compression (context window ≥ 16k or unknown)
+    Full,
+    /// Medium compression — trimmed docs, reduced skill examples (4k–16k)
+    Medium,
+    /// Aggressive compression — compact system prompt, top-3 examples only,
+    /// docs heavily truncated or omitted (≤ 4k)
+    Compact,
+}
+
+/// Determine the prompt tier from a context window size (in tokens).
+pub fn prompt_tier(context_window: u32) -> PromptTier {
+    if context_window == 0 || context_window >= 16384 {
+        PromptTier::Full
+    } else if context_window >= 4096 {
+        PromptTier::Medium
+    } else {
+        PromptTier::Compact
+    }
+}
+
 // ─── User prompt ─────────────────────────────────────────────────────────────
 
 /// Build the enriched user prompt, injecting skill knowledge when available.
+///
+/// When `context_window > 0`, the prompt is adaptively compressed to fit within
+/// the model's context budget (leaving room for the system prompt and response).
 fn build_prompt(
     tool: &str,
     documentation: &str,
     task: &str,
     skill: Option<&Skill>,
     no_prompt: bool,
+    context_window: u32,
 ) -> String {
     // Ablation: bare LLM mode - just the task, no context
     if no_prompt {
@@ -185,6 +235,19 @@ fn build_prompt(
         );
     }
 
+    let tier = prompt_tier(context_window);
+
+    match tier {
+        PromptTier::Full => build_prompt_full(tool, documentation, task, skill),
+        PromptTier::Medium => build_prompt_medium(tool, documentation, task, skill, context_window),
+        PromptTier::Compact => {
+            build_prompt_compact(tool, documentation, task, skill, context_window)
+        }
+    }
+}
+
+/// Full prompt — no compression.  Used for large models (≥ 16k context).
+fn build_prompt_full(tool: &str, documentation: &str, task: &str, skill: Option<&Skill>) -> String {
     let mut prompt = String::new();
 
     prompt.push_str(&format!("# Tool: `{tool}`\n\n"));
@@ -233,6 +296,146 @@ fn build_prompt(
     );
 
     prompt
+}
+
+/// Medium-compressed prompt for moderate context windows (4k–16k).
+///
+/// Strategy: keep skill examples (up to 5), truncate documentation to fit.
+fn build_prompt_medium(
+    tool: &str,
+    documentation: &str,
+    task: &str,
+    skill: Option<&Skill>,
+    context_window: u32,
+) -> String {
+    let mut prompt = String::new();
+
+    prompt.push_str(&format!("# Tool: `{tool}`\n\n"));
+
+    // Skill with up to 5 examples
+    if let Some(skill) = skill {
+        let section = skill.to_prompt_section_limited(5);
+        if !section.is_empty() {
+            prompt.push_str(&section);
+        }
+    }
+
+    // Compact format instructions
+    prompt.push_str(&format!("## Task\n{task}\n\n"));
+    prompt.push_str(
+        "## Output (STRICT)\n\
+         ARGS: <flags and values, NO tool name>\n\
+         EXPLANATION: <brief explanation>\n\
+         Rules: no tool name in ARGS, use only documented flags, include file paths from task.\n\n",
+    );
+
+    // Calculate remaining budget for documentation
+    let sys_tokens = estimate_tokens(system_prompt());
+    let prompt_tokens = estimate_tokens(&prompt);
+    let response_reserve = 256;
+    let used = sys_tokens + prompt_tokens + response_reserve;
+    let budget = context_window as usize;
+
+    if budget > used {
+        let doc_budget_tokens = budget - used;
+        let doc_budget_chars = doc_budget_tokens * 4; // reverse the estimate
+        let truncated_docs = truncate_documentation(documentation, doc_budget_chars);
+        if !truncated_docs.is_empty() {
+            // Insert docs before the task section
+            let task_pos = prompt.find("## Task\n").unwrap_or(prompt.len());
+            let docs_section = format!("## Docs\n{truncated_docs}\n\n");
+            prompt.insert_str(task_pos, &docs_section);
+        }
+    }
+
+    prompt
+}
+
+/// Aggressively compressed prompt for tiny context windows (≤ 4k).
+///
+/// Strategy: compact system prompt, top-3 skill examples only (as the most
+/// useful grounding for the model), minimal docs, short format instructions.
+fn build_prompt_compact(
+    tool: &str,
+    documentation: &str,
+    task: &str,
+    skill: Option<&Skill>,
+    context_window: u32,
+) -> String {
+    let mut prompt = String::new();
+
+    prompt.push_str(&format!("Tool: {tool}\n\n"));
+
+    // Top-3 examples only — most important grounding for tiny models
+    if let Some(skill) = skill {
+        let section = skill.to_prompt_section_limited(3);
+        if !section.is_empty() {
+            prompt.push_str(&section);
+        }
+    }
+
+    // Task and minimal format instructions
+    prompt.push_str(&format!("Task: {task}\n\n"));
+    prompt.push_str("Output EXACTLY:\nARGS: <flags, no tool name>\nEXPLANATION: <brief>\n\n");
+
+    // Use remaining budget for documentation (likely very little or none)
+    let sys_tokens = estimate_tokens(system_prompt_compact());
+    let prompt_tokens = estimate_tokens(&prompt);
+    let response_reserve = 128;
+    let used = sys_tokens + prompt_tokens + response_reserve;
+    let budget = context_window as usize;
+
+    if budget > used {
+        let doc_budget_tokens = budget - used;
+        let doc_budget_chars = doc_budget_tokens * 4;
+        let truncated_docs = truncate_documentation(documentation, doc_budget_chars);
+        if !truncated_docs.is_empty() {
+            // Insert docs before Task
+            let task_pos = prompt.find("Task: ").unwrap_or(prompt.len());
+            let docs_section = format!("Docs:\n{truncated_docs}\n\n");
+            prompt.insert_str(task_pos, &docs_section);
+        }
+    }
+
+    prompt
+}
+
+/// Truncate documentation text to fit within a character budget.
+///
+/// Preserves complete lines to avoid cutting in the middle of a flag
+/// description.  Prioritizes the beginning of the docs (typically the usage
+/// summary and most important flags).
+fn truncate_documentation(docs: &str, max_chars: usize) -> String {
+    /// Minimum character budget below which documentation is too short to be
+    /// useful (a single flag description is typically 40+ chars).
+    const MIN_USEFUL_DOC_CHARS: usize = 40;
+    /// Reserve space for the "[...truncated]" suffix appended when content is
+    /// cut (14 chars for the marker + newline + small safety margin).
+    const TRUNCATION_MARKER_RESERVE: usize = 20;
+
+    if docs.len() <= max_chars {
+        return docs.to_string();
+    }
+    if max_chars < MIN_USEFUL_DOC_CHARS {
+        return String::new();
+    }
+
+    let mut result = String::new();
+    for line in docs.lines() {
+        if result.len() + line.len() + 1 > max_chars.saturating_sub(TRUNCATION_MARKER_RESERVE) {
+            break;
+        }
+        if !result.is_empty() {
+            result.push('\n');
+        }
+        result.push_str(line);
+    }
+
+    if result.len() < docs.len() {
+        result.push_str("\n[...truncated]");
+    }
+
+    result
 }
 
 // ─── Task optimization prompt ─────────────────────────────────────────────────
@@ -555,8 +758,9 @@ fn build_retry_prompt(
     skill: Option<&Skill>,
     prev_raw: &str,
     no_prompt: bool,
+    context_window: u32,
 ) -> String {
-    let base = build_prompt(tool, documentation, task, skill, no_prompt);
+    let base = build_prompt(tool, documentation, task, skill, no_prompt, context_window);
     format!(
         "{base}\n\
          ## Correction Note\n\
@@ -585,6 +789,9 @@ impl LlmClient {
 
     /// Generate command arguments, using skill knowledge for better prompts.
     /// Retries up to `MAX_RETRIES` times when the response format is invalid.
+    ///
+    /// When the model has a known context window, prompts are adaptively
+    /// compressed to fit — see [`PromptTier`].
     #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn suggest_command(
         &self,
@@ -603,18 +810,30 @@ impl LlmClient {
         {
             const MAX_RETRIES: usize = 2;
 
+            let context_window = self.config.effective_context_window();
+
             let mut last_raw = String::new();
             let mut total_inference_ms: f64 = 0.0;
 
             for attempt in 0..=MAX_RETRIES {
                 let user_prompt = if attempt == 0 {
-                    build_prompt(tool, documentation, task, skill, no_prompt)
+                    build_prompt(tool, documentation, task, skill, no_prompt, context_window)
                 } else {
-                    build_retry_prompt(tool, documentation, task, skill, &last_raw, no_prompt)
+                    build_retry_prompt(
+                        tool,
+                        documentation,
+                        task,
+                        skill,
+                        &last_raw,
+                        no_prompt,
+                        context_window,
+                    )
                 };
 
                 let api_start = std::time::Instant::now();
-                let raw = self.call_api(&user_prompt, no_prompt).await?;
+                let raw = self
+                    .call_api(&user_prompt, no_prompt, context_window)
+                    .await?;
                 total_inference_ms += api_start.elapsed().as_secs_f64() * 1000.0;
 
                 let mut suggestion = Self::parse_response(&raw)?;
@@ -733,8 +952,19 @@ impl LlmClient {
 
     /// Make the raw API call and return the assistant message content.
     /// When no_prompt is true (bare mode), no system prompt is sent to test raw LLM capability.
-    async fn call_api(&self, user_prompt: &str, no_prompt: bool) -> Result<String> {
-        let sys_prompt = if no_prompt { "" } else { system_prompt() };
+    async fn call_api(
+        &self,
+        user_prompt: &str,
+        no_prompt: bool,
+        context_window: u32,
+    ) -> Result<String> {
+        let sys_prompt = if no_prompt {
+            ""
+        } else if prompt_tier(context_window) == PromptTier::Compact {
+            system_prompt_compact()
+        } else {
+            system_prompt()
+        };
         self.request_with_system(sys_prompt, user_prompt, None, None)
             .await
     }
@@ -1375,6 +1605,7 @@ mod tests {
             "sort bam file",
             None,
             false,
+            0,
         );
         assert!(prompt.contains("samtools"));
         assert!(prompt.contains("samtools --help output here"));
@@ -1402,7 +1633,7 @@ mod tests {
                 explanation: "sort by coordinate".to_string(),
             }],
         };
-        let prompt = build_prompt("samtools", "docs", "sort bam", Some(&skill), false);
+        let prompt = build_prompt("samtools", "docs", "sort bam", Some(&skill), false, 0);
         assert!(prompt.contains("samtools"));
         assert!(prompt.contains("concept 1"));
         assert!(prompt.contains("pitfall 1"));
@@ -1411,7 +1642,7 @@ mod tests {
 
     #[test]
     fn test_build_prompt_format_instructions() {
-        let prompt = build_prompt("bwa", "bwa mem --help", "align reads", None, false);
+        let prompt = build_prompt("bwa", "bwa mem --help", "align reads", None, false, 0);
         assert!(
             prompt.contains("ARGS:"),
             "should contain ARGS: format instruction"
@@ -1428,7 +1659,7 @@ mod tests {
     #[test]
     fn test_build_retry_prompt_contains_prev_response() {
         let prev = "THIS IS WRONG FORMAT";
-        let prompt = build_retry_prompt("samtools", "docs", "sort bam", None, prev, false);
+        let prompt = build_retry_prompt("samtools", "docs", "sort bam", None, prev, false, 0);
         assert!(
             prompt.contains(prev),
             "retry prompt should include previous response"
@@ -2261,7 +2492,7 @@ SUGGESTIONS:
     #[test]
     fn test_build_prompt_truncates_long_docs() {
         let long_docs = "a".repeat(200_000);
-        let prompt = build_prompt("tool", &long_docs, "task", None, false);
+        let prompt = build_prompt("tool", &long_docs, "task", None, false, 0);
         // Should still produce a valid prompt (may be truncated internally)
         assert!(prompt.contains("tool"));
         assert!(prompt.contains("task"));
@@ -2269,7 +2500,7 @@ SUGGESTIONS:
 
     #[test]
     fn test_build_prompt_empty_task() {
-        let prompt = build_prompt("samtools", "some docs", "", None, false);
+        let prompt = build_prompt("samtools", "some docs", "", None, false, 0);
         assert!(prompt.contains("samtools"));
     }
 
@@ -2282,6 +2513,7 @@ SUGGESTIONS:
             None,
             "invalid resp",
             false,
+            0,
         );
         assert!(prompt.contains("samtools"));
         assert!(prompt.contains("sort a BAM file"));
@@ -2581,7 +2813,7 @@ SUGGESTIONS:
 
     #[test]
     fn test_build_prompt_contains_pipe_rule() {
-        let prompt = build_prompt("bcftools", "docs", "call variants", None, false);
+        let prompt = build_prompt("bcftools", "docs", "call variants", None, false, 0);
         assert!(
             prompt.contains("piping") || prompt.contains("|"),
             "build_prompt should contain pipe rule"
@@ -2590,10 +2822,149 @@ SUGGESTIONS:
 
     #[test]
     fn test_build_prompt_contains_multistep_rule() {
-        let prompt = build_prompt("bcftools", "docs", "call variants", None, false);
+        let prompt = build_prompt("bcftools", "docs", "call variants", None, false, 0);
         assert!(
             prompt.contains("&&"),
             "build_prompt should contain multi-step rule"
+        );
+    }
+
+    // ─── Adaptive prompt compression tests ────────────────────────────────────
+
+    #[test]
+    fn test_estimate_tokens() {
+        assert_eq!(estimate_tokens(""), 0);
+        assert_eq!(estimate_tokens("a"), 1);
+        assert_eq!(estimate_tokens("abcd"), 1);
+        assert_eq!(estimate_tokens("abcde"), 2);
+        // ~1000 chars → ~250 tokens
+        let text = "a".repeat(1000);
+        assert_eq!(estimate_tokens(&text), 250);
+    }
+
+    #[test]
+    fn test_prompt_tier_compact() {
+        assert_eq!(prompt_tier(0), PromptTier::Full);
+        assert_eq!(prompt_tier(2048), PromptTier::Compact);
+        assert_eq!(prompt_tier(4095), PromptTier::Compact);
+        assert_eq!(prompt_tier(4096), PromptTier::Medium);
+        assert_eq!(prompt_tier(8192), PromptTier::Medium);
+        assert_eq!(prompt_tier(16384), PromptTier::Full);
+        assert_eq!(prompt_tier(128_000), PromptTier::Full);
+    }
+
+    #[test]
+    fn test_compact_system_prompt_shorter() {
+        let full = system_prompt();
+        let compact = system_prompt_compact();
+        assert!(
+            compact.len() < full.len() / 3,
+            "compact system prompt should be <1/3 of full (compact={}, full={})",
+            compact.len(),
+            full.len()
+        );
+        assert!(compact.contains("ARGS:"));
+        assert!(compact.contains("EXPLANATION:"));
+    }
+
+    #[test]
+    fn test_build_prompt_compact_tier() {
+        // 2048 token context → Compact tier
+        let prompt = build_prompt(
+            "samtools",
+            "long docs here",
+            "sort bam file",
+            None,
+            false,
+            2048,
+        );
+        // Compact prompt uses "Tool:" instead of "# Tool: `samtools`"
+        assert!(prompt.contains("samtools"));
+        assert!(prompt.contains("sort bam file"));
+        assert!(prompt.contains("ARGS:"));
+        // Should NOT contain the verbose format instructions
+        assert!(
+            !prompt.contains("COMPANION BINARY"),
+            "compact prompt should not contain COMPANION BINARY instructions"
+        );
+    }
+
+    #[test]
+    fn test_build_prompt_medium_tier() {
+        // 8192 token context → Medium tier
+        let prompt = build_prompt(
+            "samtools",
+            "long docs here",
+            "sort bam file",
+            None,
+            false,
+            8192,
+        );
+        assert!(prompt.contains("samtools"));
+        assert!(prompt.contains("sort bam file"));
+        assert!(prompt.contains("ARGS:"));
+    }
+
+    #[test]
+    fn test_truncate_documentation() {
+        let docs = "line1\nline2\nline3\nline4\nline5";
+        // All fits within a large budget
+        assert_eq!(truncate_documentation(docs, 1000), docs);
+
+        // A longer doc that actually needs truncation
+        let long_docs = "first line of docs\nsecond line of docs\nthird line of docs\nfourth line of docs\nfifth line of docs which is really long and should not fit";
+        let truncated = truncate_documentation(long_docs, 80);
+        assert!(
+            truncated.contains("first line"),
+            "should contain first line"
+        );
+        assert!(
+            truncated.contains("[...truncated]"),
+            "should indicate truncation"
+        );
+
+        // Too small budget → empty
+        assert_eq!(truncate_documentation(long_docs, 30), "");
+    }
+
+    #[test]
+    fn test_build_prompt_compact_with_skill_limits_examples() {
+        use crate::skill::{Skill, SkillContext, SkillExample, SkillMeta};
+
+        let examples: Vec<SkillExample> = (0..10)
+            .map(|i| SkillExample {
+                task: format!("task {i}"),
+                args: format!("arg{i}"),
+                explanation: format!("explain {i}"),
+            })
+            .collect();
+
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "samtools".to_string(),
+                ..Default::default()
+            },
+            context: SkillContext {
+                concepts: vec![
+                    "c1".into(),
+                    "c2".into(),
+                    "c3".into(),
+                    "c4".into(),
+                    "c5".into(),
+                ],
+                pitfalls: vec!["p1".into(), "p2".into(), "p3".into()],
+            },
+            examples,
+        };
+
+        // Compact tier (2048 tokens) → at most 3 examples, limited concepts/pitfalls
+        let prompt = build_prompt("samtools", "docs", "sort bam", Some(&skill), false, 2048);
+        // Should have examples 0, 1, 2 but not example 5+
+        assert!(prompt.contains("task 0"));
+        assert!(prompt.contains("task 2"));
+        assert!(
+            !prompt.contains("task 5"),
+            "compact tier should limit to 3 examples"
         );
     }
 }
