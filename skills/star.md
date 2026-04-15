@@ -10,6 +10,7 @@ source_url: "https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf"
 ## Concepts
 
 - STAR requires a genome index directory built with 'STAR --runMode genomeGenerate'; this step uses ~30 GB RAM for human.
+- STAR uses long options as its primary operations. The first token in ARGS should be --runMode (with value genomeGenerate or alignReads) for the two main operations.
 - The genome index is built from the reference FASTA and a GTF annotation file; always use the matching GTF for your genome build.
 - STAR outputs Aligned.sortedByCoord.out.bam (sorted BAM), Log.final.out (mapping stats), SJ.out.tab (splice junctions) by default.
 - Use --runThreadN to specify threads; --outSAMtype BAM SortedByCoordinate for sorted BAM output.
@@ -20,6 +21,7 @@ source_url: "https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf"
 ## Pitfalls
 
 - STAR requires the genome index to be pre-built; the index directory (--genomeDir) must exist.
+- CRITICAL: STAR ARGS must start with --runMode (genomeGenerate or alignReads) — never with short flags like -d or -t. STAR is not like samtools/bwa; it uses long options as its operation selector.
 - For gzipped input, you MUST add --readFilesCommand zcat — otherwise STAR reads the binary gzip data.
 - STAR uses 30+ GB RAM for human genome alignment — ensure enough memory is available.
 - The default output prefix is the current directory; always set --outFileNamePrefix to a unique prefix.

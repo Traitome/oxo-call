@@ -612,9 +612,15 @@ impl CommandGenerator for OxoCallGenerator {
 fn parse_dry_run_json(json_str: &str) -> GeneratedCommand {
     if let Ok(value) = serde_json::from_str::<serde_json::Value>(json_str) {
         // Try `args` as a string first, then as an array of strings.
+        // Empty or whitespace-only strings are treated as absent so the
+        // fallback to `command` can kick in.
         let args_opt: Option<String> = value.get("args").and_then(|v| {
             if let Some(s) = v.as_str() {
-                Some(s.to_string())
+                if s.trim().is_empty() {
+                    None
+                } else {
+                    Some(s.to_string())
+                }
             } else if let Some(arr) = v.as_array() {
                 let parts: Vec<&str> = arr.iter().filter_map(|e| e.as_str()).collect();
                 if parts.is_empty() {
@@ -647,12 +653,18 @@ fn parse_dry_run_json(json_str: &str) -> GeneratedCommand {
             .and_then(|v| v.as_f64())
             .unwrap_or(0.0);
 
+        let args_is_empty = args.trim().is_empty();
+
         GeneratedCommand {
             args,
-            format_valid: true,
+            format_valid: !args_is_empty,
             tokens,
             inference_ms,
-            error_message: String::new(),
+            error_message: if args_is_empty {
+                "empty args generated".to_string()
+            } else {
+                String::new()
+            },
         }
     } else {
         GeneratedCommand {
@@ -1256,18 +1268,28 @@ impl std::fmt::Display for ErrorCategory {
     }
 }
 
-/// Classify the error type for a non-exact-match trial.
-pub fn classify_error(trial: &TrialResult) -> ErrorCategory {
+/// Classify the error types for a non-exact-match trial.
+///
+/// Returns a `Vec<ErrorCategory>` because a single trial can have multiple
+/// error types simultaneously (e.g., wrong subcommand AND wrong values).
+/// The previous single-category classification underestimated the true
+/// prevalence of wrong_value errors when wrong_subcommand was also present.
+pub fn classify_errors(trial: &TrialResult) -> Vec<ErrorCategory> {
+    let mut categories = Vec::new();
+
     if !trial.format_valid {
-        return ErrorCategory::FormatError;
+        return vec![ErrorCategory::FormatError];
     }
     if trial.generated_args.trim().is_empty() {
-        return ErrorCategory::EmptyOutput;
-    }
-    if !trial.subcommand_match {
-        return ErrorCategory::WrongSubcommand;
+        return vec![ErrorCategory::EmptyOutput];
     }
 
+    // Subcommand mismatch is independent of flag-level errors
+    if !trial.subcommand_match {
+        categories.push(ErrorCategory::WrongSubcommand);
+    }
+
+    // Token-set analysis for flag-level errors
     let gen_tokens: std::collections::HashSet<&str> =
         trial.generated_args.split_whitespace().collect();
     let ref_tokens: std::collections::HashSet<&str> =
@@ -1278,21 +1300,38 @@ pub fn classify_error(trial: &TrialResult) -> ErrorCategory {
 
     // If sets are identical but order differs, it's a reorder.
     if missing == 0 && extra == 0 && !trial.exact_match {
-        return ErrorCategory::FlagReorder;
+        categories.push(ErrorCategory::FlagReorder);
+    } else {
+        if missing > 0 {
+            categories.push(ErrorCategory::MissingFlag);
+        }
+        if extra > 0 {
+            categories.push(ErrorCategory::ExtraFlag);
+        }
+        // Both missing and extra — likely a value was replaced
+        if missing > 0 && extra > 0 {
+            categories.push(ErrorCategory::WrongValue);
+        }
     }
 
-    // If there are extra tokens but no missing ones, it's hallucination.
-    if extra > 0 && missing == 0 {
-        return ErrorCategory::ExtraFlag;
+    // If nothing was categorised (shouldn't happen, but defensive)
+    if categories.is_empty() {
+        categories.push(ErrorCategory::WrongValue);
     }
 
-    // If there are missing tokens but no extra ones, something was dropped.
-    if missing > 0 && extra == 0 {
-        return ErrorCategory::MissingFlag;
-    }
+    categories
+}
 
-    // Both missing and extra — likely a value was replaced.
-    ErrorCategory::WrongValue
+/// Backward-compatible single-category classification.
+///
+/// Returns the *primary* error category using the same priority as the old
+/// `classify_error` function.  Used for quick summaries where multi-label
+/// detail is not needed.
+pub fn classify_error_primary(trial: &TrialResult) -> ErrorCategory {
+    classify_errors(trial)
+        .into_iter()
+        .next()
+        .unwrap_or(ErrorCategory::WrongValue)
 }
 
 /// Summary of error categories for a set of trials.
@@ -1311,27 +1350,30 @@ pub struct ErrorAnalysis {
 }
 
 /// Analyse error categories for all non-exact-match trials, grouped by model and ablation.
+///
+/// Each trial can contribute to multiple error categories (multi-label).
+/// `total_errors` counts the number of failing trials (not the sum of categories).
 pub fn analyse_errors(trials: &[TrialResult]) -> Vec<ErrorAnalysis> {
-    let mut by_model_ablation: std::collections::HashMap<(&str, &str), Vec<ErrorCategory>> =
+    let mut by_model_ablation: std::collections::HashMap<(&str, &str), Vec<Vec<ErrorCategory>>> =
         std::collections::HashMap::new();
 
     for t in trials {
         if !t.exact_match {
-            let cat = classify_error(t);
+            let cats = classify_errors(t);
             by_model_ablation
                 .entry((t.model.as_str(), t.ablation.as_str()))
                 .or_default()
-                .push(cat);
+                .push(cats);
         }
     }
 
     let mut analyses: Vec<ErrorAnalysis> = by_model_ablation
         .into_iter()
-        .map(|((model, ablation), errors)| {
+        .map(|((model, ablation), error_lists)| {
             let mut analysis = ErrorAnalysis {
                 model: model.to_string(),
                 ablation: ablation.to_string(),
-                total_errors: errors.len(),
+                total_errors: error_lists.len(), // number of failing trials
                 missing_flag: 0,
                 extra_flag: 0,
                 wrong_value: 0,
@@ -1340,15 +1382,17 @@ pub fn analyse_errors(trials: &[TrialResult]) -> Vec<ErrorAnalysis> {
                 format_error: 0,
                 empty_output: 0,
             };
-            for e in &errors {
-                match e {
-                    ErrorCategory::MissingFlag => analysis.missing_flag += 1,
-                    ErrorCategory::ExtraFlag => analysis.extra_flag += 1,
-                    ErrorCategory::WrongValue => analysis.wrong_value += 1,
-                    ErrorCategory::FlagReorder => analysis.flag_reorder += 1,
-                    ErrorCategory::WrongSubcommand => analysis.wrong_subcommand += 1,
-                    ErrorCategory::FormatError => analysis.format_error += 1,
-                    ErrorCategory::EmptyOutput => analysis.empty_output += 1,
+            for cats in &error_lists {
+                for e in cats {
+                    match e {
+                        ErrorCategory::MissingFlag => analysis.missing_flag += 1,
+                        ErrorCategory::ExtraFlag => analysis.extra_flag += 1,
+                        ErrorCategory::WrongValue => analysis.wrong_value += 1,
+                        ErrorCategory::FlagReorder => analysis.flag_reorder += 1,
+                        ErrorCategory::WrongSubcommand => analysis.wrong_subcommand += 1,
+                        ErrorCategory::FormatError => analysis.format_error += 1,
+                        ErrorCategory::EmptyOutput => analysis.empty_output += 1,
+                    }
                 }
             }
             analysis
@@ -1676,8 +1720,36 @@ mod tests {
         let json = r#"{"tool":"bwa","args":[],"command":"bwa","dry_run":true}"#;
         let resp = parse_dry_run_json(json);
         // Empty args array → fallback to command field; "bwa" has no space so
-        // split_once returns None → empty string.
-        assert!(resp.format_valid);
+        // split_once returns None → empty string → format_valid should be false.
+        assert!(!resp.format_valid, "empty args should not be format_valid");
+        assert!(
+            !resp.error_message.is_empty(),
+            "empty args should have error message"
+        );
+    }
+
+    #[test]
+    fn test_parse_dry_run_json_empty_args_string() {
+        let json =
+            r#"{"tool":"samtools","args":"","command":"samtools sort in.bam","dry_run":true}"#;
+        let resp = parse_dry_run_json(json);
+        // Empty args string → fallback to command field → extracts "sort in.bam"
+        assert_eq!(resp.args, "sort in.bam");
+        assert!(
+            resp.format_valid,
+            "non-empty fallback from command should be valid"
+        );
+    }
+
+    #[test]
+    fn test_parse_dry_run_json_whitespace_only_args() {
+        let json = r#"{"tool":"samtools","args":"   ","command":"samtools","dry_run":true}"#;
+        let resp = parse_dry_run_json(json);
+        // Whitespace-only args → fallback to command; "samtools" has no space → empty
+        assert!(
+            !resp.format_valid,
+            "whitespace-only args should not be format_valid"
+        );
     }
 
     #[test]
@@ -2028,7 +2100,7 @@ mod tests {
             format_valid: true,
             error_message: String::new(),
         };
-        assert_eq!(classify_error(&t), ErrorCategory::MissingFlag);
+        assert_eq!(classify_error_primary(&t), ErrorCategory::MissingFlag);
     }
 
     #[test]
@@ -2059,7 +2131,7 @@ mod tests {
             format_valid: true,
             error_message: String::new(),
         };
-        assert_eq!(classify_error(&t), ErrorCategory::ExtraFlag);
+        assert_eq!(classify_error_primary(&t), ErrorCategory::ExtraFlag);
     }
 
     #[test]
@@ -2090,7 +2162,7 @@ mod tests {
             format_valid: true,
             error_message: String::new(),
         };
-        assert_eq!(classify_error(&t), ErrorCategory::WrongSubcommand);
+        assert_eq!(classify_error_primary(&t), ErrorCategory::WrongSubcommand);
     }
 
     #[test]
@@ -2121,7 +2193,7 @@ mod tests {
             format_valid: false,
             error_message: String::new(),
         };
-        assert_eq!(classify_error(&t), ErrorCategory::FormatError);
+        assert_eq!(classify_error_primary(&t), ErrorCategory::FormatError);
     }
 
     #[test]

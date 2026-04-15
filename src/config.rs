@@ -538,12 +538,21 @@ impl Config {
 /// Infer the context window size (in tokens) from a model name string.
 ///
 /// Returns 0 when the model cannot be identified (meaning: do not compress).
-/// The heuristic checks for common patterns in model names from Ollama,
-/// OpenAI, Anthropic, and other providers.
+///
+/// ## Priority order
+///
+/// 1. **Explicit suffix** — `model:32k` → 32768
+/// 2. **Model family** — match the model name against known families
+///    (qwen3.5, llama3, mistral, gemma4, …) and look up their default
+///    context window.  This is the primary strategy because modern model
+///    families share the same context length across all parameter sizes.
+/// 3. **Parameter-size fallback** — if no family matches but a parameter
+///    tag like `7b` or `0.5b` is found, return a conservative default.
+/// 4. **Unknown** → 0 (Full, no compression)
 pub fn infer_context_window(model: &str) -> u32 {
     let m = model.to_ascii_lowercase();
 
-    // ── Explicit context hints in the model name (e.g. "qwen2.5:32k") ────
+    // ── 1. Explicit context hints (e.g. "qwen2.5:32k") ──────────────────
     if let Some(pos) = m.rfind(':') {
         let suffix = &m[pos + 1..];
         if let Some(k) = suffix.strip_suffix('k').and_then(|n| n.parse::<u32>().ok()) {
@@ -551,47 +560,98 @@ pub fn infer_context_window(model: &str) -> u32 {
         }
     }
 
-    // Extract the parameter size tag (e.g. "0.5b", "7b", "72b") from after
-    // the LAST colon.  Ollama models use "model:7b" or "model:0.5b".
-    // We must avoid matching embedded substrings like "2b" inside "72b".
-    let param_tag = m.rsplit(':').next().unwrap_or("");
+    // ── 2. Model family matching ─────────────────────────────────────────
+    //
+    // Modern LLM families share the same context window across all parameter
+    // sizes (e.g. Qwen2.5-Coder-0.5B and Qwen2.5-Coder-32B both have 32K).
+    // Matching by family name first avoids the systematic underestimation
+    // that results from mapping parameter count → context window.
+    //
+    // Order matters: more specific patterns must come before broader ones
+    // (e.g. "qwen2.5-coder" before "qwen2.5", "gemma4" before "gemma").
 
-    // Check for known parameter sizes — ordered large → small so that
-    // e.g. "72b" matches large before "2b" could match tiny.
-    let large_tags = &["32b", "34b", "70b", "72b", "110b"];
-    let small_tags = &["7b", "8b", "9b", "13b", "14b", "16b"];
-    let tiny_tags = &["0.5b", "1b", "1.5b", "2b", "3b"];
-
-    // Match against the colon-suffix first (most reliable)
-    for tag in large_tags {
-        if param_tag == *tag {
-            return 32768;
-        }
+    // Qwen family
+    if m.contains("qwen3.5") || m.contains("qwen3-5") || m.contains("qwen3.5") {
+        return 262_144; // 256K
     }
-    for tag in small_tags {
-        if param_tag == *tag {
-            return 8192;
-        }
+    if m.contains("qwen2.5-coder") || m.contains("qwen2-5-coder") {
+        return 32_768; // 32K
     }
-    for tag in tiny_tags {
-        if param_tag == *tag {
-            return 2048;
-        }
+    if m.contains("qwen2.5") || m.contains("qwen2-5") || m.contains("qwen3") || m.contains("qwen2")
+    {
+        return 32_768; // 32K
     }
 
-    // Fall back to substring match with word-boundary check for models
-    // without colon notation (e.g. "codellama-7b-instruct")
-    if has_param_tag(&m, large_tags) {
-        return 32768;
+    // Llama family
+    if m.contains("llama3") || m.contains("llama-3") {
+        return 131_072; // 128K (Llama 3.x)
     }
-    if has_param_tag(&m, small_tags) {
-        return 8192;
+    if m.contains("llama2") || m.contains("llama-2") {
+        return 4096; // Llama 2 base context
     }
-    if has_param_tag(&m, tiny_tags) {
-        return 2048;
+    if m.contains("codellama") {
+        return 16_384; // 16K
     }
 
-    // ── Named models ─────────────────────────────────────────────────────
+    // Mistral family
+    if m.contains("ministral") || m.contains("mistral") {
+        return 131_072; // 128K (Mistral/Ministral small)
+    }
+    if m.contains("mixtral") {
+        return 32_768; // 32K
+    }
+
+    // Gemma family
+    if m.contains("gemma4") || m.contains("gemma-4") {
+        return 262_144; // 256K (Gemma 4 medium); small models are 128K
+    }
+    if m.contains("gemma3")
+        || m.contains("gemma-3")
+        || m.contains("gemma2")
+        || m.contains("gemma-2")
+    {
+        return 131_072; // 128K (Gemma 2/3)
+    }
+    if m.contains("codegemma") {
+        return 8192; // CodeGemma
+    }
+    if m.contains("gemma") {
+        return 8192; // Gemma 1.x
+    }
+
+    // DeepSeek family
+    if m.contains("deepseek-coder-v2") || m.contains("deepseek-coder-v2") {
+        return 131_072; // 128K (DeepSeek-Coder-V2)
+    }
+    if m.contains("deepseek-coder") {
+        return 16_384; // 16K (DeepSeek-Coder V1)
+    }
+    if m.contains("deepseek") {
+        return 131_072; // 128K (DeepSeek-V2/V3/R1)
+    }
+
+    // StarCoder family
+    if m.contains("starcoder2") {
+        return 16_384; // 16K
+    }
+    if m.contains("starcoder") {
+        return 8192; // StarCoder 1.x
+    }
+
+    // Microsoft Phi family
+    if m.contains("phi-3") || m.contains("phi3") {
+        return 131_072; // 128K
+    }
+    if m.contains("phi-2") || m.contains("phi2") {
+        return 2048; // Phi-2
+    }
+
+    // Cohere Command-R
+    if m.contains("command-r") {
+        return 131_072; // 128K
+    }
+
+    // Cloud providers (kept from original)
     if m.contains("gpt-4o-mini") || m.contains("gpt-5-mini") || m.contains("gpt4o-mini") {
         return 128_000;
     }
@@ -605,7 +665,24 @@ pub fn infer_context_window(model: &str) -> u32 {
         return 128_000;
     }
 
-    // Unknown model → 0 (no compression)
+    // ── 3. Parameter-size fallback ────────────────────────────────────────
+    //
+    // If no model family matched, try to infer from the parameter size tag.
+    // Use a single conservative default (8192) for all sizes: in 2024-2025,
+    // virtually all released models have ≥ 8K context.  The old logic that
+    // assigned 2048 to "tiny" models was systematically wrong because
+    // parameter count ≠ context window.
+    if has_param_tag(
+        &m,
+        &[
+            "110b", "72b", "70b", "34b", "32b", "16b", "14b", "13b", "9b", "8b", "7b", "6b", "5b",
+            "4b", "3b", "2b", "1.5b", "1b", "0.8b", "0.5b", "0.3b",
+        ],
+    ) {
+        return 8192; // Conservative default for unknown families
+    }
+
+    // ── 4. Unknown model → 0 (no compression) ────────────────────────────
     0
 }
 
@@ -613,15 +690,19 @@ pub fn infer_context_window(model: &str) -> u32 {
 ///
 /// A tag like "7b" matches "llama-7b-instruct" and "model_7b" but NOT
 /// "72b" when looking for "2b".  We require the character before the tag
-/// (if any) to be non-alphanumeric (or a dot for versions like "2.5-7b").
+/// (if any) to be neither a digit nor a dot/letter that forms part of a
+/// larger number or identifier (e.g. "0.8b" must not match "8b", "e4b"
+/// must not match "4b").
 fn has_param_tag(model: &str, tags: &[&str]) -> bool {
     for tag in tags {
         if let Some(pos) = model.find(tag) {
-            // Check that the match is at a word boundary — the char before must
-            // not be a digit (to avoid "72b" matching "2b").
+            // Check that the match is at a word boundary — the char before
+            // must not be a digit (avoids "72b" matching "2b"), a dot (avoids
+            // "0.8b" matching "8b"), or an ASCII letter (avoids "e4b" matching
+            // "4b").
             if pos > 0 {
                 let prev = model.as_bytes()[pos - 1];
-                if prev.is_ascii_digit() {
+                if prev.is_ascii_digit() || prev == b'.' || prev.is_ascii_alphabetic() {
                     continue;
                 }
             }
@@ -1807,40 +1888,117 @@ mod tests {
     // ── Context window inference tests ───────────────────────────────────────
 
     #[test]
-    fn test_infer_context_window_tiny_models() {
-        assert_eq!(infer_context_window("qwen2.5-coder:0.5b"), 2048);
-        assert_eq!(infer_context_window("qwen2.5:1.5b"), 2048);
-        assert_eq!(infer_context_window("phi-3:3b"), 2048);
+    fn test_infer_context_window_qwen_family() {
+        // Qwen3.5 — 256K context across all sizes
+        assert_eq!(infer_context_window("qwen3.5:0.8b"), 262_144);
+        assert_eq!(infer_context_window("qwen3.5:2b"), 262_144);
+        assert_eq!(infer_context_window("qwen3.5:9b"), 262_144);
+        // Qwen2.5-Coder — 32K context across all sizes
+        assert_eq!(infer_context_window("qwen2.5-coder:0.5b"), 32_768);
+        assert_eq!(infer_context_window("qwen2.5-coder:7b"), 32_768);
+        assert_eq!(infer_context_window("qwen2.5-coder:32b"), 32_768);
+        // Qwen2.5 / Qwen3 — 32K
+        assert_eq!(infer_context_window("qwen2.5:1.5b"), 32_768);
+        assert_eq!(infer_context_window("qwen2.5:72b"), 32_768);
     }
 
     #[test]
-    fn test_infer_context_window_small_models() {
-        assert_eq!(infer_context_window("deepseek-coder-v2:16b"), 8192);
-        assert_eq!(infer_context_window("llama3:8b"), 8192);
-        assert_eq!(infer_context_window("codellama:7b"), 8192);
+    fn test_infer_context_window_llama_family() {
+        // Llama 3.x — 128K
+        assert_eq!(infer_context_window("llama3:8b"), 131_072);
+        assert_eq!(infer_context_window("llama3:70b"), 131_072);
+        assert_eq!(infer_context_window("llama3.2:3b"), 131_072);
+        // Llama 2 — 4096
+        assert_eq!(infer_context_window("llama2:7b"), 4096);
+        // CodeLlama — 16K
+        assert_eq!(infer_context_window("codellama:7b"), 16_384);
     }
 
     #[test]
-    fn test_infer_context_window_large_models() {
-        assert_eq!(infer_context_window("qwen2.5:72b"), 32768);
-        assert_eq!(infer_context_window("llama3:70b"), 32768);
+    fn test_infer_context_window_mistral_family() {
+        assert_eq!(infer_context_window("mistral:7b"), 131_072);
+        assert_eq!(infer_context_window("ministral-3:3b"), 131_072);
+        assert_eq!(infer_context_window("ministral-3:8b"), 131_072);
+        assert_eq!(infer_context_window("mixtral:8x7b"), 32_768);
     }
 
     #[test]
-    fn test_infer_context_window_named_models() {
+    fn test_infer_context_window_gemma_family() {
+        // Gemma 4 — 256K
+        assert_eq!(infer_context_window("gemma4:e2b"), 262_144);
+        assert_eq!(infer_context_window("gemma4:e4b"), 262_144);
+        // Gemma 2/3 — 128K
+        assert_eq!(infer_context_window("gemma2:2b"), 131_072);
+        assert_eq!(infer_context_window("gemma3:4b"), 131_072);
+        // CodeGemma — 8K
+        assert_eq!(infer_context_window("codegemma:2b"), 8192);
+        // Gemma 1.x — 8K
+        assert_eq!(infer_context_window("gemma:2b"), 8192);
+    }
+
+    #[test]
+    fn test_infer_context_window_deepseek_family() {
+        // DeepSeek-Coder-V2 — 128K
+        assert_eq!(infer_context_window("deepseek-coder-v2:16b"), 131_072);
+        // DeepSeek-Coder V1 — 16K
+        assert_eq!(infer_context_window("deepseek-coder:1.3b"), 16_384);
+        // DeepSeek-V2/V3/R1 — 128K
+        assert_eq!(infer_context_window("deepseek-r1:7b"), 131_072);
+    }
+
+    #[test]
+    fn test_infer_context_window_other_families() {
+        // StarCoder2 — 16K
+        assert_eq!(infer_context_window("starcoder2:3b"), 16_384);
+        // StarCoder 1.x — 8K
+        assert_eq!(infer_context_window("starcoder:7b"), 8192);
+        // Phi-3 — 128K
+        assert_eq!(infer_context_window("phi-3:3b"), 131_072);
+        // Phi-2 — 2048
+        assert_eq!(infer_context_window("phi-2:2.7b"), 2048);
+        // Command-R — 128K
+        assert_eq!(infer_context_window("command-r:35b"), 131_072);
+    }
+
+    #[test]
+    fn test_infer_context_window_cloud_providers() {
         assert_eq!(infer_context_window("gpt-4o-mini"), 128_000);
         assert_eq!(infer_context_window("gpt-4o"), 128_000);
+        assert_eq!(infer_context_window("gpt-5"), 128_000);
         assert_eq!(infer_context_window("claude-3-5-sonnet-20241022"), 200_000);
+        assert_eq!(infer_context_window("gemini-1.5-pro"), 128_000);
     }
 
     #[test]
     fn test_infer_context_window_unknown() {
+        // Unknown model without param tag → 0 (Full, no compression)
         assert_eq!(infer_context_window("my-custom-model"), 0);
     }
 
     #[test]
     fn test_infer_context_window_explicit_suffix() {
-        assert_eq!(infer_context_window("model:32k"), 32768);
+        // Explicit suffix always takes priority
+        assert_eq!(infer_context_window("model:32k"), 32_768);
+        assert_eq!(infer_context_window("qwen2.5-coder:0.5b:32k"), 32_768);
+    }
+
+    #[test]
+    fn test_infer_context_window_param_fallback() {
+        // Unknown model with param tag → conservative 8192
+        assert_eq!(infer_context_window("unknown-model:7b"), 8192);
+        assert_eq!(infer_context_window("custom-llm:0.5b"), 8192);
+        assert_eq!(infer_context_window("my-model:13b"), 8192);
+    }
+
+    #[test]
+    fn test_infer_context_window_edge_cases() {
+        // Previously buggy: "0.8b" matched "8b" in small_tags
+        assert_eq!(infer_context_window("qwen3.5:0.8b"), 262_144);
+        // Previously buggy: "e4b" not matching any tag → Full(0)
+        assert_eq!(infer_context_window("gemma4:e4b"), 262_144);
+        // Case insensitive
+        assert_eq!(infer_context_window("Qwen2.5-Coder:0.5B"), 32_768);
+        assert_eq!(infer_context_window("LLAMA3:8B"), 131_072);
     }
 
     #[test]

@@ -21,7 +21,7 @@ source_url: "https://bedtools.readthedocs.io/"
 - bedtools intersect without -wa or -wb only outputs the intersecting region, not the full intervals.
 - bedtools merge requires sorted input — use 'sort -k1,1 -k2,2n input.bed' first.
 - bedtools genomecov outputs a frequency table by default; use -bg for bedGraph or -bga to include zero-coverage regions.
-- Always include the subcommand name (e.g., 'genomecov', 'intersect', 'subtract') as the first argument — never omit it.
+- Always include the subcommand name (e.g., 'genomecov', 'intersect', 'subtract') as the first argument — never omit it. Use the NEW-style names (intersect, sort, merge, closest, subtract, genomecov), NOT the old-style names (intersectBed, sortBed, mergeBed, etc.).
 - bedtools intersect with BAM input: use -abam and output will be BAM unless you add -bed.
 - bedtools does not automatically sort input — many operations silently produce wrong results on unsorted data.
 

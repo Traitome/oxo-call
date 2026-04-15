@@ -107,10 +107,18 @@ pub fn compare_commands(generated: &str, reference: &str) -> CompareResult {
     // Exact match after normalisation.
     let exact_match = gen_tokens == ref_tokens;
 
-    // Subcommand match (first non-flag token).
-    let gen_sub = gen_tokens.first().map(String::as_str).unwrap_or("");
-    let ref_sub = ref_tokens.first().map(String::as_str).unwrap_or("");
-    let subcommand_match = !ref_sub.is_empty() && gen_sub == ref_sub;
+    // Subcommand match (first non-flag token, with alias support).
+    //
+    // Some tools use long options as "subcommands" (e.g., STAR: --runMode),
+    // while others have old/new naming conventions (e.g., bedtools:
+    // intersectBed vs intersect).  We handle these cases by:
+    // 1. Finding the first token that is NOT a short flag value (i.e., not
+    //    a single `-x` option without its paired subcommand/operand).
+    // 2. Checking against a known alias table for equivalent names.
+    let gen_sub = extract_subcommand(&gen_tokens);
+    let ref_sub = extract_subcommand(&ref_tokens);
+    let subcommand_match =
+        !ref_sub.is_empty() && (gen_sub == ref_sub || are_alias_subcommands(gen_sub, ref_sub));
 
     // ── Token-set metrics (backward-compatible, order-insensitive) ───────────
     let gen_set: std::collections::HashSet<&str> = gen_tokens.iter().map(|s| s.as_str()).collect();
@@ -265,6 +273,88 @@ pub fn positional_order_match(generated: &str, reference: &str) -> f64 {
     if matched == ref_pos.len() { 1.0 } else { 0.0 }
 }
 
+/// Extract the effective subcommand from a token list.
+///
+/// For most bioinformatics tools, the subcommand is the first positional
+/// token (e.g., "sort", "view", "mem").  However, some tools like STAR
+/// use long options as their primary "subcommand" (e.g., `--runMode`).
+/// For STAR specifically, the reference always starts with `--runMode`,
+/// so we need to recognise long-option-style subcommands.
+///
+/// Strategy:
+/// - If the first token starts with `--` and is a known option-subcommand
+///   (e.g., `--runMode`), treat it as the subcommand.
+/// - Otherwise, find the first token that is NOT a short flag (`-x` but
+///   NOT `--long`) — this skips cases where the model outputs `-t 8 ...`
+///   without any subcommand, which is a genuine error.
+fn extract_subcommand(tokens: &[String]) -> &str {
+    if tokens.is_empty() {
+        return "";
+    }
+
+    let first = tokens[0].as_str();
+
+    // STAR-style: --runMode is the effective subcommand
+    if first == "--runMode" || first == "--genomeDir" || first == "--readFilesIn" {
+        return first;
+    }
+
+    // Standard case: first token is the subcommand (not a short flag)
+    // Short flags like "-t", "-x" indicate the model omitted the subcommand
+    // — return the first token as-is (it will fail the match check).
+    // Long options like "--runMode" are handled above.
+    if first.starts_with("--") {
+        // Other long options as first token — treat as subcommand attempt
+        return first;
+    }
+
+    // For the standard case, the first token should be the subcommand
+    // If it starts with a single `-`, it's a flag, not a subcommand —
+    // but we still return it because it IS what the model generated as
+    // the first token and it will correctly fail the subcommand match
+    // against a proper subcommand like "mem" or "sort".
+    first
+}
+
+/// Check whether two subcommand names are semantically equivalent aliases.
+///
+/// bedtools has two naming conventions:
+/// - Old: `intersectBed`, `sortBed`, `mergeBed`, `closestBed`, `subtractBed`, `genomecovBed`
+/// - New: `intersect`, `sort`, `merge`, `closest`, `subtract`, `genomecov`
+///
+/// Both forms invoke the same operation and produce identical output.
+fn are_alias_subcommands(a: &str, b: &str) -> bool {
+    if a == b {
+        return true;
+    }
+
+    // bedtools old-style → new-style aliases
+    const BEDTOOLS_ALIASES: &[(&str, &str)] = &[
+        ("intersectBed", "intersect"),
+        ("sortBed", "sort"),
+        ("mergeBed", "merge"),
+        ("closestBed", "closest"),
+        ("subtractBed", "subtract"),
+        ("genomecovBed", "genomecov"),
+        ("coverageBed", "coverage"),
+        ("flankBed", "flank"),
+        ("slopBed", "slop"),
+        ("shuffleBed", "shuffle"),
+        ("complementBed", "complement"),
+        ("windowBed", "window"),
+        ("bedToBam", "bedtobam"),
+        ("bamToBed", "bamtobed"),
+    ];
+
+    for (old, new) in BEDTOOLS_ALIASES {
+        if (a == *old && b == *new) || (a == *new && b == *old) {
+            return true;
+        }
+    }
+
+    false
+}
+
 /// Normalise an ARGS string into a canonical token list.
 fn normalise_tokens(args: &str) -> Vec<String> {
     args.split_whitespace().map(|s| s.to_string()).collect()
@@ -374,6 +464,54 @@ mod tests {
     #[test]
     fn test_wrong_subcommand() {
         let r = compare_commands("view -o out.bam in.bam", "sort -o out.bam in.bam");
+        assert!(!r.subcommand_match);
+    }
+
+    #[test]
+    fn test_star_subcommand_match() {
+        // STAR uses --runMode as its "subcommand" — should match correctly
+        let r = compare_commands(
+            "--runMode genomeGenerate --genomeDir /path/to/star_index",
+            "--runMode genomeGenerate --genomeDir /path/to/star_index",
+        );
+        assert!(r.subcommand_match);
+    }
+
+    #[test]
+    fn test_star_wrong_subcommand() {
+        // Different STAR operations
+        let r = compare_commands(
+            "--runMode alignReads --genomeDir /path/to/star_index",
+            "--runMode genomeGenerate --genomeDir /path/to/star_index",
+        );
+        assert!(!r.subcommand_match);
+    }
+
+    #[test]
+    fn test_bedtools_alias_subcommand() {
+        // bedtools old-style vs new-style should match
+        let r = compare_commands(
+            "intersect -a query.bed -b features.bed -wa",
+            "intersect -a query.bed -b features.bed -wa",
+        );
+        assert!(r.subcommand_match);
+
+        // Old-style intersectBed should match new-style intersect
+        let r2 = compare_commands(
+            "intersectBed -a query.bed -b features.bed -wa",
+            "intersect -a query.bed -b features.bed -wa",
+        );
+        assert!(r2.subcommand_match);
+
+        // mergeBed → merge
+        let r3 = compare_commands("merge -i input.bed", "mergeBed -i input.bed");
+        assert!(r3.subcommand_match);
+    }
+
+    #[test]
+    fn test_flag_as_subcommand_should_fail() {
+        // Model outputting "-t 8" instead of "mem" should fail subcommand match
+        let r = compare_commands("-t 8 ref.fa R1.fq R2.fq", "mem -t 8 ref.fa R1.fq R2.fq");
         assert!(!r.subcommand_match);
     }
 

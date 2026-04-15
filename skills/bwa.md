@@ -11,6 +11,7 @@ source_url: "http://bio-bwa.sourceforge.net/bwa.shtml"
 
 - bwa requires the reference genome to be indexed first with 'bwa index ref.fa' — this creates .amb/.ann/.bwt/.pac/.sa files.
 - bwa mem is the primary algorithm for Illumina reads ≥70 bp; bwa aln/samse/sampe is for shorter reads.
+- bwa has TWO subcommands: 'index' and 'mem'. ALWAYS start ARGS with one of these subcommands — never with a flag like -t or -R.
 - bwa mem outputs SAM to stdout — always pipe to 'samtools view -b' or redirect to a .sam file.
 - For paired-end reads, pass both FASTQ files as two positional arguments after the index.
 - Use -t N to specify the number of threads; -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA' to add a read group (required by GATK).
@@ -19,6 +20,7 @@ source_url: "http://bio-bwa.sourceforge.net/bwa.shtml"
 ## Pitfalls
 
 - Running bwa mem without first indexing the reference will fail with 'fail to open index'.
+- CRITICAL: bwa ARGS must start with 'mem' or 'index' — never with flags like -t or -R. The subcommand always comes first.
 - bwa mem output is SAM text to stdout — pipe to samtools view -b -o output.bam or add > output.sam.
 - For GATK downstream analysis, always add a read group with -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA'. The exact sample/library names in the RG must match the task description — never simplify 'sample1' to 'sample' or 'lib1' to 'lib'.
 - The reference argument is the index prefix (same as ref.fa if you ran 'bwa index ref.fa').

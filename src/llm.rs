@@ -128,8 +128,13 @@ fn system_prompt() -> &'static str {
          'configureStrelkaGermlineWorkflow.py'). If the skill documentation shows a \
          script name ending in .sh/.py/.pl/.R as the first token, use it directly \
          — the system will detect and execute it as the command.\n\
-     (5) For tools with subcommands (e.g., samtools sort, bcftools view, gatk \
-         HaplotypeCaller), put the subcommand as the first token in ARGS.\n\
+    (5) For tools with subcommands (e.g., samtools sort, bcftools view, gatk \
+        HaplotypeCaller, bwa mem), put the subcommand as the first token in ARGS. \
+        CRITICAL: The subcommand is always a WORD (like 'sort', 'view', 'mem', 'index'), \
+        NEVER a flag (like '-t', '-o', '-@'). If you are unsure of the subcommand name, \
+        check the skill examples — the first word of every example is the subcommand. \
+        For tools like STAR that use long options as operations (e.g., --runMode), \
+        put the primary operation option as the first token.\n\
      (6) For tools that use positional arguments before flags (e.g., admixture, angsd), \
          place input file(s) as positional argument(s) before any flags.\n\
      \n\
@@ -280,6 +285,9 @@ fn build_prompt_full(tool: &str, documentation: &str, task: &str, skill: Option<
          \n\
          RULES:\n\
          - ARGS must NOT start with the tool name (it is prepended by the system)\n\
+         - SUBCOMMAND FIRST: The first token of ARGS MUST be the subcommand (e.g., 'sort', \
+           'view', 'mem', 'index'), NEVER a flag (e.g., '-t', '-o'). If unsure, look at \
+           the skill examples — the first word of each example is the subcommand.\n\
          - COMPANION BINARY: if the skill says the task needs a companion binary \
            (e.g., 'bowtie2-build'), put it as the FIRST token in ARGS\n\
          - SCRIPT EXECUTABLE: if the skill shows a script (e.g., 'bbduk.sh', \
