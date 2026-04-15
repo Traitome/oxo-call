@@ -722,6 +722,31 @@ fn cmd_eval(
 
     let repeats = repeats_override.unwrap_or(config.benchmark.repeats);
 
+    // Use output_dir from config if not overridden by CLI (which has a default value).
+    // The CLI default is "bench_results", so we check if it's the default.
+    // Compare by path string to handle both "bench_results" and "./bench_results"
+    let output_dir = if output_dir.file_name() == Some(std::ffi::OsStr::new("bench_results")) {
+        std::path::Path::new(&config.benchmark.output_dir)
+    } else {
+        output_dir
+    };
+
+    // Clean up old result files before starting new benchmark.
+    if output_dir.exists() {
+        println!(
+            "{} Cleaning old results from {}",
+            "→".cyan().bold(),
+            output_dir.display()
+        );
+        for entry in std::fs::read_dir(output_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.extension().map_or(false, |ext| ext == "csv") {
+                std::fs::remove_file(&path)?;
+            }
+        }
+    }
+
     // Load scenarios and descriptions.
     let ref_csv_path = data_dir.join("reference_commands.csv");
     let desc_csv_path = data_dir.join("usage_descriptions.csv");
@@ -1132,28 +1157,8 @@ fn cmd_summary(results_dir: &std::path::Path) -> anyhow::Result<()> {
 
 /// Try to find oxo-call in PATH or target/release or target/debug.
 fn which_oxo_call() -> Option<String> {
-    // Check PATH using the platform-appropriate lookup command.
-    let lookup_cmd = if cfg!(target_os = "windows") {
-        "where"
-    } else {
-        "which"
-    };
-    if let Ok(path) = std::process::Command::new(lookup_cmd)
-        .arg("oxo-call")
-        .output()
-        && path.status.success()
-    {
-        let p = String::from_utf8_lossy(&path.stdout)
-            .lines()
-            .next()
-            .unwrap_or("")
-            .trim()
-            .to_string();
-        if !p.is_empty() {
-            return Some(p);
-        }
-    }
-    // Check local build directories.
+    // Priority 1: Check local build directories relative to current dir
+    // (This ensures we use the latest development build)
     let ext = if cfg!(target_os = "windows") {
         ".exe"
     } else {
@@ -1165,6 +1170,25 @@ fn which_oxo_call() -> Option<String> {
             return Some(candidate);
         }
     }
+
+    // Priority 2: Check if oxo-call exists in PATH by running it
+    if let Ok(output) = std::process::Command::new("oxo-call")
+        .arg("--version")
+        .output()
+    {
+        if output.status.success() {
+            return Some("oxo-call".to_string());
+        }
+    }
+
+    // Priority 3: Check cargo bin directory (standard cargo install location)
+    if let Ok(home) = std::env::var("HOME") {
+        let cargo_bin = std::path::PathBuf::from(home).join(".cargo/bin/oxo-call");
+        if cargo_bin.exists() {
+            return Some(cargo_bin.to_string_lossy().to_string());
+        }
+    }
+
     None
 }
 
