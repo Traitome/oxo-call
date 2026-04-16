@@ -30,7 +30,7 @@ source_url: "https://www.ibm.com/docs/en/spectrum-lsf"
 - Job output defaults to `JOBNAME.oJOBID` and `JOBNAME.eJOBID`. Use `#BSUB -o output.%J.log` and `#BSUB -e error.%J.log` with `%J` for job ID substitution.
 - `bmod` can modify pending jobs but not running jobs. Once a job starts running, you cannot change its resource requests.
 - LSF uses `span[hosts=1]` to ensure a job runs on a single node — important for multi-threaded (non-MPI) bioinformatics tools.
-- CRITICAL: `-W` wall time kills jobs exceeding the limit. Set generously or use `-We` for estimated time (soft limit).
+- `-W` wall time kills jobs exceeding the limit. Set generously or use `-We` for estimated time (soft limit).
 - `-r` (rerunnable) jobs restart from scratch after node failure; ensure your script handles restarts idempotently.
 - `-b` (begin time) delays job start but doesn't guarantee resources; job may still wait in queue after begin time.
 - Array job dependencies: use `done(job_array[*])` for all tasks or `done(job_array[1])` for specific index.

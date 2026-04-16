@@ -25,7 +25,7 @@ source_url: "https://www.bioinformatics.babraham.ac.uk/projects/fastqc/"
 
 ## Pitfalls
 
-- CRITICAL: fastqc has NO subcommands. ARGS starts directly with input files or flags (e.g., -t, -o, --noextract). Do NOT put a subcommand like 'check' or 'analyze' before flags.
+- fastqc has NO subcommands. ARGS starts directly with input files or flags (e.g., -t, -o, --noextract). Do NOT put a subcommand like 'check' or 'analyze' before flags.
 - FastQC output goes to the same directory as the input by default — always use -o to control output location.
 - FastQC is single-threaded per file; -t only helps when processing multiple files simultaneously.
 - FastQC adapts thresholds for short reads but may give misleading WARN/FAIL on amplicon or very short-read data — interpret in context.

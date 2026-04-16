@@ -23,7 +23,7 @@ source_url: "https://jgi.doe.gov/data-and-tools/software-tools/bbtools/"
 - `bbnorm.sh` normalizes read depth by kmer-based subsampling; useful before assembly of uneven-coverage data.
 
 ## Pitfalls
-- CRITICAL: BBTools uses `key=value` syntax, not `-flag value`. ARGS must follow this pattern: `bbduk.sh in=file.fq out=clean.fq ref=adapters.fa`. Never use `-in file.fq` or `--in file.fq`.
+- BBTools uses `key=value` syntax, not `-flag value`. ARGS must follow this pattern: `bbduk.sh in=file.fq out=clean.fq ref=adapters.fa`. Never use `-in file.fq` or `--in file.fq`.
 - BBTools requires Java 8 or later; ensure `JAVA_HOME` points to a compatible JVM or load the java module on HPC.
 - `bbmap.sh` `nodisk=t` stores the reference index in RAM only; fine for short references but will fail with OutOfMemoryError for large genomes without sufficient heap.
 - `k=` (kmer length) in BBDuk affects sensitivity: shorter k (e.g. k=21) catches more adapter contamination but increases false positives; default k=23 is a good balance.

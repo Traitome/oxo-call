@@ -27,7 +27,7 @@ source_url: "https://gatk.broadinstitute.org/hc/en-us"
 
 ## Pitfalls
 
-- CRITICAL: GATK ARGS must start with a tool name subcommand (HaplotypeCaller, Mutect2, MarkDuplicates, BaseRecalibrator, ApplyBQSR, CreateSequenceDictionary, AddOrReplaceReadGroups, SelectVariants, GenotypeGVCFs, GenomicsDBImport, FilterMutectCalls, ValidateSamFile, SortSam, CollectAlignmentSummaryMetrics, CollectInsertSizeMetrics) — never with flags like -R, -I, -O. The tool name ALWAYS comes first.
+- GATK ARGS must start with a tool name subcommand (HaplotypeCaller, Mutect2, MarkDuplicates, BaseRecalibrator, ApplyBQSR, CreateSequenceDictionary, AddOrReplaceReadGroups, SelectVariants, GenotypeGVCFs, GenomicsDBImport, FilterMutectCalls, ValidateSamFile, SortSam, CollectAlignmentSummaryMetrics, CollectInsertSizeMetrics) — never with flags like -R, -I, -O. The tool name ALWAYS comes first.
 - GATK requires a sequence dictionary (.dict file) alongside the reference FASTA — run CreateSequenceDictionary first.
 - HaplotypeCaller needs read groups in the BAM; if missing, add with AddOrReplaceReadGroups first.
 - Mutect2 somatic calling requires a matched normal sample with -I normal.bam -normal normal_sample_name.

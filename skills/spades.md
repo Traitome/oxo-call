@@ -25,7 +25,7 @@ source_url: "https://github.com/ablab/spades"
 - --continue resumes from last checkpoint; --restart-from allows restarting from specific stage.
 
 ## Pitfalls
-- CRITICAL: SPAdes has NO subcommands. ARGS starts directly with flags (e.g., -1, -2, -o, --meta, --careful). Do NOT put a subcommand like 'assemble' or 'run' before flags.
+- SPAdes has NO subcommands. ARGS starts directly with flags (e.g., -1, -2, -o, --meta, --careful). Do NOT put a subcommand like 'assemble' or 'run' before flags.
 - SPAdes requires significant RAM — human genome assembly needs ~250 GB RAM; for bacteria use 16-32 GB.
 - For metagenomes, --meta flag is required — running without it gives poor metagenome assemblies.
 - The --careful option is NOT compatible with --meta mode.

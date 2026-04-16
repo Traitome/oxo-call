@@ -24,7 +24,7 @@ source_url: "https://github.com/nanoporetech/medaka"
 - medaka sequence stitches consensus from inference output; medaka vcf creates variant calls from diploid inference.
 
 ## Pitfalls
-- CRITICAL: medaka ARGS must start with a subcommand (consensus_from_features, compress_bam, features, train, inference, smolecule, tandem, consensus_from_features, fastrle, sequence, vcf, tools) — never with flags like -i, -d, -o. The subcommand ALWAYS comes first. Note: medaka_consensus, medaka_haploid_variant, medaka_variant are separate binary wrappers, not subcommands.
+- medaka ARGS must start with a subcommand (consensus_from_features, compress_bam, features, train, inference, smolecule, tandem, consensus_from_features, fastrle, sequence, vcf, tools) — never with flags like -i, -d, -o. The subcommand ALWAYS comes first. Note: medaka_consensus, medaka_haploid_variant, medaka_variant are separate binary wrappers, not subcommands.
 - Using the wrong model (-m) gives inaccurate polishing — always match the model to your basecaller and chemistry.
 - Medaka requires conda installation with tensorflow dependencies — environment conflicts are common.
 - For diploid variant calling, use medaka_variant, not medaka_consensus.
@@ -64,21 +64,21 @@ source_url: "https://github.com/nanoporetech/medaka"
 **Explanation:** --chunk_len 5000 and --chunk_ovlp 500 reduce memory footprint; trade-off is slightly slower runtime
 
 ### save intermediate features for model comparison
-**Args:** `medaka inference --save_features --model r1041_e82_400bps_hac_v4.2.0 aligned.bam output.hdf`
+**Args:** `inference --save_features --model r1041_e82_400bps_hac_v4.2.0 aligned.bam output.hdf`
 **Explanation:** --save_features preserves feature HDF5; allows re-running inference with different models without regenerating features
 
 ### run inference on specific chromosomes only
-**Args:** `medaka inference --regions chr1 chr2 chr3 --model r1041_e82_400bps_hac_v4.2.0 aligned.bam chr1-3_output.hdf`
+**Args:** `inference --regions chr1 chr2 chr3 --model r1041_e82_400bps_hac_v4.2.0 aligned.bam chr1-3_output.hdf`
 **Explanation:** --regions specifies which contigs to process; useful for parallel processing or testing on subset of data
 
 ### stitch consensus from inference HDF5 output
-**Args:** `medaka sequence output.hdf consensus.fasta`
-**Explanation:** medaka sequence converts inference HDF5 to FASTA consensus; run after medaka inference or medaka consensus_from_features
+**Args:** `sequence output.hdf consensus.fasta`
+**Explanation:** converts inference HDF5 to FASTA consensus; run after medaka inference or medaka consensus_from_features
 
 ### create VCF from diploid inference output
-**Args:** `medaka vcf output.hdf variants.vcf reference.fasta`
-**Explanation:** medaka vcf generates VCF from diploid inference; reference required to determine variant positions and alleles
+**Args:** `vcf output.hdf variants.vcf reference.fasta`
+**Explanation:** generates VCF from diploid inference; reference required to determine variant positions and alleles
 
 ### compress BAM to RLE format for storage
-**Args:** `medaka compress_bam -t 8 aligned.bam compressed.bam`
+**Args:** `compress_bam -t 8 aligned.bam compressed.bam`
 **Explanation:** compress_bam creates run-length encoded BAM; reduces file size for long-term storage of ONT alignments

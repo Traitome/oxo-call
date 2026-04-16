@@ -23,7 +23,7 @@ source_url: "https://github.com/brentp/mosdepth"
 - -c restricts calculation to a specific chromosome for targeted analysis.
 
 ## Pitfalls
-- CRITICAL: mosdepth has NO subcommands. ARGS starts directly with a prefix and BAM file (e.g., --by 500 -t 8 prefix sample.bam). Do NOT put a subcommand like 'depth' or 'coverage' before the prefix.
+- mosdepth has NO subcommands. ARGS starts directly with a prefix and BAM file (e.g., --by 500 -t 8 prefix sample.bam). Do NOT put a subcommand like 'depth' or 'coverage' before the prefix.
 - Input BAM must be sorted and indexed; CRAM requires the reference with --fasta.
 - Without --by, mosdepth computes per-base coverage to a .bed.gz file (can be large for WGS).
 - For target-capture WES, always use --by targets.bed to restrict to capture regions.

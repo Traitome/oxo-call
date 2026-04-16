@@ -24,7 +24,7 @@ source_url: "https://github.com/suhrig/arriba"
 
 ## Pitfalls
 
-- CRITICAL: Arriba has no subcommands. ARGS starts directly with flags like `-x`, `-g`, `-a`. The first argument must be a dash-prefixed option.
+- Arriba has no subcommands. ARGS starts directly with flags like `-x`, `-g`, `-a`. The first argument must be a dash-prefixed option.
 - STAR must be run with chimeric alignment flags — regular STAR BAM without `--chimSegmentMin` and `--chimOutType WithinBAM` produces no chimeric reads for Arriba.
 - Without the blacklist file (`-b`), many false positives from paralogs, read-throughs, and repetitive regions appear. Always use the latest blacklist from the Arriba release.
 - The GTF annotation must match the genome FASTA used for STAR indexing. Mismatched builds produce incorrect or missing fusions.

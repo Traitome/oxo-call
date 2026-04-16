@@ -20,8 +20,8 @@ source_url: "https://github.com/NBISweden/AGAT"
 
 ## Pitfalls
 
-- CRITICAL: In AGAT v1.7.0+, the installed command names do NOT have the `.pl` suffix. Use `agat_convert_sp_gff2gtf` (not `agat_convert_sp_gff2gtf.pl`). The `.pl` names appear in help output and older documentation but are not available as executables in conda/pixi installations.
-- CRITICAL: AGAT tools are standalone commands (not subcommands). ARGS starts with the tool name (e.g., `agat_sp_statistics --gff file.gff`). Do NOT prefix with `agat` — each tool is invoked directly.
+- In AGAT v1.7.0+, the installed command names do NOT have the `.pl` suffix. Use `agat_convert_sp_gff2gtf` (not `agat_convert_sp_gff2gtf.pl`). The `.pl` names appear in help output and older documentation but are not available as executables in conda/pixi installations.
+- AGAT tools are standalone commands (not subcommands). ARGS starts with the tool name (e.g., `agat_sp_statistics --gff file.gff`). Do NOT prefix with `agat` — each tool is invoked directly.
 - AGAT may auto-fix GFF3 errors silently — check output for unexpected changes, especially when processing well-formed files.
 - Coordinate systems: GFF3 is 1-based closed [start, end]; BED is 0-based half-open [start, end). After converting GFF→BED with `agat_convert_sp_gff2bed`, coordinates are automatically adjusted.
 - Very large GFF3 files may be slow with `agat_sp_` tools (full memory load) — use `agat_sq_` tools for simple operations on huge files, but note they skip completeness checks.
@@ -67,7 +67,7 @@ source_url: "https://github.com/NBISweden/AGAT"
 **Explanation:** converts GFF3 (1-based closed) to BED (0-based half-open) with automatic coordinate adjustment
 
 ### expose and modify AGAT configuration
-**Args:** `agat config --expose`
+**Args:** `config --expose`
 **Explanation:** creates agat_config.yaml in the working directory; modify to change output format (GFF3/GTF), verbosity, and other defaults; AGAT auto-detects config in the working directory
 
 ### split a large GFF3 file into smaller files

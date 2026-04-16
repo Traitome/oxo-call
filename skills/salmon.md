@@ -23,7 +23,7 @@ source_url: "https://salmon.readthedocs.io/"
 
 ## Pitfalls
 
-- CRITICAL: Salmon ARGS must start with a subcommand (index, quant, quantmerge, swim) — never with flags like -t, -i, -l. The subcommand ALWAYS comes first.
+- Salmon ARGS must start with a subcommand (index, quant, quantmerge, swim) — never with flags like -t, -i, -l. The subcommand ALWAYS comes first.
 - Salmon requires transcriptome (cDNA) FASTA, NOT genome FASTA — using the genome will produce wrong results.
 - Library type (-l) is critical — wrong strandedness gives dramatically wrong counts; use -l A to auto-detect.
 - Without --gcBias, GC-biased data can produce systematically skewed quantification.

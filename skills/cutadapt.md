@@ -25,7 +25,7 @@ source_url: "https://cutadapt.readthedocs.io/"
 
 ## Pitfalls
 
-- CRITICAL: cutadapt has NO subcommands. ARGS starts directly with flags (e.g., -a, -A, -o, -p, -q) or with the adapter specification. Do NOT put a subcommand like 'trim' or 'remove' before flags.
+- cutadapt has NO subcommands. ARGS starts directly with flags (e.g., -a, -A, -o, -p, -q) or with the adapter specification. Do NOT put a subcommand like 'trim' or 'remove' before flags.
 - For paired-end, omitting -p (second output) processes only read 1 — both outputs must be specified for proper PE handling.
 - Adapter sequences are case-insensitive but IUPAC ambiguity codes (N, R, Y) are supported in adapter sequences.
 - Without --minimum-length, very short reads after trimming (1-2 bp) can be passed through causing issues downstream.

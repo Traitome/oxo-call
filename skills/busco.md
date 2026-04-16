@@ -24,7 +24,7 @@ source_url: "https://busco.ezlab.org/"
 
 ## Pitfalls
 
-- CRITICAL: busco has NO subcommands. ARGS starts directly with flags (e.g., -i, -o, -l, -m, -c). Do NOT put a subcommand like 'assess' or 'run' before flags.
+- busco has NO subcommands. ARGS starts directly with flags (e.g., -i, -o, -l, -m, -c). Do NOT put a subcommand like 'assess' or 'run' before flags.
 - Choosing the wrong lineage (-l) gives misleading completeness scores — use the most specific clade available.
 - For eukaryotic genomes, a gene predictor must be specified: --augustus, --miniprot, or --metaeuk.
 - BUSCO 6 defaults to odb12 datasets; odb10 is deprecated — use --datasets_version odb10 only for backward compatibility.

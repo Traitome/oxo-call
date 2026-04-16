@@ -23,7 +23,7 @@ source_url: "https://multiqc.info/"
 - --no-report generates only data files without the HTML report for programmatic use.
 
 ## Pitfalls
-- CRITICAL: MultiQC has NO subcommands. ARGS starts directly with input paths or flags (e.g., -o, -n, -f, --ignore). Do NOT put a subcommand like 'report' or 'aggregate' before input paths.
+- MultiQC has NO subcommands. ARGS starts directly with input paths or flags (e.g., -o, -n, -f, --ignore). Do NOT put a subcommand like 'report' or 'aggregate' before input paths.
 - MultiQC searches recursively — run from the project root or specify the correct parent directory.
 - If no tools are detected, check that the log/output files have the expected names (e.g., *_fastqc.zip for FastQC).
 - Without -f, MultiQC will not overwrite an existing report — always use -f when re-running.

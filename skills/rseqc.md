@@ -23,7 +23,7 @@ source_url: "https://rseqc.sourceforge.net/"
 - Most RSeQC scripts accept multiple input BAM files separated by commas, a text file with BAM paths (one per line), or a directory containing BAM files.
 
 ## Pitfalls
-- CRITICAL: RSeQC is a multi-script suite. Each tool is a separate Python script: infer_experiment.py, read_distribution.py, junction_annotation.py, junction_saturation.py, bam_stat.py, inner_distance.py, read_duplication.py, tin.py, geneBody_coverage.py, FPKM_count.py, etc. There is NO single 'rseqc' command. Each script is invoked directly by name with its own flags.
+- RSeQC is a multi-script suite. Each tool is a separate Python script: infer_experiment.py, read_distribution.py, junction_annotation.py, junction_saturation.py, bam_stat.py, inner_distance.py, read_duplication.py, tin.py, geneBody_coverage.py, FPKM_count.py, etc. There is NO single 'rseqc' command. Each script is invoked directly by name with its own flags.
 - The `.py` suffix is required on most RSeQC commands (e.g. `infer_experiment.py`, not `infer_experiment`); scripts are installed as standalone executables.
 - BED reference file must match the genome assembly used for alignment (chromosome names must match exactly — chr1 vs 1); mismatches silently give incorrect results.
 - `infer_experiment.py` samples only 200,000 reads by default; increase with `-s 2000000` for more accurate strandedness detection in lowly expressed transcriptomes.

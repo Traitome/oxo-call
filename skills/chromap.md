@@ -25,7 +25,7 @@ source_url: "https://github.com/haowenz/chromap"
 
 ## Pitfalls
 
-- CRITICAL: chromap has NO subcommands. ARGS starts directly with flags (e.g., -i, --preset, -x, -r, -1, -2). Do NOT put a subcommand like 'align' or 'index' before flags. Use -i flag (not a subcommand) for index building mode.
+- chromap has NO subcommands. ARGS starts directly with flags (e.g., -i, --preset, -x, -r, -1, -2). Do NOT put a subcommand like 'align' or 'index' before flags. Use -i flag (not a subcommand) for index building mode.
 - Chromap requires its own index (not BWA or Bowtie2 indices) — build with chromap -i.
 - For ATAC-seq, use --preset atac to handle fragment length distribution properly.
 - Chromap output is fragments/BED by default, not BAM — convert if BAM is required.

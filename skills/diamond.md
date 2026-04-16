@@ -25,7 +25,7 @@ source_url: "https://github.com/bbuchfink/diamond"
 
 ## Pitfalls
 
-- CRITICAL: diamond ARGS must start with a subcommand (makedb, blastp, blastx, cluster, linclust, realign, recluster, reassign, view, merge-daa, getseq, dbinfo, makeidx) — never with flags like -q, -d, -o. The subcommand ALWAYS comes first.
+- diamond ARGS must start with a subcommand (makedb, blastp, blastx, cluster, linclust, realign, recluster, reassign, view, merge-daa, getseq, dbinfo, makeidx) — never with flags like -q, -d, -o. The subcommand ALWAYS comes first.
 - DIAMOND database must be built with 'diamond makedb' — cannot use BLAST databases directly.
 - For metagenomics, use blastx mode (translated search) for protein function annotation of DNA reads.
 - Without --more-sensitive, DIAMOND may miss some hits compared to BLAST — use for higher-accuracy searches.

@@ -26,7 +26,7 @@ source_url: "https://github.com/tseemann/prokka"
 - --addgenes adds 'gene' features for each 'CDS' feature.
 
 ## Pitfalls
-- CRITICAL: prokka has NO subcommands. ARGS starts directly with flags (e.g., --outdir, --kingdom, --cpus). Do NOT put a subcommand like 'annotate' or 'run' before flags. The input FASTA file is the last positional argument.
+- prokka has NO subcommands. ARGS starts directly with flags (e.g., --outdir, --kingdom, --cpus). Do NOT put a subcommand like 'annotate' or 'run' before flags. The input FASTA file is the last positional argument.
 - Prokka requires contigs to be in multi-FASTA format — single sequences must be properly formatted.
 - --outdir must be a new directory — Prokka will not overwrite existing output without --force.
 - For repeat-heavy assemblies or metagenomes, use --metagenome to avoid missing fragmented features.

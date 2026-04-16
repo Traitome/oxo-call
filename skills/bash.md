@@ -26,7 +26,7 @@ source_url: "https://www.gnu.org/software/bash/manual/"
 - `xargs -I{} cmd {}` converts stdin lines into command arguments; `parallel` (GNU parallel) is more powerful for parallel execution.
 
 ## Pitfalls
-- CRITICAL: When using bash in oxo-call, ARGS is the argument string passed to bash. Use `-c 'command'` for inline commands, or just the script path for script execution.
+- When using bash in oxo-call, ARGS is the argument string passed to bash. Use `-c 'command'` for inline commands, or just the script path for script execution.
 - omitting quotes around variables (`rm $file` vs `rm "$file"`) causes word splitting and glob expansion on filenames with spaces.
 - `set -e` alone does not catch failures in conditionals or pipelines; always pair with `-o pipefail`.
 - `/bin/sh` on Ubuntu/Debian is dash, not bash; scripts using bash-specific syntax (`[[ ]]`, arrays) will fail with `#!/bin/sh`.

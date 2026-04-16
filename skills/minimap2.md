@@ -25,7 +25,7 @@ source_url: "https://github.com/lh3/minimap2"
 - -I splits index for large genomes; default 8G, increase for large references.
 
 ## Pitfalls
-- CRITICAL: minimap2 has NO subcommands. ARGS starts directly with flags (e.g., -ax, -d, -x). Do NOT put a subcommand like 'align' or 'map' before flags.
+- minimap2 has NO subcommands. ARGS starts directly with flags (e.g., -ax, -d, -x). Do NOT put a subcommand like 'align' or 'map' before flags.
 - Without -a, minimap2 outputs PAF format — most downstream tools expect SAM/BAM, so use -a.
 - Using the wrong preset for your data type produces incorrect alignments — always match preset to data.
 - minimap2 with -a outputs SAM to stdout — pipe to samtools: minimap2 -a -x preset ref.fa reads.fq | samtools sort -o out.bam.

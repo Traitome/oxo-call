@@ -22,7 +22,7 @@ source_url: "https://github.com/broadinstitute/pilon/wiki"
 - --fix allows selective correction categories: snps, indels, gaps, local, all, bases, none.
 
 ## Pitfalls
-- CRITICAL: pilon has NO subcommands. ARGS starts directly with flags (e.g., --genome, --frags, --output, --changes). Do NOT put a subcommand like 'polish' or 'fix' before flags.
+- pilon has NO subcommands. ARGS starts directly with flags (e.g., --genome, --frags, --output, --changes). Do NOT put a subcommand like 'polish' or 'fix' before flags.
 - Not setting Java heap size (-Xmx) causes OOM errors on genomes larger than a few hundred Mb; use -Xmx64g or larger.
 - Input BAMs must have read groups (@RG tags); Pilon may fail or give poor results without them.
 - Pilon does not handle circular chromosomes correctly — split circular sequences at origin before polishing if needed.

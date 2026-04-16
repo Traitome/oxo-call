@@ -31,7 +31,7 @@ source_url: "https://www.10xgenomics.com/support/software/cell-ranger"
 - Cell Ranger output directory (--id) must not already exist — it creates a fresh directory.
 - Without --localcores and --localmem, Cell Ranger may use all available resources on shared systems.
 - The --sample flag must match the sample prefix in FASTQ filenames exactly.
-- **CRITICAL**: cellranger-arc and cellranger-atac are separate binaries from cellranger — they are not subcommands.
+- cellranger-arc and cellranger-atac are separate binaries from cellranger — they are not subcommands.
 - cellranger aggr requires a CSV file listing molecule_info.h5 paths from previous count runs.
 - cellranger multi requires a CSV config file with specific columns — check 10x documentation for format.
 - Different Cell Ranger versions may produce incompatible outputs — always use the same version for samples to be aggregated.

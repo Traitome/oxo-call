@@ -23,7 +23,7 @@ source_url: "http://homer.ucsd.edu/homer/ngs/index.html"
 
 ## Pitfalls
 
-- CRITICAL: HOMER is a multi-binary suite. Each tool is a separate command: findPeaks, makeTagDirectory, annotatePeaks.pl, findMotifsGenome.pl, mergePeaks, pos2bed.pl, makeUCSCfile, configureHomer.pl. ARGS for each tool start with their own flags — there is NO single 'homer' subcommand pattern.
+- HOMER is a multi-binary suite. Each tool is a separate command: findPeaks, makeTagDirectory, annotatePeaks.pl, findMotifsGenome.pl, mergePeaks, pos2bed.pl, makeUCSCfile, configureHomer.pl. ARGS for each tool start with their own flags — there is NO single 'homer' subcommand pattern.
 - makeTagDirectory requires the genome size or a genome identifier; omitting -genome causes incorrect normalization and peak calling.
 - Using -style histone without providing a control (-i) greatly inflates broad peak calls — always supply matched input.
 - findMotifsGenome.pl requires write access to the output directory; it creates many intermediate files and fails silently on permission errors.

@@ -24,7 +24,7 @@ source_url: "https://www.gnu.org/software/gawk/manual/gawk.html"
 
 ## Pitfalls
 
-- CRITICAL: The awk program must be enclosed in single quotes (`'...'`), not double quotes. Double quotes cause shell expansion of $1, $2 etc. as shell variables.
+- The awk program must be enclosed in single quotes (`'...'`), not double quotes. Double quotes cause shell expansion of $1, $2 etc. as shell variables.
 - awk field numbering starts at 1, not 0 (unlike most programming languages). $0 is the entire record.
 - Shell variable expansion inside single-quoted awk programs does not work. Pass shell variables with -v: `awk -v threshold="$THRESH" '$1>threshold'` instead of using $THRESH inside the single-quoted script.
 - When using -F with tab, quote it properly: -F '\t' (in single quotes) on the command line. Using -F "\t" in double quotes may not work correctly on all shells.

@@ -21,7 +21,7 @@ source_url: "http://www.usadellab.org/cms/?page=trimmomatic"
 - TOPHRED33/TOPHRED64 converts quality encoding; useful for downstream tool compatibility.
 
 ## Pitfalls
-- CRITICAL: trimmomatic ARGS must start with 'PE' or 'SE' (mode selector for paired-end or single-end) — never with input files or flags like -threads. The mode (PE/SE) ALWAYS comes first.
+- trimmomatic ARGS must start with 'PE' or 'SE' (mode selector for paired-end or single-end) — never with input files or flags like -threads. The mode (PE/SE) ALWAYS comes first.
 - PE mode requires exactly 2 input files and produces 4 output files — missing any output path causes an error.
 - The adapter file path must be absolute or correct relative path — Trimmomatic does not search PATH for it.
 - ILLUMINACLIP must come before LEADING/TRAILING/SLIDINGWINDOW in the step list for best results.

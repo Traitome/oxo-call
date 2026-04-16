@@ -23,7 +23,7 @@ source_url: "https://pachterlab.github.io/kallisto/"
 - Thread control: -t/--threads for parallel processing; beneficial for index building and quantification.
 
 ## Pitfalls
-- CRITICAL: Kallisto ARGS must start with a subcommand (index, quant, quant-tcc, bus, h5dump, inspect, version, cite) — never with flags like -i, -o, -b. The subcommand ALWAYS comes first.
+- Kallisto ARGS must start with a subcommand (index, quant, quant-tcc, bus, h5dump, inspect, version, cite) — never with flags like -i, -o, -b. The subcommand ALWAYS comes first.
 - Kallisto requires transcriptome cDNA FASTA, NOT genome FASTA — indexing the genome produces wrong results.
 - Without --bootstrap-samples, downstream differential expression with sleuth cannot estimate variance.
 - For paired-end, both FASTQ files are passed as positional arguments (no -1/-2 flags) after -o output_dir.

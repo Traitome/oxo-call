@@ -25,7 +25,7 @@ source_url: "https://github.com/oschwengers/bakta"
 
 ## Pitfalls
 
-- CRITICAL: Bakta's main command takes the genome FASTA as a positional argument (not a flag). ARGS starts with flags like `--db`, `--threads`, and ends with the FASTA path.
+- Bakta's main command takes the genome FASTA as a positional argument (not a flag). ARGS starts with flags like `--db`, `--threads`, and ends with the FASTA path.
 - Bakta database must be downloaded before running — use `bakta_db download` first. Without it, Bakta fails immediately.
 - `--db` must point to the full database directory, not just a file within it. The directory must contain the complete db structure.
 - The output directory must not already exist unless `--force` is used. Bakta creates it fresh by default.

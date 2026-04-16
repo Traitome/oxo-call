@@ -32,7 +32,7 @@ source_url: "https://doc.rust-lang.org/cargo/"
 - `RUSTFLAGS=-C target-cpu=native cargo build --release` produces CPU-specific binaries that will not run on older CPUs.
 - On HPC systems, `cargo build` may fail if the network is restricted; vendor dependencies first with `cargo vendor` or configure a private registry mirror.
 - `cargo update` bumps dependencies to the latest compatible SemVer versions within constraints in `Cargo.toml`; verify with `cargo test` after updating.
-- **CRITICAL**: `--locked`, `--offline`, and `--frozen` have distinct meanings: `--locked` fails if Cargo.lock needs changes, `--offline` prevents network access, `--frozen` combines both.
+- `--locked`, `--offline`, and `--frozen` have distinct meanings: `--locked` fails if Cargo.lock needs changes, `--offline` prevents network access, `--frozen` combines both.
 - `cargo publish` uploads to crates.io permanently; versions cannot be deleted, only yanked (hidden from new users but still available to existing users).
 - `cargo fix` can automatically apply lint suggestions but may break code; always review changes and run tests after applying fixes.
 

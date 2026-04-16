@@ -26,7 +26,7 @@ source_url: "https://subread.sourceforge.net/featureCounts.html"
 
 ## Pitfalls
 
-- CRITICAL: featureCounts has NO subcommands. ARGS starts directly with flags (e.g., -T, -a, -o, -p, -s). Do NOT put a subcommand like 'count' or 'summarize' before flags.
+- featureCounts has NO subcommands. ARGS starts directly with flags (e.g., -T, -a, -o, -p, -s). Do NOT put a subcommand like 'count' or 'summarize' before flags.
 - Wrong strandedness (-s 0/1/2) is the most common error — check your library prep protocol or use Salmon/RSeQC to determine.
 - For paired-end data, use -p flag — without it, each read is counted individually instead of each read pair.
 - The GTF/GFF feature_type (-t) and attribute (-g) must match what is in your annotation file.

@@ -24,7 +24,7 @@ source_url: "https://vcftools.github.io/"
 
 ## Pitfalls
 
-- CRITICAL: vcftools has NO subcommands. ARGS starts directly with flags (e.g., --vcf, --gzvcf, --maf, --recode, --out). Do NOT put a subcommand like 'filter' or 'stats' before flags.
+- vcftools has NO subcommands. ARGS starts directly with flags (e.g., --vcf, --gzvcf, --maf, --recode, --out). Do NOT put a subcommand like 'filter' or 'stats' before flags.
 - Without --recode, VCFtools outputs statistics but does NOT write a filtered VCF file.
 - --recode --recode-INFO-all is needed to include INFO fields in the output VCF.
 - --out specifies a prefix, not a filename — VCFtools appends the appropriate extension.

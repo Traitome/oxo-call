@@ -30,7 +30,7 @@ source_url: "https://crossmap.sourceforge.net/"
 - CrossMap does not update variant IDs — rsIDs or local IDs remain unchanged after conversion.
 - BAM conversion may produce coordinate-unsorted output — always re-sort with samtools sort after.
 - For VCF, multiallelic records should be split before CrossMap for accurate conversion.
-- **CRITICAL**: CrossMap has subcommands (bed, vcf, bam, gff, wig, bigwig, etc.); use subcommand before chain file.
+- CrossMap has subcommands (bed, vcf, bam, gff, wig, bigwig, etc.); use subcommand before chain file.
 - --chromid default is 'a' (as-is); use 'l' for long style (chr1) or 's' for short style (1) if needed.
 - Compressed remote files (URLs) are not supported; download first for remote inputs.
 - --naive-bed-parsing can help with non-standard BED files that don't conform to strict format.

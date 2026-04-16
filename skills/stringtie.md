@@ -24,7 +24,7 @@ source_url: "https://ccb.jhu.edu/software/stringtie/"
 
 ## Pitfalls
 
-- CRITICAL: StringTie has NO traditional subcommands. For normal assembly/quantification, ARGS starts directly with flags (e.g., -G, -o, -p, --rf). For the merge step, ARGS starts with --merge. Do NOT put a subcommand like 'assemble' or 'quantify' before flags.
+- StringTie has NO traditional subcommands. For normal assembly/quantification, ARGS starts directly with flags (e.g., -G, -o, -p, --rf). For the merge step, ARGS starts with --merge. Do NOT put a subcommand like 'assemble' or 'quantify' before flags.
 - Input BAM must be sorted by coordinates; provide HISAT2 output sorted with samtools sort.
 - HISAT2 must be run with --dta flag before StringTie — without it, transcript assembly quality is reduced.
 - Without -G, StringTie performs de novo assembly only — use -G to also quantify known transcripts.

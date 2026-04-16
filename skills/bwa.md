@@ -24,7 +24,7 @@ source_url: "http://bio-bwa.sourceforge.net/bwa.shtml"
 ## Pitfalls
 
 - Running bwa mem without first indexing the reference will fail with 'fail to open index'.
-- CRITICAL: bwa ARGS must start with a subcommand (index, mem, aln, samse, sampe, bwasw, fastmap, pemerge, shm) — never with flags like -t or -R. The subcommand always comes first.
+- bwa ARGS must start with a subcommand (index, mem, aln, samse, sampe, bwasw, fastmap, pemerge, shm) — never with flags like -t or -R. The subcommand always comes first.
 - bwa mem output is SAM text to stdout — pipe to samtools view -b -o output.bam or add > output.sam.
 - For GATK downstream analysis, always add a read group with -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA'. The exact sample/library names in the RG must match the task description — never simplify 'sample1' to 'sample' or 'lib1' to 'lib'.
 - The reference argument is the index prefix (same as ref.fa if you ran 'bwa index ref.fa').

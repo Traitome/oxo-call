@@ -25,7 +25,7 @@ source_url: "https://daehwankimlab.github.io/hisat2/"
 
 ## Pitfalls
 
-- CRITICAL: hisat2 has NO subcommands. ARGS starts directly with flags (e.g., -x, -p, -1, -2, -U). Do NOT put a subcommand like 'align' or 'map' before flags. Index building uses the separate binary 'hisat2-build' (not a subcommand).
+- hisat2 has NO subcommands. ARGS starts directly with flags (e.g., -x, -p, -1, -2, -U). Do NOT put a subcommand like 'align' or 'map' before flags. Index building uses the separate binary 'hisat2-build' (not a subcommand).
 - Index building uses companion binary 'hisat2-build', not 'hisat2'. Always start ARGS with 'hisat2-build' for index tasks; the system detects and invokes it as the executable.
 - HISAT2 outputs SAM to stdout — always pipe to samtools or redirect to a file to avoid filling your terminal.
 - For RNA-seq downstream of StringTie, use --dta flag — without it, StringTie produces suboptimal transcripts.

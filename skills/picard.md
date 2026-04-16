@@ -24,7 +24,7 @@ source_url: "https://broadinstitute.github.io/picard/"
 - DUPLICATE_SCORING_STRATEGY chooses which read to keep: SUM_OF_BASE_QUALITIES (default) or TOTAL_MAPPED_REFERENCE_LENGTH.
 
 ## Pitfalls
-- CRITICAL: Picard ARGS must start with a tool name subcommand (MarkDuplicates, AddOrReplaceReadGroups, SortSam, ValidateSamFile, CollectAlignmentSummaryMetrics, CollectInsertSizeMetrics, CreateSequenceDictionary, CollectGcBiasMetrics, CollectInsertSizeMetrics, CollectQualityYieldMetrics, EstimateLibraryComplexity, FastqToSam, SamToFastq, MergeSamFiles) — never with flags like -I, -O, -M. The tool name ALWAYS comes first.
+- Picard ARGS must start with a tool name subcommand (MarkDuplicates, AddOrReplaceReadGroups, SortSam, ValidateSamFile, CollectAlignmentSummaryMetrics, CollectInsertSizeMetrics, CreateSequenceDictionary, CollectGcBiasMetrics, CollectInsertSizeMetrics, CollectQualityYieldMetrics, EstimateLibraryComplexity, FastqToSam, SamToFastq, MergeSamFiles) — never with flags like -I, -O, -M. The tool name ALWAYS comes first.
 - MarkDuplicates on an unsorted BAM will fail — always sort first with samtools sort or Picard SortSam.
 - MarkDuplicates marks but does NOT remove duplicates by default; add REMOVE_DUPLICATES=true only if required.
 - The METRICS_FILE (-M) argument is mandatory for MarkDuplicates — omitting it causes an error.

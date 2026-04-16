@@ -23,7 +23,7 @@ source_url: "https://bioinf.shenwei.me/seqkit/"
 
 ## Pitfalls
 
-- CRITICAL: seqkit ARGS must start with a subcommand (stats, seq, subseq, sliding, faidx, scat, translate, watch, fa2fq, fq2fa, fx2tab, tab2fx, convert, grep, locate, fish, amplicon, common, rmdup, split, split2, sample, shuffle, sort, merge, concat, replace, rename, restart, head, tail, range, concat, mutate) — never with flags like -j, -o, -f. The subcommand ALWAYS comes first.
+- seqkit ARGS must start with a subcommand (stats, seq, subseq, sliding, faidx, scat, translate, watch, fa2fq, fq2fa, fx2tab, tab2fx, convert, grep, locate, fish, amplicon, common, rmdup, split, split2, sample, shuffle, sort, merge, concat, replace, rename, restart, head, tail, range, concat, mutate) — never with flags like -j, -o, -f. The subcommand ALWAYS comes first.
 - seqkit grep -p matches the full sequence name — use -r (regex) or -n to limit to the ID portion.
 - seqkit split/split2 creates many files; use -O to specify output directory.
 - seqkit seq -n outputs only names (useful for getting a list of IDs), not the sequences themselves.

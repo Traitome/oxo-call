@@ -31,7 +31,7 @@ source_url: "https://cnvkit.readthedocs.io/"
 - The access file (--access) restricts analysis to mappable regions — improves specificity.
 - Integer copy number calling assumes diploid baseline — adjust with --purity and --ploidy for tumor.
 - CNVkit is designed for targeted sequencing; for WGS long-read CNVs use other tools.
-- **CRITICAL**: CNVkit has subcommands (batch, target, coverage, segment, call, scatter, etc.); use subcommand before flags.
+- CNVkit has subcommands (batch, target, coverage, segment, call, scatter, etc.); use subcommand before flags.
 - --drop-low-coverage is essential for poor-quality tumor samples to avoid false-positive deletions.
 - CBS segmentation requires R and Rscript installed; specify path with --rscript-path if non-standard.
 - --segment-method hmm-tumor and hmm-germline are specialized for respective sample types.

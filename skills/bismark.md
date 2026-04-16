@@ -25,7 +25,7 @@ source_url: "https://github.com/FelixKrueger/Bismark"
 
 ## Pitfalls
 
-- CRITICAL: Bismark is a multi-binary suite. The main alignment command is just 'bismark' — ARGS starts with flags like --genome, -1, -2, NOT with a subcommand. The companion tools are separate binaries: bismark_genome_preparation, bismark_methylation_extractor, deduplicate_bismark, bismark2bedGraph, bismark2report, bismark2summary, coverage2cytosine, bam2nuc. Use the correct binary name for each step.
+- Bismark is a multi-binary suite. The main alignment command is just 'bismark' — ARGS starts with flags like --genome, -1, -2, NOT with a subcommand. The companion tools are separate binaries: bismark_genome_preparation, bismark_methylation_extractor, deduplicate_bismark, bismark2bedGraph, bismark2report, bismark2summary, coverage2cytosine, bam2nuc. Use the correct binary name for each step.
 - Bismark genome index must be in a directory, not pointing to the FASTA file directly.
 - Index building uses companion binary 'bismark_genome_preparation <genome_dir>'; provide the directory path, not the FASTA file.
 - RRBS data requires '--rrbs' flag during alignment and extraction to handle MspI restriction site bias.
