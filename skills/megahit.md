@@ -70,3 +70,19 @@ source_url: "https://github.com/voutcn/megahit"
 ### assemble interleaved paired-end reads
 **Args:** `--12 interleaved.fastq.gz -o interleaved_out/ --num-cpu-threads 16 --min-contig-len 500`
 **Explanation:** --12 for interleaved paired-end format; single file containing both R1 and R2
+
+### assemble with bubble-level adjustment for polymorphic data
+**Args:** `-1 R1.fastq.gz -2 R2.fastq.gz -o bubble_adj/ --num-cpu-threads 16 --bubble-level 1 --min-contig-len 500`
+**Explanation:** --bubble-level 1 moderate bubble merging; useful for strain-diverse metagenomes; 0=none, 2=aggressive
+
+### assemble with prune-level for low-depth regions
+**Args:** `-1 R1.fastq.gz -2 R2.fastq.gz -o pruned/ --num-cpu-threads 16 --prune-level 2 --min-contig-len 500`
+**Explanation:** --prune-level 2 removes low-coverage regions; 0=none, 3=aggressive; useful for reducing assembly fragmentation
+
+### calculate assembly statistics after MEGAHIT
+**Args:** `awk '/^>/{if(l!="") print l; l=0; next}{l+=length($0)}END{print l}' megahit_output/final.contigs.fa | sort -n | awk '{sum+=$1; count++}END{print "Total:", sum, "Count:", count, "N50:", NR%2?$0:a[(NR+1)/2]}'`
+**Explanation:** calculate total length, contig count, and N50 from assembly output; essential quality assessment
+
+### filter contigs by length after assembly
+**Args:** `seqkit seq -m 1000 megahit_output/final.contigs.fa > filtered_contigs.fa`
+**Explanation:** use seqkit to filter contigs ≥1000bp; removes short contigs that may be assembly artifacts

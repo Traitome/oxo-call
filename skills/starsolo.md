@@ -70,3 +70,19 @@ source_url: "https://github.com/alexdobin/STAR/blob/master/docs/STARsolo.md"
 ### allow variable barcode read length
 **Args:** `--soloType CB_UMI_Simple --soloCBwhitelist 3M-february-2018.txt --soloCBlen 16 --soloUMIlen 12 --soloBarcodeReadLength 0 --genomeDir /star_genome/ --readFilesIn R2.fastq.gz R1.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix varlen_sample/`
 **Explanation:** --soloBarcodeReadLength 0 allows variable barcode read lengths; for non-standard protocols
+
+### process Drop-seq data with CB_UMI_Complex
+**Args:** `--soloType CB_UMI_Complex --soloCB0_wl 0 0 12 dropseq_whitelist.txt --soloCB0 0_0_12 0_12_8 --soloUMI0 12_20_8 --genomeDir /star_genome/ --readFilesIn R2.fastq.gz R1.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix dropseq_sample/`
+**Explanation:** --soloType CB_UMI_Complex for Drop-seq; custom barcode/UMI positions; Drop-seq uses 12bp CB + 8bp UMI
+
+### process Smart-seq2 data without UMI
+**Args:** `--soloType SmartSeq --soloFeatures Gene --genomeDir /star_genome/ --readFilesIn sample.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix smartseq_sample/`
+**Explanation:** --soloType SmartSeq for plate-based Smart-seq2; no barcode/UMI demultiplexing; one sample per run
+
+### run STARsolo with multi-sample batch processing
+**Args:** `--soloType CB_UMI_Simple --soloCBwhitelist 3M-february-2018.txt --soloCBlen 16 --soloUMIlen 12 --genomeDir /star_genome/ --readFilesIn sample1_R2.fq.gz,sample2_R2.fq.gz sample1_R1.fq.gz,sample2_R1.fq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix batch_samples/`
+**Explanation:** comma-separated input files for batch processing; multiple samples in one STARsolo run
+
+### output both Gene and GeneFull for comprehensive analysis
+**Args:** `--soloType CB_UMI_Simple --soloCBwhitelist 3M-february-2018.txt --soloCBlen 16 --soloUMIlen 12 --soloFeatures Gene GeneFull --genomeDir /star_genome/ --readFilesIn R2.fastq.gz R1.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix comprehensive/`
+**Explanation:** --soloFeatures Gene GeneFull outputs both gene-level and pre-mRNA counts; enables both standard and snRNA-seq analysis

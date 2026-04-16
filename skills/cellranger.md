@@ -74,3 +74,15 @@ source_url: "https://www.10xgenomics.com/support/software/cell-ranger"
 ### test cellranger count with dry-run
 **Args:** `count --id=test_run --transcriptome=/path/to/ref --fastqs=/path/to/fastqs/ --sample=sample_name --dry`
 **Explanation:** --dry performs a dry run to validate inputs and estimate resource requirements without executing the full pipeline
+
+### count with custom feature-barcode matrix output
+**Args:** `count --id=sample_output --transcriptome=/path/to/ref --fastqs=/path/to/fastqs/ --sample=sample_name --feature-ref=features.csv --localcores=16 --localmem=64`
+**Explanation:** --feature-ref enables Feature Barcoding technology (CITE-seq, CellPlex); CSV defines feature barcodes and types
+
+### count with force cells parameter for low-quality data
+**Args:** `count --id=sample_output --transcriptome=/path/to/ref --fastqs=/path/to/fastqs/ --sample=sample_name --force-cells=5000 --localcores=16 --localmem=64`
+**Explanation:** --force-cells overrides automatic cell detection; useful for samples with low RNA content or high background
+
+### build reference with custom reference genome and pre-mRNA
+**Args:** `mkref --genome=custom_genome --fasta=genome.fa --genes=genes.gtf --ref-version=1.0.0 --nthreads=8`
+**Explanation:** --ref-version sets reference version; Cell Ranger includes pre-mRNA sequences by default for intron counting

@@ -65,3 +65,27 @@ source_url: "https://github.com/lh3/miniasm"
 ### quick assembly for small genomes with relaxed parameters
 **Args:** `-f reads.fq.gz -m 50 -s 500 -c 2 overlaps.paf.gz > assembly.gfa`
 **Explanation:** relaxed parameters for small genomes; -m 50 -s 500 -c 2 for low coverage
+
+### complete miniasm pipeline with polishing (Racon + Medaka)
+**Args:** `-f reads.fq.gz overlaps.paf.gz > assembly.gfa && awk '/^S/ {print ">"$2"\n"$3}' assembly.gfa > draft.fasta && racon -t 8 reads.fq.gz overlaps.paf.gz draft.fasta > polished.fasta && medaka_consensus -i reads.fq.gz -d polished.fasta -o medaka_output -t 8`
+**Explanation:** full pipeline: miniasm → GFA to FASTA → Racon polishing → Medaka polishing; essential for usable assembly
+
+### compute overlaps for HiFi PacBio reads with higher accuracy
+**Args:** `-x ava-pb -t 16 reads.fastq.gz reads.fastq.gz | gzip > overlaps_hifi.paf.gz`
+**Explanation:** -x ava-pb preset for PacBio HiFi; higher accuracy reads allow stricter overlap parameters
+
+### assemble with BED output for visualization
+**Args:** `-p bed -f reads.fq.gz overlaps.paf.gz > assembly.bed`
+**Explanation:** -p bed outputs BED format; useful for visualization in genome browsers like IGV
+
+### assemble with PAF output for downstream analysis
+**Args:** `-p paf -f reads.fq.gz overlaps.paf.gz > assembly_overlaps.paf`
+**Explanation:** -p paf outputs PAF format; shows retained overlaps after graph simplification
+
+### check assembly statistics from GFA output
+**Args:** `grep "^S" assembly.gfa | awk '{len+=$3} END {print "Total length:", len, "Contigs:", NR}'`
+**Explanation:** extract total assembly length and contig count from GFA S lines; quick quality assessment
+
+### assemble with high coverage threshold for repetitive genomes
+**Args:** `-f reads.fq.gz -c 10 -s 5000 overlaps.paf.gz > assembly.gfa`
+**Explanation:** -c 10 requires 10 overlapping reads; reduces misassemblies in repetitive regions; -s 5000 filters short overlaps

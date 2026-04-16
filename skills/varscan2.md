@@ -71,3 +71,19 @@ source_url: "https://varscan.sourceforge.net/"
 ### copy number analysis from tumor-normal
 **Args:** `copynumber normal.pileup tumor.pileup --output-file copynumber.txt --min-coverage 20`
 **Explanation:** copynumber command for CNV detection; requires higher coverage (20x)
+
+### call somatic variants with direct pipe from samtools
+**Args:** `somatic --mpileup 1 --output-snp somatic.snp.vcf --output-indel somatic.indel.vcf --output-vcf 1 --min-coverage 8 --min-var-freq 0.1 --somatic-p-value 0.05`
+**Explanation:** --mpileup 1 enables direct pipe: samtools mpileup -f ref.fa normal.bam tumor.bam | varscan somatic [args]; no intermediate pileup files
+
+### call germline SNPs with Java heap size adjustment
+**Args:** `mpileup2snp --min-coverage 8 --min-reads2 2 --min-var-freq 0.01 --p-value 0.99 --output-vcf 1 --java-mem 8G > snps.vcf`
+**Explanation:** --java-mem 8G sets JVM heap to 8GB; essential for large BAM files; prevents OutOfMemoryError
+
+### batch process multiple samples with consistent parameters
+**Args:** `mpileup2snp --min-coverage 8 --min-reads2 2 --min-var-freq 0.01 --p-value 0.99 --output-vcf 1 --output-root sample1 > sample1_snps.vcf`
+**Explanation:** --output-root specifies output prefix; useful for batch processing with consistent naming
+
+### call high-confidence somatic variants with strict thresholds
+**Args:** `somatic normal.pileup tumor.pileup --output-snp highconf.snp --output-indel highconf.indel --output-vcf 1 --min-coverage 15 --min-coverage-normal 10 --min-coverage-tumor 10 --min-var-freq 0.15 --somatic-p-value 0.001 --strand-filter 1`
+**Explanation:** strict thresholds: 15x coverage, 15% VAF, p-value 0.001; high-confidence somatic calls for clinical applications

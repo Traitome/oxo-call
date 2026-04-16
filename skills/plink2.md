@@ -65,3 +65,27 @@ source_url: "https://www.cog-genomics.org/plink/2.0/"
 ### calculate allele frequencies
 **Args:** `--pfile plink_dataset --freq --out allele_freqs`
 **Explanation:** --freq calculates allele frequencies; output includes .afreq file with frequencies per variant
+
+### run GWAS with quantitative phenotype
+**Args:** `--pfile plink_dataset --pheno phenotypes.txt --pheno-name trait_value --covar covariates.txt --glm cols=+a1freq --out gwas_quantitative`
+**Explanation:** --glm for linear regression with quantitative trait; cols=+a1freq adds allele frequency to output
+
+### compute IBD sharing for relatedness detection
+**Args:** `--pfile plink_dataset --extract ld_prune.prune.in --genome --out ibd_results`
+**Explanation:** --genome computes IBD sharing (PI_HAT); identifies duplicate samples and close relatives; use LD-pruned variants
+
+### filter by Hardy-Weinberg equilibrium with stratified analysis
+**Args:** `--pfile plink_dataset --hwe 1e-6 --hwe-all --make-pgen --out hwe_filtered`
+**Explanation:** --hwe-all applies HWE filter to all samples; default applies only to founders; important for case-control studies
+
+### export dosage data instead of hard calls
+**Args:** `--pfile plink_dataset --export A --out dosage_matrix`
+**Explanation:** --export A outputs dosage format (0, 1, 2); useful for downstream analysis requiring genotype dosages
+
+### merge multiple PLINK datasets
+**Args:** `--pfile dataset1 --pmerge-list dataset_list.txt --make-pgen --out merged_dataset`
+**Explanation:** --pmerge-list merges multiple PLINK2 datasets; dataset_list.txt contains paths to .pgen files; ensures consistent variant IDs
+
+### perform sex check and identify sex mismatches
+**Args:** `--pfile plink_dataset --check-sex --out sex_check`
+**Explanation:** --check-sex compares reported vs. inferred sex from X chromosome heterozygosity; identifies sample swaps

@@ -61,3 +61,23 @@ source_url: "https://github.com/jenniferlu717/Bracken"
 ### run Bracken for family-level analysis with higher threshold
 **Args:** `-d /path/to/kraken2_db -i kraken_report.txt -o bracken_family.bracken -l F -r 150 -t 50`
 **Explanation:** -l F family level; -t 50 higher threshold to include only well-represented families
+
+### build Bracken database for multiple read lengths
+**Args:** `bracken-build -d /path/to/kraken2_db -k 35 -l 75 -t 8 -y kraken2 && bracken-build -d /path/to/kraken2_db -k 35 -l 100 -t 8 -y kraken2 && bracken-build -d /path/to/kraken2_db -k 35 -l 150 -t 8 -y kraken2`
+**Explanation:** build separate kmer_distrib files for 75bp, 100bp, 150bp; each read length requires its own database file; cannot store in same folder
+
+### run Bracken with very low threshold for rare species detection
+**Args:** `-d /path/to/kraken2_db -i kraken_report.txt -o bracken_rare.bracken -l S -r 150 -t 1`
+**Explanation:** -t 1 minimum threshold; includes single-read species; useful for detecting rare taxa but increases false positives
+
+### run Bracken for subspecies-level analysis
+**Args:** `-d /path/to/kraken2_db -i kraken_report.txt -o bracken_subspecies.bracken -l S1 -r 150 -t 10`
+**Explanation:** -l S1 subspecies level; requires database with subspecies taxonomy; finer taxonomic resolution for strain-level analysis
+
+### combine Bracken outputs with specific output format
+**Args:** `combine_bracken_outputs --files *.bracken --names $(ls *.bracken | sed 's/.bracken//') --output combined_species.txt --level S`
+**Explanation:** use shell expansion to process all bracken files; --level S ensures species-level output; automate multi-sample abundance tables
+
+### run Bracken on KrakenUniq report with custom kmer length
+**Args:** `-d /path/to/krakenuniq_db -i krakenuniq_report.txt -o bracken_krakenuniq.bracken -l S -r 100 -t 10`
+**Explanation:** KrakenUniq uses different kmer length (31 by default); ensure bracken-build used -k 31 and -y krakenuniq for compatibility

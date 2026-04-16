@@ -69,3 +69,23 @@ source_url: "https://github.com/PacificBiosciences/pbfusion"
 ### filter complex fusion events
 **Args:** `discover --bam isoseq_aligned.bam --gtf genes.gtf --output-prefix simple --max-genes-in-event 2 --threads 8`
 **Explanation:** --max-genes-in-event 2 marks multi-gene events as low quality; reduces false positives
+
+### detect fusions from multiple IsoSeq samples
+**Args:** `discover --bam sample1.bam,sample2.bam,sample3.bam --gtf genes.gtf --output-prefix multi_sample --threads 8`
+**Explanation:** comma-separated BAM files for multi-sample fusion detection; identifies recurrent fusions across samples
+
+### include mitochondrial gene fusions
+**Args:** `discover --bam isoseq_aligned.bam --gtf genes.gtf --output-prefix mito --allow-mito --threads 8`
+**Explanation:** --allow-mito permits fusions involving mitochondrial genes; disabled by default as often false positives
+
+### detect fusions with custom minimum fusion quality
+**Args:** `discover --bam isoseq_aligned.bam --gtf genes.gtf --output-prefix medium --min-fusion-quality MEDIUM --threads 8`
+**Explanation:** --min-fusion-quality MEDIUM (default) balances sensitivity and specificity; LOW for sensitive, HIGH for specific
+
+### analyze fusion output TSV file
+**Args:** `awk -F'\t' 'NR>1 && $6>=3 {print $1"-"$2, $6}' fusions.tsv | sort | uniq -c`
+**Explanation:** parse fusions.tsv output; filter by read support (column 6); count fusion occurrences; useful for downstream analysis
+
+### detect fusions with relaxed identity threshold for noisy data
+**Args:** `discover --bam isoseq_aligned.bam --gtf genes.gtf --output-prefix relaxed --min-mean-identity 0.90 --threads 8`
+**Explanation:** --min-mean-identity 0.90 lowers identity threshold; useful for lower-quality IsoSeq data or early chemistry versions

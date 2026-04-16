@@ -54,3 +54,27 @@ source_url: "https://github.com/bwa-mem2/bwa-mem2"
 ### full pipeline with read group, sort, and index
 **Args:** `mem -t 16 -R '@RG\tID:s1\tSM:s1\tLB:lib1\tPL:ILLUMINA' reference.fa R1.fq.gz R2.fq.gz | samtools sort -@ 4 -o s1.bam && samtools index s1.bam`
 **Explanation:** complete pipeline: align with RG → sort → index; preserving exact identifiers in RG string
+
+### align with split alignment output for chimeric reads
+**Args:** `mem -t 16 -M -a reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o split_align.bam`
+**Explanation:** -a outputs all alignments for split reads; -M marks secondary alignments; useful for fusion gene detection and chimeric read analysis
+
+### align with custom gap open and extension penalties
+**Args:** `mem -t 16 -O 6 -E 1 reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o aligned.bam`
+**Explanation:** -O 6 gap open penalty; -E 1 gap extension penalty; higher gap penalties reduce false alignments in repetitive regions
+
+### align with clipping penalty adjustment for soft-clipped reads
+**Args:** `mem -t 16 -L 5 reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o aligned.bam`
+**Explanation:** -L 5 clipping penalty; lower values allow more soft-clipping; useful for reads with adapter contamination or partial alignments
+
+### align multiple samples in batch with consistent read groups
+**Args:** `mem -t 16 -R '@RG\tID:${sample}\tSM:${sample}\tLB:lib1\tPL:ILLUMINA' reference.fa ${sample}_R1.fq.gz ${sample}_R2.fq.gz | samtools sort -@ 4 -o ${sample}.bam`
+**Explanation:** use shell variable expansion for batch processing; each sample gets unique RG ID and SM; essential for multi-sample GATK pipelines
+
+### align with minimum seed length adjustment for short reads
+**Args:** `mem -t 16 -k 19 reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o aligned.bam`
+**Explanation:** -k 19 minimum seed length; default is 19; increase for longer reads to reduce false seeds, decrease for very short reads (<50bp)
+
+### check SIMD mode and CPU compatibility before alignment
+**Args:** `mem -t 1 reference.fa test_R1.fq.gz test_R2.fq.gz 2>&1 | head -5`
+**Explanation:** BWA-MEM2 prints SIMD mode (AVX512/AVX2/SSE4.1) at startup; verify CPU compatibility before large-scale alignment jobs

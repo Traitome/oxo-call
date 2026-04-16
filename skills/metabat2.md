@@ -70,3 +70,27 @@ source_url: "https://bitbucket.org/berkeleylab/metabat"
 ### set minimum bin size to filter small bins
 **Args:** `-i assembly.fasta -a contig_depths.txt -o bins/bin -m 2500 -t 8 --minClsSize 500000`
 **Explanation:** --minClsSize 500000 excludes bins smaller than 500kb; filters out low-quality small bins
+
+### bin with multiple samples for improved differential coverage
+**Args:** `jgi_summarize_bam_contig_depths --outputDepth multi_depth.txt sample1.bam sample2.bam sample3.bam sample4.bam sample5.bam && metabat2 -i assembly.fasta -a multi_depth.txt -o bins/bin -m 2500 -t 8`
+**Explanation:** more samples provide better coverage variation; improves binning accuracy for complex communities
+
+### run MetaBAT2 with verbose output for debugging
+**Args:** `-i assembly.fasta -a contig_depths.txt -o bins/bin -m 2500 -t 8 --verbose`
+**Explanation:** --verbose prints detailed binning statistics; useful for troubleshooting and understanding binning decisions
+
+### bin with specific maxP and minS combination for balanced results
+**Args:** `-i assembly.fasta -a contig_depths.txt -o bins/bin -m 2500 -t 8 --maxP 90 --minS 70`
+**Explanation:** --maxP 90 includes 90% of contigs; --minS 70 moderate specificity; balanced sensitivity and purity
+
+### assess bin quality with CheckM2 after binning
+**Args:** `checkm2 predict -i bins/ -o checkm2_output -x fa -t 8`
+**Explanation:** CheckM2 evaluates bin completeness and contamination; essential quality control step after MetaBAT2 binning
+
+### combine MetaBAT2 with other binners using DASTool
+**Args:** `DASTool -i metabat2_bins.tsv,maxbin2_bins.tsv -l metabat2,maxbin2 -c contig_depths.txt -t 8 -o das_tool_output`
+**Explanation:** DASTool integrates results from multiple binners; improves bin quality over single binning method
+
+### extract bin statistics from MetaBAT2 output
+**Args:** `ls bins/*.fa | while read f; do echo -n "$f: "; grep -c "^>" $f; done`
+**Explanation:** count contigs per bin; quick assessment of bin size distribution; identify potential contamination (too many contigs)

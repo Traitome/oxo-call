@@ -41,8 +41,8 @@ source_url: "https://salmon.readthedocs.io/"
 **Explanation:** -t transcriptome FASTA (cDNA); -i index output directory; --threads for faster indexing
 
 ### quantify paired-end RNA-seq reads with automatic library type detection
-**Args:** `quant -i salmon_index -l A -1 R1.fastq.gz -2 R2.fastq.gz -p 8 --gcBias --validateMappings -o sample_quant`
-**Explanation:** -l A auto-detects strandedness; --gcBias corrects for GC content bias; --validateMappings increases accuracy
+**Args:** `quant -i salmon_index -l A -1 R1.fastq.gz -2 R2.fastq.gz -p 8 --gcBias -o sample_quant`
+**Explanation:** -l A auto-detects strandedness; --gcBias corrects for GC content bias; selective-alignment is default in recent versions
 
 ### quantify single-end RNA-seq reads
 **Args:** `quant -i salmon_index -l A -r reads.fastq.gz -p 8 --gcBias -o sample_quant`
@@ -67,3 +67,19 @@ source_url: "https://salmon.readthedocs.io/"
 ### build index with custom k-mer length for short reads
 **Args:** `index -t transcriptome.fa -i salmon_index_k23 -k 23 --threads 8`
 **Explanation:** -k 23 sets shorter k-mer length for short or noisy reads (e.g., 50bp); increases sensitivity but may reduce specificity compared to default k=31
+
+### quantify with GENCODE transcriptome and gene name splitting
+**Args:** `quant -i salmon_index -l A -1 R1.fq.gz -2 R2.fq.gz -p 8 --gcBias --gencode -o gencode_quant`
+**Explanation:** --gencode splits transcript names at first '|' for GENCODE-formatted FASTA; simplifies downstream gene-level aggregation
+
+### quantify with multiple bias corrections
+**Args:** `quant -i salmon_index -l A -1 R1.fq.gz -2 R2.fq.gz -p 8 --gcBias --seqBias --posBias -o bias_corrected_quant`
+**Explanation:** --gcBias (GC bias), --seqBias (sequence bias), --posBias (positional bias); comprehensive bias correction for highest accuracy
+
+### quantify with range factorization for memory efficiency
+**Args:** `quant -i salmon_index -l A -1 R1.fq.gz -2 R2.fq.gz -p 8 --rangeFactorizationBins 4 -o efficient_quant`
+**Explanation:** --rangeFactorizationBins 4 reduces memory usage; useful for large transcriptomes or memory-constrained systems
+
+### quantify with transcriptome mapping output
+**Args:** `quant -i salmon_index -l A -1 R1.fq.gz -2 R2.fq.gz -p 8 --writeMappings=mappings.sam -o with_mappings`
+**Explanation:** --writeMappings outputs SAM-format alignments to transcriptome; useful for debugging or alternative quantification methods
