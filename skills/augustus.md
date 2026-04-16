@@ -26,7 +26,7 @@ source_url: "https://bioinf.uni-greifswald.de/augustus/"
 
 ## Pitfalls
 
-- CRITICAL: AUGUSTUS has no subcommands. ARGS starts directly with flags like `--species`, `--gff3`. The input FASTA filename is the last positional argument.
+- AUGUSTUS has no subcommands. ARGS starts directly with flags like `--species`, `--gff3`. The input FASTA filename is the last positional argument.
 - Using the wrong species model severely reduces accuracy — choose the closest related organism. Use `--species=help` to see all options.
 - AUGUSTUS without RNA-seq hints may miss many genes in organisms with complex gene structures. Always provide hints when possible.
 - The GFF3 output requires `--gff3=on` — default AUGUSTUS format is not standard GFF3 and is not compatible with most downstream tools.

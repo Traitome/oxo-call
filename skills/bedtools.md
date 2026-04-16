@@ -24,7 +24,7 @@ source_url: "https://bedtools.readthedocs.io/"
 
 ## Pitfalls
 
-- CRITICAL: bedtools ARGS must start with a subcommand (intersect, subtract, merge, closest, window, coverage, map, genomecov, cluster, complement, shift, slop, flank, sort, random, shuffle, sample, spacing, annotate, multiinter, unionbedg, pairtobed, pairtopair, bamtobed, bedtobam, bamtofastq, bedpetobam, bed12tobed6, getfasta, maskfasta, nuc, multicov, tag, jaccard, reldist, fisher, overlap, makewindows, groupby, expand, split, summary) — never with flags like -a, -b, or -ibam. The subcommand ALWAYS comes first. Use NEW-style names (intersect, sort, merge), NOT old-style names (intersectBed, sortBed, mergeBed).
+- bedtools ARGS must start with a subcommand (intersect, subtract, merge, closest, window, coverage, map, genomecov, cluster, complement, shift, slop, flank, sort, random, shuffle, sample, spacing, annotate, multiinter, unionbedg, pairtobed, pairtopair, bamtobed, bedtobam, bamtofastq, bedpetobam, bed12tobed6, getfasta, maskfasta, nuc, multicov, tag, jaccard, reldist, fisher, overlap, makewindows, groupby, expand, split, summary) — never with flags like -a, -b, or -ibam. The subcommand ALWAYS comes first. Use NEW-style names (intersect, sort, merge), NOT old-style names (intersectBed, sortBed, mergeBed).
 - bedtools intersect without -wa or -wb only outputs the intersecting region, not the full intervals.
 - bedtools merge requires sorted input — use 'sort -k1,1 -k2,2n input.bed' first.
 - bedtools genomecov outputs a frequency table by default; use -bg for bedGraph or -bga to include zero-coverage regions.

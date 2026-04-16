@@ -23,7 +23,7 @@ source_url: "https://github.com/FelixKrueger/TrimGalore"
 - --max_n removes reads with more than N ambiguous bases; use fraction for percentage.
 
 ## Pitfalls
-- CRITICAL: trim_galore has NO subcommands. ARGS starts directly with flags (e.g., --paired, --quality, --length, --cores) or input files. Do NOT put a subcommand like 'trim' or 'run' before flags.
+- trim_galore has NO subcommands. ARGS starts directly with flags (e.g., --paired, --quality, --length, --cores) or input files. Do NOT put a subcommand like 'trim' or 'run' before flags.
 - Trim Galore requires both Cutadapt and FastQC to be installed and in PATH.
 - For paired-end, both files must be specified and --paired flag must be present.
 - Without --paired, each file in a PE pair is trimmed independently, losing pairing information.

@@ -24,7 +24,7 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 
 ## Pitfalls
 
-- CRITICAL: samtools ARGS must start with a subcommand (view, sort, index, flagstat, fastq, fasta, markdup, merge, depth, stats, fixmate, mpileup, faidx, fqidx, dict, calmd, collate, reheader, addreplacerg, ampliconclip, cat, consensus, split, import, reference, reset, bedcov, coverage, idxstats, phase, ampliconstats, checksum, flags, head, tview, depad, samples) — never with flags like -b, -@, -o. The subcommand ALWAYS comes first.
+- samtools ARGS must start with a subcommand (view, sort, index, flagstat, fastq, fasta, markdup, merge, depth, stats, fixmate, mpileup, faidx, fqidx, dict, calmd, collate, reheader, addreplacerg, ampliconclip, cat, consensus, split, import, reference, reset, bedcov, coverage, idxstats, phase, ampliconstats, checksum, flags, head, tview, depad, samples) — never with flags like -b, -@, -o. The subcommand ALWAYS comes first.
 - Without -o, samtools writes to stdout — pipe carefully or always use -o output.bam.
 - CRAM output (-C flag in view, or -O cram in sort) requires --reference; omitting it causes an error.
 - samtools index on an unsorted BAM will appear to succeed but region queries will give wrong results.

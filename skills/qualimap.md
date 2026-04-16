@@ -26,7 +26,7 @@ source_url: "http://qualimap.conesalab.org/"
 - `-os` outputs statistics only (no graphics generation).
 
 ## Pitfalls
-- CRITICAL: qualimap ARGS must start with a subcommand (bamqc, rnaseq, multi-bamqc, counts, clustering, comp-counts) — never with flags like -bam, -outdir, -gtf. The subcommand ALWAYS comes first.
+- qualimap ARGS must start with a subcommand (bamqc, rnaseq, multi-bamqc, counts, clustering, comp-counts) — never with flags like -bam, -outdir, -gtf. The subcommand ALWAYS comes first.
 - running `qualimap bamqc` on a very large (>100 GB) BAM without `--java-mem-size` causes OutOfMemoryError; always set at least `--java-mem-size 8G` for WGS data.
 - Qualimap requires the BAM to be sorted and indexed; run `samtools sort` and `samtools index` first.
 - `rnaseq` module strand direction (`-p`) must match the library; wrong setting leads to incorrect read assignment rates and misleading reports.

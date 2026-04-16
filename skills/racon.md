@@ -22,7 +22,7 @@ source_url: "https://github.com/lbcb-sci/racon"
 - -e (--error-threshold) sets maximum allowed error rate for filtering overlaps (default 0.3).
 
 ## Pitfalls
-- CRITICAL: racon has NO subcommands. ARGS starts directly with positional arguments (reads, overlaps, target_sequences) or flags (e.g., -t, -u, -w). Do NOT put a subcommand like 'polish' or 'correct' before arguments.
+- racon has NO subcommands. ARGS starts directly with positional arguments (reads, overlaps, target_sequences) or flags (e.g., -t, -u, -w). Do NOT put a subcommand like 'polish' or 'correct' before arguments.
 - Racon requires fresh mapping to the CURRENT draft for each polishing round — remap before each Racon run.
 - Racon output is to stdout — redirect to a file for the polished assembly.
 - Too many Racon rounds (>4) may degrade assembly quality — use Medaka after 2-3 Racon rounds for ONT.

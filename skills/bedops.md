@@ -23,7 +23,7 @@ source_url: "https://bedops.readthedocs.io/"
 
 ## Pitfalls
 
-- CRITICAL: bedops ARGS must start with an operation flag (--intersect, --union, --difference, --complement, --symmdiff, --element-of, --not-element-of, --merge, --partition, --chop, --everything) — never with input files first. The operation flag ALWAYS comes before input files. Other BEDOPS tools are separate binaries: sort-bed, bedmap, bedextract, closest-features, starch, unstarch, starchcat, vcf2bed, gff2bed, gtf2bed, etc.
+- bedops ARGS must start with an operation flag (--intersect, --union, --difference, --complement, --symmdiff, --element-of, --not-element-of, --merge, --partition, --chop, --everything) — never with input files first. The operation flag ALWAYS comes before input files. Other BEDOPS tools are separate binaries: sort-bed, bedmap, bedextract, closest-features, starch, unstarch, starchcat, vcf2bed, gff2bed, gtf2bed, etc.
 - All inputs to bedops and bedmap must be sorted with sort-bed; BED files sorted by other tools (e.g., `sort -k1,1 -k2,2n`) may not be compatible with BEDOPS's lexicographic chromosome ordering.
 - bedops --complement requires chromosome sizes to compute regions not covered; without --chrom-sizes the complement will be wrong.
 - bedmap --echo --mean returns one output line per reference interval, not per overlap — understand the mapping model before use.

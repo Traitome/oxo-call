@@ -27,7 +27,7 @@ source_url: "https://github.com/mikolmogorov/Flye"
 
 ## Pitfalls
 
-- CRITICAL: Flye has NO subcommands. ARGS starts directly with flags (e.g., --nano-raw, --pacbio-hifi, --genome-size, --out-dir). Do NOT put a subcommand like 'assemble' or 'run' before flags.
+- Flye has NO subcommands. ARGS starts directly with flags (e.g., --nano-raw, --pacbio-hifi, --genome-size, --out-dir). Do NOT put a subcommand like 'assemble' or 'run' before flags.
 - --genome-size is required for isolate assemblies — omitting it causes an error (except with --meta).
 - Do not use --nano-raw for R10 or high-accuracy ONT reads — use --nano-hq for better results.
 - Flye is memory-intensive for large genomes; human genome assembly may require 40-80 GB RAM.

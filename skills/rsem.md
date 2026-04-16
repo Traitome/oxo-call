@@ -24,7 +24,7 @@ source_url: "https://deweylab.github.io/RSEM/"
 
 ## Pitfalls
 
-- CRITICAL: RSEM is a multi-binary suite. Each tool is a separate command: rsem-prepare-reference, rsem-calculate-expression, rsem-generate-data-matrix, rsem-generate-ngs-count-matrix. There is NO single 'rsem' subcommand pattern. ARGS for each tool start with their own flags.
+- RSEM is a multi-binary suite. Each tool is a separate command: rsem-prepare-reference, rsem-calculate-expression, rsem-generate-data-matrix, rsem-generate-ngs-count-matrix. There is NO single 'rsem' subcommand pattern. ARGS for each tool start with their own flags.
 - RSEM companion binaries (rsem-prepare-reference, rsem-calculate-expression, rsem-generate-data-matrix) must be used as the first ARGS token — the system detects them and uses them as the actual executables.
 - The index_prefix must match between rsem-prepare-reference and rsem-calculate-expression.
 - Without --paired-end flag, RSEM treats paired-end data as single-end, halving effective read count.

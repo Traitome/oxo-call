@@ -24,7 +24,7 @@ source_url: "https://pcingola.github.io/SnpEff/"
 
 ## Pitfalls
 
-- CRITICAL: snpeff ARGS must start with a subcommand (ann, eff, build, download, databases, dump, cds, closest, count, genes2bed, len, protein, seq, show) — never with flags like -v, -stats, -noLog. The subcommand ALWAYS comes first.
+- snpeff ARGS must start with a subcommand (ann, eff, build, download, databases, dump, cds, closest, count, genes2bed, len, protein, seq, show) — never with flags like -v, -stats, -noLog. The subcommand ALWAYS comes first.
 - Genome database name must exactly match: use 'snpeff databases' to find the correct identifier.
 - Without -v, SnpEff may silently fail on certain inputs — always check stderr for warnings.
 - SnpEff adds ANN field to INFO column — do not confuse with older EFF field from SnpEff v4.0.

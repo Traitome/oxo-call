@@ -21,7 +21,7 @@ source_url: "https://github.com/bwa-mem2/bwa-mem2"
 
 ## Pitfalls
 
-- CRITICAL: bwa-mem2 ARGS must start with 'mem' or 'index' — never with flags like -t or -R. The subcommand ALWAYS comes first.
+- bwa-mem2 ARGS must start with 'mem' or 'index' — never with flags like -t or -R. The subcommand ALWAYS comes first.
 - BWA-MEM2 index is NOT interchangeable with BWA index — must re-index with bwa-mem2 index.
 - On older CPUs without AVX2/SSE4.1 support, BWA-MEM2 may not run or may fall back to generic mode.
 - BWA-MEM2 uses more RAM than BWA during alignment due to pre-loaded index (~65 GB for human genome with AVX512).

@@ -22,7 +22,7 @@ source_url: "https://github.com/jenniferlu717/Bracken"
 
 ## Pitfalls
 
-- CRITICAL: bracken has NO subcommands. ARGS starts directly with flags (e.g., -d, -i, -o, -l, -r, -t). Do NOT put a subcommand like 'estimate' or 'run' before flags.
+- bracken has NO subcommands. ARGS starts directly with flags (e.g., -d, -i, -o, -l, -r, -t). Do NOT put a subcommand like 'estimate' or 'run' before flags.
 - The Bracken distribution file read length must match the -r parameter — using database100mers.kmer_distr with -r 150 will fail.
 - Bracken requires the Kraken report file (--report from Kraken2), NOT the per-read classification output.
 - Kraken report must be in DEFAULT format, NOT MPA format — MPA reports are not supported by Bracken.

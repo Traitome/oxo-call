@@ -24,7 +24,7 @@ source_url: "http://www.htslib.org/doc/tabix.html"
 
 ## Pitfalls
 
-- CRITICAL: tabix has NO subcommands. ARGS starts directly with flags (e.g., -p, -h, -l, -C) or with the input file for indexing/querying. Do NOT put a subcommand like 'index' or 'query' before flags.
+- tabix has NO subcommands. ARGS starts directly with flags (e.g., -p, -h, -l, -C) or with the input file for indexing/querying. Do NOT put a subcommand like 'index' or 'query' before flags.
 - gzip-compressed files CANNOT be indexed with tabix — always use bgzip instead of gzip.
 - The file must be sorted by chromosome and position before bgzip+tabix — unsorted files cause errors.
 - Without -h when querying, the VCF header is NOT included in output — this creates invalid VCF.

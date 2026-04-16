@@ -25,7 +25,7 @@ source_url: "https://blast.ncbi.nlm.nih.gov/doc/blast-help/"
 
 ## Pitfalls
 
-- CRITICAL: BLAST has NO single 'blast' command. Each tool is a separate binary: blastn, blastp, blastx, tblastn, tblastx for searching; makeblastdb for building databases; blastdbcmd for retrieval. ARGS for search tools start with flags like -query, -db, -out — never with a subcommand. For makeblastdb, ARGS start with -in, -dbtype, -out.
+- BLAST has NO single 'blast' command. Each tool is a separate binary: blastn, blastp, blastx, tblastn, tblastx for searching; makeblastdb for building databases; blastdbcmd for retrieval. ARGS for search tools start with flags like -query, -db, -out — never with a subcommand. For makeblastdb, ARGS start with -in, -dbtype, -out.
 - BLAST database must be built with makeblastdb before searching (except -remote or -subject).
 - -max_target_seqs 1 with tabular output may not always return the BEST hit — it returns the first found. Use -culling_limit 1 for best non-redundant hit.
 - blastn default task is 'megablast' with word size 28 — too strict for short sequences (<100 bp) or distant homologs. Use -task blastn-short for <30 bp queries, -task blastn for traditional search, or -task dc-megablast for cross-species.

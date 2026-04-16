@@ -30,7 +30,7 @@ source_url: "https://github.com/chklovski/CheckM2"
 - CheckM2 uses protein coding predictions — very fragmented assemblies with few ORFs give inaccurate results.
 - CheckM2 output directory must not already exist — use a fresh output directory.
 - For large datasets, use --threads to speed up the protein prediction step.
-- **CRITICAL**: CheckM2 has subcommands (predict, database, testrun); 'predict' is the main analysis command.
+- CheckM2 has subcommands (predict, database, testrun); 'predict' is the main analysis command.
 - Default file extension is .fna, not .fasta or .fa — explicitly set -x if using different extensions.
 - --resume reuses existing Prodigal and DIAMOND results; useful for interrupted runs but may use stale data.
 - CHECKM2DB environment variable overrides --database_path; check both if database issues occur.

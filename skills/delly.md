@@ -25,7 +25,7 @@ source_url: "https://github.com/dellytools/delly"
 
 ## Pitfalls
 
-- CRITICAL: delly ARGS must start with a subcommand (call, filter, merge, lr, cnv, classify) — never with flags like -g, -o, -x. The subcommand ALWAYS comes first.
+- delly ARGS must start with a subcommand (call, filter, merge, lr, cnv, classify) — never with flags like -g, -o, -x. The subcommand ALWAYS comes first.
 - Input BAMs must be coordinate-sorted, indexed, and duplicate-marked with read groups set.
 - The reference FASTA must match the genome build used for alignment.
 - Without the exclusion list (-x), DELLY calls many false positives in repetitive regions.

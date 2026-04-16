@@ -26,7 +26,7 @@ source_url: "https://github.com/freebayes/freebayes"
 
 ## Pitfalls
 
-- CRITICAL: freebayes has NO subcommands. ARGS starts directly with flags (e.g., -f, -b, -r, -p) or input BAM files. Do NOT put a subcommand like 'call' or 'detect' before flags.
+- freebayes has NO subcommands. ARGS starts directly with flags (e.g., -f, -b, -r, -p) or input BAM files. Do NOT put a subcommand like 'call' or 'detect' before flags.
 - FreeBayes requires indexed BAM files (.bai) — run samtools index before FreeBayes.
 - FreeBayes is slow on large genomes without parallelization — use freebayes-parallel or split by chromosome.
 - The reference FASTA (-f) must be indexed with samtools faidx.

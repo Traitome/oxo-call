@@ -23,7 +23,7 @@ source_url: "https://github.com/OpenGene/fastp"
 
 ## Pitfalls
 
-- CRITICAL: fastp has NO subcommands. ARGS starts directly with flags (e.g., -i, -I, -o, -O). Do NOT put a subcommand like 'trim' or 'qc' before flags.
+- fastp has NO subcommands. ARGS starts directly with flags (e.g., -i, -I, -o, -O). Do NOT put a subcommand like 'trim' or 'qc' before flags.
 - For paired-end data, use -i R1.fq -I R2.fq and -o clean_R1.fq -O clean_R2.fq (uppercase for R2).
 - The default fastp output filenames are output.fastq and output2.fastq — always specify -o and -O explicitly.
 - fastp generates fastp.html and fastp.json by default — redirect with -h and -j for better organization.

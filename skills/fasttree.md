@@ -26,7 +26,7 @@ source_url: "http://www.microbesonline.org/fasttree/"
 
 ## Pitfalls
 
-- CRITICAL: fasttree has NO subcommands. ARGS starts directly with flags (e.g., -nt, -gtr, -wag, -lg) or the input alignment file. Do NOT put a subcommand like 'build' or 'infer' before flags.
+- fasttree has NO subcommands. ARGS starts directly with flags (e.g., -nt, -gtr, -wag, -lg) or the input alignment file. Do NOT put a subcommand like 'build' or 'infer' before flags.
 - FastTree outputs to stdout — always redirect: FastTree input.fasta > tree.nwk
 - FastTree is faster than IQ-TREE but less accurate — for publications, prefer IQ-TREE with bootstrap.
 - The -nt flag is required for nucleotide data — without it, FastTree treats DNA as protein.

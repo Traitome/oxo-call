@@ -26,7 +26,7 @@ source_url: "https://dalexander.github.io/admixture/"
 
 ## Pitfalls
 
-- CRITICAL: ADMIXTURE has no subcommands. ARGS starts directly with the input file path and K value: `admixture input.bed K [options]`. Do NOT add a subcommand before the input file.
+- ADMIXTURE has no subcommands. ARGS starts directly with the input file path and K value: `admixture input.bed K [options]`. Do NOT add a subcommand before the input file.
 - ADMIXTURE requires LD-pruned data — high LD inflates estimated K and distorts ancestry proportions. Use PLINK `--indep-pairwise 50 5 2` or similar before running.
 - Run multiple replicates per K (with different seeds) — different runs may give different local optima. Compare log-likelihood values across replicates.
 - The Q-matrix columns are not labeled with population names — interpretation requires external knowledge (e.g., matching to known reference populations).

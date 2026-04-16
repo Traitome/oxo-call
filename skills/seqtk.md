@@ -24,7 +24,7 @@ source_url: "https://github.com/lh3/seqtk"
 
 ## Pitfalls
 
-- CRITICAL: seqtk ARGS must start with a subcommand (seq, size, comp, sample, subseq, fqchk, mergepe, split, trimfq, hety, gc, mutfa, mergefa, famask, dropse, rename, randbase, cutN, gap, listhet, hpc, telo) — never with flags or input files first. The subcommand ALWAYS comes first.
+- seqtk ARGS must start with a subcommand (seq, size, comp, sample, subseq, fqchk, mergepe, split, trimfq, hety, gc, mutfa, mergefa, famask, dropse, rename, randbase, cutN, gap, listhet, hpc, telo) — never with flags or input files first. The subcommand ALWAYS comes first.
 - seqtk sample paired-end reads MUST use the same seed for both files to maintain read pairing.
 - seqtk outputs to stdout — always redirect to a file or pipe to another tool.
 - seqtk sample N when N < 1 treats it as a fraction; when N > 1 treats it as absolute count.

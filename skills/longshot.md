@@ -29,7 +29,7 @@ source_url: "https://github.com/pjedge/longshot"
 - Very low coverage (<10x) reduces Longshot accuracy significantly.
 - Longshot outputs phased genotypes — use carefully if unphased calls are needed.
 - For indels, use other tools (GATK, DeepVariant) in addition to Longshot.
-- CRITICAL: -q is minimum mapping quality (MAPQ), not base quality; base quality filtering is implicit.
+- -q is minimum mapping quality (MAPQ), not base quality; base quality filtering is implicit.
 - -m controls max SNVs per cluster (default 3), not minimum coverage; use -c for coverage.
 - 2^m haplotypes are aligned per read for cluster size m; -m > 5 causes exponential slowdown.
 - -A (auto_max_cov) is slower but recommended for variable coverage regions.

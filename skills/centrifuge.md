@@ -23,7 +23,7 @@ source_url: "https://ccb.jhu.edu/software/centrifuge/manual.shtml"
 
 ## Pitfalls
 
-- CRITICAL: centrifuge has NO subcommands. ARGS starts directly with flags (e.g., -x, -1, -2, -U, -S, -p). Do NOT put a subcommand like 'classify' or 'search' before flags. Index building uses the separate binary 'centrifuge-build'.
+- centrifuge has NO subcommands. ARGS starts directly with flags (e.g., -x, -1, -2, -U, -S, -p). Do NOT put a subcommand like 'classify' or 'search' before flags. Index building uses the separate binary 'centrifuge-build'.
 - Not specifying -x (index prefix) causes centrifuge to fail — always provide the full path prefix to the index files.
 - Centrifuge index files (.1.cf, .2.cf, .3.cf) must all be present; a missing file causes a cryptic error at startup.
 - --min-hitlen default is 22; raising it (e.g., 30) increases precision but reduces recall for shorter reads.

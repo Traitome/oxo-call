@@ -28,7 +28,7 @@ source_url: "https://cellsnp-lite.readthedocs.io/"
 - The SNP VCF for -R must contain REF and ALT alleles; position-only files cause incorrect allele counting.
 - Output directories must not exist; cellsnp-lite fails if -O points to an existing directory without --force.
 - Single-cell mode requires the BAM index (.bai); run samtools index before cellsnp-lite.
-- **CRITICAL**: --regionsVCF (-R) uses indexed random access while --targetsVCF (-T) uses streaming; use -R for small SNP panels, -T for large VCFs.
+- --regionsVCF (-R) uses indexed random access while --targetsVCF (-T) uses streaming; use -R for small SNP panels, -T for large VCFs.
 - Default --exclFLAG filters duplicates when UMI is off but not when UMI is on; explicitly set --exclFLAG for consistent behavior.
 - Mode 2 (de novo) requires a reference genome (-f) to determine REF alleles; missing -f causes errors or incorrect genotypes.
 - Memory usage scales with --maxDEPTH; leave at default (0) for most cases, only reduce if memory is limited.

@@ -22,7 +22,7 @@ source_url: "https://mash.readthedocs.io/en/latest/"
 - -c sets target coverage for early termination when sketching high-coverage read sets.
 
 ## Pitfalls
-- CRITICAL: mash ARGS must start with a subcommand (sketch, dist, screen, info, paste, bounds, taxscreen) — never with flags like -o, -k, -s. The subcommand ALWAYS comes first.
+- mash ARGS must start with a subcommand (sketch, dist, screen, info, paste, bounds, taxscreen) — never with flags like -o, -k, -s. The subcommand ALWAYS comes first.
 - K-mer size (-k) must match between sketch and query; mixing k-mer sizes gives undefined results — default is 21 for genomes.
 - mash sketch on FASTQ sets a minimum copy number (-m) to filter low-frequency k-mers (errors); -m 2 or -m 3 is typical for reads.
 - mash dist output has p-values; filter results by p-value column to exclude statistically non-significant distances.

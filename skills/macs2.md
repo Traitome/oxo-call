@@ -25,7 +25,7 @@ source_url: "https://macs3-project.github.io/MACS/"
 - --slocal/--llocal set small and large local lambda windows for background estimation.
 
 ## Pitfalls
-- CRITICAL: macs2 ARGS must start with a subcommand (callpeak, bdgpeakcall, bdgbroadcall, bdgcmp, bdgopt, cmbreps, bdgdiff, filterdup, predictd, pileup, randsample, refinepeak) — never with flags like -t, -c, -g. The subcommand ALWAYS comes first.
+- macs2 ARGS must start with a subcommand (callpeak, bdgpeakcall, bdgbroadcall, bdgcmp, bdgopt, cmbreps, bdgdiff, filterdup, predictd, pileup, randsample, refinepeak) — never with flags like -t, -c, -g. The subcommand ALWAYS comes first.
 - Forgetting -c (input control) leads to high false positive rates in ChIP-seq — always include input/IgG control.
 - Using -g for the wrong organism gives incorrect q-values — match genome size to your reference.
 - For ATAC-seq, using default ChIP-seq parameters without --nomodel/shift adjustment misses NFR peaks.

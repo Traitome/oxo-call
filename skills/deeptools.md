@@ -25,7 +25,7 @@ source_url: "https://deeptools.readthedocs.io/"
 
 ## Pitfalls
 
-- CRITICAL: deeptools ARGS must start with a subcommand (bamCoverage, bamCompare, bigwigCompare, bigwigAverage, computeMatrix, computeMatrixOperations, plotHeatmap, plotProfile, plotEnrichment, multiBamSummary, multiBigwigSummary, plotCorrelation, plotPCA, plotFingerprint, bamPEFragmentSize, computeGCBias, correctGCBias, plotCoverage, estimateReadFiltering, alignmentSieve) — never with flags like -b, -o, -p. The subcommand ALWAYS comes first.
+- deeptools ARGS must start with a subcommand (bamCoverage, bamCompare, bigwigCompare, bigwigAverage, computeMatrix, computeMatrixOperations, plotHeatmap, plotProfile, plotEnrichment, multiBamSummary, multiBigwigSummary, plotCorrelation, plotPCA, plotFingerprint, bamPEFragmentSize, computeGCBias, correctGCBias, plotCoverage, estimateReadFiltering, alignmentSieve) — never with flags like -b, -o, -p. The subcommand ALWAYS comes first.
 - BAM files must be sorted and indexed before any deeptools command.
 - For ATAC-seq, use --ATACshift to correct for the +4/-5 Tn5 transposase insertion offset in bamCoverage.
 - computeMatrix scale-regions and reference-point have different required arguments — check mode-specific parameters.

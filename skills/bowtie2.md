@@ -23,7 +23,7 @@ source_url: "https://bowtie-bio.sourceforge.net/bowtie2/manual.shtml"
 
 ## Pitfalls
 
-- CRITICAL: bowtie2 has NO subcommands. ARGS starts directly with flags (e.g., -x, -1, -2, -U, -p). Do NOT put a subcommand like 'align' or 'map' before flags. Index building uses the separate binary 'bowtie2-build' (not a subcommand).
+- bowtie2 has NO subcommands. ARGS starts directly with flags (e.g., -x, -1, -2, -U, -p). Do NOT put a subcommand like 'align' or 'map' before flags. Index building uses the separate binary 'bowtie2-build' (not a subcommand).
 - bowtie2 outputs SAM to stdout — always pipe to 'samtools view -b -o output.bam' or use -S for SAM output.
 - Index building uses the companion binary 'bowtie2-build', not 'bowtie2 -build'. Always start the ARGS with 'bowtie2-build' for index tasks; the system detects it and invokes it as the executable.
 - The -x argument takes the index prefix (from 'bowtie2-build'), not the .fa file or any .bt2 file.

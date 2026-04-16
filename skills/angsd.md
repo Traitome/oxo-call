@@ -25,7 +25,7 @@ source_url: "http://www.popgen.dk/angsd/index.php/ANGSD"
 
 ## Pitfalls
 
-- CRITICAL: ANGSD has no subcommands. ARGS starts directly with flags like `-bam`, `-GL`, `-doMaf`. The first flag is always a dash-prefixed option — never a bare word.
+- ANGSD has no subcommands. ARGS starts directly with flags like `-bam`, `-GL`, `-doMaf`. The first flag is always a dash-prefixed option — never a bare word.
 - Not filtering by mapping quality (-minMapQ) allows reads mapped to repetitive regions to bias allele frequency estimates. Always use -minMapQ 30 or higher.
 - Using -doSaf without setting -anc (ancestral FASTA) computes a folded SFS by default; specify -anc for unfolded polarized analyses.
 - ANGSD does not check that BAM files are sorted and indexed — unsorted/unindexed BAMs produce incorrect or empty output silently.

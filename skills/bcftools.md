@@ -24,7 +24,7 @@ source_url: "https://samtools.github.io/bcftools/bcftools.html"
 
 ## Pitfalls
 
-- CRITICAL: bcftools ARGS must start with a subcommand (view, call, mpileup, norm, merge, annotate, filter, stats, index, concat, isec, roh, gtcheck, consensus, plugin, csq, reheader, convert, head, query, sort, cnv, polysomy) — never with flags like -O, -o, -f. The subcommand ALWAYS comes first.
+- bcftools ARGS must start with a subcommand (view, call, mpileup, norm, merge, annotate, filter, stats, index, concat, isec, roh, gtcheck, consensus, plugin, csq, reheader, convert, head, query, sort, cnv, polysomy) — never with flags like -O, -o, -f. The subcommand ALWAYS comes first.
 - bcftools subcommands do NOT accept `--help`; run the subcommand without arguments to see its usage (e.g., `bcftools view` instead of `bcftools view --help`).
 - bcftools view filters by FILTER field with -f; use -i 'QUAL>20' for INFO-based filtering (not -f QUAL).
 - bcftools call requires sorted BAM input; use samtools sort first.

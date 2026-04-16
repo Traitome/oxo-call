@@ -24,7 +24,7 @@ source_url: "https://quast.sourceforge.net/"
 - --large uses optimal parameters for large genomes (mammalian-size).
 
 ## Pitfalls
-- CRITICAL: quast has NO subcommands. ARGS starts directly with input files or flags (e.g., -r, -o, --threads). Do NOT put a subcommand like 'assess' or 'analyze' before flags.
+- quast has NO subcommands. ARGS starts directly with input files or flags (e.g., -r, -o, --threads). Do NOT put a subcommand like 'assess' or 'analyze' before flags.
 - Without -r reference, misassembly detection is not possible — always provide reference for isolate assemblies.
 - The reference genome must match the genome build used for assembly for accurate misassembly detection.
 - --min-contig default (500 bp) excludes short contigs from metrics — adjust based on your assembly.

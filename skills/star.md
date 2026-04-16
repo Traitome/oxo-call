@@ -26,7 +26,7 @@ source_url: "https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf"
 
 ## Pitfalls
 - STAR requires the genome index to be pre-built; the index directory (--genomeDir) must exist.
-- CRITICAL: STAR ARGS must start with --runMode (genomeGenerate or alignReads) — never with short flags like -d or -t. STAR is not like samtools/bwa; it uses long options as its operation selector.
+- STAR ARGS must start with --runMode (genomeGenerate or alignReads) — never with short flags like -d or -t. STAR is not like samtools/bwa; it uses long options as its operation selector.
 - For gzipped input, you MUST add --readFilesCommand zcat — otherwise STAR reads the binary gzip data.
 - STAR uses 30+ GB RAM for human genome alignment — ensure enough memory is available.
 - The default output prefix is the current directory; always set --outFileNamePrefix to a unique prefix.

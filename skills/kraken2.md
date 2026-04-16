@@ -25,7 +25,7 @@ source_url: "https://github.com/DerrickWood/kraken2"
 - Protein databases: kraken2-build --protein builds translated search databases for metagenomic protein classification.
 
 ## Pitfalls
-- CRITICAL: kraken2 has NO subcommands. ARGS starts directly with flags (e.g., --db, --paired, --threads, --confidence). Do NOT put a subcommand like 'classify' or 'analyze' before flags.
+- kraken2 has NO subcommands. ARGS starts directly with flags (e.g., --db, --paired, --threads, --confidence). Do NOT put a subcommand like 'classify' or 'analyze' before flags.
 - The database path must contain hash.k2d, opts.k2d, and taxo.k2d files — check database integrity.
 - Without --report, Kraken2 only outputs per-read assignments, not the taxonomic summary needed for Bracken.
 - Kraken2 databases can be very large (>50 GB for Standard) — ensure sufficient disk space.
