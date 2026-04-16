@@ -1,10 +1,12 @@
 mod cli;
 mod config;
+mod context;
 #[cfg(not(target_arch = "wasm32"))]
 mod copilot_auth;
 mod docs;
 mod engine;
 mod error;
+mod format;
 mod handlers;
 mod history;
 mod index;
@@ -152,6 +154,7 @@ async fn run(cli: Cli) -> error::Result<()> {
             input_items,
             jobs,
             stop_on_error,
+            auto_retry,
         } => {
             let mut cfg = config::Config::load()?;
             if let Some(ref m) = model {
@@ -191,7 +194,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_verbose(verbose)
                 .with_no_cache(no_cache)
                 .with_verify(verify)
-                .with_optimize_task(optimize_task);
+                .with_optimize_task(optimize_task)
+                .with_auto_retry(auto_retry);
             #[cfg(not(target_arch = "wasm32"))]
             let runner = runner
                 .with_vars(var_map)

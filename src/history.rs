@@ -88,6 +88,149 @@ impl HistoryStore {
     }
 }
 
+// ─── User preference learning ─────────────────────────────────────────────────
+
+/// Preferences learned from the user's command history.
+///
+/// By analyzing past successful commands for a tool, we can extract patterns
+/// like preferred thread counts, output directories, and reference genomes.
+/// These are injected into the LLM prompt as soft defaults.
+#[derive(Debug, Clone, Default)]
+pub struct UserPreferences {
+    /// Most commonly used thread count (from -@ / -t / --threads flags).
+    pub preferred_threads: Option<String>,
+    /// Most commonly used output directory pattern.
+    pub preferred_output_dir: Option<String>,
+    /// Most commonly used reference genome path.
+    pub preferred_reference: Option<String>,
+}
+
+impl UserPreferences {
+    /// Generate a hint string for LLM prompt injection.
+    pub fn to_prompt_hint(&self) -> String {
+        let mut hints = Vec::new();
+        if let Some(ref t) = self.preferred_threads {
+            hints.push(format!("preferred threads: {t}"));
+        }
+        if let Some(ref d) = self.preferred_output_dir {
+            hints.push(format!("preferred output dir: {d}"));
+        }
+        if let Some(ref r) = self.preferred_reference {
+            hints.push(format!("preferred reference: {r}"));
+        }
+        if hints.is_empty() {
+            String::new()
+        } else {
+            format!("[User preferences: {}]", hints.join(", "))
+        }
+    }
+}
+
+/// Learn user preferences from command history for a specific tool.
+///
+/// Analyzes the last N successful (exit_code == 0) commands for the tool
+/// to extract common patterns.
+pub fn learn_user_preferences(tool: &str, history: &[HistoryEntry]) -> UserPreferences {
+    let relevant: Vec<&HistoryEntry> = history
+        .iter()
+        .filter(|e| e.tool == tool && e.exit_code == 0 && !e.dry_run)
+        .collect();
+
+    if relevant.is_empty() {
+        return UserPreferences::default();
+    }
+
+    UserPreferences {
+        preferred_threads: most_common_extracted(&relevant, extract_threads),
+        preferred_output_dir: most_common_extracted(&relevant, extract_output_dir),
+        preferred_reference: most_common_extracted(&relevant, extract_reference),
+    }
+}
+
+/// Extract the most common value from a set of entries using an extractor function.
+fn most_common_extracted(
+    entries: &[&HistoryEntry],
+    extractor: fn(&str) -> Option<String>,
+) -> Option<String> {
+    let mut counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for entry in entries {
+        if let Some(val) = extractor(&entry.command) {
+            *counts.entry(val).or_insert(0) += 1;
+        }
+    }
+    counts
+        .into_iter()
+        .max_by_key(|(_, count)| *count)
+        .filter(|(_, count)| *count >= 2) // Require at least 2 occurrences
+        .map(|(val, _)| val)
+}
+
+/// Extract thread count from a command string.
+fn extract_threads(command: &str) -> Option<String> {
+    let tokens: Vec<&str> = command.split_whitespace().collect();
+    for (i, token) in tokens.iter().enumerate() {
+        if (*token == "-@"
+            || *token == "-t"
+            || *token == "--threads"
+            || *token == "-p"
+            || *token == "--cores")
+            && i + 1 < tokens.len()
+        {
+            let val = tokens[i + 1];
+            if val.parse::<u32>().is_ok() {
+                return Some(val.to_string());
+            }
+        }
+        // Handle -@4, -t8 form
+        for prefix in &["-@", "-t", "-p"] {
+            if let Some(num) = token.strip_prefix(prefix)
+                && num.parse::<u32>().is_ok()
+            {
+                return Some(num.to_string());
+            }
+        }
+    }
+    None
+}
+
+/// Extract output directory from a command string.
+fn extract_output_dir(command: &str) -> Option<String> {
+    let tokens: Vec<&str> = command.split_whitespace().collect();
+    for (i, token) in tokens.iter().enumerate() {
+        if (*token == "-o" || *token == "--output" || *token == "--outdir" || *token == "--out")
+            && i + 1 < tokens.len()
+        {
+            let val = tokens[i + 1];
+            // Extract directory part of the path
+            if let Some(parent) = std::path::Path::new(val).parent() {
+                let dir = parent.to_string_lossy().to_string();
+                if !dir.is_empty() && dir != "." {
+                    return Some(dir);
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Extract reference genome path from a command string.
+fn extract_reference(command: &str) -> Option<String> {
+    let tokens: Vec<&str> = command.split_whitespace().collect();
+    for (i, token) in tokens.iter().enumerate() {
+        if (*token == "--ref"
+            || *token == "--reference"
+            || *token == "-x"
+            || *token == "--genome"
+            || *token == "--genomeDir"
+            || *token == "--genome-dir")
+            && i + 1 < tokens.len()
+        {
+            return Some(tokens[i + 1].to_string());
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -374,5 +517,98 @@ mod tests {
         assert!(entries[0].server.is_none());
         assert_eq!(entries[1].server.as_deref(), Some("hpc1"));
         assert!(entries[2].dry_run);
+    }
+
+    // ─── User preference learning tests ──────────────────────────────────
+
+    #[test]
+    fn test_extract_threads() {
+        assert_eq!(
+            extract_threads("sort -@ 8 -o out.bam in.bam"),
+            Some("8".to_string())
+        );
+        assert_eq!(
+            extract_threads("sort -t 4 -o out.bam"),
+            Some("4".to_string())
+        );
+        assert_eq!(
+            extract_threads("sort --threads 16 in.bam"),
+            Some("16".to_string())
+        );
+        assert_eq!(extract_threads("sort -@12 in.bam"), Some("12".to_string()));
+        assert_eq!(extract_threads("sort -o out.bam"), None);
+    }
+
+    #[test]
+    fn test_extract_output_dir() {
+        assert_eq!(
+            extract_output_dir("run -o /data/results/out.bam in.bam"),
+            Some("/data/results".to_string())
+        );
+        assert_eq!(extract_output_dir("run -o out.bam in.bam"), None);
+    }
+
+    #[test]
+    fn test_extract_reference() {
+        assert_eq!(
+            extract_reference("mem --ref /genomes/hg38.fa reads.fq"),
+            Some("/genomes/hg38.fa".to_string())
+        );
+        assert_eq!(
+            extract_reference("mem -x /idx/hg38 reads.fq"),
+            Some("/idx/hg38".to_string())
+        );
+    }
+
+    #[test]
+    fn test_learn_preferences_empty_history() {
+        let prefs = learn_user_preferences("samtools", &[]);
+        assert!(prefs.preferred_threads.is_none());
+        assert!(prefs.preferred_output_dir.is_none());
+        assert!(prefs.preferred_reference.is_none());
+    }
+
+    #[test]
+    fn test_learn_preferences_from_entries() {
+        let entries = vec![
+            HistoryEntry {
+                id: "test1".to_string(),
+                tool: "samtools".to_string(),
+                task: "sort".to_string(),
+                command: "sort -@ 8 -o /results/out1.bam in1.bam".to_string(),
+                exit_code: 0,
+                executed_at: Utc::now(),
+                dry_run: false,
+                server: None,
+                provenance: None,
+            },
+            HistoryEntry {
+                id: "test2".to_string(),
+                tool: "samtools".to_string(),
+                task: "sort".to_string(),
+                command: "sort -@ 8 -o /results/out2.bam in2.bam".to_string(),
+                exit_code: 0,
+                executed_at: Utc::now(),
+                dry_run: false,
+                server: None,
+                provenance: None,
+            },
+        ];
+        let prefs = learn_user_preferences("samtools", &entries);
+        assert_eq!(prefs.preferred_threads, Some("8".to_string()));
+        assert_eq!(prefs.preferred_output_dir, Some("/results".to_string()));
+    }
+
+    #[test]
+    fn test_preferences_prompt_hint() {
+        let prefs = UserPreferences {
+            preferred_threads: Some("8".to_string()),
+            preferred_output_dir: None,
+            preferred_reference: Some("/genomes/hg38.fa".to_string()),
+        };
+        let hint = prefs.to_prompt_hint();
+        assert!(hint.contains("preferred threads: 8"));
+        assert!(hint.contains("preferred reference"));
+        assert!(!hint.contains("preferred output dir"));
     }
 }

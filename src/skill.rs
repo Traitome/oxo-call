@@ -678,6 +678,9 @@ impl Skill {
 ///
 /// Splits on whitespace and common delimiters, lowercases, and filters
 /// out common stop words that would create false matches.
+/// Expands tokens with bioinformatics-specific synonyms for better
+/// semantic matching (e.g., "sort" also matches "order", "align" also
+/// matches "map").
 fn tokenize_for_match(text: &str) -> std::collections::HashSet<String> {
     let stop_words: &[&str] = &[
         "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by",
@@ -688,13 +691,74 @@ fn tokenize_for_match(text: &str) -> std::collections::HashSet<String> {
         "after",
     ];
 
-    text.to_ascii_lowercase()
+    let mut tokens: std::collections::HashSet<String> = text
+        .to_ascii_lowercase()
         .split(|c: char| c.is_whitespace() || c == ',' || c == ';' || c == '/')
         .map(|s| s.trim_matches(|c: char| c == '.' || c == ':' || c == '-' || c == '_' || c == '"'))
         .filter(|s| s.len() >= 2)
         .filter(|s| !stop_words.contains(s))
         .map(|s| s.to_string())
-        .collect()
+        .collect();
+
+    // Expand with bioinformatics synonym groups for better semantic matching
+    expand_synonyms(&mut tokens);
+
+    tokens
+}
+
+/// Bioinformatics-specific synonym groups.
+///
+/// When a token from one group is found, all other tokens in the same group
+/// are added to the set.  This bridges vocabulary gaps between how users
+/// describe tasks and how skill examples are written.
+const SYNONYM_GROUPS: &[&[&str]] = &[
+    &["sort", "order", "arrange"],
+    &["align", "map", "mapping", "alignment"],
+    &["filter", "select", "extract", "subset"],
+    &["convert", "transform", "reformat"],
+    &["merge", "combine", "concatenate", "concat", "cat"],
+    &["index", "idx"],
+    &["count", "quantify", "quantification"],
+    &["compress", "gzip", "bgzip"],
+    &["decompress", "unzip", "gunzip"],
+    &["trim", "clip", "adapter"],
+    &["call", "detect", "identify"],
+    &["annotate", "annotation"],
+    &["assembly", "assemble"],
+    &["dedup", "deduplicate", "markdup", "rmdup"],
+    &["paired", "pe"],
+    &["single", "se"],
+    &["reference", "genome", "ref"],
+    &["threads", "cores", "parallel", "cpu"],
+    &["output", "out", "write"],
+    &["input", "read"],
+    &["quality", "qc", "quality control"],
+    &["coordinate", "position", "pos"],
+    &["name", "qname", "queryname"],
+    &["variant", "snp", "indel", "mutation"],
+    &["expression", "tpm", "fpkm", "rpkm"],
+    &["coverage", "depth"],
+    &["peak", "summit"],
+    &["region", "interval", "bed"],
+    &["bam", "sam", "cram"],
+    &["vcf", "bcf"],
+    &["fastq", "fq", "reads"],
+    &["fasta", "fa", "sequence"],
+];
+
+/// Expand a token set with synonyms from predefined synonym groups.
+fn expand_synonyms(tokens: &mut std::collections::HashSet<String>) {
+    let original: Vec<String> = tokens.iter().cloned().collect();
+    for token in &original {
+        for group in SYNONYM_GROUPS {
+            if group.contains(&token.as_str()) {
+                for &synonym in *group {
+                    tokens.insert(synonym.to_string());
+                }
+                break; // Each token matches at most one group
+            }
+        }
+    }
 }
 
 // ─── Skill manager ────────────────────────────────────────────────────────────
@@ -2205,5 +2269,50 @@ explanation = "an example"
         let md = "---\r\nname: test\r\ncategory: test\r\ndescription: desc\r\n---\r\n## Concepts\r\n- c1\r\n";
         let skill = parse_skill_md(md);
         assert!(skill.is_some());
+    }
+
+    // ─── Synonym expansion tests ──────────────────────────────────────────
+
+    #[test]
+    fn test_synonym_expansion_sort() {
+        let tokens = tokenize_for_match("sort the BAM file");
+        assert!(tokens.contains("sort"));
+        assert!(tokens.contains("order"), "sort should expand to order");
+        assert!(tokens.contains("arrange"), "sort should expand to arrange");
+    }
+
+    #[test]
+    fn test_synonym_expansion_align() {
+        let tokens = tokenize_for_match("align reads to reference");
+        assert!(tokens.contains("align"));
+        assert!(tokens.contains("map"), "align should expand to map");
+        assert!(tokens.contains("mapping"), "align should expand to mapping");
+    }
+
+    #[test]
+    fn test_synonym_expansion_filter() {
+        let tokens = tokenize_for_match("filter variants by quality");
+        assert!(tokens.contains("filter"));
+        assert!(tokens.contains("select"), "filter should expand to select");
+        assert!(
+            tokens.contains("extract"),
+            "filter should expand to extract"
+        );
+    }
+
+    #[test]
+    fn test_synonym_expansion_no_expansion_for_unknown() {
+        let tokens = tokenize_for_match("foobar baz");
+        // Unknown words should not get synonyms
+        assert!(tokens.contains("foobar"));
+        assert!(!tokens.contains("sort"));
+    }
+
+    #[test]
+    fn test_tokenize_removes_stop_words() {
+        let tokens = tokenize_for_match("sort the file into output");
+        assert!(!tokens.contains("the"));
+        assert!(!tokens.contains("into"));
+        assert!(tokens.contains("sort"));
     }
 }
