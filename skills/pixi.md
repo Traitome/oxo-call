@@ -28,6 +28,7 @@ source_url: "https://pixi.sh/latest/"
 - `pixi shell` and `pixi run` only work inside a directory that contains (or is nested under) a `pixi.toml`.
 - Global installs (`pixi global install`) are per-user and stored under `~/.pixi/envs/<pkg>/`; they are not visible to project environments.
 - On systems where conda/mamba is already on PATH, `pixi` manages its own independent package cache at `~/.pixi/cache` — the two caches are not shared.
+- `pixi global` environments are completely isolated; they cannot share dependencies, which may increase disk usage.
 
 ## Examples
 
@@ -78,3 +79,19 @@ source_url: "https://pixi.sh/latest/"
 ### install all dependencies from an existing pixi.lock for a reproducible environment
 **Args:** `install`
 **Explanation:** reads pixi.lock and installs exact pinned versions; use after cloning a repo to reproduce the environment
+
+### list globally installed packages
+**Args:** `global list`
+**Explanation:** shows all globally installed packages and their environments; useful for managing system-wide tools
+
+### upgrade a globally installed package
+**Args:** `global upgrade samtools`
+**Explanation:** updates samtools to the latest version in its global environment
+
+### add a PyPI package to the project
+**Args:** `add --pypi biopython`
+**Explanation:** --pypi flag specifies PyPI source; useful for packages not available on conda-forge or bioconda
+
+### export project environment to requirements.txt format
+**Args:** `list --explicit`
+**Explanation:** outputs explicit package URLs; can be used for environment documentation or migration

@@ -15,6 +15,10 @@ source_url: "https://github.com/davidemms/OrthoFinder"
 - Results are written to a timestamped OrthoFinder/Results_* directory inside the input FASTA directory by default.
 - -og reports orthogroups only (faster, no gene trees); -M msa builds multiple sequence alignments for each orthogroup.
 - The Orthogroups/Orthogroups.tsv output maps each orthogroup to member genes per species; Orthogroup_Statistics.tsv provides counts.
+- -I controls the MCL inflation parameter; higher values (e.g., 5.0) produce smaller, tighter orthogroups.
+- --assign adds new species to existing orthogroups without re-running the full analysis.
+- -d flag indicates DNA sequence input instead of protein sequences.
+- -X prevents adding species names to sequence IDs; useful for maintaining original IDs.
 
 ## Pitfalls
 
@@ -24,6 +28,8 @@ source_url: "https://github.com/davidemms/OrthoFinder"
 - Restarting OrthoFinder after partial completion requires -b (results directory) not -f; using -f restarts from scratch.
 - Gene tree inference (-M msa) can be very slow for large orthogroups with many paralogs; set --max-msa-genes to cap size.
 - Results directory names include timestamps; scripting downstream analysis should use -o to set a fixed output path.
+- -I inflation parameter default (1.2) may be too permissive for some analyses; adjust based on desired orthogroup granularity.
+- --assign requires the core orthogroup directory to be from a completed OrthoFinder run with compatible versions.
 
 ## Examples
 
@@ -50,3 +56,19 @@ source_url: "https://github.com/davidemms/OrthoFinder"
 ### run OrthoFinder with a fixed output directory name
 **Args:** `-f proteomes/ -o results/orthofinder_run -t 32 -a 8`
 **Explanation:** -o sets the output directory explicitly instead of using a timestamped directory inside the input folder
+
+### assign new species to existing orthogroups
+**Args:** `--assign new_species/ --core proteomes/OrthoFinder/Results_Jan01/ -t 32 -a 8`
+**Explanation:** --assign adds new species to existing orthogroups; --core points to previous OrthoFinder results; faster than full re-run
+
+### run with higher MCL inflation for tighter orthogroups
+**Args:** `-f proteomes/ -I 5.0 -t 32 -a 8`
+**Explanation:** -I 5.0 increases MCL inflation; produces smaller, more specific orthogroups; useful for fine-grained analysis
+
+### run OrthoFinder on DNA sequences
+**Args:** `-f dna_sequences/ -d -t 32 -a 8`
+**Explanation:** -d flag indicates DNA input; OrthoFinder will handle nucleotide sequences instead of protein
+
+### run with FAMSA for fast MSA (default)
+**Args:** `-f proteomes/ -M msa -A famsa -t 32 -a 8`
+**Explanation:** -A famsa uses FAMSA for MSA; faster than MAFFT for large datasets; default for -M msa mode

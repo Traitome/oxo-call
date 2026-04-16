@@ -2,7 +2,7 @@
 name: curl
 category: networking
 description: Transfer data to/from servers supporting HTTP, HTTPS, FTP, and many other protocols
-tags: [curl, http, download, api, rest, networking, upload, request]
+tags: [curl, http, https, download, api, rest, networking, upload, request, ftp, sftp, wget]
 author: oxo-call built-in
 source_url: "https://curl.se/docs/manpage.html"
 ---
@@ -15,6 +15,11 @@ source_url: "https://curl.se/docs/manpage.html"
 - Authentication: -u user:password (basic auth), -H 'Authorization: Bearer TOKEN' (token auth). Never pass passwords in command history; use -u user (curl will prompt) or environment variables.
 - SSL/TLS: by default curl verifies certificates. Use -k / --insecure to skip verification (insecure, development only). Specify a CA bundle with --cacert.
 - Output and debugging: -v shows request/response headers (verbose); -s silences progress but keeps output; -S shows errors even with -s; -I fetches only the HTTP response headers (HEAD request).
+- --max-time sets total operation timeout; --connect-timeout sets only connection phase timeout.
+- --retry retries on transient errors; --retry-connrefused also retries on connection refused.
+- --limit-rate throttles bandwidth; useful for not overwhelming shared networks.
+- -Z / --parallel enables parallel transfers for multiple URLs.
+- -f / --fail makes curl exit with error on HTTP 4xx/5xx responses (by default curl returns 0 even on 404).
 
 ## Pitfalls
 
@@ -24,6 +29,10 @@ source_url: "https://curl.se/docs/manpage.html"
 - curl -X DELETE or -X PUT without -d may send an empty body. Some APIs require an empty JSON body '{}' even for delete/update requests; add -H 'Content-Type: application/json' -d '{}'.
 - The -k / --insecure flag should never be used in production scripts — it disables certificate verification and exposes you to MITM attacks.
 - When using -o with multiple URLs, each URL needs its own -o flag in the correct order, or use -O for each URL.
+- By default curl exits 0 even on HTTP errors (404, 500); use -f / --fail to make it exit non-zero on HTTP errors.
+- --connect-timeout only affects connection phase; use --max-time for total operation timeout.
+- --retry-delay waits between retries; --retry-max-time limits total retry duration.
+- -d @file sends file contents; -T file uploads the file (different semantics for PUT vs POST).
 
 ## Examples
 
@@ -66,3 +75,31 @@ source_url: "https://curl.se/docs/manpage.html"
 ### pass basic authentication credentials
 **Args:** `-u alice:password123 https://protected.example.com/api`
 **Explanation:** -u user:pass sends HTTP basic auth; use -u alice to have curl prompt for password instead
+
+### download multiple files in parallel
+**Args:** `-Z -O https://example.com/file1.zip -O https://example.com/file2.zip`
+**Explanation:** -Z enables parallel transfers; multiple -O flags download each URL to its remote filename concurrently
+
+### fail on HTTP errors (404, 500)
+**Args:** `-f -L -O https://example.com/file.zip`
+**Explanation:** -f makes curl exit with error code on HTTP 4xx/5xx; without -f curl returns success even on 404
+
+### limit download speed
+**Args:** `--limit-rate 1M -L -O https://example.com/large-file.iso`
+**Explanation:** --limit-rate 1M caps download speed at 1 MB/s; useful for not overwhelming network bandwidth
+
+### set total operation timeout
+**Args:** `--max-time 300 -L -O https://example.com/file.tar.gz`
+**Explanation:** --max-time 300 aborts if entire operation exceeds 300 seconds; protects against hanging transfers
+
+### retry on connection refused
+**Args:** `--retry 5 --retry-connrefused --retry-delay 2 -L -O https://example.com/file.zip`
+**Explanation:** --retry-connrefused retries even when server refuses connection; useful for services starting up
+
+### upload file with PUT
+**Args:** `-T localfile.txt https://api.example.com/upload/destination.txt`
+**Explanation:** -T uploads file via PUT request; different from -d which sends file contents as POST body
+
+### download with specific User-Agent
+**Args:** `-A "Mozilla/5.0" -L -O https://example.com/file.zip`
+**Explanation:** -A sets User-Agent header; some servers block default curl user-agent

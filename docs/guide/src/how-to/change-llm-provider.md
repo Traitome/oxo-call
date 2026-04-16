@@ -177,12 +177,42 @@ oxo-call config set llm.api_base http://my-ollama-server:11434
 
 ### Recommended models for bioinformatics
 
-| Model | Size | Notes |
-|-------|------|-------|
-| `llama3.2` | 3B | Fast, good for simple tasks |
-| `llama3.1:8b` | 8B | Better accuracy, still fast |
-| `mistral` | 7B | Good instruction following |
-| `codellama:13b` | 13B | Best for technical commands |
+| Model | Size | Tier | Notes |
+|-------|------|------|-------|
+| `qwen2.5-coder:0.5b` | 0.5B | Compact | Fastest, good for simple tasks (83–100% accuracy) |
+| `deepseek-coder:1.3b` | 1.3B | Compact | Good balance of speed and accuracy |
+| `llama3.2` | 3B | Compact | Best accuracy among ≤3B models (100%) |
+| `starcoder2:3b` | 3B | Compact | Good for code tasks (91%) |
+| `llama3.1:8b` | 8B | Medium | Better accuracy for complex tasks |
+| `mistral` | 7B | Medium | Good instruction following |
+| `codellama:13b` | 13B | Full | Best for complex technical commands |
+| `qwen2.5-coder:7b` | 7B | Medium | Excellent for bioinformatics commands |
+
+Models ≤3B automatically use the **Compact** prompt tier (few-shot examples,
+minimal context). Models 4–7B use the **Medium** tier. Models ≥8B use the
+**Full** tier. You can override this with `llm.prompt_tier`.
+
+### Small model configuration
+
+For models ≤3B (e.g., `qwen2.5-coder:0.5b`, `llama3.2`), the Compact tier
+is automatically selected. If you want to force a specific tier:
+
+```bash
+# Force Compact tier (recommended for ≤3B models)
+oxo-call config set llm.prompt_tier compact
+
+# Force Medium tier (for 4–7B models with limited context)
+oxo-call config set llm.prompt_tier medium
+
+# Auto-detect based on model size and context window (default)
+oxo-call config set llm.prompt_tier auto
+```
+
+Or per-invocation:
+
+```bash
+OXO_CALL_LLM_PROMPT_TIER=compact oxo-call dry-run samtools "sort bam"
+```
 
 ---
 

@@ -21,6 +21,8 @@ source_url: "https://docs.sylabs.io/guides/latest/user-guide/"
 - **Overlay images**: `--overlay overlay.img` mounts a writable ext3 image over the SIF; useful for installing packages into an otherwise read-only container.
 - Singularity definition files (`.def`) describe how to build an image; `singularity build` creates a SIF from a def file.
 - `apptainer` is the new command name (Linux Foundation fork); most `singularity` flags and images are fully compatible.
+- `singularity instance` manages persistent background containers.
+- `singularity push` uploads images to remote registries.
 
 ## Pitfalls
 - `singularity build --sandbox` creates a writable directory container; changes are persistent but not reproducible — always `build` a final SIF from the sandbox.
@@ -72,3 +74,15 @@ source_url: "https://docs.sylabs.io/guides/latest/user-guide/"
 ### list all cached Singularity images
 **Args:** `cache list`
 **Explanation:** lists all images in the SINGULARITY_CACHEDIR (or ~/.singularity/cache/); shows file sizes and allows targeted cleaning with singularity cache clean
+
+### start a persistent container instance
+**Args:** `instance start mycontainer.sif myinstance`
+**Explanation:** starts a named instance in the background; use `singularity instance list` to view and `singularity exec instance://myinstance` to run commands
+
+### push an image to a remote registry
+**Args:** `push myimage.sif library://user/collection/myimage:tag`
+**Explanation:** uploads SIF to Sylabs Library or other compatible registry; requires authentication
+
+### run a container with writable overlay
+**Args:** `exec --overlay writable_overlay.img mycontainer.sif touch /newfile`
+**Explanation:** --overlay mounts a writable ext3 image; changes persist in overlay.img while SIF remains read-only

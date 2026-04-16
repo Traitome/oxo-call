@@ -28,6 +28,8 @@ oxo-call config path
 | `llm.model` | *(auto)* | `OXO_CALL_LLM_MODEL` | Model name |
 | `llm.max_tokens` | `2048` | `OXO_CALL_LLM_MAX_TOKENS` | Maximum tokens |
 | `llm.temperature` | `0.0` | `OXO_CALL_LLM_TEMPERATURE` | Temperature (0.0 = deterministic) |
+| `llm.context_window` | `0` (auto-detect) | `OXO_CALL_LLM_CONTEXT_WINDOW` | Model context window size in tokens (0 = auto-detect) |
+| `llm.prompt_tier` | `auto` | `OXO_CALL_LLM_PROMPT_TIER` | Prompt compression tier: `auto`, `full`, `medium`, `compact` |
 | `docs.auto_update` | `true` | `OXO_CALL_DOCS_AUTO_UPDATE` | Auto-refresh docs on first use |
 
 ## Setting Values
@@ -37,8 +39,16 @@ oxo-call config path
 oxo-call config set llm.provider openai
 oxo-call config set llm.api_token sk-...
 
+# Set prompt compression tier (useful for small models)
+oxo-call config set llm.prompt_tier compact    # force compact for ≤3B models
+oxo-call config set llm.prompt_tier auto       # auto-detect (default)
+
+# Set context window size
+oxo-call config set llm.context_window 4096    # force Medium tier
+
 # Get the effective value (includes env overrides)
 oxo-call config get llm.provider
+oxo-call config get llm.prompt_tier
 
 # Show all configuration
 oxo-call config show

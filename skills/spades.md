@@ -8,7 +8,6 @@ source_url: "https://github.com/ablab/spades"
 ---
 
 ## Concepts
-
 - SPAdes assembles genomes from short reads using de Bruijn graphs; key modes: genomic, metagenomic (--meta), plasmid (--plasmid).
 - Use -1 and -2 for paired-end reads; -s for single-end reads; --pe-12 for interleaved paired-end.
 - SPAdes automatically selects k-mer values; use -k to specify custom k-mers (e.g., -k 21,33,55,77).
@@ -17,15 +16,28 @@ source_url: "https://github.com/ablab/spades"
 - For metagenomes, use --meta flag; for single-cell (MDA), use --sc flag.
 - Use --careful mode to reduce mismatches in final assemblies (slower, recommended for small genomes).
 - SPAdes also has rnaSPAdes for RNA assembly and hybridSPAdes for hybrid assembly.
+- --isolate flag is recommended for high-coverage bacterial/viral isolates; improves quality and speed.
+- --rnaviral mode assembles viral RNA genomes; --corona mode is specialized for coronaviruses using HMMs.
+- --bio (biosyntheticSPAdes) assembles non-ribosomal and polyketide gene clusters.
+- --metaviral detects viruses in metagenomic data; --metaplasmid detects plasmids in metagenomes.
+- --sewage mode deconvolves SARS-CoV-2 strains from wastewater samples.
+- --only-error-correction runs BayesHammer/IonHammer only; --only-assembler skips error correction.
+- --continue resumes from last checkpoint; --restart-from allows restarting from specific stage.
 
 ## Pitfalls
-
+- CRITICAL: SPAdes has NO subcommands. ARGS starts directly with flags (e.g., -1, -2, -o, --meta, --careful). Do NOT put a subcommand like 'assemble' or 'run' before flags.
 - SPAdes requires significant RAM — human genome assembly needs ~250 GB RAM; for bacteria use 16-32 GB.
 - For metagenomes, --meta flag is required — running without it gives poor metagenome assemblies.
 - The --careful option is NOT compatible with --meta mode.
 - SPAdes creates a large output directory with intermediate files — ensure sufficient disk space.
 - Input reads should be trimmed before SPAdes for better assembly quality.
 - Do NOT mix different insert size libraries without specifying separate library groups (--pe1-1, --pe2-1, etc.).
+- --isolate is incompatible with --careful and --only-error-correction; choose one approach.
+- --rnaviral, --rna, and --corona modes are incompatible with --careful and --only-error-correction.
+- Default memory limit is 250GB; explicitly set -m for smaller systems to avoid termination.
+- --continue requires exact same -o directory; cannot change parameters when continuing.
+- k-mer sizes must be odd and < 128; even numbers or values ≥128 cause errors.
+- Hybrid assembly (--pacbio, --nanopore) with metagenomes is experimental; results may vary.
 
 ## Examples
 
@@ -52,3 +64,35 @@ source_url: "https://github.com/ablab/spades"
 ### assemble with both paired-end and long reads (hybrid assembly)
 **Args:** `-1 short_R1.fastq.gz -2 short_R2.fastq.gz --nanopore long_reads.fastq.gz -o hybrid_output/ --threads 16 --memory 64`
 **Explanation:** --nanopore provides ONT long reads for hybrid assembly; SPAdes integrates short and long reads
+
+### assemble bacterial isolate with --isolate mode (recommended)
+**Args:** `--isolate -1 R1.fastq.gz -2 R2.fastq.gz -o isolate_output/ --threads 16 --memory 32`
+**Explanation:** --isolate is optimized for high-coverage isolate data; faster and better quality than default mode
+
+### assemble viral RNA genome
+**Args:** `--rnaviral -1 R1.fastq.gz -2 R2.fastq.gz -o rnaviral_output/ --threads 8 --memory 16`
+**Explanation:** --rnaviral for viral RNA assembly; handles high mutation rates and variable coverage
+
+### assemble coronavirus genome with HMM guidance
+**Args:** `--corona -1 R1.fastq.gz -2 R2.fastq.gz -o corona_output/ --threads 8 --memory 16`
+**Explanation:** --corona uses Pfam HMMs for SARS-CoV-2 assembly; more accurate for coronavirus genomes
+
+### assemble biosynthetic gene clusters
+**Args:** `--bio -1 R1.fastq.gz -2 R2.fastq.gz -o bio_output/ --threads 16 --memory 64`
+**Explanation:** --bio for non-ribosomal and polyketide gene cluster assembly; specialized for secondary metabolites
+
+### detect viruses in metagenomic data
+**Args:** `--metaviral -1 R1.fastq.gz -2 R2.fastq.gz -o metaviral_output/ --threads 32 --memory 128`
+**Explanation:** --metaviral for viral discovery in metagenomes; outputs linear putative viral contigs
+
+### run only read error correction
+**Args:** `--only-error-correction -1 R1.fastq.gz -2 R2.fastq.gz -o ec_output/ --threads 16 --memory 32`
+**Explanation:** --only-error-correction runs BayesHammer only; useful for correcting reads before using other assemblers
+
+### run only assembly (skip error correction)
+**Args:** `--only-assembler -1 corrected_R1.fastq.gz -2 corrected_R2.fastq.gz -o asm_output/ --threads 16 --memory 32`
+**Explanation:** --only-assembler skips error correction; use when input reads are already corrected
+
+### restart from specific checkpoint with updated options
+**Args:** `-o spades_output/ --restart-from k55 --memory 64`
+**Explanation:** --restart-from k55 resumes from k=55 stage; useful for increasing memory or changing parameters mid-run

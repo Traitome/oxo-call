@@ -8,7 +8,6 @@ source_url: "https://multiqc.info/"
 ---
 
 ## Concepts
-
 - MultiQC scans a directory recursively for outputs from FastQC, Trimmomatic, STAR, HISAT2, Salmon, featureCounts, samtools, GATK, and 100+ other tools.
 - Run MultiQC in or pointing to the directory containing QC output files: multiqc /path/to/results/
 - Use -o to specify the output directory for multiqc_report.html and multiqc_data/; use -n to rename the report.
@@ -16,15 +15,26 @@ source_url: "https://multiqc.info/"
 - MultiQC auto-detects tools — just point it at the directory. No need to specify tools manually in most cases.
 - Use -f to overwrite existing reports; -p to also generate PDF; --flat to create flat (non-interactive) HTML.
 - The multiqc_data/ directory contains parsed TSV files with all the data — useful for downstream programmatic analysis.
+- Use -m/--module to run only specific modules; -e/--exclude to skip specific modules.
+- --cl-config allows inline YAML config overrides for customizing report behavior.
+- --sample-names provides a TSV file for sample renaming in the report.
+- --replace-names allows renaming samples based on a TSV file with old/new name pairs.
+- --data-format specifies output format (tsv, csv, json, yaml) for the data directory.
+- --no-report generates only data files without the HTML report for programmatic use.
 
 ## Pitfalls
-
+- CRITICAL: MultiQC has NO subcommands. ARGS starts directly with input paths or flags (e.g., -o, -n, -f, --ignore). Do NOT put a subcommand like 'report' or 'aggregate' before input paths.
 - MultiQC searches recursively — run from the project root or specify the correct parent directory.
 - If no tools are detected, check that the log/output files have the expected names (e.g., *_fastqc.zip for FastQC).
 - Without -f, MultiQC will not overwrite an existing report — always use -f when re-running.
 - MultiQC does not re-run QC tools — it only aggregates existing output files.
 - Some tools produce output only when run with specific flags (e.g., samtools flagstat must be redirected to a file).
 - Large projects with hundreds of samples may need --export to reduce report size.
+- --module and --exclude are mutually exclusive; use one or the other, not both.
+- Sample renaming with --replace-names requires exact matches; verify TSV format (old_name\tnew_name).
+- --cl-config YAML syntax errors can cause silent failures; validate config before running.
+- PDF generation requires Pandoc installation; check with 'pandoc --version' first.
+- --ignore patterns use glob syntax; test patterns with 'ls' before running MultiQC.
 
 ## Examples
 
@@ -47,3 +57,35 @@ source_url: "https://multiqc.info/"
 ### run multiqc on only FastQC and Trimmomatic outputs
 **Args:** `fastqc_results/ trimmomatic_logs/ -o summary_qc/ -f`
 **Explanation:** pass multiple directories as input; MultiQC aggregates from all of them
+
+### run only specific modules (FastQC and STAR)
+**Args:** `results/ -m fastqc -m star -o qc_report/ -f`
+**Explanation:** -m fastqc -m star runs only these modules; useful when you want focused reports
+
+### exclude specific modules from the report
+**Args:** `results/ -e cutadapt -e fastqc -o qc_report/ -f`
+**Explanation:** -e excludes modules; useful when certain tools generated problematic outputs
+
+### rename samples using a TSV file
+**Args:** `results/ --sample-names sample_names.tsv -o renamed_report/ -f`
+**Explanation:** --sample-names provides alternative display names; TSV format: sample_id\tdisplay_name
+
+### replace sample names with new names
+**Args:** `results/ --replace-names rename_map.tsv -o renamed_report/ -f`
+**Explanation:** --replace-names renames samples permanently; TSV format: old_name\tnew_name
+
+### export data in JSON format for downstream analysis
+**Args:** `results/ --data-format json --no-report -o data_only/ -f`
+**Explanation:** --data-format json outputs JSON; --no-report skips HTML; for programmatic use
+
+### apply inline config to customize thresholds
+**Args:** `results/ --cl-config "qualimap_config: { general_stats_coverage: [10, 20, 50] }" -o custom_report/ -f`
+**Explanation:** --cl-config overrides config values inline; YAML syntax for quick customization
+
+### generate PDF report with simple template
+**Args:** `results/ --pdf -t simple -o pdf_report/ -f`
+**Explanation:** --pdf creates PDF; -t simple uses simple template; requires Pandoc installed
+
+### ignore specific samples by name pattern
+**Args:** `results/ --ignore-samples "*control*" --ignore-samples "*blank*" -o filtered_report/ -f`
+**Explanation:** --ignore-samples excludes samples matching glob patterns; useful for removing controls

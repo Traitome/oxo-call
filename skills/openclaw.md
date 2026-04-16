@@ -21,6 +21,9 @@ source_url: "https://docs.openclaw.ai/"
 - The **Gateway** is the control-plane process; start with `openclaw gateway` or as a daemon via `openclaw onboard --install-daemon`.
 - Gateway listens on WebSocket port **18789** by default (HTTP REST API also on the same port).
 - Requires **Node.js ≥ 22** (Node 24 recommended); runs on macOS, Linux, and Windows (WSL2).
+- `gateway probe` is the debug command that checks connectivity to configured and local gateways.
+- `message` command provides unified outbound messaging across all connected channels.
+- `agent` command runs a single agent turn via CLI for testing and automation.
 
 ## Pitfalls
 - deleting `~/.openclaw/credentials/` removes all stored API keys and channel auth tokens; re-authentication is required.
@@ -30,6 +33,8 @@ source_url: "https://docs.openclaw.ai/"
 - Mixing `OPENCLAW_HOME` and `OPENCLAW_STATE_DIR` can cause path resolution conflicts; prefer setting only `OPENCLAW_STATE_DIR` unless full isolation is needed.
 - On Linux servers without a display, the TUI requires a proper terminal; use `openclaw gateway` headless mode or SSH with a real terminal.
 - The `~/.openclaw/.env` file is automatically loaded but does NOT override env vars already set in the shell session.
+- `gateway probe` always checks both configured remote gateway and localhost; multiple reachable gateways may cause confusion.
+- `--dev` flag creates development config with reduced security; do not use in production environments.
 
 ## Examples
 
@@ -72,3 +77,19 @@ source_url: "https://docs.openclaw.ai/"
 ### send a message to a contact through the assistant
 **Args:** `message send --to +1234567890 --message "Hello from openclaw"`
 **Explanation:** delivers a message via the connected channel (WhatsApp/Telegram/etc.) to the specified number; requires a paired channel
+
+### probe gateway connectivity
+**Args:** `gateway probe`
+**Explanation:** checks connectivity to configured remote gateway and localhost; useful for debugging connection issues
+
+### run agent turn via CLI
+**Args:** `agent turn --agent-id my_agent --input "Analyze this data"`
+**Explanation:** runs a single agent turn for testing; useful for automation and debugging agent behavior
+
+### start gateway in development mode
+**Args:** `gateway --dev --port 18789`
+**Explanation:** --dev creates development config if missing; useful for initial setup and testing
+
+### list available agents
+**Args:** `agent list`
+**Explanation:** lists all configured agents with their IDs and status; helps identify available agents for automation

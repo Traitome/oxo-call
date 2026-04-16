@@ -21,6 +21,9 @@ source_url: "https://www.nextflow.io/docs/latest/"
 - `NXF_SINGULARITY_CACHEDIR` — directory where Nextflow caches pulled Singularity images; critical to set on HPC shared filesystems.
 - Log file: `.nextflow.log` in the launch directory (most recent); `.nextflow.log.1`, `.nextflow.log.2` for previous runs.
 - Pipeline assets cache: `~/.nextflow/assets/<org>/<pipeline>/` — cloned or updated with `nextflow pull` or on first run.
+- `-with-dag` generates a workflow diagram in various formats (DOT, HTML, SVG, PNG).
+- `-with-trace` creates a detailed execution trace file with task metrics.
+- `NXF_OPTS` sets JVM options for the Nextflow process; useful for memory tuning.
 
 ## Pitfalls
 - deleting `work/` breaks `-resume` for all past runs; keep `work/` until you are sure you no longer need to resume.
@@ -30,6 +33,8 @@ source_url: "https://www.nextflow.io/docs/latest/"
 - Stale asset cache: if a pipeline runs an old version unexpectedly, run `nextflow pull nf-core/<pipeline> -revision main` to force update.
 - DSL1 vs DSL2 syntax incompatibility: old community pipelines may use `process.output` channel syntax that fails in modern Nextflow; check `nextflow.enable.dsl` setting.
 - Running `nextflow run` as root is not recommended; prefer a dedicated service account.
+- `-with-dag` requires Graphviz (dot) to be installed for PNG/SVG output.
+- `NXF_OPTS` values must be valid JVM options; invalid settings prevent Nextflow from starting.
 
 ## Examples
 
@@ -72,3 +77,23 @@ source_url: "https://www.nextflow.io/docs/latest/"
 ### generate a run report and timeline
 **Args:** `run main.nf -with-report report.html -with-timeline timeline.html`
 **Explanation:** -with-report creates an HTML execution report with resource usage; -with-timeline shows a Gantt chart of task execution order
+
+### generate workflow DAG visualization
+**Args:** `run main.nf -with-dag flowchart.png`
+**Explanation:** -with-dag generates a workflow diagram; PNG format requires Graphviz; use .dot format for manual editing
+
+### create detailed execution trace
+**Args:** `run main.nf -with-trace trace.txt`
+**Explanation:** -with-trace creates a tab-delimited file with detailed task metrics; useful for performance analysis and debugging
+
+### run with custom JVM options
+**Args:** `NXF_OPTS="-Xms2g -Xmx8g" run main.nf`
+**Explanation:** NXF_OPTS sets JVM heap size; -Xms initial memory, -Xmx maximum memory; prevents OutOfMemory errors on large workflows
+
+### run specific process only
+**Args:** `run main.nf --step process_name -resume`
+**Explanation:** use entry workflow or conditional logic in script to run specific processes; -resume skips already completed steps
+
+### dry run to validate workflow without execution
+**Args:** `run main.nf -preview`
+**Explanation:** -preview validates the workflow and shows what would be executed without actually running tasks

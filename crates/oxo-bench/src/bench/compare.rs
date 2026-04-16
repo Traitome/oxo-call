@@ -74,21 +74,29 @@ pub struct CompareResult {
 impl CompareResult {
     /// A composite accuracy score in \[0, 1\].
     ///
-    /// Weighted combination using flag-group-aware metrics to avoid crediting
-    /// semantically wrong flag–value swaps:
+    /// The score uses a **subcommand veto factor** instead of a small bonus:
     ///
-    /// - 40% `flag_group_recall`
-    /// - 25% `flag_group_precision`
-    /// - 20% `flag_group_jaccard`
-    /// - 10% `subcommand_match` bonus
-    /// - 5%  `positional_order_match`
+    /// 1. Base score = weighted combination of flag-group metrics:
+    ///    - 35% `flag_group_recall`
+    ///    - 25% `flag_group_precision`
+    ///    - 25% `flag_group_jaccard`
+    ///    - 15% `positional_order_match`
+    ///
+    /// 2. Subcommand veto: when the subcommand is wrong, the base score is
+    ///    multiplied by 0.3 (capped at 0.3 max). This reflects the reality
+    ///    that a wrong subcommand means the wrong operation entirely (e.g.,
+    ///    `sort` vs `view` is not "partially correct" — it's fundamentally
+    ///    wrong). A correct subcommand keeps the full base score.
     pub fn accuracy_score(&self) -> f64 {
-        let sub_bonus = if self.subcommand_match { 1.0 } else { 0.0 };
-        0.40 * self.flag_group_recall
+        let base = 0.35 * self.flag_group_recall
             + 0.25 * self.flag_group_precision
-            + 0.20 * self.flag_group_jaccard
-            + 0.10 * sub_bonus
-            + 0.05 * self.positional_order_match
+            + 0.25 * self.flag_group_jaccard
+            + 0.15 * self.positional_order_match;
+        if self.subcommand_match {
+            base
+        } else {
+            base * 0.3
+        }
     }
 }
 
@@ -115,10 +123,38 @@ pub fn compare_commands(generated: &str, reference: &str) -> CompareResult {
     // 1. Finding the first token that is NOT a short flag value (i.e., not
     //    a single `-x` option without its paired subcommand/operand).
     // 2. Checking against a known alias table for equivalent names.
+    //
+    // IMPORTANT: When BOTH the generated and reference first tokens are flags
+    // (start with `-`), the tool has NO subcommand (e.g., fastp). In this
+    // case, subcommand_match should be TRUE because there is no subcommand
+    // to get wrong — the comparison is handled by flag-level metrics.
     let gen_sub = extract_subcommand(&gen_tokens);
     let ref_sub = extract_subcommand(&ref_tokens);
-    let subcommand_match =
-        !ref_sub.is_empty() && (gen_sub == ref_sub || are_alias_subcommands(gen_sub, ref_sub));
+    let subcommand_match = if ref_sub.is_empty() {
+        // No reference subcommand → vacuously correct
+        true
+    } else if gen_sub.starts_with('-') && ref_sub.starts_with('-') {
+        // Both first tokens are flags. Two sub-cases:
+        //
+        // 1. **Pure flags** (no space in the extracted subcommand, e.g.,
+        //    "-i", "--merge"): the tool has NO subcommand (e.g., fastp).
+        //    Subcommand comparison is meaningless — flag-level metrics
+        //    already capture correctness. → subcommand_match = true.
+        //
+        // 2. **Compound option-subcommands** (contain a space, e.g.,
+        //    "--runMode alignReads", "--runMode genomeGenerate"): the flag
+        //    + value together form the effective subcommand. These MUST
+        //    match. → compare normally.
+        let gen_is_pure_flag = !gen_sub.contains(' ');
+        let ref_is_pure_flag = !ref_sub.contains(' ');
+        if gen_is_pure_flag && ref_is_pure_flag {
+            true
+        } else {
+            gen_sub == ref_sub || are_alias_subcommands(&gen_sub, &ref_sub)
+        }
+    } else {
+        gen_sub == ref_sub || are_alias_subcommands(&gen_sub, &ref_sub)
+    };
 
     // ── Token-set metrics (backward-compatible, order-insensitive) ───────────
     let gen_set: std::collections::HashSet<&str> = gen_tokens.iter().map(|s| s.as_str()).collect();
@@ -283,20 +319,27 @@ pub fn positional_order_match(generated: &str, reference: &str) -> f64 {
 ///
 /// Strategy:
 /// - If the first token starts with `--` and is a known option-subcommand
-///   (e.g., `--runMode`), treat it as the subcommand.
+///   (e.g., `--runMode`), treat the flag **plus its value** as the
+///   subcommand (e.g. `"--runMode alignReads"`).  This distinguishes
+///   different STAR operations that share the same flag but differ in value.
 /// - Otherwise, find the first token that is NOT a short flag (`-x` but
 ///   NOT `--long`) — this skips cases where the model outputs `-t 8 ...`
 ///   without any subcommand, which is a genuine error.
-fn extract_subcommand(tokens: &[String]) -> &str {
+fn extract_subcommand(tokens: &[String]) -> String {
     if tokens.is_empty() {
-        return "";
+        return String::new();
     }
 
     let first = tokens[0].as_str();
 
-    // STAR-style: --runMode is the effective subcommand
+    // STAR-style: --runMode <value> is the effective subcommand.
+    // We must include the value to distinguish --runMode alignReads from
+    // --runMode genomeGenerate.
     if first == "--runMode" || first == "--genomeDir" || first == "--readFilesIn" {
-        return first;
+        if tokens.len() > 1 {
+            return format!("{} {}", first, tokens[1]);
+        }
+        return first.to_string();
     }
 
     // Standard case: first token is the subcommand (not a short flag)
@@ -305,7 +348,7 @@ fn extract_subcommand(tokens: &[String]) -> &str {
     // Long options like "--runMode" are handled above.
     if first.starts_with("--") {
         // Other long options as first token — treat as subcommand attempt
-        return first;
+        return first.to_string();
     }
 
     // For the standard case, the first token should be the subcommand
@@ -313,7 +356,7 @@ fn extract_subcommand(tokens: &[String]) -> &str {
     // but we still return it because it IS what the model generated as
     // the first token and it will correctly fail the subcommand match
     // against a proper subcommand like "mem" or "sort".
-    first
+    first.to_string()
 }
 
 /// Check whether two subcommand names are semantically equivalent aliases.
@@ -358,6 +401,269 @@ fn are_alias_subcommands(a: &str, b: &str) -> bool {
 /// Normalise an ARGS string into a canonical token list.
 fn normalise_tokens(args: &str) -> Vec<String> {
     args.split_whitespace().map(|s| s.to_string()).collect()
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Semantic normalisation layer
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// The core problem: models generate correct *operations* but use different file
+// names, add shell redirects (`> file`), or pipe to downstream tools.  Raw token
+// comparison penalises all of these as "wrong", capping accuracy at ~70%.
+//
+// Solution: before comparing, normalise both the generated and reference args
+// so that only the *operational structure* (subcommand + flags + their values)
+// is compared.  File paths are replaced with typed placeholders, redirects and
+// pipes are stripped, and numeric values are compared with tolerance.
+
+/// Common bioinformatics file extensions used to detect positional file paths.
+const FILE_EXTENSIONS: &[&str] = &[
+    ".bam",
+    ".sam",
+    ".cram",
+    ".fastq",
+    ".fq",
+    ".fq.gz",
+    ".fastq.gz",
+    ".fa",
+    ".fasta",
+    ".fna",
+    ".fa.gz",
+    ".fasta.gz",
+    ".vcf",
+    ".vcf.gz",
+    ".bcf",
+    ".bed",
+    ".gff",
+    ".gtf",
+    ".gff3",
+    ".sam.gz",
+    ".bam.bai",
+    ".crai",
+    ".fai",
+    ".dict",
+    ".txt",
+    ".tsv",
+    ".csv",
+    ".log",
+    ".out",
+    ".stats",
+    ".sra",
+    ".sff",
+    ".ab1",
+    ".bam",
+    ".bai",
+];
+
+/// Detect whether a token looks like a file path (contains /, ., or has a
+/// known bioinformatics extension).
+fn is_file_path_token(token: &str) -> bool {
+    // Absolute or relative paths
+    if token.starts_with('/') || token.starts_with("./") || token.starts_with("../") {
+        return true;
+    }
+    // Home directory
+    if token.starts_with("~/") {
+        return true;
+    }
+    // Known extensions (case-insensitive)
+    let lower = token.to_lowercase();
+    for ext in FILE_EXTENSIONS {
+        if lower.ends_with(ext) {
+            return true;
+        }
+    }
+    // Contains a dot followed by 1-4 chars at end (e.g., "reads.fq")
+    if let Some(dot_pos) = token.rfind('.') {
+        let after_dot = &token[dot_pos + 1..];
+        // Must be 1-4 chars, alphabetic or alphanumeric (extensions like .gz, .bam)
+        if (1..=4).contains(&after_dot.len()) && after_dot.chars().all(|c| c.is_ascii_alphabetic())
+        {
+            return true;
+        }
+    }
+    false
+}
+
+/// Semantic type of a file path token, used for placeholder assignment.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PathRole {
+    /// Input file (appears without a preceding -o/--output flag)
+    Input,
+    /// Output file (appears after -o/--output or similar)
+    Output,
+    /// Reference/index path (appears after -R/--reference, --genomeDir, etc.)
+    Reference,
+    /// Unknown path role
+    Other,
+}
+
+/// Detect the role of a file path token based on the preceding flag.
+fn detect_path_role(tokens: &[&str], idx: usize) -> PathRole {
+    if idx == 0 {
+        return PathRole::Other;
+    }
+    let prev = tokens[idx - 1];
+    // Output flags
+    if prev == "-o"
+        || prev == "--output"
+        || prev == "--out"
+        || prev == "-O"
+        || prev == "--output-file"
+        || prev == "--outfile"
+    {
+        return PathRole::Output;
+    }
+    // Reference genome flags
+    if prev == "-R"
+        || prev == "--reference"
+        || prev == "--genomeDir"
+        || prev == "--genome"
+        || prev == "--ref"
+        || prev == "-r"
+        || prev == "--reference-genome"
+        || prev == "-f"
+        || prev == "--fasta-ref"
+    {
+        return PathRole::Reference;
+    }
+    PathRole::Input
+}
+
+/// Strip shell redirects (`> file`, `2> file`, `>> file`) and pipes (`| cmd`)
+/// from a command string, returning only the primary command portion.
+fn strip_redirects_and_pipes(args: &str) -> String {
+    let tokens: Vec<&str> = args.split_whitespace().collect();
+    let mut result: Vec<&str> = Vec::new();
+    let mut skip_next = false;
+
+    for (i, tok) in tokens.iter().enumerate() {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+        // Pipe: stop processing entirely
+        if *tok == "|" {
+            break;
+        }
+        // Redirect operators
+        if *tok == ">"
+            || *tok == ">>"
+            || *tok == "2>"
+            || *tok == "&>"
+            || tok.starts_with('>')
+            || tok.starts_with("2>")
+            || tok.starts_with("&>")
+        {
+            // If the redirect is like ">file" (no space), skip it entirely
+            if tok.len() > 1 && !tok.starts_with('-') {
+                continue;
+            }
+            // Otherwise skip the next token too (the filename)
+            skip_next = true;
+            continue;
+        }
+        // If this token is the filename after a redirect (shouldn't happen due to
+        // skip_next, but just in case), check if previous was a redirect
+        if i > 0 {
+            let prev = tokens[i - 1];
+            if prev == ">" || prev == ">>" || prev == "2>" || prev == "&>" {
+                continue;
+            }
+        }
+        result.push(tok);
+    }
+
+    result.join(" ")
+}
+
+/// Semantic-normalise an ARGS string for comparison.
+///
+/// This function:
+/// 1. Strips shell redirects (`>`, `>>`, `2>`) and pipes (`|`).
+/// 2. Replaces file paths with typed placeholders (`<INPUT_N>`, `<OUTPUT_N>`,
+///    `<REF_N>`, `<PATH_N>`) so that two commands with different file names
+///    but identical operational structure compare as equal.
+/// 3. Preserves flags, subcommands, and numeric values exactly.
+///
+/// Example:
+///   `sort -@ 4 -o sorted.bam input.bam` → `sort -@ 4 -o <OUTPUT_1> <INPUT_1>`
+///   `sort -@ 4 -o out.bam reads.bam`    → `sort -@ 4 -o <OUTPUT_1> <INPUT_1>`
+pub fn semantic_normalise(args: &str) -> String {
+    let stripped = strip_redirects_and_pipes(args);
+    let tokens: Vec<&str> = stripped.split_whitespace().collect();
+    let mut result: Vec<String> = Vec::new();
+    let mut input_count: usize = 0;
+    let mut output_count: usize = 0;
+    let mut ref_count: usize = 0;
+    let mut other_count: usize = 0;
+
+    for (i, tok) in tokens.iter().enumerate() {
+        if is_file_path_token(tok) {
+            let role = detect_path_role(&tokens, i);
+            let placeholder = match role {
+                PathRole::Input => {
+                    input_count += 1;
+                    format!("<INPUT_{}>", input_count)
+                }
+                PathRole::Output => {
+                    output_count += 1;
+                    format!("<OUTPUT_{}>", output_count)
+                }
+                PathRole::Reference => {
+                    ref_count += 1;
+                    format!("<REF_{}>", ref_count)
+                }
+                PathRole::Other => {
+                    other_count += 1;
+                    format!("<PATH_{}>", other_count)
+                }
+            };
+            result.push(placeholder);
+        } else {
+            result.push(tok.to_string());
+        }
+    }
+
+    result.join(" ")
+}
+
+/// Compare commands with semantic normalisation.
+///
+/// This is the primary comparison function for benchmark accuracy scoring.
+/// It first normalises both the generated and reference args using
+/// `semantic_normalise`, then applies the standard `compare_commands` logic.
+///
+/// The result includes both raw and normalised metrics:
+/// - `exact_match`: based on normalised comparison (accounts for file name
+///   differences and redirect/pipe differences).
+/// - `flag_group_*`: based on normalised comparison (focuses on operational
+///   structure).
+/// - `token_jaccard`, `flag_recall`, `flag_precision`: based on raw comparison
+///   (preserved for backward compatibility).
+pub fn compare_commands_semantic(generated: &str, reference: &str) -> CompareResult {
+    let gen_norm = semantic_normalise(generated);
+    let ref_norm = semantic_normalise(reference);
+
+    // Compute normalised metrics (primary)
+    let norm_result = compare_commands(&gen_norm, &ref_norm);
+
+    // Compute raw metrics (for backward compatibility)
+    let raw_result = compare_commands(generated, reference);
+
+    CompareResult {
+        // Use normalised metrics for the important ones
+        exact_match: norm_result.exact_match,
+        flag_group_recall: norm_result.flag_group_recall,
+        flag_group_precision: norm_result.flag_group_precision,
+        flag_group_jaccard: norm_result.flag_group_jaccard,
+        positional_order_match: norm_result.positional_order_match,
+        subcommand_match: norm_result.subcommand_match,
+        // Keep raw token-set metrics for backward compatibility
+        token_jaccard: raw_result.token_jaccard,
+        flag_recall: raw_result.flag_recall,
+        flag_precision: raw_result.flag_precision,
+    }
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
@@ -620,5 +926,161 @@ mod tests {
         // Generated is missing one flag-group vs reference.
         let r = compare_commands("cmd input.bam", "cmd --out foo.txt input.bam");
         assert!(r.flag_group_jaccard < 1.0);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Semantic normalisation tests
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_semantic_normalise_file_paths() {
+        // Different file names should produce the same normalised form
+        let a = semantic_normalise("sort -@ 4 -o sorted.bam input.bam");
+        let b = semantic_normalise("sort -@ 4 -o out.bam reads.bam");
+        assert_eq!(a, b);
+        assert!(a.contains("<OUTPUT_1>"));
+        assert!(a.contains("<INPUT_1>"));
+    }
+
+    #[test]
+    fn test_semantic_normalise_preserves_flags() {
+        let n = semantic_normalise("sort -@ 4 -o sorted.bam input.bam");
+        assert!(n.contains("sort"));
+        assert!(n.contains("-@"));
+        assert!(n.contains("4"));
+        assert!(n.contains("-o"));
+    }
+
+    #[test]
+    fn test_semantic_normalise_strips_redirect() {
+        let n = semantic_normalise("stats input.vcf.gz > stats.txt");
+        // The redirect operator and its target should be gone.
+        // Note: <INPUT_1> contains '>' as part of the placeholder, so we check
+        // that there's no standalone ">" token.
+        let tokens: Vec<&str> = n.split_whitespace().collect();
+        assert!(
+            !tokens.contains(&">"),
+            "redirect operator should be stripped"
+        );
+        assert!(
+            !n.contains("stats.txt"),
+            "redirect target should be stripped"
+        );
+        assert!(n.contains("stats"));
+        assert!(n.contains("<INPUT_1>"));
+    }
+
+    #[test]
+    fn test_semantic_normalise_strips_pipe() {
+        let n = semantic_normalise("mpileup -f ref.fa input.bam | call -Ov -o out.vcf");
+        assert!(!n.contains("|"));
+        assert!(!n.contains("call"));
+        // Only the first command should remain
+        assert!(n.contains("mpileup"));
+    }
+
+    #[test]
+    fn test_semantic_normalise_reference_genome() {
+        let n = semantic_normalise("mpileup -f ref.fa input.bam");
+        assert!(
+            n.contains("<REF_1>"),
+            "expected <REF_1> for -f value, got: {n}"
+        );
+        assert!(
+            n.contains("<INPUT_1>"),
+            "expected <INPUT_1> for positional, got: {n}"
+        );
+    }
+
+    #[test]
+    fn test_semantic_compare_different_filenames() {
+        // Same operation, different file names → should have high accuracy
+        let r = compare_commands_semantic(
+            "sort -@ 4 -o sorted.bam input.bam",
+            "sort -@ 4 -o out.bam reads.bam",
+        );
+        assert!(
+            r.exact_match,
+            "different filenames should be semantically equal"
+        );
+        assert_eq!(r.flag_group_recall, 1.0);
+        assert_eq!(r.flag_group_precision, 1.0);
+        assert!((r.accuracy_score() - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_semantic_compare_redirect_difference() {
+        // One has redirect, the other doesn't → operational structure same
+        let r = compare_commands_semantic("stats input.vcf.gz > stats.txt", "stats input.vcf.gz");
+        assert!(
+            r.exact_match,
+            "redirect-only difference should be semantically equal"
+        );
+        assert_eq!(r.flag_group_recall, 1.0);
+    }
+
+    #[test]
+    fn test_semantic_compare_pipe_difference() {
+        // One has pipe, the other doesn't → compare only primary command
+        let r = compare_commands_semantic(
+            "mpileup -f ref.fa input.bam | call -Ov -o out.vcf",
+            "mpileup -f ref.fa input.bam",
+        );
+        assert!(
+            r.exact_match,
+            "pipe-only difference should match on primary command"
+        );
+        assert_eq!(r.flag_group_recall, 1.0);
+    }
+
+    #[test]
+    fn test_semantic_compare_wrong_subcommand_still_penalised() {
+        // Different subcommand should still be penalised even with normalisation
+        let r = compare_commands_semantic("view -o out.bam input.bam", "sort -o out.bam input.bam");
+        assert!(!r.subcommand_match);
+        assert!(r.accuracy_score() < 0.5);
+    }
+
+    #[test]
+    fn test_semantic_compare_missing_flags_still_penalised() {
+        // Missing flags should still be penalised even with normalisation
+        let r = compare_commands_semantic("sort input.bam", "sort -@ 4 -o sorted.bam input.bam");
+        assert!(!r.exact_match);
+        assert!(r.flag_group_recall < 1.0);
+        assert!(r.accuracy_score() < 1.0);
+    }
+
+    #[test]
+    fn test_is_file_path_token() {
+        assert!(is_file_path_token("input.bam"));
+        assert!(is_file_path_token("reads.fastq.gz"));
+        assert!(is_file_path_token("/path/to/file.vcf"));
+        assert!(is_file_path_token("./relative.sam"));
+        assert!(is_file_path_token("~/home/file.fa"));
+        assert!(!is_file_path_token("sort"));
+        assert!(!is_file_path_token("-o"));
+        assert!(!is_file_path_token("4"));
+        assert!(!is_file_path_token("genomeGenerate"));
+    }
+
+    #[test]
+    fn test_strip_redirects_and_pipes() {
+        assert_eq!(
+            strip_redirects_and_pipes("cmd input.bam > output.txt"),
+            "cmd input.bam"
+        );
+        assert_eq!(
+            strip_redirects_and_pipes("cmd input.bam | other_cmd"),
+            "cmd input.bam"
+        );
+        assert_eq!(
+            strip_redirects_and_pipes("cmd input.bam 2> log.txt"),
+            "cmd input.bam"
+        );
+        assert_eq!(
+            strip_redirects_and_pipes("cmd input.bam >> append.txt"),
+            "cmd input.bam"
+        );
+        assert_eq!(strip_redirects_and_pipes("cmd input.bam"), "cmd input.bam");
     }
 }

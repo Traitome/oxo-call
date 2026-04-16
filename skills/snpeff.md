@@ -17,15 +17,24 @@ source_url: "https://pcingola.github.io/SnpEff/"
 - Use -v for verbose mode; -noLog to disable usage reporting; -stats to generate HTML statistics report.
 - ANN field format: Allele|Effect|Impact|GeneName|GeneID|FeatureType|FeatureID|TranscriptBiotype|Rank|HGVS.c|HGVS.p|...
 - Impact levels: HIGH (stop, frameshift), MODERATE (missense), LOW (synonymous), MODIFIER (intergenic, intronic).
+- SnpEff can use canonical transcripts only with -canon flag for more focused annotations.
+- Transcript Support Level (TSL) filtering with -maxTSL removes low-confidence transcripts.
+- Custom interval annotations (-interval) allow adding BED/VCF-based regulatory or custom regions.
+- SnpEff supports both 'ann' and 'eff' subcommands (they are synonyms for annotation).
 
 ## Pitfalls
 
+- CRITICAL: snpeff ARGS must start with a subcommand (ann, eff, build, download, databases, dump, cds, closest, count, genes2bed, len, protein, seq, show) — never with flags like -v, -stats, -noLog. The subcommand ALWAYS comes first.
 - Genome database name must exactly match: use 'snpeff databases' to find the correct identifier.
 - Without -v, SnpEff may silently fail on certain inputs — always check stderr for warnings.
 - SnpEff adds ANN field to INFO column — do not confuse with older EFF field from SnpEff v4.0.
 - SnpEff requires Java — set heap size with -Xmx: java -Xmx8g -jar snpeff.jar or use JAVA_OPTS.
 - For custom genomes, build the database first with 'snpeff build -gff3 -v MyGenome'.
 - Multi-allelic VCF sites get multiple ANN entries separated by commas — normalize with bcftools before annotation.
+- -download is enabled by default; use -nodownload to prevent automatic database downloads.
+- -noStats disables statistics generation, which can speed up processing by ~30% for large files.
+- Splice site size defaults to 2 bases; use -ss to adjust for non-canonical splice sites.
+- -strict flag only uses validated transcripts, which may exclude many annotated transcripts.
 
 ## Examples
 
@@ -48,3 +57,23 @@ source_url: "https://pcingola.github.io/SnpEff/"
 ### build a custom SnpEff genome database from GFF3 annotation
 **Args:** `build -gff3 -v MyGenome`
 **Explanation:** builds a custom genome database; requires genome directory in snpEff data/ folder with sequences.fa and genes.gff3
+
+### annotate using only canonical transcripts
+**Args:** `ann -v -canon GRCh38.105 variants.vcf > annotated_canon.vcf`
+**Explanation:** -canon restricts annotations to canonical transcripts only; reduces noise from alternative isoforms
+
+### filter by transcript support level (TSL)
+**Args:** `ann -v -maxTSL 3 GRCh38.105 variants.vcf > annotated_tsl.vcf`
+**Explanation:** -maxTSL 3 only uses transcripts with TSL 1-3 (high confidence); filters out low-confidence predictions
+
+### annotate with custom regulatory regions
+**Args:** `ann -v -interval regulatory.bed -reg MyReg GRCh38.105 variants.vcf > annotated_reg.vcf`
+**Explanation:** -interval adds custom BED regions; -reg names the regulation track; useful for annotating non-coding regulatory variants
+
+### download a genome database
+**Args:** `download -v GRCh38.105`
+**Explanation:** downloads the specified genome database to the local snpEff data directory; required before first use
+
+### list available databases
+**Args:** `databases | grep -i human`
+**Explanation:** lists all available pre-built databases; grep filters for human genomes; shows exact database names needed for annotation

@@ -2,7 +2,7 @@
 name: cutadapt
 category: qc
 description: Finds and removes adapter sequences, primers, poly-A tails and other unwanted sequences from sequencing reads
-tags: [trimming, adapter, quality-control, fastq, ngs, illumina, single-cell]
+tags: [trimming, adapter, quality-control, fastq, ngs, illumina, single-cell, linked-adapters, demultiplexing]
 author: oxo-call built-in
 source_url: "https://cutadapt.readthedocs.io/"
 ---
@@ -16,15 +16,26 @@ source_url: "https://cutadapt.readthedocs.io/"
 - Use -j N for multi-core processing (0 = auto-detect all cores); gzipped output by specifying .gz output filenames.
 - Common adapter sequences: Illumina universal: AGATCGGAAGAGC; Nextera: CTGTCTCTTATA; polyA: AAAAAAAAAAAAAAA.
 - Use --discard-trimmed to remove any read where an adapter was found (useful for amplicon decontamination).
+- Linked adapters (-a FWD...REV) remove both 5' and 3' adapters in one operation; use ... notation.
+- --nextseq-trim performs NextSeq-specific quality trimming for dark cycles (high-quality G bases).
+- --action controls what happens when adapter is found: trim (default), retain, mask (N), lowercase, crop, none.
+- --rc / --revcomp checks both read and reverse complement for adapter matches.
+- Anchoring (^ for 5', $ for 3') forces adapter to be at read ends only.
+- -n / --times removes up to N adapters from each read (default 1).
 
 ## Pitfalls
 
+- CRITICAL: cutadapt has NO subcommands. ARGS starts directly with flags (e.g., -a, -A, -o, -p, -q) or with the adapter specification. Do NOT put a subcommand like 'trim' or 'remove' before flags.
 - For paired-end, omitting -p (second output) processes only read 1 — both outputs must be specified for proper PE handling.
 - Adapter sequences are case-insensitive but IUPAC ambiguity codes (N, R, Y) are supported in adapter sequences.
 - Without --minimum-length, very short reads after trimming (1-2 bp) can be passed through causing issues downstream.
 - cutadapt does NOT auto-detect adapters — you must specify the adapter sequence explicitly (unlike fastp).
 - For linked adapters (5'+3'), use -a FRONT...BACK notation rather than specifying separately.
 - The -u option unconditionally removes N bases from the 5' (-u N) or 3' end (-u -N) without adapter matching.
+- --overlap (-O) default is 3; increase for more stringent matching to avoid random matches.
+- --error-rate (-e) default is 0.1 (10%); adjust for more/less tolerance.
+- --no-indels prevents indels in alignments (only mismatches), useful for amplicon data.
+- --pair-filter controls which read must match filter criteria: any (default), both, first.
 
 ## Examples
 
@@ -47,3 +58,31 @@ source_url: "https://cutadapt.readthedocs.io/"
 ### remove 5' primer from single-end amplicon reads
 **Args:** `-g ACACTGACGACATGGTTCTACA --discard-untrimmed -o trimmed.fastq.gz reads.fastq.gz`
 **Explanation:** -g specifies 5' adapter/primer; --discard-untrimmed removes reads without the primer (amplicon decontamination)
+
+### use linked adapters for amplicon with both 5' and 3' primers
+**Args:** `-a ^FWDPRIMER...RCREVPRIMER -A ^REVPRIMER...RCFWDPRIMER --discard-untrimmed -o out1.fastq.gz -p out2.fastq.gz in1.fastq.gz in2.fastq.gz`
+**Explanation:** ^ anchors to 5' end; ... notation links 5' and 3' adapters; RCREVPRIMER is reverse complement of reverse primer
+
+### NextSeq-specific quality trimming
+**Args:** `-a AGATCGGAAGAGC --nextseq-trim 20 -o trimmed.fastq.gz reads.fastq.gz`
+**Explanation:** --nextseq-trim handles dark cycles (high-quality G bases) specific to NextSeq/NOVA-seq platforms
+
+### mask adapters with N instead of trimming
+**Args:** `-a AGATCGGAAGAGC --action mask -o masked.fastq.gz reads.fastq.gz`
+**Explanation:** --action mask replaces adapter sequence with N characters; preserves read length for downstream analysis
+
+### remove multiple adapters with multiple rounds
+**Args:** `-g ^TTAAGGCC -g ^AAGCTTA -a TACGGACT -n 2 -o output.fastq input.fastq`
+**Explanation:** -n 2 runs two rounds of adapter removal; useful when multiple different adapters may be present
+
+### check reverse complement for adapter matches
+**Args:** `-a AGATCGGAAGAGC --rc -o trimmed.fastq.gz reads.fastq.gz`
+**Explanation:** --rc checks both read and its reverse complement; if match found on RC, outputs the RC version
+
+### demultiplex using inline barcodes
+**Args:** `-g file:barcodes.fasta -o {name}.fastq.gz input.fastq.gz`
+**Explanation:** file:FASTA reads adapter sequences from file; {name} in output creates separate files per barcode
+
+### anchored 5' adapter for strict primer matching
+**Args:** `-g ^ACACTGACGACATGGTTCTACA -o trimmed.fastq.gz reads.fastq.gz`
+**Explanation:** ^ anchors adapter to 5' end; adapter must be at start of read; prevents internal matches

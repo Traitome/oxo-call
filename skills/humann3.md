@@ -17,6 +17,11 @@ source_url: "https://github.com/biobakery/humann"
 - Use humann_renorm_table to normalize gene families to RPM or relative abundance.
 - Use humann_join_tables to merge multiple sample outputs into a single table.
 - Databases: ChocoPhlAn (nucleotide), UniRef90 (protein) — download with humann_databases command.
+- --bypass-translated-search skips protein search (faster, less sensitive); --bypass-nucleotide-search skips nucleotide search.
+- --bypass-prescreen skips MetaPhlAn4 and uses full ChocoPhlAn database (slower but more comprehensive).
+- humann_regroup_table regroups gene families to other functional categories (e.g., GO, KEGG, EC).
+- humann_split_stratified_table separates taxonomic contributions from combined pathway/gene family tables.
+- humann_rename_table converts UniRef IDs to human-readable gene names.
 
 ## Pitfalls
 
@@ -26,6 +31,10 @@ source_url: "https://github.com/biobakery/humann"
 - The output is in RPK units by default — normalize with humann_renorm_table for comparisons.
 - HUMAnN3 uses MetaPhlAn4 internally — ensure MetaPhlAn4 is installed and its database is available.
 - Large UniRef databases (20+ GB) significantly increase memory usage during protein search.
+- --bypass-translated-search is faster but misses novel genes not in ChocoPhlAn; use for quick profiling.
+- --bypass-prescreen is much slower but necessary when MetaPhlAn4 fails to detect expected taxa.
+- humann_join_tables requires consistent column names; renormalize before joining if units differ.
+- UniRef50 is smaller and faster than UniRef90 but less sensitive; choose based on computational resources.
 
 ## Examples
 
@@ -44,3 +53,31 @@ source_url: "https://github.com/biobakery/humann"
 ### join multiple HUMAnN3 gene family tables into one matrix
 **Args:** `--input humann3_results/ --output merged_genefamilies.tsv`
 **Explanation:** humann_join_tables merges all *_genefamilies.tsv files from the directory into one table
+
+### run HUMAnN3 with only nucleotide search (skip protein search)
+**Args:** `--input reads.fastq.gz --output humann3_output/ --threads 16 --bypass-translated-search`
+**Explanation:** --bypass-translated-search skips UniRef protein search; faster but less sensitive; good for quick profiling
+
+### run HUMAnN3 without MetaPhlAn4 prescreen
+**Args:** `--input reads.fastq.gz --output humann3_output/ --threads 16 --bypass-prescreen`
+**Explanation:** --bypass-prescreen uses full ChocoPhlAn database without taxonomic filtering; slower but more comprehensive
+
+### regroup gene families to KEGG Orthology
+**Args:** `--input sample_genefamilies.tsv --output sample_genefamilies_ko.tsv --groups uniref90_ko`
+**Explanation:** humann_regroup_table converts UniRef90 to KEGG Orthology; other options: uniref90_go, uniref90_ec, uniref90_pfam
+
+### split stratified table into unstratified and taxonomic contributions
+**Args:** `--input sample_pathabundance.tsv --output sample_pathabundance_split/`
+**Explanation:** humann_split_stratified_table separates combined pathways from taxon-specific contributions
+
+### rename UniRef IDs to gene names
+**Args:** `--input sample_genefamilies.tsv --output sample_genefamilies_named.tsv --names uniref90`
+**Explanation:** humann_rename_table converts UniRef90 IDs to human-readable gene names; improves interpretability
+
+### download HUMAnN3 databases
+**Args:** `humann_databases --download chocophlan full /path/to/databases --update-config yes`
+**Explanation:** downloads full ChocoPhlAn database; also available: uniref90, uniref50; --update-config updates humann config file
+
+### normalize pathway abundance to copies per million
+**Args:** `--input sample_pathabundance.tsv --output sample_pathabundance_cpm.tsv --units cpm`
+**Explanation:** humann_renorm_table with --units cpm normalizes to copies per million; alternative to relab for compositional data

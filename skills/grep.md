@@ -17,6 +17,11 @@ source_url: "https://www.gnu.org/software/grep/manual/grep.html"
 - grep returns exit code 0 if matches found, 1 if no matches, 2 on error. This makes it useful in shell conditionals: 'if grep -q pattern file; then ...; fi'.
 - Always use the exact pattern and filename values from the task description — never substitute generic placeholder names like 'keyword', 'file', or 'pattern'.
 - Options can be combined into a single flag group: -inr is equivalent to -i -n -r. Long options (--count, --include) cannot be combined this way.
+- --color[=WHEN] enables highlighting of matching strings; WHEN is 'always', 'never', or 'auto' (default). Use 'always' when piping to less or other tools that need color codes.
+- -x (--line-regexp) matches only whole lines; the pattern must match the entire line, not just part of it. Useful for exact line matching.
+- -f FILE reads patterns from a file, one per line; useful for searching with multiple patterns without complex regex alternation.
+- -R (--dereference-recursive) follows symlinks during recursive search, while -r does not follow symlinks by default.
+- --group-separator=SEP customizes the separator between context groups; --no-group-separator removes it entirely for cleaner output.
 
 ## Pitfalls
 
@@ -28,6 +33,11 @@ source_url: "https://www.gnu.org/software/grep/manual/grep.html"
 - For counting total matches (not matching lines), use 'grep -o pattern file | wc -l' since -c counts matching LINES, not occurrences.
 - -w matches whole words only — useful to avoid partial matches (e.g., 'grep -w error' won't match 'errors' or 'terror').
 - When using -P (PCRE), some features like lookahead (?=...) and lookbehind (?<=...) are available but are not supported in BRE or ERE modes.
+- --color=auto disables color when output is redirected to a file or pipe; use --color=always to preserve color codes in piped output.
+- -x requires the entire line to match; 'grep -x "error"' won't match 'error: message' because the line contains more than just 'error'.
+- -f with an empty pattern file matches every line (since empty pattern matches everything); ensure pattern files contain at least one non-empty line.
+- Binary files may cause 'Binary file matches' message; use -a (--text) to treat binary files as text, or -I to skip binary files entirely.
+- Default behavior differs with file count: with single file, -H is not implied; with multiple files or recursive search, -H is automatic. Use -h to suppress or -H to force filename display.
 
 ## Examples
 
@@ -102,3 +112,39 @@ source_url: "https://www.gnu.org/software/grep/manual/grep.html"
 ### search for lines matching one pattern but not another
 **Args:** `-E "error" app.log | grep -v "timeout"`
 **Explanation:** first grep finds error lines; piped grep -v excludes those containing timeout
+
+### match only complete lines (exact line match)
+**Args:** `-x "ERROR" logfile.txt`
+**Explanation:** -x requires entire line to match pattern; 'ERROR' matches only lines containing exactly 'ERROR', not 'ERROR: message'
+
+### search using patterns from a file
+**Args:** `-f patterns.txt data.log`
+**Explanation:** -f reads patterns from patterns.txt (one per line); searches for any of the listed patterns in data.log
+
+### highlight matches with color even when piping
+**Args:** `--color=always "error" app.log | less -R`
+**Explanation:** --color=always preserves color codes when piping; less -R interprets color codes for display
+
+### skip binary files during recursive search
+**Args:** `-rI "TODO" .`
+**Explanation:** -I (--binary-files=without-match) skips binary files; prevents 'Binary file matches' messages during recursive search
+
+### show byte offset of each match
+**Args:** `-bo "TODO" notes.txt`
+**Explanation:** -b shows byte offset; -o shows only matching part; useful for locating exact position of matches in files
+
+### find files that do NOT contain a pattern
+**Args:** `-rL "import" src/`
+**Explanation:** -r recursive; -L (--files-without-match) lists only files with NO matches; useful for finding files missing required imports
+
+### remove group separators from context output
+**Args:** `-C 2 --no-group-separator "pattern" file.txt`
+**Explanation:** --no-group-separator removes the '--' lines between context groups for cleaner output
+
+### follow symlinks during recursive search
+**Args:** `-R "config" /etc/`
+**Explanation:** -R (--dereference-recursive) follows symbolic links during recursive search; -r does not follow symlinks by default
+
+### search with multiple patterns using -e
+**Args:** `-e "error" -e "warning" -e "fatal" app.log`
+**Explanation:** multiple -e options specify multiple patterns; matches lines containing ANY of the patterns; alternative to -E with alternation

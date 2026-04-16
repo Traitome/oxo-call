@@ -554,6 +554,21 @@ impl Skill {
     /// are also trimmed: for `max_examples <= 3`, only the top concepts
     /// and pitfalls are kept to save context budget.
     pub fn to_prompt_section_limited(&self, max_examples: usize) -> String {
+        self.render_section(max_examples, &None)
+    }
+
+    /// Generate a prompt section selecting examples relevant to the given task.
+    ///
+    /// When the skill has more examples than `max_examples`, this method ranks
+    /// examples by keyword overlap with `task` and selects the most relevant
+    /// ones.  This ensures the LLM sees examples that match the user's intent
+    /// (e.g., "sort bam" → the sort example, not the index example).
+    pub fn to_prompt_section_for_task(&self, max_examples: usize, task: &str) -> String {
+        self.render_section(max_examples, &Some(task.to_string()))
+    }
+
+    /// Internal rendering shared by `to_prompt_section_limited` and `to_prompt_section_for_task`.
+    fn render_section(&self, max_examples: usize, task: &Option<String>) -> String {
         let mut s = String::new();
 
         let compact = max_examples <= 3;
@@ -585,9 +600,9 @@ impl Skill {
         }
 
         if !self.examples.is_empty() {
-            let limit = self.examples.len().min(max_examples);
+            let selected = self.select_examples(max_examples, task.as_deref());
             s.push_str("## Worked Reference Examples\n");
-            for (i, ex) in self.examples.iter().take(limit).enumerate() {
+            for (i, ex) in selected.iter().enumerate() {
                 s.push_str(&format!("Example {}:\n", i + 1));
                 s.push_str(&format!("  Task:        {}\n", ex.task));
                 s.push_str(&format!("  ARGS:        {}\n", ex.args));
@@ -598,6 +613,88 @@ impl Skill {
 
         s
     }
+
+    /// Select the most relevant examples for a given task.
+    ///
+    /// Strategy:
+    /// 1. If task is None or empty, fall back to first `max_examples` (original behavior).
+    /// 2. Score each example by keyword overlap with the task.
+    /// 3. Select top-scoring examples, but always include at least the first
+    ///    example (as a "default" reference) if there's room.
+    pub fn select_examples(&self, max_examples: usize, task: Option<&str>) -> Vec<&SkillExample> {
+        let Some(task) = task.filter(|t| !t.trim().is_empty()) else {
+            return self.examples.iter().take(max_examples).collect();
+        };
+
+        if self.examples.len() <= max_examples {
+            return self.examples.iter().take(max_examples).collect();
+        }
+
+        let task_tokens = tokenize_for_match(task);
+
+        // Score each example by keyword overlap with the task.
+        // The task description and args are both checked.
+        let mut scored: Vec<(usize, usize)> = self
+            .examples
+            .iter()
+            .enumerate()
+            .map(|(i, ex)| {
+                let ex_tokens = tokenize_for_match(&format!("{} {}", ex.task, ex.args));
+                let score = ex_tokens.intersection(&task_tokens).count();
+                // Tie-breaking: prefer earlier examples (they tend to be more fundamental)
+                (i, score)
+            })
+            .collect();
+
+        // Sort by score descending, then by index ascending (stable)
+        scored.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+
+        // Take top max_examples, but ensure example 0 is included if there's room
+        let mut selected_indices: Vec<usize> = scored
+            .into_iter()
+            .take(max_examples)
+            .map(|(i, _)| i)
+            .collect();
+
+        // If example 0 (the most fundamental example) is not in the selection
+        // and there's room, swap in the lowest-scoring selected example.
+        if !selected_indices.contains(&0) && max_examples > 1 {
+            let last_idx = *selected_indices.last().unwrap();
+            if last_idx != 0 {
+                selected_indices.pop();
+                selected_indices.insert(0, 0);
+            }
+        }
+
+        selected_indices.sort();
+        selected_indices
+            .into_iter()
+            .map(|i| &self.examples[i])
+            .collect()
+    }
+}
+
+/// Tokenize a string for keyword matching between task and example.
+///
+/// Splits on whitespace and common delimiters, lowercases, and filters
+/// out common stop words that would create false matches.
+fn tokenize_for_match(text: &str) -> std::collections::HashSet<String> {
+    let stop_words: &[&str] = &[
+        "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by",
+        "from", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do",
+        "does", "did", "will", "would", "could", "should", "may", "might", "shall", "can", "not",
+        "no", "it", "its", "this", "that", "these", "those", "i", "me", "my", "we", "our", "you",
+        "your", "he", "she", "they", "them", "file", "files", "into", "using", "use", "then",
+        "after",
+    ];
+
+    text.to_ascii_lowercase()
+        .split(|c: char| c.is_whitespace() || c == ',' || c == ';' || c == '/')
+        .map(|s| s.trim_matches(|c: char| c == '.' || c == ':' || c == '-' || c == '_' || c == '"'))
+        .filter(|s| s.len() >= 2)
+        .filter(|s| !stop_words.contains(s))
+        .map(|s| s.to_string())
+        .collect()
 }
 
 // ─── Skill manager ────────────────────────────────────────────────────────────

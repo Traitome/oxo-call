@@ -19,6 +19,9 @@ source_url: "https://meme-suite.org/meme/doc/overview.html"
 - `tomtom` compares query motifs (from MEME output) against a reference database to identify known TF matches.
 - MEME Suite outputs HTML reports (`meme.html`, `fimo.html`) and XML/TSV files for downstream parsing.
 - Streme is faster than MEME for large input sets and finds shorter motifs; use it when MEME is too slow.
+- `-pal` forces palindromic motif discovery for DNA-binding proteins that bind as dimers.
+- `-objfun` specifies the objective function: classic, de (differential enrichment), se (significant enrichment), cd (central distance), ce (central enrichment).
+- `-markov_order` sets the order of the background Markov model for calculating expected motif frequencies.
 
 ## Pitfalls
 - `meme` uses only the first `-maxsites` sequences if the input is large; for ChIP-seq datasets, pre-filter to the top 500–1000 peaks by signal strength.
@@ -28,6 +31,9 @@ source_url: "https://meme-suite.org/meme/doc/overview.html"
 - The `--oc` (output to clean directory) and `-o` (fail if directory exists) flags behave differently; use `--oc` to overwrite existing results.
 - `meme` requires at least 2 sequences in the input FASTA; too few sequences or too-short sequences (< motif width) cause failures.
 - On HPC, MEME's built-in parallelism uses `-p` (MPI processes); ensure MPI is loaded if using `-p > 1`.
+- `-searchsize` limits the portion of dataset used for motif search; increase for more thorough searches on large datasets.
+- `-maxsize` limits the total dataset size; sequences exceeding this limit are skipped.
+- `-neg` provides a negative/control dataset for differential enrichment objective functions (de, se).
 
 ## Examples
 
@@ -58,3 +64,27 @@ source_url: "https://meme-suite.org/meme/doc/overview.html"
 ### run MEME with reverse complement consideration
 **Args:** `-dna -revcomp -mod zoops -nmotifs 5 -oc meme_rc peaks.fasta`
 **Explanation:** -revcomp considers both strands for motif discovery; essential for TF binding site discovery where binding can occur on either strand
+
+### discover palindromic motifs for dimer-binding TFs
+**Args:** `-dna -pal -mod zoops -nmotifs 5 -minw 10 -maxw 20 -oc meme_pal peaks.fasta`
+**Explanation:** -pal forces palindromic motif discovery; useful for TFs that bind as homodimers (e.g., many nuclear receptors)
+
+### use differential enrichment objective function with control sequences
+**Args:** `-dna -mod zoops -objfun de -neg control_peaks.fasta -nmotifs 5 -oc meme_de peaks.fasta`
+**Explanation:** -objfun de uses differential enrichment; -neg specifies control sequences; finds motifs enriched in foreground vs background
+
+### run MEME with higher-order Markov background model
+**Args:** `-dna -mod zoops -markov_order 3 -nmotifs 5 -oc meme_markov peaks.fasta`
+**Explanation:** -markov_order 3 uses 3rd-order Markov model for background; better accounts for sequence composition biases
+
+### limit search to top sequences for faster runtime
+**Args:** `-dna -mod zoops -searchsize 100000 -nmotifs 5 -oc meme_fast peaks.fasta`
+**Explanation:** -searchsize 100000 limits search to first 100kb of sequence data; speeds up analysis on large datasets
+
+### run MEME with MPI parallelization on HPC
+**Args:** `-dna -mod zoops -p 8 -nmotifs 5 -oc meme_mpi peaks.fasta`
+**Explanation:** -p 8 uses 8 MPI processes for parallel motif search; requires MPI environment to be loaded
+
+### find motifs with exact number of sites per sequence
+**Args:** `-dna -mod oops -nmotifs 3 -minw 8 -maxw 15 -oc meme_oops peaks.fasta`
+**Explanation:** -mod oops assumes exactly one motif occurrence per sequence; appropriate when all sequences are known to contain the motif

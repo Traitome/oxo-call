@@ -2,7 +2,7 @@
 name: cnvkit
 category: variant-calling
 description: Copy number variant detection and visualization from targeted sequencing data (WES/panels)
-tags: [cnv, copy-number, wes, targeted-sequencing, tumor, somatic, vcf]
+tags: [cnv, copy-number, wes, targeted-sequencing, tumor, somatic, vcf, cbs, segmentation]
 author: oxo-call built-in
 source_url: "https://cnvkit.readthedocs.io/"
 ---
@@ -17,6 +17,11 @@ source_url: "https://cnvkit.readthedocs.io/"
 - Use cnvkit.py scatter and cnvkit.py diagram for visualization.
 - For somatic CNV calling, use matched normal (--normal/-n) for best accuracy.
 - Segment with CBS (default) or other algorithms; call with cnvkit.py call for integer copy numbers.
+- --drop-low-coverage removes bins with very low coverage to avoid false-positive deletions in poor-quality tumor samples.
+- --segment-method supports CBS, flasso, haar, hmm, hmm-tumor, hmm-germline algorithms.
+- --drop-outliers filters extreme outlier bins before segmentation.
+- -y/--male-reference assumes male reference for sex chromosome handling.
+- --smooth-cbs applies additional smoothing before CBS segmentation for increased sensitivity.
 
 ## Pitfalls
 
@@ -26,6 +31,10 @@ source_url: "https://cnvkit.readthedocs.io/"
 - The access file (--access) restricts analysis to mappable regions — improves specificity.
 - Integer copy number calling assumes diploid baseline — adjust with --purity and --ploidy for tumor.
 - CNVkit is designed for targeted sequencing; for WGS long-read CNVs use other tools.
+- **CRITICAL**: CNVkit has subcommands (batch, target, coverage, segment, call, scatter, etc.); use subcommand before flags.
+- --drop-low-coverage is essential for poor-quality tumor samples to avoid false-positive deletions.
+- CBS segmentation requires R and Rscript installed; specify path with --rscript-path if non-standard.
+- --segment-method hmm-tumor and hmm-germline are specialized for respective sample types.
 
 ## Examples
 
@@ -44,3 +53,27 @@ source_url: "https://cnvkit.readthedocs.io/"
 ### call integer copy numbers from segments
 **Args:** `call tumor.cns -o tumor.call.cns --center median --purity 0.8`
 **Explanation:** --purity 0.8 sets tumor purity for copy number adjustment; --center median for centering
+
+### run batch with drop-low-coverage for poor-quality tumor
+**Args:** `batch tumor.bam --normal normal.bam --targets targets.bed --fasta reference.fa --drop-low-coverage --output-dir cnvkit_output/ -p 8`
+**Explanation:** --drop-low-coverage removes bins with very low coverage; essential for poor-quality tumor samples to avoid false-positive deletions
+
+### segment with alternative method (HaarSeg)
+**Args:** `segment tumor.cnr -o tumor.cns -m haar --drop-outliers 5`
+**Explanation:** -m haar uses HaarSeg algorithm (faster than CBS); --drop-outliers 5 filters extreme outliers
+
+### create heatmap for multiple samples
+**Args:** `heatmap sample1.cns sample2.cns sample3.cns -o cnv_heatmap.pdf`
+**Explanation:** heatmap subcommand plots CNV profiles for multiple samples; useful for cohort visualization
+
+### identify genes with copy number alterations
+**Args:** `genemetrics tumor.cns -t -m 0.3 -o gainloss_genes.txt`
+**Explanation:** genemetrics identifies genes with significant CNAs; -t for targets only; -m 0.3 sets minimum log2 threshold
+
+### run WGS analysis without target BED
+**Args:** `batch tumor.bam --normal normal.bam --fasta reference.fa --method wgs --output-dir cnvkit_wgs/ -p 8`
+**Explanation:** --method wgs for whole genome sequencing; no --targets required for WGS
+
+### segment with VCF for allele-specific analysis
+**Args:** `segment tumor.cnr -o tumor.cns -v variants.vcf --sample-id tumor_sample --normal-id normal_sample`
+**Explanation:** -v VCF enables allele-specific segmentation using B-allele frequencies; requires matched normal in VCF

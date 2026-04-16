@@ -2,7 +2,7 @@
 name: bowtie2
 category: alignment
 description: Fast and sensitive short read aligner for gapped alignment to reference genomes
-tags: [alignment, mapping, short-read, ngs, illumina, bowtie2]
+tags: [alignment, mapping, short-read, ngs, illumina, bowtie2, paired-end, local-alignment]
 author: oxo-call built-in
 source_url: "https://bowtie-bio.sourceforge.net/bowtie2/manual.shtml"
 ---
@@ -15,15 +15,24 @@ source_url: "https://bowtie-bio.sourceforge.net/bowtie2/manual.shtml"
 - The --very-sensitive preset improves sensitivity at the cost of speed; --fast and --very-fast are faster but less sensitive.
 - Use -p N for multi-threading; --no-unal suppresses unmapped reads in output.
 - Local alignment mode (--local) allows soft-clipping of the ends of reads; global mode (default, --end-to-end) requires full read alignment.
+- Preset defaults: --end-to-end uses --sensitive; --local uses --sensitive-local. Key differences: -D (seed extension), -R (reseed), -N (seed mismatches), -L (seed length).
+- --interleaved reads interleaved FASTQ where mate pairs alternate; -b accepts unaligned BAM sorted by read name.
+- -I/--minins and -X/--maxins set minimum/maximum fragment length for paired-end (default 0–500); adjust -X for long-insert libraries.
+- --no-mixed suppresses unpaired alignments when a pair fails to align concordantly; --no-discordant suppresses discordant pairs.
+- bowtie2-inspect examines index properties: -s for summary, -n for reference names only.
 
 ## Pitfalls
 
+- CRITICAL: bowtie2 has NO subcommands. ARGS starts directly with flags (e.g., -x, -1, -2, -U, -p). Do NOT put a subcommand like 'align' or 'map' before flags. Index building uses the separate binary 'bowtie2-build' (not a subcommand).
 - bowtie2 outputs SAM to stdout — always pipe to 'samtools view -b -o output.bam' or use -S for SAM output.
 - Index building uses the companion binary 'bowtie2-build', not 'bowtie2 -build'. Always start the ARGS with 'bowtie2-build' for index tasks; the system detects it and invokes it as the executable.
 - The -x argument takes the index prefix (from 'bowtie2-build'), not the .fa file or any .bt2 file.
 - For paired-end reads, -1 and -2 must be used (not -U); using -U with paired files treats them as single-end.
 - The --very-sensitive-local mode allows soft-clipping which changes the CIGAR string — verify downstream tools support this.
 - bowtie2 alignment rate in the log is to stderr; always check it after alignment.
+- Bowtie 1 and Bowtie 2 indexes are NOT compatible — always use bowtie2-build for bowtie2.
+- Default --fr orientation assumes forward-reverse (Illumina); use --rf for reverse-forward or --ff for forward-forward.
+- -X/--maxins default is 500; RNA-seq with large introns or long-insert libraries need a larger value (e.g., -X 1000).
 
 ## Examples
 
@@ -66,3 +75,15 @@ source_url: "https://bowtie-bio.sourceforge.net/bowtie2/manual.shtml"
 ### align paired-end reads writing unmapped reads to separate files
 **Args:** `-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 8 --un-conc unmapped_%.fq | samtools view -b -o aligned.bam`
 **Explanation:** --un-conc writes unmapped read pairs to unmapped_1.fq and unmapped_2.fq for downstream analysis
+
+### align interleaved FASTQ input
+**Args:** `-x reference_index --interleaved reads_interleaved.fq.gz -p 8 --no-unal | samtools view -b -o aligned.bam`
+**Explanation:** --interleaved reads mate pairs alternating in one file; alternative to separate -1/-2 files
+
+### align with increased maximum fragment length for long-insert library
+**Args:** `-x reference_index -1 R1.fq.gz -2 R2.fq.gz -p 8 -X 1000 --no-mixed --no-discordant | samtools view -b -o aligned.bam`
+**Explanation:** -X 1000 allows fragments up to 1000bp; --no-mixed suppresses unpaired; --no-discordant suppresses discordant pairs
+
+### inspect a bowtie2 index to see reference sequence names and lengths
+**Args:** `bowtie2-inspect -s reference_index`
+**Explanation:** bowtie2-inspect -s prints summary of index properties and reference sequence lengths; -n for names only

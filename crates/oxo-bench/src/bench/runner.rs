@@ -7,7 +7,7 @@
 //! The generator is injected as a trait so that unit tests can substitute a
 //! mock without requiring a real API token or the `oxo-call` binary.
 
-use crate::bench::compare::compare_commands;
+use crate::bench::compare::compare_commands_semantic;
 use crate::bench::scenario::{Scenario, UsageDescription};
 use std::io::Write;
 use std::time::Instant;
@@ -36,8 +36,15 @@ pub struct TrialResult {
     pub flag_group_jaccard: f64,
     /// Whether positional arguments appear in the correct relative order.
     pub positional_order_match: f64,
+    /// Whether the first token (subcommand) matches the reference.
     pub subcommand_match: bool,
+    /// Composite accuracy score (0–1) incorporating subcommand veto
+    /// and optional required-patterns penalty.
     pub accuracy_score: f64,
+    /// Whether ALL required patterns from the evaluation task catalog
+    /// appear in the generated args.  When `false`, `accuracy_score` is
+    /// further penalised (see `compute_accuracy_score`).
+    pub required_patterns_met: bool,
     /// Total wall-clock latency (ms) for this trial, including model inference.
     pub latency_ms: f64,
     /// oxo-call overhead (ms) = `latency_ms - inference_ms`.  This excludes
@@ -191,7 +198,7 @@ pub fn run_mock_benchmark(
             let latency_ms = start.elapsed().as_secs_f64() * 1000.0;
             let tokens = generated_args.split_whitespace().count();
 
-            let cmp = compare_commands(&generated_args, &scenario.reference_args);
+            let cmp = compare_commands_semantic(&generated_args, &scenario.reference_args);
 
             results.push(TrialResult {
                 tool: desc.tool.clone(),
@@ -212,7 +219,8 @@ pub fn run_mock_benchmark(
                 flag_group_jaccard: cmp.flag_group_jaccard,
                 positional_order_match: cmp.positional_order_match,
                 subcommand_match: cmp.subcommand_match,
-                accuracy_score: cmp.accuracy_score(),
+                accuracy_score: compute_accuracy_score(&cmp, true),
+                required_patterns_met: true,
                 latency_ms,
                 overhead_ms: latency_ms,
                 tokens,
@@ -291,7 +299,7 @@ pub fn run_mock_baseline(
             let latency_ms = start.elapsed().as_secs_f64() * 1000.0;
             let tokens = generated_args.split_whitespace().count();
 
-            let cmp = compare_commands(&generated_args, &scenario.reference_args);
+            let cmp = compare_commands_semantic(&generated_args, &scenario.reference_args);
 
             results.push(TrialResult {
                 tool: desc.tool.clone(),
@@ -312,7 +320,8 @@ pub fn run_mock_baseline(
                 flag_group_jaccard: cmp.flag_group_jaccard,
                 positional_order_match: cmp.positional_order_match,
                 subcommand_match: cmp.subcommand_match,
-                accuracy_score: cmp.accuracy_score(),
+                accuracy_score: compute_accuracy_score(&cmp, true),
+                required_patterns_met: true,
                 latency_ms,
                 overhead_ms: latency_ms,
                 tokens,
@@ -335,6 +344,11 @@ pub struct BaselineComparison {
     pub enhanced_accuracy: f64,
     pub baseline_accuracy: f64,
     pub accuracy_delta: f64,
+    /// Cohen's *h* effect size for the accuracy improvement.
+    /// Values: |h| < 0.2 = negligible, 0.2–0.5 = small, 0.5–0.8 = medium, > 0.8 = large.
+    pub accuracy_cohens_h: f64,
+    /// Human-readable label for the effect size magnitude.
+    pub accuracy_effect_label: String,
     pub enhanced_exact_match: f64,
     pub baseline_exact_match: f64,
     pub exact_match_delta: f64,
@@ -374,11 +388,14 @@ pub fn compute_baseline_comparison(
         .iter()
         .filter_map(|enh| {
             let base = baseline_map.get(&enh.model)?;
+            let cohens_h = compute_cohens_h(enh.accuracy, base.accuracy);
             Some(BaselineComparison {
                 model: enh.model.clone(),
                 enhanced_accuracy: enh.accuracy,
                 baseline_accuracy: base.accuracy,
                 accuracy_delta: enh.accuracy - base.accuracy,
+                accuracy_cohens_h: cohens_h,
+                accuracy_effect_label: interpret_effect_size(cohens_h).to_string(),
                 enhanced_exact_match: enh.exact_match_rate,
                 baseline_exact_match: base.exact_match_rate,
                 exact_match_delta: enh.exact_match_rate - base.exact_match_rate,
@@ -402,7 +419,7 @@ pub fn compute_baseline_comparison(
 
 /// Write baseline comparison results to CSV.
 ///
-/// Columns: `model,enhanced_accuracy,baseline_accuracy,accuracy_delta,
+/// Columns: `model,enhanced_accuracy,baseline_accuracy,accuracy_delta,cohens_h,effect_label,
 ///           enhanced_exact_match,baseline_exact_match,exact_match_delta,
 ///           enhanced_flag_recall,baseline_flag_recall,flag_recall_delta,
 ///           enhanced_consistency,baseline_consistency,consistency_delta`
@@ -412,7 +429,7 @@ pub fn write_baseline_comparison_csv<W: Write>(
 ) -> std::io::Result<()> {
     writeln!(
         writer,
-        "model,enhanced_accuracy,baseline_accuracy,accuracy_delta,\
+        "model,enhanced_accuracy,baseline_accuracy,accuracy_delta,cohens_h,effect_label,\
          enhanced_exact_match,baseline_exact_match,exact_match_delta,\
          enhanced_flag_recall,baseline_flag_recall,flag_recall_delta,\
          enhanced_consistency,baseline_consistency,consistency_delta"
@@ -420,11 +437,13 @@ pub fn write_baseline_comparison_csv<W: Write>(
     for c in comparisons {
         writeln!(
             writer,
-            "{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4}",
+            "{},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4}",
             c.model,
             c.enhanced_accuracy,
             c.baseline_accuracy,
             c.accuracy_delta,
+            c.accuracy_cohens_h,
+            c.accuracy_effect_label,
             c.enhanced_exact_match,
             c.baseline_exact_match,
             c.exact_match_delta,
@@ -737,9 +756,10 @@ pub fn run_benchmark_with_callback(
             let resp = generator.generate(&desc.tool, &desc.description, model);
             let latency_ms = start.elapsed().as_secs_f64() * 1000.0;
 
-            let cmp = compare_commands(&resp.args, &scenario.reference_args);
+            let cmp = compare_commands_semantic(&resp.args, &scenario.reference_args);
 
             let overhead_ms = (latency_ms - resp.inference_ms).max(0.0);
+            let required_patterns_met = true; // No eval tasks in standard benchmark mode
             let trial = TrialResult {
                 tool: desc.tool.clone(),
                 category: scenario.category.clone(),
@@ -759,7 +779,8 @@ pub fn run_benchmark_with_callback(
                 flag_group_jaccard: cmp.flag_group_jaccard,
                 positional_order_match: cmp.positional_order_match,
                 subcommand_match: cmp.subcommand_match,
-                accuracy_score: cmp.accuracy_score(),
+                accuracy_score: compute_accuracy_score(&cmp, required_patterns_met),
+                required_patterns_met,
                 latency_ms,
                 overhead_ms,
                 tokens: resp.tokens,
@@ -862,9 +883,10 @@ pub fn run_benchmark_parallel(
                     let resp = generator.generate(&desc.tool, &desc.description, &model);
                     let latency_ms = start.elapsed().as_secs_f64() * 1000.0;
 
-                    let cmp = compare_commands(&resp.args, &scenario.reference_args);
+                    let cmp = compare_commands_semantic(&resp.args, &scenario.reference_args);
 
                     let overhead_ms = (latency_ms - resp.inference_ms).max(0.0);
+                    let required_patterns_met = true; // No eval tasks in standard benchmark mode
                     let trial = TrialResult {
                         tool: desc.tool.clone(),
                         category: scenario.category.clone(),
@@ -884,7 +906,8 @@ pub fn run_benchmark_parallel(
                         flag_group_jaccard: cmp.flag_group_jaccard,
                         positional_order_match: cmp.positional_order_match,
                         subcommand_match: cmp.subcommand_match,
-                        accuracy_score: cmp.accuracy_score(),
+                        accuracy_score: compute_accuracy_score(&cmp, required_patterns_met),
+                        required_patterns_met,
                         latency_ms,
                         overhead_ms,
                         tokens: resp.tokens,
@@ -938,7 +961,7 @@ pub fn write_trials_csv<W: Write>(writer: &mut W, trials: &[TrialResult]) -> std
         "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,\
          exact_match,token_jaccard,flag_recall,flag_precision,\
          flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,\
-         subcommand_match,accuracy_score,latency_ms,overhead_ms,tokens,format_valid,error_message"
+         subcommand_match,accuracy_score,required_patterns_met,latency_ms,overhead_ms,tokens,format_valid,error_message"
     )?;
     for t in trials {
         let gen_esc = csv_escape(&t.generated_args);
@@ -946,7 +969,7 @@ pub fn write_trials_csv<W: Write>(writer: &mut W, trials: &[TrialResult]) -> std
         let err_esc = csv_escape(&t.error_message);
         writeln!(
             writer,
-            "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{:.1},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{},{:.1},{:.1},{},{},{}",
             t.tool,
             t.category,
             t.scenario_id,
@@ -966,6 +989,7 @@ pub fn write_trials_csv<W: Write>(writer: &mut W, trials: &[TrialResult]) -> std
             t.positional_order_match,
             t.subcommand_match,
             t.accuracy_score,
+            t.required_patterns_met,
             t.latency_ms,
             t.overhead_ms,
             t.tokens,
@@ -1168,10 +1192,9 @@ pub fn summarise_by_category(trials: &[TrialResult]) -> Vec<CategoryModelSummary
                 consistent as f64 / groups.len() as f64
             };
 
-            // 95% CI using normal approximation for proportion (Wald interval).
-            let z = 1.96_f64;
-            let accuracy_ci95 = z * (accuracy * (1.0 - accuracy) / n).sqrt();
-            let exact_match_ci95 = z * (exact_match_rate * (1.0 - exact_match_rate) / n).sqrt();
+            // 95% CI using Wilson score interval (more robust for extreme proportions).
+            let accuracy_ci95 = proportion_ci95(accuracy, n as usize);
+            let exact_match_ci95 = proportion_ci95(exact_match_rate, n as usize);
 
             CategoryModelSummary {
                 category,
@@ -1225,14 +1248,96 @@ pub fn write_category_summary_csv<W: Write>(
     Ok(())
 }
 
+/// Compute the composite accuracy score for a trial, incorporating
+/// the `CompareResult` metrics, subcommand veto, and required-patterns
+/// penalty.
+///
+/// The scoring logic is:
+/// 1. **Base score** = weighted combination of flag-group metrics
+///    (35% recall + 25% precision + 25% Jaccard + 15% positional order).
+/// 2. **Subcommand veto**: when `subcommand_match` is false, the base is
+///    multiplied by 0.3 (capped at 0.3 max).
+/// 3. **Required-patterns penalty**: when `required_patterns_met` is false,
+///    the score is further multiplied by 0.5.  This reflects that a command
+///    may have high flag overlap but still miss critical flags (e.g., the
+///    correct subcommand or a required output flag).
+pub fn compute_accuracy_score(
+    cmp: &crate::bench::compare::CompareResult,
+    required_patterns_met: bool,
+) -> f64 {
+    let base = 0.35 * cmp.flag_group_recall
+        + 0.25 * cmp.flag_group_precision
+        + 0.25 * cmp.flag_group_jaccard
+        + 0.15 * cmp.positional_order_match;
+
+    let after_subcommand = if cmp.subcommand_match {
+        base
+    } else {
+        base * 0.3
+    };
+
+    if required_patterns_met {
+        after_subcommand
+    } else {
+        after_subcommand * 0.5
+    }
+}
+
 /// Compute a 95% confidence interval half-width for a proportion using
-/// the Wald normal approximation: z * sqrt(p*(1-p)/n).
+/// the **Wilson score interval**, which is more robust than the Wald
+/// approximation when the proportion is near 0 or 1 or the sample size is
+/// small.  The Wilson interval never produces negative lower bounds and
+/// has better coverage properties for extreme proportions.
+///
+/// Formula: center ± spread, where
+///   center = (p + z²/(2n)) / (1 + z²/n)
+///   spread = z * sqrt(p(1-p)/n + z²/(4n²)) / (1 + z²/n)
 pub fn proportion_ci95(p: f64, n: usize) -> f64 {
     if n == 0 {
         return 0.0;
     }
+    let n = n as f64;
     let z = 1.96_f64;
-    z * (p * (1.0 - p) / n as f64).sqrt()
+    let z2 = z * z;
+    let denom = 1.0 + z2 / n;
+    let _center = (p + z2 / (2.0 * n)) / denom;
+    let spread = z * (p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt() / denom;
+    // Return half-width (distance from center to upper bound).
+    spread
+}
+
+/// Compute Cohen's *h* effect size for the difference between two proportions.
+///
+/// Cohen's *h* = 2 * arcsin(√p₁) − 2 * arcsin(√p₂)
+///
+/// This is the standard effect-size measure for comparing two independent
+/// proportions, used in the baseline comparison to quantify the magnitude
+/// of improvement from docs/skills grounding.
+pub fn compute_cohens_h(p1: f64, p2: f64) -> f64 {
+    let p1 = p1.clamp(0.0, 1.0);
+    let p2 = p2.clamp(0.0, 1.0);
+    2.0 * p1.sqrt().asin() - 2.0 * p2.sqrt().asin()
+}
+
+/// Interpret the magnitude of Cohen's *h* effect size.
+///
+/// | |h| range | Interpretation |
+/// |-----------|----------------|
+/// | < 0.2    | Negligible     |
+/// | 0.2–0.5  | Small          |
+/// | 0.5–0.8  | Medium         |
+/// | > 0.8    | Large          |
+pub fn interpret_effect_size(h: f64) -> &'static str {
+    let abs_h = h.abs();
+    if abs_h < 0.2 {
+        "negligible"
+    } else if abs_h < 0.5 {
+        "small"
+    } else if abs_h < 0.8 {
+        "medium"
+    } else {
+        "large"
+    }
 }
 
 /// Error category for a single trial failure.
@@ -1588,6 +1693,7 @@ mod tests {
                 positional_order_match: 1.0,
                 subcommand_match: true,
                 accuracy_score: 1.0,
+                required_patterns_met: true,
                 latency_ms: 100.0,
                 overhead_ms: 100.0,
                 tokens: 10,
@@ -1622,6 +1728,7 @@ mod tests {
                 positional_order_match: 1.0,
                 subcommand_match: true,
                 accuracy_score: 1.0,
+                required_patterns_met: true,
                 latency_ms: 100.0,
                 overhead_ms: 100.0,
                 tokens: 10,
@@ -1832,6 +1939,7 @@ mod tests {
                         positional_order_match: 1.0,
                         subcommand_match: true,
                         accuracy_score: 1.0,
+                        required_patterns_met: true,
                         latency_ms: 0.0,
                         overhead_ms: 0.0,
                         tokens: 5,
@@ -1960,9 +2068,9 @@ mod tests {
         assert!(text.starts_with("model,enhanced_accuracy,baseline_accuracy,"));
         let data_lines: Vec<&str> = text.lines().skip(1).filter(|l| !l.is_empty()).collect();
         assert_eq!(data_lines.len(), 1);
-        // Each row has 13 comma-separated fields.
+        // Each row has 15 comma-separated fields (including cohens_h and effect_label).
         for line in &data_lines {
-            assert_eq!(line.split(',').count(), 13, "bad row: {line}");
+            assert_eq!(line.split(',').count(), 15, "bad row: {line}");
         }
     }
 
@@ -2014,6 +2122,7 @@ mod tests {
                         positional_order_match: 1.0,
                         subcommand_match: true,
                         accuracy_score: 1.0,
+                        required_patterns_met: true,
                         latency_ms: 0.0,
                         overhead_ms: 0.0,
                         tokens: 5,
@@ -2094,6 +2203,7 @@ mod tests {
             positional_order_match: 1.0,
             subcommand_match: true,
             accuracy_score: 0.9,
+            required_patterns_met: true,
             latency_ms: 0.0,
             overhead_ms: 0.0,
             tokens: 3,
@@ -2125,6 +2235,7 @@ mod tests {
             positional_order_match: 1.0,
             subcommand_match: true,
             accuracy_score: 0.9,
+            required_patterns_met: true,
             latency_ms: 0.0,
             overhead_ms: 0.0,
             tokens: 5,
@@ -2156,6 +2267,7 @@ mod tests {
             positional_order_match: 1.0,
             subcommand_match: false,
             accuracy_score: 0.7,
+            required_patterns_met: true,
             latency_ms: 0.0,
             overhead_ms: 0.0,
             tokens: 4,
@@ -2187,6 +2299,7 @@ mod tests {
             positional_order_match: 0.0,
             subcommand_match: false,
             accuracy_score: 0.0,
+            required_patterns_met: true,
             latency_ms: 0.0,
             overhead_ms: 0.0,
             tokens: 0,
@@ -2219,6 +2332,7 @@ mod tests {
                 positional_order_match: 1.0,
                 subcommand_match: true,
                 accuracy_score: 0.9,
+                required_patterns_met: true,
                 latency_ms: 0.0,
                 overhead_ms: 0.0,
                 tokens: 3,
@@ -2245,6 +2359,7 @@ mod tests {
                 positional_order_match: 1.0,
                 subcommand_match: true,
                 accuracy_score: 1.0,
+                required_patterns_met: true,
                 latency_ms: 0.0,
                 overhead_ms: 0.0,
                 tokens: 4,
@@ -2336,7 +2451,7 @@ impl IncrementalCsvWriter {
         let mut trials_file = std::fs::File::create(&trials_path)?;
         writeln!(
             trials_file,
-            "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,exact_match,token_jaccard,flag_recall,flag_precision,flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,subcommand_match,accuracy_score,latency_ms,overhead_ms,tokens,format_valid,error_message"
+            "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,exact_match,token_jaccard,flag_recall,flag_precision,flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,subcommand_match,accuracy_score,required_patterns_met,latency_ms,overhead_ms,tokens,format_valid,error_message"
         )?;
 
         Ok(Self {
@@ -2349,7 +2464,7 @@ impl IncrementalCsvWriter {
         let mut file = self.trials_file.lock().unwrap();
         writeln!(
             file,
-            "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{:.1},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{},{:.1},{:.1},{},{},{}",
             csv_escape(&trial.tool),
             csv_escape(&trial.category),
             csv_escape(&trial.scenario_id),
@@ -2369,6 +2484,7 @@ impl IncrementalCsvWriter {
             trial.positional_order_match,
             trial.subcommand_match,
             trial.accuracy_score,
+            trial.required_patterns_met,
             trial.latency_ms,
             trial.overhead_ms,
             trial.tokens,
@@ -2431,7 +2547,7 @@ impl IncrementalCsvWriter {
             let mut f = std::fs::File::create(&path)?;
             writeln!(
                 f,
-                "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,exact_match,token_jaccard,flag_recall,flag_precision,flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,subcommand_match,accuracy_score,latency_ms,overhead_ms,tokens,format_valid,error_message"
+                "tool,category,scenario_id,desc_id,model,ablation,repeat,generated_args,reference_args,exact_match,token_jaccard,flag_recall,flag_precision,flag_group_recall,flag_group_precision,flag_group_jaccard,positional_order_match,subcommand_match,accuracy_score,required_patterns_met,latency_ms,overhead_ms,tokens,format_valid,error_message"
             )?;
             f
         };
@@ -2439,7 +2555,7 @@ impl IncrementalCsvWriter {
         for trial in trials {
             writeln!(
                 file,
-                "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{:.1},{:.1},{},{},{}",
+                "{},{},{},{},{},{},{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{},{:.4},{},{:.1},{:.1},{},{},{}",
                 csv_escape(&trial.tool),
                 csv_escape(&trial.category),
                 csv_escape(&trial.scenario_id),
@@ -2459,6 +2575,7 @@ impl IncrementalCsvWriter {
                 trial.positional_order_match,
                 trial.subcommand_match,
                 trial.accuracy_score,
+                trial.required_patterns_met,
                 trial.latency_ms,
                 trial.overhead_ms,
                 trial.tokens,

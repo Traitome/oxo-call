@@ -75,6 +75,7 @@ lib.rs              — Programmatic API surface (re-exports all modules)
 4. **Skill-augmented prompting**: Domain knowledge injected without code changes
 5. **Platform independence**: WASM conditional compilation, cross-platform config dirs
 6. **Strict LLM contract**: ARGS:/EXPLANATION: format with retry on invalid response
+7. **Adaptive prompt compression**: Three prompt tiers (Full/Medium/Compact) auto-selected by model size and context window, ensuring reliable output from 0.5B to 200B+ parameter models
 
 ## Why This Matters In Practice
 

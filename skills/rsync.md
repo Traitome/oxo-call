@@ -8,22 +8,25 @@ source_url: "https://rsync.samba.org/documentation.html"
 ---
 
 ## Concepts
-
 - rsync copies files efficiently by only transferring differences (delta transfer). Syntax: 'rsync [options] SOURCE DEST'. For remote: 'rsync [options] user@host:remote/path local/path' (or vice versa).
 - Key flags: -a (archive: recursive + preserve permissions/times/symlinks/owner/group), -v (verbose), -z (compress during transfer), -P (show progress + resume partial transfers = --partial --progress), -n / --dry-run (preview without making changes).
 - Trailing slash on SOURCE: 'rsync src/ dest/' copies the CONTENTS of src into dest. 'rsync src dest/' copies the src DIRECTORY itself into dest (creating dest/src/). This is the most common source of confusion.
 - The --delete flag removes files in DEST that don't exist in SOURCE, turning rsync into a true mirror. Always test with --dry-run before adding --delete.
 - SSH transport: rsync uses ssh by default for remote transfers. Specify a non-standard port or key with -e 'ssh -p 2222 -i ~/.ssh/key'.
 - Exclusions: --exclude='pattern' skips matching files; --exclude-from=file reads patterns from a file; --filter='- pattern' is the more powerful alternative. Patterns are matched against the path relative to the transfer root.
+- --bwlimit limits bandwidth usage; useful for not saturating network connections.
+- --inplace updates destination files in-place; faster for large files but less safe.
+- --append continues partial files by appending; useful for log files.
 
 ## Pitfalls
-
 - rsync with --delete will permanently remove destination files that are absent in the source. ALWAYS do a --dry-run first to preview deletions before adding --delete to a live sync.
 - The trailing slash rule: 'rsync -a src/ dest/' and 'rsync -a src dest/' behave DIFFERENTLY. The first copies contents; the second copies the directory. Verify with --dry-run when unsure.
 - rsync -a preserves ownership only when run as root. For non-root transfers that need to preserve permissions, use --no-owner and --no-group if the destination owner differs.
 - Transfers over SSH to hosts not in known_hosts will prompt for host key confirmation or fail in non-interactive scripts. Add the host key first with 'ssh-keyscan host >> ~/.ssh/known_hosts'.
 - rsync --progress shows progress per file, not total overall progress. For total progress use --info=progress2 (rsync 3.1+).
 - --checksum (-c) forces comparison by checksum rather than size+mtime, which is accurate but much slower. Avoid it for routine syncs of large datasets.
+- --inplace can corrupt destination files if transfer is interrupted; use with caution.
+- --append only works correctly if source file hasn't changed in a way that makes appended data inconsistent.
 
 ## Examples
 
@@ -66,3 +69,19 @@ source_url: "https://rsync.samba.org/documentation.html"
 ### sync only files newer than a reference file
 **Args:** `-avz --update /source/ /dest/`
 **Explanation:** --update skips destination files that are newer than the source; safe for incremental updates
+
+### limit bandwidth during transfer
+**Args:** `-avz --bwlimit=1000 /source/ user@remote:/dest/`
+**Explanation:** --bwlimit=1000 limits transfer to 1000 KB/s; useful for not saturating network connections
+
+### update files in-place for faster large file transfers
+**Args:** `-avz --inplace /large/file.dat user@remote:/dest/`
+**Explanation:** --inplace updates destination in-place; faster for large files but less safe if interrupted
+
+### append to partial files for log synchronization
+**Args:** `-avz --append /logs/app.log user@remote:/logs/`
+**Explanation:** --append continues partial files by appending; useful for continuously growing log files
+
+### sync with include patterns only
+**Args:** `-avz --include='*.fastq' --exclude='*' /source/ /dest/`
+**Explanation:** --include specifies patterns to include; --exclude='*' excludes everything else; order matters

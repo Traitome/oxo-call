@@ -15,6 +15,9 @@ source_url: "https://github.com/fritzsedlazeck/SURVIVOR/wiki"
 - SURVIVOR stats provides summary statistics on SV sizes, types, and genotype distributions in a VCF.
 - SURVIVOR filter removes SVs by size, type, allele frequency, or genotype quality to create a high-confidence call set.
 - SURVIVOR simSV simulates structural variants on a reference genome for benchmarking purposes.
+- SURVIVOR eval compares SV calls against a truth set for benchmarking accuracy.
+- SURVIVOR scanreads extracts error profiles from aligned reads for realistic simulation.
+- SURVIVOR simreads simulates long reads (PacBio/ONT) with realistic error profiles.
 
 ## Pitfalls
 
@@ -50,3 +53,27 @@ source_url: "https://github.com/fritzsedlazeck/SURVIVOR/wiki"
 ### create a VCF list file and merge three caller outputs
 **Args:** `ls sniffles.vcf pbsv.vcf cutesv.vcf > vcf_list.txt && merge vcf_list.txt 500 2 1 1 0 50 consensus_svs.vcf`
 **Explanation:** creates vcf_list.txt with three caller VCF paths; merge requires at least 2 callers to agree (min_callers=2)
+
+### convert SURVIVOR merged VCF to sorted VCF
+**Args:** `bcftools sort merged_svs.vcf -Oz -o merged_svs.sorted.vcf.gz && bcftools index merged_svs.sorted.vcf.gz`
+**Explanation:** SURVIVOR output is not sorted; use bcftools sort before downstream analysis
+
+### filter SVs by type (only deletions)
+**Args:** `filter -i calls.vcf -o deletions_only.vcf -s 50 -e 100000 -t DEL`
+**Explanation:** -t DEL filters to deletions only; combine with size filters for specific DEL size ranges
+
+### generate parameter file for SV simulation
+**Args:** `simSV parameter_file.txt reference.fasta`
+**Explanation:** creates parameter file template for SV simulation; edit parameters before running full simulation
+
+### evaluate SV calls against simulated truth set
+**Args:** `eval truth.vcf calls.vcf 500 0.5 0.5 output.txt`
+**Explanation:** evaluates call accuracy against simulated truth; 500bp distance, 0.5 size/seq similarity thresholds
+
+### scan reads for error profiles prior to simulation
+**Args:** `scanreads aligned.bam error_profile.txt`
+**Explanation:** analyzes aligned reads to generate error profiles for realistic read simulation
+
+### simulate long reads with error profiles
+**Args:** `simreads reference.fasta error_profile.txt 10000 10 reads.fasta`
+**Explanation:** simulates 10000 reads with 10x coverage using error profile; outputs FASTA of simulated reads

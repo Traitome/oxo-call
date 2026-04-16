@@ -8,7 +8,6 @@ source_url: "https://gridscheduler.sourceforge.net/htmlman/manuals.html"
 ---
 
 ## Concepts
-
 - SGE (Sun/Univa/Open Grid Scheduler) manages jobs on HPC clusters. Submit with `qsub script.sh`, monitor with `qstat`, delete with `qdel`. Resource requests use `-l resource=value` syntax.
 - Job scripts use `#$` directives: `#$ -N JOBNAME`, `#$ -q QUEUE`, `#$ -pe PARALLEL_ENV N` (parallel environment), `#$ -l h_rt=HH:MM:SS` (hard runtime limit), `#$ -l h_vmem=SIZE` (memory per slot).
 - Parallel environments (PE) control multi-threading: `#$ -pe smp N` for shared-memory (threads), `#$ -pe mpi N` for distributed (MPI). Check available PEs with `qconf -spl`.
@@ -16,9 +15,10 @@ source_url: "https://gridscheduler.sourceforge.net/htmlman/manuals.html"
 - Array jobs: `qsub -t 1-100 script.sh`. Each task gets `$SGE_TASK_ID`. Use `-tc N` to limit concurrent tasks. Output files use `$JOB_ID.$TASK_ID` naming.
 - Environment variables: `$JOB_ID`, `$SGE_TASK_ID`, `$NSLOTS` (allocated slots), `$TMPDIR` (local scratch per job), `$SGE_O_WORKDIR` (submission directory).
 - Resource queries: `qhost` lists nodes and their resources; `qconf -sql` lists queues; `qconf -sq QUEUE` shows queue configuration; `qquota` shows your resource usage quotas.
+- `qmod` modifies job properties; `qmod -s` suspends jobs, `qmod -us` unsuspends.
+- `qresub` resubmits a completed job for re-execution.
 
 ## Pitfalls
-
 - SGE does NOT change to the submission directory by default. Add `cd $SGE_O_WORKDIR` or use `#$ -cwd` to run in the current working directory.
 - Memory requests (`-l h_vmem=4G`) are per-slot in most configurations. If you request 8 slots (`-pe smp 8`) with `h_vmem=4G`, total memory is 32G. Check your site's policy.
 - `h_rt` (hard runtime) vs `s_rt` (soft runtime): jobs exceeding `h_rt` are killed immediately. Set `h_rt` with margin. Always use `h_rt`, not just `s_rt`.
@@ -26,6 +26,8 @@ source_url: "https://gridscheduler.sourceforge.net/htmlman/manuals.html"
 - Output/error files (`-o` and `-e`) default to the home directory unless `-cwd` is set. Combine stdout/stderr with `#$ -j y` (join=yes) to simplify log management.
 - The `$NSLOTS` variable gives the number of allocated slots — use this in your commands (e.g., `-t $NSLOTS` for thread count) instead of hard-coding thread numbers.
 - Array task IDs start at the value you specify. `qsub -t 0-99` gives IDs 0-99; `qsub -t 1-100` gives 1-100. Ensure your sample list indexing matches.
+- `qmod -s` suspends running jobs but does not stop them; use `qdel` to terminate.
+- `qresub` creates a new job with new ID; original job history is not preserved.
 
 ## Examples
 
@@ -68,3 +70,23 @@ source_url: "https://gridscheduler.sourceforge.net/htmlman/manuals.html"
 ### check accounting information for completed jobs
 **Args:** `qacct -j 12345`
 **Explanation:** shows resource usage (ru_wallclock, maxvmem, cpu) for completed jobs; useful for optimizing future resource requests
+
+### suspend a running job
+**Args:** `qmod -s 12345`
+**Explanation:** suspends job 12345; job stops consuming CPU but remains in memory; use qmod -us to resume
+
+### resume a suspended job
+**Args:** `qmod -us 12345`
+**Explanation:** unsuspends job 12345; job resumes execution from where it was suspended
+
+### resubmit a completed job
+**Args:** `qresub 12345`
+**Explanation:** creates a new job identical to 12345; gets new job ID; useful for re-running failed jobs
+
+### check available parallel environments
+**Args:** `qconf -spl`
+**Explanation:** lists all configured parallel environments (smp, mpi, etc.); shows available PE names for -pe directive
+
+### modify job resource requirements
+**Args:** `qmod -l h_rt=08:00:00 12345`
+**Explanation:** modifies resource requirements of pending job; cannot modify running jobs

@@ -50,3 +50,23 @@ source_url: "https://github.com/marbl/verkko"
 ### assemble with ONT reads only (no HiFi)
 **Args:** `--ont ont_reads.fastq.gz -d ont_assembly --threads 64`
 **Explanation:** ONT-only mode uses a longer k-mer graph; quality is lower than HiFi+ONT but works without PacBio data
+
+### run Verkko with Hi-C data for phasing
+**Args:** `--hifi hifi_reads.fastq.gz --hic1 hic_R1.fastq.gz --hic2 hic_R2.fastq.gz -d hic_assembly --threads 64`
+**Explanation:** uses Hi-C reads for haplotype phasing; alternative to trio binning
+
+### generate assembly statistics
+**Args:** `stats assembly.fasta`
+**Explanation:** outputs assembly statistics including N50, contig count, and total size
+
+### evaluate assembly completeness with BUSCO
+**Args:** `busco -i assembly.fasta -l eukaryota_odb10 -o busco_out -m genome --cpu 16`
+**Explanation:** runs BUSCO on Verkko assembly; assesses gene set completeness
+
+### align reads to assembly for quality check
+**Args:** `minimap2 -ax map-hifi assembly.fasta hifi_reads.fastq.gz | samtools sort -o aligned.bam`
+**Explanation:** aligns HiFi reads back to assembly; check coverage uniformity
+
+### run Verkko with custom k-mer size
+**Args:** `--hifi hifi_reads.fastq.gz --k-mer-size 31 -d custom_k_assembly --threads 64`
+**Explanation:** --k-mer-size adjusts De Bruijn graph k-mer; default is 21 for HiFi

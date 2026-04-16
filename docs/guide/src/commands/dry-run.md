@@ -23,6 +23,22 @@ oxo-call d       [OPTIONS] <TOOL> <TASK>
 | `-v`, `--verbose` | Show docs source, skill info, and LLM details (global) |
 | `--license <PATH>` | Path to license file (global option) |
 
+### Prompt Tier
+
+The prompt compression tier is auto-detected from the model size and context
+window. You can override it with the `llm.prompt_tier` config key or the
+`OXO_CALL_LLM_PROMPT_TIER` environment variable:
+
+```bash
+# Force Compact tier for a small model
+OXO_CALL_LLM_PROMPT_TIER=compact oxo-call dry-run samtools "sort bam"
+
+# Force Medium tier
+OXO_CALL_LLM_PROMPT_TIER=medium oxo-call dry-run samtools "sort bam"
+```
+
+Use `--verbose` to see which tier was selected for a given invocation.
+
 ## Description
 
 `dry-run` follows the same pipeline as `run` (documentation fetch → skill loading → LLM generation) but prints the resulting command instead of executing it. Use this to:

@@ -2,7 +2,7 @@
 name: gatk
 category: variant-calling
 description: Genome Analysis Toolkit — best-practice variant discovery pipeline for germline and somatic variants
-tags: [variant-calling, snp, indel, germline, somatic, gatk, best-practices]
+tags: [variant-calling, snp, indel, germline, somatic, gatk, best-practices, gvcf, bqsr, vqsr]
 author: oxo-call built-in
 source_url: "https://gatk.broadinstitute.org/hc/en-us"
 ---
@@ -18,9 +18,16 @@ source_url: "https://gatk.broadinstitute.org/hc/en-us"
 - VQSR (VariantQualityScoreRecalibration) is preferred over hard filtering for large cohorts (>30 samples).
 - For small cohorts, use hard filtering: SNPs: QD<2, FS>60, MQ<40; Indels: QD<2, FS>200.
 - SelectVariants extracts a subset of variants from a VCF by type (SNP/INDEL), sample, region, or filter status.
+- --alleles forces genotyping at specific sites regardless of evidence; useful for targeted re-sequencing.
+- --max-alternate-alleles limits the number of alternate alleles considered (default 6); increase for highly polymorphic regions.
+- --min-pruning controls haplotype pruning during local assembly; lower values increase sensitivity but may increase runtime.
+- GenomicsDBImport creates a GenomicsDB workspace from multiple GVCFs; required before GenotypeGVCFs for large cohorts.
+- AnalyzeCovariates evaluates BQSR tables and generates plots for quality assessment.
+- --spark-runner enables distributed execution for Spark-enabled tools (MarkDuplicatesSpark, BQSRPipelineSpark).
 
 ## Pitfalls
 
+- CRITICAL: GATK ARGS must start with a tool name subcommand (HaplotypeCaller, Mutect2, MarkDuplicates, BaseRecalibrator, ApplyBQSR, CreateSequenceDictionary, AddOrReplaceReadGroups, SelectVariants, GenotypeGVCFs, GenomicsDBImport, FilterMutectCalls, ValidateSamFile, SortSam, CollectAlignmentSummaryMetrics, CollectInsertSizeMetrics) — never with flags like -R, -I, -O. The tool name ALWAYS comes first.
 - GATK requires a sequence dictionary (.dict file) alongside the reference FASTA — run CreateSequenceDictionary first.
 - HaplotypeCaller needs read groups in the BAM; if missing, add with AddOrReplaceReadGroups first.
 - Mutect2 somatic calling requires a matched normal sample with -I normal.bam -normal normal_sample_name.
@@ -29,6 +36,10 @@ source_url: "https://gatk.broadinstitute.org/hc/en-us"
 - For WGS, always provide --intervals chr1 chr2 ... to parallelize; omitting it runs on the entire genome sequentially.
 - BaseRecalibrator requires at least one --known-sites VCF (e.g., dbSNP, Mills indels) — omitting it causes an error.
 - ApplyBQSR must receive the recalibration table from BaseRecalibrator via --bqsr-recal-file; do not skip this flag.
+- GenomicsDBImport requires non-overlapping intervals; use -L with interval list for proper partitioning.
+- --alleles forces genotyping but may produce low-quality calls if no evidence exists; filter post-calling.
+- Spark tools require --spark-runner LOCAL (or SPARK/GCS); omitting causes errors on Spark-enabled tools.
+- HaplotypeCaller -ERC GVCF mode requires GenotypeGVCFs for final VCF; do not use GVCF directly for analysis.
 
 ## Examples
 
@@ -75,3 +86,35 @@ source_url: "https://gatk.broadinstitute.org/hc/en-us"
 ### joint genotype multiple samples from GenomicsDB
 **Args:** `GenotypeGVCFs -R reference.fa -V gendb://genomicsdb -O cohort.vcf.gz`
 **Explanation:** final joint genotyping step for cohort GVCF workflow; input is a GenomicsDB workspace created by GenomicsDBImport
+
+### force genotype specific alleles from a target list
+**Args:** `HaplotypeCaller -R reference.fa -I input.bam -O forced.vcf.gz --alleles targets.vcf --force-call-filtered-alleles`
+**Explanation:** --alleles forces genotyping at target sites; --force-call-filtered-alleles includes filtered sites; useful for targeted re-sequencing
+
+### import multiple GVCFs into GenomicsDB for joint calling
+**Args:** `GenomicsDBImport -V sample1.g.vcf.gz -V sample2.g.vcf.gz -V sample3.g.vcf.gz --genomicsdb-workspace-path genomicsdb -L intervals.list`
+**Explanation:** creates GenomicsDB workspace from multiple GVCFs; -L specifies non-overlapping intervals for partitioning
+
+### run BQSR with multiple known sites
+**Args:** `BaseRecalibrator -R reference.fa -I input.bam --known-sites dbsnp.vcf.gz --known-sites Mills_indels.vcf.gz -O recal.table`
+**Explanation:** multiple --known-sites arguments for comprehensive recalibration; recommended to include both SNP and indel databases
+
+### analyze BQSR recalibration quality
+**Args:** `AnalyzeCovariates -before recal.table -plots bqsr_plots.pdf -csv bqsr_metrics.csv`
+**Explanation:** evaluates recalibration table and generates quality plots; useful for validating BQSR performance
+
+### run Spark-enabled MarkDuplicates for large BAMs
+**Args:** `MarkDuplicatesSpark -I input.bam -O markdup.bam -M metrics.txt --spark-runner LOCAL`
+**Explanation:** MarkDuplicatesSpark uses Spark for parallelization; --spark-runner LOCAL runs on single machine; faster for large files
+
+### call variants with increased sensitivity for indels
+**Args:** `HaplotypeCaller -R reference.fa -I input.bam -O variants.vcf.gz --min-pruning 1 --max-alternate-alleles 10`
+**Explanation:** --min-pruning 1 reduces haplotype pruning for better indel detection; --max-alternate-alleles 10 allows more alternates in complex regions
+
+### validate SAM/BAM file before GATK analysis
+**Args:** `ValidateSamFile -I input.bam -MODE SUMMARY`
+**Explanation:** checks BAM validity and reports errors; MODE SUMMARY gives overview; use MODE VERBOSE for detailed error listing
+
+### sort BAM by coordinate for GATK compatibility
+**Args:** `SortSam -I unsorted.bam -O sorted.bam -SO coordinate`
+**Explanation:** sorts BAM by coordinate; GATK requires coordinate-sorted input; -SO coordinate specifies sort order

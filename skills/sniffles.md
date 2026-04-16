@@ -8,7 +8,6 @@ source_url: "https://github.com/fritzsedlazeck/Sniffles"
 ---
 
 ## Concepts
-
 - Sniffles2 (version 2) detects SVs from long-read (ONT/PacBio) aligned BAM files; requires sorted, indexed BAM with MD tags.
 - Use minimap2 -ax map-ont or map-pb to align reads first, then sort and index with samtools.
 - Sniffles2 outputs VCF by default; use --vcf to specify output filename.
@@ -16,15 +15,24 @@ source_url: "https://github.com/fritzsedlazeck/Sniffles"
 - Population SV calling: run Sniffles2 --snf per sample, then combine with sniffles2 --input *.snf.
 - Use --minsupport N to set minimum read support (default: auto); --minsvlen to set minimum SV length.
 - Sniffles2 handles mosaic SVs with --mosaic flag for detecting low-frequency SVs.
+- --reference is required to output deletion sequences in VCF; provide reference FASTA.
+- --tandem-repeats improves calling in repetitive regions; provide BED file with repeat annotations.
+- --phase determines phase for SV calls; requires phased input alignments.
+- --genotype-vcf performs force calling on known SVs; genotypes input SV set in new sample.
+- --combine-pctseq controls merging distance for multi-sample calling (default 0.7).
 
 ## Pitfalls
-
 - Sniffles2 requires MD tags in BAM — add --MD to minimap2 command: minimap2 --MD -ax map-ont ref.fa reads.fa | samtools sort.
 - Input BAM must be coordinate-sorted and indexed with samtools index.
 - Sniffles1 (older) has different command syntax than Sniffles2 — check version with sniffles --version.
 - Without --snf, multi-sample calling requires re-running, which is less efficient than SNF-based approach.
 - Very high --minsupport may miss rare somatic or mosaic events; very low values increase false positives.
 - Sniffles is designed for long reads (>1kb) — it performs poorly on short Illumina reads.
+- --reference is needed for deletion sequences; without it, DEL entries lack ALT sequences.
+- --tandem-repeats improves accuracy in repeats; download annotations for your reference genome.
+- --phase requires phased input BAM (e.g., from WhatsHap or HapCUT2); unphased BAM gives no phase info.
+- --mosaic mode is more sensitive but increases false positives; validate mosaic calls carefully.
+- --combine-pctseq 0.7 (default) may merge distinct SVs; decrease for stricter merging.
 
 ## Examples
 
@@ -47,3 +55,31 @@ source_url: "https://github.com/fritzsedlazeck/Sniffles"
 ### call mosaic or somatic SVs with low frequency support
 **Args:** `--input tumor.bam --vcf mosaic_svs.vcf --mosaic --threads 8`
 **Explanation:** --mosaic enables detection of low-frequency SVs (somatic mutations, mosaicism)
+
+### call SVs with reference for deletion sequences
+**Args:** `--input sorted.bam --vcf output.vcf --reference genome.fa --threads 8`
+**Explanation:** --reference provides reference FASTA; enables output of deletion sequences in VCF
+
+### call SVs with tandem repeat annotations
+**Args:** `--input sorted.bam --vcf output.vcf --tandem-repeats tandem_repeats.bed --threads 8`
+**Explanation:** --tandem-repeats improves SV calling in repetitive regions; provide BED annotation
+
+### call phased SVs from phased alignments
+**Args:** `--input phased.bam --vcf phased_svs.vcf --phase --threads 8`
+**Explanation:** --phase determines phase for SV calls; requires phased input BAM (PS tag)
+
+### genotype known SVs in new sample (force calling)
+**Args:** `--input sample.bam --genotype-vcf known_svs.vcf --vcf genotyped.vcf --threads 8`
+**Explanation:** --genotype-vcf genotypes input SV set; useful for comparing SVs across samples
+
+### combine SNF files using TSV list
+**Args:** `--input snf_list.tsv --vcf population.vcf --threads 8`
+**Explanation:** snf_list.tsv contains SNF paths (one per line, optional sample ID in second column)
+
+### stricter multi-sample SV merging
+**Args:** `--input sample1.snf sample2.snf --vcf population.vcf --combine-pctseq 0.5 --threads 8`
+**Explanation:** --combine-pctseq 0.5 requires 50% sequence similarity for merging; stricter than default 0.7
+
+### output read names in VCF
+**Args:** `--input sorted.bam --vcf output.vcf --output-rnames --threads 8`
+**Explanation:** --output-rnames includes supporting read names in VCF; useful for validation

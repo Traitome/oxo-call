@@ -54,3 +54,23 @@ source_url: "https://sourmash.readthedocs.io/"
 ### build an indexed database from many signature files for fast search
 **Args:** `index refdb.zip sigs/*.sig -k 31`
 **Explanation:** creates a zipped SBT index for fast containment search with sourmash search and gather
+
+### sketch protein sequences instead of DNA
+**Args:** `sketch protein -p k=10,scaled=100 proteins.fasta -o proteins.sig`
+**Explanation:** k=10 for amino acids; protein sketches enable comparison at protein level; different k-mer size than DNA
+
+### compare signatures using containment instead of Jaccard
+**Args:** `compare sigs/*.sig --containment --csv containment_matrix.csv -k 31`
+**Explanation:** --containment uses asymmetric containment index; better for comparing genomes of different sizes
+
+### gather with protein sketches against protein database
+**Args:** `gather protein_sample.sig protein_db.zip -k 10 --threshold-bp 50000 -o protein_gather.csv`
+**Explanation:** uses protein sketches for taxonomic classification; k=10 for amino acid k-mers
+
+### sketch with multiple k-mer sizes in one file
+**Args:** `sketch dna -p k=21,k=31,k=51,scaled=1000 genome.fasta -o multi_k.sig`
+**Explanation:** creates signature with multiple k-mer sizes; allows comparison at different resolutions
+
+### calculate pairwise distances between signatures
+**Args:** `compare sigs/*.sig --distance-matrix -o distances.npy`
+**Explanation:** outputs numpy distance matrix; suitable for clustering and phylogenetic analysis

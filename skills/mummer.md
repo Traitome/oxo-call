@@ -19,6 +19,10 @@ source_url: "https://mummer4.github.io/"
 - MUMmer4 is a significant rewrite of MUMmer3; the API is compatible but performance and accuracy are improved.
 - All MUMmer tools accept multi-FASTA inputs; for many-vs-many, consider NUCmer's `--mum` or use a loop.
 - Default minimum cluster length is 65 bp (`nucmer -c 65`); lower for short sequences or highly similar genomes.
+- `--mum` finds matches unique in both sequences; `--mumreference` finds matches unique in reference (default); `--maxmatch` finds all matches regardless of uniqueness.
+- `show-tiling` constructs a tiling path of query contigs on reference; useful for assembly validation and scaffolding.
+- `show-diff` classifies breakpoints and rearrangements from alignments; outputs `.rdiff` and `.qdiff` files.
+- `--nosimplify` preserves all alignments including shadowed clusters; essential for self-alignment and repeat detection.
 
 ## Pitfalls
 - not using `delta-filter -1` before `show-snps` reports duplicated SNPs from repetitive regions; always filter for 1-to-1 alignments before SNP analysis.
@@ -28,6 +32,10 @@ source_url: "https://mummer4.github.io/"
 - `promer` uses translated BLAST-like alignment and is slower than `nucmer`; only use it when comparing highly divergent sequences (e.g., bacteria vs distant relatives).
 - `mummerplot` requires gnuplot and sometimes postscript rendering; install gnuplot via conda if it is missing.
 - MUMmer3 and MUMmer4 produce slightly different delta files; do not mix utilities from different versions.
+- `--maxmatch` generates many more alignments than `--mum`; can be very slow for large genomes with repeats.
+- Self-alignment requires `--nosimplify` to see all repeats; default `--simplify` removes shadowed alignments.
+- `show-tiling` assigns each contig to only one location; repetitive contigs may be misplaced or excluded.
+- `dnadiff` overwrites existing output files without warning; use unique prefixes for different comparisons.
 
 ## Examples
 
@@ -58,3 +66,31 @@ source_url: "https://mummer4.github.io/"
 ### align with a custom minimum match length
 **Args:** `nucmer -c 100 -l 20 --prefix large_genome ref.fa query.fa`
 **Explanation:** -c 100 sets minimum cluster length; -l 20 sets minimum MUM length; larger values speed up alignment of large genomes with fewer spurious hits
+
+### find all matches including repeats with maxmatch
+**Args:** `nucmer --maxmatch --prefix=all_matches ref.fa query.fa`
+**Explanation:** --maxmatch finds all matches regardless of uniqueness; useful for repeat analysis but slower
+
+### align genome to itself for repeat detection
+**Args:** `nucmer --maxmatch --nosimplify --prefix=self_align genome.fa genome.fa`
+**Explanation:** --nosimplify preserves shadowed alignments; essential for self-alignment to find all repeats
+
+### generate tiling path for assembly validation
+**Args:** `show-tiling -i 95 -l 1000 alignment.delta > tiling.txt`
+**Explanation:** show-tiling constructs best placement of query contigs on reference; -i 95 -l 1000 filters by identity and length
+
+### identify structural rearrangements with show-diff
+**Args:** `show-diff -rH alignment.mdelta > rearrangements.rdiff`
+**Explanation:** show-diff classifies breakpoints; -rH outputs reference breakpoints in human-readable format
+
+### filter alignments by minimum identity and length
+**Args:** `delta-filter -i 95 -l 10000 alignment.delta > filtered.delta`
+**Explanation:** -i 95 requires 95% identity; -l 10000 requires 10kb length; removes spurious short alignments
+
+### extract alignments for specific sequences
+**Args:** `show-aligns alignment.delta ref_id query_id`
+**Explanation:** show-aligns displays full alignment for specific reference/query ID pair; useful for inspecting individual alignments
+
+### compare divergent genomes with protein-level alignment
+**Args:** `promer --prefix=protein_align ref.fa query.fa`
+**Explanation:** promer uses 6-frame translation; better for distant species where DNA similarity is low but protein conserved

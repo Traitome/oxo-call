@@ -2,7 +2,7 @@
 name: fastqc
 category: qc
 description: Quality control analysis tool for high-throughput sequencing data producing HTML and zip reports
-tags: [qc, quality-control, fastq, ngs, illumina, report, sequencing]
+tags: [qc, quality-control, fastq, ngs, illumina, report, sequencing, bam, sam]
 author: oxo-call built-in
 source_url: "https://www.bioinformatics.babraham.ac.uk/projects/fastqc/"
 ---
@@ -16,15 +16,26 @@ source_url: "https://www.bioinformatics.babraham.ac.uk/projects/fastqc/"
 - The --noextract flag keeps the zip file without extracting it (useful when only the HTML is needed).
 - Key modules: Per Base Sequence Quality, Per Sequence Quality, Per Base N Content, Sequence Duplication, Adapter Content.
 - FastQC works in batch mode — pass multiple files at once: fastqc file1.fq file2.fq -o qc_results/
+- --nogroup disables base grouping for reads >50bp; shows data for every base but may crash on very long reads.
+- --memory sets base memory per file (default 512MB); increase for files with very long sequences.
+- --svg saves graphs in SVG format instead of PNG for higher quality vector graphics.
+- -k/--kmers sets Kmer length for Kmer content module (2-10bp, default 7).
+- -c/--contaminants specifies a file with contaminant sequences to screen overrepresented sequences.
+- --dup_length sets truncation length for duplicate detection (default 50bp); useful for long reads with UMIs.
 
 ## Pitfalls
 
+- CRITICAL: fastqc has NO subcommands. ARGS starts directly with input files or flags (e.g., -t, -o, --noextract). Do NOT put a subcommand like 'check' or 'analyze' before flags.
 - FastQC output goes to the same directory as the input by default — always use -o to control output location.
 - FastQC is single-threaded per file; -t only helps when processing multiple files simultaneously.
 - FastQC adapts thresholds for short reads but may give misleading WARN/FAIL on amplicon or very short-read data — interpret in context.
 - FastQC does not trim reads — it only evaluates quality and generates reports.
 - For BAM input, FastQC works on the sequences as stored — ensure BAM is not empty.
 - Using --extract together with -o creates subdirectories — check that the output path has write permission.
+- --nogroup can crash on very long reads (e.g., PacBio/Nanopore) and create huge plots — use with caution.
+- Each thread allocates 512MB memory by default; ensure sufficient RAM when using high -t values.
+- Kmer module is disabled by default in recent versions; enable with appropriate -k value if needed.
+- --casava flag only works with raw Casava output files with specific naming conventions.
 
 ## Examples
 
@@ -47,3 +58,27 @@ source_url: "https://www.bioinformatics.babraham.ac.uk/projects/fastqc/"
 ### run fastqc with custom adapter sequences and format specification
 **Args:** `-f fastq -a adapters.txt -t 4 -o qc_results/ reads.fastq.gz`
 **Explanation:** -f specifies format; -a provides custom adapter sequences for adapter content module
+
+### run fastqc with SVG output for publication-quality graphics
+**Args:** `--svg -t 4 -o qc_results/ sample1.fastq.gz sample2.fastq.gz`
+**Explanation:** --svg generates SVG format graphs instead of PNG; better for publications and presentations
+
+### run fastqc on long reads with increased memory
+**Args:** `--memory 1024 -t 2 -o qc_results/ long_reads.fastq.gz`
+**Explanation:** --memory 1024 allocates 1GB per file; necessary for files with very long sequences (e.g., PacBio)
+
+### run fastqc with custom contaminant screening
+**Args:** `-c contaminants.txt -t 4 -o qc_results/ reads.fastq.gz`
+**Explanation:** -c specifies contaminant file (name[tab]sequence format); screens overrepresented sequences
+
+### run fastqc with specific Kmer length for Kmer content analysis
+**Args:** `-k 5 -t 4 -o qc_results/ reads.fastq.gz`
+**Explanation:** -k 5 sets Kmer length to 5bp for Kmer content module; valid range is 2-10bp
+
+### run fastqc on Casava raw output files
+**Args:** `--casava -t 4 -o qc_results/ sample_L001_R1_001.fastq.gz sample_L001_R2_001.fastq.gz`
+**Explanation:** --casava groups files from same sample and excludes filtered reads; requires Casava naming convention
+
+### run fastqc with custom duplication detection length
+**Args:** `--dup_length 75 -t 4 -o qc_results/ reads_with_umis.fastq.gz`
+**Explanation:** --dup_length 75 truncates sequences to 75bp for duplicate detection; useful for long reads with UMIs

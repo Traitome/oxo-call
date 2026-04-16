@@ -29,35 +29,32 @@ Each role uses a separate system prompt so the LLM behaves appropriately for the
 
 ### System Prompt
 
-The command generation system prompt constrains the LLM's behavior with 16 rules organised into four categories:
+The command generation system prompt uses 10 concise rules that are optimised for
+reliability across all model sizes. Three variants exist (see [Adaptive Prompt
+Compression](#adaptive-prompt-compression) below); this section describes the **Full**
+variant used for large models.
 
-**Critical Output Rules (1–3)**
+**Format Rule**
 
 1. Respond with EXACTLY two labeled lines: `ARGS:` and `EXPLANATION:`. No other text.
-2. ARGS must be valid ASCII CLI flags and values — no markdown, code fences, or backticks.
-3. EXPLANATION should be in the same language as the task description.
 
-**Tool Invocation Rules (4–6)**
+**Invocation Rules (2–5)**
 
-4. Never start ARGS with the tool name (it is prepended automatically). Companion binary and script executable exceptions allow the first token to be a companion binary (e.g., `bowtie2-build`) or a script (e.g., `bbduk.sh`).
-5. For tools with subcommands, put the subcommand as the first ARGS token.
-6. For tools using positional arguments before flags, place input files before flags.
+2. NEVER start ARGS with the tool name (auto-prepended by system).
+3. First token = subcommand (sort, view, mem, index, etc), NEVER a flag.
+4. Companion binaries (e.g. `bowtie2-build`) or scripts (e.g. `bbduk.sh`) go as first token when skill docs say so.
+5. Multi-step: join with `&&`. Tool name auto-prepended ONLY to first segment — later commands MUST include their full binary name.
 
-**Multi-Step and Pipeline Rules (7–8)**
+**Accuracy Rules (6–7)**
 
-7. Join multi-step tasks with `&&`; the tool name is auto-prepended only to the first segment.
-8. Include piping (`|`) and redirection (`>`) directly in ARGS.
+6. Use ONLY flags from docs or skill examples — never invent flags.
+7. Include every file/path from the task. Prefer skill example flags. Include threads (`-@`/`-t`/`--threads`) and output (`-o`) when applicable.
 
-**Accuracy and Bioinformatics Best Practices (9–16)**
+**Convention Rules (8–10)**
 
-9. Only use flags from the provided documentation or skill examples — never hallucinate.
-10. Include every file name and path from the task description.
-11. Prefer flags from the skill examples when they match the task.
-12. Include thread counts, explicit output files, and reference/index files.
-13. Use common bioinformatics conventions for ambiguous tasks (paired-end, coordinate-sorted BAM, hg38, gzipped FASTQ, Phred+33).
-14. Match file format flags to actual input/output types.
-15. Set correct strand-specific flags when library strandedness is mentioned.
-16. Write `ARGS: (none)` when no arguments are needed.
+8. Default conventions: paired-end, coordinate-sorted BAM, hg38, gzipped FASTQ, Phred+33.
+9. Match format flags to actual types (BAM/SAM/CRAM, gzipped/plain, paired/single, FASTA/FASTQ).
+10. If no arguments needed: `ARGS: (none)`.
 
 ### Response Format
 
@@ -72,7 +69,7 @@ If the response doesn't match this format, oxo-call retries the request.
 
 ### Raw Prompt Example
 
-Below is an example of the complete user prompt sent to the LLM for a `samtools sort` task. This shows the actual structure including skill injection and format instructions.
+Below is an example of the complete user prompt sent to the LLM for a `samtools sort` task using the **Full** tier. The system prompt (shown above) is sent separately; the user prompt focuses on context and task.
 
 ```
 # Tool: `samtools`
@@ -104,27 +101,28 @@ Explanation: creates .bai index required for random access
 ## Task
 sort input.bam by coordinate and output to sorted.bam
 
-## Output Format (STRICT — do not add any other text)
-Respond with EXACTLY two lines:
+## Output
+ARGS: <subcommand then flags, NO tool name>
+EXPLANATION: <brief>
+```
 
-ARGS: <all command-line arguments, space-separated, WITHOUT the tool name>
-EXPLANATION: <one concise sentence — same language as the Task>
+For the **Compact** tier (used with ≤3B models), the prompt uses a few-shot format:
 
-RULES:
-- ARGS must NOT start with the tool name (it is prepended by the system)
-- COMPANION BINARY: if the skill says the task needs a companion binary
-  (e.g., 'bowtie2-build'), put it as the FIRST token in ARGS
-- SCRIPT EXECUTABLE: if the skill shows a script (e.g., 'bbduk.sh',
-  'infer_experiment.py') as the first token, use it directly in ARGS
-- Use ONLY flags from the documentation or skill examples above — never invent flags
-- Prefer flags from the skill examples when they match the task
-- Include every file path mentioned in the task
-- ARGS must be valid ASCII CLI flags and values — no markdown, no code fences
-- If no arguments are needed, write: ARGS: (none)
-- Piping (|) and redirection (>) go directly in ARGS
-- Multi-step: join with '&&'; the tool name is auto-prepended ONLY to the
-  first segment — each subsequent command MUST include its full binary name
-  (e.g., 'sort ... && samtools index ...', NOT 'sort ... && index ...')
+```
+Tool: samtools
+
+Task: Sort a BAM file by coordinate
+
+---FEW-SHOT---
+
+ARGS: sort -@ 4 -o sorted.bam input.bam
+EXPLANATION: Sort BAM by coordinate with 4 threads.
+
+---FEW-SHOT---
+
+Tool: samtools
+Task: sort bam by coordinate
+
 ```
 
 Use `--verbose` mode to see the actual prompt for any command:
@@ -186,13 +184,44 @@ This approach is critical for accuracy, especially with:
 
 When `llm.context_window` is configured (or auto-detected from the model
 name), oxo-call automatically compresses prompts to fit the model's context
-budget.  Three tiers are used:
+budget. Three tiers are used, each with a **purpose-built system prompt** and
+**user prompt strategy**:
 
-| Tier | Context Window | System Prompt | Skill Examples | Documentation | Format Instructions |
-|------|---------------|---------------|----------------|---------------|---------------------|
-| **Full** | ≥ 16k or unknown | Full (16 rules) | All (up to 10) | Full | Full |
-| **Medium** | 4k – 16k | Full | Up to 5 | Truncated to fit | Compact |
-| **Compact** | ≤ 4k | Ultra-compact (3 rules) | Top 3 only, 3 concepts, 2 pitfalls | Heavily truncated or omitted | Minimal |
+| Tier | Context Window | System Prompt | User Prompt Strategy | Target Models |
+|------|---------------|---------------|---------------------|---------------|
+| **Full** | ≥ 16k or unknown | 10 rules (~450 tokens) | Skill → Docs → Task → concise Output | 7B+, ≥16K context |
+| **Medium** | 4k – 16k | Medium-specific (~120 tokens) | Skill(5 examples) → truncated Docs → Task → Output | 4–7B, 4K–16K context |
+| **Compact** | ≤ 4k | Concrete example + 3 rules (~80 tokens) | Few-shot(2 examples or fallback) → optional Docs → Task | ≤3B, any context |
+
+### Tier Design Philosophy
+
+**Full** — For models that can effectively use all available context. The system
+prompt contains 10 comprehensive rules; the user prompt injects full skill
+knowledge and complete documentation before the task.
+
+**Medium** — For mid-range models with limited but usable context. Uses a
+dedicated, shorter system prompt. Documentation is truncated to fit the
+remaining budget after skill examples (up to 5, task-relevant selection) are
+included. Docs are placed **after** skill but **before** task, so the model
+focuses on expert knowledge first.
+
+**Compact** — For small models (≤3B) that suffer from **context overflow**.
+Key design decisions:
+
+1. **Few-shot > instructions**: Small models imitate better than they follow
+   rules. The `---FEW-SHOT---` markers create user/assistant/user turns that
+   demonstrate the exact output format.
+2. **Concrete examples > abstract placeholders**: The system prompt uses
+   `ARGS: sort -@ 4 -o out.bam in.bam` instead of `ARGS: <subcommand then
+   flags>`, because some models (e.g., starcoder2) would literally output the
+   placeholder text.
+3. **No format template in the final user message**: Including `Output:\nARGS:
+   sort...` causes some models to output empty — they interpret the template
+   as the answer already being provided.
+4. **Fallback generic example**: When no skill is loaded, a `samtools sort`
+   example is injected so the model always sees the correct output format.
+5. **Selective documentation injection**: When no skill examples are available,
+   a heavily truncated doc section is injected as the only grounding source.
 
 ### Auto-Detection
 
@@ -208,17 +237,26 @@ The context window is inferred from common model name patterns:
 
 ### Manual Configuration
 
-Override auto-detection in `config.toml`:
+Override auto-detection via `config.toml` or environment variables:
 
 ```toml
 [llm]
 context_window = 4096   # force Medium tier
+prompt_tier = "compact"  # force Compact tier regardless of context_window
 ```
 
-Or set per-invocation:
+Or per-invocation:
 
 ```bash
-oxo-call config set llm.context_window 2048
+# Force a specific tier
+oxo-call config set llm.prompt_tier compact    # ≤3B models
+oxo-call config set llm.prompt_tier auto       # auto-detect (default)
+
+# Override context window
+oxo-call config set llm.context_window 2048    # force Compact
+
+# Per-invocation via environment
+OXO_CALL_LLM_PROMPT_TIER=compact oxo-call dry-run samtools "sort bam"
 ```
 
 ### Design Rationale
@@ -228,7 +266,26 @@ prompt exceeds their effective context, the output quality degrades sharply
 (empty output, format violations, hallucinated flags).  The Compact tier
 addresses this by:
 
-1. **Reducing system prompt** from ~1,600 to ~200 characters
-2. **Limiting to 3 most-relevant examples** instead of all 5–10
-3. **Truncating documentation** to fit remaining budget
-4. **Simplifying format instructions** to the essentials (`ARGS:` / `EXPLANATION:`)
+1. **Reducing system prompt** from ~1,600 characters (16 rules) to ~200
+   characters (concrete example + 3 rules)
+2. **Using few-shot instead of format instructions** — small models imitate
+   better than they follow abstract rules
+3. **Limiting to 2 most-relevant examples** as few-shot assistant messages
+4. **Omitting raw documentation** unless no skill examples are available
+5. **Avoiding format templates in the user message** that confuse small models
+
+### Small Model Performance
+
+After the 3-tier prompt system redesign, small model accuracy improved
+dramatically:
+
+| Model | Parameters | Before | After |
+|-------|-----------|--------|-------|
+| qwen2.5-coder | 0.5B | ~0% | 83–100% |
+| deepseek-coder | 1.3B | ~20% | 75–100% |
+| llama3.2 | 3B | ~0% | 100% |
+| starcoder2 | 3B | ~0% | 91% |
+| ministral | 3B | ~0% | 100% |
+
+"Before" = original Full-tier prompt on all models. "After" = automatic tier
+selection with the redesigned prompt system.

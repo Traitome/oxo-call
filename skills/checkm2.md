@@ -2,7 +2,7 @@
 name: checkm2
 category: metagenomics
 description: Assessment of metagenome-assembled genome (MAG) and isolate genome quality using machine learning
-tags: [metagenomics, mag, quality, completeness, contamination, genome, binning]
+tags: [metagenomics, mag, quality, completeness, contamination, genome, binning, MIMAG, diamond, prodigal]
 author: oxo-call built-in
 source_url: "https://github.com/chklovski/CheckM2"
 ---
@@ -17,6 +17,10 @@ source_url: "https://github.com/chklovski/CheckM2"
 - High-quality MAG: ≥90% completeness, ≤5% contamination (MIMAG standards).
 - Medium-quality MAG: ≥50% completeness, ≤10% contamination.
 - Use --database_path to specify the CheckM2 database directory (download with 'checkm2 database --download').
+- Two prediction models: general (gradient boost) and specific (neural network); --allmodels runs both.
+- Uses Prodigal for gene prediction and DIAMOND for protein annotation internally.
+- CHECKM2DB environment variable can specify database location instead of --database_path.
+- --lowmem mode reduces RAM usage for large datasets at the cost of slower runtime.
 
 ## Pitfalls
 
@@ -26,6 +30,10 @@ source_url: "https://github.com/chklovski/CheckM2"
 - CheckM2 uses protein coding predictions — very fragmented assemblies with few ORFs give inaccurate results.
 - CheckM2 output directory must not already exist — use a fresh output directory.
 - For large datasets, use --threads to speed up the protein prediction step.
+- **CRITICAL**: CheckM2 has subcommands (predict, database, testrun); 'predict' is the main analysis command.
+- Default file extension is .fna, not .fasta or .fa — explicitly set -x if using different extensions.
+- --resume reuses existing Prodigal and DIAMOND results; useful for interrupted runs but may use stale data.
+- CHECKM2DB environment variable overrides --database_path; check both if database issues occur.
 
 ## Examples
 
@@ -44,3 +52,27 @@ source_url: "https://github.com/chklovski/CheckM2"
 ### download the CheckM2 database
 **Args:** `database --download --path /path/to/databases/`
 **Explanation:** downloads the CheckM2 DIAMOND database; must be run before first use
+
+### run checkm2 in low memory mode
+**Args:** `predict --input bins_directory/ --output-directory checkm2_results/ --threads 16 --lowmem`
+**Explanation:** --lowmem reduces DIAMOND blocksize to decrease RAM usage; useful for large datasets or memory-constrained systems
+
+### use specific prediction model only
+**Args:** `predict --input bins_directory/ --output-directory checkm2_results/ --threads 16 --specific`
+**Explanation:** --specific forces the neural network model; use when bins are from known lineages for potentially better accuracy
+
+### check current database location
+**Args:** `database --current`
+**Explanation:** prints the currently configured database path; useful for troubleshooting database issues
+
+### set database location without downloading
+**Args:** `database --setdblocation /path/to/checkm2_database.dmnd`
+**Explanation:** points CheckM2 to an existing database file; alternative to --download for shared installations
+
+### run test to verify installation
+**Args:** `testrun --threads 8`
+**Explanation:** runs CheckM2 on internal test genomes to verify installation works correctly; recommended after first install
+
+### process protein files instead of nucleotide
+**Args:** `predict --input protein_directory/ --output-directory checkm2_protein_results/ --threads 16 --genes`
+**Explanation:** --genes treats input as protein files instead of nucleotide; skips Prodigal gene prediction step

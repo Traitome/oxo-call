@@ -15,6 +15,7 @@ const ENV_LLM_API_BASE: &str = "OXO_CALL_LLM_API_BASE";
 const ENV_LLM_MODEL: &str = "OXO_CALL_LLM_MODEL";
 const ENV_LLM_MAX_TOKENS: &str = "OXO_CALL_LLM_MAX_TOKENS";
 const ENV_LLM_TEMPERATURE: &str = "OXO_CALL_LLM_TEMPERATURE";
+const ENV_LLM_PROMPT_TIER: &str = "OXO_CALL_LLM_PROMPT_TIER";
 const ENV_DOCS_AUTO_UPDATE: &str = "OXO_CALL_DOCS_AUTO_UPDATE";
 
 /// All recognised `config set` / `config get` key names.
@@ -26,6 +27,7 @@ const VALID_CONFIG_KEYS: &[&str] = &[
     "llm.max_tokens",
     "llm.temperature",
     "llm.context_window",
+    "llm.prompt_tier",
     "docs.auto_update",
 ];
 
@@ -94,6 +96,42 @@ pub struct Config {
     pub server: ServerConfig,
 }
 
+/// Prompt compression tier — controls how aggressively the LLM prompt is
+/// compressed to fit within the model's context budget.
+///
+/// - **auto** (default): automatically determine from model size and context window
+/// - **full**: no compression — full system prompt, all skill examples, all docs
+/// - **medium**: medium compression — reduced examples, truncated docs
+/// - **compact**: aggressive compression — compact system prompt, few examples,
+///   docs heavily truncated or omitted.  Uses few-shot assistant messages for
+///   maximum reliability with small models.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum PromptTierConfig {
+    /// Automatically determine tier from model size and context window.
+    #[default]
+    Auto,
+    /// No compression — full system prompt, all skill examples, all docs.
+    Full,
+    /// Medium compression — reduced examples, truncated docs.
+    Medium,
+    /// Aggressive compression — compact system prompt, few examples.
+    Compact,
+}
+
+impl PromptTierConfig {
+    /// Parse from a string value (case-insensitive).
+    pub fn from_str_loose(s: &str) -> Option<Self> {
+        match s.to_ascii_lowercase().as_str() {
+            "auto" => Some(Self::Auto),
+            "full" => Some(Self::Full),
+            "medium" => Some(Self::Medium),
+            "compact" => Some(Self::Compact),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LlmConfig {
     /// LLM provider: "github-copilot", "openai", "anthropic", "ollama"
@@ -118,6 +156,11 @@ pub struct LlmConfig {
     /// Default: 0 (auto-detect from model name, or no compression).
     #[serde(default)]
     pub context_window: u32,
+    /// Prompt compression tier: "auto", "full", "medium", "compact".
+    /// When "auto", the tier is determined from model size and context window.
+    /// Users can force a specific tier for debugging or experimentation.
+    #[serde(default)]
+    pub prompt_tier: PromptTierConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -152,6 +195,7 @@ impl Default for Config {
                 max_tokens: DEFAULT_MAX_TOKENS,
                 temperature: DEFAULT_TEMPERATURE,
                 context_window: 0,
+                prompt_tier: PromptTierConfig::default(),
             },
             docs: DocsConfig {
                 local_paths: Vec::new(),
@@ -247,6 +291,14 @@ impl Config {
                 self.llm.context_window = value.parse().map_err(|_| {
                     OxoError::ConfigError(format!("Invalid context_window value: {value}"))
                 })?
+            }
+            "llm.prompt_tier" => {
+                self.llm.prompt_tier =
+                    PromptTierConfig::from_str_loose(value).ok_or_else(|| {
+                        OxoError::ConfigError(format!(
+                            "Invalid prompt_tier value: {value}. Valid values: auto, full, medium, compact"
+                        ))
+                    })?
             }
             "docs.auto_update" => {
                 self.docs.auto_update = value.parse().map_err(|_| {
@@ -403,6 +455,27 @@ impl Config {
         infer_context_window(&self.effective_model())
     }
 
+    /// Return the effective prompt tier, considering env override, config,
+    /// and auto-detection from model size and context window.
+    pub fn effective_prompt_tier(&self) -> crate::llm::PromptTier {
+        // 1. Environment variable override (highest priority)
+        if let Some(tier_str) = Self::env_string(ENV_LLM_PROMPT_TIER)
+            && let Some(tier) = PromptTierConfig::from_str_loose(&tier_str)
+        {
+            return config_tier_to_llm_tier(&tier);
+        }
+
+        // 2. Config file override
+        if self.llm.prompt_tier != PromptTierConfig::Auto {
+            return config_tier_to_llm_tier(&self.llm.prompt_tier);
+        }
+
+        // 3. Auto-detect from model size and context window
+        let context_window = self.effective_context_window();
+        let model = self.effective_model();
+        crate::llm::prompt_tier(context_window, &model)
+    }
+
     pub fn effective_value(&self, key: &str) -> Result<String> {
         match key {
             "llm.provider" => Ok(self.effective_provider()),
@@ -412,6 +485,17 @@ impl Config {
             "llm.max_tokens" => Ok(self.effective_max_tokens()?.to_string()),
             "llm.temperature" => Ok(self.effective_temperature()?.to_string()),
             "llm.context_window" => Ok(self.effective_context_window().to_string()),
+            "llm.prompt_tier" => {
+                let tier = self.effective_prompt_tier();
+                // Show both the effective tier and the configured value
+                let configured = match &self.llm.prompt_tier {
+                    PromptTierConfig::Auto => "auto".to_string(),
+                    PromptTierConfig::Full => "full".to_string(),
+                    PromptTierConfig::Medium => "medium".to_string(),
+                    PromptTierConfig::Compact => "compact".to_string(),
+                };
+                Ok(format!("{configured} (effective: {tier:?})"))
+            }
             "docs.auto_update" => Ok(self.effective_docs_auto_update()?.to_string()),
             _ => Err(OxoError::ConfigError(format!("Unknown config key: {key}"))),
         }
@@ -519,6 +603,15 @@ impl Config {
                     } else {
                         Ok("unset (no compression)".to_string())
                     }
+                }
+            }
+            "llm.prompt_tier" => {
+                if Self::env_string(ENV_LLM_PROMPT_TIER).is_some() {
+                    Ok(format!("env:{ENV_LLM_PROMPT_TIER}"))
+                } else if self.llm.prompt_tier != PromptTierConfig::Auto {
+                    Ok("stored config".to_string())
+                } else {
+                    Ok("auto-detected from model size and context window".to_string())
                 }
             }
             "docs.auto_update" => {
@@ -676,7 +769,7 @@ pub fn infer_context_window(model: &str) -> u32 {
         &m,
         &[
             "110b", "72b", "70b", "34b", "32b", "16b", "14b", "13b", "9b", "8b", "7b", "6b", "5b",
-            "4b", "3b", "2b", "1.5b", "1b", "0.8b", "0.5b", "0.3b",
+            "4b", "3b", "2b", "1.5b", "1.3b", "1b", "0.8b", "0.5b", "0.3b",
         ],
     ) {
         return 8192; // Conservative default for unknown families
@@ -710,6 +803,63 @@ fn has_param_tag(model: &str, tags: &[&str]) -> bool {
         }
     }
     false
+}
+
+/// Infer the approximate parameter count (in billions) from the model name.
+///
+/// Returns the parameter count as a float (e.g., 0.5, 7.0, 70.0).
+/// Returns `None` if no parameter-size tag is found.
+///
+/// Convert a `PromptTierConfig` to an `llm::PromptTier`.
+fn config_tier_to_llm_tier(tier: &PromptTierConfig) -> crate::llm::PromptTier {
+    match tier {
+        PromptTierConfig::Full => crate::llm::PromptTier::Full,
+        PromptTierConfig::Medium => crate::llm::PromptTier::Medium,
+        PromptTierConfig::Compact => crate::llm::PromptTier::Compact,
+        PromptTierConfig::Auto => crate::llm::PromptTier::Full, // fallback, shouldn't reach here
+    }
+}
+
+/// This is used to apply model-size-aware prompt compression: small models
+/// (≤ 3B) have limited effective context utilization even when they have
+/// large context windows, so they benefit from aggressive prompt compression.
+pub fn infer_model_parameter_count(model: &str) -> Option<f32> {
+    let m = model.to_ascii_lowercase();
+
+    // Check for common parameter-size tags in decreasing order of size.
+    // We look for word-boundary matches to avoid e.g. "70b" matching "170b".
+    let tags: &[(&str, f32)] = &[
+        ("110b", 110.0),
+        ("72b", 72.0),
+        ("70b", 70.0),
+        ("34b", 34.0),
+        ("32b", 32.0),
+        ("16b", 16.0),
+        ("14b", 14.0),
+        ("13b", 13.0),
+        ("9b", 9.0),
+        ("8b", 8.0),
+        ("7b", 7.0),
+        ("6b", 6.0),
+        ("5b", 5.0),
+        ("4b", 4.0),
+        ("3b", 3.0),
+        ("2b", 2.0),
+        ("1.5b", 1.5),
+        ("1.3b", 1.3),
+        ("1b", 1.0),
+        ("0.8b", 0.8),
+        ("0.5b", 0.5),
+        ("0.3b", 0.3),
+    ];
+
+    for (tag, size) in tags {
+        if has_param_tag(&m, &[tag]) {
+            return Some(*size);
+        }
+    }
+
+    None
 }
 
 #[cfg(test)]
@@ -2007,5 +2157,42 @@ mod tests {
         let ctx = cfg.effective_context_window();
         // Default config → should not panic
         assert!(ctx == 0 || ctx > 0);
+    }
+
+    // ─── infer_model_parameter_count ─────────────────────────────────────────
+
+    #[test]
+    fn test_infer_model_parameter_count_qwen() {
+        assert_eq!(infer_model_parameter_count("qwen2.5-coder:0.5b"), Some(0.5));
+        assert_eq!(infer_model_parameter_count("qwen2.5-coder:1.5b"), Some(1.5));
+        assert_eq!(infer_model_parameter_count("qwen2.5:7b"), Some(7.0));
+        assert_eq!(infer_model_parameter_count("qwen2.5-coder:32b"), Some(32.0));
+    }
+
+    #[test]
+    fn test_infer_model_parameter_count_llama() {
+        assert_eq!(infer_model_parameter_count("llama3:8b"), Some(8.0));
+        assert_eq!(infer_model_parameter_count("llama3:70b"), Some(70.0));
+    }
+
+    #[test]
+    fn test_infer_model_parameter_count_unknown() {
+        assert_eq!(infer_model_parameter_count("gpt-4o"), None);
+        assert_eq!(infer_model_parameter_count("claude-3.5-sonnet"), None);
+        assert_eq!(infer_model_parameter_count(""), None);
+    }
+
+    #[test]
+    fn test_infer_model_parameter_count_case_insensitive() {
+        assert_eq!(infer_model_parameter_count("Qwen2.5-Coder:0.5B"), Some(0.5));
+        assert_eq!(infer_model_parameter_count("LLAMA3:8B"), Some(8.0));
+    }
+
+    #[test]
+    fn test_infer_model_parameter_count_no_false_positives() {
+        // "72b" should not match "2b"
+        assert_eq!(infer_model_parameter_count("model-72b"), Some(72.0));
+        // "0.8b" should not match "8b"
+        assert_eq!(infer_model_parameter_count("model-0.8b"), Some(0.8));
     }
 }

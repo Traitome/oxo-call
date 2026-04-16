@@ -2,7 +2,7 @@
 name: eggnog-mapper
 category: annotation
 description: Fast functional annotation of proteins or genes via eggNOG ortholog database
-tags: [annotation, ortholog, go-terms, kegg, cog, proteins, metagenomics]
+tags: [annotation, ortholog, go-terms, kegg, cog, proteins, metagenomics, pfam, diamond, mmseqs2, hmmer]
 author: oxo-call built-in
 source_url: "https://github.com/eggnogdb/eggnog-mapper/wiki"
 ---
@@ -15,6 +15,11 @@ source_url: "https://github.com/eggnogdb/eggnog-mapper/wiki"
 - eggNOG databases must be pre-downloaded to a data directory; use download_eggnog_data.py to install them.
 - The --tax_scope flag restricts annotation to a taxonomic level (e.g., 2=Bacteria, 33208=Metazoa); leaving it at auto uses the best OG at any level.
 - Output files include a .annotations (main TSV), .hits (raw search hits), and .seed_orthologs; the .annotations file has all functional terms.
+- --target_orthologs controls ortholog type for annotation: one2one, many2one, one2many, many2many, or all (default).
+- --go_evidence filters GO terms: experimental (experimental only), non-electronic (curated only), or all (default).
+- --pfam_realign enables PFAM domain prediction: none (transfer from ortholog), realign (realign to query), or denovo (search against PFAM).
+- --decorate_gff creates/decorates GFF files with emapper annotations for genome browsers.
+- EGGNOG_DATA_DIR environment variable can replace --data_dir for specifying database location.
 
 ## Pitfalls
 
@@ -24,6 +29,10 @@ source_url: "https://github.com/eggnogdb/eggnog-mapper/wiki"
 - --cpu 0 uses all available cores which can cause memory contention on shared nodes; set an explicit --cpu value.
 - The output --output prefix must not already exist; existing files cause an error without --override.
 - KEGG pathway annotations require --target_orthologs all (default) — restricting to one-to-one orthologs misses many pathway assignments.
+- --pfam_realign realign or denovo requires PFAM database downloaded with download_eggnog_data.py -P flag.
+- --decorate_gff yes with --resume can cause issues; GFF decoration is regenerated from scratch on resume.
+- HMMER search mode (--usemem) requires hmmpgmd server; use --timeout_load_server to control startup attempts.
+- MMseqs2 mode requires database index creation with mmseqs createindex before first use.
 
 ## Examples
 
@@ -50,3 +59,31 @@ source_url: "https://github.com/eggnogdb/eggnog-mapper/wiki"
 ### annotate a genome with gene prediction first
 **Args:** `-m diamond -i genome.fna --itype genome --data_dir /data/eggnog_db -o genome_results --cpu 16 --genepred prodigal`
 **Explanation:** --itype genome triggers internal gene prediction with prodigal before annotation
+
+### annotate with PFAM domain realignment
+**Args:** `-m diamond -i proteins.fasta --itype proteins --data_dir /data/eggnog_db -o results --cpu 16 --pfam_realign realign`
+**Explanation:** --pfam_realign realign realigns PFAM domains to query sequences; requires PFAM database
+
+### annotate with experimental GO terms only
+**Args:** `-m diamond -i proteins.fasta --itype proteins --data_dir /data/eggnog_db -o results --cpu 16 --go_evidence experimental`
+**Explanation:** --go_evidence experimental uses only experimentally validated GO terms for annotation
+
+### annotate with one-to-one orthologs only
+**Args:** `-m diamond -i proteins.fasta --itype proteins --data_dir /data/eggnog_db -o results --cpu 16 --target_orthologs one2one`
+**Explanation:** --target_orthologs one2one uses only strict one-to-one orthologs for annotation (more conservative)
+
+### create decorated GFF file with annotations
+**Args:** `-m diamond -i proteins.fasta --itype proteins --data_dir /data/eggnog_db -o results --cpu 16 --decorate_gff yes`
+**Explanation:** --decorate_gff yes creates a GFF file with emapper annotations for genome browser visualization
+
+### download eggNOG database with PFAM
+**Args:** `download_eggnog_data.py -P --data_dir /data/eggnog_db`
+**Explanation:** -P flag downloads PFAM database; required for --pfam_realign realign or denovo options
+
+### create custom taxonomic database
+**Args:** `create_dbs.py -m diamond --dbname bacteria --taxa Bacteria --data_dir /data/eggnog_db`
+**Explanation:** create_dbs.py creates taxon-specific Diamond database; faster searches for specific taxonomic groups
+
+### annotate using custom Diamond database
+**Args:** `-m diamond -i proteins.fasta --itype proteins --dmnd_db /data/eggnog_db/bacteria.dmnd -o results --cpu 16`
+**Explanation:** --dmnd_db specifies custom Diamond database created with create_dbs.py for taxon-specific annotation

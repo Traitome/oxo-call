@@ -15,6 +15,10 @@ source_url: "https://github.com/wdecoster/NanoComp"
 - Output includes HTML report, PNG plots, and a TSV statistics table; --outdir and --prefix control where files are written.
 - NanoComp compares read length distributions, quality score distributions, and yield across samples simultaneously.
 - --plot violin (default) or --plot box or --plot ridge selects the plot style; ridge plots work well for many samples.
+- --color sets the color scheme for plots; useful for publication-quality figures.
+- --title adds a custom title to the output report.
+- --dpi controls the resolution of output PNG images; default is 100, increase for higher quality.
+- --hide_stats suppresses statistical test annotations on plots for cleaner visualization.
 
 ## Pitfalls
 
@@ -24,6 +28,8 @@ source_url: "https://github.com/wdecoster/NanoComp"
 - NanoComp reads quality from the FASTQ quality string or BAM mean_qscore tag; re-basecalled BAMs without quality tags report Q0.
 - The HTML report requires a browser to view; on headless servers use --no_static to skip HTML or copy the output directory.
 - Filtering by read length (--minlength, --maxlength) is applied before statistics; always report the filter thresholds used.
+- --dpi higher values increase image quality but also file size; balance quality vs storage needs.
+- --hide_stats removes p-value annotations but does not affect the underlying statistical comparisons.
 
 ## Examples
 
@@ -50,3 +56,19 @@ source_url: "https://github.com/wdecoster/NanoComp"
 ### generate comparison with custom output file prefix
 **Args:** `NanoComp --fastq run1.fastq.gz run2.fastq.gz --names Run1 Run2 --outdir results/ --prefix batch01 --threads 8`
 **Explanation:** --prefix prepends batch01 to all output file names; useful when running multiple NanoComp comparisons in the same directory
+
+### generate plots with custom title and color scheme
+**Args:** `NanoComp --fastq *.fastq.gz --names $(ls *.fastq.gz | sed 's/.fastq.gz//') --title "Batch Comparison" --color red --outdir titled_comparison/ --threads 8`
+**Explanation:** --title adds custom report title; --color sets plot color; useful for publication-ready figures
+
+### generate high-resolution PNG output
+**Args:** `NanoComp --bam sample1.bam sample2.bam --names S1 S2 --dpi 300 --outdir high_res/ --threads 8`
+**Explanation:** --dpi 300 generates high-resolution PNGs suitable for publications; increases file size
+
+### compare without statistical annotations
+**Args:** `NanoComp --fastq *.fastq.gz --names $(ls *.fastq.gz | sed 's/.fastq.gz//') --hide_stats --outdir clean_plots/ --threads 8`
+**Explanation:** --hide_stats removes statistical test annotations; produces cleaner plots for presentations
+
+### filter by both length and quality
+**Args:** `NanoComp --fastq *.fastq.gz --names $(ls *.fastq.gz | sed 's/.fastq.gz//') --minlength 1000 --minqual 10 --outdir filtered_qc/ --threads 8`
+**Explanation:** --minqual 10 filters reads with quality < 10; combines length and quality filtering for stringent QC

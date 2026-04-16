@@ -8,22 +8,29 @@ source_url: "https://github.com/lh3/miniasm"
 ---
 
 ## Concepts
-
 - Miniasm is an ultrafast long-read assembler (OLC approach); it skips error correction so output has high error rate (~5-10%).
 - Miniasm requires pre-computed overlaps from minimap2: minimap2 -x ava-ont reads.fq reads.fq > overlaps.paf
 - Two-step pipeline: (1) minimap2 for all-vs-all overlaps; (2) miniasm for assembly.
 - Output is in GFA format; convert to FASTA: awk '/^S/ {print ">"$2; print $3}' assembly.gfa > assembly.fasta
 - Miniasm assembly MUST be polished with Racon or Medaka before use — raw assembly is too noisy.
 - Miniasm is much faster than Flye/Hifiasm but produces lower quality initial assemblies.
-- Use -f parameter to filter reads shorter than a threshold; -I for minimum overlap score.
+- Use -f parameter to provide read sequences; -m for minimum match length (default 100).
+- -s sets minimum span (default 2000); -c sets minimum coverage (default 3); -i sets minimum identity (default 0.05).
+- -o sets minimum overlap (defaults to -s value); -h sets max overhang length (default 0).
+- -I sets minimum end-to-end match ratio (default 0.8); -g sets max gap for trans-reduction (default 1000).
+- -p sets output format: ug (unitig, default), sg (string graph), bed, or paf.
 
 ## Pitfalls
-
 - Miniasm output is NOT ready to use without polishing — always run Racon + Medaka afterward.
 - Miniasm GFA output requires conversion to FASTA for downstream tools.
 - Without minimap2 overlaps first, miniasm cannot run — the overlap step is mandatory.
 - Miniasm is best for quick draft assemblies or when speed is more important than accuracy.
 - For high-quality assemblies, use Flye or Hifiasm instead of miniasm.
+- -R flag pre-filters contained reads but requires 2-pass; increases runtime but may improve assembly.
+- -m 100 (default) may be too low for noisy data; increase to 200-500 for better specificity.
+- -i 0.05 (5% identity) is very permissive; increase to 0.1-0.2 for cleaner assemblies.
+- -s 2000 (default) filters short overlaps; reduce for small genomes or increase for large/complex ones.
+- -c 3 (default) requires 3 overlapping reads; increase for repetitive genomes to reduce misassemblies.
 
 ## Examples
 
@@ -38,3 +45,23 @@ source_url: "https://github.com/lh3/miniasm"
 ### convert miniasm GFA output to FASTA
 **Args:** `/^S/ {print ">"$2"\n"$3}`
 **Explanation:** awk command: awk '/^S/ {print ">"$2"\n"$3}' assembly.gfa > assembly.fasta
+
+### assemble PacBio reads with stricter parameters
+**Args:** `-f reads.fq.gz -m 200 -i 0.1 -s 3000 -c 5 overlaps.paf.gz > assembly.gfa`
+**Explanation:** -m 200 min match; -i 0.1 min identity 10%; -s 3000 min span; -c 5 min coverage for PacBio
+
+### assemble with pre-filtering of contained reads
+**Args:** `-R -f reads.fq.gz overlaps.paf.gz > assembly.gfa`
+**Explanation:** -R pre-filters contained reads (2-pass); improves assembly but slower
+
+### output string graph instead of unitigs
+**Args:** `-p sg -f reads.fq.gz overlaps.paf.gz > string_graph.gfa`
+**Explanation:** -p sg outputs string graph; shows all overlaps, not just unitigs
+
+### assemble with custom overlap drop ratios
+**Args:** `-f reads.fq.gz -r 0.8,0.6 -F 0.9 overlaps.paf.gz > assembly.gfa`
+**Explanation:** -r 0.8,0.6 max/min overlap drop ratio; -F 0.9 aggressive drop ratio
+
+### quick assembly for small genomes with relaxed parameters
+**Args:** `-f reads.fq.gz -m 50 -s 500 -c 2 overlaps.paf.gz > assembly.gfa`
+**Explanation:** relaxed parameters for small genomes; -m 50 -s 500 -c 2 for low coverage

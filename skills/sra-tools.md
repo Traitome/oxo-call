@@ -8,7 +8,6 @@ source_url: "https://github.com/ncbi/sra-tools"
 ---
 
 ## Concepts
-
 - SRA Tools downloads sequencing data from NCBI SRA using accession numbers (SRR, ERR, DRR formats).
 - fasterq-dump is the modern replacement for fastq-dump — it's much faster and uses local disk for temp storage.
 - fasterq-dump: fasterq-dump SRR123456 -O output_dir/ -e N; auto-splits paired-end reads into _1.fastq and _2.fastq.
@@ -17,15 +16,27 @@ source_url: "https://github.com/ncbi/sra-tools"
 - Use -e N for multi-threading in fasterq-dump; -O for output directory.
 - For large datasets, use the AWS S3 or cloud-optimized approach: --cloud-instance or aws s3 sync.
 - The SRA file format stores reads efficiently; .sra files must be converted to FASTQ for most tools.
+- --split-files separates paired-end reads into _1.fastq and _2.fastq; --split-3 puts unpaired reads in a separate file.
+- --skip-technical filters out technical reads (barcodes, linkers) common in 10x Genomics and similar protocols.
+- --min-read-len filters reads by length; useful for quality control before downstream analysis.
+- --fasta outputs FASTA format instead of FASTQ; useful when quality scores are not needed.
+- vdb-validate checks SRA file integrity after download; detects corruption before conversion.
+- prefetch --option-file accepts a text file with multiple accessions for batch downloads.
+- --ngc specifies a dbGaP authorization file for controlled-access data downloads.
 
 ## Pitfalls
-
 - fastq-dump is deprecated — always use fasterq-dump for new workflows.
 - fasterq-dump requires temp disk space (3-4x the final FASTQ size) — ensure sufficient disk space.
 - For paired-end data, fasterq-dump --split-files creates separate _1 and _2 FASTQ files automatically.
 - Without --outdir (-O), fasterq-dump outputs to the current directory.
 - The .sra files downloaded by prefetch are stored in ~/ncbi/public/sra/ by default.
 - Large SRA downloads may timeout on poor connections — use prefetch for resilient downloads.
+- --split-3 behavior differs from --split-files; it creates a third file for unpaired reads.
+- fasterq-dump does NOT compress output; pipe to gzip or compress afterward.
+- --mem limits RAM for sorting; default 100MB may be insufficient for large datasets.
+- --temp specifies temp directory; use fast storage (SSD, /tmp) for better performance.
+- dbGaP data requires --ngc file; downloads fail without proper authorization.
+- vdb-validate may report warnings for valid files; check error vs warning carefully.
 
 ## Examples
 
@@ -68,3 +79,35 @@ source_url: "https://github.com/ncbi/sra-tools"
 ### download a single-end SRA accession and skip technical reads
 **Args:** `fasterq-dump SRR123456 -O output/ -e 8 --skip-technical`
 **Explanation:** --skip-technical omits technical reads (e.g., barcodes, linkers) and outputs only biological reads; important for single-cell or 10x Genomics datasets
+
+### convert SRA to FASTA format (no quality scores)
+**Args:** `fasterq-dump SRR123456 -O output/ --fasta -e 8`
+**Explanation:** --fasta outputs FASTA instead of FASTQ; useful for applications that don't need quality scores (e.g., BLAST, some assemblers)
+
+### filter reads by minimum length
+**Args:** `fasterq-dump SRR123456 -O output/ -e 8 --min-read-len 80`
+**Explanation:** --min-read-len 80 filters out reads shorter than 80bp; useful for quality control and removing adapter dimers
+
+### use custom temp directory on fast storage
+**Args:** `fasterq-dump SRR123456 -O output/ -e 8 --temp /scratch/tmp --mem 500M`
+**Explanation:** --temp uses fast SSD/scratch for temp files; --mem increases sort memory to 500MB for large datasets
+
+### download controlled-access dbGaP data
+**Args:** `prefetch SRR123456 --ngc prj_12345.ngc -O sra_downloads/`
+**Explanation:** --ngc specifies dbGaP authorization file; required for downloading controlled-access human sequence data
+
+### validate SRA file with deep consistency check
+**Args:** `vdb-validate SRR123456.sra --CONSISTENCY-CHECK yes -v`
+**Explanation:** --CONSISTENCY-CHECK yes performs deep validation; -v for verbose output; catches corruption that md5 alone misses
+
+### list contents of a kart file before download
+**Args:** `prefetch --list my_study.kart`
+**Explanation:** --list displays accessions in a kart file without downloading; useful for verifying cart contents before large downloads
+
+### convert only aligned reads from BAM-based SRA
+**Args:** `fasterq-dump SRR123456 -O output/ -e 8 --only-aligned`
+**Explanation:** --only-aligned extracts only reads that aligned to reference; --only-unaligned does the opposite; useful for targeted re-sequencing data
+
+### concatenate paired reads into one file per spot
+**Args:** `fasterq-dump SRR123456 -O output/ -e 8 --concatenate-reads`
+**Explanation:** --concatenate-reads writes whole spots (pairs) as single entries; useful for specific downstream tools requiring interleaved format

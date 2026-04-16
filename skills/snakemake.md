@@ -72,3 +72,19 @@ source_url: "https://snakemake.readthedocs.io/"
 ### run with Singularity containers
 **Args:** `--use-singularity --singularity-args '--bind /scratch' --cores 8`
 **Explanation:** --use-singularity executes each rule inside the container specified by container: directive; --singularity-args passes bind mounts
+
+### generate a comprehensive execution report
+**Args:** `--report report.html --cores all`
+**Explanation:** generates HTML report with runtime statistics, resource usage, and rule execution details
+
+### list all output files that would be generated
+**Args:** `--summary --cores all`
+**Explanation:** lists all target files and their status; useful for understanding workflow scope
+
+### run specific target files only
+**Args:** `results/sample1.bam results/sample2.bam --cores 8`
+**Explanation:** specifies target files to generate; Snakemake only runs rules needed for these targets
+
+### print the execution plan without running
+**Args:** `--dry-run --reason --cores all`
+**Explanation:** --reason explains why each rule would be executed; useful for debugging workflow logic

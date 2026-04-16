@@ -13,6 +13,7 @@ source_url: "https://docs.oracle.com/en/java/index.html"
 - On macOS, `$(/usr/libexec/java_home)` prints the current JAVA_HOME; `-v 17` selects version 17.
 - Memory allocation: `-Xmx<N>g` sets maximum heap (e.g. `-Xmx8g` for 8 GB); `-Xms<N>g` sets initial heap; critical for GATK HaplotypeCaller and other memory-hungry tools.
 - JVM garbage collector: `-XX:+UseG1GC` (G1 GC) is recommended for GATK 4 and larger heap sizes (>4 GB); default for Java 9+.
+- Alternative GCs: `-XX:+UseParallelGC` for throughput, `-XX:+UseZGC` for ultra-low latency (Java 11+), `-XX:+UseShenandoahGC` for low pause times.
 - JVM temporary directory: `-Djava.io.tmpdir=/path/to/tmpdir` redirects temp files; important on HPC where `/tmp` is small.
 - Classpath (`-cp` or `-classpath`): colon-separated (Linux/macOS) or semicolon-separated (Windows) list of JAR files and directories.
 - Run a JAR file: `java -jar tool.jar [args]`; the JAR must contain a `Main-Class` manifest attribute.
@@ -20,6 +21,8 @@ source_url: "https://docs.oracle.com/en/java/index.html"
 - Multiple Java versions: managed via `update-alternatives` (Linux), `module load java/<version>` (HPC), or SDKMAN (`sdk use java <version>`).
 - conda environments often install OpenJDK: `conda install -c conda-forge openjdk=17`; activates a self-contained JVM.
 - Java 17 LTS is required by GATK 4.4+; Java 11 is required by many older bioinformatics tools.
+- GC tuning: `-XX:MaxGCPauseMillis=200` sets target pause time for G1GC; `-XX:ParallelGCThreads=N` controls GC thread count.
+- System properties: `-D<name>=<value>` sets JVM system properties; `-XshowSettings:all` displays all JVM settings.
 
 ## Pitfalls
 - forgetting `-Xmx` causes the JVM to use a default heap (often 25% of RAM or 256 MB), leading to `OutOfMemoryError` in GATK and Picard on large datasets.
@@ -29,6 +32,11 @@ source_url: "https://docs.oracle.com/en/java/index.html"
 - `-Djava.io.tmpdir` must point to a directory with enough free space; GATK creates large temporary BAM files during variant calling.
 - Thread count: GATK `--native-pair-hmm-threads` and `-nct` (older) control CPU usage; not the same as JVM thread settings.
 - JAR files are not self-updating; always download the latest JAR version when upgrading tools.
+- Setting `-Xms` = `-Xmx` in production avoids runtime heap resizing overhead but uses more memory upfront.
+- ZGC and ShenandoahGC require Java 11+; they provide ultra-low pause times but may have different performance characteristics than G1GC.
+- `-XX:+UseG1GC` with `-XX:MaxGCPauseMillis=200` helps reduce GC pauses for interactive applications.
+- Java module system (Java 9+): use `--add-modules` or `--module-path` for modular JARs; most bioinformatics tools still use classpath.
+- Container awareness: `-XX:+UseContainerSupport` (default in Java 10+) respects Docker memory limits; critical for containerized workflows.
 
 ## Examples
 
@@ -67,3 +75,27 @@ source_url: "https://docs.oracle.com/en/java/index.html"
 ### run a JAR with a custom classpath
 **Args:** `-cp /path/to/lib1.jar:/path/to/lib2.jar com.example.MainClass arg1 arg2`
 **Explanation:** -cp sets the classpath with colon-separated JARs (semicolons on Windows); fully qualified class name after the classpath; arguments follow
+
+### run Java with ZGC for ultra-low latency
+**Args:** `-Xmx32g -XX:+UseZGC -jar gatk.jar HaplotypeCaller -R ref.fa -I input.bam -O out.vcf`
+**Explanation:** -XX:+UseZGC enables Z Garbage Collector; suitable for applications requiring <10ms pause times; available in Java 11+
+
+### set equal initial and maximum heap for production
+**Args:** `-Xms16g -Xmx16g -XX:+UseG1GC -jar picard.jar MarkDuplicates I=input.bam O=marked.bam M=metrics.txt`
+**Explanation:** -Xms = -Xmx avoids heap resizing overhead; recommended for long-running production pipelines
+
+### run Java with GC logging enabled
+**Args:** `-Xmx8g -Xlog:gc*:file=gc.log:time,uptime,level,tags -jar tool.jar`
+**Explanation:** -Xlog:gc* enables detailed GC logging; useful for debugging memory issues and tuning GC performance
+
+### run Java in a container with memory limits
+**Args:** `-XX:+UseContainerSupport -Xmx4g -jar tool.jar`
+**Explanation:** -XX:+UseContainerSupport (default Java 10+) respects Docker memory limits; prevents OOM kills in containerized environments
+
+### run Java with system property for configuration
+**Args:** `-Xmx8g -Dconfig.file=/path/to/config.properties -jar tool.jar`
+**Explanation:** -D sets system properties accessible within the application; commonly used for configuration files
+
+### run Java with parallel GC for throughput
+**Args:** `-Xmx16g -XX:+UseParallelGC -XX:ParallelGCThreads=8 -jar tool.jar`
+**Explanation:** -XX:+UseParallelGC optimizes for throughput; -XX:ParallelGCThreads controls GC parallelism; good for batch processing

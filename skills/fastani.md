@@ -2,7 +2,7 @@
 name: fastani
 category: comparative-genomics
 description: FastANI — fast pairwise Average Nucleotide Identity estimation for microbial genomes; uses MinHash-like sketching for high-throughput comparisons
-tags: [fastani, ani, comparative-genomics, microbial, prokaryote, taxonomy, species-boundary, genome]
+tags: [fastani, ani, comparative-genomics, microbial, prokaryote, taxonomy, species-boundary, genome, mash, phylogeny]
 author: oxo-call built-in
 source_url: "https://github.com/ParBLiSS/FastANI"
 ---
@@ -19,6 +19,10 @@ source_url: "https://github.com/ParBLiSS/FastANI"
 - ANI < 70% returns no estimate (below the reliable detection threshold); for such distances, use MASH or other sketch-based tools.
 - All-vs-all matrix: run with `--queryList` = `--refList` to compare all genomes against each other.
 - Output ANI values are reported once per ordered pair (query → reference); symmetrised results require post-processing.
+- `--visualize` outputs mapping coordinates for visualization (single genome pair only).
+- `--matrix` outputs ANI as lower triangular matrix in PHYLIP format for phylogenetic analysis.
+- `--kmer` / `-k` sets k-mer size (default 16, max 16); smaller values increase sensitivity.
+- `--maxRatioDiff` filters spurious matches; default 10.0, lower values exclude HGT regions.
 
 ## Pitfalls
 - FastANI is designed for complete or near-complete prokaryotic genomes (>1 Mb); results for highly fragmented assemblies or short sequences may be unreliable.
@@ -27,6 +31,10 @@ source_url: "https://github.com/ParBLiSS/FastANI"
 - Do NOT use FastANI on metagenome-assembled genomes (MAGs) with >50% completeness issues; use checkm2 to verify completeness first.
 - Input genome paths in `--queryList` and `--refList` must be absolute or consistently relative to the working directory where FastANI is called.
 - using compressed (gzip) FASTA without ensuring FastANI was compiled with zlib support may cause silent failures or wrong results.
+- `--visualize` only works for single genome pair comparisons; using with lists will cause error.
+- ANI < 70% produces no output line; this is expected behavior, not an error.
+- `--matrix` output is lower triangular; full matrix requires post-processing to symmetrize.
+- Default `--fragLen` 3000bp may be too large for small genomes (viruses, plasmids); use 500-1000bp instead.
 
 ## Examples
 
@@ -57,3 +65,23 @@ source_url: "https://github.com/ParBLiSS/FastANI"
 ### check FastANI version
 **Args:** `--version`
 **Explanation:** prints the installed FastANI version; important for reproducibility reporting in publications
+
+### generate PHYLIP matrix for phylogenetic analysis
+**Args:** `--queryList genomes.list --refList genomes.list --output ani.tsv --matrix --threads 16`
+**Explanation:** --matrix creates additional .matrix file in PHYLIP format; use for NJ tree construction with tools like QuickTree
+
+### visualize genome alignment regions
+**Args:** `--query query.fa --ref ref.fa --output result.txt --visualize`
+**Explanation:** --visualize outputs mapping coordinates to result.txt.visual; shows conserved regions between two genomes
+
+### compare small genomes (viruses/plasmids)
+**Args:** `--query virus1.fa --ref virus2.fa --output result.txt --fragLen 500`
+**Explanation:** --fragLen 500 uses shorter fragments for small genomes; default 3000bp is too large for viral genomes
+
+### increase sensitivity for divergent genomes
+**Args:** `--query query.fa --ref ref.fa --output result.txt --kmer 12 --minFraction 0.1`
+**Explanation:** --kmer 12 smaller k-mer increases sensitivity; --minFraction 0.1 keeps more distant comparisons
+
+### filter horizontal gene transfer regions
+**Args:** `--queryList genomes.list --refList genomes.list --output ani.tsv --maxRatioDiff 0.05 --threads 16`
+**Explanation:** --maxRatioDiff 0.05 excludes regions with abnormal coverage ratios; helps filter HGT events

@@ -66,3 +66,31 @@ source_url: "https://www.gnu.org/software/wget/manual/wget.html"
 ### download with a custom User-Agent header
 **Args:** `--user-agent='Mozilla/5.0' -O page.html https://example.com/page`
 **Explanation:** --user-agent sets the User-Agent header; some servers reject default wget User-Agent
+
+### download with authentication credentials
+**Args:** `--user=username --password=pass -O file.zip https://example.com/protected/file.zip`
+**Explanation:** --user and --password provide HTTP basic authentication credentials
+
+### download through a proxy server
+**Args:** `--proxy=on --proxy-user=user --proxy-password=pass -O file.zip https://example.com/file.zip`
+**Explanation:** uses proxy settings from environment or command line; --proxy-user for proxy authentication
+
+### download and follow relative links only
+**Args:** `-r -l 2 --relative -P ./local https://example.com/docs/`
+**Explanation:** --relative follows only relative links; prevents downloading external sites
+
+### download with bandwidth limiting
+**Args:** `--limit-rate=500k -O largefile.iso https://example.com/largefile.iso`
+**Explanation:** --limit-rate limits download speed; useful for not saturating network
+
+### download and convert links for offline viewing
+**Args:** `-r -l 2 -np -k -P ./offline https://example.com/docs/`
+**Explanation:** -k converts links to local references; creates browsable offline copy
+
+### download with timestamping (only if newer)
+**Args:** `-N https://example.com/updated-data.txt`
+**Explanation:** -N (timestamping) downloads only if remote file is newer than local
+
+### download with certificate checking disabled
+**Args:** `--no-check-certificate -O file.zip https://example.com/file.zip`
+**Explanation:** --no-check-certificate disables SSL certificate validation; use with caution

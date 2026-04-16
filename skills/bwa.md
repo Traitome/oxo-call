@@ -2,7 +2,7 @@
 name: bwa
 category: alignment
 description: Burrows-Wheeler Aligner for short reads against a reference genome
-tags: [alignment, mapping, short-read, ngs, reference, illumina]
+tags: [alignment, mapping, short-read, ngs, reference, illumina, pacbio, ont]
 author: oxo-call built-in
 source_url: "http://bio-bwa.sourceforge.net/bwa.shtml"
 ---
@@ -10,22 +10,27 @@ source_url: "http://bio-bwa.sourceforge.net/bwa.shtml"
 ## Concepts
 
 - bwa requires the reference genome to be indexed first with 'bwa index ref.fa' — this creates .amb/.ann/.bwt/.pac/.sa files.
-- bwa mem is the primary algorithm for Illumina reads ≥70 bp; bwa aln/samse/sampe is for shorter reads.
-- bwa has TWO subcommands: 'index' and 'mem'. ALWAYS start ARGS with one of these subcommands — never with a flag like -t or -R.
+- bwa mem is the primary algorithm for Illumina reads ≥70 bp; bwa aln/samse/sampe is for shorter reads (legacy).
+- bwa has subcommands: 'index', 'mem', 'aln', 'samse', 'sampe', 'bwasw', 'fastmap', 'pemerge', 'shm'. ALWAYS start ARGS with one of these subcommands — never with a flag like -t or -R.
 - bwa mem outputs SAM to stdout — always pipe to 'samtools view -b' or redirect to a .sam file.
 - For paired-end reads, pass both FASTQ files as two positional arguments after the index.
 - Use -t N to specify the number of threads; -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA' to add a read group (required by GATK).
 - The -R read group string must preserve all field values exactly as specified — do not simplify or shorten sample names, IDs, or library tags.
+- For higher performance (~2x faster), use bwa-mem2 (separate tool with its own skill file).
+- -x preset changes multiple parameters: pacbio, ont2d, intractg (intra-species contigs to ref).
+- -M marks shorter split hits as secondary (required for Picard compatibility); -Y uses soft-clipping for supplementary alignments (recommended for SV calling).
+- -I specifies insert size distribution (mean, std, max, min) for paired-end; -T sets minimum alignment score to output.
 
 ## Pitfalls
 
 - Running bwa mem without first indexing the reference will fail with 'fail to open index'.
-- CRITICAL: bwa ARGS must start with 'mem' or 'index' — never with flags like -t or -R. The subcommand always comes first.
+- CRITICAL: bwa ARGS must start with a subcommand (index, mem, aln, samse, sampe, bwasw, fastmap, pemerge, shm) — never with flags like -t or -R. The subcommand always comes first.
 - bwa mem output is SAM text to stdout — pipe to samtools view -b -o output.bam or add > output.sam.
 - For GATK downstream analysis, always add a read group with -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA'. The exact sample/library names in the RG must match the task description — never simplify 'sample1' to 'sample' or 'lib1' to 'lib'.
 - The reference argument is the index prefix (same as ref.fa if you ran 'bwa index ref.fa').
 - bwa does not support gzipped references directly — decompress first.
 - Memory usage scales with genome size; for human genome (~3 GB), expect ~6 GB RAM.
+- bwa and bwa-mem2 indexes are NOT compatible — use bwa-mem2's own index for bwa-mem2.
 
 ## Examples
 
@@ -43,7 +48,7 @@ source_url: "http://bio-bwa.sourceforge.net/bwa.shtml"
 
 ### align long reads (PacBio/Oxford Nanopore) to reference
 **Args:** `mem -x ont2d reference.fa reads.fastq`
-**Explanation:** -x ont2d preset for Oxford Nanopore; -x pacbio for PacBio; outputs SAM to stdout
+**Explanation:** -x ont2d preset for Oxford Nanopore; -x pacbio for PacBio; -x intractg for intra-species contigs; outputs SAM to stdout
 
 ### align paired-end reads and sort the output directly to a BAM file
 **Args:** `mem -t 8 reference.fa R1.fastq.gz R2.fastq.gz | samtools sort -@ 4 -o sorted.bam`
@@ -66,5 +71,9 @@ source_url: "http://bio-bwa.sourceforge.net/bwa.shtml"
 **Explanation:** full pipeline: align with read group → sort → index; preserving exact sample2 and lib2 identifiers in the RG
 
 ### align with soft-clipping allowed for structural variant discovery
-**Args:** `mem -t 8 -Y reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o sv_aligned.bam`
-**Explanation:** -Y enables soft-clipping of supplementary alignments; recommended for SV callers like LUMPY or Manta
+**Args:** `mem -t 8 -Y -M reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o sv_aligned.bam`
+**Explanation:** -Y enables soft-clipping of supplementary alignments; -M marks shorter split hits as secondary (Picard compatible); recommended for SV callers like LUMPY or Manta
+
+### align intra-species contigs to a reference genome
+**Args:** `mem -x intractg reference.fa contigs.fasta > contig_align.sam`
+**Explanation:** -x intractg preset for aligning assembled contigs to a reference of the same species; adjusts mismatch and gap penalties

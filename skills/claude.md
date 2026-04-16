@@ -19,6 +19,10 @@ source_url: "https://docs.anthropic.com/en/docs/claude-code/overview"
 - **Agentic tools**: in interactive mode Claude can read/write files, run shell commands, and browse the web; use `/tools` to list enabled tools and `/settings` to enable or disable them.
 - **Context window management**: use `/clear` to reset the conversation context; use `/compact` to summarise and compress long conversations while retaining key information.
 - **`ANTHROPIC_API_KEY`** environment variable can be set as an alternative to `claude login`; useful in CI/CD pipelines and server environments.
+- **Permission modes**: `--permission-mode` controls tool access (auto, plan, acceptEdits, dontAsk, bypassPermissions); use `plan` for review before actions.
+- **MCP servers**: `--mcp-config` loads Model Context Protocol servers for extended capabilities.
+- **Budget control**: `--max-budget-usd` limits API spending for the session.
+- **Session naming**: `-n/--name` assigns display names to sessions for easier identification in `claude sessions list`.
 
 ## Pitfalls
 
@@ -29,6 +33,10 @@ source_url: "https://docs.anthropic.com/en/docs/claude-code/overview"
 - Piping large files directly into the context may exhaust the context window; prefer summarising or chunking large inputs before sending them to Claude.
 - Authentication tokens set via `ANTHROPIC_API_KEY` take precedence over the `claude login` session; mismatched keys can cause unexpected billing or rate-limit errors.
 - On headless servers the interactive REPL requires a proper TTY; use `claude -p "..."` (print mode) or pipe input via stdin for non-interactive server usage.
+- `--permission-mode plan` requires manual approval for each tool use; suitable for sensitive environments but slows down workflows.
+- `--no-session-persistence` prevents session saving but only works with `-p` print mode.
+- Workspace trust dialog is skipped in `-p` mode; only use in directories you trust.
+- `--tools ""` disables all tools; `--tools default` enables all; individual tools can be specified as comma-separated list.
 
 ## Examples
 
@@ -71,3 +79,31 @@ source_url: "https://docs.anthropic.com/en/docs/claude-code/overview"
 ### check the installed version
 **Args:** `--version`
 **Explanation:** prints the installed Claude Code CLI version; useful for debugging and ensuring the latest release is active
+
+### run with permission mode plan for safety
+**Args:** `--permission-mode plan`
+**Explanation:** --permission-mode plan requires approval before each tool use; recommended for production environments or when reviewing AI actions
+
+### limit API budget for the session
+**Args:** `-p "Analyze this codebase" --max-budget-usd 5.00`
+**Explanation:** --max-budget-usd limits total API spending; useful for preventing runaway costs in automated scripts
+
+### use MCP server configuration
+**Args:** `--mcp-config mcp-config.json`
+**Explanation:** --mcp-config loads Model Context Protocol servers for extended capabilities like database access or custom APIs
+
+### run with specific tools only
+**Args:** `-p "Read and analyze this file" --tools "Read,Edit"`
+**Explanation:** --tools restricts which tools Claude can use; safer than full agentic mode for specific tasks
+
+### name a session for easy identification
+**Args:** `-n "RNA-seq analysis session"`
+**Explanation:** -n assigns a display name to the session; appears in `claude sessions list` and terminal title
+
+### validate output with JSON schema
+**Args:** `-p "Generate a config object" --json-schema '{"type":"object","properties":{"name":{"type":"string"}}}'`
+**Explanation:** --json-schema validates structured output against a schema; ensures programmatically usable responses
+
+### run doctor to check installation health
+**Args:** `doctor`
+**Explanation:** doctor subcommand checks the health of Claude Code auto-updater and MCP configuration; useful for troubleshooting

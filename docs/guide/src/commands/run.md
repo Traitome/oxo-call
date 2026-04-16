@@ -27,6 +27,22 @@ oxo-call r   [OPTIONS] <TOOL> <TASK>
 | `-v`, `--verbose` | Show docs source, skill info, and LLM details (global) |
 | `--license <PATH>` | Path to license file (global option) |
 
+### Prompt Tier
+
+The prompt compression tier is auto-detected from the model size and context
+window. You can override it with the `llm.prompt_tier` config key or the
+`OXO_CALL_LLM_PROMPT_TIER` environment variable:
+
+```bash
+# Force Compact tier for a small model
+OXO_CALL_LLM_PROMPT_TIER=compact oxo-call run samtools "sort bam by coordinate"
+
+# Force Medium tier
+OXO_CALL_LLM_PROMPT_TIER=medium oxo-call run samtools "sort bam by coordinate"
+```
+
+Use `--verbose` to see which tier was selected for a given invocation.
+
 ## Description
 
 The `run` command is the primary way to use oxo-call. It:

@@ -8,7 +8,6 @@ source_url: "https://www.gnu.org/software/sed/manual/sed.html"
 ---
 
 ## Concepts
-
 - sed reads input line by line, applies the script, and writes to stdout. Use -i to edit files in-place. Basic syntax: 'sed [options] 'script' [file...]'.
 - Substitution syntax: 's/PATTERN/REPLACEMENT/FLAGS'. Flags: g (replace all occurrences per line, not just first), i (case-insensitive), p (print if substitution made). Delimiter can be any char: 's|/path/|/newpath|g'.
 - Address syntax: N (line number), $ (last line), /pattern/ (matching lines), N,M (range), /pat1/,/pat2/ (pattern range). No address = apply to all lines.
@@ -17,9 +16,10 @@ source_url: "https://www.gnu.org/software/sed/manual/sed.html"
 - Capture groups: in BRE use \( \) and \1 \2 backreferences; in ERE (-E) use ( ) unescaped. E.g., sed -E 's/(foo)(bar)/\2\1/' swaps foo and bar.
 - Multiple expressions: use -e for each expression, e.g., sed -e 's/a/b/' -e 's/c/d/' file. Or separate with semicolons: sed 's/a/b/;s/c/d/' file.
 - The -n flag suppresses default output; only lines explicitly printed with p will appear. Combine -n with /pattern/p to mimic grep behavior.
+- c command replaces entire lines; N command reads next line into pattern space.
+- w command writes matching lines to a file.
 
 ## Pitfalls
-
 - 'sed -i' modifies the file in-place without creating a backup by default. Use 'sed -i.bak' to save the original as a backup file before modifying.
 - sed -i syntax differs between GNU sed and BSD sed (macOS): GNU accepts 'sed -i "s/x/y/"'; BSD requires 'sed -i "" "s/x/y/"'. For portability, use 'sed -i.bak'.
 - The substitution pattern is a regex, not a fixed string: special chars (., *, [, ^, $, \) must be escaped. Use 'sed 's/1\.0/2.0/g'' to replace literal '1.0'.
@@ -27,6 +27,7 @@ source_url: "https://www.gnu.org/software/sed/manual/sed.html"
 - Newlines in the replacement: sed cannot insert newlines with \n in the replacement on all platforms. Use $'\n' or printf for portability.
 - sed 'd' deletes the entire matching line, not just the matching part. To delete only matched text, use 's/pattern//'.
 - When using alternate delimiters (s|pat|repl|), ensure the delimiter does not appear in the pattern or replacement unescaped.
+- c command replaces the entire line, not just the matched portion; use with caution.
 
 ## Examples
 
@@ -97,6 +98,26 @@ source_url: "https://www.gnu.org/software/sed/manual/sed.html"
 ### number all non-empty lines in a file
 **Args:** `'/./=' file.txt`
 **Explanation:** /./= prints the line number for every non-empty line; combine with -n for selective output
+
+### replace entire line matching pattern
+**Args:** `'/pattern/c NEW_LINE_CONTENT' file.txt`
+**Explanation:** c command replaces entire line containing pattern with NEW_LINE_CONTENT
+
+### read next line and join with current line
+**Args:** `'N;s/\n/ /' file.txt`
+**Explanation:** N reads next line into pattern space; s/\n/ / replaces newline with space; joins consecutive lines
+
+### write matching lines to separate file
+**Args:** `'/pattern/w output.txt' file.txt`
+**Explanation:** w command writes lines matching pattern to output.txt; useful for extracting specific records
+
+### perform substitution only on last line
+**Args:** `'$s/old/new/' file.txt`
+**Explanation:** $ address targets only the last line; substitution only applied to final line of file
+
+### insert text at beginning of file
+**Args:** `'1i # Header comment' file.txt`
+**Explanation:** 1i inserts text before line 1; useful for adding headers to files
 
 ### extract lines between two line numbers
 **Args:** `-n '10,20p' file.txt`

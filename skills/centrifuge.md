@@ -2,7 +2,7 @@
 name: centrifuge
 category: metagenomics
 description: Rapid and memory-efficient taxonomic classification of sequencing reads using FM-index
-tags: [metagenomics, taxonomy, classification, reads, 16S, wgs, kraken]
+tags: [metagenomics, taxonomy, classification, reads, 16S, wgs, kraken, centrifuge-build, centrifuge-kreport, host-depletion]
 author: oxo-call built-in
 source_url: "https://ccb.jhu.edu/software/centrifuge/manual.shtml"
 ---
@@ -15,15 +15,24 @@ source_url: "https://ccb.jhu.edu/software/centrifuge/manual.shtml"
 - Paired-end reads are passed with -1 and -2; single-end with -U; reads can be FASTQ or FASTA, gzipped or uncompressed.
 - --report-file writes a per-taxon abundance summary during the run; this is a quick overview but the Kraken-style report has more detail.
 - Centrifuge databases are available pre-built from the JHU website (nt, bacteria, archaea, viruses, human); building custom DBs is possible but time-consuming.
+- --host-taxids preferentially classifies reads to specified taxa (e.g., 9606 for human) when multiple matches have similar scores.
+- --exclude-taxids excludes specified taxa from classification output; useful for host depletion (e.g., exclude human reads).
+- -k reports up to N distinct primary assignments per read; useful for reads that map to multiple taxa.
+- --out-fmt can output SAM format instead of tabular for alignment visualization.
+- --un and --al write unclassified and classified reads to separate files for downstream analysis.
 
 ## Pitfalls
 
+- CRITICAL: centrifuge has NO subcommands. ARGS starts directly with flags (e.g., -x, -1, -2, -U, -S, -p). Do NOT put a subcommand like 'classify' or 'search' before flags. Index building uses the separate binary 'centrifuge-build'.
 - Not specifying -x (index prefix) causes centrifuge to fail — always provide the full path prefix to the index files.
 - Centrifuge index files (.1.cf, .2.cf, .3.cf) must all be present; a missing file causes a cryptic error at startup.
 - --min-hitlen default is 22; raising it (e.g., 30) increases precision but reduces recall for shorter reads.
 - Centrifuge does not handle interleaved FASTQ natively; split into separate R1/R2 files before using -1/-2.
 - The summary report from centrifuge is not in Kraken format by default; use centrifuge-kreport to get Pavian/Krona-compatible output.
 - Memory-mapped index loading (default) can be slow on network filesystems; copy indexes to local SSD before running.
+- --host-taxids and --exclude-taxids require NCBI taxonomy IDs (e.g., 9606 for human, 10090 for mouse); names are not accepted.
+- centrifuge-build requires NCBI taxonomy files (nodes.dmp, names.dmp) and a sequence-to-taxid mapping; missing these causes build failures.
+- -k values >5 can significantly increase output size and runtime; use only when necessary for ambiguous mappings.
 
 ## Examples
 
@@ -66,3 +75,23 @@ source_url: "https://ccb.jhu.edu/software/centrifuge/manual.shtml"
 ### classify paired-end metagenome against custom host-depleted database
 **Args:** `-x /databases/custom_microbiome -1 R1.fastq.gz -2 R2.fastq.gz -S classifications.tsv --report-file report.tsv -p 16 -k 5`
 **Explanation:** -k 5 reports top 5 assignments per read; useful for reads that map to multiple taxa with similar scores
+
+### exclude human reads using taxonomy ID for microbial enrichment
+**Args:** `-x /databases/nt -1 R1.fastq.gz -2 R2.fastq.gz -S classifications.tsv --report-file report.tsv -p 16 --exclude-taxids 9606`
+**Explanation:** --exclude-taxids 9606 excludes human (taxonomy ID 9606) from classification; useful for host-associated microbiome studies
+
+### preferentially classify to human when ambiguous
+**Args:** `-x /databases/nt -1 R1.fastq.gz -2 R2.fastq.gz -S classifications.tsv --report-file report.tsv -p 16 --host-taxids 9606`
+**Explanation:** --host-taxids 9606 preferentially assigns reads to human when multiple taxa have similar scores; useful for host-pathogen studies
+
+### output SAM format for alignment visualization
+**Args:** `-x /databases/bv_bacteria -1 R1.fastq.gz -2 R2.fastq.gz -S alignments.sam --out-fmt sam -p 16`
+**Explanation:** --out-fmt sam outputs alignments in SAM format instead of tabular; viewable in IGV or other genome browsers
+
+### classify reads with quality trimming
+**Args:** `-x /databases/bv_bacteria -1 R1.fastq.gz -2 R2.fastq.gz -S classifications.tsv --report-file report.tsv -p 16 --trim5 10 --trim3 10`
+**Explanation:** --trim5 10 and --trim3 10 remove 10bp from each end; useful for removing adapter sequences or low-quality bases
+
+### save classified reads for downstream analysis
+**Args:** `-x /databases/viral -U reads.fastq.gz -S viral_hits.tsv --report-file viral_report.tsv -p 8 --al viral_reads.fastq.gz`
+**Explanation:** --al writes reads that classified against the database to a separate file; useful for extracting pathogen reads for assembly

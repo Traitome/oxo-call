@@ -2,7 +2,7 @@
 name: git
 category: version-control
 description: Distributed version control system for tracking changes in source code
-tags: [version-control, vcs, repository, commit, branch, merge, clone]
+tags: [version-control, vcs, repository, commit, branch, merge, clone, rebase, cherry-pick]
 author: oxo-call built-in
 source_url: "https://git-scm.com/docs"
 ---
@@ -15,6 +15,12 @@ source_url: "https://git-scm.com/docs"
 - Remote operations: 'git clone' copies a remote repo; 'git fetch' downloads remote changes without merging; 'git pull' = fetch + merge; 'git push' uploads local commits to remote.
 - Undo operations: 'git restore <file>' discards unstaged changes; 'git restore --staged <file>' unstages; 'git revert <sha>' creates a new undo commit (safe for shared history); 'git reset --hard' is destructive.
 - git rm removes files from both working tree and index. Use 'git rm --cached' to stop tracking a file without deleting it from disk. Deletion via git rm is staged and committed, making it part of history.
+- cherry-pick applies specific commits from one branch to another without merging; useful for backporting fixes.
+- bisect performs binary search through commit history to find which commit introduced a bug.
+- worktree allows multiple working directories from a single repository; useful for working on multiple branches simultaneously.
+- submodule includes external repositories within a parent repository; requires special handling for updates.
+- sparse-checkout reduces working tree to a subset of tracked files; useful for large repositories.
+- reflog records all reference updates; useful for recovering "lost" commits after reset or rebase.
 
 ## Pitfalls
 
@@ -24,6 +30,12 @@ source_url: "https://git-scm.com/docs"
 - 'git reset --hard HEAD~N' and 'git push --force' permanently rewrite history — never use on shared/public branches without team consensus.
 - 'git rm -r --force .' removes all tracked files recursively without confirmation. Always verify the scope with 'git status' before running destructive git rm commands.
 - git push requires specifying the remote and branch the first time: 'git push -u origin main'. After that, 'git push' uses the cached upstream.
+- cherry-pick can cause conflicts if the commit depends on previous changes; resolve conflicts with --continue or abort with --abort.
+- bisect requires a known good commit and a known bad commit; mark commits with 'git bisect good/bad' during the search.
+- worktree directories must be outside the main repository; cannot create worktree inside existing repo directory.
+- submodule updates require 'git submodule update --init --recursive' after cloning; collaborators may miss submodules without this.
+- sparse-checkout requires cone mode for best performance; non-cone mode has limitations and is not recommended.
+- reflog entries expire after 90 days by default; recover lost commits quickly before garbage collection removes them.
 
 ## Examples
 
@@ -66,3 +78,39 @@ source_url: "https://git-scm.com/docs"
 ### pull latest changes from remote and rebase local commits on top
 **Args:** `pull --rebase origin main`
 **Explanation:** --rebase keeps history linear by replaying local commits after the fetched commits
+
+### cherry-pick a specific commit from another branch
+**Args:** `cherry-pick a1b2c3d`
+**Explanation:** applies commit a1b2c3d to current branch; useful for backporting fixes without full merge
+
+### cherry-pick a range of commits
+**Args:** `cherry-pick a1b2c3d^..e4f5g6h`
+**Explanation:** applies all commits from a1b2c3d to e4f5g6h inclusive; ^ includes the first commit in the range
+
+### find which commit introduced a bug using bisect
+**Args:** `bisect start`
+**Explanation:** starts binary search; then use 'git bisect bad' and 'git bisect good <commit>' to narrow down; 'git bisect reset' when done
+
+### create a new worktree for parallel branch work
+**Args:** `worktree add ../hotfix-branch hotfix/urgent-fix`
+**Explanation:** creates separate working directory at ../hotfix-branch; allows simultaneous work on multiple branches
+
+### initialize and update submodules after cloning
+**Args:** `submodule update --init --recursive`
+**Explanation:** initializes and updates all submodules recursively; required after cloning repos with submodules
+
+### add a submodule to the repository
+**Args:** `submodule add https://github.com/user/lib.git libs/lib`
+**Explanation:** adds external repo as submodule at libs/lib; commits .gitmodules file; collaborators must run submodule update
+
+### enable sparse-checkout for large repositories
+**Args:** `sparse-checkout init --cone`
+**Explanation:** enables sparse-checkout in cone mode; use 'git sparse-checkout set <dir>' to specify which directories to checkout
+
+### view reflog to find lost commits
+**Args:** `reflog`
+**Explanation:** shows all reference updates; use commit hashes from reflog to recover lost commits after reset or rebase
+
+### restore a file to a specific commit version
+**Args:** `restore --source=HEAD~5 -- config.py`
+**Explanation:** restores config.py to its state from 5 commits ago; --source specifies the commit to restore from

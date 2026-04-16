@@ -8,7 +8,6 @@ source_url: "https://www.cog-genomics.org/plink/2.0/"
 ---
 
 ## Concepts
-
 - PLINK2 processes genetic variant data in PLINK binary (.bed/.bim/.fam or PLINK2 .pgen/.pvar/.psam) or VCF format.
 - PLINK binary format: .bed (genotype), .bim (variant info), .fam (sample info) — core trio for most analyses.
 - Import VCF to PLINK2 format: plink2 --vcf variants.vcf --make-pgen --out dataset.
@@ -17,15 +16,17 @@ source_url: "https://www.cog-genomics.org/plink/2.0/"
 - LD pruning: --indep-pairwise 50 10 0.1 creates prune.in/prune.out files; --extract prune.in applies pruning.
 - PCA: use --pca 10 to compute top 10 principal components; output .eigenvec and .eigenval.
 - Association test: --glm for linear/logistic regression; --1 for case/control phenotype.
+- --keep and --remove filter samples by ID; --extract and --exclude filter variants.
+- --make-bed converts PLINK2 format back to PLINK1 binary format for compatibility.
 
 ## Pitfalls
-
 - PLINK1 (.bed/.bim/.fam) and PLINK2 (.pgen/.pvar/.psam) have different command flags (--bfile vs --pfile).
 - Multiallelic variants in VCF must be split before PLINK conversion: bcftools norm -m -any variants.vcf first.
 - --maf filter removes low-frequency variants — do NOT apply for rare variant analysis.
 - Sex mismatch in .fam file causes errors in X-chromosome QC; fix sex with --update-sex.
 - For GRM/relatedness analysis, LD pruning must be applied BEFORE computing GRM.
 - PLINK2 uses sample IDs from VCF (IID column); ensure these match downstream phenotype files.
+- --keep and --remove require a text file with FID and IID columns; single column files will fail.
 
 ## Examples
 
@@ -48,3 +49,19 @@ source_url: "https://www.cog-genomics.org/plink/2.0/"
 ### compute kinship/relatedness matrix
 **Args:** `--pfile plink_dataset --extract ld_prune.prune.in --make-king-table --out kinship_matrix`
 **Explanation:** --make-king-table computes KING relatedness coefficients; use LD-pruned variants
+
+### filter samples by ID list
+**Args:** `--pfile plink_dataset --keep samples_to_keep.txt --make-pgen --out filtered_samples`
+**Explanation:** --keep retains only samples listed in the file (FID IID format); useful for subsetting cohorts
+
+### convert PLINK2 format back to PLINK1
+**Args:** `--pfile plink2_dataset --make-bed --out plink1_dataset`
+**Explanation:** --make-bed creates PLINK1 .bed/.bim/.fam files; useful for compatibility with legacy tools
+
+### filter variants by chromosome
+**Args:** `--pfile plink_dataset --chr 1-22 --make-pgen --out autosomes_only`
+**Explanation:** --chr filters to autosomes only; excludes sex chromosomes and unplaced contigs
+
+### calculate allele frequencies
+**Args:** `--pfile plink_dataset --freq --out allele_freqs`
+**Explanation:** --freq calculates allele frequencies; output includes .afreq file with frequencies per variant

@@ -8,7 +8,6 @@ source_url: "https://slurm.schedmd.com/documentation.html"
 ---
 
 ## Concepts
-
 - Slurm manages jobs on HPC clusters. Submit batch jobs with `sbatch script.sh`, interactive jobs with `srun`, and allocate resources with `salloc`. Always specify partition (-p), time limit (-t), and resource requirements.
 - Job scripts start with `#!/bin/bash` followed by `#SBATCH` directives: `#SBATCH --job-name=NAME`, `#SBATCH --partition=PARTITION`, `#SBATCH --nodes=N`, `#SBATCH --ntasks=N`, `#SBATCH --cpus-per-task=N`, `#SBATCH --mem=SIZE`, `#SBATCH --time=HH:MM:SS`.
 - Use `sinfo` to check available partitions, node states, and resources. Use `sinfo -N -l` for per-node details or `sinfo -p PARTITION` for a specific partition.
@@ -17,6 +16,8 @@ source_url: "https://slurm.schedmd.com/documentation.html"
 - For bioinformatics pipelines, use array jobs (`--array=1-100`) to process multiple samples in parallel. Each array task gets a unique `$SLURM_ARRAY_TASK_ID`.
 - Resource query: `scontrol show partition` lists all partitions with limits; `sacctmgr show qos` shows available QoS settings; `sshare -u $USER` shows fairshare allocation.
 - Environment variables set by Slurm in jobs: `$SLURM_JOB_ID`, `$SLURM_ARRAY_TASK_ID`, `$SLURM_NTASKS`, `$SLURM_CPUS_PER_TASK`, `$SLURM_MEM_PER_NODE`, `$SLURM_SUBMIT_DIR`.
+- `scontrol hold` and `scontrol release` manage job holds.
+- `scontrol requeue` requeues a completed or failed job for re-execution.
 
 ## Pitfalls
 
@@ -81,3 +82,23 @@ source_url: "https://slurm.schedmd.com/documentation.html"
 ### submit a job with per-CPU memory allocation
 **Args:** `sbatch --job-name=variant_call --partition=compute --cpus-per-task=4 --mem-per-cpu=8G --time=12:00:00 gatk_hc.sh`
 **Explanation:** --mem-per-cpu=8G allocates 8GB per CPU (32GB total with 4 CPUs); preferred over --mem when job scaling varies
+
+### place a job on hold
+**Args:** `scontrol hold 12345`
+**Explanation:** prevents job 12345 from starting; use scontrol release to allow it to run
+
+### release a held job
+**Args:** `scontrol release 12345`
+**Explanation:** releases job 12345 from hold state; job becomes eligible to run according to priority
+
+### requeue a job for re-execution
+**Args:** `scontrol requeue 12345`
+**Explanation:** requeues completed or failed job; useful for retrying with same parameters
+
+### check detailed job information
+**Args:** `scontrol show job 12345`
+**Explanation:** displays detailed job information including resource requests, node allocation, and state
+
+### check node details
+**Args:** `scontrol show node node01`
+**Explanation:** shows detailed information about a specific compute node including resources and state

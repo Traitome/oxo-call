@@ -2,7 +2,7 @@
 name: crossmap
 category: utilities
 description: Genomic coordinate conversion between genome assemblies (e.g., hg19 to hg38) for various file formats
-tags: [coordinates, liftover, assembly, vcf, bed, bam, genome, conversion]
+tags: [coordinates, liftover, assembly, vcf, bed, bam, genome, conversion, chain, UCSC]
 author: oxo-call built-in
 source_url: "https://crossmap.sourceforge.net/"
 ---
@@ -16,6 +16,11 @@ source_url: "https://crossmap.sourceforge.net/"
 - For VCF conversion: CrossMap needs the target genome FASTA to update REF alleles: crossmap vcf chain_file input.vcf target.fa output.vcf
 - Variants that cannot be lifted over are written to <output.vcf>.unmap file.
 - For BAM conversion: coordinate sort and reindex after CrossMap.
+- --chromid controls output chromosome ID style: a=as-is, l=long (with chr), s=short (no chr), n=no-change.
+- --ref-consistent checks if reference allele is consistent during VCF liftover.
+- --compress compresses output VCF with gzip automatically.
+- --unmap-file specifies custom filename for unmapped entries.
+- viewchain subcommand displays chain file contents in human-readable format.
 
 ## Pitfalls
 
@@ -25,6 +30,10 @@ source_url: "https://crossmap.sourceforge.net/"
 - CrossMap does not update variant IDs — rsIDs or local IDs remain unchanged after conversion.
 - BAM conversion may produce coordinate-unsorted output — always re-sort with samtools sort after.
 - For VCF, multiallelic records should be split before CrossMap for accurate conversion.
+- **CRITICAL**: CrossMap has subcommands (bed, vcf, bam, gff, wig, bigwig, etc.); use subcommand before chain file.
+- --chromid default is 'a' (as-is); use 'l' for long style (chr1) or 's' for short style (1) if needed.
+- Compressed remote files (URLs) are not supported; download first for remote inputs.
+- --naive-bed-parsing can help with non-standard BED files that don't conform to strict format.
 
 ## Examples
 
@@ -43,3 +52,27 @@ source_url: "https://crossmap.sourceforge.net/"
 ### convert BAM file from one genome build to another
 **Args:** `bam hg19ToHg38.over.chain.gz input_hg19.bam output_hg38.bam`
 **Explanation:** bam subcommand; re-sort output with samtools sort; update header SQ lines with new coordinates
+
+### convert VCF with short chromosome style output
+**Args:** `vcf hg19ToHg38.over.chain.gz input.vcf hg38.fa output.vcf --chromid s --compress`
+**Explanation:** --chromid s outputs short chromosome IDs (1, 2, X instead of chr1, chr2, chrX); --compress gzip compresses output
+
+### convert BED with custom unmap file
+**Args:** `bed hg19ToHg38.over.chain.gz input.bed output.bed --unmap-file failed_liftover.bed`
+**Explanation:** --unmap-file specifies custom filename for entries that fail liftover; useful for tracking failed conversions
+
+### view chain file contents
+**Args:** `viewchain hg19ToHg38.over.chain.gz`
+**Explanation:** viewchain displays chain file in human-readable block-to-block format; useful for understanding alignment structure
+
+### convert BigWig file
+**Args:** `bigwig hg19ToHg38.over.chain.gz input_hg19.bw output_hg38.bw`
+**Explanation:** bigwig subcommand for signal track conversion; maintains BigWig format while updating coordinates
+
+### convert Wiggle/bedGraph format
+**Args:** `wig hg19ToHg38.over.chain.gz input.wig output.wig`
+**Explanation:** wig subcommand handles Wiggle and bedGraph format conversion; preserves signal values
+
+### convert MAF mutation format
+**Args:** `maf hg19ToHg38.over.chain.gz input.maf hg38.fa output.maf`
+**Explanation:** maf subcommand for Mutation Annotation Format; requires target genome FASTA like VCF conversion

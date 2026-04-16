@@ -14,9 +14,15 @@ source_url: "https://github.com/chhylp123/hifiasm"
 - Use -o for output prefix; -t for threads; reads are positional argument at the end.
 - GFA output must be converted to FASTA: awk '/^S/ {print ">"$2; print $3}' output.bp.hap1.p_ctg.gfa > hap1.fasta.
 - For Hi-C phasing: use --h1 and --h2 for Hi-C R1 and R2 reads alongside HiFi reads.
-- For trio phasing: use --ul for ultra-long ONT reads; --pat/--mat for paternal/maternal k-mer databases.
+- For trio phasing: use --ul for ultra-long ONT reads; -1/-2 for paternal/maternal k-mer databases.
 - Hifiasm achieves near-complete T2T assemblies for many organisms with HiFi + Hi-C data.
 - Use -l 0/1/2/3 to control duplication purging level (0=no purge, 3=aggressive).
+- --primary outputs a primary assembly and an alternate assembly instead of haplotype-resolved assemblies.
+- --hom-cov specifies homozygous read coverage manually; useful when auto-detection fails on low-coverage data.
+- --ul integrates ultra-long ONT reads (>100kb) to improve contiguity and enable telomere-to-telomere assembly.
+- --dual-scaf enables dual scaffolding mode for scaffolding with Hi-C and ultra-long reads simultaneously.
+- -z INT trims INT bases from both ends of reads; useful for removing adapter contamination from older HiFi data.
+- --telo-m specifies telomere motif for telomere identification; default CCCTAA for human (vertebrate telomere).
 
 ## Pitfalls
 
@@ -26,6 +32,12 @@ source_url: "https://github.com/chhylp123/hifiasm"
 - --primary flag produces a single primary assembly without haplotype separation.
 - Hifiasm requires significant RAM for large genomes — human genome assembly needs ~300 GB RAM.
 - For metagenomes, Flye or metaSPAdes are more appropriate than Hifiasm.
+- --pat/--mat flags mentioned in old documentation are replaced by -1/-2 for paternal/maternal k-mer databases.
+- Default -l 0 for trio assemblies disables purging; for HiFi-only assemblies default is -l 3 (aggressive).
+- *.bin files are reused across runs; delete them when changing parameters or input data to avoid incorrect results.
+- --hic*.bin files should be deleted when tuning Hi-C phasing parameters to ensure fresh alignment.
+- -l 0 is recommended for inbred/homozygous genomes to disable purging of true homozygous sequence.
+- --hom-cov auto-detection may fail on low-coverage or highly heterozygous samples; specify manually if results look incorrect.
 
 ## Examples
 
@@ -48,3 +60,35 @@ source_url: "https://github.com/chhylp123/hifiasm"
 ### assemble with aggressive duplicate purging
 **Args:** `-o assembly -t 32 -l 3 hifi_reads.fastq.gz`
 **Explanation:** -l 3 aggressive purging level; useful for highly heterozygous genomes with duplicate haplotigs
+
+### generate primary/alternate assembly instead of haplotype-resolved
+**Args:** `-o assembly -t 32 --primary hifi_reads.fastq.gz`
+**Explanation:** --primary outputs primary assembly (p_ctg.gfa) and alternate assembly (a_ctg.gfa); useful when haplotype phasing is not required
+
+### trio binning assembly with parental k-mers
+**Args:** `-o trio_assembly -t 32 -1 paternal.yak -2 maternal.yak hifi_reads.fastq.gz`
+**Explanation:** -1/-2 provide parental k-mer databases from yak count; produces fully phased haplotypes without Hi-C
+
+### trim adapter sequences from older HiFi reads
+**Args:** `-o assembly -t 32 -z 20 hifi_reads.fastq.gz`
+**Explanation:** -z 20 trims 20bp from both ends of reads; removes adapter contamination common in older HiFi data
+
+### specify homozygous coverage for low-coverage samples
+**Args:** `-o assembly -t 32 --hom-cov 30 hifi_reads.fastq.gz`
+**Explanation:** --hom-cov 30 manually sets homozygous coverage; useful when auto-detection fails on low-coverage or aneuploid samples
+
+### dual scaffolding with Hi-C and ultra-long reads
+**Args:** `-o assembly -t 32 --h1 hic_R1.fq.gz --h2 hic_R2.fq.gz --ul ont_ul.fq.gz --dual-scaf hifi_reads.fastq.gz`
+**Explanation:** --dual-scaf enables scaffolding with both Hi-C and ultra-long reads; produces more contiguous scaffolds
+
+### identify telomeres during assembly
+**Args:** `-o assembly -t 32 --telo-m CCCTAA hifi_reads.fastq.gz`
+**Explanation:** --telo-m CCCTAA specifies telomere motif for vertebrates; enables telomere identification and T2T assembly assessment
+
+### assemble ONT simplex reads (beta mode)
+**Args:** `-o assembly -t 32 --ont ont_reads.fastq.gz`
+**Explanation:** --ont enables ONT simplex read assembly mode; experimental feature for nanopore-only assembly
+
+### resume assembly from existing overlap files
+**Args:** `-o assembly -t 32 -i hifi_reads.fastq.gz`
+**Explanation:** -i ignores saved read correction and overlaps; forces re-computation when previous steps failed or parameters changed

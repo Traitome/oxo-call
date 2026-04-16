@@ -17,9 +17,14 @@ source_url: "https://deweylab.github.io/RSEM/"
 - Use --num-threads N for multi-threading; --paired-end for paired-end data.
 - Use --estimate-rspd for read start position distribution correction (improves accuracy for non-uniform coverage).
 - rsem-generate-data-matrix converts multiple RSEM results to a count matrix for DESeq2/edgeR.
+- RSEM can quantify from pre-aligned BAM/SAM files using --alignments flag.
+- --calc-ci computes 95% confidence intervals for expression estimates.
+- --no-qualities allows processing FASTA format reads without quality scores.
+- RSEM supports both Bowtie and Bowtie2 aligners (--bowtie or --bowtie2 flags).
 
 ## Pitfalls
 
+- CRITICAL: RSEM is a multi-binary suite. Each tool is a separate command: rsem-prepare-reference, rsem-calculate-expression, rsem-generate-data-matrix, rsem-generate-ngs-count-matrix. There is NO single 'rsem' subcommand pattern. ARGS for each tool start with their own flags.
 - RSEM companion binaries (rsem-prepare-reference, rsem-calculate-expression, rsem-generate-data-matrix) must be used as the first ARGS token — the system detects them and uses them as the actual executables.
 - The index_prefix must match between rsem-prepare-reference and rsem-calculate-expression.
 - Without --paired-end flag, RSEM treats paired-end data as single-end, halving effective read count.
@@ -27,6 +32,9 @@ source_url: "https://deweylab.github.io/RSEM/"
 - The expected_count column (not TPM/FPKM) should be used for DESeq2/edgeR — these tools need raw counts.
 - When using --star, RSEM manages STAR internally — do NOT pre-align with STAR separately.
 - --strandedness forward/reverse/none must match the library prep for accurate quantification.
+- --alignments requires sorted BAM with adjacent paired-end mates; use samtools sort and fixmate first.
+- --calc-ci significantly increases computation time; use only when confidence intervals are needed.
+- Multiple input files should be comma-separated, not space-separated.
 
 ## Examples
 
@@ -69,3 +77,27 @@ source_url: "https://deweylab.github.io/RSEM/"
 ### calculate expression with confidence intervals for uncertainty estimation
 **Args:** `rsem-calculate-expression --paired-end --num-threads 8 --calc-ci R1.fastq.gz R2.fastq.gz rsem_index/genome sample_ci`
 **Explanation:** --calc-ci computes 95% confidence intervals for expression estimates; useful for downstream uncertainty-aware DE analysis
+
+### quantify from pre-aligned BAM file
+**Args:** `rsem-calculate-expression --alignments --paired-end --num-threads 8 aligned.bam rsem_index/genome sample_from_bam`
+**Explanation:** --alignments uses pre-aligned BAM instead of aligning reads; BAM must have adjacent paired-end mates; faster if alignment already exists
+
+### quantify multiple FASTQ files (technical replicates)
+**Args:** `rsem-calculate-expression --paired-end --num-threads 8 R1a.fq.gz,R1b.fq.gz R2a.fq.gz,R2b.fq.gz rsem_index/genome sample_merged`
+**Explanation:** comma-separated files for technical replicates; RSEM merges them before quantification
+
+### prepare reference with Bowtie instead of Bowtie2
+**Args:** `rsem-prepare-reference --gtf genes.gtf --bowtie --num-threads 8 genome.fa rsem_bowtie_index/genome`
+**Explanation:** --bowtie builds Bowtie index instead of Bowtie2; useful for compatibility with older workflows
+
+### run RSEM with STAR and output transcriptome BAM
+**Args:** `rsem-calculate-expression --paired-end --star --star-output-genome-bam --num-threads 8 R1.fq.gz R2.fq.gz rsem_index/genome sample_star`
+**Explanation:** --star-output-genome-bam outputs genome-coordinate BAM from STAR alignment; useful for visualization
+
+### generate count matrix from multiple samples for DESeq2
+**Args:** `rsem-generate-data-matrix sample1.genes.results sample2.genes.results sample3.genes.results > gene_counts.matrix`
+**Explanation:** extracts expected_count columns from multiple samples; output is a count matrix suitable for DESeq2/edgeR
+
+### extract TPM values for cross-sample comparison
+**Args:** `awk 'NR==1 {print "gene\tTPM"} NR>1 {print $1"\t"$6}' sample.genes.results > sample.tpm.txt`
+**Explanation:** extracts gene IDs and TPM values from genes.results; TPM is normalized for cross-sample comparison

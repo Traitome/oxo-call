@@ -2,7 +2,7 @@
 name: conda
 category: package-management
 description: Open-source package and environment management system for Python and data science
-tags: [conda, environment, python, package, data-science, bioconda, anaconda]
+tags: [conda, environment, python, package, data-science, bioconda, anaconda, mamba, micromamba]
 author: oxo-call built-in
 source_url: "https://docs.conda.io/projects/conda/en/stable/commands/"
 ---
@@ -15,6 +15,11 @@ source_url: "https://docs.conda.io/projects/conda/en/stable/commands/"
 - conda env create -f environment.yml creates an environment from a YAML spec file. Export current environment with 'conda env export > environment.yml'. Use --no-builds for cross-platform compatibility.
 - mamba is a faster drop-in replacement for conda using a C++ solver. If available, replace 'conda install' with 'mamba install' for dramatically faster dependency solving.
 - conda remove uninstalls packages from the active environment. Use 'conda env remove -n envname' to delete an entire environment. Both operations are reversible only if you have an environment.yml backup.
+- --from-history exports only explicitly installed packages (not dependencies) for better cross-platform compatibility.
+- conda rename renames existing environments without recreating them.
+- conda doctor/check displays health reports for environment diagnostics.
+- conda clean removes unused packages and caches to free disk space.
+- conda compare compares packages between different environments.
 
 ## Pitfalls
 
@@ -24,6 +29,10 @@ source_url: "https://docs.conda.io/projects/conda/en/stable/commands/"
 - Without -y, conda prompts for confirmation before installing. In scripts, add -y to avoid interactive prompts.
 - conda update conda should be run in the base environment, not in a project environment. Activate base first: 'conda activate base && conda update conda'.
 - conda activate myenv only works after 'conda init' has been run for your shell. In scripts, use 'source activate myenv' or 'conda run -n myenv command' instead.
+- --no-builds is essential for cross-platform sharing; build strings are platform-specific.
+- --from-history only includes explicitly installed packages, making exports much more portable.
+- conda env update -f environment.yml updates existing environment; different from conda update.
+- Channel order matters: conda searches channels in order, first match wins.
 
 ## Examples
 
@@ -66,3 +75,31 @@ source_url: "https://docs.conda.io/projects/conda/en/stable/commands/"
 ### run a command in a specific environment without activating
 **Args:** `run -n myenv python script.py`
 **Explanation:** 'conda run -n myenv cmd' runs cmd in the named env without requiring conda activate; useful in scripts
+
+### export environment with only explicitly installed packages
+**Args:** `env export --from-history -f environment.yml`
+**Explanation:** --from-history exports only packages you explicitly installed (not dependencies); more portable across platforms
+
+### rename an existing environment
+**Args:** `rename old_env_name new_env_name`
+**Explanation:** rename changes environment name without recreating; faster than export/create/remove workflow
+
+### clean unused packages and caches
+**Args:** `clean --all -y`
+**Explanation:** --all removes unused packages, tarballs, and caches; frees significant disk space
+
+### check environment health
+**Args:** `doctor`
+**Explanation:** doctor displays health report for current environment; checks for missing files and dependency issues
+
+### compare packages between environments
+**Args:** `compare myenv1 myenv2`
+**Explanation:** compare shows differences in packages between two environments; useful for debugging version issues
+
+### update environment from YAML file
+**Args:** `env update -f environment.yml --prune`
+**Explanation:** env update modifies existing environment to match YAML; --prune removes packages not in YAML
+
+### clone an existing environment
+**Args:** `create -n new_env --clone existing_env`
+**Explanation:** --clone creates exact copy of existing environment; useful for testing changes safely

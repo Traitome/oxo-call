@@ -16,9 +16,15 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 - CRAM output requires --reference /path/to/ref.fa because it stores differences from the reference.
 - Many subcommands (view, sort, flagstat) accept a region like chr1:1000-2000 to limit output.
 - Complete PCR duplicate marking workflow: (1) sort by name with 'sort -n', (2) fixmate with '-m', (3) sort by coordinate, (4) markdup.
+- samtools mpileup generates pileup format for variant calling (use bcftools mpileup for VCF/BCF output).
+- samtools consensus produces consensus sequences from alignments in FASTA/FASTQ/PILEUP format.
+- samtools collate groups alignments by name without full sorting; faster than sort -n for some workflows.
+- samtools coverage computes alignment depth and percent coverage per chromosome or region.
+- samtools quickcheck verifies if SAM/BAM/CRAM files appear intact without full validation.
 
 ## Pitfalls
 
+- CRITICAL: samtools ARGS must start with a subcommand (view, sort, index, flagstat, fastq, fasta, markdup, merge, depth, stats, fixmate, mpileup, faidx, fqidx, dict, calmd, collate, reheader, addreplacerg, ampliconclip, cat, consensus, split, import, reference, reset, bedcov, coverage, idxstats, phase, ampliconstats, checksum, flags, head, tview, depad, samples) — never with flags like -b, -@, -o. The subcommand ALWAYS comes first.
 - Without -o, samtools writes to stdout — pipe carefully or always use -o output.bam.
 - CRAM output (-C flag in view, or -O cram in sort) requires --reference; omitting it causes an error.
 - samtools index on an unsorted BAM will appear to succeed but region queries will give wrong results.
@@ -26,6 +32,9 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 - samtools sort -n sorts by read name (needed before fixmate/markdup); the default is coordinate sort.
 - Piping samtools sort to samtools index does not work — sort must complete and write a file first.
 - markdup requires fixmate -m to have been run first; running markdup directly on coordinate-sorted BAM without fixmate will not correctly detect duplicates.
+- samtools mpileup no longer outputs VCF/BCF; use bcftools mpileup for variant calling instead.
+- samtools consensus requires an indexed BAM for region-specific consensus with -r option.
+- The -@ threads option affects decompression threads, not all operations; some commands like index are single-threaded.
 
 ## Examples
 
@@ -88,3 +97,31 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 ### sort BAM using coordinate sort with temporary directory
 **Args:** `sort -@ 8 -m 2G -T /tmp/sort_tmp -o sorted.bam input.bam`
 **Explanation:** -m limits per-thread memory; -T sets temporary directory to avoid filling default tmpdir
+
+### generate pileup for variant calling
+**Args:** `mpileup -f reference.fa -o output.pileup input.bam`
+**Explanation:** -f provides reference FASTA; outputs pileup format for downstream analysis; use bcftools mpileup for direct VCF output
+
+### generate consensus sequence from alignments
+**Args:** `consensus -f FASTA -o consensus.fa input.bam`
+**Explanation:** -f specifies output format (FASTA/FASTQ/PILEUP); produces consensus sequence from aligned reads; useful for viral genomes or amplicon sequencing
+
+### collate alignments by name without full sorting
+**Args:** `collate -@ 4 -o collated.bam input.bam`
+**Explanation:** groups reads by name faster than sort -n; useful for workflows needing paired reads together without strict name ordering
+
+### compute coverage statistics per chromosome
+**Args:** `coverage -o coverage.txt input.bam`
+**Explanation:** outputs depth and percent coverage per chromosome; useful for assessing sequencing completeness across the genome
+
+### quickly check if BAM file is intact
+**Args:** `quickcheck input.bam`
+**Explanation:** fast integrity check without full validation; exits with non-zero status if file appears corrupted; useful for pipeline validation steps
+
+### extract FASTA from BAM
+**Args:** `fasta -@ 4 -o output.fa input.bam`
+**Explanation:** converts BAM to FASTA format; useful for extracting sequences from aligned reads
+
+### calculate depth per BED region
+**Args:** `bedcov regions.bed input.bam > coverage.bed`
+**Explanation:** computes read depth for each region in BED file; outputs BED with additional column for total base count

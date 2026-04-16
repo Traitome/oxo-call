@@ -17,12 +17,16 @@ source_url: "https://www.gnu.org/software/bash/manual/"
 - Process substitution `<(cmd)` creates a virtual file from a command's stdout; useful with tools that require file arguments.
 - `$()` is the modern form of command substitution (preferred over backticks).
 - Here-documents (`<<EOF`) pass multi-line strings as stdin to commands without creating temporary files.
-- Arrays: `arr=("a" "b" "c")`; iterate with `for elem in "${arr[@]}"`.
+- Arrays: `arr=("a" "b" "c")`; iterate with `for elem in "${arr[@]}"`; associative arrays (bash 4+): `declare -A map; map[key]=value`.
 - `source file` (or `. file`) runs a script in the current shell; changes to environment variables persist.
 - `export VAR=value` makes a variable available to child processes.
 - Bash on macOS is version 3.2 (very old); install modern bash 5+ via `brew install bash` or use zsh.
+- Parameter expansion: `${var:-default}` uses default if var unset; `${var%.ext}` strips suffix; `${var#*/}` strips prefix; `${#var}` is string length.
+- Redirections: `> file` stdout, `2> file` stderr, `&> file` both, `2>&1` redirect stderr to stdout, `>> file` append.
+- `xargs -I{} cmd {}` converts stdin lines into command arguments; `parallel` (GNU parallel) is more powerful for parallel execution.
 
 ## Pitfalls
+- CRITICAL: When using bash in oxo-call, ARGS is the argument string passed to bash. Use `-c 'command'` for inline commands, or just the script path for script execution.
 - omitting quotes around variables (`rm $file` vs `rm "$file"`) causes word splitting and glob expansion on filenames with spaces.
 - `set -e` alone does not catch failures in conditionals or pipelines; always pair with `-o pipefail`.
 - `/bin/sh` on Ubuntu/Debian is dash, not bash; scripts using bash-specific syntax (`[[ ]]`, arrays) will fail with `#!/bin/sh`.
@@ -30,6 +34,8 @@ source_url: "https://www.gnu.org/software/bash/manual/"
 - `~` inside double quotes is NOT expanded to the home directory; use `$HOME` instead.
 - Modifying `~/.bash_profile` vs `~/.bashrc`: login shell vs interactive shell distinction bites many users; on macOS Terminal, every shell is a login shell.
 - `export PATH="$PATH:/new/dir"` must be in `~/.bash_profile` (or `~/.profile`) to persist across login sessions, not just in `~/.bashrc`.
+- `[[ ]]` is bash-specific; `[ ]` is POSIX. Use `[[ ]]` for pattern matching (`[[ $var == pattern* ]]`) and `&&`/`||` inside tests.
+- `echo` has inconsistent behavior across systems (especially with `-e`, `-n`); use `printf` for portability.
 
 ## Examples
 
@@ -72,3 +78,19 @@ source_url: "https://www.gnu.org/software/bash/manual/"
 ### loop over a list of files and process each
 **Args:** `-c 'for f in *.bam; do samtools flagstat "$f" > "${f%.bam}.stats"; done'`
 **Explanation:** glob expands *.bam; ${f%.bam} strips the suffix for naming output files; quoting "$f" handles spaces in filenames
+
+### redirect both stdout and stderr to a log file
+**Args:** `-c 'command &> output.log'`
+**Explanation:** &> redirects both stdout and stderr to output.log; use >> for append mode; equivalent to > file 2>&1
+
+### use parameter expansion with defaults
+**Args:** `-c 'output_dir="${1:-results}"; mkdir -p "$output_dir"'`
+**Explanation:** ${1:-results} uses the first argument if provided, otherwise defaults to "results"; robust for scripts with optional arguments
+
+### pipe find results into xargs for batch processing
+**Args:** `-c 'find . -name "*.fastq.gz" -print0 | xargs -0 -I{} fastqc {}'`
+**Explanation:** find -print0 and xargs -0 handle filenames with spaces safely; -I{} substitutes each filename into the command
+
+### iterate over lines in a file
+**Args:** `-c 'while IFS= read -r line; do echo "Processing: $line"; done < input.txt'`
+**Explanation:** IFS= prevents trimming whitespace; -r prevents backslash interpretation; < redirects file as stdin to the while loop

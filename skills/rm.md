@@ -8,22 +8,23 @@ source_url: "https://www.gnu.org/software/coreutils/manual/html_node/rm-invocati
 ---
 
 ## Concepts
-
 - rm removes files immediately and permanently — there is NO undo and NO trash bin by default on most Linux systems. Always double-check the path before running rm.
 - Key flags: -r / -R for recursive directory removal; -f to force without prompting even if files are write-protected; -i for interactive confirmation before each deletion; -v for verbose output showing what was deleted.
 - Combining -r and -f (-rf or -fr) removes directories and all their contents non-interactively. This is one of the most dangerous command combinations on Linux.
 - Use 'ls <path>' or 'find <path>' to verify exactly what will be deleted before running rm. For large deletions, prefer -i (interactive) or test with 'find' first.
 - The --dry-run equivalent for rm is to use 'echo rm <args>' or 'ls <path>' to preview. Alternatively, use 'trash-put' (trash-cli) for a reversible deletion.
 - Wildcards are expanded by the shell before rm sees them: 'rm *.log' deletes all .log files in the current directory. An errant space like 'rm * .log' deletes ALL files in the directory.
+- --preserve-root prevents deletion of root directory; enabled by default on most systems.
+- --one-file-system prevents crossing filesystem boundaries during recursive deletion.
 
 ## Pitfalls
-
 - Never run 'rm -rf /' or 'rm -rf /*' — this destroys the entire filesystem and renders the system unbootable. Most modern systems have --no-preserve-root as a safety guard, but do not rely on it.
 - 'rm -rf .' or 'rm -rf ./' deletes the current directory and everything inside it. Confirm your working directory with 'pwd' before running recursive rm.
 - A space between a path and a wildcard can cause catastrophic deletion: 'rm -rf /data/ *.bak' deletes /data/ AND all *.bak files in the current directory. Quote or brace expansions carefully.
 - 'rm -rf <variable>' where the variable is empty or unset becomes 'rm -rf ' or 'rm -rf /' in some shells. Always check that path variables are non-empty before using them in rm.
 - rm -f suppresses 'no such file' errors silently — combine with -v to see what was actually deleted, or omit -f when debugging.
 - Prefer 'rm -i' or 'rm --interactive' for deletions in unfamiliar directories. For bulk cleanup scripts, log deleted paths with -v and redirect to a log file.
+- --one-file-system can prevent accidental deletion of mounted filesystems but may leave partial deletions.
 
 ## Examples
 
@@ -66,3 +67,15 @@ source_url: "https://www.gnu.org/software/coreutils/manual/html_node/rm-invocati
 ### remove a symbolic link without following it to the target
 **Args:** `symlink_name`
 **Explanation:** rm removes the symlink itself, not the file it points to; do NOT use -r on a symlink to a directory, as -r may follow it
+
+### remove files while preserving root directory
+**Args:** `--preserve-root -rf /data/temp/`
+**Explanation:** --preserve-root prevents accidental deletion of root directory; enabled by default but explicit for safety
+
+### remove files without crossing filesystem boundaries
+**Args:** `--one-file-system -rf /data/project/`
+**Explanation:** --one-file-system prevents deletion on other mounted filesystems; useful when /data has multiple mounts
+
+### remove files older than 30 days
+**Args:** `-rf $(find /tmp/logs -type f -mtime +30)`
+**Explanation:** combines find with rm; removes files not modified in 30 days; verify find output before running

@@ -2,7 +2,7 @@
 name: cargo
 category: package-management
 description: Rust package manager and build tool; compiles, tests, and publishes Rust crates; manages dependencies in Cargo.toml
-tags: [rust, cargo, crate, build, package, rustup, toml, dependency]
+tags: [rust, cargo, crate, build, package, rustup, toml, dependency, workspace, features, cross-compilation, registry, crates.io, vendor, publish]
 author: oxo-call built-in
 source_url: "https://doc.rust-lang.org/cargo/"
 ---
@@ -19,6 +19,9 @@ source_url: "https://doc.rust-lang.org/cargo/"
 - `cargo build --release` enables optimisations (`opt-level=3`); default debug builds have assertions enabled and no optimisation.
 - Cross-compilation requires installing the target with `rustup target add <triple>` and specifying `--target <triple>` on build.
 - `rustup show` prints the active toolchain, installed targets, and the location of the rust sysroot.
+- Feature flags allow conditional compilation; `--features` enables specific features, `--all-features` enables all, `--no-default-features` disables defaults.
+- Cargo profiles (dev, release, test, bench) control compiler settings; custom profiles can be defined in Cargo.toml.
+- `cargo vendor` downloads all dependencies to a local `vendor/` directory for offline builds and reproducible builds in restricted environments.
 
 ## Pitfalls
 - `cargo clean` deletes the entire `target/` directory — all build artefacts; rebuilding from scratch can take minutes for large projects.
@@ -29,6 +32,9 @@ source_url: "https://doc.rust-lang.org/cargo/"
 - `RUSTFLAGS=-C target-cpu=native cargo build --release` produces CPU-specific binaries that will not run on older CPUs.
 - On HPC systems, `cargo build` may fail if the network is restricted; vendor dependencies first with `cargo vendor` or configure a private registry mirror.
 - `cargo update` bumps dependencies to the latest compatible SemVer versions within constraints in `Cargo.toml`; verify with `cargo test` after updating.
+- **CRITICAL**: `--locked`, `--offline`, and `--frozen` have distinct meanings: `--locked` fails if Cargo.lock needs changes, `--offline` prevents network access, `--frozen` combines both.
+- `cargo publish` uploads to crates.io permanently; versions cannot be deleted, only yanked (hidden from new users but still available to existing users).
+- `cargo fix` can automatically apply lint suggestions but may break code; always review changes and run tests after applying fixes.
 
 ## Examples
 
@@ -87,3 +93,39 @@ source_url: "https://doc.rust-lang.org/cargo/"
 ### list installed binary crates
 **Args:** `install --list`
 **Explanation:** shows all crates installed to ~/.cargo/bin/ with their version and source; useful for auditing global Rust tools
+
+### vendor dependencies for offline builds
+**Args:** `vendor`
+**Explanation:** downloads all dependencies to a local vendor/ directory; use on HPC or air-gapped systems where network access is restricted
+
+### build with specific features enabled
+**Args:** `build --features "serde derive" --release`
+**Explanation:** compiles with the specified features enabled; multiple features can be space or comma separated; use --all-features to enable everything
+
+### run tests without running them (compile only)
+**Args:** `test --no-run`
+**Explanation:** compiles tests but does not execute them; useful for CI to verify tests compile without the time cost of running them
+
+### update dependencies to latest compatible versions
+**Args:** `update`
+**Explanation:** updates Cargo.lock to use the latest SemVer-compatible versions of all dependencies; run cargo test afterward to verify compatibility
+
+### show package information from registry
+**Args:** `info serde`
+**Explanation:** displays metadata about a crate from the registry including version, dependencies, and features; useful for exploring crates before adding them
+
+### create a new library crate
+**Args:** `new --lib my_library`
+**Explanation:** creates a new library crate (instead of binary) with src/lib.rs as the entry point; use for reusable code packages
+
+### package for publishing (dry run)
+**Args:** `publish --dry-run`
+**Explanation:** performs all verification steps for publishing without actually uploading; use this to catch packaging errors before the real publish
+
+### build specific package in workspace
+**Args:** `build -p package_name --release`
+**Explanation:** builds only the specified package in a workspace; useful for large workspaces where you only need to compile one crate
+
+### check code with all features enabled
+**Args:** `check --all-features`
+**Explanation:** type-checks the code with all feature flags enabled; catches compilation errors that might only appear with certain feature combinations

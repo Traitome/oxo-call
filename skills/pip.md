@@ -8,22 +8,25 @@ source_url: "https://pip.pypa.io/en/stable/cli/"
 ---
 
 ## Concepts
-
 - pip installs Python packages from PyPI (Python Package Index) and other sources. Always use 'pip install' inside an activated virtual environment (venv, conda) to avoid modifying the system Python.
 - Virtual environment workflow: 'python -m venv .venv' creates a venv; 'source .venv/bin/activate' activates it (Linux/macOS) or '.venv\Scripts\activate' (Windows); then 'pip install' installs into the venv.
 - requirements.txt: 'pip install -r requirements.txt' installs all packages listed in the file. 'pip freeze > requirements.txt' captures current environment. Pin versions for reproducibility: 'package==1.2.3'.
 - pip install --upgrade upgrades a package to the latest version. pip install package==X.Y.Z installs a specific version. pip install 'package>=1.0,<2.0' installs within a version range.
 - pip uninstall removes packages. Use -y to skip confirmation. 'pip uninstall -r requirements.txt -y' removes all packages listed in a requirements file.
 - Use 'pip show package' to see a package's version, dependencies, and install location. 'pip list --outdated' shows packages with newer versions available.
+- pip cache manages the local package cache; use 'pip cache purge' to clear cached packages.
+- pip check verifies installed packages have compatible dependencies.
+- pip download downloads packages without installing; useful for offline installation.
 
 ## Pitfalls
-
 - 'pip install' without a virtual environment modifies the system Python, which can break system tools that depend on specific package versions. Always use a venv or conda environment.
 - 'pip uninstall package -y' removes the package without confirmation and without removing packages that depended on it, potentially breaking other tools.
 - Avoid 'sudo pip install' — it installs into system Python and can break OS tools. Use --user or a virtual environment instead.
 - pip install does NOT check for circular dependencies or conflicts comprehensively. If you see version conflicts, consider using pip-tools or poetry for dependency management.
 - 'pip freeze' captures exact versions including sub-dependencies, making the file less portable. Consider 'pip-compile' (pip-tools) to maintain a clean top-level requirements.in.
 - On systems with both Python 2 and 3, 'pip' may point to Python 2's pip. Use 'pip3' or 'python3 -m pip' to ensure you're using the Python 3 package manager.
+- pip cache can consume significant disk space; periodically run 'pip cache purge' to clean up.
+- pip check may report conflicts that don't actually affect functionality; use judgment when resolving.
 
 ## Examples
 
@@ -66,3 +69,19 @@ source_url: "https://pip.pypa.io/en/stable/cli/"
 ### install package without build isolation (for packages needing system libs)
 **Args:** `install --no-build-isolation pysam`
 **Explanation:** --no-build-isolation lets the package use system-installed libraries during build (e.g., htslib)
+
+### clear pip cache to free disk space
+**Args:** `cache purge`
+**Explanation:** removes all cached packages; frees disk space; next installs will re-download packages
+
+### check for dependency conflicts
+**Args:** `check`
+**Explanation:** verifies all installed packages have compatible dependencies; reports any version conflicts found
+
+### download packages for offline installation
+**Args:** `download -d ./packages numpy pandas scipy`
+**Explanation:** downloads specified packages to ./packages directory without installing; use for offline deployment
+
+### install from downloaded packages
+**Args:** `install --no-index --find-links ./packages numpy`
+**Explanation:** --no-index prevents PyPI lookup; --find-links specifies local package directory; installs from downloaded packages

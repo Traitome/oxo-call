@@ -2,7 +2,7 @@
 name: docker
 category: containerization
 description: Container platform for building, running, and managing containerized applications
-tags: [docker, container, image, kubernetes, devops, build, compose]
+tags: [docker, container, image, kubernetes, devops, build, compose, dockerfile, volume, network]
 author: oxo-call built-in
 source_url: "https://docs.docker.com/reference/cli/docker/"
 ---
@@ -15,6 +15,10 @@ source_url: "https://docs.docker.com/reference/cli/docker/"
 - Dockerfile instructions: FROM (base image), RUN (build-time commands), COPY/ADD (files into image), ENV (environment variables), CMD/ENTRYPOINT (default run command), EXPOSE (document ports).
 - docker exec -it runs an interactive command inside a running container. Use 'docker exec -it <container> bash' (or sh) to get a shell inside a running container.
 - docker compose (or docker-compose) manages multi-container applications via a YAML config. 'docker compose up -d' starts all services; 'docker compose down' stops and removes containers.
+- Resource limits: --memory limits RAM usage; --cpus limits CPU cores; --gpus adds GPU access; prevents one container from consuming all host resources.
+- --user runs container as specific user (security best practice); --network connects to custom networks for container communication.
+- docker cp copies files between host and container; docker inspect shows detailed container/image metadata in JSON.
+- docker system prune removes unused images, containers, networks; docker volume manages persistent data storage.
 
 ## Pitfalls
 
@@ -24,6 +28,11 @@ source_url: "https://docs.docker.com/reference/cli/docker/"
 - Port binding syntax is -p HOST_PORT:CONTAINER_PORT (host first, container second). Reversing them will bind the wrong ports.
 - Volume mounts with -v: use absolute paths for host directories (e.g., -v /home/user/data:/data), not relative paths, as relative paths may be interpreted as named volumes.
 - Without --rm, stopped containers accumulate. Use 'docker ps -a' to see all containers including stopped ones, and clean up with 'docker container prune' to remove all stopped containers.
+- Without resource limits (--memory, --cpus), a container can consume all host resources and cause system instability.
+- --memory-swap must be >= --memory; setting --memory-swap equal to --memory disables swap.
+- Exit code 137 means container was killed by OOM Killer (out of memory); increase --memory or fix memory leak.
+- Running containers as root (--user not specified) is a security risk; use --user $(id -u):$(id -g) to run as current user.
+- docker build cache can cause stale images; use --no-cache when dependencies change or for reproducible builds.
 
 ## Examples
 
@@ -66,3 +75,39 @@ source_url: "https://docs.docker.com/reference/cli/docker/"
 ### pull the latest version of an image from Docker Hub
 **Args:** `pull python:3.12-slim`
 **Explanation:** downloads the image without running it; useful to pre-pull before deployment
+
+### run container with memory and CPU limits
+**Args:** `run -d --memory 4g --cpus 2 --name limited-app myimage`
+**Explanation:** --memory 4g limits RAM to 4GB; --cpus 2 limits to 2 CPU cores; prevents resource exhaustion
+
+### run container with GPU access
+**Args:** `run -d --gpus all --name gpu-app nvidia/cuda:12.0-base`
+**Explanation:** --gpus all provides access to all GPUs; requires NVIDIA Docker runtime installed
+
+### run container as non-root user
+**Args:** `run -d --user $(id -u):$(id -g) -v $(pwd):/data --name secure-app myimage`
+**Explanation:** --user runs as current user/group; security best practice to avoid running as root
+
+### copy files between host and container
+**Args:** `cp host_file.txt my-web:/app/data/`
+**Explanation:** copies host_file.txt to /app/data/ inside my-web container; reverse order to copy from container to host
+
+### inspect container details in JSON
+**Args:** `inspect my-web`
+**Explanation:** outputs detailed container configuration and state in JSON; useful for scripting and debugging
+
+### create and use a custom network
+**Args:** `network create my-network && docker run -d --network my-network --name web nginx`
+**Explanation:** docker network creates isolated network; containers on same network can communicate by name
+
+### run multi-container application with compose
+**Args:** `compose -f docker-compose.yml up -d`
+**Explanation:** -f specifies compose file; up -d starts all services in detached mode
+
+### stop and remove compose services
+**Args:** `compose down -v`
+**Explanation:** down stops and removes containers; -v also removes volumes (data loss warning)
+
+### clean up unused Docker resources
+**Args:** `system prune -a -f`
+**Explanation:** removes all unused images, containers, networks; -f skips confirmation; use with caution

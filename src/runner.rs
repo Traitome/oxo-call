@@ -177,13 +177,23 @@ impl Runner {
         self
     }
 
-    /// Resolve documentation for the tool, showing a spinner while fetching
-    async fn resolve_docs(&self, tool: &str) -> Result<String> {
-        let docs = if self.no_cache {
+    /// Resolve documentation for the tool, showing a spinner while fetching.
+    /// Also attempts to fetch help for the specific subcommand matching the user's task.
+    async fn resolve_docs(&self, tool: &str, task: &str) -> Result<String> {
+        let mut docs = if self.no_cache {
             self.fetcher.fetch_no_cache(tool).await?
         } else {
             self.fetcher.fetch(tool).await?
         };
+
+        // Attempt subcommand-directed fetching: if the tool has subcommands and
+        // the task mentions one, fetch that subcommand's detailed help.
+        if docs.subcommand_help.is_none()
+            && let Some(help_output) = &docs.help_output
+        {
+            docs.subcommand_help = self.fetcher.fetch_subcommand_help(tool, help_output, task);
+        }
+
         Ok(docs.combined())
     }
 
@@ -200,7 +210,7 @@ impl Runner {
             String::new()
         } else {
             let spinner = make_spinner(&format!("Fetching documentation for '{tool}'..."));
-            match self.resolve_docs(tool).await {
+            match self.resolve_docs(tool, task).await {
                 Ok(d) => {
                     spinner.finish_and_clear();
                     d
@@ -300,7 +310,7 @@ impl Runner {
                 eprintln!("{} No skill found for '{}'", "[verbose]".dimmed(), tool);
             }
             let ctx_window = self.config.effective_context_window();
-            let tier = crate::llm::prompt_tier(ctx_window);
+            let tier = self.config.effective_prompt_tier();
             eprintln!(
                 "{} LLM: provider={}, model={}, max_tokens={}, temperature={}, context_window={}, prompt_tier={:?}",
                 "[verbose]".dimmed(),

@@ -13,6 +13,11 @@ source_url: "https://github.com/ACEnglish/truvari/wiki"
 - Matching is done by size similarity (--pctsize), sequence similarity (--pctseq), and positional proximity (--refdist) simultaneously.
 - truvari collapse merges redundant SV calls within a single VCF, keeping the best-supported call per locus.
 - truvari refine improves bench results by performing local re-genotyping at candidate TP/FP loci using a reference and reads.
+- truvari anno adds annotations (GC content, repeat overlap, etc.) to SV calls in a VCF.
+- truvari consistency generates consistency reports between multiple VCF files.
+- truvari vcf2df converts VCF files to pandas DataFrames for analysis.
+- truvari divide splits VCFs into shards for parallel processing.
+- truvari phab harmonizes variant representations using multiple sequence alignment.
 - The --passonly flag restricts analysis to FILTER=PASS variants; benchmarking with all variants including filtered ones inflates FP counts.
 - Truvari requires indexed VCF files (tabix .tbi) for both base (truth) and comparison VCFs; missing indexes cause immediate errors.
 
@@ -50,3 +55,23 @@ source_url: "https://github.com/ACEnglish/truvari/wiki"
 ### filter SV VCF to a specific size range before benchmarking
 **Args:** `bench -b truth.vcf.gz -c calls.vcf.gz -f reference.fasta -o bench_output --sizemin 50 --sizemax 10000 --passonly`
 **Explanation:** --sizemin and --sizemax define the SV size window; focusing on 50-10000 bp covers the reliable detection range
+
+### annotate SV calls with repeat regions
+**Args:** `anno -i calls.vcf.gz -r repeats.bed -o annotated.vcf`
+**Explanation:** annotates SVs with overlapping repeat regions; useful for assessing call reliability
+
+### generate consistency report between multiple VCFs
+**Args:** `consistency -i vcf_list.txt -o consistency_report.txt`
+**Explanation:** compares multiple VCF files for consistency; vcf_list.txt contains paths to VCFs
+
+### convert VCF to pandas DataFrame for analysis
+**Args:** `vcf2df -i calls.vcf.gz -o calls.df.pkl`
+**Explanation:** converts VCF to pandas DataFrame; useful for custom analysis and plotting
+
+### divide VCF into independent shards for parallel processing
+**Args:** `divide -i calls.vcf.gz -o shards/ --shard-size 1000`
+**Explanation:** splits VCF into smaller shards; useful for parallel processing large call sets
+
+### perform phasing-aware SV harmonization
+**Args:** `phab -b truth.vcf.gz -c calls.vcf.gz -f reference.fasta -o phased_output/`
+**Explanation:** harmonizes variant representations using MSA; useful for phasing-aware comparison

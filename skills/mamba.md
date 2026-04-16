@@ -18,6 +18,12 @@ source_url: "https://mamba.readthedocs.io/"
 - Package cache is stored at `~/mambaforge/pkgs/` (or equivalent base prefix/pkgs/) — shared across environments.
 - Environment YAML files (environment.yml) use the same schema as conda for reproducible builds.
 - The base Mambaforge/Miniforge installation activates automatically; child envs are activated on top with `mamba activate`.
+- `mamba repoquery` provides advanced package and dependency queries with --recursive flag.
+- `--explicit` generates exact package URLs for lockfile-style reproducibility.
+- `--prune` removes orphaned packages when updating; --freeze-installed prevents updating existing packages.
+- `--override-channels` ignores defaults/.condarc channels; useful for air-gapped or controlled environments.
+- `--offline` mode uses cached repodata without network access for reproducible installs.
+- `--json` outputs machine-parseable JSON for programmatic use in pipelines.
 
 ## Pitfalls
 - `mamba env remove -n <env>` permanently deletes the environment and all packages within it.
@@ -28,6 +34,11 @@ source_url: "https://mamba.readthedocs.io/"
 - Shell integration requires running `mamba init <shell>` once per shell type; without it, `mamba activate` will fail.
 - On HPC clusters, module-loaded anaconda may shadow the user mamba install; check `which mamba` before running.
 - Large environment locks (conda-lock) must be regenerated after any package change; do not hand-edit lockfiles.
+- `--strict-channel-priority` can cause unsolvable environments if higher-priority channels lack required packages.
+- `--freeze-installed` prevents updates but may block security patches; use with caution in production.
+- `--offline` requires cached repodata; first run must be online to populate the cache.
+- `mamba repoquery` recursive queries can be slow for large dependency trees; use judiciously.
+- Micromamba and mamba have slightly different CLI behaviors; scripts may need adjustment when switching.
 
 ## Examples
 
@@ -78,3 +89,39 @@ source_url: "https://mamba.readthedocs.io/"
 ### show mamba configuration and base prefix
 **Args:** `info`
 **Explanation:** prints active env, base prefix path (e.g. ~/mambaforge/ or ~/miniforge3/), channels, and platform info
+
+### query package dependencies recursively
+**Args:** `repoquery depends -c bioconda samtools --recursive`
+**Explanation:** repoquery shows dependency tree; --recursive lists all transitive dependencies; useful for understanding package requirements
+
+### create environment with explicit package URLs for reproducibility
+**Args:** `create -n locked_env --file explicit_packages.txt`
+**Explanation:** --file with explicit URLs ensures exact package versions; generated via conda list --explicit for lockfile-style installs
+
+### install packages without updating existing ones
+**Args:** `install -n myenv --freeze-installed numpy pandas`
+**Explanation:** --freeze-installed prevents updating already-installed packages; useful for adding tools without disrupting environment
+
+### update environment removing orphaned packages
+**Args:** `update -n myenv --prune --all`
+**Explanation:** --prune removes packages no longer needed by any dependency; cleans up after major package removals
+
+### create environment with strict channel priority
+**Args:** `create -n strict_env -c conda-forge -c bioconda --strict-channel-priority python=3.11 samtools`
+**Explanation:** --strict-channel-priority only uses lower-priority channels if higher-priority ones lack the package
+
+### search for package with detailed info
+**Args:** `repoquery search -c bioconda "star>=2.7"`
+**Explanation:** repoquery search finds packages matching version constraints; supports comparison operators like >=, <, =
+
+### run mamba in offline mode using cached repodata
+**Args:** `create -n offline_env --offline -c conda-forge python=3.11`
+**Explanation:** --offline uses locally cached package index; requires previous online run to populate cache; for air-gapped systems
+
+### export environment as explicit package list with hashes
+**Args:** `list -n myenv --explicit --md5 > explicit_packages.txt`
+**Explanation:** --explicit outputs exact package URLs; --md5 includes checksums for verification; most reproducible export format
+
+### install from conda-lock lockfile with micromamba
+**Args:** `micromamba create -n locked_env -f conda-lock.yml`
+**Explanation:** micromamba can install conda-lock generated lockfiles without conda-lock installed; for reproducible deployments

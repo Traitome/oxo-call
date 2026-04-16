@@ -50,3 +50,27 @@ source_url: "https://github.com/brentp/vcfanno"
 ### annotate indels with COSMIC and output only annotated variants
 **Args:** `-p 8 cosmic_config.toml input.vcf.gz | bcftools view -f PASS > cosmic_annotated.vcf`
 **Explanation:** pipe to bcftools view to keep only PASS variants after annotation; cosmic_config.toml specifies COSMIC VCF source
+
+### annotate with multiple population frequencies
+**Args:** `-p 8 populations_config.toml input.vcf.gz > pop_annotated.vcf`
+**Explanation:** config includes gnomAD, ExAC, and 1000G frequencies; useful for assessing variant population frequency
+
+### annotate variants with CADD scores
+**Args:** `-p 8 cadd_config.toml input.vcf.gz > cadd_annotated.vcf`
+**Explanation:** config specifies CADD BED file with pathogenicity scores; op = ['mean'] for average score
+
+### annotate with conservation scores (PhyloP)
+**Args:** `-p 8 phylop_config.toml input.vcf.gz > phylop_annotated.vcf`
+**Explanation:** annotates with PhyloP conservation scores; high scores indicate conserved regions
+
+### create minimal annotation config file
+**Args:** `echo '[[annotation]]
+file="annotations.bed.gz"
+fields=[4]
+ops=["first"]
+names=["annotation_name"]' > config.toml`
+**Explanation:** creates minimal TOML config; file must be bgzipped and tabix-indexed
+
+### validate annotation config file
+**Args:** `-p 1 config.toml input.vcf.gz -dry-run`
+**Explanation:** validates config without running full annotation; checks file paths and operations

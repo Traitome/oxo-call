@@ -15,6 +15,10 @@ source_url: "https://github.com/nanoporetech/modkit"
 - modkit extract writes per-read modification records to a TSV for single-read analysis or machine learning input.
 - modkit summary provides QC statistics on modification calls per read and per modification type.
 - Threshold filtering (--filter-threshold) controls the confidence cutoff for counting a base as modified or canonical; default is inferred from data.
+- modkit adjust-mods updates modification tags in BAM files with new probability thresholds.
+- modkit validate checks the integrity of modification tags in a BAM file.
+- modkit repair fixes missing or malformed MM/ML tags in BAM files.
+- modkit sample-probs outputs the distribution of modification probabilities to help choose thresholds.
 
 ## Pitfalls
 
@@ -24,6 +28,8 @@ source_url: "https://github.com/nanoporetech/modkit"
 - Very low coverage positions produce unreliable methylation fractions; filter output by the coverage column (column 10 >= 5) before analysis.
 - modkit pileup on whole genomes requires substantial RAM; use --region to limit to specific chromosomes for testing.
 - The --combine-strands option is only valid for CpG context with a reference; using it on non-CpG motifs produces incorrect results.
+- --filter-threshold default is inferred from data but may not be optimal; use sample-probs to assess distribution.
+- modkit repair should be used cautiously as it modifies BAM tags in place; always backup original BAM files.
 
 ## Examples
 
@@ -54,3 +60,23 @@ source_url: "https://github.com/nanoporetech/modkit"
 ### sample modification probabilities to assess threshold distribution
 **Args:** `sample-probs --mod-code m input.bam --threads 8`
 **Explanation:** outputs the distribution of modification probabilities to help choose an appropriate --filter-threshold value
+
+### adjust modification thresholds in BAM file
+**Args:** `adjust-mods --filter-threshold 0.8 input.bam output.bam --threads 8`
+**Explanation:** adjust-mods updates MM/ML tags with new probability threshold; useful for re-analyzing with different confidence cutoffs
+
+### validate modification tags in BAM file
+**Args:** `validate input.bam --threads 8`
+**Explanation:** validate checks integrity of MM/ML tags; reports errors and inconsistencies in modification calls
+
+### repair malformed modification tags
+**Args:** `repair input.bam output.bam --threads 8`
+**Explanation:** repair fixes missing or malformed MM/ML tags; use when basecaller output has tag errors
+
+### pileup with custom filter threshold
+**Args:** `pileup --ref reference.fasta --filter-threshold 0.7 --mod-code m input.bam output.bedmethyl --threads 16`
+**Explanation:** --filter-threshold 0.7 sets explicit probability cutoff; higher values require more confident modification calls
+
+### extract modifications for specific motif
+**Args:** `extract --ref reference.fasta --motif CG 0 --mod-code m input.bam cpg_mods.tsv --threads 16`
+**Explanation:** --motif CG 0 extracts only CpG sites; 0 is the offset to the modified base; reduces output size for targeted analysis

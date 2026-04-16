@@ -16,6 +16,10 @@ source_url: "https://htcondor.readthedocs.io/"
 - Universe types: `vanilla` (most jobs), `docker` (containerized), `java` (JVM), `local` (run on submit node). Use `universe = docker` with `docker_image = IMAGE` for containerized bioinformatics.
 - Environment variables: `$(Process)` (0-indexed task ID within a queue), `$(Cluster)` (job cluster ID), `$(Item)` (from queue each/matching). Use `$(Process)` to index into sample lists.
 - Resource queries: `condor_status` shows available slots; `condor_status -avail` for available only; `condor_status -compact` for summary; `condor_config_val MAX_MEMORY` for config values.
+- `queue arguments from file.txt` submits jobs with different arguments from a file; each line becomes one job with arguments available as $(1), $(2), etc.
+- `queue matching files pattern` submits one job per file matching the pattern; useful for processing many input files.
+- `Requirements` and `Rank` expressions control which machines can run your job and preference ordering.
+- `condor_prio` adjusts job priority within your own jobs; higher numbers get scheduled first.
 
 ## Pitfalls
 
@@ -26,6 +30,10 @@ source_url: "https://htcondor.readthedocs.io/"
 - `condor_rm` removes jobs from the queue; `condor_hold` pauses jobs (can resume with `condor_release`). Use hold for temporary suspension rather than removing and resubmitting.
 - HTCondor may evict long-running jobs if higher-priority jobs arrive (preemption). Use `+LongRunningJob = True` or adjust priority with `condor_prio` if your site supports it.
 - Output/error redirection: `output = out.$(Cluster).$(Process)` and `error = err.$(Cluster).$(Process)` — always include `$(Process)` for multi-job submissions to avoid overwriting.
+- `transfer_output_files` should usually NOT be specified; HTCondor automatically transfers all modified/created files back.
+- `when_to_transfer_output = ON_EXIT_OR_EVICT` transfers files even if job is evicted; useful for checkpointing long jobs.
+- Requirements expressions must use valid ClassAd attributes; typos cause jobs to never match any machines.
+- Windows submissions require `condor_store_cred` to stash password for user impersonation.
 
 ## Examples
 
@@ -68,3 +76,31 @@ source_url: "https://htcondor.readthedocs.io/"
 ### submit a Docker-containerized bioinformatics job
 **Args:** `condor_submit docker_job.sub`
 **Explanation:** requires universe=docker and docker_image=IMAGE in submit file; runs containerized tools without local installation
+
+### submit jobs with different arguments from a file
+**Args:** `condor_submit -append "queue arguments from args.txt" job.sub`
+**Explanation:** each line in args.txt becomes one job; arguments accessible as $(1), $(2), etc. in submit file
+
+### submit one job per input file matching a pattern
+**Args:** `condor_submit -append "queue matching files *.fastq" job.sub`
+**Explanation:** creates one job for each .fastq file; filename available as $(filename) variable
+
+### adjust job priority
+**Args:** `condor_prio +10 12345`
+**Explanation:** increases priority of cluster 12345 by 10; higher priority jobs scheduled first within your jobs
+
+### release held jobs
+**Args:** `condor_release 12345`
+**Explanation:** releases all held jobs in cluster 12345; held jobs were paused with condor_hold
+
+### check job status by submitter
+**Args:** `condor_q -submitter username`
+**Explanation:** shows all jobs submitted by specific user; useful for administrators or checking team member jobs
+
+### check claimed resources
+**Args:** `condor_status -claimed`
+**Explanation:** shows slots currently running jobs; useful for monitoring cluster utilization
+
+### dry-run a job submission
+**Args:** `condor_submit -dry-run job.sub`
+**Explanation:** validates submit file and shows what would be submitted without actually submitting; useful for debugging

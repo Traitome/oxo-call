@@ -8,7 +8,6 @@ source_url: "https://github.com/voutcn/megahit"
 ---
 
 ## Concepts
-
 - MEGAHIT is designed for large metagenomic datasets; it's faster and uses less memory than metaSPAdes.
 - Use -1/-2 for paired-end reads; -r for single-end reads; comma-separate multiple files per end.
 - Use -o for output directory; --num-cpu-threads for parallelism; --memory as fraction of RAM or bytes.
@@ -16,15 +15,23 @@ source_url: "https://github.com/voutcn/megahit"
 - Output: final.contigs.fa in the output directory — filter contigs by length for downstream analysis.
 - Use --min-contig-len to set minimum contig length in the output (default: 200 bp).
 - MEGAHIT supports both metagenomic and single-species genome assembly.
+- --presets meta-sensitive uses more k-mers for sensitive detection of low-abundance species.
+- --presets meta-large uses larger k-mer range optimized for complex soil metagenomes.
+- --bubble-level controls bubble merging intensity (0-2); bubbles occur from heterozygosity or repeats.
+- --prune-level controls low-depth pruning strength (0-3); higher values remove more low-coverage regions.
+- --no-mercy disables mercy k-mer recovery; reduces memory but may lose low-abundance sequences.
 
 ## Pitfalls
-
 - MEGAHIT output directory must not already exist — use a new directory each run or delete the old one.
 - For complex metagenomes, use --presets meta-large for improved assembly of complex communities.
 - MEGAHIT is fast but SPAdes --meta may produce better assemblies for simpler or well-sequenced metagenomes.
 - Reads should be quality-trimmed before MEGAHIT for better assembly results.
 - The --memory flag accepts both fraction (0.9 for 90% of RAM) and absolute values (200e9 for 200 GB).
 - Very short contigs (<500 bp) are often not useful — increase --min-contig-len for cleaner output.
+- --no-mercy reduces memory but loses low-abundance sequences; use only for high-coverage datasets.
+- --bubble-level 0 disables bubble merging; may fragment contigs in polymorphic regions.
+- Odd k-mer sizes required; even values cause errors. Maximum k-mer is 255.
+- --continue resumes interrupted runs; useful for large assemblies that may crash.
 
 ## Examples
 
@@ -43,3 +50,23 @@ source_url: "https://github.com/voutcn/megahit"
 ### assemble with custom k-mer range for specific data type
 **Args:** `-1 R1.fastq.gz -2 R2.fastq.gz -o custom_k/ --num-cpu-threads 16 --k-min 27 --k-max 127 --k-step 10`
 **Explanation:** --k-min, --k-max, --k-step customize the k-mer iteration range
+
+### assemble with meta-sensitive preset for low-abundance detection
+**Args:** `-1 R1.fastq.gz -2 R2.fastq.gz -o sensitive_out/ --num-cpu-threads 16 --presets meta-sensitive --min-contig-len 500`
+**Explanation:** --presets meta-sensitive uses more k-mers (21-141) for detecting low-abundance species
+
+### reduce memory usage with no-mercy for high-coverage data
+**Args:** `-1 R1.fastq.gz -2 R2.fastq.gz -o low_mem/ --num-cpu-threads 16 --no-mercy --memory 0.5 --min-contig-len 500`
+**Explanation:** --no-mercy disables mercy k-mers; --memory 0.5 limits RAM to 50%; for high-coverage datasets
+
+### resume interrupted assembly with continue option
+**Args:** `-o resumed_out/ --continue`
+**Explanation:** --continue resumes from last checkpoint; output directory must contain previous run files
+
+### assemble single-end reads only
+**Args:** `-r reads.fastq.gz -o se_out/ --num-cpu-threads 16 --min-contig-len 500`
+**Explanation:** -r specifies single-end reads; for datasets without paired-end information
+
+### assemble interleaved paired-end reads
+**Args:** `--12 interleaved.fastq.gz -o interleaved_out/ --num-cpu-threads 16 --min-contig-len 500`
+**Explanation:** --12 for interleaved paired-end format; single file containing both R1 and R2

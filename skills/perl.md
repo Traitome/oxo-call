@@ -20,6 +20,9 @@ source_url: "https://perldoc.perl.org/"
 - Regular expressions: Perl's regex engine is highly expressive; use `=~` for matching, `s///` for substitution, `split /pattern/, $str` for splitting.
 - `$ENV{VAR}` accesses environment variables inside Perl scripts.
 - Perl is included in most Unix/Linux distributions at `/usr/bin/perl`; check with `perl --version`.
+- `-T` enables taint mode for security; recommended for CGI scripts and web applications.
+- `-c` checks script syntax without executing; useful for pre-deployment validation.
+- `BEGIN` and `END` blocks execute code before/after the main script logic.
 
 ## Pitfalls
 - Not using `use strict; use warnings;` leads to hard-to-debug variable typos and undefined-value warnings.
@@ -29,6 +32,8 @@ source_url: "https://perldoc.perl.org/"
 - `cpan` versus `cpanm`: prefer `cpanm` (App::cpanminus) for easier, faster installs; `cpan` asks many interactive questions during first run.
 - Encoding issues: legacy bioinformatics Perl scripts may break with wide characters; pass `use open ':std', ':utf8';` or `binmode STDOUT, ':utf8';`.
 - `while (<STDIN>)` holds the entire line including `\n`; always `chomp` before string comparisons.
+- `-T` taint mode can cause unexpected failures with external data; test thoroughly before enabling in production.
+- `-c` only checks syntax; it does not catch runtime errors or logical bugs.
 
 ## Examples
 
@@ -71,3 +76,23 @@ source_url: "https://perldoc.perl.org/"
 ### run a bioinformatics script with a custom library path
 **Args:** `-I /path/to/bioperl-lib script.pl input.fasta`
 **Explanation:** -I adds the path to @INC; useful when BioPerl is not system-installed but located in a local directory
+
+### check script syntax without executing
+**Args:** `-c script.pl`
+**Explanation:** -c validates syntax and exits; prints any syntax errors; useful for CI/CD pipelines and pre-deployment checks
+
+### run with taint mode enabled
+**Args:** `-T script.pl`
+**Explanation:** -T enables taint mode for security; marks external data as "tainted"; must be sanitized before system calls
+
+### execute code in BEGIN block
+**Args:** `-e 'BEGIN { print "Initializing...\n" } print "Main code\n"'`
+**Explanation:** BEGIN block runs before main script; useful for module loading, initialization, or setting up environment
+
+### execute code in END block
+**Args:** `-e 'END { print "Cleaning up...\n" } print "Main code\n"'`
+**Explanation:** END block runs after main script completes; useful for cleanup, logging, or resource release
+
+### process multiple files with one-liner
+**Args:** `-ne 'print if /pattern/' file1.txt file2.txt file3.txt`
+**Explanation:** processes multiple files sequentially; @ARGV contains filenames; <> reads from each file in turn

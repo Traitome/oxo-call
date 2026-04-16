@@ -50,3 +50,23 @@ source_url: "http://velocyto.org/velocyto.py/tutorial/index.html"
 ### run velocyto on multiple 10x samples with per-sample output loom files
 **Args:** `run10x -m repeat_masker.bed -o sample2_loom/ /path/to/sample2_cellranger_output genes.gtf`
 **Explanation:** run10x per sample with -o to set output directory; repeat independently for each sample; then merge loom files with loompy
+
+### run velocyto with custom barcode whitelist
+**Args:** `run -b custom_barcodes.txt -o loom_output/ sample.bam genes.gtf`
+**Explanation:** uses custom barcode list instead of CellRanger filtered barcodes; useful for non-standard protocols
+
+### run velocyto on Drop-seq data
+**Args:** `run -b dropseq_barcodes.txt -e dropseq_experiment sample.bam genes.gtf`
+**Explanation:** processes Drop-seq data with explicit barcode file; -e sets experiment name
+
+### merge multiple loom files from different samples
+**Args:** `loompy combine sample1.loom sample2.loom sample3.loom combined.loom`
+**Explanation:** combines multiple loom files; run after processing individual samples with velocyto
+
+### run velocyto with increased memory for large datasets
+**Args:** `run10x -m repeat_masker.bed --samtools-memory 4000 /path/to/cellranger_output genes.gtf`
+**Explanation:** --samtools-memory increases memory buffer for BAM reading; useful for large datasets
+
+### extract spliced counts only from loom file
+**Args:** `python -c "import loompy; ds = loompy.connect('output.loom'); print(ds.layers['spliced'][:])"`
+**Explanation:** extracts spliced count matrix from loom file; useful for downstream analysis
