@@ -30,6 +30,7 @@ oxo-call config path
 | `llm.temperature` | `0.0` | `OXO_CALL_LLM_TEMPERATURE` | Temperature (0.0 = deterministic) |
 | `llm.context_window` | `0` (auto-detect) | `OXO_CALL_LLM_CONTEXT_WINDOW` | Model context window size in tokens (0 = auto-detect) |
 | `llm.prompt_tier` | `auto` | `OXO_CALL_LLM_PROMPT_TIER` | Prompt compression tier: `auto`, `full`, `medium`, `compact` |
+| `llm.cache_enabled` | `false` | `OXO_CALL_LLM_CACHE_ENABLED` | Enable LLM response caching (reduces API calls for repeated tasks) |
 | `docs.auto_update` | `true` | `OXO_CALL_DOCS_AUTO_UPDATE` | Auto-refresh docs on first use |
 
 ## Setting Values
@@ -45,6 +46,10 @@ oxo-call config set llm.prompt_tier auto       # auto-detect (default)
 
 # Set context window size
 oxo-call config set llm.context_window 4096    # force Medium tier
+
+# Enable LLM response caching (useful for repeated tasks)
+oxo-call config set llm.cache_enabled true     # cache LLM responses
+oxo-call config set llm.cache_enabled false    # disable cache (default)
 
 # Get the effective value (includes env overrides)
 oxo-call config get llm.provider

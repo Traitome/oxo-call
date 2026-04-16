@@ -28,6 +28,8 @@ main.rs             — Command dispatcher & license gate
   │     ├─→ skill.rs       — Skill loading system + depth validation
   │     │     └─→ mcp.rs   — MCP skill provider (JSON-RPC / HTTP)
   │     ├─→ llm.rs         — LLM client, prompt builder & provider trait
+  │     ├─→ cache.rs       — LLM response cache with semantic hash
+  │     ├─→ generator.rs   — CommandGenerator trait (extensible generation strategies)
   │     └─→ history.rs     — Command history tracker with provenance
   ├─→ sanitize.rs   — Data anonymization for LLM contexts
   ├─→ server.rs     — Remote server management (SSH / HPC)
@@ -76,6 +78,8 @@ lib.rs              — Programmatic API surface (re-exports all modules)
 5. **Platform independence**: WASM conditional compilation, cross-platform config dirs
 6. **Strict LLM contract**: ARGS:/EXPLANATION: format with retry on invalid response
 7. **Adaptive prompt compression**: Three prompt tiers (Full/Medium/Compact) auto-selected by model size and context window, ensuring reliable output from 0.5B to 200B+ parameter models
+8. **Extensible generation**: CommandGenerator trait enables multiple generation strategies (LLM, rule-based, composite) with chain-of-responsibility pattern
+9. **Response caching**: Optional LLM cache reduces API costs for repeated tasks via semantic hash (tool + task + docs + skill + model)
 
 ## Why This Matters In Practice
 
