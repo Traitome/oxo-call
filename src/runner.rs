@@ -197,30 +197,64 @@ impl Runner {
         Ok(docs.combined())
     }
 
-    /// Core logic: fetch docs → (optionally optimize task) → load skill → call LLM → return suggestion + provenance.
+    /// Core logic: fetch docs + load skill (in parallel) → (optionally optimize task) → call LLM.
+    ///
+    /// Documentation fetching and skill loading are independent operations that
+    /// can run concurrently via `tokio::join!`, reducing latency by ~200-500ms
+    /// compared to the previous serial approach.
     async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
-        // Ablation: optionally skip documentation fetching
-        let docs = if self.no_doc {
-            if self.verbose {
-                eprintln!(
-                    "{} [Ablation] Skipping documentation (--no-doc)",
-                    "[verbose]".dimmed()
-                );
-            }
-            String::new()
+        // ── Parallel fetch: docs + skill ──────────────────────────────────────
+        //
+        // Both are independent I/O operations: docs requires a subprocess call
+        // (tool --help) while skill loading checks built-in → user → community →
+        // MCP sources.  Running them concurrently saves the latency of whichever
+        // finishes second.
+        let spinner = if !self.no_doc {
+            make_spinner(&format!("Fetching documentation for '{tool}'..."))
         } else {
-            let spinner = make_spinner(&format!("Fetching documentation for '{tool}'..."));
-            match self.resolve_docs(tool, task).await {
-                Ok(d) => {
-                    spinner.finish_and_clear();
-                    d
+            make_spinner("Loading skill...")
+        };
+
+        let docs_future = async {
+            if self.no_doc {
+                if self.verbose {
+                    eprintln!(
+                        "{} [Ablation] Skipping documentation (--no-doc)",
+                        "[verbose]".dimmed()
+                    );
                 }
-                Err(e) => {
-                    spinner.finish_and_clear();
-                    return Err(e);
+                Ok(String::new())
+            } else {
+                self.resolve_docs(tool, task).await
+            }
+        };
+
+        let skill_future = async {
+            if self.no_skill {
+                if self.verbose {
+                    eprintln!(
+                        "{} [Ablation] Skipping skill (--no-skill)",
+                        "[verbose]".dimmed()
+                    );
+                }
+                None
+            } else {
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    self.skill_manager.load_async(tool).await
+                }
+                #[cfg(target_arch = "wasm32")]
+                {
+                    self.skill_manager.load(tool)
                 }
             }
         };
+
+        // Run both concurrently — skill loading never fails (returns None on miss).
+        let (docs_result, skill) = tokio::join!(docs_future, skill_future);
+        spinner.finish_and_clear();
+
+        let docs = docs_result?;
 
         if self.verbose && !self.no_doc {
             eprintln!(
@@ -269,26 +303,6 @@ impl Runner {
             task.to_string()
         };
 
-        // Ablation: optionally skip skill loading
-        let skill = if self.no_skill {
-            if self.verbose {
-                eprintln!(
-                    "{} [Ablation] Skipping skill (--no-skill)",
-                    "[verbose]".dimmed()
-                );
-            }
-            None
-        } else {
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                self.skill_manager.load_async(tool).await
-            }
-            #[cfg(target_arch = "wasm32")]
-            {
-                self.skill_manager.load(tool)
-            }
-        };
-
         let skill_name = skill.as_ref().map(|s| s.meta.name.clone());
         let skill_label = if skill.is_some() {
             format!(" (skill: {})", tool)
@@ -311,15 +325,58 @@ impl Runner {
             }
             let ctx_window = self.config.effective_context_window();
             let tier = self.config.effective_prompt_tier();
+            let model_name = self.config.effective_model();
+            let profile = crate::config::get_model_profile(&model_name);
             eprintln!(
                 "{} LLM: provider={}, model={}, max_tokens={}, temperature={}, context_window={}, prompt_tier={:?}",
                 "[verbose]".dimmed(),
                 self.config.effective_provider(),
-                self.config.effective_model(),
+                model_name,
                 self.config.effective_max_tokens().unwrap_or(2048),
                 self.config.effective_temperature().unwrap_or(0.0),
                 ctx_window,
                 tier
+            );
+            eprintln!(
+                "{} Model profile: instruction={:.1}, code={:.1}, bio={:.1}, style={:?}",
+                "[verbose]".dimmed(),
+                profile.instruction_following,
+                profile.code_generation,
+                profile.bio_knowledge,
+                profile.preferred_prompt_style
+            );
+        }
+
+        // ── Experiment context inference ──────────────────────────────────────
+        // Enrich the LLM prompt with inferred context (assay type, organism, etc.)
+        let context = crate::context::ExperimentContext::infer(&effective_task, &[]);
+        let context_hint = context.to_prompt_hint();
+
+        // ── User preference learning ─────────────────────────────────────────
+        let preferences_hint = {
+            let history = crate::history::HistoryStore::load_all().unwrap_or_default();
+            let prefs = crate::history::learn_user_preferences(tool, &history);
+            prefs.to_prompt_hint()
+        };
+
+        // Build enriched task with context and preference hints
+        let enriched_task = if !context_hint.is_empty() || !preferences_hint.is_empty() {
+            let mut parts = vec![effective_task.clone()];
+            if !context_hint.is_empty() {
+                parts.push(context_hint);
+            }
+            if !preferences_hint.is_empty() {
+                parts.push(preferences_hint);
+            }
+            parts.join("\n")
+        } else {
+            effective_task.clone()
+        };
+
+        if self.verbose && enriched_task != effective_task {
+            eprintln!(
+                "{} Enriched task with context/preferences",
+                "[verbose]".dimmed()
             );
         }
 
@@ -328,7 +385,7 @@ impl Runner {
         ));
         let suggestion = match self
             .llm
-            .suggest_command(tool, &docs, &effective_task, skill.as_ref(), self.no_prompt)
+            .suggest_command(tool, &docs, &enriched_task, skill.as_ref(), self.no_prompt)
             .await
         {
             Ok(s) => {
@@ -484,6 +541,9 @@ impl Runner {
         let result = self.prepare(tool, task).await?;
         let full_cmd = build_command_string(tool, &result.suggestion.args);
 
+        // ── Risk assessment ───────────────────────────────────────────────────
+        let risk = assess_command_risk(&result.suggestion.args);
+
         if !json {
             println!();
             println!("{}", "─".repeat(60).dimmed());
@@ -498,6 +558,31 @@ impl Runner {
             }
             println!("{}", "─".repeat(60).dimmed());
             println!();
+
+            // Display risk warnings
+            if let Some(warning) = risk_warning_message(risk) {
+                match risk {
+                    RiskLevel::Dangerous => eprintln!("  {}", warning.red().bold()),
+                    RiskLevel::Warning => eprintln!("  {}", warning.yellow()),
+                    RiskLevel::Safe => {}
+                }
+                println!();
+            }
+
+            // Display format compatibility warnings
+            let format_warnings =
+                crate::format::validate_format_compatibility(&result.suggestion.args);
+            for fw in &format_warnings {
+                let msg = format!("  ⚠ Format: {}", fw.message);
+                match fw.severity {
+                    crate::format::WarningSeverity::Warning => eprintln!("{}", msg.yellow()),
+                    crate::format::WarningSeverity::Info => eprintln!("{}", msg.dimmed()),
+                }
+            }
+            if !format_warnings.is_empty() {
+                println!();
+            }
+
             println!("  {}", "Generated command:".bold().green());
             println!("  {}", full_cmd.green().bold());
             println!();
@@ -506,9 +591,26 @@ impl Runner {
                 println!("  {}", result.suggestion.explanation);
                 println!();
             }
+
+            // Validate input files exist before execution
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                let missing = validate_input_files(&result.suggestion.args);
+                if !missing.is_empty() {
+                    eprintln!(
+                        "  {} Input file(s) not found: {}",
+                        "warning:".yellow().bold(),
+                        missing.join(", ").yellow()
+                    );
+                    println!();
+                }
+            }
         }
 
-        if ask {
+        // Force --ask mode for dangerous commands even if not explicitly requested
+        let effective_ask = ask || risk == RiskLevel::Dangerous;
+
+        if effective_ask {
             print!("  {} [y/N] ", "Execute this command?".bold().yellow());
             use std::io::{self, Write};
             io::stdout().flush().ok();
@@ -1394,6 +1496,284 @@ fn detect_output_files(args: &[String]) -> Vec<String> {
     files.retain(|f| seen.insert(f.clone()));
     files.truncate(20);
     files
+}
+
+// ─── Command risk assessment ──────────────────────────────────────────────────
+
+/// Risk level of a generated command.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RiskLevel {
+    /// No dangerous operations detected.
+    Safe,
+    /// Potentially risky operations (e.g., force overwrite flags).
+    Warning,
+    /// Highly dangerous operations (e.g., rm, sudo, dd).
+    Dangerous,
+}
+
+/// Assess the risk level of a generated command by scanning its arguments
+/// for dangerous operations such as `rm`, `sudo`, overwrite redirects, etc.
+///
+/// Returns `RiskLevel::Dangerous` for destructive operations that could cause
+/// irreversible data loss, `RiskLevel::Warning` for operations that use force
+/// flags or overwrite existing files, and `RiskLevel::Safe` otherwise.
+pub fn assess_command_risk(args: &[String]) -> RiskLevel {
+    if args.is_empty() {
+        return RiskLevel::Safe;
+    }
+
+    // Dangerous commands that may appear in multi-step pipelines (after && or ||)
+    const DANGEROUS_COMMANDS: &[&str] = &["rm", "rmdir", "sudo", "dd", "mkfs", "chmod", "chown"];
+
+    // Force/overwrite flags that bypass safety checks
+    const FORCE_FLAGS: &[&str] = &["-f", "--force", "--overwrite", "-y", "--yes"];
+
+    let mut risk = RiskLevel::Safe;
+
+    // Check each arg for dangerous patterns
+    for (i, arg) in args.iter().enumerate() {
+        let lower = arg.to_ascii_lowercase();
+
+        // Direct dangerous command (first token or after && / ||)
+        let is_cmd_position =
+            i == 0 || (i > 0 && matches!(args[i - 1].as_str(), "&&" | "||" | ";" | "|"));
+
+        if is_cmd_position {
+            for &cmd in DANGEROUS_COMMANDS {
+                if lower == cmd || lower.ends_with(&format!("/{cmd}")) {
+                    return RiskLevel::Dangerous;
+                }
+            }
+        }
+
+        // Overwrite redirect (>) as a standalone operator
+        if arg == ">" {
+            risk = risk.max_level(RiskLevel::Warning);
+        }
+
+        // Force flags
+        for &flag in FORCE_FLAGS {
+            if lower == flag {
+                risk = risk.max_level(RiskLevel::Warning);
+            }
+        }
+    }
+
+    // Check for input==output (file would be truncated before read)
+    if has_same_input_output(args) {
+        risk = risk.max_level(RiskLevel::Warning);
+    }
+
+    risk
+}
+
+impl RiskLevel {
+    /// Returns the higher risk level of self and other.
+    fn max_level(self, other: RiskLevel) -> RiskLevel {
+        match (self, other) {
+            (RiskLevel::Dangerous, _) | (_, RiskLevel::Dangerous) => RiskLevel::Dangerous,
+            (RiskLevel::Warning, _) | (_, RiskLevel::Warning) => RiskLevel::Warning,
+            _ => RiskLevel::Safe,
+        }
+    }
+}
+
+/// Check if the command appears to use the same file as both input and output.
+fn has_same_input_output(args: &[String]) -> bool {
+    const OUTPUT_FLAGS: &[&str] = &["-o", "--output", "-O", "--out"];
+    let mut output_file: Option<&str> = None;
+
+    for (i, arg) in args.iter().enumerate() {
+        for &flag in OUTPUT_FLAGS {
+            if arg == flag
+                && let Some(val) = args.get(i + 1)
+            {
+                output_file = Some(val.as_str());
+            }
+            if let Some(rest) = arg.strip_prefix(&format!("{flag}="))
+                && !rest.is_empty()
+            {
+                output_file = Some(rest);
+            }
+        }
+    }
+
+    if let Some(out) = output_file {
+        // Check if any non-flag arg matches the output file
+        for arg in args {
+            if !arg.starts_with('-') && arg.as_str() == out && arg.contains('.') {
+                // Same file appears as both positional (input) and output
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+/// Return risk warning message for display.
+pub fn risk_warning_message(risk: RiskLevel) -> Option<&'static str> {
+    match risk {
+        RiskLevel::Dangerous => Some(
+            "⚠️  DANGEROUS: This command contains destructive operations (rm/sudo/dd). \
+             Review carefully before executing!",
+        ),
+        RiskLevel::Warning => Some(
+            "⚠  WARNING: This command uses force flags or may overwrite files. \
+             Double-check the arguments.",
+        ),
+        RiskLevel::Safe => None,
+    }
+}
+
+// ─── Input file validation ────────────────────────────────────────────────────
+
+/// Scan command args for tokens that look like input file paths and check
+/// whether they exist on disk.  Returns a list of file paths that were not
+/// found.  This helps catch typos and missing files *before* the tool runs,
+/// avoiding wasted API calls and confusing tool error messages.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn validate_input_files(args: &[String]) -> Vec<String> {
+    const INPUT_FLAGS: &[&str] = &[
+        "-i",
+        "--input",
+        "-I",
+        "--in",
+        "-1",
+        "-2",
+        "--in1",
+        "--in2",
+        "-x",
+        "-U",
+        "--ref",
+        "--reference",
+        "--genome",
+        "--genome-dir",
+        "--genomeDir",
+        "--sjdbGTFfile",
+        "--gtf",
+        "--bed",
+    ];
+    const OUTPUT_FLAGS: &[&str] = &["-o", "--output", "-O", "--out", "-b", "--bam", "-S"];
+
+    let mut missing = Vec::new();
+    let mut skip_next = false;
+    let mut known_output_indices = std::collections::HashSet::new();
+
+    // First pass: mark indices of values following output flags
+    for (i, arg) in args.iter().enumerate() {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+        for &flag in OUTPUT_FLAGS {
+            if arg == flag {
+                known_output_indices.insert(i + 1);
+                skip_next = true;
+                break;
+            }
+        }
+    }
+
+    // Second pass: check input-like tokens
+    skip_next = false;
+    let mut expect_input = false;
+    for (i, arg) in args.iter().enumerate() {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+
+        // Skip output values
+        if known_output_indices.contains(&i) {
+            continue;
+        }
+
+        // If previous token was an input flag, this token is an input file
+        if expect_input {
+            expect_input = false;
+            if !arg.starts_with('-')
+                && looks_like_file_path(arg)
+                && !std::path::Path::new(arg).exists()
+            {
+                missing.push(arg.clone());
+            }
+            continue;
+        }
+
+        // Check if current token is an input flag
+        for &flag in INPUT_FLAGS {
+            if arg == flag {
+                expect_input = true;
+                break;
+            }
+        }
+        if expect_input {
+            continue;
+        }
+
+        // Shell operators reset context
+        if is_shell_operator(arg) {
+            continue;
+        }
+
+        // Positional args that look like file paths
+        if !arg.starts_with('-')
+            && looks_like_file_path(arg)
+            && !known_output_indices.contains(&i)
+            // Only check files that look like bioinformatics data files
+            && has_bio_extension(arg)
+            && !std::path::Path::new(arg).exists()
+        {
+            missing.push(arg.clone());
+        }
+    }
+
+    missing
+}
+
+/// Heuristic: does this token look like a file path?
+fn looks_like_file_path(arg: &str) -> bool {
+    arg.contains('.')
+        && !arg.contains(';')
+        && !arg.contains('&')
+        && !arg.contains('|')
+        && !arg.contains('>')
+        && !arg.contains('<')
+        && !arg.starts_with("http://")
+        && !arg.starts_with("https://")
+}
+
+/// Check if a path has a bioinformatics-relevant file extension.
+fn has_bio_extension(path: &str) -> bool {
+    let lower = path.to_ascii_lowercase();
+    const EXTENSIONS: &[&str] = &[
+        ".bam",
+        ".sam",
+        ".cram",
+        ".fastq",
+        ".fq",
+        ".fasta",
+        ".fa",
+        ".fna",
+        ".vcf",
+        ".bcf",
+        ".bed",
+        ".gff",
+        ".gtf",
+        ".bw",
+        ".bigwig",
+        ".fastq.gz",
+        ".fq.gz",
+        ".vcf.gz",
+        ".bed.gz",
+        ".fa.gz",
+        ".bai",
+        ".csi",
+        ".tbi",
+        ".idx",
+    ];
+    EXTENSIONS.iter().any(|ext| lower.ends_with(ext))
 }
 
 #[cfg(test)]

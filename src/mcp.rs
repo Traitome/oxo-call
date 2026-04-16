@@ -48,7 +48,10 @@ use serde_json::json;
 use std::time::Duration;
 
 /// Default HTTP timeout for MCP requests.
-const MCP_TIMEOUT_SECS: u64 = 5;
+const MCP_TIMEOUT_SECS: u64 = 10;
+
+/// Maximum number of retries for transient MCP failures.
+const MCP_MAX_RETRIES: usize = 2;
 
 // ─── JSON-RPC 2.0 wire types ──────────────────────────────────────────────────
 
@@ -167,6 +170,39 @@ impl McpClient {
         })
     }
 
+    /// Send an MCP request with automatic retry and exponential backoff.
+    ///
+    /// Retries up to `MCP_MAX_RETRIES` times on transient network errors
+    /// (connection refused, timeout, DNS failure).  Non-transient errors
+    /// (HTTP 4xx, JSON-RPC application errors) are returned immediately
+    /// without retrying.
+    #[cfg(not(target_arch = "wasm32"))]
+    async fn send_with_retry(&self, method: &str, params: Option<Value>, id: u64) -> Result<Value> {
+        let mut last_err = None;
+
+        for attempt in 0..=MCP_MAX_RETRIES {
+            match self.send(method, params.clone(), id).await {
+                Ok(v) => return Ok(v),
+                Err(e) => {
+                    // Only retry on transient network errors
+                    let is_transient = matches!(&e, OxoError::IndexError(msg)
+                        if msg.contains("unreachable") || msg.contains("timed out"));
+
+                    if !is_transient || attempt >= MCP_MAX_RETRIES {
+                        return Err(e);
+                    }
+
+                    // Exponential backoff: 100ms, 200ms, 400ms, ...
+                    let delay = Duration::from_millis(100 * 2u64.pow(attempt as u32));
+                    tokio::time::sleep(delay).await;
+                    last_err = Some(e);
+                }
+            }
+        }
+
+        Err(last_err.unwrap())
+    }
+
     // ── Public MCP operations ─────────────────────────────────────────────
 
     /// Perform the MCP `initialize` handshake.
@@ -183,7 +219,7 @@ impl McpClient {
             }
         });
 
-        let result = self.send("initialize", Some(params), 1).await?;
+        let result = self.send_with_retry("initialize", Some(params), 1).await?;
         let name = result["serverInfo"]["name"]
             .as_str()
             .unwrap_or(&self.config.url)
@@ -210,7 +246,7 @@ impl McpClient {
     /// are included.
     #[cfg(not(target_arch = "wasm32"))]
     pub async fn list_skill_resources(&self) -> Result<Vec<McpSkillEntry>> {
-        let result = self.send("resources/list", None, 2).await?;
+        let result = self.send_with_retry("resources/list", None, 2).await?;
         let resources = match result["resources"].as_array() {
             Some(r) => r.clone(),
             None => return Ok(Vec::new()),
@@ -252,7 +288,9 @@ impl McpClient {
     #[cfg(not(target_arch = "wasm32"))]
     pub async fn read_resource(&self, uri: &str) -> Result<String> {
         let params = json!({ "uri": uri });
-        let result = self.send("resources/read", Some(params), 3).await?;
+        let result = self
+            .send_with_retry("resources/read", Some(params), 3)
+            .await?;
 
         // MCP resources/read response shape:
         //   { "contents": [{ "uri": "...", "text": "...", "mimeType": "..." }] }
@@ -505,7 +543,12 @@ mod tests {
 
     #[test]
     fn test_mcp_timeout_constant() {
-        assert_eq!(MCP_TIMEOUT_SECS, 5, "MCP timeout should be 5 seconds");
+        assert_eq!(MCP_TIMEOUT_SECS, 10, "MCP timeout should be 10 seconds");
+    }
+
+    #[test]
+    fn test_mcp_max_retries_constant() {
+        assert_eq!(MCP_MAX_RETRIES, 2, "MCP max retries should be 2");
     }
 
     // ─── Mock HTTP tests (wiremock) ───────────────────────────────────────────

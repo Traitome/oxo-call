@@ -1,10 +1,12 @@
 mod cli;
 mod config;
+mod context;
 #[cfg(not(target_arch = "wasm32"))]
 mod copilot_auth;
 mod docs;
 mod engine;
 mod error;
+mod format;
 mod handlers;
 mod history;
 mod index;

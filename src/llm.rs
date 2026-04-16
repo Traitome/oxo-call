@@ -322,7 +322,8 @@ fn build_prompt_medium(
     if budget > used {
         let doc_budget_tokens = budget - used;
         let doc_budget_chars = doc_budget_tokens * 4;
-        let truncated_docs = truncate_documentation(documentation, doc_budget_chars);
+        let truncated_docs =
+            truncate_documentation_for_task(documentation, doc_budget_chars, Some(task));
         if !truncated_docs.is_empty() {
             prompt.push_str(&format!("## Docs\n{truncated_docs}\n\n"));
         }
@@ -413,7 +414,7 @@ fn build_prompt_compact(
     if !documentation.is_empty() && skill.is_none_or(|s| s.examples.is_empty()) {
         // No skill examples — docs are the only grounding source.
         // Inject a heavily truncated version.
-        let truncated = truncate_documentation(documentation, 400);
+        let truncated = truncate_documentation_for_task(documentation, 400, Some(task));
         if !truncated.is_empty() {
             prompt.push_str(&format!("Docs: {truncated}\n\n"));
         }
@@ -432,12 +433,19 @@ fn build_prompt_compact(
     prompt
 }
 
-/// Truncate documentation text to fit within a character budget.
-///
-/// Preserves complete lines to avoid cutting in the middle of a flag
-/// description.  Prioritizes the beginning of the docs (typically the usage
-/// summary and most important flags).
+/// Truncate documentation text to fit within a character budget (test helper).
+#[cfg(test)]
 fn truncate_documentation(docs: &str, max_chars: usize) -> String {
+    truncate_documentation_for_task(docs, max_chars, None)
+}
+
+/// Semantic-aware documentation truncation that considers the task description.
+///
+/// When a task is provided, sections of the documentation that contain keywords
+/// relevant to the task are prioritized over less relevant sections.  This
+/// ensures that the most important flags and options for the user's specific
+/// task are preserved even when aggressive truncation is needed.
+fn truncate_documentation_for_task(docs: &str, max_chars: usize, task: Option<&str>) -> String {
     /// Minimum character budget below which documentation is too short to be
     /// useful (a single flag description is typically 40+ chars).
     const MIN_USEFUL_DOC_CHARS: usize = 40;
@@ -452,15 +460,88 @@ fn truncate_documentation(docs: &str, max_chars: usize) -> String {
         return String::new();
     }
 
+    let effective_budget = max_chars.saturating_sub(TRUNCATION_MARKER_RESERVE);
+
+    // If no task provided, fall back to simple line truncation
+    let task = match task {
+        Some(t) if !t.trim().is_empty() => t,
+        _ => {
+            return simple_truncate(docs, effective_budget);
+        }
+    };
+
+    // Split docs into logical sections (separated by blank lines or section headers)
+    let sections = split_into_sections(docs);
+
+    if sections.is_empty() {
+        return simple_truncate(docs, effective_budget);
+    }
+
+    // Extract task keywords for scoring
+    let task_lower = task.to_ascii_lowercase();
+    let task_words: Vec<&str> = task_lower
+        .split(|c: char| c.is_whitespace() || c == ',' || c == ';')
+        .filter(|w| w.len() >= 2)
+        .collect();
+
+    // Score each section by keyword overlap
+    let mut scored: Vec<(usize, f64, &str)> = sections
+        .iter()
+        .enumerate()
+        .map(|(i, section)| {
+            let section_lower = section.to_ascii_lowercase();
+            let score: f64 = task_words
+                .iter()
+                .filter(|w| section_lower.contains(*w))
+                .count() as f64;
+            // Boost score for sections containing CLI flags (they're more actionable)
+            let flag_boost = if section_lower.contains("  -") || section_lower.contains("--") {
+                0.5
+            } else {
+                0.0
+            };
+            // Boost for key sections like Usage, Options, Synopsis
+            let header_boost = if section_lower.starts_with("usage")
+                || section_lower.starts_with("options")
+                || section_lower.starts_with("synopsis")
+            {
+                2.0
+            } else {
+                0.0
+            };
+            (i, score + flag_boost + header_boost, *section)
+        })
+        .collect();
+
+    // Sort by: first section always first, then by score descending
+    scored.sort_by(|a, b| {
+        if a.0 == 0 {
+            return std::cmp::Ordering::Less;
+        }
+        if b.0 == 0 {
+            return std::cmp::Ordering::Greater;
+        }
+        b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    // Pack sections into the budget
     let mut result = String::new();
-    for line in docs.lines() {
-        if result.len() + line.len() + 1 > max_chars.saturating_sub(TRUNCATION_MARKER_RESERVE) {
+    for (_, _, section) in &scored {
+        if result.len() + section.len() + 2 > effective_budget {
+            // Try to fit a partial section
+            let remaining = effective_budget.saturating_sub(result.len() + 2);
+            if remaining > MIN_USEFUL_DOC_CHARS {
+                if !result.is_empty() {
+                    result.push_str("\n\n");
+                }
+                result.push_str(&simple_truncate(section, remaining));
+            }
             break;
         }
         if !result.is_empty() {
-            result.push('\n');
+            result.push_str("\n\n");
         }
-        result.push_str(line);
+        result.push_str(section);
     }
 
     if result.len() < docs.len() {
@@ -468,6 +549,63 @@ fn truncate_documentation(docs: &str, max_chars: usize) -> String {
     }
 
     result
+}
+
+/// Simple line-by-line truncation (preserves complete lines).
+fn simple_truncate(docs: &str, budget: usize) -> String {
+    let mut result = String::new();
+    for line in docs.lines() {
+        if result.len() + line.len() + 1 > budget {
+            break;
+        }
+        if !result.is_empty() {
+            result.push('\n');
+        }
+        result.push_str(line);
+    }
+    if result.len() < docs.len() {
+        result.push_str("\n[...truncated]");
+    }
+    result
+}
+
+/// Split documentation into logical sections separated by blank lines.
+fn split_into_sections(docs: &str) -> Vec<&str> {
+    let mut sections = Vec::new();
+    let mut start = 0;
+    let mut last_was_blank = false;
+    let bytes = docs.as_bytes();
+
+    for (i, line) in docs.lines().enumerate() {
+        let is_blank = line.trim().is_empty();
+        if is_blank && !last_was_blank && i > 0 {
+            // End of a section
+            let byte_pos = docs[start..].find(line).map(|p| start + p).unwrap_or(start);
+            let section = docs[start..byte_pos].trim();
+            if !section.is_empty() {
+                sections.push(section);
+            }
+            start = byte_pos + line.len();
+            // Skip the newline after
+            if start < bytes.len() && bytes[start] == b'\n' {
+                start += 1;
+            }
+        }
+        last_was_blank = is_blank;
+    }
+
+    // Final section
+    let remaining = docs[start..].trim();
+    if !remaining.is_empty() {
+        sections.push(remaining);
+    }
+
+    // If splitting produced no useful sections, return the whole doc as one section
+    if sections.is_empty() {
+        sections.push(docs.trim());
+    }
+
+    sections
 }
 
 // ─── Task optimization prompt ─────────────────────────────────────────────────
@@ -1494,15 +1632,30 @@ impl LlmClient {
     }
 
     fn parse_response(raw: &str) -> Result<LlmCommandSuggestion> {
+        // ── Try JSON structured output first ──────────────────────────────────
+        //
+        // Models that support JSON mode (GPT-4+, Claude) may return structured
+        // output.  This is more reliable than regex parsing.
+        if let Some(suggestion) = Self::try_parse_json_response(raw) {
+            return Ok(suggestion);
+        }
+
+        // ── Standard ARGS:/EXPLANATION: format ────────────────────────────────
         let mut args_line = String::new();
         let mut explanation_line = String::new();
 
         for line in raw.lines() {
             let trimmed = line.trim_start();
-            if let Some(rest) = trimmed.strip_prefix("ARGS:") {
-                args_line = rest.trim().to_string();
-            } else if let Some(rest) = trimmed.strip_prefix("EXPLANATION:") {
-                explanation_line = rest.trim().to_string();
+            // Support case-insensitive prefix matching for common LLM deviations:
+            // "ARGS:", "Args:", "args:", "**ARGS:**", etc.
+            let stripped = trimmed
+                .trim_start_matches('*')
+                .trim_start_matches('#')
+                .trim_start();
+            if let Some(rest) = strip_prefix_case_insensitive(stripped, "ARGS:") {
+                args_line = rest.trim().trim_end_matches('*').trim().to_string();
+            } else if let Some(rest) = strip_prefix_case_insensitive(stripped, "EXPLANATION:") {
+                explanation_line = rest.trim().trim_end_matches('*').trim().to_string();
             }
         }
 
@@ -1529,6 +1682,49 @@ impl LlmClient {
             inference_ms: 0.0, // Set by caller (suggest_command)
         })
     }
+
+    /// Try to parse the LLM response as a JSON object with `args` and `explanation` fields.
+    ///
+    /// This handles models that support structured/JSON output mode.
+    /// Returns `None` if the response is not valid JSON or doesn't have the expected shape.
+    fn try_parse_json_response(raw: &str) -> Option<LlmCommandSuggestion> {
+        // Try to find JSON in the response (may be wrapped in markdown code fences)
+        let trimmed = raw.trim();
+        let json_str = if trimmed.starts_with("```json") || trimmed.starts_with("```") {
+            // Extract content between code fences
+            let start = trimmed.find('{').unwrap_or(0);
+            let end = trimmed.rfind('}').map(|i| i + 1).unwrap_or(trimmed.len());
+            &trimmed[start..end]
+        } else if trimmed.starts_with('{') {
+            trimmed
+        } else {
+            return None;
+        };
+
+        let parsed: serde_json::Value = serde_json::from_str(json_str).ok()?;
+
+        let args_str = parsed
+            .get("args")
+            .and_then(|v| v.as_str())
+            .or_else(|| parsed.get("ARGS").and_then(|v| v.as_str()))?;
+
+        let explanation = parsed
+            .get("explanation")
+            .and_then(|v| v.as_str())
+            .or_else(|| parsed.get("EXPLANATION").and_then(|v| v.as_str()))
+            .unwrap_or("")
+            .to_string();
+
+        let cleaned = strip_code_fences(args_str);
+        let args = parse_shell_args(cleaned);
+
+        Some(LlmCommandSuggestion {
+            args,
+            explanation,
+            raw_response: raw.to_string(),
+            inference_ms: 0.0,
+        })
+    }
 }
 
 /// Check whether a suggestion looks valid enough to return without retrying.
@@ -1536,6 +1732,18 @@ fn is_valid_suggestion(suggestion: &LlmCommandSuggestion) -> bool {
     // Require both explanation and non-empty args to be considered valid.
     // Empty args usually indicates the LLM failed to follow the output format.
     !suggestion.explanation.is_empty() && !suggestion.args.is_empty()
+}
+
+/// Case-insensitive prefix strip.  Returns the remainder after the prefix,
+/// or `None` if the string doesn't start with the prefix (case-insensitive).
+fn strip_prefix_case_insensitive<'a>(s: &'a str, prefix: &str) -> Option<&'a str> {
+    let lower = s.to_ascii_lowercase();
+    let prefix_lower = prefix.to_ascii_lowercase();
+    if lower.starts_with(&prefix_lower) {
+        Some(&s[prefix.len()..])
+    } else {
+        None
+    }
 }
 
 /// Post-process LLM-generated args to fix common mistakes:

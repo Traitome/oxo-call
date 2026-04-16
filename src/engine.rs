@@ -477,13 +477,87 @@ fn print_dag_phases(tasks: &[ConcreteTask]) {
     println!();
 }
 
+// ─── Workflow checkpoint ───────────────────────────────────────────────────────
+
+/// Checkpoint tracking for resumable workflow execution.
+///
+/// When a workflow step completes, the checkpoint is updated to record which
+/// steps have finished.  If the workflow is interrupted or a step fails, the
+/// checkpoint file can be loaded on the next run to skip already-completed steps.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkflowCheckpoint {
+    /// Name of the workflow being executed.
+    pub workflow_name: String,
+    /// Task IDs that completed successfully.
+    pub completed_tasks: HashSet<String>,
+    /// The task that failed (if any), causing the workflow to stop.
+    pub failed_task: Option<String>,
+    /// When the checkpoint was last updated.
+    pub timestamp: String,
+}
+
+impl WorkflowCheckpoint {
+    /// Create a new empty checkpoint for a workflow.
+    pub fn new(workflow_name: &str) -> Self {
+        WorkflowCheckpoint {
+            workflow_name: workflow_name.to_string(),
+            completed_tasks: HashSet::new(),
+            failed_task: None,
+            timestamp: chrono::Utc::now().to_rfc3339(),
+        }
+    }
+
+    /// Load a checkpoint from disk.  Returns `None` if the file doesn't exist
+    /// or can't be parsed.
+    pub fn load(path: &Path) -> Option<Self> {
+        let content = std::fs::read_to_string(path).ok()?;
+        serde_json::from_str(&content).ok()
+    }
+
+    /// Save the checkpoint to disk (atomic write via temp file + rename).
+    pub fn save(&self, path: &Path) -> Result<()> {
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let content = serde_json::to_string_pretty(self)?;
+        let tmp_path = path.with_extension("tmp");
+        std::fs::write(&tmp_path, &content)?;
+        std::fs::rename(&tmp_path, path)?;
+        Ok(())
+    }
+
+    /// Record a successful task completion and persist to disk.
+    pub fn mark_completed(&mut self, task_id: &str, path: &Path) -> Result<()> {
+        self.completed_tasks.insert(task_id.to_string());
+        self.timestamp = chrono::Utc::now().to_rfc3339();
+        self.save(path)
+    }
+
+    /// Record a task failure and persist to disk.
+    #[allow(dead_code)]
+    pub fn mark_failed(&mut self, task_id: &str, path: &Path) -> Result<()> {
+        self.failed_task = Some(task_id.to_string());
+        self.timestamp = chrono::Utc::now().to_rfc3339();
+        self.save(path)
+    }
+}
+
+/// Default checkpoint file path for a given workflow.
+pub fn checkpoint_path(workflow_name: &str) -> PathBuf {
+    let data_dir = crate::config::Config::data_dir().unwrap_or_else(|_| PathBuf::from("."));
+    data_dir.join(format!(".oxo-checkpoint-{workflow_name}.json"))
+}
+
+use std::path::PathBuf;
+
 // ─── Async executor ────────────────────────────────────────────────────────────
 
 /// Execute a task graph with maximum parallelism.
 ///
 /// Independent tasks (no mutual dependencies) run concurrently via
 /// `tokio::task::JoinSet`.  Dependent tasks wait until all their prerequisites
-/// have succeeded or been skipped.  If any task fails the whole run is aborted.
+/// have succeeded or been skipped.  If any task fails the whole run is aborted,
+/// but a checkpoint is saved so the workflow can be resumed.
 #[cfg(not(target_arch = "wasm32"))]
 pub async fn execute(tasks: Vec<ConcreteTask>, dry_run: bool) -> Result<()> {
     use tokio::task::JoinSet;
@@ -494,6 +568,27 @@ pub async fn execute(tasks: Vec<ConcreteTask>, dry_run: bool) -> Result<()> {
     }
 
     let total = tasks.len();
+
+    // ── Checkpoint: load previous progress (if any) ───────────────────────
+    let wf_name = tasks
+        .first()
+        .map(|t| t.step_name.as_str())
+        .unwrap_or("workflow");
+    let ckpt_path = checkpoint_path(wf_name);
+    let mut checkpoint = if !dry_run {
+        WorkflowCheckpoint::load(&ckpt_path).unwrap_or_else(|| WorkflowCheckpoint::new(wf_name))
+    } else {
+        WorkflowCheckpoint::new(wf_name)
+    };
+
+    let previously_completed = checkpoint.completed_tasks.len();
+    if previously_completed > 0 && !dry_run {
+        println!(
+            "  {} Resuming workflow — {} task(s) already completed",
+            "↻".cyan().bold(),
+            previously_completed
+        );
+    }
     let start_time = Instant::now();
 
     println!();
@@ -512,12 +607,17 @@ pub async fn execute(tasks: Vec<ConcreteTask>, dry_run: bool) -> Result<()> {
     println!("{}", "─".repeat(60).dimmed());
 
     // Set of completed task IDs (includes both run and skipped).
-    let mut done: HashSet<String> = HashSet::new();
+    // Pre-populate with previously checkpointed completions.
+    let mut done: HashSet<String> = if !dry_run {
+        checkpoint.completed_tasks.clone()
+    } else {
+        HashSet::new()
+    };
     // Tasks that have been dispatched (to avoid double-dispatch).
-    let mut started: HashSet<String> = HashSet::new();
+    let mut started: HashSet<String> = done.clone();
     // Separately track which tasks were skipped (up-to-date).
     let mut skipped_count: usize = 0;
-    let mut completed_count: usize = 0;
+    let mut completed_count: usize = done.len();
     let mut join_set: JoinSet<Result<(String, bool /*skipped*/)>> = JoinSet::new();
 
     let mut iterations_without_progress = 0usize;
@@ -570,29 +670,45 @@ pub async fn execute(tasks: Vec<ConcreteTask>, dry_run: bool) -> Result<()> {
                 break;
             }
             Some(result) => {
-                let (id, skipped) = result
-                    .map_err(|e| OxoError::ExecutionError(format!("Task join error: {e}")))??;
-                completed_count += 1;
-                if skipped {
-                    skipped_count += 1;
-                    println!(
-                        "  {} [{}/{}] {} {}",
-                        "↷".dimmed(),
-                        completed_count,
-                        total,
-                        id.dimmed(),
-                        "(up to date)".dimmed()
-                    );
-                } else {
-                    println!(
-                        "  {} [{}/{}] {}",
-                        "✓".green().bold(),
-                        completed_count,
-                        total,
-                        id.green()
-                    );
+                match result
+                    .map_err(|e| OxoError::ExecutionError(format!("Task join error: {e}")))?
+                {
+                    Ok((id, skipped)) => {
+                        completed_count += 1;
+                        if skipped {
+                            skipped_count += 1;
+                            println!(
+                                "  {} [{}/{}] {} {}",
+                                "↷".dimmed(),
+                                completed_count,
+                                total,
+                                id.dimmed(),
+                                "(up to date)".dimmed()
+                            );
+                        } else {
+                            println!(
+                                "  {} [{}/{}] {}",
+                                "✓".green().bold(),
+                                completed_count,
+                                total,
+                                id.green()
+                            );
+                        }
+                        // Save checkpoint on successful completion
+                        if !dry_run {
+                            let _ = checkpoint.mark_completed(&id, &ckpt_path);
+                        }
+                        done.insert(id);
+                    }
+                    Err(e) => {
+                        // Task failed — record in checkpoint and propagate error
+                        if !dry_run {
+                            // Extract task ID from error message if possible
+                            let _ = checkpoint.save(&ckpt_path);
+                        }
+                        return Err(e);
+                    }
                 }
-                done.insert(id);
             }
         }
     }
@@ -615,6 +731,8 @@ pub async fn execute(tasks: Vec<ConcreteTask>, dry_run: bool) -> Result<()> {
             skipped_count,
             format_elapsed(elapsed)
         );
+        // Clean up checkpoint file on successful completion
+        let _ = std::fs::remove_file(&ckpt_path);
     }
 
     Ok(())

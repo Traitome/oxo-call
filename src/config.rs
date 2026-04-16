@@ -862,6 +862,148 @@ pub fn infer_model_parameter_count(model: &str) -> Option<f32> {
     None
 }
 
+// ─── Model capability profiling ───────────────────────────────────────────────
+
+/// Preferred prompt style for a model.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum PromptStyle {
+    /// Standard instruction-following format (ARGS:/EXPLANATION:).
+    Instruct,
+    /// Chat-style prompts with system/user/assistant turns.
+    Chat,
+    /// Code completion style (for code-focused models).
+    Completion,
+}
+
+/// Capability profile for a model, used to optimize prompt construction
+/// and parameters for different model architectures.
+#[derive(Debug, Clone)]
+pub struct ModelProfile {
+    /// How well the model follows structured output instructions (0.0–1.0).
+    pub instruction_following: f32,
+    /// Code generation capability (0.0–1.0).
+    pub code_generation: f32,
+    /// Bioinformatics domain knowledge (0.0–1.0).
+    pub bio_knowledge: f32,
+    /// Recommended temperature for this model.
+    #[allow(dead_code)]
+    pub optimal_temperature: f32,
+    /// Preferred prompt format.
+    pub preferred_prompt_style: PromptStyle,
+}
+
+impl Default for ModelProfile {
+    fn default() -> Self {
+        ModelProfile {
+            instruction_following: 0.8,
+            code_generation: 0.7,
+            bio_knowledge: 0.6,
+            optimal_temperature: 0.0,
+            preferred_prompt_style: PromptStyle::Instruct,
+        }
+    }
+}
+
+/// Infer a model's capability profile from its name.
+///
+/// This enables oxo-call to adapt its prompt strategy based on model
+/// characteristics without requiring manual configuration.  The profiles
+/// are heuristic-based and err on the side of conservative defaults.
+pub fn get_model_profile(model: &str) -> ModelProfile {
+    let m = model.to_ascii_lowercase();
+
+    // DeepSeek Coder models — strong at code, weaker at instruction following
+    if m.contains("deepseek-coder") || m.contains("deepseek_coder") {
+        return ModelProfile {
+            instruction_following: 0.6,
+            code_generation: 0.9,
+            bio_knowledge: 0.5,
+            optimal_temperature: 0.1,
+            preferred_prompt_style: PromptStyle::Completion,
+        };
+    }
+
+    // Qwen Coder models — good balance of instruction + code
+    if m.contains("qwen") && m.contains("coder") {
+        return ModelProfile {
+            instruction_following: 0.8,
+            code_generation: 0.85,
+            bio_knowledge: 0.7,
+            optimal_temperature: 0.0,
+            preferred_prompt_style: PromptStyle::Instruct,
+        };
+    }
+
+    // GPT-4+ family — excellent instruction following and knowledge
+    if m.contains("gpt-4") || m.contains("gpt-5") {
+        return ModelProfile {
+            instruction_following: 0.95,
+            code_generation: 0.9,
+            bio_knowledge: 0.85,
+            optimal_temperature: 0.0,
+            preferred_prompt_style: PromptStyle::Instruct,
+        };
+    }
+
+    // Claude family
+    if m.contains("claude") {
+        return ModelProfile {
+            instruction_following: 0.95,
+            code_generation: 0.85,
+            bio_knowledge: 0.8,
+            optimal_temperature: 0.0,
+            preferred_prompt_style: PromptStyle::Instruct,
+        };
+    }
+
+    // Gemini family
+    if m.contains("gemini") {
+        return ModelProfile {
+            instruction_following: 0.9,
+            code_generation: 0.85,
+            bio_knowledge: 0.8,
+            optimal_temperature: 0.0,
+            preferred_prompt_style: PromptStyle::Instruct,
+        };
+    }
+
+    // Llama/CodeLlama
+    if m.contains("llama") || m.contains("codellama") {
+        return ModelProfile {
+            instruction_following: 0.75,
+            code_generation: 0.8,
+            bio_knowledge: 0.6,
+            optimal_temperature: 0.1,
+            preferred_prompt_style: PromptStyle::Chat,
+        };
+    }
+
+    // Mistral/Mixtral
+    if m.contains("mistral") || m.contains("mixtral") {
+        return ModelProfile {
+            instruction_following: 0.8,
+            code_generation: 0.8,
+            bio_knowledge: 0.65,
+            optimal_temperature: 0.1,
+            preferred_prompt_style: PromptStyle::Instruct,
+        };
+    }
+
+    // Phi models (small but instruction-tuned)
+    if m.contains("phi") {
+        return ModelProfile {
+            instruction_following: 0.7,
+            code_generation: 0.75,
+            bio_knowledge: 0.5,
+            optimal_temperature: 0.0,
+            preferred_prompt_style: PromptStyle::Instruct,
+        };
+    }
+
+    // Default profile for unknown models
+    ModelProfile::default()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

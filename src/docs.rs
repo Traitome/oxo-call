@@ -1,5 +1,6 @@
 use crate::config::Config;
 use crate::error::{OxoError, Result};
+use colored::Colorize;
 use std::path::PathBuf;
 #[cfg(not(target_arch = "wasm32"))]
 use std::process::Command;
@@ -153,6 +154,28 @@ impl DocsFetcher {
             }
         }
 
+        // 2b. Version-aware cache invalidation: if the detected version differs
+        // from the cached version, refresh the cache to pick up new/changed flags.
+        if !skip_cache && docs.cached_docs.is_some() && docs.version.is_some() {
+            let current_version = docs.version.as_deref().unwrap_or("");
+            let cached_version = self.load_cached_version(tool);
+            if let Some(ref old_version) = cached_version
+                && !current_version.is_empty()
+                && old_version != current_version
+                && extract_major_minor(old_version) != extract_major_minor(current_version)
+            {
+                // Major/minor version changed — invalidate cache
+                docs.cached_docs = None;
+                eprintln!(
+                    "{} {} version changed ({} → {}), refreshing cached documentation",
+                    "note:".cyan().bold(),
+                    tool,
+                    old_version.dimmed(),
+                    current_version.dimmed()
+                );
+            }
+        }
+
         // 3. Try local documentation paths from config (unless skipping cache)
         if !skip_cache
             && docs.cached_docs.is_none()
@@ -181,6 +204,11 @@ impl DocsFetcher {
             && let Some(help) = &docs.help_output
         {
             let _ = self.save_cache(tool, help);
+        }
+
+        // 5. Persist version alongside cache for future version-change detection.
+        if let Some(ref ver) = docs.version {
+            let _ = self.save_cached_version(tool, ver);
         }
 
         Ok(docs)
@@ -467,6 +495,39 @@ impl DocsFetcher {
             })
             .collect();
         Ok(self.cache_dir()?.join(format!("{safe_name}.md")))
+    }
+
+    /// Load the cached version string for a tool (stored as a small sidecar file).
+    fn load_cached_version(&self, tool: &str) -> Option<String> {
+        let path = self.version_cache_path(tool).ok()?;
+        std::fs::read_to_string(path)
+            .ok()
+            .map(|s| s.trim().to_string())
+    }
+
+    /// Persist the tool's version string alongside the doc cache.
+    fn save_cached_version(&self, tool: &str, version: &str) -> Result<()> {
+        let path = self.version_cache_path(tool)?;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(&path, version)?;
+        Ok(())
+    }
+
+    /// Path to the version sidecar file.
+    fn version_cache_path(&self, tool: &str) -> Result<PathBuf> {
+        let safe_name: String = tool
+            .chars()
+            .map(|c| {
+                if c.is_alphanumeric() || c == '-' || c == '_' {
+                    c
+                } else {
+                    '_'
+                }
+            })
+            .collect();
+        Ok(self.cache_dir()?.join(format!("{safe_name}.version")))
     }
 
     /// Search configured local documentation paths for a tool.
@@ -1132,6 +1193,37 @@ fn strip_embedded_help_section(cached: &str) -> String {
         }
     }
     cached.to_string()
+}
+
+/// Extract major.minor from a version string (e.g., "samtools 1.17" → "1.17",
+/// "1.20.0" → "1.20").  Returns the original string if no version pattern is
+/// found, which means an exact-match comparison will be used as fallback.
+fn extract_major_minor(version: &str) -> String {
+    let s = version.trim();
+
+    // Find the first substring that looks like X.Y or X.Y.Z
+    // by splitting on whitespace and non-version characters.
+    for word in s.split(|c: char| c.is_whitespace() || c == '(' || c == ')') {
+        let word = word.trim();
+        if word.is_empty() {
+            continue;
+        }
+
+        // Check if this word is a version-like pattern (digits and dots only)
+        let version_part: String = word
+            .chars()
+            .take_while(|c| c.is_ascii_digit() || *c == '.')
+            .collect();
+
+        if version_part.contains('.') {
+            let parts: Vec<&str> = version_part.split('.').collect();
+            if parts.len() >= 2 && !parts[0].is_empty() && !parts[1].is_empty() {
+                return format!("{}.{}", parts[0], parts[1]);
+            }
+        }
+    }
+
+    s.to_string()
 }
 
 #[cfg(test)]

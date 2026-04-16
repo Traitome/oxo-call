@@ -16,11 +16,13 @@
 //! library interface.
 
 pub mod config;
+pub mod context;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod copilot_auth;
 pub mod docs;
 pub mod engine;
 pub mod error;
+pub mod format;
 pub mod handlers;
 pub mod history;
 pub mod index;
