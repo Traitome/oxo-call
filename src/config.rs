@@ -28,6 +28,7 @@ const VALID_CONFIG_KEYS: &[&str] = &[
     "llm.temperature",
     "llm.context_window",
     "llm.prompt_tier",
+    "llm.cache_enabled",
     "docs.auto_update",
 ];
 
@@ -161,6 +162,10 @@ pub struct LlmConfig {
     /// Users can force a specific tier for debugging or experimentation.
     #[serde(default)]
     pub prompt_tier: PromptTierConfig,
+    /// Enable LLM response caching based on semantic hash.
+    /// Default: false (disabled for independent benchmarking).
+    #[serde(default)]
+    pub cache_enabled: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -196,6 +201,7 @@ impl Default for Config {
                 temperature: DEFAULT_TEMPERATURE,
                 context_window: 0,
                 prompt_tier: PromptTierConfig::default(),
+                cache_enabled: false,
             },
             docs: DocsConfig {
                 local_paths: Vec::new(),
@@ -299,6 +305,11 @@ impl Config {
                             "Invalid prompt_tier value: {value}. Valid values: auto, full, medium, compact"
                         ))
                     })?
+            }
+            "llm.cache_enabled" => {
+                self.llm.cache_enabled = value.parse().map_err(|_| {
+                    OxoError::ConfigError(format!("Invalid cache_enabled value: {value}. Must be true or false"))
+                })?
             }
             "docs.auto_update" => {
                 self.docs.auto_update = value.parse().map_err(|_| {
@@ -496,6 +507,7 @@ impl Config {
                 };
                 Ok(format!("{configured} (effective: {tier:?})"))
             }
+            "llm.cache_enabled" => Ok(self.llm.cache_enabled.to_string()),
             "docs.auto_update" => Ok(self.effective_docs_auto_update()?.to_string()),
             _ => Err(OxoError::ConfigError(format!("Unknown config key: {key}"))),
         }
@@ -614,6 +626,7 @@ impl Config {
                     Ok("auto-detected from model size and context window".to_string())
                 }
             }
+            "llm.cache_enabled" => Ok("stored config/default".to_string()),
             "docs.auto_update" => {
                 if Self::env_string(ENV_DOCS_AUTO_UPDATE).is_some() {
                     Ok(format!("env:{ENV_DOCS_AUTO_UPDATE}"))
@@ -886,7 +899,6 @@ pub struct ModelProfile {
     /// Bioinformatics domain knowledge (0.0–1.0).
     pub bio_knowledge: f32,
     /// Recommended temperature for this model.
-    #[allow(dead_code)]
     pub optimal_temperature: f32,
     /// Preferred prompt format.
     pub preferred_prompt_style: PromptStyle,

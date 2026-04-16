@@ -19,6 +19,9 @@ pub struct CommandProvenance {
     /// LLM model identifier that generated the command.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
+    /// Whether the command was served from cache (no LLM call needed).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_hit: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -103,6 +106,17 @@ pub struct UserPreferences {
     pub preferred_output_dir: Option<String>,
     /// Most commonly used reference genome path.
     pub preferred_reference: Option<String>,
+    /// Commonly used argument combinations (e.g., "-@ 8 -O").
+    pub preferred_arg_combos: Vec<ArgCombo>,
+}
+
+/// A commonly used argument combination extracted from history.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct ArgCombo {
+    /// The argument pattern (e.g., "-@ 8 -O").
+    pub pattern: String,
+    /// Number of times this combination was observed.
+    pub count: usize,
 }
 
 impl UserPreferences {
@@ -117,6 +131,10 @@ impl UserPreferences {
         }
         if let Some(ref r) = self.preferred_reference {
             hints.push(format!("preferred reference: {r}"));
+        }
+        // Add top 3 arg combos
+        for combo in self.preferred_arg_combos.iter().take(3) {
+            hints.push(format!("common combo: {}", combo.pattern));
         }
         if hints.is_empty() {
             String::new()
@@ -144,6 +162,75 @@ pub fn learn_user_preferences(tool: &str, history: &[HistoryEntry]) -> UserPrefe
         preferred_threads: most_common_extracted(&relevant, extract_threads),
         preferred_output_dir: most_common_extracted(&relevant, extract_output_dir),
         preferred_reference: most_common_extracted(&relevant, extract_reference),
+        preferred_arg_combos: extract_arg_combos(&relevant),
+    }
+}
+
+/// Extract common argument combinations from commands.
+///
+/// Looks for patterns like "-@ 8 -O" that frequently appear together.
+fn extract_arg_combos(entries: &[&HistoryEntry]) -> Vec<ArgCombo> {
+    use std::collections::HashMap;
+    let mut combo_counts: HashMap<String, usize> = HashMap::new();
+
+    for entry in entries {
+        if let Some(combo) = extract_2arg_combo(&entry.command) {
+            *combo_counts.entry(combo).or_insert(0) += 1;
+        }
+    }
+
+    // Sort by count descending, take top 5, require at least 2 occurrences
+    let mut combos: Vec<ArgCombo> = combo_counts
+        .into_iter()
+        .filter(|(_, count)| *count >= 2)
+        .map(|(pattern, count)| ArgCombo { pattern, count })
+        .collect();
+    combos.sort_by(|a, b| b.count.cmp(&a.count));
+    combos.truncate(5);
+    combos
+}
+
+/// Extract a 2-argument combination from a command string.
+///
+/// Looks for pairs of flags that commonly go together, e.g.:
+/// - Thread + output: "-@ 8 -o out.bam"
+/// - Reference + threads: "-x hg38 -t 8"
+fn extract_2arg_combo(command: &str) -> Option<String> {
+    let tokens: Vec<&str> = command.split_whitespace().collect();
+    let mut found: Vec<String> = Vec::new();
+
+    // Thread flags
+    for (i, token) in tokens.iter().enumerate() {
+        if (*token == "-@" || *token == "-t" || *token == "--threads")
+            && i + 1 < tokens.len()
+            && let Ok(n) = tokens[i + 1].parse::<u32>()
+        {
+            found.push(format!("{} {}", token, n));
+        }
+        // Compact form: -@8
+        for prefix in &["-@", "-t"] {
+            if let Some(rest) = token.strip_prefix(prefix)
+                && rest.parse::<u32>().is_ok()
+            {
+                found.push(token.to_string());
+            }
+        }
+    }
+
+    // Output flags
+    for (i, token) in tokens.iter().enumerate() {
+        if (*token == "-o" || *token == "--output" || *token == "-O") && i + 1 < tokens.len() {
+            // Just record the flag, not the path (paths vary)
+            found.push(token.to_string());
+        }
+    }
+
+    // Sort and join to create a canonical combo
+    if found.len() >= 2 {
+        found.sort();
+        Some(found.join(" "))
+    } else {
+        None
     }
 }
 
@@ -231,6 +318,74 @@ fn extract_reference(command: &str) -> Option<String> {
     None
 }
 
+// ─── Workflow-level Skill suggestions ───────────────────────────────────────
+
+/// A detected workflow pattern from command history.
+#[allow(dead_code)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkflowSuggestion {
+    /// Sequence of tools in the workflow (e.g., ["fastp", "bwa", "samtools"]).
+    pub tools: Vec<String>,
+    /// Number of times this sequence was observed.
+    pub count: usize,
+    /// Optional description of the workflow.
+    pub description: Option<String>,
+}
+
+/// Detect common workflow patterns from command history.
+///
+/// Analyzes the temporal sequence of commands to find frequently occurring
+/// tool sequences that could be suggested as workflow Skills.
+#[allow(dead_code)]
+pub fn detect_workflow_patterns(history: &[HistoryEntry]) -> Vec<WorkflowSuggestion> {
+    use std::collections::HashMap;
+
+    // Filter to successful non-dry-run commands, sorted by time
+    let mut successful: Vec<&HistoryEntry> = history
+        .iter()
+        .filter(|e| e.exit_code == 0 && !e.dry_run)
+        .collect();
+    successful.sort_by_key(|e| e.executed_at);
+
+    if successful.len() < 3 {
+        return Vec::new();
+    }
+
+    // Extract tool sequences (2-3 tool workflows)
+    let mut seq_counts: HashMap<Vec<String>, usize> = HashMap::new();
+
+    // Sliding window of 3 commands
+    for window in successful.windows(3) {
+        let tools: Vec<String> = window.iter().map(|e| e.tool.clone()).collect();
+        // Only count sequences with different tools (avoid same-tool runs)
+        if tools[0] != tools[1] {
+            // 2-tool sequence
+            let seq2 = vec![tools[0].clone(), tools[1].clone()];
+            *seq_counts.entry(seq2).or_insert(0) += 1;
+        }
+        if tools[0] != tools[1] && tools[1] != tools[2] && tools[0] != tools[2] {
+            // 3-tool sequence
+            *seq_counts.entry(tools).or_insert(0) += 1;
+        }
+    }
+
+    // Convert to suggestions, filter by minimum occurrence
+    let mut suggestions: Vec<WorkflowSuggestion> = seq_counts
+        .into_iter()
+        .filter(|(_, count)| *count >= 2)
+        .map(|(tools, count)| WorkflowSuggestion {
+            tools,
+            count,
+            description: None,
+        })
+        .collect();
+
+    // Sort by count descending
+    suggestions.sort_by(|a, b| b.count.cmp(&a.count));
+    suggestions.truncate(5);
+    suggestions
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -269,6 +424,7 @@ mod tests {
                 docs_hash: Some("abc123".to_string()),
                 skill_name: Some("samtools".to_string()),
                 model: Some("gpt-4o".to_string()),
+                cache_hit: None,
             }),
         }
     }
@@ -605,10 +761,137 @@ mod tests {
             preferred_threads: Some("8".to_string()),
             preferred_output_dir: None,
             preferred_reference: Some("/genomes/hg38.fa".to_string()),
+            preferred_arg_combos: vec![ArgCombo {
+                pattern: "-@ 8 -o".to_string(),
+                count: 3,
+            }],
         };
         let hint = prefs.to_prompt_hint();
         assert!(hint.contains("preferred threads: 8"));
         assert!(hint.contains("preferred reference"));
+        assert!(hint.contains("common combo"));
         assert!(!hint.contains("preferred output dir"));
+    }
+
+    #[test]
+    fn test_extract_arg_combos() {
+        let entries = vec![
+            HistoryEntry {
+                id: "c1".to_string(),
+                tool: "samtools".to_string(),
+                task: "sort".to_string(),
+                command: "samtools sort -@ 8 -o out.bam in.bam".to_string(),
+                exit_code: 0,
+                executed_at: Utc::now(),
+                dry_run: false,
+                server: None,
+                provenance: None,
+            },
+            HistoryEntry {
+                id: "c2".to_string(),
+                tool: "samtools".to_string(),
+                task: "sort".to_string(),
+                command: "samtools sort -@ 8 -o out2.bam in2.bam".to_string(),
+                exit_code: 0,
+                executed_at: Utc::now(),
+                dry_run: false,
+                server: None,
+                provenance: None,
+            },
+        ];
+        let refs: Vec<&HistoryEntry> = entries.iter().collect();
+        let combos = extract_arg_combos(&refs);
+        assert!(!combos.is_empty());
+        assert!(combos[0].pattern.contains("-@"));
+    }
+
+    #[test]
+    fn test_detect_workflow_patterns_empty() {
+        let patterns = detect_workflow_patterns(&[]);
+        assert!(patterns.is_empty());
+    }
+
+    #[test]
+    fn test_detect_workflow_patterns_sequence() {
+        let entries = vec![
+            HistoryEntry {
+                id: "w1".to_string(),
+                tool: "fastp".to_string(),
+                task: "trim".to_string(),
+                command: "fastp -i r1.fq -o t1.fq".to_string(),
+                exit_code: 0,
+                executed_at: Utc::now(),
+                dry_run: false,
+                server: None,
+                provenance: None,
+            },
+            HistoryEntry {
+                id: "w2".to_string(),
+                tool: "bwa".to_string(),
+                task: "align".to_string(),
+                command: "bwa mem ref.fa t1.fq".to_string(),
+                exit_code: 0,
+                executed_at: chrono::TimeZone::timestamp_opt(&Utc, Utc::now().timestamp() + 60, 0)
+                    .unwrap(),
+                dry_run: false,
+                server: None,
+                provenance: None,
+            },
+            HistoryEntry {
+                id: "w3".to_string(),
+                tool: "samtools".to_string(),
+                task: "sort".to_string(),
+                command: "samtools sort -o out.bam".to_string(),
+                exit_code: 0,
+                executed_at: chrono::TimeZone::timestamp_opt(&Utc, Utc::now().timestamp() + 120, 0)
+                    .unwrap(),
+                dry_run: false,
+                server: None,
+                provenance: None,
+            },
+            // Repeat the sequence
+            HistoryEntry {
+                id: "w4".to_string(),
+                tool: "fastp".to_string(),
+                task: "trim".to_string(),
+                command: "fastp -i r2.fq -o t2.fq".to_string(),
+                exit_code: 0,
+                executed_at: chrono::TimeZone::timestamp_opt(&Utc, Utc::now().timestamp() + 180, 0)
+                    .unwrap(),
+                dry_run: false,
+                server: None,
+                provenance: None,
+            },
+            HistoryEntry {
+                id: "w5".to_string(),
+                tool: "bwa".to_string(),
+                task: "align".to_string(),
+                command: "bwa mem ref.fa t2.fq".to_string(),
+                exit_code: 0,
+                executed_at: chrono::TimeZone::timestamp_opt(&Utc, Utc::now().timestamp() + 240, 0)
+                    .unwrap(),
+                dry_run: false,
+                server: None,
+                provenance: None,
+            },
+            HistoryEntry {
+                id: "w6".to_string(),
+                tool: "samtools".to_string(),
+                task: "sort".to_string(),
+                command: "samtools sort -o out2.bam".to_string(),
+                exit_code: 0,
+                executed_at: chrono::TimeZone::timestamp_opt(&Utc, Utc::now().timestamp() + 300, 0)
+                    .unwrap(),
+                dry_run: false,
+                server: None,
+                provenance: None,
+            },
+        ];
+        let patterns = detect_workflow_patterns(&entries);
+        assert!(!patterns.is_empty());
+        // Should detect fastp -> bwa -> samtools sequence
+        let three_tool = patterns.iter().find(|p| p.tools.len() == 3);
+        assert!(three_tool.is_some());
+        assert_eq!(three_tool.unwrap().tools, vec!["fastp", "bwa", "samtools"]);
     }
 }

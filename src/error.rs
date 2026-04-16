@@ -1,5 +1,15 @@
+//! Error types for oxo-call.
+//!
+//! This module defines the primary error type `OxoError` using `thiserror`
+//! for structured error reporting. When combined with `color-eyre`,
+//! errors display with colorful backtraces and contextual information.
+
 use thiserror::Error;
 
+/// Primary error type for oxo-call operations.
+///
+/// Each variant provides structured error information that can be
+/// displayed with color-eyre's enhanced error reporting.
 #[derive(Debug, Error)]
 pub enum OxoError {
     #[error("Tool '{0}' not found in PATH")]
@@ -38,6 +48,20 @@ pub enum OxoError {
 }
 
 pub type Result<T> = std::result::Result<T, OxoError>;
+
+/// Initialize color-eyre for enhanced error reporting.
+///
+/// Should be called early in `main()` to install panic and error handlers.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn install_error_handler() -> color_eyre::Result<()> {
+    color_eyre::install()
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn install_error_handler() -> color_eyre::Result<()> {
+    // color-eyre doesn't fully support wasm32, skip installation
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {
@@ -110,5 +134,12 @@ mod tests {
 
         let err: Result<i32> = Err(OxoError::LlmError("test".to_string()));
         assert!(err.is_err());
+    }
+
+    #[test]
+    fn test_to_eyre_report() {
+        let e = OxoError::ToolNotFound("test".to_string());
+        let report: color_eyre::Report = e.into();
+        assert!(report.to_string().contains("Tool"));
     }
 }

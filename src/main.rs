@@ -1,3 +1,4 @@
+mod cache;
 mod cli;
 mod config;
 mod context;
@@ -7,6 +8,7 @@ mod docs;
 mod engine;
 mod error;
 mod format;
+mod generator;
 mod handlers;
 mod history;
 mod index;
@@ -38,6 +40,11 @@ use handlers::{config_verify_suggestions, print_index_table, with_source};
 #[cfg_attr(not(target_arch = "wasm32"), tokio::main)]
 #[cfg_attr(target_arch = "wasm32", tokio::main(flavor = "current_thread"))]
 async fn main() {
+    // Install color-eyre for enhanced error reporting (backtraces, color output)
+    if let Err(e) = error::install_error_handler() {
+        eprintln!("warning: failed to install color-eyre handler: {e}");
+    }
+
     let cli = Cli::parse();
     if let Err(e) = run(cli).await {
         eprintln!("{} {}", "error:".bold().red(), e);

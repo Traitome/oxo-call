@@ -74,6 +74,14 @@ pub struct SkillMeta {
     pub tags: Vec<String>,
     pub author: Option<String>,
     pub source_url: Option<String>,
+    /// Minimum tool version required for this skill (e.g., "1.10").
+    /// Commands may fail or behave differently on older versions.
+    #[serde(default)]
+    pub min_version: Option<String>,
+    /// Maximum tool version supported by this skill (e.g., "1.20").
+    /// Newer versions may have breaking changes not reflected in examples.
+    #[serde(default)]
+    pub max_version: Option<String>,
 }
 
 /// Domain knowledge injected into the LLM prompt.

@@ -8,13 +8,14 @@
 //!
 //! ```rust,ignore
 //! use oxo_call::skill::{Skill, SkillManager, validate_skill_depth};
-//! use oxo_call::history::{HistoryEntry, CommandProvenance};
+//! use oxo_call::history::{HistoryEntry, CommandProvenance, WorkflowSuggestion};
 //! use oxo_call::mcp::McpClient;
 //! ```
 //!
 //! The binary entry point lives in `main.rs`; this file only surfaces the
 //! library interface.
 
+pub mod cache;
 pub mod config;
 pub mod context;
 #[cfg(not(target_arch = "wasm32"))]
@@ -35,6 +36,9 @@ pub mod sanitize;
 pub mod server;
 pub mod skill;
 pub mod workflow;
+
+// Re-export commonly used types for convenience
+pub use history::{ArgCombo, CommandProvenance, HistoryEntry, WorkflowSuggestion};
 
 /// A single crate-wide mutex that **all** test modules must acquire before
 /// reading or writing `OXO_CALL_DATA_DIR` (or any other process-global

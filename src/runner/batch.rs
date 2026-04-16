@@ -1,0 +1,318 @@
+//! Batch execution implementation.
+//!
+//! Contains methods for running commands across multiple input items
+//! in parallel with configurable concurrency.
+
+use crate::error::{OxoError, Result};
+#[cfg(not(target_arch = "wasm32"))]
+use crate::history::{CommandProvenance, HistoryEntry, HistoryStore};
+#[cfg(not(target_arch = "wasm32"))]
+use crate::job;
+#[cfg(not(target_arch = "wasm32"))]
+use chrono::Utc;
+use colored::Colorize;
+#[cfg(not(target_arch = "wasm32"))]
+use std::sync::Arc;
+#[cfg(not(target_arch = "wasm32"))]
+use uuid::Uuid;
+
+use super::core::Runner;
+use super::utils::{build_command_string, detect_tool_version};
+
+/// Trait for batch execution methods.
+pub(crate) trait BatchRunner {
+    async fn run_batch(&self, tool: &str, task: &str, json: bool) -> Result<()>;
+    async fn dry_run_batch(&self, tool: &str, task: &str, json: bool) -> Result<()>;
+}
+
+impl BatchRunner for Runner {
+    /// Execute the LLM-generated command template for every input item.
+    ///
+    /// The command template is obtained with a single LLM call; `{item}` (and
+    /// other placeholders) are then substituted for each item before execution.
+    /// Up to `self.jobs` items are run concurrently.
+    ///
+    /// When `self.stop_on_error` is true, remaining handles are aborted after
+    /// the first failure, and the batch exits immediately with an error.
+    #[cfg(not(target_arch = "wasm32"))]
+    async fn run_batch(&self, tool: &str, task: &str, json: bool) -> Result<()> {
+        let result = self.prepare(tool, task).await?;
+        let cmd_template = build_command_string(tool, &result.suggestion.args);
+        // Clone provenance fields before result is consumed.
+        let docs_hash = result.docs_hash.clone();
+        let skill_name = result.skill_name.clone();
+
+        let items = &self.input_items;
+        let n = items.len();
+        let jobs = self.jobs.max(1);
+
+        if !json {
+            println!();
+            println!("{}", "─".repeat(60).dimmed());
+            println!("  {} {}", "Tool:".bold(), tool.cyan());
+            println!("  {} {}", "Task template:".bold(), task);
+            println!("{}", "─".repeat(60).dimmed());
+            println!();
+            println!("  {}", "Command template:".bold().green());
+            println!("  {}", cmd_template.green().bold());
+            println!();
+            if !result.suggestion.explanation.is_empty() {
+                println!("  {}", "Explanation:".bold());
+                println!("  {}", result.suggestion.explanation);
+                println!();
+            }
+            println!(
+                "  {} {} items, {} parallel{}",
+                "Batch:".bold(),
+                n.to_string().cyan(),
+                jobs.to_string().cyan(),
+                if self.stop_on_error {
+                    " (stop-on-error)".yellow().to_string()
+                } else {
+                    String::new()
+                },
+            );
+            println!("{}", "─".repeat(60).dimmed());
+            println!();
+        }
+
+        // Start timing before spawning so wall-time includes queue wait.
+        let batch_started = Utc::now();
+        let sem = Arc::new(tokio::sync::Semaphore::new(jobs));
+        let mut handles: Vec<(String, tokio::task::JoinHandle<Result<i32>>)> =
+            Vec::with_capacity(n);
+
+        for (i, item) in items.iter().enumerate() {
+            let cmd = job::interpolate_command(&cmd_template, item, i + 1, &self.vars);
+            let sem_clone = Arc::clone(&sem);
+            let item_label = item.clone();
+            let handle: tokio::task::JoinHandle<Result<i32>> = tokio::spawn(async move {
+                let _permit = sem_clone
+                    .acquire_owned()
+                    .await
+                    .expect("semaphore closed unexpectedly");
+                tokio::task::spawn_blocking(move || {
+                    std::process::Command::new("sh")
+                        .arg("-c")
+                        .arg(&cmd)
+                        .status()
+                        .map(|s| s.code().unwrap_or(-1))
+                        .map_err(|e| {
+                            OxoError::ExecutionError(format!("failed to run '{item_label}': {e}"))
+                        })
+                })
+                .await
+                .map_err(|e| OxoError::ExecutionError(format!("task join error: {e}")))?
+            });
+            handles.push((item.clone(), handle));
+        }
+
+        let mut failed = 0usize;
+        let mut done = 0usize;
+        let mut results: Vec<(String, i32)> = Vec::with_capacity(n);
+        for (item, handle) in handles {
+            let code = match handle.await {
+                Ok(Ok(c)) => c,
+                Ok(Err(e)) => {
+                    failed += 1;
+                    if !json {
+                        eprintln!("  {} {}: {}", "✗".red().bold(), item, e);
+                    }
+                    -1
+                }
+                Err(e) => {
+                    failed += 1;
+                    if !json {
+                        eprintln!("  {} {}: join error: {}", "✗".red().bold(), item, e);
+                    }
+                    -1
+                }
+            };
+            // Count non-zero exit codes as failures
+            if code != 0 && code != -1 {
+                failed += 1;
+            }
+            done += 1;
+            if !json {
+                match code {
+                    0 => println!("  {} [{}/{}] {}", "✓".green().bold(), done, n, item),
+                    -1 => {}
+                    c => eprintln!(
+                        "  {} [{}/{}] {} (exit {})",
+                        "✗".red().bold(),
+                        done,
+                        n,
+                        item,
+                        c.to_string().red()
+                    ),
+                }
+            }
+            results.push((item, code));
+
+            // Stop-on-error: abort remaining handles after the first failure.
+            if self.stop_on_error && failed > 0 {
+                if !json {
+                    eprintln!(
+                        "  {} stop-on-error: aborting after first failure ({}/{} done)",
+                        "⚡".yellow().bold(),
+                        done,
+                        n
+                    );
+                }
+                break;
+            }
+        }
+
+        // Record a single batch summary in command history.
+        {
+            let tool_version = detect_tool_version(tool);
+            let history_entry = HistoryEntry {
+                id: Uuid::new_v4().to_string(),
+                tool: tool.to_string(),
+                task: task.to_string(),
+                command: format!("{cmd_template}  # batch:{n} vars:{}", self.vars.len()),
+                exit_code: if failed == 0 { 0 } else { 1 },
+                executed_at: batch_started,
+                dry_run: false,
+                server: None,
+                provenance: Some(CommandProvenance {
+                    tool_version,
+                    docs_hash: Some(docs_hash),
+                    skill_name,
+                    model: Some(self.config.effective_model()),
+                    cache_hit: None,
+                }),
+            };
+            let _ = HistoryStore::append(history_entry);
+        }
+
+        if json {
+            let entries: Vec<serde_json::Value> = results
+                .iter()
+                .enumerate()
+                .map(|(i, (item, code))| {
+                    let cmd = job::interpolate_command(&cmd_template, item, i + 1, &self.vars);
+                    serde_json::json!({
+                        "item": item,
+                        "command": cmd,
+                        "exit_code": code,
+                        "success": *code == 0,
+                    })
+                })
+                .collect();
+            let output = serde_json::json!({
+                "tool": tool,
+                "task_template": task,
+                "command_template": cmd_template,
+                "total": n,
+                "processed": done,
+                "failed": failed,
+                "success": failed == 0,
+                "stopped_early": self.stop_on_error && done < n,
+                "results": entries,
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+        } else {
+            println!();
+            println!("{}", "─".repeat(60).dimmed());
+            if failed == 0 {
+                println!(
+                    "  {} All {} items completed successfully.",
+                    "✓".green().bold(),
+                    n.to_string().green()
+                );
+            } else {
+                eprintln!(
+                    "  {} {}/{} items failed.",
+                    "✗".red().bold(),
+                    failed.to_string().red(),
+                    done
+                );
+            }
+            println!("{}", "─".repeat(60).dimmed());
+        }
+
+        if failed > 0 {
+            return Err(OxoError::ExecutionError(format!(
+                "{failed}/{done} batch items failed"
+            )));
+        }
+        Ok(())
+    }
+
+    /// Show the interpolated command for every input item without executing.
+    #[cfg(not(target_arch = "wasm32"))]
+    async fn dry_run_batch(&self, tool: &str, task: &str, json: bool) -> Result<()> {
+        let result = self.prepare(tool, task).await?;
+        let cmd_template = build_command_string(tool, &result.suggestion.args);
+
+        let items = &self.input_items;
+        let n = items.len();
+
+        let commands: Vec<String> = items
+            .iter()
+            .enumerate()
+            .map(|(i, item)| job::interpolate_command(&cmd_template, item, i + 1, &self.vars))
+            .collect();
+
+        if json {
+            let output = serde_json::json!({
+                "tool": tool,
+                "task_template": task,
+                "command_template": cmd_template,
+                "commands": commands,
+                "dry_run": true,
+                "skill": result.skill_name,
+                "model": self.config.effective_model(),
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+            return Ok(());
+        }
+
+        println!();
+        println!("{}", "─".repeat(60).dimmed());
+        println!("  {} {}", "Tool:".bold(), tool.cyan());
+        println!("  {} {}", "Task template:".bold(), task);
+        println!("{}", "─".repeat(60).dimmed());
+        println!();
+        println!("  {}", "Command template (dry-run):".bold().yellow());
+        println!("  {}", cmd_template.green().bold());
+        println!();
+        if !result.suggestion.explanation.is_empty() {
+            println!("  {}", "Explanation:".bold());
+            println!("  {}", result.suggestion.explanation);
+            println!();
+        }
+        println!(
+            "  {} {} items would be processed:",
+            "Batch:".bold(),
+            n.to_string().cyan()
+        );
+        println!("{}", "─".repeat(60).dimmed());
+        for (i, cmd) in commands.iter().enumerate() {
+            println!("  [{:>3}] {}", i + 1, cmd.as_str().green());
+        }
+        println!("{}", "─".repeat(60).dimmed());
+        println!(
+            "  {}",
+            "Use 'oxo-call run' to execute these commands.".dimmed()
+        );
+
+        Ok(())
+    }
+
+    // WASM stubs - batch execution not supported
+    #[cfg(target_arch = "wasm32")]
+    async fn run_batch(&self, _tool: &str, _task: &str, _json: bool) -> Result<()> {
+        Err(OxoError::ExecutionError(
+            "Batch execution is not supported in WebAssembly".to_string(),
+        ))
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    async fn dry_run_batch(&self, _tool: &str, _task: &str, _json: bool) -> Result<()> {
+        Err(OxoError::ExecutionError(
+            "Batch execution is not supported in WebAssembly".to_string(),
+        ))
+    }
+}
