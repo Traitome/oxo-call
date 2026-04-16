@@ -849,9 +849,14 @@ impl Runner {
         let mut current_exit_code = exit_code;
 
         for attempt in 1..=MAX_AUTO_RETRIES {
-            // Truncate stderr to avoid exceeding token limits
+            // Truncate stderr to avoid exceeding token limits (UTF-8 safe)
             let stderr_excerpt = if current_stderr.len() > 1500 {
-                &current_stderr[current_stderr.len() - 1500..]
+                let mut boundary = current_stderr.len() - 1500;
+                while boundary < current_stderr.len() && !current_stderr.is_char_boundary(boundary)
+                {
+                    boundary += 1;
+                }
+                &current_stderr[boundary..]
             } else {
                 &current_stderr
             };
