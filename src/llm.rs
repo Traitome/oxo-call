@@ -3687,4 +3687,73 @@ SUGGESTIONS:
         // Should contain the most relevant example (task 0 or task matching "sort")
         assert!(prompt.contains("ARGS:"));
     }
+
+    // ─── JSON response parsing tests ──────────────────────────────────────
+
+    #[test]
+    fn test_parse_json_response() {
+        let json = r#"{"args": "-@ 4 -o sorted.bam input.bam", "explanation": "Sort BAM file"}"#;
+        let result = LlmClient::try_parse_json_response(json).unwrap();
+        assert!(!result.args.is_empty());
+        assert_eq!(result.explanation, "Sort BAM file");
+    }
+
+    #[test]
+    fn test_parse_json_response_uppercase() {
+        let json = r#"{"ARGS": "view -h input.bam", "EXPLANATION": "View BAM header"}"#;
+        let result = LlmClient::try_parse_json_response(json).unwrap();
+        assert!(!result.args.is_empty());
+    }
+
+    #[test]
+    fn test_parse_json_response_wrapped_in_fences() {
+        let json = "```json\n{\"args\": \"sort in.bam\", \"explanation\": \"Sort\"}\n```";
+        let result = LlmClient::try_parse_json_response(json).unwrap();
+        assert!(!result.args.is_empty());
+    }
+
+    #[test]
+    fn test_parse_json_response_not_json() {
+        let text = "ARGS: sort in.bam\nEXPLANATION: Sort a BAM file";
+        assert!(LlmClient::try_parse_json_response(text).is_none());
+    }
+
+    // ─── Case-insensitive prefix strip tests ──────────────────────────────
+
+    #[test]
+    fn test_strip_prefix_case_insensitive() {
+        assert_eq!(
+            strip_prefix_case_insensitive("ARGS: test", "ARGS:"),
+            Some(" test")
+        );
+        assert_eq!(
+            strip_prefix_case_insensitive("args: test", "ARGS:"),
+            Some(" test")
+        );
+        assert_eq!(
+            strip_prefix_case_insensitive("Args: test", "ARGS:"),
+            Some(" test")
+        );
+        assert!(strip_prefix_case_insensitive("other: test", "ARGS:").is_none());
+    }
+
+    // ─── Semantic truncation tests ────────────────────────────────────────
+
+    #[test]
+    fn test_semantic_truncation_prioritizes_relevant_sections() {
+        let docs = "Usage: samtools sort [options] input.bam\n\n\
+                     Options:\n  -@ INT  threads\n  -o FILE output\n\n\
+                     Examples:\n  samtools sort in.bam\n\n\
+                     Description:\n  Sort alignments by position.";
+        let result = truncate_documentation_for_task(docs, 120, Some("sort with threads"));
+        // Should prioritize sections containing "sort" and "threads"
+        assert!(result.contains("sort") || result.contains("Usage"));
+    }
+
+    #[test]
+    fn test_semantic_truncation_without_task() {
+        let docs = "line1\nline2\nline3";
+        let result = truncate_documentation_for_task(docs, 1000, None);
+        assert_eq!(result, docs);
+    }
 }

@@ -1209,6 +1209,12 @@ fn extract_major_minor(version: &str) -> String {
             continue;
         }
 
+        // Strip common version prefix 'v'
+        let word = word
+            .strip_prefix('v')
+            .or_else(|| word.strip_prefix('V'))
+            .unwrap_or(word);
+
         // Check if this word is a version-like pattern (digits and dots only)
         let version_part: String = word
             .chars()
@@ -2205,5 +2211,32 @@ Options:
         let combined = docs.combined();
         assert!(combined.contains("samtools top-level help"));
         assert!(!combined.contains("--help"));
+    }
+
+    // ─── Version extraction tests ─────────────────────────────────────────
+
+    #[test]
+    fn test_extract_major_minor_simple() {
+        assert_eq!(extract_major_minor("1.17"), "1.17");
+    }
+
+    #[test]
+    fn test_extract_major_minor_with_patch() {
+        assert_eq!(extract_major_minor("1.20.0"), "1.20");
+    }
+
+    #[test]
+    fn test_extract_major_minor_with_prefix() {
+        assert_eq!(extract_major_minor("samtools 1.17"), "1.17");
+    }
+
+    #[test]
+    fn test_extract_major_minor_version_prefix() {
+        assert_eq!(extract_major_minor("v2.3.1"), "2.3");
+    }
+
+    #[test]
+    fn test_extract_major_minor_no_version() {
+        assert_eq!(extract_major_minor("unknown"), "unknown");
     }
 }

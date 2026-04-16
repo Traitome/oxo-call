@@ -2337,4 +2337,49 @@ mod tests {
         // "0.8b" should not match "8b"
         assert_eq!(infer_model_parameter_count("model-0.8b"), Some(0.8));
     }
+
+    // ─── Model profile tests ─────────────────────────────────────────────
+
+    #[test]
+    fn test_model_profile_gpt4() {
+        let profile = get_model_profile("gpt-4o");
+        assert!(profile.instruction_following > 0.9);
+        assert_eq!(profile.preferred_prompt_style, PromptStyle::Instruct);
+    }
+
+    #[test]
+    fn test_model_profile_claude() {
+        let profile = get_model_profile("claude-3-sonnet");
+        assert!(profile.instruction_following > 0.9);
+        assert_eq!(profile.preferred_prompt_style, PromptStyle::Instruct);
+    }
+
+    #[test]
+    fn test_model_profile_deepseek_coder() {
+        let profile = get_model_profile("deepseek-coder-v2:16b");
+        assert!(profile.code_generation > 0.8);
+        assert_eq!(profile.preferred_prompt_style, PromptStyle::Completion);
+    }
+
+    #[test]
+    fn test_model_profile_qwen_coder() {
+        let profile = get_model_profile("qwen2.5-coder:32b");
+        assert!(profile.instruction_following >= 0.8);
+        assert_eq!(profile.preferred_prompt_style, PromptStyle::Instruct);
+    }
+
+    #[test]
+    fn test_model_profile_unknown_returns_default() {
+        let profile = get_model_profile("some-unknown-model");
+        let default = ModelProfile::default();
+        assert_eq!(profile.instruction_following, default.instruction_following);
+    }
+
+    #[test]
+    fn test_prompt_style_debug() {
+        // Ensure PromptStyle variants can be formatted (used in verbose output)
+        assert_eq!(format!("{:?}", PromptStyle::Instruct), "Instruct");
+        assert_eq!(format!("{:?}", PromptStyle::Chat), "Chat");
+        assert_eq!(format!("{:?}", PromptStyle::Completion), "Completion");
+    }
 }

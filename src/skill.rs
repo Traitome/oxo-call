@@ -2270,4 +2270,49 @@ explanation = "an example"
         let skill = parse_skill_md(md);
         assert!(skill.is_some());
     }
+
+    // ─── Synonym expansion tests ──────────────────────────────────────────
+
+    #[test]
+    fn test_synonym_expansion_sort() {
+        let tokens = tokenize_for_match("sort the BAM file");
+        assert!(tokens.contains("sort"));
+        assert!(tokens.contains("order"), "sort should expand to order");
+        assert!(tokens.contains("arrange"), "sort should expand to arrange");
+    }
+
+    #[test]
+    fn test_synonym_expansion_align() {
+        let tokens = tokenize_for_match("align reads to reference");
+        assert!(tokens.contains("align"));
+        assert!(tokens.contains("map"), "align should expand to map");
+        assert!(tokens.contains("mapping"), "align should expand to mapping");
+    }
+
+    #[test]
+    fn test_synonym_expansion_filter() {
+        let tokens = tokenize_for_match("filter variants by quality");
+        assert!(tokens.contains("filter"));
+        assert!(tokens.contains("select"), "filter should expand to select");
+        assert!(
+            tokens.contains("extract"),
+            "filter should expand to extract"
+        );
+    }
+
+    #[test]
+    fn test_synonym_expansion_no_expansion_for_unknown() {
+        let tokens = tokenize_for_match("foobar baz");
+        // Unknown words should not get synonyms
+        assert!(tokens.contains("foobar"));
+        assert!(!tokens.contains("sort"));
+    }
+
+    #[test]
+    fn test_tokenize_removes_stop_words() {
+        let tokens = tokenize_for_match("sort the file into output");
+        assert!(!tokens.contains("the"));
+        assert!(!tokens.contains("into"));
+        assert!(tokens.contains("sort"));
+    }
 }

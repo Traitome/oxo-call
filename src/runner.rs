@@ -1582,6 +1582,7 @@ impl RiskLevel {
 fn has_same_input_output(args: &[String]) -> bool {
     const OUTPUT_FLAGS: &[&str] = &["-o", "--output", "-O", "--out"];
     let mut output_file: Option<&str> = None;
+    let mut output_value_indices = std::collections::HashSet::new();
 
     for (i, arg) in args.iter().enumerate() {
         for &flag in OUTPUT_FLAGS {
@@ -1589,20 +1590,25 @@ fn has_same_input_output(args: &[String]) -> bool {
                 && let Some(val) = args.get(i + 1)
             {
                 output_file = Some(val.as_str());
+                output_value_indices.insert(i + 1);
             }
             if let Some(rest) = arg.strip_prefix(&format!("{flag}="))
                 && !rest.is_empty()
             {
                 output_file = Some(rest);
+                output_value_indices.insert(i);
             }
         }
     }
 
     if let Some(out) = output_file {
-        // Check if any non-flag arg matches the output file
-        for arg in args {
-            if !arg.starts_with('-') && arg.as_str() == out && arg.contains('.') {
-                // Same file appears as both positional (input) and output
+        // Check if any non-flag, non-output-value arg matches the output file
+        for (i, arg) in args.iter().enumerate() {
+            if !arg.starts_with('-')
+                && arg.as_str() == out
+                && arg.contains('.')
+                && !output_value_indices.contains(&i)
+            {
                 return true;
             }
         }
@@ -2398,5 +2404,120 @@ mod tests {
         let args: Vec<String> = vec!["input.bam".to_string(), "-o".to_string()];
         let (eff_tool, _) = effective_command("samtools", &args);
         assert_eq!(eff_tool, "samtools");
+    }
+
+    // ─── Risk assessment tests ────────────────────────────────────────────
+
+    #[test]
+    fn test_risk_safe_command() {
+        let args: Vec<String> = vec![
+            "sort".into(),
+            "-@".into(),
+            "4".into(),
+            "-o".into(),
+            "out.bam".into(),
+            "in.bam".into(),
+        ];
+        assert_eq!(assess_command_risk(&args), RiskLevel::Safe);
+    }
+
+    #[test]
+    fn test_risk_dangerous_rm() {
+        let args: Vec<String> = vec!["rm".into(), "-rf".into(), "/tmp/foo".into()];
+        assert_eq!(assess_command_risk(&args), RiskLevel::Dangerous);
+    }
+
+    #[test]
+    fn test_risk_dangerous_sudo() {
+        let args: Vec<String> = vec!["sudo".into(), "apt".into(), "install".into()];
+        assert_eq!(assess_command_risk(&args), RiskLevel::Dangerous);
+    }
+
+    #[test]
+    fn test_risk_dangerous_in_pipeline() {
+        let args: Vec<String> = vec![
+            "sort".into(),
+            "-o".into(),
+            "out.bam".into(),
+            "&&".into(),
+            "rm".into(),
+            "in.bam".into(),
+        ];
+        assert_eq!(assess_command_risk(&args), RiskLevel::Dangerous);
+    }
+
+    #[test]
+    fn test_risk_warning_force_flag() {
+        let args: Vec<String> = vec![
+            "sort".into(),
+            "--force".into(),
+            "-o".into(),
+            "out.bam".into(),
+        ];
+        assert_eq!(assess_command_risk(&args), RiskLevel::Warning);
+    }
+
+    #[test]
+    fn test_risk_warning_redirect() {
+        let args: Vec<String> = vec!["view".into(), "in.bam".into(), ">".into(), "out.sam".into()];
+        assert_eq!(assess_command_risk(&args), RiskLevel::Warning);
+    }
+
+    #[test]
+    fn test_risk_warning_same_input_output() {
+        let args: Vec<String> = vec![
+            "sort".into(),
+            "-o".into(),
+            "data.bam".into(),
+            "data.bam".into(),
+        ];
+        assert_eq!(assess_command_risk(&args), RiskLevel::Warning);
+    }
+
+    #[test]
+    fn test_risk_empty_args() {
+        let args: Vec<String> = vec![];
+        assert_eq!(assess_command_risk(&args), RiskLevel::Safe);
+    }
+
+    #[test]
+    fn test_risk_warning_message() {
+        assert!(risk_warning_message(RiskLevel::Dangerous).is_some());
+        assert!(risk_warning_message(RiskLevel::Warning).is_some());
+        assert!(risk_warning_message(RiskLevel::Safe).is_none());
+    }
+
+    // ─── Input file validation tests ──────────────────────────────────────
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_validate_input_files_nonexistent() {
+        let args: Vec<String> = vec![
+            "sort".into(),
+            "-o".into(),
+            "out.bam".into(),
+            "nonexistent_file.bam".into(),
+        ];
+        let missing = validate_input_files(&args);
+        assert!(missing.contains(&"nonexistent_file.bam".to_string()));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_validate_input_files_skips_output() {
+        let args: Vec<String> = vec!["sort".into(), "-o".into(), "nonexistent_output.bam".into()];
+        let missing = validate_input_files(&args);
+        // Output file should not be checked
+        assert!(!missing.contains(&"nonexistent_output.bam".to_string()));
+    }
+
+    #[test]
+    fn test_has_bio_extension() {
+        assert!(has_bio_extension("reads.fastq.gz"));
+        assert!(has_bio_extension("output.bam"));
+        assert!(has_bio_extension("variants.vcf"));
+        assert!(has_bio_extension("regions.bed"));
+        assert!(!has_bio_extension("script.py"));
+        assert!(!has_bio_extension("config.toml"));
     }
 }
