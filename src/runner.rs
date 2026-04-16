@@ -75,6 +75,8 @@ pub struct Runner {
     /// When true, stop the batch after the first failed item.
     #[cfg(not(target_arch = "wasm32"))]
     stop_on_error: bool,
+    /// When true, automatically retry failed commands with LLM-corrected arguments.
+    auto_retry: bool,
 }
 
 impl Runner {
@@ -99,6 +101,7 @@ impl Runner {
             jobs: 1,
             #[cfg(not(target_arch = "wasm32"))]
             stop_on_error: false,
+            auto_retry: false,
         }
     }
 
@@ -123,6 +126,12 @@ impl Runner {
     /// Enable LLM-based task description optimization before generating the command.
     pub fn with_optimize_task(mut self, optimize_task: bool) -> Self {
         self.optimize_task = optimize_task;
+        self
+    }
+
+    /// Enable automatic retry with LLM-corrected commands on failure.
+    pub fn with_auto_retry(mut self, auto_retry: bool) -> Self {
+        self.auto_retry = auto_retry;
         self
     }
 
@@ -760,6 +769,43 @@ impl Runner {
                 .await;
             }
 
+            // ── Auto-retry on failure ─────────────────────────────────────────
+            if self.auto_retry && !success {
+                if !json {
+                    println!();
+                    println!(
+                        "  {} Analyzing failure and generating corrected command...",
+                        "⟳".cyan().bold()
+                    );
+                }
+
+                // Capture stderr for retry analysis (if not already captured via --verify)
+                let stderr_for_retry = if !captured_stderr.is_empty() {
+                    captured_stderr.clone()
+                } else {
+                    format!("Command failed with exit code {exit_code}")
+                };
+
+                match self
+                    .auto_retry_on_failure(
+                        tool,
+                        &result.effective_task,
+                        &full_cmd,
+                        exit_code,
+                        &stderr_for_retry,
+                        json,
+                    )
+                    .await
+                {
+                    Ok(()) => {} // Retry succeeded or was handled
+                    Err(e) => {
+                        if !json {
+                            eprintln!("  {} Auto-retry failed: {}", "✗".red().bold(), e);
+                        }
+                    }
+                }
+            }
+
             Ok(())
         }
     }
@@ -777,7 +823,171 @@ struct VerifyParams<'a> {
     json: bool,
 }
 
+/// Maximum number of auto-retry attempts.
+const MAX_AUTO_RETRIES: usize = 2;
+
 impl Runner {
+    /// Automatically retry a failed command by asking the LLM to correct it.
+    ///
+    /// The LLM receives the original command, exit code, and stderr, and
+    /// generates a corrected command.  The corrected command is shown to the
+    /// user and executed.  Up to `MAX_AUTO_RETRIES` attempts are made.
+    #[cfg(not(target_arch = "wasm32"))]
+    async fn auto_retry_on_failure(
+        &self,
+        tool: &str,
+        task: &str,
+        failed_cmd: &str,
+        exit_code: i32,
+        stderr: &str,
+        json: bool,
+    ) -> Result<()> {
+        use std::process::Command;
+
+        let mut current_cmd = failed_cmd.to_string();
+        let mut current_stderr = stderr.to_string();
+        let mut current_exit_code = exit_code;
+
+        for attempt in 1..=MAX_AUTO_RETRIES {
+            // Truncate stderr to avoid exceeding token limits
+            let stderr_excerpt = if current_stderr.len() > 1500 {
+                &current_stderr[current_stderr.len() - 1500..]
+            } else {
+                &current_stderr
+            };
+
+            let correction_task = format!(
+                "The previous command failed (exit code {current_exit_code}):\n\
+                 ```\n{current_cmd}\n```\n\n\
+                 stderr:\n```\n{stderr_excerpt}\n```\n\n\
+                 Generate a corrected version of the command that fixes the error. \
+                 The original task was: {task}"
+            );
+
+            match self
+                .llm
+                .suggest_command(tool, "", &correction_task, None, self.no_prompt)
+                .await
+            {
+                Ok(suggestion) => {
+                    let corrected_cmd = build_command_string(tool, &suggestion.args);
+
+                    if !json {
+                        println!();
+                        println!("{}", "─".repeat(60).dimmed());
+                        println!(
+                            "  {} (attempt {}/{})",
+                            "Auto-retry:".bold().cyan(),
+                            attempt,
+                            MAX_AUTO_RETRIES
+                        );
+                        println!(
+                            "  {} {}",
+                            "Corrected command:".bold().green(),
+                            corrected_cmd.green()
+                        );
+                        if !suggestion.explanation.is_empty() {
+                            println!("  {} {}", "Fix:".bold(), suggestion.explanation);
+                        }
+                        println!("{}", "─".repeat(60).dimmed());
+                        println!();
+                    }
+
+                    // Execute corrected command
+                    let use_shell = args_require_shell(&suggestion.args);
+                    let output = if use_shell {
+                        Command::new("sh")
+                            .args(["-c", &corrected_cmd])
+                            .output()
+                            .map_err(|e| OxoError::ExecutionError(format!("sh: {e}")))?
+                    } else {
+                        let (eff_tool, eff_args) = effective_command(tool, &suggestion.args);
+                        Command::new(eff_tool)
+                            .args(eff_args)
+                            .output()
+                            .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?
+                    };
+
+                    // Stream output
+                    use std::io::Write;
+                    let _ = std::io::stdout().write_all(&output.stdout);
+                    let _ = std::io::stderr().write_all(&output.stderr);
+
+                    let retry_code = output.status.code().unwrap_or(-1);
+                    let retry_ok = output.status.success();
+
+                    // Record retry in history
+                    let entry = HistoryEntry {
+                        id: Uuid::new_v4().to_string(),
+                        tool: tool.to_string(),
+                        task: format!("[auto-retry #{attempt}] {task}"),
+                        command: corrected_cmd.clone(),
+                        exit_code: retry_code,
+                        executed_at: Utc::now(),
+                        dry_run: false,
+                        server: None,
+                        provenance: Some(CommandProvenance {
+                            tool_version: detect_tool_version(tool),
+                            docs_hash: None,
+                            skill_name: None,
+                            model: Some(self.config.effective_model()),
+                        }),
+                    };
+                    let _ = HistoryStore::append(entry);
+
+                    if retry_ok {
+                        if !json {
+                            println!();
+                            println!("{}", "─".repeat(60).dimmed());
+                            println!(
+                                "  {} Auto-retry succeeded on attempt {}",
+                                "✓".green().bold(),
+                                attempt
+                            );
+                            println!("{}", "─".repeat(60).dimmed());
+                        }
+                        return Ok(());
+                    }
+
+                    // Update for next attempt
+                    current_cmd = corrected_cmd;
+                    current_stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+                    current_exit_code = retry_code;
+
+                    if !json {
+                        println!();
+                        println!(
+                            "  {} Retry attempt {} failed (exit code {})",
+                            "✗".red().bold(),
+                            attempt,
+                            retry_code
+                        );
+                    }
+                }
+                Err(e) => {
+                    if !json {
+                        eprintln!(
+                            "  {} Could not generate correction: {}",
+                            "✗".red().bold(),
+                            e
+                        );
+                    }
+                    return Err(e);
+                }
+            }
+        }
+
+        if !json {
+            println!();
+            println!(
+                "  {} All {} auto-retry attempts exhausted",
+                "✗".red().bold(),
+                MAX_AUTO_RETRIES
+            );
+        }
+
+        Ok(())
+    }
     /// Perform LLM verification of a completed command run and print/return results.
     #[cfg(not(target_arch = "wasm32"))]
     async fn run_verification(&self, params: VerifyParams<'_>) {

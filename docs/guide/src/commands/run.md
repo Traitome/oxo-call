@@ -24,6 +24,7 @@ oxo-call r   [OPTIONS] <TOOL> <TASK>
 | `--input-items <ITEMS>` | Comma-separated input items; runs the generated command for each item |
 | `-j`, `--jobs <N>` | Maximum parallel jobs when using `--input-list` / `--input-items` (default: 1) |
 | `-x`, `--stop-on-error` | Abort remaining items after the first failure |
+| `--auto-retry` | On failure, ask the LLM to analyze stderr and re-run with a corrected command (up to 2 retries) |
 | `-v`, `--verbose` | Show docs source, skill info, and LLM details (global) |
 | `--license <PATH>` | Path to license file (global option) |
 
@@ -73,6 +74,12 @@ oxo-call run --optimize-task bwa "align reads to ref"
 
 # Combine both for maximum accuracy and feedback
 oxo-call run --optimize-task --verify samtools "sort bam"
+
+# Auto-retry on failure (LLM analyzes stderr and corrects the command)
+oxo-call run --auto-retry samtools "sort input.bam with 8 threads"
+
+# Maximum reliability: optimize task, auto-retry, and verify
+oxo-call run --optimize-task --auto-retry --verify samtools "sort and index"
 
 # Override LLM model for a single invocation
 oxo-call run --model gpt-4 samtools "index sorted.bam"
@@ -190,6 +197,34 @@ When `--optimize-task` is set, an extra LLM call refines the user's task descrip
 - Optimized: `"sort BAM file input.bam by coordinate using samtools sort with 8 threads, output to sorted.bam"`
 
 The optimized task is shown when it differs from the original and is used for the command generation prompt. This is particularly useful for short or ambiguous task descriptions.
+
+## Auto-Retry (`--auto-retry`)
+
+When `--auto-retry` is enabled and the generated command fails, oxo-call automatically:
+
+1. Captures the stderr and exit code
+2. Sends the failure context to the LLM
+3. Generates a corrected command
+4. Executes the corrected command
+
+Up to 2 retry attempts are made.  This is especially useful for complex tools where
+the first LLM attempt may miss a required flag or get a parameter format wrong.
+
+```
+────────────────────────────────────────────────────────────
+  ⟳ Analyzing failure and generating corrected command...
+────────────────────────────────────────────────────────────
+  Auto-retry: (attempt 1/2)
+  Corrected command: samtools sort -@ 8 -o sorted.bam input.bam
+  Fix: Added missing -o flag for output file
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+  ✓ Auto-retry succeeded on attempt 1
+────────────────────────────────────────────────────────────
+```
+
+All retry attempts are recorded in the command history with an `[auto-retry #N]` prefix on the task description.
 
 ## JSON Output
 

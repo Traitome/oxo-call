@@ -116,6 +116,10 @@ EXAMPLES:\n  \
         /// Stop processing after the first failed item (exit immediately, do not run remaining items)
         #[arg(short = 'x', long = "stop-on-error")]
         stop_on_error: bool,
+        /// When the command fails, automatically use the LLM to analyze stderr
+        /// and retry with a corrected command (up to 2 retries)
+        #[arg(long)]
+        auto_retry: bool,
     },
     #[command(
         name = "dry-run",

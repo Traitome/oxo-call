@@ -4879,3 +4879,19 @@ fn test_job_run_var_value_contains_equals_sign() {
         "Expected value with = sign: {stdout}"
     );
 }
+
+// ── --auto-retry flag ────────────────────────────────────────────────────────
+
+#[test]
+fn test_run_auto_retry_flag_in_help() {
+    let out = oxo_call()
+        .args(["run", "--help"])
+        .output()
+        .expect("failed to run");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("auto-retry"),
+        "Expected --auto-retry in run help: {stdout}"
+    );
+}
