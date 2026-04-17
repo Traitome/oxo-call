@@ -7,10 +7,17 @@ use crate::config::Config;
 use crate::doc_processor::DocProcessor;
 use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
+use crate::execution::feedback::{FeedbackCollector, FeedbackEntry};
+use crate::execution::result_analyzer::ResultAnalyzer;
 use crate::history::{CommandProvenance, HistoryEntry, HistoryStore};
 use crate::job;
+use crate::knowledge::error_db::ErrorKnowledgeDb;
 use crate::llm::{LlmClient, LlmCommandSuggestion};
 use crate::llm_workflow::{LlmWorkflowExecutor, WorkflowMode};
+use crate::orchestrator::executor::ExecutorAgent;
+use crate::orchestrator::planner::PlannerAgent;
+use crate::orchestrator::supervisor::{OrchestrationMode, SupervisorAgent};
+use crate::orchestrator::validator::ValidatorAgent;
 use crate::skill::SkillManager;
 use chrono::Utc;
 use colored::Colorize;
@@ -76,6 +83,17 @@ pub struct Runner {
     pub(crate) auto_retry: bool,
     /// Force a specific workflow scenario (auto-detected by default)
     pub(crate) force_scenario: Option<crate::workflow_graph::WorkflowScenario>,
+    // ── Orchestration layer ──────────────────────────────────────────────────
+    /// Supervisor agent for orchestration decisions.
+    supervisor: SupervisorAgent,
+    /// Planner agent for task decomposition.
+    planner: PlannerAgent,
+    /// Executor agent for task enrichment.
+    executor_agent: ExecutorAgent,
+    /// Validator agent for result verification.
+    validator_agent: ValidatorAgent,
+    /// Result analyzer for post-execution insights.
+    result_analyzer: ResultAnalyzer,
 }
 
 impl Runner {
@@ -97,6 +115,11 @@ impl Runner {
             stop_on_error: false,
             auto_retry: false,
             force_scenario: None,
+            supervisor: SupervisorAgent::new(),
+            planner: PlannerAgent::new(),
+            executor_agent: ExecutorAgent::new(),
+            validator_agent: ValidatorAgent::new(),
+            result_analyzer: ResultAnalyzer::new(),
         }
     }
 
@@ -426,8 +449,46 @@ impl Runner {
             prefs.to_prompt_hint()
         };
 
-        // Build enriched task with context and preference hints
-        let enriched_task = if !context_hint.is_empty() || !preferences_hint.is_empty() {
+        // ── Orchestration: Supervisor decision ───────────────────────────────
+        let doc_quality = structured_doc
+            .as_ref()
+            .map(|sd| sd.quality_score)
+            .unwrap_or(0.0);
+        let supervisor_decision =
+            self.supervisor
+                .decide(tool, task, skill.is_some(), doc_quality, None);
+
+        if self.verbose {
+            eprintln!(
+                "{} Orchestrator: mode={}, domain={}, reasons=[{}]",
+                "[verbose]".dimmed(),
+                supervisor_decision.mode,
+                supervisor_decision.domain.as_deref().unwrap_or("unknown"),
+                supervisor_decision.reasons.join(", "),
+            );
+        }
+
+        // ── Orchestration: Planner → step decomposition ──────────────────────
+        let plan = self.planner.plan(tool, task);
+        if self.verbose && plan.is_multi_step() {
+            eprintln!(
+                "{} Planner: {} steps, strategy='{}'",
+                "[verbose]".dimmed(),
+                plan.steps.len(),
+                plan.strategy,
+            );
+        }
+
+        // ── Orchestration: Executor Agent → task enrichment ──────────────────
+        let executor_ctx = self.executor_agent.prepare(tool, task).await.ok();
+        let enrichment_from_executor = executor_ctx
+            .as_ref()
+            .map(|ctx| self.executor_agent.enrich_task(ctx))
+            .unwrap_or_default();
+
+        // Build enriched task with all sources: context, preferences,
+        // supervisor hints, and executor enrichment.
+        let enriched_task = {
             let mut parts = vec![effective_task.clone()];
             if !context_hint.is_empty() {
                 parts.push(context_hint);
@@ -435,14 +496,24 @@ impl Runner {
             if !preferences_hint.is_empty() {
                 parts.push(preferences_hint);
             }
-            parts.join("\n")
-        } else {
-            effective_task.clone()
+            // Add supervisor enrichment hints (best practices, related tools).
+            for hint in &supervisor_decision.enrichment_hints {
+                parts.push(hint.clone());
+            }
+            // Add executor enrichment (normalized task, params, constraints).
+            if !enrichment_from_executor.is_empty() && enrichment_from_executor != effective_task {
+                parts.push(enrichment_from_executor);
+            }
+            if parts.len() == 1 {
+                effective_task.clone()
+            } else {
+                parts.join("\n")
+            }
         };
 
         if self.verbose && enriched_task != effective_task {
             eprintln!(
-                "{} Enriched task with context/preferences",
+                "{} Enriched task with context/preferences/knowledge",
                 "[verbose]".dimmed()
             );
         }
@@ -451,21 +522,17 @@ impl Runner {
             "Asking LLM to generate command arguments{skill_label}..."
         ));
 
-        // Select workflow mode:
-        // - If scenario is forced → use scenario's default mode
-        // - Default → Fast (single LLM call with doc-enriched prompt)
-        //
-        // The Fast mode is now the primary code path for all cases.
-        // Doc-extracted examples and flag catalog are injected into the
-        // prompt by the StructuredDoc, eliminating the need for the
-        // multi-call Quality pipeline in most scenarios.
-        //
-        // Quality mode (multi-call: normalize → mini-skill → generate) is
-        // activated only when explicitly requested via --scenario.
+        // Select workflow mode based on orchestrator decision:
+        // - Supervisor SingleCall → Fast (single LLM call)
+        // - Supervisor MultiStage → Quality (multi-step pipeline)
+        // - --scenario override takes priority
         let effective_mode = if let Some(sc) = self.force_scenario {
             sc.default_mode()
         } else {
-            WorkflowMode::Fast
+            match supervisor_decision.mode {
+                OrchestrationMode::SingleCall => WorkflowMode::Fast,
+                OrchestrationMode::MultiStage => WorkflowMode::Quality,
+            }
         };
 
         if self.verbose {
@@ -868,6 +935,63 @@ impl Runner {
                 json,
             })
             .await;
+        }
+
+        // ── Orchestration: Validator Agent (always runs) ─────────────────
+        let validation =
+            self.validator_agent
+                .validate(tool, task, &full_cmd, exit_code, &captured_stderr);
+
+        if self.verbose && !validation.success {
+            eprintln!(
+                "{} Validator: {} — {:?}",
+                "[verbose]".dimmed(),
+                validation.summary,
+                validation.error_category,
+            );
+            for suggestion in &validation.suggestions {
+                eprintln!("{} → {}", "[verbose]".dimmed(), suggestion);
+            }
+        }
+
+        // ── Execution: Result Analyzer ──────────────────────────────────
+        let analysis = self
+            .result_analyzer
+            .analyze(tool, exit_code, "", &captured_stderr);
+
+        if self.verbose && !analysis.improvements.is_empty() {
+            for improvement in &analysis.improvements {
+                eprintln!("{} Improvement: {}", "[verbose]".dimmed(), improvement);
+            }
+        }
+
+        // ── Execution: Feedback Collector ────────────────────────────────
+        let _ = FeedbackCollector::record(FeedbackEntry {
+            tool: tool.to_string(),
+            task: task.to_string(),
+            generated_command: full_cmd.clone(),
+            was_modified: false,
+            modified_command: None,
+            exit_code,
+            user_approved: success,
+            model: self.config.effective_model(),
+            recorded_at: Utc::now().to_rfc3339(),
+        });
+
+        // ── Execution: Error Knowledge DB learning ──────────────────────
+        if !success {
+            let _ = ErrorKnowledgeDb::record(crate::knowledge::error_db::ErrorRecord {
+                tool: tool.to_string(),
+                task: task.to_string(),
+                failed_command: full_cmd.clone(),
+                exit_code,
+                stderr_snippet: captured_stderr.chars().take(2000).collect(),
+                error_category: crate::knowledge::error_db::ErrorCategory::classify(
+                    &captured_stderr,
+                ),
+                resolution: None,
+                recorded_at: Utc::now().to_rfc3339(),
+            });
         }
 
         // ── Auto-retry on failure ─────────────────────────────────────────
