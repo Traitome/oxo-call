@@ -198,7 +198,6 @@ async fn run(cli: Cli) -> error::Result<()> {
             no_cache,
             json,
             verify,
-            optimize_task,
             vars,
             input_list,
             input_items,
@@ -206,14 +205,13 @@ async fn run(cli: Cli) -> error::Result<()> {
             stop_on_error,
             auto_retry,
             scenario,
-            mode,
         } => {
             let mut cfg = config::Config::load()?;
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
             }
 
-            // Parse scenario and mode overrides
+            // Parse scenario override
             let force_scenario = scenario
                 .as_ref()
                 .and_then(|s| match s.to_lowercase().as_str() {
@@ -224,19 +222,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                     "full" => Some(workflow_graph::WorkflowScenario::Full),
                     _ => None,
                 });
-
-            let force_mode = mode.as_ref().and_then(|m| match m.to_lowercase().as_str() {
-                "fast" => Some(llm_workflow::WorkflowMode::Fast),
-                "quality" => Some(llm_workflow::WorkflowMode::Quality),
-                _ => None,
-            });
-
-            // Determine final workflow mode: explicit override > scenario default > Fast
-            let workflow_mode = force_mode.unwrap_or_else(|| {
-                force_scenario
-                    .map(|s| s.default_mode())
-                    .unwrap_or(llm_workflow::WorkflowMode::Fast)
-            });
 
             // Collect input items from --input-list / --input-items.
             #[cfg(not(target_arch = "wasm32"))]
@@ -271,9 +256,12 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_verbose(verbose)
                 .with_no_cache(no_cache)
                 .with_verify(verify)
-                .with_optimize_task(optimize_task)
-                .with_auto_retry(auto_retry)
-                .with_workflow_mode(workflow_mode);
+                .with_auto_retry(auto_retry);
+            let runner = if let Some(sc) = force_scenario {
+                runner.with_scenario(sc)
+            } else {
+                runner
+            };
             #[cfg(not(target_arch = "wasm32"))]
             let runner = runner
                 .with_vars(var_map)
@@ -289,7 +277,6 @@ async fn run(cli: Cli) -> error::Result<()> {
             model,
             no_cache,
             json,
-            optimize_task,
             no_skill,
             no_doc,
             no_prompt,
@@ -297,14 +284,13 @@ async fn run(cli: Cli) -> error::Result<()> {
             input_list,
             input_items,
             scenario,
-            mode,
         } => {
             let mut cfg = config::Config::load()?;
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
             }
 
-            // Parse scenario and mode overrides
+            // Parse scenario override
             let force_scenario = scenario
                 .as_ref()
                 .and_then(|s| match s.to_lowercase().as_str() {
@@ -315,19 +301,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                     "full" => Some(workflow_graph::WorkflowScenario::Full),
                     _ => None,
                 });
-
-            let force_mode = mode.as_ref().and_then(|m| match m.to_lowercase().as_str() {
-                "fast" => Some(llm_workflow::WorkflowMode::Fast),
-                "quality" => Some(llm_workflow::WorkflowMode::Quality),
-                _ => None,
-            });
-
-            // Determine final workflow mode: explicit override > scenario default > Fast
-            let workflow_mode = force_mode.unwrap_or_else(|| {
-                force_scenario
-                    .map(|s| s.default_mode())
-                    .unwrap_or(llm_workflow::WorkflowMode::Fast)
-            });
 
             #[cfg(not(target_arch = "wasm32"))]
             let all_items = {
@@ -359,11 +332,14 @@ async fn run(cli: Cli) -> error::Result<()> {
             let runner = runner::Runner::new(cfg)
                 .with_verbose(verbose)
                 .with_no_cache(no_cache)
-                .with_optimize_task(optimize_task)
                 .with_no_skill(no_skill)
                 .with_no_doc(no_doc)
-                .with_no_prompt(no_prompt)
-                .with_workflow_mode(workflow_mode);
+                .with_no_prompt(no_prompt);
+            let runner = if let Some(sc) = force_scenario {
+                runner.with_scenario(sc)
+            } else {
+                runner
+            };
             #[cfg(not(target_arch = "wasm32"))]
             let runner = runner.with_vars(var_map).with_input_items(all_items);
             runner.dry_run(&tool, &task, json, None).await?;
@@ -2341,7 +2317,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                     no_cache,
                     json,
                     verify,
-                    optimize_task,
                 } => {
                     let cfg = config::Config::load()?;
                     let mgr = server::ServerManager::new(cfg.clone());
@@ -2396,7 +2371,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                     let runner_inst = runner::Runner::new(run_cfg)
                         .with_verbose(verbose)
                         .with_no_cache(no_cache)
-                        .with_optimize_task(optimize_task)
                         .with_verify(verify);
                     let generated = runner_inst.generate_command(&tool, &task).await?;
 
@@ -2516,7 +2490,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                     model,
                     no_cache,
                     json,
-                    optimize_task,
                 } => {
                     let cfg = config::Config::load()?;
                     let mgr = server::ServerManager::new(cfg.clone());
@@ -2545,8 +2518,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                     }
                     let runner_inst = runner::Runner::new(run_cfg)
                         .with_verbose(verbose)
-                        .with_no_cache(no_cache)
-                        .with_optimize_task(optimize_task);
+                        .with_no_cache(no_cache);
                     runner_inst
                         .dry_run(&tool, &task, json, Some(&server_name))
                         .await?;

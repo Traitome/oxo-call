@@ -18,7 +18,6 @@ oxo-call r   [OPTIONS] <TOOL> <TASK>
 | `--no-cache` | Skip cached documentation and fetch fresh `--help` output |
 | `--json` | Output result as JSON (useful for scripting and CI) |
 | `--verify` | After execution, use LLM to validate results (output files, stderr, exit code) |
-| `--optimize-task` | Before generating the command, use LLM to expand and refine the task description |
 | `-V`, `--var KEY=VALUE` | Substitute `{KEY}` in the task description before the LLM call (repeatable) |
 | `-i`, `--input-list <FILE>` | Read input items from a file; runs the generated command for each item |
 | `--input-items <ITEMS>` | Comma-separated input items; runs the generated command for each item |
@@ -49,7 +48,7 @@ Use `--verbose` to see which tier was selected for a given invocation.
 The `run` command is the primary way to use oxo-call. It:
 
 1. Fetches the tool's documentation (from cache or `--help` output)
-2. *(with `--optimize-task`)* Expands and clarifies your task description with the LLM
+2. Automatically normalizes vague, short, or non-English task descriptions
 3. Loads any matching skill (built-in, community, or user-defined)
 4. Sends the grounded prompt to the configured LLM
 5. Parses the response to extract command arguments
@@ -69,17 +68,11 @@ oxo-call run --ask bcftools "call variants from aligned.bam using ref.fa"
 # Use LLM to verify outputs after execution
 oxo-call run --verify samtools "sort input.bam by coordinate, output sorted.bam"
 
-# Expand a vague task before generating the command
-oxo-call run --optimize-task bwa "align reads to ref"
-
-# Combine both for maximum accuracy and feedback
-oxo-call run --optimize-task --verify samtools "sort bam"
-
 # Auto-retry on failure (LLM analyzes stderr and corrects the command)
 oxo-call run --auto-retry samtools "sort input.bam with 8 threads"
 
-# Maximum reliability: optimize task, auto-retry, and verify
-oxo-call run --optimize-task --auto-retry --verify samtools "sort and index"
+# Maximum reliability: auto-retry and verify
+oxo-call run --auto-retry --verify samtools "sort and index"
 
 # Override LLM model for a single invocation
 oxo-call run --model gpt-4 samtools "index sorted.bam"
@@ -189,14 +182,18 @@ When `--verify` is set, oxo-call captures the tool's stderr and probes the decla
 
 Verification is advisory — it never changes the process exit code. Use `--json` to get the verification block in machine-readable form.
 
-## Task Optimization (`--optimize-task`)
+## Automatic Task Normalization
 
-When `--optimize-task` is set, an extra LLM call refines the user's task description before command generation. For example:
+oxo-call automatically detects vague, short, or non-English task descriptions and normalizes them via an extra LLM call before command generation. For example:
 
 - Input: `"sort bam"`
-- Optimized: `"sort BAM file input.bam by coordinate using samtools sort with 8 threads, output to sorted.bam"`
+- Normalized: `"sort BAM file input.bam by coordinate using samtools sort with 8 threads, output to sorted.bam"`
 
-The optimized task is shown when it differs from the original and is used for the command generation prompt. This is particularly useful for short or ambiguous task descriptions.
+The normalized task is shown when it differs from the original and is used for the command generation prompt. This happens automatically when:
+
+- The task is shorter than 10 characters
+- The task contains vague keywords (e.g., "just", "simply", "basically")
+- The task contains non-ASCII characters (e.g., Chinese, Japanese)
 
 ## Risk Assessment
 

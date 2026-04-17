@@ -37,7 +37,7 @@ pub struct GeneratedCommand {
     /// Human-readable explanation from the LLM.
     pub explanation: String,
     /// The task description actually used (may differ from user input when
-    /// `--optimize-task` is active).
+    /// automatic normalization is active).
     pub effective_task: String,
 }
 
@@ -50,7 +50,7 @@ pub(crate) struct PrepareResult {
     /// Name of the matched skill, if one was loaded.
     pub(crate) skill_name: Option<String>,
     /// The task description that was actually used (may differ from the user-supplied
-    /// task when `--optimize-task` is enabled).
+    /// task when automatic normalization is applied).
     pub(crate) effective_task: String,
 }
 
@@ -63,9 +63,6 @@ pub struct Runner {
     pub(crate) no_cache: bool,
     /// When true, use LLM to verify the result after execution.
     pub(crate) verify: bool,
-    /// When true, use LLM to optimize/expand the user's task description before
-    /// building the command generation prompt.
-    pub(crate) optimize_task: bool,
     /// [Ablation] When true, do not load the skill file for the tool.
     pub(crate) no_skill: bool,
     /// [Ablation] When true, do not load tool documentation (--help output).
@@ -86,8 +83,8 @@ pub struct Runner {
     pub(crate) stop_on_error: bool,
     /// When true, automatically retry failed commands with LLM-corrected arguments.
     pub(crate) auto_retry: bool,
-    /// Workflow mode: Fast (single LLM call) or Quality (multi-stage pipeline)
-    pub(crate) workflow_mode: WorkflowMode,
+    /// Force a specific workflow scenario (auto-detected by default)
+    pub(crate) force_scenario: Option<crate::workflow_graph::WorkflowScenario>,
 }
 
 impl Runner {
@@ -100,7 +97,6 @@ impl Runner {
             verbose: false,
             no_cache: false,
             verify: false,
-            optimize_task: false,
             no_skill: false,
             no_doc: false,
             no_prompt: false,
@@ -113,7 +109,7 @@ impl Runner {
             #[cfg(not(target_arch = "wasm32"))]
             stop_on_error: false,
             auto_retry: false,
-            workflow_mode: WorkflowMode::Fast, // Default to fast mode
+            force_scenario: None,
         }
     }
 
@@ -135,21 +131,15 @@ impl Runner {
         self
     }
 
-    /// Enable LLM-based task description optimization before generating the command.
-    pub fn with_optimize_task(mut self, optimize_task: bool) -> Self {
-        self.optimize_task = optimize_task;
-        self
-    }
-
     /// Enable automatic retry with LLM-corrected commands on failure.
     pub fn with_auto_retry(mut self, auto_retry: bool) -> Self {
         self.auto_retry = auto_retry;
         self
     }
 
-    /// Set the workflow mode: Fast (single LLM call) or Quality (multi-stage pipeline)
-    pub fn with_workflow_mode(mut self, mode: WorkflowMode) -> Self {
-        self.workflow_mode = mode;
+    /// Force a specific workflow scenario.
+    pub fn with_scenario(mut self, scenario: crate::workflow_graph::WorkflowScenario) -> Self {
+        self.force_scenario = Some(scenario);
         self
     }
 
@@ -353,8 +343,16 @@ impl Runner {
 
         let docs_hash = sha256_hex(&docs);
 
-        // Optionally optimize the task description with LLM before command generation.
-        let effective_task = if self.optimize_task {
+        // ── Automatic task normalization ──────────────────────────────────────
+        // Automatically normalizes vague, short, or non-English task descriptions
+        // without requiring an explicit flag.
+        let effective_task = if self.should_auto_normalize(task) {
+            if self.verbose {
+                eprintln!(
+                    "{} Auto-normalizing task (short/vague/non-English detected)",
+                    "[verbose]".dimmed()
+                );
+            }
             let spinner = make_spinner("Optimizing task description...");
             let refined = match self.llm.optimize_task(tool, task).await {
                 Ok(t) => {
@@ -497,8 +495,39 @@ impl Runner {
             "Asking LLM to generate command arguments{skill_label}..."
         ));
 
+        // ── Auto-select workflow mode ─────────────────────────────────────────
+        // Determine workflow mode from scenario and task complexity
+        let has_skill = skill.is_some();
+        let doc_quality = if docs.is_empty() { 0.3 } else { 0.8 };
+        let complexity = crate::task_complexity::TaskComplexityEstimator::new().estimate(
+            task,
+            tool,
+            has_skill,
+            doc_quality,
+        );
+
+        let effective_mode = if let Some(sc) = self.force_scenario {
+            sc.default_mode()
+        } else {
+            complexity.recommended_mode
+        };
+
+        if self.verbose {
+            let scenario_label = self
+                .force_scenario
+                .map(|s| format!("{s:?}"))
+                .unwrap_or_else(|| "auto".to_string());
+            eprintln!(
+                "{} Workflow: mode={:?}, complexity={:.2}, scenario={}",
+                "[verbose]".dimmed(),
+                effective_mode,
+                complexity.score.0,
+                scenario_label
+            );
+        }
+
         // Choose workflow based on mode
-        let suggestion = match self.workflow_mode {
+        let suggestion = match effective_mode {
             WorkflowMode::Fast => {
                 // Fast mode: single LLM call (existing behavior)
                 match self
@@ -558,6 +587,25 @@ impl Runner {
             skill_name,
             effective_task,
         })
+    }
+
+    /// Determine if task needs automatic normalization.
+    fn should_auto_normalize(&self, task: &str) -> bool {
+        // Short tasks
+        if task.len() < 10 {
+            return true;
+        }
+        // Non-ASCII (Chinese, Japanese, etc.)
+        if !task.is_ascii() {
+            return true;
+        }
+        // Vague keywords
+        let task_lower = task.to_lowercase();
+        let vague_keywords = ["just", "simply", "basically", "something", "some"];
+        if vague_keywords.iter().any(|kw| task_lower.contains(kw)) {
+            return true;
+        }
+        false
     }
 
     /// Generate the LLM-suggested command without printing or executing it.
