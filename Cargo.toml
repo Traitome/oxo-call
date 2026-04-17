@@ -40,6 +40,7 @@ reqwest = { version = "0.13", features = ["json", "rustls"], default-features = 
 directories = "6.0"
 which = "8.0"
 indicatif = "0.18"
+termimad = "0.34"
 
 # ── WebAssembly dependencies ──────────────────────────────────────────────────
 [target.'cfg(target_arch = "wasm32")'.dependencies]

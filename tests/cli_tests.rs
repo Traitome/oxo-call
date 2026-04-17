@@ -5009,3 +5009,45 @@ fn test_chat_visible_alias() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("chat"));
 }
+
+#[test]
+fn test_chat_help_shows_no_cache_flag() {
+    let output = oxo_call()
+        .args(["chat", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("--no-cache"),
+        "chat --help should mention --no-cache flag"
+    );
+}
+
+#[test]
+fn test_chat_help_shows_verbose_flag() {
+    let output = oxo_call()
+        .args(["chat", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("--verbose") || stdout.contains("-v"),
+        "chat --help should mention verbose flag"
+    );
+}
+
+#[test]
+fn test_chat_invalid_scenario_rejected() {
+    let output = oxo_call()
+        .args(["chat", "--scenario", "invalid"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("invalid") || stderr.contains("error"),
+        "Invalid scenario should produce an error: {stderr}"
+    );
+}

@@ -46,6 +46,12 @@ Ask a single question about a specific tool and get an immediate response:
 oxo-call chat samtools "How do I sort a BAM file?"
 ```
 
+In single-shot mode:
+
+- A **spinner** is displayed while fetching context and waiting for the LLM response
+- The response is **rendered as formatted Markdown** in the terminal (headings, bold, code blocks, lists, etc.)
+- Use `--json` for machine-readable output
+
 ### Interactive Multi-turn Chat
 
 Start an interactive session for extended conversations:
@@ -60,7 +66,13 @@ In interactive mode, you can:
 - Switch between tools with `/tool <name>`
 - Change scenarios with `/scenario <mode>`
 - Clear conversation history with `/clear`
+- View conversation message count with `/history`
+- Display or change the LLM model with `/model [name]`
 - Exit with `/quit` or `Ctrl+D`
+
+**Progress indicators**: A spinner is shown while the LLM is generating a response, so you know the system is working. Errors are caught gracefully — if a request fails, an error message is shown and the conversation continues.
+
+**Markdown rendering**: LLM responses are rendered with terminal-friendly formatting (headings, bold, italic, code blocks, lists).
 
 ## Interactive Commands
 
@@ -70,6 +82,8 @@ When in interactive mode (`-i`), the following commands are available:
 |---------|-------------|
 | `/tool <name>` | Set tool context for subsequent questions |
 | `/clear` | Clear conversation history |
+| `/history` | Show conversation message count |
+| `/model [name]` | Display or change the current LLM model |
 | `/scenario <s>` | Change scenario mode (bare/prompt/skill/doc/full) |
 | `/help` | Show available commands |
 | `/quit` or `Ctrl+D` | Exit the chat |
@@ -116,45 +130,54 @@ oxo-call chat -i --scenario skill
 ```
 $ oxo-call chat -i
 
-╔════════════════════════════════════════════════════════════╗
-║ oxo-call Interactive Chat                                  ║
-╚════════════════════════════════════════════════════════════╝
+  ╔══════════════════════════════════════════════════════════╗
+  ║ 🧬 oxo-call Interactive Chat                            ║
+  ╚══════════════════════════════════════════════════════════╝
 
-Commands:
-  /tool <name>    Set tool context for subsequent questions
-  /clear          Clear conversation history
-  /scenario <s>   Change scenario (bare|prompt|skill|doc|full)
-  /help           Show this help message
-  /quit, Ctrl+D   Exit the chat
+  Commands:
+    /tool <name>   Set tool context for subsequent questions
+    /clear         Clear conversation history
+    /history       Show conversation message count
+    /model [name]  Display or change the current LLM model
+    /scenario <s>  Change scenario (bare|prompt|skill|doc|full)
+    /help          Show this help message
+    /quit, Ctrl+D  Exit the chat
 
-Usage:
-  <tool> <question>    Ask about a specific tool
-  <question>           Ask about the current tool (if set)
+  Usage:
+    <tool> <question>    Ask about a specific tool
+    <question>           Ask about the current tool (if set)
 
-oxo> /tool samtools
-Tool context set to: samtools
+oxo▶ /tool samtools
+  ✔ Tool context set to: samtools
 
-samtools> How do I sort a BAM file by coordinate?
+▶ samtools How do I sort a BAM file by coordinate?
+⠋ Thinking...
 
-To sort a BAM file by coordinate using samtools, you can use the `sort` subcommand:
+──────────────────────────────────────────────────────────────
+To sort a BAM file by coordinate using samtools:
 
-```bash
-samtools sort -o sorted.bam input.bam
-```
+    samtools sort -o sorted.bam input.bam
 
 For multi-threading:
-```bash
-samtools sort -@ 8 -o sorted.bam input.bam
-```
 
-samtools> /scenario skill
-Scenario changed to: skill
+    samtools sort -@ 8 -o sorted.bam input.bam
+──────────────────────────────────────────────────────────────
 
-samtools> What are common pitfalls?
+▶ samtools /history
+  📜 2 messages (1 exchanges)
+
+▶ samtools /model gpt-4
+  ✔ Model changed to: gpt-4
+
+▶ samtools /scenario skill
+  ✔ Scenario changed to: skill
+
+▶ samtools What are common pitfalls?
+⠋ Thinking...
 ...
 
-samtools> /quit
-Goodbye!
+▶ samtools /quit
+👋 Goodbye!
 ```
 
 ## Use Cases

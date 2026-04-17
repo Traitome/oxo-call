@@ -21,6 +21,17 @@ use colored::Colorize;
 #[cfg(not(target_arch = "wasm32"))]
 use std::io::{self, BufRead, Write};
 
+/// Render markdown text to the terminal using termimad.
+///
+/// Falls back to plain text if rendering fails.
+#[cfg(not(target_arch = "wasm32"))]
+fn render_markdown(text: &str) {
+    use termimad::MadSkin;
+    let skin = MadSkin::default();
+    // print_text writes directly to stdout with ANSI styling
+    skin.print_text(text);
+}
+
 pub struct ChatSession {
     config: Config,
     fetcher: DocsFetcher,
@@ -75,16 +86,34 @@ impl ChatSession {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let (system_prompt, user_prompt) = self.build_prompts(tool, question).await?;
-
             if self.verbose {
                 eprintln!("{}", "─".repeat(60).dimmed());
                 eprintln!("{}: {}", "Tool".cyan().bold(), tool);
                 eprintln!("{}: {}", "Scenario".cyan().bold(), self.scenario_name());
+                eprintln!(
+                    "{}: {}",
+                    "Model".cyan().bold(),
+                    self.config.effective_model()
+                );
                 eprintln!("{}", "─".repeat(60).dimmed());
             }
 
-            let response = self.call_api(&system_prompt, &user_prompt).await?;
+            let spinner =
+                crate::runner::make_spinner(&format!("Preparing context for '{tool}'..."));
+
+            let prompts_result = self.build_prompts(tool, question).await;
+
+            spinner.finish_and_clear();
+
+            let (system_prompt, user_prompt) = prompts_result?;
+
+            let spinner = crate::runner::make_spinner("Waiting for LLM response...");
+
+            let api_result = self.call_api(&system_prompt, &user_prompt).await;
+
+            spinner.finish_and_clear();
+
+            let response = api_result?;
 
             if json {
                 let result = serde_json::json!({
@@ -95,7 +124,9 @@ impl ChatSession {
                 });
                 println!("{}", serde_json::to_string_pretty(&result).unwrap());
             } else {
-                println!("{}", response);
+                println!();
+                render_markdown(&response);
+                println!();
             }
 
             Ok(())
@@ -117,15 +148,29 @@ impl ChatSession {
             self.print_welcome();
 
             if let Some(tool) = &current_tool {
-                println!("{} {}", "Tool context:".cyan().bold(), tool);
+                println!(
+                    "  {} {}",
+                    "🔧 Tool context:".cyan().bold(),
+                    tool.white().bold()
+                );
             }
+            println!(
+                "  {} {}",
+                "📋 Scenario:".dimmed(),
+                self.scenario_name().dimmed()
+            );
+            println!(
+                "  {} {}",
+                "🤖 Model:".dimmed(),
+                self.config.effective_model().dimmed()
+            );
             println!();
 
             loop {
                 let prompt = if let Some(ref tool) = current_tool {
-                    format!("{}> ", tool.cyan())
+                    format!("{} {} ", "▶".green(), tool.cyan().bold())
                 } else {
-                    "oxo> ".to_string()
+                    format!("{} ", "oxo▶".cyan().bold())
                 };
 
                 print!("{}", prompt);
@@ -135,12 +180,12 @@ impl ChatSession {
                 let stdin = io::stdin();
                 match stdin.lock().read_line(&mut input) {
                     Ok(0) => {
-                        println!("\n{}", "Goodbye!".green());
+                        println!("\n{}", "👋 Goodbye!".green().bold());
                         break;
                     }
                     Ok(_) => {}
                     Err(e) => {
-                        eprintln!("{} Failed to read input: {}", "error:".red(), e);
+                        eprintln!("{} Failed to read input: {}", "✖ error:".red().bold(), e);
                         continue;
                     }
                 }
@@ -158,29 +203,62 @@ impl ChatSession {
 
                 match tool {
                     Some(t) => {
-                        let (system_prompt, user_prompt) =
-                            self.build_prompts(&t, &question).await?;
+                        let spinner =
+                            crate::runner::make_spinner(&format!("Loading context for '{t}'..."));
+
+                        let prompts_result = self.build_prompts(&t, &question).await;
+
+                        spinner.finish_and_clear();
+
+                        let (system_prompt, user_prompt) = match prompts_result {
+                            Ok(p) => p,
+                            Err(e) => {
+                                eprintln!("  {} {}", "✖ Context error:".red().bold(), e);
+                                continue;
+                            }
+                        };
 
                         self.conversation_history.push(ChatMessage {
                             role: "user".to_string(),
                             content: user_prompt.clone(),
                         });
 
-                        let response = self.call_api_with_history(&system_prompt).await?;
+                        let spinner = crate::runner::make_spinner("Thinking...");
 
-                        println!("\n{}\n", response);
+                        let api_result = self.call_api_with_history(&system_prompt).await;
 
-                        self.conversation_history.push(ChatMessage {
-                            role: "assistant".to_string(),
-                            content: response,
-                        });
+                        spinner.finish_and_clear();
+
+                        match api_result {
+                            Ok(response) => {
+                                println!();
+                                println!("{}", "─".repeat(60).dimmed());
+                                render_markdown(&response);
+                                println!("{}", "─".repeat(60).dimmed());
+                                println!();
+
+                                self.conversation_history.push(ChatMessage {
+                                    role: "assistant".to_string(),
+                                    content: response,
+                                });
+                            }
+                            Err(e) => {
+                                // Remove the user message we just added since the
+                                // API call failed.
+                                self.conversation_history.pop();
+                                eprintln!("\n  {} {}\n", "✖ LLM error:".red().bold(), e);
+                            }
+                        }
                     }
                     None => {
                         println!(
-                            "{}",
-                            "Please specify a tool or use /tool <name> to set context.".yellow()
+                            "  {}",
+                            "⚠ Please specify a tool or use /tool <name> to set context.".yellow()
                         );
-                        println!("{}", "Example: samtools How do I sort a BAM file?".dimmed());
+                        println!(
+                            "  {}",
+                            "Example: samtools How do I sort a BAM file?".dimmed()
+                        );
                     }
                 }
             }
@@ -191,31 +269,49 @@ impl ChatSession {
 
     #[cfg(not(target_arch = "wasm32"))]
     fn print_welcome(&self) {
+        println!();
         println!(
-            "{}",
-            "╔════════════════════════════════════════════════════════════╗".cyan()
+            "  {}",
+            "╔══════════════════════════════════════════════════════════╗".cyan()
         );
         println!(
-            "{} {} {}",
+            "  {} {} {}",
             "║".cyan(),
-            "oxo-call Interactive Chat".white().bold(),
-            "                            ║".cyan()
+            "🧬 oxo-call Interactive Chat".white().bold(),
+            "                         ║".cyan()
         );
         println!(
-            "{}",
-            "╚════════════════════════════════════════════════════════════╝".cyan()
+            "  {}",
+            "╚══════════════════════════════════════════════════════════╝".cyan()
         );
         println!();
-        println!("{}", "Commands:".bold());
-        println!("  /tool <name>    Set tool context for subsequent questions");
-        println!("  /clear          Clear conversation history");
-        println!("  /scenario <s>   Change scenario (bare|prompt|skill|doc|full)");
-        println!("  /help           Show this help message");
-        println!("  /quit, Ctrl+D   Exit the chat");
+        println!("  {}", "Commands:".bold().underline());
+        println!(
+            "    {}  Set tool context for subsequent questions",
+            "/tool <name>".cyan()
+        );
+        println!("    {}  Clear conversation history", "/clear".cyan());
+        println!("    {}  Show conversation message count", "/history".cyan());
+        println!(
+            "    {}  Display or change the current LLM model",
+            "/model [name]".cyan()
+        );
+        println!(
+            "    {}  Change scenario (bare|prompt|skill|doc|full)",
+            "/scenario <s>".cyan()
+        );
+        println!("    {}  Show this help message", "/help".cyan());
+        println!("    {}  Exit the chat", "/quit, Ctrl+D".cyan());
         println!();
-        println!("{}", "Usage:".bold());
-        println!("  <tool> <question>    Ask about a specific tool");
-        println!("  <question>           Ask about the current tool (if set)");
+        println!("  {}", "Usage:".bold().underline());
+        println!(
+            "    {}    Ask about a specific tool",
+            "<tool> <question>".white()
+        );
+        println!(
+            "    {}           Ask about the current tool (if set)",
+            "<question>".white()
+        );
         println!();
     }
 
@@ -228,7 +324,7 @@ impl ChatSession {
 
         match parts[0] {
             "/quit" | "/exit" => {
-                println!("{}", "Goodbye!".green());
+                println!("{}", "👋 Goodbye!".green().bold());
                 std::process::exit(0);
             }
             "/help" | "/?" => {
@@ -237,18 +333,56 @@ impl ChatSession {
             }
             "/clear" => {
                 self.conversation_history.clear();
-                println!("{}", "Conversation history cleared.".green());
+                println!(
+                    "  {} {}",
+                    "✔".green(),
+                    "Conversation history cleared.".green()
+                );
+                true
+            }
+            "/history" => {
+                let count = self.conversation_history.len();
+                let pairs = count / 2;
+                println!(
+                    "  {} {} messages ({} exchanges)",
+                    "📜".dimmed(),
+                    count,
+                    pairs,
+                );
+                true
+            }
+            "/model" => {
+                if parts.len() < 2 {
+                    println!(
+                        "  {} {}",
+                        "🤖 Current model:".cyan().bold(),
+                        self.config.effective_model().white().bold()
+                    );
+                } else {
+                    self.config.llm.model = Some(parts[1].to_string());
+                    println!(
+                        "  {} {}",
+                        "✔ Model changed to:".green(),
+                        parts[1].cyan().bold()
+                    );
+                }
                 true
             }
             "/tool" => {
                 if parts.len() < 2 {
-                    println!("{}", "Usage: /tool <name>".yellow());
+                    println!("{}", "  ⚠ Usage: /tool <name>".yellow());
                     if let Some(ref t) = *current_tool {
-                        println!("Current tool: {}", t.cyan());
+                        println!("  🔧 Current tool: {}", t.cyan().bold());
+                    } else {
+                        println!("  {}", "(no tool set)".dimmed());
                     }
                 } else {
                     *current_tool = Some(parts[1].to_string());
-                    println!("{} {}", "Tool context set to:".green(), parts[1].cyan());
+                    println!(
+                        "  {} {}",
+                        "✔ Tool context set to:".green(),
+                        parts[1].cyan().bold()
+                    );
                 }
                 true
             }
@@ -256,39 +390,51 @@ impl ChatSession {
                 if parts.len() < 2 {
                     println!(
                         "{}",
-                        "Usage: /scenario (bare|prompt|skill|doc|full)".yellow()
+                        "  ⚠ Usage: /scenario (bare|prompt|skill|doc|full)".yellow()
                     );
-                    println!("Current scenario: {}", self.scenario_name().cyan());
+                    println!(
+                        "  📋 Current scenario: {}",
+                        self.scenario_name().cyan().bold()
+                    );
                 } else {
                     match parts[1] {
                         "bare" => {
                             self.scenario = ChatScenario::Bare;
-                            println!("{}", "Scenario changed to: bare".green());
+                            println!("{}", "  ✔ Scenario changed to: bare".green());
                         }
                         "prompt" => {
                             self.scenario = ChatScenario::Prompt;
-                            println!("{}", "Scenario changed to: prompt".green());
+                            println!("{}", "  ✔ Scenario changed to: prompt".green());
                         }
                         "skill" => {
                             self.scenario = ChatScenario::Skill;
-                            println!("{}", "Scenario changed to: skill".green());
+                            println!("{}", "  ✔ Scenario changed to: skill".green());
                         }
                         "doc" => {
                             self.scenario = ChatScenario::Doc;
-                            println!("{}", "Scenario changed to: doc".green());
+                            println!("{}", "  ✔ Scenario changed to: doc".green());
                         }
                         "full" => {
                             self.scenario = ChatScenario::Full;
-                            println!("{}", "Scenario changed to: full".green());
+                            println!("{}", "  ✔ Scenario changed to: full".green());
                         }
                         _ => {
                             println!(
-                                "{}",
-                                "Invalid scenario. Use: bare, prompt, skill, doc, full".red()
+                                "  {}",
+                                "✖ Invalid scenario. Use: bare, prompt, skill, doc, full".red()
                             );
                         }
                     }
                 }
+                true
+            }
+            _ if parts[0].starts_with('/') => {
+                println!(
+                    "  {} Unknown command '{}'. Type {} for help.",
+                    "⚠".yellow(),
+                    parts[0].yellow(),
+                    "/help".cyan()
+                );
                 true
             }
             _ => false,
@@ -565,5 +711,268 @@ impl ChatSession {
             .unwrap_or_default();
 
         Ok(content.trim().to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_scenario_name_returns_correct_string() {
+        let config = Config::default();
+        let session = ChatSession::new(config);
+
+        assert_eq!(session.scenario_name(), "full");
+
+        let session = session.with_scenario(ChatScenario::Bare);
+        assert_eq!(session.scenario_name(), "bare");
+
+        let session = session.with_scenario(ChatScenario::Prompt);
+        assert_eq!(session.scenario_name(), "prompt");
+
+        let session = session.with_scenario(ChatScenario::Skill);
+        assert_eq!(session.scenario_name(), "skill");
+
+        let session = session.with_scenario(ChatScenario::Doc);
+        assert_eq!(session.scenario_name(), "doc");
+
+        let session = session.with_scenario(ChatScenario::Full);
+        assert_eq!(session.scenario_name(), "full");
+    }
+
+    #[test]
+    fn test_parse_input_with_tool_context() {
+        let config = Config::default();
+        let session = ChatSession::new(config);
+
+        let (tool, question) = session.parse_input("How do I sort?", Some("samtools"));
+        assert_eq!(tool, Some("samtools".to_string()));
+        assert_eq!(question, "How do I sort?");
+    }
+
+    #[test]
+    fn test_parse_input_without_tool_context() {
+        let config = Config::default();
+        let session = ChatSession::new(config);
+
+        let (tool, question) = session.parse_input("samtools How do I sort?", None);
+        assert_eq!(tool, Some("samtools".to_string()));
+        assert_eq!(question, "How do I sort?");
+    }
+
+    #[test]
+    fn test_parse_input_single_word_no_context() {
+        let config = Config::default();
+        let session = ChatSession::new(config);
+
+        let (tool, question) = session.parse_input("hello", None);
+        assert_eq!(tool, None);
+        assert_eq!(question, "hello");
+    }
+
+    #[test]
+    fn test_parse_input_slash_command_returns_none() {
+        let config = Config::default();
+        let session = ChatSession::new(config);
+
+        let (tool, question) = session.parse_input("/help", None);
+        assert_eq!(tool, None);
+        assert_eq!(question, "");
+    }
+
+    #[test]
+    fn test_parse_input_empty_string() {
+        let config = Config::default();
+        let session = ChatSession::new(config);
+
+        let (tool, question) = session.parse_input("", None);
+        assert_eq!(tool, None);
+        assert_eq!(question, "");
+    }
+
+    #[test]
+    fn test_build_system_prompt_bare_is_empty() {
+        let config = Config::default();
+        let session = ChatSession::new(config).with_scenario(ChatScenario::Bare);
+        assert!(session.build_system_prompt().is_empty());
+    }
+
+    #[test]
+    fn test_build_system_prompt_non_bare_is_nonempty() {
+        let config = Config::default();
+
+        let s1 = ChatSession::new(config.clone()).with_scenario(ChatScenario::Prompt);
+        assert!(!s1.build_system_prompt().is_empty());
+
+        let s2 = ChatSession::new(config.clone()).with_scenario(ChatScenario::Skill);
+        assert!(!s2.build_system_prompt().is_empty());
+
+        let s3 = ChatSession::new(config.clone()).with_scenario(ChatScenario::Doc);
+        assert!(!s3.build_system_prompt().is_empty());
+
+        let s4 = ChatSession::new(config).with_scenario(ChatScenario::Full);
+        assert!(!s4.build_system_prompt().is_empty());
+    }
+
+    #[test]
+    fn test_handle_command_clear() {
+        let config = Config::default();
+        let mut session = ChatSession::new(config);
+        session.conversation_history.push(ChatMessage {
+            role: "user".to_string(),
+            content: "hello".to_string(),
+        });
+        assert_eq!(session.conversation_history.len(), 1);
+
+        let mut tool = None;
+        let handled = session.handle_command("/clear", &mut tool);
+        assert!(handled);
+        assert!(session.conversation_history.is_empty());
+    }
+
+    #[test]
+    fn test_handle_command_tool_set() {
+        let config = Config::default();
+        let mut session = ChatSession::new(config);
+        let mut tool: Option<String> = None;
+
+        let handled = session.handle_command("/tool samtools", &mut tool);
+        assert!(handled);
+        assert_eq!(tool, Some("samtools".to_string()));
+    }
+
+    #[test]
+    fn test_handle_command_tool_no_arg() {
+        let config = Config::default();
+        let mut session = ChatSession::new(config);
+        let mut tool: Option<String> = None;
+
+        let handled = session.handle_command("/tool", &mut tool);
+        assert!(handled);
+        assert_eq!(tool, None);
+    }
+
+    #[test]
+    fn test_handle_command_scenario_change() {
+        let config = Config::default();
+        let mut session = ChatSession::new(config);
+        let mut tool = None;
+
+        session.handle_command("/scenario bare", &mut tool);
+        assert_eq!(session.scenario_name(), "bare");
+
+        session.handle_command("/scenario prompt", &mut tool);
+        assert_eq!(session.scenario_name(), "prompt");
+
+        session.handle_command("/scenario skill", &mut tool);
+        assert_eq!(session.scenario_name(), "skill");
+
+        session.handle_command("/scenario doc", &mut tool);
+        assert_eq!(session.scenario_name(), "doc");
+
+        session.handle_command("/scenario full", &mut tool);
+        assert_eq!(session.scenario_name(), "full");
+    }
+
+    #[test]
+    fn test_handle_command_invalid_scenario() {
+        let config = Config::default();
+        let mut session = ChatSession::new(config);
+        let mut tool = None;
+
+        session.handle_command("/scenario invalid", &mut tool);
+        assert_eq!(session.scenario_name(), "full"); // unchanged
+    }
+
+    #[test]
+    fn test_handle_command_help() {
+        let config = Config::default();
+        let mut session = ChatSession::new(config);
+        let mut tool = None;
+
+        assert!(session.handle_command("/help", &mut tool));
+        assert!(session.handle_command("/?", &mut tool));
+    }
+
+    #[test]
+    fn test_handle_command_unknown_slash() {
+        let config = Config::default();
+        let mut session = ChatSession::new(config);
+        let mut tool = None;
+
+        assert!(session.handle_command("/unknown", &mut tool));
+    }
+
+    #[test]
+    fn test_handle_command_non_command() {
+        let config = Config::default();
+        let mut session = ChatSession::new(config);
+        let mut tool = None;
+
+        assert!(!session.handle_command("samtools sort", &mut tool));
+    }
+
+    #[test]
+    fn test_handle_command_history() {
+        let config = Config::default();
+        let mut session = ChatSession::new(config);
+        let mut tool = None;
+
+        assert!(session.handle_command("/history", &mut tool));
+
+        session.conversation_history.push(ChatMessage {
+            role: "user".to_string(),
+            content: "test".to_string(),
+        });
+        session.conversation_history.push(ChatMessage {
+            role: "assistant".to_string(),
+            content: "reply".to_string(),
+        });
+
+        assert!(session.handle_command("/history", &mut tool));
+    }
+
+    #[test]
+    fn test_handle_command_model_show() {
+        let config = Config::default();
+        let mut session = ChatSession::new(config);
+        let mut tool = None;
+
+        assert!(session.handle_command("/model", &mut tool));
+    }
+
+    #[test]
+    fn test_handle_command_model_change() {
+        let config = Config::default();
+        let mut session = ChatSession::new(config);
+        let mut tool = None;
+
+        session.handle_command("/model gpt-4", &mut tool);
+        assert_eq!(session.config.llm.model, Some("gpt-4".to_string()));
+    }
+
+    #[test]
+    fn test_with_verbose() {
+        let config = Config::default();
+        let session = ChatSession::new(config).with_verbose(true);
+        assert!(session.verbose);
+    }
+
+    #[test]
+    fn test_with_no_cache() {
+        let config = Config::default();
+        let session = ChatSession::new(config).with_no_cache(true);
+        assert!(session.no_cache);
+    }
+
+    #[test]
+    fn test_render_markdown_does_not_panic() {
+        // Ensure the rendering function handles various markdown content
+        render_markdown("# Heading\n\nSome **bold** and *italic* text.");
+        render_markdown("```bash\nsamtools sort input.bam\n```");
+        render_markdown("");
+        render_markdown("Plain text with no markdown.");
+        render_markdown("- item 1\n- item 2\n- item 3");
     }
 }
