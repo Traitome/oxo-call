@@ -284,7 +284,7 @@ impl Runner {
 
         // Run skill loading first
         let skill = skill_future.await;
-        
+
         // Determine if we need documentation based on skill quality
         let should_fetch_doc = if self.no_doc {
             false
@@ -300,7 +300,7 @@ impl Runner {
                 // - High quality: >5 examples
                 let example_count = s.examples.len();
                 let pitfall_count = s.context.pitfalls.len();
-                
+
                 // Only fetch doc if skill quality is low
                 example_count < 3 || pitfall_count < 3
             } else {
