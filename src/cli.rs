@@ -67,7 +67,7 @@ EXAMPLES:\n  \
   oxo-call run --model gpt-4 samtools 'index sorted.bam'\n  \
   oxo-call run --json samtools 'flagstat input.bam'\n  \
   oxo-call run --verify samtools 'sort input.bam by coordinate'\n  \
-  oxo-call run --optimize-task samtools 'sort bam'"
+  oxo-call run --scenario doc samtools 'sort bam'"
     )]
     Run {
         /// The tool to run (must be in PATH)
@@ -90,10 +90,6 @@ EXAMPLES:\n  \
         /// stderr patterns, and exit code, then reports issues and suggestions
         #[arg(long)]
         verify: bool,
-        /// Before generating the command, use the LLM to optimize and expand
-        /// the task description for better accuracy
-        #[arg(long)]
-        optimize_task: bool,
         /// Set a named variable for `{KEY}` substitution in the task description (repeatable)
         ///
         /// Example: --var SAMPLE=sample1 --var THREADS=8
@@ -130,13 +126,6 @@ EXAMPLES:\n  \
         /// - full: Doc + skill combined (most accurate)
         #[arg(long, value_name = "SCENARIO")]
         scenario: Option<String>,
-        /// Force a specific workflow mode (auto-selected by default)
-        ///
-        /// Modes:
-        /// - fast: Single LLM call (minimal latency)
-        /// - quality: Multi-stage workflow (best accuracy)
-        #[arg(long, value_name = "MODE")]
-        mode: Option<String>,
     },
     #[command(
         name = "dry-run",
@@ -150,7 +139,7 @@ EXAMPLES:\n  \
   oxo-call dry-run bwa 'align reads.fq to reference.fa with 8 threads'\n  \
   oxo-call dry-run --model gpt-4 gatk 'call variants on sample.bam'\n  \
   oxo-call dry-run --json samtools 'flagstat input.bam'\n  \
-  oxo-call dry-run --optimize-task samtools 'sort bam'"
+  oxo-call dry-run --scenario doc samtools 'sort bam'"
     )]
     DryRun {
         /// The tool to preview
@@ -166,10 +155,6 @@ EXAMPLES:\n  \
         /// Output result as JSON (useful for scripting and CI integration)
         #[arg(long)]
         json: bool,
-        /// Before generating the command, use the LLM to optimize and expand
-        /// the task description for better accuracy
-        #[arg(long)]
-        optimize_task: bool,
         /// [Ablation] Do not load the skill file for this tool
         #[arg(long, hide = true)]
         no_skill: bool,
@@ -195,9 +180,6 @@ EXAMPLES:\n  \
         /// Force a specific workflow scenario (auto-detected by default)
         #[arg(long, value_name = "SCENARIO")]
         scenario: Option<String>,
-        /// Force a specific workflow mode (auto-selected by default)
-        #[arg(long, value_name = "MODE")]
-        mode: Option<String>,
     },
 
     /// Manage tool documentation (add, remove, update, list, show)
@@ -1049,10 +1031,6 @@ pub enum ServerCommands {
         /// stderr patterns, and exit code, then reports issues and suggestions
         #[arg(long)]
         verify: bool,
-        /// Before generating the command, use the LLM to optimize and expand
-        /// the task description for better accuracy
-        #[arg(long)]
-        optimize_task: bool,
     },
 
     /// Preview a command for a remote server (no execution)
@@ -1074,10 +1052,6 @@ pub enum ServerCommands {
         /// Output result as JSON (useful for scripting and CI integration)
         #[arg(long)]
         json: bool,
-        /// Before generating the command, use the LLM to optimize and expand
-        /// the task description for better accuracy
-        #[arg(long)]
-        optimize_task: bool,
     },
 }
 
@@ -1401,25 +1375,6 @@ mod tests {
     }
 
     #[test]
-    fn test_server_run_supports_optimize_task_flag() {
-        let cli = Cli::parse_from([
-            "oxo-call",
-            "server",
-            "run",
-            "--optimize-task",
-            "ls",
-            "list files",
-        ]);
-
-        match cli.command {
-            Commands::Server {
-                command: ServerCommands::Run { optimize_task, .. },
-            } => assert!(optimize_task),
-            _ => panic!("expected server run command"),
-        }
-    }
-
-    #[test]
     fn test_server_dry_run_supports_no_cache_flag() {
         let cli = Cli::parse_from([
             "oxo-call",
@@ -1448,25 +1403,6 @@ mod tests {
             Commands::Server {
                 command: ServerCommands::DryRun { json, .. },
             } => assert!(json),
-            _ => panic!("expected server dry-run command"),
-        }
-    }
-
-    #[test]
-    fn test_server_dry_run_supports_optimize_task_flag() {
-        let cli = Cli::parse_from([
-            "oxo-call",
-            "server",
-            "dry-run",
-            "--optimize-task",
-            "samtools",
-            "sort bam",
-        ]);
-
-        match cli.command {
-            Commands::Server {
-                command: ServerCommands::DryRun { optimize_task, .. },
-            } => assert!(optimize_task),
             _ => panic!("expected server dry-run command"),
         }
     }

@@ -4,6 +4,7 @@
 //! and execution.
 
 use crate::config::Config;
+use crate::doc_processor::DocProcessor;
 use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
 #[cfg(not(target_arch = "wasm32"))]
@@ -37,7 +38,7 @@ pub struct GeneratedCommand {
     /// Human-readable explanation from the LLM.
     pub explanation: String,
     /// The task description actually used (may differ from user input when
-    /// `--optimize-task` is active).
+    /// automatic normalization is active).
     pub effective_task: String,
 }
 
@@ -50,7 +51,7 @@ pub(crate) struct PrepareResult {
     /// Name of the matched skill, if one was loaded.
     pub(crate) skill_name: Option<String>,
     /// The task description that was actually used (may differ from the user-supplied
-    /// task when `--optimize-task` is enabled).
+    /// task when automatic normalization is applied).
     pub(crate) effective_task: String,
 }
 
@@ -63,9 +64,6 @@ pub struct Runner {
     pub(crate) no_cache: bool,
     /// When true, use LLM to verify the result after execution.
     pub(crate) verify: bool,
-    /// When true, use LLM to optimize/expand the user's task description before
-    /// building the command generation prompt.
-    pub(crate) optimize_task: bool,
     /// [Ablation] When true, do not load the skill file for the tool.
     pub(crate) no_skill: bool,
     /// [Ablation] When true, do not load tool documentation (--help output).
@@ -86,8 +84,8 @@ pub struct Runner {
     pub(crate) stop_on_error: bool,
     /// When true, automatically retry failed commands with LLM-corrected arguments.
     pub(crate) auto_retry: bool,
-    /// Workflow mode: Fast (single LLM call) or Quality (multi-stage pipeline)
-    pub(crate) workflow_mode: WorkflowMode,
+    /// Force a specific workflow scenario (auto-detected by default)
+    pub(crate) force_scenario: Option<crate::workflow_graph::WorkflowScenario>,
 }
 
 impl Runner {
@@ -100,7 +98,6 @@ impl Runner {
             verbose: false,
             no_cache: false,
             verify: false,
-            optimize_task: false,
             no_skill: false,
             no_doc: false,
             no_prompt: false,
@@ -113,7 +110,7 @@ impl Runner {
             #[cfg(not(target_arch = "wasm32"))]
             stop_on_error: false,
             auto_retry: false,
-            workflow_mode: WorkflowMode::Fast, // Default to fast mode
+            force_scenario: None,
         }
     }
 
@@ -135,21 +132,15 @@ impl Runner {
         self
     }
 
-    /// Enable LLM-based task description optimization before generating the command.
-    pub fn with_optimize_task(mut self, optimize_task: bool) -> Self {
-        self.optimize_task = optimize_task;
-        self
-    }
-
     /// Enable automatic retry with LLM-corrected commands on failure.
     pub fn with_auto_retry(mut self, auto_retry: bool) -> Self {
         self.auto_retry = auto_retry;
         self
     }
 
-    /// Set the workflow mode: Fast (single LLM call) or Quality (multi-stage pipeline)
-    pub fn with_workflow_mode(mut self, mode: WorkflowMode) -> Self {
-        self.workflow_mode = mode;
+    /// Force a specific workflow scenario.
+    pub fn with_scenario(mut self, scenario: crate::workflow_graph::WorkflowScenario) -> Self {
+        self.force_scenario = Some(scenario);
         self
     }
 
@@ -249,19 +240,16 @@ impl Runner {
         Ok(summarized)
     }
 
-    /// Core logic: fetch docs + load skill (in parallel) → (optionally optimize task) → call LLM.
+    /// Core logic: fetch docs + load skill → select workflow mode → run LlmWorkflowExecutor.
     ///
-    /// Documentation fetching and skill loading are independent operations that
-    /// can run concurrently via `tokio::join!`, reducing latency by ~200-500ms
-    /// compared to the previous serial approach.
+    /// Mode selection rules (in priority order):
+    /// 1. `--scenario` flag set → use scenario's default mode.
+    /// 2. No static skill + docs available → Quality (generates mini-skill from doc, cached).
+    /// 3. Static skill available or no docs → Fast (skill already provides grounding).
     ///
-    /// **Adaptive Doc Injection**: When both skill and doc are enabled (full scenario),
-    /// documentation is only injected if:
-    /// 1. Skill is missing, OR
-    /// 2. Skill quality is low (few examples, incomplete coverage)
-    ///
-    /// This prevents low-quality documentation from degrading performance when
-    /// high-quality skill knowledge is available.
+    /// In Quality mode the executor optionally normalizes the task (if vague/short/non-ASCII),
+    /// generates a mini-skill from the documentation (result cached to disk), and uses it
+    /// for command generation.
     pub(crate) async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
         // ── Parallel fetch: docs + skill ──────────────────────────────────────
         let spinner = if !self.no_doc {
@@ -338,6 +326,27 @@ impl Runner {
 
         let docs = docs_result?;
 
+        // ── Build StructuredDoc for flag catalog + doc-extracted examples ──
+        // This is the key innovation: deterministic extraction of flags and
+        // examples from --help output, injected into the LLM prompt to ground
+        // small models without needing skill files or extra LLM calls.
+        let structured_doc = if !docs.is_empty() {
+            let processor = DocProcessor::new();
+            let sdoc = processor.clean_and_structure(&docs);
+            if self.verbose {
+                eprintln!(
+                    "{} Doc analysis: quality={:.2}, {} flags, {} examples extracted",
+                    "[verbose]".dimmed(),
+                    sdoc.quality_score,
+                    sdoc.flag_catalog.len(),
+                    sdoc.extracted_examples.len(),
+                );
+            }
+            Some(sdoc)
+        } else {
+            None
+        };
+
         if self.verbose && !docs.is_empty() {
             eprintln!(
                 "{} Documentation: {} chars{}",
@@ -353,37 +362,7 @@ impl Runner {
 
         let docs_hash = sha256_hex(&docs);
 
-        // Optionally optimize the task description with LLM before command generation.
-        let effective_task = if self.optimize_task {
-            let spinner = make_spinner("Optimizing task description...");
-            let refined = match self.llm.optimize_task(tool, task).await {
-                Ok(t) => {
-                    spinner.finish_and_clear();
-                    t
-                }
-                Err(e) => {
-                    spinner.finish_and_clear();
-                    if self.verbose {
-                        eprintln!(
-                            "{} Task optimization failed ({}), using original task",
-                            "[verbose]".dimmed(),
-                            e
-                        );
-                    }
-                    task.to_string()
-                }
-            };
-            if self.verbose && refined != task {
-                eprintln!(
-                    "{} Task optimized: {}",
-                    "[verbose]".dimmed(),
-                    refined.dimmed()
-                );
-            }
-            refined
-        } else {
-            task.to_string()
-        };
+        let effective_task = task.to_string();
 
         let skill_name = skill.as_ref().map(|s| s.meta.name.clone());
 
@@ -497,66 +476,88 @@ impl Runner {
             "Asking LLM to generate command arguments{skill_label}..."
         ));
 
-        // Choose workflow based on mode
-        let suggestion = match self.workflow_mode {
-            WorkflowMode::Fast => {
-                // Fast mode: single LLM call (existing behavior)
-                match self
-                    .llm
-                    .suggest_command(tool, &docs, &enriched_task, skill.as_ref(), self.no_prompt)
-                    .await
-                {
-                    Ok(s) => {
-                        spinner.finish_and_clear();
-                        s
-                    }
-                    Err(e) => {
-                        spinner.finish_and_clear();
-                        return Err(e);
-                    }
-                }
-            }
-            WorkflowMode::Quality => {
-                // Quality mode: multi-stage workflow
-                spinner.finish_and_clear();
-
-                if self.verbose {
-                    eprintln!(
-                        "{} Using quality mode: multi-stage LLM workflow",
-                        "[verbose]".dimmed()
-                    );
-                }
-
-                let executor =
-                    LlmWorkflowExecutor::new(self.config.clone(), WorkflowMode::Quality)?;
-
-                match executor
-                    .execute(tool, &docs, &enriched_task, skill.as_ref(), self.no_prompt)
-                    .await
-                {
-                    Ok(result) => {
-                        if self.verbose {
-                            eprintln!(
-                                "{} Workflow completed: {} LLM calls, {:.1}ms total inference",
-                                "[verbose]".dimmed(),
-                                result.llm_calls,
-                                result.total_inference_ms
-                            );
-                        }
-                        result.suggestion
-                    }
-                    Err(e) => {
-                        return Err(e);
-                    }
-                }
-            }
+        // Select workflow mode:
+        // - If scenario is forced → use scenario's default mode
+        // - Default → Fast (single LLM call with doc-enriched prompt)
+        //
+        // The Fast mode is now the primary code path for all cases.
+        // Doc-extracted examples and flag catalog are injected into the
+        // prompt by the StructuredDoc, eliminating the need for the
+        // multi-call Quality pipeline in most scenarios.
+        //
+        // Quality mode (multi-call: normalize → mini-skill → generate) is
+        // activated only when explicitly requested via --scenario.
+        let effective_mode = if let Some(sc) = self.force_scenario {
+            sc.default_mode()
+        } else {
+            WorkflowMode::Fast
         };
+
+        if self.verbose {
+            let has_sdoc = structured_doc.is_some();
+            let reason = if self.force_scenario.is_some() {
+                "forced by --scenario"
+            } else if has_sdoc {
+                "doc-enriched single-call (flag catalog + doc examples)"
+            } else if skill.is_some() {
+                "skill-grounded single-call"
+            } else {
+                "single-call (no docs/skill)"
+            };
+            eprintln!(
+                "{} Workflow mode: {:?} ({})",
+                "[verbose]".dimmed(),
+                effective_mode,
+                reason
+            );
+        }
+
+        spinner.finish_and_clear();
+
+        let executor = LlmWorkflowExecutor::new(self.config.clone(), effective_mode)?;
+        let wf_result = executor
+            .execute(
+                tool,
+                &docs,
+                &enriched_task,
+                skill.as_ref(),
+                self.no_prompt,
+                structured_doc.as_ref(),
+            )
+            .await?;
+
+        if self.verbose {
+            eprintln!(
+                "{} Workflow complete: {} LLM call(s), {:.1}ms{}{}",
+                "[verbose]".dimmed(),
+                wf_result.llm_calls,
+                wf_result.total_inference_ms,
+                if wf_result.mini_skill_generated {
+                    ", mini-skill generated"
+                } else if wf_result.cache_hit {
+                    ", mini-skill from cache"
+                } else {
+                    ""
+                },
+                if wf_result.was_normalized {
+                    ", task normalized"
+                } else {
+                    ""
+                }
+            );
+        }
+
+        let suggestion = wf_result.suggestion;
 
         Ok(PrepareResult {
             suggestion,
             docs_hash,
             skill_name,
-            effective_task,
+            effective_task: if wf_result.was_normalized {
+                wf_result.effective_task
+            } else {
+                task.to_string()
+            },
         })
     }
 
@@ -651,7 +652,7 @@ impl Runner {
         if result.effective_task != task {
             println!(
                 "  {} {}",
-                "Optimized task:".bold().dimmed(),
+                "Normalized task:".bold().dimmed(),
                 result.effective_task.dimmed()
             );
         }
@@ -705,7 +706,7 @@ impl Runner {
             if result.effective_task != task {
                 println!(
                     "  {} {}",
-                    "Optimized task:".bold().dimmed(),
+                    "Normalized task:".bold().dimmed(),
                     result.effective_task.dimmed()
                 );
             }

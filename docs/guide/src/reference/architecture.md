@@ -24,13 +24,15 @@ main.rs             — Command dispatcher & license gate
   ├─→ handlers.rs   — Extracted command-handler helpers (formatting, suggestions)
   ├─→ license.rs    — Ed25519 offline verification
   ├─→ runner.rs     — Core orchestration pipeline + provenance tracking
-  │     ├─→ docs.rs        — Documentation resolver
-  │     ├─→ skill.rs       — Skill loading system + depth validation
-  │     │     └─→ mcp.rs   — MCP skill provider (JSON-RPC / HTTP)
-  │     ├─→ llm.rs         — LLM client, prompt builder & provider trait
-  │     ├─→ cache.rs       — LLM response cache with semantic hash
-  │     ├─→ generator.rs   — CommandGenerator trait (extensible generation strategies)
-  │     └─→ history.rs     — Command history tracker with provenance
+  │     ├─→ docs.rs            — Documentation resolver
+  │     ├─→ doc_processor.rs   — Structured doc extraction (flag catalog, examples, quality)
+  │     ├─→ skill.rs           — Skill loading system + depth validation
+  │     │     └─→ mcp.rs       — MCP skill provider (JSON-RPC / HTTP)
+  │     ├─→ llm.rs             — LLM client, prompt builder & provider trait
+  │     ├─→ llm_workflow.rs    — Fast/Quality workflow executor
+  │     ├─→ cache.rs           — LLM response cache with semantic hash
+  │     ├─→ generator.rs       — CommandGenerator trait (extensible strategies)
+  │     └─→ history.rs         — Command history tracker with provenance
   ├─→ chat.rs       — Interactive chat with AI about bioinformatics tools
   ├─→ sanitize.rs   — Data anonymization for LLM contexts
   ├─→ server.rs     — Remote server management (SSH / HPC)
@@ -51,12 +53,18 @@ lib.rs              — Programmatic API surface (re-exports all modules)
 ```text
 1. License verification (Ed25519 signature check)
 2. Documentation fetch (cache → --help → local files → remote URLs)
-3. Skill loading (user → community → MCP → built-in)
-4. Prompt construction (docs + skill + task → system + user message)
-5. LLM API call (GitHub Copilot / OpenAI / Anthropic / Ollama)
-6. Response parsing (extract ARGS: and EXPLANATION: lines)
-7. Command execution (run) or display (dry-run)
-8. History recording (JSONL with UUID, exit code, timestamp)
+3. Structured doc extraction (flag catalog + command examples, deterministic)
+4. Skill loading (user → community → MCP → built-in)
+5. Doc-enriched prompt construction:
+   - Flag catalog → "Valid Flags" section (prevents hallucination)
+   - Doc-extracted examples → few-shot demonstrations (critical for ≤3B)
+   - Skill knowledge → expert grounding (when available)
+   - Task + context → user message
+6. LLM API call (single call: GitHub Copilot / OpenAI / Anthropic / Ollama)
+7. Response parsing (extract ARGS: and EXPLANATION: lines)
+8. Flag validation against doc catalog (post-processing)
+9. Command execution (run) or display (dry-run)
+10. History recording (JSONL with UUID, exit code, timestamp)
 ```
 
 ### Workflow Execution

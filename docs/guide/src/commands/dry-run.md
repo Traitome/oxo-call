@@ -16,10 +16,10 @@ oxo-call d       [OPTIONS] <TOOL> <TASK>
 | `-m`, `--model <MODEL>` | Override the LLM model for this invocation |
 | `--no-cache` | Skip cached documentation and fetch fresh `--help` output |
 | `--json` | Output result as JSON (useful for scripting and CI) |
-| `--optimize-task` | Before generating the command, use LLM to expand and refine the task description |
 | `-V`, `--var KEY=VALUE` | Substitute `{KEY}` in the task description before the LLM call (repeatable) |
 | `-i`, `--input-list <FILE>` | Read input items from a file; shows the command for each item |
 | `--input-items <ITEMS>` | Comma-separated input items; shows the command for each item |
+| `--scenario <SCENARIO>` | Force a workflow scenario: `basic`, `prompt`, `doc`, `skill`, or `full` (auto-detected by default) |
 | `-v`, `--verbose` | Show docs source, skill info, and LLM details (global) |
 | `--license <PATH>` | Path to license file (global option) |
 
@@ -70,9 +70,6 @@ oxo-call dry-run --json samtools "flagstat input.bam"
 # Force fresh documentation
 oxo-call dry-run --no-cache samtools "sort input.bam"
 
-# Expand a vague task before generating
-oxo-call dry-run --optimize-task samtools "sort bam"
-
 # Variable substitution — preview with {SAMPLE} replaced
 oxo-call dry-run --var SAMPLE=NA12878 samtools \
     "sort {SAMPLE}.bam by coordinate"
@@ -86,9 +83,9 @@ oxo-call dry-run samtools "sort {item} by coordinate, output {stem}.sorted.bam" 
     --input-list bam_files.txt
 ```
 
-## Task Optimization (`--optimize-task`)
+## Automatic Task Normalization
 
-When `--optimize-task` is set, an extra LLM call refines the task description before command generation. The optimized task is shown when it differs from the original, and is used as the actual prompt for the LLM.
+oxo-call automatically detects vague, short, or non-English task descriptions and normalizes them via an extra LLM call before command generation. The normalized task is shown when it differs from the original, and is used as the actual prompt for the LLM.
 
 ## Batch Preview (`--input-list` / `--input-items`)
 
@@ -131,7 +128,7 @@ When `--json` is used for a single-item dry-run, the output is a JSON object:
 |-------|------|-------------|
 | `tool` | string | Tool name |
 | `task` | string | Original task description |
-| `effective_task` | string | Task after `--optimize-task` (same as `task` if unused) |
+| `effective_task` | string | Task after automatic normalization (same as `task` if unchanged) |
 | `command` | string | Full shell command (tool + args) |
 | `args` | array | Argument tokens (without tool name prefix) |
 | `explanation` | string | LLM-generated explanation |

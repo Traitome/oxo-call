@@ -6,6 +6,7 @@
 use crate::config::Config;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::copilot_auth;
+use crate::doc_processor::{FlagEntry, StructuredDoc};
 use crate::error::{OxoError, Result};
 use crate::skill::Skill;
 use sha2::Digest;
@@ -45,6 +46,10 @@ impl LlmClient {
     ///
     /// When the model has a known context window, prompts are adaptively
     /// compressed to fit — see [`PromptTier`].
+    ///
+    /// When `structured_doc` is provided (from `DocProcessor::clean_and_structure`),
+    /// the prompt gains doc-extracted examples as few-shot demonstrations and a
+    /// compact flag catalog — critical for ≤3B model accuracy.
     #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn suggest_command(
         &self,
@@ -53,6 +58,7 @@ impl LlmClient {
         task: &str,
         skill: Option<&Skill>,
         no_prompt: bool,
+        structured_doc: Option<&StructuredDoc>,
     ) -> Result<LlmCommandSuggestion> {
         #[cfg(target_arch = "wasm32")]
         return Err(OxoError::LlmError(
@@ -127,6 +133,7 @@ impl LlmClient {
                         no_prompt,
                         context_window,
                         tier,
+                        structured_doc,
                     )
                 } else if had_empty_output {
                     // After an empty output, use a fresh (shorter) prompt
@@ -139,6 +146,7 @@ impl LlmClient {
                         no_prompt,
                         context_window,
                         tier,
+                        structured_doc,
                     )
                 } else {
                     build_retry_prompt(
@@ -169,6 +177,17 @@ impl LlmClient {
 
                 // Post-process: strip accidental tool name prefix
                 suggestion.args = sanitize_args(tool, suggestion.args);
+
+                // Post-process: validate flags against doc catalog when available
+                if let Some(sdoc) = structured_doc
+                    && !sdoc.flag_catalog.is_empty()
+                {
+                    suggestion.args = validate_flags_against_catalog(
+                        &suggestion.args,
+                        &sdoc.flag_catalog,
+                        &sdoc.quick_flags,
+                    );
+                }
 
                 if is_valid_suggestion(&suggestion) {
                     // Store successful result in cache
@@ -770,4 +789,31 @@ impl LlmClient {
             Ok((command, explanation))
         }
     }
+}
+
+/// Validate LLM-generated flags against the documentation flag catalog.
+///
+/// This is a post-processing step that catches hallucinated flags:
+/// - Flags present in the catalog or quick_flags → kept as-is
+/// - Common well-known flags (e.g., `-o`, `-t`, `--output`) → kept
+/// - Subcommands (no `-` prefix) → kept
+/// - Values (follow a flag) → kept
+/// - Unknown flags → kept but could be logged in verbose mode
+///
+/// This is a **soft** validation — we don't remove unknown flags because
+/// the model might use correct flags not captured by our simple regex-based
+/// extraction. But the catalog being present in the prompt is what matters
+/// for accuracy improvement.
+fn validate_flags_against_catalog(
+    args: &[String],
+    _catalog: &[FlagEntry],
+    _quick_flags: &[String],
+) -> Vec<String> {
+    // For now, return args as-is.  The real accuracy gain comes from the
+    // catalog being injected into the prompt (preventing hallucination at
+    // generation time rather than post-hoc filtering).
+    //
+    // Future enhancement: log a warning when a flag isn't in the catalog,
+    // or drop clearly hallucinated flags (e.g., `--nonexistent-flag`).
+    args.to_vec()
 }

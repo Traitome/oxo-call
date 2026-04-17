@@ -48,6 +48,7 @@ fn test_build_prompt_basic() {
         false,
         0,
         PromptTier::Full,
+        None,
     );
     assert!(prompt.contains("samtools"));
     assert!(prompt.contains("sort bam"));
@@ -188,4 +189,78 @@ fn test_parse_json_response() {
     let json = r#"{"args": "-o out.bam", "explanation": "Test"}"#;
     let result = try_parse_json_response(json).unwrap();
     assert!(!result.args.is_empty());
+}
+
+#[test]
+fn test_build_prompt_with_structured_doc() {
+    use crate::doc_processor::{DocProcessor, FlagEntry};
+
+    // Create a structured doc with flag catalog and examples
+    let processor = DocProcessor::new();
+    let doc = "USAGE:\n  samtools sort [options]\n\nOPTIONS:\n  -o FILE  Output file\n  -@ INT   Threads\n\nEXAMPLES:\n  $ samtools sort -o sorted.bam input.bam";
+    let sdoc = processor.clean_and_structure(doc);
+
+    // Full tier should include flag catalog and examples
+    let prompt = build_prompt(
+        "samtools",
+        doc,
+        "sort input.bam",
+        None,
+        false,
+        0,
+        PromptTier::Full,
+        Some(&sdoc),
+    );
+    assert!(prompt.contains("samtools"));
+    assert!(prompt.contains("sort input.bam"));
+    // Should contain flag catalog or doc-extracted examples
+    assert!(
+        prompt.contains("Valid Flags") || prompt.contains("Examples from Doc"),
+        "Full prompt with sdoc should contain doc-enriched sections"
+    );
+
+    // Compact tier should use doc examples as few-shot
+    let prompt_compact = build_prompt(
+        "samtools",
+        doc,
+        "sort input.bam",
+        None,
+        false,
+        4096,
+        PromptTier::Compact,
+        Some(&sdoc),
+    );
+    assert!(prompt_compact.contains("samtools"));
+    // Compact prompt should have FEW-SHOT markers
+    assert!(
+        prompt_compact.contains("---FEW-SHOT---"),
+        "Compact prompt should use few-shot format"
+    );
+}
+
+#[test]
+fn test_build_prompt_medium_with_structured_doc() {
+    use crate::doc_processor::DocProcessor;
+
+    let processor = DocProcessor::new();
+    let doc = "USAGE:\n  bcftools view [options]\n\nOPTIONS:\n  -o FILE  Output\n  -O z     Output type\n  -r REGION  Region\n\nEXAMPLES:\n  $ bcftools view -r chr1 input.vcf.gz";
+    let sdoc = processor.clean_and_structure(doc);
+
+    let prompt = build_prompt(
+        "bcftools",
+        doc,
+        "filter VCF by region chr1",
+        None,
+        false,
+        8192,
+        PromptTier::Medium,
+        Some(&sdoc),
+    );
+    assert!(prompt.contains("bcftools"));
+    assert!(prompt.contains("filter VCF by region chr1"));
+    // Medium prompt should have some doc-derived grounding
+    assert!(
+        prompt.contains("Examples from Docs") || prompt.contains("Valid flags"),
+        "Medium prompt should include doc-derived content"
+    );
 }

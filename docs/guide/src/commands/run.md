@@ -18,13 +18,13 @@ oxo-call r   [OPTIONS] <TOOL> <TASK>
 | `--no-cache` | Skip cached documentation and fetch fresh `--help` output |
 | `--json` | Output result as JSON (useful for scripting and CI) |
 | `--verify` | After execution, use LLM to validate results (output files, stderr, exit code) |
-| `--optimize-task` | Before generating the command, use LLM to expand and refine the task description |
 | `-V`, `--var KEY=VALUE` | Substitute `{KEY}` in the task description before the LLM call (repeatable) |
 | `-i`, `--input-list <FILE>` | Read input items from a file; runs the generated command for each item |
 | `--input-items <ITEMS>` | Comma-separated input items; runs the generated command for each item |
 | `-j`, `--jobs <N>` | Maximum parallel jobs when using `--input-list` / `--input-items` (default: 1) |
 | `-x`, `--stop-on-error` | Abort remaining items after the first failure |
 | `--auto-retry` | On failure, ask the LLM to analyze stderr and re-run with a corrected command (up to 2 retries) |
+| `--scenario <SCENARIO>` | Force a workflow scenario: `basic`, `prompt`, `doc`, `skill`, or `full` (auto-detected by default) |
 | `-v`, `--verbose` | Show docs source, skill info, and LLM details (global) |
 | `--license <PATH>` | Path to license file (global option) |
 
@@ -49,13 +49,17 @@ Use `--verbose` to see which tier was selected for a given invocation.
 The `run` command is the primary way to use oxo-call. It:
 
 1. Fetches the tool's documentation (from cache or `--help` output)
-2. *(with `--optimize-task`)* Expands and clarifies your task description with the LLM
+2. **Extracts structured knowledge** — flag catalog and command examples from the help text
 3. Loads any matching skill (built-in, community, or user-defined)
-4. Sends the grounded prompt to the configured LLM
+4. Sends the doc-enriched prompt to the configured LLM (single call by default)
 5. Parses the response to extract command arguments
 6. *(with `--input-list` / `--input-items`)* Executes the command template for each item
 7. Records the execution in command history
 8. *(with `--verify`)* Asks the LLM to review the outputs and report issues
+
+Step 2 is the key innovation: the flag catalog prevents hallucinated flags and
+doc-extracted examples serve as few-shot demonstrations — enabling reliable
+command generation even with small models (≤3B) and no skill files.
 
 ## Examples
 
@@ -69,17 +73,11 @@ oxo-call run --ask bcftools "call variants from aligned.bam using ref.fa"
 # Use LLM to verify outputs after execution
 oxo-call run --verify samtools "sort input.bam by coordinate, output sorted.bam"
 
-# Expand a vague task before generating the command
-oxo-call run --optimize-task bwa "align reads to ref"
-
-# Combine both for maximum accuracy and feedback
-oxo-call run --optimize-task --verify samtools "sort bam"
-
 # Auto-retry on failure (LLM analyzes stderr and corrects the command)
 oxo-call run --auto-retry samtools "sort input.bam with 8 threads"
 
-# Maximum reliability: optimize task, auto-retry, and verify
-oxo-call run --optimize-task --auto-retry --verify samtools "sort and index"
+# Maximum reliability: auto-retry and verify
+oxo-call run --auto-retry --verify samtools "sort and index"
 
 # Override LLM model for a single invocation
 oxo-call run --model gpt-4 samtools "index sorted.bam"
@@ -189,14 +187,26 @@ When `--verify` is set, oxo-call captures the tool's stderr and probes the decla
 
 Verification is advisory — it never changes the process exit code. Use `--json` to get the verification block in machine-readable form.
 
-## Task Optimization (`--optimize-task`)
+## Automatic Task Normalization
 
-When `--optimize-task` is set, an extra LLM call refines the user's task description before command generation. For example:
+oxo-call uses a two-step process for task normalization:
+
+1. **Quality mode selection**: When there is no static skill file for the tool and
+   documentation is available, oxo-call selects Quality mode (multi-stage pipeline).
+   If `--scenario` is set, the scenario's default mode takes precedence.
+
+2. **Optional normalization within Quality mode**: Within the Quality pipeline, an extra
+   LLM call normalizes the task **only if** it is considered vague or ambiguous:
 
 - Input: `"sort bam"`
-- Optimized: `"sort BAM file input.bam by coordinate using samtools sort with 8 threads, output to sorted.bam"`
+- Normalized: `"sort BAM file input.bam by coordinate using samtools sort with 8 threads, output to sorted.bam"`
 
-The optimized task is shown when it differs from the original and is used for the command generation prompt. This is particularly useful for short or ambiguous task descriptions.
+The normalized task is shown when it differs from the original and is used for the command
+generation prompt. This secondary normalization triggers when:
+
+- The task is shorter than 10 characters
+- The task contains vague keywords (e.g., "just", "simply", "basically")
+- The task contains non-ASCII characters (e.g., Chinese, Japanese)
 
 ## Risk Assessment
 

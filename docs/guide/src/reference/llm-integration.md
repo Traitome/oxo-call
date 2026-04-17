@@ -20,7 +20,7 @@ oxo-call uses the LLM in up to three distinct roles per invocation:
 | Role | Trigger | System Prompt |
 |------|---------|---------------|
 | **Command generation** (always) | Every `run` / `dry-run` | Expert bioinformatics command generator |
-| **Task optimization** (`--optimize-task`) | Pre-generation step | Expand and clarify the user's task description |
+| **Task optimization** (automatic) | Pre-generation step | Expand and clarify the user's task description |
 | **Result verification** (`--verify`) | Post-execution step | Expert bioinformatics QC analyst |
 
 Each role uses a separate system prompt so the LLM behaves appropriately for the job.
@@ -131,9 +131,24 @@ Use `--verbose` mode to see the actual prompt for any command:
 oxo-call dry-run --verbose samtools "sort input.bam by coordinate"
 ```
 
-## Task Optimization (`--optimize-task`)
+## Automatic Task Normalization
 
-When `--optimize-task` is set, an extra LLM call is made **before** command generation. The LLM is asked to rewrite the user's task into a precise bioinformatics instruction:
+oxo-call uses a doc-enriched prompting strategy that works in a single LLM call by default:
+
+1. **Structured Doc Extraction** (deterministic, no LLM): When documentation is fetched,
+   oxo-call extracts a structured `FlagEntry` catalog and concrete command examples from
+   the help text. This is injected directly into the prompt.
+
+2. **Default (Fast) mode**: A single LLM call with the doc-enriched prompt. The flag
+   catalog prevents hallucinated flags and doc-extracted examples serve as few-shot
+   demonstrations — critical for small models (≤3B).
+
+3. **Quality mode** (via `--scenario full`): Multi-stage pipeline with optional task
+   normalization, mini-skill generation, and doc cleaning. Activated only when explicitly
+   requested.
+
+When Quality mode is active and the task is considered vague or ambiguous, an extra LLM
+call normalizes the task:
 
 - Expands ambiguous terms into specific operations (e.g., "sort bam" → "sort BAM file input.bam by genomic coordinate and write to sorted.bam")
 - Infers bioinformatics defaults (paired-end reads, hg38, 8 threads, gzipped output, Phred+33 encoding)
@@ -141,7 +156,59 @@ When `--optimize-task` is set, an extra LLM call is made **before** command gene
 - Preserves all file names, paths, and sample identifiers from the original task
 - Responds in the same language as the original task
 
-The optimized task is shown to the user when it differs from the original and replaces the original in the command generation prompt.
+Normalization within Quality mode triggers when the task is shorter than 10 characters,
+contains vague keywords (e.g., "just", "simply"), or contains non-ASCII characters. The
+normalized task is shown to the user when it differs from the original.
+
+### Doc-Enriched Prompt Architecture
+
+The key innovation for doc-only accuracy: `DocProcessor` deterministically extracts
+structured knowledge from `--help` output and injects it into the prompt.
+
+**Flag Catalog Extraction**
+
+```
+# From: samtools sort --help
+OPTIONS:
+  -o FILE    Write final output to FILE
+  -@ INT     Number of additional threads
+  -n         Sort by read name
+
+# Extracted FlagEntry catalog:
+-o FILE → "Write final output to FILE"
+-@ INT  → "Number of additional threads"
+-n      → "Sort by read name"
+```
+
+This catalog is injected into the prompt as "Valid Flags" — the LLM learns which flags
+actually exist and avoids hallucinating non-existent ones.
+
+**Doc-Extracted Examples**
+
+Command-line examples from the EXAMPLES section (lines with `$` prompts, shell pipes,
+or flag patterns) are extracted and used as few-shot demonstrations:
+
+```
+# Extracted from help text:
+$ samtools sort -o sorted.bam input.bam
+$ samtools sort -@ 4 -o out.bam in.bam
+```
+
+For Compact/Medium prompt tiers, these are injected as `---FEW-SHOT---` user/assistant
+pairs, which is critical for ≤3B models that learn better from examples than from rules.
+
+**Quality Score**
+
+A deterministic 0.0–1.0 score computed from doc completeness:
+
+| Component | Weight |
+|-----------|--------|
+| USAGE section present | 0.25 |
+| EXAMPLES section present | 0.25 |
+| Extracted command examples (up to 5) | 0.25 |
+| Flag catalog entries (up to 10) | 0.15 |
+| Subcommands present | 0.05 |
+| Quick reference flags | 0.05 |
 
 ## Result Verification (`--verify`)
 
@@ -168,17 +235,24 @@ See the [Configuration tutorial](../tutorials/configuration.md) for setup instru
 
 ## Grounding Strategy
 
-oxo-call uses a "docs-first" grounding strategy:
+oxo-call uses a "docs-first" grounding strategy with three layers:
 
-1. Tool documentation is fetched and included in the prompt
-2. If a skill exists, expert knowledge is injected
-3. The combined context prevents the LLM from hallucinating flags
+1. **Doc-extracted grounding** (deterministic): Flag catalog and command examples
+   extracted from `--help` output are injected into every prompt. This prevents
+   flag hallucination even without skill files.
+2. **Skill grounding** (when available): Expert-authored concepts, pitfalls, and
+   examples from skill files provide deeper domain knowledge.
+3. **Self-learning cache**: Successful commands are cached by tool+task+doc hash,
+   becoming implicit few-shot examples for future similar tasks.
 
-This approach is critical for accuracy, especially with:
+This layered approach means:
 
-- Complex tools with hundreds of options
-- Tools with version-specific flag differences
-- Smaller or weaker LLM models
+- **With skill file**: Best accuracy — skill examples + doc grounding + cache
+- **Without skill file**: High accuracy — doc-extracted examples + flag catalog + cache
+- **Without docs**: Degraded but functional — model knowledge + cache only
+
+The doc-enriched prompt is the key innovation for achieving reliable results
+with small models (≤3B parameters) using only `--help` output.
 
 ## Adaptive Prompt Compression
 
@@ -211,16 +285,20 @@ Key design decisions:
 1. **Few-shot > instructions**: Small models imitate better than they follow
    rules. The `---FEW-SHOT---` markers create user/assistant/user turns that
    demonstrate the exact output format.
-2. **Concrete examples > abstract placeholders**: The system prompt uses
+2. **Doc-extracted examples as few-shot**: When no skill is loaded but
+   documentation is available, command examples extracted from the help text
+   are used as few-shot demonstrations. This grounds the model in the tool's
+   actual flag format without needing a skill file.
+3. **Concrete examples > abstract placeholders**: The system prompt uses
    `ARGS: sort -@ 4 -o out.bam in.bam` instead of `ARGS: <subcommand then
    flags>`, because some models (e.g., starcoder2) would literally output the
    placeholder text.
-3. **No format template in the final user message**: Including `Output:\nARGS:
+4. **Flag catalog injection**: Even in Compact tier, a brief "Valid flags"
+   line is included to prevent flag hallucination.
+5. **No format template in the final user message**: Including `Output:\nARGS:
    sort...` causes some models to output empty — they interpret the template
    as the answer already being provided.
-4. **Fallback generic example**: When no skill is loaded, a `samtools sort`
-   example is injected so the model always sees the correct output format.
-5. **Selective documentation injection**: When no skill examples are available,
+6. **Selective documentation injection**: When no skill examples are available,
    a heavily truncated doc section is injected as the only grounding source.
 
 ### Auto-Detection

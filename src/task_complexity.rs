@@ -3,8 +3,6 @@
 //! Analyzes user input and determines whether to use Fast or Quality mode.
 //! Based on multiple heuristics and optional ML model.
 
-#![allow(dead_code)]
-
 use serde::{Deserialize, Serialize};
 
 /// Complexity score ranging from 0.0 (simple) to 1.0 (complex)
@@ -18,6 +16,7 @@ impl Default for ComplexityScore {
 }
 
 impl ComplexityScore {
+    #[allow(dead_code)]
     pub fn is_simple(&self) -> bool {
         self.0 < 0.5
     }
@@ -59,6 +58,7 @@ impl Default for ComplexityResult {
 #[derive(Debug, Clone)]
 pub struct ComplexityRule {
     pub name: String,
+    #[allow(dead_code)]
     pub weight: f32,
     pub evaluator: fn(&str, &str, bool, f32) -> f32,
 }
@@ -242,6 +242,7 @@ impl TaskComplexityEstimator {
     }
 
     /// Add custom rule
+    #[allow(dead_code)]
     pub fn add_rule(&mut self, rule: ComplexityRule) {
         self.rules.push(rule);
     }

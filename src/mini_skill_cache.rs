@@ -4,8 +4,6 @@
 //! which are extracted from tool documentation. The cache uses a hybrid
 //! approach: LRU in-memory cache for hot data + persistent disk storage.
 
-#![allow(dead_code)]
-
 use crate::config::Config;
 use crate::error::Result;
 use crate::skill::{Skill, SkillContext, SkillExample, SkillMeta};
@@ -357,6 +355,7 @@ impl MiniSkillCache {
     }
 
     /// Get cache statistics
+    #[allow(dead_code)]
     pub fn stats(&self) -> CacheStats {
         let memory_size = if let Ok(memory) = self.memory.lock() {
             memory.len()

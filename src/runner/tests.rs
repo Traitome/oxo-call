@@ -270,7 +270,7 @@ fn test_runner_new() {
     let runner = runner.with_verbose(true);
     let runner = runner.with_no_cache(true);
     let runner = runner.with_verify(true);
-    let _runner = runner.with_optimize_task(true);
+    let _runner = runner.with_auto_retry(true);
 }
 
 // ─── detect_tool_version ─────────────────────────────────────────────────

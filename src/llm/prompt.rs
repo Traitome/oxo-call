@@ -3,6 +3,7 @@
 //! This module contains all functions related to constructing prompts for
 //! different LLM roles (command generation, verification, skill review, etc.).
 
+use crate::doc_processor::StructuredDoc;
 use crate::skill::Skill;
 
 use super::types::PromptTier;
@@ -77,6 +78,11 @@ pub fn prompt_tier(context_window: u32, model: &str) -> PromptTier {
 // ─── User prompt ─────────────────────────────────────────────────────────────
 
 /// Build the enriched user prompt, injecting skill knowledge when available.
+///
+/// When `structured_doc` is provided, the prompt gains:
+/// - A compact flag catalog (prevents hallucinated flags)
+/// - Doc-extracted examples as few-shot demonstrations (critical for ≤3B models)
+#[allow(clippy::too_many_arguments)]
 pub fn build_prompt(
     tool: &str,
     documentation: &str,
@@ -85,6 +91,7 @@ pub fn build_prompt(
     no_prompt: bool,
     context_window: u32,
     tier: PromptTier,
+    structured_doc: Option<&StructuredDoc>,
 ) -> String {
     if no_prompt {
         return format!(
@@ -97,16 +104,34 @@ pub fn build_prompt(
     }
 
     match tier {
-        PromptTier::Full => build_prompt_full(tool, documentation, task, skill),
-        PromptTier::Medium => build_prompt_medium(tool, documentation, task, skill, context_window),
-        PromptTier::Compact => {
-            build_prompt_compact(tool, documentation, task, skill, context_window)
-        }
+        PromptTier::Full => build_prompt_full(tool, documentation, task, skill, structured_doc),
+        PromptTier::Medium => build_prompt_medium(
+            tool,
+            documentation,
+            task,
+            skill,
+            context_window,
+            structured_doc,
+        ),
+        PromptTier::Compact => build_prompt_compact(
+            tool,
+            documentation,
+            task,
+            skill,
+            context_window,
+            structured_doc,
+        ),
     }
 }
 
 /// Full prompt — no compression.  Used for large models (≥ 16k context).
-fn build_prompt_full(tool: &str, documentation: &str, task: &str, skill: Option<&Skill>) -> String {
+fn build_prompt_full(
+    tool: &str,
+    documentation: &str,
+    task: &str,
+    skill: Option<&Skill>,
+    structured_doc: Option<&StructuredDoc>,
+) -> String {
     let mut prompt = String::new();
     prompt.push_str(&format!("# Tool: `{tool}`\n\n"));
 
@@ -121,6 +146,33 @@ fn build_prompt_full(tool: &str, documentation: &str, task: &str, skill: Option<
         prompt.push_str(
             "Study the USAGE pattern and EXAMPLES carefully. Match the exact flag format.\n\n",
         );
+
+        // Inject doc-extracted examples as few-shot demonstrations
+        if let Some(sdoc) = structured_doc {
+            if !sdoc.extracted_examples.is_empty() {
+                prompt.push_str("## Real Examples from Documentation\n");
+                prompt.push_str(
+                    "These are actual usage examples — learn the correct flag patterns:\n",
+                );
+                for (i, ex) in sdoc.extracted_examples.iter().take(5).enumerate() {
+                    prompt.push_str(&format!("{}. `{}`\n", i + 1, ex));
+                }
+                prompt.push('\n');
+            }
+
+            // Inject compact flag catalog
+            if !sdoc.flag_catalog.is_empty() {
+                prompt.push_str("## Valid Flags (use ONLY these)\n");
+                for entry in sdoc.flag_catalog.iter().take(25) {
+                    if entry.description.is_empty() {
+                        prompt.push_str(&format!("- `{}`\n", entry.flag));
+                    } else {
+                        prompt.push_str(&format!("- `{}` — {}\n", entry.flag, entry.description));
+                    }
+                }
+                prompt.push('\n');
+            }
+        }
     }
 
     prompt.push_str("## Tool Documentation\n");
@@ -136,7 +188,8 @@ fn build_prompt_full(tool: &str, documentation: &str, task: &str, skill: Option<
              2. Match flag format exactly: --flag=value or --flag value (as shown in docs)\n\
              3. Include ALL required parameters from task description\n\
              4. NO tool name prefix (auto-added by system)\n\
-             5. EXPLANATION: brief description of what the command does\n\n\
+             5. Use ONLY flags listed in the documentation above — NEVER invent flags\n\
+             6. EXPLANATION: brief description of what the command does\n\n\
              Example output format:\n\
              ARGS: sort -@ 8 -o output.bam input.bam\n\
              EXPLANATION: Sort BAM file with 8 threads.\n",
@@ -158,6 +211,7 @@ fn build_prompt_medium(
     task: &str,
     skill: Option<&Skill>,
     context_window: u32,
+    structured_doc: Option<&StructuredDoc>,
 ) -> String {
     let mut prompt = String::new();
     prompt.push_str(&format!("# Tool: `{tool}`\n\n"));
@@ -166,6 +220,28 @@ fn build_prompt_medium(
         let section = skill.to_prompt_section_for_task(5, task);
         if !section.is_empty() {
             prompt.push_str(&section);
+        }
+    } else if let Some(sdoc) = structured_doc {
+        // Inject doc-extracted examples when no skill
+        if !sdoc.extracted_examples.is_empty() {
+            prompt.push_str("## Examples from Docs\n");
+            for ex in sdoc.extracted_examples.iter().take(3) {
+                prompt.push_str(&format!("- `{}`\n", ex));
+            }
+            prompt.push('\n');
+        }
+
+        // Compact flag list
+        if !sdoc.flag_catalog.is_empty() {
+            prompt.push_str("## Valid flags: ");
+            let flags: Vec<_> = sdoc
+                .flag_catalog
+                .iter()
+                .take(20)
+                .map(|f| f.flag.as_str())
+                .collect();
+            prompt.push_str(&flags.join(", "));
+            prompt.push_str("\n\n");
         }
     }
 
@@ -196,12 +272,16 @@ fn build_prompt_medium(
 }
 
 /// Aggressively compressed prompt for tiny context windows (≤ 4k) or small models (≤ 3B).
+///
+/// For small models, doc-extracted examples as few-shot are critical:
+/// they show the model the exact flag format and output pattern.
 fn build_prompt_compact(
     tool: &str,
     documentation: &str,
     task: &str,
     skill: Option<&Skill>,
     context_window: u32,
+    structured_doc: Option<&StructuredDoc>,
 ) -> String {
     let mut prompt = String::new();
     prompt.push_str(&format!("Tool: {tool}\n\n"));
@@ -222,12 +302,60 @@ fn build_prompt_compact(
                 ex2.task, ex2.args, ex2.explanation
             ));
         }
+    } else if let Some(sdoc) = structured_doc {
+        // No skill examples — use doc-extracted examples as few-shot
+        // This is the key innovation for doc-only accuracy with small models
+        if !sdoc.extracted_examples.is_empty() {
+            // Use the first doc example as a few-shot demonstration
+            let ex_cmd = &sdoc.extracted_examples[0];
+            // Strip the tool name if it starts with it
+            let args_part = ex_cmd
+                .strip_prefix(tool)
+                .map(|s| s.trim_start())
+                .unwrap_or(ex_cmd);
+
+            prompt.push_str(&format!(
+                "Task: Use {tool}\n\n---FEW-SHOT---\n\nARGS: {args_part}\nEXPLANATION: Example from documentation.\n\n---FEW-SHOT---\n\n"
+            ));
+
+            // Second doc example if available
+            if let Some(ex2) = sdoc.extracted_examples.get(1) {
+                let args_part2 = ex2
+                    .strip_prefix(tool)
+                    .map(|s| s.trim_start())
+                    .unwrap_or(ex2);
+                prompt.push_str(&format!(
+                    "Task: Use {tool}\n\n---FEW-SHOT---\n\nARGS: {args_part2}\nEXPLANATION: Example from documentation.\n\n---FEW-SHOT---\n\n"
+                ));
+            }
+        } else {
+            // Absolute fallback: generic bioinformatics few-shot
+            prompt.push_str(
+                "Task: Sort a BAM file by coordinate\n\n---FEW-SHOT---\n\n\
+                 ARGS: sort -@ 4 -o sorted.bam input.bam\n\
+                 EXPLANATION: Sort BAM by coordinate with 4 threads.\n\n---FEW-SHOT---\n\n",
+            );
+        }
     } else {
         prompt.push_str(
             "Task: Sort a BAM file by coordinate\n\n---FEW-SHOT---\n\n\
              ARGS: sort -@ 4 -o sorted.bam input.bam\n\
              EXPLANATION: Sort BAM by coordinate with 4 threads.\n\n---FEW-SHOT---\n\n",
         );
+    }
+
+    // Add compact flag list for doc-only scenarios (helps prevent hallucination)
+    if skill.is_none()
+        && let Some(sdoc) = structured_doc
+        && !sdoc.flag_catalog.is_empty()
+    {
+        let flags: Vec<_> = sdoc
+            .flag_catalog
+            .iter()
+            .take(15)
+            .map(|f| f.flag.as_str())
+            .collect();
+        prompt.push_str(&format!("Valid flags: {}\n\n", flags.join(" ")));
     }
 
     if !documentation.is_empty() && skill.is_none_or(|s| s.examples.is_empty()) {
@@ -583,6 +711,33 @@ pub fn build_retry_prompt(
     context_window: u32,
     tier: PromptTier,
 ) -> String {
+    // Retry prompts don't need structured doc — keep it simple
+    build_retry_prompt_inner(
+        tool,
+        documentation,
+        task,
+        skill,
+        prev_raw,
+        no_prompt,
+        context_window,
+        tier,
+        None,
+    )
+}
+
+/// Internal retry prompt builder that optionally accepts structured doc.
+#[allow(clippy::too_many_arguments)]
+pub fn build_retry_prompt_inner(
+    tool: &str,
+    documentation: &str,
+    task: &str,
+    skill: Option<&Skill>,
+    prev_raw: &str,
+    no_prompt: bool,
+    context_window: u32,
+    tier: PromptTier,
+    structured_doc: Option<&StructuredDoc>,
+) -> String {
     if tier == PromptTier::Compact {
         let mut prompt = build_prompt(
             tool,
@@ -592,6 +747,7 @@ pub fn build_retry_prompt(
             no_prompt,
             context_window,
             tier,
+            structured_doc,
         );
         prompt.push_str("\nIMPORTANT: Output EXACTLY two lines starting with ARGS: and EXPLANATION:. No other text.\n");
         return prompt;
@@ -605,6 +761,7 @@ pub fn build_retry_prompt(
         no_prompt,
         context_window,
         tier,
+        structured_doc,
     );
     format!(
         "{base}\n\
