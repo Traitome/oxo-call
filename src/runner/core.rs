@@ -13,10 +13,10 @@ use crate::history::{CommandProvenance, HistoryEntry, HistoryStore};
 use crate::job;
 use crate::knowledge::error_db::ErrorKnowledgeDb;
 use crate::llm::{LlmClient, LlmCommandSuggestion};
-use crate::llm_workflow::{LlmWorkflowExecutor, WorkflowMode};
+use crate::llm_workflow::LlmWorkflowExecutor;
 use crate::orchestrator::executor::ExecutorAgent;
 use crate::orchestrator::planner::PlannerAgent;
-use crate::orchestrator::supervisor::{OrchestrationMode, SupervisorAgent};
+use crate::orchestrator::supervisor::SupervisorAgent;
 use crate::orchestrator::validator::ValidatorAgent;
 use crate::skill::SkillManager;
 use chrono::Utc;
@@ -523,16 +523,12 @@ impl Runner {
         ));
 
         // Select workflow mode based on orchestrator decision:
-        // - Supervisor SingleCall → Fast (single LLM call)
-        // - Supervisor MultiStage → Quality (multi-step pipeline)
+        // - Supervisor decision maps directly to workflow mode
         // - --scenario override takes priority
         let effective_mode = if let Some(sc) = self.force_scenario {
             sc.default_mode()
         } else {
-            match supervisor_decision.mode {
-                OrchestrationMode::SingleCall => WorkflowMode::Fast,
-                OrchestrationMode::MultiStage => WorkflowMode::Quality,
-            }
+            supervisor_decision.mode.to_workflow_mode()
         };
 
         if self.verbose {

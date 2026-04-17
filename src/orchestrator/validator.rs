@@ -3,8 +3,7 @@
 //! The validator inspects command output (exit code, stderr, output files)
 //! and uses the error knowledge DB to provide recovery suggestions.
 
-use crate::knowledge::error_db::{ErrorCategory, ErrorKnowledgeDb, ErrorRecord};
-use chrono::Utc;
+use crate::knowledge::error_db::{ErrorCategory, ErrorKnowledgeDb};
 use serde::{Deserialize, Serialize};
 
 /// Validation result for a command execution.
@@ -64,8 +63,8 @@ impl ValidatorAgent {
     pub fn validate(
         &self,
         tool: &str,
-        task: &str,
-        command: &str,
+        _task: &str,
+        _command: &str,
         exit_code: i32,
         stderr: &str,
     ) -> ValidationResult {
@@ -104,17 +103,8 @@ impl ValidatorAgent {
         let recovery = ErrorKnowledgeDb::suggest_recovery(tool, stderr);
         suggestions.push(recovery);
 
-        // Record this error for future learning.
-        let _ = ErrorKnowledgeDb::record(ErrorRecord {
-            tool: tool.to_string(),
-            task: task.to_string(),
-            failed_command: command.to_string(),
-            exit_code,
-            stderr_snippet: stderr.chars().take(2000).collect(),
-            error_category,
-            resolution: None,
-            recorded_at: Utc::now().to_rfc3339(),
-        });
+        // Note: Error recording is done in the runner (runner/core.rs) to avoid
+        // duplication.  The validator only reads from the error DB.
 
         let summary =
             format!("Command failed (exit code {exit_code}, category: {error_category:?})");

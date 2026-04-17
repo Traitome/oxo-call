@@ -29,6 +29,16 @@ impl std::fmt::Display for OrchestrationMode {
     }
 }
 
+impl OrchestrationMode {
+    /// Convert to the corresponding `WorkflowMode` used by the LLM pipeline.
+    pub fn to_workflow_mode(self) -> crate::llm_workflow::WorkflowMode {
+        match self {
+            Self::SingleCall => crate::llm_workflow::WorkflowMode::Fast,
+            Self::MultiStage => crate::llm_workflow::WorkflowMode::Quality,
+        }
+    }
+}
+
 // ─── Supervisor Agent ────────────────────────────────────────────────────────
 
 /// Decision output from the supervisor.

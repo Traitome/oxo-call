@@ -7,6 +7,9 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Boost factor applied to exact tool-name matches in the search index.
+const TOOL_NAME_BOOST: f32 = 3.0;
+
 // ─── Core types ──────────────────────────────────────────────────────────────
 
 /// Metadata for a single bioinformatics tool.
@@ -576,7 +579,7 @@ impl ToolKnowledgeBase {
 
                 // Boost exact tool name matches.
                 let boost = if **token == tool.name.to_lowercase() {
-                    3.0
+                    TOOL_NAME_BOOST
                 } else {
                     1.0
                 };
