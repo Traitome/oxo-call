@@ -42,9 +42,7 @@ use crate::config::McpServerConfig;
 use crate::error::{OxoError, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-#[cfg(not(target_arch = "wasm32"))]
 use serde_json::json;
-#[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 
 /// Default HTTP timeout for MCP requests.
@@ -80,7 +78,6 @@ struct RpcResponse {
 /// required because oxo-call only performs read-only resource operations.
 pub struct McpClient {
     config: McpServerConfig,
-    #[cfg(not(target_arch = "wasm32"))]
     http: reqwest::Client,
 }
 
@@ -89,7 +86,6 @@ impl McpClient {
     pub fn new(config: McpServerConfig) -> Self {
         McpClient {
             config,
-            #[cfg(not(target_arch = "wasm32"))]
             http: reqwest::Client::builder()
                 .timeout(Duration::from_secs(MCP_TIMEOUT_SECS))
                 .build()
@@ -112,7 +108,6 @@ impl McpClient {
 
     // ── Internal HTTP helper ──────────────────────────────────────────────
 
-    #[cfg(not(target_arch = "wasm32"))]
     async fn send(&self, method: &str, params: Option<Value>, id: u64) -> Result<Value> {
         let req = RpcRequest {
             jsonrpc: "2.0",
@@ -176,7 +171,6 @@ impl McpClient {
     /// (connection refused, timeout, DNS failure).  Non-transient errors
     /// (HTTP 4xx, JSON-RPC application errors) are returned immediately
     /// without retrying.
-    #[cfg(not(target_arch = "wasm32"))]
     async fn send_with_retry(&self, method: &str, params: Option<Value>, id: u64) -> Result<Value> {
         let mut last_err = None;
 
@@ -208,7 +202,6 @@ impl McpClient {
     /// Perform the MCP `initialize` handshake.
     ///
     /// Returns `(server_name, server_version)` for display purposes.
-    #[cfg(not(target_arch = "wasm32"))]
     pub async fn initialize(&self) -> Result<(String, String)> {
         let params = json!({
             "protocolVersion": "2024-11-05",
@@ -231,20 +224,11 @@ impl McpClient {
         Ok((name, version))
     }
 
-    /// Wasm32-compatible stub: MCP HTTP transport is not available in WebAssembly.
-    #[cfg(target_arch = "wasm32")]
-    pub async fn initialize(&self) -> Result<(String, String)> {
-        Err(OxoError::IndexError(
-            "MCP is not supported in WebAssembly".to_string(),
-        ))
-    }
-
     /// Call `resources/list` to discover skill resources on this server.
     ///
     /// Returns a list of `(uri, tool_name, description)` triples.  Only
     /// resources with a `skill://` URI scheme or a `text/markdown` MIME type
     /// are included.
-    #[cfg(not(target_arch = "wasm32"))]
     pub async fn list_skill_resources(&self) -> Result<Vec<McpSkillEntry>> {
         let result = self.send_with_retry("resources/list", None, 2).await?;
         let resources = match result["resources"].as_array() {
@@ -276,16 +260,7 @@ impl McpClient {
         Ok(entries)
     }
 
-    /// Wasm32-compatible stub: MCP HTTP transport is not available in WebAssembly.
-    #[cfg(target_arch = "wasm32")]
-    pub async fn list_skill_resources(&self) -> Result<Vec<McpSkillEntry>> {
-        Err(OxoError::IndexError(
-            "MCP is not supported in WebAssembly".to_string(),
-        ))
-    }
-
     /// Call `resources/read` to fetch the Markdown content for a skill URI.
-    #[cfg(not(target_arch = "wasm32"))]
     pub async fn read_resource(&self, uri: &str) -> Result<String> {
         let params = json!({ "uri": uri });
         let result = self
@@ -314,7 +289,6 @@ impl McpClient {
     /// falls back to scanning the resource list for a matching tool name.
     ///
     /// Returns `None` if the tool is not available on this server.
-    #[cfg(not(target_arch = "wasm32"))]
     pub async fn fetch_skill(&self, tool: &str) -> Option<String> {
         // Fast path: try canonical URI first
         let canonical = format!("skill://{tool}");
@@ -553,7 +527,6 @@ mod tests {
 
     // ─── Mock HTTP tests (wiremock) ───────────────────────────────────────────
 
-    #[cfg(not(target_arch = "wasm32"))]
     mod mock_tests {
         use super::*;
         use wiremock::matchers::{method, path};
