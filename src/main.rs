@@ -205,20 +205,38 @@ async fn run(cli: Cli) -> error::Result<()> {
             jobs,
             stop_on_error,
             auto_retry,
-            fast: _,
-            quality,
+            scenario,
+            mode,
         } => {
             let mut cfg = config::Config::load()?;
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
             }
 
-            // Determine workflow mode
-            let workflow_mode = if quality {
-                llm_workflow::WorkflowMode::Quality
-            } else {
-                llm_workflow::WorkflowMode::Fast // Default
-            };
+            // Parse scenario and mode overrides
+            let force_scenario = scenario
+                .as_ref()
+                .and_then(|s| match s.to_lowercase().as_str() {
+                    "basic" => Some(workflow_graph::WorkflowScenario::Basic),
+                    "prompt" => Some(workflow_graph::WorkflowScenario::Prompt),
+                    "doc" => Some(workflow_graph::WorkflowScenario::Doc),
+                    "skill" => Some(workflow_graph::WorkflowScenario::Skill),
+                    "full" => Some(workflow_graph::WorkflowScenario::Full),
+                    _ => None,
+                });
+
+            let force_mode = mode.as_ref().and_then(|m| match m.to_lowercase().as_str() {
+                "fast" => Some(llm_workflow::WorkflowMode::Fast),
+                "quality" => Some(llm_workflow::WorkflowMode::Quality),
+                _ => None,
+            });
+
+            // Determine final workflow mode: explicit override > scenario default > Fast
+            let workflow_mode = force_mode.unwrap_or_else(|| {
+                force_scenario
+                    .map(|s| s.default_mode())
+                    .unwrap_or(llm_workflow::WorkflowMode::Fast)
+            });
 
             // Collect input items from --input-list / --input-items.
             #[cfg(not(target_arch = "wasm32"))]
@@ -278,20 +296,38 @@ async fn run(cli: Cli) -> error::Result<()> {
             vars,
             input_list,
             input_items,
-            fast: _,
-            quality,
+            scenario,
+            mode,
         } => {
             let mut cfg = config::Config::load()?;
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
             }
 
-            // Determine workflow mode
-            let workflow_mode = if quality {
-                llm_workflow::WorkflowMode::Quality
-            } else {
-                llm_workflow::WorkflowMode::Fast // Default
-            };
+            // Parse scenario and mode overrides
+            let force_scenario = scenario
+                .as_ref()
+                .and_then(|s| match s.to_lowercase().as_str() {
+                    "basic" => Some(workflow_graph::WorkflowScenario::Basic),
+                    "prompt" => Some(workflow_graph::WorkflowScenario::Prompt),
+                    "doc" => Some(workflow_graph::WorkflowScenario::Doc),
+                    "skill" => Some(workflow_graph::WorkflowScenario::Skill),
+                    "full" => Some(workflow_graph::WorkflowScenario::Full),
+                    _ => None,
+                });
+
+            let force_mode = mode.as_ref().and_then(|m| match m.to_lowercase().as_str() {
+                "fast" => Some(llm_workflow::WorkflowMode::Fast),
+                "quality" => Some(llm_workflow::WorkflowMode::Quality),
+                _ => None,
+            });
+
+            // Determine final workflow mode: explicit override > scenario default > Fast
+            let workflow_mode = force_mode.unwrap_or_else(|| {
+                force_scenario
+                    .map(|s| s.default_mode())
+                    .unwrap_or(llm_workflow::WorkflowMode::Fast)
+            });
 
             #[cfg(not(target_arch = "wasm32"))]
             let all_items = {

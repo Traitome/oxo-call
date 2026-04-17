@@ -14,19 +14,12 @@ use crate::llm::{
 };
 use crate::mini_skill_cache::{CacheConfig, MiniSkill, MiniSkillCache};
 use crate::skill::Skill;
+// Re-export WorkflowMode from task_complexity for unified type
+pub use crate::task_complexity::WorkflowMode;
 use serde::Deserialize;
 use sha2::Digest;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-
-/// Workflow execution mode
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum WorkflowMode {
-    /// Fast mode: Single LLM call, minimal latency
-    Fast,
-    /// Quality mode: Multi-stage pipeline, best accuracy
-    Quality,
-}
 
 /// Result of a workflow execution
 #[derive(Debug)]

@@ -76,6 +76,27 @@ impl std::fmt::Display for WorkflowScenario {
     }
 }
 
+impl WorkflowScenario {
+    /// Get default workflow mode for this scenario
+    ///
+    /// # Scenario-Mode Mapping
+    ///
+    /// - **Basic**: Fast (simplest, no processing needed)
+    /// - **Prompt**: Fast (user-defined, trust their prompt)
+    /// - **Doc**: Quality (needs mini-skill generation)
+    /// - **Skill**: Fast (existing skill is sufficient)
+    /// - **Full**: Quality (complex combination)
+    pub fn default_mode(&self) -> WorkflowMode {
+        match self {
+            Self::Basic => WorkflowMode::Fast,
+            Self::Prompt => WorkflowMode::Fast,
+            Self::Doc => WorkflowMode::Quality,
+            Self::Skill => WorkflowMode::Fast,
+            Self::Full => WorkflowMode::Quality,
+        }
+    }
+}
+
 /// Workflow input
 #[derive(Debug, Clone, Default)]
 pub struct WorkflowInput {
@@ -233,6 +254,10 @@ impl WorkflowGraph {
         // Check if scenario is forced
         if let Some(scenario) = state.input.force_scenario {
             state.scenario = scenario;
+            // Set default mode for this scenario
+            if state.input.force_mode.is_none() {
+                state.mode = scenario.default_mode();
+            }
             return Ok(());
         }
 
@@ -248,6 +273,11 @@ impl WorkflowGraph {
             (false, false, true) => WorkflowScenario::Prompt, // prompt only
             (false, false, false) => WorkflowScenario::Basic, // basic
         };
+
+        // Set default mode for this scenario (unless forced)
+        if state.input.force_mode.is_none() {
+            state.mode = state.scenario.default_mode();
+        }
 
         state.metadata.insert(
             "scenario".to_string(),
@@ -267,15 +297,11 @@ impl WorkflowGraph {
         Ok(())
     }
 
-    /// Estimate task complexity
+    /// Estimate task complexity (for metadata and adaptive adjustment)
     fn estimate_complexity(&self, state: &mut WorkflowState) -> Result<()> {
-        // Check if mode is forced
-        if let Some(mode) = state.input.force_mode {
-            state.mode = mode;
-            return Ok(());
-        }
+        // Mode is already set by scenario.default_mode() or force_mode
+        // This method only estimates complexity for metadata
 
-        // Estimate complexity
         let has_skill = state.input.skill_path.is_some();
         let doc_quality = if state.input.documentation.is_some() {
             0.8
@@ -288,7 +314,27 @@ impl WorkflowGraph {
                 .estimate(&state.input.task, &state.input.tool, has_skill, doc_quality);
 
         state.complexity = Some(complexity.clone());
-        state.mode = complexity.recommended_mode;
+
+        // Optional: Override mode if complexity suggests a different mode
+        // and mode is not forced
+        if state.input.force_mode.is_none() {
+            // Only override if there's a strong signal
+            if complexity.score.0 > 0.8 && state.mode == WorkflowMode::Fast {
+                // Very complex task, upgrade to Quality mode
+                state.mode = WorkflowMode::Quality;
+                state.metadata.insert(
+                    "mode_override".to_string(),
+                    "complexity-based upgrade to Quality".to_string(),
+                );
+            } else if complexity.score.0 < 0.2 && state.mode == WorkflowMode::Quality {
+                // Very simple task, downgrade to Fast mode
+                state.mode = WorkflowMode::Fast;
+                state.metadata.insert(
+                    "mode_override".to_string(),
+                    "complexity-based downgrade to Fast".to_string(),
+                );
+            }
+        }
 
         state.metadata.insert(
             "complexity_score".to_string(),

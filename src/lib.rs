@@ -40,7 +40,10 @@ pub mod runner;
 pub mod sanitize;
 pub mod server;
 pub mod skill;
+pub mod task_complexity;
+pub mod task_normalizer;
 pub mod workflow;
+pub mod workflow_graph;
 
 // Re-export commonly used types for convenience
 pub use history::{ArgCombo, CommandProvenance, HistoryEntry, WorkflowSuggestion};

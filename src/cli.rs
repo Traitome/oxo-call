@@ -120,23 +120,23 @@ EXAMPLES:\n  \
         /// and retry with a corrected command (up to 2 retries)
         #[arg(long)]
         auto_retry: bool,
-        /// Use fast mode: single LLM call for minimal latency (default)
+        /// Force a specific workflow scenario (auto-detected by default)
         ///
-        /// Fast mode is optimized for speed and works well with large models
-        /// or when you have existing skills for the tool.
-        #[arg(long, conflicts_with = "quality")]
-        fast: bool,
-        /// Use quality mode: multi-stage LLM workflow for best accuracy
+        /// Scenarios:
+        /// - basic: Tool + Task only (fastest)
+        /// - prompt: Basic + custom prompt
+        /// - doc: Basic + documentation + mini-skill generation
+        /// - skill: Basic + skill file
+        /// - full: Doc + skill combined (most accurate)
+        #[arg(long, value_name = "SCENARIO")]
+        scenario: Option<String>,
+        /// Force a specific workflow mode (auto-selected by default)
         ///
-        /// Quality mode uses multiple LLM calls:
-        /// 1. Task standardization (if needed)
-        /// 2. Document cleaning
-        /// 3. Mini-skill generation (cached)
-        /// 4. Command generation
-        ///
-        /// Recommended for small models or complex tasks without existing skills.
-        #[arg(long, conflicts_with = "fast")]
-        quality: bool,
+        /// Modes:
+        /// - fast: Single LLM call (minimal latency)
+        /// - quality: Multi-stage workflow (best accuracy)
+        #[arg(long, value_name = "MODE")]
+        mode: Option<String>,
     },
     #[command(
         name = "dry-run",
@@ -192,12 +192,12 @@ EXAMPLES:\n  \
         /// Comma-separated input items; previews the command for each item
         #[arg(long = "input-items", value_name = "ITEMS")]
         input_items: Option<String>,
-        /// Use fast mode: single LLM call for minimal latency (default)
-        #[arg(long, conflicts_with = "quality")]
-        fast: bool,
-        /// Use quality mode: multi-stage LLM workflow for best accuracy
-        #[arg(long, conflicts_with = "fast")]
-        quality: bool,
+        /// Force a specific workflow scenario (auto-detected by default)
+        #[arg(long, value_name = "SCENARIO")]
+        scenario: Option<String>,
+        /// Force a specific workflow mode (auto-selected by default)
+        #[arg(long, value_name = "MODE")]
+        mode: Option<String>,
     },
 
     /// Manage tool documentation (add, remove, update, list, show)
