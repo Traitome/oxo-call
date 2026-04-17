@@ -138,16 +138,9 @@ pub fn parse_ssh_config() -> Vec<SshConfigEntry> {
 }
 
 fn dirs_ssh_config() -> PathBuf {
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        directories::BaseDirs::new()
-            .map(|d| d.home_dir().join(".ssh").join("config"))
-            .unwrap_or_else(|| PathBuf::from("~/.ssh/config"))
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        PathBuf::from("~/.ssh/config")
-    }
+    directories::BaseDirs::new()
+        .map(|d| d.home_dir().join(".ssh").join("config"))
+        .unwrap_or_else(|| PathBuf::from("~/.ssh/config"))
 }
 
 fn is_concrete_alias(alias: &str) -> bool {
@@ -301,7 +294,6 @@ impl ServerManager {
     }
 
     /// Check SSH connectivity to a server.
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn check_connection(&self, server: &ServerHost) -> Result<bool> {
         let mut cmd = std::process::Command::new("ssh");
         for arg in &server.ssh_args() {
@@ -327,7 +319,6 @@ impl ServerManager {
     }
 
     /// Detect the scheduler on an HPC server by checking for common commands.
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn detect_scheduler(&self, server: &ServerHost) -> Option<String> {
         let schedulers = [
             ("slurm", "sinfo --version"),

@@ -10,9 +10,7 @@
 ///    users can then export to Snakemake / Nextflow via `workflow export`.
 /// 4. **Compatibility export** — existing Snakemake / Nextflow templates are
 ///    available for HPC environments that require those formats.
-#[cfg(not(target_arch = "wasm32"))]
 use crate::config::Config;
-#[cfg(not(target_arch = "wasm32"))]
 use crate::error::{OxoError, Result};
 use colored::Colorize;
 use serde::{Deserialize, Serialize};
@@ -257,7 +255,6 @@ fn parse_workflow_response(raw: &str, engine: &str) -> Option<GeneratedWorkflow>
 ///   - `"native"` (default) → `.oxo.toml` for the built-in oxo engine
 ///   - `"snakemake"` → Snakefile
 ///   - `"nextflow"` → Nextflow DSL2 `.nf`
-#[cfg(not(target_arch = "wasm32"))]
 pub async fn generate_workflow(
     config: &Config,
     task: &str,
@@ -647,7 +644,6 @@ pub fn build_infer_prompt(task: &str, ctx: &DataContext, data_dir: &str) -> Stri
 /// 1. Scans the data directory to discover sample names and file patterns.
 /// 2. Builds an enriched prompt that includes real paths and sample names.
 /// 3. Uses the native TOML system prompt so the output is immediately runnable.
-#[cfg(not(target_arch = "wasm32"))]
 pub async fn infer_workflow(
     config: &Config,
     task: &str,
@@ -1323,7 +1319,6 @@ mod tests {
 
     // ─── Mock HTTP tests for generate_workflow / infer_workflow ───────────────
 
-    #[cfg(not(target_arch = "wasm32"))]
     mod mock_tests {
         use super::*;
         use crate::config::Config;

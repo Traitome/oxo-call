@@ -806,7 +806,6 @@ impl SkillManager {
     /// MCP servers are queried in the order they appear in `config.toml`.  The
     /// first server that returns a parseable skill wins.  Network errors are
     /// silently ignored (a warning is printed with `--verbose`).
-    #[cfg(not(target_arch = "wasm32"))]
     pub async fn load_async(&self, tool: &str) -> Option<Skill> {
         let tool_lc = tool.to_ascii_lowercase();
         // 1. User-defined (highest priority)
@@ -823,12 +822,6 @@ impl SkillManager {
         }
         // 4. Built-in (lowest priority)
         self.load_builtin(&tool_lc)
-    }
-
-    /// Wasm32-compatible stub: falls back to synchronous load (MCP not available).
-    #[cfg(target_arch = "wasm32")]
-    pub async fn load_async(&self, tool: &str) -> Option<Skill> {
-        self.load(tool)
     }
 
     /// Load a skill from the built-in registry (compiled into the binary).
@@ -893,7 +886,6 @@ impl SkillManager {
     }
 
     /// Try each configured MCP server in order; return the first parseable skill found.
-    #[cfg(not(target_arch = "wasm32"))]
     async fn load_mcp(&self, tool: &str) -> Option<Skill> {
         use crate::mcp::McpClient;
 
@@ -962,7 +954,6 @@ impl SkillManager {
     /// MCP servers are queried concurrently; errors are silently ignored.
     ///
     /// Returns `Vec<(tool_name, source_label)>` sorted alphabetically.
-    #[cfg(not(target_arch = "wasm32"))]
     pub async fn list_all_async(&self) -> Vec<(String, String)> {
         use crate::mcp::McpClient;
 
@@ -992,61 +983,46 @@ impl SkillManager {
         result
     }
 
-    /// Wasm32-compatible stub: falls back to synchronous list (MCP not available).
-    #[cfg(target_arch = "wasm32")]
-    pub async fn list_all_async(&self) -> Vec<(String, String)> {
-        self.list_all()
-    }
-
     // ── Install / remove ─────────────────────────────────────────────────────
 
     /// Install a skill from a URL into the community skills directory.
     ///
     /// Both `.md` (YAML front-matter + Markdown, preferred) and legacy `.toml`
     /// formats are accepted; the format is detected from the downloaded content.
-    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn install_from_url(&self, tool: &str, url: &str) -> Result<Skill> {
         if !url.starts_with("https://") && !url.starts_with("http://") {
             return Err(OxoError::IndexError(
                 "Only http:// and https:// URLs are accepted".to_string(),
             ));
         }
-        #[cfg(target_arch = "wasm32")]
-        return Err(OxoError::IndexError(
-            "Skill installation from URL is not supported in WebAssembly".to_string(),
-        ));
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let client = reqwest::Client::new();
-            let response = client.get(url).send().await?;
-            if !response.status().is_success() {
-                return Err(OxoError::IndexError(format!(
-                    "HTTP {} fetching skill from {url}",
-                    response.status()
-                )));
-            }
-            let content = response.text().await?;
-
-            // Detect format from content or URL extension
-            let is_md = url.ends_with(".md") || content.trim_start().starts_with("---");
-            let skill = if is_md {
-                parse_skill_md(&content).ok_or_else(|| {
-                    OxoError::IndexError(
-                        "Invalid skill Markdown: could not parse front-matter and sections"
-                            .to_string(),
-                    )
-                })?
-            } else {
-                toml::from_str(&content)
-                    .map_err(|e| OxoError::IndexError(format!("Invalid skill TOML: {e}")))?
-            };
-
-            let dir = self.community_skill_dir()?;
-            std::fs::create_dir_all(&dir)?;
-            let ext = if is_md { "md" } else { "toml" };
-            std::fs::write(dir.join(format!("{tool}.{ext}")), &content)?;
-            Ok(skill)
+        let client = reqwest::Client::new();
+        let response = client.get(url).send().await?;
+        if !response.status().is_success() {
+            return Err(OxoError::IndexError(format!(
+                "HTTP {} fetching skill from {url}",
+                response.status()
+            )));
         }
+        let content = response.text().await?;
+
+        // Detect format from content or URL extension
+        let is_md = url.ends_with(".md") || content.trim_start().starts_with("---");
+        let skill = if is_md {
+            parse_skill_md(&content).ok_or_else(|| {
+                OxoError::IndexError(
+                    "Invalid skill Markdown: could not parse front-matter and sections".to_string(),
+                )
+            })?
+        } else {
+            toml::from_str(&content)
+                .map_err(|e| OxoError::IndexError(format!("Invalid skill TOML: {e}")))?
+        };
+
+        let dir = self.community_skill_dir()?;
+        std::fs::create_dir_all(&dir)?;
+        let ext = if is_md { "md" } else { "toml" };
+        std::fs::write(dir.join(format!("{tool}.{ext}")), &content)?;
+        Ok(skill)
     }
 
     /// Install a skill from the official oxo-call community registry on GitHub.
