@@ -1276,19 +1276,48 @@ fn test_workflow_show_metagenomics_snakemake() {
 #[test]
 fn test_workflow_generate_requires_llm_token() {
     // Without a configured LLM token, generate should fail gracefully
-    let output = oxo_call()
-        .args(["workflow", "generate", "RNA-seq pipeline for human samples"])
-        .env_remove("OXO_CALL_LLM_API_TOKEN")
+    // First, check what provider is configured
+    let show_output = oxo_call()
+        .args(["config", "show"])
         .output()
         .expect("failed to run oxo-call");
-    // Should fail because no API token is configured (in CI there is no real token)
-    assert!(
-        !output.status.success() || {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            stdout.contains("WORKFLOW:") || stdout.contains("workflow")
-        },
-        "Expected either a failure or a valid workflow output"
-    );
+    let show_stdout = String::from_utf8_lossy(&show_output.stdout);
+
+    // If ollama is configured, the test should succeed (no token needed)
+    if show_stdout.contains("provider                  ollama") {
+        let output = oxo_call()
+            .args(["workflow", "generate", "RNA-seq pipeline for human samples"])
+            .env_remove("OXO_CALL_LLM_API_TOKEN")
+            .output()
+            .expect("failed to run oxo-call");
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        // Successful workflow generation produces TOML format with name, description, etc.
+        assert!(
+            output.status.success()
+                && (stdout.contains("name =")
+                    || stdout.contains("description =")
+                    || stdout.contains("[[step]]")),
+            "Expected workflow generation to succeed with ollama. stdout: {}",
+            stdout
+        );
+    } else {
+        // For other providers, should fail without token
+        let output = oxo_call()
+            .args(["workflow", "generate", "RNA-seq pipeline for human samples"])
+            .env_remove("OXO_CALL_LLM_API_TOKEN")
+            .output()
+            .expect("failed to run oxo-call");
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(
+            !output.status.success()
+                || stderr.contains("token")
+                || stderr.contains("authentication"),
+            "Expected failure without token for non-ollama provider. stdout: {}, stderr: {}",
+            stdout,
+            stderr
+        );
+    }
 }
 
 #[test]

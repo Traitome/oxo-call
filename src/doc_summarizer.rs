@@ -14,7 +14,7 @@ pub const MAX_DOC_LEN_LARGE_MODEL: usize = 10_000; // For 16B+ models
 pub const MIN_SUMMARIZE_LEN: usize = 2_000;
 
 /// Key sections to prioritize when summarizing
-const PRIORITY_SECTIONS: &[&str] = &[
+const PRIORITY_SECTIONS: &[&str; 7] = &[
     "usage",
     "options",
     "arguments",
@@ -25,7 +25,7 @@ const PRIORITY_SECTIONS: &[&str] = &[
 ];
 
 /// Patterns to filter out (noise in help text)
-const NOISE_PATTERNS: &[&str] = &[
+const NOISE_PATTERNS: &[&str; 5] = &[
     r"For more information.*",
     r"Report bugs to.*",
     r"See the full documentation.*",
@@ -40,10 +40,11 @@ const NOISE_PATTERNS: &[&str] = &[
 /// 2. Filters out noise (bug reports, links, etc.)
 /// 3. Limits total length while preserving critical information
 /// 4. Structures output for LLM readability
+/// 5. Highlights USAGE and critical flags
 pub fn summarize_docs(docs: &str, max_len: usize) -> String {
     // Don't summarize short docs
     if docs.len() <= MIN_SUMMARIZE_LEN {
-        return docs.to_string();
+        return format_for_llm(docs);
     }
 
     // Step 1: Clean noise
@@ -52,8 +53,8 @@ pub fn summarize_docs(docs: &str, max_len: usize) -> String {
     // Step 2: Extract key sections
     let sections = extract_key_sections(&cleaned);
 
-    // Step 3: Build structured summary
-    let summary = build_structured_summary(&sections);
+    // Step 3: Build structured summary optimized for LLM
+    let summary = build_llm_optimized_summary(&sections, max_len);
 
     // Step 4: Truncate if still too long
     if summary.len() > max_len {
@@ -61,6 +62,21 @@ pub fn summarize_docs(docs: &str, max_len: usize) -> String {
     } else {
         summary
     }
+}
+
+/// Format documentation for LLM consumption, highlighting key patterns
+fn format_for_llm(docs: &str) -> String {
+    let mut formatted = String::new();
+    let lines: Vec<&str> = docs.lines().collect();
+
+    for line in lines {
+        let _trimmed = line.trim();
+
+        // Keep other lines
+        formatted.push_str(&format!("{}\n", line));
+    }
+
+    formatted.trim().to_string()
 }
 
 /// Remove noise patterns from documentation
@@ -177,45 +193,146 @@ fn is_section_header(line: &str) -> bool {
     false
 }
 
-/// Build a structured summary from extracted sections
-fn build_structured_summary(sections: &[(String, String)]) -> String {
+/// Build LLM-optimized summary with clear structure and highlighted patterns
+fn build_llm_optimized_summary(sections: &[(String, String)], max_len: usize) -> String {
     let mut summary = String::new();
 
-    // Group sections by priority
-    let mut priority_sections: Vec<(String, String)> = Vec::new();
-    let mut other_sections: Vec<(String, String)> = Vec::new();
+    // Priority order for LLM understanding
+    let priority_order = [
+        "usage",      // Most critical - shows command structure
+        "examples",   // Concrete examples for LLM to learn from
+        "options",    // Available flags
+        "arguments",  // Required inputs
+        "commands",   // Subcommands
+        "parameters", // Additional parameters
+        "flags",      // Alternative to options
+    ];
 
-    for (title, content) in sections {
-        let is_priority = PRIORITY_SECTIONS
-            .iter()
-            .any(|&s| title.to_lowercase().contains(s));
+    // Sort sections by priority
+    let mut sorted_sections: Vec<(usize, &String, &String)> = sections
+        .iter()
+        .map(|(title, content)| {
+            let priority = priority_order
+                .iter()
+                .position(|p| title.to_lowercase().contains(p))
+                .unwrap_or(999);
+            (priority, title, content)
+        })
+        .collect();
 
-        if is_priority {
-            priority_sections.push((title.clone(), content.clone()));
+    sorted_sections.sort_by_key(|(p, _, _)| *p);
+
+    // Build summary with clear markers
+    for (priority, title, content) in sorted_sections {
+        if summary.len() > (max_len as f64 * 0.8) as usize {
+            break; // Stop before exceeding limit
+        }
+
+        if !summary.is_empty() {
+            summary.push_str("\n\n");
+        }
+
+        // Add clear section marker for LLM
+        let title_lower = title.to_lowercase();
+        if title_lower.contains("usage") {
+            summary.push_str("=== USAGE (command structure) ===\n");
+        } else if title_lower.contains("example") {
+            summary.push_str("=== EXAMPLES (learn from these) ===\n");
+        } else if title_lower.contains("option") || title_lower.contains("flag") {
+            summary.push_str("=== OPTIONS/FLAGS ===\n");
         } else {
-            other_sections.push((title.clone(), content.clone()));
+            summary.push_str(&format!("=== {} ===\n", title));
         }
+
+        // Format content for LLM readability
+        let formatted_content = format_section_content(content, priority);
+        summary.push_str(&formatted_content);
     }
 
-    // Add priority sections first
-    for (title, content) in priority_sections {
-        if !summary.is_empty() {
-            summary.push_str("\n\n");
+    // Add quick reference if space available
+    if summary.len() < (max_len as f64 * 0.9) as usize {
+        let flags = extract_flags_from_sections(sections);
+        if !flags.is_empty() && summary.len() + 200 < max_len {
+            summary.push_str("\n\n=== QUICK REFERENCE FLAGS ===\n");
+            summary.push_str(&flags.join(" "));
         }
-        summary.push_str(&format!("## {}\n", title));
-        summary.push_str(content.trim());
-    }
-
-    // Add other sections if we have space
-    for (title, content) in other_sections {
-        if !summary.is_empty() {
-            summary.push_str("\n\n");
-        }
-        summary.push_str(&format!("## {}\n", title));
-        summary.push_str(content.trim());
     }
 
     summary
+}
+
+/// Format section content for better LLM understanding
+fn format_section_content(content: &str, priority: usize) -> String {
+    let mut formatted = String::new();
+    let lines: Vec<&str> = content.lines().collect();
+
+    // For USAGE (highest priority), highlight the pattern
+    if priority == 0 {
+        for line in lines.iter().take(5) {
+            let trimmed = line.trim();
+            if !trimmed.is_empty() {
+                // Highlight command patterns
+                if trimmed.contains('[') || trimmed.contains('<') || trimmed.contains('|') {
+                    formatted.push_str(&format!(">>> {}\n", trimmed));
+                } else {
+                    formatted.push_str(&format!("{}\n", trimmed));
+                }
+            }
+        }
+        return formatted;
+    }
+
+    // For EXAMPLES, show concrete commands
+    if priority == 1 {
+        for line in lines.iter().take(10) {
+            let trimmed = line.trim();
+            if !trimmed.is_empty() {
+                // Highlight actual command lines (often start with $ or tool name)
+                if trimmed.starts_with('$') || trimmed.starts_with('#') {
+                    formatted.push_str(&format!("{}\n", trimmed));
+                } else if trimmed.contains("  ") && !trimmed.starts_with('-') {
+                    // Likely a command description
+                    formatted.push_str(&format!("{}\n", trimmed));
+                } else {
+                    formatted.push_str(&format!("{}\n", trimmed));
+                }
+            }
+        }
+        return formatted;
+    }
+
+    // For OPTIONS/FLAGS, format as compact list
+    if priority <= 3 {
+        for line in lines.iter().take(20) {
+            let trimmed = line.trim();
+            if trimmed.starts_with('-') {
+                // Flag line - keep it
+                formatted.push_str(&format!("{}\n", trimmed));
+            } else if !trimmed.is_empty() && formatted.len() < 500 {
+                // Description - keep brief
+                formatted.push_str(&format!("{}\n", trimmed));
+            }
+        }
+        return formatted;
+    }
+
+    // Default: just trim and limit
+    content.lines().take(15).collect::<Vec<_>>().join("\n")
+}
+
+/// Extract flags from all sections for quick reference
+fn extract_flags_from_sections(sections: &[(String, String)]) -> Vec<String> {
+    let mut all_flags = HashSet::new();
+
+    for (_, content) in sections {
+        let flags = extract_flags(content);
+        all_flags.extend(flags);
+    }
+
+    let mut sorted: Vec<String> = all_flags.into_iter().collect();
+    sorted.sort();
+    sorted.truncate(30); // Limit to 30 most important flags
+    sorted
 }
 
 /// Smart truncation that preserves complete lines and sections

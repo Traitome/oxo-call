@@ -115,17 +115,39 @@ fn build_prompt_full(tool: &str, documentation: &str, task: &str, skill: Option<
         if !section.is_empty() {
             prompt.push_str(&section);
         }
+    } else {
+        // No skill available - emphasize learning from documentation
+        prompt.push_str("## Important: Learn from Documentation\n");
+        prompt.push_str(
+            "Study the USAGE pattern and EXAMPLES carefully. Match the exact flag format.\n\n",
+        );
     }
 
     prompt.push_str("## Tool Documentation\n");
     prompt.push_str(documentation);
     prompt.push_str("\n\n");
     prompt.push_str(&format!("## Task\n{task}\n\n"));
-    prompt.push_str(
-        "## Output\n\
-         ARGS: <subcommand then flags, NO tool name>\n\
-         EXPLANATION: <brief>\n",
-    );
+
+    // Enhanced output instructions for doc-only scenario
+    if skill.is_none() {
+        prompt.push_str(
+            "## Output Requirements\n\
+             1. ARGS line: subcommand first, then flags in exact format from USAGE/EXAMPLES\n\
+             2. Match flag format exactly: --flag=value or --flag value (as shown in docs)\n\
+             3. Include ALL required parameters from task description\n\
+             4. NO tool name prefix (auto-added by system)\n\
+             5. EXPLANATION: brief description of what the command does\n\n\
+             Example output format:\n\
+             ARGS: sort -@ 8 -o output.bam input.bam\n\
+             EXPLANATION: Sort BAM file with 8 threads.\n",
+        );
+    } else {
+        prompt.push_str(
+            "## Output\n\
+             ARGS: <subcommand then flags, NO tool name>\n\
+             EXPLANATION: <brief>\n",
+        );
+    }
     prompt
 }
 

@@ -283,18 +283,38 @@ impl DocsFetcher {
     /// 1. Parse the top-level help to extract a list of known subcommands.
     /// 2. Match subcommand names against keywords in the user's task.
     /// 3. If a match is found, fetch `tool subcommand --help` and return it.
+    /// 4. Also try `tool_subcommand` format for standalone executables (e.g., medaka_consensus).
     ///
     /// This ensures the LLM gets detailed parameter info for the specific subcommand
     /// the user needs (e.g., `samtools sort` instead of just `samtools` top-level).
     pub fn fetch_subcommand_help(&self, tool: &str, top_help: &str, task: &str) -> Option<String> {
         let subcommands = extract_subcommand_list(top_help);
+        
+        // Strategy 0: Extract keywords from task and try standalone commands first
+        // This handles tools like medaka where medaka_consensus is a separate executable
+        let task_lower = task.to_ascii_lowercase();
+        let task_keywords: Vec<&str> = task_lower
+            .split_whitespace()
+            .filter(|word| word.len() >= 3) // Skip short words
+            .collect();
+        
+        // Try each keyword as a potential standalone command tool_keyword
+        for keyword in &task_keywords {
+            let standalone_cmd = format!("{tool}_{keyword}");
+            if let Ok(help) = self.fetch_help(&standalone_cmd).map(|(h, _)| h) {
+                if help.len() >= MIN_HELP_LEN {
+                    return Some(format!("# {standalone_cmd} --help\n\n{help}"));
+                }
+            }
+        }
+        
+        // If no standalone commands found, fall back to subcommand matching
         if subcommands.is_empty() {
             return None;
         }
 
         // Find the best-matching subcommand from the task description.
         // We look for exact word-boundary matches of subcommand names in the task.
-        let task_lower = task.to_ascii_lowercase();
         let matched = subcommands
             .iter()
             .filter(|sc| sc.len() >= 2) // skip single-char subcommands (likely noise)
@@ -305,11 +325,23 @@ impl DocsFetcher {
                     // Also match hyphenated forms: "fastq-dump" in "fastq dump"
                     || task_lower.contains(&format!(" {sc_lower}"))
                     || task_lower.contains(&format!("{sc_lower} "))
+                    // Match underscore forms: "consensus" matches "medaka_consensus"
+                    || task_lower.contains(&format!("_{}", sc_lower))
             })
             .max_by_key(|sc| sc.len()); // prefer longer (more specific) match
 
         if let Some(subcmd) = matched {
-            // Try to fetch help for this specific subcommand
+            // Try multiple strategies to fetch help for this subcommand
+            
+            // Strategy 1: Try standalone executable tool_subcommand (e.g., medaka_consensus)
+            let standalone_cmd = format!("{tool}_{subcmd}");
+            if let Ok(help) = self.fetch_help(&standalone_cmd).map(|(h, _)| h) {
+                if help.len() >= MIN_HELP_LEN {
+                    return Some(format!("# {standalone_cmd} --help\n\n{help}"));
+                }
+            }
+            
+            // Strategy 2: Try tool subcommand --help (standard subcommand pattern)
             if let Ok(help) = self
                 .run_help_flag(tool, &format!("{subcmd} --help"))
                 .or_else(|_| self.run_help_flag(tool, &format!("{subcmd} -h")))
@@ -321,7 +353,8 @@ impl DocsFetcher {
             {
                 return Some(format!("# {tool} {subcmd} --help\n\n{help}"));
             }
-            // Also try running the subcommand bare (many bioinfo tools print help when called with no args)
+            
+            // Strategy 3: Run subcommand bare (many bioinfo tools print help when called with no args)
             if let Ok(help) = self.run_subcommand_no_args(tool, subcmd)
                 && help.len() >= MIN_HELP_LEN
             {

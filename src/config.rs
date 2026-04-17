@@ -280,7 +280,13 @@ impl Config {
     pub fn set(&mut self, key: &str, value: &str) -> Result<()> {
         match key {
             "llm.provider" => self.llm.provider = value.to_string(),
-            "llm.api_token" => self.llm.api_token = Some(value.to_string()),
+            "llm.api_token" => {
+                if value.is_empty() {
+                    self.llm.api_token = None;
+                } else {
+                    self.llm.api_token = Some(value.to_string());
+                }
+            }
             "llm.api_base" => self.llm.api_base = Some(value.to_string()),
             "llm.model" => self.llm.model = Some(value.to_string()),
             "llm.max_tokens" => {
