@@ -877,6 +877,13 @@ use std::sync::LazyLock;
 struct BoilerplatePattern {
     /// Regex matching the flag+value span (with optional leading whitespace).
     re: Regex,
+    /// `true` when this pattern anchors at `^` (start-of-string) and should
+    /// replace with empty; `false` for mid-string patterns that replace with
+    /// a single space.
+    is_start: bool,
+    /// `true` when this pattern targets a quality-filter flag (e.g. `-minMapQ`,
+    /// `-minQ`, `-minInd`, `--min-rq`) rather than a threading flag.
+    is_quality: bool,
 }
 
 /// Tool-specific boilerplate patterns.
@@ -887,14 +894,22 @@ static TOOL_BOILERPLATE: LazyLock<
     fn pats(raw: &[&str]) -> Vec<BoilerplatePattern> {
         raw.iter()
             .flat_map(|p| {
+                let is_quality = p.contains("minMapQ")
+                    || p.contains("minQ")
+                    || p.contains("minInd")
+                    || p.contains("min-rq");
                 vec![
                     // mid-string: preceded by whitespace
                     BoilerplatePattern {
                         re: Regex::new(&format!(r"\s+{p}")).unwrap(),
+                        is_start: false,
+                        is_quality,
                     },
                     // start-of-string
                     BoilerplatePattern {
                         re: Regex::new(&format!(r"^{p}\s*")).unwrap(),
+                        is_start: true,
+                        is_quality,
                     },
                 ]
             })
@@ -998,6 +1013,15 @@ fn strip_file_list_suffix(desc: &str) -> &str {
     }
 }
 
+/// Compiled regex for word-boundary "core(s)" check in task descriptions.
+static RE_CORES: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\bcores?\b").unwrap());
+
+/// Compiled regex for word-boundary "cpu(s)" check in task descriptions.
+static RE_CPUS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\bcpus?\b").unwrap());
+
+/// Compiled regex for collapsing multiple spaces.
+static RE_MULTI_SPACE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"  +").unwrap());
+
 /// Return `true` when the task description mentions threading/parallelism
 /// concepts, meaning the threading flags in reference_args are intentional.
 fn task_mentions_threading(task: &str) -> bool {
@@ -1012,9 +1036,7 @@ fn task_mentions_threading(task: &str) -> bool {
     }
     // Word-boundary aware checks to avoid false positives
     // (e.g. "Score" containing "core").
-    let core_re = Regex::new(r"\bcores?\b").unwrap();
-    let cpu_re = Regex::new(r"\bcpus?\b").unwrap();
-    core_re.is_match(&base) || cpu_re.is_match(&base)
+    RE_CORES.is_match(&base) || RE_CPUS.is_match(&base)
 }
 
 /// Return `true` when the task description mentions quality filtering.
@@ -1052,20 +1074,14 @@ pub fn strip_boilerplate_flags(tool: &str, args: &str, task: &str) -> String {
 
     let mut result = args.to_string();
     for bp in patterns {
-        let pat_str = bp.re.as_str();
-        // Classify: quality-filter patterns for ANGSD
-        let is_quality = pat_str.contains("minMapQ")
-            || pat_str.contains("minQ")
-            || pat_str.contains("minInd")
-            || pat_str.contains("min-rq");
-        if is_quality && skip_quality {
+        if bp.is_quality && skip_quality {
             continue;
         }
-        if !is_quality && skip_threading {
+        if !bp.is_quality && skip_threading {
             continue;
         }
         // Start-of-string patterns replace with empty; mid-string with space.
-        if pat_str.starts_with('^') {
+        if bp.is_start {
             result = bp.re.replace(&result, "").to_string();
         } else {
             result = bp.re.replace(&result, " ").to_string();
@@ -1073,8 +1089,7 @@ pub fn strip_boilerplate_flags(tool: &str, args: &str, task: &str) -> String {
     }
 
     // Collapse multiple spaces and trim.
-    let re_multi_space = Regex::new(r"  +").unwrap();
-    re_multi_space.replace_all(result.trim(), " ").to_string()
+    RE_MULTI_SPACE.replace_all(result.trim(), " ").to_string()
 }
 
 // ── Scenario generation ──────────────────────────────────────────────────────
