@@ -25,6 +25,8 @@ mod runner;
 mod sanitize;
 mod server;
 mod skill;
+mod task_complexity;
+mod task_normalizer;
 mod workflow;
 
 /// A single crate-wide mutex that **all** test modules must acquire before

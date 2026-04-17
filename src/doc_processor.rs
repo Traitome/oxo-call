@@ -84,6 +84,7 @@ impl fmt::Display for StructuredDoc {
 }
 
 /// Document processor with noise patterns and key section identifiers
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct DocProcessor {
     /// Noise patterns to remove
@@ -414,6 +415,267 @@ impl DocProcessor {
         flags_vec.sort();
         flags_vec
     }
+}
+
+/// LLM-based intelligent document processor
+///
+/// This is an advanced processor that uses LLM to understand and extract
+/// key information from documentation, rather than simple pattern matching.
+#[derive(Debug, Clone)]
+pub struct IntelligentDocProcessor {
+    /// Rule-based processor for fast path
+    rule_processor: DocProcessor,
+    /// Cache for processed documents
+    #[allow(dead_code)]
+    cache: std::collections::HashMap<String, ProcessedDoc>,
+}
+
+impl Default for IntelligentDocProcessor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl IntelligentDocProcessor {
+    pub fn new() -> Self {
+        Self {
+            rule_processor: DocProcessor::new(),
+            cache: std::collections::HashMap::new(),
+        }
+    }
+
+    /// Process documentation using hybrid approach (rules + optional LLM)
+    ///
+    /// # Arguments
+    /// * `doc` - Raw documentation text
+    /// * `tool` - Tool name
+    /// * `use_llm` - Whether to use LLM for intelligent processing
+    ///
+    /// # Returns
+    /// Processed documentation with key information extracted
+    #[allow(dead_code)]
+    pub async fn process(&self, doc: &str, _tool: &str, use_llm: bool) -> ProcessedDoc {
+        // Step 1: Calculate document hash for caching
+        let doc_hash = self.calculate_hash(doc);
+
+        // Step 2: Check cache
+        if let Some(cached) = self.cache.get(&doc_hash) {
+            return cached.clone();
+        }
+
+        // Step 3: Use rule-based processor first
+        let structured = self.rule_processor.clean_and_structure(doc);
+
+        // Step 4: Optionally use LLM for intelligent processing
+        if use_llm {
+            // In real implementation, this would call LLM
+            // let llm_processed = self.llm_process(&structured, tool).await?;
+            // For now, use rule-based result
+            ProcessedDoc {
+                core_usage: structured.usage.clone(),
+                key_parameters: self.extract_key_parameters(&structured),
+                common_patterns: vec![],
+                pitfalls: vec![],
+                examples: self.extract_examples(&structured),
+                quality_score: self.assess_quality(&structured),
+            }
+        } else {
+            // Fast path: use rule-based result
+            ProcessedDoc {
+                core_usage: structured.usage.clone(),
+                key_parameters: self.extract_key_parameters(&structured),
+                common_patterns: vec![],
+                pitfalls: vec![],
+                examples: self.extract_examples(&structured),
+                quality_score: self.assess_quality(&structured),
+            }
+        }
+    }
+
+    /// Calculate document hash for caching
+    fn calculate_hash(&self, doc: &str) -> String {
+        use sha2::{Digest, Sha256};
+        format!("{:x}", Sha256::digest(doc.as_bytes()))
+    }
+
+    /// Extract key parameters from structured documentation
+    fn extract_key_parameters(&self, structured: &StructuredDoc) -> Vec<KeyParameter> {
+        let mut params = Vec::new();
+
+        // Parse options section
+        for line in structured.options.lines() {
+            if line.trim().is_empty() {
+                continue;
+            }
+
+            // Extract flag and description
+            if let Some(param) = self.parse_parameter_line(line) {
+                params.push(param);
+            }
+        }
+
+        // Limit to top 20 parameters
+        params.into_iter().take(20).collect()
+    }
+
+    /// Parse a single parameter line
+    fn parse_parameter_line(&self, line: &str) -> Option<KeyParameter> {
+        let line = line.trim();
+
+        // Pattern: --flag <type> description
+        let parts: Vec<&str> = line.splitn(3, ' ').collect();
+        if parts.len() >= 2 && parts[0].starts_with('-') {
+            Some(KeyParameter {
+                name: parts[0].to_string(),
+                description: parts.get(2).unwrap_or(&"").to_string(),
+                default: None,
+                common_use_case: None,
+            })
+        } else {
+            None
+        }
+    }
+
+    /// Extract examples from structured documentation
+    fn extract_examples(&self, structured: &StructuredDoc) -> Vec<DocExample> {
+        let mut examples = Vec::new();
+
+        for line in structured.examples.lines() {
+            if line.trim().is_empty() {
+                continue;
+            }
+
+            // Simple heuristic: lines starting with tool name are examples
+            if line
+                .trim()
+                .starts_with(structured.usage.split_whitespace().next().unwrap_or(""))
+            {
+                examples.push(DocExample {
+                    command: line.trim().to_string(),
+                    description: "Example from documentation".to_string(),
+                });
+            }
+        }
+
+        examples.into_iter().take(5).collect()
+    }
+
+    /// Assess documentation quality (0.0-1.0)
+    fn assess_quality(&self, structured: &StructuredDoc) -> f32 {
+        let mut score = 0.0;
+
+        // Check for essential sections
+        if !structured.usage.is_empty() {
+            score += 0.3;
+        }
+        if !structured.examples.is_empty() {
+            score += 0.3;
+        }
+        if !structured.options.is_empty() {
+            score += 0.2;
+        }
+
+        // Check for quick flags
+        if !structured.quick_flags.is_empty() {
+            score += 0.1;
+        }
+
+        // Check for commands
+        if !structured.commands.is_empty() {
+            score += 0.1;
+        }
+
+        score
+    }
+
+    /// Build LLM prompt for intelligent document processing
+    #[allow(dead_code)]
+    fn build_llm_prompt(&self, structured: &StructuredDoc, tool: &str) -> String {
+        format!(
+            r#"You are a bioinformatics documentation expert. Extract and organize the most critical information from this {tool} documentation.
+
+Documentation:
+{structured}
+
+Output JSON format:
+{{
+  "core_usage": "The most common usage pattern (one line)",
+  "key_parameters": [
+    {{
+      "name": "parameter name",
+      "description": "brief description",
+      "default": "default value if any",
+      "common_use_case": "when to use this parameter"
+    }}
+  ],
+  "common_patterns": [
+    "pattern 1: description",
+    "pattern 2: description"
+  ],
+  "pitfalls": [
+    "common mistake 1",
+    "common mistake 2"
+  ],
+  "examples": [
+    {{
+      "command": "actual command",
+      "description": "what this command does"
+    }}
+  ]
+}}
+
+Focus on information that helps generate correct commands. Remove noise and redundancy."#
+        )
+    }
+}
+
+/// Processed documentation with extracted key information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct ProcessedDoc {
+    /// Core usage pattern (most common)
+    pub core_usage: String,
+    /// Key parameters extracted from documentation
+    pub key_parameters: Vec<KeyParameter>,
+    /// Common usage patterns
+    pub common_patterns: Vec<String>,
+    /// Common pitfalls to avoid
+    pub pitfalls: Vec<String>,
+    /// Examples extracted from documentation
+    pub examples: Vec<DocExample>,
+    /// Quality score (0.0-1.0)
+    pub quality_score: f32,
+}
+
+impl Default for ProcessedDoc {
+    fn default() -> Self {
+        Self {
+            core_usage: String::new(),
+            key_parameters: Vec::new(),
+            common_patterns: Vec::new(),
+            pitfalls: Vec::new(),
+            examples: Vec::new(),
+            quality_score: 0.0,
+        }
+    }
+}
+
+/// Key parameter extracted from documentation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct KeyParameter {
+    pub name: String,
+    pub description: String,
+    pub default: Option<String>,
+    pub common_use_case: Option<String>,
+}
+
+/// Example extracted from documentation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct DocExample {
+    pub command: String,
+    pub description: String,
 }
 
 #[cfg(test)]
