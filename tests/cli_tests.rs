@@ -5048,6 +5048,7 @@ fn test_chat_invalid_scenario_rejected() {
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
         stderr.contains("invalid") || stderr.contains("error"),
-        "Invalid scenario should produce an error: {stderr}"
+        "Invalid scenario should produce an error: {}",
+        stderr
     );
 }

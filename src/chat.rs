@@ -342,12 +342,12 @@ impl ChatSession {
             }
             "/history" => {
                 let count = self.conversation_history.len();
-                let pairs = count / 2;
+                let approx_exchanges = count / 2;
                 println!(
-                    "  {} {} messages ({} exchanges)",
+                    "  {} {} messages (~{} exchanges)",
                     "📜".dimmed(),
                     count,
-                    pairs,
+                    approx_exchanges,
                 );
                 true
             }
