@@ -239,19 +239,12 @@ impl Runner {
         Ok(summarized)
     }
 
-    /// Core logic: fetch docs + load skill (in parallel) → (auto-normalize task) → call LLM.
+    /// Core logic: fetch docs + load skill → select workflow mode → run LlmWorkflowExecutor.
     ///
-    /// Documentation fetching and skill loading are independent operations that
-    /// can run concurrently via `tokio::join!`, reducing latency by ~200-500ms
-    /// compared to the previous serial approach.
-    ///
-    /// **Adaptive Doc Injection**: When both skill and doc are enabled (full scenario),
-    /// documentation is only injected if:
-    /// 1. Skill is missing, OR
-    /// 2. Skill quality is low (few examples, incomplete coverage)
-    ///
-    /// This prevents low-quality documentation from degrading performance when
-    /// high-quality skill knowledge is available.
+    /// When no static skill file is available and documentation exists, Quality mode is
+    /// selected automatically: the executor normalizes the task, generates a mini-skill
+    /// from the documentation (cached to disk), and uses it for command generation.
+    /// When a static skill is available, Fast mode is used (skill already provides grounding).
     pub(crate) async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
         // ── Parallel fetch: docs + skill ──────────────────────────────────────
         let spinner = if !self.no_doc {
@@ -343,45 +336,7 @@ impl Runner {
 
         let docs_hash = sha256_hex(&docs);
 
-        // ── Automatic task normalization ──────────────────────────────────────
-        // Automatically normalizes vague, short, or non-English task descriptions
-        // without requiring an explicit flag.
-        let effective_task = if self.should_auto_normalize(task) {
-            if self.verbose {
-                eprintln!(
-                    "{} Auto-normalizing task (short/vague/non-English detected)",
-                    "[verbose]".dimmed()
-                );
-            }
-            let spinner = make_spinner("Optimizing task description...");
-            let refined = match self.llm.optimize_task(tool, task).await {
-                Ok(t) => {
-                    spinner.finish_and_clear();
-                    t
-                }
-                Err(e) => {
-                    spinner.finish_and_clear();
-                    if self.verbose {
-                        eprintln!(
-                            "{} Task optimization failed ({}), using original task",
-                            "[verbose]".dimmed(),
-                            e
-                        );
-                    }
-                    task.to_string()
-                }
-            };
-            if self.verbose && refined != task {
-                eprintln!(
-                    "{} Task optimized: {}",
-                    "[verbose]".dimmed(),
-                    refined.dimmed()
-                );
-            }
-            refined
-        } else {
-            task.to_string()
-        };
+        let effective_task = task.to_string();
 
         let skill_name = skill.as_ref().map(|s| s.meta.name.clone());
 
@@ -495,117 +450,77 @@ impl Runner {
             "Asking LLM to generate command arguments{skill_label}..."
         ));
 
-        // ── Auto-select workflow mode ─────────────────────────────────────────
-        // Determine workflow mode from scenario and task complexity
+        // Select workflow mode:
+        // - If scenario is forced → use scenario's default mode
+        // - No static skill + docs available → Quality (generates mini-skill from doc, cached)
+        // - Has static skill or no docs → Fast (skill already provides grounding)
         let has_skill = skill.is_some();
-        let doc_quality = if docs.is_empty() { 0.3 } else { 0.8 };
-        let complexity = crate::task_complexity::TaskComplexityEstimator::new().estimate(
-            task,
-            tool,
-            has_skill,
-            doc_quality,
-        );
-
         let effective_mode = if let Some(sc) = self.force_scenario {
             sc.default_mode()
+        } else if !has_skill && !docs.is_empty() {
+            WorkflowMode::Quality
         } else {
-            complexity.recommended_mode
+            WorkflowMode::Fast
         };
 
         if self.verbose {
-            let scenario_label = self
-                .force_scenario
-                .map(|s| format!("{s:?}"))
-                .unwrap_or_else(|| "auto".to_string());
+            let reason = if self.force_scenario.is_some() {
+                "forced by --scenario"
+            } else if !has_skill && !docs.is_empty() {
+                "no static skill → mini-skill pipeline"
+            } else if has_skill {
+                "static skill available"
+            } else {
+                "no docs available"
+            };
             eprintln!(
-                "{} Workflow: mode={:?}, complexity={:.2}, scenario={}",
+                "{} Workflow mode: {:?} ({})",
                 "[verbose]".dimmed(),
                 effective_mode,
-                complexity.score.0,
-                scenario_label
+                reason
             );
         }
 
-        // Choose workflow based on mode
-        let suggestion = match effective_mode {
-            WorkflowMode::Fast => {
-                // Fast mode: single LLM call (existing behavior)
-                match self
-                    .llm
-                    .suggest_command(tool, &docs, &enriched_task, skill.as_ref(), self.no_prompt)
-                    .await
-                {
-                    Ok(s) => {
-                        spinner.finish_and_clear();
-                        s
-                    }
-                    Err(e) => {
-                        spinner.finish_and_clear();
-                        return Err(e);
-                    }
-                }
-            }
-            WorkflowMode::Quality => {
-                // Quality mode: multi-stage workflow
-                spinner.finish_and_clear();
+        spinner.finish_and_clear();
 
-                if self.verbose {
-                    eprintln!(
-                        "{} Using quality mode: multi-stage LLM workflow",
-                        "[verbose]".dimmed()
-                    );
-                }
+        let executor = LlmWorkflowExecutor::new(self.config.clone(), effective_mode)?;
+        let wf_result = executor
+            .execute(tool, &docs, &enriched_task, skill.as_ref(), self.no_prompt)
+            .await?;
 
-                let executor =
-                    LlmWorkflowExecutor::new(self.config.clone(), WorkflowMode::Quality)?;
-
-                match executor
-                    .execute(tool, &docs, &enriched_task, skill.as_ref(), self.no_prompt)
-                    .await
-                {
-                    Ok(result) => {
-                        if self.verbose {
-                            eprintln!(
-                                "{} Workflow completed: {} LLM calls, {:.1}ms total inference",
-                                "[verbose]".dimmed(),
-                                result.llm_calls,
-                                result.total_inference_ms
-                            );
-                        }
-                        result.suggestion
-                    }
-                    Err(e) => {
-                        return Err(e);
-                    }
+        if self.verbose {
+            eprintln!(
+                "{} Workflow complete: {} LLM call(s), {:.1}ms{}{}",
+                "[verbose]".dimmed(),
+                wf_result.llm_calls,
+                wf_result.total_inference_ms,
+                if wf_result.mini_skill_generated {
+                    ", mini-skill generated"
+                } else if wf_result.cache_hit {
+                    ", mini-skill from cache"
+                } else {
+                    ""
+                },
+                if wf_result.was_normalized {
+                    ", task normalized"
+                } else {
+                    ""
                 }
-            }
-        };
+            );
+        }
+
+        let suggestion = wf_result.suggestion;
 
         Ok(PrepareResult {
             suggestion,
             docs_hash,
             skill_name,
-            effective_task,
+            effective_task: if wf_result.was_normalized {
+                wf_result.effective_task
+            } else {
+                task.to_string()
+            },
         })
-    }
-
-    /// Determine if task needs automatic normalization.
-    fn should_auto_normalize(&self, task: &str) -> bool {
-        // Short tasks
-        if task.len() < 10 {
-            return true;
-        }
-        // Non-ASCII (Chinese, Japanese, etc.)
-        if !task.is_ascii() {
-            return true;
-        }
-        // Vague keywords
-        let task_lower = task.to_lowercase();
-        let vague_keywords = ["just", "simply", "basically", "something", "some"];
-        if vague_keywords.iter().any(|kw| task_lower.contains(kw)) {
-            return true;
-        }
-        false
     }
 
     /// Generate the LLM-suggested command without printing or executing it.
@@ -699,7 +614,7 @@ impl Runner {
         if result.effective_task != task {
             println!(
                 "  {} {}",
-                "Optimized task:".bold().dimmed(),
+                "Normalized task:".bold().dimmed(),
                 result.effective_task.dimmed()
             );
         }
@@ -753,7 +668,7 @@ impl Runner {
             if result.effective_task != task {
                 println!(
                     "  {} {}",
-                    "Optimized task:".bold().dimmed(),
+                    "Normalized task:".bold().dimmed(),
                     result.effective_task.dimmed()
                 );
             }

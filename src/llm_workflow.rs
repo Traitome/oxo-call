@@ -4,8 +4,6 @@
 //! - Fast mode: Single LLM call (existing behavior)
 //! - Quality mode: Multi-stage pipeline (task standardization → doc cleaning → mini-skill generation → command generation)
 
-#![allow(dead_code)]
-
 use crate::config::Config;
 use crate::doc_processor::DocProcessor;
 use crate::error::{OxoError, Result};
@@ -34,10 +32,13 @@ pub struct WorkflowResult {
     pub llm_calls: usize,
     /// Total inference time (ms)
     pub total_inference_ms: f64,
+    /// The effective task used for command generation (may be normalized)
+    pub effective_task: String,
+    /// Whether the task was actually normalized/standardized (changed from input)
+    pub was_normalized: bool,
 }
 
 /// Multi-stage LLM workflow executor
-#[allow(dead_code)]
 pub struct LlmWorkflowExecutor {
     llm_client: Arc<LlmClient>,
     mini_skill_cache: Arc<RwLock<MiniSkillCache>>,
@@ -47,7 +48,6 @@ pub struct LlmWorkflowExecutor {
 
 impl LlmWorkflowExecutor {
     /// Create a new workflow executor
-    #[allow(dead_code)]
     pub fn new(config: Config, mode: WorkflowMode) -> Result<Self> {
         let llm_client = Arc::new(LlmClient::new(config.clone()));
 
@@ -68,7 +68,6 @@ impl LlmWorkflowExecutor {
     }
 
     /// Execute the workflow to generate a command
-    #[allow(dead_code)]
     pub async fn execute(
         &self,
         tool: &str,
@@ -90,7 +89,6 @@ impl LlmWorkflowExecutor {
     }
 
     /// Fast mode: Single LLM call (existing behavior)
-    #[allow(dead_code)]
     async fn execute_fast(
         &self,
         tool: &str,
@@ -111,11 +109,12 @@ impl LlmWorkflowExecutor {
             cache_hit: false,
             llm_calls: 1,
             total_inference_ms: inference_ms,
+            effective_task: task.to_string(),
+            was_normalized: false,
         })
     }
 
     /// Quality mode: Multi-stage pipeline
-    #[allow(dead_code)]
     async fn execute_quality(
         &self,
         tool: &str,
@@ -130,7 +129,8 @@ impl LlmWorkflowExecutor {
         let mut cache_hit = false;
 
         // Stage 1: Task standardization (optional, only if task is vague)
-        let standardized_task = if self.should_standardize_task(task) {
+        let was_standardized = self.should_standardize_task(task);
+        let standardized_task = if was_standardized {
             llm_calls += 1;
             let result = self.llm_client.optimize_task(tool, task).await?;
             // Note: optimize_task doesn't return inference time, so we estimate
@@ -194,11 +194,12 @@ impl LlmWorkflowExecutor {
             cache_hit,
             llm_calls,
             total_inference_ms,
+            effective_task: standardized_task,
+            was_normalized: was_standardized,
         })
     }
 
     /// Check if task needs standardization
-    #[allow(dead_code)]
     fn should_standardize_task(&self, task: &str) -> bool {
         // Heuristics for vague tasks
         let task_lower = task.to_lowercase();
@@ -223,7 +224,6 @@ impl LlmWorkflowExecutor {
     }
 
     /// Generate a mini-skill from documentation
-    #[allow(dead_code)]
     async fn generate_mini_skill(
         &self,
         tool: &str,
@@ -284,7 +284,6 @@ impl LlmWorkflowExecutor {
 
 /// Intermediate JSON structure for mini-skill parsing
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 struct MiniSkillJson {
     concepts: Vec<String>,
     pitfalls: Vec<String>,
@@ -292,7 +291,6 @@ struct MiniSkillJson {
 }
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 struct ExampleJson {
     task: String,
     args: String,
