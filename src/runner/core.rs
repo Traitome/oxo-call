@@ -241,10 +241,14 @@ impl Runner {
 
     /// Core logic: fetch docs + load skill → select workflow mode → run LlmWorkflowExecutor.
     ///
-    /// When no static skill file is available and documentation exists, Quality mode is
-    /// selected automatically: the executor normalizes the task, generates a mini-skill
-    /// from the documentation (cached to disk), and uses it for command generation.
-    /// When a static skill is available, Fast mode is used (skill already provides grounding).
+    /// Mode selection rules (in priority order):
+    /// 1. `--scenario` flag set → use scenario's default mode.
+    /// 2. No static skill + docs available → Quality (generates mini-skill from doc, cached).
+    /// 3. Static skill available or no docs → Fast (skill already provides grounding).
+    ///
+    /// In Quality mode the executor optionally normalizes the task (if vague/short/non-ASCII),
+    /// generates a mini-skill from the documentation (result cached to disk), and uses it
+    /// for command generation.
     pub(crate) async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
         // ── Parallel fetch: docs + skill ──────────────────────────────────────
         let spinner = if !self.no_doc {

@@ -133,7 +133,16 @@ oxo-call dry-run --verbose samtools "sort input.bam by coordinate"
 
 ## Automatic Task Normalization
 
-When oxo-call detects a vague, short, or non-English task description, an extra LLM call is made **before** command generation. The LLM is asked to rewrite the user's task into a precise bioinformatics instruction:
+oxo-call uses a two-step process for task normalization, which applies when Quality mode is
+selected (i.e., no static skill file exists and documentation is available):
+
+1. **Quality mode selection**: When there is no static skill file for the tool but documentation
+   is available, oxo-call automatically selects Quality mode (multi-stage pipeline). If a
+   `--scenario` flag is set, the scenario's default mode takes precedence.
+
+2. **Optional normalization within Quality mode**: Within the Quality pipeline, an extra LLM
+   call is made **only if** the task is considered vague or ambiguous. The LLM rewrites the
+   task into a precise bioinformatics instruction:
 
 - Expands ambiguous terms into specific operations (e.g., "sort bam" → "sort BAM file input.bam by genomic coordinate and write to sorted.bam")
 - Infers bioinformatics defaults (paired-end reads, hg38, 8 threads, gzipped output, Phred+33 encoding)
@@ -141,7 +150,9 @@ When oxo-call detects a vague, short, or non-English task description, an extra 
 - Preserves all file names, paths, and sample identifiers from the original task
 - Responds in the same language as the original task
 
-This happens automatically when the task is shorter than 10 characters, contains vague keywords (e.g., "just", "simply"), or contains non-ASCII characters. The normalized task is shown to the user when it differs from the original and replaces the original in the command generation prompt.
+Normalization within Quality mode triggers when the task is shorter than 10 characters,
+contains vague keywords (e.g., "just", "simply"), or contains non-ASCII characters. The
+normalized task is shown to the user when it differs from the original.
 
 ## Result Verification (`--verify`)
 

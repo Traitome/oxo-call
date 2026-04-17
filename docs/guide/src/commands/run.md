@@ -185,12 +185,20 @@ Verification is advisory — it never changes the process exit code. Use `--json
 
 ## Automatic Task Normalization
 
-oxo-call automatically detects vague, short, or non-English task descriptions and normalizes them via an extra LLM call before command generation. For example:
+oxo-call uses a two-step process for task normalization:
+
+1. **Quality mode selection**: When there is no static skill file for the tool and
+   documentation is available, oxo-call selects Quality mode (multi-stage pipeline).
+   If `--scenario` is set, the scenario's default mode takes precedence.
+
+2. **Optional normalization within Quality mode**: Within the Quality pipeline, an extra
+   LLM call normalizes the task **only if** it is considered vague or ambiguous:
 
 - Input: `"sort bam"`
 - Normalized: `"sort BAM file input.bam by coordinate using samtools sort with 8 threads, output to sorted.bam"`
 
-The normalized task is shown when it differs from the original and is used for the command generation prompt. This happens automatically when:
+The normalized task is shown when it differs from the original and is used for the command
+generation prompt. This secondary normalization triggers when:
 
 - The task is shorter than 10 characters
 - The task contains vague keywords (e.g., "just", "simply", "basically")
