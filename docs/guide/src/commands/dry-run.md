@@ -19,6 +19,7 @@ oxo-call d       [OPTIONS] <TOOL> <TASK>
 | `-V`, `--var KEY=VALUE` | Substitute `{KEY}` in the task description before the LLM call (repeatable) |
 | `-i`, `--input-list <FILE>` | Read input items from a file; shows the command for each item |
 | `--input-items <ITEMS>` | Comma-separated input items; shows the command for each item |
+| `--scenario <SCENARIO>` | Force a workflow scenario: `basic`, `prompt`, `doc`, `skill`, or `full` (auto-detected by default) |
 | `-v`, `--verbose` | Show docs source, skill info, and LLM details (global) |
 | `--license <PATH>` | Path to license file (global option) |
 

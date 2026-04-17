@@ -20,7 +20,7 @@ oxo-call uses the LLM in up to three distinct roles per invocation:
 | Role | Trigger | System Prompt |
 |------|---------|---------------|
 | **Command generation** (always) | Every `run` / `dry-run` | Expert bioinformatics command generator |
-| **Task optimization** (`--optimize-task`) | Pre-generation step | Expand and clarify the user's task description |
+| **Task optimization** (automatic) | Pre-generation step | Expand and clarify the user's task description |
 | **Result verification** (`--verify`) | Post-execution step | Expert bioinformatics QC analyst |
 
 Each role uses a separate system prompt so the LLM behaves appropriately for the job.
@@ -131,9 +131,9 @@ Use `--verbose` mode to see the actual prompt for any command:
 oxo-call dry-run --verbose samtools "sort input.bam by coordinate"
 ```
 
-## Task Optimization (`--optimize-task`)
+## Automatic Task Normalization
 
-When `--optimize-task` is set, an extra LLM call is made **before** command generation. The LLM is asked to rewrite the user's task into a precise bioinformatics instruction:
+When oxo-call detects a vague, short, or non-English task description, an extra LLM call is made **before** command generation. The LLM is asked to rewrite the user's task into a precise bioinformatics instruction:
 
 - Expands ambiguous terms into specific operations (e.g., "sort bam" → "sort BAM file input.bam by genomic coordinate and write to sorted.bam")
 - Infers bioinformatics defaults (paired-end reads, hg38, 8 threads, gzipped output, Phred+33 encoding)
@@ -141,7 +141,7 @@ When `--optimize-task` is set, an extra LLM call is made **before** command gene
 - Preserves all file names, paths, and sample identifiers from the original task
 - Responds in the same language as the original task
 
-The optimized task is shown to the user when it differs from the original and replaces the original in the command generation prompt.
+This happens automatically when the task is shorter than 10 characters, contains vague keywords (e.g., "just", "simply"), or contains non-ASCII characters. The normalized task is shown to the user when it differs from the original and replaces the original in the command generation prompt.
 
 ## Result Verification (`--verify`)
 

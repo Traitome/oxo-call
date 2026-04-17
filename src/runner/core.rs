@@ -239,7 +239,7 @@ impl Runner {
         Ok(summarized)
     }
 
-    /// Core logic: fetch docs + load skill (in parallel) → (optionally optimize task) → call LLM.
+    /// Core logic: fetch docs + load skill (in parallel) → (auto-normalize task) → call LLM.
     ///
     /// Documentation fetching and skill loading are independent operations that
     /// can run concurrently via `tokio::join!`, reducing latency by ~200-500ms
