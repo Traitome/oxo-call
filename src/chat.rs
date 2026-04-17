@@ -18,13 +18,11 @@ use crate::error::{OxoError, Result};
 use crate::llm::types::{ChatMessage, ChatRequest, ChatResponse};
 use crate::skill::SkillManager;
 use colored::Colorize;
-#[cfg(not(target_arch = "wasm32"))]
 use std::io::{self, BufRead, Write};
 
 /// Render markdown text to the terminal using termimad.
 ///
 /// Falls back to plain text if rendering fails.
-#[cfg(not(target_arch = "wasm32"))]
 fn render_markdown(text: &str) {
     use termimad::MadSkin;
     let skin = MadSkin::default();
@@ -39,9 +37,7 @@ pub struct ChatSession {
     verbose: bool,
     no_cache: bool,
     scenario: ChatScenario,
-    #[cfg(not(target_arch = "wasm32"))]
     client: reqwest::Client,
-    #[cfg(not(target_arch = "wasm32"))]
     conversation_history: Vec<ChatMessage>,
 }
 
@@ -54,9 +50,7 @@ impl ChatSession {
             verbose: false,
             no_cache: false,
             scenario: ChatScenario::Full,
-            #[cfg(not(target_arch = "wasm32"))]
             client: reqwest::Client::new(),
-            #[cfg(not(target_arch = "wasm32"))]
             conversation_history: Vec::new(),
         }
     }
@@ -77,197 +71,177 @@ impl ChatSession {
     }
 
     /// Run single-shot Q&A (non-interactive mode).
-    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn run_single(&self, tool: &str, question: &str, json: bool) -> Result<()> {
-        #[cfg(target_arch = "wasm32")]
-        return Err(OxoError::LlmError(
-            "Chat is not supported in WebAssembly".to_string(),
-        ));
-
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            if self.verbose {
-                eprintln!("{}", "─".repeat(60).dimmed());
-                eprintln!("{}: {}", "Tool".cyan().bold(), tool);
-                eprintln!("{}: {}", "Scenario".cyan().bold(), self.scenario_name());
-                eprintln!(
-                    "{}: {}",
-                    "Model".cyan().bold(),
-                    self.config.effective_model()
-                );
-                eprintln!("{}", "─".repeat(60).dimmed());
-            }
-
-            let spinner =
-                crate::runner::make_spinner(&format!("Preparing context for '{tool}'..."));
-
-            let prompts_result = self.build_prompts(tool, question).await;
-
-            spinner.finish_and_clear();
-
-            let (system_prompt, user_prompt) = prompts_result?;
-
-            let spinner = crate::runner::make_spinner("Waiting for LLM response...");
-
-            let api_result = self.call_api(&system_prompt, &user_prompt).await;
-
-            spinner.finish_and_clear();
-
-            let response = api_result?;
-
-            if json {
-                let result = serde_json::json!({
-                    "tool": tool,
-                    "question": question,
-                    "scenario": self.scenario_name(),
-                    "response": response,
-                });
-                println!("{}", serde_json::to_string_pretty(&result).unwrap());
-            } else {
-                println!();
-                render_markdown(&response);
-                println!();
-            }
-
-            Ok(())
+        if self.verbose {
+            eprintln!("{}", "─".repeat(60).dimmed());
+            eprintln!("{}: {}", "Tool".cyan().bold(), tool);
+            eprintln!("{}: {}", "Scenario".cyan().bold(), self.scenario_name());
+            eprintln!(
+                "{}: {}",
+                "Model".cyan().bold(),
+                self.config.effective_model()
+            );
+            eprintln!("{}", "─".repeat(60).dimmed());
         }
+
+        let spinner = crate::runner::make_spinner(&format!("Preparing context for '{tool}'..."));
+
+        let prompts_result = self.build_prompts(tool, question).await;
+
+        spinner.finish_and_clear();
+
+        let (system_prompt, user_prompt) = prompts_result?;
+
+        let spinner = crate::runner::make_spinner("Waiting for LLM response...");
+
+        let api_result = self.call_api(&system_prompt, &user_prompt).await;
+
+        spinner.finish_and_clear();
+
+        let response = api_result?;
+
+        if json {
+            let result = serde_json::json!({
+                "tool": tool,
+                "question": question,
+                "scenario": self.scenario_name(),
+                "response": response,
+            });
+            println!("{}", serde_json::to_string_pretty(&result).unwrap());
+        } else {
+            println!();
+            render_markdown(&response);
+            println!();
+        }
+
+        Ok(())
     }
 
     /// Run interactive multi-turn chat session.
-    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn run_interactive(&mut self, initial_tool: Option<&str>) -> Result<()> {
-        #[cfg(target_arch = "wasm32")]
-        return Err(OxoError::LlmError(
-            "Interactive chat is not supported in WebAssembly".to_string(),
-        ));
+        let mut current_tool = initial_tool.map(String::from);
 
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let mut current_tool = initial_tool.map(String::from);
+        self.print_welcome();
 
-            self.print_welcome();
+        if let Some(tool) = &current_tool {
+            println!(
+                "  {} {}",
+                "🔧 Tool context:".cyan().bold(),
+                tool.white().bold()
+            );
+        }
+        println!(
+            "  {} {}",
+            "📋 Scenario:".dimmed(),
+            self.scenario_name().dimmed()
+        );
+        println!(
+            "  {} {}",
+            "🤖 Model:".dimmed(),
+            self.config.effective_model().dimmed()
+        );
+        println!();
 
-            if let Some(tool) = &current_tool {
-                println!(
-                    "  {} {}",
-                    "🔧 Tool context:".cyan().bold(),
-                    tool.white().bold()
-                );
+        loop {
+            let prompt = if let Some(ref tool) = current_tool {
+                format!("{} {} ", "▶".green(), tool.cyan().bold())
+            } else {
+                format!("{} ", "oxo▶".cyan().bold())
+            };
+
+            print!("{}", prompt);
+            io::stdout().flush()?;
+
+            let mut input = String::new();
+            let stdin = io::stdin();
+            match stdin.lock().read_line(&mut input) {
+                Ok(0) => {
+                    println!("\n{}", "👋 Goodbye!".green().bold());
+                    break;
+                }
+                Ok(_) => {}
+                Err(e) => {
+                    eprintln!("{} Failed to read input: {}", "✖ error:".red().bold(), e);
+                    continue;
+                }
             }
-            println!(
-                "  {} {}",
-                "📋 Scenario:".dimmed(),
-                self.scenario_name().dimmed()
-            );
-            println!(
-                "  {} {}",
-                "🤖 Model:".dimmed(),
-                self.config.effective_model().dimmed()
-            );
-            println!();
 
-            loop {
-                let prompt = if let Some(ref tool) = current_tool {
-                    format!("{} {} ", "▶".green(), tool.cyan().bold())
-                } else {
-                    format!("{} ", "oxo▶".cyan().bold())
-                };
+            let input = input.trim();
+            if input.is_empty() {
+                continue;
+            }
 
-                print!("{}", prompt);
-                io::stdout().flush()?;
+            if self.handle_command(input, &mut current_tool) {
+                continue;
+            }
 
-                let mut input = String::new();
-                let stdin = io::stdin();
-                match stdin.lock().read_line(&mut input) {
-                    Ok(0) => {
-                        println!("\n{}", "👋 Goodbye!".green().bold());
-                        break;
-                    }
-                    Ok(_) => {}
-                    Err(e) => {
-                        eprintln!("{} Failed to read input: {}", "✖ error:".red().bold(), e);
-                        continue;
-                    }
-                }
+            let (tool, question) = self.parse_input(input, current_tool.as_deref());
 
-                let input = input.trim();
-                if input.is_empty() {
-                    continue;
-                }
+            match tool {
+                Some(t) => {
+                    let spinner =
+                        crate::runner::make_spinner(&format!("Loading context for '{t}'..."));
 
-                if self.handle_command(input, &mut current_tool) {
-                    continue;
-                }
+                    let prompts_result = self.build_prompts(&t, &question).await;
 
-                let (tool, question) = self.parse_input(input, current_tool.as_deref());
+                    spinner.finish_and_clear();
 
-                match tool {
-                    Some(t) => {
-                        let spinner =
-                            crate::runner::make_spinner(&format!("Loading context for '{t}'..."));
+                    let (system_prompt, user_prompt) = match prompts_result {
+                        Ok(p) => p,
+                        Err(e) => {
+                            eprintln!("  {} {}", "✖ Context error:".red().bold(), e);
+                            continue;
+                        }
+                    };
 
-                        let prompts_result = self.build_prompts(&t, &question).await;
+                    self.conversation_history.push(ChatMessage {
+                        role: "user".to_string(),
+                        content: user_prompt.clone(),
+                    });
 
-                        spinner.finish_and_clear();
+                    let spinner = crate::runner::make_spinner("Thinking...");
 
-                        let (system_prompt, user_prompt) = match prompts_result {
-                            Ok(p) => p,
-                            Err(e) => {
-                                eprintln!("  {} {}", "✖ Context error:".red().bold(), e);
-                                continue;
-                            }
-                        };
+                    let api_result = self.call_api_with_history(&system_prompt).await;
 
-                        self.conversation_history.push(ChatMessage {
-                            role: "user".to_string(),
-                            content: user_prompt.clone(),
-                        });
+                    spinner.finish_and_clear();
 
-                        let spinner = crate::runner::make_spinner("Thinking...");
+                    match api_result {
+                        Ok(response) => {
+                            println!();
+                            println!("{}", "─".repeat(60).dimmed());
+                            render_markdown(&response);
+                            println!("{}", "─".repeat(60).dimmed());
+                            println!();
 
-                        let api_result = self.call_api_with_history(&system_prompt).await;
-
-                        spinner.finish_and_clear();
-
-                        match api_result {
-                            Ok(response) => {
-                                println!();
-                                println!("{}", "─".repeat(60).dimmed());
-                                render_markdown(&response);
-                                println!("{}", "─".repeat(60).dimmed());
-                                println!();
-
-                                self.conversation_history.push(ChatMessage {
-                                    role: "assistant".to_string(),
-                                    content: response,
-                                });
-                            }
-                            Err(e) => {
-                                // Remove the user message we just added since the
-                                // API call failed.
-                                self.conversation_history.pop();
-                                eprintln!("\n  {} {}\n", "✖ LLM error:".red().bold(), e);
-                            }
+                            self.conversation_history.push(ChatMessage {
+                                role: "assistant".to_string(),
+                                content: response,
+                            });
+                        }
+                        Err(e) => {
+                            // Remove the user message we just added since the
+                            // API call failed.
+                            self.conversation_history.pop();
+                            eprintln!("\n  {} {}\n", "✖ LLM error:".red().bold(), e);
                         }
                     }
-                    None => {
-                        println!(
-                            "  {}",
-                            "⚠ Please specify a tool or use /tool <name> to set context.".yellow()
-                        );
-                        println!(
-                            "  {}",
-                            "Example: samtools How do I sort a BAM file?".dimmed()
-                        );
-                    }
+                }
+                None => {
+                    println!(
+                        "  {}",
+                        "⚠ Please specify a tool or use /tool <name> to set context.".yellow()
+                    );
+                    println!(
+                        "  {}",
+                        "Example: samtools How do I sort a BAM file?".dimmed()
+                    );
                 }
             }
-
-            Ok(())
         }
+
+        Ok(())
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     fn print_welcome(&self) {
         println!();
         println!(
@@ -315,7 +289,6 @@ impl ChatSession {
         println!();
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     fn handle_command(&mut self, input: &str, current_tool: &mut Option<String>) -> bool {
         let parts: Vec<&str> = input.split_whitespace().collect();
         if parts.is_empty() {
@@ -441,7 +414,6 @@ impl ChatSession {
         }
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     fn parse_input(&self, input: &str, current_tool: Option<&str>) -> (Option<String>, String) {
         let parts: Vec<&str> = input.split_whitespace().collect();
         if parts.is_empty() {
@@ -473,7 +445,6 @@ impl ChatSession {
         }
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     async fn build_prompts(&self, tool: &str, question: &str) -> Result<(String, String)> {
         let system_prompt = self.build_system_prompt();
         let context = self.build_context(tool).await?;
@@ -498,7 +469,6 @@ impl ChatSession {
         }
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     async fn build_context(&self, tool: &str) -> Result<String> {
         let mut context_parts = Vec::new();
 
@@ -542,7 +512,6 @@ impl ChatSession {
         Ok(context_parts.join("\n\n"))
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     async fn call_api(&self, system_prompt: &str, user_prompt: &str) -> Result<String> {
         let provider = self.config.effective_provider();
         let token_opt = self.config.effective_api_token();
@@ -629,7 +598,6 @@ impl ChatSession {
         Ok(content.trim().to_string())
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     async fn call_api_with_history(&self, system_prompt: &str) -> Result<String> {
         let provider = self.config.effective_provider();
         let token_opt = self.config.effective_api_token();
