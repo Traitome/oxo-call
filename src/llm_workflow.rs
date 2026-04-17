@@ -5,7 +5,7 @@
 //! - Quality mode: Multi-stage pipeline (task standardization → doc cleaning → mini-skill generation → command generation)
 
 use crate::config::Config;
-use crate::doc_processor::DocProcessor;
+use crate::doc_processor::{DocProcessor, StructuredDoc};
 use crate::error::{OxoError, Result};
 use crate::llm::{
     LlmClient, LlmCommandSuggestion, build_mini_skill_prompt, mini_skill_generation_system_prompt,
@@ -67,7 +67,10 @@ impl LlmWorkflowExecutor {
         })
     }
 
-    /// Execute the workflow to generate a command
+    /// Execute the workflow to generate a command.
+    ///
+    /// When `structured_doc` is provided, it is passed through to the LLM prompt
+    /// builder, enabling doc-extracted few-shot examples and flag catalog injection.
     pub async fn execute(
         &self,
         tool: &str,
@@ -75,20 +78,25 @@ impl LlmWorkflowExecutor {
         task: &str,
         skill: Option<&Skill>,
         no_prompt: bool,
+        structured_doc: Option<&StructuredDoc>,
     ) -> Result<WorkflowResult> {
         match self.mode {
             WorkflowMode::Fast => {
-                self.execute_fast(tool, documentation, task, skill, no_prompt)
+                self.execute_fast(tool, documentation, task, skill, no_prompt, structured_doc)
                     .await
             }
             WorkflowMode::Quality => {
-                self.execute_quality(tool, documentation, task, skill, no_prompt)
+                self.execute_quality(tool, documentation, task, skill, no_prompt, structured_doc)
                     .await
             }
         }
     }
 
-    /// Fast mode: Single LLM call (existing behavior)
+    /// Fast mode: Single LLM call with doc-enriched prompt.
+    ///
+    /// This is the default mode. When `structured_doc` is provided, the prompt
+    /// includes doc-extracted examples and a flag catalog — giving small models
+    /// the grounding they need without the latency of multi-stage calls.
     async fn execute_fast(
         &self,
         tool: &str,
@@ -96,10 +104,11 @@ impl LlmWorkflowExecutor {
         task: &str,
         skill: Option<&Skill>,
         no_prompt: bool,
+        structured_doc: Option<&StructuredDoc>,
     ) -> Result<WorkflowResult> {
         let suggestion = self
             .llm_client
-            .suggest_command(tool, documentation, task, skill, no_prompt)
+            .suggest_command(tool, documentation, task, skill, no_prompt, structured_doc)
             .await?;
 
         let inference_ms = suggestion.inference_ms;
@@ -122,6 +131,7 @@ impl LlmWorkflowExecutor {
         task: &str,
         skill: Option<&Skill>,
         no_prompt: bool,
+        structured_doc: Option<&StructuredDoc>,
     ) -> Result<WorkflowResult> {
         let mut llm_calls = 0;
         let mut total_inference_ms = 0.0;
@@ -141,8 +151,15 @@ impl LlmWorkflowExecutor {
         };
 
         // Stage 2: Document processing (intelligent lossless cleaning)
-        let structured_doc = self.doc_processor.process(documentation);
-        let cleaned_doc = structured_doc.to_string();
+        // Use the caller-provided StructuredDoc if available, otherwise process here
+        let owned_sdoc;
+        let effective_sdoc = if let Some(sdoc) = structured_doc {
+            sdoc
+        } else {
+            owned_sdoc = self.doc_processor.process(documentation);
+            &owned_sdoc
+        };
+        let cleaned_doc = effective_sdoc.to_string();
 
         // Compute doc hash for cache key
         let doc_hash = format!("{:x}", sha2::Sha256::digest(documentation.as_bytes()));
@@ -169,7 +186,7 @@ impl LlmWorkflowExecutor {
             }
         };
 
-        // Stage 4: Command generation with mini-skill
+        // Stage 4: Command generation with mini-skill + structured doc
         let mini_skill_ref = mini_skill.as_ref();
         let mini_skill_converted: Option<Skill> = mini_skill_ref.map(|ms| ms.clone().into());
 
@@ -181,6 +198,7 @@ impl LlmWorkflowExecutor {
                 &standardized_task,
                 mini_skill_converted.as_ref().or(skill),
                 no_prompt,
+                Some(effective_sdoc),
             )
             .await?;
 

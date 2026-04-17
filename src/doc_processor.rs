@@ -25,6 +25,26 @@ pub struct StructuredDoc {
     pub other: String,
     /// Quick reference flags extracted from all sections
     pub quick_flags: Vec<String>,
+    /// Structured flag catalog extracted from the documentation.
+    /// Each entry is `(flag, brief_description)`.
+    #[serde(default)]
+    pub flag_catalog: Vec<FlagEntry>,
+    /// Concrete command-line examples extracted from EXAMPLES / documentation.
+    /// Each entry is a raw command string found in the help text.
+    #[serde(default)]
+    pub extracted_examples: Vec<String>,
+    /// Documentation quality score (0.0–1.0) computed deterministically.
+    #[serde(default)]
+    pub quality_score: f32,
+}
+
+/// A single flag/option entry extracted from the documentation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FlagEntry {
+    /// The flag itself, e.g. `-o`, `--output`, `-@ INT`.
+    pub flag: String,
+    /// Brief description extracted from the help text.
+    pub description: String,
 }
 
 impl fmt::Display for StructuredDoc {
@@ -156,6 +176,9 @@ impl DocProcessor {
             commands: String::new(),
             other: String::new(),
             quick_flags: Vec::new(),
+            flag_catalog: Vec::new(),
+            extracted_examples: Vec::new(),
+            quality_score: 0.0,
         };
 
         for (section_name, content) in sections {
@@ -184,6 +207,15 @@ impl DocProcessor {
 
         // Step 4: Extract quick reference flags
         structured.quick_flags = self.extract_all_flags(&cleaned);
+
+        // Step 5: Build structured flag catalog from options section
+        structured.flag_catalog = self.extract_flag_catalog(&structured.options);
+
+        // Step 6: Extract concrete command examples from EXAMPLES section & raw text
+        structured.extracted_examples = self.extract_command_examples(&cleaned);
+
+        // Step 7: Compute documentation quality score
+        structured.quality_score = self.compute_quality_score(&structured);
 
         structured
     }
@@ -414,6 +446,162 @@ impl DocProcessor {
         let mut flags_vec: Vec<String> = flags.into_iter().collect();
         flags_vec.sort();
         flags_vec
+    }
+
+    /// Extract a structured flag catalog from the OPTIONS section.
+    ///
+    /// Parses lines that start with `-` and captures the flag name plus its
+    /// description.  Handles common help-text layouts:
+    ///   -o FILE         Output file name
+    ///   --threads INT   Number of threads [4]
+    ///   -@ INT          Number of threads (samtools style)
+    fn extract_flag_catalog(&self, options: &str) -> Vec<FlagEntry> {
+        let mut catalog = Vec::new();
+        let flag_line_re = Regex::new(
+            r"^\s*(-{1,2}[a-zA-Z0-9@_-]+(?:[,\s]+--?[a-zA-Z0-9_-]+)?(?:\s+\S+)?)\s{2,}(.+)",
+        )
+        .unwrap();
+
+        for line in options.lines() {
+            let trimmed = line.trim();
+            if !trimmed.starts_with('-') {
+                continue;
+            }
+
+            if let Some(caps) = flag_line_re.captures(line) {
+                let flag = caps.get(1).map(|m| m.as_str().trim()).unwrap_or("");
+                let desc = caps.get(2).map(|m| m.as_str().trim()).unwrap_or("");
+                if !flag.is_empty() {
+                    catalog.push(FlagEntry {
+                        flag: flag.to_string(),
+                        description: desc.to_string(),
+                    });
+                }
+            } else {
+                // Simpler pattern: just the flag token
+                let parts: Vec<&str> = trimmed.splitn(2, |c: char| c.is_whitespace()).collect();
+                if !parts.is_empty() && parts[0].starts_with('-') {
+                    catalog.push(FlagEntry {
+                        flag: parts[0].to_string(),
+                        description: parts.get(1).unwrap_or(&"").trim().to_string(),
+                    });
+                }
+            }
+        }
+
+        catalog
+    }
+
+    /// Extract concrete command-line examples from the raw documentation.
+    ///
+    /// Looks for lines that look like actual CLI invocations:
+    /// - Lines starting with `$` or `%` (shell prompts)
+    /// - Lines inside EXAMPLES sections that start with a tool/subcommand name
+    /// - Lines that contain multiple flag patterns (e.g., `-o out.bam`)
+    fn extract_command_examples(&self, docs: &str) -> Vec<String> {
+        let mut examples = Vec::new();
+        let mut in_example_section = false;
+
+        for line in docs.lines() {
+            let trimmed = line.trim();
+
+            // Track EXAMPLES section
+            if self.is_section_header(trimmed) && trimmed.to_lowercase().contains("example") {
+                in_example_section = true;
+                continue;
+            } else if self.is_section_header(trimmed) {
+                in_example_section = false;
+            }
+
+            // Skip empty lines and pure prose
+            if trimmed.is_empty() || trimmed.len() < 5 {
+                continue;
+            }
+
+            // Skip prose-like lines (start with uppercase and no flags)
+            if trimmed.starts_with(|c: char| c.is_uppercase())
+                && !trimmed.contains(" -")
+                && !trimmed.starts_with('$')
+            {
+                continue;
+            }
+
+            // Detect command-like lines
+            let is_command_line = trimmed.starts_with('$')
+                || trimmed.starts_with('%')
+                || (in_example_section
+                    && (trimmed.contains(" -")
+                        || trimmed.contains(" --")
+                        || trimmed.contains(" |")));
+
+            if is_command_line {
+                // Strip shell prompt prefix
+                let cmd = trimmed
+                    .strip_prefix("$ ")
+                    .or_else(|| trimmed.strip_prefix("% "))
+                    .unwrap_or(trimmed);
+
+                // Skip very short or comment-only lines
+                if cmd.len() >= 5 && !cmd.starts_with('#') {
+                    examples.push(cmd.to_string());
+                }
+            }
+        }
+
+        // Deduplicate and limit
+        examples.dedup();
+        examples.into_iter().take(10).collect()
+    }
+
+    /// Compute a deterministic documentation quality score (0.0–1.0).
+    ///
+    /// Higher scores indicate documentation that is more likely to produce
+    /// accurate LLM-generated commands.
+    fn compute_quality_score(&self, doc: &StructuredDoc) -> f32 {
+        let mut score: f32 = 0.0;
+
+        // Has USAGE section (essential)
+        if !doc.usage.is_empty() {
+            score += 0.25;
+        }
+
+        // Has EXAMPLES section (very valuable for few-shot)
+        if !doc.examples.is_empty() {
+            score += 0.25;
+        }
+
+        // Has extracted command examples (directly usable as few-shot)
+        let example_count = doc.extracted_examples.len();
+        score += (example_count.min(5) as f32) * 0.05; // up to 0.25
+
+        // Has OPTIONS / flag catalog (prevents flag hallucination)
+        let flag_count = doc.flag_catalog.len();
+        score += (flag_count.min(10) as f32) * 0.015; // up to 0.15
+
+        // Has subcommands
+        if !doc.commands.is_empty() {
+            score += 0.05;
+        }
+
+        // Has quick flags
+        if !doc.quick_flags.is_empty() {
+            score += 0.05;
+        }
+
+        score.min(1.0)
+    }
+
+    /// Build a compact flag list suitable for injection into LLM prompts.
+    ///
+    /// Returns a string like: `-o FILE  --threads INT  -@ INT  --output-fmt FMT`
+    #[allow(dead_code)]
+    pub fn flag_catalog_compact(&self, catalog: &[FlagEntry]) -> String {
+        catalog
+            .iter()
+            .take(30)
+            .map(|f| f.flag.clone())
+            .collect::<Vec<_>>()
+            .join("  ")
     }
 }
 
@@ -755,5 +943,101 @@ mod tests {
         assert!(extracted.contains("sort"));
         assert!(extracted.contains("view"));
         assert!(extracted.contains("index"));
+    }
+
+    #[test]
+    fn test_extract_flag_catalog() {
+        let processor = DocProcessor::new();
+        let options = "-o FILE          Output file name\n-@ INT           Number of threads\n--threads INT    Number of threads (alias)";
+
+        let catalog = processor.extract_flag_catalog(options);
+        assert!(!catalog.is_empty());
+        assert!(catalog.iter().any(|f| f.flag.contains("-o")));
+        assert!(catalog.iter().any(|f| f.flag.contains("-@")));
+    }
+
+    #[test]
+    fn test_extract_command_examples() {
+        let processor = DocProcessor::new();
+        let doc = "USAGE:\n  samtools sort [options]\n\nEXAMPLES:\n  samtools sort -o sorted.bam input.bam\n  samtools sort -@ 4 -o out.bam in.bam\n  samtools view -b input.sam > output.bam";
+
+        let examples = processor.extract_command_examples(doc);
+        assert!(!examples.is_empty());
+    }
+
+    #[test]
+    fn test_extract_command_examples_with_prompt() {
+        let processor = DocProcessor::new();
+        let doc =
+            "EXAMPLES:\n  $ samtools sort -o sorted.bam in.bam\n  $ samtools index sorted.bam";
+
+        let examples = processor.extract_command_examples(doc);
+        assert!(!examples.is_empty());
+        // Should strip the $ prefix
+        assert!(!examples[0].starts_with('$'));
+    }
+
+    #[test]
+    fn test_quality_score() {
+        let processor = DocProcessor::new();
+
+        // Good documentation
+        let good_doc = "USAGE:\n  tool [options] <input>\n\nOPTIONS:\n  -o FILE  Output\n  -@ INT  Threads\n\nEXAMPLES:\n  $ tool -o out.bam in.bam\n  $ tool -@ 4 in.bam";
+        let structured = processor.clean_and_structure(good_doc);
+        assert!(
+            structured.quality_score > 0.4,
+            "Good doc should score > 0.4, got {}",
+            structured.quality_score
+        );
+
+        // Minimal documentation
+        let minimal_doc = "tool - does something";
+        let structured = processor.clean_and_structure(minimal_doc);
+        assert!(
+            structured.quality_score < 0.3,
+            "Minimal doc should score < 0.3, got {}",
+            structured.quality_score
+        );
+    }
+
+    #[test]
+    fn test_flag_catalog_compact() {
+        let processor = DocProcessor::new();
+        let catalog = vec![
+            FlagEntry {
+                flag: "-o FILE".to_string(),
+                description: "Output".to_string(),
+            },
+            FlagEntry {
+                flag: "-@ INT".to_string(),
+                description: "Threads".to_string(),
+            },
+        ];
+        let compact = processor.flag_catalog_compact(&catalog);
+        assert!(compact.contains("-o FILE"));
+        assert!(compact.contains("-@ INT"));
+    }
+
+    #[test]
+    fn test_structured_doc_has_new_fields() {
+        let processor = DocProcessor::new();
+        let doc = "USAGE:\n  tool [options]\n\nOPTIONS:\n  -o FILE  Output\n  -h       Help\n\nEXAMPLES:\n  $ tool -o out.txt input.txt";
+        let structured = processor.clean_and_structure(doc);
+
+        // flag_catalog should be populated
+        assert!(
+            !structured.flag_catalog.is_empty(),
+            "flag_catalog should not be empty"
+        );
+        // extracted_examples should be populated
+        assert!(
+            !structured.extracted_examples.is_empty(),
+            "extracted_examples should not be empty"
+        );
+        // quality_score should be > 0
+        assert!(
+            structured.quality_score > 0.0,
+            "quality_score should be > 0"
+        );
     }
 }

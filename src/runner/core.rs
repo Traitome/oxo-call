@@ -4,6 +4,7 @@
 //! and execution.
 
 use crate::config::Config;
+use crate::doc_processor::DocProcessor;
 use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
 #[cfg(not(target_arch = "wasm32"))]
@@ -325,6 +326,27 @@ impl Runner {
 
         let docs = docs_result?;
 
+        // ── Build StructuredDoc for flag catalog + doc-extracted examples ──
+        // This is the key innovation: deterministic extraction of flags and
+        // examples from --help output, injected into the LLM prompt to ground
+        // small models without needing skill files or extra LLM calls.
+        let structured_doc = if !docs.is_empty() {
+            let processor = DocProcessor::new();
+            let sdoc = processor.clean_and_structure(&docs);
+            if self.verbose {
+                eprintln!(
+                    "{} Doc analysis: quality={:.2}, {} flags, {} examples extracted",
+                    "[verbose]".dimmed(),
+                    sdoc.quality_score,
+                    sdoc.flag_catalog.len(),
+                    sdoc.extracted_examples.len(),
+                );
+            }
+            Some(sdoc)
+        } else {
+            None
+        };
+
         if self.verbose && !docs.is_empty() {
             eprintln!(
                 "{} Documentation: {} chars{}",
@@ -456,26 +478,31 @@ impl Runner {
 
         // Select workflow mode:
         // - If scenario is forced → use scenario's default mode
-        // - No static skill + docs available → Quality (generates mini-skill from doc, cached)
-        // - Has static skill or no docs → Fast (skill already provides grounding)
-        let has_skill = skill.is_some();
+        // - Default → Fast (single LLM call with doc-enriched prompt)
+        //
+        // The Fast mode is now the primary code path for all cases.
+        // Doc-extracted examples and flag catalog are injected into the
+        // prompt by the StructuredDoc, eliminating the need for the
+        // multi-call Quality pipeline in most scenarios.
+        //
+        // Quality mode (multi-call: normalize → mini-skill → generate) is
+        // activated only when explicitly requested via --scenario.
         let effective_mode = if let Some(sc) = self.force_scenario {
             sc.default_mode()
-        } else if !has_skill && !docs.is_empty() {
-            WorkflowMode::Quality
         } else {
             WorkflowMode::Fast
         };
 
         if self.verbose {
+            let has_sdoc = structured_doc.is_some();
             let reason = if self.force_scenario.is_some() {
                 "forced by --scenario"
-            } else if !has_skill && !docs.is_empty() {
-                "no static skill → mini-skill pipeline"
-            } else if has_skill {
-                "static skill available"
+            } else if has_sdoc {
+                "doc-enriched single-call (flag catalog + doc examples)"
+            } else if skill.is_some() {
+                "skill-grounded single-call"
             } else {
-                "no docs available"
+                "single-call (no docs/skill)"
             };
             eprintln!(
                 "{} Workflow mode: {:?} ({})",
@@ -489,7 +516,14 @@ impl Runner {
 
         let executor = LlmWorkflowExecutor::new(self.config.clone(), effective_mode)?;
         let wf_result = executor
-            .execute(tool, &docs, &enriched_task, skill.as_ref(), self.no_prompt)
+            .execute(
+                tool,
+                &docs,
+                &enriched_task,
+                skill.as_ref(),
+                self.no_prompt,
+                structured_doc.as_ref(),
+            )
             .await?;
 
         if self.verbose {

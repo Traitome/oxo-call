@@ -91,7 +91,7 @@ impl RetryRunner for Runner {
 
             match self
                 .llm
-                .suggest_command(tool, "", &correction_task, None, self.no_prompt)
+                .suggest_command(tool, "", &correction_task, None, self.no_prompt, None)
                 .await
             {
                 Ok(suggestion) => {
