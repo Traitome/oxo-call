@@ -84,7 +84,7 @@ lib.rs              — Programmatic API surface (re-exports all modules)
 2. **Docs-first grounding**: Documentation fetched before LLM call to prevent hallucination
 3. **Offline-first**: Cached docs, no license server, optional remote fetching
 4. **Skill-augmented prompting**: Domain knowledge injected without code changes
-5. **Platform independence**: WASM conditional compilation, cross-platform config dirs
+5. **Native performance**: Direct native compilation for all major platforms (Linux, macOS, Windows)
 6. **Strict LLM contract**: ARGS:/EXPLANATION: format with retry on invalid response
 7. **Adaptive prompt compression**: Three prompt tiers (Full/Medium/Compact) auto-selected by model size and context window, ensuring reliable output from 0.5B to 200B+ parameter models
 8. **Extensible generation**: CommandGenerator trait enables multiple generation strategies (LLM, rule-based, composite) with chain-of-responsibility pattern

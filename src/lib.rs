@@ -18,7 +18,6 @@
 pub mod cache;
 pub mod config;
 pub mod context;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod copilot_auth;
 pub mod doc_processor;
 pub mod doc_summarizer;
