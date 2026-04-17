@@ -198,6 +198,42 @@ When `--optimize-task` is set, an extra LLM call refines the user's task descrip
 
 The optimized task is shown when it differs from the original and is used for the command generation prompt. This is particularly useful for short or ambiguous task descriptions.
 
+## Risk Assessment
+
+oxo-call automatically assesses the risk level of generated commands before execution:
+
+| Risk Level | Trigger | Behavior |
+|------------|---------|----------|
+| **Safe** | Normal bioinformatics commands | Proceeds normally |
+| **Warning** | Force flags (`-f`, `--force`), output redirection (`>`), same input/output file | Shows warning, proceeds with normal `--ask` behavior |
+| **Dangerous** | `rm`, `sudo`, `dd`, `mkfs`, `chmod`, `chown` commands | **Forces confirmation prompt** regardless of `--ask` |
+
+Example output for a dangerous command:
+
+```
+────────────────────────────────────────────────────────────
+  ⚠️  RISK: Dangerous command detected
+  The generated command contains 'rm' which can delete files.
+  Proceed with caution.
+────────────────────────────────────────────────────────────
+
+? Execute this command? [y/N]
+```
+
+This safety feature ensures that potentially destructive operations always require explicit user confirmation.
+
+## Input File Validation
+
+Before execution, oxo-call validates that input files exist on disk. Files following these flags are checked:
+
+- `-i`, `--input`, `-I`, `--in`
+- `-1`, `-2`, `--in1`, `--in2` (paired-end inputs)
+- `-x`, `-U` (reference/index inputs)
+- `--ref`, `--reference`, `--genome`, `--genome-dir`, `--genomeDir`
+- `--sjdbGTFfile`, `--gtf`, `--bed`
+
+If a specified input file doesn't exist, oxo-call fails early with a clear error message, preventing confusing downstream failures.
+
 ## Auto-Retry (`--auto-retry`)
 
 When `--auto-retry` is enabled and the generated command fails, oxo-call automatically:

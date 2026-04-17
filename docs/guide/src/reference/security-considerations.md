@@ -23,6 +23,10 @@ oxo-call generates and optionally executes shell commands using LLM output. The 
 - **Tool name sanitization**: `validate_tool_name()` in `src/docs.rs` rejects path traversal attempts (`../`, `/`), empty names, and names with invalid characters
 - **URL validation**: Remote documentation URLs are restricted to `http://` and `https://` schemes only
 - **LLM response format**: Strict `ARGS:`/`EXPLANATION:` format validation with retry — malformed responses are rejected, not executed
+- **Input file validation**: Before execution, oxo-call validates that input files (those following `-i`, `--input`, `-1`, `-2`, `--reference`, etc.) exist on disk. Missing files trigger an early error, preventing confusing downstream failures.
+- **Risk assessment**: Generated commands are automatically scanned for dangerous patterns:
+  - **Dangerous**: Commands containing `rm`, `sudo`, `dd`, `mkfs`, `chmod`, `chown` trigger a mandatory confirmation prompt
+  - **Warning**: Commands with force flags (`-f`, `--force`, `--overwrite`), output redirection (`>`), or same input/output files show a warning but proceed with normal `--ask` behavior
 
 ### Data Anonymization
 

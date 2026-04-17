@@ -31,6 +31,7 @@ main.rs             — Command dispatcher & license gate
   │     ├─→ cache.rs       — LLM response cache with semantic hash
   │     ├─→ generator.rs   — CommandGenerator trait (extensible generation strategies)
   │     └─→ history.rs     — Command history tracker with provenance
+  ├─→ chat.rs       — Interactive chat with AI about bioinformatics tools
   ├─→ sanitize.rs   — Data anonymization for LLM contexts
   ├─→ server.rs     — Remote server management (SSH / HPC)
   ├─→ workflow.rs   — Templates & registry

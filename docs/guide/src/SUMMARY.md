@@ -27,6 +27,7 @@
 
 - [run](./commands/run.md)
 - [dry-run](./commands/dry-run.md)
+- [chat](./commands/chat.md)
 - [docs](./commands/docs.md)
 - [config](./commands/config.md)
 - [history](./commands/history.md)

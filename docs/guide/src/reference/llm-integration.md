@@ -289,3 +289,58 @@ dramatically:
 
 "Before" = original Full-tier prompt on all models. "After" = automatic tier
 selection with the redesigned prompt system.
+
+## LLM Response Caching
+
+oxo-call can cache LLM responses to avoid redundant API calls for similar or identical prompts. This is particularly useful for:
+
+- Repeated tasks with the same tool and similar descriptions
+- Development and testing workflows
+- Cost optimization when using paid LLM APIs
+
+### How It Works
+
+The cache uses a **semantic hash** computed from:
+
+- Tool name
+- Task description (normalized)
+- Documentation hash
+- Skill name (if used)
+- Model identifier
+
+When cache is enabled and a matching entry exists, the cached response is returned immediately without an LLM API call.
+
+### Configuration
+
+Cache is **disabled by default** for independent benchmarking. Enable it via:
+
+```bash
+# Enable caching
+oxo-call config set llm.cache_enabled true
+
+# Check cache status
+oxo-call config get llm.cache_enabled
+```
+
+### Cache Behavior
+
+| Setting | Behavior |
+|---------|----------|
+| `llm.cache_enabled = true` | Cache hits return cached responses; misses are stored after LLM call |
+| `llm.cache_enabled = false` | All requests go to LLM (default) |
+| `--no-cache` flag | Bypasses cache for this invocation (fetches fresh docs, ignores cached LLM response) |
+
+### Cache Storage
+
+- **Location**: `~/.local/share/oxo-call/llm_cache.jsonl`
+- **Format**: JSONL (one JSON object per line)
+- **Expiration**: 7 days
+- **Metadata**: Each entry stores tool, task, args, explanation, model, timestamp, and hit count
+
+### Cache Priority
+
+When cache is enabled:
+
+1. **Cache hit** (exact semantic match) → return cached response
+2. **User preferences** from command history → inform the LLM prompt
+3. **Fresh LLM call** → generate and cache new response
