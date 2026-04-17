@@ -49,13 +49,17 @@ Use `--verbose` to see which tier was selected for a given invocation.
 The `run` command is the primary way to use oxo-call. It:
 
 1. Fetches the tool's documentation (from cache or `--help` output)
-2. Automatically normalizes vague, short, or non-English task descriptions
+2. **Extracts structured knowledge** — flag catalog and command examples from the help text
 3. Loads any matching skill (built-in, community, or user-defined)
-4. Sends the grounded prompt to the configured LLM
+4. Sends the doc-enriched prompt to the configured LLM (single call by default)
 5. Parses the response to extract command arguments
 6. *(with `--input-list` / `--input-items`)* Executes the command template for each item
 7. Records the execution in command history
 8. *(with `--verify`)* Asks the LLM to review the outputs and report issues
+
+Step 2 is the key innovation: the flag catalog prevents hallucinated flags and
+doc-extracted examples serve as few-shot demonstrations — enabling reliable
+command generation even with small models (≤3B) and no skill files.
 
 ## Examples
 
