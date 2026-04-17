@@ -28,6 +28,7 @@ mod skill;
 mod task_complexity;
 mod task_normalizer;
 mod workflow;
+mod workflow_graph;
 
 /// A single crate-wide mutex that **all** test modules must acquire before
 /// reading or writing `OXO_CALL_DATA_DIR` (or any other process-global
