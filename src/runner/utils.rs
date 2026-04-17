@@ -7,7 +7,6 @@
 //! - Validating input files
 //! - Creating progress spinners
 
-#[cfg(not(target_arch = "wasm32"))]
 use indicatif::{ProgressBar, ProgressStyle};
 use sha2::{Digest, Sha256};
 
@@ -175,24 +174,16 @@ pub(crate) fn sha256_hex(input: &str) -> String {
 
 /// Detect the version string of a tool by running `tool --version`.
 pub(crate) fn detect_tool_version(tool: &str) -> Option<String> {
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        use std::process::Command;
-        let output = Command::new(tool).arg("--version").output().ok()?;
-        if output.status.success() {
-            let version = String::from_utf8_lossy(&output.stdout);
-            let version = version.lines().next().unwrap_or("").trim();
-            if !version.is_empty() {
-                return Some(version.to_string());
-            }
+    use std::process::Command;
+    let output = Command::new(tool).arg("--version").output().ok()?;
+    if output.status.success() {
+        let version = String::from_utf8_lossy(&output.stdout);
+        let version = version.lines().next().unwrap_or("").trim();
+        if !version.is_empty() {
+            return Some(version.to_string());
         }
-        None
     }
-    #[cfg(target_arch = "wasm32")]
-    {
-        let _ = tool;
-        None
-    }
+    None
 }
 
 /// Extract a semantic version number from a version string.
@@ -283,7 +274,6 @@ pub fn check_version_compatibility(
 // ─── Progress spinner ────────────────────────────────────────────────────────
 
 /// Create a progress spinner with a message.
-#[cfg(not(target_arch = "wasm32"))]
 pub fn make_spinner(msg: &str) -> ProgressBar {
     let pb = ProgressBar::new_spinner();
     pb.set_style(
@@ -295,15 +285,6 @@ pub fn make_spinner(msg: &str) -> ProgressBar {
     pb.set_message(msg.to_string());
     pb.enable_steady_tick(std::time::Duration::from_millis(80));
     pb
-}
-
-/// Stub spinner for WASM.
-#[cfg(target_arch = "wasm32")]
-pub struct Spinner;
-
-#[cfg(target_arch = "wasm32")]
-pub fn make_spinner(_msg: &str) -> Spinner {
-    Spinner
 }
 
 // ─── Output file detection ───────────────────────────────────────────────────
@@ -483,7 +464,6 @@ pub fn risk_warning_message(risk: RiskLevel) -> Option<&'static str> {
 
 /// Scan command args for tokens that look like input file paths and check
 /// whether they exist on disk.  Returns a list of file paths that were not found.
-#[cfg(not(target_arch = "wasm32"))]
 pub fn validate_input_files(args: &[String]) -> Vec<String> {
     const INPUT_FLAGS: &[&str] = &[
         "-i",

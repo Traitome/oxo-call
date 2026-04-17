@@ -4,14 +4,10 @@
 //! LLM-corrected arguments and verifying execution results.
 
 use crate::error::{OxoError, Result};
-#[cfg(not(target_arch = "wasm32"))]
 use crate::history::{CommandProvenance, HistoryEntry, HistoryStore};
-#[cfg(not(target_arch = "wasm32"))]
 use chrono::Utc;
 use colored::Colorize;
-#[cfg(not(target_arch = "wasm32"))]
 use std::process::Command;
-#[cfg(not(target_arch = "wasm32"))]
 use uuid::Uuid;
 
 use super::core::Runner;
@@ -20,7 +16,6 @@ use super::utils::{
 };
 
 /// Parameters for LLM-based run result verification.
-#[cfg(not(target_arch = "wasm32"))]
 pub(crate) struct VerifyParams<'a> {
     pub(crate) tool: &'a str,
     pub(crate) task: &'a str,
@@ -54,7 +49,6 @@ impl RetryRunner for Runner {
     /// The LLM receives the original command, exit code, and stderr, and
     /// generates a corrected command.  The corrected command is shown to the
     /// user and executed.  Up to `MAX_AUTO_RETRIES` attempts are made.
-    #[cfg(not(target_arch = "wasm32"))]
     async fn auto_retry_on_failure(
         &self,
         tool: &str,
@@ -216,7 +210,6 @@ impl RetryRunner for Runner {
     }
 
     /// Perform LLM verification of a completed command run and print/return results.
-    #[cfg(not(target_arch = "wasm32"))]
     async fn run_verification(&self, params: VerifyParams<'_>) {
         let VerifyParams {
             tool,
@@ -299,26 +292,5 @@ impl RetryRunner for Runner {
             }
         }
         println!("{}", "─".repeat(60).dimmed());
-    }
-
-    // WASM stubs
-    #[cfg(target_arch = "wasm32")]
-    async fn auto_retry_on_failure(
-        &self,
-        _tool: &str,
-        _task: &str,
-        _failed_cmd: &str,
-        _exit_code: i32,
-        _stderr: &str,
-        _json: bool,
-    ) -> Result<()> {
-        Err(OxoError::ExecutionError(
-            "Auto-retry is not supported in WebAssembly".to_string(),
-        ))
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    async fn run_verification(&self, _params: VerifyParams<'_>) {
-        // No-op in WASM
     }
 }

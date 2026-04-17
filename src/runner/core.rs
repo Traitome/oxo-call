@@ -7,21 +7,15 @@ use crate::config::Config;
 use crate::doc_processor::DocProcessor;
 use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
-#[cfg(not(target_arch = "wasm32"))]
 use crate::history::{CommandProvenance, HistoryEntry, HistoryStore};
-#[cfg(not(target_arch = "wasm32"))]
 use crate::job;
 use crate::llm::{LlmClient, LlmCommandSuggestion};
 use crate::llm_workflow::{LlmWorkflowExecutor, WorkflowMode};
 use crate::skill::SkillManager;
-#[cfg(not(target_arch = "wasm32"))]
 use chrono::Utc;
 use colored::Colorize;
-#[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
-#[cfg(not(target_arch = "wasm32"))]
 use std::process::Command;
-#[cfg(not(target_arch = "wasm32"))]
 use uuid::Uuid;
 
 use super::batch::BatchRunner;
@@ -71,16 +65,12 @@ pub struct Runner {
     /// [Ablation] When true, do not use the oxo-call system prompt.
     pub(crate) no_prompt: bool,
     /// Named variables substituted into the task description before the LLM call.
-    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) vars: HashMap<String, String>,
     /// Input items for batch/parallel execution (empty = single run).
-    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) input_items: Vec<String>,
     /// Maximum number of parallel jobs when `input_items` is non-empty.
-    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) jobs: usize,
     /// When true, stop the batch after the first failed item.
-    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) stop_on_error: bool,
     /// When true, automatically retry failed commands with LLM-corrected arguments.
     pub(crate) auto_retry: bool,
@@ -101,13 +91,9 @@ impl Runner {
             no_skill: false,
             no_doc: false,
             no_prompt: false,
-            #[cfg(not(target_arch = "wasm32"))]
             vars: HashMap::new(),
-            #[cfg(not(target_arch = "wasm32"))]
             input_items: Vec::new(),
-            #[cfg(not(target_arch = "wasm32"))]
             jobs: 1,
-            #[cfg(not(target_arch = "wasm32"))]
             stop_on_error: false,
             auto_retry: false,
             force_scenario: None,
@@ -165,7 +151,6 @@ impl Runner {
     /// Set named variables that will be substituted into the task description
     /// (and, when an input list is present, into the generated command) before
     /// the LLM call.
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn with_vars(mut self, vars: HashMap<String, String>) -> Self {
         self.vars = vars;
         self
@@ -175,21 +160,18 @@ impl Runner {
     ///
     /// When non-empty, the LLM is called once and the generated command
     /// template (which may contain `{item}`) is executed for every item.
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn with_input_items(mut self, items: Vec<String>) -> Self {
         self.input_items = items;
         self
     }
 
     /// Set the maximum number of parallel jobs (default: 1 = sequential).
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn with_jobs(mut self, jobs: usize) -> Self {
         self.jobs = jobs.max(1);
         self
     }
 
     /// When enabled, abort the batch after the first failed item.
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn with_stop_on_error(mut self, stop_on_error: bool) -> Self {
         self.stop_on_error = stop_on_error;
         self
@@ -269,14 +251,7 @@ impl Runner {
                 }
                 None
             } else {
-                #[cfg(not(target_arch = "wasm32"))]
-                {
-                    self.skill_manager.load_async(tool).await
-                }
-                #[cfg(target_arch = "wasm32")]
-                {
-                    self.skill_manager.load(tool)
-                }
+                self.skill_manager.load_async(tool).await
             }
         };
 
@@ -578,7 +553,6 @@ impl Runner {
     /// dry-run: show the command that would be executed without running it.
     /// Records the generated command in history with `dry_run = true`.
     /// Pass `server` to tag the history entry with the remote server name.
-    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn dry_run(
         &self,
         tool: &str,
@@ -586,17 +560,14 @@ impl Runner {
         json: bool,
         server: Option<&str>,
     ) -> Result<()> {
-        // ── Native-only: apply vars + batch dispatch ──────────────────────────
-        #[cfg(not(target_arch = "wasm32"))]
+        // ── Apply vars + batch dispatch ──────────────────────────
         let _task_buf;
-        #[cfg(not(target_arch = "wasm32"))]
         let task: &str = if self.vars.is_empty() {
             task
         } else {
             _task_buf = job::interpolate_command(task, "", 0, &self.vars);
             &_task_buf
         };
-        #[cfg(not(target_arch = "wasm32"))]
         if !self.input_items.is_empty() {
             return self.dry_run_batch(tool, task, json).await;
         }
@@ -605,7 +576,6 @@ impl Runner {
         let full_cmd = build_command_string(tool, &result.suggestion.args);
 
         // Record in history before displaying, so the entry is always saved.
-        #[cfg(not(target_arch = "wasm32"))]
         {
             let tool_version = detect_tool_version(tool);
             let entry = HistoryEntry {
@@ -677,17 +647,14 @@ impl Runner {
 
     /// run: execute the command for real
     pub async fn run(&self, tool: &str, task: &str, ask: bool, json: bool) -> Result<()> {
-        // ── Native-only: apply vars + batch dispatch ──────────────────────────
-        #[cfg(not(target_arch = "wasm32"))]
+        // ── Apply vars + batch dispatch ──────────────────────────
         let _task_buf;
-        #[cfg(not(target_arch = "wasm32"))]
         let task: &str = if self.vars.is_empty() {
             task
         } else {
             _task_buf = job::interpolate_command(task, "", 0, &self.vars);
             &_task_buf
         };
-        #[cfg(not(target_arch = "wasm32"))]
         if !self.input_items.is_empty() {
             return self.run_batch(tool, task, json).await;
         }
@@ -747,7 +714,6 @@ impl Runner {
             }
 
             // Validate input files exist before execution
-            #[cfg(not(target_arch = "wasm32"))]
             {
                 let missing = validate_input_files(&result.suggestion.args);
                 if !missing.is_empty() {
@@ -785,170 +751,161 @@ impl Runner {
             println!();
         }
 
-        // Process execution is not supported in WebAssembly
-        #[cfg(target_arch = "wasm32")]
-        return Err(OxoError::ExecutionError(
-            "Command execution is not supported in WebAssembly".to_string(),
-        ));
+        // Resolve companion binary (e.g., "bowtie2-build" when tool is "bowtie2")
+        let (eff_tool, eff_args) = effective_command(tool, &result.suggestion.args);
 
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            // Resolve companion binary (e.g., "bowtie2-build" when tool is "bowtie2")
-            let (eff_tool, eff_args) = effective_command(tool, &result.suggestion.args);
+        // When the args contain shell operators (&&, ||, ;, |, >, …) the command
+        // must be dispatched through a shell so those operators are interpreted as
+        // shell syntax rather than being passed as literal strings to the tool.
+        let use_shell = super::utils::args_require_shell(&result.suggestion.args);
 
-            // When the args contain shell operators (&&, ||, ;, |, >, …) the command
-            // must be dispatched through a shell so those operators are interpreted as
-            // shell syntax rather than being passed as literal strings to the tool.
-            let use_shell = super::utils::args_require_shell(&result.suggestion.args);
-
-            // When verification is enabled, capture stderr for analysis.
-            let (exit_code, success, captured_stderr) = if self.verify {
-                let output = if use_shell {
-                    Command::new("sh")
-                        .args(["-c", &full_cmd])
-                        .output()
-                        .map_err(|e| OxoError::ExecutionError(format!("sh: {e}")))?
-                } else {
-                    Command::new(eff_tool)
-                        .args(eff_args)
-                        .output()
-                        .map_err(|e| OxoError::ToolNotFound(format!("{eff_tool}: {e}")))?
-                };
-
-                // Stream captured output to terminal so the user still sees it.
-                use std::io::Write;
-                let _ = std::io::stdout().write_all(&output.stdout);
-                let _ = std::io::stderr().write_all(&output.stderr);
-
-                let code = output.status.code().unwrap_or(-1);
-                let ok = output.status.success();
-                let stderr_text = String::from_utf8_lossy(&output.stderr).into_owned();
-                (code, ok, stderr_text)
+        // When verification is enabled, capture stderr for analysis.
+        let (exit_code, success, captured_stderr) = if self.verify {
+            let output = if use_shell {
+                Command::new("sh")
+                    .args(["-c", &full_cmd])
+                    .output()
+                    .map_err(|e| OxoError::ExecutionError(format!("sh: {e}")))?
             } else {
-                let status = if use_shell {
-                    Command::new("sh")
-                        .args(["-c", &full_cmd])
-                        .status()
-                        .map_err(|e| OxoError::ExecutionError(format!("sh: {e}")))?
-                } else {
-                    Command::new(eff_tool)
-                        .args(eff_args)
-                        .status()
-                        .map_err(|e| OxoError::ToolNotFound(format!("{eff_tool}: {e}")))?
-                };
-                let code = status.code().unwrap_or(-1);
-                let ok = status.success();
-                (code, ok, String::new())
+                Command::new(eff_tool)
+                    .args(eff_args)
+                    .output()
+                    .map_err(|e| OxoError::ToolNotFound(format!("{eff_tool}: {e}")))?
             };
 
-            // Detect tool version for provenance (use effective tool binary)
-            let tool_version = detect_tool_version(eff_tool);
+            // Stream captured output to terminal so the user still sees it.
+            use std::io::Write;
+            let _ = std::io::stdout().write_all(&output.stdout);
+            let _ = std::io::stderr().write_all(&output.stderr);
 
-            // Record in history with provenance
-            let entry = HistoryEntry {
-                id: Uuid::new_v4().to_string(),
-                tool: tool.to_string(),
-                task: task.to_string(),
-                command: full_cmd.clone(),
+            let code = output.status.code().unwrap_or(-1);
+            let ok = output.status.success();
+            let stderr_text = String::from_utf8_lossy(&output.stderr).into_owned();
+            (code, ok, stderr_text)
+        } else {
+            let status = if use_shell {
+                Command::new("sh")
+                    .args(["-c", &full_cmd])
+                    .status()
+                    .map_err(|e| OxoError::ExecutionError(format!("sh: {e}")))?
+            } else {
+                Command::new(eff_tool)
+                    .args(eff_args)
+                    .status()
+                    .map_err(|e| OxoError::ToolNotFound(format!("{eff_tool}: {e}")))?
+            };
+            let code = status.code().unwrap_or(-1);
+            let ok = status.success();
+            (code, ok, String::new())
+        };
+
+        // Detect tool version for provenance (use effective tool binary)
+        let tool_version = detect_tool_version(eff_tool);
+
+        // Record in history with provenance
+        let entry = HistoryEntry {
+            id: Uuid::new_v4().to_string(),
+            tool: tool.to_string(),
+            task: task.to_string(),
+            command: full_cmd.clone(),
+            exit_code,
+            executed_at: Utc::now(),
+            dry_run: false,
+            server: None,
+            provenance: Some(CommandProvenance {
+                tool_version,
+                docs_hash: Some(result.docs_hash),
+                skill_name: result.skill_name.clone(),
+                model: Some(self.config.effective_model()),
+                cache_hit: None,
+            }),
+        };
+        let _ = HistoryStore::append(entry);
+
+        if json {
+            let output = serde_json::json!({
+                "tool": tool,
+                "task": task,
+                "effective_task": result.effective_task,
+                "command": full_cmd,
+                "args": result.suggestion.args,
+                "explanation": result.suggestion.explanation,
+                "dry_run": false,
+                "exit_code": exit_code,
+                "success": success,
+                "skill": result.skill_name,
+                "model": self.config.effective_model(),
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+        } else {
+            println!();
+            println!("{}", "─".repeat(60).dimmed());
+            if success {
+                println!(
+                    "  {} exit code {}",
+                    "Completed successfully,".bold().green(),
+                    exit_code.to_string().green()
+                );
+            } else {
+                println!(
+                    "  {} exit code {}",
+                    "Command failed,".bold().red(),
+                    exit_code.to_string().red()
+                );
+            }
+            println!("{}", "─".repeat(60).dimmed());
+        }
+
+        // LLM-based result verification (when --verify is enabled).
+        if self.verify {
+            self.run_verification(super::retry::VerifyParams {
+                tool,
+                task: &result.effective_task,
+                command: &full_cmd,
                 exit_code,
-                executed_at: Utc::now(),
-                dry_run: false,
-                server: None,
-                provenance: Some(CommandProvenance {
-                    tool_version,
-                    docs_hash: Some(result.docs_hash),
-                    skill_name: result.skill_name.clone(),
-                    model: Some(self.config.effective_model()),
-                    cache_hit: None,
-                }),
-            };
-            let _ = HistoryStore::append(entry);
+                stderr: &captured_stderr,
+                args: &result.suggestion.args,
+                json,
+            })
+            .await;
+        }
 
-            if json {
-                let output = serde_json::json!({
-                    "tool": tool,
-                    "task": task,
-                    "effective_task": result.effective_task,
-                    "command": full_cmd,
-                    "args": result.suggestion.args,
-                    "explanation": result.suggestion.explanation,
-                    "dry_run": false,
-                    "exit_code": exit_code,
-                    "success": success,
-                    "skill": result.skill_name,
-                    "model": self.config.effective_model(),
-                });
-                println!("{}", serde_json::to_string_pretty(&output)?);
-            } else {
+        // ── Auto-retry on failure ─────────────────────────────────────────
+        if self.auto_retry && !success {
+            if !json {
                 println!();
-                println!("{}", "─".repeat(60).dimmed());
-                if success {
-                    println!(
-                        "  {} exit code {}",
-                        "Completed successfully,".bold().green(),
-                        exit_code.to_string().green()
-                    );
-                } else {
-                    println!(
-                        "  {} exit code {}",
-                        "Command failed,".bold().red(),
-                        exit_code.to_string().red()
-                    );
-                }
-                println!("{}", "─".repeat(60).dimmed());
+                println!(
+                    "  {} Analyzing failure and generating corrected command...",
+                    "⟳".cyan().bold()
+                );
             }
 
-            // LLM-based result verification (when --verify is enabled).
-            if self.verify {
-                self.run_verification(super::retry::VerifyParams {
+            let stderr_for_retry = if !captured_stderr.is_empty() {
+                captured_stderr.clone()
+            } else {
+                format!("Command failed with exit code {exit_code}")
+            };
+
+            match self
+                .auto_retry_on_failure(
                     tool,
-                    task: &result.effective_task,
-                    command: &full_cmd,
+                    &result.effective_task,
+                    &full_cmd,
                     exit_code,
-                    stderr: &captured_stderr,
-                    args: &result.suggestion.args,
+                    &stderr_for_retry,
                     json,
-                })
-                .await;
-            }
-
-            // ── Auto-retry on failure ─────────────────────────────────────────
-            if self.auto_retry && !success {
-                if !json {
-                    println!();
-                    println!(
-                        "  {} Analyzing failure and generating corrected command...",
-                        "⟳".cyan().bold()
-                    );
-                }
-
-                let stderr_for_retry = if !captured_stderr.is_empty() {
-                    captured_stderr.clone()
-                } else {
-                    format!("Command failed with exit code {exit_code}")
-                };
-
-                match self
-                    .auto_retry_on_failure(
-                        tool,
-                        &result.effective_task,
-                        &full_cmd,
-                        exit_code,
-                        &stderr_for_retry,
-                        json,
-                    )
-                    .await
-                {
-                    Ok(()) => {}
-                    Err(e) => {
-                        if !json {
-                            eprintln!("  {} Auto-retry failed: {}", "✗".red().bold(), e);
-                        }
+                )
+                .await
+            {
+                Ok(()) => {}
+                Err(e) => {
+                    if !json {
+                        eprintln!("  {} Auto-retry failed: {}", "✗".red().bold(), e);
                     }
                 }
             }
-
-            Ok(())
         }
+
+        Ok(())
     }
 }
