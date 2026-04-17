@@ -185,7 +185,7 @@ fn extract_arg_combos(entries: &[&HistoryEntry]) -> Vec<ArgCombo> {
         .filter(|(_, count)| *count >= 2)
         .map(|(pattern, count)| ArgCombo { pattern, count })
         .collect();
-    combos.sort_by(|a, b| b.count.cmp(&a.count));
+    combos.sort_by_key(|b| std::cmp::Reverse(b.count));
     combos.truncate(5);
     combos
 }
@@ -381,7 +381,7 @@ pub fn detect_workflow_patterns(history: &[HistoryEntry]) -> Vec<WorkflowSuggest
         .collect();
 
     // Sort by count descending
-    suggestions.sort_by(|a, b| b.count.cmp(&a.count));
+    suggestions.sort_by_key(|b| std::cmp::Reverse(b.count));
     suggestions.truncate(5);
     suggestions
 }
