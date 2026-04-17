@@ -5,6 +5,7 @@ mod config;
 mod context;
 #[cfg(not(target_arch = "wasm32"))]
 mod copilot_auth;
+mod doc_processor;
 mod doc_summarizer;
 mod docs;
 mod engine;
@@ -17,7 +18,9 @@ mod index;
 mod job;
 mod license;
 mod llm;
+mod llm_workflow;
 mod mcp;
+mod mini_skill_cache;
 mod runner;
 mod sanitize;
 mod server;
@@ -199,11 +202,20 @@ async fn run(cli: Cli) -> error::Result<()> {
             jobs,
             stop_on_error,
             auto_retry,
+            fast: _,
+            quality,
         } => {
             let mut cfg = config::Config::load()?;
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
             }
+
+            // Determine workflow mode
+            let workflow_mode = if quality {
+                llm_workflow::WorkflowMode::Quality
+            } else {
+                llm_workflow::WorkflowMode::Fast // Default
+            };
 
             // Collect input items from --input-list / --input-items.
             #[cfg(not(target_arch = "wasm32"))]
@@ -239,7 +251,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_no_cache(no_cache)
                 .with_verify(verify)
                 .with_optimize_task(optimize_task)
-                .with_auto_retry(auto_retry);
+                .with_auto_retry(auto_retry)
+                .with_workflow_mode(workflow_mode);
             #[cfg(not(target_arch = "wasm32"))]
             let runner = runner
                 .with_vars(var_map)
@@ -262,11 +275,20 @@ async fn run(cli: Cli) -> error::Result<()> {
             vars,
             input_list,
             input_items,
+            fast: _,
+            quality,
         } => {
             let mut cfg = config::Config::load()?;
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
             }
+
+            // Determine workflow mode
+            let workflow_mode = if quality {
+                llm_workflow::WorkflowMode::Quality
+            } else {
+                llm_workflow::WorkflowMode::Fast // Default
+            };
 
             #[cfg(not(target_arch = "wasm32"))]
             let all_items = {
@@ -301,7 +323,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_optimize_task(optimize_task)
                 .with_no_skill(no_skill)
                 .with_no_doc(no_doc)
-                .with_no_prompt(no_prompt);
+                .with_no_prompt(no_prompt)
+                .with_workflow_mode(workflow_mode);
             #[cfg(not(target_arch = "wasm32"))]
             let runner = runner.with_vars(var_map).with_input_items(all_items);
             runner.dry_run(&tool, &task, json, None).await?;

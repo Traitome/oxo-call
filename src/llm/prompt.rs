@@ -614,3 +614,62 @@ pub fn build_retry_prompt(
          Please respond again with EXACTLY two lines starting with 'ARGS:' and 'EXPLANATION:'.\n"
     )
 }
+
+// ─── Mini-skill generation prompts ─────────────────────────────────────────────
+
+/// System prompt for mini-skill generation from tool documentation.
+#[allow(dead_code)]
+pub fn mini_skill_generation_system_prompt() -> &'static str {
+    "You are an expert bioinformatics tool analyst. Your task is to extract \
+     structured knowledge from tool documentation to help LLMs generate accurate \
+     command-line arguments. Focus on practical, actionable information that \
+     directly impacts command generation quality."
+}
+
+/// Build a prompt for generating a mini-skill from tool documentation.
+#[allow(dead_code)]
+pub fn build_mini_skill_prompt(tool: &str, documentation: &str) -> String {
+    format!(
+        "# Mini-Skill Generation Request\n\n\
+         **Tool:** `{tool}`\n\n\
+         ## Tool Documentation\n\
+         ```\n{documentation}\n```\n\n\
+         Analyze this documentation and extract expert knowledge in JSON format.\n\n\
+         ## Output Format (STRICT)\n\
+         Respond with ONLY a JSON object (no markdown, no explanation):\n\
+         ```json\n\
+         {{\n\
+           \"concepts\": [\n\
+             \"<key concept 1 about data model, I/O formats, or core behavior>\",\n\
+             \"<key concept 2>\",\n\
+             \"<key concept 3>\"\n\
+           ],\n\
+           \"pitfalls\": [\n\
+             \"<common mistake 1 and its consequence>\",\n\
+             \"<common mistake 2 and its consequence>\",\n\
+             \"<common mistake 3 and its consequence>\"\n\
+           ],\n\
+           \"examples\": [\n\
+             {{\n\
+               \"task\": \"<task description in plain English>\",\n\
+               \"args\": \"<exact CLI flags WITHOUT the tool name>\",\n\
+               \"explanation\": \"<one sentence explaining why these flags>\"\n\
+             }}\n\
+           ]\n\
+         }}\n\
+         ```\n\n\
+         ## Extraction Guidelines\n\
+         1. **Concepts**: Focus on the tool's data model, required inputs, key flags, and \
+            core behaviors. Be specific and actionable.\n\
+         2. **Pitfalls**: Identify common mistakes users make and explain what goes wrong. \
+            Include consequences.\n\
+         3. **Examples**: Extract 3-5 realistic usage examples from the documentation. \
+            Args must NEVER start with the tool name '{tool}'.\n\
+         4. **Quality over quantity**: Better to have 3 high-quality items than 10 vague ones.\n\n\
+         ## Important Notes\n\
+         - For companion binaries (e.g., {tool}-build), use the companion name as the first token in args\n\
+         - Preserve exact flag formats from the documentation (--flag=value vs --flag value)\n\
+         - Include thread count (-@/-t/--threads) and output (-o) flags when applicable\n\
+         - Do NOT invent flags not shown in the documentation\n"
+    )
+}

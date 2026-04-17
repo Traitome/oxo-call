@@ -289,7 +289,7 @@ impl DocsFetcher {
     /// the user needs (e.g., `samtools sort` instead of just `samtools` top-level).
     pub fn fetch_subcommand_help(&self, tool: &str, top_help: &str, task: &str) -> Option<String> {
         let subcommands = extract_subcommand_list(top_help);
-        
+
         // Strategy 0: Extract keywords from task and try standalone commands first
         // This handles tools like medaka where medaka_consensus is a separate executable
         let task_lower = task.to_ascii_lowercase();
@@ -297,17 +297,17 @@ impl DocsFetcher {
             .split_whitespace()
             .filter(|word| word.len() >= 3) // Skip short words
             .collect();
-        
+
         // Try each keyword as a potential standalone command tool_keyword
         for keyword in &task_keywords {
             let standalone_cmd = format!("{tool}_{keyword}");
-            if let Ok(help) = self.fetch_help(&standalone_cmd).map(|(h, _)| h) {
-                if help.len() >= MIN_HELP_LEN {
-                    return Some(format!("# {standalone_cmd} --help\n\n{help}"));
-                }
+            if let Ok(help) = self.fetch_help(&standalone_cmd).map(|(h, _)| h)
+                && help.len() >= MIN_HELP_LEN
+            {
+                return Some(format!("# {standalone_cmd} --help\n\n{help}"));
             }
         }
-        
+
         // If no standalone commands found, fall back to subcommand matching
         if subcommands.is_empty() {
             return None;
@@ -332,15 +332,15 @@ impl DocsFetcher {
 
         if let Some(subcmd) = matched {
             // Try multiple strategies to fetch help for this subcommand
-            
+
             // Strategy 1: Try standalone executable tool_subcommand (e.g., medaka_consensus)
             let standalone_cmd = format!("{tool}_{subcmd}");
-            if let Ok(help) = self.fetch_help(&standalone_cmd).map(|(h, _)| h) {
-                if help.len() >= MIN_HELP_LEN {
-                    return Some(format!("# {standalone_cmd} --help\n\n{help}"));
-                }
+            if let Ok(help) = self.fetch_help(&standalone_cmd).map(|(h, _)| h)
+                && help.len() >= MIN_HELP_LEN
+            {
+                return Some(format!("# {standalone_cmd} --help\n\n{help}"));
             }
-            
+
             // Strategy 2: Try tool subcommand --help (standard subcommand pattern)
             if let Ok(help) = self
                 .run_help_flag(tool, &format!("{subcmd} --help"))
@@ -353,7 +353,7 @@ impl DocsFetcher {
             {
                 return Some(format!("# {tool} {subcmd} --help\n\n{help}"));
             }
-            
+
             // Strategy 3: Run subcommand bare (many bioinfo tools print help when called with no args)
             if let Ok(help) = self.run_subcommand_no_args(tool, subcmd)
                 && help.len() >= MIN_HELP_LEN

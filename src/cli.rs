@@ -120,6 +120,23 @@ EXAMPLES:\n  \
         /// and retry with a corrected command (up to 2 retries)
         #[arg(long)]
         auto_retry: bool,
+        /// Use fast mode: single LLM call for minimal latency (default)
+        ///
+        /// Fast mode is optimized for speed and works well with large models
+        /// or when you have existing skills for the tool.
+        #[arg(long, conflicts_with = "quality")]
+        fast: bool,
+        /// Use quality mode: multi-stage LLM workflow for best accuracy
+        ///
+        /// Quality mode uses multiple LLM calls:
+        /// 1. Task standardization (if needed)
+        /// 2. Document cleaning
+        /// 3. Mini-skill generation (cached)
+        /// 4. Command generation
+        ///
+        /// Recommended for small models or complex tasks without existing skills.
+        #[arg(long, conflicts_with = "fast")]
+        quality: bool,
     },
     #[command(
         name = "dry-run",
@@ -175,6 +192,12 @@ EXAMPLES:\n  \
         /// Comma-separated input items; previews the command for each item
         #[arg(long = "input-items", value_name = "ITEMS")]
         input_items: Option<String>,
+        /// Use fast mode: single LLM call for minimal latency (default)
+        #[arg(long, conflicts_with = "quality")]
+        fast: bool,
+        /// Use quality mode: multi-stage LLM workflow for best accuracy
+        #[arg(long, conflicts_with = "fast")]
+        quality: bool,
     },
 
     /// Manage tool documentation (add, remove, update, list, show)

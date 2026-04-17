@@ -20,6 +20,7 @@ pub mod config;
 pub mod context;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod copilot_auth;
+pub mod doc_processor;
 pub mod doc_summarizer;
 pub mod docs;
 pub mod engine;
@@ -32,7 +33,9 @@ pub mod index;
 pub mod job;
 pub mod license;
 pub mod llm;
+pub mod llm_workflow;
 pub mod mcp;
+pub mod mini_skill_cache;
 pub mod runner;
 pub mod sanitize;
 pub mod server;

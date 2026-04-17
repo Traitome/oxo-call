@@ -252,6 +252,30 @@ impl LlmClient {
         }
     }
 
+    /// Make a raw chat completion call with custom system prompt.
+    ///
+    /// This is a low-level API for specialized workflows (e.g., mini-skill generation).
+    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
+    #[allow(dead_code)]
+    pub async fn chat_completion(
+        &self,
+        system: &str,
+        user_prompt: &str,
+        max_tokens: Option<u32>,
+        temperature: Option<f32>,
+    ) -> Result<String> {
+        #[cfg(target_arch = "wasm32")]
+        return Err(OxoError::LlmError(
+            "LLM API calls are not supported in WebAssembly".to_string(),
+        ));
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            self.request_with_system(system, user_prompt, max_tokens, temperature)
+                .await
+        }
+    }
+
     /// Ask the LLM to verify the result of a completed command execution.
     ///
     /// `output_files` is a list of `(path, Option<file_size_bytes>)` pairs — a

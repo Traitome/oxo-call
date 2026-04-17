@@ -11,6 +11,7 @@ use crate::history::{CommandProvenance, HistoryEntry, HistoryStore};
 #[cfg(not(target_arch = "wasm32"))]
 use crate::job;
 use crate::llm::{LlmClient, LlmCommandSuggestion};
+use crate::llm_workflow::{LlmWorkflowExecutor, WorkflowMode};
 use crate::skill::SkillManager;
 #[cfg(not(target_arch = "wasm32"))]
 use chrono::Utc;
@@ -85,6 +86,8 @@ pub struct Runner {
     pub(crate) stop_on_error: bool,
     /// When true, automatically retry failed commands with LLM-corrected arguments.
     pub(crate) auto_retry: bool,
+    /// Workflow mode: Fast (single LLM call) or Quality (multi-stage pipeline)
+    pub(crate) workflow_mode: WorkflowMode,
 }
 
 impl Runner {
@@ -110,6 +113,7 @@ impl Runner {
             #[cfg(not(target_arch = "wasm32"))]
             stop_on_error: false,
             auto_retry: false,
+            workflow_mode: WorkflowMode::Fast, // Default to fast mode
         }
     }
 
@@ -140,6 +144,12 @@ impl Runner {
     /// Enable automatic retry with LLM-corrected commands on failure.
     pub fn with_auto_retry(mut self, auto_retry: bool) -> Self {
         self.auto_retry = auto_retry;
+        self
+    }
+
+    /// Set the workflow mode: Fast (single LLM call) or Quality (multi-stage pipeline)
+    pub fn with_workflow_mode(mut self, mode: WorkflowMode) -> Self {
+        self.workflow_mode = mode;
         self
     }
 
@@ -486,18 +496,59 @@ impl Runner {
         let spinner = make_spinner(&format!(
             "Asking LLM to generate command arguments{skill_label}..."
         ));
-        let suggestion = match self
-            .llm
-            .suggest_command(tool, &docs, &enriched_task, skill.as_ref(), self.no_prompt)
-            .await
-        {
-            Ok(s) => {
-                spinner.finish_and_clear();
-                s
+
+        // Choose workflow based on mode
+        let suggestion = match self.workflow_mode {
+            WorkflowMode::Fast => {
+                // Fast mode: single LLM call (existing behavior)
+                match self
+                    .llm
+                    .suggest_command(tool, &docs, &enriched_task, skill.as_ref(), self.no_prompt)
+                    .await
+                {
+                    Ok(s) => {
+                        spinner.finish_and_clear();
+                        s
+                    }
+                    Err(e) => {
+                        spinner.finish_and_clear();
+                        return Err(e);
+                    }
+                }
             }
-            Err(e) => {
+            WorkflowMode::Quality => {
+                // Quality mode: multi-stage workflow
                 spinner.finish_and_clear();
-                return Err(e);
+
+                if self.verbose {
+                    eprintln!(
+                        "{} Using quality mode: multi-stage LLM workflow",
+                        "[verbose]".dimmed()
+                    );
+                }
+
+                let executor =
+                    LlmWorkflowExecutor::new(self.config.clone(), WorkflowMode::Quality)?;
+
+                match executor
+                    .execute(tool, &docs, &enriched_task, skill.as_ref(), self.no_prompt)
+                    .await
+                {
+                    Ok(result) => {
+                        if self.verbose {
+                            eprintln!(
+                                "{} Workflow completed: {} LLM calls, {:.1}ms total inference",
+                                "[verbose]".dimmed(),
+                                result.llm_calls,
+                                result.total_inference_ms
+                            );
+                        }
+                        result.suggestion
+                    }
+                    Err(e) => {
+                        return Err(e);
+                    }
+                }
             }
         };
 
