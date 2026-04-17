@@ -855,6 +855,228 @@ fn remove_redirections(s: &str) -> String {
     result.join(" ")
 }
 
+// ── Boilerplate flag stripping ────────────────────────────────────────────────
+
+/// Common threading/parallelism flag patterns that appear in skill-file
+/// examples but are not part of the *task* being described.  These are
+/// matched as `(flag_regex, value_regex)` pairs against tokenised args.
+///
+/// The list is intentionally conservative — only patterns that are
+/// **universally** boilerplate (threading, quality-filter defaults) and
+/// that would never convey task semantics.
+///
+/// Each entry: `(tool_name, &[(flag_token_regex, value_token_regex)])`.
+///
+/// NOTE: This is a curated, tool-specific map.  Tools not listed here are
+/// left untouched.  If a tool uses `-p` for *ploidy* (freebayes) or
+/// `-p` for *port* (ssh), it must **not** be in this table.
+use regex::Regex;
+use std::sync::LazyLock;
+
+/// A compiled boilerplate-flag pattern: matches against `reference_args`.
+struct BoilerplatePattern {
+    /// Regex matching the flag+value span (with optional leading whitespace).
+    re: Regex,
+}
+
+/// Tool-specific boilerplate patterns.
+static TOOL_BOILERPLATE: LazyLock<
+    std::collections::HashMap<&'static str, Vec<BoilerplatePattern>>,
+> = LazyLock::new(|| {
+    // Helper: build patterns that match at start-of-string or after whitespace.
+    fn pats(raw: &[&str]) -> Vec<BoilerplatePattern> {
+        raw.iter()
+            .flat_map(|p| {
+                vec![
+                    // mid-string: preceded by whitespace
+                    BoilerplatePattern {
+                        re: Regex::new(&format!(r"\s+{p}")).unwrap(),
+                    },
+                    // start-of-string
+                    BoilerplatePattern {
+                        re: Regex::new(&format!(r"^{p}\s*")).unwrap(),
+                    },
+                ]
+            })
+            .collect()
+    }
+
+    let mut m = std::collections::HashMap::new();
+
+    // ── Threading flags ──────────────────────────────────────────────
+    m.insert("admixture", pats(&[r"-j\d+"]));
+    m.insert(
+        "angsd",
+        pats(&[
+            r"-nThreads\s+\d+",
+            r"-P\s+\d+",
+            r"-minMapQ\s+\d+",
+            r"-minQ\s+\d+",
+            r"-minInd\s+\d+",
+        ]),
+    );
+    m.insert("arriba", pats(&[r"--runThreadN\s+\d+"]));
+    m.insert("bakta", pats(&[r"--threads\s+\d+"]));
+    m.insert("bismark", pats(&[r"-p\s+\d+"]));
+    m.insert("bowtie2", pats(&[r"-p\s+\d+"]));
+    m.insert("bracken", pats(&[r"-t\s+\d+"]));
+    m.insert("bwa", pats(&[r"-t\s+\d+"]));
+    m.insert("bwa-mem2", pats(&[r"-t\s+\d+"]));
+    m.insert("cellsnp-lite", pats(&[r"-p\s+\d+"]));
+    m.insert("centrifuge", pats(&[r"-p\s+\d+"]));
+    m.insert("checkm2", pats(&[r"--threads\s+\d+"]));
+    m.insert("chopper", pats(&[r"--threads\s+\d+"]));
+    m.insert("chromap", pats(&[r"-t\s+\d+"]));
+    m.insert("cnvkit", pats(&[r"-p\s+\d+"]));
+    m.insert("cutadapt", pats(&[r"-j\s+\d+"]));
+    m.insert("deeptools", pats(&[r"-p\s+\d+"]));
+    m.insert("diamond", pats(&[r"--threads\s+\d+"]));
+    m.insert("fastani", pats(&[r"--threads\s+\d+"]));
+    m.insert("fastq-screen", pats(&[r"--threads\s+\d+"]));
+    m.insert("fastqc", pats(&[r"-t\s+\d+"]));
+    m.insert("featurecounts", pats(&[r"-T\s+\d+"]));
+    m.insert("flye", pats(&[r"--threads\s+\d+"]));
+    m.insert("gtdbtk", pats(&[r"--cpus\s+\d+"]));
+    m.insert("hifiasm", pats(&[r"-t\s+\d+"]));
+    m.insert("hisat2", pats(&[r"-p\s+\d+"]));
+    m.insert("homer", pats(&[r"-p\s+\d+"]));
+    m.insert("iqtree2", pats(&[r"-T\s+(?:AUTO|\d+)"]));
+    m.insert("java", pats(&[r"--threads\s+\d+"]));
+    m.insert("kallisto", pats(&[r"--threads[= ]\d+"]));
+    m.insert("kb", pats(&[r"-t\s+\d+"]));
+    m.insert("kraken2", pats(&[r"--threads\s+\d+"]));
+    m.insert("liftoff", pats(&[r"-p\s+\d+"]));
+    m.insert("mafft", pats(&[r"--thread\s+\d+"]));
+    m.insert("mash", pats(&[r"-p\s+\d+"]));
+    m.insert("medaka", pats(&[r"-t\s+\d+"]));
+    m.insert("metabat2", pats(&[r"-t\s+\d+"]));
+    m.insert("miniasm", pats(&[r"-t\s+\d+"]));
+    m.insert("minimap2", pats(&[r"-t\s+\d+"]));
+    m.insert("mmseqs2", pats(&[r"--threads\s+\d+"]));
+    m.insert("modkit", pats(&[r"--threads\s+\d+", r"-t\s+\d+"]));
+    m.insert("mosdepth", pats(&[r"-t\s+\d+"]));
+    m.insert("nanocomp", pats(&[r"--threads\s+\d+"]));
+    m.insert("nanoplot", pats(&[r"--threads\s+\d+"]));
+    m.insert("nanostat", pats(&[r"-t\s+\d+"]));
+    m.insert("orthofinder", pats(&[r"-t\s+\d+"]));
+    m.insert("pbccs", pats(&[r"-j\s+\d+", r"--min-rq\s+[\d.]+"]));
+    m.insert("pbfusion", pats(&[r"--threads\s+\d+"]));
+    m.insert("pbmm2", pats(&[r"-j\s+\d+", r"--sort-threads\s+\d+"]));
+    m.insert("pilon", pats(&[r"--threads\s+\d+"]));
+    m.insert("porechop", pats(&[r"--threads\s+\d+"]));
+    m.insert("prokka", pats(&[r"--cpus\s+\d+"]));
+    m.insert("quast", pats(&[r"--threads\s+\d+"]));
+    m.insert("racon", pats(&[r"-t\s+\d+"]));
+    m.insert("rsem", pats(&[r"--num-threads\s+\d+"]));
+    m.insert("salmon", pats(&[r"--threads\s+\d+", r"-p\s+\d+"]));
+    m.insert("samtools", pats(&[r"-@\s*\d+"]));
+    m.insert("seqkit", pats(&[r"-j\s+\d+"]));
+    m.insert("shapeit4", pats(&[r"--thread\s+\d+"]));
+    m.insert("snakemake", pats(&[r"--cores\s+\d+"]));
+    m.insert("sniffles", pats(&[r"--threads\s+\d+"]));
+    m.insert("spades", pats(&[r"--threads\s+\d+"]));
+    m.insert("star", pats(&[r"--runThreadN\s+\d+"]));
+    m.insert("strelka2", pats(&[r"-j\s+\d+"]));
+    m.insert("stringtie", pats(&[r"-p\s+\d+"]));
+    m.insert("trim_galore", pats(&[r"--cores\s+\d+"]));
+    m.insert("vcfanno", pats(&[r"-p\s+\d+"]));
+    m.insert("verkko", pats(&[r"--threads\s+\d+"]));
+    m.insert("wtdbg2", pats(&[r"-t\s+\d+"]));
+
+    m
+});
+
+/// Strip the parenthetical file-list suffix from a task description so that
+/// file names like `filtered.txt` don't accidentally trigger keyword checks.
+fn strip_file_list_suffix(desc: &str) -> &str {
+    // The enriched task has the form "some text (file1, file2)".
+    // Find the last '(' that is followed only by file-like tokens and ')'.
+    if let Some(pos) = desc.rfind(" (") {
+        &desc[..pos]
+    } else {
+        desc
+    }
+}
+
+/// Return `true` when the task description mentions threading/parallelism
+/// concepts, meaning the threading flags in reference_args are intentional.
+fn task_mentions_threading(task: &str) -> bool {
+    let base = strip_file_list_suffix(task).to_lowercase();
+    if base.contains("thread")
+        || base.contains("parallel")
+        || base.contains("concurrent")
+        || base.contains("multithread")
+        || base.contains("-j")
+    {
+        return true;
+    }
+    // Word-boundary aware checks to avoid false positives
+    // (e.g. "Score" containing "core").
+    let core_re = Regex::new(r"\bcores?\b").unwrap();
+    let cpu_re = Regex::new(r"\bcpus?\b").unwrap();
+    core_re.is_match(&base) || cpu_re.is_match(&base)
+}
+
+/// Return `true` when the task description mentions quality filtering.
+fn task_mentions_quality_filter(task: &str) -> bool {
+    let base = strip_file_list_suffix(task).to_lowercase();
+    base.contains("quality")
+        || base.contains("filter")
+        || base.contains("mapq")
+        || base.contains("min-rq")
+}
+
+/// Strip boilerplate flags (threading, quality-filter defaults, etc.) from
+/// `reference_args` that are **not** described in `task_description`.
+///
+/// This ensures the benchmark fairly evaluates LLM command generation:
+/// the LLM should only be expected to produce flags that are inferable
+/// from the natural-language task description.
+pub fn strip_boilerplate_flags(tool: &str, args: &str, task: &str) -> String {
+    let patterns = match TOOL_BOILERPLATE.get(tool) {
+        Some(pats) => pats,
+        None => return args.to_string(),
+    };
+
+    // For ANGSD, quality-filter patterns are in the same table;
+    // skip quality-filter stripping if the task mentions quality/filtering.
+    let skip_quality = tool == "angsd" && task_mentions_quality_filter(task);
+
+    // Skip threading stripping if the task mentions threading.
+    let skip_threading = task_mentions_threading(task);
+
+    // If both are skipped, nothing to do.
+    if skip_quality && skip_threading {
+        return args.to_string();
+    }
+
+    let mut result = args.to_string();
+    for bp in patterns {
+        let pat_str = bp.re.as_str();
+        // Classify: quality-filter patterns for ANGSD
+        let is_quality = pat_str.contains("minMapQ")
+            || pat_str.contains("minQ")
+            || pat_str.contains("minInd")
+            || pat_str.contains("min-rq");
+        if is_quality && skip_quality {
+            continue;
+        }
+        if !is_quality && skip_threading {
+            continue;
+        }
+        // Start-of-string patterns replace with empty; mid-string with space.
+        if pat_str.starts_with('^') {
+            result = bp.re.replace(&result, "").to_string();
+        } else {
+            result = bp.re.replace(&result, " ").to_string();
+        }
+    }
+
+    // Collapse multiple spaces and trim.
+    let re_multi_space = Regex::new(r"  +").unwrap();
+    re_multi_space.replace_all(result.trim(), " ").to_string()
+}
+
 // ── Scenario generation ──────────────────────────────────────────────────────
 
 /// Number of scenarios to generate per tool.
@@ -864,6 +1086,11 @@ pub const SCENARIOS_PER_TOOL: usize = 10;
 ///
 /// If the skill has fewer than 10 examples the remaining slots are filled with
 /// synthesised variants that recombine flags from existing examples.
+///
+/// **Boilerplate stripping**: Threading, quality-filter defaults, and other
+/// performance-only flags that are not described in the task heading are
+/// automatically removed from `reference_args` so that the benchmark fairly
+/// evaluates the LLM's ability to infer flags from the task description.
 ///
 /// File and path tokens in reference_args are **substituted** with alternative
 /// names to avoid information leakage from the original skill examples.  The
@@ -875,12 +1102,16 @@ pub fn generate_scenarios(skill: &SkillFile) -> Vec<Scenario> {
         .iter()
         .take(SCENARIOS_PER_TOOL)
         .enumerate()
-        .map(|(i, ex)| Scenario {
-            tool: skill.name.clone(),
-            scenario_id: format!("{}_{:02}", skill.name, i + 1),
-            reference_args: strip_shell_metacharacters(&ex.args),
-            task_description: ex.task.clone(),
-            category: skill.category.clone(),
+        .map(|(i, ex)| {
+            let cleaned = strip_shell_metacharacters(&ex.args);
+            let cleaned = strip_boilerplate_flags(&skill.name, &cleaned, &ex.task);
+            Scenario {
+                tool: skill.name.clone(),
+                scenario_id: format!("{}_{:02}", skill.name, i + 1),
+                reference_args: cleaned,
+                task_description: ex.task.clone(),
+                category: skill.category.clone(),
+            }
         })
         .collect();
 
