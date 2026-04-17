@@ -4895,3 +4895,117 @@ fn test_run_auto_retry_flag_in_help() {
         "Expected --auto-retry in run help: {stdout}"
     );
 }
+
+// ── chat subcommand ──────────────────────────────────────────────────────────
+
+#[test]
+fn test_chat_help_output() {
+    let output = oxo_call()
+        .args(["chat", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("chat"));
+    assert!(stdout.contains("--interactive"));
+    assert!(stdout.contains("--scenario"));
+    assert!(stdout.contains("--model"));
+    assert!(stdout.contains("--json"));
+}
+
+#[test]
+fn test_chat_help_shows_scenarios() {
+    let output = oxo_call()
+        .args(["chat", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("bare"));
+    assert!(stdout.contains("prompt"));
+    assert!(stdout.contains("skill"));
+    assert!(stdout.contains("doc"));
+    assert!(stdout.contains("full"));
+}
+
+#[test]
+fn test_chat_help_shows_examples() {
+    let output = oxo_call()
+        .args(["chat", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("oxo-call chat"));
+    assert!(stdout.contains("-i"));
+}
+
+#[test]
+fn test_chat_requires_tool_and_question_in_non_interactive_mode() {
+    let output = oxo_call()
+        .args(["chat"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("Non-interactive chat requires both") || stderr.contains("error"),
+        "Expected error message: {stderr}"
+    );
+}
+
+#[test]
+fn test_chat_scenario_bare() {
+    let output = oxo_call()
+        .args(["chat", "--scenario", "bare", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+}
+
+#[test]
+fn test_chat_scenario_prompt() {
+    let output = oxo_call()
+        .args(["chat", "--scenario", "prompt", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+}
+
+#[test]
+fn test_chat_scenario_skill() {
+    let output = oxo_call()
+        .args(["chat", "--scenario", "skill", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+}
+
+#[test]
+fn test_chat_scenario_doc() {
+    let output = oxo_call()
+        .args(["chat", "--scenario", "doc", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+}
+
+#[test]
+fn test_chat_scenario_full() {
+    let output = oxo_call()
+        .args(["chat", "--scenario", "full", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+}
+
+#[test]
+fn test_chat_visible_alias() {
+    let output = oxo_call()
+        .args(["c", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("chat"));
+}

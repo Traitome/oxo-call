@@ -6,6 +6,11 @@ use std::path::PathBuf;
 use std::process::Command;
 use uuid::Uuid;
 
+// Import doc_summarizer module (declared in main.rs)
+use crate::doc_summarizer::{
+    MAX_DOC_LEN_LARGE_MODEL, MAX_DOC_LEN_MEDIUM_MODEL, MAX_DOC_LEN_SMALL_MODEL, summarize_docs,
+};
+
 // Minimum useful help text length – anything shorter than this is likely an error message
 const MIN_HELP_LEN: usize = 80;
 
@@ -71,7 +76,31 @@ pub struct ToolDocs {
 impl ToolDocs {
     /// Return the best available documentation, preferring cached full docs but always
     /// including fresh `--help` output when available. Deduplicates content between sources.
+    ///
+    /// When `summarize_for_model` is provided, intelligently summarizes documentation
+    /// to fit within model-specific length limits while preserving critical information.
     pub fn combined(&self) -> String {
+        self.combined_with_limit(None)
+    }
+
+    /// Return summarized documentation optimized for a specific model size.
+    ///
+    /// Model size determines the maximum documentation length:
+    /// - "small" (0.5B-1B): 3,000 chars
+    /// - "medium" (7B): 6,000 chars  
+    /// - "large" (16B+): 10,000 chars
+    pub fn combined_for_model(&self, model_size: &str) -> String {
+        let max_len = match model_size {
+            "small" => MAX_DOC_LEN_SMALL_MODEL,
+            "medium" => MAX_DOC_LEN_MEDIUM_MODEL,
+            "large" => MAX_DOC_LEN_LARGE_MODEL,
+            _ => MAX_DOC_LEN_MEDIUM_MODEL,
+        };
+        self.combined_with_limit(Some(max_len))
+    }
+
+    /// Internal implementation that optionally applies length limits
+    fn combined_with_limit(&self, max_len: Option<usize>) -> String {
         let mut parts: Vec<String> = Vec::new();
 
         if let Some(version) = &self.version {
@@ -102,7 +131,14 @@ impl ToolDocs {
             parts.push(subcmd_help.clone());
         }
 
-        parts.join("\n\n")
+        let combined = parts.join("\n\n");
+
+        // Apply intelligent summarization if length limit is specified
+        if let Some(limit) = max_len {
+            summarize_docs(&combined, limit)
+        } else {
+            combined
+        }
     }
 
     pub fn is_empty(&self) -> bool {

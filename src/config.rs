@@ -438,6 +438,43 @@ impl Config {
         }
     }
 
+    /// Determine model size category for documentation summarization.
+    ///
+    /// Returns "small", "medium", or "large" based on model name patterns:
+    /// - **small**: 0.5B-1B models (e.g., qwen2.5-coder:0.5b, deepseek-coder:1.3b)
+    /// - **medium**: 3B-8B models (e.g., qwen2.5-coder:7b, llama3.2:3b)
+    /// - **large**: 13B+ models (e.g., deepseek-coder-v2:16b, llama3.1:70b)
+    pub fn model_size_category(&self) -> &'static str {
+        let model = self.effective_model().to_lowercase();
+
+        // Small models (0.5B-1B)
+        if model.contains("0.5b")
+            || model.contains("1.3b")
+            || model.contains("1b")
+            || model.contains("mini")
+            || model.contains("tiny")
+        {
+            return "small";
+        }
+
+        // Large models (13B+)
+        if model.contains("13b")
+            || model.contains("16b")
+            || model.contains("20b")
+            || model.contains("30b")
+            || model.contains("34b")
+            || model.contains("70b")
+            || model.contains("90b")
+            || model.contains("120b")
+            || model.contains("175b")
+        {
+            return "large";
+        }
+
+        // Medium models (3B-8B) - default
+        "medium"
+    }
+
     pub fn effective_max_tokens(&self) -> Result<u32> {
         Ok(Self::env_parse(ENV_LLM_MAX_TOKENS, "llm.max_tokens")?.unwrap_or(self.llm.max_tokens))
     }

@@ -196,6 +196,9 @@ impl Runner {
 
     /// Resolve documentation for the tool, showing a spinner while fetching.
     /// Also attempts to fetch help for the specific subcommand matching the user's task.
+    ///
+    /// Uses intelligent summarization based on model size to keep prompts concise
+    /// while preserving critical information.
     pub(crate) async fn resolve_docs(&self, tool: &str, task: &str) -> Result<String> {
         let mut docs = if self.no_cache {
             self.fetcher.fetch_no_cache(tool).await?
@@ -211,7 +214,29 @@ impl Runner {
             docs.subcommand_help = self.fetcher.fetch_subcommand_help(tool, help_output, task);
         }
 
-        Ok(docs.combined())
+        // Use model-specific summarization for optimal prompt length
+        let model_size = self.config.model_size_category();
+        let summarized = docs.combined_for_model(model_size);
+
+        if self.verbose {
+            let original_len = docs.combined().len();
+            let summarized_len = summarized.len();
+            let reduction = if original_len > 0 {
+                (1.0 - summarized_len as f64 / original_len as f64) * 100.0
+            } else {
+                0.0
+            };
+            eprintln!(
+                "{} Documentation: {} chars → {} chars ({:.1}% reduction, model={})",
+                "[verbose]".dimmed(),
+                original_len,
+                summarized_len,
+                reduction,
+                model_size
+            );
+        }
+
+        Ok(summarized)
     }
 
     /// Core logic: fetch docs + load skill (in parallel) → (optionally optimize task) → call LLM.
@@ -219,6 +244,14 @@ impl Runner {
     /// Documentation fetching and skill loading are independent operations that
     /// can run concurrently via `tokio::join!`, reducing latency by ~200-500ms
     /// compared to the previous serial approach.
+    ///
+    /// **Adaptive Doc Injection**: When both skill and doc are enabled (full scenario),
+    /// documentation is only injected if:
+    /// 1. Skill is missing, OR
+    /// 2. Skill quality is low (few examples, incomplete coverage)
+    ///
+    /// This prevents low-quality documentation from degrading performance when
+    /// high-quality skill knowledge is available.
     pub(crate) async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
         // ── Parallel fetch: docs + skill ──────────────────────────────────────
         let spinner = if !self.no_doc {
@@ -227,20 +260,7 @@ impl Runner {
             make_spinner("Loading skill...")
         };
 
-        let docs_future = async {
-            if self.no_doc {
-                if self.verbose {
-                    eprintln!(
-                        "{} [Ablation] Skipping documentation (--no-doc)",
-                        "[verbose]".dimmed()
-                    );
-                }
-                Ok(String::new())
-            } else {
-                self.resolve_docs(tool, task).await
-            }
-        };
-
+        // Load skill first to determine if doc is needed
         let skill_future = async {
             if self.no_skill {
                 if self.verbose {
@@ -262,13 +282,53 @@ impl Runner {
             }
         };
 
-        // Run both concurrently — skill loading never fails (returns None on miss).
-        let (docs_result, skill) = tokio::join!(docs_future, skill_future);
+        // Run skill loading first
+        let skill = skill_future.await;
+        
+        // Determine if we need documentation based on skill quality
+        let should_fetch_doc = if self.no_doc {
+            false
+        } else if skill.is_none() {
+            // No skill available → need doc
+            true
+        } else {
+            // Skill available → check quality
+            if let Some(ref s) = skill {
+                // Skill quality heuristics:
+                // - Low quality: <3 examples OR <3 pitfalls
+                // - Medium quality: 3-5 examples
+                // - High quality: >5 examples
+                let example_count = s.examples.len();
+                let pitfall_count = s.context.pitfalls.len();
+                
+                // Only fetch doc if skill quality is low
+                example_count < 3 || pitfall_count < 3
+            } else {
+                false
+            }
+        };
+
+        let docs_future = async {
+            if !should_fetch_doc {
+                if self.verbose && !self.no_doc {
+                    eprintln!(
+                        "{} Skipping documentation (high-quality skill available)",
+                        "[verbose]".dimmed()
+                    );
+                }
+                Ok(String::new())
+            } else {
+                self.resolve_docs(tool, task).await
+            }
+        };
+
+        // Run doc fetching if needed
+        let docs_result = docs_future.await;
         spinner.finish_and_clear();
 
         let docs = docs_result?;
 
-        if self.verbose && !self.no_doc {
+        if self.verbose && !docs.is_empty() {
             eprintln!(
                 "{} Documentation: {} chars{}",
                 "[verbose]".dimmed(),

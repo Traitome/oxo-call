@@ -280,6 +280,55 @@ EXAMPLES:\n  \
         command: JobCommands,
     },
 
+    /// Interactive chat with AI about bioinformatics tools
+    #[command(
+        visible_alias = "c",
+        long_about = "\
+Chat with an AI assistant about bioinformatics tools and concepts.\n\n\
+Two modes are available:\n\n\
+1. Single-shot Q&A (non-interactive):\n   \
+  oxo-call chat samtools 'How do I sort a BAM file?'\n   \
+  oxo-call chat bwa 'What is the difference between mem and aln?'\n\n\
+2. Interactive multi-turn chat:\n   \
+  oxo-call chat -i\n   \
+  oxo-call chat -i --tool samtools  # pre-set tool context\n\n\
+Scenarios control what context is injected:\n  \
+  --scenario bare   : plain chat (no prompt/docs/skill)\n  \
+  --scenario prompt : oxo-call system prompt only\n  \
+  --scenario skill  : load skill file only\n  \
+  --scenario doc    : load tool documentation only\n  \
+  --scenario full   : load everything (default)\n\n\
+EXAMPLES:\n  \
+  oxo-call chat samtools 'Explain the difference between SAM and BAM'\n  \
+  oxo-call chat --scenario skill bwa 'What are common pitfalls?'\n  \
+  oxo-call chat -i\n  \
+  oxo-call chat -i --tool gatk\n  \
+  oxo-call chat --model gpt-4 samtools 'How to extract unmapped reads?'"
+    )]
+    Chat {
+        /// Tool name to discuss (optional in interactive mode)
+        #[arg(required = false)]
+        tool: Option<String>,
+        /// Question to ask (optional in interactive mode)
+        #[arg(required = false)]
+        question: Option<String>,
+        /// Start interactive chat session
+        #[arg(short, long)]
+        interactive: bool,
+        /// Override the LLM model for this invocation
+        #[arg(short, long, value_name = "MODEL")]
+        model: Option<String>,
+        /// Skip cached documentation and fetch fresh --help output
+        #[arg(long)]
+        no_cache: bool,
+        /// Scenario mode: bare, prompt, skill, doc, full (default: full)
+        #[arg(long, value_enum, default_value = "full")]
+        scenario: ChatScenario,
+        /// Output result as JSON (non-interactive mode only)
+        #[arg(long)]
+        json: bool,
+    },
+
     /// Generate shell completion scripts
     #[command(long_about = "\
 Generate shell completion scripts for oxo-call.\n\n\
@@ -742,6 +791,21 @@ pub enum JobCommands {
         #[arg(long, conflicts_with_all = ["name", "as_name"])]
         all: bool,
     },
+}
+
+/// Chat scenario modes for controlling context injection
+#[derive(Clone, Debug, ValueEnum)]
+pub enum ChatScenario {
+    /// Bare: no system prompt, no docs, no skill (plain chat)
+    Bare,
+    /// Prompt: use oxo-call system prompt only
+    Prompt,
+    /// Skill: load skill file only
+    Skill,
+    /// Doc: load tool documentation only
+    Doc,
+    /// Full: load everything (default)
+    Full,
 }
 
 /// Supported shell types for completion generation

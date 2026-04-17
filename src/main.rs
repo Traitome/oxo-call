@@ -1,9 +1,11 @@
 mod cache;
+mod chat;
 mod cli;
 mod config;
 mod context;
 #[cfg(not(target_arch = "wasm32"))]
 mod copilot_auth;
+mod doc_summarizer;
 mod docs;
 mod engine;
 mod error;
@@ -147,6 +149,41 @@ async fn run(cli: Cli) -> error::Result<()> {
     let verbose = cli.verbose;
 
     match cli.command {
+        Commands::Chat {
+            tool,
+            question,
+            interactive,
+            model,
+            no_cache,
+            scenario,
+            json,
+        } => {
+            let mut cfg = config::Config::load()?;
+            if let Some(ref m) = model {
+                cfg.llm.model = Some(m.clone());
+            }
+
+            let mut chat_session = chat::ChatSession::new(cfg)
+                .with_verbose(verbose)
+                .with_no_cache(no_cache)
+                .with_scenario(scenario);
+
+            if interactive {
+                chat_session.run_interactive(tool.as_deref()).await?;
+            } else {
+                match (tool, question) {
+                    (Some(tool), Some(question)) => {
+                        chat_session.run_single(&tool, &question, json).await?;
+                    }
+                    _ => {
+                        return Err(error::OxoError::ConfigError(
+                            "Non-interactive chat requires both <tool> and <question>".to_string(),
+                        ));
+                    }
+                }
+            }
+        }
+
         Commands::Run {
             tool,
             task,

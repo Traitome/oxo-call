@@ -16,7 +16,7 @@
 mod prompt;
 mod provider;
 mod response;
-mod types;
+pub(crate) mod types;
 
 #[cfg(test)]
 mod tests;

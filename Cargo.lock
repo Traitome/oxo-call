@@ -1482,6 +1482,7 @@ dependencies = [
  "ed25519-dalek",
  "indicatif",
  "oxo-license",
+ "regex",
  "reqwest",
  "serde",
  "serde_json",
