@@ -37,7 +37,10 @@ impl LlmClient {
             .connect_timeout(std::time::Duration::from_secs(10))
             .pool_max_idle_per_host(16)
             .build()
-            .unwrap_or_else(|_| reqwest::Client::new());
+            .unwrap_or_else(|e| {
+                tracing::warn!("Failed to build configured HTTP client: {e}; using defaults");
+                reqwest::Client::new()
+            });
         LlmClient { config, client }
     }
 

@@ -149,7 +149,7 @@ fn parse_subcommands(commands_section: &str) -> Vec<String> {
             if cmd.starts_with('-')
                 || cmd.starts_with('=')
                 || cmd.contains(':')
-                || cmd.to_uppercase() == cmd && cmd.len() > 3
+                || (cmd.len() > 3 && cmd.chars().all(|c| c.is_uppercase() || !c.is_alphabetic()))
             {
                 continue;
             }

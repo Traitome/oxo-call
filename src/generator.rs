@@ -300,27 +300,33 @@ impl RuleCommandGenerator {
         }
 
         // Strip common extensions for placeholder substitution
-        let input_base = input_name
-            .trim_end_matches(".gz")
-            .trim_end_matches(".bam")
-            .trim_end_matches(".fastq")
-            .trim_end_matches(".fa")
-            .trim_end_matches(".fq")
-            .trim_end_matches(".bed")
-            .trim_end_matches(".vcf");
-        let output_base = output_name
-            .trim_end_matches(".gz")
-            .trim_end_matches(".bam")
-            .trim_end_matches(".fastq")
-            .trim_end_matches(".fa")
-            .trim_end_matches(".fq")
-            .trim_end_matches(".bed")
-            .trim_end_matches(".vcf");
+        let strip_extensions = |name: &str| -> String {
+            let mut s = name.to_string();
+            // Strip compound extensions like .fastq.gz, .vcf.gz first
+            for compound in &[".fastq.gz", ".fq.gz", ".vcf.gz", ".bed.gz", ".fa.gz"] {
+                if s.ends_with(compound) {
+                    s = s[..s.len() - compound.len()].to_string();
+                    return s;
+                }
+            }
+            // Then strip single extensions
+            for ext in &[
+                ".gz", ".bam", ".fastq", ".fa", ".fq", ".bed", ".vcf", ".sam", ".cram",
+            ] {
+                if s.ends_with(ext) {
+                    s = s[..s.len() - ext.len()].to_string();
+                    break;
+                }
+            }
+            s
+        };
+        let input_base = strip_extensions(&input_name);
+        let output_base = strip_extensions(&output_name);
 
         let args = rule
             .args_template
-            .replace("{input}", input_base)
-            .replace("{output}", output_base);
+            .replace("{input}", &input_base)
+            .replace("{output}", &output_base);
 
         GeneratedCommand {
             args,

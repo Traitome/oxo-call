@@ -209,7 +209,9 @@ impl LlmCache {
         if age_days > CACHE_MAX_AGE_DAYS {
             mem.entries.remove(&hash);
             // Best-effort disk sync; don't fail the lookup.
-            let _ = Self::flush_to_disk(&mem);
+            if let Err(e) = Self::flush_to_disk(&mem) {
+                tracing::warn!("Cache flush failed (eviction): {e}");
+            }
             return Ok(None);
         }
 
@@ -220,7 +222,9 @@ impl LlmCache {
         };
         mem.entries.insert(hash, updated.clone());
         // Persist hit-count update; non-fatal on failure.
-        let _ = Self::flush_to_disk(&mem);
+        if let Err(e) = Self::flush_to_disk(&mem) {
+            tracing::warn!("Cache flush failed (hit-count update): {e}");
+        }
 
         Ok(Some(updated))
     }
