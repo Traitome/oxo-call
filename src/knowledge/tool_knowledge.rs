@@ -49,10 +49,10 @@ pub struct ToolMatch {
 // ─── Knowledge base ──────────────────────────────────────────────────────────
 
 /// In-memory tool knowledge base with keyword search.
-#[allow(dead_code)]
 pub struct ToolKnowledgeBase {
     tools: Vec<ToolEntry>,
     /// Inverted index: keyword → list of (tool_index, weight).
+    #[allow(dead_code)]
     index: HashMap<String, Vec<(usize, f32)>>,
 }
 
@@ -62,7 +62,6 @@ impl Default for ToolKnowledgeBase {
     }
 }
 
-#[allow(dead_code)]
 impl ToolKnowledgeBase {
     /// Create a new knowledge base pre-loaded with the embedded bioconda catalog.
     pub fn new() -> Self {
@@ -72,11 +71,13 @@ impl ToolKnowledgeBase {
     }
 
     /// Number of tools in the knowledge base.
+    #[allow(dead_code)]
     pub fn len(&self) -> usize {
         self.tools.len()
     }
 
     /// Whether the knowledge base is empty.
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.tools.is_empty()
     }
@@ -91,6 +92,7 @@ impl ToolKnowledgeBase {
 
     /// Search for tools matching a natural-language query.
     /// Returns up to `limit` results sorted by relevance score.
+    #[allow(dead_code)]
     pub fn search(&self, query: &str, limit: usize) -> Vec<ToolMatch> {
         let query_tokens = Self::tokenize(query);
         if query_tokens.is_empty() {
@@ -137,6 +139,7 @@ impl ToolKnowledgeBase {
     }
 
     /// Get all unique categories.
+    #[allow(dead_code)]
     pub fn categories(&self) -> Vec<String> {
         let mut cats: Vec<String> = self
             .tools

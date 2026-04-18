@@ -11,13 +11,13 @@ use crate::task_normalizer::{NormalizedTask, TaskNormalizer};
 
 /// Result from the executor agent's preparation step.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ExecutorContext {
     /// Normalized task description.
     pub normalized_task: NormalizedTask,
     /// Best practice hints injected into the prompt.
     pub practice_hints: String,
     /// Whether the task was normalized (changed from original).
+    #[allow(dead_code)]
     pub was_normalized: bool,
 }
 

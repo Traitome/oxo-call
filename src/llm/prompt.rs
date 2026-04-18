@@ -775,7 +775,6 @@ pub fn build_retry_prompt_inner(
 // ─── Mini-skill generation prompts ─────────────────────────────────────────────
 
 /// System prompt for mini-skill generation from tool documentation.
-#[allow(dead_code)]
 pub fn mini_skill_generation_system_prompt() -> &'static str {
     "You are an expert bioinformatics tool analyst. Your task is to extract \
      structured knowledge from tool documentation to help LLMs generate accurate \
@@ -784,7 +783,6 @@ pub fn mini_skill_generation_system_prompt() -> &'static str {
 }
 
 /// Build a prompt for generating a mini-skill from tool documentation.
-#[allow(dead_code)]
 pub fn build_mini_skill_prompt(tool: &str, documentation: &str) -> String {
     format!(
         "# Mini-Skill Generation Request\n\n\

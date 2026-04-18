@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 
 /// Analysis of a completed command execution.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ExecutionAnalysis {
     /// Whether the execution was successful.
     pub success: bool,
@@ -24,7 +23,6 @@ pub struct ExecutionAnalysis {
 
 /// Detected pattern in command output.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct OutputPattern {
     /// Pattern category.
     pub category: PatternCategory,
@@ -47,7 +45,6 @@ pub enum PatternCategory {
 
 /// Resource usage hints inferred from output.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct ResourceHints {
     /// Suggested thread count based on observed performance.
     pub suggested_threads: Option<usize>,
@@ -58,7 +55,6 @@ pub struct ResourceHints {
 }
 
 /// The Result Analyzer.
-#[allow(dead_code)]
 pub struct ResultAnalyzer;
 
 impl Default for ResultAnalyzer {
@@ -67,7 +63,6 @@ impl Default for ResultAnalyzer {
     }
 }
 
-#[allow(dead_code)]
 impl ResultAnalyzer {
     pub fn new() -> Self {
         Self

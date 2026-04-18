@@ -43,11 +43,11 @@ impl OrchestrationMode {
 
 /// Decision output from the supervisor.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct SupervisorDecision {
     /// Selected orchestration mode.
     pub mode: OrchestrationMode,
     /// Task complexity analysis.
+    #[allow(dead_code)]
     pub complexity: ComplexityResult,
     /// Enrichment hints from knowledge layer (best practices, tool info).
     pub enrichment_hints: Vec<String>,
@@ -70,7 +70,6 @@ impl Default for SupervisorAgent {
     }
 }
 
-#[allow(dead_code)]
 impl SupervisorAgent {
     pub fn new() -> Self {
         Self {
@@ -162,11 +161,13 @@ impl SupervisorAgent {
     }
 
     /// Access the knowledge base for external queries.
+    #[allow(dead_code)]
     pub fn knowledge_base(&self) -> &ToolKnowledgeBase {
         &self.knowledge_base
     }
 
     /// Access the best practices DB.
+    #[allow(dead_code)]
     pub fn best_practices(&self) -> &BestPracticesDb {
         &self.best_practices
     }

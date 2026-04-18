@@ -162,10 +162,8 @@ impl ErrorCategory {
 }
 
 /// Error knowledge database backed by a JSONL file.
-#[allow(dead_code)]
 pub struct ErrorKnowledgeDb;
 
-#[allow(dead_code)]
 impl ErrorKnowledgeDb {
     fn db_path() -> Result<PathBuf> {
         Ok(Config::data_dir()?.join("error_knowledge.jsonl"))
@@ -235,6 +233,7 @@ impl ErrorKnowledgeDb {
     }
 
     /// Count total recorded errors.
+    #[allow(dead_code)]
     pub fn count() -> Result<usize> {
         let path = Self::db_path()?;
         if !path.exists() {

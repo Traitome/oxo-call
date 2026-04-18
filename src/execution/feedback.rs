@@ -50,7 +50,6 @@ pub struct FeedbackStats {
 /// Feedback collection and aggregation.
 pub struct FeedbackCollector;
 
-#[allow(dead_code)]
 impl FeedbackCollector {
     fn feedback_path() -> Result<PathBuf> {
         Ok(Config::data_dir()?.join("feedback.jsonl"))
@@ -73,6 +72,7 @@ impl FeedbackCollector {
     }
 
     /// Load all feedback entries.
+    #[allow(dead_code)]
     pub fn load_all() -> Result<Vec<FeedbackEntry>> {
         let path = Self::feedback_path()?;
         if !path.exists() {
@@ -87,6 +87,7 @@ impl FeedbackCollector {
     }
 
     /// Get aggregated statistics for a specific tool.
+    #[allow(dead_code)]
     pub fn stats_for_tool(tool: &str) -> Result<FeedbackStats> {
         let entries = Self::load_all()?;
         let tool_entries: Vec<&FeedbackEntry> = entries
@@ -112,6 +113,7 @@ impl FeedbackCollector {
     }
 
     /// Get overall statistics across all tools.
+    #[allow(dead_code)]
     pub fn overall_stats() -> Result<FeedbackStats> {
         let entries = Self::load_all()?;
         let total = entries.len();

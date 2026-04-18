@@ -772,7 +772,6 @@ fn expand_synonyms(tokens: &mut std::collections::HashSet<String>) {
 // ─── Skill manager ────────────────────────────────────────────────────────────
 
 pub struct SkillManager {
-    #[allow(dead_code)]
     config: Config,
 }
 
@@ -1139,16 +1138,12 @@ source_url:      # Link to tool documentation (optional)
 /// Minimum quality thresholds for skill files.  Validation is not enforced at
 /// runtime (so that partial community skills are still usable) but is exercised
 /// by tests to surface skill files that fall below the recommended depth.
-#[allow(dead_code)]
 pub const MIN_EXAMPLES: usize = 5;
-#[allow(dead_code)]
 pub const MIN_CONCEPTS: usize = 3;
-#[allow(dead_code)]
 pub const MIN_PITFALLS: usize = 3;
 
 /// Validate that a parsed skill meets the minimum quality thresholds.
 /// Returns a list of human-readable issues; an empty list means the skill passes.
-#[allow(dead_code)]
 pub fn validate_skill_depth(skill: &Skill) -> Vec<String> {
     let mut issues = Vec::new();
     if skill.examples.len() < MIN_EXAMPLES {
