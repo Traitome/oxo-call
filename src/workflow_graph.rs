@@ -437,17 +437,27 @@ impl WorkflowGraph {
         let mini_skill = self.generate_mini_skill(&state.input.tool, doc).await?;
         state.mini_skill = Some(mini_skill.clone());
 
-        // Step 2: Load skill from file
-        let skill_path = state
-            .input
-            .skill_path
-            .as_ref()
-            .ok_or_else(|| color_eyre::eyre::eyre!("Skill path required for full scenario"))?;
-        let skill = self.load_skill(skill_path).await?;
-        state.skill = Some(skill.clone());
+        // Step 2: Load skill from file (best-effort; gracefully degrade if unavailable)
+        let mut skill_examples = 0usize;
+        if let Some(skill_path) = state.input.skill_path.as_ref() {
+            match self.load_skill(skill_path).await {
+                Ok(skill) => {
+                    skill_examples = skill.examples.len();
+                    state.skill = Some(skill);
+                    state
+                        .metadata
+                        .insert("skill_loaded".to_string(), "true".to_string());
+                }
+                Err(_) => {
+                    state
+                        .metadata
+                        .insert("skill_loaded".to_string(), "fallback".to_string());
+                }
+            }
+        }
 
         // Step 3: Combine mini-skill and skill for command generation
-        let combined_examples = mini_skill.examples.len() + skill.examples.len();
+        let combined_examples = mini_skill.examples.len() + skill_examples;
         state.command = Some(format!(
             "{} {} # combined: {} examples (mini-skill + skill)",
             state.input.tool, state.input.task, combined_examples
@@ -459,44 +469,113 @@ impl WorkflowGraph {
         state
             .metadata
             .insert("mini_skill_generated".to_string(), "true".to_string());
-        state
-            .metadata
-            .insert("skill_loaded".to_string(), "true".to_string());
 
         Ok(())
     }
 
-    /// Generate mini-skill from documentation
-    async fn generate_mini_skill(&self, tool: &str, _doc: &str) -> Result<MiniSkillData> {
-        // Placeholder: In real implementation, this would call LLM
-        // For now, return a simple structure
+    /// Generate mini-skill from documentation using rule-based extraction.
+    ///
+    /// Uses `DocProcessor::clean_and_structure` to extract concepts, pitfalls,
+    /// and examples from tool documentation.
+    async fn generate_mini_skill(&self, tool: &str, doc: &str) -> Result<MiniSkillData> {
+        let processor = crate::doc_processor::DocProcessor::new();
+        let structured = processor.clean_and_structure(doc);
+
+        let concepts: Vec<String> = structured.quick_flags.iter().take(5).cloned().collect();
+
+        let pitfalls: Vec<String> = if !structured.options.is_empty() {
+            vec![format!("Check required options before running {tool}")]
+        } else {
+            vec![]
+        };
+
+        let examples: Vec<MiniSkillExample> = structured
+            .extracted_examples
+            .iter()
+            .take(5)
+            .map(|ex| MiniSkillExample {
+                task: format!("run {tool}"),
+                args: ex.clone(),
+                explanation: format!("Example usage of {tool}"),
+            })
+            .collect();
+
         Ok(MiniSkillData {
             tool: tool.to_string(),
-            concepts: vec!["concept1".to_string(), "concept2".to_string()],
-            pitfalls: vec!["pitfall1".to_string()],
-            examples: vec![MiniSkillExample {
-                task: "example task".to_string(),
-                args: "example args".to_string(),
-                explanation: "example explanation".to_string(),
-            }],
+            concepts: if concepts.is_empty() {
+                vec![format!("{tool} documentation processed")]
+            } else {
+                concepts
+            },
+            pitfalls: if pitfalls.is_empty() {
+                vec![format!("Verify {tool} is installed and on PATH")]
+            } else {
+                pitfalls
+            },
+            examples: if examples.is_empty() {
+                vec![MiniSkillExample {
+                    task: format!("run {tool}"),
+                    args: structured.usage.clone(),
+                    explanation: format!("Basic usage of {tool}"),
+                }]
+            } else {
+                examples
+            },
         })
     }
 
-    /// Load skill from file
+    /// Load skill from file using the SkillManager.
     async fn load_skill(&self, path: &str) -> Result<SkillData> {
-        // Placeholder: In real implementation, this would load from file
-        // For now, return a simple structure
-        Ok(SkillData {
-            name: path.to_string(),
-            category: "bioinformatics".to_string(),
-            concepts: vec!["concept1".to_string()],
-            pitfalls: vec!["pitfall1".to_string()],
-            examples: vec![SkillExample {
-                task: "example task".to_string(),
-                args: "example args".to_string(),
-                explanation: "example explanation".to_string(),
-            }],
-        })
+        let skill_path = std::path::Path::new(path);
+        if skill_path.exists()
+            && let Ok(content) = std::fs::read_to_string(skill_path)
+            && let Some(skill) = crate::skill::parse_skill_md(&content)
+        {
+            return Ok(SkillData {
+                name: skill.meta.name,
+                category: skill.meta.category,
+                concepts: skill.context.concepts,
+                pitfalls: skill.context.pitfalls,
+                examples: skill
+                    .examples
+                    .into_iter()
+                    .map(|ex| SkillExample {
+                        task: ex.task,
+                        args: ex.args,
+                        explanation: ex.explanation,
+                    })
+                    .collect(),
+            });
+        }
+
+        // Fallback: try to load as a built-in skill by treating path as a tool name.
+        let tool_name = std::path::Path::new(path)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or(path);
+        let config = crate::config::Config::load().unwrap_or_default();
+        let mgr = crate::skill::SkillManager::new(config);
+        if let Some(skill) = mgr.load(tool_name) {
+            return Ok(SkillData {
+                name: skill.meta.name,
+                category: skill.meta.category,
+                concepts: skill.context.concepts,
+                pitfalls: skill.context.pitfalls,
+                examples: skill
+                    .examples
+                    .into_iter()
+                    .map(|ex| SkillExample {
+                        task: ex.task,
+                        args: ex.args,
+                        explanation: ex.explanation,
+                    })
+                    .collect(),
+            });
+        }
+
+        Err(color_eyre::eyre::eyre!(
+            "Could not load skill from '{path}'"
+        ))
     }
 
     /// Validate generated command
@@ -584,6 +663,7 @@ mod tests {
         let result = graph.execute(input).await.unwrap();
         assert_eq!(result.scenario, WorkflowScenario::Full);
         assert!(result.metadata.contains_key("mini_skill_generated"));
+        // skill_loaded may be "true" or "fallback" depending on availability
         assert!(result.metadata.contains_key("skill_loaded"));
     }
 

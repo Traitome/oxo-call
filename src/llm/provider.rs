@@ -32,10 +32,13 @@ pub struct LlmClient {
 
 impl LlmClient {
     pub fn new(config: Config) -> Self {
-        LlmClient {
-            config,
-            client: reqwest::Client::new(),
-        }
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(120))
+            .connect_timeout(std::time::Duration::from_secs(10))
+            .pool_max_idle_per_host(16)
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new());
+        LlmClient { config, client }
     }
 
     /// Generate command arguments, using skill knowledge for better prompts.
