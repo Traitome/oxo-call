@@ -25,7 +25,7 @@ cargo clippy -- -D warnings
 ```
 oxo-call/
 ├── src/              # Main CLI source code
-├── skills/           # 159 built-in skill Markdown files (.md)
+├── skills/           # 158 built-in skill Markdown files (.md)
 ├── tests/            # Integration tests
 ├── crates/
 │   ├── license-issuer/   # Maintainer license signing tool

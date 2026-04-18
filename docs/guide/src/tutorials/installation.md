@@ -69,6 +69,8 @@ For the latest development version or to contribute:
 
 ```bash
 cargo install --git https://github.com/Traitome/oxo-call oxo-call
+# For Chinese users:
+cargo install --git https://ghfast.top/https://github.com/Traitome/oxo-call oxo-call
 ```
 
 To build a release-optimized binary:

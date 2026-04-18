@@ -2,7 +2,7 @@
 
 This document presents a multi-perspective evaluation of the oxo-call project from 20 expert reviewer roles, specifically targeting a Nature Methods / Genome Biology submission. The evaluation covers editorial assessment, domain expertise, statistical rigor, reproducibility, ethics, and user experience. Each evaluation identifies strengths, concerns, and actionable recommendations.
 
-Key project metrics: 159 built-in skills across 44 bioinformatics domains; benchmark of 286,200 total trials showing 25–47 pp improvement in exact match over bare LLM; Rust CLI with docs-first grounding and skill-augmented prompting; DAG workflow engine; per-category analysis with 95% CIs, error taxonomy (7 categories), ablation analysis, and Cohen's h effect sizes.
+Key project metrics: 158 built-in skills across 40 bioinformatics domains; benchmark of 286,200 total trials showing 25–47 pp improvement in exact match over bare LLM; Rust CLI with docs-first grounding and skill-augmented prompting; DAG workflow engine; per-category analysis with 95% CIs, error taxonomy (7 categories), ablation analysis, and Cohen's h effect sizes.
 
 ---
 
@@ -26,7 +26,7 @@ Twenty independent expert roles were designed to cover five evaluation dimension
 
 ### Strengths
 - The docs-first grounding paradigm is a genuinely novel contribution — it transforms unreliable LLM code generation into a grounded, auditable process by anchoring every command to real tool documentation
-- The benchmark scale (286,200 trials across 44 domains) exceeds the typical methods-paper evaluation and provides strong statistical power for the claimed improvements
+- The benchmark scale (286,200 trials across 40 domains) exceeds the typical methods-paper evaluation and provides strong statistical power for the claimed improvements
 - Per-category analysis with 95% confidence intervals and Cohen's h effect sizes follows contemporary standards for reporting benchmarks in computational biology methods
 - The 25–47 pp improvement in exact-match accuracy over bare LLM is substantial and practically meaningful for bioinformatics practitioners
 - The tool addresses a real accessibility gap — lowering the CLI barrier for wet-lab researchers without sacrificing command correctness
@@ -61,13 +61,13 @@ Twenty independent expert roles were designed to cover five evaluation dimension
 
 ### Strengths
 - The benchmark design follows best practices: multiple LLM providers, per-category stratification, confidence intervals, and effect sizes
-- 159 built-in skills spanning 44 domains demonstrates genuine breadth — this is not a proof-of-concept for one or two tools
+- 158 built-in skills spanning 40 domains demonstrates genuine breadth — this is not a proof-of-concept for one or two tools
 - The ablation study (docs-only vs. docs+skills vs. full pipeline) isolates the contribution of each component — essential for a methods paper
 - The error taxonomy with 7 categories provides actionable insight into where and why LLM-generated commands fail
 
 ### Concerns
 - **Benchmark reproducibility**: Readers need to reproduce the benchmark independently; the paper must specify exact model versions, API dates, and random seeds used
-- **Skill quality variance**: With 159 skills, quality likely varies; the paper should report a skill-quality audit or inter-annotator agreement for skill content
+- **Skill quality variance**: With 158 skills, quality likely varies; the paper should report a skill-quality audit or inter-annotator agreement for skill content
 - **Comparison baselines**: The benchmark compares against bare LLM — reviewers will expect comparison against at least one existing LLM-for-CLI tool (e.g., GitHub Copilot CLI, aichat, shell-gpt)
 - **Long-term maintenance**: How are skills and documentation kept current as tools evolve? This is critical for a tool paper
 
@@ -82,7 +82,7 @@ Twenty independent expert roles were designed to cover five evaluation dimension
 
 ✅ Benchmark configuration fully specified in BENCHMARK.md including model versions (GPT-4o, Claude Sonnet 3.5/4, Ollama models), temperature=0.0, and deterministic settings.
 
-✅ Skill quality standardized with minimum requirements: ≥5 examples, ≥3 concepts, ≥3 pitfalls per skill. All 159 skills validated against this standard.
+✅ Skill quality standardized with minimum requirements: ≥5 examples, ≥3 concepts, ≥3 pitfalls per skill. All 158 skills validated against this standard.
 
 ✅ Benchmark dataset and evaluation scripts available in the public repository with full reproduction instructions.
 
@@ -207,7 +207,7 @@ Twenty independent expert roles were designed to cover five evaluation dimension
 - The natural language interface dramatically reduces onboarding time for new lab members — a wet-lab postdoc can generate correct `STAR` or `cellranger` commands without memorizing flag syntax
 - Workflow engine (`.oxo.toml` DAG files) addresses a real pain point — labs constantly need to string tools together into pipelines
 - The skill system captures institutional knowledge that is normally lost when lab members graduate or leave
-- Built-in skills for 44 domains means the tool is immediately useful across most projects in a typical genomics lab
+- Built-in skills for 40 domains means the tool is immediately useful across most projects in a typical genomics lab
 
 ### Concerns
 - **Lab-scale deployment**: Can a PI configure oxo-call once and deploy to all lab members? Shared configuration, API key management, and skill libraries need to be documented
@@ -445,7 +445,7 @@ Twenty independent expert roles were designed to cover five evaluation dimension
 **Role**: Director overseeing a university bioinformatics core serving 50+ research groups with diverse analysis needs.
 
 ### Strengths
-- A single tool supporting 159 skills across 44 domains could dramatically reduce the knowledge burden on core staff — instead of memorizing flags for dozens of tools, staff describe tasks in natural language
+- A single tool supporting 158 skills across 40 domains could dramatically reduce the knowledge burden on core staff — instead of memorizing flags for dozens of tools, staff describe tasks in natural language
 - The skill system enables encoding institutional best practices (e.g., "our core always uses `--outSAMtype BAM SortedByCoordinate` for STAR") into shareable, versionable files
 - JSONL command history provides the audit trail needed for core facility billing and project tracking
 - The docs-first approach ensures commands match the actual installed tool versions, avoiding the "works on my machine" problem across different server configurations
@@ -536,7 +536,7 @@ Twenty independent expert roles were designed to cover five evaluation dimension
 
 ✅ Governance model implicit in the PR-based review process — skill contributions are reviewed for quality (≥5 examples, ≥3 concepts, ≥3 pitfalls) before merging.
 
-✅ Skill YAML front-matter includes `author` and `source_url` fields — all 159 built-in skills have attribution metadata.
+✅ Skill YAML front-matter includes `author` and `source_url` fields — all 158 built-in skills have attribution metadata.
 
 ✅ Sustainability addressed through open-source community development, dual licensing for commercial sustainability, and the growing skill ecosystem that incentivizes community contributions.
 

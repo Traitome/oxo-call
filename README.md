@@ -17,7 +17,7 @@
 [![GitHub Releases](https://img.shields.io/github/downloads/Traitome/oxo-call/total.svg)](https://github.com/Traitome/oxo-call/releases)
 [![Crates.io Downloads](https://img.shields.io/crates/d/oxo-call.svg)](https://crates.io/crates/oxo-call)
 
-Describe your task in plain language — `oxo-call` fetches the tool's documentation, grounds the request with a built-in skill, and asks your LLM backend to generate the exact flags you need with auditable, benchmarked context.
+Describe your task in plain language — `oxo-call` fetches the tool's documentation, grounds the request with skill, and asks your LLM backend to generate the exact flags you need.
 
 **→ Full documentation, tutorials, and how-to guides: [traitome.github.io/oxo-call/documentation](https://traitome.github.io/oxo-call/documentation/)**
 
@@ -35,12 +35,12 @@ oxo-call is an AI-powered CLI assistant for bioinformatics. Instead of memorizin
 
 - 🧠 **LLM-powered** — GitHub Copilot, OpenAI, Anthropic, or local Ollama
 - 📚 **Docs-grounded** — tool `--help` output is cached and injected before every LLM call
-- 🎯 **Skill system** — built-in expert knowledge for 159 bioinformatics tools across 44 domains
+- 🎯 **Skill system** — built-in expert knowledge for 150+ bioinformatics tools across 40+ domains
 - 🔄 **Workflow engine** — native DAG-based pipelines with Snakemake/Nextflow export
 - 🔍 **Dry-run mode** — preview every command before it runs
 - 📜 **History** — every execution is logged with provenance metadata
 - 📋 **Job library** — save named command shortcuts with scheduling, history, and LLM generation (`oxo-call job`)
-- 📊 **Benchmarked** — [Systematic evaluation framework](docs/bench/BENCHMARK.md) across 143 bioinformatics tools with 14,300 descriptions; run `oxo-bench eval` with your own API key to measure real LLM accuracy
+- 📊 **Benchmarked** — [Systematic evaluation framework](docs/bench/BENCHMARK.md) across 133 bioinformatics tools with 13,300 descriptions; run `oxo-bench eval` with your own API key to measure real LLM accuracy
 
 ## Why teams adopt oxo-call
 

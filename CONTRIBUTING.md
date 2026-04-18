@@ -112,7 +112,7 @@ oxo-call/
 │   ├── config.rs            # Platform-aware configuration
 │   ├── history.rs           # JSONL command history
 │   └── license.rs           # Offline Ed25519 license verification
-├── skills/                  # 159 built-in skill Markdown files (.md)
+├── skills/                  # 158 built-in skill Markdown files (.md)
 ├── workflows/
 │   ├── native/              # .oxo.toml workflow format
 │   ├── snakemake/           # Snakemake (.smk) templates

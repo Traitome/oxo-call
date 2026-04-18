@@ -159,4 +159,4 @@ source_url: https://tool-docs.example.com   # optional
 
 ## Built-in Skill Coverage
 
-oxo-call ships with 159 built-in skills covering all major omics domains. See [Skill System Reference](../reference/skill-system.md) for the full list.
+oxo-call ships with 158 built-in skills covering all major omics domains. See [Skill System Reference](../reference/skill-system.md) for the full list.

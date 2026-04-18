@@ -6,7 +6,7 @@ This document describes the **evaluation framework** for **oxo-call**, a
 documentation-grounded command-generation system for bioinformatics. The framework
 enables systematic assessment of whether augmenting large language models (LLMs)
 with structured tool documentation and domain-specific skill files produces
-correct command-line invocations across 143 bioinformatics tools spanning 40
+correct command-line invocations across 133 bioinformatics tools spanning 40
 analytical domains.
 
 > **⚠ Important — No Mock Benchmark Results**
@@ -21,10 +21,10 @@ analytical domains.
 
 | Dimension | Value |
 |-----------|-------|
-| Tools evaluated | 143 |
+| Tools evaluated | 133 |
 | Analytical domains | 40 |
-| Reference scenarios | 1,430 (10 per tool) |
-| Natural-language descriptions | 14,300 (10 phrasings per scenario) |
+| Reference scenarios | 1,330 (10 per tool) |
+| Natural-language descriptions | 13,300 (10 phrasings per scenario) |
 | Ablation scenarios | 5 (bare, prompt, skill, doc, full) |
 | Evaluation task catalog | 74 curated LLM evaluation tasks |
 | Simulated experimental scenarios | 10 omics assay types |
@@ -103,13 +103,13 @@ bioinformatics tools. Three categories are excluded:
 
 ### 3.1 Dataset Generation
 
-The benchmark dataset is derived programmatically from the 143 skill files in
+The benchmark dataset is derived programmatically from the 133 skill files in
 the `skills/` directory (excluding package managers, HPC schedulers, and AI
 assistants). For each skill file containing *N* examples (*N* ≤ 10):
 
 1. **Reference commands**: Each `### heading` / `**Args:**` / `**Explanation:**`
    block becomes one scenario (`scenario_id = <tool>_01`, `<tool>_02`, …,
-   `<tool>_10`), yielding 1,430 reference commands stored in
+   `<tool>_10`), yielding 1,330 reference commands stored in
    `reference_commands.csv`.
 
    **Shell metacharacter stripping**: Reference args are automatically cleaned
@@ -143,7 +143,7 @@ assistants). For each skill file containing *N* examples (*N* ≤ 10):
    question forms, goal-oriented framing, expert terse notation, verb synonym
    substitution, and experimental context injection. Each variant applies a
    genuinely different sentence structure rather than merely appending a suffix,
-   yielding 14,300 semantically diverse descriptions in `usage_descriptions.csv`.
+   yielding 13,300 semantically diverse descriptions in `usage_descriptions.csv`.
    Because the enriched task description is used as the base for all variants,
    every description carries the file references from the reference args.
 
@@ -164,7 +164,7 @@ assistants). For each skill file containing *N* examples (*N* ≤ 10):
 
 ### 3.2 Domain Coverage
 
-The 143 tools span 40 bioinformatics and computational biology domains:
+The 133 tools span 40 bioinformatics and computational biology domains:
 
 > alignment, annotation, assembly, assembly-polishing, comparative-genomics,
 > epigenomics, filesystem, functional-annotation,
@@ -634,7 +634,7 @@ request, and performance is expected to be lower than the enhanced benchmark.
 
 ### 13.3 Generalizability
 
-The benchmark covers 143 tools across 40 domains, which represents broad but
+The benchmark covers 133 tools across 40 domains, which represents broad but
 not exhaustive coverage of the bioinformatics ecosystem. Tools not represented
 in the skill library rely solely on `--help` documentation grounding, and their
 accuracy is expected to lie between the baseline and enhanced performance levels.
@@ -668,8 +668,8 @@ most reliable evaluation criterion.
 
 | File | Rows | Description |
 |------|------|-------------|
-| `reference_commands.csv` | 1,430 | Ground-truth ARGS for 143 tools × 10 scenarios (file tokens substituted to prevent leakage) |
-| `usage_descriptions.csv` | 14,300 | 10 natural-language phrasings per scenario |
+| `reference_commands.csv` | 1,330 | Ground-truth ARGS for 133 tools × 10 scenarios (file tokens substituted to prevent leakage) |
+| `usage_descriptions.csv` | 13,300 | 10 natural-language phrasings per scenario |
 | `bench_scenarios.csv` | 9 | Simulated omics experimental scenarios |
 | `bench_eval_tasks.csv` | 74 | Curated LLM evaluation task catalog with required flag patterns |
 | `bench_workflow.csv` | 7 | Workflow parsing/expansion timing (real measurements) |
