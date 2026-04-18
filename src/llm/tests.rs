@@ -193,7 +193,7 @@ fn test_parse_json_response() {
 
 #[test]
 fn test_build_prompt_with_structured_doc() {
-    use crate::doc_processor::{DocProcessor, FlagEntry};
+    use crate::doc_processor::DocProcessor;
 
     // Create a structured doc with flag catalog and examples
     let processor = DocProcessor::new();
