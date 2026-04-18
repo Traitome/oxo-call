@@ -427,7 +427,6 @@ pub fn parse_response(raw: &str) -> crate::error::Result<LlmCommandSuggestion> {
     Ok(LlmCommandSuggestion {
         args,
         explanation: explanation_line,
-        raw_response: raw.to_string(),
         inference_ms: 0.0, // Set by caller (suggest_command)
     })
 }
@@ -470,7 +469,6 @@ pub fn try_parse_json_response(raw: &str) -> Option<LlmCommandSuggestion> {
     Some(LlmCommandSuggestion {
         args,
         explanation,
-        raw_response: raw.to_string(),
         inference_ms: 0.0,
     })
 }

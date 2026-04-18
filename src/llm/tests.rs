@@ -32,7 +32,6 @@ fn test_is_valid_suggestion() {
     let s = LlmCommandSuggestion {
         args: vec!["-o".to_string()],
         explanation: "Test".to_string(),
-        raw_response: String::new(),
         inference_ms: 0.0,
     };
     assert!(is_valid_suggestion(&s));

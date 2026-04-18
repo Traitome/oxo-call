@@ -169,7 +169,7 @@ pub(crate) fn needs_quoting(arg: &str) -> bool {
 pub(crate) fn sha256_hex(input: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(input.as_bytes());
-    format!("{:x}", hasher.finalize())
+    hex::encode(hasher.finalize())
 }
 
 /// Detect the version string of a tool by running `tool --version`.

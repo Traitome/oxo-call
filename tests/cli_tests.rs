@@ -33,6 +33,7 @@ fn test_help_output() {
         .expect("failed to run oxo-call");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
+    // Core subcommands
     assert!(stdout.contains("oxo-call"));
     assert!(stdout.contains("run"));
     assert!(stdout.contains("dry-run"));
@@ -40,6 +41,35 @@ fn test_help_output() {
     assert!(stdout.contains("config"));
     assert!(stdout.contains("docs"));
     assert!(stdout.contains("history"));
+    // Additional subcommands added over time
+    assert!(
+        stdout.contains("skill") || stdout.contains("Skill"),
+        "Expected skill subcommand in help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("license") || stdout.contains("License"),
+        "Expected license subcommand in help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("workflow") || stdout.contains("Workflow"),
+        "Expected workflow subcommand in help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("job"),
+        "Expected 'job' in top-level help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("completion"),
+        "Expected 'completion' in top-level help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("--verbose"),
+        "Expected '--verbose' in top-level help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("server"),
+        "Expected 'server' in top-level help, got: {stdout}"
+    );
 }
 
 #[test]
@@ -52,6 +82,49 @@ fn test_run_help_mentions_ask_flag() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("--ask"));
     assert!(stdout.contains("Ask for confirmation"));
+    // Additional run flags
+    assert!(stdout.contains("--model"), "Expected '--model' in run help");
+    assert!(
+        stdout.contains("--no-cache"),
+        "Expected '--no-cache' in run help"
+    );
+    assert!(stdout.contains("--json"), "Expected '--json' in run help");
+    assert!(
+        stdout.contains("EXAMPLES"),
+        "Expected 'EXAMPLES' in run help"
+    );
+    assert!(
+        stdout.contains("--verify"),
+        "Expected '--verify' in run help"
+    );
+    assert!(
+        stdout.contains("--var") || stdout.contains("-V"),
+        "Expected --var in run help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("--input-list"),
+        "Expected --input-list in run help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("--input-items"),
+        "Expected --input-items in run help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("--jobs") || stdout.contains("-j"),
+        "Expected --jobs in run help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("KEY=VALUE"),
+        "Expected KEY=VALUE in run help: {stdout}"
+    );
+    assert!(
+        stdout.contains("stop-on-error"),
+        "Expected --stop-on-error in run help: {stdout}"
+    );
+    assert!(
+        stdout.contains("auto-retry"),
+        "Expected --auto-retry in run help: {stdout}"
+    );
 }
 
 #[test]
@@ -789,24 +862,6 @@ fn test_license_verify_no_file() {
     );
 }
 
-#[test]
-fn test_help_includes_skill_and_license() {
-    let output = oxo_call()
-        .arg("--help")
-        .output()
-        .expect("failed to run oxo-call");
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout.contains("skill") || stdout.contains("Skill"),
-        "Expected skill subcommand in help, got: {stdout}"
-    );
-    assert!(
-        stdout.contains("license") || stdout.contains("License"),
-        "Expected license subcommand in help, got: {stdout}"
-    );
-}
-
 // ─── License enforcement tests ────────────────────────────────────────────────
 
 #[test]
@@ -833,12 +888,11 @@ fn test_core_command_blocked_without_license() {
 
 #[test]
 fn test_help_allowed_without_license() {
-    // --help must work even without a license
+    // --help, --version, and `license` must work even without a license
+    let license_path = "/tmp/nonexistent-license-enforcement-test.json";
+
     let output = oxo_call_no_license()
-        .env(
-            "OXO_CALL_LICENSE",
-            "/tmp/nonexistent-license-enforcement-test.json",
-        )
+        .env("OXO_CALL_LICENSE", license_path)
         .arg("--help")
         .output()
         .expect("failed to run oxo-call");
@@ -846,16 +900,9 @@ fn test_help_allowed_without_license() {
         output.status.success(),
         "--help should work without a license"
     );
-}
 
-#[test]
-fn test_version_allowed_without_license() {
-    // --version must work even without a license
     let output = oxo_call_no_license()
-        .env(
-            "OXO_CALL_LICENSE",
-            "/tmp/nonexistent-license-enforcement-test.json",
-        )
+        .env("OXO_CALL_LICENSE", license_path)
         .arg("--version")
         .output()
         .expect("failed to run oxo-call");
@@ -863,16 +910,9 @@ fn test_version_allowed_without_license() {
         output.status.success(),
         "--version should work without a license"
     );
-}
 
-#[test]
-fn test_license_command_allowed_without_license() {
-    // `oxo-call license` must work even without a license
     let output = oxo_call_no_license()
-        .env(
-            "OXO_CALL_LICENSE",
-            "/tmp/nonexistent-license-enforcement-test.json",
-        )
+        .env("OXO_CALL_LICENSE", license_path)
         .arg("license")
         .output()
         .expect("failed to run oxo-call");
@@ -1125,6 +1165,18 @@ fn test_workflow_help_output() {
         stdout.contains("show") || stdout.contains("Show"),
         "Expected show subcommand in workflow help, got: {stdout}"
     );
+    assert!(
+        stdout.contains("verify") || stdout.contains("Verify"),
+        "Expected 'verify' in workflow help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("fmt") || stdout.contains("format"),
+        "Expected 'fmt' in workflow help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("vis") || stdout.contains("dag"),
+        "Expected 'vis' in workflow help, got: {stdout}"
+    );
 }
 
 #[test]
@@ -1318,20 +1370,6 @@ fn test_workflow_generate_requires_llm_token() {
             stderr
         );
     }
-}
-
-#[test]
-fn test_help_includes_workflow() {
-    let output = oxo_call()
-        .arg("--help")
-        .output()
-        .expect("failed to run oxo-call");
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout.contains("workflow") || stdout.contains("Workflow"),
-        "Expected workflow subcommand in help, got: {stdout}"
-    );
 }
 
 #[test]
@@ -2026,32 +2064,11 @@ fn test_workflow_vis_unknown_template_fails() {
     );
 }
 
-#[test]
-fn test_workflow_help_shows_new_commands() {
-    let output = oxo_call()
-        .args(["workflow", "--help"])
-        .output()
-        .expect("failed to run oxo-call");
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout.contains("verify") || stdout.contains("Verify"),
-        "Expected 'verify' in workflow help, got: {stdout}"
-    );
-    assert!(
-        stdout.contains("fmt") || stdout.contains("format"),
-        "Expected 'fmt' in workflow help, got: {stdout}"
-    );
-    assert!(
-        stdout.contains("vis") || stdout.contains("dag"),
-        "Expected 'vis' in workflow help, got: {stdout}"
-    );
-}
-
 // ─── Shell completion tests ──────────────────────────────────────────────────
 
 #[test]
-fn test_completion_bash() {
+fn test_completion_all_shells() {
+    // Bash
     let output = oxo_call()
         .args(["completion", "bash"])
         .output()
@@ -2066,10 +2083,8 @@ fn test_completion_bash() {
         stdout.contains("COMPREPLY"),
         "Expected COMPREPLY in bash completion output"
     );
-}
 
-#[test]
-fn test_completion_zsh() {
+    // Zsh
     let output = oxo_call()
         .args(["completion", "zsh"])
         .output()
@@ -2080,10 +2095,8 @@ fn test_completion_zsh() {
         stdout.contains("#compdef oxo-call"),
         "Expected zsh compdef header"
     );
-}
 
-#[test]
-fn test_completion_fish() {
+    // Fish
     let output = oxo_call()
         .args(["completion", "fish"])
         .output()
@@ -2111,58 +2124,6 @@ fn test_completion_works_without_license() {
 // ─── New flag tests ──────────────────────────────────────────────────────────
 
 #[test]
-fn test_help_mentions_completion_command() {
-    let output = oxo_call()
-        .arg("--help")
-        .output()
-        .expect("failed to run oxo-call");
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout.contains("completion"),
-        "Expected 'completion' in top-level help"
-    );
-}
-
-#[test]
-fn test_help_mentions_verbose_flag() {
-    let output = oxo_call()
-        .arg("--help")
-        .output()
-        .expect("failed to run oxo-call");
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout.contains("--verbose"),
-        "Expected '--verbose' in top-level help"
-    );
-}
-
-#[test]
-fn test_run_help_mentions_new_flags() {
-    let output = oxo_call()
-        .args(["run", "--help"])
-        .output()
-        .expect("failed to run oxo-call");
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("--model"), "Expected '--model' in run help");
-    assert!(
-        stdout.contains("--no-cache"),
-        "Expected '--no-cache' in run help"
-    );
-    assert!(stdout.contains("--json"), "Expected '--json' in run help");
-    assert!(
-        stdout.contains("EXAMPLES"),
-        "Expected 'EXAMPLES' in run help"
-    );
-    assert!(
-        stdout.contains("--verify"),
-        "Expected '--verify' in run help"
-    );
-}
-
-#[test]
 fn test_dry_run_help_mentions_new_flags() {
     let output = oxo_call()
         .args(["dry-run", "--help"])
@@ -2185,6 +2146,22 @@ fn test_dry_run_help_mentions_new_flags() {
     assert!(
         stdout.contains("EXAMPLES"),
         "Expected 'EXAMPLES' in dry-run help"
+    );
+    assert!(
+        stdout.contains("--var") || stdout.contains("-V"),
+        "Expected --var in dry-run help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("--input-list"),
+        "Expected --input-list in dry-run help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("--input-items"),
+        "Expected --input-items in dry-run help, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("KEY=VALUE"),
+        "Expected KEY=VALUE in dry-run help: {stdout}"
     );
 }
 
@@ -2224,20 +2201,6 @@ fn test_run_verify_flag_is_parsed() {
 }
 
 // ─── Server command tests ─────────────────────────────────────────────────────
-
-#[test]
-fn test_help_includes_server() {
-    let output = oxo_call()
-        .arg("--help")
-        .output()
-        .expect("failed to run oxo-call");
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout.contains("server"),
-        "help output should mention server command"
-    );
-}
 
 #[test]
 fn test_server_help_output() {
@@ -2411,7 +2374,8 @@ fn test_server_run_no_server_no_active_fails() {
 // ─── HPC skill tests ─────────────────────────────────────────────────────────
 
 #[test]
-fn test_skill_show_slurm() {
+fn test_skill_show_hpc_schedulers() {
+    // Slurm
     let output = oxo_call()
         .args(["skill", "show", "slurm"])
         .output()
@@ -2421,10 +2385,8 @@ fn test_skill_show_slurm() {
     assert!(stdout.contains("slurm"));
     assert!(stdout.contains("hpc"));
     assert!(stdout.contains("sbatch"));
-}
 
-#[test]
-fn test_skill_show_pbs() {
+    // PBS
     let output = oxo_call()
         .args(["skill", "show", "pbs"])
         .output()
@@ -2433,10 +2395,8 @@ fn test_skill_show_pbs() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("pbs"));
     assert!(stdout.contains("qsub"));
-}
 
-#[test]
-fn test_skill_show_kubectl() {
+    // kubectl
     let output = oxo_call()
         .args(["skill", "show", "kubectl"])
         .output()
@@ -2445,10 +2405,8 @@ fn test_skill_show_kubectl() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("kubectl"));
     assert!(stdout.contains("kubernetes") | stdout.contains("Kubernetes"));
-}
 
-#[test]
-fn test_skill_show_sge() {
+    // SGE
     let output = oxo_call()
         .args(["skill", "show", "sge"])
         .output()
@@ -2456,10 +2414,8 @@ fn test_skill_show_sge() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("sge"));
-}
 
-#[test]
-fn test_skill_show_lsf() {
+    // LSF
     let output = oxo_call()
         .args(["skill", "show", "lsf"])
         .output()
@@ -2467,10 +2423,8 @@ fn test_skill_show_lsf() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("lsf"));
-}
 
-#[test]
-fn test_skill_show_htcondor() {
+    // HTCondor
     let output = oxo_call()
         .args(["skill", "show", "htcondor"])
         .output()
@@ -2891,20 +2845,6 @@ fn test_job_list_tag_filter() {
     assert!(
         !stdout.contains("untagged-cmd"),
         "Untagged cmd should not appear"
-    );
-}
-
-#[test]
-fn test_help_mentions_job_command() {
-    let output = oxo_call()
-        .arg("--help")
-        .output()
-        .expect("failed to run oxo-call");
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout.contains("job"),
-        "Expected 'job' in top-level help, got: {stdout}"
     );
 }
 
@@ -3400,49 +3340,9 @@ fn test_job_run_help_shows_var_flag() {
         stdout.contains("--keep-order") || stdout.contains("-k"),
         "Expected --keep-order in job run help, got: {stdout}"
     );
-}
-
-#[test]
-fn test_run_help_shows_var_flag() {
-    let out = oxo_call()
-        .args(["run", "--help"])
-        .output()
-        .expect("failed to run oxo-call");
-    assert!(out.status.success());
-    let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(
-        stdout.contains("--var") || stdout.contains("-V"),
-        "Expected --var in run help, got: {stdout}"
-    );
-    assert!(
-        stdout.contains("--input-list"),
-        "Expected --input-list in run help, got: {stdout}"
-    );
-    assert!(
-        stdout.contains("--input-items"),
-        "Expected --input-items in run help, got: {stdout}"
-    );
-    assert!(
-        stdout.contains("--jobs") || stdout.contains("-j"),
-        "Expected --jobs in run help, got: {stdout}"
-    );
-}
-
-#[test]
-fn test_dry_run_help_shows_var_flag() {
-    let out = oxo_call()
-        .args(["dry-run", "--help"])
-        .output()
-        .expect("failed to run oxo-call");
-    assert!(out.status.success());
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(
-        stdout.contains("--var") || stdout.contains("-V"),
-        "Expected --var in dry-run help, got: {stdout}"
-    );
-    assert!(
-        stdout.contains("--input-list"),
-        "Expected --input-list in dry-run help, got: {stdout}"
+        stdout.contains("stop-on-error"),
+        "Expected --stop-on-error in job run help: {stdout}"
     );
 }
 
@@ -4433,64 +4333,6 @@ fn test_job_run_high_concurrency_all_succeed() {
     }
 }
 
-// ── run / dry-run --var parsing ───────────────────────────────────────────────
-
-#[test]
-fn test_run_var_flag_parsed_help_output() {
-    let out = oxo_call()
-        .args(["run", "--help"])
-        .output()
-        .expect("failed to run");
-    assert!(out.status.success());
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(
-        stdout.contains("KEY=VALUE"),
-        "Expected KEY=VALUE in run help: {stdout}"
-    );
-}
-
-#[test]
-fn test_dry_run_var_flag_parsed_help_output() {
-    let out = oxo_call()
-        .args(["dry-run", "--help"])
-        .output()
-        .expect("failed to run");
-    assert!(out.status.success());
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(
-        stdout.contains("KEY=VALUE"),
-        "Expected KEY=VALUE in dry-run help: {stdout}"
-    );
-}
-
-#[test]
-fn test_run_input_items_flag_exists() {
-    let out = oxo_call()
-        .args(["run", "--help"])
-        .output()
-        .expect("failed to run");
-    assert!(out.status.success());
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(
-        stdout.contains("input-items"),
-        "Expected --input-items in run help: {stdout}"
-    );
-}
-
-#[test]
-fn test_dry_run_input_items_flag_exists() {
-    let out = oxo_call()
-        .args(["dry-run", "--help"])
-        .output()
-        .expect("failed to run");
-    assert!(out.status.success());
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(
-        stdout.contains("input-items"),
-        "Expected --input-items in dry-run help: {stdout}"
-    );
-}
-
 // ── Backward-compatibility: existing job run (no new flags) still works ────────
 
 #[test]
@@ -4688,34 +4530,6 @@ fn test_job_run_stop_on_error_all_succeed_no_abort() {
     assert!(stdout.contains("c"), "Expected c: {stdout}");
 }
 
-#[test]
-fn test_run_stop_on_error_flag_in_help() {
-    let out = oxo_call()
-        .args(["run", "--help"])
-        .output()
-        .expect("failed to run");
-    assert!(out.status.success());
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(
-        stdout.contains("stop-on-error"),
-        "Expected --stop-on-error in run help: {stdout}"
-    );
-}
-
-#[test]
-fn test_job_run_stop_on_error_flag_in_help() {
-    let out = oxo_call()
-        .args(["job", "run", "--help"])
-        .output()
-        .expect("failed to run");
-    assert!(out.status.success());
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(
-        stdout.contains("stop-on-error"),
-        "Expected --stop-on-error in job run help: {stdout}"
-    );
-}
-
 // ── --var empty-key validation ────────────────────────────────────────────────
 
 #[test]
@@ -4875,22 +4689,6 @@ fn test_job_run_var_value_contains_equals_sign() {
     );
 }
 
-// ── --auto-retry flag ────────────────────────────────────────────────────────
-
-#[test]
-fn test_run_auto_retry_flag_in_help() {
-    let out = oxo_call()
-        .args(["run", "--help"])
-        .output()
-        .expect("failed to run");
-    assert!(out.status.success());
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(
-        stdout.contains("auto-retry"),
-        "Expected --auto-retry in run help: {stdout}"
-    );
-}
-
 // ── chat subcommand ──────────────────────────────────────────────────────────
 
 #[test]
@@ -4901,38 +4699,30 @@ fn test_chat_help_output() {
         .expect("failed to run oxo-call");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
+    // Core flags
     assert!(stdout.contains("chat"));
     assert!(stdout.contains("--interactive"));
     assert!(stdout.contains("--scenario"));
     assert!(stdout.contains("--model"));
     assert!(stdout.contains("--json"));
-}
-
-#[test]
-fn test_chat_help_shows_scenarios() {
-    let output = oxo_call()
-        .args(["chat", "--help"])
-        .output()
-        .expect("failed to run oxo-call");
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    // Scenario values
     assert!(stdout.contains("bare"));
     assert!(stdout.contains("prompt"));
     assert!(stdout.contains("skill"));
     assert!(stdout.contains("doc"));
     assert!(stdout.contains("full"));
-}
-
-#[test]
-fn test_chat_help_shows_examples() {
-    let output = oxo_call()
-        .args(["chat", "--help"])
-        .output()
-        .expect("failed to run oxo-call");
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    // Examples section
     assert!(stdout.contains("oxo-call chat"));
     assert!(stdout.contains("-i"));
+    // Additional flags
+    assert!(
+        stdout.contains("--no-cache"),
+        "chat --help should mention --no-cache flag"
+    );
+    assert!(
+        stdout.contains("--verbose") || stdout.contains("-v"),
+        "chat --help should mention verbose flag"
+    );
 }
 
 #[test]
@@ -5003,34 +4793,6 @@ fn test_chat_visible_alias() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("chat"));
-}
-
-#[test]
-fn test_chat_help_shows_no_cache_flag() {
-    let output = oxo_call()
-        .args(["chat", "--help"])
-        .output()
-        .expect("failed to run oxo-call");
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout.contains("--no-cache"),
-        "chat --help should mention --no-cache flag"
-    );
-}
-
-#[test]
-fn test_chat_help_shows_verbose_flag() {
-    let output = oxo_call()
-        .args(["chat", "--help"])
-        .output()
-        .expect("failed to run oxo-call");
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout.contains("--verbose") || stdout.contains("-v"),
-        "chat --help should mention verbose flag"
-    );
 }
 
 #[test]

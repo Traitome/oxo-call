@@ -155,7 +155,7 @@ impl CommandGenerator for LlmCommandGenerator {
             confidence: 0.85, // LLM-generated commands have moderate-high confidence
             source: CommandSource::Llm {
                 model: self.client.config.effective_model(),
-                cache_hit: suggestion.inference_ms == 0.0 && !suggestion.raw_response.is_empty(),
+                cache_hit: suggestion.inference_ms == 0.0,
             },
         })
     }
