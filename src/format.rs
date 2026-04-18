@@ -385,4 +385,123 @@ mod tests {
         assert!(!FileFormat::Vcf.is_alignment());
         assert!(!FileFormat::Fastq.is_alignment());
     }
+
+    #[test]
+    fn test_label_all_formats() {
+        assert_eq!(FileFormat::Bam.label(), "BAM");
+        assert_eq!(FileFormat::Sam.label(), "SAM");
+        assert_eq!(FileFormat::Cram.label(), "CRAM");
+        assert_eq!(FileFormat::Fastq.label(), "FASTQ");
+        assert_eq!(FileFormat::FastqGz.label(), "FASTQ.GZ");
+        assert_eq!(FileFormat::Fasta.label(), "FASTA");
+        assert_eq!(FileFormat::FastaGz.label(), "FASTA.GZ");
+        assert_eq!(FileFormat::Vcf.label(), "VCF");
+        assert_eq!(FileFormat::VcfGz.label(), "VCF.GZ");
+        assert_eq!(FileFormat::Bcf.label(), "BCF");
+        assert_eq!(FileFormat::Bed.label(), "BED");
+        assert_eq!(FileFormat::BedGz.label(), "BED.GZ");
+        assert_eq!(FileFormat::Gff.label(), "GFF");
+        assert_eq!(FileFormat::Gtf.label(), "GTF");
+        assert_eq!(FileFormat::Bigwig.label(), "BigWig");
+        assert_eq!(FileFormat::Bigbed.label(), "BigBed");
+        assert_eq!(FileFormat::Unknown.label(), "unknown");
+    }
+
+    #[test]
+    fn test_infer_format_case_insensitive() {
+        assert_eq!(infer_format("input.BAM"), FileFormat::Bam);
+        assert_eq!(infer_format("reads.FASTQ.GZ"), FileFormat::FastqGz);
+        assert_eq!(infer_format("sample.VCF.GZ"), FileFormat::VcfGz);
+    }
+
+    #[test]
+    fn test_infer_fasta_variants() {
+        assert_eq!(infer_format("ref.fa"), FileFormat::Fasta);
+        assert_eq!(infer_format("ref.fna"), FileFormat::Fasta);
+        assert_eq!(infer_format("ref.fasta"), FileFormat::Fasta);
+    }
+
+    #[test]
+    fn test_infer_compressed_variants() {
+        assert_eq!(infer_format("reads.fq.gz"), FileFormat::FastqGz);
+        assert_eq!(infer_format("ref.fa.gz"), FileFormat::FastaGz);
+        assert_eq!(infer_format("ref.fna.gz"), FileFormat::FastaGz);
+        assert_eq!(infer_format("regions.bed.gz"), FileFormat::BedGz);
+    }
+
+    #[test]
+    fn test_infer_gff_variants() {
+        assert_eq!(infer_format("genes.gff"), FileFormat::Gff);
+        assert_eq!(infer_format("genes.gff3"), FileFormat::Gff);
+    }
+
+    #[test]
+    fn test_infer_bigwig_variants() {
+        assert_eq!(infer_format("signal.bw"), FileFormat::Bigwig);
+        assert_eq!(infer_format("signal.bigwig"), FileFormat::Bigwig);
+        assert_eq!(infer_format("peaks.bb"), FileFormat::Bigbed);
+        assert_eq!(infer_format("peaks.bigbed"), FileFormat::Bigbed);
+    }
+
+    #[test]
+    fn test_infer_bcf() {
+        assert_eq!(infer_format("variants.bcf"), FileFormat::Bcf);
+    }
+
+    #[test]
+    fn test_infer_format_with_path_components() {
+        assert_eq!(
+            infer_format("/data/samples/reads_R1.fastq.gz"),
+            FileFormat::FastqGz
+        );
+        assert_eq!(infer_format("results/aligned/output.bam"), FileFormat::Bam);
+    }
+
+    #[test]
+    fn test_validate_empty_args() {
+        let args: Vec<String> = vec![];
+        let warnings = validate_format_compatibility(&args);
+        assert!(warnings.is_empty());
+    }
+
+    #[test]
+    fn test_validate_no_file_args() {
+        let args: Vec<String> = vec!["-t".into(), "8".into(), "--threads".into(), "4".into()];
+        let warnings = validate_format_compatibility(&args);
+        assert!(warnings.is_empty());
+    }
+
+    #[test]
+    fn test_same_input_output_equals_form() {
+        let args: Vec<String> = vec![
+            "sort".into(),
+            "--output=input.bam".into(),
+            "input.bam".into(),
+        ];
+        let warnings = validate_format_compatibility(&args);
+        assert!(
+            warnings.iter().any(|w| w.message.contains("same")),
+            "Should warn about same input/output with = form"
+        );
+    }
+
+    #[test]
+    fn test_cram_name_sort_long_flag() {
+        let args: Vec<String> = vec!["sort".into(), "--sort-by-name".into(), "input.cram".into()];
+        let warnings = validate_format_compatibility(&args);
+        assert!(
+            warnings.iter().any(|w| w.message.contains("CRAM")),
+            "Should warn about CRAM name sort with long flag"
+        );
+    }
+
+    #[test]
+    fn test_no_cram_warning_for_bam() {
+        let args: Vec<String> = vec!["sort".into(), "-n".into(), "input.bam".into()];
+        let warnings = validate_format_compatibility(&args);
+        assert!(
+            !warnings.iter().any(|w| w.message.contains("CRAM")),
+            "Should not warn about CRAM for BAM files"
+        );
+    }
 }
