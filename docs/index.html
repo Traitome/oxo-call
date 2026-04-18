@@ -603,19 +603,9 @@
       .community-links { grid-template-columns: 1fr; }
     }
 
-    /* ── Wasm note ──────────────────────────────────────────────────────── */
+    /* ── Wasm note (removed) ──────────────────────────────────────────── */
     .wasm-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.2rem 0.7rem;
-      background: rgba(88,166,255,0.1);
-      border: 1px solid rgba(88,166,255,0.3);
-      border-radius: 20px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem;
-      color: var(--accent);
-      margin-bottom: 1rem;
+      display: none;
     }
     .pulse {
       width: 6px; height: 6px;
@@ -902,7 +892,6 @@
       <span class="badge">🦀 Rust 2024</span>
       <span class="badge">🧬 Bioinformatics</span>
       <span class="badge">🤖 LLM-powered</span>
-      <span class="badge">⚡ WebAssembly</span>
     </div>
     <h1>Model-intelligent<br/>orchestration for<br/><em>CLI bioinformatics</em></h1>
     <p>
@@ -1413,7 +1402,7 @@ curl -LO https://github.com/Traitome/oxo-call/releases/latest/download/oxo-call-
 tar xzf oxo-call-*-x86_64-unknown-linux-gnu.tar.gz
 sudo mv oxo-call /usr/local/bin/
 
-<span class="c"># Available for: Linux (x86_64/aarch64), macOS (Intel/Apple Silicon), Windows, WASM</span></pre>
+<span class="c"># Available for: Linux (x86_64/aarch64), macOS (Intel/Apple Silicon), Windows</span></pre>
   </div>
 
   <div class="code-block">
@@ -1479,15 +1468,6 @@ oxo-call run samtools <span class="s">"sort {item} -o {stem}.sorted.{ext}"</span
 oxo-call run bwa <span class="s">"mem -t {THREADS} {REF} {item} > {stem}.sam"</span> \
     --var THREADS=16 --var REF=hg38.fa \
     --input-list samples.txt --jobs 4</pre>
-  </div>
-
-  <div class="code-block">
-    <div class="code-block-header">
-      <span>WASI binary (requires wasmtime)</span>
-      <button class="copy-btn" data-copy="wasmtime oxo-call.wasm -- dry-run samtools &quot;sort input.bam by coordinate&quot;">copy</button>
-    </div>
-    <pre><span class="c"># Download the .wasm binary from the GitHub Releases page, then:</span>
-wasmtime oxo-call.wasm -- dry-run samtools <span class="s">"sort input.bam by coordinate"</span></pre>
   </div>
 
   <div class="code-block">

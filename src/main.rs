@@ -3,24 +3,26 @@ mod chat;
 mod cli;
 mod config;
 mod context;
-#[cfg(not(target_arch = "wasm32"))]
 mod copilot_auth;
 mod doc_processor;
 mod doc_summarizer;
 mod docs;
 mod engine;
 mod error;
+mod execution;
 mod format;
 mod generator;
 mod handlers;
 mod history;
 mod index;
 mod job;
+mod knowledge;
 mod license;
 mod llm;
 mod llm_workflow;
 mod mcp;
 mod mini_skill_cache;
+mod orchestrator;
 mod runner;
 mod sanitize;
 mod server;
@@ -45,8 +47,7 @@ use cli::{
 use colored::Colorize;
 use handlers::{config_verify_suggestions, print_index_table, with_source};
 
-#[cfg_attr(not(target_arch = "wasm32"), tokio::main)]
-#[cfg_attr(target_arch = "wasm32", tokio::main(flavor = "current_thread"))]
+#[tokio::main]
 async fn main() {
     // Install color-eyre for enhanced error reporting (backtraces, color output)
     if let Err(e) = error::install_error_handler() {
@@ -224,7 +225,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                 });
 
             // Collect input items from --input-list / --input-items.
-            #[cfg(not(target_arch = "wasm32"))]
             let all_items = {
                 let mut v: Vec<String> = Vec::new();
                 if let Some(ref path) = input_list {
@@ -242,7 +242,6 @@ async fn run(cli: Cli) -> error::Result<()> {
             };
 
             // Parse --var KEY=VALUE pairs.
-            #[cfg(not(target_arch = "wasm32"))]
             let var_map = {
                 let mut m = std::collections::HashMap::new();
                 for v in &vars {
@@ -262,7 +261,6 @@ async fn run(cli: Cli) -> error::Result<()> {
             } else {
                 runner
             };
-            #[cfg(not(target_arch = "wasm32"))]
             let runner = runner
                 .with_vars(var_map)
                 .with_input_items(all_items)
@@ -302,7 +300,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                     _ => None,
                 });
 
-            #[cfg(not(target_arch = "wasm32"))]
             let all_items = {
                 let mut v: Vec<String> = Vec::new();
                 if let Some(ref path) = input_list {
@@ -319,7 +316,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                 v
             };
 
-            #[cfg(not(target_arch = "wasm32"))]
             let var_map = {
                 let mut m = std::collections::HashMap::new();
                 for v in &vars {
@@ -340,7 +336,6 @@ async fn run(cli: Cli) -> error::Result<()> {
             } else {
                 runner
             };
-            #[cfg(not(target_arch = "wasm32"))]
             let runner = runner.with_vars(var_map).with_input_items(all_items);
             runner.dry_run(&tool, &task, json, None).await?;
         }
@@ -823,140 +818,129 @@ async fn run(cli: Cli) -> error::Result<()> {
                         println!("  (Using Copilot CLI's GitHub App for compatibility)");
                         println!();
 
-                        #[cfg(not(target_arch = "wasm32"))]
-                        {
-                            let manager = copilot_auth::get_token_manager();
-                            let github_token = manager.run_device_flow().await?;
+                        let manager = copilot_auth::get_token_manager();
+                        let github_token = manager.run_device_flow().await?;
 
-                            // Verify the token works by exchanging for a Copilot session token
-                            println!();
-                            println!("  Verifying token...");
-                            match manager.exchange_token(&github_token).await {
-                                Ok(copilot_token) => {
-                                    println!("  {} Token verified successfully!", "✓".green());
-                                    println!(
-                                        "  Session token expires in {} seconds.",
-                                        copilot_token.refresh_in
-                                    );
-                                }
-                                Err(e) => {
-                                    eprintln!(
-                                        "{} Token verification failed: {e}",
-                                        "error:".bold().red()
-                                    );
-                                    eprintln!();
-                                    eprintln!("  This usually means:");
-                                    eprintln!(
-                                        "    1. You don't have a GitHub Copilot subscription"
-                                    );
-                                    eprintln!(
-                                        "    2. Your organization hasn't enabled Copilot for you"
-                                    );
-                                    eprintln!();
-                                    eprintln!(
-                                        "  Visit https://github.com/settings/copilot to check your subscription."
-                                    );
-                                    std::process::exit(1);
-                                }
-                            }
-
-                            // --- Interactive model selection ---
-                            println!();
-                            println!("  {}", "Select a GitHub Copilot model:".bold());
-                            println!();
-                            for (i, (id, desc, is_free)) in COPILOT_MODELS.iter().enumerate() {
-                                let free_tag = if *is_free {
-                                    format!(" {}", "[free tier ⭐]".green())
-                                } else {
-                                    String::new()
-                                };
-                                let default_tag = if i == 0 {
-                                    format!(" {}", "[default]".dimmed())
-                                } else {
-                                    String::new()
-                                };
+                        // Verify the token works by exchanging for a Copilot session token
+                        println!();
+                        println!("  Verifying token...");
+                        match manager.exchange_token(&github_token).await {
+                            Ok(copilot_token) => {
+                                println!("  {} Token verified successfully!", "✓".green());
                                 println!(
-                                    "    {}. {}{}{}",
-                                    (i + 1).to_string().bold(),
-                                    desc,
-                                    free_tag,
-                                    default_tag
+                                    "  Session token expires in {} seconds.",
+                                    copilot_token.refresh_in
                                 );
-                                // Print the model id indented under the description
-                                println!("       {}", id.dimmed());
                             }
-                            println!();
-                            println!(
-                                "  💡 {}",
-                                "Free-tier models (⭐) work on all GitHub Copilot plans.".dimmed()
-                            );
-                            println!();
-
-                            use std::io::IsTerminal as _;
-                            let selected_model = if std::io::stdin().is_terminal() {
-                                use std::io::Write as _;
-                                print!(
-                                    "  Enter number [1–{}], or press {} for default ({}): ",
-                                    COPILOT_MODELS.len(),
-                                    "Enter".bold(),
-                                    COPILOT_MODELS[0].0.green()
+                            Err(e) => {
+                                eprintln!(
+                                    "{} Token verification failed: {e}",
+                                    "error:".bold().red()
                                 );
-                                std::io::stdout().flush().ok();
-                                let mut sel = String::new();
-                                std::io::stdin().read_line(&mut sel).ok();
-                                let sel = sel.trim();
-                                if sel.is_empty() {
-                                    COPILOT_MODELS[0].0.to_string()
-                                } else if let Ok(n) = sel.parse::<usize>() {
-                                    if n >= 1 && n <= COPILOT_MODELS.len() {
-                                        COPILOT_MODELS[n - 1].0.to_string()
-                                    } else {
-                                        println!(
-                                            "  {} Invalid number, using default ({}).",
-                                            "⚠".yellow(),
-                                            COPILOT_MODELS[0].0
-                                        );
-                                        COPILOT_MODELS[0].0.to_string()
-                                    }
+                                eprintln!();
+                                eprintln!("  This usually means:");
+                                eprintln!("    1. You don't have a GitHub Copilot subscription");
+                                eprintln!(
+                                    "    2. Your organization hasn't enabled Copilot for you"
+                                );
+                                eprintln!();
+                                eprintln!(
+                                    "  Visit https://github.com/settings/copilot to check your subscription."
+                                );
+                                std::process::exit(1);
+                            }
+                        }
+
+                        // --- Interactive model selection ---
+                        println!();
+                        println!("  {}", "Select a GitHub Copilot model:".bold());
+                        println!();
+                        for (i, (id, desc, is_free)) in COPILOT_MODELS.iter().enumerate() {
+                            let free_tag = if *is_free {
+                                format!(" {}", "[free tier ⭐]".green())
+                            } else {
+                                String::new()
+                            };
+                            let default_tag = if i == 0 {
+                                format!(" {}", "[default]".dimmed())
+                            } else {
+                                String::new()
+                            };
+                            println!(
+                                "    {}. {}{}{}",
+                                (i + 1).to_string().bold(),
+                                desc,
+                                free_tag,
+                                default_tag
+                            );
+                            // Print the model id indented under the description
+                            println!("       {}", id.dimmed());
+                        }
+                        println!();
+                        println!(
+                            "  💡 {}",
+                            "Free-tier models (⭐) work on all GitHub Copilot plans.".dimmed()
+                        );
+                        println!();
+
+                        use std::io::IsTerminal as _;
+                        let selected_model = if std::io::stdin().is_terminal() {
+                            use std::io::Write as _;
+                            print!(
+                                "  Enter number [1–{}], or press {} for default ({}): ",
+                                COPILOT_MODELS.len(),
+                                "Enter".bold(),
+                                COPILOT_MODELS[0].0.green()
+                            );
+                            std::io::stdout().flush().ok();
+                            let mut sel = String::new();
+                            std::io::stdin().read_line(&mut sel).ok();
+                            let sel = sel.trim();
+                            if sel.is_empty() {
+                                COPILOT_MODELS[0].0.to_string()
+                            } else if let Ok(n) = sel.parse::<usize>() {
+                                if n >= 1 && n <= COPILOT_MODELS.len() {
+                                    COPILOT_MODELS[n - 1].0.to_string()
                                 } else {
-                                    // User typed a raw model name
-                                    sel.to_string()
+                                    println!(
+                                        "  {} Invalid number, using default ({}).",
+                                        "⚠".yellow(),
+                                        COPILOT_MODELS[0].0
+                                    );
+                                    COPILOT_MODELS[0].0.to_string()
                                 }
                             } else {
-                                // Non-interactive (piped/script), use default silently
-                                COPILOT_MODELS[0].0.to_string()
-                            };
-
-                            let mut cfg = config::Config::load()?;
-                            cfg.llm.provider = "github-copilot".to_string();
-                            cfg.llm.api_token = Some(github_token);
-                            cfg.llm.model = Some(selected_model.clone());
-                            // Pre-populate the model list with all available Copilot models
-                            // so the user can switch quickly with `config model use`.
-                            for (id, _, _) in COPILOT_MODELS {
-                                if !cfg.llm.models.contains(&id.to_string()) {
-                                    cfg.llm.models.push(id.to_string());
-                                }
+                                // User typed a raw model name
+                                sel.to_string()
                             }
-                            cfg.save()?;
+                        } else {
+                            // Non-interactive (piped/script), use default silently
+                            COPILOT_MODELS[0].0.to_string()
+                        };
 
-                            println!();
-                            println!("{} Authenticated with GitHub Copilot.", "✓".green().bold());
-                            println!("  provider  github-copilot");
-                            println!(
-                                "  model     {} (switch with `oxo-call config model use <model>`)",
-                                selected_model
-                            );
-                            println!();
-                            println!("  Run `oxo-call config verify` to confirm everything works.");
-                            println!("  Run `oxo-call config model list` to see available models.");
+                        let mut cfg = config::Config::load()?;
+                        cfg.llm.provider = "github-copilot".to_string();
+                        cfg.llm.api_token = Some(github_token);
+                        cfg.llm.model = Some(selected_model.clone());
+                        // Pre-populate the model list with all available Copilot models
+                        // so the user can switch quickly with `config model use`.
+                        for (id, _, _) in COPILOT_MODELS {
+                            if !cfg.llm.models.contains(&id.to_string()) {
+                                cfg.llm.models.push(id.to_string());
+                            }
                         }
-                        #[cfg(target_arch = "wasm32")]
-                        {
-                            return Err(error::OxoError::ConfigError(
-                                "Device flow is not supported in WebAssembly.".to_string(),
-                            ));
-                        }
+                        cfg.save()?;
+
+                        println!();
+                        println!("{} Authenticated with GitHub Copilot.", "✓".green().bold());
+                        println!("  provider  github-copilot");
+                        println!(
+                            "  model     {} (switch with `oxo-call config model use <model>`)",
+                            selected_model
+                        );
+                        println!();
+                        println!("  Run `oxo-call config verify` to confirm everything works.");
+                        println!("  Run `oxo-call config model list` to see available models.");
                     }
                     other => {
                         eprintln!(
@@ -1614,7 +1598,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                 println!("{content}");
             }
 
-            #[cfg(not(target_arch = "wasm32"))]
             WorkflowCommands::RunWorkflow { file, verify } => {
                 let path = std::path::Path::new(&file);
                 let source = if path.exists() {
@@ -1642,16 +1625,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
             }
 
-            #[cfg(target_arch = "wasm32")]
-            WorkflowCommands::RunWorkflow { .. } => {
-                eprintln!(
-                    "{} 'workflow run' is not supported on WebAssembly.",
-                    "error:".red().bold()
-                );
-                std::process::exit(1);
-            }
-
-            #[cfg(not(target_arch = "wasm32"))]
             WorkflowCommands::DryRunWorkflow { file } => {
                 let path = std::path::Path::new(&file);
                 let source = if path.exists() {
@@ -1672,15 +1645,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                 let def = engine::WorkflowDef::from_str_content(&source)?;
                 let tasks = engine::expand(&def)?;
                 engine::execute(tasks, true).await?;
-            }
-
-            #[cfg(target_arch = "wasm32")]
-            WorkflowCommands::DryRunWorkflow { .. } => {
-                eprintln!(
-                    "{} 'workflow dry-run' is not supported on WebAssembly.",
-                    "error:".red().bold()
-                );
-                std::process::exit(1);
             }
 
             WorkflowCommands::Export { file, to, output } => {
@@ -1717,7 +1681,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
             }
 
-            #[cfg(not(target_arch = "wasm32"))]
             WorkflowCommands::Generate {
                 task,
                 engine: engine_name,
@@ -1762,16 +1725,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
             }
 
-            #[cfg(target_arch = "wasm32")]
-            WorkflowCommands::Generate { .. } => {
-                eprintln!(
-                    "{} 'workflow generate' is not supported on WebAssembly.",
-                    "error:".red().bold()
-                );
-                std::process::exit(1);
-            }
-
-            #[cfg(not(target_arch = "wasm32"))]
             WorkflowCommands::Infer {
                 task,
                 data,
@@ -1879,15 +1832,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
             }
 
-            #[cfg(target_arch = "wasm32")]
-            WorkflowCommands::Infer { .. } => {
-                eprintln!(
-                    "{} 'workflow infer' is not supported on WebAssembly.",
-                    "error:".red().bold()
-                );
-                std::process::exit(1);
-            }
-
             WorkflowCommands::Verify { file } => {
                 let path = std::path::Path::new(&file);
                 let def = if path.exists() {
@@ -1963,7 +1907,6 @@ async fn run(cli: Cli) -> error::Result<()> {
             }
         },
 
-        #[cfg(not(target_arch = "wasm32"))]
         Commands::Server { command } => {
             match command {
                 ServerCommands::Add {
@@ -2439,47 +2382,44 @@ async fn run(cli: Cli) -> error::Result<()> {
                     println!("{}", "─".repeat(60).dimmed());
                     println!();
 
-                    #[cfg(not(target_arch = "wasm32"))]
-                    {
-                        let mut ssh_cmd = std::process::Command::new("ssh");
-                        for arg in &host.ssh_args() {
-                            ssh_cmd.arg(arg);
-                        }
-                        ssh_cmd.arg(&generated.full_cmd);
+                    let mut ssh_cmd = std::process::Command::new("ssh");
+                    for arg in &host.ssh_args() {
+                        ssh_cmd.arg(arg);
+                    }
+                    ssh_cmd.arg(&generated.full_cmd);
 
-                        let status = ssh_cmd.status()?;
-                        let exit_code = status.code().unwrap_or(-1);
+                    let status = ssh_cmd.status()?;
+                    let exit_code = status.code().unwrap_or(-1);
 
-                        // Record the server run in history.
-                        let _ = history::HistoryStore::append(history::HistoryEntry {
-                            id: uuid::Uuid::new_v4().to_string(),
-                            tool: tool.clone(),
-                            task: task.clone(),
-                            command: generated.full_cmd.clone(),
-                            exit_code,
-                            executed_at: chrono::Utc::now(),
-                            dry_run: false,
-                            server: Some(server_name.clone()),
-                            provenance: None,
-                        });
+                    // Record the server run in history.
+                    let _ = history::HistoryStore::append(history::HistoryEntry {
+                        id: uuid::Uuid::new_v4().to_string(),
+                        tool: tool.clone(),
+                        task: task.clone(),
+                        command: generated.full_cmd.clone(),
+                        exit_code,
+                        executed_at: chrono::Utc::now(),
+                        dry_run: false,
+                        server: Some(server_name.clone()),
+                        provenance: None,
+                    });
 
-                        println!();
-                        if status.success() {
-                            println!(
-                                "{} Command completed on '{}'.",
-                                "✓".green().bold(),
-                                server_name.cyan()
-                            );
-                        } else {
-                            eprintln!(
-                                "{} Command exited with code {exit_code} on '{}'.",
-                                "✗".red().bold(),
-                                server_name.cyan()
-                            );
-                            return Err(error::OxoError::ExecutionError(format!(
-                                "SSH command on '{server_name}' exited with code {exit_code}"
-                            )));
-                        }
+                    println!();
+                    if status.success() {
+                        println!(
+                            "{} Command completed on '{}'.",
+                            "✓".green().bold(),
+                            server_name.cyan()
+                        );
+                    } else {
+                        eprintln!(
+                            "{} Command exited with code {exit_code} on '{}'.",
+                            "✗".red().bold(),
+                            server_name.cyan()
+                        );
+                        return Err(error::OxoError::ExecutionError(format!(
+                            "SSH command on '{server_name}' exited with code {exit_code}"
+                        )));
                     }
                 }
 
@@ -2557,15 +2497,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                     }
                 }
             }
-        }
-
-        #[cfg(target_arch = "wasm32")]
-        Commands::Server { .. } => {
-            eprintln!(
-                "{} 'server' commands are not supported on WebAssembly.",
-                "error:".red().bold()
-            );
-            std::process::exit(1);
         }
 
         Commands::Job { command } => {
@@ -2771,7 +2702,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                     }
                     // If neither --input-list nor --input-items was given but stdin is not
                     // a terminal, read items from stdin (one per line, skip blank/#-lines).
-                    #[cfg(not(target_arch = "wasm32"))]
                     if all_items.is_empty() && input_list.is_none() && input_items.is_none() {
                         use std::io::IsTerminal;
                         if !std::io::stdin().is_terminal() {
@@ -2813,7 +2743,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                         let started = chrono::Utc::now();
                         let start_inst = std::time::Instant::now();
 
-                        #[cfg(not(target_arch = "wasm32"))]
                         if let Some(ref srv_name) = server_flag {
                             let cfg = config::Config::load()?;
                             let mgr = server::ServerManager::new(cfg);
@@ -2898,16 +2827,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                                 )));
                             }
                         }
-
-                        #[cfg(target_arch = "wasm32")]
-                        {
-                            let _ = server_flag;
-                            eprintln!(
-                                "{} 'job run' is not supported on WebAssembly.",
-                                "error:".red().bold()
-                            );
-                            std::process::exit(1);
-                        }
                     } else {
                         // ── Batch run (one item per invocation) ──────────────────────────
 
@@ -2962,151 +2881,128 @@ async fn run(cli: Cli) -> error::Result<()> {
                         println!("{}", "─".repeat(60).dimmed());
                         println!();
 
-                        #[cfg(not(target_arch = "wasm32"))]
-                        {
-                            use std::sync::Arc;
-                            // Record wall-clock start before tasks are spawned.
-                            let started_all = chrono::Utc::now();
-                            let start_inst_all = std::time::Instant::now();
+                        use std::sync::Arc;
+                        // Record wall-clock start before tasks are spawned.
+                        let started_all = chrono::Utc::now();
+                        let start_inst_all = std::time::Instant::now();
 
-                            let sem = Arc::new(tokio::sync::Semaphore::new(jobs));
-                            let mut handles: Vec<(
-                                String,
-                                tokio::task::JoinHandle<error::Result<i32>>,
-                            )> = Vec::with_capacity(n);
+                        let sem = Arc::new(tokio::sync::Semaphore::new(jobs));
+                        let mut handles: Vec<(
+                            String,
+                            tokio::task::JoinHandle<error::Result<i32>>,
+                        )> = Vec::with_capacity(n);
 
-                            for (i, item) in all_items.iter().enumerate() {
-                                let cmd =
-                                    job::interpolate_command(&entry.command, item, i + 1, &var_map);
-                                let sem_clone = Arc::clone(&sem);
-                                let item_label = item.clone();
-                                let handle: tokio::task::JoinHandle<error::Result<i32>> =
-                                    tokio::spawn(async move {
-                                        let _permit = sem_clone
-                                            .acquire_owned()
-                                            .await
-                                            .expect("semaphore closed unexpectedly");
-                                        tokio::task::spawn_blocking(move || {
-                                            std::process::Command::new("sh")
-                                                .arg("-c")
-                                                .arg(&cmd)
-                                                .status()
-                                                .map(|s| s.code().unwrap_or(-1))
-                                                .map_err(|e| {
-                                                    error::OxoError::ExecutionError(format!(
-                                                        "failed to run '{item_label}': {e}"
-                                                    ))
-                                                })
-                                        })
+                        for (i, item) in all_items.iter().enumerate() {
+                            let cmd =
+                                job::interpolate_command(&entry.command, item, i + 1, &var_map);
+                            let sem_clone = Arc::clone(&sem);
+                            let item_label = item.clone();
+                            let handle: tokio::task::JoinHandle<error::Result<i32>> =
+                                tokio::spawn(async move {
+                                    let _permit = sem_clone
+                                        .acquire_owned()
                                         .await
-                                        .map_err(|e| {
-                                            error::OxoError::ExecutionError(format!(
-                                                "task join error: {e}"
-                                            ))
-                                        })?
-                                    });
-                                handles.push((item.clone(), handle));
-                            }
+                                        .expect("semaphore closed unexpectedly");
+                                    tokio::task::spawn_blocking(move || {
+                                        std::process::Command::new("sh")
+                                            .arg("-c")
+                                            .arg(&cmd)
+                                            .status()
+                                            .map(|s| s.code().unwrap_or(-1))
+                                            .map_err(|e| {
+                                                error::OxoError::ExecutionError(format!(
+                                                    "failed to run '{item_label}': {e}"
+                                                ))
+                                            })
+                                    })
+                                    .await
+                                    .map_err(|e| {
+                                        error::OxoError::ExecutionError(format!(
+                                            "task join error: {e}"
+                                        ))
+                                    })?
+                                });
+                            handles.push((item.clone(), handle));
+                        }
 
-                            let mut failed = 0usize;
-                            let mut done = 0usize;
-                            for (item, handle) in handles {
-                                let code = match handle.await {
-                                    Ok(Ok(c)) => c,
-                                    Ok(Err(e)) => {
-                                        failed += 1;
-                                        eprintln!("  {} {}: {}", "✗".red().bold(), item, e);
-                                        -1
-                                    }
-                                    Err(e) => {
-                                        failed += 1;
-                                        eprintln!(
-                                            "  {} {}: join error: {}",
-                                            "✗".red().bold(),
-                                            item,
-                                            e
-                                        );
-                                        -1
-                                    }
-                                };
-                                // Count non-zero exit codes as failures.
-                                // Sentinel -1 already incremented `failed` above.
-                                if code != 0 && code != -1 {
+                        let mut failed = 0usize;
+                        let mut done = 0usize;
+                        for (item, handle) in handles {
+                            let code = match handle.await {
+                                Ok(Ok(c)) => c,
+                                Ok(Err(e)) => {
                                     failed += 1;
+                                    eprintln!("  {} {}: {}", "✗".red().bold(), item, e);
+                                    -1
                                 }
-                                done += 1;
-                                match code {
-                                    0 => println!(
-                                        "  {} [{}/{}] {}",
-                                        "✓".green().bold(),
-                                        done,
-                                        n,
-                                        item
-                                    ),
-                                    -1 => {} // error already printed
-                                    c => eprintln!(
-                                        "  {} [{}/{}] {} (exit {})",
-                                        "✗".red().bold(),
-                                        done,
-                                        n,
-                                        item,
-                                        c.to_string().red()
-                                    ),
+                                Err(e) => {
+                                    failed += 1;
+                                    eprintln!("  {} {}: join error: {}", "✗".red().bold(), item, e);
+                                    -1
                                 }
-                                if stop_on_error && failed > 0 {
-                                    eprintln!(
-                                        "  {} stop-on-error: aborting after first failure ({}/{} done)",
-                                        "⚡".yellow().bold(),
-                                        done,
-                                        n
-                                    );
-                                    break;
-                                }
+                            };
+                            // Count non-zero exit codes as failures.
+                            // Sentinel -1 already incremented `failed` above.
+                            if code != 0 && code != -1 {
+                                failed += 1;
                             }
-
-                            let dur = start_inst_all.elapsed().as_secs_f64();
-                            // Record the batch run under the job's name.
-                            let summary_cmd =
-                                format!("{}  # batch:{n} vars:{}", entry.command, var_map.len());
-                            let _ = job::JobManager::record_run(
-                                &name,
-                                &summary_cmd,
-                                None,
-                                if failed == 0 { 0 } else { 1 },
-                                started_all,
-                                dur,
-                            );
-
-                            println!();
-                            println!("{}", "─".repeat(60).dimmed());
-                            if failed == 0 {
-                                println!(
-                                    "  {} All {} items completed successfully.",
-                                    "✓".green().bold(),
-                                    done.to_string().green()
-                                );
-                            } else {
-                                eprintln!(
-                                    "  {} {}/{} items failed.",
+                            done += 1;
+                            match code {
+                                0 => println!("  {} [{}/{}] {}", "✓".green().bold(), done, n, item),
+                                -1 => {} // error already printed
+                                c => eprintln!(
+                                    "  {} [{}/{}] {} (exit {})",
                                     "✗".red().bold(),
-                                    failed.to_string().red(),
-                                    done
-                                );
-                                return Err(error::OxoError::ExecutionError(format!(
-                                    "{failed}/{done} batch items failed"
-                                )));
+                                    done,
+                                    n,
+                                    item,
+                                    c.to_string().red()
+                                ),
                             }
-                            println!("{}", "─".repeat(60).dimmed());
+                            if stop_on_error && failed > 0 {
+                                eprintln!(
+                                    "  {} stop-on-error: aborting after first failure ({}/{} done)",
+                                    "⚡".yellow().bold(),
+                                    done,
+                                    n
+                                );
+                                break;
+                            }
                         }
 
-                        #[cfg(target_arch = "wasm32")]
-                        {
-                            eprintln!(
-                                "{} 'job run' batch mode is not supported on WebAssembly.",
-                                "error:".red().bold()
+                        let dur = start_inst_all.elapsed().as_secs_f64();
+                        // Record the batch run under the job's name.
+                        let summary_cmd =
+                            format!("{}  # batch:{n} vars:{}", entry.command, var_map.len());
+                        let _ = job::JobManager::record_run(
+                            &name,
+                            &summary_cmd,
+                            None,
+                            if failed == 0 { 0 } else { 1 },
+                            started_all,
+                            dur,
+                        );
+
+                        println!();
+                        println!("{}", "─".repeat(60).dimmed());
+                        if failed == 0 {
+                            println!(
+                                "  {} All {} items completed successfully.",
+                                "✓".green().bold(),
+                                done.to_string().green()
                             );
-                            std::process::exit(1);
+                        } else {
+                            eprintln!(
+                                "  {} {}/{} items failed.",
+                                "✗".red().bold(),
+                                failed.to_string().red(),
+                                done
+                            );
+                            return Err(error::OxoError::ExecutionError(format!(
+                                "{failed}/{done} batch items failed"
+                            )));
                         }
+                        println!("{}", "─".repeat(60).dimmed());
                     }
                 }
 

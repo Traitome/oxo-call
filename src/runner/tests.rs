@@ -297,14 +297,12 @@ fn test_detect_tool_version_echo_command() {
 #[test]
 fn test_make_spinner_creates_without_panic() {
     let pb = make_spinner("Test message");
-    #[cfg(not(target_arch = "wasm32"))]
     pb.finish_and_clear();
 }
 
 #[test]
 fn test_make_spinner_with_empty_message() {
     let pb = make_spinner("");
-    #[cfg(not(target_arch = "wasm32"))]
     pb.finish_and_clear();
 }
 
@@ -669,7 +667,6 @@ fn test_risk_warning_message() {
 
 // ─── Input file validation tests ──────────────────────────────────────
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn test_validate_input_files_nonexistent() {
     let args: Vec<String> = vec![
@@ -682,7 +679,6 @@ fn test_validate_input_files_nonexistent() {
     assert!(missing.contains(&"nonexistent_file.bam".to_string()));
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn test_validate_input_files_skips_output() {
     let args: Vec<String> = vec!["sort".into(), "-o".into(), "nonexistent_output.bam".into()];

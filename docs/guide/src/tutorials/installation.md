@@ -18,7 +18,6 @@ Pre-built binaries are the easiest way to get started. Download from the [Releas
 | macOS | aarch64 (Apple Silicon) | `oxo-call-vX.Y.Z-aarch64-apple-darwin.tar.gz` |
 | Windows | x86_64 | `oxo-call-vX.Y.Z-x86_64-pc-windows-msvc.zip` |
 | Windows | aarch64 | `oxo-call-vX.Y.Z-aarch64-pc-windows-msvc.zip` |
-| WebAssembly | wasm32-wasip1 | `oxo-call-vX.Y.Z-wasm32-wasip1.tar.gz` (advanced) |
 
 2. Extract and move to your PATH:
 

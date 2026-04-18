@@ -50,7 +50,6 @@ use colored::Colorize;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
-#[cfg(not(target_arch = "wasm32"))]
 use std::time::Instant;
 use std::time::SystemTime;
 
@@ -558,7 +557,6 @@ use std::path::PathBuf;
 /// `tokio::task::JoinSet`.  Dependent tasks wait until all their prerequisites
 /// have succeeded or been skipped.  If any task fails the whole run is aborted,
 /// but a checkpoint is saved so the workflow can be resumed.
-#[cfg(not(target_arch = "wasm32"))]
 pub async fn execute(tasks: Vec<ConcreteTask>, dry_run: bool) -> Result<()> {
     use tokio::task::JoinSet;
 
@@ -739,7 +737,6 @@ pub async fn execute(tasks: Vec<ConcreteTask>, dry_run: bool) -> Result<()> {
 }
 
 /// Run a single concrete task via `sh -c`.
-#[cfg(not(target_arch = "wasm32"))]
 async fn run_single_task(task: ConcreteTask) -> Result<(String, bool)> {
     use tokio::process::Command;
 
@@ -1424,7 +1421,6 @@ pub fn visualize_workflow(def: &WorkflowDef) -> Result<()> {
 /// This is a best-effort check: failures from the LLM are printed as warnings
 /// rather than propagated as errors, so the exit code of `workflow run` is not
 /// affected.
-#[cfg(not(target_arch = "wasm32"))]
 pub async fn verify_workflow_results(def: &WorkflowDef, config: &crate::config::Config) {
     use crate::llm::LlmClient;
     use crate::runner::make_spinner;

@@ -7,21 +7,22 @@ use crate::config::Config;
 use crate::doc_processor::DocProcessor;
 use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
-#[cfg(not(target_arch = "wasm32"))]
+use crate::execution::feedback::{FeedbackCollector, FeedbackEntry};
+use crate::execution::result_analyzer::ResultAnalyzer;
 use crate::history::{CommandProvenance, HistoryEntry, HistoryStore};
-#[cfg(not(target_arch = "wasm32"))]
 use crate::job;
+use crate::knowledge::error_db::ErrorKnowledgeDb;
 use crate::llm::{LlmClient, LlmCommandSuggestion};
-use crate::llm_workflow::{LlmWorkflowExecutor, WorkflowMode};
+use crate::llm_workflow::LlmWorkflowExecutor;
+use crate::orchestrator::executor::ExecutorAgent;
+use crate::orchestrator::planner::PlannerAgent;
+use crate::orchestrator::supervisor::SupervisorAgent;
+use crate::orchestrator::validator::ValidatorAgent;
 use crate::skill::SkillManager;
-#[cfg(not(target_arch = "wasm32"))]
 use chrono::Utc;
 use colored::Colorize;
-#[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
-#[cfg(not(target_arch = "wasm32"))]
 use std::process::Command;
-#[cfg(not(target_arch = "wasm32"))]
 use uuid::Uuid;
 
 use super::batch::BatchRunner;
@@ -71,21 +72,28 @@ pub struct Runner {
     /// [Ablation] When true, do not use the oxo-call system prompt.
     pub(crate) no_prompt: bool,
     /// Named variables substituted into the task description before the LLM call.
-    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) vars: HashMap<String, String>,
     /// Input items for batch/parallel execution (empty = single run).
-    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) input_items: Vec<String>,
     /// Maximum number of parallel jobs when `input_items` is non-empty.
-    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) jobs: usize,
     /// When true, stop the batch after the first failed item.
-    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) stop_on_error: bool,
     /// When true, automatically retry failed commands with LLM-corrected arguments.
     pub(crate) auto_retry: bool,
     /// Force a specific workflow scenario (auto-detected by default)
     pub(crate) force_scenario: Option<crate::workflow_graph::WorkflowScenario>,
+    // ── Orchestration layer ──────────────────────────────────────────────────
+    /// Supervisor agent for orchestration decisions.
+    supervisor: SupervisorAgent,
+    /// Planner agent for task decomposition.
+    planner: PlannerAgent,
+    /// Executor agent for task enrichment.
+    executor_agent: ExecutorAgent,
+    /// Validator agent for result verification.
+    validator_agent: ValidatorAgent,
+    /// Result analyzer for post-execution insights.
+    result_analyzer: ResultAnalyzer,
 }
 
 impl Runner {
@@ -101,16 +109,17 @@ impl Runner {
             no_skill: false,
             no_doc: false,
             no_prompt: false,
-            #[cfg(not(target_arch = "wasm32"))]
             vars: HashMap::new(),
-            #[cfg(not(target_arch = "wasm32"))]
             input_items: Vec::new(),
-            #[cfg(not(target_arch = "wasm32"))]
             jobs: 1,
-            #[cfg(not(target_arch = "wasm32"))]
             stop_on_error: false,
             auto_retry: false,
             force_scenario: None,
+            supervisor: SupervisorAgent::new(),
+            planner: PlannerAgent::new(),
+            executor_agent: ExecutorAgent::new(),
+            validator_agent: ValidatorAgent::new(),
+            result_analyzer: ResultAnalyzer::new(),
         }
     }
 
@@ -165,7 +174,6 @@ impl Runner {
     /// Set named variables that will be substituted into the task description
     /// (and, when an input list is present, into the generated command) before
     /// the LLM call.
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn with_vars(mut self, vars: HashMap<String, String>) -> Self {
         self.vars = vars;
         self
@@ -175,21 +183,18 @@ impl Runner {
     ///
     /// When non-empty, the LLM is called once and the generated command
     /// template (which may contain `{item}`) is executed for every item.
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn with_input_items(mut self, items: Vec<String>) -> Self {
         self.input_items = items;
         self
     }
 
     /// Set the maximum number of parallel jobs (default: 1 = sequential).
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn with_jobs(mut self, jobs: usize) -> Self {
         self.jobs = jobs.max(1);
         self
     }
 
     /// When enabled, abort the batch after the first failed item.
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn with_stop_on_error(mut self, stop_on_error: bool) -> Self {
         self.stop_on_error = stop_on_error;
         self
@@ -269,14 +274,7 @@ impl Runner {
                 }
                 None
             } else {
-                #[cfg(not(target_arch = "wasm32"))]
-                {
-                    self.skill_manager.load_async(tool).await
-                }
-                #[cfg(target_arch = "wasm32")]
-                {
-                    self.skill_manager.load(tool)
-                }
+                self.skill_manager.load_async(tool).await
             }
         };
 
@@ -451,8 +449,46 @@ impl Runner {
             prefs.to_prompt_hint()
         };
 
-        // Build enriched task with context and preference hints
-        let enriched_task = if !context_hint.is_empty() || !preferences_hint.is_empty() {
+        // ── Orchestration: Supervisor decision ───────────────────────────────
+        let doc_quality = structured_doc
+            .as_ref()
+            .map(|sd| sd.quality_score)
+            .unwrap_or(0.0);
+        let supervisor_decision =
+            self.supervisor
+                .decide(tool, task, skill.is_some(), doc_quality, None);
+
+        if self.verbose {
+            eprintln!(
+                "{} Orchestrator: mode={}, domain={}, reasons=[{}]",
+                "[verbose]".dimmed(),
+                supervisor_decision.mode,
+                supervisor_decision.domain.as_deref().unwrap_or("unknown"),
+                supervisor_decision.reasons.join(", "),
+            );
+        }
+
+        // ── Orchestration: Planner → step decomposition ──────────────────────
+        let plan = self.planner.plan(tool, task);
+        if self.verbose && plan.is_multi_step() {
+            eprintln!(
+                "{} Planner: {} steps, strategy='{}'",
+                "[verbose]".dimmed(),
+                plan.steps.len(),
+                plan.strategy,
+            );
+        }
+
+        // ── Orchestration: Executor Agent → task enrichment ──────────────────
+        let executor_ctx = self.executor_agent.prepare(tool, task).await.ok();
+        let enrichment_from_executor = executor_ctx
+            .as_ref()
+            .map(|ctx| self.executor_agent.enrich_task(ctx))
+            .unwrap_or_default();
+
+        // Build enriched task with all sources: context, preferences,
+        // supervisor hints, and executor enrichment.
+        let enriched_task = {
             let mut parts = vec![effective_task.clone()];
             if !context_hint.is_empty() {
                 parts.push(context_hint);
@@ -460,14 +496,24 @@ impl Runner {
             if !preferences_hint.is_empty() {
                 parts.push(preferences_hint);
             }
-            parts.join("\n")
-        } else {
-            effective_task.clone()
+            // Add supervisor enrichment hints (best practices, related tools).
+            for hint in &supervisor_decision.enrichment_hints {
+                parts.push(hint.clone());
+            }
+            // Add executor enrichment (normalized task, params, constraints).
+            if !enrichment_from_executor.is_empty() && enrichment_from_executor != effective_task {
+                parts.push(enrichment_from_executor);
+            }
+            if parts.len() == 1 {
+                effective_task.clone()
+            } else {
+                parts.join("\n")
+            }
         };
 
         if self.verbose && enriched_task != effective_task {
             eprintln!(
-                "{} Enriched task with context/preferences",
+                "{} Enriched task with context/preferences/knowledge",
                 "[verbose]".dimmed()
             );
         }
@@ -476,21 +522,13 @@ impl Runner {
             "Asking LLM to generate command arguments{skill_label}..."
         ));
 
-        // Select workflow mode:
-        // - If scenario is forced → use scenario's default mode
-        // - Default → Fast (single LLM call with doc-enriched prompt)
-        //
-        // The Fast mode is now the primary code path for all cases.
-        // Doc-extracted examples and flag catalog are injected into the
-        // prompt by the StructuredDoc, eliminating the need for the
-        // multi-call Quality pipeline in most scenarios.
-        //
-        // Quality mode (multi-call: normalize → mini-skill → generate) is
-        // activated only when explicitly requested via --scenario.
+        // Select workflow mode based on orchestrator decision:
+        // - Supervisor decision maps directly to workflow mode
+        // - --scenario override takes priority
         let effective_mode = if let Some(sc) = self.force_scenario {
             sc.default_mode()
         } else {
-            WorkflowMode::Fast
+            supervisor_decision.mode.to_workflow_mode()
         };
 
         if self.verbose {
@@ -578,7 +616,6 @@ impl Runner {
     /// dry-run: show the command that would be executed without running it.
     /// Records the generated command in history with `dry_run = true`.
     /// Pass `server` to tag the history entry with the remote server name.
-    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn dry_run(
         &self,
         tool: &str,
@@ -586,17 +623,14 @@ impl Runner {
         json: bool,
         server: Option<&str>,
     ) -> Result<()> {
-        // ── Native-only: apply vars + batch dispatch ──────────────────────────
-        #[cfg(not(target_arch = "wasm32"))]
+        // ── Apply vars + batch dispatch ──────────────────────────
         let _task_buf;
-        #[cfg(not(target_arch = "wasm32"))]
         let task: &str = if self.vars.is_empty() {
             task
         } else {
             _task_buf = job::interpolate_command(task, "", 0, &self.vars);
             &_task_buf
         };
-        #[cfg(not(target_arch = "wasm32"))]
         if !self.input_items.is_empty() {
             return self.dry_run_batch(tool, task, json).await;
         }
@@ -605,7 +639,6 @@ impl Runner {
         let full_cmd = build_command_string(tool, &result.suggestion.args);
 
         // Record in history before displaying, so the entry is always saved.
-        #[cfg(not(target_arch = "wasm32"))]
         {
             let tool_version = detect_tool_version(tool);
             let entry = HistoryEntry {
@@ -677,17 +710,14 @@ impl Runner {
 
     /// run: execute the command for real
     pub async fn run(&self, tool: &str, task: &str, ask: bool, json: bool) -> Result<()> {
-        // ── Native-only: apply vars + batch dispatch ──────────────────────────
-        #[cfg(not(target_arch = "wasm32"))]
+        // ── Apply vars + batch dispatch ──────────────────────────
         let _task_buf;
-        #[cfg(not(target_arch = "wasm32"))]
         let task: &str = if self.vars.is_empty() {
             task
         } else {
             _task_buf = job::interpolate_command(task, "", 0, &self.vars);
             &_task_buf
         };
-        #[cfg(not(target_arch = "wasm32"))]
         if !self.input_items.is_empty() {
             return self.run_batch(tool, task, json).await;
         }
@@ -747,7 +777,6 @@ impl Runner {
             }
 
             // Validate input files exist before execution
-            #[cfg(not(target_arch = "wasm32"))]
             {
                 let missing = validate_input_files(&result.suggestion.args);
                 if !missing.is_empty() {
@@ -785,170 +814,218 @@ impl Runner {
             println!();
         }
 
-        // Process execution is not supported in WebAssembly
-        #[cfg(target_arch = "wasm32")]
-        return Err(OxoError::ExecutionError(
-            "Command execution is not supported in WebAssembly".to_string(),
-        ));
+        // Resolve companion binary (e.g., "bowtie2-build" when tool is "bowtie2")
+        let (eff_tool, eff_args) = effective_command(tool, &result.suggestion.args);
 
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            // Resolve companion binary (e.g., "bowtie2-build" when tool is "bowtie2")
-            let (eff_tool, eff_args) = effective_command(tool, &result.suggestion.args);
+        // When the args contain shell operators (&&, ||, ;, |, >, …) the command
+        // must be dispatched through a shell so those operators are interpreted as
+        // shell syntax rather than being passed as literal strings to the tool.
+        let use_shell = super::utils::args_require_shell(&result.suggestion.args);
 
-            // When the args contain shell operators (&&, ||, ;, |, >, …) the command
-            // must be dispatched through a shell so those operators are interpreted as
-            // shell syntax rather than being passed as literal strings to the tool.
-            let use_shell = super::utils::args_require_shell(&result.suggestion.args);
-
-            // When verification is enabled, capture stderr for analysis.
-            let (exit_code, success, captured_stderr) = if self.verify {
-                let output = if use_shell {
-                    Command::new("sh")
-                        .args(["-c", &full_cmd])
-                        .output()
-                        .map_err(|e| OxoError::ExecutionError(format!("sh: {e}")))?
-                } else {
-                    Command::new(eff_tool)
-                        .args(eff_args)
-                        .output()
-                        .map_err(|e| OxoError::ToolNotFound(format!("{eff_tool}: {e}")))?
-                };
-
-                // Stream captured output to terminal so the user still sees it.
-                use std::io::Write;
-                let _ = std::io::stdout().write_all(&output.stdout);
-                let _ = std::io::stderr().write_all(&output.stderr);
-
-                let code = output.status.code().unwrap_or(-1);
-                let ok = output.status.success();
-                let stderr_text = String::from_utf8_lossy(&output.stderr).into_owned();
-                (code, ok, stderr_text)
+        // When verification is enabled, capture stderr for analysis.
+        let (exit_code, success, captured_stderr) = if self.verify {
+            let output = if use_shell {
+                Command::new("sh")
+                    .args(["-c", &full_cmd])
+                    .output()
+                    .map_err(|e| OxoError::ExecutionError(format!("sh: {e}")))?
             } else {
-                let status = if use_shell {
-                    Command::new("sh")
-                        .args(["-c", &full_cmd])
-                        .status()
-                        .map_err(|e| OxoError::ExecutionError(format!("sh: {e}")))?
-                } else {
-                    Command::new(eff_tool)
-                        .args(eff_args)
-                        .status()
-                        .map_err(|e| OxoError::ToolNotFound(format!("{eff_tool}: {e}")))?
-                };
-                let code = status.code().unwrap_or(-1);
-                let ok = status.success();
-                (code, ok, String::new())
+                Command::new(eff_tool)
+                    .args(eff_args)
+                    .output()
+                    .map_err(|e| OxoError::ToolNotFound(format!("{eff_tool}: {e}")))?
             };
 
-            // Detect tool version for provenance (use effective tool binary)
-            let tool_version = detect_tool_version(eff_tool);
+            // Stream captured output to terminal so the user still sees it.
+            use std::io::Write;
+            let _ = std::io::stdout().write_all(&output.stdout);
+            let _ = std::io::stderr().write_all(&output.stderr);
 
-            // Record in history with provenance
-            let entry = HistoryEntry {
-                id: Uuid::new_v4().to_string(),
+            let code = output.status.code().unwrap_or(-1);
+            let ok = output.status.success();
+            let stderr_text = String::from_utf8_lossy(&output.stderr).into_owned();
+            (code, ok, stderr_text)
+        } else {
+            let status = if use_shell {
+                Command::new("sh")
+                    .args(["-c", &full_cmd])
+                    .status()
+                    .map_err(|e| OxoError::ExecutionError(format!("sh: {e}")))?
+            } else {
+                Command::new(eff_tool)
+                    .args(eff_args)
+                    .status()
+                    .map_err(|e| OxoError::ToolNotFound(format!("{eff_tool}: {e}")))?
+            };
+            let code = status.code().unwrap_or(-1);
+            let ok = status.success();
+            (code, ok, String::new())
+        };
+
+        // Detect tool version for provenance (use effective tool binary)
+        let tool_version = detect_tool_version(eff_tool);
+
+        // Record in history with provenance
+        let entry = HistoryEntry {
+            id: Uuid::new_v4().to_string(),
+            tool: tool.to_string(),
+            task: task.to_string(),
+            command: full_cmd.clone(),
+            exit_code,
+            executed_at: Utc::now(),
+            dry_run: false,
+            server: None,
+            provenance: Some(CommandProvenance {
+                tool_version,
+                docs_hash: Some(result.docs_hash),
+                skill_name: result.skill_name.clone(),
+                model: Some(self.config.effective_model()),
+                cache_hit: None,
+            }),
+        };
+        let _ = HistoryStore::append(entry);
+
+        if json {
+            let output = serde_json::json!({
+                "tool": tool,
+                "task": task,
+                "effective_task": result.effective_task,
+                "command": full_cmd,
+                "args": result.suggestion.args,
+                "explanation": result.suggestion.explanation,
+                "dry_run": false,
+                "exit_code": exit_code,
+                "success": success,
+                "skill": result.skill_name,
+                "model": self.config.effective_model(),
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+        } else {
+            println!();
+            println!("{}", "─".repeat(60).dimmed());
+            if success {
+                println!(
+                    "  {} exit code {}",
+                    "Completed successfully,".bold().green(),
+                    exit_code.to_string().green()
+                );
+            } else {
+                println!(
+                    "  {} exit code {}",
+                    "Command failed,".bold().red(),
+                    exit_code.to_string().red()
+                );
+            }
+            println!("{}", "─".repeat(60).dimmed());
+        }
+
+        // LLM-based result verification (when --verify is enabled).
+        if self.verify {
+            self.run_verification(super::retry::VerifyParams {
+                tool,
+                task: &result.effective_task,
+                command: &full_cmd,
+                exit_code,
+                stderr: &captured_stderr,
+                args: &result.suggestion.args,
+                json,
+            })
+            .await;
+        }
+
+        // ── Orchestration: Validator Agent (always runs) ─────────────────
+        let validation =
+            self.validator_agent
+                .validate(tool, task, &full_cmd, exit_code, &captured_stderr);
+
+        if self.verbose && !validation.success {
+            eprintln!(
+                "{} Validator: {} — {:?}",
+                "[verbose]".dimmed(),
+                validation.summary,
+                validation.error_category,
+            );
+            for suggestion in &validation.suggestions {
+                eprintln!("{} → {}", "[verbose]".dimmed(), suggestion);
+            }
+        }
+
+        // ── Execution: Result Analyzer ──────────────────────────────────
+        let analysis = self
+            .result_analyzer
+            .analyze(tool, exit_code, "", &captured_stderr);
+
+        if self.verbose && !analysis.improvements.is_empty() {
+            for improvement in &analysis.improvements {
+                eprintln!("{} Improvement: {}", "[verbose]".dimmed(), improvement);
+            }
+        }
+
+        // ── Execution: Feedback Collector ────────────────────────────────
+        let _ = FeedbackCollector::record(FeedbackEntry {
+            tool: tool.to_string(),
+            task: task.to_string(),
+            generated_command: full_cmd.clone(),
+            was_modified: false,
+            modified_command: None,
+            exit_code,
+            user_approved: success,
+            model: self.config.effective_model(),
+            recorded_at: Utc::now().to_rfc3339(),
+        });
+
+        // ── Execution: Error Knowledge DB learning ──────────────────────
+        if !success {
+            let _ = ErrorKnowledgeDb::record(crate::knowledge::error_db::ErrorRecord {
                 tool: tool.to_string(),
                 task: task.to_string(),
-                command: full_cmd.clone(),
+                failed_command: full_cmd.clone(),
                 exit_code,
-                executed_at: Utc::now(),
-                dry_run: false,
-                server: None,
-                provenance: Some(CommandProvenance {
-                    tool_version,
-                    docs_hash: Some(result.docs_hash),
-                    skill_name: result.skill_name.clone(),
-                    model: Some(self.config.effective_model()),
-                    cache_hit: None,
-                }),
-            };
-            let _ = HistoryStore::append(entry);
+                stderr_snippet: captured_stderr.chars().take(2000).collect(),
+                error_category: crate::knowledge::error_db::ErrorCategory::classify(
+                    &captured_stderr,
+                ),
+                resolution: None,
+                recorded_at: Utc::now().to_rfc3339(),
+            });
+        }
 
-            if json {
-                let output = serde_json::json!({
-                    "tool": tool,
-                    "task": task,
-                    "effective_task": result.effective_task,
-                    "command": full_cmd,
-                    "args": result.suggestion.args,
-                    "explanation": result.suggestion.explanation,
-                    "dry_run": false,
-                    "exit_code": exit_code,
-                    "success": success,
-                    "skill": result.skill_name,
-                    "model": self.config.effective_model(),
-                });
-                println!("{}", serde_json::to_string_pretty(&output)?);
-            } else {
+        // ── Auto-retry on failure ─────────────────────────────────────────
+        if self.auto_retry && !success {
+            if !json {
                 println!();
-                println!("{}", "─".repeat(60).dimmed());
-                if success {
-                    println!(
-                        "  {} exit code {}",
-                        "Completed successfully,".bold().green(),
-                        exit_code.to_string().green()
-                    );
-                } else {
-                    println!(
-                        "  {} exit code {}",
-                        "Command failed,".bold().red(),
-                        exit_code.to_string().red()
-                    );
-                }
-                println!("{}", "─".repeat(60).dimmed());
+                println!(
+                    "  {} Analyzing failure and generating corrected command...",
+                    "⟳".cyan().bold()
+                );
             }
 
-            // LLM-based result verification (when --verify is enabled).
-            if self.verify {
-                self.run_verification(super::retry::VerifyParams {
+            let stderr_for_retry = if !captured_stderr.is_empty() {
+                captured_stderr.clone()
+            } else {
+                format!("Command failed with exit code {exit_code}")
+            };
+
+            match self
+                .auto_retry_on_failure(
                     tool,
-                    task: &result.effective_task,
-                    command: &full_cmd,
+                    &result.effective_task,
+                    &full_cmd,
                     exit_code,
-                    stderr: &captured_stderr,
-                    args: &result.suggestion.args,
+                    &stderr_for_retry,
                     json,
-                })
-                .await;
-            }
-
-            // ── Auto-retry on failure ─────────────────────────────────────────
-            if self.auto_retry && !success {
-                if !json {
-                    println!();
-                    println!(
-                        "  {} Analyzing failure and generating corrected command...",
-                        "⟳".cyan().bold()
-                    );
-                }
-
-                let stderr_for_retry = if !captured_stderr.is_empty() {
-                    captured_stderr.clone()
-                } else {
-                    format!("Command failed with exit code {exit_code}")
-                };
-
-                match self
-                    .auto_retry_on_failure(
-                        tool,
-                        &result.effective_task,
-                        &full_cmd,
-                        exit_code,
-                        &stderr_for_retry,
-                        json,
-                    )
-                    .await
-                {
-                    Ok(()) => {}
-                    Err(e) => {
-                        if !json {
-                            eprintln!("  {} Auto-retry failed: {}", "✗".red().bold(), e);
-                        }
+                )
+                .await
+            {
+                Ok(()) => {}
+                Err(e) => {
+                    if !json {
+                        eprintln!("  {} Auto-retry failed: {}", "✗".red().bold(), e);
                     }
                 }
             }
-
-            Ok(())
         }
+
+        Ok(())
     }
 }

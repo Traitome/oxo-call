@@ -4,16 +4,11 @@
 //! in parallel with configurable concurrency.
 
 use crate::error::{OxoError, Result};
-#[cfg(not(target_arch = "wasm32"))]
 use crate::history::{CommandProvenance, HistoryEntry, HistoryStore};
-#[cfg(not(target_arch = "wasm32"))]
 use crate::job;
-#[cfg(not(target_arch = "wasm32"))]
 use chrono::Utc;
 use colored::Colorize;
-#[cfg(not(target_arch = "wasm32"))]
 use std::sync::Arc;
-#[cfg(not(target_arch = "wasm32"))]
 use uuid::Uuid;
 
 use super::core::Runner;
@@ -34,7 +29,6 @@ impl BatchRunner for Runner {
     ///
     /// When `self.stop_on_error` is true, remaining handles are aborted after
     /// the first failure, and the batch exits immediately with an error.
-    #[cfg(not(target_arch = "wasm32"))]
     async fn run_batch(&self, tool: &str, task: &str, json: bool) -> Result<()> {
         let result = self.prepare(tool, task).await?;
         let cmd_template = build_command_string(tool, &result.suggestion.args);
@@ -241,7 +235,6 @@ impl BatchRunner for Runner {
     }
 
     /// Show the interpolated command for every input item without executing.
-    #[cfg(not(target_arch = "wasm32"))]
     async fn dry_run_batch(&self, tool: &str, task: &str, json: bool) -> Result<()> {
         let result = self.prepare(tool, task).await?;
         let cmd_template = build_command_string(tool, &result.suggestion.args);
@@ -299,20 +292,5 @@ impl BatchRunner for Runner {
         );
 
         Ok(())
-    }
-
-    // WASM stubs - batch execution not supported
-    #[cfg(target_arch = "wasm32")]
-    async fn run_batch(&self, _tool: &str, _task: &str, _json: bool) -> Result<()> {
-        Err(OxoError::ExecutionError(
-            "Batch execution is not supported in WebAssembly".to_string(),
-        ))
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    async fn dry_run_batch(&self, _tool: &str, _task: &str, _json: bool) -> Result<()> {
-        Err(OxoError::ExecutionError(
-            "Batch execution is not supported in WebAssembly".to_string(),
-        ))
     }
 }

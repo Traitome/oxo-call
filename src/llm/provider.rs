@@ -4,7 +4,6 @@
 //! interacting with various LLM providers (OpenAI, Anthropic, GitHub Copilot, Ollama).
 
 use crate::config::Config;
-#[cfg(not(target_arch = "wasm32"))]
 use crate::copilot_auth;
 use crate::doc_processor::{FlagEntry, StructuredDoc};
 use crate::error::{OxoError, Result};
@@ -28,7 +27,6 @@ use super::types::{
 
 pub struct LlmClient {
     pub(crate) config: Config,
-    #[cfg(not(target_arch = "wasm32"))]
     client: reqwest::Client,
 }
 
@@ -36,7 +34,6 @@ impl LlmClient {
     pub fn new(config: Config) -> Self {
         LlmClient {
             config,
-            #[cfg(not(target_arch = "wasm32"))]
             client: reqwest::Client::new(),
         }
     }
@@ -50,7 +47,6 @@ impl LlmClient {
     /// When `structured_doc` is provided (from `DocProcessor::clean_and_structure`),
     /// the prompt gains doc-extracted examples as few-shot demonstrations and a
     /// compact flag catalog — critical for ≤3B model accuracy.
-    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn suggest_command(
         &self,
         tool: &str,
@@ -60,221 +56,195 @@ impl LlmClient {
         no_prompt: bool,
         structured_doc: Option<&StructuredDoc>,
     ) -> Result<LlmCommandSuggestion> {
-        #[cfg(target_arch = "wasm32")]
-        return Err(OxoError::LlmError(
-            "LLM API calls are not supported in WebAssembly".to_string(),
-        ));
+        const MAX_RETRIES: usize = 2;
 
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            const MAX_RETRIES: usize = 2;
+        let context_window = self.config.effective_context_window();
+        let tier = self.config.effective_prompt_tier();
+        let model = self.config.effective_model();
+        let profile = crate::config::get_model_profile(&model);
+        let temperature = Some(profile.optimal_temperature);
 
-            let context_window = self.config.effective_context_window();
-            let tier = self.config.effective_prompt_tier();
-            let model = self.config.effective_model();
-            let profile = crate::config::get_model_profile(&model);
-            let temperature = Some(profile.optimal_temperature);
+        // Compute docs hash for cache key
+        let docs_hash = if documentation.is_empty() {
+            None
+        } else {
+            Some(format!(
+                "{:x}",
+                sha2::Sha256::digest(documentation.as_bytes())
+            ))
+        };
+        let skill_name = skill.map(|s| s.meta.name.clone());
 
-            // Compute docs hash for cache key
-            let docs_hash = if documentation.is_empty() {
-                None
-            } else {
-                Some(format!(
-                    "{:x}",
-                    sha2::Sha256::digest(documentation.as_bytes())
-                ))
-            };
-            let skill_name = skill.map(|s| s.meta.name.clone());
-
-            // Try cache lookup first
-            if let Ok(Some(cached)) = crate::cache::LlmCache::lookup(
-                tool,
-                task,
-                docs_hash.as_deref(),
-                skill_name.as_deref(),
-                &model,
-            ) {
-                // Cache hit - return cached response
-                // Parse cached args string into Vec<String>
-                let args_vec = cached.args.split_whitespace().map(String::from).collect();
-                return Ok(LlmCommandSuggestion {
-                    args: args_vec,
-                    explanation: cached.explanation,
-                    raw_response: String::new(), // Cache hit doesn't have raw response
-                    inference_ms: 0.0,           // Cache hit has no inference time
-                });
-            }
-
-            let mut last_raw = String::new();
-            let mut total_inference_ms: f64 = 0.0;
-            // Track whether the model produced an empty/blank response,
-            // which indicates it was overwhelmed by the prompt length.
-            let mut had_empty_output = false;
-
-            for attempt in 0..=MAX_RETRIES {
-                // On retry after an empty output, use a degraded prompt that
-                // strips documentation to reduce context length.  Small models
-                // (≤ 3B) often fail to produce any output when the prompt is
-                // too long, even if it fits within their context window.
-                let effective_docs = if had_empty_output && attempt > 0 {
-                    // Strip docs entirely — the skill examples alone provide
-                    // enough grounding for small models.
-                    ""
-                } else {
-                    documentation
-                };
-
-                let user_prompt = if attempt == 0 {
-                    build_prompt(
-                        tool,
-                        effective_docs,
-                        task,
-                        skill,
-                        no_prompt,
-                        context_window,
-                        tier,
-                        structured_doc,
-                    )
-                } else if had_empty_output {
-                    // After an empty output, use a fresh (shorter) prompt
-                    // instead of the retry prompt (which adds even more text)
-                    build_prompt(
-                        tool,
-                        effective_docs,
-                        task,
-                        skill,
-                        no_prompt,
-                        context_window,
-                        tier,
-                        structured_doc,
-                    )
-                } else {
-                    build_retry_prompt(
-                        tool,
-                        effective_docs,
-                        task,
-                        skill,
-                        &last_raw,
-                        no_prompt,
-                        context_window,
-                        tier,
-                    )
-                };
-
-                let api_start = std::time::Instant::now();
-                let raw = self
-                    .call_api(&user_prompt, no_prompt, tier, temperature)
-                    .await?;
-                total_inference_ms += api_start.elapsed().as_secs_f64() * 1000.0;
-
-                // Detect empty/blank responses (model was overwhelmed)
-                if raw.trim().is_empty() {
-                    had_empty_output = true;
-                }
-
-                let mut suggestion = parse_response(&raw)?;
-                suggestion.inference_ms = total_inference_ms;
-
-                // Post-process: strip accidental tool name prefix
-                suggestion.args = sanitize_args(tool, suggestion.args);
-
-                // Post-process: validate flags against doc catalog when available
-                if let Some(sdoc) = structured_doc
-                    && !sdoc.flag_catalog.is_empty()
-                {
-                    suggestion.args = validate_flags_against_catalog(
-                        &suggestion.args,
-                        &sdoc.flag_catalog,
-                        &sdoc.quick_flags,
-                    );
-                }
-
-                if is_valid_suggestion(&suggestion) {
-                    // Store successful result in cache
-                    let args_str = suggestion.args.join(" ");
-                    let _ = crate::cache::LlmCache::store(
-                        tool,
-                        task,
-                        docs_hash.as_deref(),
-                        skill_name.as_deref(),
-                        &model,
-                        &args_str,
-                        &suggestion.explanation,
-                    );
-                    return Ok(suggestion);
-                }
-
-                last_raw = raw;
-                // If this was the last attempt, return whatever we got
-                if attempt == MAX_RETRIES {
-                    return Ok(suggestion);
-                }
-            }
-
-            // Unreachable — the loop always returns
-            unreachable!()
+        // Try cache lookup first
+        if let Ok(Some(cached)) = crate::cache::LlmCache::lookup(
+            tool,
+            task,
+            docs_hash.as_deref(),
+            skill_name.as_deref(),
+            &model,
+        ) {
+            // Cache hit - return cached response
+            // Parse cached args string into Vec<String>
+            let args_vec = cached.args.split_whitespace().map(String::from).collect();
+            return Ok(LlmCommandSuggestion {
+                args: args_vec,
+                explanation: cached.explanation,
+                raw_response: String::new(), // Cache hit doesn't have raw response
+                inference_ms: 0.0,           // Cache hit has no inference time
+            });
         }
+
+        let mut last_raw = String::new();
+        let mut total_inference_ms: f64 = 0.0;
+        // Track whether the model produced an empty/blank response,
+        // which indicates it was overwhelmed by the prompt length.
+        let mut had_empty_output = false;
+
+        for attempt in 0..=MAX_RETRIES {
+            // On retry after an empty output, use a degraded prompt that
+            // strips documentation to reduce context length.  Small models
+            // (≤ 3B) often fail to produce any output when the prompt is
+            // too long, even if it fits within their context window.
+            let effective_docs = if had_empty_output && attempt > 0 {
+                // Strip docs entirely — the skill examples alone provide
+                // enough grounding for small models.
+                ""
+            } else {
+                documentation
+            };
+
+            let user_prompt = if attempt == 0 {
+                build_prompt(
+                    tool,
+                    effective_docs,
+                    task,
+                    skill,
+                    no_prompt,
+                    context_window,
+                    tier,
+                    structured_doc,
+                )
+            } else if had_empty_output {
+                // After an empty output, use a fresh (shorter) prompt
+                // instead of the retry prompt (which adds even more text)
+                build_prompt(
+                    tool,
+                    effective_docs,
+                    task,
+                    skill,
+                    no_prompt,
+                    context_window,
+                    tier,
+                    structured_doc,
+                )
+            } else {
+                build_retry_prompt(
+                    tool,
+                    effective_docs,
+                    task,
+                    skill,
+                    &last_raw,
+                    no_prompt,
+                    context_window,
+                    tier,
+                )
+            };
+
+            let api_start = std::time::Instant::now();
+            let raw = self
+                .call_api(&user_prompt, no_prompt, tier, temperature)
+                .await?;
+            total_inference_ms += api_start.elapsed().as_secs_f64() * 1000.0;
+
+            // Detect empty/blank responses (model was overwhelmed)
+            if raw.trim().is_empty() {
+                had_empty_output = true;
+            }
+
+            let mut suggestion = parse_response(&raw)?;
+            suggestion.inference_ms = total_inference_ms;
+
+            // Post-process: strip accidental tool name prefix
+            suggestion.args = sanitize_args(tool, suggestion.args);
+
+            // Post-process: validate flags against doc catalog when available
+            if let Some(sdoc) = structured_doc
+                && !sdoc.flag_catalog.is_empty()
+            {
+                suggestion.args = validate_flags_against_catalog(
+                    &suggestion.args,
+                    &sdoc.flag_catalog,
+                    &sdoc.quick_flags,
+                );
+            }
+
+            if is_valid_suggestion(&suggestion) {
+                // Store successful result in cache
+                let args_str = suggestion.args.join(" ");
+                let _ = crate::cache::LlmCache::store(
+                    tool,
+                    task,
+                    docs_hash.as_deref(),
+                    skill_name.as_deref(),
+                    &model,
+                    &args_str,
+                    &suggestion.explanation,
+                );
+                return Ok(suggestion);
+            }
+
+            last_raw = raw;
+            // If this was the last attempt, return whatever we got
+            if attempt == MAX_RETRIES {
+                return Ok(suggestion);
+            }
+        }
+
+        // Unreachable — the loop always returns
+        unreachable!()
     }
 
     pub async fn verify_configuration(&self) -> Result<LlmVerificationResult> {
-        #[cfg(target_arch = "wasm32")]
-        return Err(OxoError::LlmError(
-            "LLM API calls are not supported in WebAssembly".to_string(),
-        ));
+        let provider = self.config.effective_provider();
+        let api_base = self.config.effective_api_base();
+        let model = self.config.effective_model();
+        let raw = self
+            .request_text("Reply with exactly OK.", Some(16), Some(0.0))
+            .await?;
+        let response_preview = raw.lines().next().unwrap_or("").trim().to_string();
 
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let provider = self.config.effective_provider();
-            let api_base = self.config.effective_api_base();
-            let model = self.config.effective_model();
-            let raw = self
-                .request_text("Reply with exactly OK.", Some(16), Some(0.0))
-                .await?;
-            let response_preview = raw.lines().next().unwrap_or("").trim().to_string();
-
-            Ok(LlmVerificationResult {
-                provider,
-                api_base,
-                model,
-                response_preview,
-            })
-        }
+        Ok(LlmVerificationResult {
+            provider,
+            api_base,
+            model,
+            response_preview,
+        })
     }
 
     /// Use the LLM to optimize/expand a raw task description into a precise instruction.
     ///
     /// Returns the refined task text on success, or falls back to the original task
     /// if the LLM response is not parseable.  Errors from the API are propagated.
-    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn optimize_task(&self, tool: &str, raw_task: &str) -> Result<String> {
-        #[cfg(target_arch = "wasm32")]
-        return Err(OxoError::LlmError(
-            "LLM API calls are not supported in WebAssembly".to_string(),
-        ));
+        let prompt = build_task_optimization_prompt(tool, raw_task);
+        let raw = self.request_text(&prompt, Some(256), Some(0.2)).await?;
 
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let prompt = build_task_optimization_prompt(tool, raw_task);
-            let raw = self.request_text(&prompt, Some(256), Some(0.2)).await?;
-
-            // Extract the TASK: line.
-            for line in raw.lines() {
-                if let Some(rest) = line.strip_prefix("TASK:") {
-                    let refined = rest.trim().to_string();
-                    if !refined.is_empty() {
-                        return Ok(refined);
-                    }
+        // Extract the TASK: line.
+        for line in raw.lines() {
+            if let Some(rest) = line.strip_prefix("TASK:") {
+                let refined = rest.trim().to_string();
+                if !refined.is_empty() {
+                    return Ok(refined);
                 }
             }
-            // Fall back to original task if parsing fails.
-            Ok(raw_task.to_string())
         }
+        // Fall back to original task if parsing fails.
+        Ok(raw_task.to_string())
     }
 
     /// Make a raw chat completion call with custom system prompt.
     ///
     /// This is a low-level API for specialized workflows (e.g., mini-skill generation).
-    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     #[allow(dead_code)]
     pub async fn chat_completion(
         &self,
@@ -283,23 +253,14 @@ impl LlmClient {
         max_tokens: Option<u32>,
         temperature: Option<f32>,
     ) -> Result<String> {
-        #[cfg(target_arch = "wasm32")]
-        return Err(OxoError::LlmError(
-            "LLM API calls are not supported in WebAssembly".to_string(),
-        ));
-
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            self.request_with_system(system, user_prompt, max_tokens, temperature)
-                .await
-        }
+        self.request_with_system(system, user_prompt, max_tokens, temperature)
+            .await
     }
 
     /// Ask the LLM to verify the result of a completed command execution.
     ///
     /// `output_files` is a list of `(path, Option<file_size_bytes>)` pairs — a
     /// `None` size means the file was not found on disk.
-    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn verify_run_result(
         &self,
         tool: &str,
@@ -309,27 +270,19 @@ impl LlmClient {
         stderr: &str,
         output_files: &[(String, Option<u64>)],
     ) -> Result<LlmRunVerification> {
-        #[cfg(target_arch = "wasm32")]
-        return Err(OxoError::LlmError(
-            "LLM API calls are not supported in WebAssembly".to_string(),
-        ));
+        let user_prompt =
+            build_verification_prompt(tool, task, command, exit_code, stderr, output_files);
 
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let user_prompt =
-                build_verification_prompt(tool, task, command, exit_code, stderr, output_files);
+        let raw = self
+            .request_with_system(
+                verification_system_prompt(),
+                &user_prompt,
+                Some(512),
+                Some(0.2),
+            )
+            .await?;
 
-            let raw = self
-                .request_with_system(
-                    verification_system_prompt(),
-                    &user_prompt,
-                    Some(512),
-                    Some(0.2),
-                )
-                .await?;
-
-            Ok(parse_verification_response(&raw))
-        }
+        Ok(parse_verification_response(&raw))
     }
 
     /// Make the raw API call and return the assistant message content.
@@ -372,7 +325,6 @@ impl LlmClient {
     /// user/assistant message pairs.  This is critical for small models (≤ 3B)
     /// which cannot reliably follow output format instructions in a single
     /// user prompt, but can imitate the format when shown an assistant example.
-    #[cfg(not(target_arch = "wasm32"))]
     async fn request_few_shot(
         &self,
         sys_prompt: &str,
@@ -521,7 +473,6 @@ impl LlmClient {
 
     /// Core HTTP call.  Accepts an explicit system prompt so callers can use a
     /// role-specific prompt (e.g., the verification analyst persona).
-    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     async fn request_with_system(
         &self,
         sys_prompt: &str,
@@ -529,171 +480,154 @@ impl LlmClient {
         max_tokens_override: Option<u32>,
         temperature_override: Option<f32>,
     ) -> Result<String> {
-        #[cfg(target_arch = "wasm32")]
-        return Err(OxoError::LlmError(
-            "LLM API calls are not supported in WebAssembly".to_string(),
-        ));
+        let provider = self.config.effective_provider();
+        let token_opt = self.config.effective_api_token();
+        // Local providers such as Ollama do not require an API token.
+        let token = if self.config.provider_requires_token() {
+            token_opt.ok_or_else(|| {
+                let token_hint = match provider.as_str() {
+                    "github-copilot" => "  For GitHub Copilot, run: oxo-call config login",
+                    "openai" => "  For OpenAI, create an API key at:\n    https://platform.openai.com/api-keys",
+                    "anthropic" => "  For Anthropic, create an API key at:\n    https://console.anthropic.com/settings/keys",
+                    _ => "  Check your provider's documentation for token setup.",
+                };
+                OxoError::LlmError(
+                    format!(
+                        "No API token configured for provider '{provider}'.\n\n\
+                        Option 1 — Interactive login (recommended for github-copilot):\n  \
+                          oxo-call config login\n\n\
+                        Option 2 — Set via config:\n  \
+                          oxo-call config set llm.api_token <your-token>\n\n\
+                        Option 3 — Set via environment variable:\n  \
+                          export OXO_CALL_LLM_API_TOKEN=<your-token>\n\n\
+                        How to get a token:\n{token_hint}\n\n\
+                        Test your setup: oxo-call config verify"
+                    ),
+                )
+            })?
+        } else {
+            // For token-optional providers (e.g. Ollama), fall back to an
+            // empty string.  An empty token means no Authorization header
+            // will be added (see the auth header construction below).
+            token_opt.unwrap_or_default()
+        };
 
-        #[cfg(not(target_arch = "wasm32"))]
+        let api_base = self.config.effective_api_base();
+
+        // Enforce HTTPS for remote API endpoints (allow HTTP for local Ollama)
+        if !api_base.starts_with("https://")
+            && !api_base.starts_with("http://localhost")
+            && !api_base.starts_with("http://127.0.0.1")
+            && !api_base.starts_with("http://[::1]")
         {
-            let provider = self.config.effective_provider();
-            let token_opt = self.config.effective_api_token();
-            // Local providers such as Ollama do not require an API token.
-            let token = if self.config.provider_requires_token() {
-                token_opt.ok_or_else(|| {
-                    let token_hint = match provider.as_str() {
-                        "github-copilot" => "  For GitHub Copilot, run: oxo-call config login",
-                        "openai" => "  For OpenAI, create an API key at:\n    https://platform.openai.com/api-keys",
-                        "anthropic" => "  For Anthropic, create an API key at:\n    https://console.anthropic.com/settings/keys",
-                        _ => "  Check your provider's documentation for token setup.",
-                    };
-                    OxoError::LlmError(
-                        format!(
-                            "No API token configured for provider '{provider}'.\n\n\
-                            Option 1 — Interactive login (recommended for github-copilot):\n  \
-                              oxo-call config login\n\n\
-                            Option 2 — Set via config:\n  \
-                              oxo-call config set llm.api_token <your-token>\n\n\
-                            Option 3 — Set via environment variable:\n  \
-                              export OXO_CALL_LLM_API_TOKEN=<your-token>\n\n\
-                            How to get a token:\n{token_hint}\n\n\
-                            Test your setup: oxo-call config verify"
-                        ),
-                    )
-                })?
-            } else {
-                // For token-optional providers (e.g. Ollama), fall back to an
-                // empty string.  An empty token means no Authorization header
-                // will be added (see the auth header construction below).
-                token_opt.unwrap_or_default()
-            };
-
-            let api_base = self.config.effective_api_base();
-
-            // Enforce HTTPS for remote API endpoints (allow HTTP for local Ollama)
-            if !api_base.starts_with("https://")
-                && !api_base.starts_with("http://localhost")
-                && !api_base.starts_with("http://127.0.0.1")
-                && !api_base.starts_with("http://[::1]")
-            {
-                return Err(OxoError::LlmError(format!(
-                    "API base URL must use HTTPS for remote endpoints: {api_base}"
-                )));
-            }
-
-            let model = self.config.effective_model();
-            let url = format!("{api_base}/chat/completions");
-
-            let messages = vec![
-                ChatMessage {
-                    role: "system".to_string(),
-                    content: sys_prompt.to_string(),
-                },
-                ChatMessage {
-                    role: "user".to_string(),
-                    content: user_prompt.to_string(),
-                },
-            ];
-
-            let request = ChatRequest {
-                model: model.clone(),
-                messages,
-                max_tokens: max_tokens_override.unwrap_or(self.config.effective_max_tokens()?),
-                temperature: temperature_override.unwrap_or_else(|| {
-                    // Use model-specific optimal temperature as fallback
-                    let profile = crate::config::get_model_profile(&model);
-                    profile.optimal_temperature
-                }),
-            };
-
-            let mut req_builder = self
-                .client
-                .post(&url)
-                .header("Content-Type", "application/json");
-
-            // For github-copilot, we need to exchange the GitHub token for a Copilot session token
-            let auth_token = if provider == "github-copilot" {
-                let manager = copilot_auth::get_token_manager();
-                manager.get_session_token(&token).await?
-            } else {
-                token.clone()
-            };
-
-            req_builder = match provider.as_str() {
-                "anthropic" => req_builder
-                    .header("x-api-key", &auth_token)
-                    .header("anthropic-version", "2023-06-01"),
-                "github-copilot" => {
-                    // Add Copilot-specific headers
-                    req_builder
-                        .header("Authorization", format!("Bearer {auth_token}"))
-                        .header("Copilot-Integration-Id", "vscode-chat")
-                        .header("Editor-Version", "vscode/1.85.0")
-                        .header("Editor-Plugin-Version", "copilot/1.0.0")
-                }
-                _ => {
-                    // Only add Authorization header when a token is actually present
-                    // (e.g. local Ollama instances usually run without authentication)
-                    if auth_token.is_empty() {
-                        req_builder
-                    } else {
-                        req_builder.header("Authorization", format!("Bearer {auth_token}"))
-                    }
-                }
-            };
-
-            let response = req_builder
-                .json(&request)
-                .send()
-                .await
-                .map_err(|e| OxoError::LlmError(format!("HTTP request failed: {e}")))?;
-
-            if !response.status().is_success() {
-                let status = response.status();
-                let body = response.text().await.unwrap_or_default();
-                return Err(OxoError::LlmError(format!("API returned {status}: {body}")));
-            }
-
-            let chat_response: ChatResponse = response
-                .json()
-                .await
-                .map_err(|e| OxoError::LlmError(format!("Failed to parse API response: {e}")))?;
-
-            Ok(chat_response
-                .choices
-                .first()
-                .map(|c| c.message.content.clone())
-                .unwrap_or_default())
+            return Err(OxoError::LlmError(format!(
+                "API base URL must use HTTPS for remote endpoints: {api_base}"
+            )));
         }
+
+        let model = self.config.effective_model();
+        let url = format!("{api_base}/chat/completions");
+
+        let messages = vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: sys_prompt.to_string(),
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: user_prompt.to_string(),
+            },
+        ];
+
+        let request = ChatRequest {
+            model: model.clone(),
+            messages,
+            max_tokens: max_tokens_override.unwrap_or(self.config.effective_max_tokens()?),
+            temperature: temperature_override.unwrap_or_else(|| {
+                // Use model-specific optimal temperature as fallback
+                let profile = crate::config::get_model_profile(&model);
+                profile.optimal_temperature
+            }),
+        };
+
+        let mut req_builder = self
+            .client
+            .post(&url)
+            .header("Content-Type", "application/json");
+
+        // For github-copilot, we need to exchange the GitHub token for a Copilot session token
+        let auth_token = if provider == "github-copilot" {
+            let manager = copilot_auth::get_token_manager();
+            manager.get_session_token(&token).await?
+        } else {
+            token.clone()
+        };
+
+        req_builder = match provider.as_str() {
+            "anthropic" => req_builder
+                .header("x-api-key", &auth_token)
+                .header("anthropic-version", "2023-06-01"),
+            "github-copilot" => {
+                // Add Copilot-specific headers
+                req_builder
+                    .header("Authorization", format!("Bearer {auth_token}"))
+                    .header("Copilot-Integration-Id", "vscode-chat")
+                    .header("Editor-Version", "vscode/1.85.0")
+                    .header("Editor-Plugin-Version", "copilot/1.0.0")
+            }
+            _ => {
+                // Only add Authorization header when a token is actually present
+                // (e.g. local Ollama instances usually run without authentication)
+                if auth_token.is_empty() {
+                    req_builder
+                } else {
+                    req_builder.header("Authorization", format!("Bearer {auth_token}"))
+                }
+            }
+        };
+
+        let response = req_builder
+            .json(&request)
+            .send()
+            .await
+            .map_err(|e| OxoError::LlmError(format!("HTTP request failed: {e}")))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(OxoError::LlmError(format!("API returned {status}: {body}")));
+        }
+
+        let chat_response: ChatResponse = response
+            .json()
+            .await
+            .map_err(|e| OxoError::LlmError(format!("Failed to parse API response: {e}")))?;
+
+        Ok(chat_response
+            .choices
+            .first()
+            .map(|c| c.message.content.clone())
+            .unwrap_or_default())
     }
 
     /// Ask the LLM to review a skill file for quality and completeness.
     ///
     /// Returns a structured `LlmSkillVerification` with findings and suggestions.
-    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn verify_skill(
         &self,
         tool: &str,
         skill_content: &str,
     ) -> Result<LlmSkillVerification> {
-        #[cfg(target_arch = "wasm32")]
-        return Err(OxoError::LlmError(
-            "LLM API calls are not supported in WebAssembly".to_string(),
-        ));
-
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let user_prompt = build_skill_verify_prompt(tool, skill_content);
-            let raw = self
-                .request_with_system(
-                    skill_reviewer_system_prompt(),
-                    &user_prompt,
-                    Some(1024),
-                    Some(0.2),
-                )
-                .await?;
-            Ok(parse_skill_verify_response(&raw))
-        }
+        let user_prompt = build_skill_verify_prompt(tool, skill_content);
+        let raw = self
+            .request_with_system(
+                skill_reviewer_system_prompt(),
+                &user_prompt,
+                Some(1024),
+                Some(0.2),
+            )
+            .await?;
+        Ok(parse_skill_verify_response(&raw))
     }
 
     /// Ask the LLM to rewrite and improve a skill file, returning the enhanced Markdown.
@@ -701,93 +635,66 @@ impl LlmClient {
     /// The LLM is instructed to preserve the tool name and all correct information
     /// while adding missing concepts/pitfalls/examples, fixing format issues, and
     /// improving clarity.
-    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn polish_skill(&self, tool: &str, skill_content: &str) -> Result<String> {
-        #[cfg(target_arch = "wasm32")]
-        return Err(OxoError::LlmError(
-            "LLM API calls are not supported in WebAssembly".to_string(),
-        ));
-
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let user_prompt = build_skill_polish_prompt(tool, skill_content);
-            let raw = self
-                .request_with_system(
-                    skill_reviewer_system_prompt(),
-                    &user_prompt,
-                    Some(4096),
-                    Some(0.3),
-                )
-                .await?;
-            // Strip any markdown code fences the LLM might have wrapped the output in
-            Ok(strip_markdown_fences(&raw))
-        }
+        let user_prompt = build_skill_polish_prompt(tool, skill_content);
+        let raw = self
+            .request_with_system(
+                skill_reviewer_system_prompt(),
+                &user_prompt,
+                Some(4096),
+                Some(0.3),
+            )
+            .await?;
+        // Strip any markdown code fences the LLM might have wrapped the output in
+        Ok(strip_markdown_fences(&raw))
     }
 
     /// Use LLM to generate an initial skill template pre-filled with domain knowledge.
     ///
     /// Returns a Markdown-format skill file (YAML front-matter + body sections).
-    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn generate_skill_template(&self, tool: &str) -> Result<String> {
-        #[cfg(target_arch = "wasm32")]
-        return Err(OxoError::LlmError(
-            "LLM API calls are not supported in WebAssembly".to_string(),
-        ));
-
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let user_prompt = build_skill_generate_prompt(tool);
-            let raw = self
-                .request_with_system(
-                    skill_reviewer_system_prompt(),
-                    &user_prompt,
-                    Some(4096),
-                    Some(0.4),
-                )
-                .await?;
-            Ok(strip_markdown_fences(&raw))
-        }
+        let user_prompt = build_skill_generate_prompt(tool);
+        let raw = self
+            .request_with_system(
+                skill_reviewer_system_prompt(),
+                &user_prompt,
+                Some(4096),
+                Some(0.4),
+            )
+            .await?;
+        Ok(strip_markdown_fences(&raw))
     }
 
     /// Generate a shell command from a plain-English description.
     ///
     /// Returns `(command, explanation)`.  The command is a ready-to-run shell
     /// string; the explanation is a brief one-liner.
-    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     pub async fn generate_shell_command(&self, description: &str) -> Result<(String, String)> {
-        #[cfg(target_arch = "wasm32")]
-        return Err(OxoError::LlmError(
-            "LLM API calls are not supported in WebAssembly".to_string(),
-        ));
+        let system = "You are a shell command expert for Linux/macOS. \
+            Given a plain-English description (in any language), produce a single \
+            production-ready shell command or short pipeline. Use standard coreutils, \
+            common bioinformatics tools, and POSIX-compatible syntax. \
+            Reply with exactly two lines and nothing else:\n\
+            COMMAND: <the shell command>\n\
+            EXPLANATION: <one-sentence explanation in the same language as the input>";
 
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let system = "You are a shell command expert for Linux/macOS. \
-                Given a plain-English description (in any language), produce a single \
-                production-ready shell command or short pipeline. Use standard coreutils, \
-                common bioinformatics tools, and POSIX-compatible syntax. \
-                Reply with exactly two lines and nothing else:\n\
-                COMMAND: <the shell command>\n\
-                EXPLANATION: <one-sentence explanation in the same language as the input>";
+        let raw = self
+            .request_with_system(system, description, Some(256), Some(0.1))
+            .await?;
 
-            let raw = self
-                .request_with_system(system, description, Some(256), Some(0.1))
-                .await?;
-
-            let mut command = String::new();
-            let mut explanation = String::new();
-            for line in raw.lines() {
-                if let Some(rest) = line.strip_prefix("COMMAND:") {
-                    command = rest.trim().to_string();
-                } else if let Some(rest) = line.strip_prefix("EXPLANATION:") {
-                    explanation = rest.trim().to_string();
-                }
+        let mut command = String::new();
+        let mut explanation = String::new();
+        for line in raw.lines() {
+            if let Some(rest) = line.strip_prefix("COMMAND:") {
+                command = rest.trim().to_string();
+            } else if let Some(rest) = line.strip_prefix("EXPLANATION:") {
+                explanation = rest.trim().to_string();
             }
-            if command.is_empty() {
-                command = raw.trim().to_string();
-            }
-            Ok((command, explanation))
         }
+        if command.is_empty() {
+            command = raw.trim().to_string();
+        }
+        Ok((command, explanation))
     }
 }
 

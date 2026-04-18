@@ -2,7 +2,6 @@ use crate::config::Config;
 use crate::error::{OxoError, Result};
 use colored::Colorize;
 use std::path::PathBuf;
-#[cfg(not(target_arch = "wasm32"))]
 use std::process::Command;
 use uuid::Uuid;
 
@@ -369,19 +368,12 @@ impl DocsFetcher {
     /// Many bioinformatics tools (bwa, samtools, bcftools) print usage when a
     /// subcommand is invoked without its required arguments.
     fn run_subcommand_no_args(&self, tool: &str, subcmd: &str) -> Result<String> {
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let output = Command::new(tool)
-                .arg(subcmd)
-                .output()
-                .map_err(|e| OxoError::ToolNotFound(format!("{tool} {subcmd}: {e}")))?;
+        let output = Command::new(tool)
+            .arg(subcmd)
+            .output()
+            .map_err(|e| OxoError::ToolNotFound(format!("{tool} {subcmd}: {e}")))?;
 
-            extract_useful_output(tool, &output.stdout, &output.stderr)
-        }
-        #[cfg(target_arch = "wasm32")]
-        Err(OxoError::ToolNotFound(format!(
-            "{tool} {subcmd}: process execution is not supported in WebAssembly"
-        )))
+        extract_useful_output(tool, &output.stdout, &output.stderr)
     }
 
     /// Try to detect the tool version using multiple strategies.
@@ -414,67 +406,45 @@ impl DocsFetcher {
         None
     }
 
-    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
     fn run_help_flag(&self, tool: &str, flag: &str) -> Result<String> {
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let output = Command::new(tool)
-                .arg(flag)
-                .output()
-                .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
+        let output = Command::new(tool)
+            .arg(flag)
+            .output()
+            .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
 
-            extract_useful_output(tool, &output.stdout, &output.stderr)
-        }
-        #[cfg(target_arch = "wasm32")]
-        Err(OxoError::ToolNotFound(format!(
-            "{tool}: process execution is not supported in WebAssembly"
-        )))
+        extract_useful_output(tool, &output.stdout, &output.stderr)
     }
 
     /// Run the tool with no arguments – many bioinformatics tools (bwa, samtools, etc.)
     /// print their usage/help when called without any arguments.
     fn run_no_args(&self, tool: &str) -> Result<String> {
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let output = Command::new(tool)
-                .output()
-                .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
+        let output = Command::new(tool)
+            .output()
+            .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
 
-            extract_useful_output(tool, &output.stdout, &output.stderr)
-        }
-        #[cfg(target_arch = "wasm32")]
-        Err(OxoError::ToolNotFound(format!(
-            "{tool}: process execution is not supported in WebAssembly"
-        )))
+        extract_useful_output(tool, &output.stdout, &output.stderr)
     }
 
     /// Try to get help for a shell built-in command via `bash -c "help <tool>"`.
     /// This handles commands like `cd`, `export`, `alias`, etc. that are not
     /// standalone executables and cannot be invoked directly.
     fn run_shell_builtin_help(&self, tool: &str) -> Result<String> {
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            // Use $1 with -- to safely pass the tool name without shell interpolation.
-            // validate_tool_name() already restricts to [a-zA-Z0-9._-], but defence
-            // in depth avoids any future risk if that validation changes.
-            let output = Command::new("bash")
-                .args(["-c", "help -- \"$1\"", "--", tool])
-                .output()
-                .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
+        // Use $1 with -- to safely pass the tool name without shell interpolation.
+        // validate_tool_name() already restricts to [a-zA-Z0-9._-], but defence
+        // in depth avoids any future risk if that validation changes.
+        let output = Command::new("bash")
+            .args(["-c", "help -- \"$1\"", "--", tool])
+            .output()
+            .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
 
-            if !output.status.success() {
-                return Err(OxoError::DocFetchError(
-                    tool.to_string(),
-                    "Not a shell built-in".to_string(),
-                ));
-            }
-
-            extract_useful_output(tool, &output.stdout, &output.stderr)
+        if !output.status.success() {
+            return Err(OxoError::DocFetchError(
+                tool.to_string(),
+                "Not a shell built-in".to_string(),
+            ));
         }
-        #[cfg(target_arch = "wasm32")]
-        Err(OxoError::ToolNotFound(format!(
-            "{tool}: process execution is not supported in WebAssembly"
-        )))
+
+        extract_useful_output(tool, &output.stdout, &output.stderr)
     }
 
     /// Load documentation from local cache
@@ -651,30 +621,22 @@ impl DocsFetcher {
                 "Only http:// and https:// URLs are accepted".to_string(),
             ));
         }
-        #[cfg(target_arch = "wasm32")]
-        return Err(OxoError::DocFetchError(
-            tool.to_string(),
-            "Remote documentation fetching is not supported in WebAssembly".to_string(),
-        ));
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let client = reqwest::Client::new();
-            let response = client.get(url).send().await?;
-            if !response.status().is_success() {
-                return Err(OxoError::DocFetchError(
-                    tool.to_string(),
-                    format!("HTTP {}", response.status()),
-                ));
-            }
-            let content = response.text().await?;
-            // Limit size
-            let truncated = if content.len() > 50_000 {
-                format!("{}\n...[truncated]", &content[..50_000])
-            } else {
-                content
-            };
-            Ok(truncated)
+        let client = reqwest::Client::new();
+        let response = client.get(url).send().await?;
+        if !response.status().is_success() {
+            return Err(OxoError::DocFetchError(
+                tool.to_string(),
+                format!("HTTP {}", response.status()),
+            ));
         }
+        let content = response.text().await?;
+        // Limit size
+        let truncated = if content.len() > 50_000 {
+            format!("{}\n...[truncated]", &content[..50_000])
+        } else {
+            content
+        };
+        Ok(truncated)
     }
 
     /// Read documentation from a single local file.

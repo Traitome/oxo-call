@@ -36,7 +36,6 @@ pub enum OxoError {
     #[error("JSON error: {0}")]
     JsonError(#[from] serde_json::Error),
 
-    #[cfg(not(target_arch = "wasm32"))]
     #[error("HTTP error: {0}")]
     HttpError(#[from] reqwest::Error),
 
@@ -52,15 +51,8 @@ pub type Result<T> = std::result::Result<T, OxoError>;
 /// Initialize color-eyre for enhanced error reporting.
 ///
 /// Should be called early in `main()` to install panic and error handlers.
-#[cfg(not(target_arch = "wasm32"))]
 pub fn install_error_handler() -> color_eyre::Result<()> {
     color_eyre::install()
-}
-
-#[cfg(target_arch = "wasm32")]
-pub fn install_error_handler() -> color_eyre::Result<()> {
-    // color-eyre doesn't fully support wasm32, skip installation
-    Ok(())
 }
 
 #[cfg(test)]

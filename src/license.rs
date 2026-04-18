@@ -216,11 +216,8 @@ fn default_license_candidates_from(
 }
 
 fn default_license_candidates() -> Vec<PathBuf> {
-    #[cfg(not(target_arch = "wasm32"))]
     let projectdirs_path = directories::ProjectDirs::from("io", "traitome", "oxo-call")
         .map(|dirs| dirs.config_dir().join("license.oxo.json"));
-    #[cfg(target_arch = "wasm32")]
-    let projectdirs_path: Option<PathBuf> = None;
     let home_dir = std::env::var_os("HOME").map(PathBuf::from);
     default_license_candidates_from(projectdirs_path, home_dir)
 }

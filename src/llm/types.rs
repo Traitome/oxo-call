@@ -47,7 +47,6 @@ pub struct LlmRunVerification {
 /// `OpenAiCompatibleProvider` covers OpenAI, GitHub Copilot, Anthropic, and
 /// Ollama; custom implementations can override it for providers with different
 /// API shapes.
-#[cfg(not(target_arch = "wasm32"))]
 #[allow(async_fn_in_trait, dead_code)]
 pub trait LlmProvider {
     /// Send a chat completion request and return the assistant's raw text.
