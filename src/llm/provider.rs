@@ -74,10 +74,7 @@ impl LlmClient {
         let docs_hash = if documentation.is_empty() {
             None
         } else {
-            Some(format!(
-                "{:x}",
-                sha2::Sha256::digest(documentation.as_bytes())
-            ))
+            Some(hex::encode(sha2::Sha256::digest(documentation.as_bytes())))
         };
         let skill_name = skill.map(|s| s.meta.name.clone());
 
@@ -95,8 +92,7 @@ impl LlmClient {
             return Ok(LlmCommandSuggestion {
                 args: args_vec,
                 explanation: cached.explanation,
-                raw_response: String::new(), // Cache hit doesn't have raw response
-                inference_ms: 0.0,           // Cache hit has no inference time
+                inference_ms: 0.0, // Cache hit has no inference time
             });
         }
 

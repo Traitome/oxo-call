@@ -732,7 +732,7 @@ impl IntelligentDocProcessor {
     /// Calculate document hash for caching
     fn calculate_hash(&self, doc: &str) -> String {
         use sha2::{Digest, Sha256};
-        format!("{:x}", Sha256::digest(doc.as_bytes()))
+        hex::encode(Sha256::digest(doc.as_bytes()))
     }
 
     /// Extract key parameters from structured documentation

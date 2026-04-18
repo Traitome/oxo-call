@@ -175,7 +175,7 @@ impl LlmCache {
 
         hasher.update(model.as_bytes());
 
-        format!("{:x}", hasher.finalize())
+        hex::encode(hasher.finalize())
     }
 
     /// Look up a cached response by hash — O(1) via in-memory HashMap.

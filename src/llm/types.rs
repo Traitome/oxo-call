@@ -10,9 +10,9 @@ use serde::{Deserialize, Serialize};
 pub struct LlmCommandSuggestion {
     pub args: Vec<String>,
     pub explanation: String,
-    pub raw_response: String,
     /// Cumulative time (ms) spent in LLM API inference calls for this
     /// suggestion.  When retries occur, all attempts are summed.
+    /// Zero indicates the result was served from cache.
     pub inference_ms: f64,
 }
 

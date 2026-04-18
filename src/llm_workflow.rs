@@ -162,7 +162,7 @@ impl LlmWorkflowExecutor {
         let cleaned_doc = effective_sdoc.to_string();
 
         // Compute doc hash for cache key
-        let doc_hash = format!("{:x}", sha2::Sha256::digest(documentation.as_bytes()));
+        let doc_hash = hex::encode(sha2::Sha256::digest(documentation.as_bytes()));
 
         // Stage 3: Mini-skill generation (with cache)
         let mini_skill = {
@@ -277,7 +277,7 @@ impl LlmWorkflowExecutor {
             .first()
             .map(|ex| ex.task.as_str())
             .unwrap_or("");
-        let task_hash = format!("{:x}", sha2::Sha256::digest(task_pattern.as_bytes()));
+        let task_hash = hex::encode(sha2::Sha256::digest(task_pattern.as_bytes()));
 
         Ok(MiniSkill {
             tool: tool.to_string(),
