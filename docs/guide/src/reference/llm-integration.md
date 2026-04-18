@@ -145,20 +145,27 @@ oxo-call uses a doc-enriched prompting strategy that works in a single LLM call 
 
 3. **Quality mode** (via `--scenario full`): Multi-stage pipeline with optional task
    normalization, mini-skill generation, and doc cleaning. Activated only when explicitly
-   requested.
+   requested or when the orchestrator determines high complexity **and** no skill is
+   available. When a skill is available, the orchestrator always selects Fast mode
+   since the skill already provides the grounding that Quality mode would generate.
 
-When Quality mode is active and the task is considered vague or ambiguous, an extra LLM
-call normalizes the task:
+When Quality mode is active:
+
+- **Task standardization** and **mini-skill generation** run concurrently via
+  `tokio::join!` when both are needed, reducing wall-clock latency by up to 50%.
+- **Mini-skill cache** is keyed by `(tool, doc_hash)` rather than `(tool, task, doc_hash)`,
+  so the second invocation for the same tool is always a cache hit regardless of
+  the user's task description.
+- Task standardization only triggers when the task is shorter than 10 characters,
+  contains vague keywords (e.g., "just", "simply"), or contains non-ASCII characters.
+
+When the task is normalized, the enriched version:
 
 - Expands ambiguous terms into specific operations (e.g., "sort bam" → "sort BAM file input.bam by genomic coordinate and write to sorted.bam")
 - Infers bioinformatics defaults (paired-end reads, hg38, 8 threads, gzipped output, Phred+33 encoding)
 - Specifies output file names when omitted (derived from input names)
 - Preserves all file names, paths, and sample identifiers from the original task
 - Responds in the same language as the original task
-
-Normalization within Quality mode triggers when the task is shorter than 10 characters,
-contains vague keywords (e.g., "just", "simply"), or contains non-ASCII characters. The
-normalized task is shown to the user when it differs from the original.
 
 ### Doc-Enriched Prompt Architecture
 

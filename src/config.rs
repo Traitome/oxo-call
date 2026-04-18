@@ -434,37 +434,47 @@ impl Config {
     /// Determine model size category for documentation summarization.
     ///
     /// Returns "small", "medium", or "large" based on model name patterns:
-    /// - **small**: 0.5B-1B models (e.g., qwen2.5-coder:0.5b, deepseek-coder:1.3b)
-    /// - **medium**: 3B-8B models (e.g., qwen2.5-coder:7b, llama3.2:3b)
-    /// - **large**: 13B+ models (e.g., deepseek-coder-v2:16b, llama3.1:70b)
+    /// - **large**: Cloud API models (GPT, Claude, Gemini, etc.) and 13B+ local models
+    /// - **medium**: 3B-8B local models (e.g., qwen2.5-coder:7b, llama3.2:3b)
+    /// - **small**: ≤2B local models (e.g., qwen2.5-coder:0.5b, deepseek-coder:1.3b)
+    ///
+    /// Cloud API models are always classified as "large" regardless of their
+    /// marketing name (e.g., "gpt-5-mini" is still a frontier model far larger
+    /// than any local 32B model).
     pub fn model_size_category(&self) -> &'static str {
         let model = self.effective_model().to_lowercase();
 
-        // Small models (0.5B-1B)
-        if model.contains("0.5b")
-            || model.contains("1.3b")
-            || model.contains("1b")
-            || model.contains("mini")
-            || model.contains("tiny")
-        {
-            return "small";
-        }
-
-        // Large models (13B+)
-        if model.contains("13b")
-            || model.contains("16b")
-            || model.contains("20b")
-            || model.contains("30b")
-            || model.contains("34b")
-            || model.contains("70b")
-            || model.contains("90b")
-            || model.contains("120b")
-            || model.contains("175b")
+        // ── Cloud API models are always "large" ──────────────────────────────
+        // These are frontier models served via API; even "mini" variants
+        // (e.g. gpt-5-mini, gpt-4o-mini) are large by local-model standards.
+        if model.contains("gpt-")
+            || model.contains("gpt4")
+            || model.contains("gpt5")
+            || model.contains("claude")
+            || model.contains("gemini")
+            || model.contains("command-r")
         {
             return "large";
         }
 
-        // Medium models (3B-8B) - default
+        // ── Local models: use parameter-size tags ────────────────────────────
+        if let Some(params) = infer_model_parameter_count(&model) {
+            return if params <= 2.0 {
+                "small"
+            } else if params <= 8.0 {
+                "medium"
+            } else {
+                "large"
+            };
+        }
+
+        // ── Fallback heuristics for names without parameter tags ─────────────
+        // "tiny" is always small; "mini" without a cloud prefix is small.
+        if model.contains("tiny") {
+            return "small";
+        }
+
+        // Default to medium for unrecognised models — safe middle ground.
         "medium"
     }
 
@@ -2423,5 +2433,80 @@ mod tests {
         assert_eq!(format!("{:?}", PromptStyle::Instruct), "Instruct");
         assert_eq!(format!("{:?}", PromptStyle::Chat), "Chat");
         assert_eq!(format!("{:?}", PromptStyle::Completion), "Completion");
+    }
+
+    // ─── model_size_category ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_model_size_category_cloud_gpt_mini_is_large() {
+        // gpt-5-mini is a cloud API model — should be "large", not "small"
+        let _guard = ENV_LOCK.lock().unwrap();
+        let mut cfg = Config::default();
+        cfg.llm.model = Some("gpt-5-mini".to_string());
+        assert_eq!(cfg.model_size_category(), "large");
+    }
+
+    #[test]
+    fn test_model_size_category_cloud_gpt4o_mini_is_large() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let mut cfg = Config::default();
+        cfg.llm.model = Some("gpt-4o-mini".to_string());
+        assert_eq!(cfg.model_size_category(), "large");
+    }
+
+    #[test]
+    fn test_model_size_category_cloud_claude_is_large() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let mut cfg = Config::default();
+        cfg.llm.model = Some("claude-3-5-sonnet-20241022".to_string());
+        assert_eq!(cfg.model_size_category(), "large");
+    }
+
+    #[test]
+    fn test_model_size_category_cloud_gemini_is_large() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let mut cfg = Config::default();
+        cfg.llm.model = Some("gemini-2.5-pro".to_string());
+        assert_eq!(cfg.model_size_category(), "large");
+    }
+
+    #[test]
+    fn test_model_size_category_local_small() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let mut cfg = Config::default();
+        cfg.llm.model = Some("qwen2.5-coder:0.5b".to_string());
+        assert_eq!(cfg.model_size_category(), "small");
+    }
+
+    #[test]
+    fn test_model_size_category_local_medium() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let mut cfg = Config::default();
+        cfg.llm.model = Some("qwen2.5-coder:7b".to_string());
+        assert_eq!(cfg.model_size_category(), "medium");
+    }
+
+    #[test]
+    fn test_model_size_category_local_large() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let mut cfg = Config::default();
+        cfg.llm.model = Some("llama3.1:70b".to_string());
+        assert_eq!(cfg.model_size_category(), "large");
+    }
+
+    #[test]
+    fn test_model_size_category_local_tiny_is_small() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let mut cfg = Config::default();
+        cfg.llm.model = Some("my-tiny-model".to_string());
+        assert_eq!(cfg.model_size_category(), "small");
+    }
+
+    #[test]
+    fn test_model_size_category_unknown_is_medium() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let mut cfg = Config::default();
+        cfg.llm.model = Some("my-custom-model".to_string());
+        assert_eq!(cfg.model_size_category(), "medium");
     }
 }

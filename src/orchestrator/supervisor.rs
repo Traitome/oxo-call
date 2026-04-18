@@ -106,17 +106,18 @@ impl SupervisorAgent {
 
         // Step 2: Decide mode based on complexity + available context.
         let mut reasons = Vec::new();
-        let mode = if complexity.score.is_complex() {
+        let mode = if has_skill {
+            // When a skill is available, always use Fast (single-call) mode.
+            // The skill already provides the grounding (concepts, pitfalls,
+            // examples) that Quality mode would generate via extra LLM calls.
+            reasons.push("skill available — single call sufficient".to_string());
+            OrchestrationMode::SingleCall
+        } else if complexity.score.is_complex() {
             reasons.push("task complexity is high".to_string());
-            if !has_skill {
-                reasons.push("no skill available — multi-stage helps".to_string());
-            }
+            reasons.push("no skill available — multi-stage helps".to_string());
             OrchestrationMode::MultiStage
         } else {
             reasons.push("task complexity is low".to_string());
-            if has_skill {
-                reasons.push("skill available — single call sufficient".to_string());
-            }
             OrchestrationMode::SingleCall
         };
 
@@ -234,5 +235,39 @@ mod tests {
         let supervisor = SupervisorAgent::new();
         let decision = supervisor.decide("my_custom_tool", "do stuff", false, 0.5, None);
         assert_eq!(decision.domain, None);
+    }
+
+    #[test]
+    fn test_complex_task_with_skill_uses_single_call() {
+        // Even a complex task should use SingleCall when a skill is available,
+        // because the skill already provides grounding.
+        let supervisor = SupervisorAgent::new();
+        let decision = supervisor.decide(
+            "samtools",
+            "build a complex pipeline with multiple parallel steps for variant calling optimization",
+            true, // has skill
+            0.8,
+            None,
+        );
+        assert_eq!(decision.mode, OrchestrationMode::SingleCall);
+        assert!(
+            decision
+                .reasons
+                .iter()
+                .any(|r| r.contains("skill available"))
+        );
+    }
+
+    #[test]
+    fn test_no_skill_low_quality_uses_multi_stage() {
+        let supervisor = SupervisorAgent::new();
+        let decision = supervisor.decide(
+            "unknown_tool",
+            "build a complex pipeline with multiple parallel steps",
+            false, // no skill
+            0.2,   // low doc quality
+            None,
+        );
+        assert_eq!(decision.mode, OrchestrationMode::MultiStage);
     }
 }

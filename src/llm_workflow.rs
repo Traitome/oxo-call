@@ -124,6 +124,10 @@ impl LlmWorkflowExecutor {
     }
 
     /// Quality mode: Multi-stage pipeline
+    ///
+    /// Stages 1 (task standardization) and 2 (mini-skill generation) are
+    /// independent and run concurrently via `tokio::join!` when both are
+    /// needed, cutting wall-clock latency by up to 50%.
     async fn execute_quality(
         &self,
         tool: &str,
@@ -138,20 +142,7 @@ impl LlmWorkflowExecutor {
         let mut mini_skill_generated = false;
         let mut cache_hit = false;
 
-        // Stage 1: Task standardization (optional, only if task is vague)
-        let was_standardized = self.should_standardize_task(task);
-        let standardized_task = if was_standardized {
-            llm_calls += 1;
-            let result = self.llm_client.optimize_task(tool, task).await?;
-            // Note: optimize_task doesn't return inference time, so we estimate
-            total_inference_ms += 50.0; // Rough estimate
-            result
-        } else {
-            task.to_string()
-        };
-
-        // Stage 2: Document processing (intelligent lossless cleaning)
-        // Use the caller-provided StructuredDoc if available, otherwise process here
+        // Document processing (deterministic, no LLM)
         let owned_sdoc;
         let effective_sdoc = if let Some(sdoc) = structured_doc {
             sdoc
@@ -164,29 +155,65 @@ impl LlmWorkflowExecutor {
         // Compute doc hash for cache key
         let doc_hash = hex::encode(sha2::Sha256::digest(documentation.as_bytes()));
 
-        // Stage 3: Mini-skill generation (with cache)
-        let mini_skill = {
+        // Check mini-skill cache first (avoids unnecessary LLM call)
+        let cached_mini_skill = {
             let mut cache = self.mini_skill_cache.write().await;
+            cache.get(tool, &doc_hash)
+        };
 
-            // Try cache lookup
-            if let Some(cached_skill) = cache.get(tool, &standardized_task, &doc_hash) {
-                cache_hit = true;
-                Some(cached_skill)
-            } else if skill.is_none() {
-                // No existing skill, generate mini-skill
+        if cached_mini_skill.is_some() {
+            cache_hit = true;
+        }
+
+        // Determine what LLM calls are needed
+        let needs_standardize = self.should_standardize_task(task);
+        let needs_mini_skill = cached_mini_skill.is_none() && skill.is_none();
+
+        // ── Run task standardization and mini-skill generation concurrently ──
+        let (standardized_task, generated_mini_skill) = match (needs_standardize, needs_mini_skill)
+        {
+            (true, true) => {
+                // Both needed — run in parallel
+                let (std_result, ms_result) = tokio::join!(
+                    self.llm_client.optimize_task(tool, task),
+                    self.generate_mini_skill(tool, &cleaned_doc, &doc_hash)
+                );
+                llm_calls += 2;
+                total_inference_ms += 50.0; // Rough estimate for standardization
+                (std_result?, Some(ms_result?))
+            }
+            (true, false) => {
+                // Only standardization needed
+                llm_calls += 1;
+                total_inference_ms += 50.0;
+                let result = self.llm_client.optimize_task(tool, task).await?;
+                (result, None)
+            }
+            (false, true) => {
+                // Only mini-skill generation needed
                 llm_calls += 1;
                 let generated = self
                     .generate_mini_skill(tool, &cleaned_doc, &doc_hash)
                     .await?;
-                cache.insert(generated.clone());
-                mini_skill_generated = true;
-                Some(generated)
-            } else {
-                None
+                (task.to_string(), Some(generated))
+            }
+            (false, false) => {
+                // Neither needed
+                (task.to_string(), None)
             }
         };
 
-        // Stage 4: Command generation with mini-skill + structured doc
+        // Insert generated mini-skill into cache
+        let mini_skill = if let Some(generated) = generated_mini_skill {
+            let mut cache = self.mini_skill_cache.write().await;
+            cache.insert(generated.clone());
+            mini_skill_generated = true;
+            Some(generated)
+        } else {
+            cached_mini_skill
+        };
+
+        // Final stage: Command generation with mini-skill + structured doc
         let mini_skill_ref = mini_skill.as_ref();
         let mini_skill_converted: Option<Skill> = mini_skill_ref.map(|ms| ms.clone().into());
 
@@ -213,28 +240,29 @@ impl LlmWorkflowExecutor {
             llm_calls,
             total_inference_ms,
             effective_task: standardized_task,
-            was_normalized: was_standardized,
+            was_normalized: needs_standardize,
         })
     }
 
     /// Check if task needs standardization
     fn should_standardize_task(&self, task: &str) -> bool {
-        // Heuristics for vague tasks
         let task_lower = task.to_lowercase();
 
-        // Too short
+        // Non-English (simple heuristic: check for non-ASCII characters)
+        // This should be checked first — non-ASCII input always benefits
+        // from standardization regardless of other heuristics.
+        if !task.is_ascii() {
+            return true;
+        }
+
+        // Too short — ambiguous by definition
         if task.len() < 10 {
             return true;
         }
 
-        // Vague keywords
+        // Vague keywords that indicate an unclear request
         let vague_keywords = ["just", "simply", "basically", "something", "some"];
         if vague_keywords.iter().any(|kw| task_lower.contains(kw)) {
-            return true;
-        }
-
-        // Non-English (simple heuristic: check for non-ASCII characters)
-        if !task.is_ascii() {
             return true;
         }
 

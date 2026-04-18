@@ -231,6 +231,10 @@ lib.rs              — Programmatic API surface (re-exports all modules)
 7. **Adaptive prompt compression**: Three prompt tiers (Full/Medium/Compact) auto-selected by model size and context window, ensuring reliable output from 0.5B to 200B+ parameter models
 8. **Extensible generation**: CommandGenerator trait enables multiple generation strategies (LLM, rule-based, composite) with chain-of-responsibility pattern
 9. **Response caching**: Optional LLM cache reduces API costs for repeated tasks via semantic hash (tool + task + docs + skill + model)
+10. **Smart model classification**: Cloud API models (GPT, Claude, Gemini) are always classified as "large" regardless of marketing name (e.g., "gpt-5-mini"); local models use parameter-size tags for classification
+11. **Skill-aware orchestration**: When a skill is available, the orchestrator always uses Fast (single-call) mode — the skill already provides the grounding that Quality mode would generate
+12. **Parallel LLM pipeline**: In Quality mode, independent stages (task standardization + mini-skill generation) run concurrently via `tokio::join!`
+13. **Tool-level mini-skill cache**: Mini-skills are cached by `(tool, doc_hash)`, not by task — a single cache entry serves all tasks for the same tool
 
 ## Why This Matters In Practice
 
