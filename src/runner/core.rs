@@ -4,7 +4,7 @@
 //! and execution.
 
 use crate::config::Config;
-use crate::doc_processor::DocProcessor;
+use crate::doc_processor::{DocProcessor, StructuredDoc};
 use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
 use crate::execution::feedback::{FeedbackCollector, FeedbackEntry};
@@ -54,6 +54,8 @@ pub(crate) struct PrepareResult {
     /// The task description that was actually used (may differ from the user-supplied
     /// task when automatic normalization is applied).
     pub(crate) effective_task: String,
+    /// Structured documentation used for flag/subcommand validation, if available.
+    pub(crate) structured_doc: Option<StructuredDoc>,
 }
 
 pub struct Runner {
@@ -603,6 +605,7 @@ impl Runner {
             } else {
                 task.to_string()
             },
+            structured_doc,
         })
     }
 
@@ -701,6 +704,18 @@ impl Runner {
         println!("  {}", "Command (dry-run):".bold().yellow());
         println!("  {}", full_cmd.green().bold());
         println!();
+
+        // ── Flag & subcommand validation ──────────────────────────────
+        if let Some(ref sdoc) = result.structured_doc {
+            let vr = super::validation::validate_args(&result.suggestion.args, sdoc);
+            for w in &vr.warnings {
+                eprintln!("  {} {}", "⚠ Validation:".yellow(), w.yellow());
+            }
+            if !vr.warnings.is_empty() {
+                println!();
+            }
+        }
+
         if !result.suggestion.explanation.is_empty() {
             println!("  {}", "Explanation:".bold());
             println!("  {}", result.suggestion.explanation);
@@ -772,6 +787,17 @@ impl Runner {
             }
             if !format_warnings.is_empty() {
                 println!();
+            }
+
+            // ── Flag & subcommand validation ──────────────────────────────
+            if let Some(ref sdoc) = result.structured_doc {
+                let vr = super::validation::validate_args(&result.suggestion.args, sdoc);
+                for w in &vr.warnings {
+                    eprintln!("  {} {}", "⚠ Validation:".yellow(), w.yellow());
+                }
+                if !vr.warnings.is_empty() {
+                    println!();
+                }
             }
 
             println!("  {}", "Generated command:".bold().green());

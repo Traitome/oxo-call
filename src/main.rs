@@ -592,9 +592,34 @@ async fn run(cli: Cli) -> error::Result<()> {
         Commands::Config { command } => match command {
             ConfigCommands::Set { key, value } => {
                 let mut cfg = config::Config::load()?;
+                // Capture old provider before applying the change so we can
+                // give context-aware hints when the user switches providers.
+                let old_provider = cfg.effective_provider();
                 cfg.set(&key, &value)?;
                 cfg.save()?;
                 println!("{} Set '{}' = '{}'", "✓".green().bold(), key.cyan(), value);
+
+                // Provider-switch guidance
+                if key == "llm.provider" && value != old_provider {
+                    let has_token = cfg.llm.api_token.as_ref().is_some_and(|t| !t.is_empty());
+                    if value == "ollama" && has_token {
+                        eprintln!(
+                            "\n{} Switched to Ollama (local inference, no API token needed).\n  \
+                             Your existing API token is still stored in the config but will be ignored.\n  \
+                             To clean it up: {}",
+                            "hint:".bold().cyan(),
+                            "oxo-call config set llm.api_token \"\"".dimmed()
+                        );
+                    } else if value != "ollama" && !has_token {
+                        eprintln!(
+                            "\n{} Provider '{}' requires an API token.\n  \
+                             Set one with: {}",
+                            "hint:".bold().cyan(),
+                            value,
+                            "oxo-call config set llm.api_token <your-token>".dimmed()
+                        );
+                    }
+                }
             }
             ConfigCommands::Get { key } => {
                 let cfg = config::Config::load()?;

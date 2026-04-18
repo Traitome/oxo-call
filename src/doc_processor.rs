@@ -46,7 +46,7 @@ static FLAG_LINE_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 /// Structured documentation with separated sections
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct StructuredDoc {
     /// Complete USAGE section (command structure)
     pub usage: String,
@@ -649,7 +649,7 @@ impl IntelligentDocProcessor {
     ///
     /// # Returns
     /// Processed documentation with key information extracted
-    pub(crate) async fn process(&self, doc: &str, _tool: &str, use_llm: bool) -> ProcessedDoc {
+    pub(crate) async fn process(&self, doc: &str, tool: &str, use_llm: bool) -> ProcessedDoc {
         // Step 1: Calculate document hash for caching
         let doc_hash = self.calculate_hash(doc);
 
@@ -661,30 +661,72 @@ impl IntelligentDocProcessor {
         // Step 3: Use rule-based processor first
         let structured = self.rule_processor.clean_and_structure(doc);
 
-        // Step 4: Optionally use LLM for intelligent processing
+        // Step 4: Extract common pitfalls from documentation patterns
+        let pitfalls = self.extract_pitfalls(tool, &structured);
+
+        // Step 5: Extract common usage patterns
+        let common_patterns = self.extract_common_patterns(&structured);
+
         if use_llm {
-            // In real implementation, this would call LLM
-            // let llm_processed = self.llm_process(&structured, tool).await?;
-            // For now, use rule-based result
-            ProcessedDoc {
-                core_usage: structured.usage.clone(),
-                key_parameters: self.extract_key_parameters(&structured),
-                common_patterns: vec![],
-                pitfalls: vec![],
-                examples: self.extract_examples(&structured),
-                quality_score: self.assess_quality(&structured),
-            }
-        } else {
-            // Fast path: use rule-based result
-            ProcessedDoc {
-                core_usage: structured.usage.clone(),
-                key_parameters: self.extract_key_parameters(&structured),
-                common_patterns: vec![],
-                pitfalls: vec![],
-                examples: self.extract_examples(&structured),
-                quality_score: self.assess_quality(&structured),
+            // Build the LLM prompt (ready for integration once LlmClient
+            // is injected into IntelligentDocProcessor).
+            let _llm_prompt = self.build_llm_prompt(&structured, tool);
+            // TODO(llm): Wire LlmClient here to refine structured doc via LLM.
+            // The prompt is prepared so wiring a real LlmClient is a one-line change.
+            tracing::debug!(
+                "LLM doc processing requested for '{}' — prompt ready ({} chars)",
+                tool,
+                _llm_prompt.len()
+            );
+        }
+
+        ProcessedDoc {
+            core_usage: structured.usage.clone(),
+            key_parameters: self.extract_key_parameters(&structured),
+            common_patterns,
+            pitfalls,
+            examples: self.extract_examples(&structured),
+            quality_score: self.assess_quality(&structured),
+        }
+    }
+
+    /// Extract common pitfalls from documentation structure.
+    fn extract_pitfalls(&self, tool: &str, structured: &StructuredDoc) -> Vec<String> {
+        let mut pitfalls = Vec::new();
+        if structured.usage.is_empty() {
+            pitfalls.push(format!(
+                "No clear usage pattern found in {tool} docs — verify command syntax manually"
+            ));
+        }
+        if structured.options.is_empty() {
+            pitfalls.push(
+                "No options/flags section detected — the tool may use positional arguments only"
+                    .to_string(),
+            );
+        }
+        if !structured.commands.is_empty() && !structured.commands.contains(' ') {
+            pitfalls.push(
+                "Tool requires a subcommand — ensure the first argument is a valid subcommand"
+                    .to_string(),
+            );
+        }
+        pitfalls
+    }
+
+    /// Extract common usage patterns from documentation.
+    fn extract_common_patterns(&self, structured: &StructuredDoc) -> Vec<String> {
+        let mut patterns = Vec::new();
+        if !structured.commands.is_empty() {
+            for cmd in structured
+                .commands
+                .lines()
+                .filter(|l| !l.trim().is_empty())
+                .take(5)
+            {
+                patterns.push(cmd.trim().to_string());
             }
         }
+        patterns
     }
 
     /// Calculate document hash for caching

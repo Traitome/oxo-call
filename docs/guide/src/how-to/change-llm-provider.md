@@ -172,8 +172,12 @@ oxo-call config set llm.provider ollama
 oxo-call config set llm.model llama3.2
 
 # Custom Ollama server URL (if not localhost)
-oxo-call config set llm.api_base http://my-ollama-server:11434
+oxo-call config set llm.api_base http://my-ollama-server:11434/v1
 ```
+
+> **Note**: If you were previously using OpenAI or another provider, the old API
+> token is safely ignored when using Ollama. oxo-call will remind you of this
+> when switching. To remove it: `oxo-call config set llm.api_token ""`
 
 ### Recommended models for bioinformatics
 
@@ -305,7 +309,7 @@ You can standardize oxo-call settings across your team using environment variabl
 # Option 1: Shared environment variables (recommended for clusters)
 # Add to your team's shared .bashrc or module file:
 export OXO_CALL_LLM_PROVIDER=ollama
-export OXO_CALL_LLM_API_BASE=http://shared-ollama-server:11434
+export OXO_CALL_LLM_API_BASE=http://shared-ollama-server:11434/v1
 export OXO_CALL_LICENSE=/shared/licenses/license.oxo.json
 
 # Option 2: Shared skill directory

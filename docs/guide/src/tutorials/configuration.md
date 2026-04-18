@@ -28,9 +28,9 @@ oxo-call config path
 | `llm.model` | *(auto)* | `OXO_CALL_LLM_MODEL` | Model name |
 | `llm.max_tokens` | `2048` | `OXO_CALL_LLM_MAX_TOKENS` | Maximum tokens |
 | `llm.temperature` | `0.0` | `OXO_CALL_LLM_TEMPERATURE` | Temperature (0.0 = deterministic) |
-| `llm.context_window` | `0` (auto-detect) | `OXO_CALL_LLM_CONTEXT_WINDOW` | Model context window size in tokens (0 = auto-detect) |
+| `llm.context_window` | `0` (auto-detect) | — | Model context window size in tokens (0 = auto-detect) |
 | `llm.prompt_tier` | `auto` | `OXO_CALL_LLM_PROMPT_TIER` | Prompt compression tier: `auto`, `full`, `medium`, `compact` |
-| `llm.cache_enabled` | `false` | `OXO_CALL_LLM_CACHE_ENABLED` | Enable LLM response caching (reduces API calls for repeated tasks) |
+| `llm.cache_enabled` | `false` | — | Enable LLM response caching (reduces API calls for repeated tasks) |
 | `docs.auto_update` | `true` | `OXO_CALL_DOCS_AUTO_UPDATE` | Auto-refresh docs on first use |
 
 ## Setting Values
@@ -95,11 +95,11 @@ oxo-call config set llm.api_token ghu_xxxxxxxxxxxxxxxxxxxx
 
 ### Anthropic
 - Default model: `claude-3-5-sonnet-20241022`
-- API base: `https://api.anthropic.com`
+- API base: `https://api.anthropic.com/v1`
 
 ### Ollama
 - Default model: `llama3.2`
-- API base: `http://localhost:11434`
+- API base: `http://localhost:11434/v1`
 - No API token required (local inference)
 
 ### Custom
@@ -174,7 +174,7 @@ When running oxo-call in non-interactive environments (CI pipelines, SLURM job s
 4. **Ollama on clusters**: Run Ollama as a service on a shared node, then set `llm.api_base` to point to it:
    ```bash
    export OXO_CALL_LLM_PROVIDER=ollama
-   export OXO_CALL_LLM_API_BASE=http://ollama-node:11434
+   export OXO_CALL_LLM_API_BASE=http://ollama-node:11434/v1
    ```
 5. **SLURM example**:
    ```bash
@@ -184,7 +184,7 @@ When running oxo-call in non-interactive environments (CI pipelines, SLURM job s
    
    export OXO_CALL_LICENSE=/shared/licenses/license.oxo.json
    export OXO_CALL_LLM_PROVIDER=ollama
-   export OXO_CALL_LLM_API_BASE=http://ollama-node:11434
+   export OXO_CALL_LLM_API_BASE=http://ollama-node:11434/v1
    
    oxo-call run samtools "sort input.bam by coordinate using 8 threads"
    ```

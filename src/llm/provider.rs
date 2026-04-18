@@ -32,10 +32,16 @@ pub struct LlmClient {
 
 impl LlmClient {
     pub fn new(config: Config) -> Self {
-        LlmClient {
-            config,
-            client: reqwest::Client::new(),
-        }
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(120))
+            .connect_timeout(std::time::Duration::from_secs(10))
+            .pool_max_idle_per_host(16)
+            .build()
+            .unwrap_or_else(|e| {
+                tracing::warn!("Failed to build configured HTTP client: {e}; using defaults");
+                reqwest::Client::new()
+            });
+        LlmClient { config, client }
     }
 
     /// Generate command arguments, using skill knowledge for better prompts.
@@ -505,10 +511,10 @@ impl LlmClient {
                 )
             })?
         } else {
-            // For token-optional providers (e.g. Ollama), fall back to an
-            // empty string.  An empty token means no Authorization header
-            // will be added (see the auth header construction below).
-            token_opt.unwrap_or_default()
+            // For token-optional providers (e.g. Ollama), always use an empty
+            // string so that no Authorization header is sent.  This avoids
+            // leaking a leftover token from a previous provider configuration.
+            String::new()
         };
 
         let api_base = self.config.effective_api_base();
@@ -697,6 +703,31 @@ impl LlmClient {
     }
 }
 
+// ─── LlmProvider trait implementation ─────────────────────────────────────────
+
+impl super::types::LlmProvider for LlmClient {
+    async fn chat_completion(
+        &self,
+        system: &str,
+        user_prompt: &str,
+        max_tokens: u32,
+        temperature: f32,
+    ) -> Result<String> {
+        self.request_with_system(system, user_prompt, Some(max_tokens), Some(temperature))
+            .await
+    }
+
+    fn name(&self) -> &str {
+        match self.config.effective_provider().as_str() {
+            "openai" => "openai",
+            "anthropic" => "anthropic",
+            "github-copilot" => "github-copilot",
+            "ollama" => "ollama",
+            _ => "custom",
+        }
+    }
+}
+
 /// Validate LLM-generated flags against the documentation flag catalog.
 ///
 /// This is a post-processing step that catches hallucinated flags:
@@ -704,22 +735,74 @@ impl LlmClient {
 /// - Common well-known flags (e.g., `-o`, `-t`, `--output`) → kept
 /// - Subcommands (no `-` prefix) → kept
 /// - Values (follow a flag) → kept
-/// - Unknown flags → kept but could be logged in verbose mode
+/// - Unknown flags → kept but logged via tracing
 ///
 /// This is a **soft** validation — we don't remove unknown flags because
 /// the model might use correct flags not captured by our simple regex-based
-/// extraction. But the catalog being present in the prompt is what matters
-/// for accuracy improvement.
+/// extraction. The catalog in the prompt prevents hallucination at
+/// generation time; this layer catches what slips through.
 fn validate_flags_against_catalog(
     args: &[String],
-    _catalog: &[FlagEntry],
-    _quick_flags: &[String],
+    catalog: &[FlagEntry],
+    quick_flags: &[String],
 ) -> Vec<String> {
-    // For now, return args as-is.  The real accuracy gain comes from the
-    // catalog being injected into the prompt (preventing hallucination at
-    // generation time rather than post-hoc filtering).
-    //
-    // Future enhancement: log a warning when a flag isn't in the catalog,
-    // or drop clearly hallucinated flags (e.g., `--nonexistent-flag`).
+    // Build a set of known flags from the catalog.
+    let mut known: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for entry in catalog {
+        for part in entry.flag.split([',', ' ', '\t']) {
+            let part = part.trim();
+            if part.starts_with('-') {
+                known.insert(part.trim_end_matches('=').to_string());
+            }
+        }
+    }
+    // Also accept quick_flags as known.
+    for qf in quick_flags {
+        for part in qf.split([',', ' ', '\t']) {
+            let part = part.trim();
+            if part.starts_with('-') {
+                known.insert(part.trim_end_matches('=').to_string());
+            }
+        }
+    }
+
+    // Universal flags that most CLI tools accept.
+    for &universal in &[
+        "-h",
+        "--help",
+        "-v",
+        "--version",
+        "-V",
+        "--verbose",
+        "-q",
+        "--quiet",
+        "-o",
+        "--output",
+        "-i",
+        "--input",
+        "-t",
+        "--threads",
+        "-f",
+        "--force",
+    ] {
+        known.insert(universal.to_string());
+    }
+
+    // Walk args and log unknown flags (but keep them).
+    for arg in args {
+        if !arg.starts_with('-') {
+            continue;
+        }
+        let flag = if arg.starts_with("--") {
+            arg.split('=').next().unwrap_or(arg)
+        } else {
+            arg.as_str()
+        };
+
+        if !known.contains(flag) {
+            tracing::debug!("Flag not in doc catalog (may still be valid): {flag}");
+        }
+    }
+
     args.to_vec()
 }

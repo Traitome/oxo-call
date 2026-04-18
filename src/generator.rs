@@ -274,13 +274,59 @@ impl RuleCommandGenerator {
     }
 
     /// Applies a rule to generate a command.
-    fn apply(&self, rule: &CommandRule, _request: &str) -> GeneratedCommand {
-        // For now, use placeholders. In a real implementation, we would
-        // extract file names from the request.
+    fn apply(&self, rule: &CommandRule, request: &str) -> GeneratedCommand {
+        // Try to extract file names from the request using common patterns.
+        let words: Vec<&str> = request.split_whitespace().collect();
+        let mut input_name = "input".to_string();
+        let mut output_name = "output".to_string();
+
+        for (i, word) in words.iter().enumerate() {
+            let lower = word.to_lowercase();
+            // Detect file-like tokens (containing a dot extension)
+            if lower.contains('.') && !lower.starts_with('-') && !lower.starts_with("--") {
+                if input_name == "input" {
+                    input_name = word.trim_end_matches([',', ';']).to_string();
+                } else if output_name == "output" {
+                    output_name = word.trim_end_matches([',', ';']).to_string();
+                }
+            }
+            // Detect "to <file>" or "output <file>" patterns
+            if (lower == "to" || lower == "output" || lower == "into")
+                && i + 1 < words.len()
+                && words[i + 1].contains('.')
+            {
+                output_name = words[i + 1].trim_end_matches([',', ';']).to_string();
+            }
+        }
+
+        // Strip common extensions for placeholder substitution
+        let strip_extensions = |name: &str| -> String {
+            let mut s = name.to_string();
+            // Strip compound extensions like .fastq.gz, .vcf.gz first
+            for compound in &[".fastq.gz", ".fq.gz", ".vcf.gz", ".bed.gz", ".fa.gz"] {
+                if s.ends_with(compound) {
+                    s = s[..s.len() - compound.len()].to_string();
+                    return s;
+                }
+            }
+            // Then strip single extensions
+            for ext in &[
+                ".gz", ".bam", ".fastq", ".fa", ".fq", ".bed", ".vcf", ".sam", ".cram",
+            ] {
+                if s.ends_with(ext) {
+                    s = s[..s.len() - ext.len()].to_string();
+                    break;
+                }
+            }
+            s
+        };
+        let input_base = strip_extensions(&input_name);
+        let output_base = strip_extensions(&output_name);
+
         let args = rule
             .args_template
-            .replace("{input}", "input")
-            .replace("{output}", "output");
+            .replace("{input}", &input_base)
+            .replace("{output}", &output_base);
 
         GeneratedCommand {
             args,

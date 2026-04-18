@@ -85,18 +85,15 @@ impl BatchRunner for Runner {
                     .acquire_owned()
                     .await
                     .expect("semaphore closed unexpectedly");
-                tokio::task::spawn_blocking(move || {
-                    std::process::Command::new("sh")
-                        .arg("-c")
-                        .arg(&cmd)
-                        .status()
-                        .map(|s| s.code().unwrap_or(-1))
-                        .map_err(|e| {
-                            OxoError::ExecutionError(format!("failed to run '{item_label}': {e}"))
-                        })
-                })
-                .await
-                .map_err(|e| OxoError::ExecutionError(format!("task join error: {e}")))?
+                let status = tokio::process::Command::new("sh")
+                    .arg("-c")
+                    .arg(&cmd)
+                    .status()
+                    .await
+                    .map_err(|e| {
+                        OxoError::ExecutionError(format!("failed to run '{item_label}': {e}"))
+                    })?;
+                Ok(status.code().unwrap_or(-1))
             });
             handles.push((item.clone(), handle));
         }

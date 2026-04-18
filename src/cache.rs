@@ -4,6 +4,12 @@
 //! for similar or identical prompts. The cache uses a semantic hash of the prompt components
 //! (tool, task, documentation hash, skill name, model) as the key.
 //!
+//! # Architecture
+//!
+//! Lookups are O(1) via an in-memory `HashMap` that is lazily loaded from the
+//! on-disk JSONL file.  Writes append to the JSONL file **and** update the
+//! in-memory map so subsequent lookups within the same process are instant.
+//!
 //! # Cache Priority
 //!
 //! When cache is enabled, the priority order is:
@@ -22,11 +28,17 @@ use crate::config::Config;
 use crate::error::Result;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
+use std::io::Write;
 use std::path::PathBuf;
+use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Maximum age of cache entries (7 days)
 const CACHE_MAX_AGE_DAYS: u64 = 7;
+
+/// Maximum number of entries to keep in cache (LRU eviction at write time)
+const CACHE_MAX_ENTRIES: usize = 10_000;
 
 /// A single cache entry storing the LLM response and metadata.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,6 +61,34 @@ pub struct CacheEntry {
     pub hit_count: u64,
 }
 
+/// In-memory cache state backed by a JSONL file on disk.
+struct MemoryCache {
+    entries: HashMap<String, CacheEntry>,
+    loaded: bool,
+}
+
+impl MemoryCache {
+    fn new() -> Self {
+        Self {
+            entries: HashMap::new(),
+            loaded: false,
+        }
+    }
+}
+
+/// Global in-memory cache singleton.  Lazily populated from disk on first
+/// access, then kept in sync by write-through on `store()`.
+static CACHE: std::sync::LazyLock<Mutex<MemoryCache>> =
+    std::sync::LazyLock::new(|| Mutex::new(MemoryCache::new()));
+
+/// Acquire the global cache mutex, recovering from a poisoned lock with a warning.
+fn acquire_cache() -> std::sync::MutexGuard<'static, MemoryCache> {
+    CACHE.lock().unwrap_or_else(|e| {
+        tracing::warn!("Cache mutex was poisoned — recovering");
+        e.into_inner()
+    })
+}
+
 /// Cache storage manager
 pub struct LlmCache;
 
@@ -56,6 +96,41 @@ impl LlmCache {
     /// Get the path to the cache file
     fn cache_path() -> Result<PathBuf> {
         Ok(Config::data_dir()?.join("llm_cache.jsonl"))
+    }
+
+    /// Load all entries from disk into the in-memory map (if not yet loaded).
+    fn ensure_loaded(mem: &mut MemoryCache) -> Result<()> {
+        if mem.loaded {
+            return Ok(());
+        }
+        let path = Self::cache_path()?;
+        if path.exists() {
+            let content = std::fs::read_to_string(&path)?;
+            for line in content.lines() {
+                if line.trim().is_empty() {
+                    continue;
+                }
+                if let Ok(entry) = serde_json::from_str::<CacheEntry>(line) {
+                    mem.entries.insert(entry.hash.clone(), entry);
+                }
+            }
+        }
+        mem.loaded = true;
+        Ok(())
+    }
+
+    /// Flush the in-memory map back to disk as JSONL.
+    fn flush_to_disk(mem: &MemoryCache) -> Result<()> {
+        let path = Self::cache_path()?;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let mut lines = Vec::with_capacity(mem.entries.len());
+        for entry in mem.entries.values() {
+            lines.push(serde_json::to_string(entry)?);
+        }
+        std::fs::write(&path, lines.join("\n") + "\n")?;
+        Ok(())
     }
 
     /// Compute a semantic hash from prompt components.
@@ -103,7 +178,7 @@ impl LlmCache {
         format!("{:x}", hasher.finalize())
     }
 
-    /// Look up a cached response by hash.
+    /// Look up a cached response by hash — O(1) via in-memory HashMap.
     ///
     /// Returns None if:
     /// - Cache is disabled
@@ -123,48 +198,46 @@ impl LlmCache {
         }
 
         let hash = Self::compute_hash(tool, task, docs_hash, skill_name, model);
-        let path = Self::cache_path()?;
 
-        if !path.exists() {
+        let mut mem = acquire_cache();
+        Self::ensure_loaded(&mut mem)?;
+
+        let entry = match mem.entries.get(&hash) {
+            Some(e) => e.clone(),
+            None => return Ok(None),
+        };
+
+        // Check age
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let age_days = (now - entry.created_at) / (24 * 3600);
+
+        if age_days > CACHE_MAX_AGE_DAYS {
+            mem.entries.remove(&hash);
+            // Best-effort disk sync; don't fail the lookup.
+            if let Err(e) = Self::flush_to_disk(&mem) {
+                tracing::warn!("Cache flush failed (eviction): {e}");
+            }
             return Ok(None);
         }
 
-        // Read cache file and search for matching entry
-        let content = std::fs::read_to_string(&path)?;
-        for line in content.lines() {
-            if line.trim().is_empty() {
-                continue;
-            }
-            if let Ok(entry) = serde_json::from_str::<CacheEntry>(line)
-                && entry.hash == hash
-            {
-                // Check age
-                let now = SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs();
-                let age_days = (now - entry.created_at) / (24 * 3600);
-
-                if age_days <= CACHE_MAX_AGE_DAYS {
-                    // Increment hit count
-                    let updated = CacheEntry {
-                        hit_count: entry.hit_count + 1,
-                        ..entry.clone()
-                    };
-                    Self::update_entry(&updated)?;
-                    return Ok(Some(updated));
-                } else {
-                    // Entry too old, remove it
-                    Self::remove_entry(&hash)?;
-                    return Ok(None);
-                }
-            }
+        // Increment hit count in-memory and persist.
+        let updated = CacheEntry {
+            hit_count: entry.hit_count + 1,
+            ..entry
+        };
+        mem.entries.insert(hash, updated.clone());
+        // Persist hit-count update; non-fatal on failure.
+        if let Err(e) = Self::flush_to_disk(&mem) {
+            tracing::warn!("Cache flush failed (hit-count update): {e}");
         }
 
-        Ok(None)
+        Ok(Some(updated))
     }
 
-    /// Store a new cache entry.
+    /// Store a new cache entry — O(1) write-through to memory + append to disk.
     pub fn store(
         tool: &str,
         task: &str,
@@ -189,7 +262,7 @@ impl LlmCache {
         }
 
         let entry = CacheEntry {
-            hash,
+            hash: hash.clone(),
             tool: tool.to_string(),
             task: task.to_string(),
             args: args.to_string(),
@@ -202,66 +275,34 @@ impl LlmCache {
             hit_count: 0,
         };
 
-        // Append to cache file
+        // Write-through: update in-memory map.
+        {
+            let mut mem = acquire_cache();
+            Self::ensure_loaded(&mut mem)?;
+
+            // Evict oldest entries when over capacity.
+            if mem.entries.len() >= CACHE_MAX_ENTRIES {
+                let oldest_hash = mem
+                    .entries
+                    .values()
+                    .min_by_key(|e| e.created_at)
+                    .map(|e| e.hash.clone());
+                if let Some(h) = oldest_hash {
+                    mem.entries.remove(&h);
+                }
+            }
+
+            mem.entries.insert(hash, entry.clone());
+        }
+
+        // Append to disk file (WAL-style).
         let json = serde_json::to_string(&entry)?;
         std::fs::OpenOptions::new()
             .create(true)
             .append(true)
             .open(&path)?
-            .write_all(format!("{}\n", json).as_bytes())?;
+            .write_all(format!("{json}\n").as_bytes())?;
 
-        Ok(())
-    }
-
-    /// Update an existing cache entry (increment hit count).
-    fn update_entry(entry: &CacheEntry) -> Result<()> {
-        let path = Self::cache_path()?;
-        if !path.exists() {
-            return Ok(());
-        }
-
-        let content = std::fs::read_to_string(&path)?;
-        let mut updated_lines = Vec::new();
-
-        for line in content.lines() {
-            if line.trim().is_empty() {
-                continue;
-            }
-            if let Ok(existing) = serde_json::from_str::<CacheEntry>(line) {
-                if existing.hash == entry.hash {
-                    updated_lines.push(serde_json::to_string(entry)?);
-                } else {
-                    updated_lines.push(line.to_string());
-                }
-            }
-        }
-
-        std::fs::write(&path, updated_lines.join("\n") + "\n")?;
-        Ok(())
-    }
-
-    /// Remove a cache entry by hash.
-    fn remove_entry(hash: &str) -> Result<()> {
-        let path = Self::cache_path()?;
-        if !path.exists() {
-            return Ok(());
-        }
-
-        let content = std::fs::read_to_string(&path)?;
-        let mut filtered_lines = Vec::new();
-
-        for line in content.lines() {
-            if line.trim().is_empty() {
-                continue;
-            }
-            if let Ok(entry) = serde_json::from_str::<CacheEntry>(line)
-                && entry.hash != hash
-            {
-                filtered_lines.push(line.to_string());
-            }
-        }
-
-        std::fs::write(&path, filtered_lines.join("\n") + "\n")?;
         Ok(())
     }
 
@@ -272,14 +313,21 @@ impl LlmCache {
         if path.exists() {
             std::fs::remove_file(&path)?;
         }
+        // Also clear the in-memory map.
+        let mut mem = acquire_cache();
+        mem.entries.clear();
+        mem.loaded = false;
         Ok(())
     }
 
-    /// Get cache statistics.
+    /// Get cache statistics — O(n) over the in-memory map.
     #[allow(dead_code)]
     pub fn stats() -> Result<CacheStats> {
-        let path = Self::cache_path()?;
-        if !path.exists() {
+        let mut mem = acquire_cache();
+        Self::ensure_loaded(&mut mem)?;
+
+        let total_entries = mem.entries.len();
+        if total_entries == 0 {
             return Ok(CacheStats {
                 total_entries: 0,
                 total_hits: 0,
@@ -287,21 +335,12 @@ impl LlmCache {
             });
         }
 
-        let content = std::fs::read_to_string(&path)?;
-        let mut total_entries = 0;
-        let mut total_hits = 0;
+        let mut total_hits: u64 = 0;
         let mut oldest_timestamp = u64::MAX;
-
-        for line in content.lines() {
-            if line.trim().is_empty() {
-                continue;
-            }
-            if let Ok(entry) = serde_json::from_str::<CacheEntry>(line) {
-                total_entries += 1;
-                total_hits += entry.hit_count;
-                if entry.created_at < oldest_timestamp {
-                    oldest_timestamp = entry.created_at;
-                }
+        for entry in mem.entries.values() {
+            total_hits += entry.hit_count;
+            if entry.created_at < oldest_timestamp {
+                oldest_timestamp = entry.created_at;
             }
         }
 
@@ -331,8 +370,6 @@ pub struct CacheStats {
     pub total_hits: u64,
     pub oldest_entry_age_days: u64,
 }
-
-use std::io::Write;
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
