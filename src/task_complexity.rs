@@ -1,7 +1,26 @@
-//! Task Complexity Estimator
+//! Task Complexity Estimator — Orchestration Decision Engine.
 //!
-//! Analyzes user input and determines whether to use Fast or Quality mode.
-//! Based on multiple heuristics and optional ML model.
+//! Analyzes user input and determines whether to use **Fast** (single LLM call)
+//! or **Quality** (multi-stage pipeline) mode. The decision is based on a
+//! weighted rule system that considers:
+//!
+//! - Task description length and ambiguity
+//! - Availability of a matching skill file
+//! - Documentation quality for the target tool
+//! - Presence of complex keywords (pipeline, parallel, batch, …)
+//! - Non-English input (adds translation complexity)
+//! - Number of explicit CLI parameters
+//!
+//! # Scoring
+//!
+//! Each rule contributes a score in `[0.0, weight]`.  The total is capped at
+//! `1.0`.  Scores below `0.5` recommend **Fast** mode; `≥ 0.5` recommends
+//! **Quality** mode.  Confidence is highest when the score is far from the
+//! `0.5` boundary.
+//!
+//! # Extensibility
+//!
+//! Custom rules can be added at runtime via [`TaskComplexityEstimator::add_rule`].
 
 use serde::{Deserialize, Serialize};
 
@@ -54,10 +73,13 @@ impl Default for ComplexityResult {
     }
 }
 
-/// Complexity rule for heuristic evaluation
+/// A heuristic rule that contributes to the overall complexity score.
 #[derive(Debug, Clone)]
 pub struct ComplexityRule {
+    /// Human-readable rule identifier (e.g. "task_length").
     pub name: String,
+    /// Maximum weight this rule can contribute (informational; the evaluator
+    /// itself caps its return value).
     #[allow(dead_code)]
     pub weight: f32,
     pub evaluator: fn(&str, &str, bool, f32) -> f32,
