@@ -3,6 +3,14 @@
 //! This module provides smart documentation cleaning and structuring without
 //! destructive compression. It preserves complete USAGE, EXAMPLES, and key
 //! sections while removing only noise and redundancy.
+//!
+//! ## Shared primitives
+//!
+//! The free functions [`clean_noise`], [`is_section_header`],
+//! [`extract_flags_standalone`], and [`extract_sections_standalone`] are the
+//! canonical implementations used by both this module and
+//! [`crate::doc_summarizer`].  `doc_summarizer` re-uses them instead of
+//! maintaining its own copies, eliminating code duplication.
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -88,15 +96,13 @@ impl fmt::Display for StructuredDoc {
         // Quick reference flags
         if !self.quick_flags.is_empty() {
             output.push_str("=== QUICK REFERENCE FLAGS ===\n");
-            output.push_str(
-                &self
-                    .quick_flags
-                    .iter()
-                    .take(30)
-                    .cloned()
-                    .collect::<Vec<_>>()
-                    .join(" "),
-            );
+            let flags: Vec<&str> = self
+                .quick_flags
+                .iter()
+                .take(30)
+                .map(|s| s.as_str())
+                .collect();
+            output.push_str(&flags.join(" "));
         }
 
         write!(f, "{}", output.trim())
@@ -866,6 +872,163 @@ pub struct DocExample {
     pub description: String,
 }
 
+// ─── Shared free-standing primitives ──────────────────────────────────────────
+//
+// These functions are the canonical implementations of noise removal, section
+// header detection, section extraction, and flag extraction.  They are used
+// both within `DocProcessor` methods and by `crate::doc_summarizer`.
+
+/// Noise patterns that should be stripped from help text.
+pub static NOISE_PATTERN_STRINGS: &[&str] = &[
+    r"For more information.*",
+    r"Report bugs to.*",
+    r"See the full documentation.*",
+    r"Homepage:.*",
+    r"Version:.*",
+];
+
+/// Remove noise patterns from documentation and collapse excessive blank lines.
+///
+/// This is the shared implementation used by both [`DocProcessor::remove_noise`]
+/// and [`crate::doc_summarizer::clean_noise`].
+pub fn clean_noise(docs: &str) -> String {
+    let mut cleaned = docs.to_string();
+
+    for pattern in NOISE_PATTERN_STRINGS {
+        if let Ok(re) = Regex::new(pattern) {
+            cleaned = re.replace_all(&cleaned, "").to_string();
+        }
+    }
+
+    // Collapse multiple blank lines to double newline
+    let blank_line_re = Regex::new(r"\n{3,}").unwrap();
+    cleaned = blank_line_re.replace_all(&cleaned, "\n\n").to_string();
+
+    cleaned.trim().to_string()
+}
+
+/// Check whether a line looks like a section header (e.g. `USAGE:`, `Options:`).
+///
+/// Canonical implementation shared with [`crate::doc_summarizer`].
+pub fn is_section_header(line: &str) -> bool {
+    if line.is_empty() {
+        return false;
+    }
+
+    let header_patterns = [
+        "USAGE:",
+        "Usage:",
+        "OPTIONS:",
+        "Options:",
+        "ARGUMENTS:",
+        "Arguments:",
+        "EXAMPLES:",
+        "Examples:",
+        "PARAMETERS:",
+        "Parameters:",
+        "FLAGS:",
+        "Flags:",
+        "COMMANDS:",
+        "Commands:",
+        "DESCRIPTION:",
+        "Description:",
+        "SYNOPSIS:",
+        "Synopsis:",
+    ];
+
+    if header_patterns.iter().any(|p| line.starts_with(p)) {
+        return true;
+    }
+
+    // All-caps header with trailing colon
+    if line.ends_with(':') && line.chars().filter(|c| c.is_uppercase()).count() > 3 {
+        return true;
+    }
+
+    false
+}
+
+/// Extract all `-` or `--` flags from a documentation string.
+///
+/// Canonical implementation shared with [`crate::doc_summarizer`].
+pub fn extract_flags_standalone(docs: &str) -> Vec<String> {
+    let mut flags = HashSet::new();
+    let flag_re = Regex::new(r"(?:^|\s)(-{1,2}[a-zA-Z0-9_-]+)").unwrap();
+
+    for cap in flag_re.captures_iter(docs) {
+        if let Some(flag) = cap.get(1) {
+            flags.insert(flag.as_str().to_string());
+        }
+    }
+
+    let mut flags_vec: Vec<String> = flags.into_iter().collect();
+    flags_vec.sort();
+    flags_vec
+}
+
+/// Extract key sections from documentation text.
+///
+/// Returns `(header, content)` pairs.  If no sections are found, the entire
+/// text is returned as a single `"Documentation"` section.
+///
+/// Canonical implementation shared with [`crate::doc_summarizer`].
+pub fn extract_sections_standalone(docs: &str) -> Vec<(String, String)> {
+    let mut sections = Vec::new();
+    let lines: Vec<&str> = docs.lines().collect();
+
+    let mut current_section = String::new();
+    let mut current_content = String::new();
+
+    for line in &lines {
+        let trimmed = line.trim();
+
+        if is_section_header(trimmed) {
+            if !current_section.is_empty() && !current_content.is_empty() {
+                sections.push((current_section.clone(), current_content.clone()));
+            }
+            current_section = trimmed.to_string();
+            current_content = String::new();
+        } else if !current_section.is_empty() {
+            current_content.push_str(line);
+            current_content.push('\n');
+        }
+    }
+
+    if !current_section.is_empty() && !current_content.is_empty() {
+        sections.push((current_section, current_content));
+    }
+
+    if sections.is_empty() {
+        sections.push(("Documentation".to_string(), docs.to_string()));
+    }
+
+    sections
+}
+
+/// Smart truncation that preserves complete lines and sections.
+pub fn truncate_smart(text: &str, max_len: usize) -> String {
+    if text.len() <= max_len {
+        return text.to_string();
+    }
+
+    let truncate_at = max_len.saturating_sub(50);
+
+    if let Some(pos) = text[..truncate_at].rfind("\n\n") {
+        let truncated = &text[..pos];
+        return format!("{}\n\n... [documentation truncated for brevity]", truncated);
+    }
+
+    if let Some(pos) = text[..truncate_at].rfind('\n') {
+        let truncated = &text[..pos];
+        return format!("{}\n\n... [documentation truncated for brevity]", truncated);
+    }
+
+    format!(
+        "{}... [documentation truncated for brevity]",
+        &text[..truncate_at]
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1039,5 +1202,94 @@ mod tests {
             structured.quality_score > 0.0,
             "quality_score should be > 0"
         );
+    }
+
+    // ── Tests for shared free-standing primitives ─────────────────────────────
+
+    #[test]
+    fn test_shared_clean_noise() {
+        let noisy = "Usage: tool\n\nFor more information see https://example.com\nReport bugs to bugs@example.com\nHomepage: https://example.com";
+        let cleaned = clean_noise(noisy);
+        assert!(!cleaned.contains("For more information"));
+        assert!(!cleaned.contains("Report bugs"));
+        assert!(!cleaned.contains("Homepage:"));
+    }
+
+    #[test]
+    fn test_shared_clean_noise_collapses_blank_lines() {
+        let text = "line1\n\n\n\n\nline2";
+        let cleaned = clean_noise(text);
+        assert_eq!(cleaned, "line1\n\nline2");
+    }
+
+    #[test]
+    fn test_shared_is_section_header_standard() {
+        assert!(is_section_header("USAGE:"));
+        assert!(is_section_header("Options:"));
+        assert!(is_section_header("EXAMPLES:"));
+        assert!(is_section_header("SYNOPSIS:"));
+    }
+
+    #[test]
+    fn test_shared_is_section_header_allcaps_colon() {
+        assert!(is_section_header("ADDITIONAL SETTINGS:"));
+        assert!(!is_section_header("just a line"));
+        assert!(!is_section_header(""));
+    }
+
+    #[test]
+    fn test_shared_extract_flags_standalone() {
+        let doc = "Usage: tool --help --version -v -q --output FILE";
+        let flags = extract_flags_standalone(doc);
+        assert!(flags.contains(&"--help".to_string()));
+        assert!(flags.contains(&"--version".to_string()));
+        assert!(flags.contains(&"-v".to_string()));
+        assert!(flags.contains(&"-q".to_string()));
+        assert!(flags.contains(&"--output".to_string()));
+    }
+
+    #[test]
+    fn test_shared_extract_flags_standalone_empty() {
+        let flags = extract_flags_standalone("no flags here");
+        assert!(flags.is_empty());
+    }
+
+    #[test]
+    fn test_shared_extract_sections_standalone() {
+        let doc =
+            "USAGE:\n  tool [options]\n\nOPTIONS:\n  --help  Show help\n\nEXAMPLES:\n  tool --help";
+        let sections = extract_sections_standalone(doc);
+        assert_eq!(sections.len(), 3);
+        assert!(sections[0].0.contains("USAGE"));
+        assert!(sections[1].0.contains("OPTIONS"));
+        assert!(sections[2].0.contains("EXAMPLES"));
+    }
+
+    #[test]
+    fn test_shared_extract_sections_standalone_no_sections() {
+        let doc = "just some text without headers";
+        let sections = extract_sections_standalone(doc);
+        assert_eq!(sections.len(), 1);
+        assert_eq!(sections[0].0, "Documentation");
+    }
+
+    #[test]
+    fn test_shared_truncate_smart_short() {
+        let text = "short text";
+        assert_eq!(truncate_smart(text, 100), text);
+    }
+
+    #[test]
+    fn test_shared_truncate_smart_at_paragraph() {
+        let text = "Line 1\n\nLine 2\n\nLine 3 which is longer text to push past the limit";
+        let result = truncate_smart(text, 25);
+        assert!(result.contains("[documentation truncated"));
+    }
+
+    #[test]
+    fn test_shared_truncate_smart_at_line() {
+        let text = "Line 1\nLine 2\nLine 3 which is a bit longer to go past the truncation point";
+        let result = truncate_smart(text, 30);
+        assert!(result.contains("[documentation truncated"));
     }
 }

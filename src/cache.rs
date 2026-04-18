@@ -333,3 +333,96 @@ pub struct CacheStats {
 }
 
 use std::io::Write;
+
+// ─── Tests ────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_compute_hash_deterministic() {
+        let h1 = LlmCache::compute_hash("samtools", "sort bam file", None, None, "gpt-4");
+        let h2 = LlmCache::compute_hash("samtools", "sort bam file", None, None, "gpt-4");
+        assert_eq!(h1, h2, "Same inputs should produce same hash");
+    }
+
+    #[test]
+    fn test_compute_hash_different_for_different_tools() {
+        let h1 = LlmCache::compute_hash("samtools", "sort", None, None, "gpt-4");
+        let h2 = LlmCache::compute_hash("bcftools", "sort", None, None, "gpt-4");
+        assert_ne!(h1, h2, "Different tools should produce different hashes");
+    }
+
+    #[test]
+    fn test_compute_hash_normalizes_task() {
+        // "sort  BAM file" and "SORT BAM FILE" should produce the same hash
+        let h1 = LlmCache::compute_hash("samtools", "sort  BAM file", None, None, "gpt-4");
+        let h2 = LlmCache::compute_hash("samtools", "SORT BAM FILE", None, None, "gpt-4");
+        assert_eq!(h1, h2, "Task normalization should make these equal");
+    }
+
+    #[test]
+    fn test_compute_hash_different_for_different_models() {
+        let h1 = LlmCache::compute_hash("samtools", "sort", None, None, "gpt-4");
+        let h2 = LlmCache::compute_hash("samtools", "sort", None, None, "gpt-3.5");
+        assert_ne!(h1, h2, "Different models should produce different hashes");
+    }
+
+    #[test]
+    fn test_compute_hash_includes_docs_hash() {
+        let h1 = LlmCache::compute_hash("samtools", "sort", Some("abc123"), None, "gpt-4");
+        let h2 = LlmCache::compute_hash("samtools", "sort", None, None, "gpt-4");
+        assert_ne!(h1, h2, "docs_hash should affect the hash");
+    }
+
+    #[test]
+    fn test_compute_hash_includes_skill_name() {
+        let h1 = LlmCache::compute_hash("samtools", "sort", None, Some("samtools-sort"), "gpt-4");
+        let h2 = LlmCache::compute_hash("samtools", "sort", None, None, "gpt-4");
+        assert_ne!(h1, h2, "skill_name should affect the hash");
+    }
+
+    #[test]
+    fn test_compute_hash_is_sha256_hex() {
+        let h = LlmCache::compute_hash("tool", "task", None, None, "model");
+        assert_eq!(h.len(), 64, "SHA-256 hex digest should be 64 chars");
+        assert!(
+            h.chars().all(|c| c.is_ascii_hexdigit()),
+            "Hash should be hex"
+        );
+    }
+
+    #[test]
+    fn test_cache_entry_serialization() {
+        let entry = CacheEntry {
+            hash: "abc".to_string(),
+            tool: "samtools".to_string(),
+            task: "sort".to_string(),
+            args: "-o out.bam in.bam".to_string(),
+            explanation: "Sort a BAM file".to_string(),
+            model: "gpt-4".to_string(),
+            created_at: 1700000000,
+            hit_count: 5,
+        };
+        let json = serde_json::to_string(&entry).unwrap();
+        let deserialized: CacheEntry = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.hash, "abc");
+        assert_eq!(deserialized.tool, "samtools");
+        assert_eq!(deserialized.hit_count, 5);
+    }
+
+    #[test]
+    fn test_cache_stats_serialization() {
+        let stats = CacheStats {
+            total_entries: 42,
+            total_hits: 100,
+            oldest_entry_age_days: 3,
+        };
+        let json = serde_json::to_string(&stats).unwrap();
+        let deserialized: CacheStats = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.total_entries, 42);
+        assert_eq!(deserialized.total_hits, 100);
+        assert_eq!(deserialized.oldest_entry_age_days, 3);
+    }
+}
