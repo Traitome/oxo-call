@@ -44,6 +44,24 @@ oxo-call config set llm.api_token sk-...
 oxo-call config set llm.temperature 0.2
 ```
 
+**Switching providers**: When you switch to a different provider (e.g., from
+OpenAI to Ollama), oxo-call gives a context-aware hint:
+
+- Switching **to Ollama**: reminds you that no token is needed and offers to clear the leftover token
+- Switching **to OpenAI/Anthropic**: reminds you to set an API token if none is configured
+
+```bash
+# Switch to Ollama (no token needed)
+oxo-call config set llm.provider ollama
+# hint: Switched to Ollama (local inference, no API token needed).
+#       Your existing API token is still stored but will be ignored.
+
+# Switch to OpenAI (token required)
+oxo-call config set llm.provider openai
+# hint: Provider 'openai' requires an API token.
+#       Set one with: oxo-call config set llm.api_token <your-token>
+```
+
 ### `config get`
 
 Show the effective value (with environment variable overrides applied):

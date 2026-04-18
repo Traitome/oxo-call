@@ -511,10 +511,10 @@ impl LlmClient {
                 )
             })?
         } else {
-            // For token-optional providers (e.g. Ollama), fall back to an
-            // empty string.  An empty token means no Authorization header
-            // will be added (see the auth header construction below).
-            token_opt.unwrap_or_default()
+            // For token-optional providers (e.g. Ollama), always use an empty
+            // string so that no Authorization header is sent.  This avoids
+            // leaking a leftover token from a previous provider configuration.
+            String::new()
         };
 
         let api_base = self.config.effective_api_base();
