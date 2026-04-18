@@ -8,6 +8,9 @@ use color_eyre::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::config::Config;
+use crate::llm::LlmClient;
+
 /// Normalized task representation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NormalizedTask {
@@ -79,8 +82,7 @@ struct NormalizationResponse {
 
 /// Task Normalizer using LLM
 pub struct TaskNormalizer {
-    // In a real implementation, this would hold an LLM client
-    // llm_client: Arc<LlmClient>,
+    llm_client: Option<LlmClient>,
 }
 
 impl Default for TaskNormalizer {
@@ -91,7 +93,14 @@ impl Default for TaskNormalizer {
 
 impl TaskNormalizer {
     pub fn new() -> Self {
-        Self {}
+        Self { llm_client: None }
+    }
+
+    /// Create a normalizer backed by an LLM client for complex cases.
+    pub fn new_with_llm(config: Config) -> Self {
+        Self {
+            llm_client: Some(LlmClient::new(config)),
+        }
     }
 
     /// Normalize user task using LLM
@@ -142,7 +151,176 @@ impl TaskNormalizer {
             }
         }
 
-        // Pattern 2: Simple English patterns
+        // Pattern 2: Japanese common patterns
+        let japanese_patterns = [
+            ("ソート", "sort"),
+            ("変換", "convert"),
+            ("フィルタ", "filter"),
+            ("アライメント", "align"),
+            ("品質管理", "quality control"),
+            ("圧縮", "compress"),
+            ("インデックス", "index"),
+            ("マッピング", "mapping"),
+        ];
+
+        for (japanese, english) in japanese_patterns {
+            if task.contains(japanese) {
+                let description = task.replace(japanese, english);
+                return Some(NormalizedTask {
+                    description,
+                    intent: self.infer_intent_from_keyword(english),
+                    parameters: self.extract_parameters(task),
+                    constraints: vec![],
+                    confidence: 0.7,
+                });
+            }
+        }
+
+        // Pattern 3: Korean common patterns
+        let korean_patterns = [
+            ("정렬", "sort"),
+            ("변환", "convert"),
+            ("필터", "filter"),
+            ("정렬", "align"),
+            ("품질관리", "quality control"),
+            ("압축", "compress"),
+            ("색인", "index"),
+        ];
+
+        for (korean, english) in korean_patterns {
+            if task.contains(korean) {
+                let description = task.replace(korean, english);
+                return Some(NormalizedTask {
+                    description,
+                    intent: self.infer_intent_from_keyword(english),
+                    parameters: self.extract_parameters(task),
+                    constraints: vec![],
+                    confidence: 0.7,
+                });
+            }
+        }
+
+        // Pattern 4: Spanish common patterns
+        let spanish_patterns = [
+            ("ordenar", "sort"),
+            ("convertir", "convert"),
+            ("filtrar", "filter"),
+            ("alinear", "align"),
+            ("control de calidad", "quality control"),
+            ("comprimir", "compress"),
+            ("indexar", "index"),
+        ];
+
+        for (spanish, english) in &spanish_patterns {
+            if task_lower.contains(spanish) {
+                let description = task_lower.replace(spanish, english);
+                return Some(NormalizedTask {
+                    description,
+                    intent: self.infer_intent_from_keyword(english),
+                    parameters: self.extract_parameters(task),
+                    constraints: vec![],
+                    confidence: 0.7,
+                });
+            }
+        }
+
+        // Pattern 5: French common patterns
+        let french_patterns = [
+            ("trier", "sort"),
+            ("convertir", "convert"),
+            ("filtrer", "filter"),
+            ("aligner", "align"),
+            ("contrôle qualité", "quality control"),
+            ("compresser", "compress"),
+            ("indexer", "index"),
+        ];
+
+        for (french, english) in &french_patterns {
+            if task_lower.contains(french) {
+                let description = task_lower.replace(french, english);
+                return Some(NormalizedTask {
+                    description,
+                    intent: self.infer_intent_from_keyword(english),
+                    parameters: self.extract_parameters(task),
+                    constraints: vec![],
+                    confidence: 0.7,
+                });
+            }
+        }
+
+        // Pattern 6: German common patterns
+        let german_patterns = [
+            ("sortieren", "sort"),
+            ("konvertieren", "convert"),
+            ("filtern", "filter"),
+            ("alignieren", "align"),
+            ("qualitätskontrolle", "quality control"),
+            ("komprimieren", "compress"),
+            ("indizieren", "index"),
+        ];
+
+        for (german, english) in &german_patterns {
+            if task_lower.contains(german) {
+                let description = task_lower.replace(german, english);
+                return Some(NormalizedTask {
+                    description,
+                    intent: self.infer_intent_from_keyword(english),
+                    parameters: self.extract_parameters(task),
+                    constraints: vec![],
+                    confidence: 0.7,
+                });
+            }
+        }
+
+        // Pattern 7: Portuguese common patterns
+        let portuguese_patterns = [
+            ("ordenar", "sort"),
+            ("converter", "convert"),
+            ("filtrar", "filter"),
+            ("alinhar", "align"),
+            ("controle de qualidade", "quality control"),
+            ("comprimir", "compress"),
+            ("indexar", "index"),
+        ];
+
+        for (portuguese, english) in &portuguese_patterns {
+            if task_lower.contains(portuguese) {
+                let description = task_lower.replace(portuguese, english);
+                return Some(NormalizedTask {
+                    description,
+                    intent: self.infer_intent_from_keyword(english),
+                    parameters: self.extract_parameters(task),
+                    constraints: vec![],
+                    confidence: 0.7,
+                });
+            }
+        }
+
+        // Pattern 8: Russian common patterns
+        let russian_patterns = [
+            ("сортировать", "sort"),
+            ("конвертировать", "convert"),
+            ("фильтровать", "filter"),
+            ("выравнивание", "align"),
+            ("контроль качества", "quality control"),
+            ("сжать", "compress"),
+            ("индексировать", "index"),
+        ];
+
+        for (russian, english) in russian_patterns {
+            if task.contains(russian) {
+                let description = task.replace(russian, english);
+                return Some(NormalizedTask {
+                    description,
+                    intent: self.infer_intent_from_keyword(english),
+                    parameters: self.extract_parameters(task),
+                    constraints: vec![],
+                    confidence: 0.7,
+                });
+            }
+        }
+
+        // Pattern 9: Simple English patterns
         if self.is_simple_english(&task_lower) {
             return Some(NormalizedTask {
                 description: task.to_string(),
@@ -261,14 +439,59 @@ impl TaskNormalizer {
 
     /// LLM-based normalization
     async fn llm_normalize(&self, task: &str, tool: &str) -> Result<NormalizedTask> {
-        // Build prompt for LLM
-        let _prompt = self.build_normalization_prompt(task, tool);
+        let prompt = self.build_normalization_prompt(task, tool);
 
-        // In real implementation, this would call LLM
-        // For now, return a placeholder
-        // let response = self.llm_client.chat_completion(...).await?;
+        // If we have an LLM client, try to use it
+        if let Some(ref llm) = self.llm_client {
+            let system = "You are a bioinformatics task standardizer. Output only valid JSON.";
+            match llm
+                .chat_completion(system, &prompt, Some(512), Some(0.1))
+                .await
+            {
+                Ok(raw) => {
+                    // Try to parse the JSON response
+                    let trimmed = raw.trim();
+                    // Strip markdown fences if present
+                    let json_str = if trimmed.starts_with("```") {
+                        trimmed
+                            .trim_start_matches("```json")
+                            .trim_start_matches("```")
+                            .trim_end_matches("```")
+                            .trim()
+                    } else {
+                        trimmed
+                    };
 
-        // Placeholder: return rule-based result
+                    if let Ok(resp) = serde_json::from_str::<NormalizationResponse>(json_str) {
+                        let intent = match resp.intent.as_str() {
+                            "DataConversion" => TaskIntent::DataConversion,
+                            "QualityControl" => TaskIntent::QualityControl,
+                            "Alignment" => TaskIntent::Alignment,
+                            "VariantCalling" => TaskIntent::VariantCalling,
+                            "Filtering" => TaskIntent::Filtering,
+                            "Aggregation" => TaskIntent::Aggregation,
+                            "Indexing" => TaskIntent::Indexing,
+                            "Statistics" => TaskIntent::Statistics,
+                            "Visualization" => TaskIntent::Visualization,
+                            _ => TaskIntent::Custom,
+                        };
+                        return Ok(NormalizedTask {
+                            description: resp.description,
+                            intent,
+                            parameters: resp.parameters,
+                            constraints: resp.constraints,
+                            confidence: 0.85,
+                        });
+                    }
+                    // JSON parse failed — fall through to rule-based fallback
+                }
+                Err(_) => {
+                    // LLM call failed — fall through to rule-based fallback
+                }
+            }
+        }
+
+        // Fallback: return rule-based result
         Ok(NormalizedTask {
             description: task.to_string(),
             intent: self.infer_intent(&task.to_lowercase()),

@@ -603,21 +603,6 @@
       .community-links { grid-template-columns: 1fr; }
     }
 
-    /* ── Wasm note (removed) ──────────────────────────────────────────── */
-    .wasm-badge {
-      display: none;
-    }
-    .pulse {
-      width: 6px; height: 6px;
-      background: var(--accent2);
-      border-radius: 50%;
-      animation: pulse 2s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50%       { opacity: 0.4; transform: scale(0.7); }
-    }
-
     /* ── Arch diagram ───────────────────────────────────────────────────── */
     .arch-grid {
       display: grid;
@@ -1040,11 +1025,6 @@
     Click an example to watch oxo-call ground the task in documentation,
     load the matching skill, and produce the exact command arguments.
   </p>
-
-  <div class="wasm-badge">
-    <span class="pulse"></span>
-    JS simulation · powered by the same prompt logic as the WASI binary
-  </div>
 
   <div class="demo-wrapper">
     <!-- Sidebar with examples -->
