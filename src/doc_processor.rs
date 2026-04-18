@@ -46,7 +46,7 @@ static FLAG_LINE_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 /// Structured documentation with separated sections
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct StructuredDoc {
     /// Complete USAGE section (command structure)
     pub usage: String,

@@ -18,6 +18,7 @@ mod batch;
 mod core;
 mod retry;
 mod utils;
+pub(crate) mod validation;
 
 #[cfg(test)]
 mod tests;
