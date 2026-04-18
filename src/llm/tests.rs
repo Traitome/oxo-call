@@ -264,3 +264,203 @@ fn test_build_prompt_medium_with_structured_doc() {
         "Medium prompt should include doc-derived content"
     );
 }
+
+// ── Additional response parsing tests (edge cases for small/weak models) ─────
+
+#[test]
+fn test_parse_shell_args_quoted() {
+    let args = parse_shell_args(r#"-o "output file.bam" input.bam"#);
+    assert_eq!(args, vec!["-o", "output file.bam", "input.bam"]);
+}
+
+#[test]
+fn test_parse_shell_args_single_quoted() {
+    let args = parse_shell_args("-o 'output file.bam' input.bam");
+    assert_eq!(args, vec!["-o", "output file.bam", "input.bam"]);
+}
+
+#[test]
+fn test_parse_shell_args_escaped_space() {
+    let args = parse_shell_args(r"-o output\ file.bam input.bam");
+    assert_eq!(args, vec!["-o", "output file.bam", "input.bam"]);
+}
+
+#[test]
+fn test_parse_shell_args_empty() {
+    let args = parse_shell_args("");
+    assert!(args.is_empty());
+}
+
+#[test]
+fn test_parse_shell_args_whitespace_only() {
+    let args = parse_shell_args("   \t  ");
+    assert!(args.is_empty());
+}
+
+#[test]
+fn test_strip_code_fences_triple() {
+    let input = "```bash\nsort -o out.bam in.bam\n```";
+    assert_eq!(strip_code_fences(input), "sort -o out.bam in.bam");
+}
+
+#[test]
+fn test_strip_code_fences_single() {
+    let input = "`sort -o out.bam in.bam`";
+    assert_eq!(strip_code_fences(input), "sort -o out.bam in.bam");
+}
+
+#[test]
+fn test_strip_code_fences_none() {
+    let input = "sort -o out.bam in.bam";
+    assert_eq!(strip_code_fences(input), "sort -o out.bam in.bam");
+}
+
+#[test]
+fn test_extract_command_from_freeform_code_block() {
+    let raw = "Here is the command:\n```\nsort -o sorted.bam input.bam\n```\n";
+    let cmd = extract_command_from_freeform(raw);
+    assert_eq!(cmd, "sort -o sorted.bam input.bam");
+}
+
+#[test]
+fn test_extract_command_from_freeform_subcommand() {
+    let raw = "The answer is:\nsort -o sorted.bam input.bam\n";
+    let cmd = extract_command_from_freeform(raw);
+    assert_eq!(cmd, "sort -o sorted.bam input.bam");
+}
+
+#[test]
+fn test_extract_command_from_freeform_flags() {
+    let raw = "EXPLANATION: This does something\n-o sorted.bam --threads 4 input.bam";
+    let cmd = extract_command_from_freeform(raw);
+    assert_eq!(cmd, "-o sorted.bam --threads 4 input.bam");
+}
+
+#[test]
+fn test_extract_command_from_freeform_empty() {
+    let cmd = extract_command_from_freeform("");
+    assert!(cmd.is_empty());
+}
+
+#[test]
+fn test_parse_response_json() {
+    let raw = r#"{"args": "-o sorted.bam input.bam", "explanation": "Sort a BAM file"}"#;
+    let result = parse_response(raw).unwrap();
+    assert_eq!(result.args, vec!["-o", "sorted.bam", "input.bam"]);
+    assert_eq!(result.explanation, "Sort a BAM file");
+}
+
+#[test]
+fn test_parse_response_json_in_code_fence() {
+    let raw = "```json\n{\"args\": \"-o out.bam in.bam\", \"explanation\": \"Sort\"}\n```";
+    let result = parse_response(raw).unwrap();
+    assert_eq!(result.args, vec!["-o", "out.bam", "in.bam"]);
+}
+
+#[test]
+fn test_parse_response_args_explanation_format() {
+    let raw = "ARGS: -o sorted.bam input.bam\nEXPLANATION: Sort the BAM file";
+    let result = parse_response(raw).unwrap();
+    assert_eq!(result.args, vec!["-o", "sorted.bam", "input.bam"]);
+    assert_eq!(result.explanation, "Sort the BAM file");
+}
+
+#[test]
+fn test_parse_response_case_insensitive_prefix() {
+    let raw = "args: -o sorted.bam input.bam\nexplanation: Sort the BAM file";
+    let result = parse_response(raw).unwrap();
+    assert_eq!(result.args, vec!["-o", "sorted.bam", "input.bam"]);
+}
+
+#[test]
+fn test_parse_response_bold_markdown_prefix() {
+    // Markdown bold wraps: **ARGS:** ... **EXPLANATION:** ...
+    // The parser should strip all leading/trailing asterisks from both
+    // the prefix and the value.
+    let raw = "**ARGS:** -o sorted.bam input.bam\n**EXPLANATION:** Sort the BAM file";
+    let result = parse_response(raw).unwrap();
+    assert_eq!(result.args, vec!["-o", "sorted.bam", "input.bam"]);
+    assert_eq!(result.explanation, "Sort the BAM file");
+}
+
+#[test]
+fn test_parse_response_none_args() {
+    let raw = "ARGS: (none)\nEXPLANATION: No command needed";
+    let result = parse_response(raw).unwrap();
+    assert!(result.args.is_empty());
+}
+
+#[test]
+fn test_sanitize_args_strips_tool() {
+    let args = vec![
+        "samtools".to_string(),
+        "sort".to_string(),
+        "-o".to_string(),
+        "out.bam".to_string(),
+    ];
+    let sanitized = sanitize_args("samtools", args);
+    assert_eq!(sanitized[0], "sort");
+}
+
+#[test]
+fn test_sanitize_args_injects_tool_after_chain() {
+    let args = vec![
+        "sort".to_string(),
+        "-o".to_string(),
+        "sorted.bam".to_string(),
+        "input.bam".to_string(),
+        "&&".to_string(),
+        "index".to_string(),
+        "sorted.bam".to_string(),
+    ];
+    let sanitized = sanitize_args("samtools", args);
+    // After &&, "samtools" should be injected before "index"
+    let chain_pos = sanitized.iter().position(|s| s == "&&").unwrap();
+    assert_eq!(sanitized[chain_pos + 1], "samtools");
+    assert_eq!(sanitized[chain_pos + 2], "index");
+}
+
+#[test]
+fn test_parse_verification_response_warning() {
+    let raw = "STATUS: warning\nSUMMARY: Completed with warnings.\nISSUES:\n- Low coverage detected\nSUGGESTIONS:\n- Increase sequencing depth";
+    let v = parse_verification_response(raw);
+    assert!(v.success); // warning is not failure
+    assert_eq!(v.issues.len(), 1);
+    assert_eq!(v.suggestions.len(), 1);
+}
+
+#[test]
+fn test_parse_skill_verify_response_pass() {
+    let raw = "VERDICT: pass\nSUMMARY: Skill is valid.\nISSUES:\n- none\nSUGGESTIONS:\n- none";
+    let v = parse_skill_verify_response(raw);
+    assert!(v.passed);
+    assert_eq!(v.summary, "Skill is valid.");
+}
+
+#[test]
+fn test_parse_skill_verify_response_fail() {
+    let raw = "VERDICT: fail\nSUMMARY: Missing concepts.\nISSUES:\n- No examples section\nSUGGESTIONS:\n- Add examples";
+    let v = parse_skill_verify_response(raw);
+    assert!(!v.passed);
+    assert_eq!(v.issues.len(), 1);
+    assert_eq!(v.suggestions.len(), 1);
+}
+
+#[test]
+fn test_strip_markdown_fences_with_language() {
+    assert_eq!(strip_markdown_fences("```markdown\nHello\n```"), "Hello");
+    assert_eq!(strip_markdown_fences("```md\nHello\n```"), "Hello");
+}
+
+#[test]
+fn test_strip_prefix_case_insensitive_match() {
+    assert_eq!(
+        strip_prefix_case_insensitive("ARGS: hello", "args:"),
+        Some(" hello")
+    );
+    assert_eq!(
+        strip_prefix_case_insensitive("Args: hello", "args:"),
+        Some(" hello")
+    );
+    assert_eq!(strip_prefix_case_insensitive("xargs: hello", "args:"), None);
+}
