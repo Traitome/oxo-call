@@ -248,9 +248,7 @@ impl LlmWorkflowExecutor {
     fn should_standardize_task(&self, task: &str) -> bool {
         let task_lower = task.to_lowercase();
 
-        // Non-English (simple heuristic: check for non-ASCII characters)
-        // This should be checked first — non-ASCII input always benefits
-        // from standardization regardless of other heuristics.
+        // Non-English input always benefits from standardization.
         if !task.is_ascii() {
             return true;
         }

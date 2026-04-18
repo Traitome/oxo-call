@@ -458,6 +458,9 @@ impl Config {
         }
 
         // ── Local models: use parameter-size tags ────────────────────────────
+        // `infer_model_parameter_count` extracts the parameter count (in
+        // billions) from model name tags like "7b", "0.5b", "70b", etc.
+        // using word-boundary matching to avoid false positives.
         if let Some(params) = infer_model_parameter_count(&model) {
             return if params <= 2.0 {
                 "small"
