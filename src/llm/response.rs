@@ -386,15 +386,25 @@ pub fn parse_response(raw: &str) -> crate::error::Result<LlmCommandSuggestion> {
     for line in raw.lines() {
         let trimmed = line.trim_start();
         // Support case-insensitive prefix matching for common LLM deviations:
-        // "ARGS:", "Args:", "args:", "**ARGS:**", etc.
+        // "ARGS:", "Args:", "args:", "**ARGS:**", "## ARGS:", etc.
         let stripped = trimmed
             .trim_start_matches('*')
             .trim_start_matches('#')
             .trim_start();
         if let Some(rest) = strip_prefix_case_insensitive(stripped, "ARGS:") {
-            args_line = rest.trim().trim_end_matches('*').trim().to_string();
+            args_line = rest
+                .trim()
+                .trim_start_matches('*') // strip residual bold markers in value
+                .trim_end_matches('*')
+                .trim()
+                .to_string();
         } else if let Some(rest) = strip_prefix_case_insensitive(stripped, "EXPLANATION:") {
-            explanation_line = rest.trim().trim_end_matches('*').trim().to_string();
+            explanation_line = rest
+                .trim()
+                .trim_start_matches('*')
+                .trim_end_matches('*')
+                .trim()
+                .to_string();
         }
     }
 

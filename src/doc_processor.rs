@@ -3,15 +3,50 @@
 //! This module provides smart documentation cleaning and structuring without
 //! destructive compression. It preserves complete USAGE, EXAMPLES, and key
 //! sections while removing only noise and redundancy.
+//!
+//! ## Shared primitives
+//!
+//! The free functions [`clean_noise`], [`is_section_header`],
+//! [`extract_flags_standalone`], and [`extract_sections_standalone`] are the
+//! canonical implementations used by both this module and
+//! [`crate::doc_summarizer`].  `doc_summarizer` re-uses them instead of
+//! maintaining its own copies, eliminating code duplication.
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fmt;
+use std::sync::LazyLock;
+
+// ─── Pre-compiled regex patterns (compiled once, reused across all calls) ─────
+
+/// Noise patterns: lines that carry no useful information for LLM consumption.
+static NOISE_PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
+    vec![
+        Regex::new(r"For more information.*").unwrap(),
+        Regex::new(r"Report bugs to.*").unwrap(),
+        Regex::new(r"See the full documentation.*").unwrap(),
+        Regex::new(r"Homepage:.*").unwrap(),
+        Regex::new(r"^\s*Version:.*$").unwrap(),
+        Regex::new(r"^\s*$").unwrap(),
+    ]
+});
+
+/// Matches three or more consecutive newlines (for collapsing blank lines).
+static BLANK_LINE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\n{3,}").unwrap());
+
+/// Matches CLI flags like `-o`, `--output`, `--output-file`.
+static FLAG_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?:^|\s)(-{1,2}[a-zA-Z0-9_-]+)").unwrap());
+
+/// Matches structured flag lines in OPTIONS sections (e.g. `  -o FILE   Output file name`).
+static FLAG_LINE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^\s*(-{1,2}[a-zA-Z0-9@_-]+(?:[,\s]+--?[a-zA-Z0-9_-]+)?(?:\s+\S+)?)\s{2,}(.+)")
+        .unwrap()
+});
 
 /// Structured documentation with separated sections
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct StructuredDoc {
     /// Complete USAGE section (command structure)
     pub usage: String,
@@ -88,30 +123,30 @@ impl fmt::Display for StructuredDoc {
         // Quick reference flags
         if !self.quick_flags.is_empty() {
             output.push_str("=== QUICK REFERENCE FLAGS ===\n");
-            output.push_str(
-                &self
-                    .quick_flags
-                    .iter()
-                    .take(30)
-                    .cloned()
-                    .collect::<Vec<_>>()
-                    .join(" "),
-            );
+            let flags: Vec<&str> = self
+                .quick_flags
+                .iter()
+                .take(30)
+                .map(|s| s.as_str())
+                .collect();
+            output.push_str(&flags.join(" "));
         }
 
         write!(f, "{}", output.trim())
     }
 }
 
-/// Document processor with noise patterns and key section identifiers
+/// Document processor for cleaning and structuring tool documentation.
+///
+/// Noise-pattern regexes are compiled once as module-level statics
+/// (`NOISE_PATTERNS`, `BLANK_LINE_RE`, etc.) and shared across all instances.
+/// Section headers are detected using the free-standing [`is_section_header`]
+/// function.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct DocProcessor {
-    /// Noise patterns to remove
-    noise_patterns: Vec<Regex>,
-    /// Key section identifiers (complete preservation)
-    #[allow(dead_code)]
-    key_sections: Vec<String>,
+    // All state has been moved to module-level statics.
+    // The struct is kept as a method namespace for documentation processing.
+    _priv: (),
 }
 
 impl Default for DocProcessor {
@@ -123,29 +158,7 @@ impl Default for DocProcessor {
 impl DocProcessor {
     /// Create a new document processor with default patterns
     pub fn new() -> Self {
-        let noise_patterns = vec![
-            Regex::new(r"For more information.*").unwrap(),
-            Regex::new(r"Report bugs to.*").unwrap(),
-            Regex::new(r"See the full documentation.*").unwrap(),
-            Regex::new(r"Homepage:.*").unwrap(),
-            Regex::new(r"^\s*Version:.*$").unwrap(), // Only standalone version lines
-            Regex::new(r"^\s*$").unwrap(),           // Empty lines (will be collapsed later)
-        ];
-
-        let key_sections = vec![
-            "usage".to_string(),
-            "examples".to_string(),
-            "options".to_string(),
-            "arguments".to_string(),
-            "commands".to_string(),
-            "parameters".to_string(),
-            "flags".to_string(),
-        ];
-
-        DocProcessor {
-            noise_patterns,
-            key_sections,
-        }
+        DocProcessor { _priv: () }
     }
 
     /// Process documentation (alias for clean_and_structure)
@@ -224,14 +237,13 @@ impl DocProcessor {
     ///
     /// This produces a LLM-ready string with clear section markers,
     /// preserving complete USAGE and EXAMPLES while compressing OPTIONS.
-    #[allow(dead_code)]
+    #[allow(dead_code)] // Public API; used in tests and by downstream consumers
     pub fn process_for_llm(&self, docs: &str) -> String {
         let structured = self.clean_and_structure(docs);
         self.format_structured_doc(&structured)
     }
 
     /// Format structured documentation for LLM consumption
-    #[allow(dead_code)]
     fn format_structured_doc(&self, doc: &StructuredDoc) -> String {
         let mut output = String::new();
 
@@ -289,14 +301,13 @@ impl DocProcessor {
     fn remove_noise(&self, docs: &str) -> String {
         let mut cleaned = docs.to_string();
 
-        // Apply noise patterns
-        for pattern in &self.noise_patterns {
+        // Apply statically-compiled noise patterns
+        for pattern in NOISE_PATTERNS.iter() {
             cleaned = pattern.replace_all(&cleaned, "").to_string();
         }
 
         // Collapse multiple blank lines to double newline
-        let blank_line_re = Regex::new(r"\n{3,}").unwrap();
-        cleaned = blank_line_re.replace_all(&cleaned, "\n\n").to_string();
+        cleaned = BLANK_LINE_RE.replace_all(&cleaned, "\n\n").to_string();
 
         cleaned.trim().to_string()
     }
@@ -435,9 +446,8 @@ impl DocProcessor {
     /// Extract all flags from documentation
     fn extract_all_flags(&self, docs: &str) -> Vec<String> {
         let mut flags = HashSet::new();
-        let flag_re = Regex::new(r"(?:^|\s)(-{1,2}[a-zA-Z0-9_-]+)").unwrap();
 
-        for cap in flag_re.captures_iter(docs) {
+        for cap in FLAG_RE.captures_iter(docs) {
             if let Some(flag) = cap.get(1) {
                 flags.insert(flag.as_str().to_string());
             }
@@ -457,10 +467,6 @@ impl DocProcessor {
     ///   -@ INT          Number of threads (samtools style)
     fn extract_flag_catalog(&self, options: &str) -> Vec<FlagEntry> {
         let mut catalog = Vec::new();
-        let flag_line_re = Regex::new(
-            r"^\s*(-{1,2}[a-zA-Z0-9@_-]+(?:[,\s]+--?[a-zA-Z0-9_-]+)?(?:\s+\S+)?)\s{2,}(.+)",
-        )
-        .unwrap();
 
         for line in options.lines() {
             let trimmed = line.trim();
@@ -468,7 +474,7 @@ impl DocProcessor {
                 continue;
             }
 
-            if let Some(caps) = flag_line_re.captures(line) {
+            if let Some(caps) = FLAG_LINE_RE.captures(line) {
                 let flag = caps.get(1).map(|m| m.as_str().trim()).unwrap_or("");
                 let desc = caps.get(2).map(|m| m.as_str().trim()).unwrap_or("");
                 if !flag.is_empty() {
@@ -594,7 +600,7 @@ impl DocProcessor {
     /// Build a compact flag list suitable for injection into LLM prompts.
     ///
     /// Returns a string like: `-o FILE  --threads INT  -@ INT  --output-fmt FMT`
-    #[allow(dead_code)]
+    #[allow(dead_code)] // Public API; used in tests
     pub fn flag_catalog_compact(&self, catalog: &[FlagEntry]) -> String {
         catalog
             .iter()
@@ -605,16 +611,17 @@ impl DocProcessor {
     }
 }
 
-/// LLM-based intelligent document processor
+/// LLM-based intelligent document processor (reserved for future use).
 ///
 /// This is an advanced processor that uses LLM to understand and extract
 /// key information from documentation, rather than simple pattern matching.
+/// Currently only uses the rule-based fast path; the LLM path is a placeholder.
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
-pub struct IntelligentDocProcessor {
+pub(crate) struct IntelligentDocProcessor {
     /// Rule-based processor for fast path
     rule_processor: DocProcessor,
     /// Cache for processed documents
-    #[allow(dead_code)]
     cache: std::collections::HashMap<String, ProcessedDoc>,
 }
 
@@ -624,8 +631,9 @@ impl Default for IntelligentDocProcessor {
     }
 }
 
+#[allow(dead_code)]
 impl IntelligentDocProcessor {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             rule_processor: DocProcessor::new(),
             cache: std::collections::HashMap::new(),
@@ -641,8 +649,7 @@ impl IntelligentDocProcessor {
     ///
     /// # Returns
     /// Processed documentation with key information extracted
-    #[allow(dead_code)]
-    pub async fn process(&self, doc: &str, _tool: &str, use_llm: bool) -> ProcessedDoc {
+    pub(crate) async fn process(&self, doc: &str, _tool: &str, use_llm: bool) -> ProcessedDoc {
         // Step 1: Calculate document hash for caching
         let doc_hash = self.calculate_hash(doc);
 
@@ -777,7 +784,6 @@ impl IntelligentDocProcessor {
     }
 
     /// Build LLM prompt for intelligent document processing
-    #[allow(dead_code)]
     fn build_llm_prompt(&self, structured: &StructuredDoc, tool: &str) -> String {
         format!(
             r#"You are a bioinformatics documentation expert. Extract and organize the most critical information from this {tool} documentation.
@@ -817,10 +823,10 @@ Focus on information that helps generate correct commands. Remove noise and redu
     }
 }
 
-/// Processed documentation with extracted key information
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Processed documentation with extracted key information (reserved for future use).
 #[allow(dead_code)]
-pub struct ProcessedDoc {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct ProcessedDoc {
     /// Core usage pattern (most common)
     pub core_usage: String,
     /// Key parameters extracted from documentation
@@ -848,22 +854,168 @@ impl Default for ProcessedDoc {
     }
 }
 
-/// Key parameter extracted from documentation
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Key parameter extracted from documentation (reserved for future use).
 #[allow(dead_code)]
-pub struct KeyParameter {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct KeyParameter {
     pub name: String,
     pub description: String,
     pub default: Option<String>,
     pub common_use_case: Option<String>,
 }
 
-/// Example extracted from documentation
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Example extracted from documentation (reserved for future use).
 #[allow(dead_code)]
-pub struct DocExample {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct DocExample {
     pub command: String,
     pub description: String,
+}
+
+// ─── Shared free-standing primitives ──────────────────────────────────────────
+//
+// These functions are the canonical implementations of noise removal, section
+// header detection, section extraction, and flag extraction.  They are used
+// both within `DocProcessor` methods and by `crate::doc_summarizer`.
+
+/// Remove noise patterns from documentation and collapse excessive blank lines.
+///
+/// This is the shared implementation used by both [`DocProcessor::remove_noise`]
+/// and [`crate::doc_summarizer`].  Uses the module-level `NOISE_PATTERNS` and
+/// `BLANK_LINE_RE` statics so the regexes are compiled only once.
+pub fn clean_noise(docs: &str) -> String {
+    let mut cleaned = docs.to_string();
+
+    for re in NOISE_PATTERNS.iter() {
+        cleaned = re.replace_all(&cleaned, "").to_string();
+    }
+
+    // Collapse multiple blank lines to double newline
+    cleaned = BLANK_LINE_RE.replace_all(&cleaned, "\n\n").to_string();
+
+    cleaned.trim().to_string()
+}
+
+/// Check whether a line looks like a section header (e.g. `USAGE:`, `Options:`).
+///
+/// Canonical implementation shared with [`crate::doc_summarizer`].
+pub fn is_section_header(line: &str) -> bool {
+    if line.is_empty() {
+        return false;
+    }
+
+    let header_patterns = [
+        "USAGE:",
+        "Usage:",
+        "OPTIONS:",
+        "Options:",
+        "ARGUMENTS:",
+        "Arguments:",
+        "EXAMPLES:",
+        "Examples:",
+        "PARAMETERS:",
+        "Parameters:",
+        "FLAGS:",
+        "Flags:",
+        "COMMANDS:",
+        "Commands:",
+        "DESCRIPTION:",
+        "Description:",
+        "SYNOPSIS:",
+        "Synopsis:",
+    ];
+
+    if header_patterns.iter().any(|p| line.starts_with(p)) {
+        return true;
+    }
+
+    // All-caps header with trailing colon
+    if line.ends_with(':') && line.chars().filter(|c| c.is_uppercase()).count() > 3 {
+        return true;
+    }
+
+    false
+}
+
+/// Extract all `-` or `--` flags from a documentation string.
+///
+/// Canonical implementation shared with [`crate::doc_summarizer`].
+/// Uses the module-level `FLAG_RE` static.
+pub fn extract_flags_standalone(docs: &str) -> Vec<String> {
+    let mut flags = HashSet::new();
+
+    for cap in FLAG_RE.captures_iter(docs) {
+        if let Some(flag) = cap.get(1) {
+            flags.insert(flag.as_str().to_string());
+        }
+    }
+
+    let mut flags_vec: Vec<String> = flags.into_iter().collect();
+    flags_vec.sort();
+    flags_vec
+}
+
+/// Extract key sections from documentation text.
+///
+/// Returns `(header, content)` pairs.  If no sections are found, the entire
+/// text is returned as a single `"Documentation"` section.
+///
+/// Canonical implementation shared with [`crate::doc_summarizer`].
+pub fn extract_sections_standalone(docs: &str) -> Vec<(String, String)> {
+    let mut sections = Vec::new();
+    let lines: Vec<&str> = docs.lines().collect();
+
+    let mut current_section = String::new();
+    let mut current_content = String::new();
+
+    for line in &lines {
+        let trimmed = line.trim();
+
+        if is_section_header(trimmed) {
+            if !current_section.is_empty() && !current_content.is_empty() {
+                sections.push((current_section.clone(), current_content.clone()));
+            }
+            current_section = trimmed.to_string();
+            current_content = String::new();
+        } else if !current_section.is_empty() {
+            current_content.push_str(line);
+            current_content.push('\n');
+        }
+    }
+
+    if !current_section.is_empty() && !current_content.is_empty() {
+        sections.push((current_section, current_content));
+    }
+
+    if sections.is_empty() {
+        sections.push(("Documentation".to_string(), docs.to_string()));
+    }
+
+    sections
+}
+
+/// Smart truncation that preserves complete lines and sections.
+pub fn truncate_smart(text: &str, max_len: usize) -> String {
+    if text.len() <= max_len {
+        return text.to_string();
+    }
+
+    let truncate_at = max_len.saturating_sub(50);
+
+    if let Some(pos) = text[..truncate_at].rfind("\n\n") {
+        let truncated = &text[..pos];
+        return format!("{}\n\n... [documentation truncated for brevity]", truncated);
+    }
+
+    if let Some(pos) = text[..truncate_at].rfind('\n') {
+        let truncated = &text[..pos];
+        return format!("{}\n\n... [documentation truncated for brevity]", truncated);
+    }
+
+    format!(
+        "{}... [documentation truncated for brevity]",
+        &text[..truncate_at]
+    )
 }
 
 #[cfg(test)]
@@ -1039,5 +1191,94 @@ mod tests {
             structured.quality_score > 0.0,
             "quality_score should be > 0"
         );
+    }
+
+    // ── Tests for shared free-standing primitives ─────────────────────────────
+
+    #[test]
+    fn test_shared_clean_noise() {
+        let noisy = "Usage: tool\n\nFor more information see https://example.com\nReport bugs to bugs@example.com\nHomepage: https://example.com";
+        let cleaned = clean_noise(noisy);
+        assert!(!cleaned.contains("For more information"));
+        assert!(!cleaned.contains("Report bugs"));
+        assert!(!cleaned.contains("Homepage:"));
+    }
+
+    #[test]
+    fn test_shared_clean_noise_collapses_blank_lines() {
+        let text = "line1\n\n\n\n\nline2";
+        let cleaned = clean_noise(text);
+        assert_eq!(cleaned, "line1\n\nline2");
+    }
+
+    #[test]
+    fn test_shared_is_section_header_standard() {
+        assert!(is_section_header("USAGE:"));
+        assert!(is_section_header("Options:"));
+        assert!(is_section_header("EXAMPLES:"));
+        assert!(is_section_header("SYNOPSIS:"));
+    }
+
+    #[test]
+    fn test_shared_is_section_header_allcaps_colon() {
+        assert!(is_section_header("ADDITIONAL SETTINGS:"));
+        assert!(!is_section_header("just a line"));
+        assert!(!is_section_header(""));
+    }
+
+    #[test]
+    fn test_shared_extract_flags_standalone() {
+        let doc = "Usage: tool --help --version -v -q --output FILE";
+        let flags = extract_flags_standalone(doc);
+        assert!(flags.contains(&"--help".to_string()));
+        assert!(flags.contains(&"--version".to_string()));
+        assert!(flags.contains(&"-v".to_string()));
+        assert!(flags.contains(&"-q".to_string()));
+        assert!(flags.contains(&"--output".to_string()));
+    }
+
+    #[test]
+    fn test_shared_extract_flags_standalone_empty() {
+        let flags = extract_flags_standalone("no flags here");
+        assert!(flags.is_empty());
+    }
+
+    #[test]
+    fn test_shared_extract_sections_standalone() {
+        let doc =
+            "USAGE:\n  tool [options]\n\nOPTIONS:\n  --help  Show help\n\nEXAMPLES:\n  tool --help";
+        let sections = extract_sections_standalone(doc);
+        assert_eq!(sections.len(), 3);
+        assert!(sections[0].0.contains("USAGE"));
+        assert!(sections[1].0.contains("OPTIONS"));
+        assert!(sections[2].0.contains("EXAMPLES"));
+    }
+
+    #[test]
+    fn test_shared_extract_sections_standalone_no_sections() {
+        let doc = "just some text without headers";
+        let sections = extract_sections_standalone(doc);
+        assert_eq!(sections.len(), 1);
+        assert_eq!(sections[0].0, "Documentation");
+    }
+
+    #[test]
+    fn test_shared_truncate_smart_short() {
+        let text = "short text";
+        assert_eq!(truncate_smart(text, 100), text);
+    }
+
+    #[test]
+    fn test_shared_truncate_smart_at_paragraph() {
+        let text = "Line 1\n\nLine 2\n\nLine 3 which is longer text to push past the limit";
+        let result = truncate_smart(text, 25);
+        assert!(result.contains("[documentation truncated"));
+    }
+
+    #[test]
+    fn test_shared_truncate_smart_at_line() {
+        let text = "Line 1\nLine 2\nLine 3 which is a bit longer to go past the truncation point";
+        let result = truncate_smart(text, 30);
+        assert!(result.contains("[documentation truncated"));
     }
 }

@@ -245,7 +245,6 @@ impl LlmClient {
     /// Make a raw chat completion call with custom system prompt.
     ///
     /// This is a low-level API for specialized workflows (e.g., mini-skill generation).
-    #[allow(dead_code)]
     pub async fn chat_completion(
         &self,
         system: &str,

@@ -315,13 +315,13 @@ impl McpClient {
 
 /// A single skill resource discovered via `resources/list`.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct McpSkillEntry {
     /// The resource URI (e.g. `skill://samtools`)
     pub uri: String,
     /// Canonical tool name derived from the URI or resource name
     pub tool: String,
     /// Optional description from the resource metadata
+    #[allow(dead_code)]
     pub description: String,
 }
 

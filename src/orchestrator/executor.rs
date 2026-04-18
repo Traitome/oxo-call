@@ -4,19 +4,20 @@
 //! It enriches the LLM prompt with knowledge-layer hints (best practices,
 //! tool info) before calling the LLM client.
 
+use crate::config::Config;
 use crate::error::Result;
 use crate::knowledge::best_practices::BestPracticesDb;
 use crate::task_normalizer::{NormalizedTask, TaskNormalizer};
 
 /// Result from the executor agent's preparation step.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct ExecutorContext {
     /// Normalized task description.
     pub normalized_task: NormalizedTask,
     /// Best practice hints injected into the prompt.
     pub practice_hints: String,
     /// Whether the task was normalized (changed from original).
+    #[allow(dead_code)]
     pub was_normalized: bool,
 }
 
@@ -36,6 +37,18 @@ impl ExecutorAgent {
     pub fn new() -> Self {
         Self {
             normalizer: TaskNormalizer::new(),
+            best_practices: BestPracticesDb::new(),
+        }
+    }
+
+    /// Create an executor agent with an LLM-backed task normalizer.
+    ///
+    /// When a `Config` is provided, the normalizer will fall back to the
+    /// configured LLM for complex / multilingual tasks that the rule-based
+    /// path cannot handle.
+    pub fn new_with_config(config: Config) -> Self {
+        Self {
+            normalizer: TaskNormalizer::new_with_llm(config),
             best_practices: BestPracticesDb::new(),
         }
     }

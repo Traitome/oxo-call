@@ -20,10 +20,10 @@ pub struct BestPractice {
 }
 
 /// In-memory best practices database.
-#[allow(dead_code)]
 pub struct BestPracticesDb {
     practices: Vec<BestPractice>,
     /// Index: category → practice indices.
+    #[allow(dead_code)]
     category_index: HashMap<String, Vec<usize>>,
     /// Index: tool name → practice indices.
     tool_index: HashMap<String, Vec<usize>>,
@@ -35,7 +35,6 @@ impl Default for BestPracticesDb {
     }
 }
 
-#[allow(dead_code)]
 impl BestPracticesDb {
     /// Create a new DB loaded with embedded best practices.
     pub fn new() -> Self {
@@ -66,7 +65,7 @@ impl BestPracticesDb {
         let mut indices: Vec<usize> = self
             .tool_index
             .get(&tool_lower)
-            .cloned()
+            .map(|v| v.to_vec())
             .unwrap_or_default();
 
         // Also include universal practices (empty tools list).
@@ -80,6 +79,7 @@ impl BestPracticesDb {
     }
 
     /// Get practices for a category.
+    #[allow(dead_code)]
     pub fn for_category(&self, category: &str) -> Vec<&BestPractice> {
         self.category_index
             .get(category)
@@ -102,11 +102,13 @@ impl BestPracticesDb {
     }
 
     /// Total number of practices.
+    #[allow(dead_code)]
     pub fn len(&self) -> usize {
         self.practices.len()
     }
 
     /// Whether the DB is empty.
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.practices.is_empty()
     }

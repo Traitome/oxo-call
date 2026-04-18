@@ -1,3 +1,37 @@
+//! **oxo-call** — Model-intelligent orchestration for CLI bioinformatics.
+//!
+//! This binary provides the `oxo-call` command, which uses LLM intelligence to
+//! generate, verify, and execute bioinformatics tool invocations.
+//!
+//! ## Architecture overview
+//!
+//! The application follows a **docs-first grounding** pattern:
+//!
+//! 1. **Documentation fetch** — Tool docs are fetched/cached before any LLM call
+//!    (`docs` module).
+//! 2. **Skill selection** — The best matching skill (built-in, community, or MCP)
+//!    is loaded to provide domain-specific guidance (`skill` module).
+//! 3. **LLM command generation** — The prompt, enriched with structured docs and
+//!    skill context, is sent to a local or remote LLM (`llm` module).
+//! 4. **Execution & verification** — The generated command is executed (optionally
+//!    with retry logic) and its output is verified (`runner` module).
+//!
+//! ## Command routing
+//!
+//! All CLI commands are defined in [`cli`] and dispatched in [`main`].  The
+//! primary user-facing commands are:
+//!
+//! - `run` / `dry-run` — Generate and (optionally) execute tool commands
+//! - `docs` — Fetch and manage tool documentation
+//! - `skill` — Manage built-in, community, and MCP skills
+//! - `workflow` — Manage multi-step DAG workflows (`.oxo.toml`)
+//! - `job` — Define and run batch job templates
+//! - `history` — Browse command history with provenance
+//! - `chat` — Interactive LLM chat mode
+//! - `config` — Manage configuration
+//! - `server` — Remote server management
+//! - `license` — License activation and verification
+
 mod cache;
 mod chat;
 mod cli;

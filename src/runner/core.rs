@@ -98,10 +98,17 @@ pub struct Runner {
 
 impl Runner {
     pub fn new(config: Config) -> Self {
+        // Build sub-components before consuming `config`, using clones only
+        // where the constructor takes ownership.  The final field assignment
+        // consumes the original—one fewer clone than the naïve approach.
+        let fetcher = DocsFetcher::new(config.clone());
+        let llm = LlmClient::new(config.clone());
+        let skill_manager = SkillManager::new(config.clone());
+        let executor_agent = ExecutorAgent::new_with_config(config.clone());
         Runner {
-            fetcher: DocsFetcher::new(config.clone()),
-            llm: LlmClient::new(config.clone()),
-            skill_manager: SkillManager::new(config.clone()),
+            fetcher,
+            llm,
+            skill_manager,
             config,
             verbose: false,
             no_cache: false,
@@ -117,7 +124,7 @@ impl Runner {
             force_scenario: None,
             supervisor: SupervisorAgent::new(),
             planner: PlannerAgent::new(),
-            executor_agent: ExecutorAgent::new(),
+            executor_agent,
             validator_agent: ValidatorAgent::new(),
             result_analyzer: ResultAnalyzer::new(),
         }

@@ -17,7 +17,6 @@ use std::collections::HashMap;
 
 /// Recognised sequencing assay types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[allow(dead_code)]
 pub enum AssayType {
     RnaSeq,
     Wgs,
@@ -29,12 +28,12 @@ pub enum AssayType {
     ScRnaSeq,
     LongReads,
     Metagenomics,
+    #[allow(dead_code)]
     Amplicon,
 }
 
 impl AssayType {
     /// Human-readable label for display.
-    #[allow(dead_code)]
     pub fn label(&self) -> &'static str {
         match self {
             Self::RnaSeq => "RNA-seq",

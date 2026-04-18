@@ -53,36 +53,85 @@ pub enum ErrorCategory {
 
 impl ErrorCategory {
     /// Classify stderr text into an error category.
+    ///
+    /// Uses broad keyword matching — longer / more-specific patterns are tested
+    /// first to avoid mis-classification (e.g., "reference not found" before
+    /// generic "not found").
     pub fn classify(stderr: &str) -> Self {
         let s = stderr.to_lowercase();
-        if s.contains("no such file") || s.contains("not found") || s.contains("cannot open") {
-            Self::MissingInput
-        } else if s.contains("unknown option")
+
+        // Reference-specific (must precede generic "not found").
+        if (s.contains("reference") || s.contains("genome") || s.contains("index"))
+            && (s.contains("not found") || s.contains("missing") || s.contains("no such"))
+        {
+            return Self::MissingReference;
+        }
+
+        // Missing input.
+        if s.contains("no such file")
+            || s.contains("not found")
+            || s.contains("cannot open")
+            || s.contains("file not found")
+            || s.contains("does not exist")
+            || s.contains("failed to open")
+        {
+            return Self::MissingInput;
+        }
+
+        // Bad flags.
+        if s.contains("unknown option")
             || s.contains("unrecognized option")
             || s.contains("invalid option")
             || s.contains("bad flag")
+            || s.contains("unrecognised option")
+            || s.contains("illegal option")
+            || s.contains("unknown argument")
         {
-            Self::BadFlag
-        } else if s.contains("permission denied") || s.contains("access denied") {
-            Self::Permission
-        } else if s.contains("out of memory") || s.contains("cannot allocate") || s.contains("oom")
+            return Self::BadFlag;
+        }
+
+        // Permission.
+        if s.contains("permission denied")
+            || s.contains("access denied")
+            || s.contains("operation not permitted")
         {
-            Self::OutOfMemory
-        } else if s.contains("invalid format")
+            return Self::Permission;
+        }
+
+        // Out of memory.
+        if s.contains("out of memory")
+            || s.contains("cannot allocate")
+            || s.contains("oom")
+            || s.contains("memory allocation failed")
+            || s.contains("std::bad_alloc")
+            || s.contains("killed")
+        {
+            return Self::OutOfMemory;
+        }
+
+        // Format errors.
+        if s.contains("invalid format")
             || s.contains("not a bam")
             || s.contains("truncated file")
             || s.contains("is not a")
+            || s.contains("unexpected eof")
+            || s.contains("corrupted")
+            || s.contains("magic number")
+            || s.contains("failed to parse")
         {
-            Self::FormatError
-        } else if s.contains("command not found") || s.contains("no such command") {
-            Self::ToolMissing
-        } else if s.contains("reference")
-            && (s.contains("not found") || s.contains("missing") || s.contains("no such"))
-        {
-            Self::MissingReference
-        } else {
-            Self::Other
+            return Self::FormatError;
         }
+
+        // Tool missing.
+        if s.contains("command not found")
+            || s.contains("no such command")
+            || s.contains("not recognized")
+            || s.contains("not installed")
+        {
+            return Self::ToolMissing;
+        }
+
+        Self::Other
     }
 
     /// Return a human-readable recovery hint for this error category.
@@ -113,10 +162,8 @@ impl ErrorCategory {
 }
 
 /// Error knowledge database backed by a JSONL file.
-#[allow(dead_code)]
 pub struct ErrorKnowledgeDb;
 
-#[allow(dead_code)]
 impl ErrorKnowledgeDb {
     fn db_path() -> Result<PathBuf> {
         Ok(Config::data_dir()?.join("error_knowledge.jsonl"))
@@ -186,6 +233,7 @@ impl ErrorKnowledgeDb {
     }
 
     /// Count total recorded errors.
+    #[allow(dead_code)]
     pub fn count() -> Result<usize> {
         let path = Self::db_path()?;
         if !path.exists() {
@@ -262,5 +310,111 @@ mod tests {
         ] {
             assert!(!cat.recovery_hint().is_empty());
         }
+    }
+
+    // ── Expanded error classification tests ──────────────────────────────────
+
+    #[test]
+    fn test_classify_does_not_exist() {
+        assert_eq!(
+            ErrorCategory::classify("error: file 'input.bam' does not exist"),
+            ErrorCategory::MissingInput
+        );
+    }
+
+    #[test]
+    fn test_classify_failed_to_open() {
+        assert_eq!(
+            ErrorCategory::classify("[E::hts_open_format] Failed to open input.bam"),
+            ErrorCategory::MissingInput
+        );
+    }
+
+    #[test]
+    fn test_classify_illegal_option() {
+        assert_eq!(
+            ErrorCategory::classify("illegal option -- z"),
+            ErrorCategory::BadFlag
+        );
+    }
+
+    #[test]
+    fn test_classify_unknown_argument() {
+        assert_eq!(
+            ErrorCategory::classify("error: unknown argument '--xyz'"),
+            ErrorCategory::BadFlag
+        );
+    }
+
+    #[test]
+    fn test_classify_operation_not_permitted() {
+        assert_eq!(
+            ErrorCategory::classify("operation not permitted: /etc/hosts"),
+            ErrorCategory::Permission
+        );
+    }
+
+    #[test]
+    fn test_classify_bad_alloc() {
+        assert_eq!(
+            ErrorCategory::classify("terminate called after throwing 'std::bad_alloc'"),
+            ErrorCategory::OutOfMemory
+        );
+    }
+
+    #[test]
+    fn test_classify_killed() {
+        assert_eq!(
+            ErrorCategory::classify("Killed"),
+            ErrorCategory::OutOfMemory
+        );
+    }
+
+    #[test]
+    fn test_classify_corrupted() {
+        assert_eq!(
+            ErrorCategory::classify("error: input file is corrupted"),
+            ErrorCategory::FormatError
+        );
+    }
+
+    #[test]
+    fn test_classify_unexpected_eof() {
+        assert_eq!(
+            ErrorCategory::classify("unexpected EOF in gzip stream"),
+            ErrorCategory::FormatError
+        );
+    }
+
+    #[test]
+    fn test_classify_not_recognized() {
+        assert_eq!(
+            ErrorCategory::classify("'bwa' is not recognized as a command"),
+            ErrorCategory::ToolMissing
+        );
+    }
+
+    #[test]
+    fn test_classify_reference_missing() {
+        assert_eq!(
+            ErrorCategory::classify("reference genome not found at /data/ref.fa"),
+            ErrorCategory::MissingReference
+        );
+    }
+
+    #[test]
+    fn test_classify_index_missing() {
+        assert_eq!(
+            ErrorCategory::classify("index not found for reference.fa"),
+            ErrorCategory::MissingReference
+        );
+    }
+
+    #[test]
+    fn test_suggest_recovery_returns_hint() {
+        let suggestion =
+            ErrorKnowledgeDb::suggest_recovery("samtools", "No such file or directory");
+        assert!(suggestion.contains("Check"));
+        assert!(suggestion.contains("MissingInput"));
     }
 }

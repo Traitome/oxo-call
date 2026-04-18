@@ -62,6 +62,12 @@ The architecture is designed around a layered system that makes command generati
 │  │  • doc_summarizer.rs (compression)  • index.rs (search index)   │  │
 │  └──────────────────────────────────────────────────────────────────┘  │
 │                                                                         │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │  Knowledge Module (knowledge/)                                  │  │
+│  │  • tool_knowledge.rs (6000+ bioconda tools, TF-IDF search)     │  │
+│  │  • error_db.rs (error recovery)  • best_practices.rs            │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
 │  │  Skill       │  │  MCP Skill   │  │  Mini Skill  │  │  Context   │ │
 │  │  Manager     │  │  Provider    │  │  Cache       │  │  Builder   │ │
@@ -109,7 +115,7 @@ The architecture is designed around a layered system that makes command generati
 - **SDK/API** (`lib.rs`): Programmatic Rust API for downstream crates and integrations
 
 **Language Processing Layer** — Normalizes and analyzes user input before LLM processing:
-- **Task Normalizer** (`task_normalizer.rs`): Translates natural-language tasks into optimized prompts
+- **Task Normalizer** (`task_normalizer.rs`): Translates natural-language tasks into optimized prompts. Supports multilingual input (Chinese, Japanese, Korean, Spanish, French, German, Portuguese, Russian) via rule-based fast path, with LLM fallback for complex cases
 - **Task Complexity** (`task_complexity.rs`): Estimates task complexity for adaptive prompt tier selection
 - **Sanitizer** (`sanitize.rs`): Anonymizes sensitive data before sending to LLM
 
@@ -120,6 +126,9 @@ The architecture is designed around a layered system that makes command generati
 
 **Knowledge Enhancement Layer** — Grounds LLM calls in real documentation and domain expertise:
 - **Documentation System** (`docs.rs`, `doc_processor.rs`, `doc_summarizer.rs`): Fetches, parses, and caches tool documentation
+- **Tool Knowledge Base** (`knowledge/tool_knowledge.rs`): Embedded catalog of 6000+ bioconda tools with TF-IDF keyword search, loaded from JSONL at compile time via `include_str!`. Provides offline tool discovery, category inference, and related-tool recommendations
+- **Error Knowledge Base** (`knowledge/error_db.rs`): Learning from failures for error recovery
+- **Best Practices** (`knowledge/best_practices.rs`): Domain-specific bioinformatics best practices
 - **Skill System** (`skill.rs`): Domain-specific knowledge injection (user → community → MCP → built-in)
 - **MCP Provider** (`mcp.rs`): Model Context Protocol for external skill servers
 - **Context Builder** (`context.rs`): Assembles enriched context for LLM prompts

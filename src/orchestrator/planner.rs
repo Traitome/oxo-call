@@ -115,7 +115,8 @@ impl PlannerAgent {
 
     /// Decompose a pipeline task into ordered steps.
     fn plan_pipeline(&self, tool: &str, task: &str) -> TaskPlan {
-        // Split on natural-language step delimiters.
+        // Split on natural-language step delimiters using an iterative approach
+        // that avoids repeated vector allocations.
         let delimiters = [
             " then ",
             " after that ",
@@ -126,30 +127,24 @@ impl PlannerAgent {
             " 之后 ",
         ];
 
-        let mut parts: Vec<String> = vec![task.to_string()];
+        let mut parts: Vec<&str> = vec![task];
         for delim in delimiters {
             let mut new_parts = Vec::new();
             for part in &parts {
-                for sub in part.split(delim) {
-                    let trimmed = sub.trim().to_string();
-                    if !trimmed.is_empty() {
-                        new_parts.push(trimmed);
-                    }
-                }
+                new_parts.extend(
+                    part.split(delim)
+                        .map(|s| s.trim())
+                        .filter(|s| !s.is_empty()),
+                );
             }
             parts = new_parts;
         }
 
         // Also split on "&&".
-        let mut final_parts = Vec::new();
-        for part in &parts {
-            for sub in part.split("&&") {
-                let trimmed = sub.trim().to_string();
-                if !trimmed.is_empty() {
-                    final_parts.push(trimmed);
-                }
-            }
-        }
+        let final_parts: Vec<&str> = parts
+            .iter()
+            .flat_map(|part| part.split("&&").map(|s| s.trim()).filter(|s| !s.is_empty()))
+            .collect();
 
         if final_parts.len() <= 1 {
             return TaskPlan::single_step(tool, task);
@@ -163,7 +158,7 @@ impl PlannerAgent {
                 PlanStep {
                     step: step_num,
                     tool: tool.to_string(),
-                    description: desc.clone(),
+                    description: (*desc).to_string(),
                     depends_on: if i > 0 { vec![step_num - 1] } else { vec![] },
                     needs_validation: i == final_parts.len() - 1, // validate last step
                 }
