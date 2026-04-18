@@ -670,9 +670,14 @@ impl IntelligentDocProcessor {
         if use_llm {
             // Build the LLM prompt (ready for integration once LlmClient
             // is injected into IntelligentDocProcessor).
-            let _prompt = self.build_llm_prompt(&structured, tool);
-            // For now the LLM call itself is a no-op; the prompt is
-            // prepared so wiring a real LlmClient is a one-line change.
+            let _llm_prompt = self.build_llm_prompt(&structured, tool);
+            // TODO(llm): Wire LlmClient here to refine structured doc via LLM.
+            // The prompt is prepared so wiring a real LlmClient is a one-line change.
+            tracing::debug!(
+                "LLM doc processing requested for '{}' — prompt ready ({} chars)",
+                tool,
+                _llm_prompt.len()
+            );
         }
 
         ProcessedDoc {

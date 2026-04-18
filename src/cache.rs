@@ -81,6 +81,14 @@ impl MemoryCache {
 static CACHE: std::sync::LazyLock<Mutex<MemoryCache>> =
     std::sync::LazyLock::new(|| Mutex::new(MemoryCache::new()));
 
+/// Acquire the global cache mutex, recovering from a poisoned lock with a warning.
+fn acquire_cache() -> std::sync::MutexGuard<'static, MemoryCache> {
+    CACHE.lock().unwrap_or_else(|e| {
+        tracing::warn!("Cache mutex was poisoned — recovering");
+        e.into_inner()
+    })
+}
+
 /// Cache storage manager
 pub struct LlmCache;
 
@@ -191,7 +199,7 @@ impl LlmCache {
 
         let hash = Self::compute_hash(tool, task, docs_hash, skill_name, model);
 
-        let mut mem = CACHE.lock().unwrap_or_else(|e| e.into_inner());
+        let mut mem = acquire_cache();
         Self::ensure_loaded(&mut mem)?;
 
         let entry = match mem.entries.get(&hash) {
@@ -269,7 +277,7 @@ impl LlmCache {
 
         // Write-through: update in-memory map.
         {
-            let mut mem = CACHE.lock().unwrap_or_else(|e| e.into_inner());
+            let mut mem = acquire_cache();
             Self::ensure_loaded(&mut mem)?;
 
             // Evict oldest entries when over capacity.
@@ -306,7 +314,7 @@ impl LlmCache {
             std::fs::remove_file(&path)?;
         }
         // Also clear the in-memory map.
-        let mut mem = CACHE.lock().unwrap_or_else(|e| e.into_inner());
+        let mut mem = acquire_cache();
         mem.entries.clear();
         mem.loaded = false;
         Ok(())
@@ -315,7 +323,7 @@ impl LlmCache {
     /// Get cache statistics — O(n) over the in-memory map.
     #[allow(dead_code)]
     pub fn stats() -> Result<CacheStats> {
-        let mut mem = CACHE.lock().unwrap_or_else(|e| e.into_inner());
+        let mut mem = acquire_cache();
         Self::ensure_loaded(&mut mem)?;
 
         let total_entries = mem.entries.len();
