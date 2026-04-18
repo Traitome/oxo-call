@@ -107,33 +107,31 @@ impl ToolKnowledgeBase {
             }
         }
 
-        let mut results: Vec<ToolMatch> = scores
+        // Sort by score descending, only clone the top-N entries.
+        let mut scored: Vec<(usize, f32)> = scores.into_iter().collect();
+        scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        scored.truncate(limit);
+
+        scored
             .into_iter()
             .map(|(idx, score)| ToolMatch {
                 entry: self.tools[idx].clone(),
                 score,
             })
-            .collect();
-
-        results.sort_by(|a, b| {
-            b.score
-                .partial_cmp(&a.score)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
-        results.truncate(limit);
-        results
+            .collect()
     }
 
     /// Find tools in the same category as the given tool.
     pub fn related_tools(&self, tool_name: &str, limit: usize) -> Vec<&ToolEntry> {
         let category = match self.lookup(tool_name) {
-            Some(entry) => entry.category.clone(),
+            Some(entry) => &entry.category,
             None => return vec![],
         };
 
+        let tool_lower = tool_name.to_lowercase();
         self.tools
             .iter()
-            .filter(|t| t.category == category && t.name.to_lowercase() != tool_name.to_lowercase())
+            .filter(|t| t.category == *category && t.name.to_lowercase() != tool_lower)
             .take(limit)
             .collect()
     }
@@ -143,9 +141,10 @@ impl ToolKnowledgeBase {
         let mut cats: Vec<String> = self
             .tools
             .iter()
-            .map(|t| t.category.clone())
+            .map(|t| t.category.as_str())
             .collect::<std::collections::HashSet<_>>()
             .into_iter()
+            .map(String::from)
             .collect();
         cats.sort();
         cats

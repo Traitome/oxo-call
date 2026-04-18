@@ -66,7 +66,7 @@ impl BestPracticesDb {
         let mut indices: Vec<usize> = self
             .tool_index
             .get(&tool_lower)
-            .cloned()
+            .map(|v| v.to_vec())
             .unwrap_or_default();
 
         // Also include universal practices (empty tools list).
