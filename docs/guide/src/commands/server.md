@@ -113,6 +113,7 @@ Generate an LLM-powered command and display it for remote execution:
 
 ```bash
 oxo-call server run mycluster samtools "sort input.bam by coordinate"
+oxo-call server run mycluster samtools "sort bam" --no-stream  # disable streaming output
 ```
 
 For HPC login nodes, warns about compute-intensive commands and suggests
@@ -124,6 +125,7 @@ Preview a command for remote execution without connecting:
 
 ```bash
 oxo-call server dry-run mycluster bwa "align reads.fq to reference.fa with 8 threads"
+oxo-call server dry-run mycluster bwa "align reads" --no-stream  # disable streaming output
 ```
 
 Shows the SSH command to execute and, for HPC nodes, the scheduler-wrapped version.

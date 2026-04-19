@@ -117,6 +117,23 @@ oxo-call config model remove claude-sonnet-4
 After `config login`, the full list of supported GitHub Copilot models is automatically populated.
 You can use `config model add <id>` to add models not included in the login selection (e.g., preview models).
 
+### Streaming Configuration
+
+Enable or disable SSE streaming for LLM responses:
+
+```bash
+# Disable streaming globally (useful for CI/batch scripts and benchmarks)
+oxo-call config set llm.stream false
+
+# Re-enable streaming (default)
+oxo-call config set llm.stream true
+
+# Check the current setting
+oxo-call config get llm.stream
+```
+
+You can also disable streaming per-invocation with `--no-stream` on any LLM-backed command.
+
 ## Configuration Reference
 
 See the [Configuration tutorial](../tutorials/configuration.md) for complete details on all keys, defaults, and environment variables.
