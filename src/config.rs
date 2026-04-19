@@ -455,7 +455,8 @@ impl Config {
             || model.contains("command-r")
             || model.contains("moonshot")   // Kimi (Moonshot AI)
             || model.contains("kimi")       // Kimi alternate name
-            || model.contains("glm-4")      // ZhipuAI GLM-4 series
+            || model.contains("glm")        // ZhipuAI GLM series
+            || model.contains("minimax")    // Minimax series
             || model.contains("chatglm")
         // ZhipuAI ChatGLM series
         {
@@ -821,8 +822,8 @@ pub fn infer_context_window(model: &str) -> u32 {
     if m.contains("glm-4-long") {
         return 1_000_000; // GLM-4-Long supports 1M token context
     }
-    if m.contains("glm-4") || m.contains("chatglm") {
-        return 128_000; // GLM-4 series default 128K
+    if m.contains("glm-4") || m.contains("glm-5") || m.contains("chatglm") {
+        return 128_000; // GLM series default 128K
     }
 
     // Cloud providers (kept from original)
@@ -1059,7 +1060,18 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
     }
 
     // ZhipuAI GLM series — strong Chinese + English instruction following
-    if m.contains("glm-4") || m.contains("chatglm") {
+    if m.contains("glm") || m.contains("chatglm") {
+        return ModelProfile {
+            instruction_following: 0.88,
+            code_generation: 0.82,
+            bio_knowledge: 0.72,
+            optimal_temperature: 0.0,
+            preferred_prompt_style: PromptStyle::Instruct,
+        };
+    }
+
+    // Minimax series — strong Chinese + English instruction following
+    if m.contains("minimax") {
         return ModelProfile {
             instruction_following: 0.88,
             code_generation: 0.82,
