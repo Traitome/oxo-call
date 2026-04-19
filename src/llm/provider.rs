@@ -759,6 +759,10 @@ impl super::types::LlmProvider for LlmClient {
             "anthropic" => "anthropic",
             "github-copilot" => "github-copilot",
             "ollama" => "ollama",
+            "deepseek" => "deepseek",
+            "moonshot" | "kimi" => "moonshot",
+            "zhipu" | "glm" => "zhipu",
+            "minimax" => "minimax",
             _ => "custom",
         }
     }

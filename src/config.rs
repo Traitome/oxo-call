@@ -424,6 +424,10 @@ impl Config {
             "openai" => "https://api.openai.com/v1".to_string(),
             "anthropic" => "https://api.anthropic.com/v1".to_string(),
             "ollama" => "http://localhost:11434/v1".to_string(),
+            "deepseek" => "https://api.deepseek.com/v1".to_string(),
+            "moonshot" | "kimi" => "https://api.moonshot.cn/v1".to_string(),
+            "zhipu" | "glm" => "https://open.bigmodel.cn/api/paas/v4".to_string(),
+            "minimax" => "https://api.minimax.chat/v1".to_string(),
             _ => "https://api.openai.com/v1".to_string(),
         }
     }
@@ -441,10 +445,10 @@ impl Config {
         }
         match self.effective_provider().as_str() {
             "github-copilot" => "gpt-5-mini".to_string(),
-            "openai" => "gpt-4o".to_string(),
-            "anthropic" => "claude-3-5-sonnet-20241022".to_string(),
+            "openai" => "gpt-4.1".to_string(),
+            "anthropic" => "claude-sonnet-4-6-20250514".to_string(),
             "ollama" => "llama3.2".to_string(),
-            _ => "gpt-4o".to_string(),
+            _ => "gpt-4.1".to_string(),
         }
     }
 
@@ -474,8 +478,8 @@ impl Config {
             || model.contains("kimi")       // Kimi alternate name
             || model.contains("glm")        // ZhipuAI GLM series
             || model.contains("minimax")    // Minimax series
-            || model.contains("chatglm")
-        // ZhipuAI ChatGLM series
+            || model.contains("chatglm")    // ZhipuAI ChatGLM series
+            || model.contains("deepseek")   // DeepSeek series
         {
             return "large";
         }
@@ -744,7 +748,131 @@ pub fn infer_context_window(model: &str) -> u32 {
     // Order matters: more specific patterns must come before broader ones
     // (e.g. "qwen2.5-coder" before "qwen2.5", "gemma4" before "gemma").
 
-    // Qwen family
+    // ── OpenAI GPT series ────────────────────────────────────────────────
+    // GPT-4.1 series (April 2025) - 1M context across all variants
+    if m.contains("gpt-4.1") || m.contains("gpt4.1") {
+        return 1_047_576; // ~1M tokens
+    }
+    // GPT-4o / GPT-5 series - 128K context
+    if m.contains("gpt-4o-mini") || m.contains("gpt-5-mini") || m.contains("gpt4o-mini") {
+        return 128_000;
+    }
+    if m.contains("gpt-4") || m.contains("gpt-5") || m.contains("gpt4") || m.contains("gpt5") {
+        return 128_000;
+    }
+
+    // ── Anthropic Claude series ───────────────────────────────────────────
+    // Claude 4.6+ / 4.7 - 1M context (Opus 4.6, Opus 4.7, Sonnet 4.6)
+    if m.contains("claude-opus-4-6")
+        || m.contains("claude-opus-4-7")
+        || m.contains("claude-sonnet-4-6")
+        || m.contains("claude-opus4.6")
+        || m.contains("claude-opus4.7")
+        || m.contains("claude-sonnet4.6")
+    {
+        return 1_000_000; // 1M tokens
+    }
+    // Claude 4.x base - 200K context
+    if m.contains("claude-4") || m.contains("claude4") {
+        return 200_000;
+    }
+    // Claude 3.x - 200K context
+    if m.contains("claude") {
+        return 200_000;
+    }
+
+    // ── Google Gemini series ──────────────────────────────────────────────
+    // Gemini 3 - 1M+ context
+    if m.contains("gemini-3") || m.contains("gemini3") {
+        return 1_000_000;
+    }
+    // Gemini 2.5 Pro/Flash - 1M context
+    if m.contains("gemini-2.5") || m.contains("gemini2.5") {
+        return 1_000_000;
+    }
+    // Gemini 2.0 / 1.5 - 1M context
+    if m.contains("gemini-2") || m.contains("gemini2") {
+        return 1_000_000;
+    }
+    if m.contains("gemini-1.5") || m.contains("gemini1.5") {
+        return 1_000_000;
+    }
+    // Gemini 1.0 - 32K context
+    if m.contains("gemini") {
+        return 32_768;
+    }
+
+    // ── DeepSeek series ───────────────────────────────────────────────────
+    // DeepSeek V3 / R1 - 128K context
+    if m.contains("deepseek-v3") || m.contains("deepseek-r1") {
+        return 131_072; // 128K
+    }
+    // DeepSeek-Coder-V2 - 128K context
+    if m.contains("deepseek-coder-v2") || m.contains("deepseek-coder-v2") {
+        return 131_072; // 128K (DeepSeek-Coder-V2)
+    }
+    // DeepSeek-Coder V1 - 16K context
+    if m.contains("deepseek-coder") {
+        return 16_384; // 16K (DeepSeek-Coder V1)
+    }
+    // DeepSeek V2 - 128K context
+    if m.contains("deepseek") {
+        return 131_072; // 128K (DeepSeek-V2/V3/R1)
+    }
+
+    // ── Kimi / Moonshot AI series ─────────────────────────────────────────
+    // Kimi K2.5 - 256K context
+    if m.contains("kimi-k2.5") || m.contains("kimi-k2-5") || m.contains("k2.5") {
+        return 256_000;
+    }
+    // Kimi K2 - 128K context
+    if m.contains("kimi-k2") || m.contains("k2") && m.contains("kimi") {
+        return 128_000;
+    }
+    // Moonshot v1 variants with explicit context suffix
+    if m.contains("moonshot-v1-8k") || m.contains("kimi-8k") {
+        return 8_192;
+    }
+    if m.contains("moonshot-v1-32k") || m.contains("kimi-32k") {
+        return 32_768;
+    }
+    if m.contains("moonshot-v1-128k") || m.contains("kimi-128k") {
+        return 128_000;
+    }
+    // Default Kimi/Moonshot models - 128K
+    if m.contains("moonshot") || m.contains("kimi") {
+        return 128_000;
+    }
+
+    // ── ZhipuAI GLM series ────────────────────────────────────────────────
+    // GLM-5.1 - 202K context (supports 8-hour autonomous execution)
+    if m.contains("glm-5.1") || m.contains("glm5.1") {
+        return 202_000;
+    }
+    // GLM-5 - 200K context
+    if m.contains("glm-5") || m.contains("glm5") {
+        return 200_000;
+    }
+    // GLM-4-Long - 1M context
+    if m.contains("glm-4-long") {
+        return 1_000_000;
+    }
+    // GLM-4 - 128K context
+    if m.contains("glm-4") || m.contains("chatglm") {
+        return 128_000;
+    }
+
+    // ── MiniMax series ────────────────────────────────────────────────────
+    // MiniMax M2.7 - 1M context
+    if m.contains("m2.7") || m.contains("minimax-m2") {
+        return 1_000_000;
+    }
+    // MiniMax other models - default 128K
+    if m.contains("minimax") {
+        return 128_000;
+    }
+
+    // ── Qwen family ───────────────────────────────────────────────────────
     if m.contains("qwen3.5") || m.contains("qwen3-5") || m.contains("qwen3.5") {
         return 262_144; // 256K
     }
@@ -756,7 +884,7 @@ pub fn infer_context_window(model: &str) -> u32 {
         return 32_768; // 32K
     }
 
-    // Llama family
+    // ── Llama family ──────────────────────────────────────────────────────
     if m.contains("llama3") || m.contains("llama-3") {
         return 131_072; // 128K (Llama 3.x)
     }
@@ -767,7 +895,7 @@ pub fn infer_context_window(model: &str) -> u32 {
         return 16_384; // 16K
     }
 
-    // Mistral family
+    // ── Mistral family ────────────────────────────────────────────────────
     if m.contains("ministral") || m.contains("mistral") {
         return 131_072; // 128K (Mistral/Ministral small)
     }
@@ -775,7 +903,7 @@ pub fn infer_context_window(model: &str) -> u32 {
         return 32_768; // 32K
     }
 
-    // Gemma family
+    // ── Gemma family ──────────────────────────────────────────────────────
     if m.contains("gemma4") || m.contains("gemma-4") {
         return 262_144; // 256K (Gemma 4 medium); small models are 128K
     }
@@ -793,18 +921,7 @@ pub fn infer_context_window(model: &str) -> u32 {
         return 8192; // Gemma 1.x
     }
 
-    // DeepSeek family
-    if m.contains("deepseek-coder-v2") || m.contains("deepseek-coder-v2") {
-        return 131_072; // 128K (DeepSeek-Coder-V2)
-    }
-    if m.contains("deepseek-coder") {
-        return 16_384; // 16K (DeepSeek-Coder V1)
-    }
-    if m.contains("deepseek") {
-        return 131_072; // 128K (DeepSeek-V2/V3/R1)
-    }
-
-    // StarCoder family
+    // ── StarCoder family ──────────────────────────────────────────────────
     if m.contains("starcoder2") {
         return 16_384; // 16K
     }
@@ -812,7 +929,7 @@ pub fn infer_context_window(model: &str) -> u32 {
         return 8192; // StarCoder 1.x
     }
 
-    // Microsoft Phi family
+    // ── Microsoft Phi family ──────────────────────────────────────────────
     if m.contains("phi-3") || m.contains("phi3") {
         return 131_072; // 128K
     }
@@ -820,43 +937,9 @@ pub fn infer_context_window(model: &str) -> u32 {
         return 2048; // Phi-2
     }
 
-    // Cohere Command-R
+    // ── Cohere Command-R ──────────────────────────────────────────────────
     if m.contains("command-r") {
         return 131_072; // 128K
-    }
-
-    // Kimi / Moonshot AI
-    // moonshot-v1-8k / moonshot-v1-32k / moonshot-v1-128k variants
-    if m.contains("moonshot-v1-8k") || m.contains("kimi-8k") {
-        return 8_192;
-    }
-    if m.contains("moonshot-v1-32k") || m.contains("kimi-32k") {
-        return 32_768;
-    }
-    if m.contains("moonshot") || m.contains("kimi") {
-        return 128_000; // Default to 128K for other Kimi/Moonshot models
-    }
-
-    // ZhipuAI GLM series
-    if m.contains("glm-4-long") {
-        return 1_000_000; // GLM-4-Long supports 1M token context
-    }
-    if m.contains("glm-4") || m.contains("glm-5") || m.contains("chatglm") {
-        return 128_000; // GLM series default 128K
-    }
-
-    // Cloud providers (kept from original)
-    if m.contains("gpt-4o-mini") || m.contains("gpt-5-mini") || m.contains("gpt4o-mini") {
-        return 128_000;
-    }
-    if m.contains("gpt-4") || m.contains("gpt-5") || m.contains("gpt4") || m.contains("gpt5") {
-        return 128_000;
-    }
-    if m.contains("claude") {
-        return 200_000;
-    }
-    if m.contains("gemini") {
-        return 128_000;
     }
 
     // ── 3. Parameter-size fallback ────────────────────────────────────────
@@ -1035,6 +1118,15 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
     }
 
     // GPT-4+ family — excellent instruction following and knowledge
+    if m.contains("gpt-4.1") || m.contains("gpt4.1") {
+        return ModelProfile {
+            instruction_following: 0.96,
+            code_generation: 0.95,
+            bio_knowledge: 0.88,
+            optimal_temperature: 0.0,
+            preferred_prompt_style: PromptStyle::Instruct,
+        };
+    }
     if m.contains("gpt-4") || m.contains("gpt-5") {
         return ModelProfile {
             instruction_following: 0.95,
@@ -1045,6 +1137,22 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
         };
     }
 
+    // Claude 4.6+ family — exceptional at complex reasoning and coding
+    if m.contains("claude-opus-4-6")
+        || m.contains("claude-opus-4-7")
+        || m.contains("claude-sonnet-4-6")
+        || m.contains("claude-opus4.6")
+        || m.contains("claude-opus4.7")
+        || m.contains("claude-sonnet4.6")
+    {
+        return ModelProfile {
+            instruction_following: 0.97,
+            code_generation: 0.96,
+            bio_knowledge: 0.90,
+            optimal_temperature: 0.0,
+            preferred_prompt_style: PromptStyle::Instruct,
+        };
+    }
     // Claude family
     if m.contains("claude") {
         return ModelProfile {
@@ -1056,6 +1164,16 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
         };
     }
 
+    // Gemini 2.5/3 family — strong multimodal and reasoning
+    if m.contains("gemini-2.5") || m.contains("gemini-3") || m.contains("gemini2.5") || m.contains("gemini3") {
+        return ModelProfile {
+            instruction_following: 0.93,
+            code_generation: 0.90,
+            bio_knowledge: 0.85,
+            optimal_temperature: 0.0,
+            preferred_prompt_style: PromptStyle::Instruct,
+        };
+    }
     // Gemini family
     if m.contains("gemini") {
         return ModelProfile {
@@ -1067,6 +1185,27 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
         };
     }
 
+    // DeepSeek V3/R1 — strong coding and reasoning
+    if m.contains("deepseek-v3") || m.contains("deepseek-r1") {
+        return ModelProfile {
+            instruction_following: 0.92,
+            code_generation: 0.94,
+            bio_knowledge: 0.78,
+            optimal_temperature: 0.1,
+            preferred_prompt_style: PromptStyle::Instruct,
+        };
+    }
+
+    // Kimi K2.5 / Moonshot AI — strong instruction following, multilingual strength
+    if m.contains("kimi-k2.5") || m.contains("kimi-k2-5") || m.contains("k2.5") {
+        return ModelProfile {
+            instruction_following: 0.92,
+            code_generation: 0.88,
+            bio_knowledge: 0.78,
+            optimal_temperature: 0.0,
+            preferred_prompt_style: PromptStyle::Instruct,
+        };
+    }
     // Kimi / Moonshot AI — strong instruction following, multilingual strength
     if m.contains("moonshot") || m.contains("kimi") {
         return ModelProfile {
@@ -1078,6 +1217,16 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
         };
     }
 
+    // ZhipuAI GLM-5.x series — strong Chinese + English instruction following
+    if m.contains("glm-5.1") || m.contains("glm-5") || m.contains("glm5.1") || m.contains("glm5") {
+        return ModelProfile {
+            instruction_following: 0.91,
+            code_generation: 0.86,
+            bio_knowledge: 0.76,
+            optimal_temperature: 0.0,
+            preferred_prompt_style: PromptStyle::Instruct,
+        };
+    }
     // ZhipuAI GLM series — strong Chinese + English instruction following
     if m.contains("glm") || m.contains("chatglm") {
         return ModelProfile {
@@ -1089,6 +1238,16 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
         };
     }
 
+    // Minimax M2.7 series — strong Chinese + English instruction following
+    if m.contains("m2.7") || m.contains("minimax-m2") {
+        return ModelProfile {
+            instruction_following: 0.90,
+            code_generation: 0.87,
+            bio_knowledge: 0.75,
+            optimal_temperature: 0.0,
+            preferred_prompt_style: PromptStyle::Instruct,
+        };
+    }
     // Minimax series — strong Chinese + English instruction following
     if m.contains("minimax") {
         return ModelProfile {
@@ -1434,7 +1593,7 @@ mod tests {
         }
         let mut cfg = Config::default();
         cfg.llm.provider = "anthropic".to_string();
-        assert_eq!(cfg.effective_model(), "claude-3-5-sonnet-20241022");
+        assert_eq!(cfg.effective_model(), "claude-sonnet-4-6-20250514");
     }
 
     #[test]
@@ -1913,8 +2072,8 @@ mod tests {
         }
         let mut cfg = Config::default();
         cfg.llm.provider = "some-unknown-provider".to_string();
-        // Should fall through to gpt-4o default
-        assert_eq!(cfg.effective_model(), "gpt-4o");
+        // Should fall through to gpt-4.1 default
+        assert_eq!(cfg.effective_model(), "gpt-4.1");
     }
 
     // ─── effective_source with env vars set ──────────────────────────────────
@@ -2387,11 +2546,27 @@ mod tests {
 
     #[test]
     fn test_infer_context_window_cloud_providers() {
+        // GPT-4.1 series — 1M context
+        assert_eq!(infer_context_window("gpt-4.1"), 1_047_576);
+        assert_eq!(infer_context_window("gpt-4.1-mini"), 1_047_576);
+        assert_eq!(infer_context_window("gpt-4.1-nano"), 1_047_576);
+        // GPT-4o / GPT-5 series — 128K
         assert_eq!(infer_context_window("gpt-4o-mini"), 128_000);
         assert_eq!(infer_context_window("gpt-4o"), 128_000);
         assert_eq!(infer_context_window("gpt-5"), 128_000);
+        // Claude 4.6+ — 1M context
+        assert_eq!(infer_context_window("claude-opus-4-6-20250514"), 1_000_000);
+        assert_eq!(infer_context_window("claude-sonnet-4-6-20250514"), 1_000_000);
+        assert_eq!(infer_context_window("claude-opus-4-7-20260401"), 1_000_000);
+        // Claude 4.x / 3.x — 200K context
         assert_eq!(infer_context_window("claude-3-5-sonnet-20241022"), 200_000);
-        assert_eq!(infer_context_window("gemini-1.5-pro"), 128_000);
+        assert_eq!(infer_context_window("claude-sonnet-4-20250514"), 200_000);
+        // Gemini 2.5/3 — 1M context
+        assert_eq!(infer_context_window("gemini-2.5-pro"), 1_000_000);
+        assert_eq!(infer_context_window("gemini-2.5-flash"), 1_000_000);
+        assert_eq!(infer_context_window("gemini-3"), 1_000_000);
+        // Gemini 1.5 — 1M context
+        assert_eq!(infer_context_window("gemini-1.5-pro"), 1_000_000);
     }
 
     #[test]
@@ -2681,5 +2856,210 @@ mod tests {
         let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let cfg = Config::default();
         assert_eq!(cfg.get("llm.stream").unwrap(), "true");
+    }
+
+    // ─── New cloud model context window tests (2025-2026) ───────────────────────
+
+    #[test]
+    fn test_infer_context_window_gpt_4_1_series() {
+        // GPT-4.1 series — 1M context
+        assert_eq!(infer_context_window("gpt-4.1"), 1_047_576);
+        assert_eq!(infer_context_window("gpt-4.1-mini"), 1_047_576);
+        assert_eq!(infer_context_window("gpt-4.1-nano"), 1_047_576);
+        assert_eq!(infer_context_window("GPT-4.1"), 1_047_576); // case insensitive
+    }
+
+    #[test]
+    fn test_infer_context_window_claude_4_6_plus() {
+        // Claude 4.6+ — 1M context
+        assert_eq!(infer_context_window("claude-opus-4-6-20250514"), 1_000_000);
+        assert_eq!(infer_context_window("claude-sonnet-4-6-20250514"), 1_000_000);
+        assert_eq!(infer_context_window("claude-opus-4-7-20260401"), 1_000_000);
+        assert_eq!(infer_context_window("claude-opus4.6"), 1_000_000);
+        assert_eq!(infer_context_window("claude-sonnet4.6"), 1_000_000);
+        // Claude 4.x base — 200K context
+        assert_eq!(infer_context_window("claude-sonnet-4-20250514"), 200_000);
+        assert_eq!(infer_context_window("claude-opus-4-20250514"), 200_000);
+    }
+
+    #[test]
+    fn test_infer_context_window_gemini_2_5_plus() {
+        // Gemini 2.5 / 3 — 1M context
+        assert_eq!(infer_context_window("gemini-2.5-pro"), 1_000_000);
+        assert_eq!(infer_context_window("gemini-2.5-flash"), 1_000_000);
+        assert_eq!(infer_context_window("gemini-3"), 1_000_000);
+        assert_eq!(infer_context_window("gemini2.5"), 1_000_000);
+        // Gemini 2.0 — 1M context
+        assert_eq!(infer_context_window("gemini-2.0-flash"), 1_000_000);
+        // Gemini 1.5 — 1M context
+        assert_eq!(infer_context_window("gemini-1.5-pro"), 1_000_000);
+        // Gemini 1.0 — 32K context
+        assert_eq!(infer_context_window("gemini-1.0-pro"), 32_768);
+        assert_eq!(infer_context_window("gemini-pro"), 32_768);
+    }
+
+    #[test]
+    fn test_infer_context_window_deepseek_v3_r1() {
+        // DeepSeek V3 / R1 — 128K context (131072)
+        assert_eq!(infer_context_window("deepseek-v3"), 131_072);
+        assert_eq!(infer_context_window("deepseek-r1"), 131_072);
+        assert_eq!(infer_context_window("deepseek-v3-0324"), 131_072);
+        // DeepSeek V2 — 128K context (131072)
+        assert_eq!(infer_context_window("deepseek-v2"), 131_072);
+        assert_eq!(infer_context_window("deepseek-chat"), 131_072);
+    }
+
+    #[test]
+    fn test_infer_context_window_kimi_k2_5() {
+        // Kimi K2.5 — 256K context
+        assert_eq!(infer_context_window("kimi-k2.5"), 256_000);
+        assert_eq!(infer_context_window("kimi-k2-5"), 256_000);
+        // Kimi K2 — 128K context
+        assert_eq!(infer_context_window("kimi-k2"), 128_000);
+        // Moonshot variants
+        assert_eq!(infer_context_window("moonshot-v1-8k"), 8_192);
+        assert_eq!(infer_context_window("moonshot-v1-32k"), 32_768);
+        assert_eq!(infer_context_window("moonshot-v1-128k"), 128_000);
+        assert_eq!(infer_context_window("moonshot-latest"), 128_000);
+    }
+
+    #[test]
+    fn test_infer_context_window_glm_5() {
+        // GLM-5.1 — 202K context
+        assert_eq!(infer_context_window("glm-5.1"), 202_000);
+        assert_eq!(infer_context_window("glm5.1"), 202_000);
+        // GLM-5 — 200K context
+        assert_eq!(infer_context_window("glm-5"), 200_000);
+        assert_eq!(infer_context_window("glm5"), 200_000);
+        // GLM-4-long — 1M context
+        assert_eq!(infer_context_window("glm-4-long"), 1_000_000);
+        // GLM-4 — 128K context
+        assert_eq!(infer_context_window("glm-4"), 128_000);
+        assert_eq!(infer_context_window("glm-4-flash"), 128_000);
+        assert_eq!(infer_context_window("chatglm3-6b"), 128_000);
+    }
+
+    #[test]
+    fn test_infer_context_window_minimax_m2_7() {
+        // MiniMax M2.7 — 1M context
+        assert_eq!(infer_context_window("minimax-m2.7"), 1_000_000);
+        assert_eq!(infer_context_window("m2.7"), 1_000_000);
+        assert_eq!(infer_context_window("m2.7-highspeed"), 1_000_000);
+        // MiniMax default — 128K
+        assert_eq!(infer_context_window("minimax-abab6.5"), 128_000);
+    }
+
+    #[test]
+    fn test_model_size_category_deepseek_is_large() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let mut cfg = Config::default();
+        cfg.llm.model = Some("deepseek-v3".to_string());
+        assert_eq!(cfg.model_size_category(), "large");
+
+        cfg.llm.model = Some("deepseek-r1".to_string());
+        assert_eq!(cfg.model_size_category(), "large");
+    }
+
+    #[test]
+    fn test_effective_api_base_new_providers() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_BASE");
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let mut cfg = Config::default();
+
+        // DeepSeek
+        cfg.llm.provider = "deepseek".to_string();
+        assert_eq!(cfg.effective_api_base(), "https://api.deepseek.com/v1");
+
+        // Moonshot / Kimi
+        cfg.llm.provider = "moonshot".to_string();
+        assert_eq!(cfg.effective_api_base(), "https://api.moonshot.cn/v1");
+        cfg.llm.provider = "kimi".to_string();
+        assert_eq!(cfg.effective_api_base(), "https://api.moonshot.cn/v1");
+
+        // Zhipu / GLM
+        cfg.llm.provider = "zhipu".to_string();
+        assert_eq!(cfg.effective_api_base(), "https://open.bigmodel.cn/api/paas/v4");
+        cfg.llm.provider = "glm".to_string();
+        assert_eq!(cfg.effective_api_base(), "https://open.bigmodel.cn/api/paas/v4");
+
+        // MiniMax
+        cfg.llm.provider = "minimax".to_string();
+        assert_eq!(cfg.effective_api_base(), "https://api.minimax.chat/v1");
+    }
+
+    #[test]
+    fn test_model_profile_gpt_4_1() {
+        let profile = get_model_profile("gpt-4.1");
+        assert!(profile.instruction_following >= 0.95);
+        assert!(profile.code_generation >= 0.94);
+        assert_eq!(profile.preferred_prompt_style, PromptStyle::Instruct);
+
+        let profile_mini = get_model_profile("gpt-4.1-mini");
+        assert!(profile_mini.instruction_following >= 0.95);
+    }
+
+    #[test]
+    fn test_model_profile_claude_4_6_plus() {
+        let profile = get_model_profile("claude-opus-4-6-20250514");
+        assert!(profile.instruction_following >= 0.96);
+        assert!(profile.code_generation >= 0.95);
+        assert_eq!(profile.preferred_prompt_style, PromptStyle::Instruct);
+
+        let profile_sonnet = get_model_profile("claude-sonnet-4-6-20250514");
+        assert!(profile_sonnet.instruction_following >= 0.96);
+    }
+
+    #[test]
+    fn test_model_profile_gemini_2_5() {
+        let profile = get_model_profile("gemini-2.5-pro");
+        assert!(profile.instruction_following >= 0.92);
+        assert_eq!(profile.preferred_prompt_style, PromptStyle::Instruct);
+
+        let profile_flash = get_model_profile("gemini-2.5-flash");
+        assert!(profile_flash.instruction_following >= 0.92);
+    }
+
+    #[test]
+    fn test_model_profile_deepseek_v3() {
+        let profile = get_model_profile("deepseek-v3");
+        assert!(profile.instruction_following >= 0.90);
+        assert!(profile.code_generation >= 0.93);
+        assert_eq!(profile.preferred_prompt_style, PromptStyle::Instruct);
+
+        let profile_r1 = get_model_profile("deepseek-r1");
+        assert!(profile_r1.code_generation >= 0.93);
+    }
+
+    #[test]
+    fn test_model_profile_kimi_k2_5() {
+        let profile = get_model_profile("kimi-k2.5");
+        assert!(profile.instruction_following >= 0.91);
+        assert!(profile.code_generation >= 0.87);
+        assert_eq!(profile.preferred_prompt_style, PromptStyle::Instruct);
+    }
+
+    #[test]
+    fn test_model_profile_glm_5() {
+        let profile = get_model_profile("glm-5.1");
+        assert!(profile.instruction_following >= 0.90);
+        assert!(profile.code_generation >= 0.85);
+        assert_eq!(profile.preferred_prompt_style, PromptStyle::Instruct);
+
+        let profile_glm5 = get_model_profile("glm-5");
+        assert!(profile_glm5.instruction_following >= 0.90);
+    }
+
+    #[test]
+    fn test_model_profile_minimax_m2_7() {
+        let profile = get_model_profile("minimax-m2.7");
+        assert!(profile.instruction_following >= 0.89);
+        assert!(profile.code_generation >= 0.86);
+        assert_eq!(profile.preferred_prompt_style, PromptStyle::Instruct);
+
+        let profile_m27 = get_model_profile("m2.7");
+        assert!(profile_m27.instruction_following >= 0.89);
     }
 }
