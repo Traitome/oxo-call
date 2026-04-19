@@ -9,11 +9,13 @@ This guide shows you how to change the LLM backend that oxo-call uses for comman
 | Provider | Models | Requires token | Best for |
 |----------|--------|----------------|----------|
 | `github-copilot` | auto-selected | GitHub PAT with Copilot | GitHub users, no separate account |
-| `openai` | gpt-4o, gpt-4o-mini, ... | OpenAI API key | Best accuracy, production use |
-| `anthropic` | claude-3-5-sonnet, ... | Anthropic API key | Alternative frontier model |
+| `openai` | gpt-4.1 (1M), gpt-4o, gpt-4o-mini, ... | OpenAI API key | Best accuracy, production use |
+| `anthropic` | claude-sonnet-4-6 (1M), claude-3-5-sonnet, ... | Anthropic API key | Alternative frontier model |
+| `deepseek` | deepseek-v3, deepseek-r1 (128K) | DeepSeek API key | Cost-effective, strong reasoning |
+| `minimax` | minimax-m2.7 (1M) | MiniMax API key | Large context, Chinese-optimized |
 | `ollama` | llama3.2, mistral, ... | None (local) | Air-gapped, private data, free |
 | `openai` (custom base) | moonshot-v1-*, kimi-* | Moonshot API key | Kimi / Moonshot AI |
-| `openai` (custom base) | glm-4, glm-4-long, ... | ZhipuAI API key | GLM / ZhipuAI |
+| `openai` (custom base) | glm-4, glm-5.1, ... | ZhipuAI API key | GLM / ZhipuAI |
 
 ---
 
@@ -102,8 +104,9 @@ oxo-call config set llm.provider openai
 oxo-call config set llm.api_token sk-xxxxxxxxxxxxxxxxxxxxxxxx
 
 # Optional: specify a model
+oxo-call config set llm.model gpt-4.1       # 1M context (default, April 2025)
 oxo-call config set llm.model gpt-4o-mini   # faster, cheaper
-oxo-call config set llm.model gpt-4o        # higher accuracy
+oxo-call config set llm.model gpt-4o        # 128K context
 
 # Verify
 oxo-call config verify
@@ -124,7 +127,7 @@ export OPENAI_API_KEY=sk-xxxx
 oxo-call config set llm.provider openai
 oxo-call config set llm.api_base https://your-resource.openai.azure.com/openai/deployments/your-deployment
 oxo-call config set llm.api_token your-azure-key
-oxo-call config set llm.model gpt-4o
+oxo-call config set llm.model gpt-4.1
 ```
 
 ---
@@ -136,7 +139,8 @@ oxo-call config set llm.provider anthropic
 oxo-call config set llm.api_token sk-ant-xxxxxxxxxxxxxxxxxxxxxxxx
 
 # Optional: specify a model
-oxo-call config set llm.model claude-3-5-sonnet-20241022
+oxo-call config set llm.model claude-sonnet-4-6-20250514   # 1M context (default)
+oxo-call config set llm.model claude-3-5-sonnet-20241022   # 200K context
 
 # Verify
 oxo-call config verify
@@ -150,11 +154,62 @@ export ANTHROPIC_API_KEY=sk-ant-xxxx
 
 ---
 
-## Kimi / Moonshot AI
+## DeepSeek
 
-[Moonshot AI](https://platform.moonshot.cn/) provides the Kimi model family via an OpenAI-compatible API. Kimi models feature large context windows (up to 128K tokens) and strong multilingual capabilities.
+[DeepSeek](https://platform.deepseek.com/) provides cost-effective models with strong reasoning capabilities. DeepSeek V3 and R1 support 128K context.
 
 ```bash
+oxo-call config set llm.provider deepseek
+oxo-call config set llm.api_token sk-xxxxxxxxxxxxxxxxxxxxxxxx
+
+# Optional: specify a model
+oxo-call config set llm.model deepseek-chat      # General purpose (default)
+oxo-call config set llm.model deepseek-reasoner  # Enhanced reasoning
+
+# Verify
+oxo-call config verify
+```
+
+| Model | Context | Best for |
+|-------|---------|----------|
+| `deepseek-chat` | 128K | General purpose, cost-effective |
+| `deepseek-reasoner` | 128K | Complex reasoning tasks |
+
+---
+
+## MiniMax
+
+[MiniMax](https://www.minimaxi.com/) provides models optimized for Chinese language with large context windows (up to 1M tokens).
+
+```bash
+oxo-call config set llm.provider minimax
+oxo-call config set llm.api_token xxxxxxxxxxxxxxxxxxxxxxxx
+
+# Optional: specify a model
+oxo-call config set llm.model MiniMax-Text-01   # General purpose (default)
+oxo-call config set llm.model abab6.5s-chat     # Fast variant
+
+# Verify
+oxo-call config verify
+```
+
+| Model | Context | Best for |
+|-------|---------|----------|
+| `MiniMax-Text-01` | 1M | General purpose, large context |
+| `abab6.5s-chat` | 245K | Fast, cost-effective |
+
+---
+
+## Kimi / Moonshot AI
+
+[Moonshot AI](https://platform.moonshot.cn/) provides the Kimi model family via an OpenAI-compatible API. Kimi models feature large context windows (up to 256K with K2.5) and strong multilingual capabilities.
+
+```bash
+# Option 1: Use dedicated provider (recommended)
+oxo-call config set llm.provider moonshot
+oxo-call config set llm.api_token sk-xxxxxxxxxxxxxxxxxxxxxxxx
+
+# Option 2: Use openai provider with custom base
 oxo-call config set llm.provider openai
 oxo-call config set llm.api_base https://api.moonshot.cn/v1
 oxo-call config set llm.api_token sk-xxxxxxxxxxxxxxxxxxxxxxxx
@@ -163,6 +218,7 @@ oxo-call config set llm.api_token sk-xxxxxxxxxxxxxxxxxxxxxxxx
 oxo-call config set llm.model moonshot-v1-8k     # 8K context (faster)
 oxo-call config set llm.model moonshot-v1-32k    # 32K context
 oxo-call config set llm.model moonshot-v1-128k   # 128K context (recommended)
+oxo-call config set llm.model kimi-k2.5          # 256K context (latest)
 
 # Verify
 oxo-call config verify
@@ -173,14 +229,20 @@ oxo-call config verify
 | `moonshot-v1-8k` | 8K | Fast, simple tasks |
 | `moonshot-v1-32k` | 32K | Most tasks |
 | `moonshot-v1-128k` | 128K | Long documentation, complex tasks |
+| `kimi-k2.5` | 256K | Latest, largest context |
 
 ---
 
 ## GLM / ZhipuAI
 
-[ZhipuAI](https://open.bigmodel.cn/) provides the GLM-4 series via an OpenAI-compatible API. GLM-4 supports up to 1 million token context in the `glm-4-long` variant.
+[ZhipuAI](https://open.bigmodel.cn/) provides the GLM series via an OpenAI-compatible API. GLM-5 supports up to 200K context, and GLM-5.1 supports 202K context.
 
 ```bash
+# Option 1: Use dedicated provider (recommended)
+oxo-call config set llm.provider zhipu
+oxo-call config set llm.api_token xxxxxxxxxxxxxxxxxxxxxxxx
+
+# Option 2: Use openai provider with custom base
 oxo-call config set llm.provider openai
 oxo-call config set llm.api_base https://open.bigmodel.cn/api/paas/v4
 oxo-call config set llm.api_token xxxxxxxxxxxxxxxxxxxxxxxx
@@ -189,6 +251,8 @@ oxo-call config set llm.api_token xxxxxxxxxxxxxxxxxxxxxxxx
 oxo-call config set llm.model glm-4           # Standard, 128K context
 oxo-call config set llm.model glm-4-flash     # Faster/cheaper variant
 oxo-call config set llm.model glm-4-long      # 1M token context (long documents)
+oxo-call config set llm.model glm-5           # 200K context
+oxo-call config set llm.model glm-5.1         # 202K context
 
 # Verify
 oxo-call config verify
@@ -199,6 +263,8 @@ oxo-call config verify
 | `glm-4` | 128K | General use |
 | `glm-4-flash` | 128K | Cost-sensitive workflows |
 | `glm-4-long` | 1M | Very long documentation or multi-tool sessions |
+| `glm-5` | 200K | Latest generation |
+| `glm-5.1` | 202K | Autonomous execution, large context |
 
 ---
 
@@ -286,7 +352,7 @@ This tests connectivity and returns the model being used:
 
 ```
 ✓ LLM provider: openai
-✓ Model: gpt-4o-mini
+✓ Model: gpt-4.1
 ✓ Connection: OK
 ```
 

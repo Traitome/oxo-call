@@ -94,13 +94,23 @@ oxo-call config set llm.api_token ghu_xxxxxxxxxxxxxxxxxxxx
 **Note**: GitHub Copilot ignores `GITHUB_TOKEN` and `OXO_CALL_LLM_API_TOKEN` environment variables because they often contain Personal Access Tokens that don't work with Copilot's token exchange endpoint. Always use `oxo-call config login` or manually set a `ghu_` token.
 
 ### OpenAI
-- Default model: `gpt-4o`
+- Default model: `gpt-4.1` (1M context, April 2025)
 - API base: `https://api.openai.com/v1`
 - Compatible with Azure OpenAI via `llm.api_base` override
 
 ### Anthropic
-- Default model: `claude-3-5-sonnet-20241022`
+- Default model: `claude-sonnet-4-6-20250514` (1M context)
 - API base: `https://api.anthropic.com/v1`
+
+### DeepSeek
+- Default model: `deepseek-chat` (128K context)
+- API base: `https://api.deepseek.com/v1`
+- OpenAI-compatible API
+
+### MiniMax
+- Default model: `minimax-chat` (1M context)
+- API base: `https://api.minimax.chat/v1`
+- OpenAI-compatible API
 
 ### Ollama
 - Default model: `llama3.2`

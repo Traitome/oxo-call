@@ -9,11 +9,13 @@ oxo-call supports multiple LLM providers for command generation:
 | Provider | Default Model | Token Required |
 |----------|--------------|----------------|
 | GitHub Copilot | gpt-5-mini (⭐ free tier) | Yes (GitHub App token via `oxo-call config login`) |
-| OpenAI | gpt-4o | Yes |
-| Anthropic | claude-3-5-sonnet-20241022 | Yes |
+| OpenAI | gpt-4.1 (1M context) | Yes |
+| Anthropic | claude-sonnet-4-6-20250514 (1M context) | Yes |
 | Ollama | llama3.2 | No (local) |
+| DeepSeek | deepseek-chat (128K context) | Yes (OpenAI-compatible API) |
 | Moonshot AI (Kimi) | moonshot-v1-128k | Yes (OpenAI-compatible API) |
-| ZhipuAI (GLM) | glm-4 | Yes (OpenAI-compatible API) |
+| ZhipuAI (GLM) | glm-4 (128K context) | Yes (OpenAI-compatible API) |
+| MiniMax | minimax-chat (1M context) | Yes (OpenAI-compatible API) |
 
 ## LLM Roles
 
@@ -319,13 +321,20 @@ The context window is inferred from common model name patterns:
 | `qwen2.5-coder:0.5b`, `phi-3:3b` | 2,048 | Compact |
 | `llama3:8b`, `deepseek-coder-v2:16b` | 8,192 | Medium |
 | `qwen2.5:72b`, `llama3:70b` | 32,768 | Full |
-| `gpt-4o`, `gpt-5-mini` | 128,000 | Full |
-| `claude-3-5-sonnet` | 200,000 | Full |
+| `gpt-4.1`, `gpt-4.1-mini`, `gpt-4.1-nano` | 1,047,576 (~1M) | Full |
+| `gpt-4o`, `gpt-5-mini`, `gpt-4o-mini` | 128,000 | Full |
+| `claude-opus-4-6`, `claude-opus-4-7`, `claude-sonnet-4-6` | 1,000,000 | Full |
+| `claude-3-5-sonnet`, `claude-4` | 200,000 | Full |
+| `gemini-2.5`, `gemini-3` | 1,000,000 | Full |
+| `deepseek-v3`, `deepseek-r1`, `deepseek-v2` | 131,072 (128K) | Full |
+| `deepseek-coder` | 16,384 | Medium |
 | `moonshot-v1-8k` | 8,000 | Medium |
 | `moonshot-v1-32k` | 32,768 | Full |
 | `moonshot-v1-128k`, `kimi-*` | 128,000 | Full |
+| `kimi-k2.5` | 256,000 | Full |
 | `glm-4`, `glm-4-flash`, `chatglm-*` | 128,000 | Full |
-| `glm-4-long` | 1,000,000 | Full |
+| `glm-4-long`, `glm-5.1` | 1,000,000+ | Full |
+| `minimax-m2.7` | 1,000,000 | Full |
 
 ### Manual Configuration
 
