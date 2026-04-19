@@ -108,7 +108,10 @@ impl ChatSession {
                 "scenario": self.scenario_name(),
                 "response": response,
             });
-            println!("{}", serde_json::to_string_pretty(&result).unwrap());
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&result).expect("JSON serialization")
+            );
         } else {
             println!();
             render_markdown(&response);

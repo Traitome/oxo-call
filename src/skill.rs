@@ -666,12 +666,13 @@ impl Skill {
 
         // If example 0 (the most fundamental example) is not in the selection
         // and there's room, swap in the lowest-scoring selected example.
-        if !selected_indices.contains(&0) && max_examples > 1 {
-            let last_idx = *selected_indices.last().unwrap();
-            if last_idx != 0 {
-                selected_indices.pop();
-                selected_indices.insert(0, 0);
-            }
+        if !selected_indices.contains(&0)
+            && max_examples > 1
+            && let Some(&last_idx) = selected_indices.last()
+            && last_idx != 0
+        {
+            selected_indices.pop();
+            selected_indices.insert(0, 0);
         }
 
         selected_indices.sort();

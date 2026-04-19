@@ -194,7 +194,9 @@ impl McpClient {
             }
         }
 
-        Err(last_err.unwrap())
+        Err(last_err.unwrap_or_else(|| {
+            OxoError::LlmError("MCP request failed: no servers responded".to_string())
+        }))
     }
 
     // ── Public MCP operations ─────────────────────────────────────────────

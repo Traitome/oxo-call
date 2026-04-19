@@ -23,26 +23,27 @@ use std::sync::LazyLock;
 /// Noise patterns: lines that carry no useful information for LLM consumption.
 static NOISE_PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
     vec![
-        Regex::new(r"For more information.*").unwrap(),
-        Regex::new(r"Report bugs to.*").unwrap(),
-        Regex::new(r"See the full documentation.*").unwrap(),
-        Regex::new(r"Homepage:.*").unwrap(),
-        Regex::new(r"^\s*Version:.*$").unwrap(),
-        Regex::new(r"^\s*$").unwrap(),
+        Regex::new(r"For more information.*").expect("valid regex"),
+        Regex::new(r"Report bugs to.*").expect("valid regex"),
+        Regex::new(r"See the full documentation.*").expect("valid regex"),
+        Regex::new(r"Homepage:.*").expect("valid regex"),
+        Regex::new(r"^\s*Version:.*$").expect("valid regex"),
+        Regex::new(r"^\s*$").expect("valid regex"),
     ]
 });
 
 /// Matches three or more consecutive newlines (for collapsing blank lines).
-static BLANK_LINE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\n{3,}").unwrap());
+static BLANK_LINE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\n{3,}").expect("valid regex"));
 
 /// Matches CLI flags like `-o`, `--output`, `--output-file`.
 static FLAG_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?:^|\s)(-{1,2}[a-zA-Z0-9_-]+)").unwrap());
+    LazyLock::new(|| Regex::new(r"(?:^|\s)(-{1,2}[a-zA-Z0-9_-]+)").expect("valid regex"));
 
 /// Matches structured flag lines in OPTIONS sections (e.g. `  -o FILE   Output file name`).
 static FLAG_LINE_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^\s*(-{1,2}[a-zA-Z0-9@_-]+(?:[,\s]+--?[a-zA-Z0-9_-]+)?(?:\s+\S+)?)\s{2,}(.+)")
-        .unwrap()
+        .expect("valid regex")
 });
 
 /// Structured documentation with separated sections

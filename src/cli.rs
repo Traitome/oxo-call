@@ -117,15 +117,8 @@ EXAMPLES:\n  \
         #[arg(long)]
         auto_retry: bool,
         /// Force a specific workflow scenario (auto-detected by default)
-        ///
-        /// Scenarios:
-        /// - basic: Tool + Task only (fastest)
-        /// - prompt: Basic + custom prompt
-        /// - doc: Basic + documentation + mini-skill generation
-        /// - skill: Basic + skill file
-        /// - full: Doc + skill combined (most accurate)
-        #[arg(long, value_name = "SCENARIO")]
-        scenario: Option<String>,
+        #[arg(long, value_enum, value_name = "SCENARIO")]
+        scenario: Option<RunScenario>,
         /// Disable streaming (SSE) output from the LLM. Tokens will not be
         /// printed incrementally; the full response is shown after generation
         /// completes. Useful for benchmarking or non-interactive pipelines.
@@ -183,8 +176,8 @@ EXAMPLES:\n  \
         #[arg(long = "input-items", value_name = "ITEMS")]
         input_items: Option<String>,
         /// Force a specific workflow scenario (auto-detected by default)
-        #[arg(long, value_name = "SCENARIO")]
-        scenario: Option<String>,
+        #[arg(long, value_enum, value_name = "SCENARIO")]
+        scenario: Option<RunScenario>,
         /// Disable streaming (SSE) output from the LLM
         #[arg(long)]
         no_stream: bool,
@@ -807,6 +800,24 @@ pub enum JobCommands {
         #[arg(long, conflicts_with_all = ["name", "as_name"])]
         all: bool,
     },
+}
+
+/// Scenario modes for `run` and `dry-run` commands.
+///
+/// Controls how much context (documentation, skills, prompt) is injected
+/// into the LLM call when generating tool commands.
+#[derive(Clone, Debug, ValueEnum)]
+pub enum RunScenario {
+    /// Basic: Tool + Task only (fastest)
+    Basic,
+    /// Prompt: Basic + custom prompt
+    Prompt,
+    /// Doc: Basic + documentation + mini-skill generation
+    Doc,
+    /// Skill: Basic + skill file
+    Skill,
+    /// Full: Doc + skill combined (most accurate)
+    Full,
 }
 
 /// Chat scenario modes for controlling context injection
