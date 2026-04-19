@@ -210,7 +210,7 @@ impl LlmCache {
         // Check age
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .expect("system clock before UNIX epoch")
             .as_secs();
         let age_days = (now - entry.created_at) / (24 * 3600);
 
@@ -270,7 +270,7 @@ impl LlmCache {
             model: model.to_string(),
             created_at: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .unwrap()
+                .expect("system clock before UNIX epoch")
                 .as_secs(),
             hit_count: 0,
         };
@@ -346,7 +346,7 @@ impl LlmCache {
 
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .expect("system clock before UNIX epoch")
             .as_secs();
         let oldest_entry_age_days = if oldest_timestamp == u64::MAX {
             0

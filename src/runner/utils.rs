@@ -280,7 +280,7 @@ pub fn make_spinner(msg: &str) -> ProgressBar {
         ProgressStyle::default_spinner()
             .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ ")
             .template("{spinner:.cyan} {msg}")
-            .unwrap(),
+            .expect("valid progress template"),
     );
     pb.set_message(msg.to_string());
     pb.enable_steady_tick(std::time::Duration::from_millis(80));

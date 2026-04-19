@@ -75,8 +75,8 @@ pub(crate) static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 use clap::{CommandFactory, Parser};
 use cli::{
     Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, JobCommands,
-    LicenseCommands, ModelCommands, ServerCommands, ShellType, SkillCommands, SkillMcpCommands,
-    WorkflowCommands,
+    LicenseCommands, ModelCommands, RunScenario, ServerCommands, ShellType, SkillCommands,
+    SkillMcpCommands, WorkflowCommands,
 };
 use colored::Colorize;
 use handlers::{config_verify_suggestions, print_index_table, with_source};
@@ -171,6 +171,17 @@ const COPILOT_MODELS: &[(&str, &str, bool)] = &[
     ),
 ];
 
+/// Convert a CLI [`RunScenario`] into its corresponding [`WorkflowScenario`].
+fn run_scenario_to_workflow(rs: RunScenario) -> workflow_graph::WorkflowScenario {
+    match rs {
+        RunScenario::Basic => workflow_graph::WorkflowScenario::Basic,
+        RunScenario::Prompt => workflow_graph::WorkflowScenario::Prompt,
+        RunScenario::Doc => workflow_graph::WorkflowScenario::Doc,
+        RunScenario::Skill => workflow_graph::WorkflowScenario::Skill,
+        RunScenario::Full => workflow_graph::WorkflowScenario::Full,
+    }
+}
+
 async fn run(cli: Cli) -> error::Result<()> {
     // Commands that are permitted without a valid license file.
     // `--help` and `--version` are handled by clap before reaching this function.
@@ -251,17 +262,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                 cfg.llm.model = Some(m.clone());
             }
 
-            // Parse scenario override
-            let force_scenario = scenario
-                .as_ref()
-                .and_then(|s| match s.to_lowercase().as_str() {
-                    "basic" => Some(workflow_graph::WorkflowScenario::Basic),
-                    "prompt" => Some(workflow_graph::WorkflowScenario::Prompt),
-                    "doc" => Some(workflow_graph::WorkflowScenario::Doc),
-                    "skill" => Some(workflow_graph::WorkflowScenario::Skill),
-                    "full" => Some(workflow_graph::WorkflowScenario::Full),
-                    _ => None,
-                });
+            // Convert validated scenario enum to workflow scenario
+            let force_scenario = scenario.map(run_scenario_to_workflow);
 
             // Collect input items from --input-list / --input-items.
             let all_items = {
@@ -329,17 +331,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                 cfg.llm.model = Some(m.clone());
             }
 
-            // Parse scenario override
-            let force_scenario = scenario
-                .as_ref()
-                .and_then(|s| match s.to_lowercase().as_str() {
-                    "basic" => Some(workflow_graph::WorkflowScenario::Basic),
-                    "prompt" => Some(workflow_graph::WorkflowScenario::Prompt),
-                    "doc" => Some(workflow_graph::WorkflowScenario::Doc),
-                    "skill" => Some(workflow_graph::WorkflowScenario::Skill),
-                    "full" => Some(workflow_graph::WorkflowScenario::Full),
-                    _ => None,
-                });
+            // Convert validated scenario enum to workflow scenario
+            let force_scenario = scenario.map(run_scenario_to_workflow);
 
             let all_items = {
                 let mut v: Vec<String> = Vec::new();

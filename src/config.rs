@@ -273,6 +273,17 @@ impl Config {
         let tmp_path = path.with_extension("tmp");
         std::fs::write(&tmp_path, &content)?;
         std::fs::rename(&tmp_path, &path)?;
+
+        // Restrict config file permissions to owner-only (0600) on Unix,
+        // since it may contain sensitive data like API tokens.
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let perms = std::fs::Permissions::from_mode(0o600);
+            // Best-effort: don't fail the save if permission setting fails.
+            let _ = std::fs::set_permissions(&path, perms);
+        }
+
         Ok(())
     }
 

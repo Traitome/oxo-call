@@ -126,7 +126,10 @@ impl MiniSkillCache {
         }
 
         let memory = Arc::new(Mutex::new(LruCache::new(
-            NonZeroUsize::new(config.memory_size).unwrap(),
+            NonZeroUsize::new(config.memory_size).unwrap_or(
+                // Safety: 100 is non-zero.
+                NonZeroUsize::new(100).expect("100 is non-zero"),
+            ),
         )));
 
         let tool_index = Arc::new(Mutex::new(HashMap::new()));

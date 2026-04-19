@@ -4927,3 +4927,89 @@ fn test_config_show_includes_stream() {
         "Expected 'stream' in config show output, got: {stdout}"
     );
 }
+
+// ─── Scenario validation tests (run/dry-run) ─────────────────────────────────
+
+#[test]
+fn test_run_invalid_scenario_rejected() {
+    let output = oxo_call()
+        .args(["run", "--scenario", "invalid", "samtools", "view"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        !output.status.success(),
+        "Invalid --scenario should return non-zero exit code"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("invalid") || stderr.contains("error"),
+        "Invalid scenario should produce an error message, got: {stderr}"
+    );
+}
+
+#[test]
+fn test_dry_run_invalid_scenario_rejected() {
+    let output = oxo_call()
+        .args(["dry-run", "--scenario", "invalid", "samtools", "view"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        !output.status.success(),
+        "Invalid --scenario on dry-run should return non-zero exit code"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("invalid") || stderr.contains("error"),
+        "Invalid scenario should produce an error message, got: {stderr}"
+    );
+}
+
+#[test]
+fn test_run_scenario_value_enum_in_help() {
+    let output = oxo_call()
+        .args(["run", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    // ValueEnum should show valid scenario values in help text
+    assert!(
+        stdout.contains("basic") && stdout.contains("full"),
+        "Expected scenario values listed in run help, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_dry_run_scenario_value_enum_in_help() {
+    let output = oxo_call()
+        .args(["dry-run", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    // ValueEnum should show valid scenario values in help text
+    assert!(
+        stdout.contains("basic") && stdout.contains("full"),
+        "Expected scenario values listed in dry-run help, got: {stdout}"
+    );
+}
+
+// ─── Input validation exit code tests ─────────────────────────────────────────
+
+#[test]
+fn test_run_nonexistent_input_list_exits_nonzero() {
+    let output = oxo_call()
+        .args([
+            "run",
+            "--input-list",
+            "/nonexistent/path/file.txt",
+            "samtools",
+            "view {item}",
+        ])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(
+        !output.status.success(),
+        "Nonexistent --input-list file should return non-zero exit code"
+    );
+}
