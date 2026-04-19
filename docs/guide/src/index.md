@@ -135,3 +135,21 @@ We actively welcome early adopters and testers — from students running their f
 | 🤝 Contribute code or skills | [Contributing guide](./development/contributing.md) |
 
 > **Try it, break it, and tell us what happened.** Even a one-line comment on what went wrong — or right — helps us improve the tool for the whole community.
+
+---
+
+## Citation
+
+If you use oxo-call in your research, please cite:
+
+```bibtex
+@article{peng2026oxo-call,
+  title={oxo-call: Documentation-grounded Skill Augmentation for Accurate Bioinformatics Command-line Generation with Large Language Models},
+  author={Peng, Yun and Sun, Yujun and Ding, Jia and Yan, Bin and Wang, Zhangyu and Wang, Chunyang and Shu, Chenyang and Zhou, Jian-Guo and Wang, Shixiang},
+  journal={arXiv preprint arXiv:2604.12387},
+  year={2026},
+  doi={10.48550/arXiv.2604.12387}
+}
+```
+
+**Paper:** [arXiv:2604.12387](https://arxiv.org/abs/2604.12387) | **DOI:** [10.48550/arXiv.2604.12387](https://doi.org/10.48550/arXiv.2604.12387)

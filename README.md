@@ -164,6 +164,24 @@ We are actively looking for early adopters and testers across all stages of bioi
 
 ---
 
+## Citation
+
+If you use oxo-call in your research, please cite:
+
+```bibtex
+@article{peng2026oxo-call,
+  title={oxo-call: Documentation-grounded Skill Augmentation for Accurate Bioinformatics Command-line Generation with Large Language Models},
+  author={Peng, Yun and Sun, Yujun and Ding, Jia and Yan, Bin and Wang, Zhangyu and Wang, Chunyang and Shu, Chenyang and Zhou, Jian-Guo and Wang, Shixiang},
+  journal={arXiv preprint arXiv:2604.12387},
+  year={2026},
+  doi={10.48550/arXiv.2604.12387}
+}
+```
+
+**Paper:** [arXiv:2604.12387](https://arxiv.org/abs/2604.12387) | **DOI:** [10.48550/arXiv.2604.12387](https://doi.org/10.48550/arXiv.2604.12387)
+
+---
+
 ## License
 
 **Dual License — Academic Free / Commercial Per-Organization**
