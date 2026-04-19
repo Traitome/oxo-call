@@ -13,6 +13,9 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
+
+/// Default LRU cache capacity when `config.memory_size` is zero.
+const DEFAULT_CACHE_SIZE: NonZeroUsize = NonZeroUsize::new(100).unwrap();
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -126,10 +129,7 @@ impl MiniSkillCache {
         }
 
         let memory = Arc::new(Mutex::new(LruCache::new(
-            NonZeroUsize::new(config.memory_size).unwrap_or(
-                // Safety: 100 is non-zero.
-                NonZeroUsize::new(100).expect("100 is non-zero"),
-            ),
+            NonZeroUsize::new(config.memory_size).unwrap_or(DEFAULT_CACHE_SIZE),
         )));
 
         let tool_index = Arc::new(Mutex::new(HashMap::new()));

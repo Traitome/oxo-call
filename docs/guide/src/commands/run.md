@@ -24,7 +24,7 @@ oxo-call r   [OPTIONS] <TOOL> <TASK>
 | `-j`, `--jobs <N>` | Maximum parallel jobs when using `--input-list` / `--input-items` (default: 1) |
 | `-x`, `--stop-on-error` | Abort remaining items after the first failure |
 | `--auto-retry` | On failure, ask the LLM to analyze stderr and re-run with a corrected command (up to 2 retries) |
-| `--scenario <SCENARIO>` | Force a workflow scenario: `basic`, `prompt`, `doc`, `skill`, or `full` (auto-detected by default) |
+| `--scenario <SCENARIO>` | Force a workflow scenario: `basic`, `prompt`, `doc`, `skill`, or `full` (auto-detected by default). Invalid values are rejected with a non-zero exit code |
 | `--no-stream` | Disable streaming (SSE) output from the LLM; the full response is shown after generation completes |
 | `-v`, `--verbose` | Show docs source, skill info, and LLM details (global) |
 | `--license <PATH>` | Path to license file (global option) |

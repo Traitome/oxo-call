@@ -280,8 +280,10 @@ impl Config {
         {
             use std::os::unix::fs::PermissionsExt;
             let perms = std::fs::Permissions::from_mode(0o600);
-            // Best-effort: don't fail the save if permission setting fails.
-            let _ = std::fs::set_permissions(&path, perms);
+            // Best-effort: log but don't fail the save if permission setting fails.
+            if let Err(e) = std::fs::set_permissions(&path, perms) {
+                eprintln!("warning: failed to set config file permissions: {e}");
+            }
         }
 
         Ok(())

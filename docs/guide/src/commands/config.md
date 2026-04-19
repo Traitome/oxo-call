@@ -137,3 +137,19 @@ You can also disable streaming per-invocation with `--no-stream` on any LLM-back
 ## Configuration Reference
 
 See the [Configuration tutorial](../tutorials/configuration.md) for complete details on all keys, defaults, and environment variables.
+
+## Security
+
+The config file (`config.toml`) may contain sensitive data such as API tokens.
+On Unix systems, oxo-call automatically sets file permissions to `0600` (owner
+read/write only) when saving the configuration. This prevents other users on the
+same system from reading your API token.
+
+You can also use the `OXO_CALL_LLM_API_TOKEN` environment variable to provide
+the API token without storing it in the config file at all — this is recommended
+for shared environments and CI/CD pipelines:
+
+```bash
+export OXO_CALL_LLM_API_TOKEN="sk-your-token"
+oxo-call run samtools "sort input.bam"
+```
