@@ -12,6 +12,8 @@ This guide shows you how to change the LLM backend that oxo-call uses for comman
 | `openai` | gpt-4o, gpt-4o-mini, ... | OpenAI API key | Best accuracy, production use |
 | `anthropic` | claude-3-5-sonnet, ... | Anthropic API key | Alternative frontier model |
 | `ollama` | llama3.2, mistral, ... | None (local) | Air-gapped, private data, free |
+| `openai` (custom base) | moonshot-v1-*, kimi-* | Moonshot API key | Kimi / Moonshot AI |
+| `openai` (custom base) | glm-4, glm-4-long, ... | ZhipuAI API key | GLM / ZhipuAI |
 
 ---
 
@@ -145,6 +147,58 @@ Environment variable fallback:
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-xxxx
 ```
+
+---
+
+## Kimi / Moonshot AI
+
+[Moonshot AI](https://platform.moonshot.cn/) provides the Kimi model family via an OpenAI-compatible API. Kimi models feature large context windows (up to 128K tokens) and strong multilingual capabilities.
+
+```bash
+oxo-call config set llm.provider openai
+oxo-call config set llm.api_base https://api.moonshot.cn/v1
+oxo-call config set llm.api_token sk-xxxxxxxxxxxxxxxxxxxxxxxx
+
+# Choose a context-window variant
+oxo-call config set llm.model moonshot-v1-8k     # 8K context (faster)
+oxo-call config set llm.model moonshot-v1-32k    # 32K context
+oxo-call config set llm.model moonshot-v1-128k   # 128K context (recommended)
+
+# Verify
+oxo-call config verify
+```
+
+| Model | Context | Best for |
+|-------|---------|----------|
+| `moonshot-v1-8k` | 8K | Fast, simple tasks |
+| `moonshot-v1-32k` | 32K | Most tasks |
+| `moonshot-v1-128k` | 128K | Long documentation, complex tasks |
+
+---
+
+## GLM / ZhipuAI
+
+[ZhipuAI](https://open.bigmodel.cn/) provides the GLM-4 series via an OpenAI-compatible API. GLM-4 supports up to 1 million token context in the `glm-4-long` variant.
+
+```bash
+oxo-call config set llm.provider openai
+oxo-call config set llm.api_base https://open.bigmodel.cn/api/paas/v4
+oxo-call config set llm.api_token xxxxxxxxxxxxxxxxxxxxxxxx
+
+# Choose a model
+oxo-call config set llm.model glm-4           # Standard, 128K context
+oxo-call config set llm.model glm-4-flash     # Faster/cheaper variant
+oxo-call config set llm.model glm-4-long      # 1M token context (long documents)
+
+# Verify
+oxo-call config verify
+```
+
+| Model | Context | Best for |
+|-------|---------|----------|
+| `glm-4` | 128K | General use |
+| `glm-4-flash` | 128K | Cost-sensitive workflows |
+| `glm-4-long` | 1M | Very long documentation or multi-tool sessions |
 
 ---
 

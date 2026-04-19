@@ -4,7 +4,7 @@
 
 ## Overview
 
-oxo-call supports four LLM providers for command generation:
+oxo-call supports multiple LLM providers for command generation:
 
 | Provider | Default Model | Token Required |
 |----------|--------------|----------------|
@@ -12,6 +12,8 @@ oxo-call supports four LLM providers for command generation:
 | OpenAI | gpt-4o | Yes |
 | Anthropic | claude-3-5-sonnet-20241022 | Yes |
 | Ollama | llama3.2 | No (local) |
+| Moonshot AI (Kimi) | moonshot-v1-128k | Yes (OpenAI-compatible API) |
+| ZhipuAI (GLM) | glm-4 | Yes (OpenAI-compatible API) |
 
 ## LLM Roles
 
@@ -319,6 +321,11 @@ The context window is inferred from common model name patterns:
 | `qwen2.5:72b`, `llama3:70b` | 32,768 | Full |
 | `gpt-4o`, `gpt-5-mini` | 128,000 | Full |
 | `claude-3-5-sonnet` | 200,000 | Full |
+| `moonshot-v1-8k` | 8,000 | Medium |
+| `moonshot-v1-32k` | 32,768 | Full |
+| `moonshot-v1-128k`, `kimi-*` | 128,000 | Full |
+| `glm-4`, `glm-4-flash`, `chatglm-*` | 128,000 | Full |
+| `glm-4-long` | 1,000,000 | Full |
 
 ### Manual Configuration
 

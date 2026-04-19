@@ -121,7 +121,7 @@ The architecture is designed around a layered system that makes command generati
 
 **AI Orchestration Layer** — Core intelligence pipeline:
 - **Runner Pipeline** (`runner/`): Orchestrates the full docs→skill→LLM→execute flow
-- **LLM Integration** (`llm/`): Multi-provider abstraction (GitHub Copilot, OpenAI, Anthropic, Ollama, DeepSeek, and more)
+- **LLM Integration** (`llm/`): Multi-provider abstraction (GitHub Copilot, OpenAI, Anthropic, Ollama, Kimi/Moonshot, GLM/ZhipuAI, and more via OpenAI-compatible API)
 - **Command Generator** (`generator.rs`): Extensible generation strategies via the `CommandGenerator` trait
 
 **Knowledge Enhancement Layer** — Grounds LLM calls in real documentation and domain expertise:
@@ -194,16 +194,24 @@ lib.rs              — Programmatic API surface (re-exports all modules)
 
 ```text
 1. License verification (Ed25519 signature check)
-2. Documentation fetch (cache → --help → local files → remote URLs)
+2. Parallel fetch:
+   a. Skill loading (user → community → MCP → built-in)
+   b. Documentation fetch (cache → --help → local files → remote URLs)
+      [skipped if high-quality skill is already available]
 3. Structured doc extraction (flag catalog + command examples, deterministic)
-4. Skill loading (user → community → MCP → built-in)
-5. Doc-enriched prompt construction:
-   - Flag catalog → "Valid Flags" section (prevents hallucination)
-   - Doc-extracted examples → few-shot demonstrations (critical for ≤3B)
-   - Skill knowledge → expert grounding (when available)
-   - Task + context → user message
-6. LLM API call (single call: GitHub Copilot / OpenAI / Anthropic / Ollama)
-7. Response parsing (extract ARGS: and EXPLANATION: lines)
+4. Supervisor decision (orchestrator/supervisor.rs):
+   - has_skill=true  → Fast mode (single-call), regardless of task complexity
+   - has_skill=false AND complexity ≥ 0.5 → Quality mode (multi-stage)
+   - has_skill=false AND complexity < 0.5  → Fast mode
+5. Prompt enrichment (context, user preferences, best practices, executor hints)
+6a. Fast mode (single LLM call):
+   - Doc-enriched prompt: flag catalog + doc-extracted examples + skill knowledge
+   - One LLM call → ARGS: / EXPLANATION: response
+6b. Quality mode (parallel LLM calls via tokio::join!):
+   - Stage 1 (concurrent): task standardization (if vague/short/non-ASCII)
+   - Stage 2 (concurrent): mini-skill generation from doc (tool-keyed cache)
+   - Stage 3: command generation with mini-skill + structured doc
+7. Response parsing (extract ARGS: and EXPLANATION: lines, retry on invalid)
 8. Flag validation against doc catalog (post-processing)
 9. Command execution (run) or display (dry-run)
 10. History recording (JSONL with UUID, exit code, timestamp)

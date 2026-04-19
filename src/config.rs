@@ -453,6 +453,11 @@ impl Config {
             || model.contains("claude")
             || model.contains("gemini")
             || model.contains("command-r")
+            || model.contains("moonshot")   // Kimi (Moonshot AI)
+            || model.contains("kimi")       // Kimi alternate name
+            || model.contains("glm-4")      // ZhipuAI GLM-4 series
+            || model.contains("chatglm")
+        // ZhipuAI ChatGLM series
         {
             return "large";
         }
@@ -800,6 +805,26 @@ pub fn infer_context_window(model: &str) -> u32 {
         return 131_072; // 128K
     }
 
+    // Kimi / Moonshot AI
+    // moonshot-v1-8k / moonshot-v1-32k / moonshot-v1-128k variants
+    if m.contains("moonshot-v1-8k") || m.contains("kimi-8k") {
+        return 8_192;
+    }
+    if m.contains("moonshot-v1-32k") || m.contains("kimi-32k") {
+        return 32_768;
+    }
+    if m.contains("moonshot") || m.contains("kimi") {
+        return 128_000; // Default to 128K for other Kimi/Moonshot models
+    }
+
+    // ZhipuAI GLM series
+    if m.contains("glm-4-long") {
+        return 1_000_000; // GLM-4-Long supports 1M token context
+    }
+    if m.contains("glm-4") || m.contains("chatglm") {
+        return 128_000; // GLM-4 series default 128K
+    }
+
     // Cloud providers (kept from original)
     if m.contains("gpt-4o-mini") || m.contains("gpt-5-mini") || m.contains("gpt4o-mini") {
         return 128_000;
@@ -1017,6 +1042,28 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             instruction_following: 0.9,
             code_generation: 0.85,
             bio_knowledge: 0.8,
+            optimal_temperature: 0.0,
+            preferred_prompt_style: PromptStyle::Instruct,
+        };
+    }
+
+    // Kimi / Moonshot AI — strong instruction following, multilingual strength
+    if m.contains("moonshot") || m.contains("kimi") {
+        return ModelProfile {
+            instruction_following: 0.9,
+            code_generation: 0.85,
+            bio_knowledge: 0.75,
+            optimal_temperature: 0.0,
+            preferred_prompt_style: PromptStyle::Instruct,
+        };
+    }
+
+    // ZhipuAI GLM series — strong Chinese + English instruction following
+    if m.contains("glm-4") || m.contains("chatglm") {
+        return ModelProfile {
+            instruction_following: 0.88,
+            code_generation: 0.82,
+            bio_knowledge: 0.72,
             optimal_temperature: 0.0,
             preferred_prompt_style: PromptStyle::Instruct,
         };
@@ -2511,5 +2558,58 @@ mod tests {
         let mut cfg = Config::default();
         cfg.llm.model = Some("my-custom-model".to_string());
         assert_eq!(cfg.model_size_category(), "medium");
+    }
+
+    #[test]
+    fn test_model_size_category_kimi_moonshot_is_large() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let mut cfg = Config::default();
+        cfg.llm.model = Some("moonshot-v1-128k".to_string());
+        assert_eq!(cfg.model_size_category(), "large");
+
+        cfg.llm.model = Some("kimi-latest".to_string());
+        assert_eq!(cfg.model_size_category(), "large");
+    }
+
+    #[test]
+    fn test_model_size_category_glm_is_large() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let mut cfg = Config::default();
+        cfg.llm.model = Some("glm-4-long".to_string());
+        assert_eq!(cfg.model_size_category(), "large");
+
+        cfg.llm.model = Some("chatglm3-6b".to_string());
+        // chatglm prefix triggers cloud-API classification
+        assert_eq!(cfg.model_size_category(), "large");
+    }
+
+    #[test]
+    fn test_infer_context_window_moonshot() {
+        assert_eq!(infer_context_window("moonshot-v1-8k"), 8_192);
+        assert_eq!(infer_context_window("moonshot-v1-32k"), 32_768);
+        assert_eq!(infer_context_window("moonshot-v1-128k"), 128_000);
+        assert_eq!(infer_context_window("moonshot-latest"), 128_000);
+    }
+
+    #[test]
+    fn test_infer_context_window_glm() {
+        assert_eq!(infer_context_window("glm-4-long"), 1_000_000);
+        assert_eq!(infer_context_window("glm-4"), 128_000);
+        assert_eq!(infer_context_window("glm-4-flash"), 128_000);
+        assert_eq!(infer_context_window("chatglm3-6b"), 128_000);
+    }
+
+    #[test]
+    fn test_model_profile_kimi() {
+        let profile = get_model_profile("moonshot-v1-128k");
+        assert!(profile.instruction_following >= 0.9);
+        assert_eq!(profile.preferred_prompt_style, PromptStyle::Instruct);
+    }
+
+    #[test]
+    fn test_model_profile_glm() {
+        let profile = get_model_profile("glm-4");
+        assert!(profile.instruction_following >= 0.85);
+        assert_eq!(profile.preferred_prompt_style, PromptStyle::Instruct);
     }
 }
