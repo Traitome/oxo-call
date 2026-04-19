@@ -146,20 +146,17 @@ impl MiniSkillCache {
         Ok(cache)
     }
 
-    /// Compute cache key from tool, task, and doc hash
-    pub fn compute_key(tool: &str, task: &str, doc_hash: &str) -> String {
+    /// Compute cache key from tool and doc hash.
+    ///
+    /// Mini-skills capture tool-level knowledge (concepts, pitfalls, examples)
+    /// extracted from documentation, so they are reusable across different user
+    /// tasks for the same tool.  Keying by `(tool, doc_hash)` rather than
+    /// `(tool, task, doc_hash)` dramatically improves cache hit rates — the
+    /// second invocation for the same tool is always a cache hit.
+    pub fn compute_key(tool: &str, doc_hash: &str) -> String {
         let mut hasher = Sha256::new();
 
-        // Normalize task
-        let normalized_task = task
-            .to_lowercase()
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ");
-
         hasher.update(tool.as_bytes());
-        hasher.update(b"\0");
-        hasher.update(normalized_task.as_bytes());
         hasher.update(b"\0");
         hasher.update(doc_hash.as_bytes());
 
@@ -167,8 +164,8 @@ impl MiniSkillCache {
     }
 
     /// Get a mini-skill from cache
-    pub fn get(&mut self, tool: &str, task: &str, doc_hash: &str) -> Option<MiniSkill> {
-        let key = Self::compute_key(tool, task, doc_hash);
+    pub fn get(&mut self, tool: &str, doc_hash: &str) -> Option<MiniSkill> {
+        let key = Self::compute_key(tool, doc_hash);
 
         // Try memory cache first
         if let Ok(mut memory) = self.memory.lock()
@@ -211,7 +208,7 @@ impl MiniSkillCache {
 
     /// Insert a mini-skill into cache
     pub fn insert(&mut self, skill: MiniSkill) {
-        let key = Self::compute_key(&skill.tool, &skill.task_hash, &skill.doc_hash);
+        let key = Self::compute_key(&skill.tool, &skill.doc_hash);
 
         // Add to memory cache
         if let Ok(mut memory) = self.memory.lock() {
@@ -393,13 +390,22 @@ mod tests {
 
     #[test]
     fn test_compute_key() {
-        let key1 = MiniSkillCache::compute_key("samtools", "sort bam", "abc123");
-        let key2 = MiniSkillCache::compute_key("samtools", "sort bam", "abc123");
-        let key3 = MiniSkillCache::compute_key("samtools", "view bam", "abc123");
+        let key1 = MiniSkillCache::compute_key("samtools", "abc123");
+        let key2 = MiniSkillCache::compute_key("samtools", "abc123");
+        let key3 = MiniSkillCache::compute_key("samtools", "def456");
 
         assert_eq!(key1, key2);
         assert_ne!(key1, key3);
         assert!(key1.starts_with("samtools:"));
+    }
+
+    #[test]
+    fn test_compute_key_same_tool_different_tasks_same_doc() {
+        // Mini-skills are keyed by (tool, doc_hash) only — different tasks
+        // for the same tool + doc should hit the same cache entry.
+        let key1 = MiniSkillCache::compute_key("samtools", "abc123");
+        let key2 = MiniSkillCache::compute_key("samtools", "abc123");
+        assert_eq!(key1, key2);
     }
 
     #[test]
@@ -429,7 +435,7 @@ mod tests {
 
         cache.insert(skill.clone());
 
-        let retrieved = cache.get("samtools", "sort bam", "abc123");
+        let retrieved = cache.get("samtools", "abc123");
         assert!(retrieved.is_some());
 
         let retrieved = retrieved.unwrap();
@@ -461,7 +467,7 @@ mod tests {
         cache.insert(old_skill);
 
         // Should not retrieve expired skill
-        let retrieved = cache.get("old_tool", "task", "hash");
+        let retrieved = cache.get("old_tool", "hash");
         assert!(retrieved.is_none());
     }
 
@@ -487,9 +493,9 @@ mod tests {
         };
 
         cache.insert(skill);
-        assert!(cache.get("tool", "task", "hash").is_some());
+        assert!(cache.get("tool", "hash").is_some());
 
         cache.clear().unwrap();
-        assert!(cache.get("tool", "task", "hash").is_none());
+        assert!(cache.get("tool", "hash").is_none());
     }
 }
