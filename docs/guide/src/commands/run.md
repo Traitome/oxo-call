@@ -25,6 +25,7 @@ oxo-call r   [OPTIONS] <TOOL> <TASK>
 | `-x`, `--stop-on-error` | Abort remaining items after the first failure |
 | `--auto-retry` | On failure, ask the LLM to analyze stderr and re-run with a corrected command (up to 2 retries) |
 | `--scenario <SCENARIO>` | Force a workflow scenario: `basic`, `prompt`, `doc`, `skill`, or `full` (auto-detected by default) |
+| `--no-stream` | Disable streaming (SSE) output from the LLM; the full response is shown after generation completes |
 | `-v`, `--verbose` | Show docs source, skill info, and LLM details (global) |
 | `--license <PATH>` | Path to license file (global option) |
 
@@ -106,6 +107,9 @@ oxo-call dry-run samtools "flagstat {item}" --input-items s1.bam,s2.bam
 oxo-call run bwa "align {item} to {REF} with {THREADS} threads" \
     --var REF=hg38.fa --var THREADS=8 \
     --input-list samples.txt --jobs 4
+
+# Disable streaming (useful for CI/batch scripts and benchmarks)
+oxo-call run --no-stream samtools "sort input.bam by coordinate"
 ```
 
 ## Variable substitution (`--var`)

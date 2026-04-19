@@ -198,10 +198,14 @@ async fn run(cli: Cli) -> error::Result<()> {
             no_cache,
             scenario,
             json,
+            no_stream,
         } => {
             let mut cfg = config::Config::load()?;
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
+            }
+            if no_stream {
+                cfg.llm.stream = false;
             }
 
             let mut chat_session = chat::ChatSession::new(cfg)
@@ -240,6 +244,7 @@ async fn run(cli: Cli) -> error::Result<()> {
             stop_on_error,
             auto_retry,
             scenario,
+            no_stream,
         } => {
             let mut cfg = config::Config::load()?;
             if let Some(ref m) = model {
@@ -289,7 +294,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_verbose(verbose)
                 .with_no_cache(no_cache)
                 .with_verify(verify)
-                .with_auto_retry(auto_retry);
+                .with_auto_retry(auto_retry)
+                .with_no_stream(no_stream);
             let runner = if let Some(sc) = force_scenario {
                 runner.with_scenario(sc)
             } else {
@@ -316,6 +322,7 @@ async fn run(cli: Cli) -> error::Result<()> {
             input_list,
             input_items,
             scenario,
+            no_stream,
         } => {
             let mut cfg = config::Config::load()?;
             if let Some(ref m) = model {
@@ -364,7 +371,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_no_cache(no_cache)
                 .with_no_skill(no_skill)
                 .with_no_doc(no_doc)
-                .with_no_prompt(no_prompt);
+                .with_no_prompt(no_prompt)
+                .with_no_stream(no_stream);
             let runner = if let Some(sc) = force_scenario {
                 runner.with_scenario(sc)
             } else {
@@ -665,6 +673,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 );
                 println!("  {:<25} {}", "max_tokens", cfg.llm.max_tokens);
                 println!("  {:<25} {}", "temperature", cfg.llm.temperature);
+                println!("  {:<25} {}", "stream", cfg.llm.stream);
                 println!(
                     "  {:<25} {}",
                     "models",
@@ -759,6 +768,14 @@ async fn run(cli: Cli) -> error::Result<()> {
                     with_source(
                         &cfg.effective_docs_auto_update()?.to_string(),
                         &cfg.effective_source("docs.auto_update")?
+                    )
+                );
+                println!(
+                    "  {:<25} {}",
+                    "stream",
+                    with_source(
+                        &cfg.llm.stream.to_string(),
+                        &cfg.effective_source("llm.stream")?
                     )
                 );
             }
@@ -1744,8 +1761,12 @@ async fn run(cli: Cli) -> error::Result<()> {
                 task,
                 engine: engine_name,
                 output,
+                no_stream,
             } => {
-                let cfg = config::Config::load()?;
+                let mut cfg = config::Config::load()?;
+                if no_stream {
+                    cfg.llm.stream = false;
+                }
                 let label = match engine_name.as_str() {
                     "snakemake" => "Snakemake",
                     "nextflow" => "Nextflow DSL2",
@@ -1790,8 +1811,12 @@ async fn run(cli: Cli) -> error::Result<()> {
                 engine: engine_name,
                 output,
                 run,
+                no_stream,
             } => {
-                let cfg = config::Config::load()?;
+                let mut cfg = config::Config::load()?;
+                if no_stream {
+                    cfg.llm.stream = false;
+                }
 
                 if !data.exists() || !data.is_dir() {
                     eprintln!(
@@ -2319,6 +2344,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                     no_cache,
                     json,
                     verify,
+                    no_stream,
                 } => {
                     let cfg = config::Config::load()?;
                     let mgr = server::ServerManager::new(cfg.clone());
@@ -2373,7 +2399,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                     let runner_inst = runner::Runner::new(run_cfg)
                         .with_verbose(verbose)
                         .with_no_cache(no_cache)
-                        .with_verify(verify);
+                        .with_verify(verify)
+                        .with_no_stream(no_stream);
                     let generated = runner_inst.generate_command(&tool, &task).await?;
 
                     // Show preview
@@ -2489,6 +2516,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                     model,
                     no_cache,
                     json,
+                    no_stream,
                 } => {
                     let cfg = config::Config::load()?;
                     let mgr = server::ServerManager::new(cfg.clone());
@@ -2517,7 +2545,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                     }
                     let runner_inst = runner::Runner::new(run_cfg)
                         .with_verbose(verbose)
-                        .with_no_cache(no_cache);
+                        .with_no_cache(no_cache)
+                        .with_no_stream(no_stream);
                     runner_inst
                         .dry_run(&tool, &task, json, Some(&server_name))
                         .await?;

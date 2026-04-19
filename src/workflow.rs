@@ -149,6 +149,19 @@ struct ChatChoice {
     message: ChatMessage,
 }
 
+/// Streaming version of ChatRequest (includes the `stream` flag).
+#[derive(Debug, Serialize)]
+struct ChatRequestStreaming {
+    model: String,
+    messages: Vec<ChatMessage>,
+    max_tokens: u32,
+    temperature: f32,
+    stream: bool,
+}
+
+// Import shared SSE streaming helper from llm module.
+use crate::llm::streaming::read_sse_stream;
+
 fn native_system_prompt() -> &'static str {
     r#"You are an expert bioinformatics workflow engineer.
 Generate workflows in the oxo-call native TOML format (.oxo.toml).
@@ -306,13 +319,7 @@ pub async fn generate_workflow(
     let model = config.effective_model();
     let max_tokens = config.effective_max_tokens()?;
     let temperature = config.effective_temperature()?;
-
-    let request = ChatRequest {
-        model: model.clone(),
-        messages,
-        max_tokens,
-        temperature,
-    };
+    let stream_enabled = config.llm.stream;
 
     let client = Client::builder()
         .use_rustls_tls()
@@ -321,43 +328,75 @@ pub async fn generate_workflow(
 
     let url = format!("{api_base}/chat/completions");
 
-    let mut req_builder = client.post(&url).json(&request);
-    if let Some(ref t) = token {
-        req_builder = req_builder.bearer_auth(t);
-    }
-    let resp = req_builder
-        .send()
-        .await
-        .map_err(|e| OxoError::LlmError(format!("HTTP error: {e}")))?;
-
-    let status = resp.status();
-    if !status.is_success() {
-        let body = resp
-            .text()
+    // ── First attempt ─────────────────────────────────────────────────
+    let raw = if stream_enabled {
+        let request = ChatRequestStreaming {
+            model: model.clone(),
+            messages: messages.clone(),
+            max_tokens,
+            temperature,
+            stream: true,
+        };
+        let mut req_builder = client.post(&url).json(&request);
+        if let Some(ref t) = token {
+            req_builder = req_builder.bearer_auth(t);
+        }
+        let resp = req_builder
+            .send()
             .await
-            .unwrap_or_else(|_| "<no body>".to_string());
-        return Err(OxoError::LlmError(format!(
-            "LLM API returned {status}: {body}"
-        )));
-    }
-
-    let chat: ChatResponse = resp
-        .json()
-        .await
-        .map_err(|e| OxoError::LlmError(format!("Failed to parse LLM response: {e}")))?;
-
-    let raw = chat
-        .choices
-        .first()
-        .map(|c| c.message.content.clone())
-        .unwrap_or_default();
+            .map_err(|e| OxoError::LlmError(format!("HTTP error: {e}")))?;
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp
+                .text()
+                .await
+                .unwrap_or_else(|_| "<no body>".to_string());
+            return Err(OxoError::LlmError(format!(
+                "LLM API returned {status}: {body}"
+            )));
+        }
+        read_sse_stream(resp).await?
+    } else {
+        let request = ChatRequest {
+            model: model.clone(),
+            messages: messages.clone(),
+            max_tokens,
+            temperature,
+        };
+        let mut req_builder = client.post(&url).json(&request);
+        if let Some(ref t) = token {
+            req_builder = req_builder.bearer_auth(t);
+        }
+        let resp = req_builder
+            .send()
+            .await
+            .map_err(|e| OxoError::LlmError(format!("HTTP error: {e}")))?;
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp
+                .text()
+                .await
+                .unwrap_or_else(|_| "<no body>".to_string());
+            return Err(OxoError::LlmError(format!(
+                "LLM API returned {status}: {body}"
+            )));
+        }
+        let chat: ChatResponse = resp
+            .json()
+            .await
+            .map_err(|e| OxoError::LlmError(format!("Failed to parse LLM response: {e}")))?;
+        chat.choices
+            .first()
+            .map(|c| c.message.content.clone())
+            .unwrap_or_default()
+    };
 
     if let Some(wf) = parse_workflow_response(&raw, engine) {
         return Ok(wf);
     }
 
-    // Second attempt: re-prompt with format reminder.
-    let mut messages2 = request.messages.clone();
+    // ── Second attempt: re-prompt with format reminder ────────────────
+    let mut messages2 = messages;
     messages2.push(ChatMessage {
         role: "assistant".to_string(),
         content: raw.clone(),
@@ -370,29 +409,50 @@ pub async fn generate_workflow(
             .to_string(),
     });
 
-    let request2 = ChatRequest {
-        model: model.clone(),
-        messages: messages2,
-        max_tokens,
-        temperature,
+    let raw2 = if stream_enabled {
+        let request2 = ChatRequestStreaming {
+            model: model.clone(),
+            messages: messages2,
+            max_tokens,
+            temperature,
+            stream: true,
+        };
+        let mut req2_builder = client.post(&url).json(&request2);
+        if let Some(ref t) = token {
+            req2_builder = req2_builder.bearer_auth(t);
+        }
+        let resp2 = req2_builder
+            .send()
+            .await
+            .map_err(|e| OxoError::LlmError(format!("HTTP error on retry: {e}")))?;
+        if resp2.status().is_success() {
+            read_sse_stream(resp2).await.unwrap_or_default()
+        } else {
+            String::new()
+        }
+    } else {
+        let request2 = ChatRequest {
+            model: model.clone(),
+            messages: messages2,
+            max_tokens,
+            temperature,
+        };
+        let mut req2_builder = client.post(&url).json(&request2);
+        if let Some(ref t) = token {
+            req2_builder = req2_builder.bearer_auth(t);
+        }
+        let resp2 = req2_builder
+            .send()
+            .await
+            .map_err(|e| OxoError::LlmError(format!("HTTP error on retry: {e}")))?;
+        resp2
+            .json::<ChatResponse>()
+            .await
+            .ok()
+            .and_then(|c| c.choices.into_iter().next())
+            .map(|c| c.message.content)
+            .unwrap_or_default()
     };
-
-    let mut req2_builder = client.post(&url).json(&request2);
-    if let Some(ref t) = token {
-        req2_builder = req2_builder.bearer_auth(t);
-    }
-    let resp2 = req2_builder
-        .send()
-        .await
-        .map_err(|e| OxoError::LlmError(format!("HTTP error on retry: {e}")))?;
-
-    let raw2 = resp2
-        .json::<ChatResponse>()
-        .await
-        .ok()
-        .and_then(|c| c.choices.into_iter().next())
-        .map(|c| c.message.content)
-        .unwrap_or_default();
 
     parse_workflow_response(&raw2, engine).ok_or_else(|| {
         OxoError::LlmError("LLM did not return a parseable workflow after two attempts".to_string())
@@ -674,7 +734,6 @@ pub async fn infer_workflow(
     ];
 
     let token_opt = config.effective_api_token();
-    // Local providers such as Ollama do not require an API token.
     let token = if config.provider_requires_token() {
         Some(token_opt.ok_or_else(|| {
             OxoError::LlmError(
@@ -700,13 +759,7 @@ pub async fn infer_workflow(
     let model = config.effective_model();
     let max_tokens = config.effective_max_tokens()?;
     let temperature = config.effective_temperature()?;
-
-    let request = ChatRequest {
-        model: model.clone(),
-        messages,
-        max_tokens,
-        temperature,
-    };
+    let stream_enabled = config.llm.stream;
 
     let client = Client::builder()
         .use_rustls_tls()
@@ -715,43 +768,75 @@ pub async fn infer_workflow(
 
     let url = format!("{api_base}/chat/completions");
 
-    let mut req_builder = client.post(&url).json(&request);
-    if let Some(ref t) = token {
-        req_builder = req_builder.bearer_auth(t);
-    }
-    let resp = req_builder
-        .send()
-        .await
-        .map_err(|e| OxoError::LlmError(format!("HTTP error: {e}")))?;
-
-    let status = resp.status();
-    if !status.is_success() {
-        let body = resp
-            .text()
+    // ── First attempt ─────────────────────────────────────────────────
+    let raw = if stream_enabled {
+        let request = ChatRequestStreaming {
+            model: model.clone(),
+            messages: messages.clone(),
+            max_tokens,
+            temperature,
+            stream: true,
+        };
+        let mut req_builder = client.post(&url).json(&request);
+        if let Some(ref t) = token {
+            req_builder = req_builder.bearer_auth(t);
+        }
+        let resp = req_builder
+            .send()
             .await
-            .unwrap_or_else(|_| "<no body>".to_string());
-        return Err(OxoError::LlmError(format!(
-            "LLM API returned {status}: {body}"
-        )));
-    }
-
-    let chat: ChatResponse = resp
-        .json()
-        .await
-        .map_err(|e| OxoError::LlmError(format!("Failed to parse LLM response: {e}")))?;
-
-    let raw = chat
-        .choices
-        .first()
-        .map(|c| c.message.content.clone())
-        .unwrap_or_default();
+            .map_err(|e| OxoError::LlmError(format!("HTTP error: {e}")))?;
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp
+                .text()
+                .await
+                .unwrap_or_else(|_| "<no body>".to_string());
+            return Err(OxoError::LlmError(format!(
+                "LLM API returned {status}: {body}"
+            )));
+        }
+        read_sse_stream(resp).await?
+    } else {
+        let request = ChatRequest {
+            model: model.clone(),
+            messages: messages.clone(),
+            max_tokens,
+            temperature,
+        };
+        let mut req_builder = client.post(&url).json(&request);
+        if let Some(ref t) = token {
+            req_builder = req_builder.bearer_auth(t);
+        }
+        let resp = req_builder
+            .send()
+            .await
+            .map_err(|e| OxoError::LlmError(format!("HTTP error: {e}")))?;
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp
+                .text()
+                .await
+                .unwrap_or_else(|_| "<no body>".to_string());
+            return Err(OxoError::LlmError(format!(
+                "LLM API returned {status}: {body}"
+            )));
+        }
+        let chat: ChatResponse = resp
+            .json()
+            .await
+            .map_err(|e| OxoError::LlmError(format!("Failed to parse LLM response: {e}")))?;
+        chat.choices
+            .first()
+            .map(|c| c.message.content.clone())
+            .unwrap_or_default()
+    };
 
     if let Some(wf) = parse_workflow_response(&raw, engine) {
         return Ok(wf);
     }
 
-    // Retry with format correction.
-    let mut messages2 = request.messages.clone();
+    // ── Retry with format correction ──────────────────────────────────
+    let mut messages2 = messages;
     messages2.push(ChatMessage {
         role: "assistant".to_string(),
         content: raw.clone(),
@@ -764,29 +849,50 @@ pub async fn infer_workflow(
             .to_string(),
     });
 
-    let request2 = ChatRequest {
-        model: model.clone(),
-        messages: messages2,
-        max_tokens,
-        temperature,
+    let raw2 = if stream_enabled {
+        let request2 = ChatRequestStreaming {
+            model: model.clone(),
+            messages: messages2,
+            max_tokens,
+            temperature,
+            stream: true,
+        };
+        let mut req2_builder = client.post(&url).json(&request2);
+        if let Some(ref t) = token {
+            req2_builder = req2_builder.bearer_auth(t);
+        }
+        let resp2 = req2_builder
+            .send()
+            .await
+            .map_err(|e| OxoError::LlmError(format!("HTTP error on retry: {e}")))?;
+        if resp2.status().is_success() {
+            read_sse_stream(resp2).await.unwrap_or_default()
+        } else {
+            String::new()
+        }
+    } else {
+        let request2 = ChatRequest {
+            model: model.clone(),
+            messages: messages2,
+            max_tokens,
+            temperature,
+        };
+        let mut req2_builder = client.post(&url).json(&request2);
+        if let Some(ref t) = token {
+            req2_builder = req2_builder.bearer_auth(t);
+        }
+        let resp2 = req2_builder
+            .send()
+            .await
+            .map_err(|e| OxoError::LlmError(format!("HTTP error on retry: {e}")))?;
+        resp2
+            .json::<ChatResponse>()
+            .await
+            .ok()
+            .and_then(|c| c.choices.into_iter().next())
+            .map(|c| c.message.content)
+            .unwrap_or_default()
     };
-
-    let mut req2_builder = client.post(&url).json(&request2);
-    if let Some(ref t) = token {
-        req2_builder = req2_builder.bearer_auth(t);
-    }
-    let resp2 = req2_builder
-        .send()
-        .await
-        .map_err(|e| OxoError::LlmError(format!("HTTP error on retry: {e}")))?;
-
-    let raw2 = resp2
-        .json::<ChatResponse>()
-        .await
-        .ok()
-        .and_then(|c| c.choices.into_iter().next())
-        .map(|c| c.message.content)
-        .unwrap_or_default();
 
     parse_workflow_response(&raw2, engine).ok_or_else(|| {
         OxoError::LlmError("LLM did not return a parseable workflow after two attempts".to_string())
@@ -1336,6 +1442,8 @@ mod tests {
             cfg.llm.api_token = Some("test-token".to_string());
             cfg.llm.api_base = Some(base_url.to_string());
             cfg.llm.model = Some("gpt-4o-mini".to_string());
+            // Disable streaming for mock tests — the mock server returns plain JSON.
+            cfg.llm.stream = false;
             cfg
         }
 

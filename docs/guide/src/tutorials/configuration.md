@@ -31,6 +31,7 @@ oxo-call config path
 | `llm.context_window` | `0` (auto-detect) | — | Model context window size in tokens (0 = auto-detect) |
 | `llm.prompt_tier` | `auto` | `OXO_CALL_LLM_PROMPT_TIER` | Prompt compression tier: `auto`, `full`, `medium`, `compact` |
 | `llm.cache_enabled` | `false` | — | Enable LLM response caching (reduces API calls for repeated tasks) |
+| `llm.stream` | `true` | — | Enable SSE streaming for LLM responses (reduces perceived latency) |
 | `docs.auto_update` | `true` | `OXO_CALL_DOCS_AUTO_UPDATE` | Auto-refresh docs on first use |
 
 ## Setting Values
@@ -50,6 +51,10 @@ oxo-call config set llm.context_window 4096    # force Medium tier
 # Enable LLM response caching (useful for repeated tasks)
 oxo-call config set llm.cache_enabled true     # cache LLM responses
 oxo-call config set llm.cache_enabled false    # disable cache (default)
+
+# Disable streaming output (useful for CI/batch scripts and benchmarks)
+oxo-call config set llm.stream false           # disable streaming
+oxo-call config set llm.stream true            # enable streaming (default)
 
 # Get the effective value (includes env overrides)
 oxo-call config get llm.provider

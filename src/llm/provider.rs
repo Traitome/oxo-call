@@ -20,14 +20,18 @@ use super::response::{
     is_valid_suggestion, parse_response, parse_skill_verify_response, parse_verification_response,
     sanitize_args, strip_markdown_fences,
 };
+use super::streaming::{apply_provider_auth_headers, read_sse_stream};
 use super::types::{
-    ChatMessage, ChatRequest, ChatResponse, LlmCommandSuggestion, LlmRunVerification,
-    LlmSkillVerification, LlmVerificationResult, PromptTier,
+    ChatMessage, ChatRequest, ChatRequestStreaming, ChatResponse, LlmCommandSuggestion,
+    LlmRunVerification, LlmSkillVerification, LlmVerificationResult, PromptTier,
 };
 
 pub struct LlmClient {
     pub(crate) config: Config,
     client: reqwest::Client,
+    /// Whether to use SSE streaming for LLM responses.
+    /// When true, tokens are printed to stderr as they arrive.
+    stream_enabled: bool,
 }
 
 impl LlmClient {
@@ -41,7 +45,19 @@ impl LlmClient {
                 tracing::warn!("Failed to build configured HTTP client: {e}; using defaults");
                 reqwest::Client::new()
             });
-        LlmClient { config, client }
+        let stream_enabled = config.llm.stream;
+        LlmClient {
+            config,
+            client,
+            stream_enabled,
+        }
+    }
+
+    /// Disable streaming for this client instance (convenience for `--no-stream`).
+    pub fn set_no_stream(&mut self, no_stream: bool) {
+        if no_stream {
+            self.stream_enabled = false;
+        }
     }
 
     /// Generate command arguments, using skill knowledge for better prompts.
@@ -355,20 +371,12 @@ impl LlmClient {
         }
 
         // Split at few-shot boundaries.
-        // The prompt format is:
-        //   <user context>\n\n---FEW-SHOT---\n\n<assistant response 1>\n\n---FEW-SHOT---\n\n
-        //   <user context 2>\n\n---FEW-SHOT---\n\n<assistant response 2>\n\n---FEW-SHOT---\n\n
-        //   <final user query>
-        //
-        // Odd-indexed parts are assistant few-shot responses.
-        // Even-indexed parts are user messages (including the final one).
         let parts: Vec<&str> = user_prompt
             .split("\n\n---FEW-SHOT---\n\n")
             .filter(|p| !p.is_empty())
             .collect();
 
         if parts.len() >= 2 {
-            // Alternate between user and assistant messages
             let mut is_assistant = false;
             for part in &parts {
                 if is_assistant {
@@ -384,34 +392,20 @@ impl LlmClient {
                 }
                 is_assistant = !is_assistant;
             }
-            // If the last message is an assistant (odd number of parts),
-            // the model will continue from that context — which is what we want.
-            // If the last message is a user message, the model will respond to it.
         } else {
-            // No few-shot markers found — fall back to single user message
             messages.push(ChatMessage {
                 role: "user".to_string(),
                 content: user_prompt.to_string(),
             });
         }
 
-        let request = ChatRequest {
-            model: model.clone(),
-            messages,
-            max_tokens: self.config.effective_max_tokens()?,
-            temperature: temperature.unwrap_or_else(|| {
-                // Use model-specific optimal temperature as fallback
-                let profile = crate::config::get_model_profile(&model);
-                profile.optimal_temperature
-            }),
-        };
+        let max_tokens = self.config.effective_max_tokens()?;
+        let temp = temperature.unwrap_or_else(|| {
+            let profile = crate::config::get_model_profile(&model);
+            profile.optimal_temperature
+        });
 
-        let mut req_builder = self
-            .client
-            .post(&url)
-            .header("Content-Type", "application/json");
-
-        // Auth handling (same as request_with_system)
+        // Auth handling
         let auth_token = if provider == "github-copilot" {
             let manager = copilot_auth::get_token_manager();
             manager.get_session_token(&token).await?
@@ -419,23 +413,51 @@ impl LlmClient {
             token.clone()
         };
 
-        req_builder = match provider.as_str() {
-            "anthropic" => req_builder
-                .header("x-api-key", &auth_token)
-                .header("anthropic-version", "2023-06-01"),
-            "github-copilot" => req_builder
-                .header("Authorization", format!("Bearer {auth_token}"))
-                .header("Copilot-Integration-Id", "vscode-chat")
-                .header("Editor-Version", "vscode/1.85.0")
-                .header("Editor-Plugin-Version", "copilot/1.0.0"),
-            _ => {
-                if auth_token.is_empty() {
-                    req_builder
-                } else {
-                    req_builder.header("Authorization", format!("Bearer {auth_token}"))
-                }
+        // ── Streaming path ────────────────────────────────────────────
+        if self.stream_enabled {
+            let request = ChatRequestStreaming {
+                model: model.clone(),
+                messages,
+                max_tokens,
+                temperature: temp,
+                stream: true,
+            };
+
+            let mut req_builder = self
+                .client
+                .post(&url)
+                .header("Content-Type", "application/json");
+
+            req_builder = apply_provider_auth_headers(req_builder, &provider, &auth_token);
+
+            let resp = req_builder.json(&request).send().await?;
+
+            if !resp.status().is_success() {
+                let status = resp.status();
+                let body = resp.text().await.unwrap_or_default();
+                return Err(OxoError::LlmError(format!(
+                    "LLM API error: {status} — {body}"
+                )));
             }
+
+            let content = read_sse_stream(resp).await?;
+            return Ok(content.trim().to_string());
+        }
+
+        // ── Non-streaming path ────────────────────────────────────────
+        let request = ChatRequest {
+            model: model.clone(),
+            messages,
+            max_tokens,
+            temperature: temp,
         };
+
+        let mut req_builder = self
+            .client
+            .post(&url)
+            .header("Content-Type", "application/json");
+
+        req_builder = apply_provider_auth_headers(req_builder, &provider, &auth_token);
 
         let resp = req_builder.json(&request).send().await?;
 
@@ -474,6 +496,9 @@ impl LlmClient {
 
     /// Core HTTP call.  Accepts an explicit system prompt so callers can use a
     /// role-specific prompt (e.g., the verification analyst persona).
+    ///
+    /// When `self.stream_enabled` is true, the request is sent with `"stream": true`
+    /// and tokens are printed to stderr as they arrive (SSE protocol).
     async fn request_with_system(
         &self,
         sys_prompt: &str,
@@ -540,21 +565,12 @@ impl LlmClient {
             },
         ];
 
-        let request = ChatRequest {
-            model: model.clone(),
-            messages,
-            max_tokens: max_tokens_override.unwrap_or(self.config.effective_max_tokens()?),
-            temperature: temperature_override.unwrap_or_else(|| {
-                // Use model-specific optimal temperature as fallback
-                let profile = crate::config::get_model_profile(&model);
-                profile.optimal_temperature
-            }),
-        };
-
-        let mut req_builder = self
-            .client
-            .post(&url)
-            .header("Content-Type", "application/json");
+        let max_tokens = max_tokens_override.unwrap_or(self.config.effective_max_tokens()?);
+        let temperature = temperature_override.unwrap_or_else(|| {
+            // Use model-specific optimal temperature as fallback
+            let profile = crate::config::get_model_profile(&model);
+            profile.optimal_temperature
+        });
 
         // For github-copilot, we need to exchange the GitHub token for a Copilot session token
         let auth_token = if provider == "github-copilot" {
@@ -564,28 +580,52 @@ impl LlmClient {
             token.clone()
         };
 
-        req_builder = match provider.as_str() {
-            "anthropic" => req_builder
-                .header("x-api-key", &auth_token)
-                .header("anthropic-version", "2023-06-01"),
-            "github-copilot" => {
-                // Add Copilot-specific headers
-                req_builder
-                    .header("Authorization", format!("Bearer {auth_token}"))
-                    .header("Copilot-Integration-Id", "vscode-chat")
-                    .header("Editor-Version", "vscode/1.85.0")
-                    .header("Editor-Plugin-Version", "copilot/1.0.0")
+        // ── Streaming path ────────────────────────────────────────────────
+        if self.stream_enabled {
+            let request = ChatRequestStreaming {
+                model: model.clone(),
+                messages,
+                max_tokens,
+                temperature,
+                stream: true,
+            };
+
+            let mut req_builder = self
+                .client
+                .post(&url)
+                .header("Content-Type", "application/json");
+
+            req_builder = apply_provider_auth_headers(req_builder, &provider, &auth_token);
+
+            let response = req_builder
+                .json(&request)
+                .send()
+                .await
+                .map_err(|e| OxoError::LlmError(format!("HTTP request failed: {e}")))?;
+
+            if !response.status().is_success() {
+                let status = response.status();
+                let body = response.text().await.unwrap_or_default();
+                return Err(OxoError::LlmError(format!("API returned {status}: {body}")));
             }
-            _ => {
-                // Only add Authorization header when a token is actually present
-                // (e.g. local Ollama instances usually run without authentication)
-                if auth_token.is_empty() {
-                    req_builder
-                } else {
-                    req_builder.header("Authorization", format!("Bearer {auth_token}"))
-                }
-            }
+
+            return read_sse_stream(response).await;
+        }
+
+        // ── Non-streaming path (original) ─────────────────────────────────
+        let request = ChatRequest {
+            model: model.clone(),
+            messages,
+            max_tokens,
+            temperature,
         };
+
+        let mut req_builder = self
+            .client
+            .post(&url)
+            .header("Content-Type", "application/json");
+
+        req_builder = apply_provider_auth_headers(req_builder, &provider, &auth_token);
 
         let response = req_builder
             .json(&request)

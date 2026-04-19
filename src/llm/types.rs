@@ -109,3 +109,40 @@ pub enum PromptTier {
     /// docs heavily truncated or omitted (≤ 4k)
     Compact,
 }
+
+// ─── SSE streaming response types ────────────────────────────────────────────
+
+/// A single server-sent event (SSE) chunk from an OpenAI-compatible streaming
+/// chat completion response.
+#[derive(Debug, Deserialize)]
+pub(crate) struct StreamChunkResponse {
+    pub choices: Vec<StreamChoice>,
+}
+
+/// One choice inside a streaming chunk.
+#[derive(Debug, Deserialize)]
+pub(crate) struct StreamChoice {
+    pub delta: StreamDelta,
+    /// Present on the final chunk.
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub finish_reason: Option<String>,
+}
+
+/// The incremental delta in a streaming choice.
+#[derive(Debug, Deserialize)]
+pub(crate) struct StreamDelta {
+    /// Incremental text content (may be absent on the first or last chunk).
+    #[serde(default)]
+    pub content: Option<String>,
+}
+
+/// Extended chat request that includes the optional `stream` flag.
+#[derive(Debug, Serialize)]
+pub(crate) struct ChatRequestStreaming {
+    pub model: String,
+    pub messages: Vec<ChatMessage>,
+    pub max_tokens: u32,
+    pub temperature: f32,
+    pub stream: bool,
+}

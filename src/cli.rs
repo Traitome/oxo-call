@@ -126,6 +126,11 @@ EXAMPLES:\n  \
         /// - full: Doc + skill combined (most accurate)
         #[arg(long, value_name = "SCENARIO")]
         scenario: Option<String>,
+        /// Disable streaming (SSE) output from the LLM. Tokens will not be
+        /// printed incrementally; the full response is shown after generation
+        /// completes. Useful for benchmarking or non-interactive pipelines.
+        #[arg(long)]
+        no_stream: bool,
     },
     #[command(
         name = "dry-run",
@@ -180,6 +185,9 @@ EXAMPLES:\n  \
         /// Force a specific workflow scenario (auto-detected by default)
         #[arg(long, value_name = "SCENARIO")]
         scenario: Option<String>,
+        /// Disable streaming (SSE) output from the LLM
+        #[arg(long)]
+        no_stream: bool,
     },
 
     /// Manage tool documentation (add, remove, update, list, show)
@@ -332,6 +340,9 @@ EXAMPLES:\n  \
         /// Output result as JSON (non-interactive mode only)
         #[arg(long)]
         json: bool,
+        /// Disable streaming (SSE) output from the LLM
+        #[arg(long)]
+        no_stream: bool,
     },
 
     /// Generate shell completion scripts
@@ -876,6 +887,9 @@ pub enum WorkflowCommands {
         /// Write the generated workflow to this file (defaults to stdout)
         #[arg(short, long)]
         output: Option<std::path::PathBuf>,
+        /// Disable streaming (SSE) output from the LLM
+        #[arg(long)]
+        no_stream: bool,
     },
 
     /// Infer and generate a workflow from a task description and input data directory
@@ -897,6 +911,9 @@ pub enum WorkflowCommands {
         /// After generating, immediately run the workflow (only with --output)
         #[arg(long)]
         run: bool,
+        /// Disable streaming (SSE) output from the LLM
+        #[arg(long)]
+        no_stream: bool,
     },
 
     /// List built-in workflow templates
@@ -1031,6 +1048,9 @@ pub enum ServerCommands {
         /// stderr patterns, and exit code, then reports issues and suggestions
         #[arg(long)]
         verify: bool,
+        /// Disable streaming (SSE) output from the LLM
+        #[arg(long)]
+        no_stream: bool,
     },
 
     /// Preview a command for a remote server (no execution)
@@ -1052,6 +1072,9 @@ pub enum ServerCommands {
         /// Output result as JSON (useful for scripting and CI integration)
         #[arg(long)]
         json: bool,
+        /// Disable streaming (SSE) output from the LLM
+        #[arg(long)]
+        no_stream: bool,
     },
 }
 
@@ -1403,6 +1426,78 @@ mod tests {
             Commands::Server {
                 command: ServerCommands::DryRun { json, .. },
             } => assert!(json),
+            _ => panic!("expected server dry-run command"),
+        }
+    }
+
+    #[test]
+    fn test_run_supports_no_stream_flag() {
+        let cli = Cli::parse_from(["oxo-call", "run", "--no-stream", "samtools", "sort bam"]);
+        match cli.command {
+            Commands::Run { no_stream, .. } => assert!(no_stream),
+            _ => panic!("expected run command"),
+        }
+    }
+
+    #[test]
+    fn test_run_defaults_stream_enabled() {
+        let cli = Cli::parse_from(["oxo-call", "run", "samtools", "sort bam"]);
+        match cli.command {
+            Commands::Run { no_stream, .. } => assert!(!no_stream),
+            _ => panic!("expected run command"),
+        }
+    }
+
+    #[test]
+    fn test_dry_run_supports_no_stream_flag() {
+        let cli = Cli::parse_from(["oxo-call", "dry-run", "--no-stream", "samtools", "sort bam"]);
+        match cli.command {
+            Commands::DryRun { no_stream, .. } => assert!(no_stream),
+            _ => panic!("expected dry-run command"),
+        }
+    }
+
+    #[test]
+    fn test_chat_supports_no_stream_flag() {
+        let cli = Cli::parse_from(["oxo-call", "chat", "--no-stream", "samtools", "how to sort"]);
+        match cli.command {
+            Commands::Chat { no_stream, .. } => assert!(no_stream),
+            _ => panic!("expected chat command"),
+        }
+    }
+
+    #[test]
+    fn test_server_run_supports_no_stream_flag() {
+        let cli = Cli::parse_from([
+            "oxo-call",
+            "server",
+            "run",
+            "--no-stream",
+            "ls",
+            "list files",
+        ]);
+        match cli.command {
+            Commands::Server {
+                command: ServerCommands::Run { no_stream, .. },
+            } => assert!(no_stream),
+            _ => panic!("expected server run command"),
+        }
+    }
+
+    #[test]
+    fn test_server_dry_run_supports_no_stream_flag() {
+        let cli = Cli::parse_from([
+            "oxo-call",
+            "server",
+            "dry-run",
+            "--no-stream",
+            "samtools",
+            "sort bam",
+        ]);
+        match cli.command {
+            Commands::Server {
+                command: ServerCommands::DryRun { no_stream, .. },
+            } => assert!(no_stream),
             _ => panic!("expected server dry-run command"),
         }
     }

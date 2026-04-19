@@ -19,6 +19,7 @@ oxo-call c   [OPTIONS] <TOOL> <QUESTION>
 | `--no-cache` | Skip cached documentation and fetch fresh `--help` output |
 | `--scenario <SCENARIO>` | Context injection mode: `bare`, `prompt`, `skill`, `doc`, `full` (default: `full`) |
 | `--json` | Output result as JSON (non-interactive mode only) |
+| `--no-stream` | Disable streaming (SSE) output from the LLM |
 | `-v`, `--verbose` | Show docs source, skill info, and LLM details (global) |
 | `--license <PATH>` | Path to license file (global option) |
 

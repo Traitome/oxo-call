@@ -15,7 +15,8 @@ use crate::cli::ChatScenario;
 use crate::config::Config;
 use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
-use crate::llm::types::{ChatMessage, ChatRequest, ChatResponse};
+use crate::llm::streaming::{apply_provider_auth_headers, read_sse_stream};
+use crate::llm::types::{ChatMessage, ChatRequest, ChatRequestStreaming, ChatResponse};
 use crate::skill::SkillManager;
 use colored::Colorize;
 use std::io::{self, BufRead, Write};
@@ -541,43 +542,55 @@ impl ChatSession {
             content: user_prompt.to_string(),
         });
 
+        let auth_token = Self::resolve_auth_token(&provider, &token).await?;
+        let max_tokens = self.config.effective_max_tokens()?;
+
+        // ── Streaming path ────────────────────────────────────────────
+        if self.config.llm.stream {
+            let request = ChatRequestStreaming {
+                model: model.clone(),
+                messages,
+                max_tokens,
+                temperature: 0.7,
+                stream: true,
+            };
+
+            let req_builder = apply_provider_auth_headers(
+                self.client
+                    .post(&url)
+                    .header("Content-Type", "application/json"),
+                &provider,
+                &auth_token,
+            );
+            let resp = req_builder.json(&request).send().await?;
+
+            if !resp.status().is_success() {
+                let status = resp.status();
+                let body = resp.text().await.unwrap_or_default();
+                return Err(OxoError::LlmError(format!(
+                    "LLM API error: {status} — {body}"
+                )));
+            }
+
+            let content = read_sse_stream(resp).await?;
+            return Ok(content.trim().to_string());
+        }
+
+        // ── Non-streaming path ────────────────────────────────────────
         let request = ChatRequest {
             model: model.clone(),
             messages,
-            max_tokens: self.config.effective_max_tokens()?,
+            max_tokens,
             temperature: 0.7,
         };
 
-        let mut req_builder = self
-            .client
-            .post(&url)
-            .header("Content-Type", "application/json");
-
-        let auth_token = if provider == "github-copilot" {
-            let manager = crate::copilot_auth::get_token_manager();
-            manager.get_session_token(&token).await?
-        } else {
-            token.clone()
-        };
-
-        req_builder = match provider.as_str() {
-            "anthropic" => req_builder
-                .header("x-api-key", &auth_token)
-                .header("anthropic-version", "2023-06-01"),
-            "github-copilot" => req_builder
-                .header("Authorization", format!("Bearer {auth_token}"))
-                .header("Copilot-Integration-Id", "vscode-chat")
-                .header("Editor-Version", "vscode/1.85.0")
-                .header("Editor-Plugin-Version", "copilot/1.0.0"),
-            _ => {
-                if auth_token.is_empty() {
-                    req_builder
-                } else {
-                    req_builder.header("Authorization", format!("Bearer {auth_token}"))
-                }
-            }
-        };
-
+        let req_builder = apply_provider_auth_headers(
+            self.client
+                .post(&url)
+                .header("Content-Type", "application/json"),
+            &provider,
+            &auth_token,
+        );
         let resp = req_builder.json(&request).send().await?;
 
         if !resp.status().is_success() {
@@ -624,43 +637,55 @@ impl ChatSession {
         }
         messages.extend(self.conversation_history.clone());
 
+        let auth_token = Self::resolve_auth_token(&provider, &token).await?;
+        let max_tokens = self.config.effective_max_tokens()?;
+
+        // ── Streaming path ────────────────────────────────────────────
+        if self.config.llm.stream {
+            let request = ChatRequestStreaming {
+                model: model.clone(),
+                messages,
+                max_tokens,
+                temperature: 0.7,
+                stream: true,
+            };
+
+            let req_builder = apply_provider_auth_headers(
+                self.client
+                    .post(&url)
+                    .header("Content-Type", "application/json"),
+                &provider,
+                &auth_token,
+            );
+            let resp = req_builder.json(&request).send().await?;
+
+            if !resp.status().is_success() {
+                let status = resp.status();
+                let body = resp.text().await.unwrap_or_default();
+                return Err(OxoError::LlmError(format!(
+                    "LLM API error: {status} — {body}"
+                )));
+            }
+
+            let content = read_sse_stream(resp).await?;
+            return Ok(content.trim().to_string());
+        }
+
+        // ── Non-streaming path ────────────────────────────────────────
         let request = ChatRequest {
             model: model.clone(),
             messages,
-            max_tokens: self.config.effective_max_tokens()?,
+            max_tokens,
             temperature: 0.7,
         };
 
-        let mut req_builder = self
-            .client
-            .post(&url)
-            .header("Content-Type", "application/json");
-
-        let auth_token = if provider == "github-copilot" {
-            let manager = crate::copilot_auth::get_token_manager();
-            manager.get_session_token(&token).await?
-        } else {
-            token.clone()
-        };
-
-        req_builder = match provider.as_str() {
-            "anthropic" => req_builder
-                .header("x-api-key", &auth_token)
-                .header("anthropic-version", "2023-06-01"),
-            "github-copilot" => req_builder
-                .header("Authorization", format!("Bearer {auth_token}"))
-                .header("Copilot-Integration-Id", "vscode-chat")
-                .header("Editor-Version", "vscode/1.85.0")
-                .header("Editor-Plugin-Version", "copilot/1.0.0"),
-            _ => {
-                if auth_token.is_empty() {
-                    req_builder
-                } else {
-                    req_builder.header("Authorization", format!("Bearer {auth_token}"))
-                }
-            }
-        };
-
+        let req_builder = apply_provider_auth_headers(
+            self.client
+                .post(&url)
+                .header("Content-Type", "application/json"),
+            &provider,
+            &auth_token,
+        );
         let resp = req_builder.json(&request).send().await?;
 
         if !resp.status().is_success() {
@@ -679,6 +704,16 @@ impl ChatSession {
             .unwrap_or_default();
 
         Ok(content.trim().to_string())
+    }
+
+    /// Resolve the auth token for the given provider.
+    async fn resolve_auth_token(provider: &str, token: &str) -> Result<String> {
+        if provider == "github-copilot" {
+            let manager = crate::copilot_auth::get_token_manager();
+            manager.get_session_token(token).await
+        } else {
+            Ok(token.to_string())
+        }
     }
 }
 

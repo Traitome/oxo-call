@@ -11,11 +11,13 @@
 //! - `prompt`: Prompt building functions for different LLM roles
 //! - `response`: Response parsing and validation
 //! - `provider`: LLM client implementation and HTTP handling
+//! - `streaming`: Shared SSE streaming utilities
 //! - `tests`: Unit and integration tests
 
 mod prompt;
 mod provider;
 mod response;
+pub(crate) mod streaming;
 pub(crate) mod types;
 
 #[cfg(test)]

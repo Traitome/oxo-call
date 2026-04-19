@@ -125,6 +125,10 @@ fn test_run_help_mentions_ask_flag() {
         stdout.contains("auto-retry"),
         "Expected --auto-retry in run help: {stdout}"
     );
+    assert!(
+        stdout.contains("no-stream"),
+        "Expected --no-stream in run help: {stdout}"
+    );
 }
 
 #[test]
@@ -4807,5 +4811,119 @@ fn test_chat_invalid_scenario_rejected() {
         stderr.contains("invalid") || stderr.contains("error"),
         "Invalid scenario should produce an error: {}",
         stderr
+    );
+}
+
+// ─── Streaming flag tests ─────────────────────────────────────────────────────
+
+#[test]
+fn test_run_no_stream_flag_in_help() {
+    let output = oxo_call()
+        .args(["run", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("no-stream"),
+        "Expected --no-stream in run help, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_dry_run_no_stream_flag_in_help() {
+    let output = oxo_call()
+        .args(["dry-run", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("no-stream"),
+        "Expected --no-stream in dry-run help, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_chat_no_stream_flag_in_help() {
+    let output = oxo_call()
+        .args(["chat", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("no-stream"),
+        "Expected --no-stream in chat help, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_server_run_no_stream_flag_in_help() {
+    let output = oxo_call()
+        .args(["server", "run", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("no-stream"),
+        "Expected --no-stream in server run help, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_server_dry_run_no_stream_flag_in_help() {
+    let output = oxo_call()
+        .args(["server", "dry-run", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("no-stream"),
+        "Expected --no-stream in server dry-run help, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_generate_no_stream_flag_in_help() {
+    let output = oxo_call()
+        .args(["workflow", "generate", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("no-stream"),
+        "Expected --no-stream in workflow generate help, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_workflow_infer_no_stream_flag_in_help() {
+    let output = oxo_call()
+        .args(["workflow", "infer", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("no-stream"),
+        "Expected --no-stream in workflow infer help, got: {stdout}"
+    );
+}
+
+#[test]
+fn test_config_show_includes_stream() {
+    let output = oxo_call()
+        .args(["config", "show"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("stream"),
+        "Expected 'stream' in config show output, got: {stdout}"
     );
 }

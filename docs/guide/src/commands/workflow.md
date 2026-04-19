@@ -156,6 +156,7 @@ Generate a workflow from a natural-language description using the configured LLM
 ```bash
 oxo-call workflow generate "RNA-seq analysis of mouse samples"
 oxo-call workflow generate "Variant calling from WGS data" --engine snakemake -o Snakefile
+oxo-call workflow generate "WGS pipeline" --no-stream   # disable streaming output
 ```
 
 ### `workflow infer`
@@ -165,6 +166,7 @@ Detect data files in a directory and generate an appropriate workflow:
 ```bash
 oxo-call workflow infer "RNA-seq QC and alignment" --data ./fastq_data/
 oxo-call workflow infer "16S analysis" --data ./amplicon_reads/ --run  # Generate and run
+oxo-call workflow infer "WGS" --data ./reads/ --no-stream  # disable streaming output
 ```
 
 ### `workflow list`

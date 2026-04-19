@@ -436,3 +436,57 @@ When cache is enabled:
 1. **Cache hit** (exact semantic match) → return cached response
 2. **User preferences** from command history → inform the LLM prompt
 3. **Fresh LLM call** → generate and cache new response
+
+## Streaming Response (SSE)
+
+By default, oxo-call uses **Server-Sent Events (SSE) streaming** for all LLM
+API calls. This means tokens are printed to stderr as they arrive, reducing
+perceived latency for the user — especially for large models and complex tasks.
+
+### How it works
+
+1. The HTTP request is sent with `"stream": true`.
+2. The API returns a stream of `data:` lines (SSE protocol).
+3. Each chunk is parsed for content deltas and printed to **stderr** immediately.
+4. After the stream completes, the full collected response is parsed as usual (e.g., `ARGS:` / `EXPLANATION:` extraction).
+
+Because streaming output goes to stderr, **stdout remains clean** — JSON output,
+piped commands, and scripting work exactly as before.
+
+### Disabling streaming
+
+Streaming can be disabled in two ways:
+
+**Per-invocation** — pass `--no-stream` to any LLM-backed command:
+
+```bash
+oxo-call run --no-stream samtools "sort bam by coordinate"
+oxo-call dry-run --no-stream bwa "align reads"
+oxo-call chat --no-stream samtools "how to sort"
+oxo-call workflow generate --no-stream "RNA-seq pipeline"
+oxo-call server run --no-stream mycluster samtools "sort bam"
+```
+
+**Globally** — set the `llm.stream` config key:
+
+```bash
+# Disable streaming globally
+oxo-call config set llm.stream false
+
+# Re-enable streaming
+oxo-call config set llm.stream true
+```
+
+### Performance considerations
+
+Streaming adds minimal overhead:
+
+- **Network**: SSE chunks are typically the same size as a non-streaming response; the total data transferred is identical.
+- **CPU**: Parsing individual JSON chunks is lightweight (a few microseconds per chunk).
+- **Latency**: First-token latency is significantly reduced because the user sees output as soon as the first token is generated, rather than waiting for the full response.
+
+Disable streaming (`--no-stream` or `llm.stream = false`) when:
+
+- Running in non-interactive environments (CI, batch scripts) where stderr output is undesirable
+- Benchmarking LLM response times (streaming adds small per-chunk overhead that affects timing measurements)
+- Using providers that don't support SSE (rare — all major providers support it)
