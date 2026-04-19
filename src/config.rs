@@ -479,7 +479,8 @@ impl Config {
             || model.contains("glm")        // ZhipuAI GLM series
             || model.contains("minimax")    // Minimax series
             || model.contains("chatglm")    // ZhipuAI ChatGLM series
-            || model.contains("deepseek")   // DeepSeek series
+            || model.contains("deepseek")
+        // DeepSeek series
         {
             return "large";
         }
@@ -1165,7 +1166,11 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
     }
 
     // Gemini 2.5/3 family — strong multimodal and reasoning
-    if m.contains("gemini-2.5") || m.contains("gemini-3") || m.contains("gemini2.5") || m.contains("gemini3") {
+    if m.contains("gemini-2.5")
+        || m.contains("gemini-3")
+        || m.contains("gemini2.5")
+        || m.contains("gemini3")
+    {
         return ModelProfile {
             instruction_following: 0.93,
             code_generation: 0.90,
@@ -2556,7 +2561,10 @@ mod tests {
         assert_eq!(infer_context_window("gpt-5"), 128_000);
         // Claude 4.6+ — 1M context
         assert_eq!(infer_context_window("claude-opus-4-6-20250514"), 1_000_000);
-        assert_eq!(infer_context_window("claude-sonnet-4-6-20250514"), 1_000_000);
+        assert_eq!(
+            infer_context_window("claude-sonnet-4-6-20250514"),
+            1_000_000
+        );
         assert_eq!(infer_context_window("claude-opus-4-7-20260401"), 1_000_000);
         // Claude 4.x / 3.x — 200K context
         assert_eq!(infer_context_window("claude-3-5-sonnet-20241022"), 200_000);
@@ -2873,7 +2881,10 @@ mod tests {
     fn test_infer_context_window_claude_4_6_plus() {
         // Claude 4.6+ — 1M context
         assert_eq!(infer_context_window("claude-opus-4-6-20250514"), 1_000_000);
-        assert_eq!(infer_context_window("claude-sonnet-4-6-20250514"), 1_000_000);
+        assert_eq!(
+            infer_context_window("claude-sonnet-4-6-20250514"),
+            1_000_000
+        );
         assert_eq!(infer_context_window("claude-opus-4-7-20260401"), 1_000_000);
         assert_eq!(infer_context_window("claude-opus4.6"), 1_000_000);
         assert_eq!(infer_context_window("claude-sonnet4.6"), 1_000_000);
@@ -2981,9 +2992,15 @@ mod tests {
 
         // Zhipu / GLM
         cfg.llm.provider = "zhipu".to_string();
-        assert_eq!(cfg.effective_api_base(), "https://open.bigmodel.cn/api/paas/v4");
+        assert_eq!(
+            cfg.effective_api_base(),
+            "https://open.bigmodel.cn/api/paas/v4"
+        );
         cfg.llm.provider = "glm".to_string();
-        assert_eq!(cfg.effective_api_base(), "https://open.bigmodel.cn/api/paas/v4");
+        assert_eq!(
+            cfg.effective_api_base(),
+            "https://open.bigmodel.cn/api/paas/v4"
+        );
 
         // MiniMax
         cfg.llm.provider = "minimax".to_string();
