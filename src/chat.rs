@@ -15,9 +15,8 @@ use crate::cli::ChatScenario;
 use crate::config::Config;
 use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
-use crate::llm::types::{
-    ChatMessage, ChatRequest, ChatRequestStreaming, ChatResponse, StreamChunkResponse,
-};
+use crate::llm::streaming::{apply_provider_auth_headers, read_sse_stream};
+use crate::llm::types::{ChatMessage, ChatRequest, ChatRequestStreaming, ChatResponse};
 use crate::skill::SkillManager;
 use colored::Colorize;
 use std::io::{self, BufRead, Write};
@@ -556,7 +555,13 @@ impl ChatSession {
                 stream: true,
             };
 
-            let req_builder = Self::build_request(&self.client, &url, &provider, &auth_token);
+            let req_builder = apply_provider_auth_headers(
+                self.client
+                    .post(&url)
+                    .header("Content-Type", "application/json"),
+                &provider,
+                &auth_token,
+            );
             let resp = req_builder.json(&request).send().await?;
 
             if !resp.status().is_success() {
@@ -567,7 +572,7 @@ impl ChatSession {
                 )));
             }
 
-            let content = Self::read_sse_stream(resp).await?;
+            let content = read_sse_stream(resp).await?;
             return Ok(content.trim().to_string());
         }
 
@@ -579,7 +584,13 @@ impl ChatSession {
             temperature: 0.7,
         };
 
-        let req_builder = Self::build_request(&self.client, &url, &provider, &auth_token);
+        let req_builder = apply_provider_auth_headers(
+            self.client
+                .post(&url)
+                .header("Content-Type", "application/json"),
+            &provider,
+            &auth_token,
+        );
         let resp = req_builder.json(&request).send().await?;
 
         if !resp.status().is_success() {
@@ -639,7 +650,13 @@ impl ChatSession {
                 stream: true,
             };
 
-            let req_builder = Self::build_request(&self.client, &url, &provider, &auth_token);
+            let req_builder = apply_provider_auth_headers(
+                self.client
+                    .post(&url)
+                    .header("Content-Type", "application/json"),
+                &provider,
+                &auth_token,
+            );
             let resp = req_builder.json(&request).send().await?;
 
             if !resp.status().is_success() {
@@ -650,7 +667,7 @@ impl ChatSession {
                 )));
             }
 
-            let content = Self::read_sse_stream(resp).await?;
+            let content = read_sse_stream(resp).await?;
             return Ok(content.trim().to_string());
         }
 
@@ -662,7 +679,13 @@ impl ChatSession {
             temperature: 0.7,
         };
 
-        let req_builder = Self::build_request(&self.client, &url, &provider, &auth_token);
+        let req_builder = apply_provider_auth_headers(
+            self.client
+                .post(&url)
+                .header("Content-Type", "application/json"),
+            &provider,
+            &auth_token,
+        );
         let resp = req_builder.json(&request).send().await?;
 
         if !resp.status().is_success() {
@@ -691,89 +714,6 @@ impl ChatSession {
         } else {
             Ok(token.to_string())
         }
-    }
-
-    /// Build a request with appropriate headers for the provider.
-    fn build_request(
-        client: &reqwest::Client,
-        url: &str,
-        provider: &str,
-        auth_token: &str,
-    ) -> reqwest::RequestBuilder {
-        let req_builder = client.post(url).header("Content-Type", "application/json");
-
-        match provider {
-            "anthropic" => req_builder
-                .header("x-api-key", auth_token)
-                .header("anthropic-version", "2023-06-01"),
-            "github-copilot" => req_builder
-                .header("Authorization", format!("Bearer {auth_token}"))
-                .header("Copilot-Integration-Id", "vscode-chat")
-                .header("Editor-Version", "vscode/1.85.0")
-                .header("Editor-Plugin-Version", "copilot/1.0.0"),
-            _ => {
-                if auth_token.is_empty() {
-                    req_builder
-                } else {
-                    req_builder.header("Authorization", format!("Bearer {auth_token}"))
-                }
-            }
-        }
-    }
-
-    /// Read an SSE (Server-Sent Events) stream, printing tokens to stderr.
-    async fn read_sse_stream(response: reqwest::Response) -> Result<String> {
-        use futures_util::StreamExt;
-
-        let mut collected = String::new();
-        let mut stream = response.bytes_stream();
-        let mut line_buf = String::new();
-        let mut printed_any = false;
-
-        while let Some(chunk_result) = stream.next().await {
-            let chunk =
-                chunk_result.map_err(|e| OxoError::LlmError(format!("Stream read error: {e}")))?;
-            let text = String::from_utf8_lossy(&chunk);
-            line_buf.push_str(&text);
-
-            let mut chunk_tokens = String::new();
-            while let Some(newline_pos) = line_buf.find('\n') {
-                let line = line_buf[..newline_pos].trim().to_string();
-                line_buf = line_buf[newline_pos + 1..].to_string();
-
-                if line.is_empty() || line == "data: [DONE]" {
-                    continue;
-                }
-
-                if let Some(json_str) = line.strip_prefix("data: ")
-                    && let Ok(chunk_resp) = serde_json::from_str::<StreamChunkResponse>(json_str)
-                {
-                    for choice in &chunk_resp.choices {
-                        if let Some(ref content) = choice.delta.content {
-                            collected.push_str(content);
-                            chunk_tokens.push_str(content);
-                        }
-                    }
-                }
-            }
-
-            if !chunk_tokens.is_empty() {
-                let stderr = io::stderr();
-                let mut lock = stderr.lock();
-                let _ = lock.write_all(chunk_tokens.as_bytes());
-                let _ = lock.flush();
-                printed_any = true;
-            }
-        }
-
-        if printed_any {
-            let stderr = io::stderr();
-            let mut lock = stderr.lock();
-            let _ = lock.write_all(b"\n");
-            let _ = lock.flush();
-        }
-
-        Ok(collected)
     }
 }
 
