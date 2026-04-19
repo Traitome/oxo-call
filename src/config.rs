@@ -28,6 +28,7 @@ const VALID_CONFIG_KEYS: &[&str] = &[
     "llm.context_window",
     "llm.prompt_tier",
     "llm.cache_enabled",
+    "llm.stream",
     "docs.auto_update",
 ];
 
@@ -165,6 +166,16 @@ pub struct LlmConfig {
     /// Default: false (disabled for independent benchmarking).
     #[serde(default)]
     pub cache_enabled: bool,
+    /// Enable streaming (SSE) for LLM responses.
+    /// When true, tokens are printed incrementally as they arrive, reducing
+    /// perceived latency.  Set to false for benchmarking or non-interactive use.
+    /// Default: true.
+    #[serde(default = "default_stream_enabled")]
+    pub stream: bool,
+}
+
+fn default_stream_enabled() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -201,6 +212,7 @@ impl Default for Config {
                 context_window: 0,
                 prompt_tier: PromptTierConfig::default(),
                 cache_enabled: false,
+                stream: true,
             },
             docs: DocsConfig {
                 local_paths: Vec::new(),
@@ -302,6 +314,11 @@ impl Config {
             "llm.cache_enabled" => {
                 self.llm.cache_enabled = value.parse().map_err(|_| {
                     OxoError::ConfigError(format!("Invalid cache_enabled value: {value}. Must be true or false"))
+                })?
+            }
+            "llm.stream" => {
+                self.llm.stream = value.parse().map_err(|_| {
+                    OxoError::ConfigError(format!("Invalid stream value: {value}. Must be true or false"))
                 })?
             }
             "docs.auto_update" => {
@@ -557,6 +574,7 @@ impl Config {
                 Ok(format!("{configured} (effective: {tier:?})"))
             }
             "llm.cache_enabled" => Ok(self.llm.cache_enabled.to_string()),
+            "llm.stream" => Ok(self.llm.stream.to_string()),
             "docs.auto_update" => Ok(self.effective_docs_auto_update()?.to_string()),
             _ => Err(OxoError::ConfigError(format!("Unknown config key: {key}"))),
         }
@@ -676,6 +694,7 @@ impl Config {
                 }
             }
             "llm.cache_enabled" => Ok("stored config/default".to_string()),
+            "llm.stream" => Ok("stored config/default".to_string()),
             "docs.auto_update" => {
                 if Self::env_string(ENV_DOCS_AUTO_UPDATE).is_some() {
                     Ok(format!("env:{ENV_DOCS_AUTO_UPDATE}"))
@@ -2623,5 +2642,44 @@ mod tests {
         let profile = get_model_profile("glm-4");
         assert!(profile.instruction_following >= 0.85);
         assert_eq!(profile.preferred_prompt_style, PromptStyle::Instruct);
+    }
+
+    // ─── Streaming config ─────────────────────────────────────────────────────
+
+    #[test]
+    fn test_config_default_stream_enabled() {
+        let cfg = Config::default();
+        assert!(cfg.llm.stream, "stream should default to true");
+    }
+
+    #[test]
+    fn test_config_set_stream_false() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let mut cfg = Config::default();
+        cfg.set("llm.stream", "false").unwrap();
+        assert!(!cfg.llm.stream);
+    }
+
+    #[test]
+    fn test_config_set_stream_true() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let mut cfg = Config::default();
+        cfg.set("llm.stream", "false").unwrap();
+        cfg.set("llm.stream", "true").unwrap();
+        assert!(cfg.llm.stream);
+    }
+
+    #[test]
+    fn test_config_set_stream_invalid() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let mut cfg = Config::default();
+        assert!(cfg.set("llm.stream", "yes").is_err());
+    }
+
+    #[test]
+    fn test_config_get_stream() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let cfg = Config::default();
+        assert_eq!(cfg.get("llm.stream").unwrap(), "true");
     }
 }

@@ -85,6 +85,8 @@ pub struct Runner {
     pub(crate) auto_retry: bool,
     /// Force a specific workflow scenario (auto-detected by default)
     pub(crate) force_scenario: Option<crate::workflow_graph::WorkflowScenario>,
+    /// When true, disable SSE streaming for LLM responses.
+    pub(crate) no_stream: bool,
     // ── Orchestration layer ──────────────────────────────────────────────────
     /// Supervisor agent for orchestration decisions.
     supervisor: SupervisorAgent,
@@ -124,6 +126,7 @@ impl Runner {
             stop_on_error: false,
             auto_retry: false,
             force_scenario: None,
+            no_stream: false,
             supervisor: SupervisorAgent::new(),
             planner: PlannerAgent::new(),
             executor_agent,
@@ -159,6 +162,15 @@ impl Runner {
     /// Force a specific workflow scenario.
     pub fn with_scenario(mut self, scenario: crate::workflow_graph::WorkflowScenario) -> Self {
         self.force_scenario = Some(scenario);
+        self
+    }
+
+    /// Disable SSE streaming for LLM responses.
+    pub fn with_no_stream(mut self, no_stream: bool) -> Self {
+        self.no_stream = no_stream;
+        if no_stream {
+            self.llm.set_no_stream(true);
+        }
         self
     }
 
