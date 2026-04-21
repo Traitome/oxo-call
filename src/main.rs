@@ -232,9 +232,15 @@ async fn run(cli: Cli) -> error::Result<()> {
                     (Some(tool), Some(question)) => {
                         chat_session.run_single(&tool, &question, json).await?;
                     }
+                    (Some(question), None) => {
+                        // Single positional arg: treat as a general question (no tool context).
+                        chat_session.run_single_general(&question, json).await?;
+                    }
                     _ => {
                         return Err(error::OxoError::ConfigError(
-                            "Non-interactive chat requires both <tool> and <question>".to_string(),
+                            "Non-interactive chat requires a question. \
+                             Usage: oxo-call chat <question>  or  oxo-call chat <tool> <question>"
+                                .to_string(),
                         ));
                     }
                 }

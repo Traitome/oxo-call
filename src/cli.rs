@@ -290,21 +290,27 @@ EXAMPLES:\n  \
     #[command(
         visible_alias = "c",
         long_about = "\
-Chat with an AI assistant about bioinformatics tools and concepts.\n\n\
-Two modes are available:\n\n\
-1. Single-shot Q&A (non-interactive):\n   \
+Chat with an AI assistant about bioinformatics tools and general topics.\n\n\
+Three modes are available:\n\n\
+1. Single-shot general Q&A (no tool required):\n   \
+  oxo-call chat 'How do I create temp files starting with result?'\n   \
+  oxo-call chat 'What is the difference between paired-end and single-end sequencing?'\n\n\
+2. Single-shot tool-specific Q&A:\n   \
   oxo-call chat samtools 'How do I sort a BAM file?'\n   \
   oxo-call chat bwa 'What is the difference between mem and aln?'\n\n\
-2. Interactive multi-turn chat:\n   \
+3. Interactive multi-turn chat:\n   \
   oxo-call chat -i\n   \
   oxo-call chat -i --tool samtools  # pre-set tool context\n\n\
+In interactive mode, questions are answered in general mode by default.\n\
+Use /tool <name> to switch to tool-specific mode with documentation context.\n\n\
 Scenarios control what context is injected:\n  \
   --scenario bare   : plain chat (no prompt/docs/skill)\n  \
   --scenario prompt : oxo-call system prompt only\n  \
-  --scenario skill  : load skill file only\n  \
-  --scenario doc    : load tool documentation only\n  \
+  --scenario skill  : load skill file only (tool mode)\n  \
+  --scenario doc    : load tool documentation only (tool mode)\n  \
   --scenario full   : load everything (default)\n\n\
 EXAMPLES:\n  \
+  oxo-call chat 'How do I create files starting with result in the current dir?'\n  \
   oxo-call chat samtools 'Explain the difference between SAM and BAM'\n  \
   oxo-call chat --scenario skill bwa 'What are common pitfalls?'\n  \
   oxo-call chat -i\n  \
