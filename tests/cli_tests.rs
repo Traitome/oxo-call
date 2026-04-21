@@ -4756,6 +4756,11 @@ fn test_chat_general_mode_help_text() {
         stdout.contains("chat"),
         "Expected 'chat' in help output: {stdout}"
     );
+    // Verify the help text documents general (no-tool) mode
+    assert!(
+        stdout.contains("general") || stdout.contains("no tool") || stdout.contains("QUESTION"),
+        "Expected general mode documentation in help output: {stdout}"
+    );
 }
 
 #[test]

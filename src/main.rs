@@ -239,7 +239,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                     _ => {
                         return Err(error::OxoError::ConfigError(
                             "Non-interactive chat requires a question. \
-                             Usage: oxo-call chat <question>  or  oxo-call chat <tool> <question>"
+                             Usage: oxo-call chat <question> or oxo-call chat <tool> <question>"
                                 .to_string(),
                         ));
                     }
