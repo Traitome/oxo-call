@@ -117,12 +117,12 @@ impl BestPracticesDb {
 
     fn load_embedded() -> Vec<BestPractice> {
         vec![
-            // ── Universal practices ──────────────────────────────────────────
+            // ── Threading practices (tool-specific) ──────────────────────────────────────────
             BestPractice {
-                category: "general".to_string(),
+                category: "performance".to_string(),
                 title: "Use threads for parallelism".to_string(),
-                recommendation: "Most bioinformatics tools support multithreading. Use -@ (samtools), -t (bwa), --threads (many tools) to leverage available CPU cores. A good default is 4-8 threads.".to_string(),
-                tools: vec![],
+                recommendation: "Use -@ (samtools), -t (bwa), --threads (many tools) to leverage available CPU cores. A good default is 4-8 threads.".to_string(),
+                tools: vec!["samtools".to_string(), "bwa".to_string(), "bcftools".to_string(), "gatk4".to_string(), "star".to_string(), "hisat2".to_string(), "bowtie2".to_string()],
             },
             BestPractice {
                 category: "general".to_string(),
