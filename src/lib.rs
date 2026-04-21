@@ -42,6 +42,7 @@ pub mod runner;
 pub mod sanitize;
 pub mod server;
 pub mod skill;
+pub mod streaming_display;
 pub mod task_complexity;
 pub mod task_normalizer;
 pub mod workflow;

@@ -20,11 +20,12 @@ use super::response::{
     is_valid_suggestion, parse_response, parse_skill_verify_response, parse_verification_response,
     sanitize_args, strip_markdown_fences,
 };
-use super::streaming::{apply_provider_auth_headers, read_sse_stream};
+use super::streaming::apply_provider_auth_headers;
 use super::types::{
     ChatMessage, ChatRequest, ChatRequestStreaming, ChatResponse, LlmCommandSuggestion,
     LlmRunVerification, LlmSkillVerification, LlmVerificationResult, PromptTier,
 };
+use crate::streaming_display;
 
 pub struct LlmClient {
     pub(crate) config: Config,
@@ -440,8 +441,18 @@ impl LlmClient {
                 )));
             }
 
-            let content = read_sse_stream(resp).await?;
-            return Ok(content.trim().to_string());
+            // Use StreamingDisplay for spinner + live preview + final clear
+            let content = streaming_display::read_sse_with_display(
+                resp,
+                streaming_display::StreamingDisplayConfig {
+                    message: "Generating command".to_string(),
+                    max_preview_lines: 2,
+                    show_preview: true,
+                },
+            )
+            .await
+            .map_err(OxoError::LlmError)?;
+            return Ok(content);
         }
 
         // ── Non-streaming path ────────────────────────────────────────
@@ -609,7 +620,18 @@ impl LlmClient {
                 return Err(OxoError::LlmError(format!("API returned {status}: {body}")));
             }
 
-            return read_sse_stream(response).await;
+            // Use StreamingDisplay for spinner + live preview + final clear
+            let content = streaming_display::read_sse_with_display(
+                response,
+                streaming_display::StreamingDisplayConfig {
+                    message: "Processing".to_string(),
+                    max_preview_lines: 2,
+                    show_preview: true,
+                },
+            )
+            .await
+            .map_err(OxoError::LlmError)?;
+            return Ok(content);
         }
 
         // ── Non-streaming path (original) ─────────────────────────────────

@@ -231,18 +231,26 @@ impl RetryRunner for Runner {
             })
             .collect();
 
-        let spinner = make_spinner("Verifying result with LLM...");
+        let spinner = if !self.config.llm.stream {
+            Some(make_spinner("Verifying result with LLM..."))
+        } else {
+            None
+        };
         let verification = match self
             .llm
             .verify_run_result(tool, task, command, exit_code, stderr, &file_info)
             .await
         {
             Ok(v) => {
-                spinner.finish_and_clear();
+                if let Some(sp) = spinner {
+                    sp.finish_and_clear();
+                }
                 v
             }
             Err(e) => {
-                spinner.finish_and_clear();
+                if let Some(sp) = spinner {
+                    sp.finish_and_clear();
+                }
                 eprintln!(
                     "{} LLM verification failed: {}",
                     "warning:".yellow().bold(),

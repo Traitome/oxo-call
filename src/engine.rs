@@ -1464,7 +1464,12 @@ pub async fn verify_workflow_results(def: &WorkflowDef, config: &crate::config::
     );
     let workflow_cmd = format!("oxo-call workflow run ({})", def.workflow.name);
 
-    let spinner = make_spinner("Verifying workflow results with LLM...");
+    // Only show spinner for non-streaming mode.
+    let spinner = if !config.llm.stream {
+        Some(make_spinner("Verifying workflow results with LLM..."))
+    } else {
+        None
+    };
     let llm = LlmClient::new(config.clone());
     let verification = match llm
         .verify_run_result(
@@ -1478,11 +1483,15 @@ pub async fn verify_workflow_results(def: &WorkflowDef, config: &crate::config::
         .await
     {
         Ok(v) => {
-            spinner.finish_and_clear();
+            if let Some(sp) = spinner {
+                sp.finish_and_clear();
+            }
             v
         }
         Err(e) => {
-            spinner.finish_and_clear();
+            if let Some(sp) = spinner {
+                sp.finish_and_clear();
+            }
             eprintln!(
                 "{} LLM workflow verification failed: {}",
                 "warning:".yellow().bold(),

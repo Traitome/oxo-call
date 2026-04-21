@@ -61,6 +61,7 @@ mod runner;
 mod sanitize;
 mod server;
 mod skill;
+mod streaming_display;
 mod task_complexity;
 mod task_normalizer;
 mod workflow;
@@ -1281,12 +1282,19 @@ async fn run(cli: Cli) -> error::Result<()> {
                 SkillCommands::Create { tool, output, llm } => {
                     let template = if llm {
                         let llm_client = llm::LlmClient::new(cfg.clone());
-                        let spinner = runner::make_spinner(&format!(
-                            "Generating skill template for '{tool}' with LLM..."
-                        ));
+                        // Only show spinner for non-streaming mode.
+                        let spinner = if !cfg.llm.stream {
+                            Some(runner::make_spinner(&format!(
+                                "Generating skill template for '{tool}' with LLM..."
+                            )))
+                        } else {
+                            None
+                        };
                         match llm_client.generate_skill_template(&tool).await {
                             Ok(generated) => {
-                                spinner.finish_and_clear();
+                                if let Some(sp) = spinner {
+                                    sp.finish_and_clear();
+                                }
                                 println!(
                                     "{} LLM-generated skill template for '{}'",
                                     "✓".green().bold(),
@@ -1295,7 +1303,9 @@ async fn run(cli: Cli) -> error::Result<()> {
                                 generated
                             }
                             Err(e) => {
-                                spinner.finish_and_clear();
+                                if let Some(sp) = spinner {
+                                    sp.finish_and_clear();
+                                }
                                 eprintln!(
                                     "{} LLM generation failed ({}), falling back to blank template",
                                     "!".yellow().bold(),
@@ -1368,10 +1378,17 @@ async fn run(cli: Cli) -> error::Result<()> {
                             if !no_llm {
                                 let raw_md = s.to_prompt_section();
                                 let llm_client = llm::LlmClient::new(cfg.clone());
-                                let spinner = runner::make_spinner("Running LLM quality review...");
+                                // Only show spinner for non-streaming mode.
+                                let spinner = if !cfg.llm.stream {
+                                    Some(runner::make_spinner("Running LLM quality review..."))
+                                } else {
+                                    None
+                                };
                                 match llm_client.verify_skill(&tool, &raw_md).await {
                                     Ok(report) => {
-                                        spinner.finish_and_clear();
+                                        if let Some(sp) = spinner {
+                                            sp.finish_and_clear();
+                                        }
                                         let verdict_label = if report.passed {
                                             "PASS".green().to_string()
                                         } else {
@@ -1403,7 +1420,9 @@ async fn run(cli: Cli) -> error::Result<()> {
                                         }
                                     }
                                     Err(e) => {
-                                        spinner.finish_and_clear();
+                                        if let Some(sp) = spinner {
+                                            sp.finish_and_clear();
+                                        }
                                         println!(
                                             "{}  LLM review skipped: {}",
                                             "!".yellow().bold(),
@@ -1440,11 +1459,19 @@ async fn run(cli: Cli) -> error::Result<()> {
                     let skill_content = std::fs::read_to_string(&skill_path)?;
 
                     let llm_client = llm::LlmClient::new(cfg.clone());
-                    let spinner =
-                        runner::make_spinner(&format!("Polishing skill '{tool}' with LLM..."));
+                    // Only show spinner for non-streaming mode.
+                    let spinner = if !cfg.llm.stream {
+                        Some(runner::make_spinner(&format!(
+                            "Polishing skill '{tool}' with LLM..."
+                        )))
+                    } else {
+                        None
+                    };
                     match llm_client.polish_skill(&tool, &skill_content).await {
                         Ok(improved) => {
-                            spinner.finish_and_clear();
+                            if let Some(sp) = spinner {
+                                sp.finish_and_clear();
+                            }
                             let dest = output.unwrap_or_else(|| skill_path.clone());
                             std::fs::write(&dest, &improved)?;
                             println!(
@@ -1459,7 +1486,9 @@ async fn run(cli: Cli) -> error::Result<()> {
                             );
                         }
                         Err(e) => {
-                            spinner.finish_and_clear();
+                            if let Some(sp) = spinner {
+                                sp.finish_and_clear();
+                            }
                             return Err(e);
                         }
                     }
@@ -1765,15 +1794,28 @@ async fn run(cli: Cli) -> error::Result<()> {
                     "nextflow" => "Nextflow DSL2",
                     _ => "native (.oxo.toml)",
                 };
-                let spinner =
-                    runner::make_spinner(&format!("Generating {label} workflow with LLM..."));
+
+                // Only show spinner for non-streaming mode.
+                // Streaming mode uses StreamingDisplay internally.
+                let spinner = if !cfg.llm.stream {
+                    Some(runner::make_spinner(&format!(
+                        "Generating {label} workflow with LLM..."
+                    )))
+                } else {
+                    None
+                };
+
                 let wf = match workflow::generate_workflow(&cfg, &task, &engine_name).await {
                     Ok(w) => {
-                        spinner.finish_and_clear();
+                        if let Some(sp) = spinner {
+                            sp.finish_and_clear();
+                        }
                         w
                     }
                     Err(e) => {
-                        spinner.finish_and_clear();
+                        if let Some(sp) = spinner {
+                            sp.finish_and_clear();
+                        }
                         return Err(e);
                     }
                 };
@@ -1849,16 +1891,28 @@ async fn run(cli: Cli) -> error::Result<()> {
                     "nextflow" => "Nextflow DSL2",
                     _ => "native (.oxo.toml)",
                 };
-                let spinner = runner::make_spinner(&format!(
-                    "Generating {label} workflow from data context with LLM..."
-                ));
+
+                // Only show spinner for non-streaming mode.
+                // Streaming mode uses StreamingDisplay internally.
+                let spinner = if !cfg.llm.stream {
+                    Some(runner::make_spinner(&format!(
+                        "Generating {label} workflow from data context with LLM..."
+                    )))
+                } else {
+                    None
+                };
+
                 let wf = match workflow::infer_workflow(&cfg, &task, &data, &engine_name).await {
                     Ok(w) => {
-                        spinner.finish_and_clear();
+                        if let Some(sp) = spinner {
+                            sp.finish_and_clear();
+                        }
                         w
                     }
                     Err(e) => {
-                        spinner.finish_and_clear();
+                        if let Some(sp) = spinner {
+                            sp.finish_and_clear();
+                        }
                         return Err(e);
                     }
                 };

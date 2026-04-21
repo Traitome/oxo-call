@@ -15,9 +15,10 @@ use crate::cli::ChatScenario;
 use crate::config::Config;
 use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
-use crate::llm::streaming::{apply_provider_auth_headers, read_sse_stream};
+use crate::llm::streaming::apply_provider_auth_headers;
 use crate::llm::types::{ChatMessage, ChatRequest, ChatRequestStreaming, ChatResponse};
 use crate::skill::SkillManager;
+use crate::streaming_display;
 use colored::Colorize;
 use std::io::{self, BufRead, Write};
 
@@ -93,11 +94,9 @@ impl ChatSession {
 
         let (system_prompt, user_prompt) = prompts_result?;
 
-        let spinner = crate::runner::make_spinner("Waiting for LLM response...");
-
+        // StreamingDisplay handles spinner + preview internally.
+        // Non-streaming mode uses a simple spinner.
         let api_result = self.call_api(&system_prompt, &user_prompt).await;
-
-        spinner.finish_and_clear();
 
         let response = api_result?;
 
@@ -203,11 +202,8 @@ impl ChatSession {
                         content: user_prompt.clone(),
                     });
 
-                    let spinner = crate::runner::make_spinner("Thinking...");
-
+                    // StreamingDisplay handles spinner + preview internally
                     let api_result = self.call_api_with_history(&system_prompt).await;
-
-                    spinner.finish_and_clear();
 
                     match api_result {
                         Ok(response) => {
@@ -248,20 +244,23 @@ impl ChatSession {
 
     fn print_welcome(&self) {
         println!();
+        // Title bar: 60 chars wide (inside borders), centered
+        let title = "🧬 oxo-call Interactive Chat";
+        let inner_width = 58; // 60 - 2 border chars
+        let title_len = title.chars().count();
+        let left_pad = (inner_width - title_len) / 2;
+        let right_pad = inner_width - title_len - left_pad;
+        let top_bottom = "═".repeat(inner_width);
+        println!("  {}{}{}", "╔".cyan(), top_bottom.cyan(), "╗".cyan());
         println!(
-            "  {}",
-            "╔══════════════════════════════════════════════════════════╗".cyan()
-        );
-        println!(
-            "  {} {} {}",
+            "  {}{}{}{}{}",
             "║".cyan(),
-            "🧬 oxo-call Interactive Chat".white().bold(),
-            "                         ║".cyan()
+            " ".repeat(left_pad),
+            title.white().bold(),
+            " ".repeat(right_pad),
+            "║".cyan()
         );
-        println!(
-            "  {}",
-            "╚══════════════════════════════════════════════════════════╝".cyan()
-        );
+        println!("  {}{}{}", "╚".cyan(), top_bottom.cyan(), "╝".cyan());
         println!();
         println!("  {}", "Commands:".bold().underline());
         println!(
@@ -575,8 +574,18 @@ impl ChatSession {
                 )));
             }
 
-            let content = read_sse_stream(resp).await?;
-            return Ok(content.trim().to_string());
+            // Use StreamingDisplay for spinner + live preview + final clear
+            let content = streaming_display::read_sse_with_display(
+                resp,
+                streaming_display::StreamingDisplayConfig {
+                    message: "Thinking".to_string(),
+                    max_preview_lines: 2,
+                    show_preview: true,
+                },
+            )
+            .await
+            .map_err(OxoError::LlmError)?;
+            return Ok(content);
         }
 
         // ── Non-streaming path ────────────────────────────────────────
@@ -670,8 +679,18 @@ impl ChatSession {
                 )));
             }
 
-            let content = read_sse_stream(resp).await?;
-            return Ok(content.trim().to_string());
+            // Use StreamingDisplay for spinner + live preview + final clear
+            let content = streaming_display::read_sse_with_display(
+                resp,
+                streaming_display::StreamingDisplayConfig {
+                    message: "Thinking".to_string(),
+                    max_preview_lines: 2,
+                    show_preview: true,
+                },
+            )
+            .await
+            .map_err(OxoError::LlmError)?;
+            return Ok(content);
         }
 
         // ── Non-streaming path ────────────────────────────────────────

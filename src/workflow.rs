@@ -159,8 +159,8 @@ struct ChatRequestStreaming {
     stream: bool,
 }
 
-// Import shared SSE streaming helper from llm module.
-use crate::llm::streaming::read_sse_stream;
+// Import streaming display for spinner + live preview + final clear
+use crate::streaming_display;
 
 fn native_system_prompt() -> &'static str {
     r#"You are an expert bioinformatics workflow engineer.
@@ -355,7 +355,16 @@ pub async fn generate_workflow(
                 "LLM API returned {status}: {body}"
             )));
         }
-        read_sse_stream(resp).await?
+        streaming_display::read_sse_with_display(
+            resp,
+            streaming_display::StreamingDisplayConfig {
+                message: "Generating workflow".to_string(),
+                max_preview_lines: 2,
+                show_preview: true,
+            },
+        )
+        .await
+        .map_err(OxoError::LlmError)?
     } else {
         let request = ChatRequest {
             model: model.clone(),
@@ -426,7 +435,16 @@ pub async fn generate_workflow(
             .await
             .map_err(|e| OxoError::LlmError(format!("HTTP error on retry: {e}")))?;
         if resp2.status().is_success() {
-            read_sse_stream(resp2).await.unwrap_or_default()
+            streaming_display::read_sse_with_display(
+                resp2,
+                streaming_display::StreamingDisplayConfig {
+                    message: "Retrying workflow generation".to_string(),
+                    max_preview_lines: 2,
+                    show_preview: true,
+                },
+            )
+            .await
+            .unwrap_or_default()
         } else {
             String::new()
         }
@@ -795,7 +813,16 @@ pub async fn infer_workflow(
                 "LLM API returned {status}: {body}"
             )));
         }
-        read_sse_stream(resp).await?
+        streaming_display::read_sse_with_display(
+            resp,
+            streaming_display::StreamingDisplayConfig {
+                message: "Inferring workflow from data".to_string(),
+                max_preview_lines: 2,
+                show_preview: true,
+            },
+        )
+        .await
+        .map_err(OxoError::LlmError)?
     } else {
         let request = ChatRequest {
             model: model.clone(),
@@ -866,7 +893,16 @@ pub async fn infer_workflow(
             .await
             .map_err(|e| OxoError::LlmError(format!("HTTP error on retry: {e}")))?;
         if resp2.status().is_success() {
-            read_sse_stream(resp2).await.unwrap_or_default()
+            streaming_display::read_sse_with_display(
+                resp2,
+                streaming_display::StreamingDisplayConfig {
+                    message: "Retrying workflow inference".to_string(),
+                    max_preview_lines: 2,
+                    show_preview: true,
+                },
+            )
+            .await
+            .unwrap_or_default()
         } else {
             String::new()
         }

@@ -2,16 +2,42 @@
 //!
 //! This module provides the core SSE (Server-Sent Events) stream reader used by
 //! `LlmClient`, `ChatSession`, and the workflow generator.  Keeping it in one
-//! place avoids duplicating the parsing and stderr-printing logic.
+//! place avoids duplicating the parsing and output logic.
 
 use crate::error::{OxoError, Result};
 use crate::llm::types::StreamChunkResponse;
+
+/// Output destination for streaming tokens.
+#[derive(Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
+pub enum StreamOutput {
+    /// Write tokens to stderr (default, for progress/preview).
+    Stderr,
+    /// Write tokens to stdout (for chat mode where content is the primary output).
+    Stdout,
+    /// Collect tokens silently without printing (for spinner + final render flow).
+    Silent,
+}
 
 /// Read an SSE (Server-Sent Events) stream from an OpenAI-compatible API,
 /// printing each content token to stderr as it arrives.
 ///
 /// Returns the full accumulated response text.
+#[allow(dead_code)]
 pub async fn read_sse_stream(response: reqwest::Response) -> Result<String> {
+    read_sse_stream_to(response, StreamOutput::Stderr).await
+}
+
+/// Read an SSE stream with configurable output destination.
+///
+/// When `output` is `Stderr`, tokens are printed as a progress preview.
+/// When `output` is `Stdout`, tokens are printed as the primary content
+/// (used by chat mode to avoid double-display).
+#[allow(dead_code)]
+pub async fn read_sse_stream_to(
+    response: reqwest::Response,
+    output: StreamOutput,
+) -> Result<String> {
     use futures_util::StreamExt;
     use std::io::Write;
 
@@ -29,7 +55,7 @@ pub async fn read_sse_stream(response: reqwest::Response) -> Result<String> {
 
         // Process complete lines from the buffer.
         // Collect tokens from this chunk, then write them all at once
-        // (keeping the stderr lock scope synchronous — no .await inside).
+        // (keeping the lock scope synchronous — no .await inside).
         let mut chunk_tokens = String::new();
         while let Some(newline_pos) = line_buf.find('\n') {
             let line = line_buf[..newline_pos].trim().to_string();
@@ -52,20 +78,45 @@ pub async fn read_sse_stream(response: reqwest::Response) -> Result<String> {
         }
 
         if !chunk_tokens.is_empty() {
-            let stderr = std::io::stderr();
-            let mut lock = stderr.lock();
-            let _ = lock.write_all(chunk_tokens.as_bytes());
-            let _ = lock.flush();
-            printed_any = true;
+            match output {
+                StreamOutput::Stderr => {
+                    let stderr = std::io::stderr();
+                    let mut lock = stderr.lock();
+                    let _ = lock.write_all(chunk_tokens.as_bytes());
+                    let _ = lock.flush();
+                    printed_any = true;
+                }
+                StreamOutput::Stdout => {
+                    let stdout = std::io::stdout();
+                    let mut lock = stdout.lock();
+                    let _ = lock.write_all(chunk_tokens.as_bytes());
+                    let _ = lock.flush();
+                    printed_any = true;
+                }
+                StreamOutput::Silent => {
+                    // Collect only, no output — spinner handles progress display
+                }
+            }
         }
     }
 
     // Add a trailing newline if we printed streaming tokens.
     if printed_any {
-        let stderr = std::io::stderr();
-        let mut lock = stderr.lock();
-        let _ = lock.write_all(b"\n");
-        let _ = lock.flush();
+        match output {
+            StreamOutput::Stderr => {
+                let stderr = std::io::stderr();
+                let mut lock = stderr.lock();
+                let _ = lock.write_all(b"\n");
+                let _ = lock.flush();
+            }
+            StreamOutput::Stdout => {
+                let stdout = std::io::stdout();
+                let mut lock = stdout.lock();
+                let _ = lock.write_all(b"\n");
+                let _ = lock.flush();
+            }
+            StreamOutput::Silent => {}
+        }
     }
 
     Ok(collected)
