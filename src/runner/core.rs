@@ -416,8 +416,8 @@ impl Runner {
             }
         }
 
-        let skill_label = if skill.is_some() {
-            format!(" (skill: {})", tool)
+        let skill_label = if let Some(ref s) = skill {
+            format!(" (skill: {})", s.meta.name)
         } else {
             String::new()
         };
@@ -465,7 +465,13 @@ impl Runner {
 
         // ── User preference learning ─────────────────────────────────────────
         let preferences_hint = {
-            let history = crate::history::HistoryStore::load_all().unwrap_or_default();
+            let history = match crate::history::HistoryStore::load_all() {
+                Ok(h) => h,
+                Err(e) => {
+                    tracing::warn!("Failed to load command history for preference learning: {e}");
+                    Vec::new()
+                }
+            };
             let prefs = crate::history::learn_user_preferences(tool, &history);
             prefs.to_prompt_hint()
         };
@@ -509,21 +515,33 @@ impl Runner {
 
         // Build enriched task with all sources: context, preferences,
         // supervisor hints, and executor enrichment.
+        // Use labeled XML-style delimiters so the LLM can correctly distinguish
+        // the user's actual task from system-generated hints.
         let enriched_task = {
-            let mut parts = vec![effective_task.clone()];
+            let mut parts = vec![format!("<task>\n{effective_task}\n</task>")];
             if !context_hint.is_empty() {
-                parts.push(context_hint);
+                parts.push(format!("<context>\n{context_hint}\n</context>"));
             }
             if !preferences_hint.is_empty() {
-                parts.push(preferences_hint);
+                parts.push(format!("<hints>\n{preferences_hint}\n</hints>"));
             }
             // Add supervisor enrichment hints (best practices, related tools).
-            for hint in &supervisor_decision.enrichment_hints {
-                parts.push(hint.clone());
+            let supervisor_hints: Vec<_> = supervisor_decision
+                .enrichment_hints
+                .iter()
+                .map(String::as_str)
+                .collect();
+            if !supervisor_hints.is_empty() {
+                parts.push(format!(
+                    "<best_practices>\n{}\n</best_practices>",
+                    supervisor_hints.join("\n")
+                ));
             }
             // Add executor enrichment (normalized task, params, constraints).
             if !enrichment_from_executor.is_empty() && enrichment_from_executor != effective_task {
-                parts.push(enrichment_from_executor);
+                parts.push(format!(
+                    "<enrichment>\n{enrichment_from_executor}\n</enrichment>"
+                ));
             }
             if parts.len() == 1 {
                 effective_task.clone()

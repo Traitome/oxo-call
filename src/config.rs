@@ -271,6 +271,22 @@ impl Config {
         // Write to a sibling temp file first, then atomically rename into place.
         // This prevents concurrent readers from observing a half-written config.
         let tmp_path = path.with_extension("tmp");
+        // Restrict the temp file to owner-only permissions *before* writing any
+        // content so that the sensitive token is never world-readable, even
+        // briefly during the write phase.
+        #[cfg(unix)]
+        {
+            use std::io::Write;
+            use std::os::unix::fs::OpenOptionsExt;
+            let mut f = std::fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .mode(0o600)
+                .open(&tmp_path)?;
+            f.write_all(content.as_bytes())?;
+        }
+        #[cfg(not(unix))]
         std::fs::write(&tmp_path, &content)?;
         std::fs::rename(&tmp_path, &path)?;
 

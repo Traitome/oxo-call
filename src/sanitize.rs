@@ -39,7 +39,8 @@ pub fn redact_paths(text: &str) -> String {
                     chars.next();
                 }
                 // Only redact if it looks like a multi-component path
-                if path.contains('/') && path.len() > 3 {
+                // (has a slash *after* the leading one and is longer than 3 chars).
+                if path[1..].contains('/') && path.len() > 3 {
                     result.push_str("<PATH>");
                 } else {
                     result.push_str(&path);
@@ -60,18 +61,34 @@ pub fn redact_paths(text: &str) -> String {
 /// Replaces patterns like `export TOKEN=abc123...` with `export TOKEN=<REDACTED>`.
 #[allow(dead_code)]
 pub fn redact_env_tokens(text: &str) -> String {
+    // Common secret variable name suffixes/substrings (case-insensitive match).
+    const SECRET_PATTERNS: &[&str] = &[
+        "TOKEN",
+        "KEY",
+        "SECRET",
+        "PASSWORD",
+        "PASS",
+        "CREDENTIAL",
+        "AUTH",
+        "BEARER",
+        "PRIVATE_KEY",
+        "API_KEY",
+        "APIKEY",
+        "GH_TOKEN",
+        "GITHUB_TOKEN",
+    ];
     let mut result = String::new();
     for line in text.lines() {
-        let redacted =
-            if line.contains("TOKEN=") || line.contains("KEY=") || line.contains("SECRET=") {
-                if let Some(eq_pos) = line.find('=') {
-                    format!("{}=<REDACTED>", &line[..eq_pos])
-                } else {
-                    line.to_string()
-                }
+        let line_upper = line.to_ascii_uppercase();
+        let redacted = if SECRET_PATTERNS.iter().any(|p| line_upper.contains(p)) {
+            if let Some(eq_pos) = line.find('=') {
+                format!("{}=<REDACTED>", &line[..eq_pos])
             } else {
                 line.to_string()
-            };
+            }
+        } else {
+            line.to_string()
+        };
         if !result.is_empty() {
             result.push('\n');
         }
@@ -199,14 +216,45 @@ mod tests {
 
     #[test]
     fn test_redact_paths_slash_at_start_of_string() {
-        // The '/' is at position 0 which means result.is_empty() == true → triggers path detection
+        // "/short" has a leading '/' but no internal slash after the first char,
+        // so it is NOT a multi-component path and must not be redacted.
         let input = "/short";
         let result = redact_paths(input);
-        // "/short" — no internal '/', length ≤ 6 but has only the leading slash
-        // path.contains('/') is true (leading /), len > 3 depends on length
-        // "/short" has length 6 > 3 but only one '/', so .contains('/') is true
-        // This should actually be redacted
-        // Just verify it doesn't panic
-        assert!(!result.is_empty());
+        assert_eq!(
+            result, "/short",
+            "single-component path should not be redacted"
+        );
+    }
+
+    #[test]
+    fn test_redact_env_tokens_extended_patterns() {
+        // Ensure the extended secret patterns are matched
+        let cases = [
+            ("GH_TOKEN=ghp_abc123", true),
+            ("GITHUB_TOKEN=ghp_abc123", true),
+            ("BEARER_TOKEN=eyJhbGc", true),
+            ("MY_PASSWORD=s3cr3t", true),
+            ("MY_PASS=hunter2", true),
+            ("PRIVATE_KEY=-----BEGIN", true),
+            ("APIKEY=abcdef", true),
+            ("CREDENTIAL=abc", true),
+            ("AUTH_TOKEN=xyz", true),
+            ("NORMAL_VARIABLE=value", false),
+            ("FOO_BAR=baz", false),
+        ];
+        for (input, should_redact) in cases {
+            let result = redact_env_tokens(input);
+            if should_redact {
+                assert!(
+                    result.contains("<REDACTED>"),
+                    "{input:?} should be redacted but wasn't: {result}"
+                );
+            } else {
+                assert!(
+                    !result.contains("<REDACTED>"),
+                    "{input:?} should NOT be redacted but was: {result}"
+                );
+            }
+        }
     }
 }
