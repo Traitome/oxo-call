@@ -61,7 +61,10 @@ pub fn redact_paths(text: &str) -> String {
 /// Replaces patterns like `export TOKEN=abc123...` with `export TOKEN=<REDACTED>`.
 #[allow(dead_code)]
 pub fn redact_env_tokens(text: &str) -> String {
-    // Common secret variable name suffixes/substrings (case-insensitive match).
+    // Broad substrings that appear in common secret variable names.
+    // These cover TOKEN (→ GH_TOKEN, GITHUB_TOKEN, API_TOKEN, …),
+    // KEY (→ API_KEY, APIKEY, …), SECRET, PASSWORD/PASS, CREDENTIAL,
+    // AUTH (→ AUTH_TOKEN, …), BEARER, and PRIVATE_KEY.
     const SECRET_PATTERNS: &[&str] = &[
         "TOKEN",
         "KEY",
@@ -71,11 +74,6 @@ pub fn redact_env_tokens(text: &str) -> String {
         "CREDENTIAL",
         "AUTH",
         "BEARER",
-        "PRIVATE_KEY",
-        "API_KEY",
-        "APIKEY",
-        "GH_TOKEN",
-        "GITHUB_TOKEN",
     ];
     let mut result = String::new();
     for line in text.lines() {

@@ -517,8 +517,16 @@ impl Runner {
         // supervisor hints, and executor enrichment.
         // Use labeled XML-style delimiters so the LLM can correctly distinguish
         // the user's actual task from system-generated hints.
+        // XML special characters in user-supplied text are escaped so that a
+        // task like "do </task><inject>" cannot break out of the <task> block.
         let enriched_task = {
-            let mut parts = vec![format!("<task>\n{effective_task}\n</task>")];
+            fn xml_escape(s: &str) -> String {
+                s.replace('&', "&amp;")
+                    .replace('<', "&lt;")
+                    .replace('>', "&gt;")
+            }
+            let safe_task = xml_escape(&effective_task);
+            let mut parts = vec![format!("<task>\n{safe_task}\n</task>")];
             if !context_hint.is_empty() {
                 parts.push(format!("<context>\n{context_hint}\n</context>"));
             }

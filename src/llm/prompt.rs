@@ -796,9 +796,9 @@ pub fn mini_skill_generation_system_prompt() -> &'static str {
 
 /// Build a prompt for generating a mini-skill from tool documentation.
 pub fn build_mini_skill_prompt(tool: &str, documentation: &str) -> String {
-    // Sanitize the documentation: strip triple-backtick sequences that could
-    // break out of the fenced code block and inject instructions.
-    let safe_docs = documentation.replace("```", "‵‵‵");
+    // Sanitize the documentation: replace triple-backtick sequences that could
+    // break out of the fenced code block and inject arbitrary instructions.
+    let safe_docs = documentation.replace("```", "[BACKTICKS]");
     format!(
         "# Mini-Skill Generation Request\n\n\
          **Tool:** `{tool}`\n\n\
