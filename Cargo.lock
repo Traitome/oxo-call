@@ -1680,7 +1680,7 @@ dependencies = [
 
 [[package]]
 name = "oxo-call"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "async-trait",
  "base64",
