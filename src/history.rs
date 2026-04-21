@@ -70,14 +70,23 @@ impl HistoryStore {
         }
         let content = std::fs::read_to_string(&path)?;
         let mut entries = Vec::new();
+        let mut skipped: usize = 0;
         for line in content.lines() {
             let line = line.trim();
             if line.is_empty() {
                 continue;
             }
-            if let Ok(entry) = serde_json::from_str::<HistoryEntry>(line) {
-                entries.push(entry);
+            match serde_json::from_str::<HistoryEntry>(line) {
+                Ok(entry) => entries.push(entry),
+                Err(_) => skipped += 1,
             }
+        }
+        if skipped > 0 {
+            tracing::warn!(
+                "Skipped {skipped} malformed line(s) in history file — \
+                 the file may be partially corrupt: {}",
+                path.display()
+            );
         }
         Ok(entries)
     }
