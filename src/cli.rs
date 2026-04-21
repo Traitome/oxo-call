@@ -300,9 +300,15 @@ Three modes are available:\n\n\
   oxo-call chat bwa 'What is the difference between mem and aln?'\n\n\
 3. Interactive multi-turn chat:\n   \
   oxo-call chat -i\n   \
-  oxo-call chat -i --tool samtools  # pre-set tool context\n\n\
+  oxo-call chat -i samtools  # pre-set tool context\n\n\
 In interactive mode, questions are answered in general mode by default.\n\
 Use /tool <name> to switch to tool-specific mode with documentation context.\n\n\
+Interactive mode features:\n  \
+  - Arrow keys for cursor movement and history navigation\n  \
+  - Delete/backspace key support\n  \
+  - Command history (up to 1000 entries)\n  \
+  - Ctrl+C to cancel current input, Ctrl+D to exit\n  \
+  - Markdown rendering with syntax highlighting\n\n\
 Scenarios control what context is injected:\n  \
   --scenario bare   : plain chat (no prompt/docs/skill)\n  \
   --scenario prompt : oxo-call system prompt only\n  \
@@ -314,7 +320,7 @@ EXAMPLES:\n  \
   oxo-call chat samtools 'Explain the difference between SAM and BAM'\n  \
   oxo-call chat --scenario skill bwa 'What are common pitfalls?'\n  \
   oxo-call chat -i\n  \
-  oxo-call chat -i --tool gatk\n  \
+  oxo-call chat -i gatk\n  \
   oxo-call chat --model gpt-4 samtools 'How to extract unmapped reads?'"
     )]
     Chat {

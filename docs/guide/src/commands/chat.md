@@ -7,7 +7,7 @@ Interactive chat with AI about bioinformatics tools and general topics.
 ```
 oxo-call chat [OPTIONS] [QUESTION]
 oxo-call chat [OPTIONS] <TOOL> <QUESTION>
-oxo-call chat -i [OPTIONS]
+oxo-call chat -i [OPTIONS] [TOOL]
 oxo-call c   [OPTIONS] [QUESTION]
 ```
 
@@ -81,11 +81,17 @@ In interactive mode:
 - Clear conversation history with `/clear`
 - View conversation message count with `/history`
 - Display or change the LLM model with `/model [name]`
-- Exit with `/quit` or `Ctrl+D`
+- Exit with `/quit`, `Ctrl+C`, or `Ctrl+D`
 
-**Progress indicators**: A spinner is shown while the LLM is generating a response, so you know the system is working. Errors are caught gracefully — if a request fails, an error message is shown and the conversation continues.
+**Terminal line editing**: Interactive mode uses a full-featured line editor with:
 
-**Markdown rendering**: LLM responses are rendered with terminal-friendly formatting (headings, bold, italic, code blocks, lists).
+- **Arrow keys**: left/right for cursor movement, up/down for history navigation
+- **Delete/backspace**: proper character deletion
+- **Command history**: up to 1000 entries, navigable with arrow keys
+- **Ctrl+C**: cancel current input and continue the session
+- **Ctrl+D**: exit the chat
+
+**Markdown rendering**: LLM responses are rendered with terminal-friendly formatting (headings, bold, italic, code blocks, lists). Glob patterns like `*.log` or `*.bam` are automatically escaped to prevent misinterpretation as italic markers.
 
 ## Interactive Commands
 
@@ -99,7 +105,7 @@ When in interactive mode (`-i`), the following commands are available:
 | `/model [name]` | Display or change the current LLM model |
 | `/scenario <s>` | Change scenario mode (bare/prompt/skill/doc/full) |
 | `/help` | Show available commands |
-| `/quit` or `Ctrl+D` | Exit the chat |
+| `/quit`, `Ctrl+C`, `Ctrl+D` | Exit the chat |
 
 ## Examples
 
@@ -144,8 +150,8 @@ oxo-call chat --json samtools "What does the -F flag do?"
 # Start interactive chat (general mode by default)
 oxo-call chat -i
 
-# Start with a pre-set tool context
-oxo-call chat -i --tool samtools
+# Start with a pre-set tool context (positional argument, not --tool)
+oxo-call chat -i samtools
 
 # Start with a specific scenario
 oxo-call chat -i --scenario skill
@@ -157,7 +163,7 @@ oxo-call chat -i --scenario skill
 $ oxo-call chat -i
 
   ╔══════════════════════════════════════════════════════════╗
-  ║ 🧬 oxo-call Interactive Chat                            ║
+  ║               🧬 oxo-call Interactive Chat               ║
   ╚══════════════════════════════════════════════════════════╝
 
   Commands:
@@ -172,6 +178,9 @@ $ oxo-call chat -i
   Usage:
     <question>       Ask any question (general mode, no tool context required)
     /tool <name>     Set a tool context, then ask tool-specific questions
+
+  📋 Scenario: full
+  🤖 Model: qwen2.5-coder:7b
 
 oxo▶ How do I create some temporary files starting with "result" in the current directory?
 ⠋ Thinking...
@@ -240,7 +249,7 @@ oxo-call chat --scenario doc bcftools "What filtering options are available?"
 Interactive mode is ideal for iterative debugging:
 
 ```bash
-oxo-call chat -i --tool samtools
+oxo-call chat -i samtools
 ▶ samtools Why am I getting empty output from my view command?
 ▶ samtools How can I check if my BAM file is corrupted?
 ▶ samtools What's the difference between -f and -F flags?
