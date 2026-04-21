@@ -54,6 +54,7 @@ mod knowledge;
 mod license;
 mod llm;
 mod llm_workflow;
+mod markdown;
 mod mcp;
 mod mini_skill_cache;
 mod orchestrator;
@@ -1844,7 +1845,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                         if !wf.explanation.is_empty() {
                             println!();
                             println!("  {}", "Pipeline explanation:".bold());
-                            println!("  {}", wf.explanation);
+                            println!();
+                            markdown::render_markdown(&wf.explanation);
                         }
                     }
                     None => {
@@ -1941,7 +1943,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                         if !wf.explanation.is_empty() {
                             println!();
                             println!("  {}", "Pipeline explanation:".bold());
-                            println!("  {}", wf.explanation);
+                            println!();
+                            markdown::render_markdown(&wf.explanation);
                         }
 
                         if run {
@@ -2494,7 +2497,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                         println!();
                         if !generated.explanation.is_empty() {
                             println!("  {}", "Explanation:".bold());
-                            println!("  {}", generated.explanation);
+                            println!();
+                            markdown::render_markdown(&generated.explanation);
                             println!();
                         }
                         println!("{}", "─".repeat(60).dimmed());
@@ -3406,7 +3410,9 @@ async fn run(cli: Cli) -> error::Result<()> {
                     println!();
                     println!("  {}  {}", "Command:".bold(), generated_cmd.green().bold());
                     if !explanation.is_empty() {
-                        println!("  {}  {}", "Explanation:".bold(), explanation.dimmed());
+                        println!("  {}", "Explanation:".bold());
+                        println!();
+                        markdown::render_markdown(&explanation);
                     }
 
                     if dry_run {

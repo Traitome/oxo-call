@@ -17,20 +17,10 @@ use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
 use crate::llm::streaming::apply_provider_auth_headers;
 use crate::llm::types::{ChatMessage, ChatRequest, ChatRequestStreaming, ChatResponse};
+use crate::markdown;
 use crate::skill::SkillManager;
 use crate::streaming_display;
 use colored::Colorize;
-use std::io::{self, BufRead, Write};
-
-/// Render markdown text to the terminal using termimad.
-///
-/// Falls back to plain text if rendering fails.
-fn render_markdown(text: &str) {
-    use termimad::MadSkin;
-    let skin = MadSkin::default();
-    // print_text writes directly to stdout with ANSI styling
-    skin.print_text(text);
-}
 
 pub struct ChatSession {
     config: Config,
@@ -113,7 +103,7 @@ impl ChatSession {
             );
         } else {
             println!();
-            render_markdown(&response);
+            markdown::render_markdown(&response);
             println!();
         }
 
@@ -145,118 +135,124 @@ impl ChatSession {
         );
         println!();
 
+        // Set up rustyline editor for proper terminal line editing
+        let mut rl = rustyline::DefaultEditor::new()
+            .map_err(|e| OxoError::LlmError(format!("Failed to init line editor: {e}")))?;
+
         loop {
             let prompt = if let Some(ref tool) = current_tool {
-                format!("{} {} ", "▶".green(), tool.cyan().bold())
+                format!("{} {} ", "▶", tool)
             } else {
-                format!("{} ", "oxo▶".cyan().bold())
+                "oxo▶ ".to_string()
             };
 
-            print!("{}", prompt);
-            io::stdout().flush()?;
+            let readline = rl.readline(&prompt);
+            match readline {
+                Ok(line) => {
+                    let input = line.trim().to_string();
+                    if input.is_empty() {
+                        continue;
+                    }
+                    rl.add_history_entry(&input).ok();
 
-            let mut input = String::new();
-            let stdin = io::stdin();
-            match stdin.lock().read_line(&mut input) {
-                Ok(0) => {
+                    if self.handle_command(&input, &mut current_tool) {
+                        continue;
+                    }
+
+                    match current_tool.as_deref() {
+                        Some(t) => {
+                            // Tool context is set: answer with tool-specific knowledge.
+                            let spinner = crate::runner::make_spinner(&format!(
+                                "Loading context for '{t}'..."
+                            ));
+
+                            let prompts_result = self.build_prompts(t, &input).await;
+
+                            spinner.finish_and_clear();
+
+                            let (system_prompt, user_prompt) = match prompts_result {
+                                Ok(p) => p,
+                                Err(e) => {
+                                    eprintln!("  {} {}", "✖ Context error:".red().bold(), e);
+                                    continue;
+                                }
+                            };
+
+                            self.conversation_history.push(ChatMessage {
+                                role: "user".to_string(),
+                                content: user_prompt.clone(),
+                            });
+
+                            // StreamingDisplay handles spinner + preview internally
+                            let api_result = self.call_api_with_history(&system_prompt).await;
+
+                            match api_result {
+                                Ok(response) => {
+                                    println!();
+                                    println!("{}", "─".repeat(60).dimmed());
+                                    markdown::render_markdown(&response);
+                                    println!("{}", "─".repeat(60).dimmed());
+                                    println!();
+
+                                    self.conversation_history.push(ChatMessage {
+                                        role: "assistant".to_string(),
+                                        content: response,
+                                    });
+                                }
+                                Err(e) => {
+                                    // Remove the user message we just added since the
+                                    // API call failed.
+                                    self.conversation_history.pop();
+                                    eprintln!("\n  {} {}\n", "✖ LLM error:".red().bold(), e);
+                                }
+                            }
+                        }
+                        None => {
+                            // No tool context: answer as a general-purpose assistant.
+                            let system_prompt = self.build_general_system_prompt();
+
+                            self.conversation_history.push(ChatMessage {
+                                role: "user".to_string(),
+                                content: input.clone(),
+                            });
+
+                            // StreamingDisplay handles spinner + preview internally
+                            let api_result = self.call_api_with_history(&system_prompt).await;
+
+                            match api_result {
+                                Ok(response) => {
+                                    println!();
+                                    println!("{}", "─".repeat(60).dimmed());
+                                    markdown::render_markdown(&response);
+                                    println!("{}", "─".repeat(60).dimmed());
+                                    println!();
+
+                                    self.conversation_history.push(ChatMessage {
+                                        role: "assistant".to_string(),
+                                        content: response,
+                                    });
+                                }
+                                Err(e) => {
+                                    // Remove the user message we just added since the
+                                    // API call failed.
+                                    self.conversation_history.pop();
+                                    eprintln!("\n  {} {}\n", "✖ LLM error:".red().bold(), e);
+                                }
+                            }
+                        }
+                    }
+                }
+                Err(rustyline::error::ReadlineError::Eof) => {
                     println!("\n{}", "👋 Goodbye!".green().bold());
                     break;
                 }
-                Ok(_) => {}
+                Err(rustyline::error::ReadlineError::Interrupted) => {
+                    println!("{}", " (Ctrl+C)".dimmed());
+                    continue;
+                }
                 Err(e) => {
                     eprintln!("{} Failed to read input: {}", "✖ error:".red().bold(), e);
                     continue;
-                }
-            }
-
-            let input = input.trim();
-            if input.is_empty() {
-                continue;
-            }
-
-            if self.handle_command(input, &mut current_tool) {
-                continue;
-            }
-
-            match current_tool.as_deref() {
-                Some(t) => {
-                    // Tool context is set: answer with tool-specific knowledge.
-                    let spinner =
-                        crate::runner::make_spinner(&format!("Loading context for '{t}'..."));
-
-                    let prompts_result = self.build_prompts(t, input).await;
-
-                    spinner.finish_and_clear();
-
-                    let (system_prompt, user_prompt) = match prompts_result {
-                        Ok(p) => p,
-                        Err(e) => {
-                            eprintln!("  {} {}", "✖ Context error:".red().bold(), e);
-                            continue;
-                        }
-                    };
-
-                    self.conversation_history.push(ChatMessage {
-                        role: "user".to_string(),
-                        content: user_prompt.clone(),
-                    });
-
-                    // StreamingDisplay handles spinner + preview internally
-                    let api_result = self.call_api_with_history(&system_prompt).await;
-
-                    match api_result {
-                        Ok(response) => {
-                            println!();
-                            println!("{}", "─".repeat(60).dimmed());
-                            render_markdown(&response);
-                            println!("{}", "─".repeat(60).dimmed());
-                            println!();
-
-                            self.conversation_history.push(ChatMessage {
-                                role: "assistant".to_string(),
-                                content: response,
-                            });
-                        }
-                        Err(e) => {
-                            // Remove the user message we just added since the
-                            // API call failed.
-                            self.conversation_history.pop();
-                            eprintln!("\n  {} {}\n", "✖ LLM error:".red().bold(), e);
-                        }
-                    }
-                }
-                None => {
-                    // No tool context: answer as a general-purpose assistant.
-                    let system_prompt = self.build_general_system_prompt();
-
-                    self.conversation_history.push(ChatMessage {
-                        role: "user".to_string(),
-                        content: input.to_string(),
-                    });
-
-                    // StreamingDisplay handles spinner + preview internally
-                    let api_result = self.call_api_with_history(&system_prompt).await;
-
-                    match api_result {
-                        Ok(response) => {
-                            println!();
-                            println!("{}", "─".repeat(60).dimmed());
-                            render_markdown(&response);
-                            println!("{}", "─".repeat(60).dimmed());
-                            println!();
-
-                            self.conversation_history.push(ChatMessage {
-                                role: "assistant".to_string(),
-                                content: response,
-                            });
-                        }
-                        Err(e) => {
-                            // Remove the user message we just added since the
-                            // API call failed.
-                            self.conversation_history.pop();
-                            eprintln!("\n  {} {}\n", "✖ LLM error:".red().bold(), e);
-                        }
-                    }
                 }
             }
         }
@@ -299,7 +295,7 @@ impl ChatSession {
             );
         } else {
             println!();
-            render_markdown(&response);
+            markdown::render_markdown(&response);
             println!();
         }
 
@@ -1017,11 +1013,11 @@ mod tests {
     #[test]
     fn test_render_markdown_does_not_panic() {
         // Ensure the rendering function handles various markdown content
-        render_markdown("# Heading\n\nSome **bold** and *italic* text.");
-        render_markdown("```bash\nsamtools sort input.bam\n```");
-        render_markdown("");
-        render_markdown("Plain text with no markdown.");
-        render_markdown("- item 1\n- item 2\n- item 3");
+        markdown::render_markdown("# Heading\n\nSome **bold** and *italic* text.");
+        markdown::render_markdown("```bash\nsamtools sort input.bam\n```");
+        markdown::render_markdown("");
+        markdown::render_markdown("Plain text with no markdown.");
+        markdown::render_markdown("- item 1\n- item 2\n- item 3");
     }
 
     #[test]

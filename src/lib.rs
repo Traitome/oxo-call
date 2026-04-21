@@ -35,6 +35,7 @@ pub mod knowledge;
 pub mod license;
 pub mod llm;
 pub mod llm_workflow;
+pub mod markdown;
 pub mod mcp;
 pub mod mini_skill_cache;
 pub mod orchestrator;

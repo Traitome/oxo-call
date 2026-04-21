@@ -6,6 +6,7 @@
 use crate::error::{OxoError, Result};
 use crate::history::{CommandProvenance, HistoryEntry, HistoryStore};
 use crate::job;
+use crate::markdown;
 use chrono::Utc;
 use colored::Colorize;
 use std::sync::Arc;
@@ -52,7 +53,8 @@ impl BatchRunner for Runner {
             println!();
             if !result.suggestion.explanation.is_empty() {
                 println!("  {}", "Explanation:".bold());
-                println!("  {}", result.suggestion.explanation);
+                println!();
+                markdown::render_markdown(&result.suggestion.explanation);
                 println!();
             }
             println!(
@@ -270,7 +272,8 @@ impl BatchRunner for Runner {
         println!();
         if !result.suggestion.explanation.is_empty() {
             println!("  {}", "Explanation:".bold());
-            println!("  {}", result.suggestion.explanation);
+            println!();
+            markdown::render_markdown(&result.suggestion.explanation);
             println!();
         }
         println!(

@@ -5,6 +5,7 @@
 
 use crate::error::{OxoError, Result};
 use crate::history::{CommandProvenance, HistoryEntry, HistoryStore};
+use crate::markdown;
 use chrono::Utc;
 use colored::Colorize;
 use std::process::Command;
@@ -116,7 +117,9 @@ impl RetryRunner for Runner {
                             corrected_cmd.green()
                         );
                         if !suggestion.explanation.is_empty() {
-                            println!("  {} {}", "Fix:".bold(), suggestion.explanation);
+                            println!("  {}", "Fix:".bold());
+                            println!();
+                            markdown::render_markdown(&suggestion.explanation);
                         }
                         println!("{}", "─".repeat(60).dimmed());
                         println!();

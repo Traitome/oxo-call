@@ -14,6 +14,7 @@ use crate::job;
 use crate::knowledge::error_db::ErrorKnowledgeDb;
 use crate::llm::{LlmClient, LlmCommandSuggestion};
 use crate::llm_workflow::LlmWorkflowExecutor;
+use crate::markdown;
 use crate::orchestrator::executor::ExecutorAgent;
 use crate::orchestrator::planner::PlannerAgent;
 use crate::orchestrator::supervisor::SupervisorAgent;
@@ -756,7 +757,8 @@ impl Runner {
 
         if !result.suggestion.explanation.is_empty() {
             println!("  {}", "Explanation:".bold());
-            println!("  {}", result.suggestion.explanation);
+            println!();
+            markdown::render_markdown(&result.suggestion.explanation);
             println!();
         }
         println!("{}", "─".repeat(60).dimmed());
@@ -843,7 +845,8 @@ impl Runner {
             println!();
             if !result.suggestion.explanation.is_empty() {
                 println!("  {}", "Explanation:".bold());
-                println!("  {}", result.suggestion.explanation);
+                println!();
+                markdown::render_markdown(&result.suggestion.explanation);
                 println!();
             }
 

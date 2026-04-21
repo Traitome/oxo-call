@@ -12,6 +12,7 @@
 ///    available for HPC environments that require those formats.
 use crate::config::Config;
 use crate::error::{OxoError, Result};
+use crate::markdown;
 use colored::Colorize;
 use serde::{Deserialize, Serialize};
 
@@ -523,7 +524,8 @@ pub fn print_generated_workflow(wf: &GeneratedWorkflow) {
     if !wf.explanation.is_empty() {
         println!("{}", "─".repeat(70).dimmed());
         println!("  {}", "Pipeline explanation:".bold());
-        println!("  {}", wf.explanation);
+        println!();
+        markdown::render_markdown(&wf.explanation);
         println!("{}", "─".repeat(70).dimmed());
     }
 }
