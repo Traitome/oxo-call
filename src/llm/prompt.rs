@@ -24,7 +24,7 @@ pub fn system_prompt() -> &'static str {
      4. Multi-step: join with &&. Tool name auto-prepended ONLY to first segment — later commands MUST include their full binary name.\n\
      5. Pipes (|) and redirects (>) go directly in ARGS.\n\
      6. Use ONLY flags from docs or skill examples — never invent flags.\n\
-     7. Include every file/path from the task. Prefer skill example flags. Include threads (-@/-t/--threads) and output (-o) when applicable.\n\
+     7. Include every file/path from the task. Prefer skill example flags. Include thread flags and output flags when applicable (use the exact flag form from docs/examples, never combine short and long forms like -o/--output).\n\
      8. Default conventions: paired-end, coordinate-sorted BAM, hg38, gzipped FASTQ, Phred+33.\n\
      9. Match format flags to actual types (BAM/SAM/CRAM, gzipped/plain, paired/single, FASTA/FASTQ).\n\
      10. If no arguments needed: ARGS: (none)."

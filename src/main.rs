@@ -175,7 +175,7 @@ const COPILOT_MODELS: &[(&str, &str, bool)] = &[
 /// Convert a CLI [`RunScenario`] into its corresponding [`WorkflowScenario`].
 fn run_scenario_to_workflow(rs: RunScenario) -> workflow_graph::WorkflowScenario {
     match rs {
-        RunScenario::Basic => workflow_graph::WorkflowScenario::Basic,
+        RunScenario::Bare => workflow_graph::WorkflowScenario::Bare,
         RunScenario::Prompt => workflow_graph::WorkflowScenario::Prompt,
         RunScenario::Doc => workflow_graph::WorkflowScenario::Doc,
         RunScenario::Skill => workflow_graph::WorkflowScenario::Skill,
@@ -1141,7 +1141,14 @@ async fn run(cli: Cli) -> error::Result<()> {
                         .map(|s| s.cyan().to_string())
                         .unwrap_or_else(|| "—".dimmed().to_string());
                     let cmd_short = if e.command.len() > 40 {
-                        format!("{}...", &e.command[..40])
+                        // Safe UTF-8 truncation
+                        let safe_end = e
+                            .command
+                            .char_indices()
+                            .nth(40)
+                            .map(|(i, _)| i)
+                            .unwrap_or(e.command.len());
+                        format!("{}...", &e.command[..safe_end])
                     } else {
                         e.command.clone()
                     };

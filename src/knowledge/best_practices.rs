@@ -127,14 +127,14 @@ impl BestPracticesDb {
             BestPractice {
                 category: "general".to_string(),
                 title: "Always specify output files explicitly".to_string(),
-                recommendation: "Use -o/--output to specify output files rather than relying on stdout redirection. This prevents partial writes on failure and makes commands more readable.".to_string(),
-                tools: vec![],
+                recommendation: "Use output flags (e.g., -o or --output) to specify output files rather than relying on stdout redirection. This prevents partial writes on failure and makes commands more readable.".to_string(),
+                tools: vec!["samtools".to_string(), "bcftools".to_string(), "gatk4".to_string(), "bwa".to_string(), "hisat2".to_string(), "star".to_string(), "bowtie2".to_string()],
             },
             BestPractice {
                 category: "general".to_string(),
                 title: "Pipe-friendly processing".to_string(),
                 recommendation: "For large files, prefer piping between tools (e.g., samtools view | samtools sort) to avoid writing intermediate files to disk.".to_string(),
-                tools: vec![],
+                tools: vec!["samtools".to_string(), "bwa".to_string(), "picard".to_string(), "bcftools".to_string()],
             },
             // ── Alignment ────────────────────────────────────────────────────
             BestPractice {
@@ -221,11 +221,17 @@ mod tests {
     #[test]
     fn test_for_tool_universal() {
         let db = BestPracticesDb::new();
-        // An unknown tool should still get universal practices.
+        // An unknown tool should get no practices (all are tool-specific now).
         let practices = db.for_tool("unknown_tool");
         assert!(
-            !practices.is_empty(),
-            "universal practices should apply to any tool"
+            practices.is_empty(),
+            "unknown tool should get no practices when all are tool-specific"
+        );
+        // But a known tool should get practices.
+        let samtools_practices = db.for_tool("samtools");
+        assert!(
+            !samtools_practices.is_empty(),
+            "known tool should get practices"
         );
     }
 
@@ -248,7 +254,7 @@ mod tests {
     fn test_prompt_hint_unknown_tool() {
         let db = BestPracticesDb::new();
         let hint = db.to_prompt_hint("unknown_tool");
-        // Should still contain universal practices.
-        assert!(hint.contains("[Best Practices]"));
+        // No universal practices exist now, so unknown tools get no hint.
+        assert!(hint.is_empty(), "unknown tool should get no hint");
     }
 }

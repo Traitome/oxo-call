@@ -51,14 +51,14 @@ use std::sync::Arc;
 /// Workflow scenario type
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum WorkflowScenario {
-    /// Basic: Tool + Task → Command
+    /// Bare: Tool + Task → Command (no additional context)
     #[default]
-    Basic,
-    /// Prompt: Basic + Custom Prompt
+    Bare,
+    /// Prompt: Bare + Custom Prompt
     Prompt,
-    /// Doc: Basic + Documentation + Mini-skill
+    /// Doc: Bare + Documentation + Mini-skill
     Doc,
-    /// Skill: Basic + Skill File
+    /// Skill: Bare + Skill File
     Skill,
     /// Full: Doc + Skill (combined)
     Full,
@@ -67,7 +67,7 @@ pub enum WorkflowScenario {
 impl std::fmt::Display for WorkflowScenario {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            WorkflowScenario::Basic => write!(f, "basic"),
+            WorkflowScenario::Bare => write!(f, "bare"),
             WorkflowScenario::Prompt => write!(f, "prompt"),
             WorkflowScenario::Doc => write!(f, "doc"),
             WorkflowScenario::Skill => write!(f, "skill"),
@@ -81,14 +81,14 @@ impl WorkflowScenario {
     ///
     /// # Scenario-Mode Mapping
     ///
-    /// - **Basic**: Fast (simplest, no processing needed)
+    /// - **Bare**: Fast (simplest, no processing needed)
     /// - **Prompt**: Fast (user-defined, trust their prompt)
     /// - **Doc**: Quality (needs mini-skill generation)
     /// - **Skill**: Fast (existing skill is sufficient)
     /// - **Full**: Quality (complex combination)
     pub fn default_mode(&self) -> WorkflowMode {
         match self {
-            Self::Basic => WorkflowMode::Fast,
+            Self::Bare => WorkflowMode::Fast,
             Self::Prompt => WorkflowMode::Fast,
             Self::Doc => WorkflowMode::Quality,
             Self::Skill => WorkflowMode::Fast,
@@ -229,7 +229,7 @@ impl WorkflowGraph {
 
         // Step 4: Execute scenario-specific path
         match state.scenario {
-            WorkflowScenario::Basic => self.execute_basic(&mut state).await?,
+            WorkflowScenario::Bare => self.execute_basic(&mut state).await?,
             WorkflowScenario::Prompt => self.execute_prompt(&mut state).await?,
             WorkflowScenario::Doc => self.execute_doc(&mut state).await?,
             WorkflowScenario::Skill => self.execute_skill(&mut state).await?,
@@ -271,7 +271,7 @@ impl WorkflowGraph {
             (true, false, _) => WorkflowScenario::Doc, // doc only
             (false, true, _) => WorkflowScenario::Skill, // skill only
             (false, false, true) => WorkflowScenario::Prompt, // prompt only
-            (false, false, false) => WorkflowScenario::Basic, // basic
+            (false, false, false) => WorkflowScenario::Bare, // bare
         };
 
         // Set default mode for this scenario (unless forced)
@@ -615,7 +615,7 @@ mod tests {
         };
 
         let result = graph.execute(input).await.unwrap();
-        assert_eq!(result.scenario, WorkflowScenario::Basic);
+        assert_eq!(result.scenario, WorkflowScenario::Bare);
         assert!(result.command.contains("samtools"));
     }
 
@@ -684,7 +684,7 @@ mod tests {
 
     #[test]
     fn test_scenario_display() {
-        assert_eq!(format!("{}", WorkflowScenario::Basic), "basic");
+        assert_eq!(format!("{}", WorkflowScenario::Bare), "bare");
         assert_eq!(format!("{}", WorkflowScenario::Doc), "doc");
         assert_eq!(format!("{}", WorkflowScenario::Full), "full");
     }

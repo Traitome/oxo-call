@@ -548,7 +548,13 @@ impl ChatSession {
                 let docs = self.fetcher.fetch(tool).await?;
                 if let Some(help) = docs.help_output {
                     let truncated = if help.len() > 4000 {
-                        format!("{}...\n[Documentation truncated]", &help[..4000])
+                        // Safe UTF-8 truncation: use chars() to avoid splitting multi-byte characters
+                        let safe_end = help
+                            .char_indices()
+                            .nth(4000)
+                            .map(|(i, _)| i)
+                            .unwrap_or(help.len());
+                        format!("{}...\n[Documentation truncated]", &help[..safe_end])
                     } else {
                         help
                     };
@@ -564,7 +570,13 @@ impl ChatSession {
                 let docs = self.fetcher.fetch(tool).await?;
                 if let Some(help) = docs.help_output {
                     let truncated = if help.len() > 4000 {
-                        format!("{}...\n[Documentation truncated]", &help[..4000])
+                        // Safe UTF-8 truncation: use chars() to avoid splitting multi-byte characters
+                        let safe_end = help
+                            .char_indices()
+                            .nth(4000)
+                            .map(|(i, _)| i)
+                            .unwrap_or(help.len());
+                        format!("{}...\n[Documentation truncated]", &help[..safe_end])
                     } else {
                         help
                     };

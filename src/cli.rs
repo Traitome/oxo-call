@@ -814,13 +814,13 @@ pub enum JobCommands {
 /// into the LLM call when generating tool commands.
 #[derive(Clone, Debug, ValueEnum)]
 pub enum RunScenario {
-    /// Basic: Tool + Task only (fastest)
-    Basic,
-    /// Prompt: Basic + custom prompt
+    /// Bare: Tool + Task only (no additional context)
+    Bare,
+    /// Prompt: Bare + custom prompt
     Prompt,
-    /// Doc: Basic + documentation + mini-skill generation
+    /// Doc: Bare + documentation + mini-skill generation
     Doc,
-    /// Skill: Basic + skill file
+    /// Skill: Bare + skill file
     Skill,
     /// Full: Doc + skill combined (most accurate)
     Full,

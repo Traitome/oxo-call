@@ -4994,7 +4994,7 @@ fn test_run_scenario_value_enum_in_help() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     // ValueEnum should show valid scenario values in help text
     assert!(
-        stdout.contains("basic") && stdout.contains("full"),
+        stdout.contains("bare") && stdout.contains("full"),
         "Expected scenario values listed in run help, got: {stdout}"
     );
 }
@@ -5009,7 +5009,7 @@ fn test_dry_run_scenario_value_enum_in_help() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     // ValueEnum should show valid scenario values in help text
     assert!(
-        stdout.contains("basic") && stdout.contains("full"),
+        stdout.contains("bare") && stdout.contains("full"),
         "Expected scenario values listed in dry-run help, got: {stdout}"
     );
 }

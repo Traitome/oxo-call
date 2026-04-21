@@ -49,3 +49,6 @@ docs/bench/model_summary_by_category.csv
 docs/bench/model_summary_by_tool.csv
 docs/bench/reference_commands.csv.bak
 docs/bench/usage_descriptions.csv.bak
+
+# Temporary test outputs
+output.txt
