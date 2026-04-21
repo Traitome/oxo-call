@@ -311,9 +311,10 @@ impl ChatSession {
         // Title bar: 60 chars wide (inside borders), centered
         let title = "🧬 oxo-call Interactive Chat";
         let inner_width = 58; // 60 - 2 border chars
-        let title_len = title.chars().count();
-        let left_pad = (inner_width - title_len) / 2;
-        let right_pad = inner_width - title_len - left_pad;
+        // Use terminal display width (emoji like 🧬 takes 2 columns)
+        let title_display_width = unicode_width::UnicodeWidthStr::width(title);
+        let left_pad = (inner_width - title_display_width) / 2;
+        let right_pad = inner_width - title_display_width - left_pad;
         let top_bottom = "═".repeat(inner_width);
         println!("  {}{}{}", "╔".cyan(), top_bottom.cyan(), "╗".cyan());
         println!(

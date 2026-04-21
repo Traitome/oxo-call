@@ -1760,6 +1760,7 @@ dependencies = [
  "tokio",
  "toml",
  "tracing",
+ "unicode-width 0.2.2",
  "uuid",
  "which",
  "wiremock",

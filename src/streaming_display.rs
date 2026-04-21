@@ -9,23 +9,41 @@
 //!
 //! The spinner message is strictly single-line to avoid terminal control issues.
 //! Long preview content is truncated to fit within a reasonable terminal width.
+//! All width calculations use **terminal display width** (CJK = 2 columns, emoji = 2 columns).
 
 use indicatif::{ProgressBar, ProgressStyle};
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use unicode_width::UnicodeWidthStr;
 
-/// Maximum characters for the spinner message (prevents line wrap).
-/// Most terminals are 80+ chars wide; this leaves room for spinner + prefix.
+/// Maximum terminal display columns for the spinner message (prevents line wrap).
+/// Most terminals are 80+ columns wide; this leaves room for spinner + prefix.
 const MAX_MESSAGE_WIDTH: usize = 70;
 
-/// Truncate a string to at most `max_chars` Unicode characters, appending "..." if truncated.
-/// Safe for multi-byte UTF-8 characters.
-fn truncate_chars(s: &str, max_chars: usize) -> String {
-    if s.chars().count() <= max_chars {
+/// Maximum terminal display columns for each preview line.
+const MAX_PREVIEW_LINE_WIDTH: usize = 40;
+
+/// Truncate a string so its terminal display width is at most `max_width` columns,
+/// appending "..." if truncated. Safe for CJK, emoji, and all Unicode.
+fn truncate_display(s: &str, max_width: usize) -> String {
+    let width = UnicodeWidthStr::width(s);
+    if width <= max_width {
         return s.to_string();
     }
-    let end = max_chars.saturating_sub(3);
-    format!("{}...", s.chars().take(end).collect::<String>())
+    // Reserve 3 columns for "..."
+    let target = max_width.saturating_sub(3);
+    let mut result = String::new();
+    let mut current_width = 0;
+    for ch in s.chars() {
+        let ch_width = unicode_width::UnicodeWidthChar::width(ch).unwrap_or(0);
+        if current_width + ch_width > target {
+            break;
+        }
+        result.push(ch);
+        current_width += ch_width;
+    }
+    result.push_str("...");
+    result
 }
 
 /// Streaming display configuration
@@ -74,8 +92,8 @@ impl StreamingDisplay {
                 .expect("valid progress template"),
         );
 
-        // Truncate initial message if too long
-        let msg = truncate_chars(&config.message, MAX_MESSAGE_WIDTH);
+        // Truncate initial message if too long (by display width)
+        let msg = truncate_display(&config.message, MAX_MESSAGE_WIDTH);
         spinner.set_message(msg);
         spinner.enable_steady_tick(std::time::Duration::from_millis(80));
 
@@ -113,7 +131,7 @@ impl StreamingDisplay {
                 .saturating_sub(self.config.max_preview_lines);
             state.preview_lines = all_lines[start..]
                 .iter()
-                .map(|s| truncate_chars(s, 50))
+                .map(|s| truncate_display(s, MAX_PREVIEW_LINE_WIDTH))
                 .collect();
 
             // Build the full message: prefix + preview
@@ -127,7 +145,7 @@ impl StreamingDisplay {
             // CRITICAL: Truncate to single line to prevent terminal wrap issues.
             // Long messages can wrap to multiple lines, and finish_and_clear()
             // only clears the current line, leaving artifacts above.
-            let truncated = truncate_chars(&full_msg, MAX_MESSAGE_WIDTH);
+            let truncated = truncate_display(&full_msg, MAX_MESSAGE_WIDTH);
 
             self.spinner.set_message(truncated);
         }
@@ -263,28 +281,53 @@ mod tests {
     }
 
     #[test]
-    fn test_truncate_chars_utf8_safe() {
-        // Test with multi-byte UTF-8 characters
-        let s = "Hello → World → Test";
-        let truncated = truncate_chars(s, 10);
-        assert!(truncated.ends_with("..."));
-        assert!(truncated.chars().count() <= 10);
+    fn test_truncate_display_ascii() {
+        // ASCII: each char = 1 display column
+        let s = "Hello World";
+        assert_eq!(truncate_display(s, 20), "Hello World");
 
-        // Test with emoji - 5 emoji truncated to 4 => 1 emoji + "..."
+        let long = "a".repeat(100);
+        let truncated = truncate_display(&long, 10);
+        assert_eq!(truncated, "aaaaaaa...");
+        assert_eq!(UnicodeWidthStr::width(truncated.as_str()), 10);
+    }
+
+    #[test]
+    fn test_truncate_display_cjk() {
+        // CJK: each char = 2 display columns
+        let s = "你好世界测试";
+        // 5 CJK chars = 10 display columns, truncate to 8 => 2 CJK (4 cols) + "..." (3 cols) = 7 cols
+        let truncated = truncate_display(s, 8);
+        assert!(truncated.ends_with("..."));
+        assert!(UnicodeWidthStr::width(truncated.as_str()) <= 8);
+
+        // Fits within limit
+        assert_eq!(truncate_display("你好", 10), "你好");
+    }
+
+    #[test]
+    fn test_truncate_display_mixed() {
+        // Mixed ASCII + CJK
+        let s = "Hello你好World世界";
+        // Display width: 5 + 4 + 5 + 4 = 18
+        let truncated = truncate_display(s, 10);
+        assert!(truncated.ends_with("..."));
+        assert!(UnicodeWidthStr::width(truncated.as_str()) <= 10);
+    }
+
+    #[test]
+    fn test_truncate_display_emoji() {
+        // Emoji: typically 2 display columns
         let emoji = "🎉🎊🎈🎁🎀";
-        let truncated = truncate_chars(emoji, 4);
+        let truncated = truncate_display(emoji, 5);
         assert!(truncated.starts_with("🎉"));
         assert!(truncated.ends_with("..."));
+    }
 
-        // Test with mixed content
-        let mixed = "abc→def→ghi";
-        let truncated = truncate_chars(mixed, 8);
-        assert!(truncated.ends_with("..."));
-        assert!(truncated.chars().count() <= 8);
-
-        // Test no truncation needed
-        let short = "Hello";
-        assert_eq!(truncate_chars(short, 10), "Hello");
+    #[test]
+    fn test_truncate_display_no_truncation() {
+        assert_eq!(truncate_display("Hello", 10), "Hello");
+        assert_eq!(truncate_display("你好", 10), "你好");
     }
 
     #[tokio::test]
@@ -295,12 +338,29 @@ mod tests {
             show_preview: true,
         });
 
-        // Add content with multi-byte chars (arrows, emoji)
-        display.add_content("Line 1 → data\nLine 2 → more 🎉").await;
+        // Add content with multi-byte chars (CJK, arrows, emoji)
+        display.add_content("第一行 → 数据\n第二行 → 更多 🎉").await;
 
         // Should not panic, content should be stored
         let state = display.state.read().await;
         assert!(state.content.contains("→"));
         assert!(state.content.contains("🎉"));
+        assert!(state.content.contains("第一行"));
+    }
+
+    #[test]
+    fn test_truncate_display_chinese_long_line() {
+        // Simulate real streaming content with Chinese
+        // Create a string that's definitely longer than MAX_MESSAGE_WIDTH display columns
+        let s = "- `<路径>`：开始查找的目录。如果不指定，默认从当前目录开始。这是额外的中文内容确保超过限制。";
+        let width = UnicodeWidthStr::width(s);
+        assert!(
+            width > MAX_MESSAGE_WIDTH,
+            "Test string should exceed width limit"
+        );
+
+        let truncated = truncate_display(s, MAX_MESSAGE_WIDTH);
+        assert!(UnicodeWidthStr::width(truncated.as_str()) <= MAX_MESSAGE_WIDTH);
+        assert!(truncated.ends_with("..."));
     }
 }
