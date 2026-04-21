@@ -178,14 +178,13 @@ impl ChatSession {
                 continue;
             }
 
-            let (tool, question) = self.parse_input(input, current_tool.as_deref());
-
-            match tool {
+            match current_tool.as_deref() {
                 Some(t) => {
+                    // Tool context is set: answer with tool-specific knowledge.
                     let spinner =
                         crate::runner::make_spinner(&format!("Loading context for '{t}'..."));
 
-                    let prompts_result = self.build_prompts(&t, &question).await;
+                    let prompts_result = self.build_prompts(t, input).await;
 
                     spinner.finish_and_clear();
 
@@ -227,16 +226,81 @@ impl ChatSession {
                     }
                 }
                 None => {
-                    println!(
-                        "  {}",
-                        "⚠ Please specify a tool or use /tool <name> to set context.".yellow()
-                    );
-                    println!(
-                        "  {}",
-                        "Example: samtools How do I sort a BAM file?".dimmed()
-                    );
+                    // No tool context: answer as a general-purpose assistant.
+                    let system_prompt = self.build_general_system_prompt();
+
+                    self.conversation_history.push(ChatMessage {
+                        role: "user".to_string(),
+                        content: input.to_string(),
+                    });
+
+                    // StreamingDisplay handles spinner + preview internally
+                    let api_result = self.call_api_with_history(&system_prompt).await;
+
+                    match api_result {
+                        Ok(response) => {
+                            println!();
+                            println!("{}", "─".repeat(60).dimmed());
+                            render_markdown(&response);
+                            println!("{}", "─".repeat(60).dimmed());
+                            println!();
+
+                            self.conversation_history.push(ChatMessage {
+                                role: "assistant".to_string(),
+                                content: response,
+                            });
+                        }
+                        Err(e) => {
+                            // Remove the user message we just added since the
+                            // API call failed.
+                            self.conversation_history.pop();
+                            eprintln!("\n  {} {}\n", "✖ LLM error:".red().bold(), e);
+                        }
+                    }
                 }
             }
+        }
+
+        Ok(())
+    }
+
+    /// Run single-shot general Q&A without a specific tool context.
+    pub async fn run_single_general(&self, question: &str, json: bool) -> Result<()> {
+        if self.verbose {
+            eprintln!("{}", "─".repeat(60).dimmed());
+            eprintln!("{}: general", "Mode".cyan().bold());
+            eprintln!("{}: {}", "Scenario".cyan().bold(), self.scenario_name());
+            eprintln!(
+                "{}: {}",
+                "Model".cyan().bold(),
+                self.config.effective_model()
+            );
+            eprintln!("{}", "─".repeat(60).dimmed());
+        }
+
+        let spinner = crate::runner::make_spinner("Thinking...");
+
+        let system_prompt = self.build_general_system_prompt();
+        let api_result = self.call_api(&system_prompt, question).await;
+
+        spinner.finish_and_clear();
+
+        let response = api_result?;
+
+        if json {
+            let result = serde_json::json!({
+                "question": question,
+                "scenario": self.scenario_name(),
+                "response": response,
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&result).expect("JSON serialization")
+            );
+        } else {
+            println!();
+            render_markdown(&response);
+            println!();
         }
 
         Ok(())
@@ -282,12 +346,12 @@ impl ChatSession {
         println!();
         println!("  {}", "Usage:".bold().underline());
         println!(
-            "    {}    Ask about a specific tool",
-            "<tool> <question>".white()
+            "    {}  Ask any question (general mode, no tool context required)",
+            "<question>".white()
         );
         println!(
-            "    {}           Ask about the current tool (if set)",
-            "<question>".white()
+            "    {}  Set a tool context, then ask tool-specific questions",
+            "/tool <name>".white()
         );
         println!();
     }
@@ -417,27 +481,6 @@ impl ChatSession {
         }
     }
 
-    fn parse_input(&self, input: &str, current_tool: Option<&str>) -> (Option<String>, String) {
-        let parts: Vec<&str> = input.split_whitespace().collect();
-        if parts.is_empty() {
-            return (None, String::new());
-        }
-
-        if parts[0].starts_with('/') {
-            return (None, String::new());
-        }
-
-        if let Some(tool) = current_tool {
-            (Some(tool.to_string()), input.to_string())
-        } else if parts.len() >= 2 {
-            let tool = parts[0].to_string();
-            let question = parts[1..].join(" ");
-            (Some(tool), question)
-        } else {
-            (None, input.to_string())
-        }
-    }
-
     fn scenario_name(&self) -> &'static str {
         match self.scenario {
             ChatScenario::Bare => "bare",
@@ -469,6 +512,23 @@ impl ChatSession {
                  reference their documentation and common usage patterns. Be concise but thorough."
                     .to_string()
             }
+        }
+    }
+
+    /// System prompt used when there is no specific tool context (general conversation mode).
+    fn build_general_system_prompt(&self) -> String {
+        match self.scenario {
+            ChatScenario::Bare => String::new(),
+            _ => "You are a versatile and knowledgeable assistant. You excel in bioinformatics, \
+                 computational biology, programming, shell scripting, and general research. \
+                 You are running inside the oxo-call CLI environment and have broad knowledge of \
+                 operating system resources, shell commands (bash, zsh, etc.), file operations, \
+                 and command-line workflows. \
+                 Answer questions clearly and practically. When the question involves shell or \
+                 file operations, provide concrete, runnable examples. \
+                 Be concise but thorough. Understand any language and respond in the language of \
+                 the question."
+                .to_string(),
         }
     }
 
@@ -767,56 +827,6 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_input_with_tool_context() {
-        let config = Config::default();
-        let session = ChatSession::new(config);
-
-        let (tool, question) = session.parse_input("How do I sort?", Some("samtools"));
-        assert_eq!(tool, Some("samtools".to_string()));
-        assert_eq!(question, "How do I sort?");
-    }
-
-    #[test]
-    fn test_parse_input_without_tool_context() {
-        let config = Config::default();
-        let session = ChatSession::new(config);
-
-        let (tool, question) = session.parse_input("samtools How do I sort?", None);
-        assert_eq!(tool, Some("samtools".to_string()));
-        assert_eq!(question, "How do I sort?");
-    }
-
-    #[test]
-    fn test_parse_input_single_word_no_context() {
-        let config = Config::default();
-        let session = ChatSession::new(config);
-
-        let (tool, question) = session.parse_input("hello", None);
-        assert_eq!(tool, None);
-        assert_eq!(question, "hello");
-    }
-
-    #[test]
-    fn test_parse_input_slash_command_returns_none() {
-        let config = Config::default();
-        let session = ChatSession::new(config);
-
-        let (tool, question) = session.parse_input("/help", None);
-        assert_eq!(tool, None);
-        assert_eq!(question, "");
-    }
-
-    #[test]
-    fn test_parse_input_empty_string() {
-        let config = Config::default();
-        let session = ChatSession::new(config);
-
-        let (tool, question) = session.parse_input("", None);
-        assert_eq!(tool, None);
-        assert_eq!(question, "");
-    }
-
-    #[test]
     fn test_build_system_prompt_bare_is_empty() {
         let config = Config::default();
         let session = ChatSession::new(config).with_scenario(ChatScenario::Bare);
@@ -999,5 +1009,37 @@ mod tests {
         render_markdown("");
         render_markdown("Plain text with no markdown.");
         render_markdown("- item 1\n- item 2\n- item 3");
+    }
+
+    #[test]
+    fn test_build_general_system_prompt_bare_is_empty() {
+        let config = Config::default();
+        let session = ChatSession::new(config).with_scenario(ChatScenario::Bare);
+        assert!(session.build_general_system_prompt().is_empty());
+    }
+
+    #[test]
+    fn test_build_general_system_prompt_non_bare_is_nonempty() {
+        let config = Config::default();
+
+        for scenario in [
+            ChatScenario::Prompt,
+            ChatScenario::Skill,
+            ChatScenario::Doc,
+            ChatScenario::Full,
+        ] {
+            let session = ChatSession::new(config.clone()).with_scenario(scenario);
+            let prompt = session.build_general_system_prompt();
+            assert!(
+                !prompt.is_empty(),
+                "General system prompt should not be empty for scenario {:?}",
+                session.scenario_name()
+            );
+            // Should mention shell/CLI awareness
+            assert!(
+                prompt.contains("shell") || prompt.contains("command"),
+                "General prompt should mention shell/command awareness: {prompt}"
+            );
+        }
     }
 }

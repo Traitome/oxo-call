@@ -4730,7 +4730,7 @@ fn test_chat_help_output() {
 }
 
 #[test]
-fn test_chat_requires_tool_and_question_in_non_interactive_mode() {
+fn test_chat_requires_question_in_non_interactive_mode() {
     let output = oxo_call()
         .args(["chat"])
         .output()
@@ -4738,8 +4738,28 @@ fn test_chat_requires_tool_and_question_in_non_interactive_mode() {
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("Non-interactive chat requires both") || stderr.contains("error"),
+        stderr.contains("Non-interactive chat requires") || stderr.contains("error"),
         "Expected error message: {stderr}"
+    );
+}
+
+#[test]
+fn test_chat_general_mode_help_text() {
+    // Verify the help text documents the general (no-tool) usage.
+    let output = oxo_call()
+        .args(["chat", "--help"])
+        .output()
+        .expect("failed to run oxo-call");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("chat"),
+        "Expected 'chat' in help output: {stdout}"
+    );
+    // Verify the help text documents general (no-tool) mode
+    assert!(
+        stdout.contains("general") || stdout.contains("no tool") || stdout.contains("QUESTION"),
+        "Expected general mode documentation in help output: {stdout}"
     );
 }
 

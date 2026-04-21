@@ -1,13 +1,14 @@
 # chat
 
-Interactive chat with AI about bioinformatics tools and concepts.
+Interactive chat with AI about bioinformatics tools and general topics.
 
 ## Synopsis
 
 ```
+oxo-call chat [OPTIONS] [QUESTION]
 oxo-call chat [OPTIONS] <TOOL> <QUESTION>
 oxo-call chat -i [OPTIONS]
-oxo-call c   [OPTIONS] <TOOL> <QUESTION>
+oxo-call c   [OPTIONS] [QUESTION]
 ```
 
 ## Options
@@ -37,9 +38,20 @@ The `--scenario` flag controls what context is injected into the conversation:
 
 ## Description
 
-The `chat` command provides two modes for interacting with AI about bioinformatics tools:
+The `chat` command provides three modes for interacting with AI:
 
-### Single-shot Q&A (Non-interactive)
+### General Q&A (Non-interactive, no tool required)
+
+Ask any question — about shell commands, file operations, concepts, research, or bioinformatics — without specifying a tool:
+
+```bash
+oxo-call chat "How do I create temp files starting with result in the current directory?"
+oxo-call chat "What is the difference between paired-end and single-end sequencing?"
+```
+
+In general mode a broad system prompt is used that covers shell scripting, OS resources, bioinformatics, programming, and general research.
+
+### Tool-specific Q&A (Non-interactive)
 
 Ask a single question about a specific tool and get an immediate response:
 
@@ -61,10 +73,10 @@ Start an interactive session for extended conversations:
 oxo-call chat -i
 ```
 
-In interactive mode, you can:
+In interactive mode:
 
-- Ask multiple questions in sequence
-- Switch between tools with `/tool <name>`
+- Questions are answered in **general mode** by default (no tool context required)
+- Use `/tool <name>` to switch to tool-specific mode with full documentation context
 - Change scenarios with `/scenario <mode>`
 - Clear conversation history with `/clear`
 - View conversation message count with `/history`
@@ -91,7 +103,23 @@ When in interactive mode (`-i`), the following commands are available:
 
 ## Examples
 
-### Single-shot Q&A
+### General Conversation (No Tool Required)
+
+```bash
+# Ask about shell commands
+oxo-call chat "How do I create temp files starting with result in the current directory?"
+
+# Ask a general bioinformatics question
+oxo-call chat "What is the difference between paired-end and single-end sequencing?"
+
+# Ask about programming and scripting
+oxo-call chat "How do I write a bash loop to process all FASTQ files in a directory?"
+
+# Get JSON output for scripting
+oxo-call chat --json "Explain the FASTQ format"
+```
+
+### Tool-specific Q&A
 
 ```bash
 # Ask about a specific tool
@@ -103,9 +131,6 @@ oxo-call chat --scenario skill bwa "What are common pitfalls when using BWA?"
 # Ask with documentation context only
 oxo-call chat --scenario doc gatk "How do I call variants with HaplotypeCaller?"
 
-# Plain chat without any context
-oxo-call chat --scenario bare "What is the difference between paired-end and single-end sequencing?"
-
 # Use a different LLM model
 oxo-call chat --model gpt-4 samtools "How to extract unmapped reads from a BAM file?"
 
@@ -116,7 +141,7 @@ oxo-call chat --json samtools "What does the -F flag do?"
 ### Interactive Mode
 
 ```bash
-# Start interactive chat
+# Start interactive chat (general mode by default)
 oxo-call chat -i
 
 # Start with a pre-set tool context
@@ -145,8 +170,22 @@ $ oxo-call chat -i
     /quit, Ctrl+D  Exit the chat
 
   Usage:
-    <tool> <question>    Ask about a specific tool
-    <question>           Ask about the current tool (if set)
+    <question>       Ask any question (general mode, no tool context required)
+    /tool <name>     Set a tool context, then ask tool-specific questions
+
+oxo▶ How do I create some temporary files starting with "result" in the current directory?
+⠋ Thinking...
+
+──────────────────────────────────────────────────────────────
+You can use a shell loop or brace expansion:
+
+    # Brace expansion (bash/zsh)
+    touch result_{1..5}.tmp
+
+    # Or with a loop
+    for i in $(seq 1 5); do touch "result_${i}.tmp"; done
+
+──────────────────────────────────────────────────────────────
 
 oxo▶ /tool samtools
   ✔ Tool context set to: samtools
@@ -164,26 +203,23 @@ For multi-threading:
     samtools sort -@ 8 -o sorted.bam input.bam
 ──────────────────────────────────────────────────────────────
 
-▶ samtools /history
-  📜 2 messages (1 exchanges)
-
-▶ samtools /model gpt-4
-  ✔ Model changed to: gpt-4
-
-▶ samtools /scenario skill
-  ✔ Scenario changed to: skill
-
-▶ samtools What are common pitfalls?
-⠋ Thinking...
-...
-
 ▶ samtools /quit
 👋 Goodbye!
 ```
 
 ## Use Cases
 
-### Learning a New Tool
+### General Research and Learning
+
+Use `chat` without a tool name to ask any question directly in the terminal:
+
+```bash
+oxo-call chat "How do I use awk to extract columns from a TSV file?"
+oxo-call chat "Explain the concept of read depth in sequencing"
+oxo-call chat "What is the recommended way to handle paired-end FASTQ files in bash?"
+```
+
+### Learning a Specific Tool
 
 Use `--scenario skill` to focus on expert knowledge and common pitfalls:
 
@@ -199,23 +235,15 @@ Use `--scenario doc` to get answers based on the tool's official documentation:
 oxo-call chat --scenario doc bcftools "What filtering options are available?"
 ```
 
-### General Bioinformatics Questions
-
-Use `--scenario bare` or `--scenario prompt` for general questions not tied to a specific tool:
-
-```bash
-oxo-call chat --scenario prompt "Explain the concept of mapping quality"
-```
-
 ### Debugging and Troubleshooting
 
 Interactive mode is ideal for iterative debugging:
 
 ```bash
 oxo-call chat -i --tool samtools
-samtools> Why am I getting empty output from my view command?
-samtools> How can I check if my BAM file is corrupted?
-samtools> What's the difference between -f and -F flags?
+▶ samtools Why am I getting empty output from my view command?
+▶ samtools How can I check if my BAM file is corrupted?
+▶ samtools What's the difference between -f and -F flags?
 ```
 
 ## Comparison with Other Commands
@@ -224,10 +252,11 @@ samtools> What's the difference between -f and -F flags?
 |---------|---------|
 | `run` | Generate and execute commands |
 | `dry-run` | Preview generated commands without execution |
-| `chat` | Ask questions and learn about tools |
+| `chat` | Ask questions and learn about tools or any topic |
 
 Use `chat` when you want to:
 
+- Ask general questions about shell, scripting, or research without leaving the CLI
 - Learn about a tool's concepts and options
 - Understand best practices and pitfalls
 - Get explanations rather than commands
