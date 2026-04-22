@@ -192,12 +192,14 @@ pub(crate) struct OllamaOptions {
 pub(crate) struct OllamaChatResponse {
     pub message: OllamaChatResponseMessage,
     #[serde(default)]
+    #[allow(dead_code)]
     pub done: bool,
 }
 
 /// Message in ollama native chat response.
 #[derive(Debug, Deserialize)]
 pub(crate) struct OllamaChatResponseMessage {
+    #[allow(dead_code)]
     pub role: String,
     pub content: String,
     /// Thinking/reasoning content from thinking models (qwen3.5, deepseek-r1)

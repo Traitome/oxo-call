@@ -350,12 +350,14 @@ impl LlmClient {
         temperature: Option<f32>,
     ) -> Result<String> {
         let provider = self.config.effective_provider();
-        
+
         // Use ollama native API for better compatibility with thinking models
         if provider == "ollama" {
-            return self.request_ollama_native(sys_prompt, user_prompt, temperature).await;
+            return self
+                .request_ollama_native(sys_prompt, user_prompt, temperature)
+                .await;
         }
-        
+
         let token = if self.config.provider_requires_token() {
             self.config
                 .effective_api_token()
@@ -497,10 +499,10 @@ impl LlmClient {
             .map(|c| {
                 // For thinking models (qwen3.5, deepseek-r1), the actual response
                 // may be in the reasoning field when content is empty
-                if c.message.content.trim().is_empty() {
-                    if let Some(ref reasoning) = c.message.reasoning {
-                        return reasoning.clone();
-                    }
+                if c.message.content.trim().is_empty()
+                    && let Some(ref reasoning) = c.message.reasoning
+                {
+                    return reasoning.clone();
                 }
                 c.message.content.clone()
             })
@@ -510,7 +512,7 @@ impl LlmClient {
     }
 
     /// Send a request using ollama native `/api/chat` endpoint.
-    /// 
+    ///
     /// This is more reliable for ollama models, especially thinking models
     /// like qwen3.5 and deepseek-r1 which have issues with the OpenAI-compatible
     /// `/v1/chat/completions` API (reasoning/content separation).
@@ -520,14 +522,16 @@ impl LlmClient {
         user_prompt: &str,
         temperature: Option<f32>,
     ) -> Result<String> {
-        use super::types::{OllamaChatMessage, OllamaChatRequest, OllamaChatResponse, OllamaOptions};
-        
+        use super::types::{
+            OllamaChatMessage, OllamaChatRequest, OllamaChatResponse, OllamaOptions,
+        };
+
         let api_base = self.config.effective_api_base();
         // Strip /v1 suffix if present (ollama native API doesn't use it)
         let api_base = api_base.trim_end_matches("/v1");
         let url = format!("{api_base}/api/chat");
         let model = self.config.effective_model();
-        
+
         // Build messages
         let mut messages = Vec::new();
         if !sys_prompt.is_empty() {
@@ -536,13 +540,13 @@ impl LlmClient {
                 content: sys_prompt.to_string(),
             });
         }
-        
+
         // Split at few-shot boundaries
         let parts: Vec<&str> = user_prompt
             .split("\n\n---FEW-SHOT---\n\n")
             .filter(|p| !p.is_empty())
             .collect();
-        
+
         if parts.len() >= 2 {
             let mut is_assistant = false;
             for part in &parts {
@@ -558,13 +562,13 @@ impl LlmClient {
                 content: user_prompt.to_string(),
             });
         }
-        
+
         let max_tokens = self.config.effective_max_tokens()?;
         let temp = temperature.unwrap_or_else(|| {
             let profile = crate::config::get_model_profile(&model);
             profile.optimal_temperature
         });
-        
+
         let request = OllamaChatRequest {
             model: model.clone(),
             messages,
@@ -578,7 +582,7 @@ impl LlmClient {
             // the model returns actual content instead of just reasoning
             think: Some(false),
         };
-        
+
         let resp = self
             .client
             .post(&url)
@@ -586,16 +590,16 @@ impl LlmClient {
             .json(&request)
             .send()
             .await?;
-        
+
         let status = resp.status();
         let body = resp.text().await?;
-        
+
         if !status.is_success() {
             return Err(OxoError::LlmError(format!(
                 "Ollama API error: {status} — {body}"
             )));
         }
-        
+
         let ollama_resp: OllamaChatResponse = serde_json::from_str(&body)?;
         let content = if ollama_resp.message.content.trim().is_empty() {
             // Fallback to thinking field when content is empty
@@ -634,12 +638,14 @@ impl LlmClient {
         temperature_override: Option<f32>,
     ) -> Result<String> {
         let provider = self.config.effective_provider();
-        
+
         // Use ollama native API for better compatibility
         if provider == "ollama" {
-            return self.request_ollama_native(sys_prompt, user_prompt, temperature_override).await;
+            return self
+                .request_ollama_native(sys_prompt, user_prompt, temperature_override)
+                .await;
         }
-        
+
         let token_opt = self.config.effective_api_token();
         // Local providers such as Ollama do not require an API token.
         let token = if self.config.provider_requires_token() {
@@ -795,10 +801,10 @@ impl LlmClient {
             .first()
             .map(|c| {
                 // For thinking models, use reasoning when content is empty
-                if c.message.content.trim().is_empty() {
-                    if let Some(ref reasoning) = c.message.reasoning {
-                        return reasoning.clone();
-                    }
+                if c.message.content.trim().is_empty()
+                    && let Some(ref reasoning) = c.message.reasoning
+                {
+                    return reasoning.clone();
                 }
                 c.message.content.clone()
             })

@@ -75,11 +75,12 @@ pub async fn read_sse_stream_to(
                         chunk_tokens.push_str(content);
                     }
                     // Handle reasoning field for thinking models (qwen3.5, deepseek-r1)
-                    if choice.delta.content.is_none() || choice.delta.content.as_ref().map_or(false, |c| c.is_empty()) {
-                        if let Some(ref reasoning) = choice.delta.reasoning {
-                            collected.push_str(reasoning);
-                            chunk_tokens.push_str(reasoning);
-                        }
+                    if (choice.delta.content.is_none()
+                        || choice.delta.content.as_ref().is_some_and(|c| c.is_empty()))
+                        && let Some(ref reasoning) = choice.delta.reasoning
+                    {
+                        collected.push_str(reasoning);
+                        chunk_tokens.push_str(reasoning);
                     }
                 }
             }

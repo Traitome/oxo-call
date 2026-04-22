@@ -262,11 +262,36 @@ async fn run(cli: Cli) -> error::Result<()> {
             // Convert validated scenario enum to workflow scenario
             // and set ablation flags based on scenario
             let (force_scenario, no_skill, no_doc, no_prompt) = match scenario {
-                Some(RunScenario::Bare) => (Some(workflow_graph::WorkflowScenario::Bare), true, true, true),
-                Some(RunScenario::Prompt) => (Some(workflow_graph::WorkflowScenario::Prompt), true, true, false),
-                Some(RunScenario::Doc) => (Some(workflow_graph::WorkflowScenario::Doc), true, false, false),
-                Some(RunScenario::Skill) => (Some(workflow_graph::WorkflowScenario::Skill), false, true, false),
-                Some(RunScenario::Full) => (Some(workflow_graph::WorkflowScenario::Full), false, false, false),
+                Some(RunScenario::Bare) => (
+                    Some(workflow_graph::WorkflowScenario::Bare),
+                    true,
+                    true,
+                    true,
+                ),
+                Some(RunScenario::Prompt) => (
+                    Some(workflow_graph::WorkflowScenario::Prompt),
+                    true,
+                    true,
+                    false,
+                ),
+                Some(RunScenario::Doc) => (
+                    Some(workflow_graph::WorkflowScenario::Doc),
+                    true,
+                    false,
+                    false,
+                ),
+                Some(RunScenario::Skill) => (
+                    Some(workflow_graph::WorkflowScenario::Skill),
+                    false,
+                    true,
+                    false,
+                ),
+                Some(RunScenario::Full) => (
+                    Some(workflow_graph::WorkflowScenario::Full),
+                    false,
+                    false,
+                    false,
+                ),
                 None => (None, false, false, false),
             };
 
@@ -342,11 +367,36 @@ async fn run(cli: Cli) -> error::Result<()> {
             // Convert validated scenario enum to workflow scenario
             // and set ablation flags based on scenario
             let (force_scenario, no_skill, no_doc, no_prompt) = match scenario {
-                Some(RunScenario::Bare) => (Some(workflow_graph::WorkflowScenario::Bare), true, true, true),
-                Some(RunScenario::Prompt) => (Some(workflow_graph::WorkflowScenario::Prompt), true, true, false),
-                Some(RunScenario::Doc) => (Some(workflow_graph::WorkflowScenario::Doc), true, false, false),
-                Some(RunScenario::Skill) => (Some(workflow_graph::WorkflowScenario::Skill), false, true, false),
-                Some(RunScenario::Full) => (Some(workflow_graph::WorkflowScenario::Full), false, false, false),
+                Some(RunScenario::Bare) => (
+                    Some(workflow_graph::WorkflowScenario::Bare),
+                    true,
+                    true,
+                    true,
+                ),
+                Some(RunScenario::Prompt) => (
+                    Some(workflow_graph::WorkflowScenario::Prompt),
+                    true,
+                    true,
+                    false,
+                ),
+                Some(RunScenario::Doc) => (
+                    Some(workflow_graph::WorkflowScenario::Doc),
+                    true,
+                    false,
+                    false,
+                ),
+                Some(RunScenario::Skill) => (
+                    Some(workflow_graph::WorkflowScenario::Skill),
+                    false,
+                    true,
+                    false,
+                ),
+                Some(RunScenario::Full) => (
+                    Some(workflow_graph::WorkflowScenario::Full),
+                    false,
+                    false,
+                    false,
+                ),
                 None => (None, no_skill, no_doc, no_prompt),
             };
 
