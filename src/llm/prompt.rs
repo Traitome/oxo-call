@@ -38,24 +38,28 @@ pub fn system_prompt_medium() -> &'static str {
      EXPLANATION: <one sentence>\n\
      Rules: subcommand first (sort/view/mem), never tool name. Use only documented flags. \
      Include paths from task. Multi-step uses && (tool name only on first segment). \
-     Pipes allowed. Include threads and output flags when applicable."
+     Pipes allowed. Only add optional parameters (threads, seeds, output paths) when the task explicitly asks for them."
 }
 
 /// Ultra-compact system prompt for mini models (≤ 3B parameters).
 pub fn system_prompt_compact() -> &'static str {
     "You translate tasks into CLI arguments.\n\
      Output EXACTLY two lines:\n\
-     ARGS: sort -@ 4 -o out.bam in.bam\n\
-     EXPLANATION: Sort BAM by coordinate.\n\
-     Rules: first token = subcommand (sort, view, mem, etc), never tool name. \
-     Use flags from examples only. Pipes and chains allowed."
+     ARGS: <arguments — never include the tool name>\n\
+     EXPLANATION: <what the command does>\n\
+     Rules: never include tool name. Use flags from examples only. Pipes and chains allowed. \
+     Only add optional parameters when the task explicitly asks for them."
 }
 
 // ── Token estimation ─────────────────────────────────────────────────────────
 
 /// Rough token count estimate for prompt budgeting.
+///
+/// Uses character count rather than byte length so that CJK and other
+/// multi-byte scripts are estimated accurately (each character is roughly
+/// 1–2 tokens, whereas `text.len()` would under-count by a factor of 2–4).
 pub fn estimate_tokens(text: &str) -> usize {
-    text.len().div_ceil(4)
+    text.chars().count().div_ceil(2)
 }
 
 /// Determine the prompt tier from context window size (in tokens) and model name.
@@ -153,6 +157,13 @@ fn build_prompt_full(
                     prompt.push_str(&format!("{}. `{}`\n", i + 1, ex));
                 }
                 prompt.push('\n');
+            } else if !sdoc.usage.is_empty() {
+                // No examples but USAGE is available — this is critical for tools like ADMIXTURE
+                prompt.push_str("## Command Structure (from USAGE)\n");
+                prompt.push_str(&format!(
+                    "The documentation has NO usage examples. Infer the exact argument structure from this USAGE line:\n{}\n\n",
+                    sdoc.usage.trim()
+                ));
             }
 
             // Inject compact flag catalog
@@ -224,6 +235,10 @@ fn build_prompt_medium(
                 prompt.push_str(&format!("- `{}`\n", ex));
             }
             prompt.push('\n');
+        } else if !sdoc.usage.is_empty() {
+            // No examples but USAGE available — critical for tools like ADMIXTURE
+            prompt.push_str("## USAGE (no examples in docs)\n");
+            prompt.push_str(&format!("{}\n\n", sdoc.usage.trim()));
         }
 
         // Compact flag list
@@ -323,12 +338,20 @@ fn build_prompt_compact(
                 ));
             }
         } else {
-            // Absolute fallback: generic bioinformatics few-shot
-            prompt.push_str(
-                "Task: Sort a BAM file by coordinate\n\n---FEW-SHOT---\n\n\
-                 ARGS: sort -@ 4 -o sorted.bam input.bam\n\
-                 EXPLANATION: Sort BAM by coordinate with 4 threads.\n\n---FEW-SHOT---\n\n",
-            );
+            // No concrete examples in documentation — guide from USAGE line
+            if !sdoc.usage.is_empty() {
+                prompt.push_str(&format!(
+                    "WARNING: Docs have NO examples. Follow USAGE exactly.\nUSAGE: {}\n\n",
+                    sdoc.usage.trim()
+                ));
+            } else {
+                // Absolute fallback: generic bioinformatics few-shot
+                prompt.push_str(
+                    "Task: Sort a BAM file by coordinate\n\n---FEW-SHOT---\n\n\
+                     ARGS: sort -@ 4 -o sorted.bam input.bam\n\
+                     EXPLANATION: Sort BAM by coordinate with 4 threads.\n\n---FEW-SHOT---\n\n",
+                );
+            }
         }
     } else {
         prompt.push_str(
@@ -831,18 +854,43 @@ pub fn build_mini_skill_prompt(tool: &str, documentation: &str) -> String {
            ]\n\
          }}\n\
          ```\n\n\
-         ## Extraction Guidelines\n\
+         ## Extraction Guidelines
+\
          1. **Concepts**: Focus on the tool's data model, required inputs, key flags, and \
-            core behaviors. Be specific and actionable.\n\
+            core behaviors. Be specific and actionable. Pay special attention to positional \
+            arguments (e.g., `inputFile K` in USAGE) vs optional flags.
+\
          2. **Pitfalls**: Identify common mistakes users make and explain what goes wrong. \
-            Include consequences.\n\
-         3. **Examples**: Extract 3-5 realistic usage examples from the documentation. \
-            Args must NEVER start with the tool name '{tool}'.\n\
-         4. **Quality over quantity**: Better to have 3 high-quality items than 10 vague ones.\n\n\
-         ## Important Notes\n\
-         - For companion binaries (e.g., {tool}-build), use the companion name as the first token in args\n\
-         - Preserve exact flag formats from the documentation (--flag=value vs --flag value)\n\
-         - Include thread count (-@/-t/--threads) and output (-o) flags when applicable\n\
+            Include consequences. Especially highlight wrong parameter ordering or missing \
+            positional arguments.
+\
+         3. **Examples**:
+\
+            - If the documentation contains concrete usage examples, extract 3-5 of them.
+\
+            - **CRITICAL**: If the documentation has NO concrete examples (only USAGE and OPTIONS), \
+              construct ONE minimal example based on the USAGE line. Use the EXACT positional \
+              argument structure from USAGE. Include only the most essential flags.
+\
+            - Args must NEVER start with the tool name '{tool}'.
+\
+            - Do NOT include optional parameters like thread counts (-jN, -tN, --threads), \
+              seeds (--seed), or output paths (-o) in examples UNLESS the documentation \
+              explicitly shows them in a concrete example. Minimal examples are better.
+\
+         4. **Quality over quantity**: Better to have 2 accurate minimal examples than 5 \
+            examples with invented or optional parameters.
+
+\
+         ## Important Notes
+\
+         - For companion binaries (e.g., {tool}-build), use the companion name as the first token in args
+\
+         - Preserve exact flag formats from the documentation (--flag=value vs --flag value)
+\
+         - Do NOT include thread count, seed, or output flags unless the documentation \
+           explicitly shows them in a concrete example
+\
          - Do NOT invent flags not shown in the documentation\n"
     )
 }

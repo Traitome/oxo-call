@@ -63,8 +63,11 @@ fn test_system_prompt_not_empty() {
 #[test]
 fn test_estimate_tokens() {
     assert_eq!(estimate_tokens(""), 0);
-    assert_eq!(estimate_tokens("abcd"), 1);
-    assert_eq!(estimate_tokens("abcde"), 2);
+    assert_eq!(estimate_tokens("abcd"), 2);
+    assert_eq!(estimate_tokens("abcde"), 3);
+    // CJK characters should be estimated accurately (not under-counted)
+    assert_eq!(estimate_tokens("排序"), 1); // 2 chars → ~1 token each
+    assert_eq!(estimate_tokens("变异检测"), 2); // 4 chars → ~2 tokens
 }
 
 #[test]

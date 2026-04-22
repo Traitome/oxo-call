@@ -410,7 +410,7 @@ impl TaskNormalizer {
 
         // If we have an LLM client, try to use it
         if let Some(ref llm) = self.llm_client {
-            let system = "You are a bioinformatics task standardizer. Output only valid JSON.";
+            let system = "You are a bioinformatics task standardizer. Output only valid JSON. Do not wrap the JSON in markdown code fences (```json ... ```).";
             match llm
                 .chat_completion(system, &prompt, Some(512), Some(0.1))
                 .await
@@ -498,7 +498,7 @@ Examples:
 2. User input: "call variants with quality > 30"
    Output: {{"description": "Call variants with quality filter", "intent": "VariantCalling", "parameters": {{}}, "constraints": ["quality > 30"]}}
 
-Now process the user task above. Output only the JSON, no explanation."#
+Now process the user task above. Output only the JSON, no explanation. Do not wrap in markdown code fences."#
         )
     }
 }

@@ -31,6 +31,7 @@ sample = ["sample1", "sample2", "sample3"]
 threads    = "8"
 star_index = "/path/to/star_index"   # REQUIRED: path to STAR genome index directory
 gtf        = "/path/to/annotation.gtf"  # REQUIRED: path to gene annotation GTF
+# strandness = "unstranded"                 # unstranded | forward (TruSeq) | reverse (dUTP)
 
 # =============================================================================
 # Steps — each [[step]] runs for every value of {sample} (unless gather = true)
@@ -79,6 +80,10 @@ STAR \
   --outSAMstrandField intronMotif \
   --outFilterIntronMotifs RemoveNoncanonical\
 """
+# NOTE: The above parameters are for unstranded libraries.
+# For stranded libraries (e.g. TruSeq), change to:
+#   --outFilterIntronMotifs RemoveNoncanonicalUnannotated
+#   --outSAMattrRGline ID:{sample}  (optional)
 inputs  = ["trimmed/{sample}_R1.fastq.gz", "trimmed/{sample}_R2.fastq.gz"]
 outputs = ["aligned/{sample}/Aligned.sortedByCoord.out.bam"]
 
@@ -100,5 +105,7 @@ featureCounts \
   -o results/{sample}_counts.txt \
   aligned/{sample}/Aligned.sortedByCoord.out.bam\
 """
+# NOTE: For stranded libraries, add -s 1 (forward) or -s 2 (reverse).
+# For unstranded, use -s 0 (default, no -s needed).
 inputs  = ["aligned/{sample}/Aligned.sortedByCoord.out.bam"]
 outputs = ["results/{sample}_counts.txt"]

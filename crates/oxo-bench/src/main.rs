@@ -741,8 +741,14 @@ fn cmd_eval(
         for entry in std::fs::read_dir(output_dir)? {
             let entry = entry?;
             let path = entry.path();
-            if path.extension().map_or(false, |ext| ext == "csv") {
-                std::fs::remove_file(&path)?;
+            // Only remove result CSV files, not data files
+            if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
+                if filename == "benchmark_trials.csv"
+                    || filename == "model_summary.csv"
+                    || filename == "scenario_summary.csv"
+                {
+                    std::fs::remove_file(&path)?;
+                }
             }
         }
     }

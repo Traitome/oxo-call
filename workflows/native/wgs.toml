@@ -119,3 +119,9 @@ gatk HaplotypeCaller \
 """
 inputs  = ["aligned/{sample}.recal.bam"]
 outputs = ["vcf/{sample}.g.vcf.gz"]
+
+# NOTE: This step outputs per-sample gVCF files.
+# For cohort-level joint genotyping, add downstream steps:
+#   gatk GenomicsDBImport  (merge gVCFs into GenomicsDB)
+#   gatk GenotypeGVCFs     (joint call variants)
+# See GATK Best Practices for germline short variant discovery.

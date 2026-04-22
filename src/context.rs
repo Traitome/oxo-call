@@ -300,11 +300,16 @@ const ORGANISM_KEYWORDS: &[(&[&str], &str)] = &[
     (&["hg19", "grch37"], "hg19"),
     (&["mm10", "grcm38", "mouse"], "mm10"),
     (&["mm39", "grcm39"], "mm39"),
+    (&["rn6", "rn7", "rat", "rattus"], "rn7"),
     (&["dm6", "drosophila", "fruit fly"], "dm6"),
     (&["danrer11", "zebrafish", "danio"], "danrer11"),
     (&["saccer3", "yeast", "saccharomyces"], "saccer3"),
     (&["tair10", "arabidopsis"], "tair10"),
     (&["ce11", "c.elegans", "c. elegans", "worm"], "ce11"),
+    (&["susscr11", "pig", "swine", "sus scrofa"], "susScr11"),
+    (&["galgal6", "chicken", "gallus"], "galGal6"),
+    (&["bostau9", "cow", "bovine", "bos taurus"], "bosTau9"),
+    (&["canfam3", "dog", "canine"], "canFam3"),
 ];
 
 fn infer_organism(lower_task: &str) -> Option<String> {
