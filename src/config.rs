@@ -539,7 +539,18 @@ impl Config {
     }
 
     pub fn effective_max_tokens(&self) -> Result<u32> {
-        Ok(Self::env_parse(ENV_LLM_MAX_TOKENS, "llm.max_tokens")?.unwrap_or(self.llm.max_tokens))
+        // Check env override first
+        if let Some(tokens) = Self::env_parse(ENV_LLM_MAX_TOKENS, "llm.max_tokens")? {
+            return Ok(tokens);
+        }
+        // Check model profile recommendation (for thinking models like qwen3.5)
+        let model = self.effective_model();
+        let profile = get_model_profile(&model);
+        if let Some(rec) = profile.recommended_max_tokens {
+            // Use recommended value if it's higher than user config
+            return Ok(rec.max(self.llm.max_tokens));
+        }
+        Ok(self.llm.max_tokens)
     }
 
     pub fn effective_temperature(&self) -> Result<f32> {
@@ -1103,6 +1114,8 @@ pub struct ModelProfile {
     pub optimal_temperature: f32,
     /// Preferred prompt format.
     pub preferred_prompt_style: PromptStyle,
+    /// Recommended max_tokens for thinking models (qwen3.5, deepseek-r1).
+    pub recommended_max_tokens: Option<u32>,
 }
 
 impl Default for ModelProfile {
@@ -1113,6 +1126,7 @@ impl Default for ModelProfile {
             bio_knowledge: 0.6,
             optimal_temperature: 0.0,
             preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: None,
         }
     }
 }
@@ -1133,6 +1147,19 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.5,
             optimal_temperature: 0.1,
             preferred_prompt_style: PromptStyle::Completion,
+            recommended_max_tokens: None,
+        };
+    }
+
+    // Qwen 3.5 models — built-in thinking mode requires higher max_tokens
+    if m.contains("qwen3.5") || m.contains("qwen-3.5") {
+        return ModelProfile {
+            instruction_following: 0.85,
+            code_generation: 0.8,
+            bio_knowledge: 0.7,
+            optimal_temperature: 0.0,
+            preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: Some(8192),
         };
     }
 
@@ -1144,6 +1171,7 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.7,
             optimal_temperature: 0.0,
             preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: None,
         };
     }
 
@@ -1155,6 +1183,7 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.88,
             optimal_temperature: 0.0,
             preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: None,
         };
     }
     if m.contains("gpt-4") || m.contains("gpt-5") {
@@ -1164,6 +1193,7 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.85,
             optimal_temperature: 0.0,
             preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: None,
         };
     }
 
@@ -1181,6 +1211,7 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.90,
             optimal_temperature: 0.0,
             preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: None,
         };
     }
     // Claude family
@@ -1191,6 +1222,7 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.8,
             optimal_temperature: 0.0,
             preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: None,
         };
     }
 
@@ -1206,6 +1238,7 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.85,
             optimal_temperature: 0.0,
             preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: None,
         };
     }
     // Gemini family
@@ -1216,6 +1249,7 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.8,
             optimal_temperature: 0.0,
             preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: None,
         };
     }
 
@@ -1227,6 +1261,7 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.78,
             optimal_temperature: 0.1,
             preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: None,
         };
     }
 
@@ -1238,6 +1273,7 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.78,
             optimal_temperature: 0.0,
             preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: None,
         };
     }
     // Kimi / Moonshot AI — strong instruction following, multilingual strength
@@ -1248,6 +1284,7 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.75,
             optimal_temperature: 0.0,
             preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: None,
         };
     }
 
@@ -1259,6 +1296,7 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.76,
             optimal_temperature: 0.0,
             preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: None,
         };
     }
     // ZhipuAI GLM series — strong Chinese + English instruction following
@@ -1269,6 +1307,7 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.72,
             optimal_temperature: 0.0,
             preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: None,
         };
     }
 
@@ -1280,6 +1319,7 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.75,
             optimal_temperature: 0.0,
             preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: None,
         };
     }
     // Minimax series — strong Chinese + English instruction following
@@ -1290,6 +1330,7 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.72,
             optimal_temperature: 0.0,
             preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: None,
         };
     }
 
@@ -1301,6 +1342,7 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.6,
             optimal_temperature: 0.1,
             preferred_prompt_style: PromptStyle::Chat,
+            recommended_max_tokens: None,
         };
     }
 
@@ -1312,6 +1354,7 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.65,
             optimal_temperature: 0.1,
             preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: None,
         };
     }
 
@@ -1323,6 +1366,7 @@ pub fn get_model_profile(model: &str) -> ModelProfile {
             bio_knowledge: 0.5,
             optimal_temperature: 0.0,
             preferred_prompt_style: PromptStyle::Instruct,
+            recommended_max_tokens: None,
         };
     }
 

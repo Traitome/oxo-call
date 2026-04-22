@@ -107,6 +107,7 @@ fn test_chat_message_clone() {
     let msg = ChatMessage {
         role: "user".to_string(),
         content: "hello".to_string(),
+        reasoning: None,
     };
     let cloned = msg.clone();
     assert_eq!(cloned.role, "user");

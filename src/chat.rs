@@ -181,6 +181,7 @@ impl ChatSession {
                             self.conversation_history.push(ChatMessage {
                                 role: "user".to_string(),
                                 content: user_prompt.clone(),
+                                reasoning: None,
                             });
 
                             // StreamingDisplay handles spinner + preview internally
@@ -197,6 +198,7 @@ impl ChatSession {
                                     self.conversation_history.push(ChatMessage {
                                         role: "assistant".to_string(),
                                         content: response,
+                                        reasoning: None,
                                     });
                                 }
                                 Err(e) => {
@@ -214,6 +216,7 @@ impl ChatSession {
                             self.conversation_history.push(ChatMessage {
                                 role: "user".to_string(),
                                 content: input.clone(),
+                                reasoning: None,
                             });
 
                             // StreamingDisplay handles spinner + preview internally
@@ -230,6 +233,7 @@ impl ChatSession {
                                     self.conversation_history.push(ChatMessage {
                                         role: "assistant".to_string(),
                                         content: response,
+                                        reasoning: None,
                                     });
                                 }
                                 Err(e) => {
@@ -606,11 +610,13 @@ impl ChatSession {
             messages.push(ChatMessage {
                 role: "system".to_string(),
                 content: system_prompt.to_string(),
+                reasoning: None,
             });
         }
         messages.push(ChatMessage {
             role: "user".to_string(),
             content: user_prompt.to_string(),
+            reasoning: None,
         });
 
         let auth_token = Self::resolve_auth_token(&provider, &token).await?;
@@ -714,6 +720,7 @@ impl ChatSession {
             messages.push(ChatMessage {
                 role: "system".to_string(),
                 content: system_prompt.to_string(),
+                reasoning: None,
             });
         }
         messages.extend(self.conversation_history.clone());
@@ -866,6 +873,7 @@ mod tests {
         session.conversation_history.push(ChatMessage {
             role: "user".to_string(),
             content: "hello".to_string(),
+            reasoning: None,
         });
         assert_eq!(session.conversation_history.len(), 1);
 
@@ -968,10 +976,12 @@ mod tests {
         session.conversation_history.push(ChatMessage {
             role: "user".to_string(),
             content: "test".to_string(),
+            reasoning: None,
         });
         session.conversation_history.push(ChatMessage {
             role: "assistant".to_string(),
             content: "reply".to_string(),
+            reasoning: None,
         });
 
         assert!(session.handle_command("/history", &mut tool));

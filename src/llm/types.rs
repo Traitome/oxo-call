@@ -73,6 +73,10 @@ pub(crate) struct ChatRequest {
 pub(crate) struct ChatMessage {
     pub role: String,
     pub content: String,
+    /// Thinking/reasoning content from models like qwen3.5, deepseek-r1
+    /// When content is empty, the actual response may be in reasoning
+    #[serde(default)]
+    pub reasoning: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -135,6 +139,9 @@ pub(crate) struct StreamDelta {
     /// Incremental text content (may be absent on the first or last chunk).
     #[serde(default)]
     pub content: Option<String>,
+    /// Thinking/reasoning content from models like qwen3.5, deepseek-r1
+    #[serde(default)]
+    pub reasoning: Option<String>,
 }
 
 /// Extended chat request that includes the optional `stream` flag.
@@ -145,4 +152,56 @@ pub(crate) struct ChatRequestStreaming {
     pub max_tokens: u32,
     pub temperature: f32,
     pub stream: bool,
+}
+
+// ─── Ollama native API types ─────────────────────────────────────────────────
+
+/// Ollama native `/api/chat` request format.
+#[derive(Debug, Serialize)]
+pub(crate) struct OllamaChatRequest {
+    pub model: String,
+    pub messages: Vec<OllamaChatMessage>,
+    pub stream: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub options: Option<OllamaOptions>,
+    /// Disable thinking/reasoning mode for thinking models (qwen3.5, deepseek-r1)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub think: Option<bool>,
+}
+
+/// A single message in the ollama native chat format.
+#[derive(Debug, Serialize)]
+pub(crate) struct OllamaChatMessage {
+    pub role: String,
+    pub content: String,
+}
+
+/// Ollama generation options.
+#[derive(Debug, Serialize)]
+pub(crate) struct OllamaOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub num_ctx: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temperature: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub num_predict: Option<u32>,
+}
+
+/// Ollama native `/api/chat` response format.
+#[derive(Debug, Deserialize)]
+pub(crate) struct OllamaChatResponse {
+    pub message: OllamaChatResponseMessage,
+    #[serde(default)]
+    pub done: bool,
+}
+
+/// Message in ollama native chat response.
+#[derive(Debug, Deserialize)]
+pub(crate) struct OllamaChatResponseMessage {
+    pub role: String,
+    pub content: String,
+    /// Thinking/reasoning content from thinking models (qwen3.5, deepseek-r1)
+    /// When content is empty, the actual response may be in thinking
+    #[serde(default)]
+    pub thinking: Option<String>,
 }
