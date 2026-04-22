@@ -11,34 +11,36 @@ use super::types::PromptTier;
 // ─── System prompts ────────────────────────────────────────────────────────────
 
 pub fn system_prompt() -> &'static str {
-    "You are a bioinformatics CLI assistant. Translate the task into command-line arguments for the specified tool. Understand any language.\n\
+    "You are a bioinformatics CLI assistant. Translate the task into command-line arguments for the specified tool. Respond in the same language as the task.\n\
      \n\
-     FORMAT: Respond with EXACTLY two lines, nothing else:\n\
-     ARGS: <subcommand then flags and values — NO tool name, NO markdown>\n\
+     FORMAT — respond with EXACTLY two lines:\n\
+     ARGS: <arguments for the tool — NO tool name, NO markdown>\n\
      EXPLANATION: <one sentence in the task's language>\n\
      \n\
      RULES:\n\
-     1. NEVER start ARGS with the tool name (auto-prepended by system).\n\
-     2. First token = subcommand (sort, view, mem, index, etc), NEVER a flag.\n\
-     3. Companion binaries (e.g. bowtie2-build) or scripts (e.g. bbduk.sh) go as first token when skill docs say so.\n\
-     4. Multi-step: join with &&. Tool name auto-prepended ONLY to first segment — later commands MUST include their full binary name.\n\
-     5. Pipes (|) and redirects (>) go directly in ARGS.\n\
-     6. Use ONLY flags from docs or skill examples — never invent flags.\n\
-     7. Include every file/path from the task. Prefer skill example flags. Include thread flags and output flags when applicable (use the exact flag form from docs/examples, never combine short and long forms like -o/--output).\n\
-     8. Default conventions: paired-end, coordinate-sorted BAM, hg38, gzipped FASTQ, Phred+33.\n\
-     9. Match format flags to actual types (BAM/SAM/CRAM, gzipped/plain, paired/single, FASTA/FASTQ).\n\
-     10. If no arguments needed: ARGS: (none)."
+     1. The tool name is auto-prepended by the system — always omit it from ARGS.\n\
+     2. Follow the exact argument structure from documentation or examples: some tools place flags before positional arguments (bwa mem -t 8 ref.fa), others place positional arguments first (admixture input.bed K --cv=10).\n\
+     3. If the tool has a subcommand (sort, view, mem, index), place it first.\n\
+     4. Companion binaries (bowtie2-build) or scripts (bbduk.sh) go as the first token when documentation specifies them.\n\
+     5. Multi-step commands: join with &&. The tool name is auto-prepended ONLY to the first segment — subsequent commands MUST include their full binary name.\n\
+     6. Pipes (|) and redirects (>) are allowed directly in ARGS.\n\
+     7. Use ONLY flags documented for this tool — always match the exact flag format shown (--flag=value or --flag value).\n\
+     8. Include every file path and parameter value from the task description.\n\
+     9. Default conventions (override if task specifies otherwise): paired-end, coordinate-sorted BAM, hg38, gzipped FASTQ, Phred+33.\n\
+     10. Match format flags to actual data types (BAM/SAM/CRAM, gzipped/plain, paired/single, FASTA/FASTQ).\n\
+     11. If no arguments are needed: ARGS: (none)"
 }
 
 /// Medium-compression system prompt for 4k–16k context or 4B–7B models.
 pub fn system_prompt_medium() -> &'static str {
     "You translate bioinformatics tasks into CLI arguments.\n\
      Output EXACTLY two lines:\n\
-     ARGS: <subcommand then flags, NO tool name>\n\
+     ARGS: <arguments — NO tool name>\n\
      EXPLANATION: <one sentence>\n\
-     Rules: subcommand first (sort/view/mem), never tool name. Use only documented flags. \
-     Include paths from task. Multi-step uses && (tool name only on first segment). \
-     Pipes allowed. Only add optional parameters (threads, seeds, output paths) when the task explicitly asks for them."
+     Rules: follow the exact argument structure from documentation (flags before or after positional args varies by tool). \
+     Subcommand first if applicable. Never include tool name. Use only documented flags, matching their exact format. \
+     Include all paths from task. Multi-step uses && (tool name only on first segment). \
+     Pipes allowed. Add optional parameters only when the task asks for them."
 }
 
 /// Ultra-compact system prompt for mini models (≤ 3B parameters).
@@ -47,8 +49,8 @@ pub fn system_prompt_compact() -> &'static str {
      Output EXACTLY two lines:\n\
      ARGS: <arguments — never include the tool name>\n\
      EXPLANATION: <what the command does>\n\
-     Rules: never include tool name. Use flags from examples only. Pipes and chains allowed. \
-     Only add optional parameters when the task explicitly asks for them."
+     Rules: never include tool name. Use flags from examples only, matching their exact format. Pipes and chains allowed. \
+     Add optional parameters only when the task asks for them."
 }
 
 // ── Token estimation ─────────────────────────────────────────────────────────
@@ -101,7 +103,7 @@ pub fn build_prompt(
         return format!(
             "Generate command-line arguments for the tool '{}' to accomplish this task:\n\n{}\n\n\
              Respond with EXACTLY two lines:\n\
-             ARGS: <command-line arguments without the tool name>\n\
+             ARGS: <arguments without the tool name>\n\
              EXPLANATION: <brief explanation>",
             tool, task
         );
@@ -190,7 +192,7 @@ fn build_prompt_full(
     if skill.is_none() {
         prompt.push_str(
             "## Output Requirements\n\
-             1. ARGS line: subcommand first, then flags in exact format from USAGE/EXAMPLES\n\
+             1. ARGS line: follow the exact argument structure from USAGE/EXAMPLES (flags may come before or after positional arguments)\n\
              2. Match flag format exactly: --flag=value or --flag value (as shown in docs)\n\
              3. Include ALL required parameters from task description\n\
              4. NO tool name prefix (auto-added by system)\n\
@@ -203,7 +205,7 @@ fn build_prompt_full(
     } else {
         prompt.push_str(
             "## Output\n\
-             ARGS: <subcommand then flags, NO tool name>\n\
+             ARGS: <arguments following the exact structure from docs, NO tool name>\n\
              EXPLANATION: <brief>\n",
         );
     }
@@ -275,7 +277,7 @@ fn build_prompt_medium(
     prompt.push_str(&format!("## Task\n{task}\n\n"));
     prompt.push_str(
         "## Output\n\
-         ARGS: <subcommand then flags, NO tool name>\n\
+         ARGS: <arguments — NO tool name>\n\
          EXPLANATION: <brief>\n",
     );
     prompt
