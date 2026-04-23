@@ -2729,3 +2729,653 @@ if let Err(e) = error::install_error_handler() {
 1. Remove `flush_to_disk` from `LlmCache::lookup` (eliminates O(10,000) disk writes)
 2. Load config once before command dispatch (eliminates multiple file reads)
 3. Use async fs for config loading (prevents blocking on network-mounted configs)
+
+---
+
+## Architecture Recommendations
+
+### Knowledge Module Architecture
+
+The knowledge module (`src/knowledge/`) provides the knowledge foundation for grounding LLM calls. It consists of three sub-modules with distinct purposes:
+
+**Module Structure:**
+- `tool_knowledge.rs` — Embedded bioconda tool catalog (6000+ tools) with TF-IDF similarity search
+- `best_practices.rs` — In-memory best practices database with category/tool indexes
+- `error_db.rs` — JSONL-backed error knowledge database for learning from failures
+
+---
+
+#### [P2] Finding: O(n) Lookup in ToolKnowledgeBase
+
+**Location:** `src/knowledge/tool_knowledge.rs:86-91`
+**Category:** Performance
+**Impact:** Medium — Linear scan for exact name lookup, called for every tool validation
+
+**Problem:**
+The `lookup` method iterates over the entire tools Vec (6000+ entries) to find an exact name match. While the inverted index enables fast keyword search, exact name lookup uses linear iteration.
+
+**Current Code:**
+```rust
+pub fn lookup(&self, name: &str) -> Option<&ToolEntry> {
+    let name_lower = name.to_lowercase();
+    self.tools
+        .iter()
+        .find(|t| t.name.to_lowercase() == name_lower)
+}
+```
+
+**Recommended Fix:**
+Add a HashMap index for exact name lookup alongside the keyword index:
+```rust
+pub struct ToolKnowledgeBase {
+    tools: Vec<ToolEntry>,
+    index: HashMap<String, Vec<(usize, f32)>>,  // keyword -> postings
+    name_index: HashMap<String, usize>,          // tool_name -> idx (NEW)
+}
+
+impl ToolKnowledgeBase {
+    pub fn lookup(&self, name: &str) -> Option<&ToolEntry> {
+        let name_lower = name.to_lowercase();
+        self.name_index
+            .get(&name_lower)
+            .map(|&idx| &self.tools[idx])
+    }
+}
+```
+
+**Effort:** 1 hour | Quick win
+**Dependencies:** None
+**Verification:** Benchmark tool lookup for 1000 sequential queries
+
+---
+
+#### [P2] Finding: to_lowercase() Allocation in Knowledge Lookup
+
+**Location:** `src/knowledge/tool_knowledge.rs:86-87, 127-133`
+**Category:** Performance
+**Impact:** Medium — Creates lowercase String for every lookup call
+
+**Problem:**
+Both `lookup` and `related_tools` create lowercase copies of the input name and tool names for comparison. This allocation happens on every call.
+
+**Current Code:**
+```rust
+let name_lower = name.to_lowercase();
+self.tools.iter().find(|t| t.name.to_lowercase() == name_lower)
+```
+
+**Recommended Fix:**
+Pre-normalize tool names to lowercase in ToolEntry during construction, or use `eq_ignore_ascii_case`:
+```rust
+pub fn lookup(&self, name: &str) -> Option<&ToolEntry> {
+    self.tools.iter().find(|t| t.name.eq_ignore_ascii_case(name))
+}
+```
+
+Note: This requires tool names to be ASCII-only (true for bioconda packages).
+
+**Effort:** 30 minutes | Quick win
+**Dependencies:** None
+**Verification:** Unit tests for case-insensitive lookup
+
+---
+
+#### [P3] Finding: Category Inference Uses 14 Keyword Groups
+
+**Location:** `src/knowledge/tool_knowledge.rs:247-423`
+**Category:** Architecture
+**Impact:** Low — Category inference iterates over 14 groups for every tool load
+
+**Problem:**
+`infer_category` iterates over 14 category rules, each with 5-10 keywords. This is called once per tool during knowledge base initialization (6000+ calls).
+
+**Analysis:**
+This is acceptable because category inference happens only at initialization. The rule-based approach is simpler than a learned classifier and provides deterministic categorization.
+
+**Recommendation:** No change needed — initialization is one-time cost.
+
+---
+
+#### [P3] Finding: BestPracticesDb Uses Vec Indices for Lookup
+
+**Location:** `src/knowledge/best_practices.rs:63-78`
+**Category:** Architecture
+**Impact:** Low — Creates Vec clone and iterates for universal practices
+
+**Problem:**
+`for_tool` clones the Vec of indices, then iterates over all practices to find universal ones (empty tools list). The indices-based approach adds indirection.
+
+**Current Code:**
+```rust
+let mut indices: Vec<usize> = self.tool_index.get(&tool_lower)
+    .map(|v| v.to_vec()).unwrap_or_default();
+for (idx, p) in self.practices.iter().enumerate() {
+    if p.tools.is_empty() && !indices.contains(&idx) {
+        indices.push(idx);
+    }
+}
+```
+
+**Recommended Fix:**
+Store universal practices separately or use direct iteration:
+```rust
+pub fn for_tool(&self, tool: &str) -> Vec<&BestPractice> {
+    let tool_lower = tool.to_lowercase();
+    let mut results: Vec<&BestPractice> = self.practices.iter()
+        .filter(|p| p.tools.is_empty()).collect(); // Universal first
+
+    if let Some(indices) = self.tool_index.get(&tool_lower) {
+        for &idx in indices {
+            results.push(&self.practices[idx]);
+        }
+    }
+    results
+}
+```
+
+**Effort:** 30 minutes | Minor optimization
+**Dependencies:** None
+**Verification:** Unit tests
+
+---
+
+#### [P3] Finding: ErrorKnowledgeDb Uses Full File Scan for Search
+
+**Location:** `src/knowledge/error_db.rs:190-208`
+**Category:** Performance
+**Impact:** Low — Reads entire JSONL file and filters in memory
+
+**Problem:**
+`search` reads the entire error knowledge file into memory, parses all lines, then filters. As the error database grows, this becomes inefficient.
+
+**Current Code:**
+```rust
+let content = std::fs::read_to_string(&path)?;
+let mut matches: Vec<ErrorRecord> = content
+    .lines()
+    .filter_map(|line| serde_json::from_str::<ErrorRecord>(line).ok())
+    .filter(|r| r.tool.to_lowercase() == tool.to_lowercase() && r.error_category == category)
+    .collect();
+```
+
+**Recommended Fix:**
+For large error databases, consider an in-memory index or SQLite backend:
+```rust
+// Option 1: Load once and cache with tool-category index
+static ERROR_INDEX: LazyLock<HashMap<(String, ErrorCategory), Vec<ErrorRecord>>> = ...
+
+// Option 2: Use SQLite for structured queries
+// (requires sqlite dependency, may not be worth the complexity)
+```
+
+**Analysis:**
+For typical use (error database under 100 entries), the current approach is acceptable. Consider optimization only if error database grows significantly.
+
+**Effort:** 2 hours | Requires design
+**Dependencies:** None
+**Verification:** Benchmark search with 1000+ error records
+
+---
+
+#### [Good] TF-IDF Index for Keyword Search
+
+**Location:** `src/knowledge/tool_knowledge.rs:183-226`
+**Category:** Architecture
+**Impact:** Positive — Proper TF-IDF weighting for relevance ranking
+
+**Analysis:**
+The inverted index implements proper TF-IDF scoring with:
+1. Term frequency normalization (norm_tf = count / max_tf)
+2. Inverse document frequency (idf = ln(n/df) + 1.0)
+3. Tool name boost factor (TOOL_NAME_BOOST = 3.0)
+
+This is a well-designed similarity search implementation.
+
+---
+
+#### [Good] ErrorCategory Classification Uses Specific Patterns First
+
+**Location:** `src/knowledge/error_db.rs:60-135`
+**Category:** Architecture
+**Impact:** Positive — Pattern matching order prevents misclassification
+
+**Analysis:**
+The classification logic tests specific patterns before generic ones (e.g., "reference not found" before "not found"). This prevents misclassification of reference errors as general missing input errors.
+
+---
+
+### Workflow Engine Architecture
+
+The workflow module (`src/workflow.rs` and `src/workflow_graph.rs`) provides workflow registry, template management, and DAG-based orchestration.
+
+**Module Structure:**
+- `workflow.rs` — Built-in templates + LLM-based workflow generation
+- `workflow_graph.rs` — LangGraph-inspired DAG workflow with scenarios
+
+---
+
+#### [P1] Finding: Static Templates Use include_str! for All Formats
+
+**Location:** `src/workflow.rs:36-108`
+**Category:** Architecture
+**Impact:** Medium — Embeds 9 templates x 3 formats = 27 files in binary
+
+**Problem:**
+Each built-in template embeds 3 complete workflow files (native, snakemake, nextflow) via `include_str!`. This increases binary size by ~27 embedded files.
+
+**Current Code:**
+```rust
+WorkflowTemplate {
+    name: "rnaseq",
+    native: include_str!("../workflows/native/rnaseq.toml"),
+    snakemake: include_str!("../workflows/snakemake/rnaseq.smk"),
+    nextflow: include_str!("../workflows/nextflow/rnaseq.nf"),
+},
+```
+
+**Analysis:**
+This is acceptable because:
+1. Workflow templates are the core feature — users expect them to be available offline
+2. Each file is typically <5KB (total ~135KB embedded)
+3. No runtime file loading overhead
+
+**Recommendation:** No change needed — embedded templates are appropriate for this use case.
+
+---
+
+#### [P2] Finding: WorkflowGraph Uses Arc for TaskNormalizer/Estimator
+
+**Location:** `src/workflow_graph.rs:195-208`
+**Category:** Architecture
+**Impact:** Low — Arc wrap for single-threaded synchronous initialization
+
+**Problem:**
+`WorkflowGraph` wraps `TaskNormalizer` and `TaskComplexityEstimator` in `Arc`, but these are only used within the executor's async context. The Arc adds unnecessary atomic overhead for non-shared state.
+
+**Current Code:**
+```rust
+pub struct WorkflowGraph {
+    normalizer: Arc<TaskNormalizer>,
+    estimator: Arc<TaskComplexityEstimator>,
+}
+
+impl WorkflowGraph {
+    pub fn new() -> Self {
+        Self {
+            normalizer: Arc::new(TaskNormalizer::new()),
+            estimator: Arc::new(TaskComplexityEstimator::new()),
+        }
+    }
+}
+```
+
+**Recommended Fix:**
+Use owned values if sharing is not required:
+```rust
+pub struct WorkflowGraph {
+    normalizer: TaskNormalizer,
+    estimator: TaskComplexityEstimator,
+}
+```
+
+**Analysis:**
+The Arc may have been added anticipating concurrent workflow execution. If true concurrent execution is planned, Arc is correct. If single-threaded, Arc is unnecessary.
+
+**Effort:** 15 minutes | Quick win
+**Dependencies:** Confirm threading model
+**Verification:** Unit tests
+
+---
+
+#### [P2] Finding: Duplicate LLM Request Logic in generate_workflow and infer_workflow
+
+**Location:** `src/workflow.rs:272-479, 727-938`
+**Category:** Architecture
+**Impact:** Medium — Two nearly identical async LLM request implementations
+
+**Problem:**
+`generate_workflow` and `infer_workflow` share 90% identical code for HTTP request construction, streaming handling, retry logic, and response parsing. Only the prompt construction differs.
+
+**Current Code:**
+Both functions have:
+1. Same HTTP client construction
+2. Same streaming vs non-streaming branch
+3. Same retry with format correction
+4. Same `parse_workflow_response` call
+
+**Recommended Fix:**
+Extract common LLM request logic into a shared helper:
+```rust
+async fn call_llm_for_workflow(
+    config: &Config,
+    system: &str,
+    user_prompt: &str,
+    engine: &str,
+) -> Result<GeneratedWorkflow> {
+    // Common HTTP + retry logic
+}
+
+pub async fn generate_workflow(...) -> Result<GeneratedWorkflow> {
+    let system = match engine { ... };
+    let user_prompt = format!("Generate ... for:\n\n{task}");
+    call_llm_for_workflow(config, &system, &user_prompt, engine).await
+}
+
+pub async fn infer_workflow(...) -> Result<GeneratedWorkflow> {
+    let ctx = scan_data_directory(data_dir);
+    let user_prompt = build_infer_prompt(task, &ctx, &data_dir_str);
+    call_llm_for_workflow(config, &system, &user_prompt, engine).await
+}
+```
+
+**Effort:** 1.5 hours | Requires design
+**Dependencies:** None
+**Verification:** Unit tests for both paths
+
+---
+
+#### [P3] Finding: WorkflowState Accumulates Optional Fields
+
+**Location:** `src/workflow_graph.rs:119-142`
+**Category:** Architecture
+**Impact:** Low — Many Option<T> fields require unwrap_or_default pattern
+
+**Problem:**
+`WorkflowState` has 8 optional fields that are progressively populated during execution. Each field requires Option handling when accessing.
+
+**Current Code:**
+```rust
+pub struct WorkflowState {
+    pub input: WorkflowInput,
+    pub normalized_task: Option<NormalizedTask>,
+    pub complexity: Option<ComplexityResult>,
+    pub mini_skill: Option<MiniSkillData>,
+    pub skill: Option<SkillData>,
+    pub command: Option<String>,
+    pub validation_passed: bool,
+    pub metadata: HashMap<String, String>,
+}
+```
+
+**Recommended Fix:**
+Consider a builder pattern or phased state design where fields are required after certain steps:
+```rust
+struct InitialState { input: WorkflowInput }
+struct NormalizedState { input: WorkflowInput, normalized_task: NormalizedTask }
+struct GeneratedState { ..., command: String }
+```
+
+**Analysis:**
+The Option pattern is acceptable for this workflow because the state evolves through phases. A phased state design would be more type-safe but increases complexity.
+
+**Effort:** 3 hours | Requires design (state machine)
+**Dependencies:** None
+**Verification:** Unit tests for workflow execution
+
+---
+
+#### [Good] Scenario-Based Workflow Routing
+
+**Location:** `src/workflow_graph.rs:253-288`
+**Category:** Architecture
+**Impact:** Positive — Clear scenario determination based on available inputs
+
+**Analysis:**
+The `determine_scenario` logic uses a clean match on input availability:
+```rust
+state.scenario = match (has_doc, has_skill, has_prompt) {
+    (true, true, _) => WorkflowScenario::Full,
+    (true, false, _) => WorkflowScenario::Doc,
+    (false, true, _) => WorkflowScenario::Skill,
+    (false, false, true) => WorkflowScenario::Prompt,
+    (false, false, false) => WorkflowScenario::Bare,
+};
+```
+
+This provides predictable routing without complex conditionals.
+
+---
+
+#### [Good] Early Return on Forced Scenario
+
+**Location:** `src/workflow_graph.rs:254-262`
+**Category:** Architecture
+**Impact:** Positive — Short-circuits scenario determination when forced
+
+**Analysis:**
+When `force_scenario` is provided, the function returns immediately without checking other inputs:
+```rust
+if let Some(scenario) = state.input.force_scenario {
+    state.scenario = scenario;
+    if state.input.force_mode.is_none() {
+        state.mode = scenario.default_mode();
+    }
+    return Ok(());
+}
+```
+
+This respects user intent and avoids unnecessary computation.
+
+---
+
+### MCP Integration Architecture
+
+The MCP module (`src/mcp.rs`) implements a minimal MCP client for skill discovery from external servers.
+
+---
+
+#### [P2] Finding: Exponential Backoff with Small Initial Delay
+
+**Location:** `src/mcp.rs:190`
+**Category:** Architecture
+**Impact:** Low — Initial backoff 100ms may be too short for transient failures
+
+**Problem:**
+The exponential backoff starts at 100ms, doubling each retry (100ms -> 200ms -> 400ms). For transient network issues, 100ms may not allow sufficient recovery time.
+
+**Current Code:**
+```rust
+let delay = Duration::from_millis(100 * 2u64.pow(attempt as u32));
+tokio::time::sleep(delay).await;
+```
+
+**Recommended Fix:**
+Consider starting with 200-500ms for network failures:
+```rust
+const INITIAL_BACKOFF_MS: u64 = 200;
+let delay = Duration::from_millis(INITIAL_BACKOFF_MS * 2u64.pow(attempt as u32));
+```
+
+**Analysis:**
+The current approach is acceptable for skill fetching (non-critical path). Longer delays would be appropriate for critical operations.
+
+**Effort:** 15 minutes | Quick win
+**Dependencies:** None
+**Verification:** Integration tests with simulated network delays
+
+---
+
+#### [P2] Finding: JSON-RPC Response Deserialization Lacks Error Detail
+
+**Location:** `src/mcp.rs:146-166`
+**Category:** Error Handling
+**Impact:** Medium — Generic error messages for JSON-RPC failures
+
+**Problem:**
+Error handling for MCP responses uses generic messages like "returned invalid JSON" without including the raw response or specific parse error.
+
+**Current Code:**
+```rust
+let rpc: RpcResponse = response.json().await.map_err(|e| {
+    OxoError::IndexError(format!(
+        "MCP server '{}' returned invalid JSON: {e}",
+        self.config.name()
+    ))
+})?;
+```
+
+**Recommended Fix:**
+Include the raw response text when JSON parsing fails:
+```rust
+let raw_text = response.text().await.unwrap_or_default();
+let rpc: RpcResponse = serde_json::from_str(&raw_text).map_err(|e| {
+    OxoError::IndexError(format!(
+        "MCP server '{}' returned invalid JSON: {e}\nRaw response (first 200 chars): {}",
+        self.config.name(),
+        &raw_text[..raw_text.len().min(200)]
+    ))
+})?;
+```
+
+**Effort:** 30 minutes | Quick win
+**Dependencies:** None
+**Verification:** Error message inspection
+
+---
+
+#### [P3] Finding: MCP Client HTTP Timeout at Module Level
+
+**Location:** `src/mcp.rs:48-49`
+**Category:** Architecture
+**Impact:** Low — Hardcoded 10s timeout, not configurable per-server
+
+**Problem:**
+MCP_TIMEOUT_SECS is a module-level constant (10s), not configurable per server. Some MCP servers may require longer timeouts.
+
+**Current Code:**
+```rust
+const MCP_TIMEOUT_SECS: u64 = 10;
+```
+
+**Recommended Fix:**
+Add timeout configuration to McpServerConfig:
+```rust
+#[derive(Clone)]
+pub struct McpServerConfig {
+    pub url: String,
+    pub name: String,
+    pub api_key: Option<String>,
+    pub timeout_secs: Option<u64>, // NEW
+}
+
+impl McpClient {
+    pub fn new(config: McpServerConfig) -> Self {
+        let timeout = config.timeout_secs.unwrap_or(MCP_TIMEOUT_SECS);
+        McpClient {
+            config,
+            http: reqwest::Client::builder()
+                .timeout(Duration::from_secs(timeout))
+                .build()
+                .expect(...),
+        }
+    }
+}
+```
+
+**Effort:** 1 hour | Requires config changes
+**Dependencies:** Config module
+**Verification:** Config parsing tests
+
+---
+
+#### [P3] Finding: Skill URI Convention Relies on Server Compliance
+
+**Location:** `src/mcp.rs:234-263`
+**Category:** Architecture
+**Impact:** Low — Assumes `skill://<tool>` URI scheme, fallback may miss resources
+
+**Problem:**
+`list_skill_resources` expects servers to use `skill://` URIs or `text/markdown` MIME type. Servers using different conventions may not be discovered.
+
+**Current Code:**
+```rust
+if let Some(tool) = uri.strip_prefix("skill://") {
+    entries.push(McpSkillEntry { tool: tool.to_string(), ... });
+} else if mime == "text/markdown" && !name.is_empty() {
+    entries.push(McpSkillEntry { tool: name, ... });
+}
+```
+
+**Analysis:**
+This is acceptable given the MCP skill provider convention documented in the module header. The fallback to `text/markdown` provides reasonable flexibility.
+
+**Recommendation:** No change needed — convention is documented.
+
+---
+
+#### [Good] Stateless HTTP POST for MCP Operations
+
+**Location:** `src/mcp.rs:77-78, 111-166`
+**Category:** Architecture
+**Impact:** Positive — No session management, each request is self-contained
+
+**Analysis:**
+The MCP client uses stateless HTTP POST for all operations (initialize, list, read). No SSE session or persistent connection is required. This simplifies error handling and enables easy retry logic.
+
+---
+
+#### [Good] Canonical URI Fast Path in fetch_skill
+
+**Location:** `src/mcp.rs:294-313`
+**Category:** Architecture
+**Impact:** Positive — Avoids list scan for known URI format
+
+**Analysis:**
+`fetch_skill` first tries the canonical `skill://{tool}` URI directly, only falling back to resource list scanning if that fails. This avoids the overhead of listing resources when the server follows the convention.
+
+```rust
+let canonical = format!("skill://{tool}");
+if let Ok(content) = self.read_resource(&canonical).await {
+    return Some(content);
+}
+// Slow path: scan resource list
+```
+
+---
+
+#### [Good] Transient Error Detection in Retry Logic
+
+**Location:** `src/mcp.rs:182-185`
+**Category:** Architecture
+**Impact:** Positive — Only retries on network-level errors, not protocol errors
+
+**Analysis:**
+The retry logic correctly distinguishes transient network errors ("unreachable", "timed out") from protocol errors (HTTP 4xx, JSON-RPC errors). Protocol errors are returned immediately without retrying, preventing wasted attempts on permanent failures.
+
+---
+
+## Summary Statistics (Updated)
+
+| Module | P0 | P1 | P2 | P3 | Good | Total |
+|--------|----|----|----|----|------|-------|
+| LLM | 0 | 1 | 3 | 3 | 4 | 11 |
+| Orchestrator | 0 | 1 | 3 | 3 | 4 | 11 |
+| Runner | 0 | 3 | 5 | 4 | 5 | 17 |
+| Docs/Cache/Index | 0 | 2 | 6 | 6 | 4 | 18 |
+| CLI | 0 | 0 | 1 | 1 | 1 | 3 |
+| Config | 0 | 1 | 2 | 1 | 2 | 6 |
+| Main | 0 | 1 | 1 | 2 | 2 | 6 |
+| Knowledge | 0 | 0 | 2 | 3 | 2 | 7 |
+| Workflow | 0 | 1 | 2 | 1 | 2 | 6 |
+| MCP | 0 | 0 | 2 | 2 | 4 | 8 |
+| **Total** | **0** | **8** | **19** | **20** | **23** | **70** |
+
+**Key Architecture Themes:**
+
+1. **Knowledge Module:**
+   - O(n) lookup in tool knowledge base (name_index HashMap needed)
+   - TF-IDF implementation is well-designed
+   - Error knowledge uses JSONL append-only (appropriate for low-volume)
+   - Best practices indices add indirection overhead
+
+2. **Workflow Engine:**
+   - Scenario-based routing is clean and predictable
+   - Duplicate LLM request logic between generate/infer (extract helper)
+   - WorkflowState uses many Option<T> fields (phased state could improve)
+   - Arc wrap for non-shared components (review threading model)
+
+3. **MCP Integration:**
+   - Stateless HTTP POST design is appropriate
+   - Proper transient error detection for retries
+   - Canonical URI fast path avoids list overhead
+   - Hardcoded timeout, not per-server configurable
