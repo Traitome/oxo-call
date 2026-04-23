@@ -332,3 +332,457 @@ The `name(&self) -> &str` method also returns a borrowed string. This design ena
 All HTTP operations in `LlmClient` properly use async/await with `reqwest::Client`. No blocking operations are present in async contexts. The streaming path uses `futures_util::StreamExt` for non-blocking SSE parsing.
 
 **Recommendation:** Continue this pattern for any new async methods.
+
+---
+
+## src/orchestrator/mod.rs Analysis
+
+The module entry point is a clean re-export module (14 lines) with four sub-modules:
+- `executor` — Command generation and execution context
+- `planner` — Task decomposition into execution steps
+- `supervisor` — Orchestration mode decision logic
+- `validator` — Result verification and error recovery
+
+**Public API Summary:**
+- `ExecutorAgent` — prepares execution context and enriches tasks
+- `PlannerAgent` — decomposes tasks into `TaskPlan` with `PlanStep`s
+- `SupervisorAgent` — decides `OrchestrationMode` (SingleCall/MultiStage)
+- `ValidatorAgent` — validates command results with `ValidationResult`
+- `OrchestrationMode` — enum (SingleCall, MultiStage) with workflow conversion
+
+---
+
+### [P1] Finding: Nested Loop with Repeated Vector Allocations in Pipeline Splitting
+
+**Location:** `src/orchestrator/planner.rs:129-147`
+**Category:** Performance
+**Impact:** High - O(d * p * s) complexity for multi-step task parsing, creates multiple Vec allocations
+
+**Problem:**
+The `plan_pipeline` function uses nested loops to split task descriptions by multiple delimiters. Each delimiter iteration creates a new Vec, and each split operation creates intermediate iterators. For tasks with many steps, this creates significant allocation overhead.
+
+**Current Code:**
+```rust
+let delimiters = [
+    " then ", " after that ", " followed by ", ", then ",
+    " 然后 ", " 接着 ", " 之后 ",
+];
+
+let mut parts: Vec<&str> = vec![task];
+for delim in delimiters {
+    let mut new_parts = Vec::new();
+    for part in &parts {
+        new_parts.extend(
+            part.split(delim)
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty()),
+        );
+    }
+    parts = new_parts;
+}
+
+// Also split on "&&".
+let final_parts: Vec<&str> = parts
+    .iter()
+    .flat_map(|part| part.split("&&").map(|s| s.trim()).filter(|s| !s.is_empty()))
+    .collect();
+```
+
+**Recommended Fix:**
+Use a single-pass regex or a combined delimiter approach:
+```rust
+use regex::Regex;
+
+fn plan_pipeline(&self, tool: &str, task: &str) -> TaskPlan {
+    // Lazy static for regex to avoid re-compilation
+    static ref DELIMITER_RE: Regex = Regex::new(
+        r"\s*(then|after that|followed by|然后|接着|之后|\s*&&\s*)\s*"
+    ).unwrap();
+
+    let parts: Vec<&str> = DELIMITER_RE.split(task)
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    if parts.len() <= 1 {
+        return TaskPlan::single_step(tool, task);
+    }
+    // ... rest of plan construction
+}
+```
+
+Or without regex dependency, use a manual single-pass split:
+```rust
+fn split_by_delimiters(task: &str, delimiters: &[&str]) -> Vec<&str> {
+    let mut parts = vec![task];
+    for delim in delimiters {
+        let mut next_parts = Vec::with_capacity(parts.len() * 2); // Pre-allocate
+        for part in &parts {
+            let mut remainder = *part;
+            while let Some(pos) = remainder.find(delim) {
+                let segment = remainder[..pos].trim();
+                if !segment.is_empty() {
+                    next_parts.push(segment);
+                }
+                remainder = &remainder[pos + delim.len()..];
+            }
+            if !remainder.trim().is_empty() {
+                next_parts.push(remainder.trim());
+            }
+        }
+        parts = next_parts;
+    }
+    parts
+}
+```
+
+**Effort:** 3 hours | Requires design (regex vs manual)
+**Dependencies:** None (regex already used elsewhere in project)
+**Verification:** Benchmark pipeline parsing with multi-step tasks (5+ steps)
+
+---
+
+### [P2] Finding: Case-Insensitive Filter Allocates String Per Line
+
+**Location:** `src/orchestrator/validator.rs:85-96`
+**Category:** Performance
+**Impact:** Medium - Called for every failed command, allocates String for each stderr line
+
+**Problem:**
+The error line extraction filter calls `to_lowercase()` for every line in stderr, creating a String allocation per line. For commands with verbose stderr (common in bioinformatics tools), this can allocate dozens of strings.
+
+**Current Code:**
+```rust
+let error_lines: Vec<&str> = stderr
+    .lines()
+    .filter(|l| {
+        let lower = l.to_lowercase();
+        lower.contains("error")
+            || lower.contains("fatal")
+            || lower.contains("fail")
+            || lower.contains("abort")
+            || lower.starts_with("[e::")
+    })
+    .take(5)
+    .collect();
+```
+
+**Recommended Fix:**
+Use case-insensitive matching without allocation:
+```rust
+fn contains_case_insensitive(haystack: &str, needle: &str) -> bool {
+    haystack.chars()
+        .collect::<Vec<_>>()
+        .windows(needle.len())
+        .any(|window| {
+            window.iter()
+                .zip(needle.chars())
+                .all(|(h, n)| h.to_ascii_lowercase() == n.to_ascii_lowercase())
+        })
+}
+
+// Or simpler: check ASCII chars directly
+let error_lines: Vec<&str> = stderr
+    .lines()
+    .filter(|l| {
+        let l_lower = l.to_ascii_lowercase();
+        // Still allocates, but only ASCII chars (cheaper)
+        // OR use direct char iteration:
+        let has_error = l.chars()
+            .any(|c| c.eq_ignore_ascii_case(&'e'));
+        // Check patterns more carefully...
+        l.contains("[e::") ||  // Exact match for htslib errors
+            l.chars()
+                .zip("error".chars())
+                .take_while(|(a, b)| a.eq_ignore_ascii_case(b))
+                .count() >= 3
+    })
+    .take(5)
+    .collect();
+```
+
+Alternative simpler approach using the fact that bioinformatics tools use consistent prefixes:
+```rust
+let error_lines: Vec<&str> = stderr
+    .lines()
+    .filter(|l| {
+        // Use eq_ignore_ascii_case for prefix checks (no allocation)
+        let trimmed = l.trim();
+        trimmed.starts_with("[E::") ||
+        trimmed.starts_with("[e::") ||
+        l.to_ascii_lowercase().contains("error")  // Single allocation per matched line only
+    })
+    .take(5)
+    .collect();
+```
+
+**Effort:** 2 hours | Quick win (simplest fix first)
+**Dependencies:** None
+**Verification:** Unit tests + benchmark validation on large stderr
+
+---
+
+### [P2] Finding: Full stderr Lowercase for Warning Pattern Check
+
+**Location:** `src/orchestrator/validator.rs:118-123`
+**Category:** Performance
+**Impact:** Medium - Called for every command validation, allocates full stderr copy
+
+**Problem:**
+`has_warning_patterns` converts the entire stderr to lowercase, creating a String allocation equal to stderr length. For commands with verbose output (common in alignment/sorting), this can be kilobytes of unnecessary allocation.
+
+**Current Code:**
+```rust
+fn has_warning_patterns(&self, stderr: &str) -> bool {
+    let lower = stderr.to_lowercase();
+    lower.contains("[warning]")
+        || lower.contains("warn:")
+        || (lower.contains("error") && !lower.contains("error rate"))
+}
+```
+
+**Recommended Fix:**
+Use case-insensitive string matching without allocation:
+```rust
+fn has_warning_patterns(&self, stderr: &str) -> bool {
+    // Check patterns using ASCII case-insensitive comparison
+    fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
+        if haystack.len() < needle.len() {
+            return false;
+        }
+        haystack.as_bytes()
+            .windows(needle.len())
+            .any(|window| {
+                window.iter()
+                    .zip(needle.as_bytes())
+                    .all(|(h, n)| h.eq_ignore_ascii_case(n))
+            })
+    }
+
+    contains_ignore_ascii_case(stderr, "[warning]")
+        || contains_ignore_ascii_case(stderr, "warn:")
+        || (contains_ignore_ascii_case(stderr, "error")
+            && !contains_ignore_ascii_case(stderr, "error rate"))
+}
+```
+
+Or use `regex::Regex::new(...)` with case-insensitive flag if regex is already imported.
+
+**Effort:** 1.5 hours | Quick win
+**Dependencies:** None
+**Verification:** Unit tests + benchmark on 10KB+ stderr
+
+---
+
+### [P3] Finding: Parameters Vec Allocation in Task Enrichment
+
+**Location:** `src/orchestrator/executor.rs:86-92`
+**Category:** Performance
+**Impact:** Low - Called per command preparation, creates Vec for formatting
+
+**Problem:**
+The `enrich_task` function creates a Vec of formatted parameter strings for the parameters section. This Vec is immediately joined, making the intermediate allocation unnecessary.
+
+**Current Code:**
+```rust
+if !ctx.normalized_task.parameters.is_empty() {
+    let params: Vec<String> = ctx
+        .normalized_task
+        .parameters
+        .iter()
+        .map(|(k, v)| format!("{k}={v}"))
+        .collect();
+    parts.push(format!("[Params: {}]", params.join(", ")));
+}
+```
+
+**Recommended Fix:**
+Build the formatted string directly without intermediate Vec:
+```rust
+if !ctx.normalized_task.parameters.is_empty() {
+    let mut params_str = String::with_capacity(
+        ctx.normalized_task.parameters.len() * 20 // Estimate per param
+    );
+    for (k, v) in &ctx.normalized_task.parameters {
+        if !params_str.is_empty() {
+            params_str.push_str(", ");
+        }
+        params_str.push_str(k);
+        params_str.push('=');
+        params_str.push_str(v);
+    }
+    parts.push(format!("[Params: {params_str}]"));
+}
+```
+
+Or use `itertools::Itertools::format` if available.
+
+**Effort:** 30 minutes | Quick win
+**Dependencies:** None
+**Verification:** Benchmark task enrichment with many parameters
+
+---
+
+### [P3] Finding: Category String Clone in Domain Inference
+
+**Location:** `src/orchestrator/supervisor.rs:158-162`
+**Category:** Performance
+**Impact:** Low - Called per task decision, clones category string
+
+**Problem:**
+The `infer_domain` method clones the category string from the knowledge base lookup. This creates an owned String for the domain field.
+
+**Current Code:**
+```rust
+fn infer_domain(&self, tool: &str) -> Option<String> {
+    self.knowledge_base
+        .lookup(tool)
+        .map(|entry| entry.category.clone())
+}
+```
+
+**Recommended Fix:**
+Consider returning `Option<&str>` if the lifetime can be tied to the knowledge base:
+```rust
+fn infer_domain(&self, tool: &str) -> Option<&str> {
+    self.knowledge_base
+        .lookup(tool)
+        .map(|entry| &entry.category)
+}
+```
+
+This requires changing `SupervisorDecision.domain` from `Option<String>` to `Option<String>` (keep owned) if the domain must be returned with the decision, or use `Cow<'static, str>` if category strings are static.
+
+**Analysis:**
+The clone is likely unavoidable because `SupervisorDecision` is returned and must own its data. However, if the knowledge base entries use `String` (not `&'static str`), consider using `Box<str>` or `Arc<str>` in the knowledge base to enable cheap cloning.
+
+**Effort:** 1 hour | Requires design (knowledge base refactor)
+**Dependencies:** Changes to `ToolKnowledgeBase` entry types
+**Verification:** Benchmark supervisor decision overhead
+
+---
+
+### [P3] Finding: Task Lowercase Clone in Pipeline Detection
+
+**Location:** `src/orchestrator/planner.rs:79`
+**Category:** Performance
+**Impact:** Low - Called per plan, creates lowercase copy of task
+
+**Problem:**
+`plan` creates a lowercase copy of the task for pipeline detection. This is discarded if the task is not a pipeline.
+
+**Current Code:**
+```rust
+pub fn plan(&self, tool: &str, task: &str) -> TaskPlan {
+    let task_lower = task.to_lowercase();
+    let is_pipeline = self.detect_pipeline(&task_lower);
+    // ...
+}
+```
+
+**Recommended Fix:**
+Perform case-insensitive detection without allocation:
+```rust
+pub fn plan(&self, tool: &str, task: &str) -> TaskPlan {
+    let is_pipeline = self.detect_pipeline_ci(task);
+    // ...
+}
+
+fn detect_pipeline_ci(&self, task: &str) -> bool {
+    // Use contains_ignore_ascii_case for each indicator
+    let pipeline_indicators = ["then", "after that", ...];
+    pipeline_indicators.iter().any(|ind| {
+        contains_ignore_ascii_case(task, ind)
+    })
+    // For Chinese characters, exact match is sufficient (no case variation)
+    || task.contains("然后") || task.contains("接着")
+}
+```
+
+**Effort:** 30 minutes | Quick win
+**Dependencies:** None
+**Verification:** Unit tests for pipeline detection
+
+---
+
+### [Good] Early Return on Forced Mode in Supervisor
+
+**Location:** `src/orchestrator/supervisor.rs:91-100`
+**Category:** Architecture
+**Impact:** Positive - Short-circuits unnecessary computation
+
+**Analysis:**
+The supervisor's `decide` function uses an early return pattern when `force_mode` is provided, avoiding unnecessary complexity estimation and decision logic:
+```rust
+if let Some(forced) = force_mode {
+    return SupervisorDecision {
+        mode: forced,
+        complexity: ComplexityResult::default(),
+        enrichment_hints: self.gather_hints(tool),
+        domain: self.infer_domain(tool),
+        reasons: vec![format!("mode forced to {forced}")],
+    };
+}
+```
+
+This is excellent for performance when users explicitly control the orchestration mode.
+
+**Recommendation:** Maintain this pattern for all decision functions.
+
+---
+
+### [Good] Short-Circuit in Pipeline Detection
+
+**Location:** `src/orchestrator/planner.rs:111`
+**Category:** Architecture
+**Impact:** Positive - Uses `.any()` for early termination
+
+**Analysis:**
+The `detect_pipeline` function uses `.any()` which short-circuits on first match:
+```rust
+pipeline_indicators.iter().any(|ind| task.contains(ind))
+```
+
+This avoids checking all 12 indicators when the task matches early ones like "then".
+
+**Recommendation:** Maintain this pattern.
+
+---
+
+### [Good] Limited Iteration with take() in Validator
+
+**Location:** `src/orchestrator/validator.rs:95`
+**Category:** Architecture
+**Impact:** Positive - Bounds error line collection to 5 items
+
+**Analysis:**
+The validator limits error line extraction with `.take(5)`:
+```rust
+.filter(|l| { ... })
+.take(5)
+.collect();
+```
+
+This prevents unbounded collection when tools produce verbose stderr, bounding the result to at most 5 lines.
+
+**Recommendation:** Maintain this pattern for all unbounded iterators.
+
+---
+
+### [Good] Hint Iteration Bounded with take(3)
+
+**Location:** `src/orchestrator/supervisor.rs:143`
+**Category:** Architecture
+**Impact:** Positive - Limits best practices hints to 3 items
+
+**Analysis:**
+The supervisor's `gather_hints` bounds best practices extraction:
+```rust
+for p in practices.iter().take(3) {
+    hints.push(format!("{}: {}", p.title, p.recommendation));
+}
+```
+
+This prevents excessive hint accumulation while ensuring relevant suggestions.
+
+**Recommendation:** Maintain this bounded iteration pattern.
