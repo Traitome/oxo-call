@@ -16,6 +16,7 @@ use sha2::{Digest, Sha256};
 ///
 /// Arguments containing spaces or shell metacharacters are single-quoted.
 /// Shell operators (&&, ||, |, >, etc.) are passed through unquoted.
+/// Builds the string directly without intermediate Vec allocation.
 pub(crate) fn build_command_string(tool: &str, args: &[String]) -> String {
     if args.is_empty() {
         return tool.to_string();
@@ -24,23 +25,32 @@ pub(crate) fn build_command_string(tool: &str, args: &[String]) -> String {
     if eff_args.is_empty() {
         return eff_tool.to_string();
     }
-    let args_str: Vec<String> = eff_args
-        .iter()
-        .map(|a| {
-            // Shell operators (&&, ||, ;, |, >, …) are shell syntax, not values —
-            // they must never be quoted, otherwise the shell would treat them as
-            // literal string arguments to the tool.
-            if is_shell_operator(a) {
-                a.clone()
-            } else if needs_quoting(a) {
-                // Quote arguments that contain spaces or shell metacharacters
-                format!("'{}'", a.replace('\'', "'\\''"))
-            } else {
-                a.clone()
+
+    // Estimate capacity: tool + args + spaces + quoting overhead
+    let estimated_len =
+        eff_tool.len() + eff_args.len() + eff_args.iter().map(|a| a.len() + 4).sum::<usize>();
+    let mut result = String::with_capacity(estimated_len);
+    result.push_str(eff_tool);
+
+    for arg in eff_args {
+        result.push(' ');
+        if is_shell_operator(arg) {
+            result.push_str(arg);
+        } else if needs_quoting(arg) {
+            result.push('\'');
+            for c in arg.chars() {
+                if c == '\'' {
+                    result.push_str("'\\''");
+                } else {
+                    result.push(c);
+                }
             }
-        })
-        .collect();
-    format!("{eff_tool} {}", args_str.join(" "))
+            result.push('\'');
+        } else {
+            result.push_str(arg);
+        }
+    }
+    result
 }
 
 /// Resolve the effective (executable, args) pair.
@@ -123,14 +133,29 @@ pub fn is_companion_binary(tool: &str, candidate: &str) -> bool {
     }
 
     // Forward prefix: {tool}- or {tool}_
-    let hyphen_prefix = format!("{tool}-");
-    let underscore_prefix = format!("{tool}_");
-    if stem.starts_with(&hyphen_prefix) || stem.starts_with(&underscore_prefix) {
-        return true;
+    // Check prefix patterns directly without allocation
+    if stem.len() > tool.len() + 1 {
+        let prefix_part = &stem[..tool.len()];
+        if prefix_part.eq_ignore_ascii_case(tool) {
+            let delim = stem[tool.len()..].chars().next();
+            if delim == Some('-') || delim == Some('_') {
+                return true;
+            }
+        }
     }
     // Reverse suffix: _{tool}
-    let underscore_suffix = format!("_{tool}");
-    stem.ends_with(&underscore_suffix) && stem.len() > underscore_suffix.len()
+    // Check suffix pattern without allocation
+    if stem.len() > tool.len() + 1 {
+        let suffix_part = &stem[stem.len() - tool.len()..];
+        if suffix_part.eq_ignore_ascii_case(tool) {
+            let delim_pos = stem.len() - tool.len() - 1;
+            let delim = &stem[delim_pos..delim_pos + 1];
+            if delim == "_" {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 /// Returns `true` if `arg` is a standalone shell control operator.
@@ -303,9 +328,14 @@ pub(crate) fn detect_output_files(args: &[String]) -> Vec<String> {
             skip_next = false;
             continue;
         }
-        // Check for --output=file form
+        // Check prefix patterns directly without format! allocation
         for &flag in OUTPUT_FLAGS {
-            if let Some(val) = arg.strip_prefix(&format!("{flag}=")) {
+            // Check if arg starts with flag then '='
+            if arg.len() > flag.len() + 1
+                && arg[..flag.len()].eq_ignore_ascii_case(flag)
+                && arg[flag.len()..].starts_with('=')
+            {
+                let val = &arg[flag.len() + 1..];
                 if !val.is_empty() {
                     files.push(val.to_string());
                 }
@@ -365,14 +395,18 @@ pub fn assess_command_risk(args: &[String]) -> RiskLevel {
     let mut risk = RiskLevel::Safe;
 
     for (i, arg) in args.iter().enumerate() {
-        let lower = arg.to_ascii_lowercase();
-
         let is_cmd_position =
             i == 0 || (i > 0 && matches!(args[i - 1].as_str(), "&&" | "||" | ";" | "|"));
 
         if is_cmd_position {
             for &cmd in DANGEROUS_COMMANDS {
-                if lower == cmd || lower.ends_with(&format!("/{cmd}")) {
+                // Use eq_ignore_ascii_case for direct comparison
+                if arg.eq_ignore_ascii_case(cmd) {
+                    return RiskLevel::Dangerous;
+                }
+                // Check path suffix: /rm, /sudo, etc.
+                let lower_arg = arg.to_ascii_lowercase(); // Single allocation for path check only
+                if lower_arg.ends_with(&format!("/{cmd}")) {
                     return RiskLevel::Dangerous;
                 }
             }
@@ -382,8 +416,9 @@ pub fn assess_command_risk(args: &[String]) -> RiskLevel {
             risk = risk.max_level(RiskLevel::Warning);
         }
 
+        // Use eq_ignore_ascii_case for flag comparison
         for &flag in FORCE_FLAGS {
-            if lower == flag {
+            if arg.eq_ignore_ascii_case(flag) {
                 risk = risk.max_level(RiskLevel::Warning);
             }
         }
@@ -421,11 +456,16 @@ fn has_same_input_output(args: &[String]) -> bool {
                 output_file = Some(val.as_str());
                 output_value_indices.insert(i + 1);
             }
-            if let Some(rest) = arg.strip_prefix(&format!("{flag}="))
-                && !rest.is_empty()
+            // Check prefix without format! allocation
+            if arg.len() > flag.len() + 1
+                && arg[..flag.len()].eq_ignore_ascii_case(flag)
+                && arg[flag.len()..].starts_with('=')
             {
-                output_file = Some(rest);
-                output_value_indices.insert(i);
+                let rest = &arg[flag.len() + 1..];
+                if !rest.is_empty() {
+                    output_file = Some(rest);
+                    output_value_indices.insert(i);
+                }
             }
         }
     }

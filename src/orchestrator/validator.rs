@@ -6,6 +6,20 @@
 use crate::knowledge::error_db::{ErrorCategory, ErrorKnowledgeDb};
 use serde::{Deserialize, Serialize};
 
+/// Case-insensitive substring check without allocation.
+/// Returns true if haystack contains needle (ASCII case-insensitive).
+fn contains_ignore_case(haystack: &str, needle: &str) -> bool {
+    if haystack.len() < needle.len() {
+        return false;
+    }
+    haystack.as_bytes().windows(needle.len()).any(|window| {
+        window
+            .iter()
+            .zip(needle.as_bytes())
+            .all(|(h, n)| h.eq_ignore_ascii_case(n))
+    })
+}
+
 /// Validation result for a command execution.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ValidationResult {
@@ -82,15 +96,17 @@ impl ValidatorAgent {
         }
 
         // Extract key error lines from stderr.
+        // Use case-insensitive matching without allocation
         let error_lines: Vec<&str> = stderr
             .lines()
             .filter(|l| {
-                let lower = l.to_lowercase();
-                lower.contains("error")
-                    || lower.contains("fatal")
-                    || lower.contains("fail")
-                    || lower.contains("abort")
-                    || lower.starts_with("[e::")
+                // Check for htslib-style error prefix exactly (case matters for [e::])
+                l.trim().starts_with("[E::")
+                    || l.trim().starts_with("[e::")
+                    || contains_ignore_case(l, "error")
+                    || contains_ignore_case(l, "fatal")
+                    || contains_ignore_case(l, "fail")
+                    || contains_ignore_case(l, "abort")
             })
             .take(5)
             .collect();
@@ -116,10 +132,11 @@ impl ValidatorAgent {
 
     /// Check if stderr contains warning patterns even when exit code is 0.
     fn has_warning_patterns(&self, stderr: &str) -> bool {
-        let lower = stderr.to_lowercase();
-        lower.contains("[warning]")
-            || lower.contains("warn:")
-            || (lower.contains("error") && !lower.contains("error rate"))
+        // Use case-insensitive matching without allocation
+        contains_ignore_case(stderr, "[warning]")
+            || contains_ignore_case(stderr, "warn:")
+            || (contains_ignore_case(stderr, "error")
+                && !contains_ignore_case(stderr, "error rate"))
     }
 }
 

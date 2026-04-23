@@ -136,14 +136,19 @@ pub fn is_valid_suggestion(suggestion: &LlmCommandSuggestion) -> bool {
 
 /// Case-insensitive prefix strip.  Returns the remainder after the prefix,
 /// or `None` if the string doesn't start with the prefix (case-insensitive).
+/// Uses char-by-char comparison to avoid allocation.
 pub fn strip_prefix_case_insensitive<'a>(s: &'a str, prefix: &str) -> Option<&'a str> {
-    let lower = s.to_ascii_lowercase();
-    let prefix_lower = prefix.to_ascii_lowercase();
-    if lower.starts_with(&prefix_lower) {
-        Some(&s[prefix.len()..])
-    } else {
-        None
+    if s.len() < prefix.len() {
+        return None;
     }
+    // Check each char case-insensitively without allocation
+    for (s_char, p) in s.chars().zip(prefix.chars()) {
+        if !s_char.eq_ignore_ascii_case(&p) {
+            return None;
+        }
+    }
+    // All prefix chars matched, return the remainder
+    Some(&s[prefix.len()..])
 }
 
 /// Post-process LLM-generated args to fix common mistakes:
