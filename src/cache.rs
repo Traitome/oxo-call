@@ -65,6 +65,8 @@ pub struct CacheEntry {
 struct MemoryCache {
     entries: HashMap<String, CacheEntry>,
     loaded: bool,
+    /// Track whether in-memory state differs from disk (hit-count updates, evictions)
+    dirty: bool,
 }
 
 impl MemoryCache {
@@ -72,6 +74,7 @@ impl MemoryCache {
         Self {
             entries: HashMap::new(),
             loaded: false,
+            dirty: false,
         }
     }
 }
@@ -130,6 +133,18 @@ impl LlmCache {
             lines.push(serde_json::to_string(entry)?);
         }
         std::fs::write(&path, lines.join("\n") + "\n")?;
+        Ok(())
+    }
+
+    /// Explicitly sync dirty in-memory state to disk.
+    /// Call this before program exit or on explicit flush request.
+    pub fn sync() -> Result<()> {
+        let mut mem = acquire_cache();
+        if !mem.dirty {
+            return Ok(()); // No changes to persist
+        }
+        Self::flush_to_disk(&mem)?;
+        mem.dirty = false;
         Ok(())
     }
 
@@ -216,23 +231,17 @@ impl LlmCache {
 
         if age_days > CACHE_MAX_AGE_DAYS {
             mem.entries.remove(&hash);
-            // Best-effort disk sync; don't fail the lookup.
-            if let Err(e) = Self::flush_to_disk(&mem) {
-                tracing::warn!("Cache flush failed (eviction): {e}");
-            }
+            mem.dirty = true; // Mark dirty, defer flush to explicit sync
             return Ok(None);
         }
 
-        // Increment hit count in-memory and persist.
+        // Increment hit count in-memory (defer persistence for performance).
         let updated = CacheEntry {
             hit_count: entry.hit_count + 1,
             ..entry
         };
         mem.entries.insert(hash, updated.clone());
-        // Persist hit-count update; non-fatal on failure.
-        if let Err(e) = Self::flush_to_disk(&mem) {
-            tracing::warn!("Cache flush failed (hit-count update): {e}");
-        }
+        mem.dirty = true; // Mark dirty, defer flush to explicit sync
 
         Ok(Some(updated))
     }
