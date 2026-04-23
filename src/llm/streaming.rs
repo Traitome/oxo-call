@@ -58,14 +58,18 @@ pub async fn read_sse_stream_to(
         // (keeping the lock scope synchronous — no .await inside).
         let mut chunk_tokens = String::new();
         while let Some(newline_pos) = line_buf.find('\n') {
-            let line = line_buf[..newline_pos].trim().to_string();
-            line_buf = line_buf[newline_pos + 1..].to_string();
+            // Get trimmed line slice (no allocation)
+            let line_slice = line_buf[..newline_pos].trim();
 
-            if line.is_empty() || line == "data: [DONE]" {
+            // Handle empty/DONE lines early to avoid further processing
+            if line_slice.is_empty() || line_slice == "data: [DONE]" {
+                // Safe: newline_pos + 1 is valid UTF-8 boundary (after '\n')
+                line_buf.drain(..newline_pos + 1);
                 continue;
             }
 
-            if let Some(json_str) = line.strip_prefix("data: ")
+            // Check for data prefix and parse JSON
+            if let Some(json_str) = line_slice.strip_prefix("data: ")
                 && let Ok(chunk_resp) = serde_json::from_str::<StreamChunkResponse>(json_str)
             {
                 for choice in &chunk_resp.choices {
@@ -84,6 +88,9 @@ pub async fn read_sse_stream_to(
                     }
                 }
             }
+
+            // Drain processed line from buffer (no allocation)
+            line_buf.drain(..newline_pos + 1);
         }
 
         if !chunk_tokens.is_empty() {
