@@ -232,6 +232,10 @@ impl Config {
     }
 
     pub fn config_dir() -> Result<PathBuf> {
+        // Allow env var override for testing isolation
+        if let Ok(override_dir) = std::env::var("OXO_CALL_CONFIG_DIR") {
+            return Ok(PathBuf::from(override_dir));
+        }
         let dirs = Self::project_dirs().ok_or_else(|| {
             OxoError::ConfigError("Cannot determine config directory".to_string())
         })?;
