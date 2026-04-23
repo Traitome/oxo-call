@@ -1487,3 +1487,499 @@ if self.stop_on_error && failed > 0 {
 This allows users to abort batch processing on first failure, avoiding unnecessary work.
 
 **Recommendation:** Maintain this pattern.
+
+---
+
+## src/docs.rs Analysis
+
+The module handles documentation fetching from multiple sources (cache, live --help, remote URLs, local files). Uses blocking std::process::Command for help fetching, async reqwest for remote docs.
+
+**Public API Summary:**
+- `DocsFetcher::fetch(tool)` -> `ToolDocs` (async)
+- `DocsFetcher::fetch_no_cache(tool)` -> `ToolDocs` (async)
+- `DocsFetcher::fetch_remote(tool, url)` -> String (async)
+- `DocsFetcher::fetch_from_file(tool, path)` -> String (sync)
+- `DocsFetcher::fetch_from_dir(tool, dir)` -> String (sync)
+- `ToolDocs::combined()` -> String (lossless combine with dedup)
+
+---
+
+### [P1] Finding: Sequential Blocking Process Spawns for Help Fetching
+
+**Location:** `src/docs.rs:259-277`
+**Category:** Performance
+**Impact:** High - Called for every tool when cache empty, spawns 5 processes sequentially
+
+**Problem:**
+`fetch_help` uses a chain of `.or_else()` to try 5 strategies: "--help", "-h", "help", no args, shell builtin. Each failure spawns a new blocking `std::process::Command`. For tools that don't respond to "--help", this spawns 4 failed processes before success.
+
+**Current Code:**
+```rust
+let help = self
+    .run_help_flag(tool, "--help")
+    .or_else(|_| self.run_help_flag(tool, "-h"))
+    .or_else(|_| self.run_help_flag(tool, "help"))
+    .or_else(|_| self.run_no_args(tool))
+    .or_else(|_| self.run_shell_builtin_help(tool))
+    .map_err(|_| { ... })?;
+```
+
+**Recommended Fix:**
+Use parallel spawn with `tokio::process::Command` and race:
+```rust
+// Spawn multiple strategies concurrently, take first success
+use tokio::process::Command;
+use futures::future::select_ok;
+
+let results = select_ok([
+    run_help_async(tool, "--help"),
+    run_help_async(tool, "-h"),
+    run_help_async(tool, "help"),
+    run_no_args_async(tool),
+]).await;
+
+// Fallback to shell builtin if all fail
+if results.is_empty() {
+    run_shell_builtin_help(tool).await
+}
+```
+
+Or simpler: check tool category first - most bioinformatics tools respond to "--help" or bare invocation, skip shell builtin for non-shell tools.
+
+**Effort:** 3 hours | Requires design (async refactor)
+**Dependencies:** None
+**Verification:** Benchmark help fetching for tools without "--help" support
+
+---
+
+### [P1] Finding: Cache Hit Triggers Full Disk Rewrite
+
+**Location:** `src/cache.rs:233-235`
+**Category:** Performance
+**Impact:** High - Every cache hit writes entire cache to disk (10,000 entries worst case)
+
+**Problem:**
+`LlmCache::lookup` increments `hit_count` and then calls `flush_to_disk`, which serializes the entire in-memory HashMap to JSONL. This means every successful cache lookup triggers an O(n) disk write of all 10,000 entries.
+
+**Current Code:**
+```rust
+// Increment hit count in-memory and persist.
+let updated = CacheEntry {
+    hit_count: entry.hit_count + 1,
+    ..entry
+};
+mem.entries.insert(hash, updated.clone());
+// Persist hit-count update; non-fatal on failure.
+if let Err(e) = Self::flush_to_disk(&mem) {
+    tracing::warn!("Cache flush failed (hit-count update): {e}");
+}
+```
+
+**Recommended Fix:**
+1. Remove hit_count persistence from lookup - track hits in memory only, persist on store/eviction.
+2. Use append-only WAL for writes, periodic compaction for cleanup.
+3. Or batch hit_count updates: track dirty entries, flush only on next store operation.
+
+```rust
+// Option 1: Skip hit_count persistence entirely (least invasive)
+mem.entries.insert(hash, updated.clone());
+// Remove flush_to_disk call from lookup
+
+// Option 2: Batch dirty tracking
+static DIRTY_KEYS: LazyLock<Mutex<HashSet<String>>> = ...;
+// Add to dirty set instead of immediate flush
+// Flush dirty keys on next store() call
+```
+
+**Effort:** 2 hours | Quick win
+**Dependencies:** None
+**Verification:** Benchmark repeated cache lookups
+
+---
+
+### [P2] Finding: DocIndex Uses Vec Instead of HashMap for Tool Lookup
+
+**Location:** `src/index.rs:95-97, 99-108`
+**Category:** Performance
+**Impact:** Medium - O(n) lookup for every index operation, called on docs add/remove/list
+
+**Problem:**
+`DocIndex::entries` is a `Vec<IndexEntry>`, requiring O(n) linear search for `get`, `upsert`, and `remove`. For users with 100+ indexed tools, this creates overhead.
+
+**Current Code:**
+```rust
+pub fn get(&self, tool: &str) -> Option<&IndexEntry> {
+    self.entries.iter().find(|e| e.tool_name == tool)
+}
+
+pub fn upsert(&mut self, entry: IndexEntry) {
+    if let Some(pos) = self.entries.iter().position(|e| e.tool_name == entry.tool_name) {
+        self.entries[pos] = entry;
+    } else {
+        self.entries.push(entry);
+    }
+}
+```
+
+**Recommended Fix:**
+Use `HashMap<String, IndexEntry>` with `tool_name` as key:
+```rust
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DocIndex {
+    pub entries: HashMap<String, IndexEntry>, // tool_name -> entry
+}
+
+impl DocIndex {
+    pub fn get(&self, tool: &str) -> Option<&IndexEntry> {
+        self.entries.get(tool)
+    }
+
+    pub fn upsert(&mut self, entry: IndexEntry) {
+        self.entries.insert(entry.tool_name.clone(), entry);
+    }
+}
+```
+
+Note: This changes serialization format. Add migration logic similar to existing legacy format handling.
+
+**Effort:** 2 hours | Requires design (migration)
+**Dependencies:** None
+**Verification:** Benchmark index operations with 100+ entries
+
+---
+
+### [P2] Finding: BUILTIN_SKILLS Uses Linear Search Instead of HashMap
+
+**Location:** `src/skill.rs:829-839`
+**Category:** Performance
+**Impact:** Medium - Called for every skill load, O(158) iterations for builtin lookup
+
+**Problem:**
+`load_builtin` iterates over the 158-element `BUILTIN_SKILLS` static array to find matching name. This is O(n) for every builtin skill load.
+
+**Current Code:**
+```rust
+pub fn load_builtin(&self, tool: &str) -> Option<Skill> {
+    let tool_lc = tool.to_ascii_lowercase();
+    BUILTIN_SKILLS
+        .iter()
+        .find(|(name, _)| *name == tool_lc.as_str())
+        .and_then(|(_, content)| {
+            parse_skill_md(content).or_else(|| { ... })
+        })
+}
+```
+
+**Recommended Fix:**
+Build a HashMap at compile time or on first access:
+```rust
+use std::sync::LazyLock;
+use std::collections::HashMap;
+
+static BUILTIN_SKILL_MAP: LazyLock<HashMap<&str, &str>> = LazyLock::new(|| {
+    BUILTIN_SKILLS.iter().map(|(name, content)| (name, content)).collect()
+});
+
+pub fn load_builtin(&self, tool: &str) -> Option<Skill> {
+    let tool_lc = tool.to_ascii_lowercase();
+    BUILTIN_SKILL_MAP.get(tool_lc.as_str()).and_then(|content| {
+        parse_skill_md(content)
+    })
+}
+```
+
+**Effort:** 1 hour | Quick win
+**Dependencies:** None
+**Verification:** Benchmark skill loading for builtin tools
+
+---
+
+### [P2] Finding: Multiple Regex Passes in Noise Removal
+
+**Location:** `src/doc_processor.rs:302-313`
+**Category:** Performance
+**Impact:** Medium - Called for every doc processing, applies 6 regex patterns sequentially
+
+**Problem:**
+`remove_noise` iterates over 6 regex patterns, applying each to the entire string. Each `replace_all` creates a new String. For large documentation (10KB+), this creates 6 intermediate Strings.
+
+**Current Code:**
+```rust
+fn remove_noise(&self, docs: &str) -> String {
+    let mut cleaned = docs.to_string();
+
+    // Apply statically-compiled noise patterns
+    for pattern in NOISE_PATTERNS.iter() {
+        cleaned = pattern.replace_all(&cleaned, "").to_string();
+    }
+
+    // Collapse multiple blank lines
+    cleaned = BLANK_LINE_RE.replace_all(&cleaned, "\n\n").to_string();
+    cleaned.trim().to_string()
+}
+```
+
+**Recommended Fix:**
+Combine patterns into a single regex using alternation:
+```rust
+static NOISE_COMBINED: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"For more information.*|Report bugs to.*|See the full documentation.*|Homepage:.*|^\s*Version:.*$|^\s*$"
+    ).expect("valid regex")
+});
+
+fn remove_noise(&self, docs: &str) -> String {
+    let cleaned = NOISE_COMBINED.replace_all(docs, "");
+    BLANK_LINE_RE.replace_all(&cleaned, "\n\n").trim().to_string()
+}
+```
+
+**Effort:** 1 hour | Quick win
+**Dependencies:** None
+**Verification:** Benchmark doc processing with large documentation
+
+---
+
+### [P2] Finding: Subcommand Help Fetching Creates Multiple Command Spawns
+
+**Location:** `src/docs.rs:289-365`
+**Category:** Performance
+**Impact:** Medium - Called when task mentions subcommand, spawns up to 7 processes
+
+**Problem:**
+`fetch_subcommand_help` tries multiple strategies: first standalone commands (one per keyword), then subcommand help (3 strategies), then bare invocation. This can spawn 7+ processes for a single subcommand fetch.
+
+**Current Code:**
+```rust
+// Try each keyword as a potential standalone command tool_keyword
+for keyword in &task_keywords {
+    let standalone_cmd = format!("{tool}_{keyword}");
+    if let Ok(help) = self.fetch_help(&standalone_cmd).map(|(h, _)| h) { ... }
+}
+
+// Strategy 1: Try standalone executable tool_subcommand
+let standalone_cmd = format!("{tool}_{subcmd}");
+if let Ok(help) = self.fetch_help(&standalone_cmd).map(|(h, _)| h) { ... }
+
+// Strategy 2: Try tool subcommand --help
+self.run_help_flag(tool, &format!("{subcmd} --help"))
+    .or_else(|_| self.run_help_flag(tool, &format!("{subcmd} -h")))
+```
+
+**Recommended Fix:**
+Prioritize based on tool type - most bioinformatics tools use `{tool} {subcommand}` pattern, skip standalone executable check for known tools. Or batch spawn with async race.
+
+**Effort:** 2 hours | Requires design
+**Dependencies:** Async refactor of doc fetching
+**Verification:** Benchmark subcommand help fetching
+
+---
+
+### [P2] Finding: Canonicalize Path Check in Local Doc Search
+
+**Location:** `src/docs.rs:598-603`
+**Category:** Performance
+**Impact:** Medium - Called per candidate path, filesystem syscall overhead
+
+**Problem:**
+`search_local_docs` calls `canonicalize()` on both `base_path` and `candidate` for each file check. `canonicalize()` is a syscall that resolves symlinks and performs filesystem lookup.
+
+**Current Code:**
+```rust
+if let Ok(canonical_base) = base_path.canonicalize()
+    && let Ok(canonical_candidate) = candidate.canonicalize()
+    && !canonical_candidate.starts_with(&canonical_base)
+{
+    continue;
+}
+```
+
+**Recommended Fix:**
+Use simpler path validation without canonicalize:
+```rust
+// Check if candidate path escapes base_path using simple string comparison
+fn is_path_within_base(candidate: &Path, base: &Path) -> bool {
+    candidate.strip_prefix(base).is_ok() ||
+    candidate.components().all(|c| c != std::path::Component::ParentDir)
+}
+```
+
+Or skip the check entirely if config paths are trusted (user-configured).
+
+**Effort:** 30 minutes | Quick win
+**Dependencies:** None
+**Verification:** Benchmark local doc search with 10+ configured paths
+
+---
+
+### [P3] Finding: Version Detection Spawns Multiple Processes
+
+**Location:** `src/docs.rs:380-406`
+**Category:** Performance
+**Impact:** Low - Called per doc fetch, spawns up to 4 processes for version detection
+
+**Problem:**
+`detect_version` tries "--version", "-V", "-v", "version" sequentially. Each is a blocking process spawn.
+
+**Current Code:**
+```rust
+let from_flag = self
+    .run_help_flag(tool, "--version")
+    .or_else(|_| self.run_help_flag(tool, "-V"))
+    .or_else(|_| self.run_help_flag(tool, "-v"))
+    .or_else(|_| self.run_help_flag(tool, "version"))
+    .ok()
+```
+
+**Recommended Fix:**
+Check help text first (lines 395-405) before spawning processes - most tools embed version in help output. Only spawn if not found.
+
+**Effort:** 30 minutes | Quick win
+**Dependencies:** None
+**Verification:** Benchmark version detection
+
+---
+
+### [P3] Finding: HTML Tag Stripping Creates Two Intermediate Strings
+
+**Location:** `src/docs.rs:1168-1196`
+**Category:** Performance
+**Impact:** Low - Called for HTML docs only, creates two pass-through Strings
+
+**Problem:**
+`strip_html_tags` creates `result` with capacity `html.len()`, then creates `out` separately for blank line collapsing.
+
+**Recommended Fix:**
+Combine into single pass with inline blank line detection.
+
+**Effort:** 1 hour | Quick win
+**Dependencies:** None
+**Verification:** Benchmark HTML doc processing
+
+---
+
+### [P3] Finding: Clean Help Output Creates Vec of All Lines
+
+**Location:** `src/docs.rs:1050-1147`
+**Category:** Performance
+**Impact:** Low - Called per help text, creates Vec<&str> for all lines
+
+**Problem:**
+`clean_help_output` collects all lines into Vec, then filters and reconstructs. For verbose help (500+ lines), this creates intermediate allocation.
+
+**Recommended Fix:**
+Use streaming approach with String builder, process lines without intermediate Vec.
+
+**Effort:** 30 minutes | Quick win
+**Dependencies:** None
+**Verification:** Benchmark help cleaning for verbose tools
+
+---
+
+### [P3] Finding: Synonym Expansion Iterates Over 32 Groups Per Token
+
+**Location:** `src/skill.rs:759-771`
+**Category:** Performance
+**Impact:** Low - Called per example selection, O(t * 32) iteration
+
+**Problem:**
+`expand_synonyms` copies original tokens to Vec, then iterates over each token and each of 32 synonym groups.
+
+**Recommended Fix:**
+Pre-build a HashMap mapping each synonym to its group for O(1) lookup.
+
+**Effort:** 30 minutes | Quick win
+**Dependencies:** None
+**Verification:** Benchmark example selection
+
+---
+
+### [P3] Finding: Cache Hash Normalization Creates Multiple Strings
+
+**Location:** `src/cache.rs:156-162`
+**Category:** Performance
+**Impact:** Low - Called per cache operation, creates normalized task via split/collect/join
+
+**Problem:**
+`compute_hash` normalizes task by splitting, collecting to Vec, joining. Creates Vec<&str> and final String.
+
+**Recommended Fix:**
+Normalize in-place while hashing with char iteration.
+
+**Effort:** 1 hour | Quick win
+**Dependencies:** None
+**Verification:** Unit tests for hash consistency
+
+---
+
+### [Good] LazyLock for Regex Compilation
+
+**Location:** `src/doc_processor.rs:24-47`
+**Category:** Architecture
+**Impact:** Positive - Regexes compiled once at first use
+
+**Analysis:**
+All regex patterns use `LazyLock`, ensuring compilation happens once and is reused across all calls.
+
+**Recommendation:** Maintain this pattern.
+
+---
+
+### [Good] Bounded Collection in MiniSkillCache
+
+**Location:** `src/mini_skill_cache.rs:18, 131-133`
+**Category:** Architecture
+**Impact:** Positive - LRU cache prevents unbounded growth
+
+**Analysis:**
+Uses `lru::LruCache` with bounded capacity (default 100), preventing memory bloat.
+
+**Recommendation:** Maintain bounded cache pattern.
+
+---
+
+### [Good] Atomic File Write Pattern
+
+**Location:** `src/docs.rs:477-487, src/index.rs:88-91`
+**Category:** Architecture
+**Impact:** Positive - Atomic write prevents corruption on concurrent access
+
+**Analysis:**
+Both `DocsFetcher::save_cache` and `DocIndex::save` use atomic write with UUID temp file. This prevents races between parallel invocations.
+
+**Recommendation:** Maintain this pattern for all file writes.
+
+---
+
+### [Good] Bounded Example Extraction
+
+**Location:** `src/doc_processor.rs:557-559`
+**Category:** Architecture
+**Impact:** Positive - Limits extracted examples to 10
+
+**Analysis:**
+Prevents unbounded memory usage when documentation has many example lines.
+
+**Recommendation:** Maintain this pattern.
+
+---
+
+## Summary Statistics
+
+| Module | P0 | P1 | P2 | P3 | Good | Total |
+|--------|----|----|----|----|------|-------|
+| LLM | 0 | 1 | 3 | 3 | 4 | 11 |
+| Orchestrator | 0 | 1 | 3 | 3 | 4 | 11 |
+| Runner | 0 | 3 | 5 | 4 | 5 | 17 |
+| Docs/Cache/Index | 0 | 2 | 6 | 6 | 4 | 18 |
+| **Total** | **0** | **7** | **17** | **16** | **17** | **57** |
+
+**Key Themes:**
+1. Sequential blocking process spawns in doc fetching
+2. Full cache rewrite on every hit (major inefficiency)
+3. Vec-based lookup instead of HashMap in index/skill modules
+4. Multiple regex/string passes for noise removal
+5. Path canonicalize syscalls in local doc search
+
+**Highest Impact Fix:**
+Remove `flush_to_disk` from `LlmCache::lookup` - this single change eliminates O(10,000) disk writes per cache hit.
