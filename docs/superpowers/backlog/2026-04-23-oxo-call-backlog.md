@@ -1983,3 +1983,615 @@ Prevents unbounded memory usage when documentation has many example lines.
 
 **Highest Impact Fix:**
 Remove `flush_to_disk` from `LlmCache::lookup` - this single change eliminates O(10,000) disk writes per cache hit.
+
+---
+
+## src/cli.rs Analysis
+
+The CLI module defines all command-line argument structures using clap derive macros. The file is 1528 lines with extensive command definitions, subcommands, and test coverage.
+
+**Public API Summary:**
+- `Cli` struct — root command with `--verbose` and `--license` global flags
+- `Commands` enum — 13 subcommands (Run, DryRun, Docs, Config, History, Skill, License, Workflow, Server, Job, Chat, Completion, Index)
+- Various scenario enums (`RunScenario`, `ChatScenario`, `ShellType`)
+- Extensive subcommand enums for each command namespace
+
+---
+
+### [P2] Finding: Clap Derive Generates String Clones for Args
+
+**Location:** `src/cli.rs` (entire file, clap derive)
+**Category:** Architecture
+**Impact:** Medium - Every CLI invocation creates String allocations for parsed args
+
+**Problem:**
+Clap's derive macros generate code that clones string arguments from the command line. Each `String` field in the CLI structs (`tool`, `task`, `model`, `url`, etc.) allocates a new owned String.
+
+**Current Code (implicit via clap):**
+```rust
+#[derive(Parser, Debug)]
+pub struct Cli {
+    #[arg(long, global = true)]
+    pub license: Option<PathBuf>, // PathBuf clone
+    // ...
+}
+
+Commands::Run {
+    tool: String,  // Clone from argv
+    task: String,  // Clone from argv
+    model: Option<String>, // Optional clone
+    // ...
+}
+```
+
+**Analysis:**
+This is **acceptable** because:
+1. CLI parsing happens once at startup (not a hot loop)
+2. The allocations are proportional to the number of args (typically 2-10)
+3. Clap's derive API is idiomatic and maintainable
+4. Custom parsing to avoid clones would be complex and fragile
+
+**Recommendation:** No change needed - startup overhead is negligible.
+
+**Effort:** N/A | Inherent to clap derive
+**Dependencies:** None
+**Verification:** N/A
+
+---
+
+### [P3] Finding: Vec<String> for --var and --input-items Parsing
+
+**Location:** `src/cli.rs:97, 108, 169-170, 307-313, 409-415`
+**Category:** Performance
+**Impact:** Low - Called at startup, creates Vec allocations for repeated flags
+
+**Problem:**
+The `--var` and `--input-items` flags collect values into `Vec<String>`. Each element is cloned from the parsed argument. The parsing later splits comma-separated items into more Strings.
+
+**Current Code:**
+```rust
+// CLI definition
+vars: Vec<String>,
+input_items: Option<String>,  // Single comma-separated string
+
+// In main.rs
+if let Some(ref items_str) = input_items {
+    v.extend(
+        items_str
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty()),
+    );
+}
+```
+
+**Recommended Fix:**
+For batch processing, the input item parsing is unavoidable. Consider lazy parsing - only split when needed. The current approach is acceptable because batch jobs have many items, and the allocation happens once at startup.
+
+**Effort:** N/A | Acceptable for startup
+**Dependencies:** None
+**Verification:** N/A
+
+---
+
+### [Good] Comprehensive Test Coverage for CLI Parsing
+
+**Location:** `src/cli.rs:1104-1527`
+**Category:** Architecture
+**Impact:** Positive - 35+ unit tests verify parsing correctness
+
+**Analysis:**
+The CLI module includes extensive test coverage for all command variants, flag combinations, and edge cases. Tests use `Cli::parse_from` which is efficient for test scenarios.
+
+**Recommendation:** Maintain this test coverage pattern.
+
+---
+
+## src/config.rs Analysis
+
+The config module handles configuration loading, saving, and environment variable resolution. It contains 1300+ lines with extensive model detection logic.
+
+**Public API Summary:**
+- `Config::load() -> Result<Config>` — loads from TOML file
+- `Config::save() -> Result<()>` — atomic write to TOML file
+- `Config::set(key, value)` — keyed config modification
+- `Config::get(key) -> Result<String>` — keyed config retrieval
+- `effective_*` methods — resolve config with env override priority
+- `infer_context_window(model) -> u32` — auto-detect context window
+- `infer_model_parameter_count(model) -> Option<f32>` — extract model size
+- `get_model_profile(model) -> ModelProfile` — model capability inference
+
+---
+
+### [P1] Finding: Blocking std::fs in Config::load()
+
+**Location:** `src/config.rs:254-262`
+**Category:** Performance
+**Impact:** High - Called at startup for every command, blocks async runtime
+
+**Problem:**
+`Config::load()` uses `std::fs::read_to_string` which is blocking. This is called at the start of every command in the main match block. For SSDs this is fast (<1ms), but for network-mounted config directories, this could block for seconds.
+
+**Current Code:**
+```rust
+pub fn load() -> Result<Self> {
+    let path = Self::config_path()?;
+    if !path.exists() {
+        return Ok(Self::default());
+    }
+    let content = std::fs::read_to_string(&path)?;
+    let config: Config = toml::from_str(&content)?;
+    Ok(config)
+}
+```
+
+**Recommended Fix:**
+Use `tokio::fs::read_to_string` for async loading. Since main.rs uses `#[tokio::main]`, the config load should be async:
+
+```rust
+pub async fn load() -> Result<Self> {
+    let path = Self::config_path()?;
+    if !tokio::fs::try_exists(&path).await? {
+        return Ok(Self::default());
+    }
+    let content = tokio::fs::read_to_string(&path).await?;
+    let config: Config = toml::from_str(&content)?;
+    Ok(config)
+}
+```
+
+However, TOML parsing (`toml::from_str`) is CPU-bound and should remain sync. Only the file I/O needs to be async.
+
+**Effort:** 2 hours | Requires design (async refactor)
+**Dependencies:** Changes to all callers in main.rs
+**Verification:** Benchmark config load latency
+
+---
+
+### [P2] Finding: Multiple Clone Calls in effective_* Methods
+
+**Location:** `src/config.rs:391-393, 449, 475, 482`
+**Category:** Performance
+**Impact:** Medium - Called for every config resolution, clones provider/model strings
+
+**Problem:**
+The `effective_provider()`, `effective_api_base()`, and `effective_model()` methods clone strings from the config struct. These methods are called frequently during command execution.
+
+**Current Code:**
+```rust
+pub fn effective_provider(&self) -> String {
+    Self::env_string(ENV_LLM_PROVIDER).unwrap_or_else(|| self.llm.provider.clone())
+}
+
+pub fn effective_api_base(&self) -> String {
+    // ...
+    if let Some(base) = &self.llm.api_base
+        && !base.is_empty()
+    {
+        return base.clone();  // Clone from Option<String>
+    }
+    // ...
+}
+
+pub fn effective_model(&self) -> String {
+    // ...
+    if let Some(model) = &self.llm.model
+        && !model.is_empty()
+        && model != "auto-selected"
+    {
+        return model.clone();  // Clone from Option<String>
+    }
+    // ...
+}
+```
+
+**Recommended Fix:**
+Return `Cow<'_, str>` to avoid allocation when returning stored values:
+
+```rust
+use std::borrow::Cow;
+
+pub fn effective_provider(&self) -> Cow<'_, str> {
+    if let Some(env) = Self::env_string(ENV_LLM_PROVIDER) {
+        Cow::Owned(env)
+    } else {
+        Cow::Borrowed(&self.llm.provider)
+    }
+}
+```
+
+However, the env override path still allocates (necessary). The benefit is only for the stored-config path.
+
+**Effort:** 3 hours | Requires signature changes across codebase
+**Dependencies:** All callers must handle Cow<str>
+**Verification:** Benchmark config resolution
+
+---
+
+### [P2] Finding: to_ascii_lowercase in Model Detection Functions
+
+**Location:** `src/config.rs:495, 772, 1052, 1140`
+**Category:** Performance
+**Impact:** Medium - Called for every context window/model profile resolution
+
+**Problem:**
+`model_size_category()`, `infer_context_window()`, `infer_model_parameter_count()`, and `get_model_profile()` all call `.to_ascii_lowercase()` on the model name. This creates a String allocation proportional to model name length.
+
+**Current Code:**
+```rust
+pub fn model_size_category(&self) -> &'static str {
+    let model = self.effective_model().to_lowercase();  // Allocation here
+    // ...
+}
+
+pub fn infer_context_window(model: &str) -> u32 {
+    let m = model.to_ascii_lowercase();  // Allocation here
+    // ...
+}
+
+pub fn infer_model_parameter_count(model: &str) -> Option<f32> {
+    let m = model.to_ascii_lowercase();  // Allocation here
+    // ...
+}
+
+pub fn get_model_profile(model: &str) -> ModelProfile {
+    let m = model.to_ascii_lowercase();  // Allocation here
+    // ...
+}
+```
+
+**Recommended Fix:**
+Use case-insensitive matching without allocation:
+
+```rust
+fn contains_ignore_case(haystack: &str, needle: &str) -> bool {
+    haystack.len() >= needle.len() &&
+    haystack.as_bytes()
+        .windows(needle.len())
+        .any(|w| w.iter()
+            .zip(needle.as_bytes())
+            .all(|(h, n)| h.eq_ignore_ascii_case(n)))
+}
+
+pub fn infer_context_window(model: &str) -> u32 {
+    // Use contains_ignore_case instead of to_ascii_lowercase().contains()
+    if contains_ignore_case(model, "gpt-4.1") || contains_ignore_case(model, "gpt4.1") {
+        return 1_047_576;
+    }
+    // ...
+}
+```
+
+Note: The current approach is clearer and more maintainable. The performance gain is small (model names are typically <50 chars). Consider this for hot paths only.
+
+**Effort:** 4 hours | Requires refactoring 4 functions
+**Dependencies:** None
+**Verification:** Benchmark model detection
+
+---
+
+### [P3] Finding: Format Allocations in Error Messages
+
+**Location:** `src/config.rs:322, 327, 338-340, 359-361`
+**Category:** Performance
+**Impact:** Low - Only on error paths, not hot loops
+
+**Problem:**
+Error messages use `format!()` which allocates. This is only triggered on invalid config values, so impact is minimal.
+
+**Current Code:**
+```rust
+OxoError::ConfigError(format!("Invalid max_tokens value: {value}"))
+OxoError::ConfigError(format!("Unknown config key: {key}. Valid keys: {}", VALID_CONFIG_KEYS.join(", ")))
+```
+
+**Analysis:**
+This is **acceptable** - errors should be informative and readable. The overhead only occurs on error paths which are exceptional.
+
+**Recommendation:** No change needed.
+
+**Effort:** N/A | Acceptable
+**Dependencies:** None
+**Verification:** N/A
+
+---
+
+### [Good] Atomic File Write Pattern in Config::save()
+
+**Location:** `src/config.rs:264-306`
+**Category:** Architecture
+**Impact:** Positive - Atomic write prevents corruption on concurrent access
+
+**Analysis:**
+Config saving uses atomic write pattern: write to temp file, then rename. This prevents readers from seeing half-written config. Also sets 0600 permissions for security (API tokens).
+
+**Recommendation:** Maintain this pattern.
+
+---
+
+### [Good] Config Resolution Priority Chain
+
+**Location:** `src/config.rs:391-482`
+**Category:** Architecture
+**Impact:** Positive - Correct env override > stored config > provider default priority
+
+**Analysis:**
+The `effective_*` methods implement correct resolution priority: environment variable overrides take precedence, then stored config, then provider-specific defaults. This allows users to override config without modifying the config file.
+
+**Recommendation:** Maintain this pattern.
+
+---
+
+## src/main.rs Analysis
+
+The main module is the application entry point with command routing. It contains 1500+ lines with the main match statement handling all subcommands.
+
+**Architecture Summary:**
+- `#[tokio::main]` async runtime setup
+- Error handler installation (color-eyre)
+- License verification for non-exempt commands
+- Large match statement dispatching 13+ commands
+- Each command loads config and constructs appropriate handler
+
+---
+
+### [P1] Finding: Config::load() Called Multiple Times Per Run
+
+**Location:** `src/main.rs:205, 257, 362, 451, 537, etc.`
+**Category:** Performance
+**Impact:** High - Config loaded separately for each command branch
+
+**Problem:**
+`Config::load()` is called in each match arm separately. For most commands, config is loaded at the start of the arm. Some commands load config twice (e.g., Config::Set loads, modifies, then saves - which reloads internally).
+
+**Current Code:**
+```rust
+match cli.command {
+    Commands::Chat { .. } => {
+        let mut cfg = config::Config::load()?;  // Load #1
+        // ...
+    }
+    Commands::Run { .. } => {
+        let mut cfg = config::Config::load()?;  // Load #2
+        // ...
+    }
+    Commands::Docs { command } => match command {
+        DocsCommands::Add { .. } => {
+            let cfg = config::Config::load()?;  // Load #3
+            // ...
+        }
+        DocsCommands::Remove { .. } => {
+            let cfg = config::Config::load()?;  // Load #4
+            // ...
+        }
+        // Each subcommand loads config again
+    }
+}
+```
+
+**Recommended Fix:**
+Load config once before the match and pass to each command handler:
+
+```rust
+async fn run(cli: Cli) -> error::Result<()> {
+    // Load config once (except for exempt commands)
+    let cfg = if !license_exempt {
+        config::Config::load()?
+    } else {
+        config::Config::default()  // License commands don't need config
+    };
+
+    match cli.command {
+        Commands::Chat { tool, question, model, .. } => {
+            let mut cfg = cfg.clone();
+            if let Some(ref m) = model {
+                cfg.llm.model = Some(m.clone());
+            }
+            // ...
+        }
+        // ...
+    }
+}
+```
+
+Note: Config cloning is cheap (it's mostly String fields). This eliminates multiple file reads.
+
+**Effort:** 2 hours | Quick win
+**Dependencies:** None
+**Verification:** Benchmark startup time
+
+---
+
+### [P2] Finding: Runner Builder Pattern Creates Intermediate Allocations
+
+**Location:** `src/main.rs:325-344, 428-440`
+**Category:** Performance
+**Impact:** Medium - Runner construction creates multiple intermediate structs
+
+**Problem:**
+The Runner builder pattern creates intermediate Runner structs with each `.with_*` call. Each call clones the runner and returns a new instance with the modification.
+
+**Current Code:**
+```rust
+let runner = runner::Runner::new(cfg)  // Creates Runner
+    .with_verbose(verbose)              // Clones Runner, modifies
+    .with_no_cache(no_cache)            // Clones Runner, modifies
+    .with_no_skill(no_skill)            // Clones Runner, modifies
+    .with_no_doc(no_doc)                // Clones Runner, modifies
+    .with_no_prompt(no_prompt)          // Clones Runner, modifies
+    .with_verify(verify)                // Clones Runner, modifies
+    .with_auto_retry(auto_retry)        // Clones Runner, modifies
+    .with_no_stream(no_stream);         // Clones Runner, modifies
+// 8 intermediate allocations
+```
+
+**Recommended Fix:**
+Use mutable builder pattern that modifies in-place:
+
+```rust
+let mut runner = runner::Runner::new(cfg);
+runner.verbose = verbose;
+runner.no_cache = no_cache;
+runner.no_skill = no_skill;
+runner.no_doc = no_doc;
+runner.no_prompt = no_prompt;
+runner.verify = verify;
+runner.auto_retry = auto_retry;
+runner.no_stream = no_stream;
+// Zero intermediate allocations
+```
+
+Or restructure the builder to use `&mut self` instead of `self`:
+
+```rust
+impl Runner {
+    pub fn with_verbose(&mut self, verbose: bool) -> &mut Self {
+        self.verbose = verbose;
+        self
+    }
+}
+```
+
+**Effort:** 3 hours | Requires Runner refactor
+**Dependencies:** Changes to runner module API
+**Verification:** Benchmark runner construction
+
+---
+
+### [P3] Finding: Vec<String> Allocation for Input Items
+
+**Location:** `src/main.rs:299-313, 403-417`
+**Category:** Performance
+**Impact:** Low - Called for batch commands, proportional to item count
+
+**Problem:**
+Input items from `--input-list` and `--input-items` are collected into a Vec<String>, with each item trimmed and converted to owned String.
+
+**Current Code:**
+```rust
+let all_items = {
+    let mut v: Vec<String> = Vec::new();
+    if let Some(ref path) = input_list {
+        v.extend(job::read_input_list(path)?);  // Reads file, creates Vec
+    }
+    if let Some(ref items_str) = input_items {
+        v.extend(
+            items_str
+                .split(',')
+                .map(|s| s.trim().to_string())  // Allocation per item
+                .filter(|s| !s.is_empty()),
+        );
+    }
+    v
+};
+```
+
+**Analysis:**
+This is **acceptable** for batch processing. The items must be owned Strings for the Runner to use them across async execution. The allocation is proportional to the batch size, which is intentional.
+
+**Recommendation:** No change needed.
+
+**Effort:** N/A | Acceptable
+**Dependencies:** None
+**Verification:** N/A
+
+---
+
+### [P3] Finding: HashMap<String, String> for Vars
+
+**Location:** `src/main.rs:315-323, 419-426`
+**Category:** Performance
+**Impact:** Low - Called for commands with --var flags, proportional to var count
+
+**Problem:**
+Variable parsing creates a HashMap with owned String keys and values. Each var is parsed and both key and value are cloned.
+
+**Current Code:**
+```rust
+let var_map = {
+    let mut m = std::collections::HashMap::new();
+    for v in &vars {
+        let (k, val) = job::parse_var(v)?;  // Returns (String, String)
+        m.insert(k, val);
+    }
+    m
+};
+```
+
+**Analysis:**
+This is **acceptable** - var maps are typically small (1-5 entries) and the HashMap lookup overhead is minimal. The owned strings are needed for Runner to use them.
+
+**Recommendation:** No change needed.
+
+**Effort:** N/A | Acceptable
+**Dependencies:** None
+**Verification:** N/A
+
+---
+
+### [Good] Early License Check for Exempt Commands
+
+**Location:** `src/main.rs:178-190`
+**Category:** Architecture
+**Impact:** Positive - Skip license verification for help/completion commands
+
+**Analysis:**
+License verification is skipped for `Commands::License` and `Commands::Completion`. This allows users to check license status and generate shell completions without a valid license file.
+
+```rust
+let license_exempt = matches!(
+    cli.command,
+    Commands::License { .. } | Commands::Completion { .. }
+);
+```
+
+**Recommendation:** Maintain this pattern.
+
+---
+
+### [Good] Error Handler Installation at Startup
+
+**Location:** `src/main.rs:88-91`
+**Category:** Architecture
+**Impact:** Positive - color-eyre provides enhanced error reporting with backtraces
+
+**Analysis:**
+Error handler is installed early, providing colorful error output with backtraces for debugging. The failure to install is logged but doesn't abort.
+
+```rust
+if let Err(e) = error::install_error_handler() {
+    eprintln!("warning: failed to install color-eyre handler: {e}");
+}
+```
+
+**Recommendation:** Maintain this pattern.
+
+---
+
+## Summary Statistics (Updated)
+
+| Module | P0 | P1 | P2 | P3 | Good | Total |
+|--------|----|----|----|----|------|-------|
+| LLM | 0 | 1 | 3 | 3 | 4 | 11 |
+| Orchestrator | 0 | 1 | 3 | 3 | 4 | 11 |
+| Runner | 0 | 3 | 5 | 4 | 5 | 17 |
+| Docs/Cache/Index | 0 | 2 | 6 | 6 | 4 | 18 |
+| CLI | 0 | 0 | 1 | 1 | 1 | 3 |
+| Config | 0 | 1 | 2 | 1 | 2 | 6 |
+| Main | 0 | 1 | 1 | 2 | 2 | 6 |
+| **Total** | **0** | **8** | **17** | **18** | **22** | **65** |
+
+**Key Themes (Updated):**
+1. Sequential blocking process spawns in doc fetching (P1)
+2. Full cache rewrite on every hit (P1)
+3. Blocking std::fs in Config::load() (P1)
+4. Config loaded multiple times per command (P1)
+5. Runner builder creates intermediate allocations (P2)
+6. Multiple clone() in effective_* methods (P2)
+7. to_ascii_lowercase in model detection (P2)
+8. Vec-based lookup instead of HashMap (P2)
+
+**Highest Impact Fixes:**
+1. Remove `flush_to_disk` from `LlmCache::lookup` (eliminates O(10,000) disk writes)
+2. Load config once before command dispatch (eliminates multiple file reads)
+3. Use async fs for config loading (prevents blocking on network-mounted configs)
