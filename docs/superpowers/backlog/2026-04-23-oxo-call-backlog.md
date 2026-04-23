@@ -3379,3 +3379,407 @@ The retry logic correctly distinguishes transient network errors ("unreachable",
    - Proper transient error detection for retries
    - Canonical URI fast path avoids list overhead
    - Hardcoded timeout, not per-server configurable
+---
+
+## src/engine.rs Analysis
+
+The module is a workflow DAG engine for bioinformatics pipelines (1600+ lines). It parses `.oxo.toml` files, expands wildcard patterns, computes execution phases, and exports to Snakemake/Nextflow. Uses blocking std::process::Command for task execution, async tokio for parallel workflow runs.
+
+**Public API Summary:**
+- `WorkflowDef::from_file(path)` — Parse TOML workflow definition
+- `WorkflowDef::from_str_content(s)` — Parse workflow from string
+- `expand(def)` — Expand wildcards into ConcreteTask DAG
+- `compute_phases(tasks)` — Group tasks by parallel phases
+- `execute(tasks, dry_run)` — Async DAG execution with checkpointing
+- `verify(def)` — Semantic validation, returns diagnostics
+- `to_snakemake(def)` / `to_nextflow(def)` — Export to external formats
+
+---
+
+### [P1] Finding: Wildcard Combination Generates Exponential Clone Chains
+
+**Location:** `src/engine.rs:154-175`
+**Category:** Performance
+**Impact:** High - O(n^m) allocations for m wildcards with n values each
+
+**Problem:**
+`wildcard_combinations` uses iterative expansion where each iteration clones all existing HashMaps and inserts new keys. For a workflow with 3 wildcards (sample=[s1,s2,s3], lane=[1,2], type=[bam,cram]), this creates 12 intermediate HashMap clones, each with full key-value copies.
+
+**Current Code:**
+```rust
+let mut result: Vec<HashMap<String, String>> = vec![HashMap::new()];
+let mut keys: Vec<&String> = wildcards.keys().collect();
+keys.sort();
+for key in keys {
+    let values = &wildcards[key];
+    let mut next = Vec::new();
+    for val in values {
+        for existing in &result {
+            let mut m = existing.clone();  // Full HashMap clone per iteration
+            m.insert(key.clone(), val.clone());
+            next.push(m);
+        }
+    }
+    result = next;
+}
+```
+
+**Recommended Fix:**
+Use index-based binding generation to avoid intermediate HashMap cloning:
+```rust
+fn wildcard_combinations(wildcards: &HashMap<String, Vec<String>>) -> Vec<HashMap<String, String>> {
+    if wildcards.is_empty() {
+        return vec![HashMap::new()];
+    }
+    let mut keys: Vec<&String> = wildcards.keys().collect();
+    keys.sort();
+    let total = keys.iter().map(|k| wildcards[k].len()).product::<usize>();
+    let mut result = Vec::with_capacity(total);
+    for i in 0..total {
+        let mut binding = HashMap::with_capacity(keys.len());
+        let mut idx = i;
+        for key in &keys {
+            let values = &wildcards[*key];
+            binding.insert(key.clone(), values[idx % values.len()].clone());
+            idx /= values.len();
+        }
+        result.push(binding);
+    }
+    result
+}
+```
+
+**Effort:** 2 hours | Requires design (index-based generation)
+**Dependencies:** None
+**Verification:** Benchmark workflow expansion with 10+ wildcard values per key
+
+---
+
+### [P1] Finding: Template Substitution Creates Multiple String Copies
+
+**Location:** `src/engine.rs:178-197`
+**Category:** Performance
+**Impact:** High - Called for every expanded task, creates 2-4 String copies per substitution
+
+**Problem:**
+`substitute` creates a copy of the template, then iterates over bindings and params calling `replace()` which creates a new String for each key. A command with 4 wildcards and 2 params creates 6+ intermediate Strings.
+
+**Current Code:**
+```rust
+fn substitute(template: &str, bindings: &HashMap<String, String>, params: &HashMap<String, String>) -> String {
+    let mut s = template.to_string();  // Initial copy
+    for (k, v) in bindings {
+        s = s.replace(&format!("{{{k}}}"), v);  // New String per wildcard
+    }
+    for (k, v) in params {
+        s = s.replace(&format!("{{params.{k}}}"), v);
+        if !bindings.contains_key(k.as_str()) {
+            s = s.replace(&format!("{{{k}}}"), v);
+        }
+    }
+    s
+}
+```
+
+**Recommended Fix:**
+Use single-pass substitution with capacity estimation - extract placeholder name from `{...}` and lookup in bindings/params directly, pushing matched value to result String.
+
+**Effort:** 2 hours | Requires design (single-pass parsing)
+**Dependencies:** None
+**Verification:** Benchmark substitution with templates containing 10+ placeholders
+
+---
+
+### [P1] Finding: format! Macro in Nested Loops for Wildcard Pattern Detection
+
+**Location:** `src/engine.rs:210-217`
+**Category:** Performance
+**Impact:** High - Called for every step during expansion, creates format! String per wildcard key
+
+**Problem:**
+`uses_wildcards` creates a format! String for each wildcard key inside a loop. This allocation is discarded immediately if the pattern is not found.
+
+**Current Code:**
+```rust
+fn uses_wildcards(step: &StepDef, wildcards: &HashMap<String, Vec<String>>) -> bool {
+    wildcards.keys().any(|k| {
+        let pat = format!("{{{k}}}");  // Allocation per key
+        step.cmd.contains(&pat) || ...
+    })
+}
+```
+
+**Recommended Fix:**
+Pre-compute patterns once at workflow level and pass cached patterns to `uses_wildcards_cached(step, patterns)`. 
+
+**Effort:** 30 minutes | Quick win
+**Dependencies:** None
+**Verification:** Benchmark workflow expansion for 100+ steps
+
+---
+
+### [P2] Finding: task_id Creates Vec and Format for Binding Display
+
+**Location:** `src/engine.rs:199-207`
+**Category:** Performance
+**Impact:** Medium - Called for every concrete task, creates Vec + format! Strings
+
+**Problem:**
+`task_id` collects bindings into Vec of formatted strings, then joins them. This creates O(n) allocations for n bindings.
+
+**Recommended Fix:**
+Build ID directly with sorted iteration using pre-allocated String capacity.
+
+**Effort:** 30 minutes | Quick win
+**Dependencies:** None
+**Verification:** Unit tests for task ID generation
+
+---
+
+### [P2] Finding: Repeated format! Calls in Export Functions
+
+**Location:** `src/engine.rs:817-926 (to_snakemake), 931-1027 (to_nextflow)`
+**Category:** Performance
+**Impact:** Medium - Called during export, creates hundreds of format! Strings for large workflows
+
+**Problem:**
+Both export functions use `format!()` extensively in loops. Each line creates a new String. For a 50-step workflow, this creates 200+ allocations.
+
+**Recommended Fix:**
+Use push_str with inline string building or std::fmt::Write macro for efficient formatting.
+
+**Effort:** 1.5 hours | Requires design
+**Dependencies:** None
+**Verification:** Benchmark export for 100-step workflow
+
+---
+
+### [P2] Finding: Phase Computation Partition Creates Two Vecs Per Iteration
+
+**Location:** `src/engine.rs:383-406`
+**Category:** Performance
+**Impact:** Medium - Called during execution start, creates Vec partitions until tasks assigned
+
+**Problem:**
+`compute_phases` uses `.partition()` which creates two Vecs each iteration. For a 20-phase workflow, this creates 40 intermediate Vecs.
+
+**Recommended Fix:**
+Use in-place filtering with Vec<usize> indices and swap-remove pattern.
+
+**Effort:** 1 hour | Quick win
+**Dependencies:** None
+**Verification:** Unit tests for phase computation
+
+---
+
+### [P2] Finding: HashSet Clone on Every Checkpoint Update
+
+**Location:** `src/engine.rs:609-615`
+**Category:** Performance
+**Impact:** Medium - Called at execution start, clones entire checkpoint set
+
+**Problem:**
+The `done` HashSet is cloned from checkpoint on workflow start. For workflows with 500+ tasks, this creates a large HashSet copy.
+
+**Recommended Fix:**
+Use move instead of clone for `checkpoint.completed_tasks` and only clone `started` set.
+
+**Effort:** 30 minutes | Minor optimization
+**Dependencies:** None
+**Verification:** N/A
+
+---
+
+### [Good] Early Termination in uses_wildcards
+
+**Location:** `src/engine.rs:210-217`
+**Category:** Architecture
+**Impact:** Positive - Uses `.any()` for early termination
+
+**Analysis:**
+The `.any()` iterator short-circuits on first match, avoiding unnecessary checks for remaining wildcard keys.
+
+**Recommendation:** Maintain this pattern.
+
+---
+
+### [Good] Sorted Key Iteration for Deterministic Output
+
+**Location:** `src/engine.rs:159-161, 833-835, 946-948`
+**Category:** Architecture
+**Impact:** Positive - Ensures deterministic ordering for exports and IDs
+
+**Analysis:**
+All HashMap iteration uses sorted keys, ensuring consistent ordering for workflow IDs, Snakemake export, and Nextflow export.
+
+**Recommendation:** Maintain this pattern for all user-facing output.
+
+---
+
+### [Good] Atomic File Write for Checkpoints
+
+**Location:** `src/engine.rs:517-526`
+**Category:** Architecture
+**Impact:** Positive - Atomic write prevents corruption
+
+**Analysis:**
+Uses temp file + rename pattern for atomic checkpoint writes, preventing partial writes on crash.
+
+**Recommendation:** Maintain this pattern for all file writes.
+
+---
+
+### [Good] Async JoinSet for Parallel Task Execution
+
+**Location:** `src/engine.rs:560-736`
+**Category:** Architecture
+**Impact:** Positive - Correct async parallel execution with JoinSet
+
+**Analysis:**
+Uses `tokio::task::JoinSet` for proper parallel task execution, avoiding blocking on individual tasks.
+
+**Recommendation:** Maintain this pattern for all parallel async execution.
+
+---
+
+## src/generator.rs Analysis
+
+The module provides command generation abstraction (490 lines). Implements the Strategy pattern with three generators: LlmCommandGenerator (primary), RuleCommandGenerator (pattern matching), and CompositeGenerator (chain of responsibility).
+
+**Public API Summary:**
+- `CommandGenerator` trait — async `generate(tool, docs, skill, request, config)`
+- `LlmCommandGenerator` — Uses LlmClient.suggest_command
+- `RuleCommandGenerator` — Pattern matching with default rules
+- `CompositeGenerator` — Chains generators in priority order
+
+---
+
+### [P2] Finding: Linear Search Over Rules Vec in RuleCommandGenerator
+
+**Location:** `src/generator.rs:359-363`
+**Category:** Performance
+**Impact:** Medium - Called for every rule-based command, O(n) search over rules Vec
+
+**Problem:**
+`RuleCommandGenerator::generate` iterates over the `rules` Vec sequentially to find a matching rule. For each rule, `matches` is called which creates a lowercase String.
+
+**Recommended Fix:**
+Build a tool-indexed HashMap for faster rule lookup: `rules_by_tool: HashMap<String, Vec<CommandRule>>`.
+
+**Effort:** 1 hour | Quick win
+**Dependencies:** None
+**Verification:** Benchmark rule-based generation
+
+---
+
+### [P2] Finding: Case-Insensitive Match Creates Lowercase String
+
+**Location:** `src/generator.rs:263-274`
+**Category:** Performance
+**Impact:** Medium - Called for every rule match attempt, creates lowercase String per attempt
+
+**Problem:**
+`matches` converts the request to lowercase for comparison, creating a String allocation even when no match is found. Also `p.to_lowercase()` is called per pattern.
+
+**Recommended Fix:**
+Pre-store patterns in lowercase at rule construction time, then use single `request.to_lowercase()` with pre-stored lowercase patterns.
+
+**Effort:** 30 minutes | Quick win
+**Dependencies:** None
+**Verification:** Unit tests for rule matching
+
+---
+
+### [P2] Finding: apply() Creates Vec for Word Splitting
+
+**Location:** `src/generator.rs:277-300`
+**Category:** Performance
+**Impact:** Medium - Called for every rule match, creates Vec<&str> for word extraction
+
+**Problem:**
+`apply` splits the request into words and collects them into Vec, then iterates for file name extraction.
+
+**Recommended Fix:**
+Use iterator directly without intermediate Vec, track previous word for "to <file>" pattern detection.
+
+**Effort:** 30 minutes | Quick win
+**Dependencies:** None
+**Verification:** Unit tests for rule application
+
+---
+
+### [P2] Finding: Template Replace Creates Two Intermediate Strings
+
+**Location:** `src/generator.rs:326-329`
+**Category:** Performance
+**Impact:** Medium - Called for every rule match, creates 2 replace Strings
+
+**Problem:**
+Template application uses chained `replace()` calls which create intermediate Strings.
+
+**Recommended Fix:**
+Build string directly with single pass, checking for `{input}` and `{output}` placeholders.
+
+**Effort:** 30 minutes | Quick win
+**Dependencies:** None
+**Verification:** Unit tests for template application
+
+---
+
+### [Good] Chain of Responsibility Pattern in CompositeGenerator
+
+**Location:** `src/generator.rs:380-442`
+**Category:** Architecture
+**Impact:** Positive - Clean pattern for fallback generation
+
+**Analysis:**
+The CompositeGenerator properly implements the chain pattern with early termination on success and proper error aggregation.
+
+**Recommendation:** Maintain this pattern for all multi-strategy approaches.
+
+---
+
+### [Good] Trait Design with Borrowed Parameters
+
+**Location:** `src/generator.rs:86-112`
+**Category:** Architecture
+**Impact:** Positive - Trait uses borrowed params for efficiency
+
+**Analysis:**
+All parameters are borrowed (`&str`, `Option<&Skill>`, `&Config`), enabling efficient implementations without forcing caller allocations.
+
+**Recommendation:** Maintain this pattern for all trait definitions.
+
+---
+
+## Summary Statistics (Final)
+
+| Module | P0 | P1 | P2 | P3 | Good | Total |
+|--------|----|----|----|----|------|-------|
+| LLM | 0 | 1 | 3 | 3 | 4 | 11 |
+| Orchestrator | 0 | 1 | 3 | 3 | 4 | 11 |
+| Runner | 0 | 3 | 5 | 4 | 5 | 17 |
+| Docs/Cache/Index | 0 | 2 | 6 | 6 | 4 | 18 |
+| CLI | 0 | 0 | 1 | 1 | 1 | 3 |
+| Config | 0 | 1 | 2 | 1 | 2 | 6 |
+| Main | 0 | 1 | 1 | 2 | 2 | 6 |
+| Knowledge | 0 | 0 | 2 | 3 | 2 | 7 |
+| Workflow | 0 | 1 | 2 | 1 | 2 | 6 |
+| MCP | 0 | 0 | 2 | 2 | 4 | 8 |
+| Engine | 0 | 3 | 4 | 0 | 4 | 11 |
+| Generator | 0 | 0 | 4 | 0 | 2 | 6 |
+| **Total** | **0** | **11** | **29** | **23** | **30** | **93** |
+
+**Key Architecture Themes (Engine/Generator):**
+1. Exponential clone chains in wildcard expansion (major inefficiency)
+2. Template substitution creates multiple intermediate Strings per task
+3. format! macro in nested loops for workflow export
+4. Linear Vec search instead of HashMap in generator rules
+5. Case-insensitive comparison with repeated lowercase allocations
+
+**Highest Impact Fixes:**
+1. Remove `flush_to_disk` from `LlmCache::lookup` (eliminates O(10,000) disk writes per hit)
+2. Load config once before command dispatch (eliminates multiple file reads)
+3. Index-based wildcard combination generation (eliminates O(n^m * m) allocations)
+4. Single-pass template substitution (eliminates 2-4 String copies per task)
+5. HashMap-indexed rules in RuleCommandGenerator (O(1) tool lookup)
