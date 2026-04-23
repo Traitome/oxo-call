@@ -786,3 +786,704 @@ for p in practices.iter().take(3) {
 This prevents excessive hint accumulation while ensuring relevant suggestions.
 
 **Recommendation:** Maintain this bounded iteration pattern.
+
+---
+
+## src/runner/mod.rs Analysis
+
+The module entry point is a clean re-export module (29 lines) with four sub-modules:
+- `core`: Runner struct and primary methods (prepare, run, dry_run)
+- `batch`: Batch/parallel execution with semaphore-limited concurrency
+- `retry`: Auto-retry and LLM verification
+- `utils`: Helper functions (command building, risk assessment)
+- `validation`: Post-generation argument validation
+
+**Public API Summary:**
+- `Runner` struct — main execution orchestrator
+- `is_companion_binary(tool, candidate) -> bool` — companion binary detection
+- `is_script_executable(candidate) -> bool` — script extension recognition
+- `make_spinner(msg) -> ProgressBar` — progress spinner creation
+
+---
+
+### [P1] Finding: Vec Allocation in Command String Building Hot Path
+
+**Location:** `src/runner/utils.rs:19-43`
+**Category:** Performance
+**Impact:** High - Called for every generated command, creates Vec + multiple String allocations
+
+**Problem:**
+`build_command_string` creates a `Vec<String>` for formatted arguments, then joins them. Each argument is cloned at least once, and arguments needing quoting are cloned twice (once for escaping, once for Vec push).
+
+**Current Code:**
+```rust
+pub(crate) fn build_command_string(tool: &str, args: &[String]) -> String {
+    // ...
+    let args_str: Vec<String> = eff_args
+        .iter()
+        .map(|a| {
+            if is_shell_operator(a) {
+                a.clone()
+            } else if needs_quoting(a) {
+                format!("'{}'", a.replace('\'', "'\\''"))
+            } else {
+                a.clone()
+            }
+        })
+        .collect();
+    format!("{eff_tool} {}", args_str.join(" "))
+}
+```
+
+**Recommended Fix:**
+Build the string directly with pre-allocated capacity:
+```rust
+pub(crate) fn build_command_string(tool: &str, args: &[String]) -> String {
+    if args.is_empty() {
+        return tool.to_string();
+    }
+    let (eff_tool, eff_args) = effective_command(tool, args);
+    if eff_args.is_empty() {
+        return eff_tool.to_string();
+    }
+
+    // Estimate capacity: tool + args + spaces + quoting overhead
+    let estimated_len = eff_tool.len() + eff_args.len() +
+        eff_args.iter().map(|a| a.len() + 4).sum::<usize>();
+    let mut result = String::with_capacity(estimated_len);
+    result.push_str(eff_tool);
+
+    for (i, arg) in eff_args.iter().enumerate() {
+        result.push(' ');
+        if is_shell_operator(arg) {
+            result.push_str(arg);
+        } else if needs_quoting(arg) {
+            result.push('\'');
+            for c in arg.chars() {
+                if c == '\'' {
+                    result.push_str("'\\''");
+                } else {
+                    result.push(c);
+                }
+            }
+            result.push('\'');
+        } else {
+            result.push_str(arg);
+        }
+    }
+    result
+}
+```
+
+**Effort:** 2 hours | Requires design (capacity estimation)
+**Dependencies:** None
+**Verification:** Benchmark command building with 20+ arguments
+
+---
+
+### [P1] Finding: Sequential Doc + Skill Fetching in prepare()
+
+**Location:** `src/runner/core.rs:288-344`
+**Category:** Performance
+**Impact:** High - prepare() is called for every command, doc/skill fetch is sequential
+
+**Problem:**
+The `prepare` method runs skill loading first (async), determines if docs are needed, then fetches docs. While skill loading is async, the doc fetch decision depends on skill quality, so they cannot be truly parallel. However, the spinner is created before skill loading, causing unnecessary spinner overhead when skill is high-quality.
+
+**Current Code:**
+```rust
+let spinner = if !self.no_doc {
+    make_spinner(&format!("Fetching documentation for '{tool}'..."))
+} else {
+    make_spinner("Loading skill...")
+};
+
+// Load skill first to determine if doc is needed
+let skill_future = async { ... };
+let skill = skill_future.await;
+
+// Determine if we need documentation based on skill quality
+let should_fetch_doc = if self.no_doc { false } else if skill.is_none() { true } else { ... };
+
+let docs_future = async { if !should_fetch_doc { Ok(String::new()) } else { self.resolve_docs(tool, task).await } };
+let docs_result = docs_future.await;
+spinner.finish_and_clear();
+```
+
+**Recommended Fix:**
+Remove spinner when no fetch needed, and use conditional spinner creation:
+```rust
+// Load skill first (fast, usually cached)
+let skill = if self.no_skill {
+    None
+} else {
+    self.skill_manager.load_async(tool).await
+};
+
+// Determine doc need and show spinner only when fetching
+let should_fetch_doc = /* same logic */;
+let docs = if !should_fetch_doc {
+    String::new()
+} else {
+    let spinner = make_spinner(&format!("Fetching documentation for '{tool}'..."));
+    let result = self.resolve_docs(tool, task).await;
+    spinner.finish_and_clear();
+    result?
+};
+```
+
+This removes spinner creation overhead when skill is high-quality (no doc fetch).
+
+**Effort:** 1 hour | Quick win
+**Dependencies:** None
+**Verification:** Benchmark prepare() with high-quality skill (no doc fetch)
+
+---
+
+### [P2] Finding: format! for Companion Binary Prefix Patterns
+
+**Location:** `src/runner/utils.rs:127-133`
+**Category:** Performance
+**Impact:** Medium - Called in is_companion_binary for every companion check, creates 2 String allocations
+
+**Problem:**
+`is_companion_binary` creates `hyphen_prefix` and `underscore_prefix` with `format!()` on every call. These patterns could be checked without allocation.
+
+**Current Code:**
+```rust
+// Forward prefix: {tool}- or {tool}_
+let hyphen_prefix = format!("{tool}-");
+let underscore_prefix = format!("{tool}_");
+if stem.starts_with(&hyphen_prefix) || stem.starts_with(&underscore_prefix) {
+    return true;
+}
+```
+
+**Recommended Fix:**
+Check prefix patterns directly without allocation:
+```rust
+// Forward prefix: {tool}- or {tool}_
+if stem.len() > tool.len() + 1 {
+    let prefix_part = &stem[..tool.len()];
+    if prefix_part.eq_ignore_ascii_case(tool) {
+        let delim = stem[tool.len()..].chars().next();
+        if delim == Some('-') || delim == Some('_') {
+            return true;
+        }
+    }
+}
+```
+
+**Effort:** 30 minutes | Quick win
+**Dependencies:** None
+**Verification:** Unit tests for companion binary detection
+
+---
+
+### [P2] Finding: Vec<char> Allocation in Version Parsing
+
+**Location:** `src/runner/utils.rs:198-220`
+**Category:** Performance
+**Impact:** Medium - Called for every skill with version constraints
+
+**Problem:**
+`parse_version` collects the version string into a `Vec<char>` for iteration. This creates an allocation proportional to the version string length.
+
+**Current Code:**
+```rust
+let chars: Vec<char> = version.chars().collect();
+let mut i = 0;
+while i < chars.len() {
+    if chars[i].is_ascii_digit() { ... }
+    // ...
+}
+```
+
+**Recommended Fix:**
+Use char iterator directly with peekable:
+```rust
+let mut chars = version.chars().peekable();
+let mut candidates: Vec<(usize, usize)> = Vec::new();
+let mut pos = 0;
+
+while let Some(c) = chars.next() {
+    if c.is_ascii_digit() {
+        let start = pos;
+        let mut has_dot = false;
+        while let Some(&next) = chars.peek() {
+            if next.is_ascii_digit() || next == '.' {
+                if next == '.' { has_dot = true; }
+                chars.next();
+                pos += 1;
+            } else {
+                break;
+            }
+        }
+        pos += 1; // for the initial digit
+        if has_dot {
+            candidates.push((start, pos));
+        }
+    } else {
+        pos += 1;
+    }
+}
+```
+
+Note: This approach still needs to track positions for slicing. A simpler alternative is to use regex if available.
+
+**Effort:** 1 hour | Quick win
+**Dependencies:** None
+**Verification:** Unit tests for version parsing
+
+---
+
+### [P2] Finding: HashSet + Vec Allocation in Output File Detection
+
+**Location:** `src/runner/utils.rs:293-341`
+**Category:** Performance
+**Impact:** Medium - Called for verification, creates Vec + HashSet allocations
+
+**Problem:**
+`detect_output_files` creates a Vec for collected files and a HashSet for deduplication. The nested loops over OUTPUT_FLAGS (12 flags) iterate twice per argument.
+
+**Current Code:**
+```rust
+let mut files = Vec::new();
+for (i, arg) in args.iter().enumerate() {
+    for &flag in OUTPUT_FLAGS {
+        if let Some(val) = arg.strip_prefix(&format!("{flag}=")) { ... }
+    }
+    for &flag in OUTPUT_FLAGS {
+        if arg == flag && let Some(val) = args.get(i + 1) { ... }
+    }
+}
+let mut seen = HashSet::new();
+files.retain(|f| seen.insert(f.clone()));
+```
+
+**Recommended Fix:**
+Use HashSet directly during collection to avoid Vec + retain:
+```rust
+let mut files = std::collections::HashSet::new();
+for (i, arg) in args.iter().enumerate() {
+    if skip_next { skip_next = false; continue; }
+    for &flag in OUTPUT_FLAGS {
+        // --output=file form
+        if let Some(val) = arg.strip_prefix(flag).and_then(|s| s.strip_prefix("=")) {
+            if !val.is_empty() { files.insert(val.to_string()); }
+        }
+        // -o file form (single pass)
+        if arg == flag && let Some(val) = args.get(i + 1) {
+            files.insert(val.clone());
+            skip_next = true;
+        }
+    }
+    // Positional heuristic
+    if !arg.starts_with('-') && arg.contains('.') && !arg.contains(';') && !arg.contains('&') {
+        files.insert(arg.clone());
+    }
+}
+files.into_iter().take(20).collect()
+```
+
+Note: The `format!("{flag}=")` call inside the loop creates a String per iteration. Use direct prefix check instead.
+
+**Effort:** 1.5 hours | Quick win
+**Dependencies:** None
+**Verification:** Unit tests for output file detection
+
+---
+
+### [P2] Finding: to_ascii_lowercase in Risk Assessment Loop
+
+**Location:** `src/runner/utils.rs:368`
+**Category:** Performance
+**Impact:** Medium - Called for every generated command before execution
+
+**Problem:**
+`assess_command_risk` converts each argument to lowercase inside the loop. This creates a String allocation per argument.
+
+**Current Code:**
+```rust
+for (i, arg) in args.iter().enumerate() {
+    let lower = arg.to_ascii_lowercase();
+    // ... checks using lower
+}
+```
+
+**Recommended Fix:**
+Use `eq_ignore_ascii_case` for comparison without allocation:
+```rust
+for (i, arg) in args.iter().enumerate() {
+    let is_cmd_position = i == 0 || (i > 0 && matches!(args[i - 1].as_str(), "&&" | "||" | ";" | "|"));
+
+    if is_cmd_position {
+        for &cmd in DANGEROUS_COMMANDS {
+            if arg.eq_ignore_ascii_case(cmd) || arg.ends_with_ignore_ascii_case(&format!("/{cmd}")) {
+                return RiskLevel::Dangerous;
+            }
+        }
+    }
+    // ...
+}
+```
+
+Note: The ends_with check still needs lowercase for path matching. Consider:
+```rust
+if arg.eq_ignore_ascii_case(cmd) {
+    return RiskLevel::Dangerous;
+}
+// Check path suffix: /rm, /sudo, etc.
+let lower_arg = arg.to_ascii_lowercase(); // Single allocation for dangerous checks only
+if lower_arg.ends_with(&format!("/{cmd}")) {
+    return RiskLevel::Dangerous;
+}
+```
+
+**Effort:** 30 minutes | Quick win
+**Dependencies:** None
+**Verification:** Unit tests for risk assessment
+
+---
+
+### [P2] Finding: Nested Flag Iteration in Argument Validation
+
+**Location:** `src/runner/validation.rs:43-67`
+**Category:** Performance
+**Impact:** Medium - Called for every generated command when StructuredDoc available
+
+**Problem:**
+`validate_args` iterates over all args, and for each flag arg, calls `expand_flags` which creates a Vec. Then iterates over expanded flags to check against the known_flags HashSet.
+
+**Current Code:**
+```rust
+for arg in args {
+    if !arg.starts_with('-') { continue; }
+    let flags_to_check = expand_flags(arg);  // Vec<String>
+    for flag in flags_to_check {
+        if !known_flags.contains(flag.as_str()) {
+            result.unknown_flags.push(flag.clone());
+        }
+    }
+}
+```
+
+**Recommended Fix:**
+Check flags in-place without intermediate Vec:
+```rust
+for arg in args {
+    if !arg.starts_with('-') { continue; }
+
+    if arg.starts_with("--") {
+        // Long flag: split at '=' and check
+        let flag = arg.split('=').next().unwrap_or(arg);
+        if !known_flags.contains(flag) {
+            result.unknown_flags.push(flag.to_string());
+        }
+    } else if arg.len() > 2 && arg[1..].chars().all(|c| c.is_ascii_alphabetic()) {
+        // Combined short flags: -abc -> -a, -b, -c
+        for c in arg[1..].chars() {
+            let flag = format!("-{c}");
+            if !known_flags.contains(&flag) {
+                result.unknown_flags.push(flag);
+            }
+        }
+    } else {
+        // Single flag or flag with value
+        if !known_flags.contains(arg) {
+            result.unknown_flags.push(arg.clone());
+        }
+    }
+}
+```
+
+**Effort:** 1 hour | Quick win
+**Dependencies:** None
+**Verification:** Unit tests for flag validation
+
+---
+
+### [P2] Finding: Blocking Command Execution in Async Context
+
+**Location:** `src/runner/core.rs:900-937`
+**Category:** Architecture
+**Impact:** Medium - Uses blocking std::process::Command in async run()
+
+**Problem:**
+The `run` method uses `std::process::Command` which is blocking, despite being in an async function. This blocks the tokio runtime while waiting for the subprocess.
+
+**Current Code:**
+```rust
+let status = if use_shell {
+    Command::new("sh")
+        .args(["-c", &full_cmd])
+        .status()
+        .map_err(|e| OxoError::ExecutionError(...))?
+} else {
+    Command::new(eff_tool)
+        .args(eff_args)
+        .status()
+        .map_err(|e| OxoError::ToolNotFound(...))?
+};
+```
+
+**Analysis:**
+This is **acceptable** for single-command execution since:
+1. The command is the primary work being done (not background task)
+2. User expects to wait for the command
+3. Using tokio::process::Command would require async runtime handling
+
+However, for batch execution (`run_batch`), the async `tokio::process::Command` is correctly used with `tokio::spawn`.
+
+**Recommendation:** No change needed for single-run. The async batch path is correct.
+
+**Effort:** N/A | Current approach is acceptable
+**Dependencies:** None
+**Verification:** N/A
+
+---
+
+### [P3] Finding: Vec Allocation in Enriched Task Building
+
+**Location:** `src/runner/core.rs:523-559`
+**Category:** Performance
+**Impact:** Low - Called during prepare(), creates Vec of formatted parts
+
+**Problem:**
+The enriched task construction creates a Vec of formatted strings, then joins them. Each XML escape creates a new String, and each hint format creates a String.
+
+**Current Code:**
+```rust
+let enriched_task = {
+    fn xml_escape(s: &str) -> String {
+        s.replace('&', "&amp;")
+            .replace('<', "&lt;")
+            .replace('>', "&gt;")
+    }
+    let safe_task = xml_escape(&effective_task);  // Allocation
+    let mut parts = vec![format!("<task>\n{safe_task}\n</task>")];
+    // More format! allocations...
+    parts.join("\n")
+};
+```
+
+**Recommended Fix:**
+Build directly with capacity estimation:
+```rust
+let enriched_task = {
+    // Estimate: task + 3 escapes worst case + XML tags + hints
+    let estimated = effective_task.len() * 2 + 100 + context_hint.len() + preferences_hint.len() + 200;
+    let mut result = String::with_capacity(estimated);
+
+    result.push_str("<task>\n");
+    // Inline XML escape without intermediate String
+    for c in effective_task.chars() {
+        match c {
+            '&' => result.push_str("&amp;"),
+            '<' => result.push_str("&lt;"),
+            '>' => result.push_str("&gt;"),
+            _ => result.push(c),
+        }
+    }
+    result.push_str("\n</task>");
+
+    if !context_hint.is_empty() {
+        result.push_str("\n<context>\n");
+        result.push_str(context_hint);
+        result.push_str("\n</context>");
+    }
+    // ... similar for other hints
+    result
+};
+```
+
+**Effort:** 2 hours | Requires design
+**Dependencies:** None
+**Verification:** Benchmark prepare() with long tasks + many hints
+
+---
+
+### [P3] Finding: String::from_utf8_lossy Allocation in Tool Version Detection
+
+**Location:** `src/runner/utils.rs:180`
+**Category:** Performance
+**Impact:** Low - Called for provenance recording, allocates owned String
+
+**Problem:**
+`detect_tool_version` uses `String::from_utf8_lossy` which creates an owned String, then takes a slice from it. The String is discarded after extracting the first line.
+
+**Current Code:**
+```rust
+let version = String::from_utf8_lossy(&output.stdout);
+let version = version.lines().next().unwrap_or("").trim();
+if !version.is_empty() {
+    return Some(version.to_string());  // Another allocation
+}
+```
+
+**Recommended Fix:**
+Use Cow to avoid allocation when valid UTF-8:
+```rust
+let version = std::str::from_utf8(&output.stdout)
+    .unwrap_or_else(|_| String::from_utf8_lossy(&output.stdout).as_ref());
+let version = version.lines().next().unwrap_or("").trim();
+if !version.is_empty() {
+    return Some(version.to_string());
+}
+```
+
+However, the benefit is minimal since this is called once per execution for provenance.
+
+**Effort:** 30 minutes | Minor optimization
+**Dependencies:** None
+**Verification:** N/A
+
+---
+
+### [P3] Finding: format!("{flag}=") in Nested Loop
+
+**Location:** `src/runner/utils.rs:308, 317`
+**Category:** Performance
+**Impact:** Low - Creates String per flag per arg iteration
+
+**Problem:**
+The nested loops in `detect_output_files` and `validate_input_files` create `format!("{flag}=")` strings for each flag-arg combination.
+
+**Current Code:**
+```rust
+for &flag in OUTPUT_FLAGS {
+    if let Some(val) = arg.strip_prefix(&format!("{flag}=")) { ... }
+}
+```
+
+**Recommended Fix:**
+Use string literal concatenation at compile time or check in two steps:
+```rust
+for &flag in OUTPUT_FLAGS {
+    // Check if arg starts with flag then '='
+    if arg.starts_with(flag) && arg.get(flag.len()..).map_or(false, |s| s.starts_with('=')) {
+        let val = &arg[flag.len() + 1..];
+        if !val.is_empty() { files.push(val.to_string()); }
+    }
+}
+```
+
+**Effort:** 30 minutes | Minor optimization
+**Dependencies:** None
+**Verification:** Unit tests for output file detection
+
+---
+
+### [Good] Semaphore-Limited Concurrency in Batch Execution
+
+**Location:** `src/runner/batch.rs:77-100`
+**Category:** Architecture
+**Impact:** Positive - Correct async batch execution with concurrency control
+
+**Analysis:**
+The batch runner uses `tokio::sync::Semaphore` to limit concurrent jobs, and `tokio::spawn` with `tokio::process::Command` for non-blocking subprocess execution:
+```rust
+let sem = Arc::new(tokio::sync::Semaphore::new(jobs));
+for (i, item) in items.iter().enumerate() {
+    let sem_clone = Arc::clone(&sem);
+    let handle: tokio::task::JoinHandle<Result<i32>> = tokio::spawn(async move {
+        let _permit = sem_clone.acquire_owned().await.expect(...);
+        let status = tokio::process::Command::new("sh")
+            .arg("-c")
+            .arg(&cmd)
+            .status()
+            .await
+            .map_err(...)?;
+        Ok(status.code().unwrap_or(-1))
+    });
+    handles.push((item.clone(), handle));
+}
+```
+
+This is optimal for batch processing - limits concurrency while avoiding runtime blocking.
+
+**Recommendation:** Maintain this pattern for all batch operations.
+
+---
+
+### [Good] Pre-allocated Vec in Batch Handles
+
+**Location:** `src/runner/batch.rs:78-79`
+**Category:** Architecture
+**Impact:** Positive - Pre-allocates Vec for handles with known capacity
+
+**Analysis:**
+```rust
+let mut handles: Vec<(String, tokio::task::JoinHandle<Result<i32>>)> =
+    Vec::with_capacity(n);
+```
+
+This avoids incremental Vec growth during batch item spawning.
+
+**Recommendation:** Apply this pattern to all Vec constructions with known size.
+
+---
+
+### [Good] Bounded Output File Collection with truncate(20)
+
+**Location:** `src/runner/utils.rs:339`
+**Category:** Architecture
+**Impact:** Positive - Limits output file collection to 20 entries
+
+**Analysis:**
+```rust
+files.truncate(20);
+```
+
+This prevents unbounded memory usage when tools produce many output files.
+
+**Recommendation:** Maintain this bounded collection pattern.
+
+---
+
+### [Good] Early Return in Effective Command Resolution
+
+**Location:** `src/runner/utils.rs:52-65`
+**Category:** Architecture
+**Impact:** Positive - Short-circuits companion/script detection
+
+**Analysis:**
+```rust
+pub(crate) fn effective_command<'a>(tool: &'a str, args: &'a [String]) -> (&'a str, &'a [String]) {
+    if let Some(first) = args.first() {
+        if is_companion_binary(tool, first) {
+            return (first.as_str(), &args[1..]);
+        }
+        if is_script_executable(first) {
+            return (first.as_str(), &args[1..]);
+        }
+    }
+    (tool, args)
+}
+```
+
+This returns early when companion/script is detected, avoiding unnecessary checks.
+
+**Recommendation:** Maintain this pattern.
+
+---
+
+### [Good] Stop-on-Error Aborts Remaining Batch Handles
+
+**Location:** `src/runner/batch.rs:145-157`
+**Category:** Architecture
+**Impact:** Positive - Early termination on failure when requested
+
+**Analysis:**
+```rust
+if self.stop_on_error && failed > 0 {
+    if !json {
+        eprintln!("  {} stop-on-error: aborting after first failure", "⚡".yellow().bold());
+    }
+    break;  // Exit handle collection loop
+}
+```
+
+This allows users to abort batch processing on first failure, avoiding unnecessary work.
+
+**Recommendation:** Maintain this pattern.
