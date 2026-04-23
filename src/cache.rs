@@ -123,6 +123,8 @@ impl LlmCache {
     }
 
     /// Flush the in-memory map back to disk as JSONL.
+    /// Used by sync() for explicit persistence (not during lookup for performance).
+    #[allow(dead_code)]
     fn flush_to_disk(mem: &MemoryCache) -> Result<()> {
         let path = Self::cache_path()?;
         if let Some(parent) = path.parent() {
@@ -138,6 +140,9 @@ impl LlmCache {
 
     /// Explicitly sync dirty in-memory state to disk.
     /// Call this before program exit or on explicit flush request.
+    /// Note: Not currently called automatically; hit-count updates deferred for performance.
+    ///       Data persisted on store() via append, dirty state kept in memory for speed.
+    #[allow(dead_code)]
     pub fn sync() -> Result<()> {
         let mut mem = acquire_cache();
         if !mem.dirty {
