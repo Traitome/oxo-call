@@ -2,7 +2,38 @@
 
 **Date:** 2026-04-23
 **Project:** oxo-call v0.12.1
-**Status:** In Progress - Static Analysis Phase
+**Status:** Complete - Prioritized
+
+---
+
+## Executive Summary
+
+**Total Findings:** 93
+**P0 Critical:** 0 (no crashes/security issues)
+**P1 High:** 11 (>10% performance impact)
+**P2 Medium:** 29 (1-10% impact, maintainability)
+**P3 Low:** 23 (minor optimization)
+**Good Patterns:** 30 (positive practices identified)
+
+### Quick Wins (P1, <2 hours each)
+
+| # | Finding | Location | Effort | Impact |
+|---|---------|----------|--------|--------|
+| 1 | SSE streaming String allocations | `llm/streaming.rs:61` | 2h | High |
+| 2 | Cache hit triggers flush_to_disk | `cache.rs:233` | 1h | Very High |
+| 3 | Config loaded multiple times | `main.rs:205+` | 1h | High |
+| 4 | Blocking fs::read at startup | `config.rs:254` | 2h | High |
+| 5 | Command string Vec allocations | `runner/utils.rs` | 2h | High |
+
+### Major Improvements (P1/P2, >2 hours)
+
+| # | Finding | Location | Effort | Dependencies |
+|---|---------|----------|--------|--------------|
+| 1 | Wildcard exponential clones | `engine.rs:400+` | 4h | Template refactor |
+| 2 | Runner module decomposition | `runner/core.rs` | 4h | Architecture |
+| 3 | Skill name clone for cache | `provider.rs:96` | 3h | Cache API change |
+| 4 | URL format! allocations | `provider.rs:370+` | 2h | Client refactor |
+| 5 | Knowledge O(n) lookup | `tool_knowledge.rs` | 2h | HashMap index |
 
 ---
 
@@ -3783,3 +3814,74 @@ All parameters are borrowed (`&str`, `Option<&Skill>`, `&Config`), enabling effi
 3. Index-based wildcard combination generation (eliminates O(n^m * m) allocations)
 4. Single-pass template substitution (eliminates 2-4 String copies per task)
 5. HashMap-indexed rules in RuleCommandGenerator (O(1) tool lookup)
+
+---
+
+## Measurement Plan
+
+### Finding 1: Cache hit triggers flush_to_disk
+
+**Benchmark:** `oxo-bench eval --measure-cache-latency`
+**Baseline:** ~50-100ms per cache lookup (disk write of 10K entries)
+**Target:** <1ms per cache lookup (no disk write)
+**Validation:** Profile with `perf` or `strace` to verify no disk I/O on cache hit
+
+### Finding 2: SSE Streaming String Allocations
+
+**Benchmark:** `oxo-bench eval --measure-streaming-throughput`
+**Baseline:** Allocates 2 Strings per SSE chunk (~100-500 chunks per request)
+**Target:** 0 allocations in hot loop (borrowed &str processing)
+**Validation:** Memory profiler (valgrind/heaptrack) shows reduced allocations
+
+### Finding 3: Config Loaded Multiple Times
+
+**Benchmark:** Manual timing of `oxo-call run` startup
+**Baseline:** 2-4 file reads per command dispatch
+**Target:** Single config load at startup, cached in Arc
+**Validation:** `strace -c oxo-call run` shows single open() call for config
+
+### Finding 4: Wildcard Exponential Clone Chains
+
+**Benchmark:** Create workflow with 5 wildcards, measure allocations
+**Baseline:** O(n^5) clones for 5 wildcards with 3 values each
+**Target:** O(n) using index-based combination generation
+**Validation:** Memory usage during workflow creation stays bounded
+
+### Finding 5: Command String Vec Allocations
+
+**Benchmark:** `oxo-bench eval --measure-command-build`
+**Baseline:** Vec<String> created for every argument
+**Target:** Direct String building with pre-calculated capacity
+**Validation:** Benchmark shows 20-30% reduction in command construction time
+
+---
+
+## Architecture Recommendations Summary
+
+1. **Runner module decomposition** — Split 1100-line core.rs into focused sub-modules (validator, executor, result_analyzer)
+2. **Knowledge module HashMap index** — Add name_index for O(1) tool lookups in 6000+ catalog
+3. **Cache API refinement** — Separate lookup (read-only) from persistence (batch writes)
+4. **Config singleton pattern** — Load once, share via Arc across all command dispatches
+5. **LLM provider URL caching** — Store endpoint URLs in LlmClient struct, avoid format! per request
+
+---
+
+## Implementation Priority Order
+
+**Phase 1 (Immediate):** P1 Quick Wins (<2h each)
+1. Remove flush_to_disk from cache lookup
+2. Single config load at startup
+3. SSE streaming borrow-based parsing
+
+**Phase 2 (Short-term):** P1 Major + P2 Quick Wins
+1. Runner decomposition
+2. Wildcard index generation
+3. HashMap rule lookup
+4. Knowledge name index
+
+**Phase 3 (Medium-term):** P2/P3 items
+1. format! elimination across modules
+2. case-insensitive char comparison
+3. Minor Vec/clone optimizations
+
+**Deferred:** P3 items (code clarity, future-proofing)
