@@ -1986,6 +1986,140 @@ Remove `flush_to_disk` from `LlmCache::lookup` - this single change eliminates O
 
 ---
 
+## Architecture Recommendations
+
+### Module Coupling Analysis
+
+| Module | Dependencies | Coupling Level | Notes |
+|--------|-------------|----------------|-------|
+| `runner/core` | 15+ | **High** | Central orchestrator imports config, docs, execution, history, knowledge, llm, llm_workflow, orchestrator (all 4), skill + internal batch/retry/utils/validation |
+| `llm/provider` | 7 | Medium-High | Imports config, copilot_auth, doc_processor, error, skill, cache, streaming_display + internal prompt/response/types/streaming |
+| `llm_workflow` | 6 | Medium | Imports config, doc_processor, error, llm, mini_skill_cache, skill |
+| `workflow_graph` | 5 | Medium | Imports task_complexity, task_normalizer, doc_processor, skill, config |
+| `docs` | 4 | Medium | Imports config, error, doc_summarizer, uuid |
+| `skill` | 4 | Medium | Imports config, error, mcp, toml (external) |
+| `history` | 3 | Low | Imports config, chrono, serde (external) |
+| `task_normalizer` | 3 | Low | Imports config, llm, regex (external) |
+| `task_complexity` | 0 | **Low** | Self-contained - only serde (external) |
+| `error` | 0 | **Low** | Self-contained - only thiserror (external) |
+| `orchestrator/supervisor` | 3 | Low | Imports knowledge::best_practices, knowledge::tool_knowledge, task_complexity |
+| `orchestrator/executor` | 4 | Low | Imports config, error, knowledge::best_practices, task_normalizer |
+| `orchestrator/planner` | 0 | Low | Self-contained within orchestrator module |
+| `orchestrator/validator` | 1 | Low | Imports knowledge::error_db |
+
+### Circular Dependencies
+
+**None detected at module level.** The architecture follows a clean dependency hierarchy:
+
+1. **Foundation layer** (no internal deps): `error`, `config`, `task_complexity`, `format`, `sanitize`, `markdown`
+2. **Data layer** (depends on foundation): `history`, `cache`, `index`, `skill`, `docs`
+3. **Knowledge layer** (depends on foundation): `knowledge/best_practices`, `knowledge/tool_knowledge`, `knowledge/error_db`
+4. **Processing layer** (depends on data + knowledge): `llm`, `llm_workflow`, `doc_processor`, `task_normalizer`
+5. **Orchestration layer** (depends on knowledge + processing): `orchestrator/executor`, `orchestrator/planner`, `orchestrator/supervisor`, `orchestrator/validator`
+6. **Execution layer** (depends on all above): `runner/core`, `runner/batch`, `runner/retry`, `runner/utils`
+
+**Type re-exports (non-circular):**
+- `llm_workflow::WorkflowMode` re-exports from `task_complexity::WorkflowMode`
+- `orchestrator/supervisor::OrchestrationMode::to_workflow_mode()` maps to `llm_workflow::WorkflowMode`
+
+### Data Flow
+
+```
+User Request → CLI → Runner::prepare()
+     ↓
+   SupervisorAgent.decide() → OrchestrationMode
+     ↓
+   PlannerAgent.plan() → TaskPlan
+     ↓
+   ExecutorAgent.prepare() → ExecutorContext
+     ↓
+   DocsFetcher.fetch() → ToolDocs
+     ↓
+   SkillManager.load() → Skill
+     ↓
+   LlmWorkflowExecutor.execute() → WorkflowResult
+     ↓
+   LlmClient.suggest_command() → LlmCommandSuggestion
+     ↓
+   Runner::run() → Command execution
+     ↓
+   ValidatorAgent.validate() → ValidationResult
+     ↓
+   ResultAnalyzer.analyze() → Analysis
+     ↓
+   FeedbackCollector.record() → FeedbackEntry
+```
+
+### Refactoring Opportunities
+
+#### [Arch-P1] Runner Module Decomposition
+
+**Problem:** `runner/core.rs` is 1100+ lines with 15+ module dependencies. It functions as a "God module" that orchestrates all components, contains execution logic, manages history recording, and handles verification/feedback.
+
+**Recommendation:** Split into focused sub-modules:
+- `executor.rs` — core execution (prepare, generate_command)
+- `history.rs` — provenance recording (move to history module)
+- `feedback.rs` — result analysis + feedback collection
+
+**Effort:** 4 hours | Requires design
+
+#### [Arch-P2] Orchestrator Agent Interface Standardization
+
+**Problem:** Orchestrator agents have inconsistent patterns with no shared trait.
+
+**Recommendation:** Define `Agent` trait for consistency.
+
+**Effort:** 2 hours
+
+#### [Arch-P2] Knowledge Module Consolidation
+
+**Problem:** Three knowledge sub-modules with similar access patterns, accessed separately.
+
+**Recommendation:** Create unified `KnowledgeStore` facade.
+
+**Effort:** 3 hours
+
+#### [Arch-P3] Config Access Pattern
+
+**Problem:** Config cloned multiple times throughout codebase.
+
+**Recommendation:** Use `Arc<Config>` for shared configuration.
+
+**Effort:** 2 hours
+
+#### [Arch-P3] LLM Module Sub-module Visibility
+
+**Problem:** `llm/mod.rs` exposes fine-grained internals (prompt, response, streaming, types all pub).
+
+**Recommendation:** Make sub-modules private, expose only through re-exports.
+
+**Effort:** 1 hour
+
+### Architecture Quality Indicators
+
+| Indicator | Status | Assessment |
+|-----------|--------|------------|
+| Circular dependencies | None | Excellent |
+| Layered architecture | Yes | Good |
+| Single responsibility | Mixed | Runner violates |
+| Dependency direction | Downward | Good |
+| Interface segregation | Partial | Orchestrator lacks shared interface |
+| Module size | Mixed | runner/core.rs too large |
+
+### Recommendations Priority Summary
+
+| Priority | Issue | Impact | Effort |
+|----------|-------|--------|--------|
+| Arch-P1 | Runner decomposition | High | 4h |
+| Arch-P2 | Orchestrator agent interface | Medium | 2h |
+| Arch-P2 | Knowledge store facade | Medium | 3h |
+| Arch-P3 | Arc<Config> sharing | Low | 2h |
+| Arch-P3 | LLM sub-module visibility | Low | 1h |
+
+**Total Architecture Effort:** ~12 hours
+
+---
+
 ## src/cli.rs Analysis
 
 The CLI module defines all command-line argument structures using clap derive macros. The file is 1528 lines with extensive command definitions, subcommands, and test coverage.
