@@ -26,7 +26,9 @@ struct LegacyDocIndex {
 }
 
 /// Custom deserializer that handles both Vec and HashMap formats for entries.
-fn deserialize_entries_legacy<'de, D>(deserializer: D) -> std::result::Result<HashMap<String, IndexEntry>, D::Error>
+fn deserialize_entries_legacy<'de, D>(
+    deserializer: D,
+) -> std::result::Result<HashMap<String, IndexEntry>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
@@ -65,7 +67,9 @@ impl<'de> Deserialize<'de> for DocIndex {
         D: serde::Deserializer<'de>,
     {
         let legacy = LegacyDocIndex::deserialize(deserializer)?;
-        Ok(DocIndex { entries: legacy.entries })
+        Ok(DocIndex {
+            entries: legacy.entries,
+        })
     }
 }
 
@@ -98,7 +102,11 @@ impl DocIndex {
         let mut last: Option<DocIndex> = None;
         for item in stream.by_ref() {
             match item {
-                Ok(legacy) => last = Some(DocIndex { entries: legacy.entries }),
+                Ok(legacy) => {
+                    last = Some(DocIndex {
+                        entries: legacy.entries,
+                    })
+                }
                 Err(_) => break,
             }
         }
