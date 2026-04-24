@@ -276,11 +276,12 @@ impl RuleCommandGenerator {
     /// Applies a rule to generate a command.
     fn apply(&self, rule: &CommandRule, request: &str) -> GeneratedCommand {
         // Try to extract file names from the request using common patterns.
-        let words: Vec<&str> = request.split_whitespace().collect();
+        // Use iterator directly without intermediate Vec allocation
         let mut input_name = "input".to_string();
         let mut output_name = "output".to_string();
+        let mut prev_word: Option<&str> = None;
 
-        for (i, word) in words.iter().enumerate() {
+        for word in request.split_whitespace() {
             // Use eq_ignore_ascii_case and contains checks without lowercase allocation
             let has_dot = word.contains('.');
             let is_flag = word.starts_with('-') || word.starts_with("--");
@@ -293,12 +294,16 @@ impl RuleCommandGenerator {
                 }
             }
             // Detect "to <file>" or "output <file>" patterns (case-insensitive)
-            let is_keyword = word.eq_ignore_ascii_case("to")
-                || word.eq_ignore_ascii_case("output")
-                || word.eq_ignore_ascii_case("into");
-            if is_keyword && i + 1 < words.len() && words[i + 1].contains('.') {
-                output_name = words[i + 1].trim_end_matches([',', ';']).to_string();
+            // Check if previous word was a keyword
+            if let Some(prev) = prev_word {
+                let was_keyword = prev.eq_ignore_ascii_case("to")
+                    || prev.eq_ignore_ascii_case("output")
+                    || prev.eq_ignore_ascii_case("into");
+                if was_keyword && word.contains('.') {
+                    output_name = word.trim_end_matches([',', ';']).to_string();
+                }
             }
+            prev_word = Some(word);
         }
 
         // Strip common extensions for placeholder substitution

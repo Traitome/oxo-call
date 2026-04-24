@@ -54,6 +54,8 @@ pub struct ToolKnowledgeBase {
     /// Inverted index: keyword → list of (tool_index, weight).
     #[allow(dead_code)]
     index: HashMap<String, Vec<(usize, f32)>>,
+    /// Name index: lowercase tool name → tool index for O(1) lookup.
+    name_index: HashMap<String, usize>,
 }
 
 impl Default for ToolKnowledgeBase {
@@ -67,7 +69,12 @@ impl ToolKnowledgeBase {
     pub fn new() -> Self {
         let tools = Self::load_embedded_catalog();
         let index = Self::build_index(&tools);
-        Self { tools, index }
+        let name_index = Self::build_name_index(&tools);
+        Self {
+            tools,
+            index,
+            name_index,
+        }
     }
 
     /// Number of tools in the knowledge base.
@@ -83,10 +90,12 @@ impl ToolKnowledgeBase {
     }
 
     /// Look up a tool by exact name (case-insensitive).
+    /// Uses HashMap index for O(1) lookup instead of O(n) linear scan.
     pub fn lookup(&self, name: &str) -> Option<&ToolEntry> {
-        self.tools
-            .iter()
-            .find(|t| t.name.eq_ignore_ascii_case(name))
+        let name_lower = name.to_ascii_lowercase();
+        self.name_index
+            .get(&name_lower)
+            .map(|&idx| &self.tools[idx])
     }
 
     /// Search for tools matching a natural-language query.
@@ -221,6 +230,15 @@ impl ToolKnowledgeBase {
         }
 
         index
+    }
+
+    /// Build a name index for O(1) lookup by tool name.
+    fn build_name_index(tools: &[ToolEntry]) -> HashMap<String, usize> {
+        let mut name_index = HashMap::with_capacity(tools.len());
+        for (idx, tool) in tools.iter().enumerate() {
+            name_index.insert(tool.name.to_ascii_lowercase(), idx);
+        }
+        name_index
     }
 
     /// Tokenize text into lowercase keywords, removing stop words.
