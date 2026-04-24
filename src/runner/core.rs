@@ -278,30 +278,20 @@ impl Runner {
     /// generates a mini-skill from the documentation (result cached to disk), and uses it
     /// for command generation.
     pub(crate) async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
-        // ── Parallel fetch: docs + skill ──────────────────────────────────────
-        let spinner = if !self.no_doc {
-            make_spinner(&format!("Fetching documentation for '{tool}'..."))
-        } else {
-            make_spinner("Loading skill...")
-        };
-
-        // Load skill first to determine if doc is needed
-        let skill_future = async {
-            if self.no_skill {
-                if self.verbose {
-                    eprintln!(
-                        "{} [Ablation] Skipping skill (--no-skill)",
-                        "[verbose]".dimmed()
-                    );
-                }
-                None
-            } else {
-                self.skill_manager.load_async(tool).await
+        // ── Load skill first (fast, usually cached) ───────────────────────────────
+        // Load skill first to determine if doc is needed, avoiding spinner overhead
+        // when skill is high-quality (no doc fetch needed).
+        let skill = if self.no_skill {
+            if self.verbose {
+                eprintln!(
+                    "{} [Ablation] Skipping skill (--no-skill)",
+                    "[verbose]".dimmed()
+                );
             }
+            None
+        } else {
+            self.skill_manager.load_async(tool).await
         };
-
-        // Run skill loading first
-        let skill = skill_future.await;
 
         // Determine if we need documentation based on skill quality
         let should_fetch_doc = if self.no_doc {
@@ -326,25 +316,22 @@ impl Runner {
             }
         };
 
-        let docs_future = async {
-            if !should_fetch_doc {
-                if self.verbose && !self.no_doc {
-                    eprintln!(
-                        "{} Skipping documentation (high-quality skill available)",
-                        "[verbose]".dimmed()
-                    );
-                }
-                Ok(String::new())
-            } else {
-                self.resolve_docs(tool, task).await
+        // Fetch docs only when needed, with spinner created only for actual fetch
+        let docs = if !should_fetch_doc {
+            if self.verbose && !self.no_doc {
+                eprintln!(
+                    "{} Skipping documentation (high-quality skill available)",
+                    "[verbose]".dimmed()
+                );
             }
+            String::new()
+        } else {
+            // Show spinner only when actually fetching docs
+            let spinner = make_spinner(&format!("Fetching documentation for '{tool}'..."));
+            let result = self.resolve_docs(tool, task).await;
+            spinner.finish_and_clear();
+            result?
         };
-
-        // Run doc fetching if needed
-        let docs_result = docs_future.await;
-        spinner.finish_and_clear();
-
-        let docs = docs_result?;
 
         // ── Build StructuredDoc for flag catalog + doc-extracted examples ──
         // This is the key innovation: deterministic extraction of flags and
