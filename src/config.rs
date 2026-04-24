@@ -773,17 +773,25 @@ impl Config {
 ///    tag like `7b` or `0.5b` is found, return a conservative default.
 /// 4. **Unknown** → 0 (Full, no compression)
 pub fn infer_context_window(model: &str) -> u32 {
-    let m = model.to_ascii_lowercase();
-
     // ── 1. Explicit context hints (e.g. "qwen2.5:32k") ──────────────────
-    if let Some(pos) = m.rfind(':') {
-        let suffix = &m[pos + 1..];
-        if let Some(k) = suffix.strip_suffix('k').and_then(|n| n.parse::<u32>().ok()) {
+    // Find ':' position case-insensitively
+    if let Some(pos) = model.find(':') {
+        let suffix = &model[pos + 1..];
+        // Check for 'k' suffix case-insensitively
+        let k_suffix = if suffix.ends_with('k') || suffix.ends_with('K') {
+            &suffix[..suffix.len() - 1]
+        } else {
+            suffix
+        };
+        if let Ok(k) = k_suffix.parse::<u32>()
+            && suffix.len() > k_suffix.len()
+        {
             return k * 1024;
         }
     }
 
     // ── 2. Model family matching ─────────────────────────────────────────
+    // Use contains_ignore_ascii_case helper for case-insensitive checks
     //
     // Modern LLM families share the same context window across all parameter
     // sizes (e.g. Qwen2.5-Coder-0.5B and Qwen2.5-Coder-32B both have 32K).
@@ -795,195 +803,235 @@ pub fn infer_context_window(model: &str) -> u32 {
 
     // ── OpenAI GPT series ────────────────────────────────────────────────
     // GPT-4.1 series (April 2025) - 1M context across all variants
-    if m.contains("gpt-4.1") || m.contains("gpt4.1") {
+    if contains_ignore_ascii_case(model, "gpt-4.1") || contains_ignore_ascii_case(model, "gpt4.1") {
         return 1_047_576; // ~1M tokens
     }
     // GPT-4o / GPT-5 series - 128K context
-    if m.contains("gpt-4o-mini") || m.contains("gpt-5-mini") || m.contains("gpt4o-mini") {
+    if contains_ignore_ascii_case(model, "gpt-4o-mini")
+        || contains_ignore_ascii_case(model, "gpt-5-mini")
+        || contains_ignore_ascii_case(model, "gpt4o-mini")
+    {
         return 128_000;
     }
-    if m.contains("gpt-4") || m.contains("gpt-5") || m.contains("gpt4") || m.contains("gpt5") {
+    if contains_ignore_ascii_case(model, "gpt-4")
+        || contains_ignore_ascii_case(model, "gpt-5")
+        || contains_ignore_ascii_case(model, "gpt4")
+        || contains_ignore_ascii_case(model, "gpt5")
+    {
         return 128_000;
     }
 
     // ── Anthropic Claude series ───────────────────────────────────────────
     // Claude 4.6+ / 4.7 - 1M context (Opus 4.6, Opus 4.7, Sonnet 4.6)
-    if m.contains("claude-opus-4-6")
-        || m.contains("claude-opus-4-7")
-        || m.contains("claude-sonnet-4-6")
-        || m.contains("claude-opus4.6")
-        || m.contains("claude-opus4.7")
-        || m.contains("claude-sonnet4.6")
+    if contains_ignore_ascii_case(model, "claude-opus-4-6")
+        || contains_ignore_ascii_case(model, "claude-opus-4-7")
+        || contains_ignore_ascii_case(model, "claude-sonnet-4-6")
+        || contains_ignore_ascii_case(model, "claude-opus4.6")
+        || contains_ignore_ascii_case(model, "claude-opus4.7")
+        || contains_ignore_ascii_case(model, "claude-sonnet4.6")
     {
         return 1_000_000; // 1M tokens
     }
     // Claude 4.x base - 200K context
-    if m.contains("claude-4") || m.contains("claude4") {
+    if contains_ignore_ascii_case(model, "claude-4") || contains_ignore_ascii_case(model, "claude4")
+    {
         return 200_000;
     }
     // Claude 3.x - 200K context
-    if m.contains("claude") {
+    if contains_ignore_ascii_case(model, "claude") {
         return 200_000;
     }
 
     // ── Google Gemini series ──────────────────────────────────────────────
     // Gemini 3 - 1M+ context
-    if m.contains("gemini-3") || m.contains("gemini3") {
+    if contains_ignore_ascii_case(model, "gemini-3") || contains_ignore_ascii_case(model, "gemini3")
+    {
         return 1_000_000;
     }
     // Gemini 2.5 Pro/Flash - 1M context
-    if m.contains("gemini-2.5") || m.contains("gemini2.5") {
+    if contains_ignore_ascii_case(model, "gemini-2.5")
+        || contains_ignore_ascii_case(model, "gemini2.5")
+    {
         return 1_000_000;
     }
     // Gemini 2.0 / 1.5 - 1M context
-    if m.contains("gemini-2") || m.contains("gemini2") {
+    if contains_ignore_ascii_case(model, "gemini-2") || contains_ignore_ascii_case(model, "gemini2")
+    {
         return 1_000_000;
     }
-    if m.contains("gemini-1.5") || m.contains("gemini1.5") {
+    if contains_ignore_ascii_case(model, "gemini-1.5")
+        || contains_ignore_ascii_case(model, "gemini1.5")
+    {
         return 1_000_000;
     }
     // Gemini 1.0 - 32K context
-    if m.contains("gemini") {
+    if contains_ignore_ascii_case(model, "gemini") {
         return 32_768;
     }
 
     // ── DeepSeek series ───────────────────────────────────────────────────
     // DeepSeek V3 / R1 - 128K context
-    if m.contains("deepseek-v3") || m.contains("deepseek-r1") {
+    if contains_ignore_ascii_case(model, "deepseek-v3")
+        || contains_ignore_ascii_case(model, "deepseek-r1")
+    {
         return 131_072; // 128K
     }
     // DeepSeek-Coder-V2 - 128K context
-    if m.contains("deepseek-coder-v2") || m.contains("deepseek-coder-v2") {
+    if contains_ignore_ascii_case(model, "deepseek-coder-v2")
+        || contains_ignore_ascii_case(model, "deepseek_coder_v2")
+    {
         return 131_072; // 128K (DeepSeek-Coder-V2)
     }
     // DeepSeek-Coder V1 - 16K context
-    if m.contains("deepseek-coder") {
+    if contains_ignore_ascii_case(model, "deepseek-coder") {
         return 16_384; // 16K (DeepSeek-Coder V1)
     }
     // DeepSeek V2 - 128K context
-    if m.contains("deepseek") {
+    if contains_ignore_ascii_case(model, "deepseek") {
         return 131_072; // 128K (DeepSeek-V2/V3/R1)
     }
 
     // ── Kimi / Moonshot AI series ─────────────────────────────────────────
     // Kimi K2.5 - 256K context
-    if m.contains("kimi-k2.5") || m.contains("kimi-k2-5") || m.contains("k2.5") {
+    if contains_ignore_ascii_case(model, "kimi-k2.5")
+        || contains_ignore_ascii_case(model, "kimi-k2-5")
+        || contains_ignore_ascii_case(model, "k2.5")
+    {
         return 256_000;
     }
     // Kimi K2 - 128K context
-    if m.contains("kimi-k2") || m.contains("k2") && m.contains("kimi") {
+    if contains_ignore_ascii_case(model, "kimi-k2")
+        || (contains_ignore_ascii_case(model, "k2") && contains_ignore_ascii_case(model, "kimi"))
+    {
         return 128_000;
     }
     // Moonshot v1 variants with explicit context suffix
-    if m.contains("moonshot-v1-8k") || m.contains("kimi-8k") {
+    if contains_ignore_ascii_case(model, "moonshot-v1-8k")
+        || contains_ignore_ascii_case(model, "kimi-8k")
+    {
         return 8_192;
     }
-    if m.contains("moonshot-v1-32k") || m.contains("kimi-32k") {
+    if contains_ignore_ascii_case(model, "moonshot-v1-32k")
+        || contains_ignore_ascii_case(model, "kimi-32k")
+    {
         return 32_768;
     }
-    if m.contains("moonshot-v1-128k") || m.contains("kimi-128k") {
+    if contains_ignore_ascii_case(model, "moonshot-v1-128k")
+        || contains_ignore_ascii_case(model, "kimi-128k")
+    {
         return 128_000;
     }
     // Default Kimi/Moonshot models - 128K
-    if m.contains("moonshot") || m.contains("kimi") {
+    if contains_ignore_ascii_case(model, "moonshot") || contains_ignore_ascii_case(model, "kimi") {
         return 128_000;
     }
 
     // ── ZhipuAI GLM series ────────────────────────────────────────────────
     // GLM-5.1 - 202K context (supports 8-hour autonomous execution)
-    if m.contains("glm-5.1") || m.contains("glm5.1") {
+    if contains_ignore_ascii_case(model, "glm-5.1") || contains_ignore_ascii_case(model, "glm5.1") {
         return 202_000;
     }
     // GLM-5 - 200K context
-    if m.contains("glm-5") || m.contains("glm5") {
+    if contains_ignore_ascii_case(model, "glm-5") || contains_ignore_ascii_case(model, "glm5") {
         return 200_000;
     }
     // GLM-4-Long - 1M context
-    if m.contains("glm-4-long") {
+    if contains_ignore_ascii_case(model, "glm-4-long") {
         return 1_000_000;
     }
     // GLM-4 - 128K context
-    if m.contains("glm-4") || m.contains("chatglm") {
+    if contains_ignore_ascii_case(model, "glm-4") || contains_ignore_ascii_case(model, "chatglm") {
         return 128_000;
     }
 
     // ── MiniMax series ────────────────────────────────────────────────────
     // MiniMax M2.7 - 1M context
-    if m.contains("m2.7") || m.contains("minimax-m2") {
+    if contains_ignore_ascii_case(model, "m2.7") || contains_ignore_ascii_case(model, "minimax-m2")
+    {
         return 1_000_000;
     }
     // MiniMax other models - default 128K
-    if m.contains("minimax") {
+    if contains_ignore_ascii_case(model, "minimax") {
         return 128_000;
     }
 
     // ── Qwen family ───────────────────────────────────────────────────────
-    if m.contains("qwen3.5") || m.contains("qwen3-5") || m.contains("qwen3.5") {
+    if contains_ignore_ascii_case(model, "qwen3.5")
+        || contains_ignore_ascii_case(model, "qwen3-5")
+        || contains_ignore_ascii_case(model, "qwen3.5")
+    {
         return 262_144; // 256K
     }
-    if m.contains("qwen2.5-coder") || m.contains("qwen2-5-coder") {
+    if contains_ignore_ascii_case(model, "qwen2.5-coder")
+        || contains_ignore_ascii_case(model, "qwen2-5-coder")
+    {
         return 32_768; // 32K
     }
-    if m.contains("qwen2.5") || m.contains("qwen2-5") || m.contains("qwen3") || m.contains("qwen2")
+    if contains_ignore_ascii_case(model, "qwen2.5")
+        || contains_ignore_ascii_case(model, "qwen2-5")
+        || contains_ignore_ascii_case(model, "qwen3")
+        || contains_ignore_ascii_case(model, "qwen2")
     {
         return 32_768; // 32K
     }
 
     // ── Llama family ──────────────────────────────────────────────────────
-    if m.contains("llama3") || m.contains("llama-3") {
+    if contains_ignore_ascii_case(model, "llama3") || contains_ignore_ascii_case(model, "llama-3") {
         return 131_072; // 128K (Llama 3.x)
     }
-    if m.contains("llama2") || m.contains("llama-2") {
+    if contains_ignore_ascii_case(model, "llama2") || contains_ignore_ascii_case(model, "llama-2") {
         return 4096; // Llama 2 base context
     }
-    if m.contains("codellama") {
+    if contains_ignore_ascii_case(model, "codellama") {
         return 16_384; // 16K
     }
 
     // ── Mistral family ────────────────────────────────────────────────────
-    if m.contains("ministral") || m.contains("mistral") {
+    if contains_ignore_ascii_case(model, "ministral")
+        || contains_ignore_ascii_case(model, "mistral")
+    {
         return 131_072; // 128K (Mistral/Ministral small)
     }
-    if m.contains("mixtral") {
+    if contains_ignore_ascii_case(model, "mixtral") {
         return 32_768; // 32K
     }
 
     // ── Gemma family ──────────────────────────────────────────────────────
-    if m.contains("gemma4") || m.contains("gemma-4") {
+    if contains_ignore_ascii_case(model, "gemma4") || contains_ignore_ascii_case(model, "gemma-4") {
         return 262_144; // 256K (Gemma 4 medium); small models are 128K
     }
-    if m.contains("gemma3")
-        || m.contains("gemma-3")
-        || m.contains("gemma2")
-        || m.contains("gemma-2")
+    if contains_ignore_ascii_case(model, "gemma3")
+        || contains_ignore_ascii_case(model, "gemma-3")
+        || contains_ignore_ascii_case(model, "gemma2")
+        || contains_ignore_ascii_case(model, "gemma-2")
     {
         return 131_072; // 128K (Gemma 2/3)
     }
-    if m.contains("codegemma") {
+    if contains_ignore_ascii_case(model, "codegemma") {
         return 8192; // CodeGemma
     }
-    if m.contains("gemma") {
+    if contains_ignore_ascii_case(model, "gemma") {
         return 8192; // Gemma 1.x
     }
 
     // ── StarCoder family ──────────────────────────────────────────────────
-    if m.contains("starcoder2") {
+    if contains_ignore_ascii_case(model, "starcoder2") {
         return 16_384; // 16K
     }
-    if m.contains("starcoder") {
+    if contains_ignore_ascii_case(model, "starcoder") {
         return 8192; // StarCoder 1.x
     }
 
     // ── Microsoft Phi family ──────────────────────────────────────────────
-    if m.contains("phi-3") || m.contains("phi3") {
+    if contains_ignore_ascii_case(model, "phi-3") || contains_ignore_ascii_case(model, "phi3") {
         return 131_072; // 128K
     }
-    if m.contains("phi-2") || m.contains("phi2") {
+    if contains_ignore_ascii_case(model, "phi-2") || contains_ignore_ascii_case(model, "phi2") {
         return 2048; // Phi-2
     }
 
     // ── Cohere Command-R ──────────────────────────────────────────────────
-    if m.contains("command-r") {
+    if contains_ignore_ascii_case(model, "command-r") {
         return 131_072; // 128K
     }
 
@@ -995,7 +1043,7 @@ pub fn infer_context_window(model: &str) -> u32 {
     // assigned 2048 to "tiny" models was systematically wrong because
     // parameter count ≠ context window.
     if has_param_tag(
-        &m,
+        model,
         &[
             "110b", "72b", "70b", "34b", "32b", "16b", "14b", "13b", "9b", "8b", "7b", "6b", "5b",
             "4b", "3b", "2b", "1.5b", "1.3b", "1b", "0.8b", "0.5b", "0.3b",
@@ -1017,18 +1065,95 @@ pub fn infer_context_window(model: &str) -> u32 {
 /// must not match "4b").
 fn has_param_tag(model: &str, tags: &[&str]) -> bool {
     for tag in tags {
-        if let Some(pos) = model.find(tag) {
+        if let Some(pos) = find_ignore_ascii_case(model, tag) {
             // Check that the match is at a word boundary — the char before
             // must not be a digit (avoids "72b" matching "2b"), a dot (avoids
             // "0.8b" matching "8b"), or an ASCII letter (avoids "e4b" matching
             // "4b").
             if pos > 0 {
-                let prev = model.as_bytes()[pos - 1];
-                if prev.is_ascii_digit() || prev == b'.' || prev.is_ascii_alphabetic() {
-                    continue;
+                // Get the byte at pos-1 (we need byte index, not char index)
+                let byte_pos = model.char_indices().nth(pos).map(|(i, _)| i);
+                if let Some(bp) = byte_pos
+                    && bp > 0
+                {
+                    let prev = model.as_bytes()[bp - 1];
+                    if prev.is_ascii_digit() || prev == b'.' || prev.is_ascii_alphabetic() {
+                        continue;
+                    }
                 }
             }
             return true;
+        }
+    }
+    false
+}
+
+/// Find the character position of needle in haystack case-insensitively.
+/// Returns None if not found. Returns the char index (not byte index).
+fn find_ignore_ascii_case(haystack: &str, needle: &str) -> Option<usize> {
+    if needle.is_empty() {
+        return Some(0);
+    }
+    if haystack.len() < needle.len() {
+        return None;
+    }
+
+    let needle_chars: Vec<char> = needle.chars().collect();
+    let mut haystack_chars = haystack.chars().enumerate();
+
+    while let Some((pos, first)) = haystack_chars.next() {
+        if first.eq_ignore_ascii_case(&needle_chars[0]) {
+            // Potential match - check remaining characters
+            let mut rest = haystack_chars.clone();
+            let mut matched = true;
+            for needle_char in &needle_chars[1..] {
+                match rest.next() {
+                    Some((_, h_char)) if h_char.eq_ignore_ascii_case(needle_char) => continue,
+                    _ => {
+                        matched = false;
+                        break;
+                    }
+                }
+            }
+            if matched {
+                return Some(pos);
+            }
+        }
+    }
+    None
+}
+
+/// Check if haystack contains needle case-insensitively without allocation.
+/// Uses character-by-character matching without creating lowercase copies.
+fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    if haystack.len() < needle.len() {
+        return false;
+    }
+
+    // Iterate through haystack looking for needle match
+    let needle_chars: Vec<char> = needle.chars().collect();
+    let mut haystack_chars = haystack.chars();
+
+    while let Some(first) = haystack_chars.next() {
+        if first.eq_ignore_ascii_case(&needle_chars[0]) {
+            // Potential match - check remaining characters
+            let mut rest = haystack_chars.clone();
+            let mut matched = true;
+            for needle_char in &needle_chars[1..] {
+                match rest.next() {
+                    Some(h_char) if h_char.eq_ignore_ascii_case(needle_char) => continue,
+                    _ => {
+                        matched = false;
+                        break;
+                    }
+                }
+            }
+            if matched {
+                return true;
+            }
         }
     }
     false
@@ -1053,8 +1178,6 @@ fn config_tier_to_llm_tier(tier: &PromptTierConfig) -> crate::llm::PromptTier {
 /// (≤ 3B) have limited effective context utilization even when they have
 /// large context windows, so they benefit from aggressive prompt compression.
 pub fn infer_model_parameter_count(model: &str) -> Option<f32> {
-    let m = model.to_ascii_lowercase();
-
     // Check for common parameter-size tags in decreasing order of size.
     // We look for word-boundary matches to avoid e.g. "70b" matching "170b".
     let tags: &[(&str, f32)] = &[
@@ -1083,7 +1206,7 @@ pub fn infer_model_parameter_count(model: &str) -> Option<f32> {
     ];
 
     for (tag, size) in tags {
-        if has_param_tag(&m, &[tag]) {
+        if has_param_tag(model, &[tag]) {
             return Some(*size);
         }
     }
@@ -2690,8 +2813,9 @@ mod tests {
     fn test_effective_context_window_default() {
         let cfg = Config::default();
         let ctx = cfg.effective_context_window();
-        // Default config → should not panic
-        assert!(ctx == 0 || ctx > 0);
+        // Default config → should not panic (ctx is u32, so always >= 0)
+        // Just verify we can call the method without panic
+        let _ = ctx;
     }
 
     // ─── infer_model_parameter_count ─────────────────────────────────────────
