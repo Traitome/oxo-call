@@ -528,6 +528,8 @@ pub static BUILTIN_SKILLS: &[(&str, &str)] = &[
     // ── AI assistant platforms ────────────────────────────────────────────────
     builtin!("openclaw"),
     builtin!("claude"),
+    // ── oxo-call utility skills ────────────────────────────────────────────────
+    builtin!("skill-generator"),
     // ── QC tools ─────────────────────────────────────────────────────────────
     builtin!("qualimap"),
     builtin!("rseqc"),

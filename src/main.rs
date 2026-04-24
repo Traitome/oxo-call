@@ -1363,18 +1363,19 @@ async fn run(cli: Cli) -> error::Result<()> {
                         // Only show spinner for non-streaming mode.
                         let spinner = if !cfg.llm.stream {
                             Some(runner::make_spinner(&format!(
-                                "Generating skill template for '{tool}' with LLM..."
+                                "Generating skill for '{tool}' using skill-generator workflow..."
                             )))
                         } else {
                             None
                         };
-                        match llm_client.generate_skill_template(&tool).await {
+                        // Use enhanced generation with skill-generator integration
+                        match llm_client.generate_skill_template_enhanced(&tool).await {
                             Ok(generated) => {
                                 if let Some(sp) = spinner {
                                     sp.finish_and_clear();
                                 }
                                 println!(
-                                    "{} LLM-generated skill template for '{}'",
+                                    "{} Generated skill for '{}' using skill-generator workflow",
                                     "✓".green().bold(),
                                     tool.cyan()
                                 );
@@ -1385,11 +1386,28 @@ async fn run(cli: Cli) -> error::Result<()> {
                                     sp.finish_and_clear();
                                 }
                                 eprintln!(
-                                    "{} LLM generation failed ({}), falling back to blank template",
+                                    "{} Enhanced generation failed ({}), trying basic template",
                                     "!".yellow().bold(),
                                     e
                                 );
-                                skill::SkillManager::create_template(&tool)
+                                // Fallback to basic template
+                                match llm_client.generate_skill_template(&tool).await {
+                                    Ok(basic) => {
+                                        println!(
+                                            "{} Generated basic skill template for '{}'",
+                                            "✓".green().bold(),
+                                            tool.cyan()
+                                        );
+                                        basic
+                                    }
+                                    Err(_) => {
+                                        eprintln!(
+                                            "{} LLM generation failed, falling back to blank template",
+                                            "!".yellow().bold()
+                                        );
+                                        skill::SkillManager::create_template(&tool)
+                                    }
+                                }
                             }
                         }
                     } else {
