@@ -497,24 +497,24 @@ impl Config {
     /// marketing name (e.g., "gpt-5-mini" is still a frontier model far larger
     /// than any local 32B model).
     pub fn model_size_category(&self) -> &'static str {
-        let model = self.effective_model().to_lowercase();
+        let model = self.effective_model();
 
         // ── Cloud API models are always "large" ──────────────────────────────
         // These are frontier models served via API; even "mini" variants
         // (e.g. gpt-5-mini, gpt-4o-mini) are large by local-model standards.
-        if model.contains("gpt-")
-            || model.contains("gpt4")
-            || model.contains("gpt5")
-            || model.contains("claude")
-            || model.contains("gemini")
-            || model.contains("command-r")
-            || model.contains("moonshot")   // Kimi (Moonshot AI)
-            || model.contains("kimi")       // Kimi alternate name
-            || model.contains("glm")        // ZhipuAI GLM series
-            || model.contains("minimax")    // Minimax series
-            || model.contains("chatglm")    // ZhipuAI ChatGLM series
-            || model.contains("deepseek")
-        // DeepSeek series
+        // Use case-insensitive matching without allocation
+        if contains_ignore_ascii_case(&model, "gpt-")
+            || contains_ignore_ascii_case(&model, "gpt4")
+            || contains_ignore_ascii_case(&model, "gpt5")
+            || contains_ignore_ascii_case(&model, "claude")
+            || contains_ignore_ascii_case(&model, "gemini")
+            || contains_ignore_ascii_case(&model, "command-r")
+            || contains_ignore_ascii_case(&model, "moonshot")   // Kimi (Moonshot AI)
+            || contains_ignore_ascii_case(&model, "kimi")       // Kimi alternate name
+            || contains_ignore_ascii_case(&model, "glm")        // ZhipuAI GLM series
+            || contains_ignore_ascii_case(&model, "minimax")    // Minimax series
+            || contains_ignore_ascii_case(&model, "chatglm")    // ZhipuAI ChatGLM series
+            || contains_ignore_ascii_case(&model, "deepseek")   // DeepSeek series
         {
             return "large";
         }

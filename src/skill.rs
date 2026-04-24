@@ -549,11 +549,12 @@ pub static BUILTIN_SKILLS: &[(&str, &str)] = &[
 
 /// HashMap for O(1) lookup of built-in skills by name (case-insensitive).
 /// Built once at first access from the BUILTIN_SKILLS static array.
-static BUILTIN_SKILL_MAP: std::sync::LazyLock<std::collections::HashMap<&str, &str>> =
+/// Keys are stored in lowercase to enable case-insensitive lookup without allocation.
+static BUILTIN_SKILL_MAP: std::sync::LazyLock<std::collections::HashMap<String, &str>> =
     std::sync::LazyLock::new(|| {
         BUILTIN_SKILLS
             .iter()
-            .map(|(name, content)| (*name, *content))
+            .map(|(name, content)| (name.to_ascii_lowercase(), *content))
             .collect()
     });
 
