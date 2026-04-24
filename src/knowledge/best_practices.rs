@@ -117,11 +117,11 @@ impl BestPracticesDb {
 
     fn load_embedded() -> Vec<BestPractice> {
         vec![
-            // ── Threading practices (tool-specific) ──────────────────────────────────────────
+            // ── Threading practices (conditional - only when task mentions threads) ──────────────────────────────────────────
             BestPractice {
                 category: "performance".to_string(),
-                title: "Use threads for parallelism".to_string(),
-                recommendation: "Use -@ (samtools), -t (bwa), --threads (many tools) to leverage available CPU cores. A good default is 4-8 threads.".to_string(),
+                title: "Use threads when explicitly requested".to_string(),
+                recommendation: "When the task mentions threads/cores, use -@ (samtools), -t (bwa), --threads (many tools). Do NOT add thread counts unless the task explicitly requests them.".to_string(),
                 tools: vec!["samtools".to_string(), "bwa".to_string(), "bcftools".to_string(), "gatk4".to_string(), "star".to_string(), "hisat2".to_string(), "bowtie2".to_string()],
             },
             BestPractice {

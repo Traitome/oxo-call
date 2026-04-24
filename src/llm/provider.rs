@@ -138,7 +138,7 @@ impl LlmClient {
             };
 
             let user_prompt = if attempt == 0 {
-                build_prompt(
+                let prompt = build_prompt(
                     tool,
                     effective_docs,
                     task,
@@ -147,7 +147,12 @@ impl LlmClient {
                     context_window,
                     tier,
                     structured_doc,
-                )
+                );
+                // Debug: write prompt to file for analysis
+                if std::env::var("OXO_DEBUG_PROMPT").is_ok() {
+                    let _ = std::fs::write("/tmp/oxo_prompt_debug.txt", &prompt);
+                }
+                prompt
             } else if had_empty_output {
                 // After an empty output, use a fresh (shorter) prompt
                 // instead of the retry prompt (which adds even more text)

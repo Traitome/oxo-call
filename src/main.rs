@@ -261,6 +261,9 @@ async fn run(cli: Cli) -> error::Result<()> {
             auto_retry,
             scenario,
             no_stream,
+            no_skill: cli_no_skill,
+            no_doc: cli_no_doc,
+            no_prompt: cli_no_prompt,
         } => {
             let mut cfg = base_cfg.clone();
             if let Some(ref m) = model {
@@ -268,40 +271,46 @@ async fn run(cli: Cli) -> error::Result<()> {
             }
 
             // Convert validated scenario enum to workflow scenario
-            // and set ablation flags based on scenario
+            // and set ablation flags based on scenario OR CLI options
+            // CLI options override scenario defaults when explicitly set
             let (force_scenario, no_skill, no_doc, no_prompt) = match scenario {
                 Some(RunScenario::Bare) => (
                     Some(workflow_graph::WorkflowScenario::Bare),
-                    true,
-                    true,
-                    true,
+                    true,  // no_skill
+                    true,  // no_doc
+                    true,  // no_prompt
                 ),
                 Some(RunScenario::Prompt) => (
                     Some(workflow_graph::WorkflowScenario::Prompt),
-                    true,
-                    true,
-                    false,
+                    true,  // no_skill
+                    true,  // no_doc
+                    false, // no_prompt
                 ),
                 Some(RunScenario::Doc) => (
                     Some(workflow_graph::WorkflowScenario::Doc),
-                    true,
-                    false,
-                    false,
+                    true,  // no_skill
+                    false, // no_doc
+                    false, // no_prompt
                 ),
                 Some(RunScenario::Skill) => (
                     Some(workflow_graph::WorkflowScenario::Skill),
-                    false,
-                    true,
-                    false,
+                    false, // no_skill
+                    true,  // no_doc
+                    false, // no_prompt
                 ),
                 Some(RunScenario::Full) => (
                     Some(workflow_graph::WorkflowScenario::Full),
-                    false,
-                    false,
-                    false,
+                    false, // no_skill
+                    false, // no_doc
+                    false, // no_prompt
                 ),
                 None => (None, false, false, false),
             };
+
+            // CLI ablation options override scenario-based settings
+            let no_skill = no_skill || cli_no_skill;
+            let no_doc = no_doc || cli_no_doc;
+            let no_prompt = no_prompt || cli_no_prompt;
 
             // Collect input items from --input-list / --input-items.
             let all_items = {
@@ -363,6 +372,8 @@ async fn run(cli: Cli) -> error::Result<()> {
             vars,
             input_list,
             input_items,
+            jobs,
+            stop_on_error,
             scenario,
             no_stream,
         } => {
@@ -439,7 +450,9 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_no_skill(no_skill)
                 .with_no_doc(no_doc)
                 .with_no_prompt(no_prompt)
-                .with_no_stream(no_stream);
+                .with_no_stream(no_stream)
+                .with_jobs(jobs)
+                .with_stop_on_error(stop_on_error);
             if let Some(sc) = force_scenario {
                 runner.with_scenario(sc);
             }

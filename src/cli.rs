@@ -124,6 +124,15 @@ EXAMPLES:\n  \
         /// completes. Useful for benchmarking or non-interactive pipelines.
         #[arg(long)]
         no_stream: bool,
+        /// [Ablation] Do not load the skill file for this tool
+        #[arg(long, hide = true)]
+        no_skill: bool,
+        /// [Ablation] Do not load tool documentation (--help output)
+        #[arg(long, hide = true)]
+        no_doc: bool,
+        /// [Ablation] Do not use the oxo-call system prompt
+        #[arg(long, hide = true)]
+        no_prompt: bool,
     },
     #[command(
         name = "dry-run",
@@ -175,6 +184,12 @@ EXAMPLES:\n  \
         /// Comma-separated input items; previews the command for each item
         #[arg(long = "input-items", value_name = "ITEMS")]
         input_items: Option<String>,
+        /// Number of parallel jobs when using --input-list or --input-items (default: 1)
+        #[arg(short = 'j', long = "jobs", default_value = "1", value_name = "N")]
+        jobs: usize,
+        /// Stop processing after the first failed item (exit immediately, do not run remaining items)
+        #[arg(short = 'x', long = "stop-on-error")]
+        stop_on_error: bool,
         /// Force a specific workflow scenario (auto-detected by default)
         #[arg(long, value_enum, value_name = "SCENARIO")]
         scenario: Option<RunScenario>,

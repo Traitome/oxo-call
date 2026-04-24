@@ -38,12 +38,16 @@ source_url: "http://bio-bwa.sourceforge.net/bwa.shtml"
 **Args:** `index reference.fa`
 **Explanation:** creates .amb, .ann, .bwt, .pac, .sa index files alongside reference.fa
 
+### align paired-end reads to a reference genome
+**Args:** `mem reference.fa R1.fastq.gz R2.fastq.gz`
+**Explanation:** outputs SAM to stdout; pipe to samtools: bwa mem ref.fa R1.fq.gz R2.fq.gz | samtools view -b -o out.bam
+
 ### align paired-end reads to a reference genome using 8 threads
 **Args:** `mem -t 8 reference.fa R1.fastq.gz R2.fastq.gz`
-**Explanation:** outputs SAM to stdout; pipe to samtools: bwa mem -t 8 ref.fa R1.fq.gz R2.fq.gz | samtools view -b -o out.bam
+**Explanation:** -t 8 uses 8 threads as requested; outputs SAM to stdout; pipe to samtools for BAM output
 
 ### align single-end reads and save as BAM with read group for GATK
-**Args:** `mem -t 4 -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA' reference.fa reads.fastq.gz`
+**Args:** `mem -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA' reference.fa reads.fastq.gz`
 **Explanation:** read group (-R) is required by GATK; exact RG field values (ID, SM, LB) must match the sample; output is SAM to stdout
 
 ### align long reads (PacBio/Oxford Nanopore) to reference
@@ -51,27 +55,27 @@ source_url: "http://bio-bwa.sourceforge.net/bwa.shtml"
 **Explanation:** -x ont2d preset for Oxford Nanopore; -x pacbio for PacBio; -x intractg for intra-species contigs; outputs SAM to stdout
 
 ### align paired-end reads and sort the output directly to a BAM file
-**Args:** `mem -t 8 reference.fa R1.fastq.gz R2.fastq.gz | samtools sort -@ 4 -o sorted.bam`
+**Args:** `mem reference.fa R1.fastq.gz R2.fastq.gz | samtools sort -o sorted.bam`
 **Explanation:** pipe bwa mem output directly to samtools sort to avoid intermediate SAM file
 
 ### align paired-end reads with complete read group for GATK HaplotypeCaller
-**Args:** `mem -t 8 -R '@RG\tID:run1\tSM:patient1\tLB:lib1\tPL:ILLUMINA\tPU:unit1' reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o sample1.bam`
+**Args:** `mem -R '@RG\tID:run1\tSM:patient1\tLB:lib1\tPL:ILLUMINA\tPU:unit1' reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o sample1.bam`
 **Explanation:** -R adds a full read group with ID, SM, LB, PL, PU fields; preserve all exact values including sample and library IDs
 
 ### align paired-end reads and report only mapped reads
-**Args:** `mem -t 8 reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -F 4 -o mapped.bam`
+**Args:** `mem reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -F 4 -o mapped.bam`
 **Explanation:** -F 4 in samtools view excludes unmapped reads (flag 4); useful to reduce file size in the output BAM
 
 ### align with specific gap extension and mismatch penalties
-**Args:** `mem -t 4 -B 4 -O 6 -E 1 reference.fa reads.fastq.gz > aligned.sam`
+**Args:** `mem -B 4 -O 6 -E 1 reference.fa reads.fastq.gz > aligned.sam`
 **Explanation:** -B 4 mismatch penalty; -O 6 gap open penalty; -E 1 gap extension penalty; tuned for specific read types
 
 ### align paired-end reads in a pipeline saving both BAM and stats
-**Args:** `mem -t 8 -R '@RG\tID:sample2\tSM:sample2\tLB:lib2\tPL:ILLUMINA' reference.fa R1.fastq.gz R2.fastq.gz | samtools sort -@ 4 -o sample2_sorted.bam && samtools index sample2_sorted.bam`
+**Args:** `mem -R '@RG\tID:sample2\tSM:sample2\tLB:lib2\tPL:ILLUMINA' reference.fa R1.fastq.gz R2.fastq.gz | samtools sort -o sample2_sorted.bam && samtools index sample2_sorted.bam`
 **Explanation:** full pipeline: align with read group → sort → index; preserving exact sample2 and lib2 identifiers in the RG
 
 ### align with soft-clipping allowed for structural variant discovery
-**Args:** `mem -t 8 -Y -M reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o sv_aligned.bam`
+**Args:** `mem -Y -M reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o sv_aligned.bam`
 **Explanation:** -Y enables soft-clipping of supplementary alignments; -M marks shorter split hits as secondary (Picard compatible); recommended for SV callers like LUMPY or Manta
 
 ### align intra-species contigs to a reference genome

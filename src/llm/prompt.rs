@@ -57,7 +57,7 @@ pub fn system_prompt() -> &'static str {
      6. Multi-step commands: use && for sequential execution (stop on error), | for pipelines, ; for independent commands. The tool name is auto-prepended ONLY to the first segment — subsequent commands MUST include their full binary name.\n\
      7. Pipes (|) and redirects (>) are allowed directly in ARGS.\n\
      8. Use ONLY flags documented for this tool — always match the exact flag format shown (--flag=value or --flag value). Do NOT invent or hallucinate flags.\n\
-     9. Include every file path and parameter value from the task description.\n\
+     9. Include EVERY file path and parameter value from the task description — if the task mentions R1 AND R2, BOTH must appear in ARGS with their respective flags (e.g., -i R1 -I R2). Missing files is a critical error.\n\
      10. Do NOT add optional parameters (thread counts, seeds, reference paths, memory limits) unless the task explicitly mentions them.\n\
      11. Format conventions (when applicable): coordinate-sorted BAM output, gzipped FASTQ, Phred+33 encoding. Override if task specifies otherwise.\n\
      12. Match format flags to actual data types (BAM/SAM/CRAM, gzipped/plain, paired/single, FASTA/FASTQ).\n\
@@ -72,7 +72,7 @@ pub fn system_prompt_medium() -> &'static str {
      EXPLANATION: <one sentence>\n\
      Rules: NEVER repeat flags (each flag once only). Follow the exact argument structure from documentation (flags before or after positional args varies by tool). \
      Subcommand first if applicable. Never include tool name. Use only documented flags, matching their exact format. Do NOT invent flags. \
-     Include all paths from task. Multi-step uses && (tool name only on first segment). \
+     Include EVERY file path from task — if task mentions R1 AND R2, BOTH must appear in ARGS. Multi-step uses && (tool name only on first segment). \
      Pipes allowed. Do NOT add optional parameters (threads, seeds, reference paths) unless the task explicitly mentions them."
 }
 
@@ -82,7 +82,8 @@ pub fn system_prompt_compact() -> &'static str {
      Output EXACTLY two lines:\n\
      ARGS: <arguments — never include the tool name>\n\
      EXPLANATION: <what the command does>\n\
-     Rules: NEVER repeat flags. Never include tool name. Use flags from documentation or examples only, matching their exact format. Do NOT invent flags. Pipes and chains allowed. \
+     Rules: NEVER repeat flags. Never include tool name. Use flags from documentation or examples only, matching their exact format. Do NOT invent flags. \
+     Include EVERY file from task — if R1 AND R2 mentioned, BOTH must be in ARGS. Pipes and chains allowed. \
      Do NOT add optional parameters (threads, seeds, reference paths) unless the task explicitly mentions them."
 }
 
@@ -99,10 +100,15 @@ pub fn estimate_tokens(text: &str) -> usize {
 
 /// Determine the prompt tier from context window size (in tokens) and model name.
 pub fn prompt_tier(context_window: u32, model: &str) -> PromptTier {
-    if let Some(param_count) = crate::config::infer_model_parameter_count(model)
-        && param_count <= 3.0
-    {
-        return PromptTier::Compact;
+    if let Some(param_count) = crate::config::infer_model_parameter_count(model) {
+        if param_count <= 3.0 {
+            return PromptTier::Compact;
+        }
+        // Models ≤7B benefit from Medium tier (fewer examples) even with large context
+        // Full prompts with 7+ examples overwhelm these models
+        if param_count <= 7.0 {
+            return PromptTier::Medium;
+        }
     }
 
     if context_window == 0 || context_window >= 16384 {
@@ -170,7 +176,9 @@ fn build_prompt_full(
     prompt.push_str(&format!("# Tool: `{tool}`\n\n"));
 
     if let Some(skill) = skill {
-        let section = skill.to_prompt_section_for_task(usize::MAX, task);
+        // Limit examples to 7 even in full mode to prevent overwhelming models
+        // Small models struggle with prompts containing 12+ examples
+        let section = skill.to_prompt_section_for_task(7, task);
         if !section.is_empty() {
             prompt.push_str(&section);
         }

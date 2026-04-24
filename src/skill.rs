@@ -592,11 +592,13 @@ impl Skill {
     fn render_section(&self, max_examples: usize, task: &Option<String>) -> String {
         let mut s = String::new();
 
-        let compact = max_examples <= 3;
+        // Compact mode: fewer concepts/pitfalls for smaller models
+        // Use compact for ≤5 examples (covers Compact and Medium tiers)
+        let compact = max_examples <= 5;
 
         if !self.context.concepts.is_empty() {
             let limit = if compact {
-                self.context.concepts.len().min(3)
+                self.context.concepts.len().min(5)
             } else {
                 self.context.concepts.len()
             };
@@ -609,7 +611,7 @@ impl Skill {
 
         if !self.context.pitfalls.is_empty() {
             let limit = if compact {
-                self.context.pitfalls.len().min(2)
+                self.context.pitfalls.len().min(3)
             } else {
                 self.context.pitfalls.len()
             };

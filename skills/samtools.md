@@ -39,8 +39,8 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 ## Examples
 
 ### sort a BAM file by genomic coordinates
-**Args:** `sort -@ 4 -o sorted.bam input.bam`
-**Explanation:** -@ 4 uses 4 threads; -o writes BAM file; coordinate sort is the default
+**Args:** `sort -o sorted.bam input.bam`
+**Explanation:** -o writes the sorted BAM file; coordinate sort is the default
 
 ### create an index for a sorted BAM file
 **Args:** `index sorted.bam`
@@ -55,7 +55,7 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 **Explanation:** outputs counts for each alignment category to stdout; redirect with > stats.txt to save
 
 ### convert BAM to FASTQ for paired-end reads
-**Args:** `fastq -@ 4 -1 R1.fastq.gz -2 R2.fastq.gz -0 /dev/null -s /dev/null -n input.bam`
+**Args:** `fastq -1 R1.fastq.gz -2 R2.fastq.gz -0 /dev/null -s /dev/null -n input.bam`
 **Explanation:** -1/-2 for read 1/2; -0 for unpaired; -s for supplementary; -n preserves original read names
 
 ### extract reads mapping to chromosome 1 between 100000 and 200000
@@ -63,11 +63,11 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 **Explanation:** region queries require a sorted + indexed BAM; -b outputs BAM
 
 ### mark PCR duplicates
-**Args:** `markdup -@ 4 -f stats.txt input_namesorted.bam output_markdup.bam`
+**Args:** `markdup -f stats.txt input_namesorted.bam output_markdup.bam`
 **Explanation:** input must be name-sorted (samtools sort -n), then fixmate'd; -f writes duplicate marking statistics
 
 ### merge multiple BAM files into one
-**Args:** `merge -@ 4 -f merged.bam sample1.bam sample2.bam sample3.bam`
+**Args:** `merge -f merged.bam sample1.bam sample2.bam sample3.bam`
 **Explanation:** -f overwrites output if it exists; all inputs should be sorted
 
 ### compute per-base depth of coverage
@@ -79,11 +79,11 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 **Explanation:** outputs only the header lines (starting with @) to stdout
 
 ### sort BAM by read name for fixmate preprocessing
-**Args:** `sort -n -@ 4 -o namesorted.bam input.bam`
-**Explanation:** -n sorts by read name (required before fixmate and markdup); -@ 4 uses 4 threads
+**Args:** `sort -n -o namesorted.bam input.bam`
+**Explanation:** -n sorts by read name (required before fixmate and markdup)
 
 ### add mate information required for duplicate marking
-**Args:** `fixmate -m -@ 4 namesorted.bam fixmate.bam`
+**Args:** `fixmate -m namesorted.bam fixmate.bam`
 **Explanation:** -m adds mate score tags needed by markdup; input must be name-sorted; output is still name-sorted
 
 ### convert BAM to CRAM with reference for smaller storage
@@ -91,11 +91,11 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 **Explanation:** -C outputs CRAM format; --reference is required for CRAM; much smaller than BAM for WGS data
 
 ### calculate insert size and coverage statistics
-**Args:** `stats -@ 4 input.bam > stats.txt`
+**Args:** `stats input.bam > stats.txt`
 **Explanation:** outputs comprehensive statistics including insert size distribution, coverage, and error rates
 
 ### sort BAM using coordinate sort with temporary directory
-**Args:** `sort -@ 8 -m 2G -T /tmp/sort_tmp -o sorted.bam input.bam`
+**Args:** `sort -m 2G -T /tmp/sort_tmp -o sorted.bam input.bam`
 **Explanation:** -m limits per-thread memory; -T sets temporary directory to avoid filling default tmpdir
 
 ### generate pileup for variant calling
@@ -107,7 +107,7 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 **Explanation:** -f specifies output format (FASTA/FASTQ/PILEUP); produces consensus sequence from aligned reads; useful for viral genomes or amplicon sequencing
 
 ### collate alignments by name without full sorting
-**Args:** `collate -@ 4 -o collated.bam input.bam`
+**Args:** `collate -o collated.bam input.bam`
 **Explanation:** groups reads by name faster than sort -n; useful for workflows needing paired reads together without strict name ordering
 
 ### compute coverage statistics per chromosome
@@ -119,7 +119,7 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 **Explanation:** fast integrity check without full validation; exits with non-zero status if file appears corrupted; useful for pipeline validation steps
 
 ### extract FASTA from BAM
-**Args:** `fasta -@ 4 -o output.fa input.bam`
+**Args:** `fasta -o output.fa input.bam`
 **Explanation:** converts BAM to FASTA format; useful for extracting sequences from aligned reads
 
 ### calculate depth per BED region

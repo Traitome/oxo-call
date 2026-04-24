@@ -52,3 +52,4 @@ docs/bench/usage_descriptions.csv.bak
 
 # Temporary test outputs
 output.txt
+.claude/ralph-loop.local.md
