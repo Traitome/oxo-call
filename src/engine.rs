@@ -228,9 +228,26 @@ fn task_id(step_name: &str, bindings: &HashMap<String, String>) -> String {
     if bindings.is_empty() {
         return step_name.to_string();
     }
-    let mut parts: Vec<String> = bindings.iter().map(|(k, v)| format!("{k}={v}")).collect();
-    parts.sort();
-    format!("{step_name}[{}]", parts.join(","))
+    // Pre-allocate with estimated capacity: step_name + ~20 chars per binding
+    let estimated_len = step_name.len() + bindings.len() * 20 + 2;
+    let mut result = String::with_capacity(estimated_len);
+    result.push_str(step_name);
+    result.push('[');
+
+    // Collect and sort binding keys for deterministic output
+    let mut keys: Vec<&String> = bindings.keys().collect();
+    keys.sort();
+
+    for (i, key) in keys.iter().enumerate() {
+        if i > 0 {
+            result.push(',');
+        }
+        result.push_str(key);
+        result.push('=');
+        result.push_str(&bindings[*key]);
+    }
+    result.push(']');
+    result
 }
 
 /// Returns true if the step uses any wildcard key in any of its fields.
@@ -423,23 +440,40 @@ fn is_up_to_date(task: &ConcreteTask) -> bool {
 pub fn compute_phases(tasks: &[ConcreteTask]) -> Vec<Vec<&ConcreteTask>> {
     let mut phases: Vec<Vec<&ConcreteTask>> = Vec::new();
     let mut assigned: HashSet<&str> = HashSet::new();
-    let mut remaining: Vec<&ConcreteTask> = tasks.iter().collect();
+
+    // Pre-collect all tasks to avoid repeated partition allocation
+    let mut remaining: Vec<usize> = (0..tasks.len()).collect();
 
     while !remaining.is_empty() {
-        let (ready, rest): (Vec<&ConcreteTask>, Vec<&ConcreteTask>) = remaining
-            .into_iter()
-            .partition(|t| t.deps.iter().all(|d| assigned.contains(d.as_str())));
+        // Find ready tasks without creating intermediate Vec
+        let mut ready_indices: Vec<usize> = Vec::new();
+        let mut new_remaining: Vec<usize> = Vec::new();
 
-        if ready.is_empty() {
+        for idx in remaining {
+            let task = &tasks[idx];
+            if task.deps.iter().all(|d| assigned.contains(d.as_str())) {
+                ready_indices.push(idx);
+            } else {
+                new_remaining.push(idx);
+            }
+        }
+
+        if ready_indices.is_empty() {
             // All remaining tasks have unsatisfied deps — cycle or error.
             break;
         }
 
-        for t in &ready {
-            assigned.insert(&t.id);
-        }
+        // Mark ready tasks as assigned and collect them
+        let ready: Vec<&ConcreteTask> = ready_indices
+            .iter()
+            .map(|idx| {
+                assigned.insert(&tasks[*idx].id);
+                &tasks[*idx]
+            })
+            .collect();
+
         phases.push(ready);
-        remaining = rest;
+        remaining = new_remaining;
     }
 
     phases
@@ -647,15 +681,21 @@ pub async fn execute(tasks: Vec<ConcreteTask>, dry_run: bool) -> Result<()> {
     // Set of completed task IDs (includes both run and skipped).
     // Pre-populate with previously checkpointed completions.
     let mut done: HashSet<String> = if !dry_run {
-        checkpoint.completed_tasks.clone()
+        // Use take to avoid clone - checkpoint.completed_tasks is consumed
+        std::mem::take(&mut checkpoint.completed_tasks)
     } else {
         HashSet::new()
     };
     // Tasks that have been dispatched (to avoid double-dispatch).
-    let mut started: HashSet<String> = done.clone();
+    // Started is same as done at init - pre-computed len for capacity
+    let done_len = done.len();
+    let mut started: HashSet<String> = HashSet::with_capacity(done_len + tasks.len());
+    for id in &done {
+        started.insert(id.clone());
+    }
     // Separately track which tasks were skipped (up-to-date).
     let mut skipped_count: usize = 0;
-    let mut completed_count: usize = done.len();
+    let mut completed_count: usize = done_len;
     let mut join_set: JoinSet<Result<(String, bool /*skipped*/)>> = JoinSet::new();
 
     let mut iterations_without_progress = 0usize;
