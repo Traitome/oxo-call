@@ -174,13 +174,21 @@ impl LlmCache {
         hasher.update(tool.as_bytes());
         hasher.update(b"\0"); // Separator
 
-        // Normalize task: lowercase, trim, collapse whitespace
-        let normalized_task = task
-            .to_lowercase()
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ");
-        hasher.update(normalized_task.as_bytes());
+        // Normalize task in-place while hashing: lowercase, trim, collapse whitespace
+        // Avoid Vec allocation by iterating directly
+        let mut prev_was_space = true; // Start true to skip leading spaces
+        for c in task.chars() {
+            let lower_c = c.to_ascii_lowercase();
+            if lower_c.is_whitespace() {
+                if !prev_was_space {
+                    hasher.update(b" ");
+                    prev_was_space = true;
+                }
+            } else {
+                hasher.update(&[lower_c as u8]);
+                prev_was_space = false;
+            }
+        }
         hasher.update(b"\0");
 
         if let Some(docs) = docs_hash {

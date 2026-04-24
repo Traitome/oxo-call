@@ -8,6 +8,30 @@ use crate::skill::Skill;
 
 use super::types::PromptTier;
 
+/// Case-insensitive substring check without allocation.
+fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    if haystack.len() < needle.len() {
+        return false;
+    }
+    haystack.as_bytes().windows(needle.len()).any(|window| {
+        window.iter().zip(needle.as_bytes()).all(|(h, n)| h.eq_ignore_ascii_case(n))
+    })
+}
+
+/// Check if haystack starts with needle case-insensitively without allocation.
+fn starts_with_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    if haystack.len() < needle.len() {
+        return false;
+    }
+    haystack.as_bytes().iter().zip(needle.as_bytes()).all(|(h, n)| h.eq_ignore_ascii_case(n))
+}
+
 // ─── System prompts ────────────────────────────────────────────────────────────
 
 pub fn system_prompt() -> &'static str {
@@ -413,8 +437,8 @@ pub fn truncate_documentation_for_task(docs: &str, max_chars: usize, task: Optio
         return simple_truncate(docs, effective_budget);
     }
 
-    let task_lower = task.to_ascii_lowercase();
-    let task_words: Vec<&str> = task_lower
+    // Extract task words without lowercase allocation - check matches directly
+    let task_words: Vec<&str> = task
         .split(|c: char| c.is_whitespace() || c == ',' || c == ';')
         .filter(|w| w.len() >= 2)
         .collect();
@@ -423,19 +447,19 @@ pub fn truncate_documentation_for_task(docs: &str, max_chars: usize, task: Optio
         .iter()
         .enumerate()
         .map(|(i, section)| {
-            let section_lower = section.to_ascii_lowercase();
+            // Use case-insensitive matching without allocation
             let score: f64 = task_words
                 .iter()
-                .filter(|w| section_lower.contains(*w))
+                .filter(|w| contains_ignore_ascii_case(section, *w))
                 .count() as f64;
-            let flag_boost = if section_lower.contains("  -") || section_lower.contains("--") {
+            let flag_boost = if contains_ignore_ascii_case(section, "  -") || contains_ignore_ascii_case(section, "--") {
                 0.5
             } else {
                 0.0
             };
-            let header_boost = if section_lower.starts_with("usage")
-                || section_lower.starts_with("options")
-                || section_lower.starts_with("synopsis")
+            let header_boost = if starts_with_ignore_ascii_case(section, "usage")
+                || starts_with_ignore_ascii_case(section, "options")
+                || starts_with_ignore_ascii_case(section, "synopsis")
             {
                 2.0
             } else {
