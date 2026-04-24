@@ -264,12 +264,30 @@ fn uses_wildcards(step: &StepDef, wildcards: &HashMap<String, Vec<String>>) -> b
             return false;
         }
 
-        // Precise check: look for actual {key} pattern
-        // Only allocate format! string when key appears somewhere
-        let pat = format!("{{{key_str}}}");
-        step.cmd.contains(&pat)
-            || step.inputs.iter().any(|i| i.contains(&pat))
-            || step.outputs.iter().any(|o| o.contains(&pat))
+        // Precise check: look for actual {key} pattern without format! allocation
+        // Search for "{" + key + "}" directly in bytes
+        fn contains_pattern(haystack: &str, key: &str) -> bool {
+            let hay_bytes = haystack.as_bytes();
+            let key_bytes = key.as_bytes();
+            let mut i = 0;
+            while i < hay_bytes.len() {
+                if hay_bytes[i] == b'{' {
+                    let remaining = &hay_bytes[i + 1..];
+                    if remaining.len() >= key_bytes.len() + 1
+                        && remaining[..key_bytes.len()] == *key_bytes
+                        && remaining[key_bytes.len()] == b'}'
+                    {
+                        return true;
+                    }
+                }
+                i += 1;
+            }
+            false
+        }
+
+        contains_pattern(&step.cmd, key_str)
+            || step.inputs.iter().any(|i| contains_pattern(i, key_str))
+            || step.outputs.iter().any(|o| contains_pattern(o, key_str))
     })
 }
 
