@@ -1402,7 +1402,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                                     }
                                     Err(_) => {
                                         eprintln!(
-                                            "{} LLM generation failed, falling back to blank template",
+                                            "{} LLM generation failed (network/API unavailable), using skeleton template",
                                             "!".yellow().bold()
                                         );
                                         skill::SkillManager::create_template(&tool)
@@ -1421,8 +1421,24 @@ async fn run(cli: Cli) -> error::Result<()> {
                                 "✓".green().bold(),
                                 path.display()
                             );
+                            // Add reference hint for skill registry
+                            println!(
+                                "\n{} Reference: Browse existing skills at {}",
+                                "💡".cyan(),
+                                "https://github.com/Traitome/oxo-call/tree/main/skills"
+                            );
                         }
-                        None => print!("{template}"),
+                        None => {
+                            print!("{template}");
+                            // Add reference hint for skill registry (only for --llm or when no output)
+                            if llm {
+                                eprintln!(
+                                    "\n{} Reference: Browse existing skills at {}",
+                                    "💡".cyan(),
+                                    "https://github.com/Traitome/oxo-call/tree/main/skills"
+                                );
+                            }
+                        }
                     }
                 }
 
