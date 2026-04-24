@@ -11,7 +11,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use sha2::{Digest, Sha256};
 
 /// Check if haystack contains needle case-insensitively without allocation.
-/// Uses character-by-character matching without creating lowercase copies.
+/// Uses byte-level matching for ASCII strings (sufficient for command/path matching).
 fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
     if needle.is_empty() {
         return true;
@@ -20,37 +20,19 @@ fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
         return false;
     }
 
-    // Iterate through haystack looking for needle match
-    let needle_chars: Vec<char> = needle.chars().collect();
-    let mut haystack_iter = haystack.chars().peekable();
+    // Byte-level comparison for ASCII-only matching (command names, paths)
+    let hay_bytes = haystack.as_bytes();
+    let needle_bytes = needle.as_bytes();
+    let needle_len = needle_bytes.len();
 
-    while let Some(first) = haystack_iter.next() {
-        if first.eq_ignore_ascii_case(&needle_chars[0]) {
-            // Potential match - check remaining characters
-            let mut rest = haystack_iter.clone();
-            let mut matched = true;
-            for needle_char in &needle_chars[1..] {
-                match rest.peek() {
-                    Some(h_char) if h_char.eq_ignore_ascii_case(needle_char) => {
-                        rest.next();
-                        continue;
-                    }
-                    _ => {
-                        matched = false;
-                        break;
-                    }
-                }
-            }
-            if matched {
-                return true;
-            }
-        }
-    }
-    false
+    hay_bytes
+        .windows(needle_len)
+        .any(|window| window.iter().zip(needle_bytes.iter())
+            .all(|(h, n)| h.eq_ignore_ascii_case(n)))
 }
 
 /// Check if haystack ends with needle case-insensitively without allocation.
-/// Uses character-by-character matching from the end.
+/// Uses byte-level matching for ASCII strings (sufficient for file extensions).
 fn ends_with_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
     if needle.is_empty() {
         return true;
@@ -59,21 +41,15 @@ fn ends_with_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
         return false;
     }
 
-    // Compare from the end
-    let haystack_chars: Vec<char> = haystack.chars().collect();
-    let needle_chars: Vec<char> = needle.chars().collect();
+    // Byte-level comparison for ASCII-only matching
+    let hay_bytes = haystack.as_bytes();
+    let needle_bytes = needle.as_bytes();
+    let offset = hay_bytes.len() - needle_bytes.len();
 
-    let haystack_len = haystack_chars.len();
-    let needle_len = needle_chars.len();
-
-    for i in 0..needle_len {
-        let h_char = haystack_chars[haystack_len - needle_len + i];
-        let n_char = needle_chars[i];
-        if !h_char.eq_ignore_ascii_case(&n_char) {
-            return false;
-        }
-    }
-    true
+    hay_bytes[offset..]
+        .iter()
+        .zip(needle_bytes.iter())
+        .all(|(h, n)| h.eq_ignore_ascii_case(n))
 }
 
 // ─── Command string building ──────────────────────────────────────────────────

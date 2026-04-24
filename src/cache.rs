@@ -185,7 +185,7 @@ impl LlmCache {
                     prev_was_space = true;
                 }
             } else {
-                hasher.update(&[lower_c as u8]);
+                hasher.update([lower_c as u8]);
                 prev_was_space = false;
             }
         }

@@ -450,7 +450,7 @@ pub fn truncate_documentation_for_task(docs: &str, max_chars: usize, task: Optio
             // Use case-insensitive matching without allocation
             let score: f64 = task_words
                 .iter()
-                .filter(|w| contains_ignore_ascii_case(section, *w))
+                .filter(|w| contains_ignore_ascii_case(section, w))
                 .count() as f64;
             let flag_boost = if contains_ignore_ascii_case(section, "  -") || contains_ignore_ascii_case(section, "--") {
                 0.5

@@ -273,7 +273,7 @@ fn uses_wildcards(step: &StepDef, wildcards: &HashMap<String, Vec<String>>) -> b
             while i < hay_bytes.len() {
                 if hay_bytes[i] == b'{' {
                     let remaining = &hay_bytes[i + 1..];
-                    if remaining.len() >= key_bytes.len() + 1
+                    if remaining.len() > key_bytes.len()
                         && remaining[..key_bytes.len()] == *key_bytes
                         && remaining[key_bytes.len()] == b'}'
                     {
