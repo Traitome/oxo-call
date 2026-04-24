@@ -3,8 +3,8 @@ use crate::server::ServerConfig;
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use tokio::fs;
 use std::str::FromStr;
+use tokio::fs;
 
 const DEFAULT_LLM_PROVIDER: &str = "github-copilot";
 const DEFAULT_MAX_TOKENS: u32 = 2048;
@@ -514,7 +514,8 @@ impl Config {
             || contains_ignore_ascii_case(&model, "glm")        // ZhipuAI GLM series
             || contains_ignore_ascii_case(&model, "minimax")    // Minimax series
             || contains_ignore_ascii_case(&model, "chatglm")    // ZhipuAI ChatGLM series
-            || contains_ignore_ascii_case(&model, "deepseek")   // DeepSeek series
+            || contains_ignore_ascii_case(&model, "deepseek")
+        // DeepSeek series
         {
             return "large";
         }

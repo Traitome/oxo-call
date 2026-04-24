@@ -25,10 +25,12 @@ fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
     let needle_bytes = needle.as_bytes();
     let needle_len = needle_bytes.len();
 
-    hay_bytes
-        .windows(needle_len)
-        .any(|window| window.iter().zip(needle_bytes.iter())
-            .all(|(h, n)| h.eq_ignore_ascii_case(n)))
+    hay_bytes.windows(needle_len).any(|window| {
+        window
+            .iter()
+            .zip(needle_bytes.iter())
+            .all(|(h, n)| h.eq_ignore_ascii_case(n))
+    })
 }
 
 /// Check if haystack ends with needle case-insensitively without allocation.
@@ -697,5 +699,7 @@ pub(crate) fn has_bio_extension(path: &str) -> bool {
         ".tbi",
         ".idx",
     ];
-    EXTENSIONS.iter().any(|ext| ends_with_ignore_ascii_case(path, ext))
+    EXTENSIONS
+        .iter()
+        .any(|ext| ends_with_ignore_ascii_case(path, ext))
 }

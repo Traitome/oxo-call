@@ -331,26 +331,29 @@ impl RuleCommandGenerator {
         let output_base = strip_extensions(&output_name);
 
         // Apply template with single-pass replacement to avoid intermediate Strings
-        let args = if rule.args_template.contains("{input}") || rule.args_template.contains("{output}") {
-            let mut result = String::with_capacity(rule.args_template.len() + input_base.len() + output_base.len());
-            let mut i = 0;
-            let template = rule.args_template.as_str();
-            while i < template.len() {
-                if template[i..].starts_with("{input}") {
-                    result.push_str(&input_base);
-                    i += 7;
-                } else if template[i..].starts_with("{output}") {
-                    result.push_str(&output_base);
-                    i += 8;
-                } else {
-                    result.push(template[i..].chars().next().unwrap());
-                    i += template[i..].chars().next().unwrap().len_utf8();
+        let args =
+            if rule.args_template.contains("{input}") || rule.args_template.contains("{output}") {
+                let mut result = String::with_capacity(
+                    rule.args_template.len() + input_base.len() + output_base.len(),
+                );
+                let mut i = 0;
+                let template = rule.args_template.as_str();
+                while i < template.len() {
+                    if template[i..].starts_with("{input}") {
+                        result.push_str(&input_base);
+                        i += 7;
+                    } else if template[i..].starts_with("{output}") {
+                        result.push_str(&output_base);
+                        i += 8;
+                    } else {
+                        result.push(template[i..].chars().next().unwrap());
+                        i += template[i..].chars().next().unwrap().len_utf8();
+                    }
                 }
-            }
-            result
-        } else {
-            rule.args_template.clone()
-        };
+                result
+            } else {
+                rule.args_template.clone()
+            };
 
         GeneratedCommand {
             args,

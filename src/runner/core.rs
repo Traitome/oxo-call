@@ -161,7 +161,10 @@ impl Runner {
     }
 
     /// Force a specific workflow scenario.
-    pub fn with_scenario(&mut self, scenario: crate::workflow_graph::WorkflowScenario) -> &mut Self {
+    pub fn with_scenario(
+        &mut self,
+        scenario: crate::workflow_graph::WorkflowScenario,
+    ) -> &mut Self {
         self.force_scenario = Some(scenario);
         self
     }

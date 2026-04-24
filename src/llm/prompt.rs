@@ -17,7 +17,10 @@ fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
         return false;
     }
     haystack.as_bytes().windows(needle.len()).any(|window| {
-        window.iter().zip(needle.as_bytes()).all(|(h, n)| h.eq_ignore_ascii_case(n))
+        window
+            .iter()
+            .zip(needle.as_bytes())
+            .all(|(h, n)| h.eq_ignore_ascii_case(n))
     })
 }
 
@@ -29,7 +32,11 @@ fn starts_with_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
     if haystack.len() < needle.len() {
         return false;
     }
-    haystack.as_bytes().iter().zip(needle.as_bytes()).all(|(h, n)| h.eq_ignore_ascii_case(n))
+    haystack
+        .as_bytes()
+        .iter()
+        .zip(needle.as_bytes())
+        .all(|(h, n)| h.eq_ignore_ascii_case(n))
 }
 
 // ─── System prompts ────────────────────────────────────────────────────────────
@@ -452,7 +459,9 @@ pub fn truncate_documentation_for_task(docs: &str, max_chars: usize, task: Optio
                 .iter()
                 .filter(|w| contains_ignore_ascii_case(section, w))
                 .count() as f64;
-            let flag_boost = if contains_ignore_ascii_case(section, "  -") || contains_ignore_ascii_case(section, "--") {
+            let flag_boost = if contains_ignore_ascii_case(section, "  -")
+                || contains_ignore_ascii_case(section, "--")
+            {
                 0.5
             } else {
                 0.0
