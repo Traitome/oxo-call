@@ -711,6 +711,153 @@ pub fn skill_reviewer_system_prompt() -> &'static str {
      All content must be accurate, actionable, and written in English."
 }
 
+/// System prompt for the skill generator persona using the skill-generator workflow.
+/// This prompt embeds the key concepts from the skill-generator skill for small model compatibility.
+pub fn skill_generator_system_prompt() -> &'static str {
+    "You are an expert bioinformatics skill generator following a structured 7-step workflow. \
+     Your task is to generate comprehensive skill.md files for bioinformatics tools. \
+     \n\
+     ## Skill File Format\n\
+     - YAML front-matter: name, category, description, tags, author ('AI-generated'), source_url\n\
+     - ## Concepts: ≥3 bullet points about data model, I/O, key behaviors, workflow dependencies\n\
+     - ## Pitfalls: ≥3 bullet points about mistakes WITH consequences\n\
+     - ## Examples: ≥5 subsections with format: ### task → **Args:** `flags` → **Explanation:** text\n\
+     \n\
+     ## Critical Rules\n\
+     1. Args NEVER start with the tool name itself\n\
+     2. For subcommand tools (bwa, samtools, gatk): Args start with the subcommand\n\
+     3. For single-command tools (fastp, multiqc): Args start with flags\n\
+     4. Concepts must be specific and actionable (not restating --help)\n\
+     5. Pitfalls must explain consequences (not just 'be careful')\n\
+     6. Document workflow dependencies (index before align, sort before index)\n\
+     \n\
+     ## Output Format\n\
+     Respond with ONLY the complete skill.md file starting with '---'. \
+     No preamble, no code fences, no explanations outside the skill content."
+}
+
+/// Build an enhanced skill generation prompt with skill-generator guidance and local help.
+/// This version integrates the structured workflow for small model compatibility.
+pub fn build_skill_generate_prompt_enhanced(
+    tool: &str,
+    help_output: Option<&str>,
+    generator_skill_content: Option<&str>,
+) -> String {
+    let mut prompt = String::new();
+
+    // Header
+    prompt.push_str(&format!(
+        "# Skill Generation Request (Enhanced Workflow)\n\n\
+         **Tool:** `{tool}`\n\n"
+    ));
+
+    // Include skill-generator workflow guidance if available
+    if let Some(skill_content) = generator_skill_content {
+        prompt.push_str("## Skill-Generator Workflow Guidance\n\n");
+        prompt.push_str("Follow this structured workflow to generate the skill:\n\n");
+
+        // Extract key guidance from skill-generator skill content
+        // Focus on the Workflow section and key concepts
+        let lines = skill_content.lines();
+        let mut in_workflow = false;
+        let mut workflow_content = String::new();
+        let mut concepts_content = String::new();
+        let mut in_concepts = false;
+
+        for line in lines {
+            if line.starts_with("## Workflow") {
+                in_workflow = true;
+            } else if line.starts_with("## ") && in_workflow {
+                in_workflow = false;
+            } else if line.starts_with("## Concepts") {
+                in_concepts = true;
+            } else if line.starts_with("## ") && in_concepts {
+                in_concepts = false;
+            }
+
+            if in_workflow {
+                workflow_content.push_str(line);
+                workflow_content.push('\n');
+            }
+            if in_concepts && line.starts_with("- ") {
+                concepts_content.push_str(line);
+                concepts_content.push('\n');
+            }
+        }
+
+        if !workflow_content.is_empty() {
+            prompt.push_str(&workflow_content);
+            prompt.push_str("\n\n");
+        }
+        if !concepts_content.is_empty() {
+            prompt.push_str("**Key Concepts to Apply:**\n");
+            prompt.push_str(&concepts_content);
+            prompt.push_str("\n\n");
+        }
+    }
+
+    // Include local --help output if available
+    if let Some(help) = help_output {
+        prompt.push_str("## Local Tool Documentation (--help output)\n\n");
+        prompt.push_str("Use this documentation to extract accurate flags and behaviors:\n\n");
+        // Limit help output to prevent overwhelming small models
+        let help_preview = if help.len() > 3000 {
+            format!(
+                "{}...\n\n[Help output truncated for context efficiency]",
+                &help[..3000]
+            )
+        } else {
+            help.to_string()
+        };
+        prompt.push_str(&format!("```\n{help_preview}\n```\n\n"));
+    } else {
+        prompt.push_str("**Note:** Tool not installed locally or --help unavailable. \
+                         Generate a template skill based on general bioinformatics knowledge. \
+                         Add placeholder concepts/pitfalls noting the tool was not locally verified.\n\n");
+    }
+
+    // Step-by-step instructions
+    prompt.push_str("## Generation Steps\n\n");
+    prompt.push_str("1. **Analyze tool structure**: Determine if it uses subcommands (bwa mem) or flags-first (fastp)\n");
+    prompt.push_str("2. **Write Concepts**: Document data model, I/O formats, key behaviors, workflow dependencies\n");
+    prompt.push_str("3. **Write Pitfalls**: Document common mistakes WITH consequences\n");
+    prompt.push_str(
+        "4. **Write Examples**: Create ≥5 realistic examples covering basic to advanced usage\n",
+    );
+    prompt.push_str(
+        "5. **Validate**: Ensure minimum requirements met (5 examples, 3 concepts, 3 pitfalls)\n\n",
+    );
+
+    // Final output format reminder
+    prompt.push_str("## Output Format (STRICT)\n\n");
+    prompt.push_str("Respond with ONLY the complete skill.md file:\n");
+    prompt.push_str("```markdown\n");
+    prompt.push_str("---\n");
+    prompt.push_str(&format!("name: {tool}\n"));
+    prompt.push_str("category: <domain>\n");
+    prompt.push_str("description: <one-line description>\n");
+    prompt.push_str("tags: [<relevant tags>]\n");
+    prompt.push_str("author: AI-generated\n");
+    prompt.push_str("source_url: <docs URL if known>\n");
+    prompt.push_str("---\n\n");
+    prompt.push_str("## Concepts\n\n");
+    prompt.push_str("- <concept 1>\n");
+    prompt.push_str("- <concept 2>\n...\n\n");
+    prompt.push_str("## Pitfalls\n\n");
+    prompt.push_str("- <pitfall 1 — explain consequence>\n...\n\n");
+    prompt.push_str("## Examples\n\n");
+    prompt.push_str("### <task>\n");
+    prompt.push_str("**Args:** `<flags>`\n");
+    prompt.push_str("**Explanation:** <why>\n...\n");
+    prompt.push_str("```\n\n");
+    prompt.push_str(
+        "Do NOT add any preamble, explanation, or additional code fences. \
+                     The output must be a valid skill.md file.\n",
+    );
+
+    prompt
+}
+
 /// Build a prompt asking the LLM to review a skill file for quality.
 pub fn build_skill_verify_prompt(tool: &str, skill_content: &str) -> String {
     format!(

@@ -6,13 +6,15 @@
 use crate::config::Config;
 use crate::copilot_auth;
 use crate::doc_processor::{FlagEntry, StructuredDoc};
+use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
-use crate::skill::Skill;
+use crate::skill::{Skill, SkillManager};
 use sha2::Digest;
 
 use super::prompt::{
-    build_prompt, build_retry_prompt, build_skill_generate_prompt, build_skill_polish_prompt,
-    build_skill_verify_prompt, build_task_optimization_prompt, build_verification_prompt,
+    build_prompt, build_retry_prompt, build_skill_generate_prompt,
+    build_skill_generate_prompt_enhanced, build_skill_polish_prompt, build_skill_verify_prompt,
+    build_task_optimization_prompt, build_verification_prompt, skill_generator_system_prompt,
     skill_reviewer_system_prompt, system_prompt, system_prompt_compact, system_prompt_medium,
     verification_system_prompt,
 };
@@ -876,6 +878,49 @@ impl LlmClient {
                 Some(0.4),
             )
             .await?;
+        Ok(strip_markdown_fences(&raw))
+    }
+
+    /// Use LLM to generate a skill template with skill-generator workflow integration.
+    ///
+    /// This enhanced version:
+    /// 1. Loads the skill-generator skill content for workflow guidance
+    /// 2. Fetches local --help output for the tool (if available)
+    /// 3. Uses structured prompts optimized for small model compatibility
+    ///
+    /// Returns a Markdown-format skill file (YAML front-matter + body sections).
+    pub async fn generate_skill_template_enhanced(&self, tool: &str) -> Result<String> {
+        // 1. Load skill-generator skill content
+        let skill_mgr = SkillManager::new(self.config.clone());
+        let generator_skill = skill_mgr.load("skill-generator");
+
+        let generator_skill_content = generator_skill.as_ref().map(|s| {
+            // Render the skill as prompt section
+            s.to_prompt_section()
+        });
+
+        // 2. Fetch local --help output
+        let docs_fetcher = DocsFetcher::new(self.config.clone());
+        let tool_docs = docs_fetcher.fetch(tool).await.ok();
+        let help_output = tool_docs.as_ref().and_then(|d| d.help_output.as_ref());
+
+        // 3. Build enhanced prompt
+        let user_prompt = build_skill_generate_prompt_enhanced(
+            tool,
+            help_output.map(|s| s.as_str()),
+            generator_skill_content.as_deref(),
+        );
+
+        // 4. Call LLM with skill-generator system prompt
+        let raw = self
+            .request_with_system(
+                skill_generator_system_prompt(),
+                &user_prompt,
+                Some(8192), // Larger budget for comprehensive skill generation
+                Some(0.3),  // Lower temperature for structured output
+            )
+            .await?;
+
         Ok(strip_markdown_fences(&raw))
     }
 
