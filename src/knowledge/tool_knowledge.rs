@@ -84,10 +84,9 @@ impl ToolKnowledgeBase {
 
     /// Look up a tool by exact name (case-insensitive).
     pub fn lookup(&self, name: &str) -> Option<&ToolEntry> {
-        let name_lower = name.to_lowercase();
         self.tools
             .iter()
-            .find(|t| t.name.to_lowercase() == name_lower)
+            .find(|t| t.name.eq_ignore_ascii_case(name))
     }
 
     /// Search for tools matching a natural-language query.
@@ -130,10 +129,9 @@ impl ToolKnowledgeBase {
             None => return vec![],
         };
 
-        let tool_lower = tool_name.to_lowercase();
         self.tools
             .iter()
-            .filter(|t| t.category == *category && t.name.to_lowercase() != tool_lower)
+            .filter(|t| t.category == *category && !t.name.eq_ignore_ascii_case(tool_name))
             .take(limit)
             .collect()
     }
@@ -245,8 +243,6 @@ impl ToolKnowledgeBase {
 
 /// Infer a tool category from its name and description using keyword matching.
 fn infer_category(name: &str, description: &str) -> String {
-    let combined = format!("{} {}", name, description).to_lowercase();
-
     // Order matters: more specific categories first.
     let rules: &[(&str, &[&str])] = &[
         (
@@ -413,13 +409,53 @@ fn infer_category(name: &str, description: &str) -> String {
         ),
     ];
 
+    // Check keywords case-insensitively without allocating combined lowercase string
     for (category, keywords) in rules {
-        if keywords.iter().any(|kw| combined.contains(kw)) {
+        if keywords
+            .iter()
+            .any(|kw| contains_ignore_case(name, kw) || contains_ignore_case(description, kw))
+        {
             return (*category).to_string();
         }
     }
 
     "bioinformatics".to_string()
+}
+
+/// Check if haystack contains needle case-insensitively without allocation.
+/// Uses character-by-character matching without creating lowercase copies.
+fn contains_ignore_case(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    if haystack.len() < needle.len() {
+        return false;
+    }
+
+    // Iterate through haystack looking for needle match
+    let needle_chars: Vec<char> = needle.chars().collect();
+    let mut haystack_chars = haystack.chars();
+
+    while let Some(first) = haystack_chars.next() {
+        if first.eq_ignore_ascii_case(&needle_chars[0]) {
+            // Potential match - check remaining characters
+            let mut rest = haystack_chars.clone();
+            let mut matched = true;
+            for needle_char in &needle_chars[1..] {
+                match rest.next() {
+                    Some(h_char) if h_char.eq_ignore_ascii_case(needle_char) => continue,
+                    _ => {
+                        matched = false;
+                        break;
+                    }
+                }
+            }
+            if matched {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 #[cfg(test)]

@@ -267,10 +267,10 @@ impl RuleCommandGenerator {
         }
 
         // Check request patterns (case-insensitive substring match)
-        let request_lower = request.to_lowercase();
+        // Use contains_ignore_case to avoid lowercase allocations
         rule.request_patterns
             .iter()
-            .any(|p| request_lower.contains(&p.to_lowercase()))
+            .any(|p| contains_ignore_case(request, p))
     }
 
     /// Applies a rule to generate a command.
@@ -281,20 +281,22 @@ impl RuleCommandGenerator {
         let mut output_name = "output".to_string();
 
         for (i, word) in words.iter().enumerate() {
-            let lower = word.to_lowercase();
+            // Use eq_ignore_ascii_case and contains checks without lowercase allocation
+            let has_dot = word.contains('.');
+            let is_flag = word.starts_with('-') || word.starts_with("--");
             // Detect file-like tokens (containing a dot extension)
-            if lower.contains('.') && !lower.starts_with('-') && !lower.starts_with("--") {
+            if has_dot && !is_flag {
                 if input_name == "input" {
                     input_name = word.trim_end_matches([',', ';']).to_string();
                 } else if output_name == "output" {
                     output_name = word.trim_end_matches([',', ';']).to_string();
                 }
             }
-            // Detect "to <file>" or "output <file>" patterns
-            if (lower == "to" || lower == "output" || lower == "into")
-                && i + 1 < words.len()
-                && words[i + 1].contains('.')
-            {
+            // Detect "to <file>" or "output <file>" patterns (case-insensitive)
+            let is_keyword = word.eq_ignore_ascii_case("to")
+                || word.eq_ignore_ascii_case("output")
+                || word.eq_ignore_ascii_case("into");
+            if is_keyword && i + 1 < words.len() && words[i + 1].contains('.') {
                 output_name = words[i + 1].trim_end_matches([',', ';']).to_string();
             }
         }
@@ -439,6 +441,41 @@ impl CommandGenerator for CompositeGenerator {
     fn name(&self) -> &str {
         "composite"
     }
+}
+
+/// Check if haystack contains needle case-insensitively without allocation.
+fn contains_ignore_case(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    if haystack.len() < needle.len() {
+        return false;
+    }
+
+    let needle_chars: Vec<char> = needle.chars().collect();
+    let mut haystack_iter = haystack.chars().peekable();
+
+    while let Some(first) = haystack_iter.next() {
+        if first.eq_ignore_ascii_case(&needle_chars[0]) {
+            let mut matched = true;
+            for needle_char in &needle_chars[1..] {
+                match haystack_iter.peek() {
+                    Some(h_char) if h_char.eq_ignore_ascii_case(needle_char) => {
+                        haystack_iter.next();
+                        continue;
+                    }
+                    _ => {
+                        matched = false;
+                        break;
+                    }
+                }
+            }
+            if matched {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 #[cfg(test)]
