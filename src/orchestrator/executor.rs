@@ -81,15 +81,21 @@ impl ExecutorAgent {
         let intent = &ctx.normalized_task.intent;
         parts.push(format!("[Intent: {intent}]"));
 
-        // Add extracted parameters.
+        // Add extracted parameters - build string directly without intermediate Vec
         if !ctx.normalized_task.parameters.is_empty() {
-            let params: Vec<String> = ctx
-                .normalized_task
-                .parameters
-                .iter()
-                .map(|(k, v)| format!("{k}={v}"))
-                .collect();
-            parts.push(format!("[Params: {}]", params.join(", ")));
+            let param_count = ctx.normalized_task.parameters.len();
+            // Estimate: key=value pairs with comma separators
+            let estimated_len = param_count * 20 + 10;
+            let mut params_str = String::with_capacity(estimated_len);
+            for (k, v) in &ctx.normalized_task.parameters {
+                if !params_str.is_empty() {
+                    params_str.push_str(", ");
+                }
+                params_str.push_str(k);
+                params_str.push('=');
+                params_str.push_str(v);
+            }
+            parts.push(format!("[Params: {params_str}]"));
         }
 
         // Add constraints.
