@@ -241,8 +241,14 @@ fn deduplicate_flags(args: &[String]) -> Vec<String> {
                 arg.as_str()
             };
 
-            // Normalize flag for comparison (handle both -f and --flag forms)
-            let flag_key = flag_base.to_lowercase();
+            // Use the flag as-is for comparison (DO NOT lowercase)
+            // -i and -I are DIFFERENT flags (lowercase for R1, uppercase for R2 in paired-end tools)
+            // Only normalize long flags (--flag vs --FLAG) which are usually case-insensitive
+            let flag_key = if flag_base.starts_with("--") {
+                flag_base.to_lowercase()  // Long flags are typically case-insensitive
+            } else {
+                flag_base.to_string()  // Short flags preserve case (-i vs -I are different)
+            };
 
             if seen_flags.contains(&flag_key) {
                 // Duplicate flag detected - skip it and its value if present
