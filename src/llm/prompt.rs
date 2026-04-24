@@ -51,16 +51,17 @@ pub fn system_prompt() -> &'static str {
      RULES:\n\
      1. The tool name is auto-prepended by the system — always omit it from ARGS.\n\
      2. NEVER repeat a flag — each flag appears at most ONCE. If conflicting values exist, use the LAST specified value.\n\
-     3. Follow the exact argument structure from documentation or examples: some tools place flags before positional arguments (bwa mem -t 8 ref.fa), others place positional arguments first (admixture input.bed K --cv=10).\n\
-     4. If the tool has a subcommand (sort, view, mem, index), place it first.\n\
+     3. Follow the exact argument structure from documentation or examples: some tools place flags before positional arguments (bwa mem -t 8 ref.fa), others place positional arguments first (admixture input.bed K --cv=10). Positional argument order is CRITICAL for many tools.\n\
+     4. If the tool has a subcommand (sort, view, mem, index), place it FIRST before any flags.\n\
      5. Companion binaries (bowtie2-build) or scripts (bbduk.sh) go as the first token when documentation specifies them.\n\
-     6. Multi-step commands: join with &&. The tool name is auto-prepended ONLY to the first segment — subsequent commands MUST include their full binary name.\n\
+     6. Multi-step commands: use && for sequential execution (stop on error), | for pipelines, ; for independent commands. The tool name is auto-prepended ONLY to the first segment — subsequent commands MUST include their full binary name.\n\
      7. Pipes (|) and redirects (>) are allowed directly in ARGS.\n\
      8. Use ONLY flags documented for this tool — always match the exact flag format shown (--flag=value or --flag value). Do NOT invent or hallucinate flags.\n\
      9. Include every file path and parameter value from the task description.\n\
-     10. Default conventions (override if task specifies otherwise): paired-end, coordinate-sorted BAM, hg38, gzipped FASTQ, Phred+33.\n\
-     11. Match format flags to actual data types (BAM/SAM/CRAM, gzipped/plain, paired/single, FASTA/FASTQ).\n\
-     12. If no arguments are needed: ARGS: (none)"
+     10. Do NOT add optional parameters (thread counts, seeds, reference paths, memory limits) unless the task explicitly mentions them.\n\
+     11. Format conventions (when applicable): coordinate-sorted BAM output, gzipped FASTQ, Phred+33 encoding. Override if task specifies otherwise.\n\
+     12. Match format flags to actual data types (BAM/SAM/CRAM, gzipped/plain, paired/single, FASTA/FASTQ).\n\
+     13. If no arguments are needed: ARGS: (none)"
 }
 
 /// Medium-compression system prompt for 4k–16k context or 4B–7B models.
@@ -70,9 +71,9 @@ pub fn system_prompt_medium() -> &'static str {
      ARGS: <arguments — NO tool name>\n\
      EXPLANATION: <one sentence>\n\
      Rules: NEVER repeat flags (each flag once only). Follow the exact argument structure from documentation (flags before or after positional args varies by tool). \
-     Subcommand first if applicable. Never include tool name. Use only documented flags, matching their exact format. \
+     Subcommand first if applicable. Never include tool name. Use only documented flags, matching their exact format. Do NOT invent flags. \
      Include all paths from task. Multi-step uses && (tool name only on first segment). \
-     Pipes allowed. Add optional parameters only when the task asks for them."
+     Pipes allowed. Do NOT add optional parameters (threads, seeds, reference paths) unless the task explicitly mentions them."
 }
 
 /// Ultra-compact system prompt for mini models (≤ 3B parameters).
@@ -81,8 +82,8 @@ pub fn system_prompt_compact() -> &'static str {
      Output EXACTLY two lines:\n\
      ARGS: <arguments — never include the tool name>\n\
      EXPLANATION: <what the command does>\n\
-     Rules: NEVER repeat flags. Never include tool name. Use flags from examples only, matching their exact format. Pipes and chains allowed. \
-     Add optional parameters only when the task asks for them."
+     Rules: NEVER repeat flags. Never include tool name. Use flags from documentation or examples only, matching their exact format. Do NOT invent flags. Pipes and chains allowed. \
+     Do NOT add optional parameters (threads, seeds, reference paths) unless the task explicitly mentions them."
 }
 
 // ── Token estimation ─────────────────────────────────────────────────────────
@@ -216,28 +217,28 @@ fn build_prompt_full(
     }
 
     prompt.push_str("## Tool Documentation\n");
-    prompt.push_str(documentation);
+    // Sanitize documentation: replace triple-backtick sequences that could
+    // break out of context and inject arbitrary instructions.
+    let safe_docs = documentation.replace("```", "` ` `");
+    prompt.push_str(&safe_docs);
     prompt.push_str("\n\n");
     prompt.push_str(&format!("## Task\n{task}\n\n"));
 
     // Enhanced output instructions for doc-only scenario
     if skill.is_none() {
         prompt.push_str(
-            "## Output Requirements\n\
-             1. ARGS line: follow the exact argument structure from USAGE/EXAMPLES (flags may come before or after positional arguments)\n\
-             2. Match flag format exactly: --flag=value or --flag value (as shown in docs)\n\
-             3. Include ALL required parameters from task description\n\
-             4. NO tool name prefix (auto-added by system)\n\
-             5. Use ONLY flags listed in the documentation above — NEVER invent flags\n\
-             6. EXPLANATION: brief description of what the command does\n\n\
-             Example output format:\n\
-             ARGS: sort -@ 8 -o output.bam input.bam\n\
-             EXPLANATION: Sort BAM file with 8 threads.\n",
+            "## Output Format\n\
+             ARGS: <arguments following USAGE/EXAMPLES structure, NO tool name>\n\
+             EXPLANATION: <brief description>\n\
+             \n\
+             Example:\n\
+             ARGS: sort -o output.bam input.bam\n\
+             EXPLANATION: Sort BAM file by coordinate.\n",
         );
     } else {
         prompt.push_str(
             "## Output\n\
-             ARGS: <arguments following the exact structure from docs, NO tool name>\n\
+             ARGS: <arguments following skill examples, NO tool name>\n\
              EXPLANATION: <brief>\n",
         );
     }
@@ -302,7 +303,9 @@ fn build_prompt_medium(
         let truncated_docs =
             truncate_documentation_for_task(documentation, doc_budget_chars, Some(task));
         if !truncated_docs.is_empty() {
-            prompt.push_str(&format!("## Docs\n{truncated_docs}\n\n"));
+            // Sanitize documentation: replace triple-backtick sequences
+            let safe_docs = truncated_docs.replace("```", "` ` `");
+            prompt.push_str(&format!("## Docs\n{safe_docs}\n\n"));
         }
     }
 
@@ -358,7 +361,7 @@ fn build_prompt_compact(
                 .unwrap_or(ex_cmd);
 
             prompt.push_str(&format!(
-                "Task: Use {tool}\n\n---FEW-SHOT---\n\nARGS: {args_part}\nEXPLANATION: Example from documentation.\n\n---FEW-SHOT---\n\n"
+                "Task: Run {tool} with appropriate arguments\n\n---FEW-SHOT---\n\nARGS: {args_part}\nEXPLANATION: Example from documentation.\n\n---FEW-SHOT---\n\n"
             ));
 
             // Second doc example if available
@@ -368,7 +371,7 @@ fn build_prompt_compact(
                     .map(|s| s.trim_start())
                     .unwrap_or(ex2);
                 prompt.push_str(&format!(
-                    "Task: Use {tool}\n\n---FEW-SHOT---\n\nARGS: {args_part2}\nEXPLANATION: Example from documentation.\n\n---FEW-SHOT---\n\n"
+                    "Task: Run {tool} with different arguments\n\n---FEW-SHOT---\n\nARGS: {args_part2}\nEXPLANATION: Example from documentation.\n\n---FEW-SHOT---\n\n"
                 ));
             }
         } else {
@@ -382,16 +385,16 @@ fn build_prompt_compact(
                 // Absolute fallback: generic bioinformatics few-shot
                 prompt.push_str(
                     "Task: Sort a BAM file by coordinate\n\n---FEW-SHOT---\n\n\
-                     ARGS: sort -@ 4 -o sorted.bam input.bam\n\
-                     EXPLANATION: Sort BAM by coordinate with 4 threads.\n\n---FEW-SHOT---\n\n",
+                     ARGS: sort -o sorted.bam input.bam\n\
+                     EXPLANATION: Sort BAM by coordinate.\n\n---FEW-SHOT---\n\n",
                 );
             }
         }
     } else {
         prompt.push_str(
             "Task: Sort a BAM file by coordinate\n\n---FEW-SHOT---\n\n\
-             ARGS: sort -@ 4 -o sorted.bam input.bam\n\
-             EXPLANATION: Sort BAM by coordinate with 4 threads.\n\n---FEW-SHOT---\n\n",
+             ARGS: sort -o sorted.bam input.bam\n\
+             EXPLANATION: Sort BAM by coordinate.\n\n---FEW-SHOT---\n\n",
         );
     }
 
@@ -412,11 +415,12 @@ fn build_prompt_compact(
     if !documentation.is_empty() && skill.is_none_or(|s| s.examples.is_empty()) {
         let truncated = truncate_documentation_for_task(documentation, 400, Some(task));
         if !truncated.is_empty() {
-            prompt.push_str(&format!("Docs: {truncated}\n\n"));
+            // Sanitize documentation: replace triple-backtick sequences
+            let safe_docs = truncated.replace("```", "` ` `");
+            prompt.push_str(&format!("Docs: {safe_docs}\n\n"));
         }
     }
 
-    prompt.push_str(&format!("Tool: {tool}\n"));
     prompt.push_str(&format!("Task: {task}\n\n"));
     prompt
 }
@@ -581,10 +585,10 @@ pub fn build_task_optimization_prompt(tool: &str, raw_task: &str) -> String {
          these guidelines:\n\
          - Expand ambiguous terms into specific operations (e.g., 'sort bam' → 'sort \
            BAM file input.bam by genomic coordinate and write to sorted.bam')\n\
-         - Infer reasonable defaults when not specified: paired-end reads, hg38 reference, \
-           8 threads, coordinate-sorted BAM output, gzipped FASTQ, Phred+33 encoding\n\
+         - Infer format defaults when not specified: coordinate-sorted BAM output, gzipped FASTQ, Phred+33 encoding\n\
          - Preserve ALL file names, paths, and sample identifiers from the original task\n\
          - Specify output file names if the user omitted them (derive from input names)\n\
+         - Do NOT add optional parameters (thread counts, seeds, reference paths, memory limits) unless the task mentions them\n\
          - Be written in the SAME LANGUAGE as the original task\n\n\
          ## Output Format (STRICT)\n\
          Respond with EXACTLY one line:\n\
@@ -820,7 +824,7 @@ pub fn build_retry_prompt_inner(
             tier,
             structured_doc,
         );
-        prompt.push_str("\nIMPORTANT: Output EXACTLY two lines starting with ARGS: and EXPLANATION:. No other text.\n");
+        prompt.push_str("\nOutput EXACTLY: ARGS: ... EXPLANATION: ...\n");
         return prompt;
     }
 
