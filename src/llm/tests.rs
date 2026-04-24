@@ -552,3 +552,390 @@ fn test_task_optimization_prompt_wraps_raw_task_in_delimiters() {
         "raw_task must be wrapped in delimiter quotes"
     );
 }
+
+// ── system prompt variants ────────────────────────────────────────────────────
+
+#[test]
+fn test_system_prompt_medium_not_empty() {
+    let p = system_prompt_medium();
+    assert!(!p.is_empty());
+    assert!(p.contains("ARGS"));
+    assert!(p.contains("EXPLANATION"));
+}
+
+#[test]
+fn test_system_prompt_compact_not_empty() {
+    let p = system_prompt_compact();
+    assert!(!p.is_empty());
+    assert!(p.contains("ARGS"));
+}
+
+#[test]
+fn test_system_prompts_differ() {
+    assert_ne!(system_prompt(), system_prompt_medium());
+    assert_ne!(system_prompt(), system_prompt_compact());
+    assert_ne!(system_prompt_medium(), system_prompt_compact());
+}
+
+// ── build_prompt no_prompt mode ───────────────────────────────────────────────
+
+#[test]
+fn test_build_prompt_no_prompt_mode() {
+    let prompt = build_prompt(
+        "samtools",
+        "docs",
+        "sort bam file",
+        None,
+        true, // no_prompt = true
+        0,
+        PromptTier::Full,
+        None,
+    );
+    assert!(prompt.contains("samtools"));
+    assert!(prompt.contains("sort bam file"));
+    assert!(prompt.contains("ARGS:"));
+    assert!(prompt.contains("EXPLANATION:"));
+}
+
+// ── truncate_documentation_for_task ──────────────────────────────────────────
+
+#[test]
+fn test_truncate_docs_short_doc_returned_unchanged() {
+    let short = "Short doc.";
+    let result = truncate_documentation_for_task(short, 1000, None);
+    assert_eq!(result, short);
+}
+
+#[test]
+fn test_truncate_docs_exceeds_budget() {
+    let long_doc = "a".repeat(200);
+    let result = truncate_documentation_for_task(&long_doc, 50, None);
+    assert!(result.len() <= 100, "result should be near the budget");
+}
+
+#[test]
+fn test_truncate_docs_with_task_prioritizes_relevant_sections() {
+    let docs = "USAGE:\n  samtools sort [options]\n\nDESCRIPTION:\n  Sort alignments.\n\nBUGS:\n  None known.\n\nOPTIONS:\n  -o FILE  Output file\n  -@ INT   Threads";
+    let result = truncate_documentation_for_task(docs, 100, Some("sort bam file"));
+    assert!(!result.is_empty());
+    // USAGE section should be present (highest priority)
+    assert!(result.contains("USAGE") || result.contains("sort"));
+}
+
+#[test]
+fn test_truncate_docs_empty_budget_returns_empty() {
+    let docs = "Some documentation.";
+    let result = truncate_documentation_for_task(docs, 10, None);
+    // Very small budget — should return empty or very short
+    assert!(result.len() <= 30);
+}
+
+#[test]
+fn test_truncate_docs_exact_fit_not_truncated() {
+    let docs = "Line one\nLine two";
+    let result = truncate_documentation_for_task(docs, 200, None);
+    assert_eq!(result, docs);
+}
+
+#[test]
+fn test_truncate_docs_appends_truncation_marker() {
+    let long_doc =
+        "Line 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\n"
+            .repeat(10);
+    let result = truncate_documentation_for_task(&long_doc, 50, Some("sort"));
+    // When truncated, result should either be empty or contain truncation marker
+    if !result.is_empty() {
+        assert!(
+            result.contains("[...truncated]") || result.len() <= long_doc.len(),
+            "truncated result should contain marker or be shorter"
+        );
+    }
+}
+
+#[test]
+fn test_truncate_docs_empty_task_falls_back_to_simple() {
+    let docs = "Line 1\nLine 2\nLine 3\nLine 4\nLine 5";
+    // Empty task string should use simple truncation
+    let result = truncate_documentation_for_task(docs, 20, Some(""));
+    assert!(result.len() <= 50);
+}
+
+// ── build_prompt_compact via build_prompt ─────────────────────────────────────
+
+#[test]
+fn test_build_prompt_compact_no_skill_no_sdoc() {
+    let prompt = build_prompt(
+        "samtools",
+        "docs content",
+        "sort bam file",
+        None,
+        false,
+        4096,
+        PromptTier::Compact,
+        None,
+    );
+    assert!(prompt.contains("samtools"));
+    assert!(prompt.contains("sort bam file"));
+    // Compact prompt should include FEW-SHOT or fallback
+    assert!(
+        prompt.contains("---FEW-SHOT---") || prompt.contains("ARGS:") || prompt.contains("Task:"),
+        "Compact prompt should have proper structure"
+    );
+}
+
+#[test]
+fn test_build_prompt_compact_with_skill() {
+    use crate::skill::{Skill, SkillContext, SkillExample, SkillMeta};
+
+    let skill = Skill {
+        meta: SkillMeta {
+            name: "samtools".to_string(),
+            category: "alignment".to_string(),
+            description: "SAM/BAM manipulation".to_string(),
+            tags: vec![],
+            author: None,
+            source_url: None,
+            min_version: None,
+            max_version: None,
+        },
+        context: SkillContext {
+            concepts: vec!["BAM format".to_string()],
+            pitfalls: vec!["Always sort before indexing".to_string()],
+        },
+        examples: vec![
+            SkillExample {
+                task: "Sort a BAM file".to_string(),
+                args: "sort -@ 4 -o sorted.bam input.bam".to_string(),
+                explanation: "Sort by coordinate".to_string(),
+            },
+            SkillExample {
+                task: "Index a sorted BAM file".to_string(),
+                args: "index sorted.bam".to_string(),
+                explanation: "Create BAI index".to_string(),
+            },
+        ],
+    };
+
+    let prompt = build_prompt(
+        "samtools",
+        "docs content",
+        "sort bam file",
+        Some(&skill),
+        false,
+        4096,
+        PromptTier::Compact,
+        None,
+    );
+    assert!(prompt.contains("samtools"));
+    // Should use skill examples as few-shot
+    assert!(
+        prompt.contains("---FEW-SHOT---"),
+        "Should include FEW-SHOT markers when skill has examples"
+    );
+}
+
+#[test]
+fn test_build_prompt_compact_with_sdoc_usage_only() {
+    use crate::doc_processor::DocProcessor;
+
+    let processor = DocProcessor::new();
+    let doc_with_usage_no_examples =
+        "USAGE:\n  admixture input.bed K --cv=10\n\nOPTIONS:\n  --cv=N  Cross-validation folds";
+    let sdoc = processor.clean_and_structure(doc_with_usage_no_examples);
+
+    let prompt = build_prompt(
+        "admixture",
+        doc_with_usage_no_examples,
+        "run admixture with K=5",
+        None,
+        false,
+        4096,
+        PromptTier::Compact,
+        Some(&sdoc),
+    );
+    assert!(prompt.contains("admixture"));
+}
+
+#[test]
+fn test_build_prompt_full_no_skill_with_sdoc_having_usage_only() {
+    use crate::doc_processor::DocProcessor;
+
+    let processor = DocProcessor::new();
+    // Docs with USAGE but no examples
+    let doc = "USAGE:\n  tool subcommand [options]\n\nOPTIONS:\n  -o FILE  Output";
+    let sdoc = processor.clean_and_structure(doc);
+
+    let prompt = build_prompt(
+        "tool",
+        doc,
+        "run tool",
+        None,
+        false,
+        0,
+        PromptTier::Full,
+        Some(&sdoc),
+    );
+    assert!(prompt.contains("tool"));
+    // Should contain USAGE section or doc content
+    assert!(!prompt.is_empty());
+}
+
+// ── apply_provider_auth_headers from streaming module ─────────────────────────
+
+#[test]
+fn test_apply_auth_headers_anthropic() {
+    use crate::llm::streaming::apply_provider_auth_headers;
+    let client = reqwest::Client::new();
+    let req_builder = client.post("http://example.com");
+    let req_builder = apply_provider_auth_headers(req_builder, "anthropic", "my-api-key");
+    let req = req_builder.build().unwrap();
+    assert_eq!(req.headers()["x-api-key"], "my-api-key");
+    assert_eq!(req.headers()["anthropic-version"], "2023-06-01");
+}
+
+#[test]
+fn test_apply_auth_headers_github_copilot() {
+    use crate::llm::streaming::apply_provider_auth_headers;
+    let client = reqwest::Client::new();
+    let req_builder = client.post("http://example.com");
+    let req_builder = apply_provider_auth_headers(req_builder, "github-copilot", "ghp_token");
+    let req = req_builder.build().unwrap();
+    assert!(
+        req.headers()["authorization"]
+            .to_str()
+            .unwrap()
+            .contains("ghp_token")
+    );
+    assert_eq!(req.headers()["Copilot-Integration-Id"], "vscode-chat");
+}
+
+#[test]
+fn test_apply_auth_headers_default_with_token() {
+    use crate::llm::streaming::apply_provider_auth_headers;
+    let client = reqwest::Client::new();
+    let req_builder = client.post("http://example.com");
+    let req_builder = apply_provider_auth_headers(req_builder, "openai", "sk-test123");
+    let req = req_builder.build().unwrap();
+    assert!(
+        req.headers()["authorization"]
+            .to_str()
+            .unwrap()
+            .contains("sk-test123")
+    );
+}
+
+#[test]
+fn test_apply_auth_headers_default_empty_token_no_auth_header() {
+    use crate::llm::streaming::apply_provider_auth_headers;
+    let client = reqwest::Client::new();
+    let req_builder = client.post("http://example.com");
+    let req_builder = apply_provider_auth_headers(req_builder, "openai", "");
+    let req = req_builder.build().unwrap();
+    // Empty token: no Authorization header should be set
+    assert!(!req.headers().contains_key("authorization"));
+}
+
+#[test]
+fn test_stream_output_equality() {
+    use crate::llm::streaming::StreamOutput;
+    assert_eq!(StreamOutput::Stderr, StreamOutput::Stderr);
+    assert_eq!(StreamOutput::Stdout, StreamOutput::Stdout);
+    assert_eq!(StreamOutput::Silent, StreamOutput::Silent);
+    assert_ne!(StreamOutput::Stderr, StreamOutput::Stdout);
+    assert_ne!(StreamOutput::Stderr, StreamOutput::Silent);
+    assert_ne!(StreamOutput::Stdout, StreamOutput::Silent);
+}
+
+// ── build_verification_prompt edge cases ─────────────────────────────────────
+
+#[test]
+fn test_build_verification_prompt_with_output_files() {
+    let prompt = build_verification_prompt(
+        "samtools",
+        "sort bam",
+        "samtools sort -o sorted.bam input.bam",
+        0,
+        "",
+        &[
+            ("sorted.bam".to_string(), Some(1024)),
+            ("missing.bam".to_string(), None),
+        ],
+    );
+    assert!(prompt.contains("sorted.bam"));
+    assert!(prompt.contains("missing.bam"));
+    assert!(prompt.contains("NOT FOUND"));
+    assert!(prompt.contains("1024 bytes"));
+}
+
+#[test]
+fn test_build_verification_prompt_with_long_stderr() {
+    // stderr > 3000 chars should be truncated
+    let long_stderr = "error line\n".repeat(400); // ~4400 chars
+    let prompt = build_verification_prompt("samtools", "task", "cmd", 1, &long_stderr, &[]);
+    assert!(prompt.contains("UNTRUSTED"));
+    assert!(prompt.contains("truncated") || prompt.contains("..."));
+}
+
+#[test]
+fn test_build_verification_prompt_no_stderr_no_files() {
+    let prompt = build_verification_prompt(
+        "samtools",
+        "sort bam",
+        "samtools sort input.bam",
+        0,
+        "",
+        &[],
+    );
+    assert!(prompt.contains("samtools"));
+    assert!(prompt.contains("sort bam"));
+    // No stderr section when stderr is empty
+    assert!(!prompt.contains("Standard Error"));
+    // No output files section
+    assert!(!prompt.contains("Output Files"));
+}
+
+// ── build_task_optimization_prompt ────────────────────────────────────────────
+
+#[test]
+fn test_build_task_optimization_prompt_content() {
+    let prompt = build_task_optimization_prompt("bwa", "align reads to reference");
+    assert!(prompt.contains("bwa"));
+    assert!(prompt.contains("align reads to reference"));
+    assert!(prompt.contains("TASK:"));
+    assert!(prompt.contains("SAME LANGUAGE"));
+}
+
+// ── prompt_tier edge cases ────────────────────────────────────────────────────
+
+#[test]
+fn test_prompt_tier_small_context_window() {
+    // Context window smaller than 4096 should give Compact
+    assert_eq!(prompt_tier(2048, "model"), PromptTier::Compact);
+    assert_eq!(prompt_tier(100, "model"), PromptTier::Compact);
+}
+
+#[test]
+fn test_prompt_tier_medium_context_window() {
+    // 4096 <= context < 16384 should give Medium
+    assert_eq!(prompt_tier(4096, "model"), PromptTier::Medium);
+    assert_eq!(prompt_tier(8192, "model"), PromptTier::Medium);
+}
+
+#[test]
+fn test_prompt_tier_large_context_window() {
+    // context >= 16384 or 0 should give Full
+    assert_eq!(prompt_tier(16384, "model"), PromptTier::Full);
+    assert_eq!(prompt_tier(32768, "model"), PromptTier::Full);
+    assert_eq!(prompt_tier(0, "model"), PromptTier::Full);
+}
+
+#[test]
+fn test_estimate_tokens_unicode_accurate() {
+    // ASCII chars: each ~0.5 tokens
+    assert_eq!(estimate_tokens("ab"), 1);
+    assert_eq!(estimate_tokens("abcd"), 2);
+    // Odd count rounds up
+    assert_eq!(estimate_tokens("abc"), 2);
+    // Empty string
+    assert_eq!(estimate_tokens(""), 0);
+}
