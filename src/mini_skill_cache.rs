@@ -122,7 +122,19 @@ impl MiniSkillCache {
     #[allow(dead_code)]
     pub fn new(config: CacheConfig) -> Result<Self> {
         let disk_path = Config::data_dir()?.join("mini_skills");
+        Self::new_with_disk_path(config, disk_path)
+    }
 
+    /// Create a new mini-skill cache with an explicit disk path.
+    ///
+    /// Used in tests to avoid reading `OXO_DATA_DIR` from the environment,
+    /// which would be unsafe in concurrent test runs.
+    #[cfg(test)]
+    fn new_at(config: CacheConfig, disk_path: std::path::PathBuf) -> Result<Self> {
+        Self::new_with_disk_path(config, disk_path)
+    }
+
+    fn new_with_disk_path(config: CacheConfig, disk_path: std::path::PathBuf) -> Result<Self> {
         // Create directory if it doesn't exist
         if !disk_path.exists() {
             std::fs::create_dir_all(&disk_path)?;
@@ -634,10 +646,6 @@ mod tests {
         ));
         std::fs::create_dir_all(&tmp_dir).unwrap();
 
-        // Override data dir via env var
-        // SAFETY: test-only, no concurrent threads accessing OXO_DATA_DIR
-        unsafe { std::env::set_var("OXO_DATA_DIR", &tmp_dir) };
-
         let config = CacheConfig {
             memory_size: 10,
             persist_to_disk: true,
@@ -655,15 +663,15 @@ mod tests {
             hit_count: 0,
         };
 
-        // Insert and persist to disk
+        // Insert and persist to disk (Drop triggers persist)
         {
-            let mut cache = MiniSkillCache::new(config.clone()).unwrap();
+            let mut cache = MiniSkillCache::new_at(config.clone(), tmp_dir.clone()).unwrap();
             cache.insert(skill.clone());
         }
 
-        // Load from disk in a new cache instance
+        // Load from disk in a new cache instance at the same path
         {
-            let mut cache = MiniSkillCache::new(config).unwrap();
+            let mut cache = MiniSkillCache::new_at(config, tmp_dir.clone()).unwrap();
             let retrieved = cache.get("hisat2", "testhash");
             assert!(retrieved.is_some(), "skill should survive disk round-trip");
             assert_eq!(retrieved.unwrap().tool, "hisat2");
@@ -671,8 +679,6 @@ mod tests {
 
         // Cleanup
         let _ = std::fs::remove_dir_all(&tmp_dir);
-        // SAFETY: test-only, no concurrent threads accessing OXO_DATA_DIR
-        unsafe { std::env::remove_var("OXO_DATA_DIR") };
     }
 
     #[test]
@@ -685,8 +691,6 @@ mod tests {
                 .subsec_nanos()
         ));
         std::fs::create_dir_all(&tmp_dir).unwrap();
-        // SAFETY: test-only, no concurrent threads accessing OXO_DATA_DIR
-        unsafe { std::env::set_var("OXO_DATA_DIR", &tmp_dir) };
 
         let config = CacheConfig {
             memory_size: 10,
@@ -705,17 +709,15 @@ mod tests {
             hit_count: 0,
         };
 
-        // Create cache, manually write expired file, then try to load it
+        // Create cache, insert expired skill, then verify get returns None
         {
-            let mut cache = MiniSkillCache::new(config.clone()).unwrap();
+            let mut cache = MiniSkillCache::new_at(config, tmp_dir.clone()).unwrap();
             cache.insert(old_skill);
-            // Get should remove expired entry
+            // Get should not return expired entry
             let result = cache.get("expired_tool", "oldhash");
             assert!(result.is_none(), "expired skill should not be returned");
         }
 
         let _ = std::fs::remove_dir_all(&tmp_dir);
-        // SAFETY: test-only, no concurrent threads accessing OXO_DATA_DIR
-        unsafe { std::env::remove_var("OXO_DATA_DIR") };
     }
 }
