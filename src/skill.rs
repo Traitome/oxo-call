@@ -637,7 +637,7 @@ impl Skill {
     ///
     /// Strategy:
     /// 1. If task is None or empty, fall back to first `max_examples` (original behavior).
-    /// 2. Score each example by keyword overlap with the task.
+    /// 2. Score each example by keyword overlap + parameter matching with the task.
     /// 3. Select top-scoring examples, but always include at least the first
     ///    example (as a "default" reference) if there's room.
     pub fn select_examples(&self, max_examples: usize, task: Option<&str>) -> Vec<&SkillExample> {
@@ -650,23 +650,44 @@ impl Skill {
         }
 
         let task_tokens = tokenize_for_match(task);
+        let task_flags = extract_flags_from_text(task);
 
-        // Score each example by keyword overlap with the task.
+        // Score each example by keyword overlap + parameter matching with the task.
         // The task description and args are both checked.
-        let mut scored: Vec<(usize, usize)> = self
+        // Parameter matching: if the task mentions specific flags (e.g., --sort),
+        // examples that use those flags get a significant boost.
+        let mut scored: Vec<(usize, f64)> = self
             .examples
             .iter()
             .enumerate()
             .map(|(i, ex)| {
-                let ex_tokens = tokenize_for_match(&format!("{} {}", ex.task, ex.args));
-                let score = ex_tokens.intersection(&task_tokens).count();
+                let ex_text = format!("{} {}", ex.task, ex.args);
+                let ex_tokens = tokenize_for_match(&ex_text);
+                let keyword_score = ex_tokens.intersection(&task_tokens).count() as f64;
+
+                // Parameter matching: count how many flags from the task
+                // appear in this example's args
+                let ex_flags = extract_flags_from_text(&ex.args);
+                let param_score = if !task_flags.is_empty() && !ex_flags.is_empty() {
+                    let overlap = task_flags.intersection(&ex_flags).count() as f64;
+                    // Weight parameter matches heavily — they're the strongest signal
+                    overlap * 3.0
+                } else {
+                    0.0
+                };
+
+                // Subcommand matching: if task mentions a subcommand (e.g., "sort"),
+                // and the example starts with that subcommand, give a boost
+                let subcommand_boost = detect_subcommand_match(task, &ex.args);
+
+                let total = keyword_score + param_score + subcommand_boost;
                 // Tie-breaking: prefer earlier examples (they tend to be more fundamental)
-                (i, score)
+                (i, total)
             })
             .collect();
 
         // Sort by score descending, then by index ascending (stable)
-        scored.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal).then(a.0.cmp(&b.0)));
 
         // Take top max_examples, but ensure example 0 is included if there's room
         let mut selected_indices: Vec<usize> = scored
@@ -779,6 +800,58 @@ fn expand_synonyms(tokens: &mut std::collections::HashSet<String>) {
             }
         }
     }
+}
+
+/// Extract CLI flags (--flag or -f) from text into a HashSet for matching.
+fn extract_flags_from_text(text: &str) -> std::collections::HashSet<String> {
+    text.split_whitespace()
+        .filter(|w| w.starts_with('-'))
+        .map(|w| {
+            // Handle --flag=value → --flag
+            if let Some(eq_pos) = w.find('=') {
+                w[..eq_pos].to_ascii_lowercase()
+            } else {
+                w.to_ascii_lowercase()
+            }
+        })
+        .filter(|w| w.len() >= 2) // Skip bare "-"
+        .collect()
+}
+
+/// Detect if the task mentions a subcommand that matches the example's first arg.
+/// Returns a boost score (2.0 for match, 0.0 for no match).
+fn detect_subcommand_match(task: &str, example_args: &str) -> f64 {
+    // Common bioinformatics subcommands
+    const SUBCOMMANDS: &[&str] = &[
+        "sort", "index", "view", "filter", "merge", "intersect",
+        "mem", "align", "trim", "run", "call", "annotate",
+        "depth", "coverage", "flagstat", "mpileup", "concat",
+        "norm", "stats", "query", "isec", "consensus",
+        "faidx", "dict", "bamtobed", "bedtobam",
+        "blastn", "blastp", "blastx",
+    ];
+
+    let first_arg = example_args.split_whitespace().next().unwrap_or("");
+    if first_arg.is_empty() || first_arg.starts_with('-') {
+        return 0.0;
+    }
+
+    // Check if the first arg of the example is a known subcommand
+    if !SUBCOMMANDS.contains(&first_arg) {
+        return 0.0;
+    }
+
+    // Check if the task mentions this subcommand
+    let task_lower = task.to_ascii_lowercase();
+    if task_lower.contains(&format!(" {}", first_arg))
+        || task_lower.starts_with(&format!("{} ", first_arg))
+        || task_lower.contains(&format!("{}ing", first_arg))  // "sorting" matches "sort"
+        || task_lower.contains(&format!("{}ed", first_arg))   // "sorted" matches "sort"
+    {
+        return 2.0;
+    }
+
+    0.0
 }
 
 // ─── Skill manager ────────────────────────────────────────────────────────────

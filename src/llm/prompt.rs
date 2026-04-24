@@ -50,16 +50,17 @@ pub fn system_prompt() -> &'static str {
      \n\
      RULES:\n\
      1. The tool name is auto-prepended by the system — always omit it from ARGS.\n\
-     2. Follow the exact argument structure from documentation or examples: some tools place flags before positional arguments (bwa mem -t 8 ref.fa), others place positional arguments first (admixture input.bed K --cv=10).\n\
-     3. If the tool has a subcommand (sort, view, mem, index), place it first.\n\
-     4. Companion binaries (bowtie2-build) or scripts (bbduk.sh) go as the first token when documentation specifies them.\n\
-     5. Multi-step commands: join with &&. The tool name is auto-prepended ONLY to the first segment — subsequent commands MUST include their full binary name.\n\
-     6. Pipes (|) and redirects (>) are allowed directly in ARGS.\n\
-     7. Use ONLY flags documented for this tool — always match the exact flag format shown (--flag=value or --flag value).\n\
-     8. Include every file path and parameter value from the task description.\n\
-     9. Default conventions (override if task specifies otherwise): paired-end, coordinate-sorted BAM, hg38, gzipped FASTQ, Phred+33.\n\
-     10. Match format flags to actual data types (BAM/SAM/CRAM, gzipped/plain, paired/single, FASTA/FASTQ).\n\
-     11. If no arguments are needed: ARGS: (none)"
+     2. NEVER repeat a flag — each flag appears at most ONCE. If conflicting values exist, use the LAST specified value.\n\
+     3. Follow the exact argument structure from documentation or examples: some tools place flags before positional arguments (bwa mem -t 8 ref.fa), others place positional arguments first (admixture input.bed K --cv=10).\n\
+     4. If the tool has a subcommand (sort, view, mem, index), place it first.\n\
+     5. Companion binaries (bowtie2-build) or scripts (bbduk.sh) go as the first token when documentation specifies them.\n\
+     6. Multi-step commands: join with &&. The tool name is auto-prepended ONLY to the first segment — subsequent commands MUST include their full binary name.\n\
+     7. Pipes (|) and redirects (>) are allowed directly in ARGS.\n\
+     8. Use ONLY flags documented for this tool — always match the exact flag format shown (--flag=value or --flag value). Do NOT invent or hallucinate flags.\n\
+     9. Include every file path and parameter value from the task description.\n\
+     10. Default conventions (override if task specifies otherwise): paired-end, coordinate-sorted BAM, hg38, gzipped FASTQ, Phred+33.\n\
+     11. Match format flags to actual data types (BAM/SAM/CRAM, gzipped/plain, paired/single, FASTA/FASTQ).\n\
+     12. If no arguments are needed: ARGS: (none)"
 }
 
 /// Medium-compression system prompt for 4k–16k context or 4B–7B models.
@@ -68,7 +69,7 @@ pub fn system_prompt_medium() -> &'static str {
      Output EXACTLY two lines:\n\
      ARGS: <arguments — NO tool name>\n\
      EXPLANATION: <one sentence>\n\
-     Rules: follow the exact argument structure from documentation (flags before or after positional args varies by tool). \
+     Rules: NEVER repeat flags (each flag once only). Follow the exact argument structure from documentation (flags before or after positional args varies by tool). \
      Subcommand first if applicable. Never include tool name. Use only documented flags, matching their exact format. \
      Include all paths from task. Multi-step uses && (tool name only on first segment). \
      Pipes allowed. Add optional parameters only when the task asks for them."
@@ -80,7 +81,7 @@ pub fn system_prompt_compact() -> &'static str {
      Output EXACTLY two lines:\n\
      ARGS: <arguments — never include the tool name>\n\
      EXPLANATION: <what the command does>\n\
-     Rules: never include tool name. Use flags from examples only, matching their exact format. Pipes and chains allowed. \
+     Rules: NEVER repeat flags. Never include tool name. Use flags from examples only, matching their exact format. Pipes and chains allowed. \
      Add optional parameters only when the task asks for them."
 }
 

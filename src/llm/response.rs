@@ -155,6 +155,7 @@ pub fn strip_prefix_case_insensitive<'a>(s: &'a str, prefix: &str) -> Option<&'a
 /// - Strip the tool name if LLM accidentally included it as the first argument
 ///   (unless it is a recognised companion binary)
 /// - Strip markdown code fences that weak models sometimes add around ARGS
+/// - Remove duplicate flags (small models often repeat flag patterns)
 pub fn sanitize_args(tool: &str, args: Vec<String>) -> Vec<String> {
     if args.is_empty() {
         return args;
@@ -192,6 +193,104 @@ pub fn sanitize_args(tool: &str, args: Vec<String>) -> Vec<String> {
         } else {
             i += 1;
         }
+    }
+
+    // Remove duplicate flags (CRITICAL for small models that repeat patterns)
+    // Strategy: keep first occurrence of each flag, remove subsequent duplicates
+    result = deduplicate_flags(&result);
+
+    result
+}
+
+/// Remove duplicate flags from args while preserving flag values and order.
+///
+/// Small models (especially ≤3B) often generate repeated flag patterns like:
+///   `--genomeLoad LoadAndKeep --runThreadN 4 --genomeLoad Remove ...`
+/// This function keeps only the first occurrence of each flag.
+///
+/// Rules:
+/// - Flags starting with `-` or `--` are tracked
+/// - The first occurrence is kept, subsequent duplicates are removed
+/// - Flag values (the token after a flag) are preserved with the first occurrence
+/// - Non-flag tokens (positional args, values) are always kept
+/// - Shell operators (`&&`, `||`, `|`, `>`) reset the tracking for multi-command chains
+fn deduplicate_flags(args: &[String]) -> Vec<String> {
+    use std::collections::HashSet;
+
+    let mut seen_flags: HashSet<String> = HashSet::new();
+    let mut result = Vec::with_capacity(args.len());
+    let mut i = 0;
+
+    while i < args.len() {
+        let arg = &args[i];
+
+        // Shell operators reset flag tracking for multi-command chains
+        if arg == "&&" || arg == "||" || arg == "|" || arg == ">" || arg == ">>" {
+            seen_flags.clear();
+            result.push(arg.clone());
+            i += 1;
+            continue;
+        }
+
+        // Check if this is a flag
+        if arg.starts_with("--") || arg.starts_with('-') {
+            // Extract the base flag name (without value if --flag=value format)
+            let flag_base = if let Some(eq_pos) = arg.find('=') {
+                &arg[..eq_pos]
+            } else {
+                arg.as_str()
+            };
+
+            // Normalize flag for comparison (handle both -f and --flag forms)
+            let flag_key = flag_base.to_lowercase();
+
+            if seen_flags.contains(&flag_key) {
+                // Duplicate flag detected - skip it and its value if present
+                // Check if next arg is a value (not a flag and not a shell operator)
+                if i + 1 < args.len() {
+                    let next = &args[i + 1];
+                    // If the flag expects a value and we're skipping the flag,
+                    // also skip the value if it's not another flag or operator
+                    if !next.starts_with('-')
+                        && next != "&&"
+                        && next != "||"
+                        && next != "|"
+                        && next != ">"
+                        && next != ">>"
+                        && !flag_base.contains('=')
+                    {
+                        i += 1; // Skip the value too
+                    }
+                }
+                i += 1;
+                continue;
+            }
+
+            // First occurrence - keep it and track it
+            seen_flags.insert(flag_key);
+            result.push(arg.clone());
+
+            // If this is a flag that takes a value (not --flag=value format),
+            // the next token is likely the value - keep it but don't track it as a flag
+            if i + 1 < args.len() && !arg.contains('=') {
+                let next = &args[i + 1];
+                if !next.starts_with('-')
+                    && next != "&&"
+                    && next != "||"
+                    && next != "|"
+                    && next != ">"
+                    && next != ">>"
+                {
+                    result.push(next.clone());
+                    i += 1; // Skip the value in the next iteration
+                }
+            }
+        } else {
+            // Non-flag token - always keep
+            result.push(arg.clone());
+        }
+
+        i += 1;
     }
 
     result
@@ -476,4 +575,143 @@ pub fn try_parse_json_response(raw: &str) -> Option<LlmCommandSuggestion> {
         explanation,
         inference_ms: 0.0,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_deduplicate_flags_simple() {
+        let args: Vec<String> = vec![
+            "--genomeLoad".into(),
+            "LoadAndKeep".into(),
+            "--runThreadN".into(),
+            "4".into(),
+            "--genomeLoad".into(),
+            "Remove".into(),
+        ]
+        .into_iter()
+        .collect();
+        let result = deduplicate_flags(&args);
+        // First --genomeLoad and its value should be kept, second removed
+        assert_eq!(
+            result,
+            vec!["--genomeLoad", "LoadAndKeep", "--runThreadN", "4"]
+        );
+    }
+
+    #[test]
+    fn test_deduplicate_flags_massive_repetition() {
+        // Simulates the real bug: hundreds of repeated flag patterns
+        let mut args = vec!["--genomeDir".to_string(), "/star_index".to_string()];
+        for _ in 0..50 {
+            args.push("--genomeLoad".to_string());
+            args.push("LoadAndKeep".to_string());
+            args.push("--runThreadN".to_string());
+            args.push("4".to_string());
+            args.push("--genomeLoad".to_string());
+            args.push("Remove".to_string());
+        }
+        let result = deduplicate_flags(&args);
+        // Should have only one occurrence of each flag
+        assert_eq!(
+            result,
+            vec!["--genomeDir", "/star_index", "--genomeLoad", "LoadAndKeep", "--runThreadN", "4"]
+        );
+    }
+
+    #[test]
+    fn test_deduplicate_flags_equals_format() {
+        let args: Vec<String> = vec![
+            "--threads=4".into(),
+            "--output=out.bam".into(),
+            "--threads=8".into(), // Duplicate with different value
+        ];
+        let result = deduplicate_flags(&args);
+        // First occurrence kept, second removed
+        assert_eq!(result, vec!["--threads=4", "--output=out.bam"]);
+    }
+
+    #[test]
+    fn test_deduplicate_flags_preserves_non_flags() {
+        let args: Vec<String> = vec![
+            "sort".into(),
+            "-@".into(),
+            "4".into(),
+            "-o".into(),
+            "sorted.bam".into(),
+            "input.bam".into(),
+        ];
+        let result = deduplicate_flags(&args);
+        assert_eq!(result, vec!["sort", "-@", "4", "-o", "sorted.bam", "input.bam"]);
+    }
+
+    #[test]
+    fn test_deduplicate_flags_multi_command_with_operators() {
+        let args: Vec<String> = vec![
+            "sort".into(),
+            "-o".into(),
+            "sorted.bam".into(),
+            "input.bam".into(),
+            "&&".into(),
+            "index".into(),
+            "-o".into(), // Same flag but in different command segment - should be kept
+            "sorted.bam.bai".into(),
+            "sorted.bam".into(),
+        ];
+        let result = deduplicate_flags(&args);
+        // After &&, flag tracking resets, so -o should appear twice
+        assert_eq!(
+            result,
+            vec![
+                "sort", "-o", "sorted.bam", "input.bam",
+                "&&",
+                "index", "-o", "sorted.bam.bai", "sorted.bam"
+            ]
+        );
+    }
+
+    #[test]
+    fn test_deduplicate_flags_case_insensitive() {
+        let args: Vec<String> = vec![
+            "--GenomeLoad".into(),
+            "LoadAndKeep".into(),
+            "--genomeload".into(), // Same flag, different case
+            "Remove".into(),
+        ];
+        let result = deduplicate_flags(&args);
+        // Case-insensitive dedup: second occurrence removed
+        assert_eq!(result, vec!["--GenomeLoad", "LoadAndKeep"]);
+    }
+
+    #[test]
+    fn test_sanitize_args_with_dedup() {
+        let args: Vec<String> = vec![
+            "--genomeLoad".into(),
+            "LoadAndKeep".into(),
+            "--runThreadN".into(),
+            "4".into(),
+            "--genomeLoad".into(),
+            "Remove".into(),
+        ];
+        let result = sanitize_args("star", args);
+        assert_eq!(
+            result,
+            vec!["--genomeLoad", "LoadAndKeep", "--runThreadN", "4"]
+        );
+    }
+
+    #[test]
+    fn test_sanitize_args_strips_tool_name_and_dedup() {
+        let args: Vec<String> = vec![
+            "star".into(), // Tool name should be stripped
+            "--genomeLoad".into(),
+            "LoadAndKeep".into(),
+            "--genomeLoad".into(), // Duplicate
+            "Remove".into(),
+        ];
+        let result = sanitize_args("star", args);
+        assert_eq!(result, vec!["--genomeLoad", "LoadAndKeep"]);
+    }
 }
