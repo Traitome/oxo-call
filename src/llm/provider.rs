@@ -93,14 +93,15 @@ impl LlmClient {
         } else {
             Some(hex::encode(sha2::Sha256::digest(documentation.as_bytes())))
         };
-        let skill_name = skill.map(|s| s.meta.name.clone());
+        // Use skill name reference directly without clone
+        let skill_name: Option<&str> = skill.as_ref().map(|s| s.meta.name.as_str());
 
         // Try cache lookup first
         if let Ok(Some(cached)) = crate::cache::LlmCache::lookup(
             tool,
             task,
             docs_hash.as_deref(),
-            skill_name.as_deref(),
+            skill_name, // Already Option<&str>
             &model,
         ) {
             // Cache hit - return cached response
@@ -204,7 +205,7 @@ impl LlmClient {
                     tool,
                     task,
                     docs_hash.as_deref(),
-                    skill_name.as_deref(),
+                    skill_name, // Already Option<&str>
                     &model,
                     &args_str,
                     &suggestion.explanation,
@@ -367,7 +368,10 @@ impl LlmClient {
         };
         let api_base = self.config.effective_api_base();
         let model = self.config.effective_model();
-        let url = format!("{api_base}/chat/completions");
+        // Build URL efficiently without format! allocation
+        let mut url = String::with_capacity(api_base.len() + 18);
+        url.push_str(&api_base);
+        url.push_str("/chat/completions");
 
         // Build messages: system + alternating user/assistant pairs + final user
         let mut messages = Vec::new();
@@ -529,7 +533,10 @@ impl LlmClient {
         let api_base = self.config.effective_api_base();
         // Strip /v1 suffix if present (ollama native API doesn't use it)
         let api_base = api_base.trim_end_matches("/v1");
-        let url = format!("{api_base}/api/chat");
+        // Build URL efficiently without format! allocation
+        let mut url = String::with_capacity(api_base.len() + 10);
+        url.push_str(api_base);
+        url.push_str("/api/chat");
         let model = self.config.effective_model();
 
         // Build messages
@@ -691,7 +698,10 @@ impl LlmClient {
         }
 
         let model = self.config.effective_model();
-        let url = format!("{api_base}/chat/completions");
+        // Build URL efficiently without format! allocation
+        let mut url = String::with_capacity(api_base.len() + 18);
+        url.push_str(&api_base);
+        url.push_str("/chat/completions");
 
         let messages = vec![
             ChatMessage {

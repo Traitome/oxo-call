@@ -10,6 +10,45 @@
 use indicatif::{ProgressBar, ProgressStyle};
 use sha2::{Digest, Sha256};
 
+/// Check if haystack contains needle case-insensitively without allocation.
+/// Uses character-by-character matching without creating lowercase copies.
+fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    if haystack.len() < needle.len() {
+        return false;
+    }
+
+    // Iterate through haystack looking for needle match
+    let needle_chars: Vec<char> = needle.chars().collect();
+    let mut haystack_iter = haystack.chars().peekable();
+
+    while let Some(first) = haystack_iter.next() {
+        if first.eq_ignore_ascii_case(&needle_chars[0]) {
+            // Potential match - check remaining characters
+            let mut rest = haystack_iter.clone();
+            let mut matched = true;
+            for needle_char in &needle_chars[1..] {
+                match rest.peek() {
+                    Some(h_char) if h_char.eq_ignore_ascii_case(needle_char) => {
+                        rest.next();
+                        continue;
+                    }
+                    _ => {
+                        matched = false;
+                        break;
+                    }
+                }
+            }
+            if matched {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 // ─── Command string building ──────────────────────────────────────────────────
 
 /// Build a shell command string from tool name and arguments.
@@ -125,9 +164,8 @@ pub fn is_companion_binary(tool: &str, candidate: &str) -> bool {
     // For script companions, any file-extension companion that contains the
     // tool name anywhere in its stem (case-insensitive) is accepted.
     if candidate != stem {
-        let stem_lower = stem.to_ascii_lowercase();
-        let tool_lower = tool.to_ascii_lowercase();
-        if stem_lower.contains(&tool_lower) {
+        // Use contains_ignore_ascii_case without allocation
+        if contains_ignore_ascii_case(stem, tool) {
             return true;
         }
     }
