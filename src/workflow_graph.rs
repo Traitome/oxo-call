@@ -553,7 +553,7 @@ impl WorkflowGraph {
             .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or(path);
-        let config = crate::config::Config::load().unwrap_or_default();
+        let config = crate::config::Config::load().await.unwrap_or_default();
         let mgr = crate::skill::SkillManager::new(config);
         if let Some(skill) = mgr.load(tool_name) {
             return Ok(SkillData {

@@ -49,6 +49,33 @@ fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
     false
 }
 
+/// Check if haystack ends with needle case-insensitively without allocation.
+/// Uses character-by-character matching from the end.
+fn ends_with_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    if haystack.len() < needle.len() {
+        return false;
+    }
+
+    // Compare from the end
+    let haystack_chars: Vec<char> = haystack.chars().collect();
+    let needle_chars: Vec<char> = needle.chars().collect();
+
+    let haystack_len = haystack_chars.len();
+    let needle_len = needle_chars.len();
+
+    for i in 0..needle_len {
+        let h_char = haystack_chars[haystack_len - needle_len + i];
+        let n_char = needle_chars[i];
+        if !h_char.eq_ignore_ascii_case(&n_char) {
+            return false;
+        }
+    }
+    true
+}
+
 // ─── Command string building ──────────────────────────────────────────────────
 
 /// Build a shell command string from tool name and arguments.
@@ -355,12 +382,14 @@ pub fn make_spinner(msg: &str) -> ProgressBar {
 // ─── Output file detection ───────────────────────────────────────────────────
 
 /// Detect output file paths from command arguments.
+/// Uses HashSet directly for deduplication to avoid Vec + retain overhead.
 pub(crate) fn detect_output_files(args: &[String]) -> Vec<String> {
     const OUTPUT_FLAGS: &[&str] = &[
         "-o", "--output", "-O", "--out", "-b", "--bam", "-S", "--sam", "--vcf", "--bcf",
     ];
 
-    let mut files = Vec::new();
+    // Use HashSet directly for deduplication, avoiding Vec + retain clone overhead
+    let mut files: std::collections::HashSet<String> = std::collections::HashSet::new();
     let mut skip_next = false;
 
     for (i, arg) in args.iter().enumerate() {
@@ -377,7 +406,7 @@ pub(crate) fn detect_output_files(args: &[String]) -> Vec<String> {
             {
                 let val = &arg[flag.len() + 1..];
                 if !val.is_empty() {
-                    files.push(val.to_string());
+                    files.insert(val.to_string());
                 }
                 break;
             }
@@ -387,7 +416,7 @@ pub(crate) fn detect_output_files(args: &[String]) -> Vec<String> {
             if arg == flag
                 && let Some(val) = args.get(i + 1)
             {
-                files.push(val.clone());
+                files.insert(val.clone());
                 skip_next = true;
                 break;
             }
@@ -399,15 +428,12 @@ pub(crate) fn detect_output_files(args: &[String]) -> Vec<String> {
             && !arg.contains('&')
             && !arg.contains('|')
         {
-            files.push(arg.clone());
+            files.insert(arg.clone());
         }
     }
 
-    // Deduplicate, preserving order.
-    let mut seen = std::collections::HashSet::new();
-    files.retain(|f| seen.insert(f.clone()));
-    files.truncate(20);
-    files
+    // Convert HashSet to Vec, limit to 20 entries
+    files.into_iter().take(20).collect()
 }
 
 // ─── Command risk assessment ──────────────────────────────────────────────────
@@ -589,10 +615,15 @@ pub fn validate_input_files(args: &[String]) -> Vec<String> {
                 skip_next = true;
                 break;
             }
-            if let Some(rest) = arg.strip_prefix(&format!("{flag}="))
-                && !rest.is_empty()
+            // Check --flag=value form without format! allocation
+            if arg.len() > flag.len() + 1
+                && &arg[..flag.len()] == flag
+                && arg[flag.len()..].starts_with('=')
             {
-                known_output_indices.insert(i);
+                let rest = &arg[flag.len() + 1..];
+                if !rest.is_empty() {
+                    known_output_indices.insert(i);
+                }
             }
         }
     }
@@ -622,13 +653,19 @@ pub fn validate_input_files(args: &[String]) -> Vec<String> {
                 skip_next = true;
                 break;
             }
-            if let Some(rest) = arg.strip_prefix(&format!("{flag}="))
-                && !rest.is_empty()
-                && looks_like_file_path(rest)
-                && has_bio_extension(rest)
-                && !std::path::Path::new(rest).exists()
+            // Check --flag=value form without format! allocation
+            if arg.len() > flag.len() + 1
+                && &arg[..flag.len()] == flag
+                && arg[flag.len()..].starts_with('=')
             {
-                missing.push(rest.to_string());
+                let rest = &arg[flag.len() + 1..];
+                if !rest.is_empty()
+                    && looks_like_file_path(rest)
+                    && has_bio_extension(rest)
+                    && !std::path::Path::new(rest).exists()
+                {
+                    missing.push(rest.to_string());
+                }
             }
         }
         // Check positional args that look like file paths
@@ -658,7 +695,6 @@ fn looks_like_file_path(arg: &str) -> bool {
 
 /// Check if a path has a bioinformatics-relevant file extension.
 pub(crate) fn has_bio_extension(path: &str) -> bool {
-    let lower = path.to_ascii_lowercase();
     const EXTENSIONS: &[&str] = &[
         ".bam",
         ".sam",
@@ -685,5 +721,5 @@ pub(crate) fn has_bio_extension(path: &str) -> bool {
         ".tbi",
         ".idx",
     ];
-    EXTENSIONS.iter().any(|ext| lower.ends_with(ext))
+    EXTENSIONS.iter().any(|ext| ends_with_ignore_ascii_case(path, ext))
 }

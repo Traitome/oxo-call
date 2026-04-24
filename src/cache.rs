@@ -204,7 +204,7 @@ impl LlmCache {
     /// - Cache is disabled
     /// - No matching entry exists
     /// - Entry is older than CACHE_MAX_AGE_DAYS
-    pub fn lookup(
+    pub async fn lookup(
         tool: &str,
         task: &str,
         docs_hash: Option<&str>,
@@ -212,7 +212,7 @@ impl LlmCache {
         model: &str,
     ) -> Result<Option<CacheEntry>> {
         // Check if cache is enabled
-        let config = Config::load()?;
+        let config = Config::load().await?;
         if !config.llm.cache_enabled {
             return Ok(None);
         }
@@ -252,7 +252,7 @@ impl LlmCache {
     }
 
     /// Store a new cache entry — O(1) write-through to memory + append to disk.
-    pub fn store(
+    pub async fn store(
         tool: &str,
         task: &str,
         docs_hash: Option<&str>,
@@ -262,7 +262,7 @@ impl LlmCache {
         explanation: &str,
     ) -> Result<()> {
         // Check if cache is enabled
-        let config = Config::load()?;
+        let config = Config::load().await?;
         if !config.llm.cache_enabled {
             return Ok(());
         }

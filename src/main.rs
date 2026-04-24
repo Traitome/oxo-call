@@ -194,7 +194,7 @@ async fn run(cli: Cli) -> error::Result<()> {
     let base_cfg = if license_exempt {
         config::Config::default()
     } else {
-        config::Config::load()?
+        config::Config::load().await?
     };
 
     let verbose = cli.verbose;
@@ -330,7 +330,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                 m
             };
 
-            let runner = runner::Runner::new(cfg)
+            let mut runner = runner::Runner::new(cfg);
+            runner
                 .with_verbose(verbose)
                 .with_no_cache(no_cache)
                 .with_no_skill(no_skill)
@@ -339,12 +340,10 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_verify(verify)
                 .with_auto_retry(auto_retry)
                 .with_no_stream(no_stream);
-            let runner = if let Some(sc) = force_scenario {
-                runner.with_scenario(sc)
-            } else {
-                runner
-            };
-            let runner = runner
+            if let Some(sc) = force_scenario {
+                runner.with_scenario(sc);
+            }
+            runner
                 .with_vars(var_map)
                 .with_input_items(all_items)
                 .with_jobs(jobs)
@@ -433,18 +432,17 @@ async fn run(cli: Cli) -> error::Result<()> {
                 m
             };
 
-            let runner = runner::Runner::new(cfg)
+            let mut runner = runner::Runner::new(cfg);
+            runner
                 .with_verbose(verbose)
                 .with_no_cache(no_cache)
                 .with_no_skill(no_skill)
                 .with_no_doc(no_doc)
                 .with_no_prompt(no_prompt)
                 .with_no_stream(no_stream);
-            let runner = if let Some(sc) = force_scenario {
-                runner.with_scenario(sc)
-            } else {
-                runner
-            };
+            if let Some(sc) = force_scenario {
+                runner.with_scenario(sc);
+            }
             let runner = runner.with_vars(var_map).with_input_items(all_items);
             runner.dry_run(&tool, &task, json, None).await?;
         }
@@ -2525,7 +2523,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                     if let Some(ref m) = model {
                         run_cfg.llm.model = Some(m.clone());
                     }
-                    let runner_inst = runner::Runner::new(run_cfg)
+                    let mut runner_inst = runner::Runner::new(run_cfg);
+                    runner_inst
                         .with_verbose(verbose)
                         .with_no_cache(no_cache)
                         .with_verify(verify)
@@ -2673,7 +2672,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                     if let Some(ref m) = model {
                         run_cfg.llm.model = Some(m.clone());
                     }
-                    let runner_inst = runner::Runner::new(run_cfg)
+                    let mut runner_inst = runner::Runner::new(run_cfg);
+                    runner_inst
                         .with_verbose(verbose)
                         .with_no_cache(no_cache)
                         .with_no_stream(no_stream);

@@ -3,6 +3,7 @@ use crate::error::{OxoError, Result};
 use colored::Colorize;
 use std::path::PathBuf;
 use std::process::Command;
+use tokio::process::Command as AsyncCommand;
 use uuid::Uuid;
 
 // Import doc_summarizer module (declared in main.rs)
@@ -178,8 +179,8 @@ impl DocsFetcher {
             docs.cached_docs = Some(cached);
         }
 
-        // 2. Try to get help text and version from the live tool
-        match self.fetch_help(tool) {
+        // 2. Try to get help text and version from the live tool using async spawn
+        match self.fetch_help_async(tool).await {
             Ok((help, version)) => {
                 docs.help_output = Some(help);
                 docs.version = version;
@@ -252,9 +253,9 @@ impl DocsFetcher {
     /// Fetch --help / -h output from a tool, with multiple fallback strategies.
     ///
     /// Strategy (in order):
-    ///  1. `--help`  
-    ///  2. `-h`  
-    ///  3. `help` (as a subcommand)  
+    ///  1. `--help`
+    ///  2. `-h`
+    ///  3. `help` (as a subcommand)
     ///  4. No arguments (many bioinformatics tools print usage when invoked bare)
     fn fetch_help(&self, tool: &str) -> Result<(String, Option<String>)> {
         let help = self
@@ -274,6 +275,83 @@ impl DocsFetcher {
         let version = self.detect_version(tool, &help);
 
         Ok((help, version))
+    }
+
+    /// Async version of fetch_help using tokio::process::Command for non-blocking spawns.
+    /// Uses early-return pattern: try most common flags first, then fallback strategies.
+    async fn fetch_help_async(&self, tool: &str) -> Result<(String, Option<String>)> {
+        // Try --help first (most common for bioinformatics tools)
+        if let Ok(help) = self.run_help_flag_async(tool, "--help").await {
+            let version = self.detect_version(tool, &help);
+            return Ok((help, version));
+        }
+
+        // Try -h second (common shorthand)
+        if let Ok(help) = self.run_help_flag_async(tool, "-h").await {
+            let version = self.detect_version(tool, &help);
+            return Ok((help, version));
+        }
+
+        // Try bare invocation (many tools print usage when called with no args)
+        if let Ok(help) = self.run_no_args_async(tool).await {
+            let version = self.detect_version(tool, &help);
+            return Ok((help, version));
+        }
+
+        // Try "help" subcommand
+        if let Ok(help) = self.run_help_flag_async(tool, "help").await {
+            let version = self.detect_version(tool, &help);
+            return Ok((help, version));
+        }
+
+        // Last resort: shell builtin help
+        let help = self.run_shell_builtin_help_async(tool).await.map_err(|_| {
+            OxoError::DocFetchError(
+                tool.to_string(),
+                "Tool not found or does not support --help/-h and produced no output when called with no arguments".to_string(),
+            )
+        })?;
+        let version = self.detect_version(tool, &help);
+        Ok((help, version))
+    }
+
+    /// Async version of run_help_flag using tokio::process::Command
+    async fn run_help_flag_async(&self, tool: &str, flag: &str) -> Result<String> {
+        let output = AsyncCommand::new(tool)
+            .arg(flag)
+            .output()
+            .await
+            .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
+
+        extract_useful_output(tool, &output.stdout, &output.stderr)
+    }
+
+    /// Async version of run_no_args using tokio::process::Command
+    async fn run_no_args_async(&self, tool: &str) -> Result<String> {
+        let output = AsyncCommand::new(tool)
+            .output()
+            .await
+            .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
+
+        extract_useful_output(tool, &output.stdout, &output.stderr)
+    }
+
+    /// Async version of run_shell_builtin_help using tokio::process::Command
+    async fn run_shell_builtin_help_async(&self, tool: &str) -> Result<String> {
+        let output = AsyncCommand::new("bash")
+            .args(["-c", "help -- \"$1\"", "--", tool])
+            .output()
+            .await
+            .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
+
+        if !output.status.success() {
+            return Err(OxoError::DocFetchError(
+                tool.to_string(),
+                "Not a shell built-in".to_string(),
+            ));
+        }
+
+        extract_useful_output(tool, &output.stdout, &output.stderr)
     }
 
     /// Fetch help for a specific subcommand of a tool, based on the user's task.

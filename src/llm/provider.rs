@@ -103,7 +103,9 @@ impl LlmClient {
             docs_hash.as_deref(),
             skill_name, // Already Option<&str>
             &model,
-        ) {
+        )
+        .await
+        {
             // Cache hit - return cached response
             // Parse cached args string into Vec<String>
             let args_vec = cached.args.split_whitespace().map(String::from).collect();
@@ -209,7 +211,8 @@ impl LlmClient {
                     &model,
                     &args_str,
                     &suggestion.explanation,
-                );
+                )
+                .await;
                 return Ok(suggestion);
             }
 

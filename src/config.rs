@@ -3,6 +3,7 @@ use crate::server::ServerConfig;
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use tokio::fs;
 use std::str::FromStr;
 
 const DEFAULT_LLM_PROVIDER: &str = "github-copilot";
@@ -255,12 +256,12 @@ impl Config {
         Ok(dirs.data_dir().to_path_buf())
     }
 
-    pub fn load() -> Result<Self> {
+    pub async fn load() -> Result<Self> {
         let path = Self::config_path()?;
-        if !path.exists() {
+        if !fs::try_exists(&path).await.unwrap_or(false) {
             return Ok(Self::default());
         }
-        let content = std::fs::read_to_string(&path)?;
+        let content = fs::read_to_string(&path).await?;
         let config: Config = toml::from_str(&content)?;
         Ok(config)
     }

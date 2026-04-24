@@ -137,37 +137,37 @@ impl Runner {
     }
 
     /// Enable verbose output for this runner.
-    pub fn with_verbose(mut self, verbose: bool) -> Self {
+    pub fn with_verbose(&mut self, verbose: bool) -> &mut Self {
         self.verbose = verbose;
         self
     }
 
     /// Skip cached documentation and fetch fresh --help output.
-    pub fn with_no_cache(mut self, no_cache: bool) -> Self {
+    pub fn with_no_cache(&mut self, no_cache: bool) -> &mut Self {
         self.no_cache = no_cache;
         self
     }
 
     /// Enable LLM-based result verification after execution.
-    pub fn with_verify(mut self, verify: bool) -> Self {
+    pub fn with_verify(&mut self, verify: bool) -> &mut Self {
         self.verify = verify;
         self
     }
 
     /// Enable automatic retry with LLM-corrected commands on failure.
-    pub fn with_auto_retry(mut self, auto_retry: bool) -> Self {
+    pub fn with_auto_retry(&mut self, auto_retry: bool) -> &mut Self {
         self.auto_retry = auto_retry;
         self
     }
 
     /// Force a specific workflow scenario.
-    pub fn with_scenario(mut self, scenario: crate::workflow_graph::WorkflowScenario) -> Self {
+    pub fn with_scenario(&mut self, scenario: crate::workflow_graph::WorkflowScenario) -> &mut Self {
         self.force_scenario = Some(scenario);
         self
     }
 
     /// Disable SSE streaming for LLM responses.
-    pub fn with_no_stream(mut self, no_stream: bool) -> Self {
+    pub fn with_no_stream(&mut self, no_stream: bool) -> &mut Self {
         self.no_stream = no_stream;
         if no_stream {
             self.llm.set_no_stream(true);
@@ -176,19 +176,19 @@ impl Runner {
     }
 
     /// [Ablation] Do not load the skill file for the tool.
-    pub fn with_no_skill(mut self, no_skill: bool) -> Self {
+    pub fn with_no_skill(&mut self, no_skill: bool) -> &mut Self {
         self.no_skill = no_skill;
         self
     }
 
     /// [Ablation] Do not load tool documentation (--help output).
-    pub fn with_no_doc(mut self, no_doc: bool) -> Self {
+    pub fn with_no_doc(&mut self, no_doc: bool) -> &mut Self {
         self.no_doc = no_doc;
         self
     }
 
     /// [Ablation] Do not use the oxo-call system prompt.
-    pub fn with_no_prompt(mut self, no_prompt: bool) -> Self {
+    pub fn with_no_prompt(&mut self, no_prompt: bool) -> &mut Self {
         self.no_prompt = no_prompt;
         self
     }
@@ -196,7 +196,7 @@ impl Runner {
     /// Set named variables that will be substituted into the task description
     /// (and, when an input list is present, into the generated command) before
     /// the LLM call.
-    pub fn with_vars(mut self, vars: HashMap<String, String>) -> Self {
+    pub fn with_vars(&mut self, vars: HashMap<String, String>) -> &mut Self {
         self.vars = vars;
         self
     }
@@ -205,19 +205,19 @@ impl Runner {
     ///
     /// When non-empty, the LLM is called once and the generated command
     /// template (which may contain `{item}`) is executed for every item.
-    pub fn with_input_items(mut self, items: Vec<String>) -> Self {
+    pub fn with_input_items(&mut self, items: Vec<String>) -> &mut Self {
         self.input_items = items;
         self
     }
 
     /// Set the maximum number of parallel jobs (default: 1 = sequential).
-    pub fn with_jobs(mut self, jobs: usize) -> Self {
+    pub fn with_jobs(&mut self, jobs: usize) -> &mut Self {
         self.jobs = jobs.max(1);
         self
     }
 
     /// When enabled, abort the batch after the first failed item.
-    pub fn with_stop_on_error(mut self, stop_on_error: bool) -> Self {
+    pub fn with_stop_on_error(&mut self, stop_on_error: bool) -> &mut Self {
         self.stop_on_error = stop_on_error;
         self
     }
