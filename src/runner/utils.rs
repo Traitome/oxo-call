@@ -406,10 +406,16 @@ pub fn assess_command_risk(args: &[String]) -> RiskLevel {
                 if arg.eq_ignore_ascii_case(cmd) {
                     return RiskLevel::Dangerous;
                 }
-                // Check path suffix: /rm, /sudo, etc.
-                let lower_arg = arg.to_ascii_lowercase(); // Single allocation for path check only
-                if lower_arg.ends_with(&format!("/{cmd}")) {
-                    return RiskLevel::Dangerous;
+                // Check path suffix: /rm, /sudo, etc. without format! allocation
+                // Check if arg ends with "/" + cmd case-insensitively
+                if arg.len() > cmd.len() + 1 {
+                    let suffix_start = arg.len() - cmd.len() - 1;
+                    // Check for '/' before the command name
+                    if arg.as_bytes()[suffix_start] == b'/'
+                        && arg[suffix_start + 1..].eq_ignore_ascii_case(cmd)
+                    {
+                        return RiskLevel::Dangerous;
+                    }
                 }
             }
         }
