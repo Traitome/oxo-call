@@ -76,10 +76,8 @@ impl PlannerAgent {
     /// For simple tasks, returns a single-step plan.
     /// For complex tasks (multi-tool pipelines), decomposes into steps.
     pub fn plan(&self, tool: &str, task: &str) -> TaskPlan {
-        let task_lower = task.to_lowercase();
-
-        // Detect multi-step patterns.
-        let is_pipeline = self.detect_pipeline(&task_lower);
+        // Detect multi-step patterns without lowercase allocation.
+        let is_pipeline = self.detect_pipeline_ci(task);
 
         if is_pipeline {
             self.plan_pipeline(tool, task)
@@ -88,9 +86,11 @@ impl PlannerAgent {
         }
     }
 
-    /// Detect whether the task describes a multi-step pipeline.
-    fn detect_pipeline(&self, task: &str) -> bool {
-        let pipeline_indicators = [
+    /// Detect whether the task describes a multi-step pipeline (case-insensitive).
+    /// Uses byte-level matching for ASCII indicators, exact match for Chinese.
+    fn detect_pipeline_ci(&self, task: &str) -> bool {
+        // ASCII pipeline indicators - check case-insensitively
+        let ascii_indicators = [
             "then",
             "after that",
             "followed by",
@@ -101,14 +101,25 @@ impl PlannerAgent {
             "first",
             "second",
             "finally",
-            // Chinese pipeline indicators
-            "然后",
-            "接着",
-            "之后",
-            "流程",
-            "管道",
         ];
-        pipeline_indicators.iter().any(|ind| task.contains(ind))
+
+        // Case-insensitive check for ASCII indicators
+        for ind in &ascii_indicators {
+            if task.len() >= ind.len()
+                && task.as_bytes().windows(ind.len()).any(|window| {
+                    window
+                        .iter()
+                        .zip(ind.as_bytes())
+                        .all(|(h, n)| h.eq_ignore_ascii_case(n))
+                })
+            {
+                return true;
+            }
+        }
+
+        // Chinese pipeline indicators - exact match (no case variation)
+        let chinese_indicators = ["然后", "接着", "之后", "流程", "管道"];
+        chinese_indicators.iter().any(|ind| task.contains(ind))
             || task.matches("&&").count() > 0
             || task.matches(';').count() > 1
     }
