@@ -219,31 +219,33 @@ pub(crate) fn parse_version(version: &str) -> Option<(u32, u32, u32)> {
     let version = version.trim();
 
     // Find all candidate version patterns (digit sequences with dots)
-    let candidates: Vec<(usize, usize)> = {
-        let mut found = Vec::new();
-        let chars: Vec<char> = version.chars().collect();
-        let mut i = 0;
+    // Use char_indices to avoid Vec<char> allocation
+    let mut candidates: Vec<(usize, usize)> = Vec::new();
+    let mut char_indices = version.char_indices().peekable();
 
-        while i < chars.len() {
-            if chars[i].is_ascii_digit() {
-                let start = i;
-                let mut has_dot = false;
-                while i < chars.len() && (chars[i].is_ascii_digit() || chars[i] == '.') {
-                    if chars[i] == '.' {
-                        has_dot = true;
-                    }
-                    i += 1;
+    while let Some((i, c)) = char_indices.next() {
+        if c.is_ascii_digit() {
+            let start = i;
+            let mut has_dot = false;
+            let mut end = i;
+
+            // Continue while we have digits or dots
+            while let Some(&(j, next_c)) = char_indices.peek()
+                && (next_c.is_ascii_digit() || next_c == '.')
+            {
+                if next_c == '.' {
+                    has_dot = true;
                 }
-                // Only consider patterns with dots (proper versions)
-                if has_dot {
-                    found.push((start, i));
-                }
-            } else {
-                i += 1;
+                end = j + next_c.len_utf8();
+                char_indices.next();
+            }
+
+            // Only consider patterns with dots (proper versions)
+            if has_dot {
+                candidates.push((start, end));
             }
         }
-        found
-    };
+    }
 
     // Use the first valid version pattern with dots
     for (start, end) in candidates {

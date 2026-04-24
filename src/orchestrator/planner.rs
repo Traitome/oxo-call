@@ -114,43 +114,61 @@ impl PlannerAgent {
     }
 
     /// Decompose a pipeline task into ordered steps.
+    /// Uses single-pass split without creating intermediate Vecs per delimiter.
     fn plan_pipeline(&self, tool: &str, task: &str) -> TaskPlan {
-        // Split on natural-language step delimiters using an iterative approach
-        // that avoids repeated vector allocations.
-        let delimiters = [
-            " then ",
-            " after that ",
-            " followed by ",
-            ", then ",
-            " 然后 ",
-            " 接着 ",
-            " 之后 ",
-        ];
+        // Single-pass split: find earliest delimiter and split once
+        // Pre-allocate result Vec with estimated capacity
+        let mut parts: Vec<&str> = Vec::with_capacity(8);
+        let mut remainder = task;
 
-        let mut parts: Vec<&str> = vec![task];
-        for delim in delimiters {
-            let mut new_parts = Vec::new();
-            for part in &parts {
-                new_parts.extend(
-                    part.split(delim)
-                        .map(|s| s.trim())
-                        .filter(|s| !s.is_empty()),
-                );
+        // Process all delimiters in single pass
+        loop {
+            // Find earliest delimiter match
+            let mut earliest_pos: Option<(usize, usize)> = None; // (pos, delim_len)
+
+            for delim in [
+                " then ",
+                " after that ",
+                " followed by ",
+                ", then ",
+                " 然后 ",
+                " 接着 ",
+                " 之后 ",
+                "&&",
+            ] {
+                if let Some(pos) = remainder.find(delim) {
+                    let candidate = (pos, delim.len());
+                    earliest_pos = Some(
+                        earliest_pos
+                            .map_or(candidate, |e| if candidate.0 < e.0 { candidate } else { e }),
+                    );
+                }
             }
-            parts = new_parts;
+
+            match earliest_pos {
+                Some((pos, delim_len)) => {
+                    let segment = remainder[..pos].trim();
+                    if !segment.is_empty() {
+                        parts.push(segment);
+                    }
+                    remainder = &remainder[pos + delim_len..];
+                }
+                None => {
+                    // No more delimiters, add remaining segment
+                    let segment = remainder.trim();
+                    if !segment.is_empty() {
+                        parts.push(segment);
+                    }
+                    break;
+                }
+            }
         }
 
-        // Also split on "&&".
-        let final_parts: Vec<&str> = parts
-            .iter()
-            .flat_map(|part| part.split("&&").map(|s| s.trim()).filter(|s| !s.is_empty()))
-            .collect();
-
-        if final_parts.len() <= 1 {
+        if parts.len() <= 1 {
             return TaskPlan::single_step(tool, task);
         }
 
-        let steps: Vec<PlanStep> = final_parts
+        let steps: Vec<PlanStep> = parts
             .iter()
             .enumerate()
             .map(|(i, desc)| {
@@ -160,7 +178,7 @@ impl PlannerAgent {
                     tool: tool.to_string(),
                     description: (*desc).to_string(),
                     depends_on: if i > 0 { vec![step_num - 1] } else { vec![] },
-                    needs_validation: i == final_parts.len() - 1, // validate last step
+                    needs_validation: i == parts.len() - 1, // validate last step
                 }
             })
             .collect();

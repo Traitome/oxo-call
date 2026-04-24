@@ -151,49 +151,76 @@ pub struct ConcreteTask {
 // ─── Wildcard expansion helpers ────────────────────────────────────────────────
 
 /// Enumerate every combination of wildcard bindings.
+/// Uses index-based generation to avoid exponential clone chains.
 fn wildcard_combinations(wildcards: &HashMap<String, Vec<String>>) -> Vec<HashMap<String, String>> {
     if wildcards.is_empty() {
         return vec![HashMap::new()];
     }
-    let mut result: Vec<HashMap<String, String>> = vec![HashMap::new()];
-    // Iterate in a deterministic order (sorted keys).
+
+    // Sort keys for deterministic ordering
     let mut keys: Vec<&String> = wildcards.keys().collect();
     keys.sort();
-    for key in keys {
-        let values = &wildcards[key];
-        let mut next = Vec::new();
-        for val in values {
-            for existing in &result {
-                let mut m = existing.clone();
-                m.insert(key.clone(), val.clone());
-                next.push(m);
-            }
+
+    // Calculate total number of combinations (product of all value counts)
+    let total: usize = keys.iter().map(|k| wildcards[*k].len()).product();
+
+    // Pre-allocate result vector with exact capacity
+    let mut result = Vec::with_capacity(total);
+
+    // For each combination index, compute which value each key should take
+    // using modular arithmetic instead of cloning intermediate HashMaps
+    for combo_idx in 0..total {
+        let mut map = HashMap::with_capacity(keys.len());
+        let mut remaining = combo_idx;
+
+        for key in &keys {
+            let values = &wildcards[*key];
+            let value_idx = remaining % values.len();
+            remaining /= values.len();
+            map.insert((*key).clone(), values[value_idx].clone());
         }
-        result = next;
+
+        result.push(map);
     }
+
     result
 }
 
 /// Substitute `{key}` (wildcard) and `{params.key}` placeholders.
+/// Uses cow-based single-pass approach to minimize allocations.
 fn substitute(
     template: &str,
     bindings: &HashMap<String, String>,
     params: &HashMap<String, String>,
 ) -> String {
-    let mut s = template.to_string();
+    use std::borrow::Cow;
+
+    let mut result: Cow<'_, str> = Cow::Borrowed(template);
+
     // Wildcard substitution first (higher precedence).
     for (k, v) in bindings {
-        s = s.replace(&format!("{{{k}}}"), v);
-    }
-    // Param substitution ({params.key} and bare {key} if not shadowed).
-    for (k, v) in params {
-        s = s.replace(&format!("{{params.{k}}}", k = k), v);
-        // Bare {key} only if not already a wildcard key.
-        if !bindings.contains_key(k.as_str()) {
-            s = s.replace(&format!("{{{k}}}"), v);
+        let pat = format!("{{{k}}}");
+        if result.contains(&pat) {
+            result = Cow::Owned(result.replace(&pat, v));
         }
     }
-    s
+
+    // Param substitution ({params.key} and bare {key} if not shadowed).
+    for (k, v) in params {
+        let params_pat = format!("{{params.{k}}}");
+        if result.contains(&params_pat) {
+            result = Cow::Owned(result.replace(&params_pat, v));
+        }
+        // Bare {key} only if not already a wildcard key.
+        if !bindings.contains_key(k.as_str()) {
+            let bare_pat = format!("{{{k}}}");
+            if result.contains(&bare_pat) {
+                result = Cow::Owned(result.replace(&bare_pat, v));
+            }
+        }
+    }
+
+    result.into_owned()
 }
 
 /// Build a canonical task ID from step name + wildcard bindings.
@@ -207,9 +234,22 @@ fn task_id(step_name: &str, bindings: &HashMap<String, String>) -> String {
 }
 
 /// Returns true if the step uses any wildcard key in any of its fields.
+/// Optimized: first checks if key appears anywhere (fast), then checks for {key} pattern.
 fn uses_wildcards(step: &StepDef, wildcards: &HashMap<String, Vec<String>>) -> bool {
     wildcards.keys().any(|k| {
-        let pat = format!("{{{k}}}");
+        // Quick check: if key doesn't appear at all, skip pattern check
+        let key_str = k.as_str();
+        let in_cmd = step.cmd.contains(key_str);
+        let in_inputs = step.inputs.iter().any(|i| i.contains(key_str));
+        let in_outputs = step.outputs.iter().any(|o| o.contains(key_str));
+
+        if !in_cmd && !in_inputs && !in_outputs {
+            return false;
+        }
+
+        // Precise check: look for actual {key} pattern
+        // Only allocate format! string when key appears somewhere
+        let pat = format!("{{{key_str}}}");
         step.cmd.contains(&pat)
             || step.inputs.iter().any(|i| i.contains(&pat))
             || step.outputs.iter().any(|o| o.contains(&pat))
