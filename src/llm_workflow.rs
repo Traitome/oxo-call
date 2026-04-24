@@ -360,4 +360,96 @@ mod tests {
             !executor.should_standardize_task("Convert SAM to BAM format with compression level 9")
         );
     }
+
+    #[test]
+    fn test_should_standardize_short_task() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        // Tasks shorter than 10 chars should always be standardized
+        assert!(executor.should_standardize_task("sort"));
+        assert!(executor.should_standardize_task("align"));
+        assert!(executor.should_standardize_task("view"));
+        // Exactly 10 chars - NOT short
+        assert!(!executor.should_standardize_task("sort files"));
+    }
+
+    #[test]
+    fn test_should_standardize_vague_keywords() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        assert!(executor.should_standardize_task("simply sort the bam file by coordinate"));
+        assert!(executor.should_standardize_task("basically align the reads to the genome"));
+        assert!(executor.should_standardize_task("do something with the vcf file please"));
+        assert!(executor.should_standardize_task("call some variants from the BAM file"));
+    }
+
+    #[test]
+    fn test_should_not_standardize_clear_task() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        assert!(
+            !executor.should_standardize_task(
+                "Sort BAM file input.bam by coordinate, output sorted.bam"
+            )
+        );
+        assert!(
+            !executor.should_standardize_task(
+                "Align paired-end reads R1.fq.gz R2.fq.gz to hg38 reference"
+            )
+        );
+        assert!(
+            !executor.should_standardize_task(
+                "Call variants from aligned.bam using hg38 reference genome"
+            )
+        );
+    }
+
+    #[test]
+    fn test_workflow_executor_new_fast_mode() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast);
+        assert!(executor.is_ok());
+    }
+
+    #[test]
+    fn test_workflow_executor_new_quality_mode() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Quality);
+        assert!(executor.is_ok());
+    }
+
+    #[test]
+    fn test_mini_skill_json_deserializes() {
+        let json = r#"{
+            "concepts": ["BAM format", "Coordinate sorting"],
+            "pitfalls": ["Always sort before indexing"],
+            "examples": [
+                {
+                    "task": "Sort a BAM file",
+                    "args": "sort -@ 4 -o sorted.bam input.bam",
+                    "explanation": "Sort by coordinate with 4 threads"
+                }
+            ]
+        }"#;
+        let parsed: MiniSkillJson = serde_json::from_str(json).unwrap();
+        assert_eq!(parsed.concepts.len(), 2);
+        assert_eq!(parsed.pitfalls.len(), 1);
+        assert_eq!(parsed.examples.len(), 1);
+        assert_eq!(parsed.examples[0].task, "Sort a BAM file");
+        assert_eq!(parsed.examples[0].args, "sort -@ 4 -o sorted.bam input.bam");
+    }
+
+    #[test]
+    fn test_example_json_deserializes() {
+        let json = r#"{"task": "Index BAM", "args": "index sorted.bam", "explanation": "Create BAI index"}"#;
+        let ex: ExampleJson = serde_json::from_str(json).unwrap();
+        assert_eq!(ex.task, "Index BAM");
+        assert_eq!(ex.args, "index sorted.bam");
+        assert_eq!(ex.explanation, "Create BAI index");
+    }
+
+    #[test]
+    fn test_workflow_mode_variants() {
+        // WorkflowMode is re-exported from task_complexity
+        let _fast = WorkflowMode::Fast;
+        let _quality = WorkflowMode::Quality;
+        // Just verify the enum variants exist and can be used
+        assert!(matches!(WorkflowMode::Fast, WorkflowMode::Fast));
+        assert!(matches!(WorkflowMode::Quality, WorkflowMode::Quality));
+    }
 }
