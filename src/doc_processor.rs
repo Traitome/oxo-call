@@ -20,19 +20,15 @@ use std::sync::LazyLock;
 
 // ─── Pre-compiled regex patterns (compiled once, reused across all calls) ─────
 
-/// Noise patterns: lines that carry no useful information for LLM consumption.
-static NOISE_PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
-    vec![
-        Regex::new(r"For more information.*").expect("valid regex"),
-        Regex::new(r"Report bugs to.*").expect("valid regex"),
-        Regex::new(r"See the full documentation.*").expect("valid regex"),
-        Regex::new(r"Homepage:.*").expect("valid regex"),
-        Regex::new(r"^\s*Version:.*$").expect("valid regex"),
-        Regex::new(r"^\s*$").expect("valid regex"),
-    ]
+/// Combined noise pattern: lines that carry no useful information for LLM consumption.
+/// Single regex with alternation for all noise patterns to avoid multiple String allocations.
+static NOISE_COMBINED: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"For more information.*|Report bugs to.*|See the full documentation.*|Homepage:.*|^\s*Version:.*$"
+    ).expect("valid regex")
 });
 
-/// Matches three or more consecutive newlines (for collapsing blank lines).
+/// Matches blank lines (used separately for collapsing).
 static BLANK_LINE_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\n{3,}").expect("valid regex"));
 
@@ -300,15 +296,11 @@ impl DocProcessor {
 
     /// Remove noise patterns from documentation
     fn remove_noise(&self, docs: &str) -> String {
-        let mut cleaned = docs.to_string();
-
-        // Apply statically-compiled noise patterns
-        for pattern in NOISE_PATTERNS.iter() {
-            cleaned = pattern.replace_all(&cleaned, "").to_string();
-        }
+        // Apply combined noise pattern (single regex, single allocation)
+        let cleaned = NOISE_COMBINED.replace_all(docs, "");
 
         // Collapse multiple blank lines to double newline
-        cleaned = BLANK_LINE_RE.replace_all(&cleaned, "\n\n").to_string();
+        let cleaned = BLANK_LINE_RE.replace_all(&cleaned, "\n\n");
 
         cleaned.trim().to_string()
     }
@@ -927,14 +919,11 @@ pub(crate) struct DocExample {
 /// and [`crate::doc_summarizer`].  Uses the module-level `NOISE_PATTERNS` and
 /// `BLANK_LINE_RE` statics so the regexes are compiled only once.
 pub fn clean_noise(docs: &str) -> String {
-    let mut cleaned = docs.to_string();
-
-    for re in NOISE_PATTERNS.iter() {
-        cleaned = re.replace_all(&cleaned, "").to_string();
-    }
+    // Apply combined noise pattern (single regex, single allocation)
+    let cleaned = NOISE_COMBINED.replace_all(docs, "");
 
     // Collapse multiple blank lines to double newline
-    cleaned = BLANK_LINE_RE.replace_all(&cleaned, "\n\n").to_string();
+    let cleaned = BLANK_LINE_RE.replace_all(&cleaned, "\n\n");
 
     cleaned.trim().to_string()
 }

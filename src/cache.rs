@@ -174,13 +174,21 @@ impl LlmCache {
         hasher.update(tool.as_bytes());
         hasher.update(b"\0"); // Separator
 
-        // Normalize task: lowercase, trim, collapse whitespace
-        let normalized_task = task
-            .to_lowercase()
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ");
-        hasher.update(normalized_task.as_bytes());
+        // Normalize task in-place while hashing: lowercase, trim, collapse whitespace
+        // Avoid Vec allocation by iterating directly
+        let mut prev_was_space = true; // Start true to skip leading spaces
+        for c in task.chars() {
+            let lower_c = c.to_ascii_lowercase();
+            if lower_c.is_whitespace() {
+                if !prev_was_space {
+                    hasher.update(b" ");
+                    prev_was_space = true;
+                }
+            } else {
+                hasher.update([lower_c as u8]);
+                prev_was_space = false;
+            }
+        }
         hasher.update(b"\0");
 
         if let Some(docs) = docs_hash {
@@ -204,7 +212,7 @@ impl LlmCache {
     /// - Cache is disabled
     /// - No matching entry exists
     /// - Entry is older than CACHE_MAX_AGE_DAYS
-    pub fn lookup(
+    pub async fn lookup(
         tool: &str,
         task: &str,
         docs_hash: Option<&str>,
@@ -212,7 +220,7 @@ impl LlmCache {
         model: &str,
     ) -> Result<Option<CacheEntry>> {
         // Check if cache is enabled
-        let config = Config::load()?;
+        let config = Config::load().await?;
         if !config.llm.cache_enabled {
             return Ok(None);
         }
@@ -252,7 +260,7 @@ impl LlmCache {
     }
 
     /// Store a new cache entry — O(1) write-through to memory + append to disk.
-    pub fn store(
+    pub async fn store(
         tool: &str,
         task: &str,
         docs_hash: Option<&str>,
@@ -262,7 +270,7 @@ impl LlmCache {
         explanation: &str,
     ) -> Result<()> {
         // Check if cache is enabled
-        let config = Config::load()?;
+        let config = Config::load().await?;
         if !config.llm.cache_enabled {
             return Ok(());
         }

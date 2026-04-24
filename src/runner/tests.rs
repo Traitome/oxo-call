@@ -267,11 +267,11 @@ fn test_sha256_hex_different_inputs_produce_different_hashes() {
 fn test_runner_new() {
     use crate::config::Config;
     let cfg = Config::default();
-    let runner = Runner::new(cfg);
-    let runner = runner.with_verbose(true);
-    let runner = runner.with_no_cache(true);
-    let runner = runner.with_verify(true);
-    let _runner = runner.with_auto_retry(true);
+    let mut runner = Runner::new(cfg);
+    runner.with_verbose(true);
+    runner.with_no_cache(true);
+    runner.with_verify(true);
+    runner.with_auto_retry(true);
 }
 
 // ─── detect_tool_version ─────────────────────────────────────────────────
@@ -750,49 +750,56 @@ fn test_check_version_compatibility_no_constraints() {
 #[test]
 fn test_runner_builder_verbose() {
     use crate::config::Config;
-    let runner = Runner::new(Config::default()).with_verbose(true);
+    let mut runner = Runner::new(Config::default());
+    runner.with_verbose(true);
     assert!(runner.verbose);
 }
 
 #[test]
 fn test_runner_builder_no_cache() {
     use crate::config::Config;
-    let runner = Runner::new(Config::default()).with_no_cache(true);
+    let mut runner = Runner::new(Config::default());
+    runner.with_no_cache(true);
     assert!(runner.no_cache);
 }
 
 #[test]
 fn test_runner_builder_verify() {
     use crate::config::Config;
-    let runner = Runner::new(Config::default()).with_verify(true);
+    let mut runner = Runner::new(Config::default());
+    runner.with_verify(true);
     assert!(runner.verify);
 }
 
 #[test]
 fn test_runner_builder_auto_retry() {
     use crate::config::Config;
-    let runner = Runner::new(Config::default()).with_auto_retry(true);
+    let mut runner = Runner::new(Config::default());
+    runner.with_auto_retry(true);
     assert!(runner.auto_retry);
 }
 
 #[test]
 fn test_runner_builder_no_skill() {
     use crate::config::Config;
-    let runner = Runner::new(Config::default()).with_no_skill(true);
+    let mut runner = Runner::new(Config::default());
+    runner.with_no_skill(true);
     assert!(runner.no_skill);
 }
 
 #[test]
 fn test_runner_builder_no_doc() {
     use crate::config::Config;
-    let runner = Runner::new(Config::default()).with_no_doc(true);
+    let mut runner = Runner::new(Config::default());
+    runner.with_no_doc(true);
     assert!(runner.no_doc);
 }
 
 #[test]
 fn test_runner_builder_no_prompt() {
     use crate::config::Config;
-    let runner = Runner::new(Config::default()).with_no_prompt(true);
+    let mut runner = Runner::new(Config::default());
+    runner.with_no_prompt(true);
     assert!(runner.no_prompt);
 }
 
@@ -802,7 +809,8 @@ fn test_runner_builder_vars() {
     let mut vars = HashMap::new();
     vars.insert("sample".to_string(), "NA12878".to_string());
     vars.insert("ref".to_string(), "hg38.fa".to_string());
-    let runner = Runner::new(Config::default()).with_vars(vars);
+    let mut runner = Runner::new(Config::default());
+    runner.with_vars(vars);
     assert_eq!(runner.vars.len(), 2);
     assert_eq!(runner.vars.get("sample"), Some(&"NA12878".to_string()));
 }
@@ -811,28 +819,32 @@ fn test_runner_builder_vars() {
 fn test_runner_builder_input_items() {
     use crate::config::Config;
     let items = vec!["sample1.bam".to_string(), "sample2.bam".to_string()];
-    let runner = Runner::new(Config::default()).with_input_items(items);
+    let mut runner = Runner::new(Config::default());
+    runner.with_input_items(items);
     assert_eq!(runner.input_items.len(), 2);
 }
 
 #[test]
 fn test_runner_builder_jobs() {
     use crate::config::Config;
-    let runner = Runner::new(Config::default()).with_jobs(4);
+    let mut runner = Runner::new(Config::default());
+    runner.with_jobs(4);
     assert_eq!(runner.jobs, 4);
 }
 
 #[test]
 fn test_runner_builder_jobs_minimum_one() {
     use crate::config::Config;
-    let runner = Runner::new(Config::default()).with_jobs(0);
+    let mut runner = Runner::new(Config::default());
+    runner.with_jobs(0);
     assert_eq!(runner.jobs, 1, "jobs should be clamped to minimum of 1");
 }
 
 #[test]
 fn test_runner_builder_stop_on_error() {
     use crate::config::Config;
-    let runner = Runner::new(Config::default()).with_stop_on_error(true);
+    let mut runner = Runner::new(Config::default());
+    runner.with_stop_on_error(true);
     assert!(runner.stop_on_error);
 }
 
@@ -840,23 +852,24 @@ fn test_runner_builder_stop_on_error() {
 fn test_runner_builder_scenario() {
     use crate::config::Config;
     use crate::workflow_graph::WorkflowScenario;
-    let runner = Runner::new(Config::default()).with_scenario(WorkflowScenario::Full);
+    let mut runner = Runner::new(Config::default());
+    runner.with_scenario(WorkflowScenario::Full);
     assert!(runner.force_scenario.is_some());
 }
 
 #[test]
 fn test_runner_builder_chaining() {
     use crate::config::Config;
-    let runner = Runner::new(Config::default())
-        .with_verbose(true)
-        .with_no_cache(true)
-        .with_verify(true)
-        .with_auto_retry(true)
-        .with_no_skill(true)
-        .with_no_doc(true)
-        .with_no_prompt(true)
-        .with_jobs(8)
-        .with_stop_on_error(true);
+    let mut runner = Runner::new(Config::default());
+    runner.with_verbose(true);
+    runner.with_no_cache(true);
+    runner.with_verify(true);
+    runner.with_auto_retry(true);
+    runner.with_no_skill(true);
+    runner.with_no_doc(true);
+    runner.with_no_prompt(true);
+    runner.with_jobs(8);
+    runner.with_stop_on_error(true);
 
     assert!(runner.verbose);
     assert!(runner.no_cache);

@@ -76,10 +76,8 @@ impl PlannerAgent {
     /// For simple tasks, returns a single-step plan.
     /// For complex tasks (multi-tool pipelines), decomposes into steps.
     pub fn plan(&self, tool: &str, task: &str) -> TaskPlan {
-        let task_lower = task.to_lowercase();
-
-        // Detect multi-step patterns.
-        let is_pipeline = self.detect_pipeline(&task_lower);
+        // Detect multi-step patterns without lowercase allocation.
+        let is_pipeline = self.detect_pipeline_ci(task);
 
         if is_pipeline {
             self.plan_pipeline(tool, task)
@@ -88,9 +86,11 @@ impl PlannerAgent {
         }
     }
 
-    /// Detect whether the task describes a multi-step pipeline.
-    fn detect_pipeline(&self, task: &str) -> bool {
-        let pipeline_indicators = [
+    /// Detect whether the task describes a multi-step pipeline (case-insensitive).
+    /// Uses byte-level matching for ASCII indicators, exact match for Chinese.
+    fn detect_pipeline_ci(&self, task: &str) -> bool {
+        // ASCII pipeline indicators - check case-insensitively
+        let ascii_indicators = [
             "then",
             "after that",
             "followed by",
@@ -101,56 +101,85 @@ impl PlannerAgent {
             "first",
             "second",
             "finally",
-            // Chinese pipeline indicators
-            "然后",
-            "接着",
-            "之后",
-            "流程",
-            "管道",
         ];
-        pipeline_indicators.iter().any(|ind| task.contains(ind))
+
+        // Case-insensitive check for ASCII indicators
+        for ind in &ascii_indicators {
+            if task.len() >= ind.len()
+                && task.as_bytes().windows(ind.len()).any(|window| {
+                    window
+                        .iter()
+                        .zip(ind.as_bytes())
+                        .all(|(h, n)| h.eq_ignore_ascii_case(n))
+                })
+            {
+                return true;
+            }
+        }
+
+        // Chinese pipeline indicators - exact match (no case variation)
+        let chinese_indicators = ["然后", "接着", "之后", "流程", "管道"];
+        chinese_indicators.iter().any(|ind| task.contains(ind))
             || task.matches("&&").count() > 0
             || task.matches(';').count() > 1
     }
 
     /// Decompose a pipeline task into ordered steps.
+    /// Uses single-pass split without creating intermediate Vecs per delimiter.
     fn plan_pipeline(&self, tool: &str, task: &str) -> TaskPlan {
-        // Split on natural-language step delimiters using an iterative approach
-        // that avoids repeated vector allocations.
-        let delimiters = [
-            " then ",
-            " after that ",
-            " followed by ",
-            ", then ",
-            " 然后 ",
-            " 接着 ",
-            " 之后 ",
-        ];
+        // Single-pass split: find earliest delimiter and split once
+        // Pre-allocate result Vec with estimated capacity
+        let mut parts: Vec<&str> = Vec::with_capacity(8);
+        let mut remainder = task;
 
-        let mut parts: Vec<&str> = vec![task];
-        for delim in delimiters {
-            let mut new_parts = Vec::new();
-            for part in &parts {
-                new_parts.extend(
-                    part.split(delim)
-                        .map(|s| s.trim())
-                        .filter(|s| !s.is_empty()),
-                );
+        // Process all delimiters in single pass
+        loop {
+            // Find earliest delimiter match
+            let mut earliest_pos: Option<(usize, usize)> = None; // (pos, delim_len)
+
+            for delim in [
+                " then ",
+                " after that ",
+                " followed by ",
+                ", then ",
+                " 然后 ",
+                " 接着 ",
+                " 之后 ",
+                "&&",
+            ] {
+                if let Some(pos) = remainder.find(delim) {
+                    let candidate = (pos, delim.len());
+                    earliest_pos = Some(
+                        earliest_pos
+                            .map_or(candidate, |e| if candidate.0 < e.0 { candidate } else { e }),
+                    );
+                }
             }
-            parts = new_parts;
+
+            match earliest_pos {
+                Some((pos, delim_len)) => {
+                    let segment = remainder[..pos].trim();
+                    if !segment.is_empty() {
+                        parts.push(segment);
+                    }
+                    remainder = &remainder[pos + delim_len..];
+                }
+                None => {
+                    // No more delimiters, add remaining segment
+                    let segment = remainder.trim();
+                    if !segment.is_empty() {
+                        parts.push(segment);
+                    }
+                    break;
+                }
+            }
         }
 
-        // Also split on "&&".
-        let final_parts: Vec<&str> = parts
-            .iter()
-            .flat_map(|part| part.split("&&").map(|s| s.trim()).filter(|s| !s.is_empty()))
-            .collect();
-
-        if final_parts.len() <= 1 {
+        if parts.len() <= 1 {
             return TaskPlan::single_step(tool, task);
         }
 
-        let steps: Vec<PlanStep> = final_parts
+        let steps: Vec<PlanStep> = parts
             .iter()
             .enumerate()
             .map(|(i, desc)| {
@@ -160,7 +189,7 @@ impl PlannerAgent {
                     tool: tool.to_string(),
                     description: (*desc).to_string(),
                     depends_on: if i > 0 { vec![step_num - 1] } else { vec![] },
-                    needs_validation: i == final_parts.len() - 1, // validate last step
+                    needs_validation: i == parts.len() - 1, // validate last step
                 }
             })
             .collect();

@@ -50,14 +50,8 @@ pub fn validate_args(args: &[String], structured_doc: &StructuredDoc) -> Validat
             if !arg.starts_with('-') {
                 continue;
             }
-            // Normalise: split combined short flags like -abc → -a, -b, -c
-            // but keep long flags like --output intact.
-            let flags_to_check = expand_flags(arg);
-            for flag in flags_to_check {
-                if !known_flags.contains(flag.as_str()) {
-                    result.unknown_flags.push(flag.clone());
-                }
-            }
+            // Check flags in-place without intermediate Vec allocation
+            check_flags_in_place(arg, &known_flags, &mut result.unknown_flags);
         }
         if !result.unknown_flags.is_empty() {
             result.warnings.push(format!(
@@ -112,25 +106,44 @@ fn build_flag_set(catalog: &[FlagEntry]) -> std::collections::HashSet<String> {
     set
 }
 
-/// Expand combined short flags (e.g., `-abc` → `["-a", "-b", "-c"]`).
-/// Long flags (`--foo`) are returned as-is.
-fn expand_flags(arg: &str) -> Vec<String> {
+/// Check flags in-place without intermediate Vec allocation.
+/// Appends unknown flags directly to the unknown_flags vector.
+fn check_flags_in_place(
+    arg: &str,
+    known_flags: &std::collections::HashSet<String>,
+    unknown_flags: &mut Vec<String>,
+) {
     if arg.starts_with("--") {
-        // Long flag: split at '=' and return the flag part.
+        // Long flag: split at '=' and check the flag part.
         let flag = arg.split('=').next().unwrap_or(arg);
-        vec![flag.to_string()]
+        if !known_flags.contains(flag) {
+            unknown_flags.push(flag.to_string());
+        }
     } else if arg.starts_with('-') && arg.len() > 2 {
         // Could be combined short flags like -abc, or a short flag with value
-        // like -o output.bam. We handle the common case: if all chars after `-`
-        // are ASCII letters, treat as combined flags. Otherwise, return as-is.
         let rest = &arg[1..];
         if rest.chars().all(|c| c.is_ascii_alphabetic()) {
-            rest.chars().map(|c| format!("-{c}")).collect()
+            // Combined short flags: check each individually without format! allocation
+            for c in rest.chars() {
+                // Build "-c" inline without format! allocation
+                let mut flag_str = String::with_capacity(2);
+                flag_str.push('-');
+                flag_str.push(c);
+                if !known_flags.contains(&flag_str) {
+                    unknown_flags.push(flag_str);
+                }
+            }
         } else {
-            vec![arg.to_string()]
+            // Single flag or flag with value
+            if !known_flags.contains(arg) {
+                unknown_flags.push(arg.to_string());
+            }
         }
-    } else {
-        vec![arg.to_string()]
+    } else if arg.starts_with('-') {
+        // Single short flag like "-o"
+        if !known_flags.contains(arg) {
+            unknown_flags.push(arg.to_string());
+        }
     }
 }
 
@@ -243,15 +256,33 @@ mod tests {
     }
 
     #[test]
-    fn test_expand_combined_short_flags() {
-        let expanded = expand_flags("-abc");
-        assert_eq!(expanded, vec!["-a", "-b", "-c"]);
+    fn test_check_combined_short_flags() {
+        let mut unknown = Vec::new();
+        let known: std::collections::HashSet<String> =
+            ["-a", "-b"].iter().map(|s| s.to_string()).collect();
+        check_flags_in_place("-abc", &known, &mut unknown);
+        // -c is not known, should be added to unknown
+        assert_eq!(unknown, vec!["-c"]);
     }
 
     #[test]
-    fn test_expand_long_flag() {
-        let expanded = expand_flags("--output=file.bam");
-        assert_eq!(expanded, vec!["--output"]);
+    fn test_check_long_flag() {
+        let mut unknown = Vec::new();
+        let known: std::collections::HashSet<String> =
+            ["--output"].iter().map(|s| s.to_string()).collect();
+        check_flags_in_place("--output=file.bam", &known, &mut unknown);
+        // --output is known, nothing added
+        assert!(unknown.is_empty());
+    }
+
+    #[test]
+    fn test_check_unknown_long_flag() {
+        let mut unknown = Vec::new();
+        let known: std::collections::HashSet<String> =
+            ["--input"].iter().map(|s| s.to_string()).collect();
+        check_flags_in_place("--output=file.bam", &known, &mut unknown);
+        // --output is not known, should be added
+        assert_eq!(unknown, vec!["--output"]);
     }
 
     #[test]

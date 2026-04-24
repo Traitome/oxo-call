@@ -122,7 +122,8 @@ mod tests {
     #[test]
     fn test_result_type_alias() {
         let ok: Result<i32> = Ok(42);
-        assert_eq!(ok.unwrap(), 42);
+        assert!(ok.is_ok());
+        assert_eq!(ok.ok(), Some(42));
 
         let err: Result<i32> = Err(OxoError::LlmError("test".to_string()));
         assert!(err.is_err());

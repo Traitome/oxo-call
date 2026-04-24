@@ -547,6 +547,17 @@ pub static BUILTIN_SKILLS: &[(&str, &str)] = &[
     builtin!("kubectl"),
 ];
 
+/// HashMap for O(1) lookup of built-in skills by name (case-insensitive).
+/// Built once at first access from the BUILTIN_SKILLS static array.
+/// Keys are stored in lowercase to enable case-insensitive lookup without allocation.
+static BUILTIN_SKILL_MAP: std::sync::LazyLock<std::collections::HashMap<String, &str>> =
+    std::sync::LazyLock::new(|| {
+        BUILTIN_SKILLS
+            .iter()
+            .map(|(name, content)| (name.to_ascii_lowercase(), *content))
+            .collect()
+    });
+
 // ─── Prompt generation ────────────────────────────────────────────────────────
 
 impl Skill {
@@ -826,17 +837,15 @@ impl SkillManager {
 
     /// Load a skill from the built-in registry (compiled into the binary).
     /// Matching is case-insensitive: "SAMTOOLS" and "SamTools" both load "samtools".
+    /// Uses O(1) HashMap lookup instead of O(n) linear search.
     pub fn load_builtin(&self, tool: &str) -> Option<Skill> {
         let tool_lc = tool.to_ascii_lowercase();
-        BUILTIN_SKILLS
-            .iter()
-            .find(|(name, _)| *name == tool_lc.as_str())
-            .and_then(|(_, content)| {
-                parse_skill_md(content).or_else(|| {
-                    eprintln!("warning: could not parse built-in skill '{tool}'");
-                    None
-                })
+        BUILTIN_SKILL_MAP.get(tool_lc.as_str()).and_then(|content| {
+            parse_skill_md(content).or_else(|| {
+                eprintln!("warning: could not parse built-in skill '{tool}'");
+                None
             })
+        })
     }
 
     /// Load a user-defined skill from `~/.config/oxo-call/skills/<tool>.md`

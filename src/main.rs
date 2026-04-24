@@ -189,6 +189,14 @@ async fn run(cli: Cli) -> error::Result<()> {
         }
     }
 
+    // Load config once at startup instead of per-command to avoid multiple disk reads.
+    // License-exempt commands use default config (no file read needed).
+    let base_cfg = if license_exempt {
+        config::Config::default()
+    } else {
+        config::Config::load().await?
+    };
+
     let verbose = cli.verbose;
 
     match cli.command {
@@ -202,7 +210,7 @@ async fn run(cli: Cli) -> error::Result<()> {
             json,
             no_stream,
         } => {
-            let mut cfg = config::Config::load()?;
+            let mut cfg = base_cfg.clone();
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
             }
@@ -254,7 +262,7 @@ async fn run(cli: Cli) -> error::Result<()> {
             scenario,
             no_stream,
         } => {
-            let mut cfg = config::Config::load()?;
+            let mut cfg = base_cfg.clone();
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
             }
@@ -322,7 +330,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                 m
             };
 
-            let runner = runner::Runner::new(cfg)
+            let mut runner = runner::Runner::new(cfg);
+            runner
                 .with_verbose(verbose)
                 .with_no_cache(no_cache)
                 .with_no_skill(no_skill)
@@ -331,12 +340,10 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_verify(verify)
                 .with_auto_retry(auto_retry)
                 .with_no_stream(no_stream);
-            let runner = if let Some(sc) = force_scenario {
-                runner.with_scenario(sc)
-            } else {
-                runner
-            };
-            let runner = runner
+            if let Some(sc) = force_scenario {
+                runner.with_scenario(sc);
+            }
+            runner
                 .with_vars(var_map)
                 .with_input_items(all_items)
                 .with_jobs(jobs)
@@ -359,7 +366,7 @@ async fn run(cli: Cli) -> error::Result<()> {
             scenario,
             no_stream,
         } => {
-            let mut cfg = config::Config::load()?;
+            let mut cfg = base_cfg.clone();
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
             }
@@ -425,18 +432,17 @@ async fn run(cli: Cli) -> error::Result<()> {
                 m
             };
 
-            let runner = runner::Runner::new(cfg)
+            let mut runner = runner::Runner::new(cfg);
+            runner
                 .with_verbose(verbose)
                 .with_no_cache(no_cache)
                 .with_no_skill(no_skill)
                 .with_no_doc(no_doc)
                 .with_no_prompt(no_prompt)
                 .with_no_stream(no_stream);
-            let runner = if let Some(sc) = force_scenario {
-                runner.with_scenario(sc)
-            } else {
-                runner
-            };
+            if let Some(sc) = force_scenario {
+                runner.with_scenario(sc);
+            }
             let runner = runner.with_vars(var_map).with_input_items(all_items);
             runner.dry_run(&tool, &task, json, None).await?;
         }
@@ -448,7 +454,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 file,
                 dir,
             } => {
-                let cfg = config::Config::load()?;
+                let cfg = base_cfg.clone();
                 let mgr = index::IndexManager::new(cfg);
                 let entry = mgr
                     .add(&tool, url.as_deref(), file.as_deref(), dir.as_deref())
@@ -465,7 +471,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
             }
             IndexCommands::Remove { tool } => {
-                let cfg = config::Config::load()?;
+                let cfg = base_cfg.clone();
                 let mgr = index::IndexManager::new(cfg);
                 mgr.remove(&tool)?;
                 println!(
@@ -475,7 +481,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 );
             }
             IndexCommands::Update { tool, url } => {
-                let cfg = config::Config::load()?;
+                let cfg = base_cfg.clone();
                 let mgr = index::IndexManager::new(cfg);
                 match tool {
                     Some(t) => {
@@ -512,7 +518,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
             }
             IndexCommands::List => {
-                let cfg = config::Config::load()?;
+                let cfg = base_cfg.clone();
                 let mgr = index::IndexManager::new(cfg);
                 let entries = mgr.list()?;
                 if entries.is_empty() {
@@ -534,7 +540,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 file,
                 dir,
             } => {
-                let cfg = config::Config::load()?;
+                let cfg = base_cfg.clone();
                 let mgr = index::IndexManager::new(cfg);
                 let entry = mgr
                     .add(&tool, url.as_deref(), file.as_deref(), dir.as_deref())
@@ -551,7 +557,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
             }
             DocsCommands::Remove { tool } => {
-                let cfg = config::Config::load()?;
+                let cfg = base_cfg.clone();
                 let mgr = index::IndexManager::new(cfg);
                 mgr.remove(&tool)?;
                 println!(
@@ -561,7 +567,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 );
             }
             DocsCommands::Update { tool, url } => {
-                let cfg = config::Config::load()?;
+                let cfg = base_cfg.clone();
                 let mgr = index::IndexManager::new(cfg);
                 match tool {
                     Some(t) => {
@@ -598,7 +604,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
             }
             DocsCommands::List => {
-                let cfg = config::Config::load()?;
+                let cfg = base_cfg.clone();
                 let mgr = index::IndexManager::new(cfg);
                 let entries = mgr.list()?;
                 if entries.is_empty() {
@@ -612,7 +618,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 print_index_table(&entries);
             }
             DocsCommands::Show { tool } => {
-                let cfg = config::Config::load()?;
+                let cfg = base_cfg.clone();
                 let fetcher = docs::DocsFetcher::new(cfg);
                 let cache_path = fetcher.cache_path(&tool)?;
                 if cache_path.exists() {
@@ -627,7 +633,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
             }
             DocsCommands::Fetch { tool, url } => {
-                let cfg = config::Config::load()?;
+                let cfg = base_cfg.clone();
                 let mgr = index::IndexManager::new(cfg);
                 let spinner =
                     runner::make_spinner(&format!("Fetching remote documentation for '{tool}'..."));
@@ -649,7 +655,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 );
             }
             DocsCommands::Path { tool } => {
-                let cfg = config::Config::load()?;
+                let cfg = base_cfg.clone();
                 let fetcher = docs::DocsFetcher::new(cfg);
                 let path = fetcher.cache_path(&tool)?;
                 println!("{}", path.display());
@@ -658,7 +664,7 @@ async fn run(cli: Cli) -> error::Result<()> {
 
         Commands::Config { command } => match command {
             ConfigCommands::Set { key, value } => {
-                let mut cfg = config::Config::load()?;
+                let mut cfg = base_cfg.clone();
                 // Capture old provider before applying the change so we can
                 // give context-aware hints when the user switches providers.
                 let old_provider = cfg.effective_provider();
@@ -689,12 +695,12 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
             }
             ConfigCommands::Get { key } => {
-                let cfg = config::Config::load()?;
+                let cfg = base_cfg.clone();
                 let value = cfg.get(&key)?;
                 println!("{}", value);
             }
             ConfigCommands::Show => {
-                let cfg = config::Config::load()?;
+                let cfg = base_cfg.clone();
                 let path = config::Config::config_path()?;
 
                 println!("{}", "oxo-call configuration".bold());
@@ -839,7 +845,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 );
             }
             ConfigCommands::Verify { verbose } => {
-                let cfg = config::Config::load()?;
+                let cfg = base_cfg.clone();
                 let client = llm::LlmClient::new(cfg.clone());
 
                 println!("{}", "Verifying LLM configuration...".bold());
@@ -1053,7 +1059,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                             COPILOT_MODELS[0].0.to_string()
                         };
 
-                        let mut cfg = config::Config::load()?;
+                        let mut cfg = base_cfg.clone();
                         cfg.llm.provider = "github-copilot".to_string();
                         cfg.llm.api_token = Some(github_token);
                         cfg.llm.model = Some(selected_model.clone());
@@ -1091,7 +1097,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
             }
             ConfigCommands::Model { command } => {
-                let mut cfg = config::Config::load()?;
+                let mut cfg = base_cfg.clone();
                 match command {
                     ModelCommands::List => {
                         let active = cfg.effective_model();
@@ -1259,7 +1265,7 @@ async fn run(cli: Cli) -> error::Result<()> {
         },
 
         Commands::Skill { command } => {
-            let mut cfg = config::Config::load()?;
+            let mut cfg = base_cfg.clone();
             let mgr = skill::SkillManager::new(cfg.clone());
 
             match command {
@@ -1790,7 +1796,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 let tasks = engine::expand(&def)?;
                 engine::execute(tasks, false).await?;
                 if verify {
-                    let cfg = config::Config::load()?;
+                    let cfg = base_cfg.clone();
                     engine::verify_workflow_results(&def, &cfg).await;
                 }
             }
@@ -1857,7 +1863,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 output,
                 no_stream,
             } => {
-                let mut cfg = config::Config::load()?;
+                let mut cfg = base_cfg.clone();
                 if no_stream {
                     cfg.llm.stream = false;
                 }
@@ -1921,7 +1927,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 run,
                 no_stream,
             } => {
-                let mut cfg = config::Config::load()?;
+                let mut cfg = base_cfg.clone();
                 if no_stream {
                     cfg.llm.stream = false;
                 }
@@ -2124,7 +2130,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                     scheduler,
                     work_dir,
                 } => {
-                    let cfg = config::Config::load()?;
+                    let cfg = base_cfg.clone();
                     let st: server::ServerType = server_type
                         .parse()
                         .map_err(|e: String| error::OxoError::ConfigError(e))?;
@@ -2169,14 +2175,14 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
 
                 ServerCommands::Remove { name } => {
-                    let cfg = config::Config::load()?;
+                    let cfg = base_cfg.clone();
                     let mut mgr = server::ServerManager::new(cfg);
                     mgr.remove(&name)?;
                     println!("{} Removed server '{}'", "✓".green().bold(), name.cyan());
                 }
 
                 ServerCommands::List => {
-                    let cfg = config::Config::load()?;
+                    let cfg = base_cfg.clone();
                     let mgr = server::ServerManager::new(cfg);
                     let hosts = mgr.list();
                     if hosts.is_empty() {
@@ -2220,7 +2226,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
 
                 ServerCommands::Status { name } => {
-                    let cfg = config::Config::load()?;
+                    let cfg = base_cfg.clone();
                     let mgr = server::ServerManager::new(cfg);
                     let host = mgr.find(&name).ok_or_else(|| {
                         error::OxoError::ConfigError(format!("No server found with name '{name}'"))
@@ -2263,7 +2269,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                         return Ok(());
                     }
 
-                    let cfg = config::Config::load()?;
+                    let cfg = base_cfg.clone();
                     let mut mgr = server::ServerManager::new(cfg);
                     let already_registered: std::collections::HashSet<String> =
                         mgr.list().iter().map(|h| h.name.clone()).collect();
@@ -2436,7 +2442,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
 
                 ServerCommands::Use { name } => {
-                    let cfg = config::Config::load()?;
+                    let cfg = base_cfg.clone();
                     let mut mgr = server::ServerManager::new(cfg);
                     mgr.set_active(&name)?;
                     println!(
@@ -2451,7 +2457,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
 
                 ServerCommands::Unuse => {
-                    let cfg = config::Config::load()?;
+                    let cfg = base_cfg.clone();
                     let mut mgr = server::ServerManager::new(cfg);
                     mgr.clear_active()?;
                     println!("{} Active server cleared.", "✓".green().bold());
@@ -2467,7 +2473,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                     verify,
                     no_stream,
                 } => {
-                    let cfg = config::Config::load()?;
+                    let cfg = base_cfg.clone();
                     let mgr = server::ServerManager::new(cfg.clone());
 
                     // Resolve server: explicit flag → active server → error
@@ -2517,7 +2523,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                     if let Some(ref m) = model {
                         run_cfg.llm.model = Some(m.clone());
                     }
-                    let runner_inst = runner::Runner::new(run_cfg)
+                    let mut runner_inst = runner::Runner::new(run_cfg);
+                    runner_inst
                         .with_verbose(verbose)
                         .with_no_cache(no_cache)
                         .with_verify(verify)
@@ -2640,7 +2647,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                     json,
                     no_stream,
                 } => {
-                    let cfg = config::Config::load()?;
+                    let cfg = base_cfg.clone();
                     let mgr = server::ServerManager::new(cfg.clone());
 
                     // Resolve server: explicit flag → active server → error
@@ -2665,7 +2672,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                     if let Some(ref m) = model {
                         run_cfg.llm.model = Some(m.clone());
                     }
-                    let runner_inst = runner::Runner::new(run_cfg)
+                    let mut runner_inst = runner::Runner::new(run_cfg);
+                    runner_inst
                         .with_verbose(verbose)
                         .with_no_cache(no_cache)
                         .with_no_stream(no_stream);
@@ -2954,7 +2962,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                         let start_inst = std::time::Instant::now();
 
                         if let Some(ref srv_name) = server_flag {
-                            let cfg = config::Config::load()?;
+                            let cfg = base_cfg.clone();
                             let mgr = server::ServerManager::new(cfg);
                             let host = mgr.find(srv_name).ok_or_else(|| {
                                 error::OxoError::ConfigError(format!(
@@ -3457,7 +3465,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 } => {
                     use crate::llm::LlmClient;
 
-                    let cfg = config::Config::load()?;
+                    let cfg = base_cfg.clone();
                     let llm = LlmClient::new(cfg);
 
                     println!("  {} Generating job from description …", "⚙".cyan());

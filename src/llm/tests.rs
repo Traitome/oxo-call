@@ -492,7 +492,7 @@ fn test_split_into_sections_multiple_blank_lines_treated_as_one() {
     // Consecutive blank lines should not produce empty sections
     let docs = "Section A\n\n\nSection B";
     let sections = split_into_sections(docs);
-    assert!(sections.len() >= 1);
+    assert!(!sections.is_empty());
     assert!(sections.iter().all(|s| !s.trim().is_empty()));
 }
 
@@ -500,7 +500,7 @@ fn test_split_into_sections_multiple_blank_lines_treated_as_one() {
 fn test_split_into_sections_empty_input() {
     let sections = split_into_sections("");
     // Should return one (possibly empty) section or handle gracefully
-    assert!(sections.len() >= 1);
+    assert!(!sections.is_empty());
 }
 
 #[test]

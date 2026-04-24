@@ -267,36 +267,43 @@ impl RuleCommandGenerator {
         }
 
         // Check request patterns (case-insensitive substring match)
-        let request_lower = request.to_lowercase();
+        // Use contains_ignore_case to avoid lowercase allocations
         rule.request_patterns
             .iter()
-            .any(|p| request_lower.contains(&p.to_lowercase()))
+            .any(|p| contains_ignore_case(request, p))
     }
 
     /// Applies a rule to generate a command.
     fn apply(&self, rule: &CommandRule, request: &str) -> GeneratedCommand {
         // Try to extract file names from the request using common patterns.
-        let words: Vec<&str> = request.split_whitespace().collect();
+        // Use iterator directly without intermediate Vec allocation
         let mut input_name = "input".to_string();
         let mut output_name = "output".to_string();
+        let mut prev_word: Option<&str> = None;
 
-        for (i, word) in words.iter().enumerate() {
-            let lower = word.to_lowercase();
+        for word in request.split_whitespace() {
+            // Use eq_ignore_ascii_case and contains checks without lowercase allocation
+            let has_dot = word.contains('.');
+            let is_flag = word.starts_with('-') || word.starts_with("--");
             // Detect file-like tokens (containing a dot extension)
-            if lower.contains('.') && !lower.starts_with('-') && !lower.starts_with("--") {
+            if has_dot && !is_flag {
                 if input_name == "input" {
                     input_name = word.trim_end_matches([',', ';']).to_string();
                 } else if output_name == "output" {
                     output_name = word.trim_end_matches([',', ';']).to_string();
                 }
             }
-            // Detect "to <file>" or "output <file>" patterns
-            if (lower == "to" || lower == "output" || lower == "into")
-                && i + 1 < words.len()
-                && words[i + 1].contains('.')
-            {
-                output_name = words[i + 1].trim_end_matches([',', ';']).to_string();
+            // Detect "to <file>" or "output <file>" patterns (case-insensitive)
+            // Check if previous word was a keyword
+            if let Some(prev) = prev_word {
+                let was_keyword = prev.eq_ignore_ascii_case("to")
+                    || prev.eq_ignore_ascii_case("output")
+                    || prev.eq_ignore_ascii_case("into");
+                if was_keyword && word.contains('.') {
+                    output_name = word.trim_end_matches([',', ';']).to_string();
+                }
             }
+            prev_word = Some(word);
         }
 
         // Strip common extensions for placeholder substitution
@@ -323,10 +330,30 @@ impl RuleCommandGenerator {
         let input_base = strip_extensions(&input_name);
         let output_base = strip_extensions(&output_name);
 
-        let args = rule
-            .args_template
-            .replace("{input}", &input_base)
-            .replace("{output}", &output_base);
+        // Apply template with single-pass replacement to avoid intermediate Strings
+        let args =
+            if rule.args_template.contains("{input}") || rule.args_template.contains("{output}") {
+                let mut result = String::with_capacity(
+                    rule.args_template.len() + input_base.len() + output_base.len(),
+                );
+                let mut i = 0;
+                let template = rule.args_template.as_str();
+                while i < template.len() {
+                    if template[i..].starts_with("{input}") {
+                        result.push_str(&input_base);
+                        i += 7;
+                    } else if template[i..].starts_with("{output}") {
+                        result.push_str(&output_base);
+                        i += 8;
+                    } else {
+                        result.push(template[i..].chars().next().unwrap());
+                        i += template[i..].chars().next().unwrap().len_utf8();
+                    }
+                }
+                result
+            } else {
+                rule.args_template.clone()
+            };
 
         GeneratedCommand {
             args,
@@ -439,6 +466,41 @@ impl CommandGenerator for CompositeGenerator {
     fn name(&self) -> &str {
         "composite"
     }
+}
+
+/// Check if haystack contains needle case-insensitively without allocation.
+fn contains_ignore_case(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    if haystack.len() < needle.len() {
+        return false;
+    }
+
+    let needle_chars: Vec<char> = needle.chars().collect();
+    let mut haystack_iter = haystack.chars().peekable();
+
+    while let Some(first) = haystack_iter.next() {
+        if first.eq_ignore_ascii_case(&needle_chars[0]) {
+            let mut matched = true;
+            for needle_char in &needle_chars[1..] {
+                match haystack_iter.peek() {
+                    Some(h_char) if h_char.eq_ignore_ascii_case(needle_char) => {
+                        haystack_iter.next();
+                        continue;
+                    }
+                    _ => {
+                        matched = false;
+                        break;
+                    }
+                }
+            }
+            if matched {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 #[cfg(test)]

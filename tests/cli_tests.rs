@@ -3446,6 +3446,7 @@ fn test_job_run_input_list_from_file() {
         let mut f = std::fs::File::create(&list_file).unwrap();
         writeln!(f, "# comment line — should be skipped").unwrap();
         writeln!(f, "item-one").unwrap();
+        #[allow(clippy::writeln_empty_string)]
         writeln!(f, "").unwrap(); // blank line — should be skipped
         writeln!(f, "item-two").unwrap();
     }

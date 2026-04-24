@@ -143,10 +143,18 @@ impl McpClient {
             )));
         }
 
-        let rpc: RpcResponse = response.json().await.map_err(|e| {
+        // Get raw text first for better error messages
+        let raw_text = response.text().await.unwrap_or_default();
+        let rpc: RpcResponse = serde_json::from_str(&raw_text).map_err(|e| {
+            let preview = if raw_text.len() > 200 {
+                &raw_text[..200]
+            } else {
+                &raw_text
+            };
             OxoError::IndexError(format!(
-                "MCP server '{}' returned invalid JSON: {e}",
-                self.config.name()
+                "MCP server '{}' returned invalid JSON: {e}\nRaw response (first 200 chars): {}",
+                self.config.name(),
+                preview
             ))
         })?;
 
@@ -186,8 +194,8 @@ impl McpClient {
                         return Err(e);
                     }
 
-                    // Exponential backoff: 100ms, 200ms, 400ms, ...
-                    let delay = Duration::from_millis(100 * 2u64.pow(attempt as u32));
+                    // Exponential backoff: 200ms, 400ms, 800ms, ... (increased from 100ms for better network recovery)
+                    let delay = Duration::from_millis(200 * 2u64.pow(attempt as u32));
                     tokio::time::sleep(delay).await;
                     last_err = Some(e);
                 }

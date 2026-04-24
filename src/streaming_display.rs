@@ -226,7 +226,7 @@ mod tests {
     #[test]
     fn test_streaming_display_creation() {
         let _display = StreamingDisplay::with_message("Test");
-        assert!(true); // Just verify it doesn't panic
+        // Just verify it doesn't panic
     }
 
     #[test]
@@ -238,7 +238,6 @@ mod tests {
             ..Default::default()
         });
         // Should not panic - the message is truncated internally
-        assert!(true);
     }
 
     #[tokio::test]
@@ -276,8 +275,8 @@ mod tests {
     #[test]
     fn test_max_message_width_constant() {
         // Ensure the constant is reasonable for typical terminals
-        assert!(MAX_MESSAGE_WIDTH >= 60);
-        assert!(MAX_MESSAGE_WIDTH <= 100);
+        const { assert!(MAX_MESSAGE_WIDTH >= 60) };
+        const { assert!(MAX_MESSAGE_WIDTH <= 100) };
     }
 
     #[test]

@@ -1287,9 +1287,9 @@ mod tests {
     #[test]
     fn test_parse_workflow_response_all_engines() {
         for engine in &["native", "snakemake", "nextflow"] {
-            let raw = format!(
+            let raw =
                 "WORKFLOW:\n[workflow]\nname = \"test\"\nEND_WORKFLOW\nEXPLANATION:\nA test.\n"
-            );
+                    .to_string();
             let wf = parse_workflow_response(&raw, engine);
             assert!(wf.is_some(), "should parse for engine {engine}");
             assert_eq!(wf.unwrap().engine, *engine);

@@ -784,6 +784,7 @@ mod tests {
 
     #[test]
     fn test_extract_arg_combos() {
+        #[allow(clippy::useless_vec)]
         let entries = vec![
             HistoryEntry {
                 id: "c1".to_string(),

@@ -4,6 +4,7 @@ use crate::error::{OxoError, Result};
 use crate::runner::make_spinner;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 use uuid::Uuid;
 
@@ -17,10 +18,59 @@ pub struct IndexEntry {
     pub sources: Vec<String>,
 }
 
-/// The full documentation index, stored as a JSON manifest
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+/// Legacy DocIndex format for migration - can deserialize either Vec or HashMap.
+#[derive(Debug, Clone, Deserialize)]
+struct LegacyDocIndex {
+    #[serde(deserialize_with = "deserialize_entries_legacy")]
+    entries: HashMap<String, IndexEntry>,
+}
+
+/// Custom deserializer that handles both Vec and HashMap formats for entries.
+fn deserialize_entries_legacy<'de, D>(
+    deserializer: D,
+) -> std::result::Result<HashMap<String, IndexEntry>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::Error;
+
+    // Try HashMap first (current format), then Vec (legacy format)
+    let value = serde_json::Value::deserialize(deserializer)?;
+
+    // Try as HashMap
+    if let Ok(map) = serde_json::from_value::<HashMap<String, IndexEntry>>(value.clone()) {
+        return Ok(map);
+    }
+
+    // Try as Vec and convert
+    if let Ok(vec) = serde_json::from_value::<Vec<IndexEntry>>(value) {
+        let map = vec.into_iter().map(|e| (e.tool_name.clone(), e)).collect();
+        return Ok(map);
+    }
+
+    Err(Error::custom("entries must be either HashMap or Vec"))
+}
+
+/// The full documentation index, stored as a JSON manifest.
+/// Uses HashMap for O(1) tool lookup instead of O(n) Vec search.
+/// Supports both HashMap and legacy Vec formats during deserialization.
+#[derive(Debug, Clone, Serialize, Default)]
 pub struct DocIndex {
-    pub entries: Vec<IndexEntry>,
+    /// tool_name -> IndexEntry mapping for fast lookup
+    entries: HashMap<String, IndexEntry>,
+}
+
+// Custom deserialize to handle legacy Vec format migration
+impl<'de> Deserialize<'de> for DocIndex {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let legacy = LegacyDocIndex::deserialize(deserializer)?;
+        Ok(DocIndex {
+            entries: legacy.entries,
+        })
+    }
 }
 
 impl DocIndex {
@@ -48,11 +98,15 @@ impl DocIndex {
         // Stream through all valid DocIndex objects and take the last one, which
         // has the most up-to-date state.  On success, rewrite the file in the
         // current single-object format so future reads take the fast path.
-        let mut stream = serde_json::Deserializer::from_str(&content).into_iter::<DocIndex>();
+        let mut stream = serde_json::Deserializer::from_str(&content).into_iter::<LegacyDocIndex>();
         let mut last: Option<DocIndex> = None;
         for item in stream.by_ref() {
             match item {
-                Ok(idx) => last = Some(idx),
+                Ok(legacy) => {
+                    last = Some(DocIndex {
+                        entries: legacy.entries,
+                    })
+                }
                 Err(_) => break,
             }
         }
@@ -64,7 +118,12 @@ impl DocIndex {
 
         // Last resort: try the legacy bare Vec<IndexEntry> format (plain JSON
         // array without the DocIndex wrapper object).
-        if let Ok(entries) = serde_json::from_str::<Vec<IndexEntry>>(&content) {
+        if let Ok(entries_vec) = serde_json::from_str::<Vec<IndexEntry>>(&content) {
+            // Convert legacy Vec format to HashMap
+            let entries: HashMap<String, IndexEntry> = entries_vec
+                .into_iter()
+                .map(|e| (e.tool_name.clone(), e))
+                .collect();
             let idx = DocIndex { entries };
             let _ = idx.save();
             return Ok(idx);
@@ -93,25 +152,20 @@ impl DocIndex {
 
     #[allow(dead_code)]
     pub fn get(&self, tool: &str) -> Option<&IndexEntry> {
-        self.entries.iter().find(|e| e.tool_name == tool)
+        self.entries.get(tool)
     }
 
     pub fn upsert(&mut self, entry: IndexEntry) {
-        if let Some(pos) = self
-            .entries
-            .iter()
-            .position(|e| e.tool_name == entry.tool_name)
-        {
-            self.entries[pos] = entry;
-        } else {
-            self.entries.push(entry);
-        }
+        self.entries.insert(entry.tool_name.clone(), entry);
     }
 
     pub fn remove(&mut self, tool: &str) -> bool {
-        let before = self.entries.len();
-        self.entries.retain(|e| e.tool_name != tool);
-        self.entries.len() < before
+        self.entries.remove(tool).is_some()
+    }
+
+    /// Returns all entries as a Vec for listing/iteration.
+    pub fn entries_vec(&self) -> Vec<IndexEntry> {
+        self.entries.values().cloned().collect()
     }
 }
 
@@ -272,7 +326,7 @@ impl IndexManager {
     /// List all indexed tools
     pub fn list(&self) -> Result<Vec<IndexEntry>> {
         let index = DocIndex::load()?;
-        Ok(index.entries)
+        Ok(index.entries_vec())
     }
 }
 
@@ -307,7 +361,7 @@ mod tests {
         let mut idx = DocIndex::default();
         idx.upsert(make_entry("samtools", 1024));
         assert_eq!(idx.entries.len(), 1);
-        assert_eq!(idx.entries[0].tool_name, "samtools");
+        assert!(idx.get("samtools").is_some());
     }
 
     #[test]
@@ -316,7 +370,7 @@ mod tests {
         idx.upsert(make_entry("samtools", 1024));
         idx.upsert(make_entry("samtools", 2048));
         assert_eq!(idx.entries.len(), 1);
-        assert_eq!(idx.entries[0].doc_size_bytes, 2048);
+        assert_eq!(idx.get("samtools").unwrap().doc_size_bytes, 2048);
     }
 
     #[test]

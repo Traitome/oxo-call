@@ -10,12 +10,57 @@
 use indicatif::{ProgressBar, ProgressStyle};
 use sha2::{Digest, Sha256};
 
+/// Check if haystack contains needle case-insensitively without allocation.
+/// Uses byte-level matching for ASCII strings (sufficient for command/path matching).
+fn contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    if haystack.len() < needle.len() {
+        return false;
+    }
+
+    // Byte-level comparison for ASCII-only matching (command names, paths)
+    let hay_bytes = haystack.as_bytes();
+    let needle_bytes = needle.as_bytes();
+    let needle_len = needle_bytes.len();
+
+    hay_bytes.windows(needle_len).any(|window| {
+        window
+            .iter()
+            .zip(needle_bytes.iter())
+            .all(|(h, n)| h.eq_ignore_ascii_case(n))
+    })
+}
+
+/// Check if haystack ends with needle case-insensitively without allocation.
+/// Uses byte-level matching for ASCII strings (sufficient for file extensions).
+fn ends_with_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    if haystack.len() < needle.len() {
+        return false;
+    }
+
+    // Byte-level comparison for ASCII-only matching
+    let hay_bytes = haystack.as_bytes();
+    let needle_bytes = needle.as_bytes();
+    let offset = hay_bytes.len() - needle_bytes.len();
+
+    hay_bytes[offset..]
+        .iter()
+        .zip(needle_bytes.iter())
+        .all(|(h, n)| h.eq_ignore_ascii_case(n))
+}
+
 // ─── Command string building ──────────────────────────────────────────────────
 
 /// Build a shell command string from tool name and arguments.
 ///
 /// Arguments containing spaces or shell metacharacters are single-quoted.
 /// Shell operators (&&, ||, |, >, etc.) are passed through unquoted.
+/// Builds the string directly without intermediate Vec allocation.
 pub(crate) fn build_command_string(tool: &str, args: &[String]) -> String {
     if args.is_empty() {
         return tool.to_string();
@@ -24,23 +69,32 @@ pub(crate) fn build_command_string(tool: &str, args: &[String]) -> String {
     if eff_args.is_empty() {
         return eff_tool.to_string();
     }
-    let args_str: Vec<String> = eff_args
-        .iter()
-        .map(|a| {
-            // Shell operators (&&, ||, ;, |, >, …) are shell syntax, not values —
-            // they must never be quoted, otherwise the shell would treat them as
-            // literal string arguments to the tool.
-            if is_shell_operator(a) {
-                a.clone()
-            } else if needs_quoting(a) {
-                // Quote arguments that contain spaces or shell metacharacters
-                format!("'{}'", a.replace('\'', "'\\''"))
-            } else {
-                a.clone()
+
+    // Estimate capacity: tool + args + spaces + quoting overhead
+    let estimated_len =
+        eff_tool.len() + eff_args.len() + eff_args.iter().map(|a| a.len() + 4).sum::<usize>();
+    let mut result = String::with_capacity(estimated_len);
+    result.push_str(eff_tool);
+
+    for arg in eff_args {
+        result.push(' ');
+        if is_shell_operator(arg) {
+            result.push_str(arg);
+        } else if needs_quoting(arg) {
+            result.push('\'');
+            for c in arg.chars() {
+                if c == '\'' {
+                    result.push_str("'\\''");
+                } else {
+                    result.push(c);
+                }
             }
-        })
-        .collect();
-    format!("{eff_tool} {}", args_str.join(" "))
+            result.push('\'');
+        } else {
+            result.push_str(arg);
+        }
+    }
+    result
 }
 
 /// Resolve the effective (executable, args) pair.
@@ -115,22 +169,36 @@ pub fn is_companion_binary(tool: &str, candidate: &str) -> bool {
     // For script companions, any file-extension companion that contains the
     // tool name anywhere in its stem (case-insensitive) is accepted.
     if candidate != stem {
-        let stem_lower = stem.to_ascii_lowercase();
-        let tool_lower = tool.to_ascii_lowercase();
-        if stem_lower.contains(&tool_lower) {
+        // Use contains_ignore_ascii_case without allocation
+        if contains_ignore_ascii_case(stem, tool) {
             return true;
         }
     }
 
     // Forward prefix: {tool}- or {tool}_
-    let hyphen_prefix = format!("{tool}-");
-    let underscore_prefix = format!("{tool}_");
-    if stem.starts_with(&hyphen_prefix) || stem.starts_with(&underscore_prefix) {
-        return true;
+    // Check prefix patterns directly without allocation
+    if stem.len() > tool.len() + 1 {
+        let prefix_part = &stem[..tool.len()];
+        if prefix_part.eq_ignore_ascii_case(tool) {
+            let delim = stem[tool.len()..].chars().next();
+            if delim == Some('-') || delim == Some('_') {
+                return true;
+            }
+        }
     }
     // Reverse suffix: _{tool}
-    let underscore_suffix = format!("_{tool}");
-    stem.ends_with(&underscore_suffix) && stem.len() > underscore_suffix.len()
+    // Check suffix pattern without allocation
+    if stem.len() > tool.len() + 1 {
+        let suffix_part = &stem[stem.len() - tool.len()..];
+        if suffix_part.eq_ignore_ascii_case(tool) {
+            let delim_pos = stem.len() - tool.len() - 1;
+            let delim = &stem[delim_pos..delim_pos + 1];
+            if delim == "_" {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 /// Returns `true` if `arg` is a standalone shell control operator.
@@ -194,31 +262,33 @@ pub(crate) fn parse_version(version: &str) -> Option<(u32, u32, u32)> {
     let version = version.trim();
 
     // Find all candidate version patterns (digit sequences with dots)
-    let candidates: Vec<(usize, usize)> = {
-        let mut found = Vec::new();
-        let chars: Vec<char> = version.chars().collect();
-        let mut i = 0;
+    // Use char_indices to avoid Vec<char> allocation
+    let mut candidates: Vec<(usize, usize)> = Vec::new();
+    let mut char_indices = version.char_indices().peekable();
 
-        while i < chars.len() {
-            if chars[i].is_ascii_digit() {
-                let start = i;
-                let mut has_dot = false;
-                while i < chars.len() && (chars[i].is_ascii_digit() || chars[i] == '.') {
-                    if chars[i] == '.' {
-                        has_dot = true;
-                    }
-                    i += 1;
+    while let Some((i, c)) = char_indices.next() {
+        if c.is_ascii_digit() {
+            let start = i;
+            let mut has_dot = false;
+            let mut end = i;
+
+            // Continue while we have digits or dots
+            while let Some(&(j, next_c)) = char_indices.peek()
+                && (next_c.is_ascii_digit() || next_c == '.')
+            {
+                if next_c == '.' {
+                    has_dot = true;
                 }
-                // Only consider patterns with dots (proper versions)
-                if has_dot {
-                    found.push((start, i));
-                }
-            } else {
-                i += 1;
+                end = j + next_c.len_utf8();
+                char_indices.next();
+            }
+
+            // Only consider patterns with dots (proper versions)
+            if has_dot {
+                candidates.push((start, end));
             }
         }
-        found
-    };
+    }
 
     // Use the first valid version pattern with dots
     for (start, end) in candidates {
@@ -290,12 +360,14 @@ pub fn make_spinner(msg: &str) -> ProgressBar {
 // ─── Output file detection ───────────────────────────────────────────────────
 
 /// Detect output file paths from command arguments.
+/// Uses HashSet directly for deduplication to avoid Vec + retain overhead.
 pub(crate) fn detect_output_files(args: &[String]) -> Vec<String> {
     const OUTPUT_FLAGS: &[&str] = &[
         "-o", "--output", "-O", "--out", "-b", "--bam", "-S", "--sam", "--vcf", "--bcf",
     ];
 
-    let mut files = Vec::new();
+    // Use HashSet directly for deduplication, avoiding Vec + retain clone overhead
+    let mut files: std::collections::HashSet<String> = std::collections::HashSet::new();
     let mut skip_next = false;
 
     for (i, arg) in args.iter().enumerate() {
@@ -303,11 +375,16 @@ pub(crate) fn detect_output_files(args: &[String]) -> Vec<String> {
             skip_next = false;
             continue;
         }
-        // Check for --output=file form
+        // Check prefix patterns directly without format! allocation
         for &flag in OUTPUT_FLAGS {
-            if let Some(val) = arg.strip_prefix(&format!("{flag}=")) {
+            // Check if arg starts with flag then '='
+            if arg.len() > flag.len() + 1
+                && arg[..flag.len()].eq_ignore_ascii_case(flag)
+                && arg[flag.len()..].starts_with('=')
+            {
+                let val = &arg[flag.len() + 1..];
                 if !val.is_empty() {
-                    files.push(val.to_string());
+                    files.insert(val.to_string());
                 }
                 break;
             }
@@ -317,7 +394,7 @@ pub(crate) fn detect_output_files(args: &[String]) -> Vec<String> {
             if arg == flag
                 && let Some(val) = args.get(i + 1)
             {
-                files.push(val.clone());
+                files.insert(val.clone());
                 skip_next = true;
                 break;
             }
@@ -329,15 +406,12 @@ pub(crate) fn detect_output_files(args: &[String]) -> Vec<String> {
             && !arg.contains('&')
             && !arg.contains('|')
         {
-            files.push(arg.clone());
+            files.insert(arg.clone());
         }
     }
 
-    // Deduplicate, preserving order.
-    let mut seen = std::collections::HashSet::new();
-    files.retain(|f| seen.insert(f.clone()));
-    files.truncate(20);
-    files
+    // Convert HashSet to Vec, limit to 20 entries
+    files.into_iter().take(20).collect()
 }
 
 // ─── Command risk assessment ──────────────────────────────────────────────────
@@ -365,15 +439,25 @@ pub fn assess_command_risk(args: &[String]) -> RiskLevel {
     let mut risk = RiskLevel::Safe;
 
     for (i, arg) in args.iter().enumerate() {
-        let lower = arg.to_ascii_lowercase();
-
         let is_cmd_position =
             i == 0 || (i > 0 && matches!(args[i - 1].as_str(), "&&" | "||" | ";" | "|"));
 
         if is_cmd_position {
             for &cmd in DANGEROUS_COMMANDS {
-                if lower == cmd || lower.ends_with(&format!("/{cmd}")) {
+                // Use eq_ignore_ascii_case for direct comparison
+                if arg.eq_ignore_ascii_case(cmd) {
                     return RiskLevel::Dangerous;
+                }
+                // Check path suffix: /rm, /sudo, etc. without format! allocation
+                // Check if arg ends with "/" + cmd case-insensitively
+                if arg.len() > cmd.len() + 1 {
+                    let suffix_start = arg.len() - cmd.len() - 1;
+                    // Check for '/' before the command name
+                    if arg.as_bytes()[suffix_start] == b'/'
+                        && arg[suffix_start + 1..].eq_ignore_ascii_case(cmd)
+                    {
+                        return RiskLevel::Dangerous;
+                    }
                 }
             }
         }
@@ -382,8 +466,9 @@ pub fn assess_command_risk(args: &[String]) -> RiskLevel {
             risk = risk.max_level(RiskLevel::Warning);
         }
 
+        // Use eq_ignore_ascii_case for flag comparison
         for &flag in FORCE_FLAGS {
-            if lower == flag {
+            if arg.eq_ignore_ascii_case(flag) {
                 risk = risk.max_level(RiskLevel::Warning);
             }
         }
@@ -421,11 +506,16 @@ fn has_same_input_output(args: &[String]) -> bool {
                 output_file = Some(val.as_str());
                 output_value_indices.insert(i + 1);
             }
-            if let Some(rest) = arg.strip_prefix(&format!("{flag}="))
-                && !rest.is_empty()
+            // Check prefix without format! allocation
+            if arg.len() > flag.len() + 1
+                && arg[..flag.len()].eq_ignore_ascii_case(flag)
+                && arg[flag.len()..].starts_with('=')
             {
-                output_file = Some(rest);
-                output_value_indices.insert(i);
+                let rest = &arg[flag.len() + 1..];
+                if !rest.is_empty() {
+                    output_file = Some(rest);
+                    output_value_indices.insert(i);
+                }
             }
         }
     }
@@ -503,10 +593,15 @@ pub fn validate_input_files(args: &[String]) -> Vec<String> {
                 skip_next = true;
                 break;
             }
-            if let Some(rest) = arg.strip_prefix(&format!("{flag}="))
-                && !rest.is_empty()
+            // Check --flag=value form without format! allocation
+            if arg.len() > flag.len() + 1
+                && &arg[..flag.len()] == flag
+                && arg[flag.len()..].starts_with('=')
             {
-                known_output_indices.insert(i);
+                let rest = &arg[flag.len() + 1..];
+                if !rest.is_empty() {
+                    known_output_indices.insert(i);
+                }
             }
         }
     }
@@ -536,13 +631,19 @@ pub fn validate_input_files(args: &[String]) -> Vec<String> {
                 skip_next = true;
                 break;
             }
-            if let Some(rest) = arg.strip_prefix(&format!("{flag}="))
-                && !rest.is_empty()
-                && looks_like_file_path(rest)
-                && has_bio_extension(rest)
-                && !std::path::Path::new(rest).exists()
+            // Check --flag=value form without format! allocation
+            if arg.len() > flag.len() + 1
+                && &arg[..flag.len()] == flag
+                && arg[flag.len()..].starts_with('=')
             {
-                missing.push(rest.to_string());
+                let rest = &arg[flag.len() + 1..];
+                if !rest.is_empty()
+                    && looks_like_file_path(rest)
+                    && has_bio_extension(rest)
+                    && !std::path::Path::new(rest).exists()
+                {
+                    missing.push(rest.to_string());
+                }
             }
         }
         // Check positional args that look like file paths
@@ -572,7 +673,6 @@ fn looks_like_file_path(arg: &str) -> bool {
 
 /// Check if a path has a bioinformatics-relevant file extension.
 pub(crate) fn has_bio_extension(path: &str) -> bool {
-    let lower = path.to_ascii_lowercase();
     const EXTENSIONS: &[&str] = &[
         ".bam",
         ".sam",
@@ -599,5 +699,7 @@ pub(crate) fn has_bio_extension(path: &str) -> bool {
         ".tbi",
         ".idx",
     ];
-    EXTENSIONS.iter().any(|ext| lower.ends_with(ext))
+    EXTENSIONS
+        .iter()
+        .any(|ext| ends_with_ignore_ascii_case(path, ext))
 }

@@ -46,7 +46,6 @@ use crate::task_normalizer::{NormalizedTask, TaskNormalizer};
 use color_eyre::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
 
 /// Workflow scenario type
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -189,9 +188,9 @@ pub struct WorkflowResult {
 /// Workflow Graph executor
 pub struct WorkflowGraph {
     /// Task normalizer
-    normalizer: Arc<TaskNormalizer>,
+    normalizer: TaskNormalizer,
     /// Complexity estimator
-    estimator: Arc<TaskComplexityEstimator>,
+    estimator: TaskComplexityEstimator,
 }
 
 impl Default for WorkflowGraph {
@@ -203,8 +202,8 @@ impl Default for WorkflowGraph {
 impl WorkflowGraph {
     pub fn new() -> Self {
         Self {
-            normalizer: Arc::new(TaskNormalizer::new()),
-            estimator: Arc::new(TaskComplexityEstimator::new()),
+            normalizer: TaskNormalizer::new(),
+            estimator: TaskComplexityEstimator::new(),
         }
     }
 
@@ -553,7 +552,7 @@ impl WorkflowGraph {
             .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or(path);
-        let config = crate::config::Config::load().unwrap_or_default();
+        let config = crate::config::Config::load().await.unwrap_or_default();
         let mgr = crate::skill::SkillManager::new(config);
         if let Some(skill) = mgr.load(tool_name) {
             return Ok(SkillData {

@@ -54,6 +54,8 @@ pub struct ToolKnowledgeBase {
     /// Inverted index: keyword → list of (tool_index, weight).
     #[allow(dead_code)]
     index: HashMap<String, Vec<(usize, f32)>>,
+    /// Name index: lowercase tool name → tool index for O(1) lookup.
+    name_index: HashMap<String, usize>,
 }
 
 impl Default for ToolKnowledgeBase {
@@ -67,7 +69,12 @@ impl ToolKnowledgeBase {
     pub fn new() -> Self {
         let tools = Self::load_embedded_catalog();
         let index = Self::build_index(&tools);
-        Self { tools, index }
+        let name_index = Self::build_name_index(&tools);
+        Self {
+            tools,
+            index,
+            name_index,
+        }
     }
 
     /// Number of tools in the knowledge base.
@@ -83,11 +90,12 @@ impl ToolKnowledgeBase {
     }
 
     /// Look up a tool by exact name (case-insensitive).
+    /// Uses HashMap index for O(1) lookup instead of O(n) linear scan.
     pub fn lookup(&self, name: &str) -> Option<&ToolEntry> {
-        let name_lower = name.to_lowercase();
-        self.tools
-            .iter()
-            .find(|t| t.name.to_lowercase() == name_lower)
+        let name_lower = name.to_ascii_lowercase();
+        self.name_index
+            .get(&name_lower)
+            .map(|&idx| &self.tools[idx])
     }
 
     /// Search for tools matching a natural-language query.
@@ -130,10 +138,9 @@ impl ToolKnowledgeBase {
             None => return vec![],
         };
 
-        let tool_lower = tool_name.to_lowercase();
         self.tools
             .iter()
-            .filter(|t| t.category == *category && t.name.to_lowercase() != tool_lower)
+            .filter(|t| t.category == *category && !t.name.eq_ignore_ascii_case(tool_name))
             .take(limit)
             .collect()
     }
@@ -225,6 +232,15 @@ impl ToolKnowledgeBase {
         index
     }
 
+    /// Build a name index for O(1) lookup by tool name.
+    fn build_name_index(tools: &[ToolEntry]) -> HashMap<String, usize> {
+        let mut name_index = HashMap::with_capacity(tools.len());
+        for (idx, tool) in tools.iter().enumerate() {
+            name_index.insert(tool.name.to_ascii_lowercase(), idx);
+        }
+        name_index
+    }
+
     /// Tokenize text into lowercase keywords, removing stop words.
     fn tokenize(text: &str) -> Vec<String> {
         let stop_words: std::collections::HashSet<&str> = [
@@ -245,8 +261,6 @@ impl ToolKnowledgeBase {
 
 /// Infer a tool category from its name and description using keyword matching.
 fn infer_category(name: &str, description: &str) -> String {
-    let combined = format!("{} {}", name, description).to_lowercase();
-
     // Order matters: more specific categories first.
     let rules: &[(&str, &[&str])] = &[
         (
@@ -413,13 +427,53 @@ fn infer_category(name: &str, description: &str) -> String {
         ),
     ];
 
+    // Check keywords case-insensitively without allocating combined lowercase string
     for (category, keywords) in rules {
-        if keywords.iter().any(|kw| combined.contains(kw)) {
+        if keywords
+            .iter()
+            .any(|kw| contains_ignore_case(name, kw) || contains_ignore_case(description, kw))
+        {
             return (*category).to_string();
         }
     }
 
     "bioinformatics".to_string()
+}
+
+/// Check if haystack contains needle case-insensitively without allocation.
+/// Uses character-by-character matching without creating lowercase copies.
+fn contains_ignore_case(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    if haystack.len() < needle.len() {
+        return false;
+    }
+
+    // Iterate through haystack looking for needle match
+    let needle_chars: Vec<char> = needle.chars().collect();
+    let mut haystack_chars = haystack.chars();
+
+    while let Some(first) = haystack_chars.next() {
+        if first.eq_ignore_ascii_case(&needle_chars[0]) {
+            // Potential match - check remaining characters
+            let mut rest = haystack_chars.clone();
+            let mut matched = true;
+            for needle_char in &needle_chars[1..] {
+                match rest.next() {
+                    Some(h_char) if h_char.eq_ignore_ascii_case(needle_char) => continue,
+                    _ => {
+                        matched = false;
+                        break;
+                    }
+                }
+            }
+            if matched {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 #[cfg(test)]
