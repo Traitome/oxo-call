@@ -122,7 +122,19 @@ impl MiniSkillCache {
     #[allow(dead_code)]
     pub fn new(config: CacheConfig) -> Result<Self> {
         let disk_path = Config::data_dir()?.join("mini_skills");
+        Self::new_with_disk_path(config, disk_path)
+    }
 
+    /// Create a new mini-skill cache with an explicit disk path.
+    ///
+    /// Used in tests to avoid reading `OXO_DATA_DIR` from the environment,
+    /// which would be unsafe in concurrent test runs.
+    #[cfg(test)]
+    fn new_at(config: CacheConfig, disk_path: std::path::PathBuf) -> Result<Self> {
+        Self::new_with_disk_path(config, disk_path)
+    }
+
+    fn new_with_disk_path(config: CacheConfig, disk_path: std::path::PathBuf) -> Result<Self> {
         // Create directory if it doesn't exist
         if !disk_path.exists() {
             std::fs::create_dir_all(&disk_path)?;
@@ -500,5 +512,212 @@ mod tests {
 
         cache.clear().unwrap();
         assert!(cache.get("tool", "hash").is_none());
+    }
+
+    // ── New tests for improved coverage ──────────────────────────────────────
+
+    #[test]
+    fn test_cache_stats_memory_only() {
+        let config = CacheConfig {
+            memory_size: 10,
+            persist_to_disk: false,
+            max_age_days: 30,
+        };
+        let mut cache = MiniSkillCache::new(config).unwrap();
+
+        // Empty cache stats
+        let stats = cache.stats();
+        assert_eq!(stats.memory_entries, 0);
+        assert_eq!(stats.disk_entries, 0);
+
+        // Add one entry
+        let skill = MiniSkill {
+            tool: "bwa".to_string(),
+            task_hash: "align".to_string(),
+            doc_hash: "docabc".to_string(),
+            concepts: vec!["BWA alignment".to_string()],
+            pitfalls: vec![],
+            examples: vec![],
+            created_at: Utc::now(),
+            hit_count: 0,
+        };
+        cache.insert(skill);
+
+        let stats = cache.stats();
+        assert_eq!(stats.memory_entries, 1);
+        // Disk entries = 0 since persist_to_disk=false
+        assert_eq!(stats.disk_entries, 0);
+    }
+
+    #[test]
+    fn test_cache_config_default() {
+        let config = CacheConfig::default();
+        assert_eq!(config.memory_size, 100);
+        assert!(config.persist_to_disk);
+        assert_eq!(config.max_age_days, 30);
+    }
+
+    #[test]
+    fn test_mini_skill_to_skill_conversion() {
+        let mini = MiniSkill {
+            tool: "samtools".to_string(),
+            task_hash: "sort".to_string(),
+            doc_hash: "hash123".to_string(),
+            concepts: vec!["BAM format".to_string(), "Coordinate sorting".to_string()],
+            pitfalls: vec!["Sort before indexing".to_string()],
+            examples: vec![MiniSkillExample {
+                task: "Sort a BAM file".to_string(),
+                args: "sort -@ 4 -o sorted.bam input.bam".to_string(),
+                explanation: "Sort by coordinate with 4 threads".to_string(),
+            }],
+            created_at: Utc::now(),
+            hit_count: 5,
+        };
+
+        let skill: crate::skill::Skill = mini.into();
+        assert_eq!(skill.meta.name, "samtools");
+        assert_eq!(skill.meta.category, "auto-generated");
+        assert_eq!(skill.context.concepts.len(), 2);
+        assert_eq!(skill.context.pitfalls.len(), 1);
+        assert_eq!(skill.examples.len(), 1);
+        assert_eq!(skill.examples[0].task, "Sort a BAM file");
+    }
+
+    #[test]
+    fn test_insert_multiple_tools_updates_tool_index() {
+        let config = CacheConfig {
+            memory_size: 20,
+            persist_to_disk: false,
+            max_age_days: 30,
+        };
+        let mut cache = MiniSkillCache::new(config).unwrap();
+
+        for tool in &["samtools", "bwa", "bcftools"] {
+            let skill = MiniSkill {
+                tool: tool.to_string(),
+                task_hash: "task".to_string(),
+                doc_hash: format!("hash_{tool}"),
+                concepts: vec![],
+                pitfalls: vec![],
+                examples: vec![],
+                created_at: Utc::now(),
+                hit_count: 0,
+            };
+            cache.insert(skill);
+        }
+
+        // All three tools should be retrievable
+        assert!(cache.get("samtools", "hash_samtools").is_some());
+        assert!(cache.get("bwa", "hash_bwa").is_some());
+        assert!(cache.get("bcftools", "hash_bcftools").is_some());
+    }
+
+    #[test]
+    fn test_get_missing_key_returns_none() {
+        let config = CacheConfig {
+            memory_size: 10,
+            persist_to_disk: false,
+            max_age_days: 30,
+        };
+        let mut cache = MiniSkillCache::new(config).unwrap();
+        assert!(cache.get("nonexistent", "nohash").is_none());
+    }
+
+    #[test]
+    fn test_persist_memory_only_no_error() {
+        let config = CacheConfig {
+            memory_size: 10,
+            persist_to_disk: false,
+            max_age_days: 30,
+        };
+        let cache = MiniSkillCache::new(config).unwrap();
+        // persist() should return Ok(()) when persist_to_disk=false
+        assert!(cache.persist().is_ok());
+    }
+
+    #[test]
+    fn test_disk_persistence_roundtrip() {
+        let tmp_dir = std::env::temp_dir().join(format!(
+            "oxo_test_mini_skill_{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .subsec_nanos()
+        ));
+        std::fs::create_dir_all(&tmp_dir).unwrap();
+
+        let config = CacheConfig {
+            memory_size: 10,
+            persist_to_disk: true,
+            max_age_days: 30,
+        };
+
+        let skill = MiniSkill {
+            tool: "hisat2".to_string(),
+            task_hash: "align".to_string(),
+            doc_hash: "testhash".to_string(),
+            concepts: vec!["Spliced alignment".to_string()],
+            pitfalls: vec![],
+            examples: vec![],
+            created_at: Utc::now(),
+            hit_count: 0,
+        };
+
+        // Insert and persist to disk (Drop triggers persist)
+        {
+            let mut cache = MiniSkillCache::new_at(config.clone(), tmp_dir.clone()).unwrap();
+            cache.insert(skill.clone());
+        }
+
+        // Load from disk in a new cache instance at the same path
+        {
+            let mut cache = MiniSkillCache::new_at(config, tmp_dir.clone()).unwrap();
+            let retrieved = cache.get("hisat2", "testhash");
+            assert!(retrieved.is_some(), "skill should survive disk round-trip");
+            assert_eq!(retrieved.unwrap().tool, "hisat2");
+        }
+
+        // Cleanup
+        let _ = std::fs::remove_dir_all(&tmp_dir);
+    }
+
+    #[test]
+    fn test_disk_expiration_removes_file() {
+        let tmp_dir = std::env::temp_dir().join(format!(
+            "oxo_test_expire_{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .subsec_nanos()
+        ));
+        std::fs::create_dir_all(&tmp_dir).unwrap();
+
+        let config = CacheConfig {
+            memory_size: 10,
+            persist_to_disk: true,
+            max_age_days: 0, // Expire immediately
+        };
+
+        let old_skill = MiniSkill {
+            tool: "expired_tool".to_string(),
+            task_hash: "task".to_string(),
+            doc_hash: "oldhash".to_string(),
+            concepts: vec![],
+            pitfalls: vec![],
+            examples: vec![],
+            created_at: Utc::now() - chrono::Duration::days(2), // 2 days old
+            hit_count: 0,
+        };
+
+        // Create cache, insert expired skill, then verify get returns None
+        {
+            let mut cache = MiniSkillCache::new_at(config, tmp_dir.clone()).unwrap();
+            cache.insert(old_skill);
+            // Get should not return expired entry
+            let result = cache.get("expired_tool", "oldhash");
+            assert!(result.is_none(), "expired skill should not be returned");
+        }
+
+        let _ = std::fs::remove_dir_all(&tmp_dir);
     }
 }

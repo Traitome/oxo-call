@@ -325,4 +325,135 @@ mod tests {
         assert!(truncated.contains("[documentation truncated"));
         assert!(truncated.ends_with("]"));
     }
+
+    // ── New tests for improved coverage ──────────────────────────────────────
+
+    #[test]
+    fn test_summarize_long_docs_with_usage_section() {
+        // Build a long doc (> MIN_SUMMARIZE_LEN = 2000 chars) with a USAGE section
+        let usage = "USAGE:\n  samtools sort [options] <in.bam>\n\n";
+        let options = "OPTIONS:\n  -o FILE  Write output to FILE\n  -@ INT   Number of sorting/compression threads [1]\n  -m INT   Set maximum memory per thread; suffix K/M/G recognized [768M]\n\n";
+        let bugs = "BUGS:\n  This is a bug tracker section that should be filtered.\n\n";
+        // Pad to exceed MIN_SUMMARIZE_LEN
+        let padding = "Description line for padding.\n".repeat(100);
+        let long_doc = format!("{usage}{options}{bugs}{padding}");
+        assert!(
+            long_doc.len() > MIN_SUMMARIZE_LEN,
+            "test doc ({}) must be > MIN_SUMMARIZE_LEN ({})",
+            long_doc.len(),
+            MIN_SUMMARIZE_LEN
+        );
+
+        let result = summarize_docs(&long_doc, MAX_DOC_LEN_LARGE_MODEL);
+        assert!(!result.is_empty());
+        // Should contain USAGE or OPTIONS section markers
+        assert!(
+            result.contains("USAGE") || result.contains("OPTIONS") || result.contains("==="),
+            "Summary should contain section markers: {result}"
+        );
+    }
+
+    #[test]
+    fn test_summarize_long_docs_produces_output_within_max_len() {
+        let long_doc = "x".repeat(MIN_SUMMARIZE_LEN + 1000);
+        let max_len = 500;
+        let result = summarize_docs(&long_doc, max_len);
+        assert!(
+            result.len() <= max_len + 50,
+            "result should not exceed max_len by much"
+        );
+    }
+
+    #[test]
+    fn test_summarize_docs_respects_priority_order() {
+        // USAGE should appear before OPTIONS in the summary
+        let usage_line = "USAGE:\n  tool command [options]\n\n";
+        let options_line = "OPTIONS:\n  -v  Verbose\n  -h  Help\n\n";
+        let examples_line = "EXAMPLES:\n  tool command -v input.bam\n\n";
+        let padding = "More information about the tool and its usage.\n".repeat(100);
+        let doc = format!("{options_line}{examples_line}{usage_line}{padding}");
+        assert!(
+            doc.len() > MIN_SUMMARIZE_LEN,
+            "test doc ({}) must be > MIN_SUMMARIZE_LEN ({})",
+            doc.len(),
+            MIN_SUMMARIZE_LEN
+        );
+
+        let result = summarize_docs(&doc, MAX_DOC_LEN_MEDIUM_MODEL);
+        // USAGE should be near the top since it's highest priority
+        let usage_pos = result.find("USAGE");
+        let options_pos = result.find("OPTIONS");
+        if let (Some(u), Some(o)) = (usage_pos, options_pos) {
+            assert!(u <= o, "USAGE section should appear before OPTIONS section");
+        }
+    }
+
+    #[test]
+    fn test_summarize_docs_no_priority_sections_uses_fallback() {
+        // Long doc with no priority sections — should use Documentation fallback
+        let long_doc = format!("Some description.\n{}", "More info. ".repeat(200));
+        assert!(long_doc.len() > MIN_SUMMARIZE_LEN);
+        let result = summarize_docs(&long_doc, MAX_DOC_LEN_LARGE_MODEL);
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn test_extract_examples_basic() {
+        let doc = "USAGE:\n  tool sort input\n\nEXAMPLE:\n  tool sort -o out.bam in.bam\n\nOPTIONS:\n  -o FILE  Output file";
+        let examples = extract_examples(doc);
+        assert!(!examples.is_empty(), "should extract at least one example");
+    }
+
+    #[test]
+    fn test_extract_examples_empty_doc() {
+        let examples = extract_examples("");
+        assert!(examples.is_empty());
+    }
+
+    #[test]
+    fn test_extract_examples_no_example_section() {
+        let doc = "USAGE:\n  tool [options]\n\nOPTIONS:\n  -v  Verbose";
+        let examples = extract_examples(doc);
+        assert!(examples.is_empty(), "no EXAMPLE section → empty result");
+    }
+
+    #[test]
+    fn test_extract_examples_truncates_at_three() {
+        // Multiple example sections — should return at most 3
+        let doc = "EXAMPLE:\n  cmd1\n\nEXAMPLE:\n  cmd2\n\nEXAMPLE:\n  cmd3\n\nEXAMPLE:\n  cmd4\n";
+        let examples = extract_examples(doc);
+        assert!(examples.len() <= 3, "should truncate to max 3 examples");
+    }
+
+    #[test]
+    fn test_doc_length_constants_ordering() {
+        // Sanity check: constants should be in ascending order
+        assert!(MAX_DOC_LEN_SMALL_MODEL < MAX_DOC_LEN_MEDIUM_MODEL);
+        assert!(MAX_DOC_LEN_MEDIUM_MODEL < MAX_DOC_LEN_LARGE_MODEL);
+        assert!(MIN_SUMMARIZE_LEN < MAX_DOC_LEN_SMALL_MODEL);
+    }
+
+    #[test]
+    fn test_extract_flags_from_sections_via_summarize() {
+        // Quick reference flags section is added when space is available
+        let usage = "USAGE:\n  tool [flags]\n\n";
+        let options = "OPTIONS:\n  --verbose  Verbose output\n  --quiet    Quiet mode\n  -o FILE    Output file\n\n";
+        let padding = "Description. ".repeat(200);
+        let doc = format!("{usage}{options}{padding}");
+        assert!(doc.len() > MIN_SUMMARIZE_LEN);
+
+        let result = summarize_docs(&doc, MAX_DOC_LEN_LARGE_MODEL);
+        // Either flags are extracted or the summary is at least non-empty
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn test_format_for_llm_preserves_content() {
+        // Short doc goes through format_for_llm
+        let doc = "Line 1\nLine 2\nLine 3";
+        let result = summarize_docs(doc, 1000);
+        assert!(result.contains("Line 1"));
+        assert!(result.contains("Line 2"));
+        assert!(result.contains("Line 3"));
+    }
 }

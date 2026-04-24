@@ -8,7 +8,7 @@ use crate::error::{OxoError, Result};
 use crate::llm::types::StreamChunkResponse;
 
 /// Output destination for streaming tokens.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum StreamOutput {
     /// Write tokens to stderr (default, for progress/preview).
