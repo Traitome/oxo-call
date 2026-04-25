@@ -39,36 +39,36 @@ source_url: "https://github.com/ruanjue/wtdbg2"
 
 ### assemble genome from Oxford Nanopore reads
 **Args:** `-x ont -g 5m -i reads.fastq.gz -fo assembly -t 16 && wtpoa-cns -t 16 -i assembly.ctg.lay.gz -fo assembly.ctg.fa`
-**Explanation:** -x ont preset; -g 5m genome size; -fo output prefix; then wtpoa-cns for consensus polishing
+**Explanation:** wtdbg2 command; -x ont ONT preset; -g 5m estimated genome size; -i reads.fastq.gz input reads; -fo assembly output prefix; -t 16 threads; && wtpoa-cns -t 16 -i assembly.ctg.lay.gz -fo assembly.ctg.fa consensus polishing
 
 ### assemble genome from PacBio HiFi reads
 **Args:** `-x ccs -g 3g -i hifi_reads.fastq.gz -fo hifi_assembly -t 32 && wtpoa-cns -t 32 -i hifi_assembly.ctg.lay.gz -fo hifi_assembly.ctg.fa`
-**Explanation:** -x ccs for CCS/HiFi reads; -g 3g for 3 Gb genome; consensus with wtpoa-cns
+**Explanation:** wtdbg2 command; -x ccs CCS/HiFi preset; -g 3g 3 Gb genome size; -i hifi_reads.fastq.gz input HiFi reads; -fo hifi_assembly output prefix; -t 32 threads; && wtpoa-cns consensus
 
 ### assemble bacterial genome from PacBio CLR reads
 **Args:** `-x rs -g 4m -i clr_reads.fastq.gz -fo clr_assembly -t 8 && wtpoa-cns -t 8 -i clr_assembly.ctg.lay.gz -fo clr_assembly.ctg.fa`
-**Explanation:** -x rs for PacBio RSII/CLR reads; two-step assembly and consensus
+**Explanation:** wtdbg2 command; -x rs PacBio RSII/CLR preset; -g 4m 4 Mb genome size; -i clr_reads.fastq.gz input CLR reads; -fo clr_assembly output prefix; -t 8 threads; && wtpoa-cns consensus
 
 ### assemble with increased k-mer sampling for low coverage
 **Args:** `-x rs -g 5m -i reads.fastq.gz -fo assembly -t 16 -S 2 && wtpoa-cns -t 16 -i assembly.ctg.lay.gz -fo assembly.ctg.fa`
-**Explanation:** -S 2 increases k-mer sampling to 1/2 (from default 1/4); improves sensitivity for low coverage
+**Explanation:** wtdbg2 command; -x rs PacBio preset; -g 5m genome size; -i reads.fastq.gz input reads; -fo assembly output prefix; -t 16 threads; -S 2 increases k-mer sampling to 1/2 (from default 1/4); && wtpoa-cns consensus
 
 ### assemble with longer minimum read length
 **Args:** `-x rs -g 5m -i reads.fastq.gz -fo assembly -t 16 -L 10000 && wtpoa-cns -t 16 -i assembly.ctg.lay.gz -fo assembly.ctg.fa`
-**Explanation:** -L 10000 filters reads shorter than 10kb; improves assembly quality for long reads
+**Explanation:** wtdbg2 command; -x rs PacBio preset; -g 5m genome size; -i reads.fastq.gz input reads; -fo assembly output prefix; -t 16 threads; -L 10000 filters reads shorter than 10kb; && wtpoa-cns consensus
 
 ### assemble with adjusted edge depth for high coverage
 **Args:** `-x ont -g 3g -i reads.fastq.gz -fo assembly -t 32 -e 5 && wtpoa-cns -t 32 -i assembly.ctg.lay.gz -fo assembly.ctg.fa`
-**Explanation:** -e 5 increases minimum edge depth; reduces spurious connections in high coverage data
+**Explanation:** wtdbg2 command; -x ont ONT preset; -g 3g 3 Gb genome; -i reads.fastq.gz input reads; -fo assembly output prefix; -t 32 threads; -e 5 minimum edge depth; && wtpoa-cns consensus; reduces spurious connections
 
 ### assemble with custom k-mer parameters
 **Args:** `-x ont -g 5m -i reads.fastq.gz -fo assembly -t 16 -k 15 -p 10 && wtpoa-cns -t 16 -i assembly.ctg.lay.gz -fo assembly.ctg.fa`
-**Explanation:** -k 15 -p 10 sets k-mer sizes; k+p must be <= 25; tune for data characteristics
+**Explanation:** wtdbg2 command; -x ont ONT preset; -g 5m genome size; -i reads.fastq.gz input reads; -fo assembly output prefix; -t 16 threads; -k 15 -p 10 k-mer sizes (k+p <= 25); && wtpoa-cns consensus
 
 ### assemble with reduced depth selection
 **Args:** `-x ont -g 3g -i reads.fastq.gz -fo assembly -t 32 -X 30 && wtpoa-cns -t 32 -i assembly.ctg.lay.gz -fo assembly.ctg.fa`
-**Explanation:** -X 30 selects best 30x depth instead of default 50x; faster for high coverage data
+**Explanation:** wtdbg2 command; -x ont ONT preset; -g 3g genome size; -i reads.fastq.gz input reads; -fo assembly output prefix; -t 32 threads; -X 30 selects best 30x depth (from default 50x); && wtpoa-cns consensus; faster for high coverage
 
 ### assemble with realignment mode
 **Args:** `-x rs -g 5m -i reads.fastq.gz -fo assembly -t 16 -R && wtpoa-cns -t 16 -i assembly.ctg.lay.gz -fo assembly.ctg.fa`
-**Explanation:** -R enables realignment mode; may improve alignment accuracy at cost of speed
+**Explanation:** wtdbg2 command; -x rs PacBio preset; -g 5m genome size; -i reads.fastq.gz input reads; -fo assembly output prefix; -t 16 threads; -R enables realignment mode; && wtpoa-cns consensus; may improve accuracy

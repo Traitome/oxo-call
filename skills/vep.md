@@ -38,44 +38,44 @@ source_url: "https://www.ensembl.org/vep"
 
 ### annotate VCF variants with VEP using offline cache
 **Args:** `--input_file variants.vcf --output_file annotated.vcf --vcf --cache --dir_cache /path/to/cache/ --assembly GRCh38 --fork 8 --offline`
-**Explanation:** --cache offline mode; --vcf output VCF; --assembly GRCh38; --fork 8 parallel; --offline for speed
+**Explanation:** vep command; --input_file variants.vcf input VCF; --output_file annotated.vcf output VCF; --vcf VCF format output; --cache offline mode; --dir_cache /path/to/cache/ cache directory; --assembly GRCh38 genome build; --fork 8 parallel threads; --offline for speed
 
 ### annotate with all standard functional predictions
 **Args:** `--input_file variants.vcf --output_file annotated.vcf --vcf --cache --dir_cache /path/to/cache/ --assembly GRCh38 --everything --fork 8 --offline`
-**Explanation:** --everything enables SIFT, PolyPhen, gnomAD AF, ClinVar, dbSNP, and all standard annotations
+**Explanation:** vep command; --input_file variants.vcf input VCF; --output_file annotated.vcf output VCF; --vcf VCF format; --cache offline mode; --dir_cache /path/to/cache/ cache directory; --assembly GRCh38 genome build; --everything enables SIFT, PolyPhen, gnomAD AF, ClinVar, dbSNP; --fork 8 threads; --offline
 
 ### annotate and pick single most severe consequence per variant
 **Args:** `--input_file variants.vcf --output_file annotated.vcf --vcf --cache --dir_cache /path/to/cache/ --assembly GRCh38 --pick --fork 8 --offline`
-**Explanation:** --pick selects one annotation per variant (most severe consequence); reduces output size
+**Explanation:** vep command; --input_file variants.vcf input VCF; --output_file annotated.vcf output VCF; --vcf VCF format; --cache offline mode; --dir_cache /path/to/cache/ cache directory; --assembly GRCh38 genome build; --pick selects most severe consequence; --fork 8 threads; --offline
 
 ### annotate with gnomAD population frequencies
 **Args:** `--input_file variants.vcf --output_file annotated.vcf --vcf --cache --dir_cache /path/to/cache/ --assembly GRCh38 --af_gnomad --fork 8 --offline`
-**Explanation:** --af_gnomad adds gnomAD allele frequencies for all populations; useful for filtering rare variants
+**Explanation:** vep command; --input_file variants.vcf input VCF; --output_file annotated.vcf output VCF; --vcf VCF format; --cache offline mode; --dir_cache /path/to/cache/ cache directory; --assembly GRCh38 genome build; --af_gnomad adds gnomAD allele frequencies; --fork 8 threads; --offline
 
 ### annotate only canonical transcripts
 **Args:** `--input_file variants.vcf --output_file annotated.vcf --vcf --cache --dir_cache /path/to/cache/ --assembly GRCh38 --canonical --symbol --fork 8 --offline`
-**Explanation:** --canonical annotates only canonical transcripts; --symbol adds gene symbols
+**Explanation:** vep command; --input_file variants.vcf input VCF; --output_file annotated.vcf output VCF; --vcf VCF format; --cache offline mode; --dir_cache /path/to/cache/ cache directory; --assembly GRCh38 genome build; --canonical canonical transcripts only; --symbol adds gene symbols; --fork 8 threads; --offline
 
 ### annotate with transcript biotypes
 **Args:** `--input_file variants.vcf --output_file annotated.vcf --vcf --cache --dir_cache /path/to/cache/ --assembly GRCh38 --biotype --fork 8 --offline`
-**Explanation:** --biotype adds transcript biotype (protein_coding, lncRNA, etc.) to output
+**Explanation:** vep command; --input_file variants.vcf input VCF; --output_file annotated.vcf output VCF; --vcf VCF format; --cache offline mode; --dir_cache /path/to/cache/ cache directory; --assembly GRCh38 genome build; --biotype adds transcript biotype (protein_coding, lncRNA); --fork 8 threads; --offline
 
 ### annotate regulatory regions
 **Args:** `--input_file variants.vcf --output_file annotated.vcf --vcf --cache --dir_cache /path/to/cache/ --assembly GRCh38 --regulatory --fork 8 --offline`
-**Explanation:** --regulatory annotates variants in regulatory regions (promoters, enhancers)
+**Explanation:** vep command; --input_file variants.vcf input VCF; --output_file annotated.vcf output VCF; --vcf VCF format; --cache offline mode; --dir_cache /path/to/cache/ cache directory; --assembly GRCh38 genome build; --regulatory annotates regulatory regions; --fork 8 threads; --offline
 
 ### annotate with CADD scores using plugin
 **Args:** `--input_file variants.vcf --output_file annotated.vcf --vcf --cache --dir_cache /path/to/cache/ --assembly GRCh38 --plugin CADD,whole_genome_SNVs.tsv.gz --fork 8 --offline`
-**Explanation:** --plugin CADD adds CADD pathogenicity scores; requires CADD database files
+**Explanation:** vep command; --input_file variants.vcf input VCF; --output_file annotated.vcf output VCF; --vcf VCF format; --cache offline mode; --dir_cache /path/to/cache/ cache directory; --assembly GRCh38 genome build; --plugin CADD,whole_genome_SNVs.tsv.gz CADD scores; --fork 8 threads; --offline; requires CADD database files
 
 ### annotate with custom BED file
 **Args:** `--input_file variants.vcf --output_file annotated.vcf --vcf --cache --dir_cache /path/to/cache/ --assembly GRCh38 --custom custom_regions.bed.gz,custom,bed,overlap,0 --fork 8 --offline`
-**Explanation:** --custom annotates with user-provided BED file; useful for custom regions
+**Explanation:** vep command; --input_file variants.vcf input VCF; --output_file annotated.vcf output VCF; --vcf VCF format; --cache offline mode; --dir_cache /path/to/cache/ cache directory; --assembly GRCh38 genome build; --custom custom_regions.bed.gz,custom,bed,overlap,0 custom annotation; --fork 8 threads; --offline
 
 ### output tabular format instead of VCF
 **Args:** `--input_file variants.vcf --output_file annotated.txt --cache --dir_cache /path/to/cache/ --assembly GRCh38 --tab --fork 8 --offline`
-**Explanation:** --tab outputs tab-delimited format; easier to parse than VCF CSQ field
+**Explanation:** vep command; --input_file variants.vcf input VCF; --output_file annotated.txt output text file; --cache offline mode; --dir_cache /path/to/cache/ cache directory; --assembly GRCh38 genome build; --tab tab-delimited format; --fork 8 threads; --offline
 
 ### annotate per gene instead of per transcript
 **Args:** `--input_file variants.vcf --output_file annotated.vcf --vcf --cache --dir_cache /path/to/cache/ --assembly GRCh38 --per_gene --fork 8 --offline`
-**Explanation:** --per_gene outputs one annotation per gene instead of per transcript
+**Explanation:** vep command; --input_file variants.vcf input VCF; --output_file annotated.vcf output VCF; --vcf VCF format; --cache offline mode; --dir_cache /path/to/cache/ cache directory; --assembly GRCh38 genome build; --per_gene one annotation per gene; --fork 8 threads; --offline

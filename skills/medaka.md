@@ -41,44 +41,44 @@ source_url: "https://github.com/nanoporetech/medaka"
 
 ### polish an ONT assembly with Medaka (all-in-one pipeline)
 **Args:** `medaka_consensus -i reads.fastq.gz -d draft_assembly.fasta -o medaka_output/ -t 8 -m r941_min_hac_g507`
-**Explanation:** -i ONT reads; -d draft assembly; -o output directory; -m model matching your basecaller version
+**Explanation:** medaka_consensus command; -i reads.fastq.gz ONT reads; -d draft_assembly.fasta draft assembly; -o medaka_output/ output directory; -t 8 threads; -m r941_min_hac_g507 model matching basecaller version
 
 ### call variants from ONT reads (haploid)
 **Args:** `medaka_haploid_variant -i reads.fastq.gz -r reference.fasta -o medaka_variants/ -t 8 -m r941_min_hac_g507`
-**Explanation:** medaka_haploid_variant for haploid variant calling (bacteria, viruses); -r reference FASTA
+**Explanation:** medaka_haploid_variant command for haploid variant calling (bacteria, viruses); -i reads.fastq.gz ONT reads; -r reference.fasta reference FASTA; -o medaka_variants/ output directory; -t 8 threads; -m r941_min_hac_g507 model
 
 ### list available Medaka models
 **Args:** `tools list_models`
-**Explanation:** lists all available models; select the appropriate model for your flowcell and basecaller version
+**Explanation:** medaka tools subcommand; list_models lists all available models; select the appropriate model for your flowcell and basecaller version
 
 ### run Medaka consensus with GPU acceleration
 **Args:** `medaka_consensus -i reads.fastq.gz -d draft.fasta -o medaka_gpu/ -t 2 -m r1041_e82_400bps_hac_v4.2.0 --gpu`
-**Explanation:** --gpu uses CUDA for faster neural network inference; reduce -t when using GPU
+**Explanation:** medaka_consensus command; -i reads.fastq.gz ONT reads; -d draft.fasta draft assembly; -o medaka_gpu/ output directory; -t 2 threads; -m r1041_e82_400bps_hac_v4.2.0 model; --gpu uses CUDA for faster neural network inference
 
 ### run targeted variant calling with region BED file
 **Args:** `medaka_variant -i reads.fastq.gz -r reference.fasta -o targeted_variants/ -t 8 -m r1041_e82_400bps_hac_v4.2.0 --regions targets.bed`
-**Explanation:** --regions limits analysis to specified BED regions; useful for targeted sequencing or amplicon data
+**Explanation:** medaka_variant command; -i reads.fastq.gz ONT reads; -r reference.fasta reference; -o targeted_variants/ output directory; -t 8 threads; -m r1041_e82_400bps_hac_v4.2.0 model; --regions targets.bed limits analysis to specified BED regions
 
 ### reduce memory usage for large genomes
 **Args:** `medaka_consensus -i reads.fastq.gz -d draft.fasta -o medaka_lowmem/ -t 4 -m r1041_e82_400bps_hac_v4.2.0 --chunk_len 5000 --chunk_ovlp 500`
-**Explanation:** --chunk_len 5000 and --chunk_ovlp 500 reduce memory footprint; trade-off is slightly slower runtime
+**Explanation:** medaka_consensus command; -i reads.fastq.gz ONT reads; -d draft.fasta draft assembly; -o medaka_lowmem/ output directory; -t 4 threads; -m r1041_e82_400bps_hac_v4.2.0 model; --chunk_len 5000 and --chunk_ovlp 500 reduce memory footprint
 
 ### save intermediate features for model comparison
 **Args:** `inference --save_features --model r1041_e82_400bps_hac_v4.2.0 aligned.bam output.hdf`
-**Explanation:** --save_features preserves feature HDF5; allows re-running inference with different models without regenerating features
+**Explanation:** medaka inference subcommand; --save_features preserves feature HDF5; --model r1041_e82_400bps_hac_v4.2.0 neural network model; aligned.bam input BAM; output.hdf output HDF5
 
 ### run inference on specific chromosomes only
 **Args:** `inference --regions chr1 chr2 chr3 --model r1041_e82_400bps_hac_v4.2.0 aligned.bam chr1-3_output.hdf`
-**Explanation:** --regions specifies which contigs to process; useful for parallel processing or testing on subset of data
+**Explanation:** medaka inference subcommand; --regions chr1 chr2 chr3 specifies which contigs to process; --model r1041_e82_400bps_hac_v4.2.0 neural network model; aligned.bam input BAM; chr1-3_output.hdf output HDF5
 
 ### stitch consensus from inference HDF5 output
 **Args:** `sequence output.hdf consensus.fasta`
-**Explanation:** converts inference HDF5 to FASTA consensus; run after medaka inference or medaka consensus_from_features
+**Explanation:** medaka sequence subcommand; output.hdf input HDF5; consensus.fasta output FASTA; converts inference HDF5 to FASTA consensus
 
 ### create VCF from diploid inference output
 **Args:** `vcf output.hdf variants.vcf reference.fasta`
-**Explanation:** generates VCF from diploid inference; reference required to determine variant positions and alleles
+**Explanation:** medaka vcf subcommand; output.hdf input HDF5; variants.vcf output VCF; reference.fasta reference FASTA; generates VCF from diploid inference
 
 ### compress BAM to RLE format for storage
 **Args:** `compress_bam -t 8 aligned.bam compressed.bam`
-**Explanation:** compress_bam creates run-length encoded BAM; reduces file size for long-term storage of ONT alignments
+**Explanation:** medaka compress_bam subcommand; -t 8 threads; aligned.bam input BAM; compressed.bam output BAM; creates run-length encoded BAM

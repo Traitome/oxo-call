@@ -38,40 +38,40 @@ source_url: "https://github.com/dpryan79/MethylDackel"
 
 ### extract CpG methylation from bisulfite-aligned BAM
 **Args:** `extract reference.fa sorted_bisulfite.bam -o sample_methylation`
-**Explanation:** extract subcommand; outputs sample_methylation_CpG.bedGraph; -o sets output prefix
+**Explanation:** MethylDackel extract subcommand; reference.fa reference FASTA; sorted_bisulfite.bam input BAM; -o sample_methylation output prefix; outputs sample_methylation_CpG.bedGraph
 
 ### extract all cytosine contexts (CpG, CHG, CHH)
 **Args:** `extract --CHG --CHH reference.fa sorted_bisulfite.bam -o sample_all_contexts`
-**Explanation:** --CHG --CHH enables CHG and CHH context extraction in addition to CpG
+**Explanation:** MethylDackel extract subcommand; --CHG --CHH enables CHG and CHH context extraction; reference.fa reference FASTA; sorted_bisulfite.bam input BAM; -o sample_all_contexts output prefix
 
 ### detect M-bias before extraction
 **Args:** `mbias reference.fa sorted_bisulfite.bam sample_mbias`
-**Explanation:** mbias generates M-bias plots; use to determine --ignore parameters for biased read positions
+**Explanation:** MethylDackel mbias subcommand; reference.fa reference FASTA; sorted_bisulfite.bam input BAM; sample_mbias output prefix; generates M-bias plots
 
 ### extract methylation ignoring biased read ends
 **Args:** `extract --ignore 5 5 reference.fa sorted_bisulfite.bam -o trimmed_methylation`
-**Explanation:** --ignore 5 5 ignores first and last 5 bases of each read to remove end-of-read bias
+**Explanation:** MethylDackel extract subcommand; --ignore 5 5 ignores first and last 5 bases; reference.fa reference FASTA; sorted_bisulfite.bam input BAM; -o trimmed_methylation output prefix
 
 ### merge per-cytosine metrics into per-CpG metrics
 **Args:** `extract --mergeContext reference.fa sorted_bisulfite.bam -o merged_cpg`
-**Explanation:** --mergeContext combines strand metrics; outputs per-CpG instead of per-cytosine
+**Explanation:** MethylDackel extract subcommand; --mergeContext combines strand metrics; reference.fa reference FASTA; sorted_bisulfite.bam input BAM; -o merged_cpg output prefix
 
 ### extract fractional methylation only
 **Args:** `extract --fraction reference.fa sorted_bisulfite.bam -o fractional`
-**Explanation:** --fraction outputs only methylation fraction (0-1); smaller files for visualization
+**Explanation:** MethylDackel extract subcommand; --fraction outputs fractional methylation (0-1); reference.fa reference FASTA; sorted_bisulfite.bam input BAM; -o fractional output prefix
 
 ### exclude SNPs from methylation calls
 **Args:** `extract --minOppositeDepth 5 --maxVariantFrac 0.1 reference.fa sorted_bisulfite.bam -o snp_filtered`
-**Explanation:** --minOppositeDepth 5 requires 5x coverage on opposite strand; --maxVariantFrac 0.1 excludes sites with >10% variants
+**Explanation:** MethylDackel extract subcommand; --minOppositeDepth 5 requires 5x coverage on opposite strand; --maxVariantFrac 0.1 excludes sites with >10% variants; reference.fa reference FASTA; sorted_bisulfite.bam input BAM; -o snp_filtered output prefix
 
 ### generate Bismark-compatible cytosine report
 **Args:** `extract --cytosine_report reference.fa sorted_bisulfite.bam -o cytosine_report`
-**Explanation:** --cytosine_report produces Bismark-compatible output; for compatibility with Bismark pipelines
+**Explanation:** MethylDackel extract subcommand; --cytosine_report produces Bismark-compatible output; reference.fa reference FASTA; sorted_bisulfite.bam input BAM; -o cytosine_report output prefix
 
 ### output methylKit format for R analysis
 **Args:** `extract --methylKit reference.fa sorted_bisulfite.bam -o methylkit`
-**Explanation:** --methylKit outputs methylKit-compatible format; for downstream analysis in R
+**Explanation:** MethylDackel extract subcommand; --methylKit outputs methylKit-compatible format; reference.fa reference FASTA; sorted_bisulfite.bam input BAM; -o methylkit output prefix
 
 ### extract with all contexts and filtering
 **Args:** `extract --CHG --CHH --mergeContext --minOppositeDepth 3 --maxVariantFrac 0.05 reference.fa sorted.bam -o comprehensive`
-**Explanation:** comprehensive extraction with all contexts, merged CpGs, and SNP filtering
+**Explanation:** MethylDackel extract subcommand; --CHG --CHH all contexts; --mergeContext combined metrics; --minOppositeDepth 3 --maxVariantFrac 0.05 SNP filtering; reference.fa reference FASTA; sorted.bam input BAM; -o comprehensive output prefix

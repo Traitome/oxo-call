@@ -41,52 +41,52 @@ source_url: "https://github.com/nanoporetech/dorado"
 
 ### basecall ONT POD5 files with high-accuracy model on GPU
 **Args:** `basecaller hac pod5_files/ --device cuda:0 > calls.bam`
-**Explanation:** basecaller subcommand; hac high-accuracy model; pod5_files/ directory of POD5 files; --device cuda:0 GPU; output uBAM to stdout
+**Explanation:** dorado basecaller subcommand; hac high-accuracy model; pod5_files/ directory of POD5 files; --device cuda:0 GPU; output uBAM to stdout
 
 ### basecall with super-accuracy model and modified base calling
 **Args:** `basecaller sup pod5_files/ --modified-bases 5mCG_5hmCG --device cuda:0 > calls_mods.bam`
-**Explanation:** basecaller subcommand; sup model; pod5_files/ directory of POD5 files; --modified-bases 5mCG_5hmCG detects 5mC and 5hmC methylation; --device cuda:0 GPU; requires compatible modified base model; output to stdout
+**Explanation:** dorado basecaller subcommand; sup model; pod5_files/ directory of POD5 files; --modified-bases 5mCG_5hmCG detects 5mC and 5hmC methylation; --device cuda:0 GPU; requires compatible modified base model; output to stdout
 
 ### basecall and output FASTQ format
 **Args:** `basecaller hac pod5_files/ --emit-fastq --device cuda:0 | gzip > basecalled_reads.fastq.gz`
-**Explanation:** basecaller subcommand; hac high-accuracy model; pod5_files/ directory of POD5 files; --emit-fastq outputs FASTQ instead of uBAM; --device cuda:0 GPU; pipe to gzip for compressed output
+**Explanation:** dorado basecaller subcommand; hac high-accuracy model; pod5_files/ directory of POD5 files; --emit-fastq outputs FASTQ instead of uBAM; --device cuda:0 GPU; pipe to gzip for compressed output
 
 ### demultiplex barcoded reads using Dorado
 **Args:** `demux --kit-name SQK-NBD114-24 --output-dir demux_output/ --emit-fastq reads.bam`
-**Explanation:** demux subcommand; --kit-name SQK-NBD114-24 specifies barcode kit; --output-dir demux_output/ output directory; --emit-fastq outputs FASTQ files per barcode; reads.bam input BAM
+**Explanation:** dorado demux subcommand; --kit-name SQK-NBD114-24 specifies barcode kit; --output-dir demux_output/ output directory; --emit-fastq outputs FASTQ files per barcode; reads.bam input BAM
 
 ### run duplex basecalling for highest accuracy paired reads
 **Args:** `duplex sup pod5_files/ --device cuda:0 > duplex_calls.bam`
-**Explanation:** duplex subcommand; sup model; pod5_files/ directory of POD5 files; --device cuda:0 GPU; duplex mode uses paired strands for highest accuracy; requires paired-strand pod5 files; output to stdout
+**Explanation:** dorado duplex subcommand; sup model; pod5_files/ directory of POD5 files; --device cuda:0 GPU; duplex mode uses paired strands for highest accuracy; requires paired-strand pod5 files; output to stdout
 
 ### resume interrupted basecalling from existing BAM
 **Args:** `basecaller hac pod5_files/ --resume-from incomplete.bam --device cuda:0 > complete.bam`
-**Explanation:** basecaller subcommand; hac high-accuracy model; pod5_files/ directory of POD5 files; --resume-from incomplete.bam continues from incomplete.bam; --device cuda:0 GPU; complete.bam will contain all reads (use different filename)
+**Explanation:** dorado basecaller subcommand; hac high-accuracy model; pod5_files/ directory of POD5 files; --resume-from incomplete.bam continues from incomplete.bam; --device cuda:0 GPU; complete.bam will contain all reads (use different filename)
 
 ### basecall with quality score filtering
 **Args:** `basecaller sup pod5_files/ --min-qscore 10 --device cuda:0 > high_qual.bam`
-**Explanation:** basecaller subcommand; sup model; pod5_files/ directory of POD5 files; --min-qscore 10 filters out reads with mean Q-score < 10; --device cuda:0 GPU; reduces output to high-quality reads only
+**Explanation:** dorado basecaller subcommand; sup model; pod5_files/ directory of POD5 files; --min-qscore 10 filters out reads with mean Q-score < 10; --device cuda:0 GPU; reduces output to high-quality reads only
 
 ### basecall with real-time alignment to reference
 **Args:** `basecaller hac pod5_files/ --reference genome.fa --device cuda:0 > aligned.bam`
-**Explanation:** basecaller subcommand; hac high-accuracy model; pod5_files/ directory of POD5 files; --reference genome.fa enables alignment during basecalling using minimap2; --device cuda:0 GPU; outputs aligned BAM directly
+**Explanation:** dorado basecaller subcommand; hac high-accuracy model; pod5_files/ directory of POD5 files; --reference genome.fa enables alignment during basecalling using minimap2; --device cuda:0 GPU; outputs aligned BAM directly
 
 ### trim adapters from existing basecalled reads
 **Args:** `trim calls.bam --sequencing-kit SQK-LSK114 --emit-fastq > trimmed.fastq`
-**Explanation:** trim subcommand; calls.bam input BAM; --sequencing-kit SQK-LSK114 specifies kit for adapter sequences; --emit-fastq output FASTQ format; removes adapters/primers post-basecalling
+**Explanation:** dorado trim subcommand; calls.bam input BAM; --sequencing-kit SQK-LSK114 specifies kit for adapter sequences; --emit-fastq output FASTQ format; removes adapters/primers post-basecalling
 
 ### align existing basecalls to reference
 **Args:** `aligner genome.fa calls.bam > aligned.bam`
-**Explanation:** aligner subcommand; genome.fa reference FASTA; calls.bam input BAM; outputs aligned BAM; uses minimap2 internally
+**Explanation:** dorado aligner subcommand; genome.fa reference FASTA; calls.bam input BAM; outputs aligned BAM; uses minimap2 internally
 
 ### basecall with custom batch size for memory control
 **Args:** `basecaller sup pod5_files/ --batchsize 64 --device cuda:0 > calls.bam`
-**Explanation:** basecaller subcommand; sup model; pod5_files/ directory of POD5 files; --batchsize 64 reduces memory usage; --device cuda:0 GPU; increase for better throughput on high-memory GPUs
+**Explanation:** dorado basecaller subcommand; sup model; pod5_files/ directory of POD5 files; --batchsize 64 reduces memory usage; --device cuda:0 GPU; increase for better throughput on high-memory GPUs
 
 ### basecall with recursive directory scanning
 **Args:** `basecaller hac data/ --recursive --device cuda:0 > calls.bam`
-**Explanation:** basecaller subcommand; hac high-accuracy model; data/ input directory; --recursive finds all POD5/FAST5 files in data/ and subdirectories; --device cuda:0 GPU
+**Explanation:** dorado basecaller subcommand; hac high-accuracy model; data/ input directory; --recursive finds all POD5/FAST5 files in data/ and subdirectories; --device cuda:0 GPU
 
 ### demultiplex without trimming barcodes
 **Args:** `demux --kit-name SQK-NBD114-24 --no-trim --output-dir demux/ reads.bam`
-**Explanation:** demux subcommand; --kit-name SQK-NBD114-24 specifies barcode kit; --no-trim preserves barcode sequences; --output-dir demux/ output directory; reads.bam input BAM; use when you need to re-demultiplex later
+**Explanation:** dorado demux subcommand; --kit-name SQK-NBD114-24 specifies barcode kit; --no-trim preserves barcode sequences; --output-dir demux/ output directory; reads.bam input BAM; use when you need to re-demultiplex later

@@ -39,40 +39,40 @@ source_url: "https://crossmap.sourceforge.net/"
 
 ### convert BED file from hg19 to hg38 coordinates
 **Args:** `bed hg19ToHg38.over.chain.gz input_hg19.bed output_hg38.bed`
-**Explanation:** bed subcommand; hg19ToHg38.over.chain.gz chain file; input_hg19.bed input BED; output_hg38.bed output BED; chain file specifies conversion direction
+**Explanation:** CrossMap bed subcommand; hg19ToHg38.over.chain.gz chain file; input_hg19.bed input BED; output_hg38.bed output BED; chain file specifies conversion direction
 
 ### convert VCF file from hg19 to hg38 with target reference
 **Args:** `vcf hg19ToHg38.over.chain.gz input_hg19.vcf hg38_reference.fa output_hg38.vcf`
-**Explanation:** vcf subcommand; hg19ToHg38.over.chain.gz chain file; input_hg19.vcf input VCF; hg38_reference.fa target genome FASTA for REF allele check; output_hg38.vcf output VCF; unlifted variants go to .unmap
+**Explanation:** CrossMap vcf subcommand; hg19ToHg38.over.chain.gz chain file; input_hg19.vcf input VCF; hg38_reference.fa target genome FASTA for REF allele check; output_hg38.vcf output VCF; unlifted variants go to .unmap
 
 ### convert GFF/GTF annotation from one assembly to another
 **Args:** `gff hg19ToHg38.over.chain.gz annotation_hg19.gtf output_hg38.gtf`
-**Explanation:** gff subcommand; hg19ToHg38.over.chain.gz chain file; annotation_hg19.gtf input GTF; output_hg38.gtf output GTF; handles both GFF and GTF format conversion
+**Explanation:** CrossMap gff subcommand; hg19ToHg38.over.chain.gz chain file; annotation_hg19.gtf input GTF; output_hg38.gtf output GTF; handles both GFF and GTF format conversion
 
 ### convert BAM file from one genome build to another
 **Args:** `bam hg19ToHg38.over.chain.gz input_hg19.bam output_hg38.bam`
-**Explanation:** bam subcommand; hg19ToHg38.over.chain.gz chain file; input_hg19.bam input BAM; output_hg38.bam output BAM; re-sort output with samtools sort; update header SQ lines with new coordinates
+**Explanation:** CrossMap bam subcommand; hg19ToHg38.over.chain.gz chain file; input_hg19.bam input BAM; output_hg38.bam output BAM; re-sort output with samtools sort; update header SQ lines with new coordinates
 
 ### convert VCF with short chromosome style output
 **Args:** `vcf hg19ToHg38.over.chain.gz input.vcf hg38.fa output.vcf --chromid s --compress`
-**Explanation:** vcf subcommand; hg19ToHg38.over.chain.gz chain file; input.vcf input VCF; hg38.fa target genome FASTA; output.vcf output VCF; --chromid s outputs short chromosome IDs (1, 2, X instead of chr1, chr2, chrX); --compress gzip compresses output
+**Explanation:** CrossMap vcf subcommand; hg19ToHg38.over.chain.gz chain file; input.vcf input VCF; hg38.fa target genome FASTA; output.vcf output VCF; --chromid s outputs short chromosome IDs (1, 2, X instead of chr1, chr2, chrX); --compress gzip compresses output
 
 ### convert BED with custom unmap file
 **Args:** `bed hg19ToHg38.over.chain.gz input.bed output.bed --unmap-file failed_liftover.bed`
-**Explanation:** bed subcommand; hg19ToHg38.over.chain.gz chain file; input.bed input BED; output.bed output BED; --unmap-file failed_liftover.bed specifies custom filename for entries that fail liftover
+**Explanation:** CrossMap bed subcommand; hg19ToHg38.over.chain.gz chain file; input.bed input BED; output.bed output BED; --unmap-file failed_liftover.bed specifies custom filename for entries that fail liftover
 
 ### view chain file contents
 **Args:** `viewchain hg19ToHg38.over.chain.gz`
-**Explanation:** viewchain subcommand; hg19ToHg38.over.chain.gz chain file; displays chain file in human-readable block-to-block format; useful for understanding alignment structure
+**Explanation:** CrossMap viewchain subcommand; hg19ToHg38.over.chain.gz chain file; displays chain file in human-readable block-to-block format; useful for understanding alignment structure
 
 ### convert BigWig file
 **Args:** `bigwig hg19ToHg38.over.chain.gz input_hg19.bw output_hg38.bw`
-**Explanation:** bigwig subcommand; hg19ToHg38.over.chain.gz chain file; input_hg19.bw input BigWig; output_hg38.bw output BigWig; signal track conversion maintains BigWig format
+**Explanation:** CrossMap bigwig subcommand; hg19ToHg38.over.chain.gz chain file; input_hg19.bw input BigWig; output_hg38.bw output BigWig; signal track conversion maintains BigWig format
 
 ### convert Wiggle/bedGraph format
 **Args:** `wig hg19ToHg38.over.chain.gz input.wig output.wig`
-**Explanation:** wig subcommand; hg19ToHg38.over.chain.gz chain file; input.wig input Wiggle; output.wig output Wiggle; handles Wiggle and bedGraph format conversion; preserves signal values
+**Explanation:** CrossMap wig subcommand; hg19ToHg38.over.chain.gz chain file; input.wig input Wiggle; output.wig output Wiggle; handles Wiggle and bedGraph format conversion; preserves signal values
 
 ### convert MAF mutation format
 **Args:** `maf hg19ToHg38.over.chain.gz input.maf hg38.fa output.maf`
-**Explanation:** maf subcommand; hg19ToHg38.over.chain.gz chain file; input.maf input MAF; hg38.fa target genome FASTA; output.maf output MAF; for Mutation Annotation Format conversion; requires target genome FASTA like VCF
+**Explanation:** CrossMap maf subcommand; hg19ToHg38.over.chain.gz chain file; input.maf input MAF; hg38.fa target genome FASTA; output.maf output MAF; for Mutation Annotation Format conversion; requires target genome FASTA like VCF

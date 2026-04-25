@@ -43,48 +43,48 @@ source_url: "http://www.iqtree.org/"
 
 ### infer maximum-likelihood tree with automatic model selection
 **Args:** `-s alignment.fasta -m MFP --prefix my_tree -T AUTO`
-**Explanation:** iqtree2 subcommand; -s alignment.fasta input alignment; -m MFP model selection + tree inference; --prefix my_tree output prefix; -T AUTO auto-detect CPU count
+**Explanation:** iqtree2 command; -s alignment.fasta input alignment; -m MFP model selection + tree inference; --prefix my_tree output prefix; -T AUTO auto-detect CPU count
 
 ### infer tree with ultrafast bootstrap and model selection
 **Args:** `-s alignment.fasta -m MFP -B 1000 --bnni --prefix bootstrap_tree -T 8`
-**Explanation:** iqtree2 subcommand; -s alignment.fasta input alignment; -m MFP model selection + tree inference; -B 1000 ultrafast bootstrap; --bnni optimizes bootstrap trees; --prefix bootstrap_tree output prefix; -T 8 threads
+**Explanation:** iqtree2 command; -s alignment.fasta input alignment; -m MFP model selection + tree inference; -B 1000 ultrafast bootstrap; --bnni optimizes bootstrap trees; --prefix bootstrap_tree output prefix; -T 8 threads
 
 ### infer phylogenetic tree for protein sequences
 **Args:** `-s protein_alignment.fasta -st AA -m TEST -B 1000 --bnni --prefix protein_tree -T 8`
-**Explanation:** iqtree2 subcommand; -s protein_alignment.fasta input alignment; -st AA amino acid data type; -m TEST model selection; -B 1000 ultrafast bootstrap; --bnni optimizes bootstrap trees; --prefix protein_tree output prefix; -T 8 threads
+**Explanation:** iqtree2 command; -s protein_alignment.fasta input alignment; -st AA amino acid data type; -m TEST model selection; -B 1000 ultrafast bootstrap; --bnni optimizes bootstrap trees; --prefix protein_tree output prefix; -T 8 threads
 
 ### infer concordance factor analysis for assessing gene tree discordance
 **Args:** `-s alignment.fasta -m MFP -B 1000 --prefix main_tree -T 8 --gcf gene_trees.txt --scfl 100`
-**Explanation:** iqtree2 subcommand; -s alignment.fasta input alignment; -m MFP model selection; -B 1000 ultrafast bootstrap; --prefix main_tree output prefix; -T 8 threads; --gcf gene_trees.txt gene concordance factor; --scfl 100 site concordance factor
+**Explanation:** iqtree2 command; -s alignment.fasta input alignment; -m MFP model selection; -B 1000 ultrafast bootstrap; --prefix main_tree output prefix; -T 8 threads; --gcf gene_trees.txt gene concordance factor; --scfl 100 site concordance factor
 
 ### infer tree with standard bootstrap and specified outgroup
 **Args:** `-s alignment.fasta -m MFP -b 100 -o outgroup_taxon --prefix rooted_tree -T 8`
-**Explanation:** iqtree2 subcommand; -s alignment.fasta input alignment; -m MFP model selection; -b 100 standard bootstrap; -o outgroup_taxon roots tree; --prefix rooted_tree output prefix; -T 8 threads
+**Explanation:** iqtree2 command; -s alignment.fasta input alignment; -m MFP model selection; -b 100 standard bootstrap; -o outgroup_taxon roots tree; --prefix rooted_tree output prefix; -T 8 threads
 
 ### infer tree with SH-aLRT test (faster than bootstrap)
 **Args:** `-s alignment.fasta -m MFP --alrt 1000 --prefix alrt_tree -T 8`
-**Explanation:** iqtree2 subcommand; -s alignment.fasta input alignment; -m MFP model selection; --alrt 1000 SH-aLRT branch test; --prefix alrt_tree output prefix; -T 8 threads
+**Explanation:** iqtree2 command; -s alignment.fasta input alignment; -m MFP model selection; --alrt 1000 SH-aLRT branch test; --prefix alrt_tree output prefix; -T 8 threads
 
 ### infer time tree with tip dates for virus phylogeny
 **Args:** `-s virus_alignment.fasta -m MFP --date dates.txt --prefix timetree -T 8`
-**Explanation:** iqtree2 subcommand; -s virus_alignment.fasta input alignment; -m MFP model selection; --date dates.txt sampling dates; --prefix timetree output prefix; -T 8 threads; infers time tree
+**Explanation:** iqtree2 command; -s virus_alignment.fasta input alignment; -m MFP model selection; --date dates.txt sampling dates; --prefix timetree output prefix; -T 8 threads; infers time tree
 
 ### run PartitionFinder to optimize partitioning scheme
 **Args:** `-s alignment.fasta -p partitions.nex -m MF+MERGE --prefix merged_partitions -T 8`
-**Explanation:** iqtree2 subcommand; -s alignment.fasta input alignment; -p partitions.nex partition file; -m MF+MERGE merges similar partitions; --prefix merged_partitions output prefix; -T 8 threads
+**Explanation:** iqtree2 command; -s alignment.fasta input alignment; -p partitions.nex partition file; -m MF+MERGE merges similar partitions; --prefix merged_partitions output prefix; -T 8 threads
 
 ### infer tree with both SH-aLRT and ultrafast bootstrap
 **Args:** `-s alignment.fasta -m MFP --alrt 1000 -B 1000 --bnni --prefix comprehensive_tree -T 8`
-**Explanation:** iqtree2 subcommand; -s alignment.fasta input alignment; -m MFP model selection; --alrt 1000 SH-aLRT test; -B 1000 ultrafast bootstrap; --bnni optimizes bootstrap trees; --prefix comprehensive_tree output prefix; -T 8 threads
+**Explanation:** iqtree2 command; -s alignment.fasta input alignment; -m MFP model selection; --alrt 1000 SH-aLRT test; -B 1000 ultrafast bootstrap; --bnni optimizes bootstrap trees; --prefix comprehensive_tree output prefix; -T 8 threads
 
 ### resume interrupted analysis from checkpoint
 **Args:** `-s alignment.fasta -m MFP -B 1000 --bnni --prefix resumed_tree -T 8 --redo`
-**Explanation:** iqtree2 subcommand; -s alignment.fasta input alignment; -m MFP model selection; -B 1000 ultrafast bootstrap; --bnni optimizes bootstrap trees; --prefix resumed_tree output prefix; -T 8 threads; --redo restarts analysis
+**Explanation:** iqtree2 command; -s alignment.fasta input alignment; -m MFP model selection; -B 1000 ultrafast bootstrap; --bnni optimizes bootstrap trees; --prefix resumed_tree output prefix; -T 8 threads; --redo restarts analysis
 
 ### infer tree with SPRTA branch supports for pathogen analysis
 **Args:** `-s pathogen_alignment.fasta -m MFP --sprta --pathogen --prefix sprta_tree -T 8`
-**Explanation:** iqtree2 subcommand; -s pathogen_alignment.fasta input alignment; -m MFP model selection; --sprta computes SPRTA supports; --pathogen enables CMAPLE algorithm; --prefix sprta_tree output prefix; -T 8 threads
+**Explanation:** iqtree2 command; -s pathogen_alignment.fasta input alignment; -m MFP model selection; --sprta computes SPRTA supports; --pathogen enables CMAPLE algorithm; --prefix sprta_tree output prefix; -T 8 threads
 
 ### infer tree with memory limit for HPC systems
 **Args:** `-s alignment.fasta -m MFP -B 1000 --bnni --prefix memory_limited_tree -T 8 --mem 32G`
-**Explanation:** iqtree2 subcommand; -s alignment.fasta input alignment; -m MFP model selection; -B 1000 ultrafast bootstrap; --bnni optimizes bootstrap trees; --prefix memory_limited_tree output prefix; -T 8 threads; --mem 32G limits RAM to 32GB
+**Explanation:** iqtree2 command; -s alignment.fasta input alignment; -m MFP model selection; -B 1000 ultrafast bootstrap; --bnni optimizes bootstrap trees; --prefix memory_limited_tree output prefix; -T 8 threads; --mem 32G limits RAM to 32GB

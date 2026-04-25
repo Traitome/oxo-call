@@ -39,48 +39,48 @@ source_url: "https://vcftools.github.io/"
 
 ### filter VCF by minor allele frequency and missingness
 **Args:** `--vcf variants.vcf --maf 0.05 --max-missing 0.9 --recode --recode-INFO-all --out filtered_variants`
-**Explanation:** --maf 0.05 keeps variants with ≥5% minor allele frequency; --max-missing 0.9 requires 90% genotype completeness
+**Explanation:** vcftools command; --vcf variants.vcf input VCF; --maf 0.05 keeps variants with ≥5% MAF; --max-missing 0.9 requires 90% genotype completeness; --recode outputs filtered VCF; --recode-INFO-all preserves INFO fields; --out filtered_variants output prefix
 
 ### calculate per-site nucleotide diversity and Tajima's D statistics
 **Args:** `--vcf variants.vcf --site-pi --TajimaD 10000 --out popgen_stats`
-**Explanation:** --site-pi per-site nucleotide diversity; --TajimaD 10000 calculates Tajima's D in 10kb windows
+**Explanation:** vcftools command; --vcf variants.vcf input VCF; --site-pi per-site nucleotide diversity; --TajimaD 10000 Tajima's D in 10kb windows; --out popgen_stats output prefix
 
 ### filter VCF to biallelic SNPs with minimum depth
 **Args:** `--vcf variants.vcf --remove-indels --min-alleles 2 --max-alleles 2 --minDP 10 --recode --recode-INFO-all --out snps_only`
-**Explanation:** --remove-indels keeps only SNPs; --min/max-alleles 2 keeps biallelic only; --minDP 10 minimum depth filter
+**Explanation:** vcftools command; --vcf variants.vcf input VCF; --remove-indels keeps only SNPs; --min-alleles 2 --max-alleles 2 biallelic only; --minDP 10 minimum depth filter; --recode --recode-INFO-all output filtered VCF; --out snps_only output prefix
 
 ### compute pairwise FST between two populations
 **Args:** `--vcf variants.vcf --weir-fst-pop pop1_samples.txt --weir-fst-pop pop2_samples.txt --fst-window-size 50000 --out fst_results`
-**Explanation:** population files list one sample ID per line; --fst-window-size for windowed FST calculation
+**Explanation:** vcftools command; --vcf variants.vcf input VCF; --weir-fst-pop pop1_samples.txt population 1 sample list; --weir-fst-pop pop2_samples.txt population 2 sample list; --fst-window-size 50000 windowed FST; --out fst_results output prefix
 
 ### convert VCF to PLINK format for downstream analysis
 **Args:** `--vcf variants.vcf --plink --out plink_dataset`
-**Explanation:** --plink creates .ped and .map files; use --plink-tped for transposed PLINK format
+**Explanation:** vcftools command; --vcf variants.vcf input VCF; --plink creates .ped and .map files; --out plink_dataset output prefix; use --plink-tped for transposed format
 
 ### filter variants by genomic region using BED file
 **Args:** `--gzvcf variants.vcf.gz --bed exome_regions.bed --recode --recode-INFO-all --out exome_variants`
-**Explanation:** --bed keeps only variants within BED regions; useful for exome analysis or targeted panels
+**Explanation:** vcftools command; --gzvcf variants.vcf.gz gzipped input VCF; --bed exome_regions.bed keeps variants within BED regions; --recode --recode-INFO-all outputs filtered VCF; --out exome_variants output prefix; useful for exome analysis
 
 ### calculate sample heterozygosity for quality control
 **Args:** `--gzvcf variants.vcf.gz --het --out heterozygosity`
-**Explanation:** --het computes observed heterozygosity per sample; outliers may indicate contamination or relatedness issues
+**Explanation:** vcftools command; --gzvcf variants.vcf.gz gzipped input VCF; --het computes observed heterozygosity per sample; --out heterozygosity output prefix; outliers may indicate contamination
 
 ### calculate IBD relatedness between samples
 **Args:** `--gzvcf variants.vcf.gz --relatedness2 --out relatedness`
-**Explanation:** --relatedness2 calculates identity-by-descent sharing; values >0.125 indicate 3rd degree or closer relatives
+**Explanation:** vcftools command; --gzvcf variants.vcf.gz gzipped input VCF; --relatedness2 calculates identity-by-descent sharing; --out relatedness output prefix; values >0.125 indicate relatives
 
 ### extract specific SNPs by position list
 **Args:** `--gzvcf variants.vcf.gz --positions snp_list.txt --recode --recode-INFO-all --out subset_snps`
-**Explanation:** --positions file has format chr\tpos per line; extracts specific variants of interest
+**Explanation:** vcftools command; --gzvcf variants.vcf.gz gzipped input VCF; --positions snp_list.txt file with chr\tpos format; --recode --recode-INFO-all outputs filtered VCF; --out subset_snps output prefix; extracts specific variants
 
 ### filter to specific chromosome range
 **Args:** `--gzvcf variants.vcf.gz --chr 1 --from-bp 1000000 --to-bp 2000000 --recode --recode-INFO-all --out chr1_region`
-**Explanation:** --chr selects chromosome; --from-bp/--to-bp define the region; useful for fine-mapping loci
+**Explanation:** vcftools command; --gzvcf variants.vcf.gz gzipped input VCF; --chr 1 selects chromosome; --from-bp 1000000 --to-bp 2000000 define region; --recode --recode-INFO-all outputs filtered VCF; --out chr1_region output prefix; useful for fine-mapping
 
 ### remove indels and keep only SNPs
 **Args:** `--gzvcf variants.vcf.gz --remove-indels --recode --recode-INFO-all --out snps_only`
-**Explanation:** --remove-indels filters out insertions/deletions; keeps only single nucleotide variants
+**Explanation:** vcftools command; --gzvcf variants.vcf.gz gzipped input VCF; --remove-indels filters out insertions/deletions; --recode --recode-INFO-all outputs filtered VCF; --out snps_only output prefix; keeps only SNVs
 
 ### calculate allele frequency by population
 **Args:** `--gzvcf variants.vcf.gz --keep pop1_samples.txt --freq --out pop1_freq`
-**Explanation:** --keep restricts to samples in file; --freq outputs allele frequencies; repeat for each population
+**Explanation:** vcftools command; --gzvcf variants.vcf.gz gzipped input VCF; --keep pop1_samples.txt restricts to samples in file; --freq outputs allele frequencies; --out pop1_freq output prefix; repeat for each population

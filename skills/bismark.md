@@ -45,7 +45,7 @@ source_url: "https://github.com/FelixKrueger/Bismark"
 
 ### align paired-end WGBS reads to bisulfite genome
 **Args:** `--genome /path/to/genome_dir/ -1 R1.fastq.gz -2 R2.fastq.gz --output_dir bismark_output/ -p 4`
-**Explanation:** --genome points to prepared genome directory; -1/-2 paired-end reads; --output_dir specifies output location; -p 4 parallel cores
+**Explanation:** bismark command; --genome points to prepared genome directory; -1/-2 paired-end reads; --output_dir specifies output location; -p 4 parallel cores
 
 ### deduplicate bismark-aligned paired-end BAM file
 **Args:** `deduplicate_bismark --paired --bam sample_bismark_bt2_pe.bam`
@@ -57,23 +57,23 @@ source_url: "https://github.com/FelixKrueger/Bismark"
 
 ### align RRBS data with MspI site handling
 **Args:** `--genome /path/to/genome_dir/ --rrbs -1 R1.fastq.gz -2 R2.fastq.gz --output_dir rrbs_output/ -p 4`
-**Explanation:** --genome points to genome directory; --rrbs adjusts for MspI-digested RRBS libraries; -1/-2 paired-end reads; --output_dir specifies output location; -p 4 parallel cores; trims methylation-invariant positions; do NOT deduplicate RRBS data
+**Explanation:** bismark command; --genome points to genome directory; --rrbs adjusts for MspI-digested RRBS libraries; -1/-2 paired-end reads; --output_dir specifies output location; -p 4 parallel cores; trims methylation-invariant positions; do NOT deduplicate RRBS data
 
 ### align single-end WGBS reads with HISAT2 aligner
 **Args:** `--genome /path/to/genome_dir/ --hisat2 reads.fastq.gz --output_dir bismark_output/ -p 4`
-**Explanation:** --genome points to genome directory; --hisat2 uses HISAT2 instead of Bowtie2; --output_dir specifies output location; -p 4 parallel cores; genome index must have been prepared for HISAT2
+**Explanation:** bismark command; --genome points to genome directory; --hisat2 uses HISAT2 instead of Bowtie2; reads.fastq.gz input; --output_dir specifies output location; -p 4 parallel cores; genome index must have been prepared for HISAT2
 
 ### align PBAT or scBS-seq (non-directional) library
 **Args:** `--genome /path/to/genome_dir/ --non_directional -1 R1.fastq.gz -2 R2.fastq.gz --output_dir pbat_output/ -p 4`
-**Explanation:** --genome points to genome directory; --non_directional required for PBAT/Swift/scBS-seq libraries; -1/-2 paired-end reads; --output_dir specifies output location; -p 4 parallel cores; aligns all four strands
+**Explanation:** bismark command; --genome points to genome directory; --non_directional required for PBAT/Swift/scBS-seq libraries; -1/-2 paired-end reads; --output_dir specifies output location; -p 4 parallel cores; aligns all four strands
 
 ### align long-read bisulfite data (PacBio/Nanopore) with minimap2
 **Args:** `--genome /path/to/genome_dir/ --minimap2 reads.fastq.gz --output_dir nanopore_output/ -p 4`
-**Explanation:** --genome points to genome directory; --minimap2 for long-read BS-Seq (PacBio/Nanopore); --output_dir specifies output location; -p 4 parallel cores; genome must be prepared with bismark_genome_preparation --minimap2
+**Explanation:** bismark command; --genome points to genome directory; --minimap2 for long-read BS-Seq (PacBio/Nanopore); reads.fastq.gz input; --output_dir specifies output location; -p 4 parallel cores; genome must be prepared with bismark_genome_preparation --minimap2
 
 ### align SLAM-seq time-resolved experiment data
 **Args:** `--genome /path/to/genome_dir/ --slam -1 R1.fastq.gz -2 R2.fastq.gz --output_dir slam_output/ -p 4`
-**Explanation:** --genome points to genome directory; --slam mode uses T→C and A→G conversions for SLAM-seq/TUC-seq experiments instead of bisulfite; -1/-2 paired-end reads; --output_dir specifies output location; -p 4 parallel cores
+**Explanation:** bismark command; --genome points to genome directory; --slam mode uses T→C and A→G conversions for SLAM-seq/TUC-seq experiments instead of bisulfite; -1/-2 paired-end reads; --output_dir specifies output location; -p 4 parallel cores
 
 ### generate HTML alignment report from bismark output
 **Args:** `bismark2report --output_dir reports/`

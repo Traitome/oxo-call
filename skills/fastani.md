@@ -40,23 +40,23 @@ source_url: "https://github.com/ParBLiSS/FastANI"
 
 ### compute ANI between two genomes
 **Args:** `--query query.fasta --ref reference.fasta --output result.txt`
-**Explanation:** --query query.fasta query genome; --ref reference.fasta reference genome; --output result.txt output file; computes ANI from query.fasta against reference.fasta; output has ANI%, fragment counts; 95% threshold defines species boundary
+**Explanation:** fastANI command; --query query.fasta query genome; --ref reference.fasta reference genome; --output result.txt output file; computes ANI from query.fasta against reference.fasta; output has ANI%, fragment counts; 95% threshold defines species boundary
 
 ### all-vs-all comparison of a genome collection
 **Args:** `--queryList genomes.list --refList genomes.list --output all_vs_all.tsv --threads 16`
-**Explanation:** --queryList genomes.list query genome list; --refList genomes.list reference genome list (same file for all-vs-all); --output all_vs_all.tsv output file; --threads 16 parallelises across pairs; genomes.list has one genome path per line; computes ANI for all ordered pairs
+**Explanation:** fastANI command; --queryList genomes.list query genome list; --refList genomes.list reference genome list (same file for all-vs-all); --output all_vs_all.tsv output file; --threads 16 parallelises across pairs; genomes.list has one genome path per line; computes ANI for all ordered pairs
 
 ### one-to-many comparison: one query vs many references
 **Args:** `--query new_isolate.fa --refList reference_db.list --output ani_results.tsv --threads 8`
-**Explanation:** --query new_isolate.fa query genome; --refList reference_db.list reference genome list; --output ani_results.tsv output file; --threads 8 parallel threads; compares a single new isolate against all references in the list; useful for species identification or novelty detection
+**Explanation:** fastANI command; --query new_isolate.fa query genome; --refList reference_db.list reference genome list; --output ani_results.tsv output file; --threads 8 parallel threads; compares a single new isolate against all references in the list; useful for species identification or novelty detection
 
 ### filter results to show only high-ANI pairs (same species)
 **Args:** `--queryList genomes.list --refList genomes.list --output raw.tsv --minFraction 0.5 --threads 16`
-**Explanation:** --queryList genomes.list query genome list; --refList genomes.list reference genome list; --output raw.tsv output file; --minFraction 0.5 requires 50% of the query to align; --threads 16 parallel threads; increases reliability by filtering out low-coverage comparisons
+**Explanation:** fastANI command; --queryList genomes.list query genome list; --refList genomes.list reference genome list; --output raw.tsv output file; --minFraction 0.5 requires 50% of the query to align; --threads 16 parallel threads; increases reliability by filtering out low-coverage comparisons
 
 ### adjust fragment length for highly similar genomes
 **Args:** `--query q.fa --ref r.fa --output result.txt --fragLen 1500`
-**Explanation:** --query q.fa query genome; --ref r.fa reference genome; --output result.txt output file; --fragLen 1500 uses shorter fragments; increases sensitivity for genomes with many repetitive regions or large insertions/deletions
+**Explanation:** fastANI command; --query q.fa query genome; --ref r.fa reference genome; --output result.txt output file; --fragLen 1500 uses shorter fragments; increases sensitivity for genomes with many repetitive regions or large insertions/deletions
 
 ### build a genome list file for batch comparison
 **Args:** `find /genomes -name '*.fna' > genomes.list`
@@ -64,24 +64,24 @@ source_url: "https://github.com/ParBLiSS/FastANI"
 
 ### check FastANI version
 **Args:** `--version`
-**Explanation:** --version flag; prints the installed FastANI version; important for reproducibility reporting in publications
+**Explanation:** fastANI command; --version flag; prints the installed FastANI version; important for reproducibility reporting in publications
 
 ### generate PHYLIP matrix for phylogenetic analysis
 **Args:** `--queryList genomes.list --refList genomes.list --output ani.tsv --matrix --threads 16`
-**Explanation:** --queryList genomes.list query genome list; --refList genomes.list reference genome list; --output ani.tsv output file; --matrix creates additional .matrix file in PHYLIP format; --threads 16 parallel threads; use for NJ tree construction with tools like QuickTree
+**Explanation:** fastANI command; --queryList genomes.list query genome list; --refList genomes.list reference genome list; --output ani.tsv output file; --matrix creates additional .matrix file in PHYLIP format; --threads 16 parallel threads; use for NJ tree construction with tools like QuickTree
 
 ### visualize genome alignment regions
 **Args:** `--query query.fa --ref ref.fa --output result.txt --visualize`
-**Explanation:** --query query.fa query genome; --ref ref.fa reference genome; --output result.txt output file; --visualize outputs mapping coordinates to result.txt.visual; shows conserved regions between two genomes
+**Explanation:** fastANI command; --query query.fa query genome; --ref ref.fa reference genome; --output result.txt output file; --visualize outputs mapping coordinates to result.txt.visual; shows conserved regions between two genomes
 
 ### compare small genomes (viruses/plasmids)
 **Args:** `--query virus1.fa --ref virus2.fa --output result.txt --fragLen 500`
-**Explanation:** --query virus1.fa query virus genome; --ref virus2.fa reference virus genome; --output result.txt output file; --fragLen 500 uses shorter fragments for small genomes; default 3000bp is too large for viral genomes
+**Explanation:** fastANI command; --query virus1.fa query virus genome; --ref virus2.fa reference virus genome; --output result.txt output file; --fragLen 500 uses shorter fragments for small genomes; default 3000bp is too large for viral genomes
 
 ### increase sensitivity for divergent genomes
 **Args:** `--query query.fa --ref ref.fa --output result.txt --kmer 12 --minFraction 0.1`
-**Explanation:** --query query.fa query genome; --ref ref.fa reference genome; --output result.txt output file; --kmer 12 smaller k-mer increases sensitivity; --minFraction 0.1 keeps more distant comparisons
+**Explanation:** fastANI command; --query query.fa query genome; --ref ref.fa reference genome; --output result.txt output file; --kmer 12 smaller k-mer increases sensitivity; --minFraction 0.1 keeps more distant comparisons
 
 ### filter horizontal gene transfer regions
 **Args:** `--queryList genomes.list --refList genomes.list --output ani.tsv --maxRatioDiff 0.05 --threads 16`
-**Explanation:** --queryList genomes.list query genome list; --refList genomes.list reference genome list; --output ani.tsv output file; --maxRatioDiff 0.05 excludes regions with abnormal coverage ratios; --threads 16 parallel threads; helps filter HGT events
+**Explanation:** fastANI command; --queryList genomes.list query genome list; --refList genomes.list reference genome list; --output ani.tsv output file; --maxRatioDiff 0.05 excludes regions with abnormal coverage ratios; --threads 16 parallel threads; helps filter HGT events

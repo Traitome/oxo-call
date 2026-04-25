@@ -37,36 +37,36 @@ source_url: "https://github.com/Illumina/strelka"
 
 ### configure and run Strelka2 germline variant calling (configureStrelkaGermlineWorkflow.py)
 **Args:** `configureStrelkaGermlineWorkflow.py --bam sorted.bam --referenceFasta reference.fa --runDir strelka_germline && python strelka_germline/runWorkflow.py -m local -j 8`
-**Explanation:** configure creates runDir; then execute with -m local for local machine execution and -j 8 threads
+**Explanation:** configureStrelkaGermlineWorkflow.py companion script; --bam sorted.bam input BAM; --referenceFasta reference.fa reference genome; --runDir strelka_germline output directory; && python strelka_germline/runWorkflow.py execute workflow; -m local local machine mode; -j 8 threads; two-step workflow
 
 ### configure and run Strelka2 somatic variant calling (configureStrelkaSomaticWorkflow.py)
 **Args:** `configureStrelkaSomaticWorkflow.py --normalBam normal.bam --tumourBam tumor.bam --referenceFasta reference.fa --runDir strelka_somatic && python strelka_somatic/runWorkflow.py -m local -j 8`
-**Explanation:** --normalBam and --tumourBam specify the matched normal and tumor BAM files
+**Explanation:** configureStrelkaSomaticWorkflow.py companion script; --normalBam normal.bam normal sample BAM; --tumourBam tumor.bam tumor sample BAM; --referenceFasta reference.fa reference genome; --runDir strelka_somatic output directory; && python strelka_somatic/runWorkflow.py execute workflow; -m local local machine mode; -j 8 threads
 
 ### run Strelka2 germline on WES data with target regions (configureStrelkaGermlineWorkflow.py)
 **Args:** `configureStrelkaGermlineWorkflow.py --bam sorted.bam --referenceFasta reference.fa --exome --callRegions targets.bed.gz --runDir strelka_wes && python strelka_wes/runWorkflow.py -m local -j 8`
-**Explanation:** --exome adjusts for targeted sequencing; --callRegions restricts calling to target BED regions (bgzipped + tabix)
+**Explanation:** configureStrelkaGermlineWorkflow.py companion script; --bam sorted.bam input BAM; --referenceFasta reference.fa reference genome; --exome adjusts for WES/targeted sequencing; --callRegions targets.bed.gz bgzipped target BED; --runDir strelka_wes output directory; && python strelka_wes/runWorkflow.py execute workflow; -m local local machine mode; -j 8 threads
 
 ### run Strelka2 somatic with Manta indel candidates (configureStrelkaSomaticWorkflow.py)
 **Args:** `configureStrelkaSomaticWorkflow.py --normalBam normal.bam --tumourBam tumor.bam --referenceFasta reference.fa --indelCandidates manta_results/results/variants/candidateSmallIndels.vcf.gz --runDir strelka_with_manta && python strelka_with_manta/runWorkflow.py -m local -j 8`
-**Explanation:** --indelCandidates from Manta improves indel calling accuracy; Manta must be run first
+**Explanation:** configureStrelkaSomaticWorkflow.py companion script; --normalBam normal.bam normal sample BAM; --tumourBam tumor.bam tumor sample BAM; --referenceFasta reference.fa reference genome; --indelCandidates manta_results/results/variants/candidateSmallIndels.vcf.gz Manta indel candidates; --runDir strelka_with_manta output directory; && python strelka_with_manta/runWorkflow.py execute workflow; -m local local machine mode; -j 8 threads; Manta must be run first
 
 ### run Strelka2 germline with haploid ploidy for chrX
 **Args:** `configureStrelkaGermlineWorkflow.py --bam male_sample.bam --referenceFasta reference.fa --ploidy 1 --callRegions chrX.bed.gz --runDir strelka_chrX && python strelka_chrX/runWorkflow.py -m local -j 8`
-**Explanation:** --ploidy 1 for haploid regions (chrX in males, mitochondria)
+**Explanation:** configureStrelkaGermlineWorkflow.py companion script; --bam male_sample.bam input BAM; --referenceFasta reference.fa reference genome; --ploidy 1 haploid setting; --callRegions chrX.bed.gz bgzipped BED; --runDir strelka_chrX output directory; && python strelka_chrX/runWorkflow.py execute workflow; -m local local machine mode; -j 8 threads; for haploid regions (chrX in males, mitochondria)
 
 ### run Strelka2 with callable regions output
 **Args:** `configureStrelkaGermlineWorkflow.py --bam sorted.bam --referenceFasta reference.fa --outputCallableRegions --runDir strelka_callable && python strelka_callable/runWorkflow.py -m local -j 8`
-**Explanation:** --outputCallableRegions outputs BED of callable regions for coverage analysis
+**Explanation:** configureStrelkaGermlineWorkflow.py companion script; --bam sorted.bam input BAM; --referenceFasta reference.fa reference genome; --outputCallableRegions outputs BED of callable regions; --runDir strelka_callable output directory; && python strelka_callable/runWorkflow.py execute workflow; -m local local machine mode; -j 8 threads; for coverage analysis
 
 ### run Strelka2 somatic for RNA-seq data
 **Args:** `configureStrelkaSomaticWorkflow.py --normalBam normal.bam --tumourBam tumor.bam --referenceFasta reference.fa --rna --runDir strelka_rna && python strelka_rna/runWorkflow.py -m local -j 8`
-**Explanation:** --rna mode for RNA-seq somatic variant calling
+**Explanation:** configureStrelkaSomaticWorkflow.py companion script; --normalBam normal.bam normal sample BAM; --tumourBam tumor.bam tumor sample BAM; --referenceFasta reference.fa reference genome; --rna RNA-seq somatic mode; --runDir strelka_rna output directory; && python strelka_rna/runWorkflow.py execute workflow; -m local local machine mode; -j 8 threads
 
 ### run Strelka2 for targeted/amplicon sequencing
 **Args:** `configureStrelkaGermlineWorkflow.py --bam sorted.bam --referenceFasta reference.fa --targeted --callRegions amplicons.bed.gz --runDir strelka_amplicon && python strelka_amplicon/runWorkflow.py -m local -j 8`
-**Explanation:** --targeted for targeted sequencing without WES assumptions
+**Explanation:** configureStrelkaGermlineWorkflow.py companion script; --bam sorted.bam input BAM; --referenceFasta reference.fa reference genome; --targeted amplicon/targeted sequencing mode; --callRegions amplicons.bed.gz bgzipped target BED; --runDir strelka_amplicon output directory; && python strelka_amplicon/runWorkflow.py execute workflow; -m local local machine mode; -j 8 threads; without WES assumptions
 
 ### run Strelka2 germline with continuous value format
 **Args:** `configureStrelkaGermlineWorkflow.py --bam sorted.bam --referenceFasta reference.fa --callContinuousVF --runDir strelka_continuous && python strelka_continuous/runWorkflow.py -m local -j 8`
-**Explanation:** --callContinuousVF outputs continuous value format for downstream analysis
+**Explanation:** configureStrelkaGermlineWorkflow.py companion script; --bam sorted.bam input BAM; --referenceFasta reference.fa reference genome; --callContinuousVF outputs continuous value format; --runDir strelka_continuous output directory; && python strelka_continuous/runWorkflow.py execute workflow; -m local local machine mode; -j 8 threads; for downstream analysis

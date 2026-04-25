@@ -39,39 +39,39 @@ source_url: "https://bedtools.readthedocs.io/"
 
 ### find intervals in file A that overlap with file B
 **Args:** `intersect -a query.bed -b features.bed -wa`
-**Explanation:** -a is query; -b is features to intersect with; -wa outputs original A intervals
+**Explanation:** intersect subcommand; -a is query; -b is features to intersect with; -wa outputs original A intervals
 
 ### subtract regions in B from regions in A
 **Args:** `subtract -a regions.bed -b blacklist.bed`
-**Explanation:** removes any parts of A that overlap B; useful for removing blacklisted regions
+**Explanation:** subtract subcommand; -a regions.bed input; -b blacklist.bed regions to remove; removes any parts of A that overlap B; useful for removing blacklisted regions
 
 ### merge overlapping intervals in a BED file
 **Args:** `merge -i input.bed`
-**Explanation:** input must be sorted (sort -k1,1 -k2,2n); outputs merged non-overlapping intervals
+**Explanation:** merge subcommand; -i input.bed input file; input must be sorted (sort -k1,1 -k2,2n); outputs merged non-overlapping intervals
 
 ### compute per-base coverage from a BAM file
 **Args:** `genomecov -ibam sorted.bam -bg > coverage.bedgraph`
-**Explanation:** genomecov is the subcommand; -ibam takes BAM input; -bg outputs bedGraph (chrom/start/end/depth); requires sorted BAM
+**Explanation:** genomecov subcommand; -ibam takes BAM input; -bg outputs bedGraph (chrom/start/end/depth); requires sorted BAM
 
 ### find closest non-overlapping feature in B for each interval in A
 **Args:** `closest -a query.bed -b annotations.bed -d`
-**Explanation:** -a is query; -b is annotations to find closest feature in; -d reports distance to closest feature; output includes original A and B intervals plus distance
+**Explanation:** closest subcommand; -a is query; -b is annotations to find closest feature in; -d reports distance to closest feature; output includes original A and B intervals plus distance
 
 ### count overlaps between A intervals and B features
 **Args:** `intersect -a genes.bed -b reads.bam -c`
-**Explanation:** -c counts the number of B features overlapping each A interval; useful for read counting
+**Explanation:** intersect subcommand; -a genes.bed input; -b reads.bam BAM features; -c counts the number of B features overlapping each A interval; useful for read counting
 
 ### get sequences for intervals in a BED file
 **Args:** `getfasta -fi reference.fa -bed intervals.bed -fo output.fa -s`
-**Explanation:** -fi is the reference FASTA; -bed is the intervals; -fo is the output; -s reverse-complements minus-strand features
+**Explanation:** getfasta subcommand; -fi is the reference FASTA; -bed is the intervals; -fo is the output; -s reverse-complements minus-strand features
 
 ### compute coverage including zero-coverage positions
 **Args:** `genomecov -ibam sorted.bam -bga > coverage_all.bedgraph`
-**Explanation:** genomecov subcommand; -bga includes regions with zero coverage unlike -bg; useful for complete coverage maps
+**Explanation:** genomecov subcommand; -ibam sorted.bam BAM input; -bga includes regions with zero coverage unlike -bg; useful for complete coverage maps
 
 ### intersect two BED files and report original B intervals that overlap A
 **Args:** `intersect -a query.bed -b features.bed -wb`
-**Explanation:** -wb outputs original B intervals (instead of -wa for A intervals); outputs the overlapping B entries
+**Explanation:** intersect subcommand; -a query.bed input; -b features.bed to intersect; -wb outputs original B intervals (instead of -wa for A intervals); outputs the overlapping B entries
 
 ### make windows of fixed size across a genome
 **Args:** `makewindows -g genome.txt -w 1000 > windows.bed`
@@ -79,40 +79,40 @@ source_url: "https://bedtools.readthedocs.io/"
 
 ### compute coverage histogram for a BAM file
 **Args:** `genomecov -ibam sorted.bam > coverage_histogram.txt`
-**Explanation:** genomecov without -bg outputs a frequency table (depth, count, length, fraction) per chromosome
+**Explanation:** genomecov subcommand; -ibam sorted.bam BAM input; genomecov without -bg outputs a frequency table (depth, count, length, fraction) per chromosome
 
 ### window-based intersection: find A intervals within N bp of B
 **Args:** `window -a genes.bed -b snps.bed -w 1000`
-**Explanation:** window subcommand; -w expands the search window by 1000 bp around each A interval; finds nearby B features
+**Explanation:** window subcommand; -a genes.bed input; -b snps.bed features to find; -w expands the search window by 1000 bp around each A interval; finds nearby B features
 
 ### apply aggregate function to overlapping intervals
 **Args:** `map -a genes.bed -b scores.bed -c 5 -o mean`
-**Explanation:** -a is genes; -b is scores to map; -c 5 selects column 5 from B intervals; -o specifies operation (sum, mean, min, max, count, collapse, distinct, median, mode, stdev)
+**Explanation:** map subcommand; -a is genes; -b is scores to map; -c 5 selects column 5 from B intervals; -o specifies operation (sum, mean, min, max, count, collapse, distinct, median, mode, stdev)
 
 ### merge intervals while preserving gene names
 **Args:** `merge -i exons.bed -c 4 -o distinct`
-**Explanation:** -c 4 selects the name column; -o distinct lists unique gene names from merged intervals; merge must have sorted input
+**Explanation:** merge subcommand; -i exons.bed input; -c 4 selects the name column; -o distinct lists unique gene names from merged intervals; merge must have sorted input
 
 ### find A intervals with NO overlap in B (complement of intersect)
 **Args:** `intersect -a genes.bed -b blacklist.bed -v`
-**Explanation:** -v inverts the match: reports only A entries with no overlap in B; equivalent to subtract but reports full A intervals
+**Explanation:** intersect subcommand; -a genes.bed input; -b blacklist.bed to check against; -v inverts the match: reports only A entries with no overlap in B; equivalent to subtract but reports full A intervals
 
 ### add flanking bases to intervals
 **Args:** `slop -i peaks.bed -g genome.txt -b 1000 > peaks_expanded.bed`
-**Explanation:** -b adds 1000 bp to both sides; use -l/-r for asymmetric; -pct treats values as fraction of feature length; requires -g genome file
+**Explanation:** slop subcommand; -i peaks.bed input; -g genome.txt chromosome sizes; -b adds 1000 bp to both sides; use -l/-r for asymmetric; -pct treats values as fraction of feature length
 
 ### convert BAM to BED format
 **Args:** `bamtobed -i aligned.bam > aligned.bed`
-**Explanation:** converts BAM to BED6; -bed12 for blocked BED; -split to split on CIGAR N operations; -splitD for N and D operations
+**Explanation:** bamtobed subcommand; -i aligned.bam input; converts BAM to BED6; -bed12 for blocked BED; -split to split on CIGAR N operations; -splitD for N and D operations
 
 ### compute Jaccard similarity between two interval sets
 **Args:** `jaccard -a peaks1.bed -b peaks2.bed`
-**Explanation:** outputs intersection, union, Jaccard statistic (intersection/union), and number of intersections; useful for comparing peak sets
+**Explanation:** jaccard subcommand; -a peaks1.bed input; -b peaks2.bed input; outputs intersection, union, Jaccard statistic (intersection/union), and number of intersections; useful for comparing peak sets
 
 ### profile nucleotide content of intervals
 **Args:** `nuc -fi reference.fa -bed regions.bed`
-**Explanation:** -fi is the reference FASTA; -bed specifies the intervals; reports GC content, AT content, and nucleotide frequencies per interval; -s for strand-aware; -pattern to count specific motifs
+**Explanation:** nuc subcommand; -fi is the reference FASTA; -bed specifies the intervals; reports GC content, AT content, and nucleotide frequencies per interval; -s for strand-aware; -pattern to count specific motifs
 
 ### left-join two interval files (report A even without B overlap)
 **Args:** `intersect -a genes.bed -b snps.bed -loj`
-**Explanation:** -loj performs left outer join: reports every A interval, with NULL B features when no overlap; -wao also reports overlap bases
+**Explanation:** intersect subcommand; -a genes.bed input; -b snps.bed features; -loj performs left outer join: reports every A interval, with NULL B features when no overlap; -wao also reports overlap bases

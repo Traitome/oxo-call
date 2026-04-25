@@ -42,52 +42,52 @@ source_url: "https://github.com/bbuchfink/diamond"
 
 ### build a DIAMOND protein database with makedb
 **Args:** `makedb --in nr.faa -d nr_diamond --threads 8`
-**Explanation:** makedb subcommand; --in nr.faa protein FASTA; -d nr_diamond output database prefix; --threads 8 parallel threads; creates nr_diamond.dmnd
+**Explanation:** diamond makedb subcommand; --in nr.faa protein FASTA; -d nr_diamond output database prefix; --threads 8 parallel threads; creates nr_diamond.dmnd
 
 ### search protein sequences against a DIAMOND database with blastp
 **Args:** `blastp -q proteins.faa -d nr_diamond -o blastp_results.tsv --outfmt 6 --threads 8 --evalue 1e-5`
-**Explanation:** blastp subcommand; -q proteins.faa query proteins; -d nr_diamond database; -o blastp_results.tsv output; --outfmt 6 tabular; --threads 8 parallel threads; --evalue 1e-5 E-value cutoff
+**Explanation:** diamond blastp subcommand; -q proteins.faa query proteins; -d nr_diamond database; -o blastp_results.tsv output; --outfmt 6 tabular; --threads 8 parallel threads; --evalue 1e-5 E-value cutoff
 
 ### search DNA reads against protein database with blastx
 **Args:** `blastx -q reads.fastq.gz -d nr_diamond -o blastx_results.tsv --outfmt 6 --threads 16 --evalue 1e-5 --max-target-seqs 1`
-**Explanation:** blastx subcommand; -q reads.fastq.gz query DNA reads; -d nr_diamond database; -o blastx_results.tsv output; --outfmt 6 tabular; --threads 16 parallel threads; --evalue 1e-5 E-value cutoff; --max-target-seqs 1 keeps best hit per read; blastx translates DNA to protein in all 6 frames
+**Explanation:** diamond blastx subcommand; -q reads.fastq.gz query DNA reads; -d nr_diamond database; -o blastx_results.tsv output; --outfmt 6 tabular; --threads 16 parallel threads; --evalue 1e-5 E-value cutoff; --max-target-seqs 1 keeps best hit per read; blastx translates DNA to protein in all 6 frames
 
 ### sensitive blastp search with custom output fields
 **Args:** `blastp -q proteins.faa -d uniprot_diamond -o detailed_results.tsv --outfmt '6 qseqid sseqid pident length evalue bitscore stitle' --more-sensitive --threads 8`
-**Explanation:** blastp subcommand; -q proteins.faa query proteins; -d uniprot_diamond database; -o detailed_results.tsv output; --outfmt '6 qseqid sseqid pident length evalue bitscore stitle' custom output fields includes stitle (subject description); --more-sensitive for higher accuracy; --threads 8 parallel threads
+**Explanation:** diamond blastp subcommand; -q proteins.faa query proteins; -d uniprot_diamond database; -o detailed_results.tsv output; --outfmt '6 qseqid sseqid pident length evalue bitscore stitle' custom output fields includes stitle (subject description); --more-sensitive for higher accuracy; --threads 8 parallel threads
 
 ### taxonomy-aware blastx search for functional annotation
 **Args:** `blastx -q metagenome.faa -d nr_diamond --taxonmap prot.accession2taxid.gz --taxonnodes nodes.dmp -o results_tax.tsv --outfmt '6 qseqid sseqid pident evalue bitscore staxids sscinames' --threads 16`
-**Explanation:** blastx subcommand; -q metagenome.faa query proteins; -d nr_diamond database; --taxonmap prot.accession2taxid.gz taxonomy mapping file; --taxonnodes nodes.dmp taxonomy nodes; -o results_tax.tsv output; --outfmt '6 qseqid sseqid pident evalue bitscore staxids sscinames' custom fields with taxonomy; --threads 16 parallel threads; staxids/sscinames in output
+**Explanation:** diamond blastx subcommand; -q metagenome.faa query proteins; -d nr_diamond database; --taxonmap prot.accession2taxid.gz taxonomy mapping file; --taxonnodes nodes.dmp taxonomy nodes; -o results_tax.tsv output; --outfmt '6 qseqid sseqid pident evalue bitscore staxids sscinames' custom fields with taxonomy; --threads 16 parallel threads; staxids/sscinames in output
 
 ### ultra-sensitive search for distant homologs
 **Args:** `blastp -q proteins.faa -d nr_diamond -o ultra_sensitive.tsv --outfmt 6 --ultra-sensitive --threads 16`
-**Explanation:** blastp subcommand; -q proteins.faa query proteins; -d nr_diamond database; -o ultra_sensitive.tsv output; --outfmt 6 tabular; --ultra-sensitive provides BLAST-like sensitivity for detecting distant homologs; --threads 16 parallel threads; much slower than default
+**Explanation:** diamond blastp subcommand; -q proteins.faa query proteins; -d nr_diamond database; -o ultra_sensitive.tsv output; --outfmt 6 tabular; --ultra-sensitive provides BLAST-like sensitivity for detecting distant homologs; --threads 16 parallel threads; much slower than default
 
 ### memory-optimized search for large databases
 **Args:** `blastp -q proteins.faa -d nr_diamond -o results.tsv --outfmt 6 --threads 8 --block-size 1 --index-chunks 8`
-**Explanation:** blastp subcommand; -q proteins.faa query proteins; -d nr_diamond database; -o results.tsv output; --outfmt 6 tabular; --threads 8 parallel threads; --block-size 1 limits RAM to ~1GB; --index-chunks 8 reduces memory further at cost of speed
+**Explanation:** diamond blastp subcommand; -q proteins.faa query proteins; -d nr_diamond database; -o results.tsv output; --outfmt 6 tabular; --threads 8 parallel threads; --block-size 1 limits RAM to ~1GB; --index-chunks 8 reduces memory further at cost of speed
 
 ### cluster protein sequences with CD-HIT-like algorithm
 **Args:** `cluster -d proteins.faa -o clusters.tsv --approx-id 50 --threads 16`
-**Explanation:** cluster subcommand for protein clustering; -d proteins.faa input proteins; -o clusters.tsv output; --approx-id 50 for 50% identity threshold (like CD-HIT); --threads 16 parallel threads
+**Explanation:** diamond cluster subcommand for protein clustering; -d proteins.faa input proteins; -o clusters.tsv output; --approx-id 50 for 50% identity threshold (like CD-HIT); --threads 16 parallel threads
 
 ### linear time clustering for very large datasets
 **Args:** `linclust -d proteins.faa -o linclusters.tsv --approx-id 50 --threads 16`
-**Explanation:** linclust subcommand for linear time clustering; -d proteins.faa input proteins; -o linclusters.tsv output; --approx-id 50 for 50% identity threshold; --threads 16 parallel threads; linclust is faster than cluster for very large datasets; uses linear time algorithm
+**Explanation:** diamond linclust subcommand for linear time clustering; -d proteins.faa input proteins; -o linclusters.tsv output; --approx-id 50 for 50% identity threshold; --threads 16 parallel threads; linclust is faster than cluster for very large datasets; uses linear time algorithm
 
 ### output in SAM format for downstream analysis
 **Args:** `blastx -q reads.fastq -d nr_diamond -o aligned.sam --outfmt 101 --threads 16`
-**Explanation:** blastx subcommand; -q reads.fastq query DNA reads; -d nr_diamond database; -o aligned.sam output; --outfmt 101 outputs SAM format; --threads 16 parallel threads; compatible with samtools and other SAM-processing tools
+**Explanation:** diamond blastx subcommand; -q reads.fastq query DNA reads; -d nr_diamond database; -o aligned.sam output; --outfmt 101 outputs SAM format; --threads 16 parallel threads; compatible with samtools and other SAM-processing tools
 
 ### save results in DAA format for later conversion
 **Args:** `blastp -q proteins.faa -d nr_diamond -o results.daa --outfmt 100 --threads 16`
-**Explanation:** blastp subcommand; -q proteins.faa query proteins; -d nr_diamond database; -o results.daa output; --outfmt 100 outputs binary DAA format; --threads 16 parallel threads; space-efficient and can be converted later with diamond view
+**Explanation:** diamond blastp subcommand; -q proteins.faa query proteins; -d nr_diamond database; -o results.daa output; --outfmt 100 outputs binary DAA format; --threads 16 parallel threads; space-efficient and can be converted later with diamond view
 
 ### convert DAA to BLAST tabular format
 **Args:** `view -a results.daa -o results.tsv --outfmt 6`
-**Explanation:** view subcommand; -a results.daa input DAA file; -o results.tsv output; --outfmt 6 tabular; diamond view converts DAA files to other formats; useful for post-processing archived results
+**Explanation:** diamond view subcommand; -a results.daa input DAA file; -o results.tsv output; --outfmt 6 tabular; diamond view converts DAA files to other formats; useful for post-processing archived results
 
 ### get database information
 **Args:** `dbinfo -d nr_diamond`
-**Explanation:** dbinfo subcommand; -d nr_diamond database; dbinfo prints database statistics including number of sequences, letters, and taxonomy info
+**Explanation:** diamond dbinfo subcommand; -d nr_diamond database; dbinfo prints database statistics including number of sequences, letters, and taxonomy info

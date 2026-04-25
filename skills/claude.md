@@ -42,68 +42,68 @@ source_url: "https://docs.anthropic.com/en/docs/claude-code/overview"
 
 ### start an interactive chat session with no tool access
 **Args:** `--no-tools`
-**Explanation:** launches the interactive REPL with all tools disabled; safe for pure conversational use without file or shell access
+**Explanation:** claude command; --no-tools launches the interactive REPL with all tools disabled; safe for pure conversational use without file or shell access
 
 ### ask a one-shot question and print the answer
 **Args:** `-p "What is the difference between RNA-seq and scRNA-seq?"`
-**Explanation:** -p (print mode) sends a single prompt and prints the response to stdout then exits; suitable for scripting and chaining with other tools
+**Explanation:** claude command; -p (print mode) sends a single prompt and prints the response to stdout then exits; suitable for scripting and chaining with other tools
 
 ### summarise a file using stdin
 **Args:** `-p "Summarise this file in three bullet points"`
-**Explanation:** pipe a file into claude with cat and use -p to get a summary; the file content is passed as context along with the prompt
+**Explanation:** claude command; pipe a file into claude with cat and use -p to get a summary; the file content is passed as context along with the prompt
 
 ### ask Claude to explain a bash script
 **Args:** `-p "Explain what this script does" --input-file analyse_samples.sh`
-**Explanation:** --input-file reads the script and provides it as context; useful for code review, documentation, or learning unfamiliar scripts
+**Explanation:** claude command; --input-file reads the script and provides it as context; useful for code review, documentation, or learning unfamiliar scripts
 
 ### use a specific model (Opus) for a complex task
 **Args:** `-p "Design a nextflow pipeline for bulk RNA-seq analysis" --model claude-opus-4-5`
-**Explanation:** --model selects the Claude variant; claude-opus-4-5 is the most capable model, suitable for complex reasoning and design tasks
+**Explanation:** claude command; --model selects the Claude variant; claude-opus-4-5 is the most capable model, suitable for complex reasoning and design tasks
 
 ### output the response as JSON for scripting
 **Args:** `-p "List five popular bioinformatics tools in JSON array format" --output-format json`
-**Explanation:** --output-format json returns structured output including the model response and metadata; parse with jq for downstream processing
+**Explanation:** claude command; --output-format json returns structured output including the model response and metadata; parse with jq for downstream processing
 
 ### continue the most recent conversation
 **Args:** `-c`
-**Explanation:** -c resumes the last session in interactive mode; useful for picking up a previous coding or analysis task without re-explaining context
+**Explanation:** claude command; -c resumes the last session in interactive mode; useful for picking up a previous coding or analysis task without re-explaining context
 
 ### list past sessions and resume a specific one
 **Args:** `sessions list`
-**Explanation:** prints all saved sessions with their IDs and timestamps; follow with 'claude -r <session-id>' to resume a specific session
+**Explanation:** claude sessions subcommand; list prints all saved sessions with their IDs and timestamps; follow with 'claude -r <session-id>' to resume a specific session
 
 ### set model via environment and run a quick query
 **Args:** `-p "Generate a Python one-liner to count lines in a FASTQ file"`
-**Explanation:** run after exporting ANTHROPIC_MODEL=claude-haiku-4-5 to pick a faster/cheaper model; -p streams the answer to stdout for immediate use
+**Explanation:** claude command; run after exporting ANTHROPIC_MODEL=claude-haiku-4-5 to pick a faster/cheaper model; -p streams the answer to stdout for immediate use
 
 ### check the installed version
 **Args:** `--version`
-**Explanation:** prints the installed Claude Code CLI version; useful for debugging and ensuring the latest release is active
+**Explanation:** claude command; --version prints the installed Claude Code CLI version; useful for debugging and ensuring the latest release is active
 
 ### run with permission mode plan for safety
 **Args:** `--permission-mode plan`
-**Explanation:** --permission-mode plan requires approval before each tool use; recommended for production environments or when reviewing AI actions
+**Explanation:** claude command; --permission-mode plan requires approval before each tool use; recommended for production environments or when reviewing AI actions
 
 ### limit API budget for the session
 **Args:** `-p "Analyze this codebase" --max-budget-usd 5.00`
-**Explanation:** --max-budget-usd limits total API spending; useful for preventing runaway costs in automated scripts
+**Explanation:** claude command; --max-budget-usd limits total API spending; useful for preventing runaway costs in automated scripts
 
 ### use MCP server configuration
 **Args:** `--mcp-config mcp-config.json`
-**Explanation:** --mcp-config loads Model Context Protocol servers for extended capabilities like database access or custom APIs
+**Explanation:** claude command; --mcp-config loads Model Context Protocol servers for extended capabilities like database access or custom APIs
 
 ### run with specific tools only
 **Args:** `-p "Read and analyze this file" --tools "Read,Edit"`
-**Explanation:** --tools restricts which tools Claude can use; safer than full agentic mode for specific tasks
+**Explanation:** claude command; --tools restricts which tools Claude can use; safer than full agentic mode for specific tasks
 
 ### name a session for easy identification
 **Args:** `-n "RNA-seq analysis session"`
-**Explanation:** -n assigns a display name to the session; appears in `claude sessions list` and terminal title
+**Explanation:** claude command; -n assigns a display name to the session; appears in `claude sessions list` and terminal title
 
 ### validate output with JSON schema
 **Args:** `-p "Generate a config object" --json-schema '{"type":"object","properties":{"name":{"type":"string"}}}'`
-**Explanation:** --json-schema validates structured output against a schema; ensures programmatically usable responses
+**Explanation:** claude command; --json-schema validates structured output against a schema; ensures programmatically usable responses
 
 ### run doctor to check installation health
 **Args:** `doctor`
-**Explanation:** doctor subcommand checks the health of Claude Code auto-updater and MCP configuration; useful for troubleshooting
+**Explanation:** claude doctor subcommand; checks the health of Claude Code auto-updater and MCP configuration; useful for troubleshooting

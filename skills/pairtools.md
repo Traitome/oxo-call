@@ -38,44 +38,44 @@ source_url: "https://pairtools.readthedocs.io/"
 
 ### parse Hi-C BWA alignments to pairs format
 **Args:** `parse --min-mapq 30 --walks-policy mask --max-inter-align-gap 30 -N sample --chroms-path chromsizes.txt sorted.bam > sample.pairs.gz`
-**Explanation:** --min-mapq 30 quality filter; --walks-policy for multi-mapper handling; outputs .pairs.gz
+**Explanation:** pairtools parse subcommand; --min-mapq 30 quality filter; --walks-policy mask multi-mapper handling; --max-inter-align-gap 30; -N sample name; --chroms-path chromsizes.txt chromosome sizes; sorted.bam input BAM; > sample.pairs.gz output
 
 ### sort pairs file for deduplication
 **Args:** `sort sample.pairs.gz --nproc 16 --tmpdir /tmp/ > sample_sorted.pairs.gz`
-**Explanation:** --nproc 16 parallel sorting; --tmpdir for temporary files
+**Explanation:** pairtools sort subcommand; sample.pairs.gz input pairs; --nproc 16 parallel sorting; --tmpdir /tmp/ temporary files; > sample_sorted.pairs.gz output
 
 ### deduplicate sorted pairs file
 **Args:** `dedup --nproc 16 --output-stats dedup_stats.txt sample_sorted.pairs.gz > sample_dedup.pairs.gz`
-**Explanation:** --output-stats generates deduplication statistics; required for Hi-C QC
+**Explanation:** pairtools dedup subcommand; --nproc 16 threads; --output-stats dedup_stats.txt statistics; sample_sorted.pairs.gz input; > sample_dedup.pairs.gz output
 
 ### bin pairs into contact matrix using cooler
 **Args:** `cload pairs --chrom1 2 --pos1 3 --chrom2 4 --pos2 5 chromsizes.txt:5000 sample_dedup.pairs.gz sample_5kb.cool`
-**Explanation:** cooler cload pairs; 5000 = bin size in bp; creates .cool matrix for visualization
+**Explanation:** cooler cload pairs subcommand; --chrom1 2 --pos1 3 --chrom2 4 --pos2 5 column indices; chromsizes.txt:5000 chromosome sizes and 5000bp bin size; sample_dedup.pairs.gz input; sample_5kb.cool output
 
 ### flip pairs to upper-triangular format
 **Args:** `flip sample.pairs.gz > sample_flipped.pairs.gz`
-**Explanation:** flip ensures chrom1 <= chrom2 and pos1 <= pos2; required for cooler compatibility
+**Explanation:** pairtools flip subcommand; sample.pairs.gz input pairs; > sample_flipped.pairs.gz output; ensures upper-triangular format
 
 ### generate comprehensive pair statistics
 **Args:** `stats sample_dedup.pairs.gz -o pair_stats.txt`
-**Explanation:** stats generates QC metrics: pair types, cis/trans ratios, distance distributions
+**Explanation:** pairtools stats subcommand; sample_dedup.pairs.gz input pairs; -o pair_stats.txt output statistics file
 
 ### phase pairs for diploid genome analysis
 **Args:** `phase --vcf phased_variants.vcf.gz sample.pairs.gz > sample_phased.pairs.gz`
-**Explanation:** phase assigns pairs to parental haplotypes; requires phased VCF
+**Explanation:** pairtools phase subcommand; --vcf phased_variants.vcf.gz phased VCF; sample.pairs.gz input pairs; > sample_phased.pairs.gz output phased pairs
 
 ### assign restriction fragments to pairs
 **Args:** `restrict --frags restriction_sites.bed sample.pairs.gz > sample_restricted.pairs.gz`
-**Explanation:** restrict adds fragment information; useful for restriction enzyme analysis
+**Explanation:** pairtools restrict subcommand; --frags restriction_sites.bed restriction fragments BED; sample.pairs.gz input; > sample_restricted.pairs.gz output
 
 ### select high-quality cis pairs only
 **Args:** `select '(pair_type == "UU") and (chrom1 == chrom2) and (mapq1 >= 30) and (mapq2 >= 30)' sample.pairs.gz > cis_hq.pairs.gz`
-**Explanation:** select filters by complex conditions; UU = unique-unique, cis = same chromosome
+**Explanation:** pairtools select subcommand; '(pair_type == "UU") and (chrom1 == chrom2) and (mapq1 >= 30) and (mapq2 >= 30)' filter condition; sample.pairs.gz input; > cis_hq.pairs.gz output
 
 ### merge multiple pairs files
 **Args:** `merge sample1.pairs.gz sample2.pairs.gz sample3.pairs.gz > combined.pairs.gz`
-**Explanation:** merge combines multiple samples; useful for biological replicates
+**Explanation:** pairtools merge subcommand; sample1.pairs.gz sample2.pairs.gz sample3.pairs.gz input pairs files; > combined.pairs.gz output merged pairs
 
 ### sample random subset of pairs
 **Args:** `sample --number 1000000 sample.pairs.gz > subset.pairs.gz`
-**Explanation:** sample selects random pairs; useful for downsampling large datasets
+**Explanation:** pairtools sample subcommand; --number 1000000 random subset size; sample.pairs.gz input pairs; > subset.pairs.gz output

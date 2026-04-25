@@ -37,47 +37,47 @@ source_url: "https://github.com/voutcn/megahit"
 
 ### assemble a metagenome from paired-end reads
 **Args:** `-1 R1.fastq.gz -2 R2.fastq.gz -o megahit_output/ --num-cpu-threads 16 --min-contig-len 500`
-**Explanation:** -1/-2 paired-end input; -o output directory; --min-contig-len 500 removes very short contigs
+**Explanation:** megahit command; -1 R1.fastq.gz -2 R2.fastq.gz paired-end input; -o megahit_output/ output directory; --num-cpu-threads 16 threads; --min-contig-len 500 removes very short contigs
 
 ### assemble a large complex metagenome with meta-large preset
 **Args:** `-1 R1.fastq.gz -2 R2.fastq.gz -o large_meta/ --num-cpu-threads 32 --presets meta-large --min-contig-len 500`
-**Explanation:** --presets meta-large uses k-mer range optimized for highly complex communities
+**Explanation:** megahit command; -1/-2 paired-end input; -o large_meta/ output directory; --num-cpu-threads 32 threads; --presets meta-large k-mer range optimized for highly complex communities; --min-contig-len 500 minimum contig length
 
 ### assemble metagenome from multiple samples combined
 **Args:** `-1 s1_R1.fq.gz,s2_R1.fq.gz -2 s1_R2.fq.gz,s2_R2.fq.gz -o coassembly/ --num-cpu-threads 32 --min-contig-len 500`
-**Explanation:** comma-separated input files for co-assembly; combines reads from multiple samples
+**Explanation:** megahit command; -1/-2 comma-separated input files for co-assembly; -o coassembly/ output directory; --num-cpu-threads 32 threads; --min-contig-len 500 minimum contig length
 
 ### assemble with custom k-mer range for specific data type
 **Args:** `-1 R1.fastq.gz -2 R2.fastq.gz -o custom_k/ --num-cpu-threads 16 --k-min 27 --k-max 127 --k-step 10`
-**Explanation:** --k-min, --k-max, --k-step customize the k-mer iteration range
+**Explanation:** megahit command; -1/-2 paired-end input; -o custom_k/ output directory; --num-cpu-threads 16 threads; --k-min 27 --k-max 127 --k-step 10 customize k-mer iteration range
 
 ### assemble with meta-sensitive preset for low-abundance detection
 **Args:** `-1 R1.fastq.gz -2 R2.fastq.gz -o sensitive_out/ --num-cpu-threads 16 --presets meta-sensitive --min-contig-len 500`
-**Explanation:** --presets meta-sensitive uses more k-mers (21-141) for detecting low-abundance species
+**Explanation:** megahit command; -1/-2 paired-end input; -o sensitive_out/ output directory; --num-cpu-threads 16 threads; --presets meta-sensitive uses more k-mers (21-141) for detecting low-abundance species; --min-contig-len 500 minimum contig length
 
 ### reduce memory usage with no-mercy for high-coverage data
 **Args:** `-1 R1.fastq.gz -2 R2.fastq.gz -o low_mem/ --num-cpu-threads 16 --no-mercy --memory 0.5 --min-contig-len 500`
-**Explanation:** --no-mercy disables mercy k-mers; --memory 0.5 limits RAM to 50%; for high-coverage datasets
+**Explanation:** megahit command; -1/-2 paired-end input; -o low_mem/ output directory; --num-cpu-threads 16 threads; --no-mercy disables mercy k-mers; --memory 0.5 limits RAM to 50%; --min-contig-len 500 minimum contig length
 
 ### resume interrupted assembly with continue option
 **Args:** `-o resumed_out/ --continue`
-**Explanation:** --continue resumes from last checkpoint; output directory must contain previous run files
+**Explanation:** megahit command; -o resumed_out/ output directory; --continue resumes from last checkpoint
 
 ### assemble single-end reads only
 **Args:** `-r reads.fastq.gz -o se_out/ --num-cpu-threads 16 --min-contig-len 500`
-**Explanation:** -r specifies single-end reads; for datasets without paired-end information
+**Explanation:** megahit command; -r reads.fastq.gz single-end reads; -o se_out/ output directory; --num-cpu-threads 16 threads; --min-contig-len 500 minimum contig length
 
 ### assemble interleaved paired-end reads
 **Args:** `--12 interleaved.fastq.gz -o interleaved_out/ --num-cpu-threads 16 --min-contig-len 500`
-**Explanation:** --12 for interleaved paired-end format; single file containing both R1 and R2
+**Explanation:** megahit command; --12 interleaved.fastq.gz interleaved paired-end format; -o interleaved_out/ output directory; --num-cpu-threads 16 threads; --min-contig-len 500 minimum contig length
 
 ### assemble with bubble-level adjustment for polymorphic data
 **Args:** `-1 R1.fastq.gz -2 R2.fastq.gz -o bubble_adj/ --num-cpu-threads 16 --bubble-level 1 --min-contig-len 500`
-**Explanation:** --bubble-level 1 moderate bubble merging; useful for strain-diverse metagenomes; 0=none, 2=aggressive
+**Explanation:** megahit command; -1/-2 paired-end input; -o bubble_adj/ output directory; --num-cpu-threads 16 threads; --bubble-level 1 moderate bubble merging; --min-contig-len 500 minimum contig length
 
 ### assemble with prune-level for low-depth regions
 **Args:** `-1 R1.fastq.gz -2 R2.fastq.gz -o pruned/ --num-cpu-threads 16 --prune-level 2 --min-contig-len 500`
-**Explanation:** --prune-level 2 removes low-coverage regions; 0=none, 3=aggressive; useful for reducing assembly fragmentation
+**Explanation:** megahit command; -1/-2 paired-end input; -o pruned/ output directory; --num-cpu-threads 16 threads; --prune-level 2 removes low-coverage regions; --min-contig-len 500 minimum contig length
 
 ### calculate assembly statistics after MEGAHIT
 **Args:** `awk '/^>/{if(l!="") print l; l=0; next}{l+=length($0)}END{print l}' megahit_output/final.contigs.fa | sort -n | awk '{sum+=$1; count++}END{print "Total:", sum, "Count:", count, "N50:", NR%2?$0:a[(NR+1)/2]}'`

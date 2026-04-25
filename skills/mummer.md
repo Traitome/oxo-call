@@ -41,56 +41,56 @@ source_url: "https://mummer4.github.io/"
 
 ### align a query genome to a reference genome
 **Args:** `nucmer --prefix=myrun reference.fna query.fna`
-**Explanation:** aligns query.fna to reference.fna; writes myrun.delta; --prefix avoids overwriting default out.delta
+**Explanation:** nucmer subcommand; --prefix=myrun output prefix; reference.fna reference FASTA; query.fna query FASTA; writes myrun.delta
 
 ### generate a comprehensive pairwise genome comparison report
 **Args:** `dnadiff reference.fna query.fna`
-**Explanation:** wraps nucmer + all show-* tools; produces out.report (global stats), out.snps (SNPs/indels), out.rdiff/.qdiff (rearrangements)
+**Explanation:** dnadiff subcommand; reference.fna reference FASTA; query.fna query FASTA; produces out.report, out.snps, out.rdiff, out.qdiff
 
 ### filter alignments to 1-to-1 (unique) and extract SNPs
 **Args:** `delta-filter -1 myrun.delta > myrun.filtered.delta && show-snps -Clr myrun.filtered.delta > myrun.snps`
-**Explanation:** -1 keeps only one-to-one alignments; -Clr in show-snps gives clean tab-delimited SNP output without context sequences
+**Explanation:** delta-filter subcommand; -1 keeps one-to-one alignments; myrun.delta input; > myrun.filtered.delta output; show-snps subcommand; -Clr clean tab-delimited SNP output; myrun.filtered.delta input; > myrun.snps output
 
 ### show alignment coordinates
 **Args:** `show-coords -r -c -l myrun.delta > myrun.coords`
-**Explanation:** -r sorts by reference position; -c adds percent identity and coverage columns; -l adds sequence lengths; human-readable alignment summary
+**Explanation:** show-coords subcommand; -r sorts by reference position; -c adds identity and coverage; -l adds sequence lengths; myrun.delta input; > myrun.coords output
 
 ### generate a synteny dot-plot image
 **Args:** `mummerplot --png --prefix=dotplot myrun.delta`
-**Explanation:** creates dotplot.png visualising alignment positions; --filter removes repetitive hits for a cleaner image; requires gnuplot
+**Explanation:** mummerplot subcommand; --png creates PNG image; --prefix=dotplot output prefix; myrun.delta input delta file
 
 ### compare two genomes with verbose SNP output
 **Args:** `nucmer --mum -p compare reference.fa query.fa && show-snps -Clrx compare.delta`
-**Explanation:** --mum uses only maximal unique matches (more stringent); -x in show-snps shows flanking sequence context for each SNP
+**Explanation:** nucmer subcommand; --mum maximal unique matches; -p compare output prefix; reference.fa query.fa input; show-snps subcommand; -Clrx clean output with flanking sequence context; compare.delta input
 
 ### align with a custom minimum match length
 **Args:** `nucmer -c 100 -l 20 --prefix large_genome ref.fa query.fa`
-**Explanation:** -c 100 sets minimum cluster length; -l 20 sets minimum MUM length; larger values speed up alignment of large genomes with fewer spurious hits
+**Explanation:** nucmer subcommand; -c 100 minimum cluster length; -l 20 minimum MUM length; --prefix large_genome output prefix; ref.fa query.fa input FASTAs
 
 ### find all matches including repeats with maxmatch
 **Args:** `nucmer --maxmatch --prefix=all_matches ref.fa query.fa`
-**Explanation:** --maxmatch finds all matches regardless of uniqueness; useful for repeat analysis but slower
+**Explanation:** nucmer subcommand; --maxmatch finds all matches; --prefix=all_matches output prefix; ref.fa reference FASTA; query.fa query FASTA
 
 ### align genome to itself for repeat detection
 **Args:** `nucmer --maxmatch --nosimplify --prefix=self_align genome.fa genome.fa`
-**Explanation:** --nosimplify preserves shadowed alignments; essential for self-alignment to find all repeats
+**Explanation:** nucmer subcommand; --maxmatch all matches; --nosimplify preserves shadowed alignments; --prefix=self_align output prefix; genome.fa input FASTA twice for self-alignment
 
 ### generate tiling path for assembly validation
 **Args:** `show-tiling -i 95 -l 1000 alignment.delta > tiling.txt`
-**Explanation:** show-tiling constructs best placement of query contigs on reference; -i 95 -l 1000 filters by identity and length
+**Explanation:** show-tiling subcommand; -i 95 minimum identity; -l 1000 minimum length; alignment.delta input; > tiling.txt output tiling path
 
 ### identify structural rearrangements with show-diff
 **Args:** `show-diff -rH alignment.mdelta > rearrangements.rdiff`
-**Explanation:** show-diff classifies breakpoints; -rH outputs reference breakpoints in human-readable format
+**Explanation:** show-diff subcommand; -rH reference breakpoints human-readable; alignment.mdelta input; > rearrangements.rdiff output
 
 ### filter alignments by minimum identity and length
 **Args:** `delta-filter -i 95 -l 10000 alignment.delta > filtered.delta`
-**Explanation:** -i 95 requires 95% identity; -l 10000 requires 10kb length; removes spurious short alignments
+**Explanation:** delta-filter subcommand; -i 95 minimum identity 95%; -l 10000 minimum length 10kb; alignment.delta input; > filtered.delta output
 
 ### extract alignments for specific sequences
 **Args:** `show-aligns alignment.delta ref_id query_id`
-**Explanation:** show-aligns displays full alignment for specific reference/query ID pair; useful for inspecting individual alignments
+**Explanation:** show-aligns subcommand; alignment.delta input; ref_id reference sequence ID; query_id query sequence ID; displays full alignment
 
 ### compare divergent genomes with protein-level alignment
 **Args:** `promer --prefix=protein_align ref.fa query.fa`
-**Explanation:** promer uses 6-frame translation; better for distant species where DNA similarity is low but protein conserved
+**Explanation:** promer subcommand; --prefix=protein_align output prefix; ref.fa reference FASTA; query.fa query FASTA; 6-frame translated alignment

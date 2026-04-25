@@ -36,56 +36,56 @@ source_url: "https://github.com/lh3/miniasm"
 
 ### compute all-vs-all overlaps for ONT reads with minimap2
 **Args:** `-x ava-ont -t 16 reads.fastq.gz reads.fastq.gz | gzip > overlaps.paf.gz`
-**Explanation:** -x ava-ont preset for ONT all-vs-all overlap; -t 16 threads; gzip output overlaps
+**Explanation:** minimap2 command; -x ava-ont preset for ONT all-vs-all overlap; -t 16 threads; reads.fastq.gz input reads twice; output piped to gzip; > overlaps.paf.gz output
 
 ### assemble ONT reads from precomputed overlaps
 **Args:** `-f reads.fastq.gz overlaps.paf.gz > assembly.gfa`
-**Explanation:** -f reads FASTQ; overlaps PAF (can be gzipped); outputs GFA assembly
+**Explanation:** miniasm command; -f reads.fastq.gz read FASTQ; overlaps.paf.gz input overlaps; > assembly.gfa output GFA
 
 ### convert miniasm GFA output to FASTA
 **Args:** `/^S/ {print ">"$2"\n"$3}`
-**Explanation:** awk command: awk '/^S/ {print ">"$2"\n"$3}' assembly.gfa > assembly.fasta
+**Explanation:** awk pattern; awk '/^S/ {print ">"$2"\n"$3}' assembly.gfa > assembly.fasta; converts GFA to FASTA
 
 ### assemble PacBio reads with stricter parameters
 **Args:** `-f reads.fq.gz -m 200 -i 0.1 -s 3000 -c 5 overlaps.paf.gz > assembly.gfa`
-**Explanation:** -m 200 min match; -i 0.1 min identity 10%; -s 3000 min span; -c 5 min coverage for PacBio
+**Explanation:** miniasm command; -f reads.fq.gz read FASTQ; -m 200 min match; -i 0.1 min identity 10%; -s 3000 min span; -c 5 min coverage; overlaps.paf.gz input overlaps; > assembly.gfa output
 
 ### assemble with pre-filtering of contained reads
 **Args:** `-R -f reads.fq.gz overlaps.paf.gz > assembly.gfa`
-**Explanation:** -R pre-filters contained reads (2-pass); improves assembly but slower
+**Explanation:** miniasm command; -R pre-filters contained reads (2-pass); -f reads.fq.gz read FASTQ; overlaps.paf.gz input overlaps; > assembly.gfa output
 
 ### output string graph instead of unitigs
 **Args:** `-p sg -f reads.fq.gz overlaps.paf.gz > string_graph.gfa`
-**Explanation:** -p sg outputs string graph; shows all overlaps, not just unitigs
+**Explanation:** miniasm command; -p sg outputs string graph format; -f reads.fq.gz read FASTQ; overlaps.paf.gz input overlaps; > string_graph.gfa output
 
 ### assemble with custom overlap drop ratios
 **Args:** `-f reads.fq.gz -r 0.8,0.6 -F 0.9 overlaps.paf.gz > assembly.gfa`
-**Explanation:** -r 0.8,0.6 max/min overlap drop ratio; -F 0.9 aggressive drop ratio
+**Explanation:** miniasm command; -f reads.fq.gz read FASTQ; -r 0.8,0.6 max/min overlap drop ratio; -F 0.9 aggressive drop ratio; overlaps.paf.gz input overlaps; > assembly.gfa output
 
 ### quick assembly for small genomes with relaxed parameters
 **Args:** `-f reads.fq.gz -m 50 -s 500 -c 2 overlaps.paf.gz > assembly.gfa`
-**Explanation:** relaxed parameters for small genomes; -m 50 -s 500 -c 2 for low coverage
+**Explanation:** miniasm command; -f reads.fq.gz read FASTQ; -m 50 -s 500 -c 2 relaxed parameters; overlaps.paf.gz input overlaps; > assembly.gfa output
 
 ### complete miniasm pipeline with polishing (Racon + Medaka)
 **Args:** `-f reads.fq.gz overlaps.paf.gz > assembly.gfa && awk '/^S/ {print ">"$2"\n"$3}' assembly.gfa > draft.fasta && racon -t 8 reads.fq.gz overlaps.paf.gz draft.fasta > polished.fasta && medaka_consensus -i reads.fq.gz -d polished.fasta -o medaka_output -t 8`
-**Explanation:** full pipeline: miniasm → GFA to FASTA → Racon polishing → Medaka polishing; essential for usable assembly
+**Explanation:** miniasm command; -f reads.fq.gz input; overlaps.paf.gz input; > assembly.gfa output; awk converts GFA to FASTA; racon -t 8 polishing; medaka_consensus -i -d -o -t parameters
 
 ### compute overlaps for HiFi PacBio reads with higher accuracy
 **Args:** `-x ava-pb -t 16 reads.fastq.gz reads.fastq.gz | gzip > overlaps_hifi.paf.gz`
-**Explanation:** -x ava-pb preset for PacBio HiFi; higher accuracy reads allow stricter overlap parameters
+**Explanation:** minimap2 command; -x ava-pb preset for PacBio HiFi; -t 16 threads; reads.fastq.gz input reads twice; output piped to gzip; > overlaps_hifi.paf.gz output
 
 ### assemble with BED output for visualization
 **Args:** `-p bed -f reads.fq.gz overlaps.paf.gz > assembly.bed`
-**Explanation:** -p bed outputs BED format; useful for visualization in genome browsers like IGV
+**Explanation:** miniasm command; -p bed outputs BED format; -f reads.fq.gz read FASTQ; overlaps.paf.gz input overlaps; > assembly.bed output
 
 ### assemble with PAF output for downstream analysis
 **Args:** `-p paf -f reads.fq.gz overlaps.paf.gz > assembly_overlaps.paf`
-**Explanation:** -p paf outputs PAF format; shows retained overlaps after graph simplification
+**Explanation:** miniasm command; -p paf outputs PAF format; -f reads.fq.gz read FASTQ; overlaps.paf.gz input overlaps; > assembly_overlaps.paf output
 
 ### check assembly statistics from GFA output
 **Args:** `grep "^S" assembly.gfa | awk '{len+=$3} END {print "Total length:", len, "Contigs:", NR}'`
-**Explanation:** extract total assembly length and contig count from GFA S lines; quick quality assessment
+**Explanation:** grep "^S" assembly.gfa extracts S lines; awk computes total length and contig count; quick quality assessment
 
 ### assemble with high coverage threshold for repetitive genomes
 **Args:** `-f reads.fq.gz -c 10 -s 5000 overlaps.paf.gz > assembly.gfa`
-**Explanation:** -c 10 requires 10 overlapping reads; reduces misassemblies in repetitive regions; -s 5000 filters short overlaps
+**Explanation:** miniasm command; -f reads.fq.gz read FASTQ; -c 10 requires 10 overlapping reads; -s 5000 min span; overlaps.paf.gz input overlaps; > assembly.gfa output

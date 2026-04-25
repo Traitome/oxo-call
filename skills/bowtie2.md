@@ -46,44 +46,44 @@ source_url: "https://bowtie-bio.sourceforge.net/bowtie2/manual.shtml"
 
 ### align paired-end reads to a reference genome using 8 threads
 **Args:** `-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 8 | samtools view -b -o aligned.bam`
-**Explanation:** -x is the index prefix (built by bowtie2-build); -1/-2 are paired-end input files; -p 8 uses 8 threads; output is SAM piped to samtools view -b for BAM output
+**Explanation:** bowtie2 command; -x is the index prefix (built by bowtie2-build); -1/-2 are paired-end input files; -p 8 uses 8 threads; output is SAM piped to samtools view -b for BAM output
 
 ### align single-end reads with sensitive settings
 **Args:** `-x reference_index -U reads.fastq.gz --very-sensitive -p 8 | samtools sort -o sorted.bam`
-**Explanation:** -x is the index prefix; -U is single-end input; --very-sensitive increases accuracy; -p 8 uses 8 threads; output SAM piped directly to samtools sort
+**Explanation:** bowtie2 command; -x is the index prefix; -U is single-end input; --very-sensitive increases accuracy; -p 8 uses 8 threads; output SAM piped directly to samtools sort
 
 ### align paired-end reads and save the alignment statistics
 **Args:** `-x reference_index -1 R1.fq.gz -2 R2.fq.gz -p 8 --no-unal -S aligned.sam 2> align_stats.txt`
-**Explanation:** -x is the index prefix; -1/-2 are paired-end input files; -p 8 uses 8 threads; --no-unal suppresses unmapped reads; -S writes SAM output; 2> redirects alignment stats to a file
+**Explanation:** bowtie2 command; -x is the index prefix; -1/-2 are paired-end input files; -p 8 uses 8 threads; --no-unal suppresses unmapped reads; -S writes SAM output; 2> redirects alignment stats to a file
 
 ### align paired-end reads with read group tags for GATK downstream analysis
 **Args:** `-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 8 --rg-id sample1 --rg SM:sample1 --rg LB:lib1 --rg PL:ILLUMINA | samtools view -b -o sample1.bam`
-**Explanation:** -x is the index prefix; -1/-2 are paired-end input files; -p 8 uses 8 threads; --rg-id sets the read group ID; --rg adds RG tags required by GATK; output is BAM
+**Explanation:** bowtie2 command; -x is the index prefix; -1/-2 are paired-end input files; -p 8 uses 8 threads; --rg-id sets the read group ID; --rg adds RG tags required by GATK; output is BAM
 
 ### align in local mode to allow soft-clipping of read ends
 **Args:** `-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz --local --very-sensitive-local -p 8 | samtools view -b -o local_aligned.bam`
-**Explanation:** -x is the index prefix; -1/-2 are paired-end input files; --local enables local alignment with soft-clipping; --very-sensitive-local is the most accurate preset for local mode; -p 8 uses 8 threads
+**Explanation:** bowtie2 command; -x is the index prefix; -1/-2 are paired-end input files; --local enables local alignment with soft-clipping; --very-sensitive-local is the most accurate preset for local mode; -p 8 uses 8 threads
 
 ### align paired-end RNA-seq reads discarding unaligned reads
 **Args:** `-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 16 --no-unal | samtools sort -@ 4 -o sorted.bam`
-**Explanation:** -x is the index prefix; -1/-2 are paired-end input files; -p 16 uses 16 threads; --no-unal saves disk space by not writing unmapped reads; output sorted directly
+**Explanation:** bowtie2 command; -x is the index prefix; -1/-2 are paired-end input files; -p 16 uses 16 threads; --no-unal saves disk space by not writing unmapped reads; output sorted directly
 
 ### align single-end reads in fast mode for a quick quality check
 **Args:** `-x reference_index -U reads.fastq.gz --fast -p 4 -S quick_check.sam`
-**Explanation:** -x is the index prefix; -U is single-end input; --fast trades sensitivity for speed; -p 4 uses 4 threads; -S writes SAM file; useful for initial quality assessment
+**Explanation:** bowtie2 command; -x is the index prefix; -U is single-end input; --fast trades sensitivity for speed; -p 4 uses 4 threads; -S writes SAM file; useful for initial quality assessment
 
 ### align paired-end reads writing unmapped reads to separate files
 **Args:** `-x reference_index -1 R1.fastq.gz -2 R2.fastq.gz -p 8 --un-conc unmapped_%.fq | samtools view -b -o aligned.bam`
-**Explanation:** -x is the index prefix; -1/-2 are paired-end input files; -p 8 uses 8 threads; --un-conc writes unmapped read pairs to unmapped_1.fq and unmapped_2.fq for downstream analysis
+**Explanation:** bowtie2 command; -x is the index prefix; -1/-2 are paired-end input files; -p 8 uses 8 threads; --un-conc writes unmapped read pairs to unmapped_1.fq and unmapped_2.fq for downstream analysis
 
 ### align interleaved FASTQ input
 **Args:** `-x reference_index --interleaved reads_interleaved.fq.gz -p 8 --no-unal | samtools view -b -o aligned.bam`
-**Explanation:** -x is the index prefix; --interleaved reads mate pairs alternating in one file; -p 8 uses 8 threads; --no-unal suppresses unmapped reads; alternative to separate -1/-2 files
+**Explanation:** bowtie2 command; -x is the index prefix; --interleaved reads mate pairs alternating in one file; -p 8 uses 8 threads; --no-unal suppresses unmapped reads; alternative to separate -1/-2 files
 
 ### align with increased maximum fragment length for long-insert library
 **Args:** `-x reference_index -1 R1.fq.gz -2 R2.fq.gz -p 8 -X 1000 --no-mixed --no-discordant | samtools view -b -o aligned.bam`
-**Explanation:** -x is the index prefix; -1/-2 are paired-end input files; -p 8 uses 8 threads; -X 1000 allows fragments up to 1000bp; --no-mixed suppresses unpaired; --no-discordant suppresses discordant pairs
+**Explanation:** bowtie2 command; -x is the index prefix; -1/-2 are paired-end input files; -p 8 uses 8 threads; -X 1000 allows fragments up to 1000bp; --no-mixed suppresses unpaired; --no-discordant suppresses discordant pairs
 
 ### inspect a bowtie2 index to see reference sequence names and lengths
 **Args:** `bowtie2-inspect -s reference_index`
-**Explanation:** bowtie2-inspect -s prints summary of index properties and reference sequence lengths; -n for names only
+**Explanation:** bowtie2-inspect tool; -s prints summary of index properties and reference sequence lengths; -n for names only

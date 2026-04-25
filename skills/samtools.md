@@ -40,88 +40,88 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 
 ### sort a BAM file by genomic coordinates
 **Args:** `sort -o sorted.bam input.bam`
-**Explanation:** -o writes the sorted BAM file; coordinate sort is the default
+**Explanation:** samtools sort subcommand; -o sorted.bam output BAM; input.bam input file; coordinate sort is the default
 
 ### create an index for a sorted BAM file
 **Args:** `index sorted.bam`
-**Explanation:** creates sorted.bam.bai; must be run on a coordinate-sorted BAM
+**Explanation:** samtools index subcommand; sorted.bam input BAM; creates sorted.bam.bai index file; must be run on a coordinate-sorted BAM
 
 ### filter to keep only properly paired primary alignments
 **Args:** `view -b -f 2 -F 256 -F 2048 -o proper_paired.bam input.bam`
-**Explanation:** -b outputs BAM; -f 2 keeps properly paired; -F 256 removes secondary; -F 2048 removes supplementary; -o writes output
+**Explanation:** samtools view subcommand; -b outputs BAM format; -f 2 keeps properly paired; -F 256 removes secondary; -F 2048 removes supplementary; -o proper_paired.bam output BAM; input.bam input file
 
 ### get alignment statistics (mapped, unmapped, duplicates)
 **Args:** `flagstat input.bam`
-**Explanation:** outputs counts for each alignment category to stdout; redirect with > stats.txt to save
+**Explanation:** samtools flagstat subcommand; input.bam input BAM; outputs counts for each alignment category to stdout; redirect with > stats.txt to save
 
 ### convert BAM to FASTQ for paired-end reads
 **Args:** `fastq -1 R1.fastq.gz -2 R2.fastq.gz -0 /dev/null -s /dev/null -n input.bam`
-**Explanation:** -1/-2 for read 1/2; -0 for unpaired; -s for supplementary; -n preserves original read names
+**Explanation:** samtools fastq subcommand; -1 R1.fastq.gz read 1 output; -2 R2.fastq.gz read 2 output; -0 /dev/null unpaired output; -s /dev/null supplementary output; -n preserves original read names; input.bam input BAM
 
 ### extract reads mapping to chromosome 1 between 100000 and 200000
 **Args:** `view -b -o region.bam input.bam chr1:100000-200000`
-**Explanation:** -b outputs BAM; -o writes output; region queries require a sorted + indexed BAM
+**Explanation:** samtools view subcommand; -b outputs BAM; -o region.bam output BAM; input.bam input file; chr1:100000-200000 region specification; region queries require sorted + indexed BAM
 
 ### mark PCR duplicates
 **Args:** `markdup -f stats.txt input_namesorted.bam output_markdup.bam`
-**Explanation:** input must be name-sorted (samtools sort -n), then fixmate'd; -f writes duplicate marking statistics
+**Explanation:** samtools markdup subcommand; -f stats.txt duplicate stats output; input_namesorted.bam name-sorted input BAM; output_markdup.bam output BAM; input must be name-sorted then fixmate'd
 
 ### merge multiple BAM files into one
 **Args:** `merge -f merged.bam sample1.bam sample2.bam sample3.bam`
-**Explanation:** -f overwrites output if it exists; all inputs should be sorted
+**Explanation:** samtools merge subcommand; -f overwrites output if exists; merged.bam output BAM; sample1.bam sample2.bam sample3.bam input BAMs; all inputs should be sorted
 
 ### compute per-base depth of coverage
 **Args:** `depth -a -o coverage.txt input.bam`
-**Explanation:** -a includes positions with zero coverage; -o writes to file
+**Explanation:** samtools depth subcommand; -a includes positions with zero coverage; -o coverage.txt output file; input.bam input BAM
 
 ### view the BAM header
 **Args:** `view -H input.bam`
-**Explanation:** outputs only the header lines (starting with @) to stdout
+**Explanation:** samtools view subcommand; -H output header only; input.bam input BAM; outputs only the header lines (starting with @) to stdout
 
 ### sort BAM by read name for fixmate preprocessing
 **Args:** `sort -n -o namesorted.bam input.bam`
-**Explanation:** -n sorts by read name (required before fixmate and markdup); -o writes output
+**Explanation:** samtools sort subcommand; -n sorts by read name; -o namesorted.bam output BAM; input.bam input file; required before fixmate and markdup
 
 ### add mate information required for duplicate marking
 **Args:** `fixmate -m namesorted.bam fixmate.bam`
-**Explanation:** -m adds mate score tags needed by markdup; input must be name-sorted; output is still name-sorted
+**Explanation:** samtools fixmate subcommand; -m adds mate score tags needed by markdup; namesorted.bam name-sorted input BAM; fixmate.bam output BAM; input must be name-sorted; output is still name-sorted
 
 ### convert BAM to CRAM with reference for smaller storage
 **Args:** `view -C --reference reference.fa -o output.cram input.bam`
-**Explanation:** -C outputs CRAM format; --reference is required for CRAM; -o writes output; much smaller than BAM for WGS data
+**Explanation:** samtools view subcommand; -C outputs CRAM format; --reference reference.fa required for CRAM; -o output.cram output CRAM; input.bam input BAM; much smaller than BAM for WGS data
 
 ### calculate insert size and coverage statistics
 **Args:** `stats input.bam > stats.txt`
-**Explanation:** outputs comprehensive statistics including insert size distribution, coverage, and error rates
+**Explanation:** samtools stats subcommand; input.bam input BAM; > stats.txt output statistics file; outputs comprehensive statistics including insert size distribution, coverage, and error rates
 
 ### sort BAM using coordinate sort with temporary directory
 **Args:** `sort -m 2G -T /tmp/sort_tmp -o sorted.bam input.bam`
-**Explanation:** -m limits per-thread memory; -T sets temporary directory; -o writes output; avoids filling default tmpdir
+**Explanation:** samtools sort subcommand; -m 2G limits per-thread memory; -T /tmp/sort_tmp temporary directory; -o sorted.bam output BAM; input.bam input file; avoids filling default tmpdir
 
 ### generate pileup for variant calling
 **Args:** `mpileup -f reference.fa -o output.pileup input.bam`
-**Explanation:** -f provides reference FASTA; -o writes output; outputs pileup format for downstream analysis; use bcftools mpileup for direct VCF output
+**Explanation:** samtools mpileup subcommand; -f reference.fa reference FASTA; -o output.pileup pileup output file; input.bam input BAM; outputs pileup format for downstream analysis; use bcftools mpileup for direct VCF output
 
 ### generate consensus sequence from alignments
 **Args:** `consensus -f FASTA -o consensus.fa input.bam`
-**Explanation:** -f specifies output format (FASTA/FASTQ/PILEUP); -o writes output; produces consensus sequence from aligned reads; useful for viral genomes or amplicon sequencing
+**Explanation:** samtools consensus subcommand; -f FASTA output format; -o consensus.fa output FASTA; input.bam input BAM; produces consensus sequence from aligned reads; useful for viral genomes or amplicon sequencing
 
 ### collate alignments by name without full sorting
 **Args:** `collate -o collated.bam input.bam`
-**Explanation:** groups reads by name faster than sort -n; useful for workflows needing paired reads together without strict name ordering
+**Explanation:** samtools collate subcommand; -o collated.bam output BAM; input.bam input BAM; groups reads by name faster than sort -n; useful for workflows needing paired reads together without strict name ordering
 
 ### compute coverage statistics per chromosome
 **Args:** `coverage -o coverage.txt input.bam`
-**Explanation:** outputs depth and percent coverage per chromosome; useful for assessing sequencing completeness across the genome
+**Explanation:** samtools coverage subcommand; -o coverage.txt output file; input.bam input BAM; outputs depth and percent coverage per chromosome; useful for assessing sequencing completeness across the genome
 
 ### quickly check if BAM file is intact
 **Args:** `quickcheck input.bam`
-**Explanation:** fast integrity check without full validation; exits with non-zero status if file appears corrupted; useful for pipeline validation steps
+**Explanation:** samtools quickcheck subcommand; input.bam input BAM; fast integrity check without full validation; exits with non-zero status if file appears corrupted; useful for pipeline validation steps
 
 ### extract FASTA from BAM
 **Args:** `fasta -o output.fa input.bam`
-**Explanation:** converts BAM to FASTA format; useful for extracting sequences from aligned reads
+**Explanation:** samtools fasta subcommand; -o output.fa output FASTA; input.bam input BAM; converts BAM to FASTA format; useful for extracting sequences from aligned reads
 
 ### calculate depth per BED region
 **Args:** `bedcov regions.bed input.bam > coverage.bed`
-**Explanation:** computes read depth for each region in BED file; outputs BED with additional column for total base count
+**Explanation:** samtools bedcov subcommand; regions.bed BED regions input; input.bam input BAM; > coverage.bed output BED with coverage; computes read depth for each region in BED file; outputs BED with additional column for total base count

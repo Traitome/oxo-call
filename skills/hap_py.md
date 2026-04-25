@@ -44,36 +44,36 @@ source_url: "https://github.com/Illumina/hap.py"
 
 ### benchmark a variant caller VCF against GIAB truth set
 **Args:** `-r reference.fa GIAB_truth.vcf.gz query_calls.vcf.gz -o benchmark_results --engine vcfeval -f HG001_highconf.bed --threads 8`
-**Explanation:** -r reference; truth VCF; query VCF; -o output prefix; --engine vcfeval; -f confident regions BED
+**Explanation:** hap.py command; -r reference; truth VCF; query VCF; -o output prefix; --engine vcfeval; -f confident regions BED; --threads 8 parallel processing
 
 ### benchmark with Stratification for SNPs and indels separately
 **Args:** `-r reference.fa truth.vcf.gz query.vcf.gz -o results --engine vcfeval -f confident.bed --report-prefix detailed_report --threads 8`
-**Explanation:** --report-prefix generates detailed per-category report; standard SNP/indel breakdown in summary.csv
+**Explanation:** hap.py command; -r reference; truth VCF; query VCF; -o output prefix; --engine vcfeval; -f confident BED; --report-prefix generates detailed per-category report; --threads 8 parallel processing
 
 ### generate ROC curve data for quality threshold analysis
 **Args:** `-r reference.fa truth.vcf.gz query.vcf.gz -o roc_results --engine vcfeval -f confident.bed --roc QUAL --roc-filter PASS --threads 8`
-**Explanation:** --roc QUAL uses QUAL field for ROC; --roc-filter PASS computes ROC for PASS variants; outputs ROC data for precision/recall curves
+**Explanation:** hap.py command; -r reference; truth VCF; query VCF; -o output prefix; --engine vcfeval; -f confident BED; --roc QUAL uses QUAL field for ROC; --roc-filter PASS computes ROC for PASS variants; --threads 8 parallel processing; outputs ROC data for precision/recall curves
 
 ### output annotated VCF with TP/FP/FN classifications
 **Args:** `-r reference.fa truth.vcf.gz query.vcf.gz -o annotated --engine vcfeval -f confident.bed --write-vcf --threads 8`
-**Explanation:** --write-vcf (-V) produces annotated VCF with variant classifications; useful for investigating specific false positives/negatives
+**Explanation:** hap.py command; -r reference; truth VCF; query VCF; -o output prefix; --engine vcfeval; -f confident BED; --write-vcf (-V) produces annotated VCF with variant classifications; --threads 8 parallel processing; useful for investigating specific false positives/negatives
 
 ### use stratification for region-specific performance metrics
 **Args:** `-r reference.fa truth.vcf.gz query.vcf.gz -o stratified --engine vcfeval -f confident.bed --stratification strat_regions.tsv --threads 8`
-**Explanation:** --stratification TSV file with region name and BED file pairs; computes precision/recall per region (e.g., exome, CDS, low-complexity)
+**Explanation:** hap.py command; -r reference; truth VCF; query VCF; -o output prefix; --engine vcfeval; -f confident BED; --stratification TSV file with region name and BED file pairs; --threads 8 parallel processing; computes precision/recall per region (e.g., exome, CDS, low-complexity)
 
 ### preprocess truth set for consistent variant representation
 **Args:** `-r reference.fa truth.vcf.gz query.vcf.gz -o preprocessed --engine vcfeval -f confident.bed --preprocess-truth --threads 8`
-**Explanation:** --preprocess-truth normalizes truth variants using bcftools norm; ensures consistent variant representation between truth and query
+**Explanation:** hap.py command; -r reference; truth VCF; query VCF; -o output prefix; --engine vcfeval; -f confident BED; --preprocess-truth normalizes truth variants using bcftools norm; --threads 8 parallel processing; ensures consistent variant representation between truth and query
 
 ### use fast xcmp engine for quick benchmarking
 **Args:** `-r reference.fa truth.vcf.gz query.vcf.gz -o fast_results --engine xcmp -f confident.bed --threads 16`
-**Explanation:** --engine xcmp is faster than vcfeval but less accurate for complex variants; suitable for quick iteration during pipeline development
+**Explanation:** hap.py command; -r reference; truth VCF; query VCF; -o output prefix; --engine xcmp is faster than vcfeval but less accurate for complex variants; -f confident BED; --threads 16 parallel processing; suitable for quick iteration during pipeline development
 
 ### restrict analysis to specific target regions
 **Args:** `-r reference.fa truth.vcf.gz query.vcf.gz -o targeted --engine vcfeval -f confident.bed -T exome_regions.bed --threads 8`
-**Explanation:** -T restricts comparison to target regions only; different from -f (confident regions): -T limits where to look, -f marks high-confidence truth
+**Explanation:** hap.py command; -r reference; truth VCF; query VCF; -o output prefix; --engine vcfeval; -f confident BED; -T restricts comparison to target regions only; --threads 8 parallel processing; different from -f (confident regions): -T limits where to look, -f marks high-confidence truth
 
 ### output extended counts for detailed analysis
 **Args:** `-r reference.fa truth.vcf.gz query.vcf.gz -o extended --engine vcfeval -f confident.bed --write-counts --threads 8`
-**Explanation:** --write-counts (-X) outputs extended.csv with per-subtype (ti/tv, indel lengths) and per-genotype (het/hom) counts
+**Explanation:** hap.py command; -r reference; truth VCF; query VCF; -o output prefix; --engine vcfeval; -f confident BED; --write-counts (-X) outputs extended.csv with per-subtype (ti/tv, indel lengths) and per-genotype (het/hom) counts; --threads 8 parallel processing

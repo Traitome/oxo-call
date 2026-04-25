@@ -32,48 +32,48 @@ source_url: "https://github.com/fritzsedlazeck/SURVIVOR/wiki"
 
 ### merge SV VCFs from multiple callers requiring support from at least 2 callers
 **Args:** `merge vcf_list.txt 500 2 1 1 0 50 merged_svs.vcf`
-**Explanation:** args: vcf_list distance=500bp min_callers=2 same_type=1 same_strand=1 estimate_dist=0 min_size=50; output is merged_svs.vcf
+**Explanation:** SURVIVOR merge subcommand; vcf_list.txt VCF list file; 500 max distance in bp; 2 min callers support; 1 same_type_required; 1 same_strand_required; 0 estimate_SV_distance; 50 min SV size; merged_svs.vcf output VCF
 
 ### merge SV calls from a single caller across multiple samples
 **Args:** `merge sample_vcfs.txt 1000 1 1 1 0 50 cohort_svs.vcf`
-**Explanation:** distance=1000 for loose merging across samples; min_callers=1 includes private SVs; same_type=1 preserves type
+**Explanation:** SURVIVOR merge subcommand; sample_vcfs.txt VCF list file; 1000 max distance in bp for loose merging; 1 min callers support includes private SVs; 1 same_type_required preserves type; 1 same_strand_required; 0 estimate_SV_distance; 50 min SV size; cohort_svs.vcf output VCF
 
 ### get summary statistics for SVs in a VCF
 **Args:** `stats -i calls.vcf -o sv_stats.txt`
-**Explanation:** outputs counts per SV type, size distributions, and genotype quality summaries
+**Explanation:** SURVIVOR stats subcommand; -i calls.vcf input VCF; -o sv_stats.txt output statistics file; outputs counts per SV type, size distributions, and genotype quality summaries
 
 ### filter SVs to a high-confidence set by size and minimum quality
 **Args:** `filter -i calls.vcf -o filtered.vcf -s 50 -e 100000 -f 0`
-**Explanation:** -s 50 minimum SV size; -e 100000 maximum SV size; -f 0 minimum allele frequency (0 = no AF filter)
+**Explanation:** SURVIVOR filter subcommand; -i calls.vcf input VCF; -o filtered.vcf output VCF; -s 50 minimum SV size; -e 100000 maximum SV size; -f 0 minimum allele frequency (no AF filter)
 
 ### simulate structural variants on a reference genome for benchmarking
 **Args:** `simSV reference.fasta parameter_file.txt 0 0 simulated`
-**Explanation:** generates simulated SVs from a parameter file; outputs simulated_insertions.fa, simulated_SVs.vcf, and a modified FASTA
+**Explanation:** SURVIVOR simSV subcommand; reference.fasta input reference genome; parameter_file.txt simulation parameters; 0 0 simulation flags; simulated output prefix; outputs simulated_insertions.fa, simulated_SVs.vcf, and modified FASTA
 
 ### create a VCF list file and merge three caller outputs
 **Args:** `ls sniffles.vcf pbsv.vcf cutesv.vcf > vcf_list.txt && merge vcf_list.txt 500 2 1 1 0 50 consensus_svs.vcf`
-**Explanation:** creates vcf_list.txt with three caller VCF paths; merge requires at least 2 callers to agree (min_callers=2)
+**Explanation:** ls creates vcf_list.txt with three caller VCF paths; && merge runs SURVIVOR merge subcommand; vcf_list.txt VCF list file; 500 max distance in bp; 2 min callers support; 1 same_type_required; 1 same_strand_required; 0 estimate_SV_distance; 50 min SV size; consensus_svs.vcf output VCF
 
 ### convert SURVIVOR merged VCF to sorted VCF
 **Args:** `bcftools sort merged_svs.vcf -Oz -o merged_svs.sorted.vcf.gz && bcftools index merged_svs.sorted.vcf.gz`
-**Explanation:** SURVIVOR output is not sorted; use bcftools sort before downstream analysis
+**Explanation:** bcftools sort subcommand; merged_svs.vcf input VCF; -Oz compressed VCF output; -o merged_svs.sorted.vcf.gz output file; && bcftools index creates index; SURVIVOR output is not sorted
 
 ### filter SVs by type (only deletions)
 **Args:** `filter -i calls.vcf -o deletions_only.vcf -s 50 -e 100000 -t DEL`
-**Explanation:** -t DEL filters to deletions only; combine with size filters for specific DEL size ranges
+**Explanation:** SURVIVOR filter subcommand; -i calls.vcf input VCF; -o deletions_only.vcf output VCF; -s 50 minimum SV size; -e 100000 maximum SV size; -t DEL filters to deletions only
 
 ### generate parameter file for SV simulation
 **Args:** `simSV parameter_file.txt reference.fasta`
-**Explanation:** creates parameter file template for SV simulation; edit parameters before running full simulation
+**Explanation:** SURVIVOR simSV subcommand; parameter_file.txt output parameter file; reference.fasta input reference genome; creates parameter file template for SV simulation; edit parameters before running full simulation
 
 ### evaluate SV calls against simulated truth set
 **Args:** `eval truth.vcf calls.vcf 500 0.5 0.5 output.txt`
-**Explanation:** evaluates call accuracy against simulated truth; 500bp distance, 0.5 size/seq similarity thresholds
+**Explanation:** SURVIVOR eval subcommand; truth.vcf truth set VCF; calls.vcf query VCF; 500 distance threshold in bp; 0.5 size similarity threshold; 0.5 sequence similarity threshold; output.txt evaluation results
 
 ### scan reads for error profiles prior to simulation
 **Args:** `scanreads aligned.bam error_profile.txt`
-**Explanation:** analyzes aligned reads to generate error profiles for realistic read simulation
+**Explanation:** SURVIVOR scanreads subcommand; aligned.bam input BAM; error_profile.txt output error profile; analyzes aligned reads for realistic read simulation
 
 ### simulate long reads with error profiles
 **Args:** `simreads reference.fasta error_profile.txt 10000 10 reads.fasta`
-**Explanation:** simulates 10000 reads with 10x coverage using error profile; outputs FASTA of simulated reads
+**Explanation:** SURVIVOR simreads subcommand; reference.fasta input reference genome; error_profile.txt error profile file; 10000 number of reads; 10 coverage multiplier; reads.fasta output FASTA of simulated reads

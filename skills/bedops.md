@@ -42,11 +42,11 @@ source_url: "https://bedops.readthedocs.io/"
 
 ### intersect two sorted BED files (intervals present in both)
 **Args:** `--intersect a.sorted.bed b.sorted.bed > intersection.bed`
-**Explanation:** --intersect operation; a.sorted.bed b.sorted.bed sorted input files; returns intervals that overlap between both files; equivalent to bedtools intersect
+**Explanation:** bedops command; --intersect operation; a.sorted.bed b.sorted.bed sorted input files; returns intervals that overlap between both files; equivalent to bedtools intersect
 
 ### find intervals in file A that do not overlap file B
 **Args:** `--difference a.sorted.bed b.sorted.bed > a_not_b.bed`
-**Explanation:** --difference operation; a.sorted.bed b.sorted.bed sorted input files; returns elements of the first file that have no overlap with any element in subsequent files
+**Explanation:** bedops command; --difference operation; a.sorted.bed b.sorted.bed sorted input files; returns elements of the first file that have no overlap with any element in subsequent files
 
 ### compute coverage (sum of signal) from signal file mapped to gene windows
 **Args:** `bedmap --echo --sum --delim '\t' genes.sorted.bed signal.sorted.bedgraph > genes_with_coverage.bed`
@@ -62,15 +62,15 @@ source_url: "https://bedops.readthedocs.io/"
 
 ### merge overlapping intervals and compute union across three BED files
 **Args:** `--merge a.sorted.bed b.sorted.bed c.sorted.bed > merged_union.bed`
-**Explanation:** --merge operation; a.sorted.bed b.sorted.bed c.sorted.bed sorted input files; unions all intervals and collapses overlapping ones into a single interval
+**Explanation:** bedops command; --merge operation; a.sorted.bed b.sorted.bed c.sorted.bed sorted input files; unions all intervals and collapses overlapping ones into a single interval
 
 ### find intervals in A that overlap B by at least 1bp
 **Args:** `--element-of 1 a.sorted.bed b.sorted.bed > overlapping.bed`
-**Explanation:** --element-of 1 operation; a.sorted.bed b.sorted.bed sorted input files; -e 1 means at least 1bp overlap (default -e is 100%, which is very strict); use -e 50% for 50% overlap
+**Explanation:** bedops command; --element-of 1 operation; a.sorted.bed b.sorted.bed sorted input files; -e 1 means at least 1bp overlap (default -e is 100%, which is very strict); use -e 50% for 50% overlap
 
 ### chop intervals into windows of 100bp
 **Args:** `--chop 100 regions.sorted.bed > windows.bed`
-**Explanation:** --chop 100 operation; regions.sorted.bed sorted input file; splits each interval into fixed-size 100bp windows; use --stagger to offset starting positions
+**Explanation:** bedops command; --chop 100 operation; regions.sorted.bed sorted input file; splits each interval into fixed-size 100bp windows; use --stagger to offset starting positions
 
 ### count how many map elements overlap each reference interval
 **Args:** `bedmap --echo --count --delim '\t' genes.sorted.bed reads.sorted.bed > gene_read_counts.bed`
@@ -86,4 +86,4 @@ source_url: "https://bedops.readthedocs.io/"
 
 ### compute complement (regions NOT covered by any interval)
 **Args:** `--complement --chrom-sizes hg38.chromsizes intervals.sorted.bed > gaps.bed`
-**Explanation:** --complement operation; --chrom-sizes hg38.chromsizes chromosome sizes file; intervals.sorted.bed sorted input file; --complement requires chromosome sizes to define boundary; outputs regions not covered by input
+**Explanation:** bedops command; --complement operation; --chrom-sizes hg38.chromsizes chromosome sizes file; intervals.sorted.bed sorted input file; --complement requires chromosome sizes to define boundary; outputs regions not covered by input

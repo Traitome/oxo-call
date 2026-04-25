@@ -44,11 +44,11 @@ source_url: "https://github.com/jenniferlu717/Bracken"
 
 ### run Bracken on a Kraken2 report for species-level abundance estimation
 **Args:** `-d /path/to/kraken2_db -i kraken_report.txt -o bracken_output.bracken -w kraken_report_bracken.txt -l S -r 150 -t 10`
-**Explanation:** -d /path/to/kraken2_db database path; -i kraken_report.txt Kraken2 report input; -o bracken_output.bracken Bracken output; -w kraken_report_bracken.txt updated Kraken report; -l S species level; -r 150 bp read length; -t 10 minimum reads threshold
+**Explanation:** bracken command; -d /path/to/kraken2_db database path; -i kraken_report.txt Kraken2 report input; -o bracken_output.bracken Bracken output; -w kraken_report_bracken.txt updated Kraken report; -l S species level; -r 150 bp read length; -t 10 minimum reads threshold
 
 ### run Bracken for genus-level abundance estimation
 **Args:** `-d /path/to/kraken2_db -i kraken_report.txt -o bracken_genus.bracken -l G -r 150 -t 5`
-**Explanation:** -d /path/to/kraken2_db database path; -i kraken_report.txt Kraken report input; -o bracken_genus.bracken output file; -l G genus level; -r 150 bp read length; -t 5 minimum reads threshold; lower threshold to include more genera
+**Explanation:** bracken command; -d /path/to/kraken2_db database path; -i kraken_report.txt Kraken report input; -o bracken_genus.bracken output file; -l G genus level; -r 150 bp read length; -t 5 minimum reads threshold; lower threshold to include more genera
 
 ### combine Bracken results from multiple samples into one table
 **Args:** `combine_bracken_outputs --files sample1.bracken sample2.bracken sample3.bracken --names s1,s2,s3 --output combined_abundance.txt`
@@ -56,11 +56,11 @@ source_url: "https://github.com/jenniferlu717/Bracken"
 
 ### run Bracken on short reads (75 bp)
 **Args:** `-d /path/to/kraken2_db -i kraken_report.txt -o bracken_75bp.bracken -l S -r 75 -t 10`
-**Explanation:** -d /path/to/kraken2_db database path; -i kraken_report.txt Kraken report input; -o bracken_75bp.bracken output file; -l S species level; -r 75 specifies 75 bp read length; -t 10 minimum reads; database75mers.kmer_distrib must exist (created by bracken-build -l 75)
+**Explanation:** bracken command; -d /path/to/kraken2_db database path; -i kraken_report.txt Kraken report input; -o bracken_75bp.bracken output file; -l S species level; -r 75 specifies 75 bp read length; -t 10 minimum reads; database75mers.kmer_distrib must exist (created by bracken-build -l 75)
 
 ### run Bracken for family-level analysis with higher threshold
 **Args:** `-d /path/to/kraken2_db -i kraken_report.txt -o bracken_family.bracken -l F -r 150 -t 50`
-**Explanation:** -d /path/to/kraken2_db database path; -i kraken_report.txt Kraken report input; -o bracken_family.bracken output file; -l F family level; -r 150 bp read length; -t 50 higher threshold to include only well-represented families
+**Explanation:** bracken command; -d /path/to/kraken2_db database path; -i kraken_report.txt Kraken report input; -o bracken_family.bracken output file; -l F family level; -r 150 bp read length; -t 50 higher threshold to include only well-represented families
 
 ### build Bracken database for multiple read lengths
 **Args:** `bracken-build -d /path/to/kraken2_db -k 35 -l 75 -t 8 -y kraken2 && bracken-build -d /path/to/kraken2_db -k 35 -l 100 -t 8 -y kraken2 && bracken-build -d /path/to/kraken2_db -k 35 -l 150 -t 8 -y kraken2`
@@ -68,11 +68,11 @@ source_url: "https://github.com/jenniferlu717/Bracken"
 
 ### run Bracken with very low threshold for rare species detection
 **Args:** `-d /path/to/kraken2_db -i kraken_report.txt -o bracken_rare.bracken -l S -r 150 -t 1`
-**Explanation:** -d /path/to/kraken2_db database path; -i kraken_report.txt Kraken report input; -o bracken_rare.bracken output file; -l S species level; -r 150 bp read length; -t 1 minimum threshold; includes single-read species; useful for detecting rare taxa but increases false positives
+**Explanation:** bracken command; -d /path/to/kraken2_db database path; -i kraken_report.txt Kraken report input; -o bracken_rare.bracken output file; -l S species level; -r 150 bp read length; -t 1 minimum threshold; includes single-read species; useful for detecting rare taxa but increases false positives
 
 ### run Bracken for subspecies-level analysis
 **Args:** `-d /path/to/kraken2_db -i kraken_report.txt -o bracken_subspecies.bracken -l S1 -r 150 -t 10`
-**Explanation:** -d /path/to/kraken2_db database path; -i kraken_report.txt Kraken report input; -o bracken_subspecies.bracken output file; -l S1 subspecies level; -r 150 bp read length; -t 10 minimum reads; requires database with subspecies taxonomy; finer taxonomic resolution for strain-level analysis
+**Explanation:** bracken command; -d /path/to/kraken2_db database path; -i kraken_report.txt Kraken report input; -o bracken_subspecies.bracken output file; -l S1 subspecies level; -r 150 bp read length; -t 10 minimum reads; requires database with subspecies taxonomy; finer taxonomic resolution for strain-level analysis
 
 ### combine Bracken outputs with specific output format
 **Args:** `combine_bracken_outputs --files *.bracken --names $(ls *.bracken | sed 's/.bracken//') --output combined_species.txt --level S`
@@ -80,4 +80,4 @@ source_url: "https://github.com/jenniferlu717/Bracken"
 
 ### run Bracken on KrakenUniq report with custom kmer length
 **Args:** `-d /path/to/krakenuniq_db -i krakenuniq_report.txt -o bracken_krakenuniq.bracken -l S -r 100 -t 10`
-**Explanation:** -d /path/to/krakenuniq_db database path; -i krakenuniq_report.txt KrakenUniq report input; -o bracken_krakenuniq.bracken output file; -l S species level; -r 100 bp read length; -t 10 minimum reads; KrakenUniq uses different kmer length (31 by default); ensure bracken-build used -k 31 and -y krakenuniq for compatibility
+**Explanation:** bracken command; -d /path/to/krakenuniq_db database path; -i krakenuniq_report.txt KrakenUniq report input; -o bracken_krakenuniq.bracken output file; -l S species level; -r 100 bp read length; -t 10 minimum reads; KrakenUniq uses different kmer length (31 by default); ensure bracken-build used -k 31 and -y krakenuniq for compatibility

@@ -37,44 +37,44 @@ source_url: "https://github.com/PacificBiosciences/pbmm2"
 
 ### align PacBio HiFi reads to reference genome
 **Args:** `align --preset HIFI --sort -j 16 --sort-threads 4 reference.fa hifi_reads.bam aligned_sorted.bam`
-**Explanation:** --preset HIFI; --sort for sorted output; -j 16 alignment threads; input PacBio BAM; output sorted BAM
+**Explanation:** pbmm2 align subcommand; --preset HIFI for HiFi reads; --sort for sorted output; -j 16 alignment threads; --sort-threads 4 sorting threads; reference.fa reference genome; hifi_reads.bam input PacBio BAM; aligned_sorted.bam output sorted BAM
 
 ### align PacBio IsoSeq transcriptome reads
 **Args:** `align --preset ISOSEQ --sort -j 8 reference.fa isoseq_reads.bam isoseq_aligned.bam`
-**Explanation:** --preset ISOSEQ for transcript alignment with splice-aware settings
+**Explanation:** pbmm2 align subcommand; --preset ISOSEQ for transcript alignment with splice-aware settings; --sort for sorted output; -j 8 threads; reference.fa reference genome; isoseq_reads.bam input BAM; isoseq_aligned.bam output BAM
 
 ### index reference genome for repeated pbmm2 use
 **Args:** `index reference.fa reference.mmi`
-**Explanation:** creates minimap2 index for faster repeated alignment; pass .mmi to align -d option
+**Explanation:** pbmm2 index subcommand; reference.fa input reference genome; reference.mmi output minimap2 index; for faster repeated alignment; pass .mmi to align -d option
 
 ### align CLR (subread) PacBio reads
 **Args:** `align --preset SUBREAD --sort -j 16 reference.fa subreads.bam clr_aligned.bam`
-**Explanation:** --preset SUBREAD for raw CLR reads; longer, noisier reads require different alignment parameters
+**Explanation:** pbmm2 align subcommand; --preset SUBREAD for raw CLR reads; --sort for sorted output; -j 16 threads; reference.fa reference genome; subreads.bam input BAM; clr_aligned.bam output BAM; longer, noisier reads require different alignment parameters
 
 ### align with read group information for variant calling
 **Args:** `align --preset HIFI --sort -j 16 --rg '@RG\tID:sample1\tSM:sample1\tPL:PACBIO' reference.fa reads.bam aligned.bam`
-**Explanation:** --rg adds read group; essential for GATK and other tools requiring RG headers
+**Explanation:** pbmm2 align subcommand; --preset HIFI; --sort for sorted output; -j 16 threads; --rg '@RG\tID:sample1\tSM:sample1\tPL:PACBIO' read group header; reference.fa reference genome; reads.bam input BAM; aligned.bam output BAM; essential for GATK and other tools requiring RG headers
 
 ### output secondary alignments for structural variant detection
 **Args:** `align --preset HIFI --sort -j 16 --secondary --max-secondary-alns 10 reference.fa reads.bam aligned.bam`
-**Explanation:** --secondary outputs secondary alignments; --max-secondary-alns 10 limits to top 10
+**Explanation:** pbmm2 align subcommand; --preset HIFI; --sort for sorted output; -j 16 threads; --secondary outputs secondary alignments; --max-secondary-alns 10 limits to top 10; reference.fa reference genome; reads.bam input BAM; aligned.bam output BAM
 
 ### increase mapping stringency for unique mappings
 **Args:** `align --preset HIFI --sort -j 16 --min-gap-comp-id-perc 85 reference.fa reads.bam aligned_strict.bam`
-**Explanation:** --min-gap-comp-id-perc 85 requires 85% identity; filters out lower quality mappings
+**Explanation:** pbmm2 align subcommand; --preset HIFI; --sort for sorted output; -j 16 threads; --min-gap-comp-id-perc 85 requires 85% identity; reference.fa reference genome; reads.bam input BAM; aligned_strict.bam output BAM; filters out lower quality mappings
 
 ### strip kinetic tags to reduce file size
 **Args:** `align --preset HIFI --sort -j 16 --strip reference.fa reads.bam aligned_stripped.bam`
-**Explanation:** --strip removes kinetic/QV tags; smaller files but cannot be polished later
+**Explanation:** pbmm2 align subcommand; --preset HIFI; --sort for sorted output; -j 16 threads; --strip removes kinetic/QV tags; reference.fa reference genome; reads.bam input BAM; aligned_stripped.bam output BAM; smaller files but cannot be polished later
 
 ### generate CSI index for large references
 **Args:** `align --preset HIFI --sort -j 16 --bam-index CSI reference.fa reads.bam aligned.bam`
-**Explanation:** --bam-index CSI creates CSI index; required for references with chromosomes >512 Mbp
+**Explanation:** pbmm2 align subcommand; --preset HIFI; --sort for sorted output; -j 16 threads; --bam-index CSI creates CSI index; reference.fa reference genome; reads.bam input BAM; aligned.bam output BAM; required for references with chromosomes >512 Mbp
 
 ### align FASTQ input with sample name
 **Args:** `align --preset HIFI --sort -j 16 --sample MySample reference.fa reads.fastq aligned.bam`
-**Explanation:** --sample adds sample name to read groups; for FASTQ input without existing RG info
+**Explanation:** pbmm2 align subcommand; --preset HIFI; --sort for sorted output; -j 16 threads; --sample MySample adds sample name to read groups; reference.fa reference genome; reads.fastq input FASTQ; aligned.bam output BAM; for FASTQ input without existing RG info
 
 ### use pre-built index for faster alignment
 **Args:** `align -d reference.mmi --preset HIFI --sort -j 16 reads.bam aligned.bam`
-**Explanation:** -d reference.mmi uses pre-built index; faster for repeated alignments to same reference
+**Explanation:** pbmm2 align subcommand; -d reference.mmi uses pre-built minimap2 index; --preset HIFI; --sort for sorted output; -j 16 threads; reads.bam input BAM; aligned.bam output BAM; faster for repeated alignments to same reference

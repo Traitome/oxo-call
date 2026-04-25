@@ -41,11 +41,11 @@ source_url: "https://bioinf.uni-greifswald.de/augustus/"
 
 ### predict genes in a eukaryotic genome using human parameters
 **Args:** `--species=human genome.fasta --gff3=on --outfile=predictions.gff3`
-**Explanation:** --species=human uses the human-trained HMM; --gff3=on outputs standard GFF3; --outfile writes to file instead of stdout
+**Explanation:** augustus command; --species=human uses the human-trained HMM; genome.fasta input; --gff3=on outputs standard GFF3; --outfile writes to file instead of stdout
 
 ### predict genes with RNA-seq hints for improved accuracy
 **Args:** `--species=arabidopsis --hintsfile=rnaseq_hints.gff --extrinsicCfgFile=extrinsic.cfg genome.fasta --gff3=on > improved_predictions.gff3`
-**Explanation:** --species=arabidopsis trained model; --hintsfile=rnaseq_hints.gff provides RNA-seq intron/exon hints; --extrinsicCfgFile=extrinsic.cfg sets weights for hint integration; genome.fasta input; --gff3=on outputs standard GFF3; significantly improves sensitivity and specificity
+**Explanation:** augustus command; --species=arabidopsis trained model; --hintsfile=rnaseq_hints.gff provides RNA-seq intron/exon hints; --extrinsicCfgFile=extrinsic.cfg sets weights for hint integration; genome.fasta input; --gff3=on outputs standard GFF3; significantly improves sensitivity and specificity
 
 ### generate hint file from RNA-seq BAM alignments
 **Args:** `bam2hints --in=star_alignments.bam --out=rnaseq_hints.gff`
@@ -53,24 +53,24 @@ source_url: "https://bioinf.uni-greifswald.de/augustus/"
 
 ### predict genes and output protein sequences
 **Args:** `--species=fly --gff3=on --protein=on --codingseq=on genome.fasta > fly_predictions.gff3`
-**Explanation:** --species=fly trained model; --gff3=on outputs standard GFF3; --protein=on outputs protein sequences embedded in GFF3; --codingseq=on outputs CDS sequences; genome.fasta input; both useful for downstream functional annotation
+**Explanation:** augustus command; --species=fly trained model; --gff3=on outputs standard GFF3; --protein=on outputs protein sequences embedded in GFF3; --codingseq=on outputs CDS sequences; genome.fasta input; both useful for downstream functional annotation
 
 ### predict only complete genes on the forward strand
 **Args:** `--species=zebrafish --genemodel=complete --strand=forward --gff3=on genome.fasta > complete_genes.gff3`
-**Explanation:** --species=zebrafish trained model; --genemodel=complete only reports genes with start and stop codons; --strand=forward restricts to forward strand; --gff3=on outputs standard GFF3; genome.fasta input
+**Explanation:** augustus command; --species=zebrafish trained model; --genemodel=complete only reports genes with start and stop codons; --strand=forward restricts to forward strand; --gff3=on outputs standard GFF3; genome.fasta input
 
 ### run Augustus on a repeat-masked genome with UTR prediction
 **Args:** `--species=human human_masked.fasta --gff3=on --softmasking=1 --UTR=on > human_genes.gff3`
-**Explanation:** --species=human trained model; human_masked.fasta repeat-masked input; --gff3=on outputs standard GFF3; --softmasking=1 uses softmasked lowercase regions to avoid predicting in repeats; --UTR=on adds UTR features (requires species with UTR training)
+**Explanation:** augustus command; --species=human trained model; human_masked.fasta repeat-masked input; --gff3=on outputs standard GFF3; --softmasking=1 uses softmasked lowercase regions to avoid predicting in repeats; --UTR=on adds UTR features (requires species with UTR training)
 
 ### predict genes with alternative splicing from evidence
 **Args:** `--species=human --hintsfile=hints.gff --alternatives-from-evidence=true --maxtracks=4 --gff3=on genome.fasta > alt_splicing.gff3`
-**Explanation:** --species=human trained model; --hintsfile=hints.gff provides RNA-seq hints; --alternatives-from-evidence=true reports alternative transcripts when hints suggest them; --maxtracks=4 limits alternative gene structures per locus; --gff3=on outputs standard GFF3; genome.fasta input
+**Explanation:** augustus command; --species=human trained model; --hintsfile=hints.gff provides RNA-seq hints; --alternatives-from-evidence=true reports alternative transcripts when hints suggest them; --maxtracks=4 limits alternative gene structures per locus; --gff3=on outputs standard GFF3; genome.fasta input
 
 ### predict genes on a specific region of a chromosome
 **Args:** `--species=human --predictionStart=100000 --predictionEnd=500000 chr1.fasta --gff3=on > region_predictions.gff3`
-**Explanation:** --species=human trained model; --predictionStart=100000/--predictionEnd=500000 restrict prediction to a specific coordinate range; chr1.fasta input chromosome; --gff3=on outputs standard GFF3; useful for testing parameters or analyzing specific regions
+**Explanation:** augustus command; --species=human trained model; --predictionStart=100000/--predictionEnd=500000 restrict prediction to a specific coordinate range; chr1.fasta input chromosome; --gff3=on outputs standard GFF3; useful for testing parameters or analyzing specific regions
 
 ### predict genes using protein profile for a specific gene family
 **Args:** `--species=human --proteinprofile=kinase.profile --gff3=on genome.fasta > kinase_predictions.gff3`
-**Explanation:** --species=human trained model; --proteinprofile=kinase.profile uses protein family conservation patterns to improve prediction of genes in a specific family; --gff3=on outputs standard GFF3; genome.fasta input
+**Explanation:** augustus command; --species=human trained model; --proteinprofile=kinase.profile uses protein family conservation patterns to improve prediction of genes in a specific family; --gff3=on outputs standard GFF3; genome.fasta input

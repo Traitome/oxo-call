@@ -41,60 +41,60 @@ source_url: "https://samtools.github.io/bcftools/bcftools.html"
 
 ### call variants from a BAM file against a reference genome
 **Args:** `mpileup -f reference.fa -Ou input.bam | bcftools call -m -v -O z -o variants.vcf.gz`
-**Explanation:** -f specifies reference; mpileup -Ou pipes uncompressed BCF (fast); call -m uses multiallelic model; -v outputs only variant sites; -O z outputs gzipped VCF; -o writes output
+**Explanation:** mpileup subcommand; -f specifies reference; -Ou pipes uncompressed BCF (fast); call -m uses multiallelic model; -v outputs only variant sites; -O z outputs gzipped VCF; -o writes output
 
 ### filter VCF to keep only high-quality SNPs (QUAL > 30, depth > 10)
 **Args:** `view -i 'QUAL>30 && INFO/DP>10 && TYPE="snp"' -O z -o filtered.vcf.gz input.vcf.gz`
-**Explanation:** -i applies INFO field filter expression; TYPE selects variant type; -O z outputs bgzipped VCF; -o writes output
+**Explanation:** view subcommand; -i applies INFO field filter expression; TYPE selects variant type; -O z outputs bgzipped VCF; -o writes output; input.vcf.gz input file
 
 ### merge multiple VCF files from different samples
 **Args:** `merge -O z -o merged.vcf.gz sample1.vcf.gz sample2.vcf.gz sample3.vcf.gz`
-**Explanation:** -O z outputs gzipped VCF; -o writes output; all inputs must be bgzip'd and tabix-indexed; outputs merged multi-sample VCF
+**Explanation:** merge subcommand; -O z outputs gzipped VCF; -o writes output; sample1.vcf.gz sample2.vcf.gz sample3.vcf.gz inputs; all inputs must be bgzip'd and tabix-indexed; outputs merged multi-sample VCF
 
 ### extract a specific sample from a multi-sample VCF
 **Args:** `view -s SAMPLE_NAME -O z -o sample.vcf.gz multisample.vcf.gz`
-**Explanation:** -s specifies sample name; -O z outputs gzipped VCF; -o writes output; use -s ^SAMPLE to exclude instead
+**Explanation:** view subcommand; -s specifies sample name; -O z outputs gzipped VCF; -o writes output; multisample.vcf.gz input file; use -s ^SAMPLE to exclude instead
 
 ### normalize indels and split multi-allelic variants
 **Args:** `norm -m -any -f reference.fa -O z -o normalized.vcf.gz input.vcf.gz`
-**Explanation:** -m -any splits all multi-allelic records; -f enables left-normalization of indels; -O z outputs gzipped VCF; -o writes output
+**Explanation:** norm subcommand; -m -any splits all multi-allelic records; -f enables left-normalization of indels; -O z outputs gzipped VCF; -o writes output; input.vcf.gz input file
 
 ### compute variant statistics for a VCF file
 **Args:** `stats input.vcf.gz > stats.txt`
-**Explanation:** outputs detailed statistics including ts/tv ratio, indel lengths, quality distributions; use plot-vcfstats to visualize
+**Explanation:** stats subcommand; input.vcf.gz input file; outputs detailed statistics including ts/tv ratio, indel lengths, quality distributions; use plot-vcfstats to visualize
 
 ### select only SNPs from a VCF file
 **Args:** `view -v snps -O z -o snps.vcf.gz input.vcf.gz`
-**Explanation:** -v snps selects only SNP records; -O z outputs gzipped VCF; -o writes output; use -v indels for indels only; -V excludes types
+**Explanation:** view subcommand; -v snps selects only SNP records; -O z outputs gzipped VCF; -o writes output; input.vcf.gz input file; use -v indels for indels only; -V excludes types
 
 ### annotate VCF with a reference VCF (add ID field from dbSNP)
 **Args:** `annotate -a dbsnp.vcf.gz -c ID -O z -o annotated.vcf.gz input.vcf.gz`
-**Explanation:** -a is the annotation source; -c specifies which columns to annotate; -O z outputs gzipped VCF; -o writes output
+**Explanation:** annotate subcommand; -a is the annotation source; -c specifies which columns to annotate; -O z outputs gzipped VCF; -o writes output; input.vcf.gz input file
 
 ### find variants shared between two VCF files (intersection)
 **Args:** `isec -p output_dir -n=2 input1.vcf.gz input2.vcf.gz`
-**Explanation:** -p writes per-file subsets to directory; -n=2 outputs sites present in both files; use -n+2 for sites in at least 2 files
+**Explanation:** isec subcommand; -p writes per-file subsets to directory; -n=2 outputs sites present in both files; input1.vcf.gz input2.vcf.gz input files; use -n+2 for sites in at least 2 files
 
 ### extract custom fields from VCF as TSV
 **Args:** `query -f '%CHROM\t%POS\t%REF\t%ALT\t%INFO/DP\t[%GT\t]\n' input.vcf.gz`
-**Explanation:** -f specifies format string; %CHROM/%POS are fixed fields; [%GT] iterates over samples; brackets [] wrap per-sample FORMAT fields
+**Explanation:** query subcommand; -f specifies format string; %CHROM/%POS are fixed fields; [%GT] iterates over samples; brackets [] wrap per-sample FORMAT fields; input.vcf.gz input file
 
 ### create consensus sequence by applying VCF to a reference
 **Args:** `consensus -f reference.fa -I -o consensus.fa input.vcf.gz`
-**Explanation:** -f specifies reference FASTA; -I outputs IUPAC codes for heterozygotes; -o writes output; use -s to select sample, -H to choose haplotype
+**Explanation:** consensus subcommand; -f specifies reference FASTA; -I outputs IUPAC codes for heterozygotes; -o writes output; input.vcf.gz input file; use -s to select sample, -H to choose haplotype
 
 ### concatenate chromosome VCFs into one file
 **Args:** `concat -a --allow-overlaps -O z -o all_chr.vcf.gz chr1.vcf.gz chr2.vcf.gz chr3.vcf.gz`
-**Explanation:** -a allows overlapping positions; --allow-overlaps handles overlapping regions; -O z outputs gzipped VCF; -o writes output; inputs must be sorted; use --naive for fast concatenation without recompression
+**Explanation:** concat subcommand; -a allows overlapping positions; --allow-overlaps handles overlapping regions; -O z outputs gzipped VCF; -o writes output; chr1.vcf.gz chr2.vcf.gz chr3.vcf.gz inputs must be sorted; use --naive for fast concatenation without recompression
 
 ### rename samples in a VCF file
 **Args:** `reheader -s new_names.txt -o renamed.vcf.gz input.vcf.gz`
-**Explanation:** -s takes a file with old_name\tnew_name per line; -o writes output; use -n for comma-separated list; -f to update sequence dictionary from .fai
+**Explanation:** reheader subcommand; -s takes a file with old_name\tnew_name per line; -o writes output; input.vcf.gz input file; use -n for comma-separated list; -f to update sequence dictionary from .fai
 
 ### run a plugin (fill-tags to add AF, AC, AN, HWE)
 **Args:** `+fill-tags -O z -o tagged.vcf.gz input.vcf.gz`
-**Explanation:** + prefix invokes plugin; fill-tags computes AF, AC, AC_Het, AC_Hom, AN, HWE, MAF, NS; -O z outputs gzipped VCF; -o writes output; use -- -t AF,AN,AC to compute specific tags only
+**Explanation:** +fill-tags plugin; + prefix invokes plugin; fill-tags computes AF, AC, AC_Het, AC_Hom, AN, HWE, MAF, NS; -O z outputs gzipped VCF; -o writes output; input.vcf.gz input file; use -- -t AF,AN,AC to compute specific tags only
 
 ### gVCF calling for joint genotyping workflow
 **Args:** `mpileup -f reference.fa -g 10 -Ou input.bam | bcftools call -m -v -O z -o variants.vcf.gz`
-**Explanation:** -f specifies reference; -g 10 groups non-variant sites with DP>=10 into gVCF blocks; -Ou pipes uncompressed BCF; call -m uses multiallelic model; -v outputs only variants; -O z outputs gzipped VCF; -o writes output; enables scalable joint genotyping of many samples
+**Explanation:** mpileup subcommand; -f specifies reference; -g 10 groups non-variant sites with DP>=10 into gVCF blocks; -Ou pipes uncompressed BCF; call -m uses multiallelic model; -v outputs only variants; -O z outputs gzipped VCF; -o writes output; enables scalable joint genotyping of many samples

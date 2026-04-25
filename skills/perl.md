@@ -39,60 +39,60 @@ source_url: "https://perldoc.perl.org/"
 
 ### run a Perl script
 **Args:** `script.pl input.txt`
-**Explanation:** executes script.pl with input.txt as argument; script must be readable; use `perl -w script.pl` for warnings
+**Explanation:** perl command; script.pl Perl script; input.txt script argument; executes script.pl with input.txt as argument; script must be readable
 
 ### print the Perl version and module search paths
 **Args:** `-V`
-**Explanation:** prints compile-time configuration, @INC paths, and Perl version; useful for debugging module-not-found errors
+**Explanation:** perl command; -V prints compile-time configuration; shows @INC paths and Perl version; useful for debugging module-not-found errors
 
 ### one-liner: print lines matching a pattern
 **Args:** `-ne 'print if /^>/' sequences.fasta`
-**Explanation:** -n loops over each line; prints lines starting with '>' (FASTA headers); equivalent to grep but with full Perl regex
+**Explanation:** perl command; -n loops over each line; -e 'print if /^>/' expression to print; sequences.fasta input FASTA; prints lines starting with '>' (FASTA headers); equivalent to grep but with full Perl regex
 
 ### one-liner: extract specific columns from a TSV
 **Args:** `-lane 'print join("\t", @F[0,2,4])' data.tsv`
-**Explanation:** -a splits on whitespace into @F; -l adds newline handling; prints columns 1, 3, and 5 (0-indexed)
+**Explanation:** perl command; -l adds newline handling; -a splits on whitespace into @F; -n loops over lines; -e 'print join("\t", @F[0,2,4])' expression; data.tsv input TSV; prints columns 1, 3, and 5 (0-indexed)
 
 ### in-place substitution (edit file directly)
 **Args:** `-i.bak -pe 's/chr/Chr/g' genome.fa`
-**Explanation:** -i.bak saves backup as genome.fa.bak; -p prints each modified line; s/// replaces all occurrences
+**Explanation:** perl command; -i.bak saves backup as genome.fa.bak; -p prints each modified line; -e 's/chr/Chr/g' substitution expression; genome.fa input FASTA; s/// replaces all occurrences
 
 ### count FASTA sequences in a file
 **Args:** `-ne '$c++ if /^>/; END { print "$c sequences\n" }' input.fa`
-**Explanation:** increments counter for each header line; END block executes after all input is processed
+**Explanation:** perl command; -n loops over lines; -e '$c++ if /^>/; END { print "$c sequences\n" }' expression; input.fa input FASTA; increments counter for each header line; END block executes after all input is processed
 
 ### install a module via CPAN one-liner
 **Args:** `-MCPAN -e 'CPAN::Shell->install("Bio::SeqIO")'`
-**Explanation:** installs Bio::SeqIO via the CPAN shell; prefer `cpanm Bio::SeqIO` (cpanminus) for a simpler, non-interactive install
+**Explanation:** perl command; -MCPAN loads CPAN module; -e 'CPAN::Shell->install("Bio::SeqIO")' expression; installs Bio::SeqIO via the CPAN shell; prefer `cpanm Bio::SeqIO` (cpanminus) for a simpler, non-interactive install
 
 ### set up a local user-space Perl module directory
 **Args:** `-Mlocal::lib`
-**Explanation:** prints shell commands to configure ~/perl5/ as a local lib dir; eval the output: eval $(perl -Mlocal::lib)
+**Explanation:** perl command; -Mlocal::lib loads local::lib module; prints shell commands to configure ~/perl5/ as a local lib dir; eval the output: eval $(perl -Mlocal::lib)
 
 ### check if a required module is installed
 **Args:** `-MBio::SeqIO -e 1`
-**Explanation:** exits 0 if Bio::SeqIO loads successfully, non-zero otherwise; useful in CI/pipeline pre-checks
+**Explanation:** perl command; -MBio::SeqIO loads module; -e 1 minimal expression; exits 0 if Bio::SeqIO loads successfully, non-zero otherwise; useful in CI/pipeline pre-checks
 
 ### run a bioinformatics script with a custom library path
 **Args:** `-I /path/to/bioperl-lib script.pl input.fasta`
-**Explanation:** -I adds the path to @INC; useful when BioPerl is not system-installed but located in a local directory
+**Explanation:** perl command; -I /path/to/bioperl-lib adds path to @INC; script.pl Perl script; input.fasta script argument; useful when BioPerl is not system-installed but located in a local directory
 
 ### check script syntax without executing
 **Args:** `-c script.pl`
-**Explanation:** -c validates syntax and exits; prints any syntax errors; useful for CI/CD pipelines and pre-deployment checks
+**Explanation:** perl command; -c syntax check flag; script.pl Perl script; validates syntax and exits; prints any syntax errors; useful for CI/CD pipelines and pre-deployment checks
 
 ### run with taint mode enabled
 **Args:** `-T script.pl`
-**Explanation:** -T enables taint mode for security; marks external data as "tainted"; must be sanitized before system calls
+**Explanation:** perl command; -T taint mode flag; script.pl Perl script; enables taint mode for security; marks external data as "tainted"; must be sanitized before system calls
 
 ### execute code in BEGIN block
 **Args:** `-e 'BEGIN { print "Initializing...\n" } print "Main code\n"'`
-**Explanation:** BEGIN block runs before main script; useful for module loading, initialization, or setting up environment
+**Explanation:** perl command; -e 'BEGIN { print "Initializing...\n" } print "Main code\n"' expression; BEGIN block runs before main script; useful for module loading, initialization, or setting up environment
 
 ### execute code in END block
 **Args:** `-e 'END { print "Cleaning up...\n" } print "Main code\n"'`
-**Explanation:** END block runs after main script completes; useful for cleanup, logging, or resource release
+**Explanation:** perl command; -e 'END { print "Cleaning up...\n" } print "Main code\n"' expression; END block runs after main script completes; useful for cleanup, logging, or resource release
 
 ### process multiple files with one-liner
 **Args:** `-ne 'print if /pattern/' file1.txt file2.txt file3.txt`
-**Explanation:** processes multiple files sequentially; @ARGV contains filenames; <> reads from each file in turn
+**Explanation:** perl command; -n loops over lines; -e 'print if /pattern/' expression; file1.txt file2.txt file3.txt input files; processes multiple files sequentially; @ARGV contains filenames; <> reads from each file in turn

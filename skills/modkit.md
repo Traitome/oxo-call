@@ -35,48 +35,48 @@ source_url: "https://github.com/nanoporetech/modkit"
 
 ### generate a bedMethyl pileup of 5mC methylation from a BAM file
 **Args:** `pileup --ref reference.fasta --mod-code m --cpg input.bam output.bedmethyl --threads 16`
-**Explanation:** --mod-code m selects 5-methylcytosine; --cpg restricts to CpG dinucleotides; --ref required for strand collapsing
+**Explanation:** modkit pileup subcommand; --ref reference.fasta reference FASTA; --mod-code m 5-methylcytosine; --cpg restricts to CpG dinucleotides; input.bam modification BAM; output.bedmethyl output file; --threads 16 threads
 
 ### generate bedMethyl and combine CpG sites on both strands
 **Args:** `pileup --ref reference.fasta --cpg --combine-strands -t 16 input.bam output_combined.bedmethyl`
-**Explanation:** --combine-strands merges the + and - strand CpG counts into a single record per CpG site
+**Explanation:** modkit pileup subcommand; --ref reference.fasta reference FASTA; --cpg CpG mode; --combine-strands merges strand counts; -t 16 threads; input.bam modification BAM; output_combined.bedmethyl output file
 
 ### extract per-read modification data to TSV
 **Args:** `extract --ref reference.fasta --mod-code m input.bam per_read_mods.tsv --threads 16`
-**Explanation:** outputs one row per modified or canonical base call per read; useful for read-level methylation analysis
+**Explanation:** modkit extract subcommand; --ref reference.fasta reference FASTA; --mod-code m 5-methylcytosine; input.bam modification BAM; per_read_mods.tsv output TSV; --threads 16 threads
 
 ### get a summary of modification calls in a BAM
 **Args:** `summary input.bam --threads 8`
-**Explanation:** reports counts and fractions of each modification type per read; useful for QC before pileup
+**Explanation:** modkit summary subcommand; input.bam modification BAM; --threads 8 threads; reports counts and fractions per modification type
 
 ### generate a BED file of all CpG positions in a reference for use as motif targets
 **Args:** `motif-bed reference.fasta CG 0 > cpg_positions.bed`
-**Explanation:** CG is the motif; 0 is the offset to the modified base (C); output BED used with --include-bed in pileup
+**Explanation:** modkit motif-bed subcommand; reference.fasta input FASTA; CG motif; 0 offset to modified base; > cpg_positions.bed output BED
 
 ### pileup restricted to a specific genomic region
 **Args:** `pileup --ref reference.fasta --region chr1:1-10000000 --mod-code m input.bam region_output.bedmethyl --threads 8`
-**Explanation:** --region limits output to a chromosomal interval; useful for targeted analysis or testing
+**Explanation:** modkit pileup subcommand; --ref reference.fasta reference FASTA; --region chr1:1-10000000 chromosomal interval; --mod-code m 5-methylcytosine; input.bam modification BAM; region_output.bedmethyl output; --threads 8 threads
 
 ### sample modification probabilities to assess threshold distribution
 **Args:** `sample-probs --mod-code m input.bam --threads 8`
-**Explanation:** outputs the distribution of modification probabilities to help choose an appropriate --filter-threshold value
+**Explanation:** modkit sample-probs subcommand; --mod-code m 5-methylcytosine; input.bam modification BAM; --threads 8 threads; outputs probability distribution
 
 ### adjust modification thresholds in BAM file
 **Args:** `adjust-mods --filter-threshold 0.8 input.bam output.bam --threads 8`
-**Explanation:** adjust-mods updates MM/ML tags with new probability threshold; useful for re-analyzing with different confidence cutoffs
+**Explanation:** modkit adjust-mods subcommand; --filter-threshold 0.8 probability cutoff; input.bam modification BAM; output.bam output BAM; --threads 8 threads
 
 ### validate modification tags in BAM file
 **Args:** `validate input.bam --threads 8`
-**Explanation:** validate checks integrity of MM/ML tags; reports errors and inconsistencies in modification calls
+**Explanation:** modkit validate subcommand; input.bam modification BAM; --threads 8 threads; checks integrity of MM/ML tags
 
 ### repair malformed modification tags
 **Args:** `repair input.bam output.bam --threads 8`
-**Explanation:** repair fixes missing or malformed MM/ML tags; use when basecaller output has tag errors
+**Explanation:** modkit repair subcommand; input.bam modification BAM; output.bam output BAM; --threads 8 threads; fixes missing or malformed MM/ML tags
 
 ### pileup with custom filter threshold
 **Args:** `pileup --ref reference.fasta --filter-threshold 0.7 --mod-code m input.bam output.bedmethyl --threads 16`
-**Explanation:** --filter-threshold 0.7 sets explicit probability cutoff; higher values require more confident modification calls
+**Explanation:** modkit pileup subcommand; --ref reference.fasta reference FASTA; --filter-threshold 0.7 probability cutoff; --mod-code m 5-methylcytosine; input.bam modification BAM; output.bedmethyl output; --threads 16 threads
 
 ### extract modifications for specific motif
 **Args:** `extract --ref reference.fasta --motif CG 0 --mod-code m input.bam cpg_mods.tsv --threads 16`
-**Explanation:** --motif CG 0 extracts only CpG sites; 0 is the offset to the modified base; reduces output size for targeted analysis
+**Explanation:** modkit extract subcommand; --ref reference.fasta reference FASTA; --motif CG 0 CpG sites with offset; --mod-code m 5-methylcytosine; input.bam modification BAM; cpg_mods.tsv output TSV; --threads 16 threads

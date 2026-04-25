@@ -40,56 +40,56 @@ source_url: "https://docs.openclaw.ai/"
 
 ### run the interactive onboarding wizard and install the gateway daemon
 **Args:** `onboard --install-daemon`
-**Explanation:** guides through gateway setup, auth, channels, and skills; --install-daemon installs a systemd (Linux) or launchd (macOS) user service so the gateway stays running
+**Explanation:** openclaw onboard subcommand; --install-daemon installs systemd (Linux) or launchd (macOS) user service; guides through gateway setup
 
 ### start the gateway in the foreground with verbose output
 **Args:** `gateway --port 18789 --verbose`
-**Explanation:** starts the Gateway control-plane process on port 18789; --verbose shows detailed logs; use for debugging
+**Explanation:** openclaw gateway subcommand; --port 18789 specifies port; --verbose detailed logs; starts Gateway control-plane process
 
 ### check gateway and overall service health
 **Args:** `health`
-**Explanation:** runs connectivity and auth checks across the gateway, channels, and AI providers; quick sanity check after setup or update
+**Explanation:** openclaw health subcommand; runs connectivity and auth checks across gateway, channels, and AI providers
 
 ### show gateway status (running, port, version)
 **Args:** `gateway status`
-**Explanation:** prints whether the Gateway daemon is running, which port it is listening on, and the current version
+**Explanation:** openclaw gateway status subcommand; prints Gateway daemon status, port, and version
 
 ### restart the gateway daemon
 **Args:** `gateway restart`
-**Explanation:** restarts the background daemon (systemd/launchd); required after editing ~/.openclaw/openclaw.json for config changes to take effect
+**Explanation:** openclaw gateway restart subcommand; restarts the background daemon (systemd/launchd)
 
 ### stop the gateway daemon
 **Args:** `gateway stop`
-**Explanation:** gracefully stops the background daemon; use before manual editing of credentials or running an upgrade
+**Explanation:** openclaw gateway stop subcommand; gracefully stops the background daemon
 
 ### login and connect a messaging channel
 **Args:** `channels login`
-**Explanation:** interactive wizard to authenticate and connect a channel (WhatsApp, Telegram, Discord, Slack, etc.); tokens are stored in ~/.openclaw/credentials/
+**Explanation:** openclaw channels login subcommand; interactive wizard to authenticate and connect a messaging channel
 
 ### list all installed skills
 **Args:** `skills list`
-**Explanation:** shows all available skills from the user workspace (~/.openclaw/workspace/), the skill registry, and MCP sources
+**Explanation:** openclaw skills list subcommand; shows all available skills from workspace, registry, and MCP sources
 
 ### run the setup wizard (config + workspace bootstrap)
 **Args:** `setup`
-**Explanation:** initialises ~/.openclaw/openclaw.json and ~/.openclaw/workspace if they do not exist; safe to re-run
+**Explanation:** openclaw setup subcommand; initializes ~/.openclaw/openclaw.json and ~/.openclaw/workspace
 
 ### send a message to a contact through the assistant
 **Args:** `message send --to +1234567890 --message "Hello from openclaw"`
-**Explanation:** delivers a message via the connected channel (WhatsApp/Telegram/etc.) to the specified number; requires a paired channel
+**Explanation:** openclaw message send subcommand; --to +1234567890 recipient number; --message "Hello from openclaw" message content
 
 ### probe gateway connectivity
 **Args:** `gateway probe`
-**Explanation:** checks connectivity to configured remote gateway and localhost; useful for debugging connection issues
+**Explanation:** openclaw gateway probe subcommand; checks connectivity to configured remote gateway and localhost
 
 ### run agent turn via CLI
 **Args:** `agent turn --agent-id my_agent --input "Analyze this data"`
-**Explanation:** runs a single agent turn for testing; useful for automation and debugging agent behavior
+**Explanation:** openclaw agent turn subcommand; --agent-id my_agent agent identifier; --input "Analyze this data" input prompt
 
 ### start gateway in development mode
 **Args:** `gateway --dev --port 18789`
-**Explanation:** --dev creates development config if missing; useful for initial setup and testing
+**Explanation:** openclaw gateway subcommand; --dev development mode; --port 18789 gateway port
 
 ### list available agents
 **Args:** `agent list`
-**Explanation:** lists all configured agents with their IDs and status; helps identify available agents for automation
+**Explanation:** openclaw agent list subcommand; lists all configured agents with IDs and status

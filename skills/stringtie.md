@@ -40,40 +40,40 @@ source_url: "https://ccb.jhu.edu/software/stringtie/"
 
 ### assemble transcripts from HISAT2-aligned RNA-seq BAM with reference annotation
 **Args:** `-G genes.gtf -o sample1.gtf -p 8 --rf sample1_sorted.bam`
-**Explanation:** -G reference GTF; -o output GTF; -p threads; --rf for reverse-strand dUTP library
+**Explanation:** stringtie command; -G genes.gtf reference GTF annotation; -o sample1.gtf output GTF; -p 8 threads; --rf reverse-strand dUTP library; sample1_sorted.bam input BAM
 
 ### merge per-sample StringTie GTFs into unified transcript catalog
 **Args:** `--merge -G genes.gtf -o merged.gtf sample1.gtf sample2.gtf sample3.gtf`
-**Explanation:** --merge combines transcripts from all samples; -G guides merging with known annotation
+**Explanation:** stringtie --merge mode; -G genes.gtf guides merging with known annotation; -o merged.gtf output merged GTF; sample1.gtf sample2.gtf sample3.gtf input per-sample GTFs; combines transcripts from all samples
 
 ### re-quantify known and assembled transcripts using merged annotation (for count extraction)
 **Args:** `-e -B -G merged.gtf -o sample1_re/sample1.gtf -p 8 --rf sample1_sorted.bam`
-**Explanation:** -e estimate-only mode; -B outputs Ballgown tables; required for prepDE.py3 count matrix extraction
+**Explanation:** stringtie command; -e estimate-only mode; -B outputs Ballgown tables; -G merged.gtf merged annotation GTF; -o sample1_re/sample1.gtf output GTF; -p 8 threads; --rf reverse-strand library; sample1_sorted.bam input BAM; required for prepDE.py3 count matrix extraction
 
 ### assemble and quantify without reference annotation (novel transcript discovery)
 **Args:** `-o novel_transcripts.gtf -p 8 --rf sample1_sorted.bam`
-**Explanation:** without -G, StringTie performs de novo assembly; discovers novel transcripts and isoforms
+**Explanation:** stringtie command; -o novel_transcripts.gtf output GTF; -p 8 threads; --rf reverse-strand library; sample1_sorted.bam input BAM; without -G performs de novo assembly; discovers novel transcripts and isoforms
 
 ### extract count matrix from StringTie -e output for DESeq2 with prepDE.py3
 **Args:** `-i sample_list.txt -g gene_count_matrix.csv -e transcript_count_matrix.csv`
-**Explanation:** prepDE.py3 script; sample_list.txt contains sample_name → path/sample.gtf; -g/-e output matrices
+**Explanation:** prepDE.py3 companion script; -i sample_list.txt input file with sample_name → path/sample.gtf; -g gene_count_matrix.csv gene count matrix output; -e transcript_count_matrix.csv transcript count matrix output
 
 ### assemble transcripts from long-read RNA-seq data
 **Args:** `-L -G genes.gtf -o long_read.gtf -p 8 sample_lr_sorted.bam`
-**Explanation:** -L enables long-read mode (PacBio/ONT); adjusts coverage thresholds for long-read characteristics
+**Explanation:** stringtie command; -L long-read mode (PacBio/ONT); -G genes.gtf reference GTF; -o long_read.gtf output GTF; -p 8 threads; sample_lr_sorted.bam input BAM; adjusts coverage thresholds for long-read characteristics
 
 ### hybrid assembly with short and long reads
 **Args:** `-G genes.gtf -o hybrid.gtf -p 8 --mix short_reads.bam long_reads.bam`
-**Explanation:** --mix combines short-read precision with long-read completeness; short reads BAM first, long reads BAM second
+**Explanation:** stringtie command; -G genes.gtf reference GTF; -o hybrid.gtf output GTF; -p 8 threads; --mix hybrid assembly mode; short_reads.bam short reads BAM first; long_reads.bam long reads BAM second; combines short-read precision with long-read completeness
 
 ### conservative transcript assembly for high-confidence results
 **Args:** `--conservative -G genes.gtf -o conservative.gtf -p 8 sample_sorted.bam`
-**Explanation:** --conservative applies stricter filters (-t -c 1.5 -f 0.05); produces fewer but higher-confidence transcripts
+**Explanation:** stringtie command; --conservative applies stricter filters (-t -c 1.5 -f 0.05); -G genes.gtf reference GTF; -o conservative.gtf output GTF; -p 8 threads; sample_sorted.bam input BAM; produces fewer but higher-confidence transcripts
 
 ### output gene abundances to separate file
 **Args:** `-G genes.gtf -o sample.gtf -A gene_abundance.txt -p 8 sample_sorted.bam`
-**Explanation:** -A outputs gene-level abundance estimates to a separate file; useful for quick expression overview without parsing GTF
+**Explanation:** stringtie command; -G genes.gtf reference GTF; -o sample.gtf output GTF; -A gene_abundance.txt gene-level abundance output file; -p 8 threads; sample_sorted.bam input BAM; useful for quick expression overview without parsing GTF
 
 ### assemble with minimum coverage thresholds for low-expressed genes
 **Args:** `-G genes.gtf -o sample.gtf -c 0.5 -s 2.0 -p 8 sample_sorted.bam`
-**Explanation:** -c 0.5 lowers multi-exon transcript coverage threshold; -s 2.0 lowers single-exon threshold; captures more low-expressed transcripts
+**Explanation:** stringtie command; -G genes.gtf reference GTF; -o sample.gtf output GTF; -c 0.5 multi-exon transcript coverage threshold; -s 2.0 single-exon transcript coverage threshold; -p 8 threads; sample_sorted.bam input BAM; captures more low-expressed transcripts

@@ -40,52 +40,52 @@ source_url: "https://multiqc.info/"
 
 ### aggregate all QC results from the current directory into a single report
 **Args:** `. -o multiqc_report/ -f`
-**Explanation:** . scans current directory recursively; -o sets output directory; -f overwrites existing report
+**Explanation:** multiqc command; . scans current directory recursively; -o multiqc_report/ output directory; -f overwrites existing report
 
 ### aggregate QC results from a specific results directory
 **Args:** `/path/to/results/ -o /path/to/qc_summary/ -n project_qc_report -f`
-**Explanation:** input path; -n renames the report file; -o specifies output directory; -f forces overwrite
+**Explanation:** multiqc command; /path/to/results/ input path; -o /path/to/qc_summary/ output directory; -n project_qc_report renames report file; -f forces overwrite
 
 ### run multiqc ignoring a specific subdirectory
 **Args:** `/results/ --ignore /results/old_run/ -o multiqc_output/ -f`
-**Explanation:** /results/ input path; --ignore excludes specified paths; -o output directory; -f overwrites
+**Explanation:** multiqc command; /results/ input path; --ignore /results/old_run/ excludes specified paths; -o multiqc_output/ output directory; -f overwrites
 
 ### generate a multiqc report with flat (non-interactive) output suitable for PDF
 **Args:** `. --flat -o flat_report/ -f`
-**Explanation:** . current directory input; --flat generates non-interactive HTML; -o output directory; -f overwrites; useful for PDF generation
+**Explanation:** multiqc command; . current directory input; --flat generates non-interactive HTML; -o flat_report/ output directory; -f overwrites
 
 ### run multiqc on only FastQC and Trimmomatic outputs
 **Args:** `fastqc_results/ trimmomatic_logs/ -o summary_qc/ -f`
-**Explanation:** fastqc_results/ and trimmomatic_logs/ input directories; -o output directory; -f overwrites; MultiQC aggregates from all
+**Explanation:** multiqc command; fastqc_results/ trimmomatic_logs/ input directories; -o summary_qc/ output directory; -f overwrites
 
 ### run only specific modules (FastQC and STAR)
 **Args:** `results/ -m fastqc -m star -o qc_report/ -f`
-**Explanation:** results/ input; -m fastqc -m star runs only these modules; -o output; -f overwrites; useful for focused reports
+**Explanation:** multiqc command; results/ input directory; -m fastqc -m star runs only these modules; -o qc_report/ output directory; -f overwrites
 
 ### exclude specific modules from the report
 **Args:** `results/ -e cutadapt -e fastqc -o qc_report/ -f`
-**Explanation:** results/ input; -e cutadapt -e fastqc excludes these modules; -o output; -f overwrites; useful when tools produced problematic outputs
+**Explanation:** multiqc command; results/ input directory; -e cutadapt -e fastqc excludes these modules; -o qc_report/ output directory; -f overwrites
 
 ### rename samples using a TSV file
 **Args:** `results/ --sample-names sample_names.tsv -o renamed_report/ -f`
-**Explanation:** results/ input; --sample-names provides alternative display names; -o output; -f overwrites; TSV format: sample_id\tdisplay_name
+**Explanation:** multiqc command; results/ input directory; --sample-names sample_names.tsv provides alternative display names; -o renamed_report/ output directory; -f overwrites
 
 ### replace sample names with new names
 **Args:** `results/ --replace-names rename_map.tsv -o renamed_report/ -f`
-**Explanation:** results/ input; --replace-names renames samples permanently; -o output; -f overwrites; TSV format: old_name\tnew_name
+**Explanation:** multiqc command; results/ input directory; --replace-names rename_map.tsv renames samples; -o renamed_report/ output directory; -f overwrites
 
 ### export data in JSON format for downstream analysis
 **Args:** `results/ --data-format json --no-report -o data_only/ -f`
-**Explanation:** results/ input; --data-format json outputs JSON; --no-report skips HTML; -o output; -f overwrites; for programmatic use
+**Explanation:** multiqc command; results/ input directory; --data-format json outputs JSON; --no-report skips HTML; -o data_only/ output directory; -f overwrites
 
 ### apply inline config to customize thresholds
 **Args:** `results/ --cl-config "qualimap_config: { general_stats_coverage: [10, 20, 50] }" -o custom_report/ -f`
-**Explanation:** results/ input; --cl-config overrides config values inline; -o output; -f overwrites; YAML syntax for quick customization
+**Explanation:** multiqc command; results/ input directory; --cl-config YAML inline config overrides; -o custom_report/ output directory; -f overwrites
 
 ### generate PDF report with simple template
 **Args:** `results/ --pdf -t simple -o pdf_report/ -f`
-**Explanation:** results/ input; --pdf creates PDF; -t simple uses simple template; -o output; -f overwrites; requires Pandoc installed
+**Explanation:** multiqc command; results/ input directory; --pdf creates PDF; -t simple uses simple template; -o pdf_report/ output directory; -f overwrites
 
 ### ignore specific samples by name pattern
 **Args:** `results/ --ignore-samples "*control*" --ignore-samples "*blank*" -o filtered_report/ -f`
-**Explanation:** results/ input; --ignore-samples excludes samples matching glob patterns; -o output; -f overwrites; useful for removing controls
+**Explanation:** multiqc command; results/ input directory; --ignore-samples "*control*" --ignore-samples "*blank*" excludes samples matching glob patterns; -o filtered_report/ output directory; -f overwrites

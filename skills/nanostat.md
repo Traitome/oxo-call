@@ -33,40 +33,40 @@ source_url: "https://github.com/wdecoster/nanostat"
 
 ### get statistics for ONT FASTQ reads
 **Args:** `--fastq reads.fastq.gz -t 4 --name sample_name`
-**Explanation:** --fastq input; -t 4 threads; --name label for output report
+**Explanation:** NanoStat command; --fastq reads.fastq.gz input FASTQ; -t 4 threads; --name sample_name label for output
 
 ### get statistics from ONT sequencing summary
 **Args:** `--summary sequencing_summary.txt -t 4 --name run_qc`
-**Explanation:** --summary provides timing and per-read statistics from ONT MinKNOW
+**Explanation:** NanoStat command; --summary sequencing_summary.txt input ONT summary; -t 4 threads; --name run_qc label for output
 
 ### get statistics from aligned BAM file
 **Args:** `--bam aligned_sorted.bam -t 4 --name aligned_stats`
-**Explanation:** --bam for aligned long-read BAM; shows alignment-specific statistics
+**Explanation:** NanoStat command; --bam aligned_sorted.bam input BAM; -t 4 threads; --name aligned_stats label for output
 
 ### output statistics in TSV format for parsing
 **Args:** `--fastq reads.fastq.gz -t 4 --tsv --name sample_stats`
-**Explanation:** --tsv outputs tab-separated values; easier for scripts and spreadsheets to parse
+**Explanation:** NanoStat command; --fastq reads.fastq.gz input FASTQ; -t 4 threads; --tsv tab-separated output; --name sample_stats label
 
 ### get statistics for barcoded ONT run
 **Args:** `--summary sequencing_summary.txt --barcoded -t 4 --name barcoded_stats`
-**Explanation:** --barcoded splits stats by barcode; for multiplexed ONT sequencing runs
+**Explanation:** NanoStat command; --summary sequencing_summary.txt input ONT summary; --barcoded splits stats by barcode; -t 4 threads; --name barcoded_stats label
 
 ### filter ONT summary by read type (1D2)
 **Args:** `--summary sequencing_summary.txt --readtype 1D2 -t 4 --name 1d2_stats`
-**Explanation:** --readtype 1D2 filters for 1D² reads only; excludes 1D and 2D reads
+**Explanation:** NanoStat command; --summary sequencing_summary.txt input ONT summary; --readtype 1D2 filters for 1D² reads; -t 4 threads; --name 1d2_stats label
 
 ### exclude supplementary alignments from BAM stats
 **Args:** `--bam aligned.bam --no_supplementary -t 4 --name primary_only`
-**Explanation:** --no_supplementary excludes supplementary alignments; counts primary alignments only
+**Explanation:** NanoStat command; --bam aligned.bam input BAM; --no_supplementary excludes supplementary alignments; -t 4 threads; --name primary_only label
 
 ### save statistics to file with prefix
 **Args:** `--fastq reads.fastq.gz -o stats_dir/ -p sample1 -t 4`
-**Explanation:** -o output directory; -p prefix for filename; saves to stats_dir/sample1.txt
+**Explanation:** NanoStat command; --fastq reads.fastq.gz input FASTQ; -o stats_dir/ output directory; -p sample1 file prefix; -t 4 threads
 
 ### get statistics from FASTA file (no quality)
 **Args:** `--fasta reads.fasta.gz -t 4 --name fasta_stats`
-**Explanation:** --fasta for FASTA input; no quality statistics since FASTA lacks quality scores
+**Explanation:** NanoStat command; --fasta reads.fasta.gz input FASTA; -t 4 threads; --name fasta_stats label for output
 
 ### process multiple summary files together
 **Args:** `--summary run1_summary.txt run2_summary.txt run3_summary.txt -t 8 --name combined`
-**Explanation:** multiple input files are combined; statistics calculated across all runs
+**Explanation:** NanoStat command; --summary run1_summary.txt run2_summary.txt run3_summary.txt input ONT summaries; -t 8 threads; --name combined label; statistics calculated across all

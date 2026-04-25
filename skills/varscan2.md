@@ -38,52 +38,52 @@ source_url: "https://varscan.sourceforge.net/"
 
 ### call germline SNPs from a tumor or normal sample
 **Args:** `mpileup2snp --min-coverage 8 --min-reads2 2 --min-avg-qual 15 --min-var-freq 0.01 --p-value 0.99 --output-vcf 1 > snps.vcf`
-**Explanation:** pipe from: samtools mpileup -f ref.fa -q 20 sample.bam | varscan mpileup2snp [args]
+**Explanation:** varscan mpileup2snp subcommand; --min-coverage 8 minimum coverage; --min-reads2 2 minimum variant reads; --min-avg-qual 15 minimum base quality; --min-var-freq 0.01 minimum variant frequency; --p-value 0.99 p-value threshold; --output-vcf 1 VCF format output; pipe from samtools mpileup
 
 ### call somatic variants from tumor-normal pair
 **Args:** `somatic normal_pileup.pileup tumor_pileup.pileup --output-snp somatic.snp.vcf --output-indel somatic.indel.vcf --output-vcf 1 --min-coverage 8 --min-var-freq 0.1 --somatic-p-value 0.05`
-**Explanation:** samtools mpileup outputs separate pileup files; or pipe with --mpileup 1 flag
+**Explanation:** varscan somatic subcommand; normal_pileup.pileup normal pileup file; tumor_pileup.pileup tumor pileup file; --output-snp somatic.snp.vcf SNP output; --output-indel somatic.indel.vcf indel output; --output-vcf 1 VCF format; --min-coverage 8 minimum coverage; --min-var-freq 0.1 minimum VAF; --somatic-p-value 0.05 somatic p-value
 
 ### filter somatic variants for high-confidence calls
 **Args:** `processSomatic somatic.snp.vcf --min-tumor-freq 0.1 --max-normal-freq 0.05 --p-value 0.05`
-**Explanation:** processSomatic separates Somatic, LOH, and Germline calls from VarScan2 somatic output
+**Explanation:** varscan processSomatic subcommand; somatic.snp.vcf input VCF; --min-tumor-freq 0.1 minimum tumor VAF; --max-normal-freq 0.05 maximum normal VAF; --p-value 0.05 p-value threshold; separates Somatic, LOH, Germline calls
 
 ### call germline SNPs with lower frequency threshold (sensitive)
 **Args:** `mpileup2snp --min-coverage 8 --min-reads2 2 --min-var-freq 0.05 --p-value 0.99 --strand-filter 0 --output-vcf 1 > sensitive_snps.vcf`
-**Explanation:** --min-var-freq 0.05 for sensitive detection; --strand-filter 0 disables strand bias filter
+**Explanation:** varscan mpileup2snp subcommand; --min-coverage 8 minimum coverage; --min-reads2 2 minimum variant reads; --min-var-freq 0.05 sensitive detection; --p-value 0.99 p-value threshold; --strand-filter 0 disables strand bias filter; --output-vcf 1 VCF output
 
 ### call indels from mpileup
 **Args:** `mpileup2indel --min-coverage 8 --min-reads2 2 --min-var-freq 0.1 --p-value 0.99 --output-vcf 1 > indels.vcf`
-**Explanation:** mpileup2indel for indel calling; same parameters as mpileup2snp
+**Explanation:** varscan mpileup2indel subcommand; --min-coverage 8 minimum coverage; --min-reads2 2 minimum variant reads; --min-var-freq 0.1 minimum VAF; --p-value 0.99 p-value threshold; --output-vcf 1 VCF output; indel calling from mpileup
 
 ### call consensus sequence with variants
 **Args:** `mpileup2cns --min-coverage 8 --min-reads2 2 --min-var-freq 0.2 --p-value 0.99 --output-vcf 1 > consensus.vcf`
-**Explanation:** mpileup2cns calls consensus and variants; useful for generating consensus sequences
+**Explanation:** varscan mpileup2cns subcommand; --min-coverage 8 minimum coverage; --min-reads2 2 minimum variant reads; --min-var-freq 0.2 minimum VAF; --p-value 0.99 p-value threshold; --output-vcf 1 VCF output; calls consensus and variants
 
 ### somatic calling with custom thresholds
 **Args:** `somatic normal.pileup tumor.pileup --output-snp somatic.snp --output-indel somatic.indel --output-vcf 1 --min-coverage 10 --min-coverage-tumor 6 --min-var-freq 0.05 --somatic-p-value 0.01`
-**Explanation:** --min-coverage-tumor 6 for tumor; --somatic-p-value 0.01 for higher stringency
+**Explanation:** varscan somatic subcommand; normal.pileup tumor.pileup pileup files; --output-snp somatic.snp SNP output prefix; --output-indel somatic.indel indel output prefix; --output-vcf 1 VCF format; --min-coverage 10 minimum coverage; --min-coverage-tumor 6 tumor coverage; --min-var-freq 0.05 VAF threshold; --somatic-p-value 0.01 higher stringency
 
 ### filter variants by coverage and frequency
 **Args:** `filter snps.vcf --min-coverage 10 --min-reads2 3 --min-var-freq 0.2 --p-value 0.01 --output-file filtered_snps.vcf`
-**Explanation:** VarScan filter applies additional filtering; useful for removing false positives
+**Explanation:** varscan filter subcommand; snps.vcf input VCF; --min-coverage 10 minimum coverage; --min-reads2 3 minimum variant reads; --min-var-freq 0.2 minimum VAF; --p-value 0.01 p-value threshold; --output-file filtered_snps.vcf output VCF
 
 ### copy number analysis from tumor-normal
 **Args:** `copynumber normal.pileup tumor.pileup --output-file copynumber.txt --min-coverage 20`
-**Explanation:** copynumber command for CNV detection; requires higher coverage (20x)
+**Explanation:** varscan copynumber subcommand; normal.pileup tumor.pileup pileup files; --output-file copynumber.txt output file; --min-coverage 20 minimum coverage for CNV detection
 
 ### call somatic variants with direct pipe from samtools
 **Args:** `somatic --mpileup 1 --output-snp somatic.snp.vcf --output-indel somatic.indel.vcf --output-vcf 1 --min-coverage 8 --min-var-freq 0.1 --somatic-p-value 0.05`
-**Explanation:** --mpileup 1 enables direct pipe: samtools mpileup -f ref.fa normal.bam tumor.bam | varscan somatic [args]; no intermediate pileup files
+**Explanation:** varscan somatic subcommand; --mpileup 1 enables direct pipe from samtools mpileup; --output-snp somatic.snp.vcf SNP output; --output-indel somatic.indel.vcf indel output; --output-vcf 1 VCF format; --min-coverage 8 minimum coverage; --min-var-freq 0.1 minimum VAF; --somatic-p-value 0.05 somatic p-value; no intermediate pileup files
 
 ### call germline SNPs with Java heap size adjustment
 **Args:** `mpileup2snp --min-coverage 8 --min-reads2 2 --min-var-freq 0.01 --p-value 0.99 --output-vcf 1 --java-mem 8G > snps.vcf`
-**Explanation:** --java-mem 8G sets JVM heap to 8GB; essential for large BAM files; prevents OutOfMemoryError
+**Explanation:** varscan mpileup2snp subcommand; --min-coverage 8 minimum coverage; --min-reads2 2 minimum variant reads; --min-var-freq 0.01 minimum VAF; --p-value 0.99 p-value threshold; --output-vcf 1 VCF output; --java-mem 8G sets JVM heap to 8GB; essential for large BAM files
 
 ### batch process multiple samples with consistent parameters
 **Args:** `mpileup2snp --min-coverage 8 --min-reads2 2 --min-var-freq 0.01 --p-value 0.99 --output-vcf 1 --output-root sample1 > sample1_snps.vcf`
-**Explanation:** --output-root specifies output prefix; useful for batch processing with consistent naming
+**Explanation:** varscan mpileup2snp subcommand; --min-coverage 8 minimum coverage; --min-reads2 2 minimum variant reads; --min-var-freq 0.01 minimum VAF; --p-value 0.99 p-value threshold; --output-vcf 1 VCF output; --output-root sample1 output prefix; useful for batch processing
 
 ### call high-confidence somatic variants with strict thresholds
 **Args:** `somatic normal.pileup tumor.pileup --output-snp highconf.snp --output-indel highconf.indel --output-vcf 1 --min-coverage 15 --min-coverage-normal 10 --min-coverage-tumor 10 --min-var-freq 0.15 --somatic-p-value 0.001 --strand-filter 1`
-**Explanation:** strict thresholds: 15x coverage, 15% VAF, p-value 0.001; high-confidence somatic calls for clinical applications
+**Explanation:** varscan somatic subcommand; normal.pileup tumor.pileup pileup files; --output-snp highconf.snp SNP output; --output-indel highconf.indel indel output; --output-vcf 1 VCF format; --min-coverage 15 coverage threshold; --min-coverage-normal 10 --min-coverage-tumor 10 coverage per sample; --min-var-freq 0.15 VAF threshold; --somatic-p-value 0.001 strict p-value; --strand-filter 1 strand bias filter; high-confidence somatic calls

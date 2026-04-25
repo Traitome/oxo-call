@@ -39,52 +39,52 @@ source_url: "https://meme-suite.org/meme/doc/overview.html"
 
 ### discover de novo motifs in ChIP-seq peak sequences
 **Args:** `-dna -mod zoops -nmotifs 10 -minw 6 -maxw 20 -oc meme_output peaks.fasta`
-**Explanation:** -dna for DNA sequences; -mod zoops allows zero or one motif per sequence; -nmotifs 10 finds up to 10 motifs; -minw/-maxw set motif width range
+**Explanation:** meme command; -dna for DNA sequences; -mod zoops allows zero or one motif per sequence; -nmotifs 10 finds up to 10 motifs; -minw 6 -maxw 20 set motif width range; -oc meme_output output directory; peaks.fasta input FASTA
 
 ### scan sequences for known TF binding motifs with FIMO
 **Args:** `fimo --thresh 1e-4 --oc fimo_output $MEME/share/meme/db/motif_databases/JASPAR/JASPAR2022_CORE_vertebrates_non-redundant_v2.meme peaks.fasta`
-**Explanation:** scans peaks.fasta for JASPAR vertebrate motifs; --thresh filters by p-value; output in fimo_output/fimo.tsv
+**Explanation:** fimo subcommand; --thresh 1e-4 p-value threshold; --oc fimo_output output directory; $MEME/share/.../JASPAR...meme motif database; peaks.fasta input FASTA
 
 ### compare discovered motifs against a known database with TOMTOM
 **Args:** `tomtom -oc tomtom_output meme_output/meme.xml $MEME/share/meme/db/motif_databases/JASPAR/JASPAR2022_CORE_vertebrates_non-redundant_v2.meme`
-**Explanation:** matches MEME-discovered motifs against JASPAR; output ranks known TFs by similarity score
+**Explanation:** tomtom subcommand; -oc tomtom_output output directory; meme_output/meme.xml input MEME motifs; $MEME/share/.../JASPAR...meme motif database
 
 ### test motif enrichment in a foreground vs background with AME
 **Args:** `ame --oc ame_output --control shuffled_bg.fasta peaks.fasta $MEME/share/meme/db/motif_databases/HOCOMOCO/HOCOMOCOv11_core_HUMAN_mono_meme_format.meme`
-**Explanation:** AME (Analysis of Motif Enrichment) tests which motifs from the database are enriched in peaks.fasta compared to shuffled_bg.fasta
+**Explanation:** ame subcommand; --oc ame_output output directory; --control shuffled_bg.fasta background sequences; peaks.fasta foreground sequences; $MEME/share/.../HOCOMOCO...meme motif database
 
 ### run STREME for fast short motif discovery
 **Args:** `streme --oc streme_output --dna --p peaks.fasta --n shuffled.fasta`
-**Explanation:** streme is faster than meme for large datasets; --p is the foreground set; --n is the control/background; finds short enriched motifs
+**Explanation:** streme subcommand; --oc streme_output output directory; --dna alphabet; --p peaks.fasta foreground set; --n shuffled.fasta control/background
 
 ### extract sequences for peak regions using bedtools first
 **Args:** `bedtools getfasta -fi genome.fa -bed peaks.bed -fo peaks.fasta`
-**Explanation:** prerequisite step before MEME; extracts FASTA sequences for peak coordinates; ensure genome.fa and peaks.bed use the same chromosome names
+**Explanation:** bedtools getfasta subcommand; -fi genome.fa reference FASTA; -bed peaks.bed input BED; -fo peaks.fasta output FASTA
 
 ### run MEME with reverse complement consideration
 **Args:** `-dna -revcomp -mod zoops -nmotifs 5 -oc meme_rc peaks.fasta`
-**Explanation:** -revcomp considers both strands for motif discovery; essential for TF binding site discovery where binding can occur on either strand
+**Explanation:** meme command; -dna alphabet; -revcomp considers both strands; -mod zoops zero or one per sequence; -nmotifs 5 number of motifs; -oc meme_rc output directory; peaks.fasta input FASTA
 
 ### discover palindromic motifs for dimer-binding TFs
 **Args:** `-dna -pal -mod zoops -nmotifs 5 -minw 10 -maxw 20 -oc meme_pal peaks.fasta`
-**Explanation:** -pal forces palindromic motif discovery; useful for TFs that bind as homodimers (e.g., many nuclear receptors)
+**Explanation:** meme command; -dna alphabet; -pal forces palindromic motif discovery; -mod zoops model; -nmotifs 5 number of motifs; -minw 10 -maxw 20 motif width range; -oc meme_pal output directory; peaks.fasta input FASTA
 
 ### use differential enrichment objective function with control sequences
 **Args:** `-dna -mod zoops -objfun de -neg control_peaks.fasta -nmotifs 5 -oc meme_de peaks.fasta`
-**Explanation:** -objfun de uses differential enrichment; -neg specifies control sequences; finds motifs enriched in foreground vs background
+**Explanation:** meme command; -dna alphabet; -mod zoops model; -objfun de differential enrichment objective; -neg control_peaks.fasta control sequences; -nmotifs 5 number of motifs; -oc meme_de output directory; peaks.fasta input FASTA
 
 ### run MEME with higher-order Markov background model
 **Args:** `-dna -mod zoops -markov_order 3 -nmotifs 5 -oc meme_markov peaks.fasta`
-**Explanation:** -markov_order 3 uses 3rd-order Markov model for background; better accounts for sequence composition biases
+**Explanation:** meme command; -dna alphabet; -mod zoops model; -markov_order 3 3rd-order Markov model for background; -nmotifs 5 number of motifs; -oc meme_markov output directory; peaks.fasta input FASTA
 
 ### limit search to top sequences for faster runtime
 **Args:** `-dna -mod zoops -searchsize 100000 -nmotifs 5 -oc meme_fast peaks.fasta`
-**Explanation:** -searchsize 100000 limits search to first 100kb of sequence data; speeds up analysis on large datasets
+**Explanation:** meme command; -dna alphabet; -mod zoops model; -searchsize 100000 limits search to first 100kb; -nmotifs 5 number of motifs; -oc meme_fast output directory; peaks.fasta input FASTA
 
 ### run MEME with MPI parallelization on HPC
 **Args:** `-dna -mod zoops -p 8 -nmotifs 5 -oc meme_mpi peaks.fasta`
-**Explanation:** -p 8 uses 8 MPI processes for parallel motif search; requires MPI environment to be loaded
+**Explanation:** meme command; -dna alphabet; -mod zoops model; -p 8 MPI processes for parallel search; -nmotifs 5 number of motifs; -oc meme_mpi output directory; peaks.fasta input FASTA
 
 ### find motifs with exact number of sites per sequence
 **Args:** `-dna -mod oops -nmotifs 3 -minw 8 -maxw 15 -oc meme_oops peaks.fasta`
-**Explanation:** -mod oops assumes exactly one motif occurrence per sequence; appropriate when all sequences are known to contain the motif
+**Explanation:** meme command; -dna alphabet; -mod oops exactly one motif per sequence; -nmotifs 3 number of motifs; -minw 8 -maxw 15 motif width range; -oc meme_oops output directory; peaks.fasta input FASTA

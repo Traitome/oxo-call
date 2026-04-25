@@ -29,44 +29,44 @@ source_url: "https://github.com/marbl/verkko"
 
 ### assemble a genome using only HiFi reads
 **Args:** `--hifi hifi_reads.fastq.gz -d assembly_out --threads 64`
-**Explanation:** HiFi-only assembly; -d sets output directory; --threads should match available CPUs
+**Explanation:** verkko command; --hifi hifi_reads.fastq.gz HiFi reads input; -d assembly_out output directory; --threads 64 parallelism
 
 ### assemble a genome with both HiFi and ONT reads for maximum continuity
 **Args:** `--hifi hifi_reads.fastq.gz --ont ont_reads.fastq.gz -d hybrid_assembly --threads 64`
-**Explanation:** combined HiFi+ONT mode; ONT reads resolve complex repeats and improve contig length
+**Explanation:** verkko command; --hifi hifi_reads.fastq.gz HiFi reads; --ont ont_reads.fastq.gz ONT reads; -d hybrid_assembly output directory; --threads 64 parallelism; combined mode resolves complex repeats
 
 ### perform haplotype-resolved assembly with trio binning
 **Args:** `--hifi hifi_reads.fastq.gz --ont ont_reads.fastq.gz --hap-kmers maternal.meryl paternal.meryl -d trio_assembly --threads 64`
-**Explanation:** --hap-kmers takes Meryl databases built from parental short reads for phasing into hap1/hap2
+**Explanation:** verkko command; --hifi hifi_reads.fastq.gz HiFi reads; --ont ont_reads.fastq.gz ONT reads; --hap-kmers maternal.meryl paternal.meryl Meryl databases from parental reads; -d trio_assembly output directory; --threads 64 parallelism; phasing into hap1/hap2
 
 ### run Verkko on a cluster using Slurm via Snakemake
 **Args:** `--hifi hifi_reads.fastq.gz --ont ont_reads.fastq.gz -d assembly_out --threads 4 --snakeopts "--cluster 'sbatch -c {threads} --mem {resources.mem_gb}G' --jobs 50"`
-**Explanation:** --snakeopts passes Snakemake arguments for cluster execution; --threads here sets the local thread count
+**Explanation:** verkko command; --hifi hifi_reads.fastq.gz HiFi reads; --ont ont_reads.fastq.gz ONT reads; -d assembly_out output directory; --threads 4 local threads; --snakeopts Snakemake cluster arguments; --cluster 'sbatch...' Slurm submission; --jobs 50 parallel jobs
 
 ### resume an interrupted Verkko assembly
 **Args:** `--hifi hifi_reads.fastq.gz --ont ont_reads.fastq.gz -d assembly_out --threads 64 --resume`
-**Explanation:** --resume continues from the last completed Snakemake checkpoint; reuses existing intermediate files
+**Explanation:** verkko command; --hifi hifi_reads.fastq.gz HiFi reads; --ont ont_reads.fastq.gz ONT reads; -d assembly_out output directory; --threads 64 parallelism; --resume continues from last checkpoint
 
 ### assemble with ONT reads only (no HiFi)
 **Args:** `--ont ont_reads.fastq.gz -d ont_assembly --threads 64`
-**Explanation:** ONT-only mode uses a longer k-mer graph; quality is lower than HiFi+ONT but works without PacBio data
+**Explanation:** verkko command; --ont ont_reads.fastq.gz ONT reads only; -d ont_assembly output directory; --threads 64 parallelism; uses longer k-mer graph; quality lower than HiFi+ONT
 
 ### run Verkko with Hi-C data for phasing
 **Args:** `--hifi hifi_reads.fastq.gz --hic1 hic_R1.fastq.gz --hic2 hic_R2.fastq.gz -d hic_assembly --threads 64`
-**Explanation:** uses Hi-C reads for haplotype phasing; alternative to trio binning
+**Explanation:** verkko command; --hifi hifi_reads.fastq.gz HiFi reads; --hic1 hic_R1.fastq.gz --hic2 hic_R2.fastq.gz Hi-C reads; -d hic_assembly output directory; --threads 64 parallelism; Hi-C for haplotype phasing
 
 ### generate assembly statistics
 **Args:** `stats assembly.fasta`
-**Explanation:** outputs assembly statistics including N50, contig count, and total size
+**Explanation:** verkko stats subcommand; assembly.fasta input assembly; outputs N50, contig count, total size
 
 ### evaluate assembly completeness with BUSCO
 **Args:** `busco -i assembly.fasta -l eukaryota_odb10 -o busco_out -m genome --cpu 16`
-**Explanation:** runs BUSCO on Verkko assembly; assesses gene set completeness
+**Explanation:** busco command; -i assembly.fasta input assembly; -l eukaryota_odb10 lineage database; -o busco_out output directory; -m genome mode; --cpu 16 threads; assesses gene set completeness
 
 ### align reads to assembly for quality check
 **Args:** `minimap2 -ax map-hifi assembly.fasta hifi_reads.fastq.gz | samtools sort -o aligned.bam`
-**Explanation:** aligns HiFi reads back to assembly; check coverage uniformity
+**Explanation:** minimap2 command; -ax map-hifi HiFi alignment preset; assembly.fasta reference; hifi_reads.fastq.gz reads; | samtools sort pipes to samtools; -o aligned.bam sorted BAM output
 
 ### run Verkko with custom k-mer size
 **Args:** `--hifi hifi_reads.fastq.gz --k-mer-size 31 -d custom_k_assembly --threads 64`
-**Explanation:** --k-mer-size adjusts De Bruijn graph k-mer; default is 21 for HiFi
+**Explanation:** verkko command; --hifi hifi_reads.fastq.gz HiFi reads; --k-mer-size 31 custom k-mer; -d custom_k_assembly output directory; --threads 64 parallelism; default is 21 for HiFi

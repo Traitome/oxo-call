@@ -38,44 +38,44 @@ source_url: "https://github.com/rrwick/Porechop"
 
 ### trim adapters from Oxford Nanopore FASTQ reads
 **Args:** `-i reads.fastq.gz -o trimmed_reads.fastq.gz --threads 8`
-**Explanation:** -i input gzipped FASTQ; -o output trimmed gzipped FASTQ; --threads 8 parallel
+**Explanation:** porechop command; -i reads.fastq.gz input gzipped FASTQ; -o trimmed_reads.fastq.gz output trimmed gzipped FASTQ; --threads 8 parallel processing
 
 ### trim adapters and remove chimeric reads
 **Args:** `-i reads.fastq.gz -o trimmed_no_chimeras.fastq.gz --discard_middle --threads 8`
-**Explanation:** --discard_middle removes reads with internal adapters (chimeras) instead of splitting
+**Explanation:** porechop command; -i reads.fastq.gz input FASTQ; -o trimmed_no_chimeras.fastq.gz output FASTQ; --discard_middle removes reads with internal adapters (chimeras) instead of splitting; --threads 8 parallel processing
 
 ### demultiplex barcoded ONT reads into separate files
 **Args:** `-i barcoded_reads.fastq.gz -b demultiplexed_reads/ --threads 8`
-**Explanation:** -b specifies output directory; creates one FASTQ per barcode bin
+**Explanation:** porechop command; -i barcoded_reads.fastq.gz input FASTQ; -b demultiplexed_reads/ output directory for barcode bins; --threads 8 parallel processing; creates one FASTQ per barcode bin
 
 ### trim adapters and set minimum length output
 **Args:** `-i reads.fastq.gz -o trimmed.fastq.gz --min_split_read_size 1000 --threads 8`
-**Explanation:** --min_split_read_size 1000 discards split reads shorter than 1000 bp
+**Explanation:** porechop command; -i reads.fastq.gz input FASTQ; -o trimmed.fastq.gz output FASTQ; --min_split_read_size 1000 discards split reads shorter than 1000 bp; --threads 8 parallel processing
 
 ### strict demultiplexing with barcode threshold
 **Args:** `-i barcoded.fastq.gz -b demux/ --barcode_threshold 80 --barcode_diff 10 --threads 8`
-**Explanation:** --barcode_threshold 80 requires 80% identity; --barcode_diff 10 requires 10% difference from second-best
+**Explanation:** porechop command; -i barcoded.fastq.gz input FASTQ; -b demux/ output directory; --barcode_threshold 80 requires 80% identity; --barcode_diff 10 requires 10% difference from second-best; --threads 8 parallel processing
 
 ### require barcode match at both ends
 **Args:** `-i barcoded.fastq.gz -b demux_strict/ --require_two_barcodes --threads 8`
-**Explanation:** --require_two_barcodes only bins reads with barcode at both start and end; reduces false assignments
+**Explanation:** porechop command; -i barcoded.fastq.gz input FASTQ; -b demux_strict/ output directory; --require_two_barcodes only bins reads with barcode at both start and end; --threads 8 parallel processing; reduces false assignments
 
 ### more sensitive adapter detection
 **Args:** `-i reads.fastq.gz -o trimmed.fastq.gz --adapter_threshold 85 --threads 8`
-**Explanation:** --adapter_threshold 85 lowers identity requirement from 90%; more sensitive but may increase false positives
+**Explanation:** porechop command; -i reads.fastq.gz input FASTQ; -o trimmed.fastq.gz output FASTQ; --adapter_threshold 85 lowers identity requirement from 90%; --threads 8 parallel processing; more sensitive but may increase false positives
 
 ### trim only end adapters without splitting chimeras
 **Args:** `-i reads.fastq.gz -o trimmed.fastq.gz --no_split --threads 8`
-**Explanation:** --no_split disables chimera splitting; only removes adapters from read ends
+**Explanation:** porechop command; -i reads.fastq.gz input FASTQ; -o trimmed.fastq.gz output FASTQ; --no_split disables chimera splitting; --threads 8 parallel processing; only removes adapters from read ends
 
 ### keep untrimmed reads in separate file
 **Args:** `-i reads.fastq.gz -o trimmed.fastq.gz --untrimmed --threads 8`
-**Explanation:** --untrimmed outputs untrimmed reads to separate file; useful for QC
+**Explanation:** porechop command; -i reads.fastq.gz input FASTQ; -o trimmed.fastq.gz output FASTQ; --untrimmed outputs untrimmed reads to separate file; --threads 8 parallel processing; useful for QC
 
 ### discard unassigned reads during demultiplexing
 **Args:** `-i barcoded.fastq.gz -b demux/ --discard_unassigned --threads 8`
-**Explanation:** --discard_unassigned removes reads that cannot be assigned to any barcode; cleaner output
+**Explanation:** porechop command; -i barcoded.fastq.gz input FASTQ; -b demux/ output directory; --discard_unassigned removes reads that cannot be assigned to any barcode; --threads 8 parallel processing; cleaner output
 
 ### check more reads for adapter detection
 **Args:** `-i reads.fastq.gz -o trimmed.fastq.gz --check_reads 50000 --threads 8`
-**Explanation:** --check_reads 50000 checks more reads for adapter detection; use if adapter detection seems incomplete
+**Explanation:** porechop command; -i reads.fastq.gz input FASTQ; -o trimmed.fastq.gz output FASTQ; --check_reads 50000 checks more reads for adapter detection; --threads 8 parallel processing; use if adapter detection seems incomplete

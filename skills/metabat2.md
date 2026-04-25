@@ -37,59 +37,59 @@ source_url: "https://bitbucket.org/berkeleylab/metabat"
 
 ### compute contig depths from BAM files for MetaBAT2
 **Args:** `jgi_summarize_bam_contig_depths --outputDepth contig_depths.txt sample1.bam sample2.bam sample3.bam`
-**Explanation:** jgi_summarize_bam_contig_depths from multiple samples; creates depth table for MetaBAT2
+**Explanation:** jgi_summarize_bam_contig_depths command; --outputDepth contig_depths.txt output depth table; sample1.bam sample2.bam sample3.bam input BAM files
 
 ### bin metagenomic assembly contigs into MAGs
 **Args:** `-i assembly.fasta -a contig_depths.txt -o bins/bin -m 2500 -t 8`
-**Explanation:** -i assembly; -a depth file from jgi_summarize; -o output prefix for bin FASTA files; -m min contig length
+**Explanation:** metabat2 command; -i assembly.fasta input assembly; -a contig_depths.txt depth file; -o bins/bin output prefix for bin FASTA files; -m 2500 min contig length; -t 8 threads
 
 ### run MetaBAT2 binning without coverage information (tetranucleotide only)
 **Args:** `-i assembly.fasta -o bins/bin -m 1500 -t 8`
-**Explanation:** without -a coverage file, MetaBAT2 uses only tetranucleotide frequency; less accurate but usable
+**Explanation:** metabat2 command; -i assembly.fasta input assembly; -o bins/bin output prefix; -m 1500 min contig length; -t 8 threads; without -a coverage file, MetaBAT2 uses only tetranucleotide frequency
 
 ### bin with custom sensitivity settings
 **Args:** `-i assembly.fasta -a contig_depths.txt -o bins/bin --sensitive -m 2000 -t 8`
-**Explanation:** --sensitive mode for more permissive binning; may produce more bins with lower purity
+**Explanation:** metabat2 command; -i assembly.fasta input assembly; -a contig_depths.txt depth file; -o bins/bin output prefix; --sensitive mode for more permissive binning; -m 2000 min contig length; -t 8 threads
 
 ### bin with high specificity for pure genomes
 **Args:** `-i assembly.fasta -a contig_depths.txt -o bins/bin -m 2500 -t 8 --minS 80 --maxEdges 100`
-**Explanation:** --minS 80 increases specificity; --maxEdges 100 reduces edges for more stringent binning
+**Explanation:** metabat2 command; -i assembly.fasta input assembly; -a contig_depths.txt depth file; -o bins/bin output prefix; -m 2500 min contig length; -t 8 threads; --minS 80 increases specificity; --maxEdges 100 reduces edges for stringent binning
 
 ### output unbinned contigs for downstream analysis
 **Args:** `-i assembly.fasta -a contig_depths.txt -o bins/bin -m 2500 -t 8 --unbinned`
-**Explanation:** --unbinned generates bin.unbinned.fa; useful for re-binning or alternative binners
+**Explanation:** metabat2 command; -i assembly.fasta input assembly; -a contig_depths.txt depth file; -o bins/bin output prefix; -m 2500 min contig length; -t 8 threads; --unbinned generates bin.unbinned.fa
 
 ### use seed for reproducible binning results
 **Args:** `-i assembly.fasta -a contig_depths.txt -o bins/bin -m 2500 -t 8 --seed 42`
-**Explanation:** --seed 42 ensures identical results across runs; essential for pipeline reproducibility
+**Explanation:** metabat2 command; -i assembly.fasta input assembly; -a contig_depths.txt depth file; -o bins/bin output prefix; -m 2500 min contig length; -t 8 threads; --seed 42 ensures identical results across runs
 
 ### bin with third-party coverage file
 **Args:** `-i assembly.fasta -a custom_depths.txt -o bins/bin -m 2500 -t 8 --cvExt`
-**Explanation:** --cvExt indicates coverage file lacks variance column; for non-jgi_summarize input
+**Explanation:** metabat2 command; -i assembly.fasta input assembly; -a custom_depths.txt depth file; -o bins/bin output prefix; -m 2500 min contig length; -t 8 threads; --cvExt indicates coverage file lacks variance column
 
 ### set minimum bin size to filter small bins
 **Args:** `-i assembly.fasta -a contig_depths.txt -o bins/bin -m 2500 -t 8 --minClsSize 500000`
-**Explanation:** --minClsSize 500000 excludes bins smaller than 500kb; filters out low-quality small bins
+**Explanation:** metabat2 command; -i assembly.fasta input assembly; -a contig_depths.txt depth file; -o bins/bin output prefix; -m 2500 min contig length; -t 8 threads; --minClsSize 500000 excludes bins smaller than 500kb
 
 ### bin with multiple samples for improved differential coverage
 **Args:** `jgi_summarize_bam_contig_depths --outputDepth multi_depth.txt sample1.bam sample2.bam sample3.bam sample4.bam sample5.bam && metabat2 -i assembly.fasta -a multi_depth.txt -o bins/bin -m 2500 -t 8`
-**Explanation:** more samples provide better coverage variation; improves binning accuracy for complex communities
+**Explanation:** jgi_summarize_bam_contig_depths command; --outputDepth multi_depth.txt output; sample BAMs input; metabat2 command; -i assembly.fasta input; -a multi_depth.txt depth file; -o bins/bin output prefix; -m 2500 min contig; -t 8 threads
 
 ### run MetaBAT2 with verbose output for debugging
 **Args:** `-i assembly.fasta -a contig_depths.txt -o bins/bin -m 2500 -t 8 --verbose`
-**Explanation:** --verbose prints detailed binning statistics; useful for troubleshooting and understanding binning decisions
+**Explanation:** metabat2 command; -i assembly.fasta input assembly; -a contig_depths.txt depth file; -o bins/bin output prefix; -m 2500 min contig length; -t 8 threads; --verbose prints detailed binning statistics
 
 ### bin with specific maxP and minS combination for balanced results
 **Args:** `-i assembly.fasta -a contig_depths.txt -o bins/bin -m 2500 -t 8 --maxP 90 --minS 70`
-**Explanation:** --maxP 90 includes 90% of contigs; --minS 70 moderate specificity; balanced sensitivity and purity
+**Explanation:** metabat2 command; -i assembly.fasta input assembly; -a contig_depths.txt depth file; -o bins/bin output prefix; -m 2500 min contig length; -t 8 threads; --maxP 90 includes 90% of contigs; --minS 70 moderate specificity
 
 ### assess bin quality with CheckM2 after binning
 **Args:** `checkm2 predict -i bins/ -o checkm2_output -x fa -t 8`
-**Explanation:** CheckM2 evaluates bin completeness and contamination; essential quality control step after MetaBAT2 binning
+**Explanation:** checkm2 predict subcommand; -i bins/ input directory; -o checkm2_output output directory; -x fa file extension; -t 8 threads
 
 ### combine MetaBAT2 with other binners using DASTool
 **Args:** `DASTool -i metabat2_bins.tsv,maxbin2_bins.tsv -l metabat2,maxbin2 -c contig_depths.txt -t 8 -o das_tool_output`
-**Explanation:** DASTool integrates results from multiple binners; improves bin quality over single binning method
+**Explanation:** DASTool command; -i metabat2_bins.tsv,maxbin2_bins.tsv input bin files; -l metabat2,maxbin2 labels; -c contig_depths.txt depth file; -t 8 threads; -o das_tool_output output prefix
 
 ### extract bin statistics from MetaBAT2 output
 **Args:** `ls bins/*.fa | while read f; do echo -n "$f: "; grep -c "^>" $f; done`

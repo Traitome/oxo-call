@@ -38,44 +38,44 @@ source_url: "https://github.com/brentp/mosdepth"
 
 ### calculate genome-wide depth of coverage in 500bp windows
 **Args:** `--by 500 -t 8 --prefix sample_coverage sample_sorted.bam`
-**Explanation:** --by 500 windows; -t 8 threads; --prefix output prefix; creates .summary.txt and .regions.bed.gz
+**Explanation:** mosdepth command; --by 500 500bp windows; -t 8 threads; --prefix sample_coverage output prefix; sample_sorted.bam input BAM
 
 ### calculate coverage over target regions for WES
 **Args:** `--by targets.bed -t 4 --prefix wes_coverage sample_sorted.bam`
-**Explanation:** --by targets.bed restricts to capture regions; outputs per-region coverage
+**Explanation:** mosdepth command; --by targets.bed target regions; -t 4 threads; --prefix wes_coverage output prefix; sample_sorted.bam input BAM
 
 ### calculate per-base depth with MAPQ filter
 **Args:** `-t 4 -Q 20 -F 1796 --prefix filtered_coverage sample_sorted.bam`
-**Explanation:** -Q 20 minimum MAPQ; -F 1796 excludes duplicate (1024) + secondary (256) + unmapped (4) + supplementary (2048) reads
+**Explanation:** mosdepth command; -t 4 threads; -Q 20 minimum MAPQ; -F 1796 excludes duplicate+secondary+unmapped+supplementary reads; --prefix filtered_coverage output prefix; sample_sorted.bam input BAM
 
 ### get summary statistics only without per-base output
 **Args:** `-n -t 8 --prefix summary_only sample_sorted.bam`
-**Explanation:** -n disables per-base .bed.gz output; much faster for summary statistics only
+**Explanation:** mosdepth command; -n disables per-base output; -t 8 threads; --prefix summary_only output prefix; sample_sorted.bam input BAM
 
 ### calculate coverage with threshold analysis for QC metrics
 **Args:** `--by exons.bed -T 1,10,20,30,50 --prefix thresholds_coverage sample_sorted.bam`
-**Explanation:** -T specifies coverage thresholds; outputs bases meeting each threshold per region for coverage QC
+**Explanation:** mosdepth command; --by exons.bed region BED; -T 1,10,20,30,50 coverage thresholds; --prefix thresholds_coverage output prefix; sample_sorted.bam input BAM
 
 ### use fast mode for rapid WGS coverage calculation
 **Args:** `-x -t 16 --prefix fast_coverage sample_sorted.bam`
-**Explanation:** -x fast-mode skips cigar operations; much faster for WGS; recommended for most use-cases
+**Explanation:** mosdepth command; -x fast-mode skips cigar operations; -t 16 threads; --prefix fast_coverage output prefix; sample_sorted.bam input BAM
 
 ### calculate fragment coverage for ChIP-seq analysis
 **Args:** `-a --by peaks.bed -t 8 --prefix fragment_coverage sample_sorted.bam`
-**Explanation:** -a fragment-mode counts full fragment including insert; ideal for ChIP-seq peak coverage
+**Explanation:** mosdepth command; -a fragment-mode counts full fragment; --by peaks.bed regions; -t 8 threads; --prefix fragment_coverage output prefix; sample_sorted.bam input BAM
 
 ### calculate median coverage per region instead of mean
 **Args:** `-m --by genes.bed -t 8 --prefix median_coverage sample_sorted.bam`
-**Explanation:** -m use-median outputs median coverage; more robust to outliers than mean for gene coverage
+**Explanation:** mosdepth command; -m use-median outputs median coverage; --by genes.bed regions; -t 8 threads; --prefix median_coverage output prefix; sample_sorted.bam input BAM
 
 ### analyze specific chromosome only
 **Args:** `-c chr20 -t 8 --prefix chr20_coverage sample_sorted.bam`
-**Explanation:** -c restricts to chromosome 20; useful for targeted analysis or testing
+**Explanation:** mosdepth command; -c chr20 restricts to chromosome 20; -t 8 threads; --prefix chr20_coverage output prefix; sample_sorted.bam input BAM
 
 ### quantize coverage into bins for efficient storage
 **Args:** `-q 0:1:10:50:100: --prefix quantized_coverage sample_sorted.bam`
-**Explanation:** -q bins coverage (0,1-9,10-49,50-99,100+); creates smaller .bed.gz for genome browsers
+**Explanation:** mosdepth command; -q 0:1:10:50:100: bins coverage into levels; --prefix quantized_coverage output prefix; sample_sorted.bam input BAM
 
 ### calculate coverage for CRAM file with reference
 **Args:** `-t 8 -f reference.fa --prefix cram_coverage sample_sorted.cram`
-**Explanation:** -f provides reference FASTA for CRAM decoding; required for CRAM input
+**Explanation:** mosdepth command; -t 8 threads; -f reference.fa reference FASTA for CRAM; --prefix cram_coverage output prefix; sample_sorted.cram input CRAM

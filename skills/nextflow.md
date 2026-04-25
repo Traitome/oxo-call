@@ -40,60 +40,60 @@ source_url: "https://www.nextflow.io/docs/latest/"
 
 ### run an nf-core pipeline with Singularity on a Slurm cluster
 **Args:** `run nf-core/rnaseq -profile singularity,slurm --input samplesheet.csv --genome GRCh38 -resume`
-**Explanation:** -profile activates singularity+slurm config; --input is the nf-core samplesheet; --genome selects reference; -resume skips completed tasks
+**Explanation:** nextflow run subcommand; nf-core/rnaseq pipeline; -profile singularity,slurm activates profiles; --input samplesheet.csv samplesheet; --genome GRCh38 reference; -resume skips completed tasks
 
 ### run a pipeline with a custom work directory
 **Args:** `run main.nf -work-dir /scratch/$USER/nxf-work`
-**Explanation:** -work-dir overrides ./work/; use scratch storage on HPC to avoid filling home quota; -resume still works with this path
+**Explanation:** nextflow run subcommand; main.nf pipeline script; -work-dir /scratch/$USER/nxf-work custom work directory
 
 ### pull a specific pipeline version from nf-core
 **Args:** `pull nf-core/sarek -revision 3.4.0`
-**Explanation:** downloads and caches the pipeline in ~/.nextflow/assets/; -revision pins to a specific tag or branch
+**Explanation:** nextflow pull subcommand; nf-core/sarek pipeline; -revision 3.4.0 pins to specific version; caches in ~/.nextflow/assets/
 
 ### resume a failed pipeline run
 **Args:** `run main.nf -resume`
-**Explanation:** reuses cached tasks from the most recent run's work/ directory; only re-runs tasks whose inputs or code changed
+**Explanation:** nextflow run subcommand; main.nf pipeline script; -resume reuses cached tasks from work/ directory
 
 ### run pipeline with a custom config file
 **Args:** `run nf-core/chipseq -c custom.config --input samplesheet.csv`
-**Explanation:** -c loads an additional config file on top of nextflow.config; useful for site-specific cluster settings without modifying the pipeline
+**Explanation:** nextflow run subcommand; nf-core/chipseq pipeline; -c custom.config additional config; --input samplesheet.csv input samplesheet
 
 ### show the list of cached pipeline assets
 **Args:** `list`
-**Explanation:** lists all pipelines stored in ~/.nextflow/assets/; includes the revision (branch/tag) and last update time
+**Explanation:** nextflow list subcommand; lists all cached pipelines in ~/.nextflow/assets/ with revision and update time
 
 ### clean up work directory keeping only the last run's intermediate files
 **Args:** `clean -but last`
-**Explanation:** removes work/ entries from all runs except the most recent; frees disk while preserving the ability to resume the latest run
+**Explanation:** nextflow clean subcommand; -but last removes work/ entries except most recent run
 
 ### run a pipeline with Singularity image cache set
 **Args:** `run nf-core/rnaseq -profile singularity --singularity.cacheDir /shared/singularity-cache --input samplesheet.csv`
-**Explanation:** --singularity.cacheDir prevents re-pulling images; use a shared HPC path so all users benefit from cached images
+**Explanation:** nextflow run subcommand; nf-core/rnaseq pipeline; -profile singularity; --singularity.cacheDir /shared/singularity-cache image cache path; --input samplesheet.csv samplesheet
 
 ### check Nextflow version and environment
 **Args:** `-version`
-**Explanation:** prints Nextflow version, Java version, and home directory; use before reporting issues or upgrading
+**Explanation:** nextflow -version flag; prints Nextflow version, Java version, and home directory
 
 ### generate a run report and timeline
 **Args:** `run main.nf -with-report report.html -with-timeline timeline.html`
-**Explanation:** -with-report creates an HTML execution report with resource usage; -with-timeline shows a Gantt chart of task execution order
+**Explanation:** nextflow run subcommand; main.nf pipeline script; -with-report report.html HTML execution report; -with-timeline timeline.html Gantt chart
 
 ### generate workflow DAG visualization
 **Args:** `run main.nf -with-dag flowchart.png`
-**Explanation:** -with-dag generates a workflow diagram; PNG format requires Graphviz; use .dot format for manual editing
+**Explanation:** nextflow run subcommand; main.nf pipeline script; -with-dag flowchart.png workflow diagram output
 
 ### create detailed execution trace
 **Args:** `run main.nf -with-trace trace.txt`
-**Explanation:** -with-trace creates a tab-delimited file with detailed task metrics; useful for performance analysis and debugging
+**Explanation:** nextflow run subcommand; main.nf pipeline script; -with-trace trace.txt detailed task metrics output
 
 ### run with custom JVM options
 **Args:** `NXF_OPTS="-Xms2g -Xmx8g" run main.nf`
-**Explanation:** NXF_OPTS sets JVM heap size; -Xms initial memory, -Xmx maximum memory; prevents OutOfMemory errors on large workflows
+**Explanation:** NXF_OPTS="-Xms2g -Xmx8g" JVM heap size; nextflow run subcommand; main.nf pipeline script
 
 ### run specific process only
 **Args:** `run main.nf --step process_name -resume`
-**Explanation:** use entry workflow or conditional logic in script to run specific processes; -resume skips already completed steps
+**Explanation:** nextflow run subcommand; main.nf pipeline script; --step process_name specific process; -resume skips completed tasks
 
 ### dry run to validate workflow without execution
 **Args:** `run main.nf -preview`
-**Explanation:** -preview validates the workflow and shows what would be executed without actually running tasks
+**Explanation:** nextflow run subcommand; main.nf pipeline script; -preview validates workflow without execution

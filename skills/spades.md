@@ -43,56 +43,56 @@ source_url: "https://github.com/ablab/spades"
 
 ### assemble a bacterial genome from paired-end reads
 **Args:** `-1 R1.fastq.gz -2 R2.fastq.gz -o spades_output/ --threads 16 --memory 32 --careful`
-**Explanation:** --careful reduces mismatches; --threads 16 cores; --memory 32 limits RAM to 32 GB
+**Explanation:** spades command; -1 R1.fastq.gz paired-end R1 input; -2 R2.fastq.gz paired-end R2 input; -o spades_output/ output directory; --threads 16 cores; --memory 32 limits RAM to 32 GB; --careful reduces mismatches
 
 ### assemble a metagenome from paired-end reads
 **Args:** `--meta -1 R1.fastq.gz -2 R2.fastq.gz -o metaspades_output/ --threads 32 --memory 128`
-**Explanation:** --meta enables metaSPAdes mode for metagenomic assembly; higher memory for diverse communities
+**Explanation:** spades command; --meta enables metaSPAdes mode for metagenomic assembly; -1 R1.fastq.gz -2 R2.fastq.gz paired-end inputs; -o metaspades_output/ output directory; --threads 32 cores; --memory 128 GB RAM; higher memory for diverse communities
 
 ### assemble plasmids from paired-end reads
 **Args:** `--plasmid -1 R1.fastq.gz -2 R2.fastq.gz -o plasmidspades_output/ --threads 8 --memory 16`
-**Explanation:** --plasmid mode for plasmid assembly and recovery from whole-genome sequencing data
+**Explanation:** spades command; --plasmid mode for plasmid assembly and recovery; -1 R1.fastq.gz -2 R2.fastq.gz paired-end inputs; -o plasmidspades_output/ output directory; --threads 8 cores; --memory 16 GB RAM
 
 ### assemble single-cell MDA amplified data
 **Args:** `--sc -1 R1.fastq.gz -2 R2.fastq.gz -o sc_spades_output/ --threads 8 --memory 32`
-**Explanation:** --sc mode handles uneven coverage typical of single-cell amplified data
+**Explanation:** spades command; --sc single-cell mode handles uneven coverage typical of single-cell MDA amplified data; -1 R1.fastq.gz -2 R2.fastq.gz paired-end inputs; -o sc_spades_output/ output directory; --threads 8 cores; --memory 32 GB RAM
 
 ### resume interrupted SPAdes assembly
 **Args:** `-o spades_output/ --continue`
-**Explanation:** --continue resumes from the last successfully completed stage; requires the same output directory
+**Explanation:** spades command; -o spades_output/ output directory; --continue resumes from the last successfully completed stage; requires the same output directory
 
 ### assemble with both paired-end and long reads (hybrid assembly)
 **Args:** `-1 short_R1.fastq.gz -2 short_R2.fastq.gz --nanopore long_reads.fastq.gz -o hybrid_output/ --threads 16 --memory 64`
-**Explanation:** --nanopore provides ONT long reads for hybrid assembly; SPAdes integrates short and long reads
+**Explanation:** spades command; -1 short_R1.fastq.gz -2 short_R2.fastq.gz short paired-end inputs; --nanopore long_reads.fastq.gz ONT long reads for hybrid assembly; -o hybrid_output/ output directory; --threads 16 cores; --memory 64 GB RAM; SPAdes integrates short and long reads
 
 ### assemble bacterial isolate with --isolate mode (recommended)
 **Args:** `--isolate -1 R1.fastq.gz -2 R2.fastq.gz -o isolate_output/ --threads 16 --memory 32`
-**Explanation:** --isolate is optimized for high-coverage isolate data; faster and better quality than default mode
+**Explanation:** spades command; --isolate optimized for high-coverage isolate data; -1 R1.fastq.gz -2 R2.fastq.gz paired-end inputs; -o isolate_output/ output directory; --threads 16 cores; --memory 32 GB RAM; faster and better quality than default mode
 
 ### assemble viral RNA genome
 **Args:** `--rnaviral -1 R1.fastq.gz -2 R2.fastq.gz -o rnaviral_output/ --threads 8 --memory 16`
-**Explanation:** --rnaviral for viral RNA assembly; handles high mutation rates and variable coverage
+**Explanation:** spades command; --rnaviral for viral RNA assembly; -1 R1.fastq.gz -2 R2.fastq.gz paired-end inputs; -o rnaviral_output/ output directory; --threads 8 cores; --memory 16 GB RAM; handles high mutation rates and variable coverage
 
 ### assemble coronavirus genome with HMM guidance
 **Args:** `--corona -1 R1.fastq.gz -2 R2.fastq.gz -o corona_output/ --threads 8 --memory 16`
-**Explanation:** --corona uses Pfam HMMs for SARS-CoV-2 assembly; more accurate for coronavirus genomes
+**Explanation:** spades command; --corona uses Pfam HMMs for SARS-CoV-2 assembly; -1 R1.fastq.gz -2 R2.fastq.gz paired-end inputs; -o corona_output/ output directory; --threads 8 cores; --memory 16 GB RAM; more accurate for coronavirus genomes
 
 ### assemble biosynthetic gene clusters
 **Args:** `--bio -1 R1.fastq.gz -2 R2.fastq.gz -o bio_output/ --threads 16 --memory 64`
-**Explanation:** --bio for non-ribosomal and polyketide gene cluster assembly; specialized for secondary metabolites
+**Explanation:** spades command; --bio biosyntheticSPAdes for non-ribosomal and polyketide gene cluster assembly; -1 R1.fastq.gz -2 R2.fastq.gz paired-end inputs; -o bio_output/ output directory; --threads 16 cores; --memory 64 GB RAM; specialized for secondary metabolites
 
 ### detect viruses in metagenomic data
 **Args:** `--metaviral -1 R1.fastq.gz -2 R2.fastq.gz -o metaviral_output/ --threads 32 --memory 128`
-**Explanation:** --metaviral for viral discovery in metagenomes; outputs linear putative viral contigs
+**Explanation:** spades command; --metaviral for viral discovery in metagenomes; -1 R1.fastq.gz -2 R2.fastq.gz paired-end inputs; -o metaviral_output/ output directory; --threads 32 cores; --memory 128 GB RAM; outputs linear putative viral contigs
 
 ### run only read error correction
 **Args:** `--only-error-correction -1 R1.fastq.gz -2 R2.fastq.gz -o ec_output/ --threads 16 --memory 32`
-**Explanation:** --only-error-correction runs BayesHammer only; useful for correcting reads before using other assemblers
+**Explanation:** spades command; --only-error-correction runs BayesHammer only; -1 R1.fastq.gz -2 R2.fastq.gz paired-end inputs; -o ec_output/ output directory; --threads 16 cores; --memory 32 GB RAM; useful for correcting reads before using other assemblers
 
 ### run only assembly (skip error correction)
 **Args:** `--only-assembler -1 corrected_R1.fastq.gz -2 corrected_R2.fastq.gz -o asm_output/ --threads 16 --memory 32`
-**Explanation:** --only-assembler skips error correction; use when input reads are already corrected
+**Explanation:** spades command; --only-assembler skips error correction; -1 corrected_R1.fastq.gz -2 corrected_R2.fastq.gz corrected paired-end inputs; -o asm_output/ output directory; --threads 16 cores; --memory 32 GB RAM; use when input reads are already corrected
 
 ### restart from specific checkpoint with updated options
 **Args:** `-o spades_output/ --restart-from k55 --memory 64`
-**Explanation:** --restart-from k55 resumes from k=55 stage; useful for increasing memory or changing parameters mid-run
+**Explanation:** spades command; -o spades_output/ output directory; --restart-from k55 resumes from k=55 stage; --memory 64 GB RAM; useful for increasing memory or changing parameters mid-run

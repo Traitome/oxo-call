@@ -39,48 +39,48 @@ source_url: "https://github.com/OpenGene/fastp"
 
 ### trim adapters from paired-end reads (MOST COMMON)
 **Args:** `-i R1.fastq -I R2.fastq -o trimmed_R1.fastq -O trimmed_R2.fastq -h report.html -j report.json`
-**Explanation:** -i/-I for R1/R2 inputs; -o/-O for outputs; -h HTML report; -j JSON report; this is the standard paired-end workflow
+**Explanation:** fastp command; -i/-I for R1/R2 inputs; -o/-O for outputs; -h HTML report; -j JSON report; this is the standard paired-end workflow
 
 ### quality trim and filter paired-end FASTQ reads with 8 threads
 **Args:** `-i R1.fastq.gz -I R2.fastq.gz -o clean_R1.fastq.gz -O clean_R2.fastq.gz -h report.html -j report.json -w 8`
-**Explanation:** -i/-I for R1/R2 input; -o/-O for R1/R2 output; -h/-j for HTML and JSON reports; -w 8 uses 8 threads as requested
+**Explanation:** fastp command; -i/-I for R1/R2 input; -o/-O for R1/R2 output; -h/-j for HTML and JSON reports; -w 8 uses 8 threads as requested
 
 ### quality trim paired-end reads and set minimum quality to 20
 **Args:** `-i R1.fq.gz -I R2.fq.gz -o out_R1.fq.gz -O out_R2.fq.gz -q 20 -l 36 -h qc.html -j qc.json`
-**Explanation:** -i/-I for R1/R2 inputs; -o/-O for outputs; -q 20 sets minimum base quality; -l 36 minimum read length; -h/-j for reports
+**Explanation:** fastp command; -i/-I for R1/R2 inputs; -o/-O for outputs; -q 20 sets minimum base quality; -l 36 minimum read length; -h/-j for reports
 
 ### run fastp on paired-end RNA-seq data with polyA trimming
 **Args:** `-i R1.fq.gz -I R2.fq.gz -o out_R1.fq.gz -O out_R2.fq.gz --trim_poly_a -h rna_qc.html -j rna_qc.json`
-**Explanation:** -i/-I for inputs; -o/-O for outputs; --trim_poly_a removes polyA tails common in RNA-seq data; -h/-j for reports
+**Explanation:** fastp command; -i/-I for inputs; -o/-O for outputs; --trim_poly_a removes polyA tails common in RNA-seq data; -h/-j for reports
 
 ### quality control only (no trimming, just generate the QC report)
 **Args:** `-i R1.fq.gz -I R2.fq.gz -o /dev/null -O /dev/null --disable_adapter_trimming --disable_quality_filtering -h qc_report.html -j qc_report.json`
-**Explanation:** -i/-I for inputs; -o/-O to /dev/null; --disable_adapter_trimming skips trimming; --disable_quality_filtering skips filtering; -h/-j generate reports without modifying reads
+**Explanation:** fastp command; -i/-I for inputs; -o/-O to /dev/null; --disable_adapter_trimming skips trimming; --disable_quality_filtering skips filtering; -h/-j generate reports without modifying reads
 
 ### merge overlapping paired-end reads
 **Args:** `-i R1.fq.gz -I R2.fq.gz --merge --merged_out merged.fq.gz -o unmerged_R1.fq.gz -O unmerged_R2.fq.gz`
-**Explanation:** -i/-I for inputs; --merge combines overlapping PE reads; --merged_out for merged reads; -o/-O for unmerged reads
+**Explanation:** fastp command; -i/-I for inputs; --merge combines overlapping PE reads; --merged_out for merged reads; -o/-O for unmerged reads
 
 ### enable base correction in overlapped regions
 **Args:** `-i R1.fq.gz -I R2.fq.gz -o out_R1.fq.gz -O out_R2.fq.gz --correction`
-**Explanation:** -i/-I for inputs; -o/-O for outputs; --correction fixes mismatched bases in PE overlap using high-quality base; improves data accuracy
+**Explanation:** fastp command; -i/-I for inputs; -o/-O for outputs; --correction fixes mismatched bases in PE overlap using high-quality base; improves data accuracy
 
 ### trim polyG tails (NovaSeq/NextSeq)
 **Args:** `-i R1.fq.gz -I R2.fq.gz -o out_R1.fq.gz -O out_R2.fq.gz --trim_poly_g --poly_g_min_len 10`
-**Explanation:** -i/-I for inputs; -o/-O for outputs; --trim_poly_g removes polyG tails common in NovaSeq/NextSeq; --poly_g_min_len sets detection threshold
+**Explanation:** fastp command; -i/-I for inputs; -o/-O for outputs; --trim_poly_g removes polyG tails common in NovaSeq/NextSeq; --poly_g_min_len sets detection threshold
 
 ### deduplication with high accuracy
 **Args:** `-i R1.fq.gz -I R2.fq.gz -o dedup_R1.fq.gz -O dedup_R2.fq.gz --dedup --dup_calc_accuracy 4`
-**Explanation:** -i/-I for inputs; -o/-O for outputs; --dedup removes PCR duplicates; --dup_calc_accuracy 4 uses 8GB RAM for more accurate duplicate detection
+**Explanation:** fastp command; -i/-I for inputs; -o/-O for outputs; --dedup removes PCR duplicates; --dup_calc_accuracy 4 uses 8GB RAM for more accurate duplicate detection
 
 ### process UMI data
 **Args:** `-i R1.fq.gz -I R2.fq.gz -o out_R1.fq.gz -O out_R2.fq.gz --umi --umi_loc=read1 --umi_len 8`
-**Explanation:** -i/-I for inputs; -o/-O for outputs; --umi enables UMI processing; --umi_loc=read1 specifies UMI location; --umi_len 8 sets UMI length
+**Explanation:** fastp command; -i/-I for inputs; -o/-O for outputs; --umi enables UMI processing; --umi_loc=read1 specifies UMI location; --umi_len 8 sets UMI length
 
 ### trim adapters from single-end reads and filter reads shorter than 50 bp
 **Args:** `-i reads.fastq.gz -o clean_reads.fastq.gz -l 50 -h report.html -j report.json`
-**Explanation:** -i input; -o output; -l 50 discards reads shorter than 50 bp; -h/-j for reports; auto-detects adapters
+**Explanation:** fastp command; -i input; -o output; -l 50 discards reads shorter than 50 bp; -h/-j for reports; auto-detects adapters
 
 ### sliding window quality trimming from both ends (single-end)
 **Args:** `-i reads.fq.gz -o clean.fq.gz --cut_front --cut_tail -q 20`
-**Explanation:** -i input; -o output; --cut_front/--cut_tail enable sliding window trimming from 5' and 3' ends; -q 20 sets quality threshold
+**Explanation:** fastp command; -i input; -o output; --cut_front/--cut_tail enable sliding window trimming from 5' and 3' ends; -q 20 sets quality threshold

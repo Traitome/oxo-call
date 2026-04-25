@@ -40,48 +40,48 @@ source_url: "https://github.com/FelixKrueger/TrimGalore"
 
 ### trim adapters and quality-filter paired-end Illumina reads
 **Args:** `--paired --quality 20 --length 36 --cores 4 --gzip -o trimmed_output/ R1.fastq.gz R2.fastq.gz`
-**Explanation:** --paired PE mode; --quality 20 Q20 threshold; --length 36 minimum; --gzip compressed output; -o output dir
+**Explanation:** trim_galore command; --paired PE mode; --quality 20 Q20 threshold; --length 36 minimum read length; --cores 4 threads; --gzip compressed output; -o trimmed_output/ output directory; R1.fastq.gz R2.fastq.gz input paired-end reads
 
 ### trim RRBS bisulfite sequencing data
 **Args:** `--paired --rrbs --quality 20 --length 20 --cores 4 --gzip -o rrbs_trimmed/ R1.fastq.gz R2.fastq.gz`
-**Explanation:** --rrbs for MspI-digested RRBS; trims 2 bp from 3' end after adapter removal to remove MspI bias
+**Explanation:** trim_galore command; --paired PE mode; --rrbs for MspI-digested RRBS; --quality 20 Q20 threshold; --length 20 minimum length; --cores 4 threads; --gzip compressed output; -o rrbs_trimmed/ output directory; R1.fastq.gz R2.fastq.gz inputs; trims 2 bp from 3' end after adapter removal
 
 ### trim single-end reads with automatic adapter detection
 **Args:** `--quality 20 --length 36 --cores 4 --gzip -o se_trimmed/ reads.fastq.gz`
-**Explanation:** single-end mode (no --paired); auto-detects Illumina adapters; quality trim at Q20
+**Explanation:** trim_galore command; single-end mode (no --paired); --quality 20 Q20 threshold; --length 36 minimum length; --cores 4 threads; --gzip compressed output; -o se_trimmed/ output directory; reads.fastq.gz input reads; auto-detects Illumina adapters
 
 ### trim with specific adapter sequence for non-standard libraries
 **Args:** `--paired --adapter AGATCGGAAGAGCACACGTCT --adapter2 AGATCGGAAGAGCGTCGTGTA --quality 20 --cores 4 --gzip -o custom_trimmed/ R1.fastq.gz R2.fastq.gz`
-**Explanation:** --adapter and --adapter2 for explicit adapter specification for R1 and R2 respectively
+**Explanation:** trim_galore command; --paired PE mode; --adapter AGATCGGAAGAGCACACGTCT R1 adapter; --adapter2 AGATCGGAAGAGCGTCGTGTA R2 adapter; --quality 20 Q20 threshold; --cores 4 threads; --gzip compressed output; -o custom_trimmed/ output directory; R1.fastq.gz R2.fastq.gz inputs
 
 ### trim 5' end of reads (e.g., for UMI removal)
 **Args:** `--paired --clip_R1 10 --clip_R2 10 --quality 20 --cores 4 --gzip -o clipped_5prime/ R1.fastq.gz R2.fastq.gz`
-**Explanation:** --clip_R1/--clip_R2 remove 10 bp from 5' end; useful for UMI or barcode removal
+**Explanation:** trim_galore command; --paired PE mode; --clip_R1 10 removes 10 bp from R1 5' end; --clip_R2 10 removes 10 bp from R2 5' end; --quality 20 Q20 threshold; --cores 4 threads; --gzip compressed output; -o clipped_5prime/ output directory; R1.fastq.gz R2.fastq.gz inputs; useful for UMI/barcode removal
 
 ### trim 3' end after adapter removal (e.g., for RRBS)
 **Args:** `--paired --three_prime_clip_R1 2 --three_prime_clip_R2 2 --quality 20 --cores 4 --gzip -o clipped_3prime/ R1.fastq.gz R2.fastq.gz`
-**Explanation:** --three_prime_clip removes bases from 3' end after quality/adapter trimming
+**Explanation:** trim_galore command; --paired PE mode; --three_prime_clip_R1 2 removes 2 bp from R1 3' end; --three_prime_clip_R2 2 removes 2 bp from R2 3' end; --quality 20 Q20 threshold; --cores 4 threads; --gzip compressed output; -o clipped_3prime/ output directory; R1.fastq.gz R2.fastq.gz inputs; applied after quality/adapter trimming
 
 ### hard-trim to keep only first 50 bp from 5' end
 **Args:** `--hardtrim5 50 --gzip -o hardtrimmed/ reads.fastq.gz`
-**Explanation:** --hardtrim5 keeps only first 50 bp from 5' end; useful for epigenetic clock analysis
+**Explanation:** trim_galore command; --hardtrim5 50 keeps only first 50 bp from 5' end; --gzip compressed output; -o hardtrimmed/ output directory; reads.fastq.gz input; useful for epigenetic clock analysis
 
 ### hard-trim to keep only last 75 bp from 3' end
 **Args:** `--hardtrim3 75 --gzip -o hardtrimmed_3prime/ reads.fastq.gz`
-**Explanation:** --hardtrim3 keeps only last 75 bp from 3' end; alternative to --hardtrim5
+**Explanation:** trim_galore command; --hardtrim3 75 keeps only last 75 bp from 3' end; --gzip compressed output; -o hardtrimmed_3prime/ output directory; reads.fastq.gz input; alternative to --hardtrim5
 
 ### trim poly-A tails from RNA-seq reads
 **Args:** `--paired --polyA --quality 20 --cores 4 --gzip -o polyA_trimmed/ R1.fastq.gz R2.fastq.gz`
-**Explanation:** --polyA removes poly-A tails; useful for RNA-seq data with oligo-dT priming
+**Explanation:** trim_galore command; --paired PE mode; --polyA removes poly-A tails; --quality 20 Q20 threshold; --cores 4 threads; --gzip compressed output; -o polyA_trimmed/ output directory; R1.fastq.gz R2.fastq.gz inputs; useful for RNA-seq with oligo-dT priming
 
 ### trim NextSeq/NovaSeq data (two-color chemistry)
 **Args:** `--paired --nextseq 20 --quality 20 --cores 4 --gzip -o nextseq_trimmed/ R1.fastq.gz R2.fastq.gz`
-**Explanation:** --nextseq 20 uses NextSeq-specific quality trimming for two-color chemistry
+**Explanation:** trim_galore command; --paired PE mode; --nextseq 20 NextSeq-specific quality trimming for two-color chemistry; --quality 20 Q20 threshold; --cores 4 threads; --gzip compressed output; -o nextseq_trimmed/ output directory; R1.fastq.gz R2.fastq.gz inputs
 
 ### remove reads with too many ambiguous bases
 **Args:** `--paired --max_n 0.1 --quality 20 --cores 4 --gzip -o clean_n/ R1.fastq.gz R2.fastq.gz`
-**Explanation:** --max_n 0.1 removes reads where >10% of bases are N (ambiguous)
+**Explanation:** trim_galore command; --paired PE mode; --max_n 0.1 removes reads where >10% of bases are N; --quality 20 Q20 threshold; --cores 4 threads; --gzip compressed output; -o clean_n/ output directory; R1.fastq.gz R2.fastq.gz inputs
 
 ### trim WGBS (whole genome bisulfite) data
 **Args:** `--paired --bisulfite --quality 20 --cores 4 --gzip -o wgbs_trimmed/ R1.fastq.gz R2.fastq.gz`
-**Explanation:** --bisulfite for WGBS data (different from --rrbs which is for RRBS only)
+**Explanation:** trim_galore command; --paired PE mode; --bisulfite for WGBS data; --quality 20 Q20 threshold; --cores 4 threads; --gzip compressed output; -o wgbs_trimmed/ output directory; R1.fastq.gz R2.fastq.gz inputs; different from --rrbs which is for RRBS only

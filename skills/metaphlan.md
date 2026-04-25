@@ -38,40 +38,40 @@ source_url: "https://github.com/biobakery/MetaPhlAn"
 
 ### profile microbial community from single-end FASTQ reads
 **Args:** `--input_type fastq --bowtie2db /path/to/mpa_db --index mpa_vJan21_CHOCOPhlAnSGB_202103 --nproc 8 reads.fastq.gz -o sample_profile.txt`
-**Explanation:** --input_type fastq; --bowtie2db database directory; -o output profile table
+**Explanation:** metaphlan command; --input_type fastq input format; --bowtie2db /path/to/mpa_db database directory; --index mpa_vJan21_CHOCOPhlAnSGB_202103 index name; --nproc 8 threads; reads.fastq.gz input FASTQ; -o sample_profile.txt output profile table
 
 ### profile paired-end metagenomic reads
 **Args:** `--input_type fastq --bowtie2db /path/to/mpa_db --index mpa_vJan21_CHOCOPhlAnSGB_202103 --nproc 8 -o sample_profile.txt R1.fastq.gz,R2.fastq.gz`
-**Explanation:** PE reads separated by comma as input; MetaPhlAn handles them as paired mates
+**Explanation:** metaphlan command; --input_type fastq input format; --bowtie2db database directory; --index index name; --nproc 8 threads; -o sample_profile.txt output; R1.fastq.gz,R2.fastq.gz paired-end reads separated by comma
 
 ### save bowtie2 alignments for faster re-runs and profile
 **Args:** `--input_type fastq --bowtie2db /path/to/mpa_db --index mpa_vJan21_CHOCOPhlAnSGB_202103 --nproc 8 --bowtie2out sample.bowtie2.bz2 -o sample_profile.txt reads.fastq.gz`
-**Explanation:** --bowtie2out saves alignment for re-use; avoids re-aligning when re-running with different parameters
+**Explanation:** metaphlan command; --input_type fastq input format; --bowtie2db database directory; --index index name; --nproc 8 threads; --bowtie2out sample.bowtie2.bz2 saves alignment for re-use; -o sample_profile.txt output; reads.fastq.gz input
 
 ### merge multiple MetaPhlAn profiles into a single table
 **Args:** `sample1_profile.txt sample2_profile.txt sample3_profile.txt > merged_profiles.txt`
-**Explanation:** merge_metaphlan_tables.py merges profiles; run as: merge_metaphlan_tables.py *.txt > merged_profiles.txt
+**Explanation:** merge_metaphlan_tables.py command; sample1_profile.txt sample2_profile.txt sample3_profile.txt input profiles; > merged_profiles.txt output merged table
 
 ### profile at genus level only
 **Args:** `--input_type fastq --db_dir /path/to/mpa_db --index mpa_vJan21_CHOCOPhlAnSGB_202103 --nproc 8 --tax_lev g -o genus_profile.txt reads.fastq.gz`
-**Explanation:** --tax_lev g limits output to genus level; reduces file size for focused analysis
+**Explanation:** metaphlan command; --input_type fastq input format; --db_dir /path/to/mpa_db database directory; --index index name; --nproc 8 threads; --tax_lev g limits output to genus level; -o genus_profile.txt output; reads.fastq.gz input
 
 ### profile bacteria only, ignoring eukaryotes and archaea
 **Args:** `--input_type fastq --db_dir /path/to/mpa_db --index mpa_vJan21_CHOCOPhlAnSGB_202103 --nproc 8 --ignore_eukaryotes --ignore_archaea -o bacteria_only.txt reads.fastq.gz`
-**Explanation:** --ignore_eukaryotes --ignore_archaea excludes non-bacterial domains; focuses on bacterial composition
+**Explanation:** metaphlan command; --input_type fastq input format; --db_dir database directory; --index index name; --nproc 8 threads; --ignore_eukaryotes --ignore_archaea excludes non-bacterial domains; -o bacteria_only.txt output; reads.fastq.gz input
 
 ### save mapping output for reuse
 **Args:** `--input_type fastq --db_dir /path/to/mpa_db --index latest --nproc 8 --mapout sample.map.bz2 -o profile.txt reads.fastq.gz`
-**Explanation:** --mapout saves alignment results; use --input_type mapout to re-profile without re-aligning
+**Explanation:** metaphlan command; --input_type fastq input format; --db_dir database directory; --index latest index name; --nproc 8 threads; --mapout sample.map.bz2 saves alignment results; -o profile.txt output; reads.fastq.gz input
 
 ### profile from existing mapping file
 **Args:** `--input_type mapout --db_dir /path/to/mpa_db --index mpa_vJan21_CHOCOPhlAnSGB_202103 -o reprofile.txt sample.map.bz2`
-**Explanation:** --input_type mapout uses pre-computed alignment; much faster than re-aligning reads
+**Explanation:** metaphlan command; --input_type mapout uses pre-computed alignment; --db_dir database directory; --index index name; -o reprofile.txt output; sample.map.bz2 input map file
 
 ### generate BIOM format for QIIME2
 **Args:** `--input_type fastq --db_dir /path/to/mpa_db --index latest --nproc 8 --biom_format_output -o profile.biom reads.fastq.gz`
-**Explanation:** --biom_format_output produces BIOM format; compatible with QIIME2 and other microbiome tools
+**Explanation:** metaphlan command; --input_type fastq input format; --db_dir database directory; --index latest index name; --nproc 8 threads; --biom_format_output produces BIOM format; -o profile.biom output; reads.fastq.gz input
 
 ### profile long reads with minimap2
 **Args:** `--input_type fastq --db_dir /path/to/mpa_db --index latest --nproc 8 --long_reads -o longread_profile.txt nanopore.fastq.gz`
-**Explanation:** --long_reads enables minimap2 alignment; for Oxford Nanopore or PacBio reads
+**Explanation:** metaphlan command; --input_type fastq input format; --db_dir database directory; --index latest index name; --nproc 8 threads; --long_reads enables minimap2 alignment; -o longread_profile.txt output; nanopore.fastq.gz input

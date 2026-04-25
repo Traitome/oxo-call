@@ -40,40 +40,40 @@ source_url: "https://github.com/haowenz/chromap"
 
 ### build Chromap genome index
 **Args:** `-i -r genome.fa -o genome.index`
-**Explanation:** -i index mode; -r genome.fa reference FASTA input; -o genome.index index output file
+**Explanation:** chromap command; -i index mode; -r genome.fa reference FASTA input; -o genome.index index output file
 
 ### align paired-end ATAC-seq reads with Chromap
 **Args:** `--preset atac -x genome.index -r genome.fa -1 R1.fastq.gz -2 R2.fastq.gz -o fragments.bed -t 16`
-**Explanation:** --preset atac ATAC-seq preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; -o fragments.bed output BED; -t 16 threads
+**Explanation:** chromap command; --preset atac ATAC-seq preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; -o fragments.bed output BED; -t 16 threads
 
 ### process single-cell ATAC-seq with barcodes
 **Args:** `--preset atac -x genome.index -r genome.fa -1 R1.fastq.gz -2 R2.fastq.gz -b barcode.fastq.gz --barcode-whitelist whitelist.txt -o scatac_fragments.bed -t 16`
-**Explanation:** --preset atac ATAC-seq preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; -b barcode.fastq.gz barcode FASTQ; --barcode-whitelist whitelist.txt valid barcode list; -o scatac_fragments.bed output BED; -t 16 threads; outputs fragments per cell
+**Explanation:** chromap command; --preset atac ATAC-seq preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; -b barcode.fastq.gz barcode FASTQ; --barcode-whitelist whitelist.txt valid barcode list; -o scatac_fragments.bed output BED; -t 16 threads; outputs fragments per cell
 
 ### align ChIP-seq reads with Chromap
 **Args:** `--preset chip -x genome.index -r genome.fa -1 R1.fastq.gz -2 R2.fastq.gz -o chip_aligned.bed -t 16`
-**Explanation:** --preset chip ChIP-seq preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; -o chip_aligned.bed output BED; -t 16 threads
+**Explanation:** chromap command; --preset chip ChIP-seq preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; -o chip_aligned.bed output BED; -t 16 threads
 
 ### align with Tn5 shift for ATAC-seq peak calling
 **Args:** `--preset atac -x genome.index -r genome.fa -1 R1.fastq.gz -2 R2.fastq.gz --Tn5-shift -o fragments_shifted.bed -t 16`
-**Explanation:** --preset atac ATAC-seq preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; --Tn5-shift adjusts coordinates (+4bp forward, -5bp reverse) for Tn5 integration sites; -o fragments_shifted.bed output BED; -t 16 threads
+**Explanation:** chromap command; --preset atac ATAC-seq preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; --Tn5-shift adjusts coordinates (+4bp forward, -5bp reverse) for Tn5 integration sites; -o fragments_shifted.bed output BED; -t 16 threads
 
 ### output in SAM format for downstream analysis
 **Args:** `--preset atac -x genome.index -r genome.fa -1 R1.fastq.gz -2 R2.fastq.gz --SAM -o aligned.sam -t 16`
-**Explanation:** --preset atac ATAC-seq preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; --SAM outputs SAM format instead of default BED; -o aligned.sam output SAM; -t 16 threads; note --Tn5-shift does NOT work with --SAM
+**Explanation:** chromap command; --preset atac ATAC-seq preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; --SAM outputs SAM format instead of default BED; -o aligned.sam output SAM; -t 16 threads; note --Tn5-shift does NOT work with --SAM
 
 ### align Hi-C reads with pairs format output
 **Args:** `--preset hic -x genome.index -r genome.fa -1 R1.fastq.gz -2 R2.fastq.gz --pairs -o hic_pairs.pairs -t 16`
-**Explanation:** --preset hic Hi-C preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; --pairs outputs 4DN pairs format for Hi-C analysis tools; -o hic_pairs.pairs output pairs; -t 16 threads
+**Explanation:** chromap command; --preset hic Hi-C preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; --pairs outputs 4DN pairs format for Hi-C analysis tools; -o hic_pairs.pairs output pairs; -t 16 threads
 
 ### trim adapters and remove duplicates for clean ATAC-seq
 **Args:** `--preset atac -x genome.index -r genome.fa -1 R1.fastq.gz -2 R2.fastq.gz --trim-adapters --remove-pcr-duplicates -o clean_fragments.bed -t 16`
-**Explanation:** --preset atac ATAC-seq preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; --trim-adapters removes 3' adapters; --remove-pcr-duplicates removes PCR duplicates at bulk level; -o clean_fragments.bed output BED; -t 16 threads
+**Explanation:** chromap command; --preset atac ATAC-seq preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; --trim-adapters removes 3' adapters; --remove-pcr-duplicates removes PCR duplicates at bulk level; -o clean_fragments.bed output BED; -t 16 threads
 
 ### low memory mode for large genomes
 **Args:** `--preset atac -x genome.index -r genome.fa -1 R1.fastq.gz -2 R2.fastq.gz --low-mem -o fragments.bed -t 16`
-**Explanation:** --preset atac ATAC-seq preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; --low-mem reduces memory footprint; -o fragments.bed output BED; -t 16 threads; useful for large reference genomes or memory-constrained systems
+**Explanation:** chromap command; --preset atac ATAC-seq preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; --low-mem reduces memory footprint; -o fragments.bed output BED; -t 16 threads; useful for large reference genomes or memory-constrained systems
 
 ### scATAC-seq with cell-level deduplication
 **Args:** `--preset atac -x genome.index -r genome.fa -1 R1.fastq.gz -2 R2.fastq.gz -b barcode.fastq.gz --barcode-whitelist whitelist.txt --remove-pcr-duplicates-at-cell-level -o sc_fragments.bed -t 16`
-**Explanation:** --preset atac ATAC-seq preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; -b barcode.fastq.gz barcode FASTQ; --barcode-whitelist whitelist.txt valid barcode list; --remove-pcr-duplicates-at-cell-level deduplicates per cell barcode; -o sc_fragments.bed output BED; -t 16 threads; more stringent than bulk-level
+**Explanation:** chromap command; --preset atac ATAC-seq preset; -x genome.index Chromap index; -r genome.fa reference FASTA; -1 R1.fastq.gz -2 R2.fastq.gz paired reads input; -b barcode.fastq.gz barcode FASTQ; --barcode-whitelist whitelist.txt valid barcode list; --remove-pcr-duplicates-at-cell-level deduplicates per cell barcode; -o sc_fragments.bed output BED; -t 16 threads; more stringent than bulk-level

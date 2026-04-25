@@ -37,44 +37,44 @@ source_url: "https://github.com/PacificBiosciences/pbsv"
 
 ### discover SV signatures from PacBio HiFi aligned BAM
 **Args:** `discover --hifi sorted.bam sample.svsig.gz`
-**Explanation:** --hifi preset for CCS/HiFi data; output .svsig.gz contains SV candidate signatures
+**Explanation:** pbsv discover subcommand; --hifi preset for CCS/HiFi data; sorted.bam input aligned BAM; sample.svsig.gz output SV signature file; contains SV candidate signatures
 
 ### call SVs from a single sample's signature file
 **Args:** `call --hifi reference.fa sample.svsig.gz output_svs.vcf`
-**Explanation:** call genotypes SVs; reference.fa required; output VCF with SV calls
+**Explanation:** pbsv call subcommand; --hifi preset for HiFi data; reference.fa reference genome; sample.svsig.gz input signature file; output_svs.vcf output VCF; call genotypes SVs
 
 ### call SVs jointly from multiple samples
 **Args:** `call --hifi reference.fa sample1.svsig.gz sample2.svsig.gz sample3.svsig.gz cohort_svs.vcf`
-**Explanation:** provide all .svsig.gz files for joint genotyping across cohort
+**Explanation:** pbsv call subcommand; --hifi preset; reference.fa reference genome; sample1.svsig.gz sample2.svsig.gz sample3.svsig.gz input signature files; cohort_svs.vcf output VCF; provide all .svsig.gz files for joint genotyping across cohort
 
 ### discover with tandem repeat annotation for better accuracy
 **Args:** `discover --hifi --tandem-repeats hg38.trf.bed sorted.bam sample.svsig.gz`
-**Explanation:** --tandem-repeats BED file improves breakpoint precision in STR/VNTR regions
+**Explanation:** pbsv discover subcommand; --hifi preset; --tandem-repeats hg38.trf.bed tandem repeat annotation BED; sorted.bam input BAM; sample.svsig.gz output signature file; improves breakpoint precision in STR/VNTR regions
 
 ### call SVs from HiFi reads with --ccs flag
 **Args:** `call --ccs --hifi reference.fa sample.svsig.gz output.vcf`
-**Explanation:** --ccs is required for HiFi/CCS reads; omit for CLR/subreads
+**Explanation:** pbsv call subcommand; --ccs flag for HiFi/CCS reads; --hifi preset; reference.fa reference genome; sample.svsig.gz input signature file; output.vcf output VCF; --ccs is required for HiFi/CCS reads; omit for CLR/subreads
 
 ### discover SVs per chromosome for parallel processing
 **Args:** `discover --hifi --region chr1 sorted.bam sample.chr1.svsig.gz`
-**Explanation:** --region processes single chromosome; run in parallel for each chr
+**Explanation:** pbsv discover subcommand; --hifi preset; --region chr1 process single chromosome; sorted.bam input BAM; sample.chr1.svsig.gz output signature file; run in parallel for each chr
 
 ### index svsig.gz for random access
 **Args:** `tabix -c '#' -s 3 -b 4 -e 4 sample.svsig.gz`
-**Explanation:** index .svsig.gz for efficient random access with pbsv call -r
+**Explanation:** tabix command; -c '#' comment character; -s 3 chromosome column; -b 4 start position; -e 4 end position; sample.svsig.gz input file; index .svsig.gz for efficient random access with pbsv call -r
 
 ### call SVs with indexed svsig and region
 **Args:** `call --ccs --hifi -r chr1:1000000-2000000 reference.fa sample.svsig.gz output.vcf`
-**Explanation:** -r specifies region; uses indexed .svsig.gz for efficient access
+**Explanation:** pbsv call subcommand; --ccs for HiFi reads; --hifi preset; -r chr1:1000000-2000000 region specification; reference.fa reference genome; sample.svsig.gz input signature file; output.vcf output VCF; -r specifies region; uses indexed .svsig.gz for efficient access
 
 ### filter small variants with minimum SV length
 **Args:** `call --ccs --hifi --min-sv-length 50 reference.fa sample.svsig.gz output.vcf`
-**Explanation:** --min-sv-length 50 filters variants <50bp; for true SVs only
+**Explanation:** pbsv call subcommand; --ccs for HiFi reads; --hifi preset; --min-sv-length 50 minimum SV size; reference.fa reference genome; sample.svsig.gz input signature file; output.vcf output VCF; --min-sv-length 50 filters variants <50bp; for true SVs only
 
 ### increase maximum insertion size for large insertions
 **Args:** `call --ccs --hifi --max-sv-length 50k reference.fa sample.svsig.gz output.vcf`
-**Explanation:** --max-sv-length 50k increases insertion limit from 15kb to 50kb
+**Explanation:** pbsv call subcommand; --ccs for HiFi reads; --hifi preset; --max-sv-length 50k maximum SV size; reference.fa reference genome; sample.svsig.gz input signature file; output.vcf output VCF; --max-sv-length 50k increases insertion limit from 15kb to 50kb
 
 ### call SVs with multiple threads
 **Args:** `call --ccs --hifi -j 8 reference.fa sample.svsig.gz output.vcf`
-**Explanation:** -j 8 uses 8 threads for faster genotyping
+**Explanation:** pbsv call subcommand; --ccs for HiFi reads; --hifi preset; -j 8 threads; reference.fa reference genome; sample.svsig.gz input signature file; output.vcf output VCF; -j 8 uses 8 threads for faster genotyping

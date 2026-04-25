@@ -32,56 +32,56 @@ source_url: "https://rsync.samba.org/documentation.html"
 
 ### sync a local directory to a remote server with verbose output and compression
 **Args:** `-avz /local/data/ user@remote:/remote/data/`
-**Explanation:** -a archive mode (recursive + preserve attrs); -v verbose; -z compress; trailing slash copies contents
+**Explanation:** rsync command; -a archive mode recursive + preserve attrs; -v verbose; -z compress during transfer; /local/data/ source directory with trailing slash copies contents; user@remote:/remote/data/ remote destination
 
 ### dry-run to preview what would be transferred
 **Args:** `-avzn /source/ /dest/`
-**Explanation:** -n (--dry-run) shows what WOULD happen without making changes; always use before --delete
+**Explanation:** rsync command; -a archive mode; -v verbose; -z compress; -n (--dry-run) shows what WOULD happen without making changes; /source/ source directory; /dest/ destination; always use before --delete
 
 ### mirror source to destination, deleting removed files
 **Args:** `-avz --delete /source/ /dest/`
-**Explanation:** --delete removes files in /dest/ that no longer exist in /source/; test with -n first
+**Explanation:** rsync command; -a archive mode; -v verbose; -z compress; --delete removes files in /dest/ that no longer exist in /source/; /source/ source directory; /dest/ destination; test with -n first
 
 ### sync from remote server to local directory
 **Args:** `-avz user@remote:/remote/data/ /local/backup/`
-**Explanation:** remote source syntax is user@host:path; rsync uses ssh for transport by default
+**Explanation:** rsync command; -a archive mode; -v verbose; -z compress; user@remote:/remote/data/ remote source; /local/backup/ local destination; rsync uses ssh for transport by default
 
 ### resume a large interrupted transfer
 **Args:** `-avzP user@remote:/path/large-file.tar.gz /local/`
-**Explanation:** -P enables --partial (resume) and --progress; allows resuming interrupted transfers
+**Explanation:** rsync command; -a archive mode; -v verbose; -z compress; -P enables --partial resume and --progress; user@remote:/path/large-file.tar.gz remote source; /local/ local destination; allows resuming interrupted transfers
 
 ### sync excluding specific directories and patterns
 **Args:** `-avz --exclude='.git' --exclude='*.pyc' --exclude='__pycache__' /src/ user@remote:/dest/`
-**Explanation:** --exclude patterns prevent matched files/dirs from being transferred
+**Explanation:** rsync command; -a archive mode; -v verbose; -z compress; --exclude='.git' --exclude='*.pyc' --exclude='__pycache__' exclusion patterns; /src/ source directory; user@remote:/dest/ remote destination; prevents matched files/dirs from being transferred
 
 ### sync using a non-standard SSH port
 **Args:** `-avz -e 'ssh -p 2222' /local/data/ user@remote:/data/`
-**Explanation:** -e specifies the remote shell; -p 2222 sets the SSH port
+**Explanation:** rsync command; -a archive mode; -v verbose; -z compress; -e 'ssh -p 2222' specifies remote shell with port 2222; /local/data/ source directory; user@remote:/data/ remote destination
 
 ### show total transfer progress instead of per-file progress
 **Args:** `-avz --info=progress2 /source/ /dest/`
-**Explanation:** --info=progress2 shows cumulative transfer progress; requires rsync 3.1+
+**Explanation:** rsync command; -a archive mode; -v verbose; -z compress; --info=progress2 shows cumulative transfer progress; /source/ source directory; /dest/ destination; requires rsync 3.1+
 
 ### copy files preserving hard links
 **Args:** `-avzH /source/ /dest/`
-**Explanation:** -H preserves hard links; important for backups where hard links represent identical files
+**Explanation:** rsync command; -a archive mode; -v verbose; -z compress; -H preserves hard links; /source/ source directory; /dest/ destination; important for backups where hard links represent identical files
 
 ### sync only files newer than a reference file
 **Args:** `-avz --update /source/ /dest/`
-**Explanation:** --update skips destination files that are newer than the source; safe for incremental updates
+**Explanation:** rsync command; -a archive mode; -v verbose; -z compress; --update skips destination files that are newer than the source; /source/ source directory; /dest/ destination; safe for incremental updates
 
 ### limit bandwidth during transfer
 **Args:** `-avz --bwlimit=1000 /source/ user@remote:/dest/`
-**Explanation:** --bwlimit=1000 limits transfer to 1000 KB/s; useful for not saturating network connections
+**Explanation:** rsync command; -a archive mode; -v verbose; -z compress; --bwlimit=1000 limits transfer to 1000 KB/s; /source/ source directory; user@remote:/dest/ remote destination; useful for not saturating network connections
 
 ### update files in-place for faster large file transfers
 **Args:** `-avz --inplace /large/file.dat user@remote:/dest/`
-**Explanation:** --inplace updates destination in-place; faster for large files but less safe if interrupted
+**Explanation:** rsync command; -a archive mode; -v verbose; -z compress; --inplace updates destination in-place; /large/file.dat source file; user@remote:/dest/ remote destination; faster for large files but less safe if interrupted
 
 ### append to partial files for log synchronization
 **Args:** `-avz --append /logs/app.log user@remote:/logs/`
-**Explanation:** --append continues partial files by appending; useful for continuously growing log files
+**Explanation:** rsync command; -a archive mode; -v verbose; -z compress; --append continues partial files by appending; /logs/app.log source file; user@remote:/logs/ remote destination; useful for continuously growing log files
 
 ### sync with include patterns only
 **Args:** `-avz --include='*.fastq' --exclude='*' /source/ /dest/`
-**Explanation:** --include specifies patterns to include; --exclude='*' excludes everything else; order matters
+**Explanation:** rsync command; -a archive mode; -v verbose; -z compress; --include='*.fastq' pattern to include; --exclude='*' excludes everything else; /source/ source directory; /dest/ destination; order matters

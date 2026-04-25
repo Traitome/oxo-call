@@ -42,44 +42,44 @@ source_url: "https://github.com/freebayes/freebayes"
 
 ### call germline variants from a single sample BAM file
 **Args:** `-f reference.fa -b sample.bam > variants.vcf`
-**Explanation:** -f reference.fa reference FASTA; -b sample.bam input BAM; output VCF to stdout redirected to variants.vcf file
+**Explanation:** freebayes command; -f reference.fa reference FASTA; -b sample.bam input BAM; output VCF to stdout redirected to variants.vcf file
 
 ### call variants with minimum coverage and allele frequency filters
 **Args:** `-f reference.fa --min-alternate-count 3 --min-alternate-fraction 0.2 -b sample.bam > filtered_variants.vcf`
-**Explanation:** -f reference.fa reference FASTA; --min-alternate-count 3 requires ≥3 reads supporting alternate; --min-alternate-fraction 0.2 requires ≥20% frequency; -b sample.bam input BAM; output to filtered_variants.vcf
+**Explanation:** freebayes command; -f reference.fa reference FASTA; --min-alternate-count 3 requires ≥3 reads supporting alternate; --min-alternate-fraction 0.2 requires ≥20% frequency; -b sample.bam input BAM; output to filtered_variants.vcf
 
 ### call variants jointly from multiple samples
 **Args:** `-f reference.fa sample1.bam sample2.bam sample3.bam > cohort_variants.vcf`
-**Explanation:** -f reference.fa reference FASTA; sample1.bam sample2.bam sample3.bam multiple BAMs as positional arguments; output to cohort_variants.vcf; for joint genotyping across samples
+**Explanation:** freebayes command; -f reference.fa reference FASTA; sample1.bam sample2.bam sample3.bam multiple BAMs as positional arguments; output to cohort_variants.vcf; for joint genotyping across samples
 
 ### call variants restricted to a specific genomic region
 **Args:** `-f reference.fa -r chr1 -b sample.bam > chr1_variants.vcf`
-**Explanation:** -f reference.fa reference FASTA; -r chr1 restricts calling to chr1; -b sample.bam input BAM; output to chr1_variants.vcf; can specify chr1:1000-5000 for subregion
+**Explanation:** freebayes command; -f reference.fa reference FASTA; -r chr1 restricts calling to chr1; -b sample.bam input BAM; output to chr1_variants.vcf; can specify chr1:1000-5000 for subregion
 
 ### call variants with population priors from a VCF
 **Args:** `-f reference.fa --variant-input known_variants.vcf --only-use-input-alleles -b sample.bam > genotyped.vcf`
-**Explanation:** -f reference.fa reference FASTA; --variant-input known_variants.vcf provides known sites; --only-use-input-alleles forces genotyping at known sites only; -b sample.bam input BAM; output to genotyped.vcf
+**Explanation:** freebayes command; -f reference.fa reference FASTA; --variant-input known_variants.vcf provides known sites; --only-use-input-alleles forces genotyping at known sites only; -b sample.bam input BAM; output to genotyped.vcf
 
 ### generate gVCF output for joint genotyping
 **Args:** `-f reference.fa --gvcf --gvcf-chunk 10000 -b sample.bam > sample.g.vcf`
-**Explanation:** -f reference.fa reference FASTA; --gvcf outputs gVCF format; --gvcf-chunk 10000 emits record every 10kb; -b sample.bam input BAM; output to sample.g.vcf; suitable for GATK-style joint calling
+**Explanation:** freebayes command; -f reference.fa reference FASTA; --gvcf outputs gVCF format; --gvcf-chunk 10000 emits record every 10kb; -b sample.bam input BAM; output to sample.g.vcf; suitable for GATK-style joint calling
 
 ### call variants from pooled sequencing data
 **Args:** `-f reference.fa -p 20 --pooled-discrete --use-best-n-alleles 4 pool.bam > pooled_variants.vcf`
-**Explanation:** -f reference.fa reference FASTA; -p 20 sets ploidy to 20 alleles; --pooled-discrete models pooled samples; --use-best-n-alleles 4 limits memory; pool.bam input BAM; output to pooled_variants.vcf
+**Explanation:** freebayes command; -f reference.fa reference FASTA; -p 20 sets ploidy to 20 alleles; --pooled-discrete models pooled samples; --use-best-n-alleles 4 limits memory; pool.bam input BAM; output to pooled_variants.vcf
 
 ### call variants with copy number variation map
 **Args:** `-f reference.fa --cnv-map cnv.bed -p 2 sample.bam > cnv_aware_variants.vcf`
-**Explanation:** -f reference.fa reference FASTA; --cnv-map cnv.bed provides per-region copy numbers; -p 2 diploid ploidy; sample.bam input BAM; output to cnv_aware_variants.vcf; essential for accurate genotyping in CNV regions like cancer samples
+**Explanation:** freebayes command; -f reference.fa reference FASTA; --cnv-map cnv.bed provides per-region copy numbers; -p 2 diploid ploidy; sample.bam input BAM; output to cnv_aware_variants.vcf; essential for accurate genotyping in CNV regions like cancer samples
 
 ### detect complex variants with extended haplotype length
 **Args:** `-f reference.fa --haplotype-length 10 --min-repeat-entropy 2 sample.bam > complex_variants.vcf`
-**Explanation:** -f reference.fa reference FASTA; --haplotype-length 10 allows 10bp contiguous matches; --min-repeat-entropy 2 improves repeat region sensitivity; sample.bam input BAM; output to complex_variants.vcf
+**Explanation:** freebayes command; -f reference.fa reference FASTA; --haplotype-length 10 allows 10bp contiguous matches; --min-repeat-entropy 2 improves repeat region sensitivity; sample.bam input BAM; output to complex_variants.vcf
 
 ### report monomorphic sites for complete genome coverage
 **Args:** `-f reference.fa --report-monomorphic -r chr1 sample.bam > all_sites.vcf`
-**Explanation:** -f reference.fa reference FASTA; --report-monomorphic outputs all positions including non-variant; -r chr1 restricts to chr1; sample.bam input BAM; output to all_sites.vcf; useful for generating complete reference panels
+**Explanation:** freebayes command; -f reference.fa reference FASTA; --report-monomorphic outputs all positions including non-variant; -r chr1 restricts to chr1; sample.bam input BAM; output to all_sites.vcf; useful for generating complete reference panels
 
 ### genotype only specific alleles from input VCF
 **Args:** `-f reference.fa --haplotype-basis-alleles targets.vcf --report-all-haplotype-alleles sample.bam > targeted_genotypes.vcf`
-**Explanation:** -f reference.fa reference FASTA; --haplotype-basis-alleles targets.vcf restricts to input alleles; --report-all-haplotype-alleles shows all alleles at haplotype sites; sample.bam input BAM; output to targeted_genotypes.vcf
+**Explanation:** freebayes command; -f reference.fa reference FASTA; --haplotype-basis-alleles targets.vcf restricts to input alleles; --report-all-haplotype-alleles shows all alleles at haplotype sites; sample.bam input BAM; output to targeted_genotypes.vcf

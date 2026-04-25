@@ -39,68 +39,68 @@ source_url: "https://www.gnu.org/software/findutils/manual/html_mono/find.html"
 
 ### find all files larger than 100 MB in the current directory tree
 **Args:** `. -type f -size +100M`
-**Explanation:** . starting directory; -type f limits to regular files; -size +100M finds files strictly larger than 100 MB
+**Explanation:** find command; . starting directory; -type f limits to regular files; -size +100M finds files strictly larger than 100 MB
 
 ### find all Python files modified in the last 7 days
 **Args:** `. -name '*.py' -mtime -7`
-**Explanation:** . starting directory; -name '*.py' matches Python files; -mtime -7 means modified within the last 7 days
+**Explanation:** find command; . starting directory; -name '*.py' matches Python files; -mtime -7 means modified within the last 7 days
 
 ### find and delete all .tmp files in a directory tree
 **Args:** `/tmp -name '*.tmp' -type f -delete`
-**Explanation:** /tmp starting directory; -name '*.tmp' matches .tmp files; -type f limits to files; -delete permanently removes matched files; preview with -print before using -delete
+**Explanation:** find command; /tmp starting directory; -name '*.tmp' matches .tmp files; -type f limits to files; -delete permanently removes matched files; preview with -print before using -delete
 
 ### find files by name case-insensitively
 **Args:** `. -iname 'readme*'`
-**Explanation:** . starting directory; -iname 'readme*' case-insensitive; matches README.md, readme.txt, Readme.rst, etc.
+**Explanation:** find command; . starting directory; -iname 'readme*' case-insensitive; matches README.md, readme.txt, Readme.rst, etc.
 
 ### find all directories in the current directory (depth 1 only)
 **Args:** `. -maxdepth 1 -type d`
-**Explanation:** . starting directory; -maxdepth 1 limits search to immediate children; -type d shows only directories
+**Explanation:** find command; . starting directory; -maxdepth 1 limits search to immediate children; -type d shows only directories
 
 ### find empty files and directories
 **Args:** `. -empty`
-**Explanation:** . starting directory; -empty matches both empty files and empty directories; useful for cleanup
+**Explanation:** find command; . starting directory; -empty matches both empty files and empty directories; useful for cleanup
 
 ### find files and execute a command on each match
 **Args:** `. -name '*.log' -exec gzip {} \;`
-**Explanation:** . starting directory; -name '*.log' matches log files; -exec gzip {} \; runs gzip on each matched file; {} is replaced with the filename; \; terminates the -exec expression
+**Explanation:** find command; . starting directory; -name '*.log' matches log files; -exec gzip {} \; runs gzip on each matched file; {} is replaced with the filename; \; terminates the -exec expression
 
 ### find files owned by a specific user
 **Args:** `/home -user alice -type f`
-**Explanation:** /home starting directory; -user alice matches files owned by alice; -type f limits to regular files
+**Explanation:** find command; /home starting directory; -user alice matches files owned by alice; -type f limits to regular files
 
 ### find recently modified files and sort by modification time
 **Args:** `. -type f -newer reference_file.txt`
-**Explanation:** . starting directory; -type f regular files; -newer reference_file.txt finds files modified more recently than reference_file.txt; combine with -ls for details
+**Explanation:** find command; . starting directory; -type f regular files; -newer reference_file.txt finds files modified more recently than reference_file.txt; combine with -ls for details
 
 ### find files with specific permissions
 **Args:** `. -type f -perm /o+w`
-**Explanation:** . starting directory; -type f regular files; -perm /o+w finds world-writable files (any other-write bit set); useful for security audits
+**Explanation:** find command; . starting directory; -type f regular files; -perm /o+w finds world-writable files (any other-write bit set); useful for security audits
 
 ### find files using regex pattern matching
 **Args:** `. -regextype posix-awk -regex '.*[0-9]{4}-[0-9]{2}-[0-9]{2}.*'`
-**Explanation:** . starting directory; -regextype posix-awk specifies regex flavor; -regex '.*[0-9]{4}-[0-9]{2}-[0-9]{2}.*' matches full path against date pattern; finds files with date patterns
+**Explanation:** find command; . starting directory; -regextype posix-awk specifies regex flavor; -regex '.*[0-9]{4}-[0-9]{2}-[0-9]{2}.*' matches full path against date pattern; finds files with date patterns
 
 ### find files with null-terminated output for safe xargs
 **Args:** `. -name '*.txt' -print0 | xargs -0 grep 'pattern'`
-**Explanation:** . starting directory; -name '*.txt' matches txt files; -print0 outputs null-terminated filenames; xargs -0 reads null-terminated input; grep 'pattern' search pattern; safely handles filenames with spaces/newlines
+**Explanation:** find command; . starting directory; -name '*.txt' matches txt files; -print0 outputs null-terminated filenames; xargs -0 reads null-terminated input; grep 'pattern' search pattern; safely handles filenames with spaces/newlines
 
 ### find and execute command from file's directory
 **Args:** `. -name '*.sh' -execdir chmod +x {} \;`
-**Explanation:** . starting directory; -name '*.sh' matches shell scripts; -execdir chmod +x {} \; runs chmod from the directory containing each .sh file; safer than -exec for relative path operations
+**Explanation:** find command; . starting directory; -name '*.sh' matches shell scripts; -execdir chmod +x {} \; runs chmod from the directory containing each .sh file; safer than -exec for relative path operations
 
 ### find with interactive confirmation before execution
 **Args:** `. -name '*.log' -ok rm {} \;`
-**Explanation:** . starting directory; -name '*.log' matches log files; -ok rm {} \; prompts for confirmation before each rm; type 'y' to confirm or 'n' to skip; safer for destructive operations
+**Explanation:** find command; . starting directory; -name '*.log' matches log files; -ok rm {} \; prompts for confirmation before each rm; type 'y' to confirm or 'n' to skip; safer for destructive operations
 
 ### exclude directories from search
 **Args:** `. -path './node_modules' -prune -o -name '*.js' -print`
-**Explanation:** . starting directory; -path './node_modules' matches path; -prune skips node_modules; -o OR operator; -name '*.js' matches js files; -print outputs results; order matters
+**Explanation:** find command; . starting directory; -path './node_modules' matches path; -prune skips node_modules; -o OR operator; -name '*.js' matches js files; -print outputs results; order matters
 
 ### find first matching file and exit immediately
 **Args:** `. -name 'config.json' -quit`
-**Explanation:** . starting directory; -name 'config.json' matches filename; -quit exits after first match; much faster than full tree search when looking for a single file
+**Explanation:** find command; . starting directory; -name 'config.json' matches filename; -quit exits after first match; much faster than full tree search when looking for a single file
 
 ### find files modified more recently than reference file
 **Args:** `. -type f -newer reference.txt -ls`
-**Explanation:** . starting directory; -type f regular files; -newer reference.txt finds files modified after reference.txt; -ls provides detailed listing like ls -dils
+**Explanation:** find command; . starting directory; -type f regular files; -newer reference.txt finds files modified after reference.txt; -ls provides detailed listing like ls -dils

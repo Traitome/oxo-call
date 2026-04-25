@@ -35,56 +35,56 @@ source_url: "https://snakemake.readthedocs.io/"
 
 ### run a workflow using all available cores
 **Args:** `--cores all --use-conda`
-**Explanation:** --cores all uses all CPUs; --use-conda creates per-rule conda environments as specified in rule conda: directives
+**Explanation:** snakemake command; --cores all uses all available CPUs; --use-conda creates per-rule conda environments as specified in rule conda: directives
 
 ### dry-run to see what would be executed
 **Args:** `--dry-run --printshellcmds`
-**Explanation:** -n/--dry-run shows the execution plan without running; -p/--printshellcmds prints the actual shell commands; safe for debugging
+**Explanation:** snakemake command; --dry-run (-n) shows the execution plan without running; --printshellcmds (-p) prints the actual shell commands; safe for debugging
 
 ### run a workflow on a Slurm cluster
 **Args:** `--executor slurm --jobs 50 --default-resources mem_mb=4096 runtime=60 --use-conda`
-**Explanation:** --executor slurm requires snakemake-executor-plugin-slurm; --jobs caps concurrent cluster jobs; --default-resources sets per-job defaults
+**Explanation:** snakemake command; --executor slurm requires snakemake-executor-plugin-slurm; --jobs 50 caps concurrent cluster jobs; --default-resources mem_mb=4096 runtime=60 sets per-job defaults; --use-conda enables conda environments
 
 ### run with a configuration file
 **Args:** `--configfile config/config.yaml --cores 8`
-**Explanation:** --configfile loads key-value pairs accessible as config["key"] in rules; overrides values in the Snakefile's configfile: directive
+**Explanation:** snakemake command; --configfile config/config.yaml loads key-value pairs accessible as config["key"] in rules; --cores 8 limits CPUs; overrides values in the Snakefile's configfile: directive
 
 ### use a named profile for cluster execution
 **Args:** `--profile slurm`
-**Explanation:** loads ~/.config/snakemake/slurm/config.yaml for default executor/jobs/resource settings; keeps the command short
+**Explanation:** snakemake command; --profile slurm loads ~/.config/snakemake/slurm/config.yaml for default executor/jobs/resource settings; keeps the command short
 
 ### force re-run of specific rules
 **Args:** `--forcerun trimming alignment --cores 16`
-**Explanation:** --forcerun re-runs named rules and all their downstream dependencies regardless of output timestamps
+**Explanation:** snakemake command; --forcerun trimming alignment re-runs named rules and all their downstream dependencies regardless of output timestamps; --cores 16 limits CPUs
 
 ### unlock a workflow after a crash
 **Args:** `--unlock`
-**Explanation:** removes the .snakemake/locks/ lock file left by a crashed run; required before restarting the workflow
+**Explanation:** snakemake command; --unlock removes the .snakemake/locks/ lock file left by a crashed run; required before restarting the workflow
 
 ### generate a rule dependency graph (DAG)
 **Args:** `--dag | dot -Tpng > dag.png`
-**Explanation:** --dag outputs a DOT-format rule graph; pipe to Graphviz dot to render a PNG; helps visualise complex pipeline structures
+**Explanation:** snakemake command; --dag outputs a DOT-format rule graph; | dot -Tpng pipe to Graphviz dot to render PNG; > dag.png output file; helps visualise complex pipeline structures
 
 ### clean up incomplete output files and restart
 **Args:** `--rerun-incomplete --cores all`
-**Explanation:** --rerun-incomplete detects and re-runs rules that left behind incomplete outputs from a previous failed run
+**Explanation:** snakemake command; --rerun-incomplete detects and re-runs rules that left behind incomplete outputs from a previous failed run; --cores all uses all CPUs
 
 ### run with Singularity containers
 **Args:** `--use-singularity --singularity-args '--bind /scratch' --cores 8`
-**Explanation:** --use-singularity executes each rule inside the container specified by container: directive; --singularity-args passes bind mounts
+**Explanation:** snakemake command; --use-singularity executes each rule inside the container specified by container: directive; --singularity-args '--bind /scratch' passes bind mounts; --cores 8 limits CPUs
 
 ### generate a comprehensive execution report
 **Args:** `--report report.html --cores all`
-**Explanation:** generates HTML report with runtime statistics, resource usage, and rule execution details
+**Explanation:** snakemake command; --report report.html generates HTML report with runtime statistics, resource usage, and rule execution details; --cores all uses all CPUs
 
 ### list all output files that would be generated
 **Args:** `--summary --cores all`
-**Explanation:** lists all target files and their status; useful for understanding workflow scope
+**Explanation:** snakemake command; --summary lists all target files and their status; --cores all uses all CPUs; useful for understanding workflow scope
 
 ### run specific target files only
 **Args:** `results/sample1.bam results/sample2.bam --cores 8`
-**Explanation:** specifies target files to generate; Snakemake only runs rules needed for these targets
+**Explanation:** snakemake command; results/sample1.bam results/sample2.bam target files to generate; --cores 8 limits CPUs; Snakemake only runs rules needed for these targets
 
 ### print the execution plan without running
 **Args:** `--dry-run --reason --cores all`
-**Explanation:** --reason explains why each rule would be executed; useful for debugging workflow logic
+**Explanation:** snakemake command; --dry-run shows execution plan without running; --reason explains why each rule would be executed; --cores all uses all CPUs; useful for debugging workflow logic

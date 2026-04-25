@@ -38,40 +38,40 @@ source_url: "https://github.com/lbcb-sci/racon"
 
 ### run one round of Racon polishing on an ONT assembly
 **Args:** `-t 16 reads.fastq.gz mapping.paf draft_assembly.fasta > polished_round1.fasta`
-**Explanation:** mapping.paf from minimap2 -x map-ont draft_assembly.fasta reads.fastq.gz > mapping.paf; then run racon
+**Explanation:** racon command; -t 16 threads; reads.fastq.gz input reads; mapping.paf alignment file from minimap2; draft_assembly.fasta input draft; > polished_round1.fasta output polished assembly; run racon after minimap2 mapping
 
 ### run second round of Racon polishing
 **Args:** `-t 16 reads.fastq.gz round2_mapping.paf polished_round1.fasta > polished_round2.fasta`
-**Explanation:** re-map to round1 output: minimap2 -x map-ont polished_round1.fasta reads.fastq.gz > round2_mapping.paf
+**Explanation:** racon command; -t 16 threads; reads.fastq.gz input reads; round2_mapping.paf alignment file; polished_round1.fasta input from previous round; > polished_round2.fasta output; re-map to round1 output first
 
 ### run Racon polishing using SAM alignment instead of PAF
 **Args:** `-t 16 reads.fastq.gz alignment.sam draft_assembly.fasta > polished_assembly.fasta`
-**Explanation:** SAM format is also accepted; use minimap2 -a flag to output SAM instead of PAF
+**Explanation:** racon command; -t 16 threads; reads.fastq.gz input reads; alignment.sam SAM alignment input; draft_assembly.fasta input draft; > polished_assembly.fasta output; SAM format also accepted; use minimap2 -a flag for SAM
 
 ### include unpolished sequences in output
 **Args:** `-t 16 -u reads.fastq.gz mapping.paf draft_assembly.fasta > polished_with_unpolished.fasta`
-**Explanation:** -u outputs unpolished target sequences; retains contigs with no read coverage
+**Explanation:** racon command; -t 16 threads; -u includes unpolished target sequences; reads.fastq.gz input reads; mapping.paf alignment file; draft_assembly.fasta input draft; > polished_with_unpolished.fasta output; retains contigs with no read coverage
 
 ### fragment correction mode
 **Args:** `-t 16 -f reads.fastq.gz self_overlaps.paf fragments.fasta > corrected_fragments.fasta`
-**Explanation:** -f performs fragment correction; overlaps file should contain dual/self overlaps
+**Explanation:** racon command; -t 16 threads; -f fragment correction mode; reads.fastq.gz input reads; self_overlaps.paf overlaps file with dual/self overlaps; fragments.fasta input fragments; > corrected_fragments.fasta output
 
 ### increase window length for accurate reads
 **Args:** `-t 16 -w 1000 reads.fastq.gz mapping.paf draft_assembly.fasta > polished.fasta`
-**Explanation:** -w 1000 increases POA window size; may improve consensus for highly accurate reads
+**Explanation:** racon command; -t 16 threads; -w 1000 increases POA window size; reads.fastq.gz input reads; mapping.paf alignment file; draft_assembly.fasta input draft; > polished.fasta output; may improve consensus for highly accurate reads
 
 ### stricter error threshold for filtering
 **Args:** `-t 16 -e 0.2 reads.fastq.gz mapping.paf draft_assembly.fasta > polished_strict.fasta`
-**Explanation:** -e 0.2 reduces maximum allowed error rate from 30% to 20%; more stringent filtering
+**Explanation:** racon command; -t 16 threads; -e 0.2 reduces maximum allowed error rate from 30% to 20%; reads.fastq.gz input reads; mapping.paf alignment file; draft_assembly.fasta input draft; > polished_strict.fasta output; more stringent filtering
 
 ### higher quality threshold for consensus
 **Args:** `-t 16 -q 15 reads.fastq.gz mapping.paf draft_assembly.fasta > polished_highq.fasta`
-**Explanation:** -q 15 increases minimum average base quality; higher confidence consensus windows
+**Explanation:** racon command; -t 16 threads; -q 15 increases minimum average base quality; reads.fastq.gz input reads; mapping.paf alignment file; draft_assembly.fasta input draft; > polished_highq.fasta output; higher confidence consensus windows
 
 ### disable consensus trimming at window ends
 **Args:** `-t 16 --no-trimming reads.fastq.gz mapping.paf draft_assembly.fasta > polished_notrim.fasta`
-**Explanation:** --no-trimming disables trimming at window ends; may preserve more sequence
+**Explanation:** racon command; -t 16 threads; --no-trimming disables trimming at window ends; reads.fastq.gz input reads; mapping.paf alignment file; draft_assembly.fasta input draft; > polished_notrim.fasta output; may preserve more sequence
 
 ### PacBio CLR polishing workflow
 **Args:** `-t 16 reads.fastq.gz mapping.paf draft_assembly.fasta > racon_polished.fasta`
-**Explanation:** for PacBio CLR: run 1-2 rounds of racon, then polish with Arrow/GCPP
+**Explanation:** racon command; -t 16 threads; reads.fastq.gz input PacBio CLR reads; mapping.paf alignment file; draft_assembly.fasta input draft; > racon_polished.fasta output; for PacBio CLR: run 1-2 rounds of racon, then polish with Arrow/GCPP

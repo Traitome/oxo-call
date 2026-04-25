@@ -37,40 +37,40 @@ source_url: "http://www.usadellab.org/cms/?page=trimmomatic"
 
 ### trim adapters and quality-filter paired-end Illumina reads
 **Args:** `PE -threads 8 -phred33 R1.fastq.gz R2.fastq.gz R1_paired.fastq.gz R1_unpaired.fastq.gz R2_paired.fastq.gz R2_unpaired.fastq.gz ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36`
-**Explanation:** PE mode with adapter removal, quality trimming of leading/trailing bases, sliding window filter, and minimum length cutoff
+**Explanation:** trimmomatic PE mode; -threads 8 parallelism; -phred33 quality encoding; R1.fastq.gz R2.fastq.gz input paired reads; R1_paired.fastq.gz R1_unpaired.fastq.gz R2_paired.fastq.gz R2_unpaired.fastq.gz four output files; ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 adapter removal; LEADING:3 trim low-quality from start; TRAILING:3 trim low-quality from end; SLIDINGWINDOW:4:15 sliding window quality filter; MINLEN:36 minimum length cutoff
 
 ### trim single-end reads with quality filtering
 **Args:** `SE -threads 4 -phred33 reads.fastq.gz trimmed_reads.fastq.gz ILLUMINACLIP:TruSeq3-SE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36`
-**Explanation:** SE mode for single-end reads with standard quality trimming steps
+**Explanation:** trimmomatic SE mode; -threads 4 parallelism; -phred33 quality encoding; reads.fastq.gz input reads; trimmed_reads.fastq.gz output file; ILLUMINACLIP:TruSeq3-SE.fa:2:30:10 adapter removal; LEADING:3 TRAILING:3 quality trimming; SLIDINGWINDOW:4:15 sliding window; MINLEN:36 minimum length
 
 ### trim Nextera adapters from paired-end reads
 **Args:** `PE -threads 8 -phred33 R1.fastq.gz R2.fastq.gz R1_paired.fastq.gz R1_unpaired.fastq.gz R2_paired.fastq.gz R2_unpaired.fastq.gz ILLUMINACLIP:NexteraPE-PE.fa:2:30:10:8:true LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36`
-**Explanation:** NexteraPE-PE.fa adapter file for Nextera/Transposase library prep; :8:true enables palindrome mode
+**Explanation:** trimmomatic PE mode; -threads 8 parallelism; -phred33 quality encoding; R1.fastq.gz R2.fastq.gz inputs; four output files; ILLUMINACLIP:NexteraPE-PE.fa:2:30:10:8:true Nextera adapter file with palindrome mode; LEADING:3 TRAILING:3 quality trimming; SLIDINGWINDOW:4:15 sliding window; MINLEN:36 minimum length
 
 ### aggressive quality trimming for low-quality paired-end data
 **Args:** `PE -threads 8 -phred33 R1.fastq.gz R2.fastq.gz R1_paired.fastq.gz R1_unpaired.fastq.gz R2_paired.fastq.gz R2_unpaired.fastq.gz ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 LEADING:5 TRAILING:5 SLIDINGWINDOW:4:20 MINLEN:50`
-**Explanation:** stricter quality thresholds (LEADING/TRAILING:5, window quality:20) for higher-confidence trimming
+**Explanation:** trimmomatic PE mode; -threads 8 parallelism; -phred33 quality encoding; R1.fastq.gz R2.fastq.gz inputs; four output files; ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 adapter removal; LEADING:5 TRAILING:5 stricter thresholds; SLIDINGWINDOW:4:20 higher window quality; MINLEN:50 longer minimum length
 
 ### trim reads to fixed length (e.g., for uniformity)
 **Args:** `PE -threads 8 -phred33 R1.fastq.gz R2.fastq.gz R1_paired.fastq.gz R1_unpaired.fastq.gz R2_paired.fastq.gz R2_unpaired.fastq.gz CROP:100 HEADCROP:10 MINLEN:50`
-**Explanation:** HEADCROP removes 10 bp from start; CROP keeps first 100 bp; useful for removing UMIs/barcodes
+**Explanation:** trimmomatic PE mode; -threads 8 parallelism; -phred33 quality encoding; R1.fastq.gz R2.fastq.gz inputs; four output files; HEADCROP:10 removes 10 bp from start; CROP:100 keeps first 100 bp; MINLEN:50 minimum length; useful for removing UMIs/barcodes
 
 ### remove low-quality reads by average quality
 **Args:** `PE -threads 8 -phred33 R1.fastq.gz R2.fastq.gz R1_paired.fastq.gz R1_unpaired.fastq.gz R2_paired.fastq.gz R2_unpaired.fastq.gz AVGQUAL:20 MINLEN:36`
-**Explanation:** AVGQUAL:20 drops reads with average quality <20; filters out poor-quality reads entirely
+**Explanation:** trimmomatic PE mode; -threads 8 parallelism; -phred33 quality encoding; R1.fastq.gz R2.fastq.gz inputs; four output files; AVGQUAL:20 drops reads with average quality <20; MINLEN:36 minimum length; filters poor-quality reads entirely
 
 ### adaptive quality trimming with MAXINFO
 **Args:** `PE -threads 8 -phred33 R1.fastq.gz R2.fastq.gz R1_paired.fastq.gz R1_unpaired.fastq.gz R2_paired.fastq.gz R2_unpaired.fastq.gz MAXINFO:40:0.8 MINLEN:36`
-**Explanation:** MAXINFO balances length vs quality; target 40bp with strictness 0.8 (favors correctness)
+**Explanation:** trimmomatic PE mode; -threads 8 parallelism; -phred33 quality encoding; R1.fastq.gz R2.fastq.gz inputs; four output files; MAXINFO:40:0.8 adaptive trimming (target 40bp, strictness 0.8 favors correctness); MINLEN:36 minimum length
 
 ### trim from 3' end only (TAILCROP)
 **Args:** `PE -threads 8 -phred33 R1.fastq.gz R2.fastq.gz R1_paired.fastq.gz R1_unpaired.fastq.gz R2_paired.fastq.gz R2_unpaired.fastq.gz TAILCROP:10 MINLEN:36`
-**Explanation:** TAILCROP removes 10 bp from 3' end; useful when 3' end has systematic issues
+**Explanation:** trimmomatic PE mode; -threads 8 parallelism; -phred33 quality encoding; R1.fastq.gz R2.fastq.gz inputs; four output files; TAILCROP:10 removes 10 bp from 3' end; MINLEN:36 minimum length; useful for systematic 3' issues
 
 ### convert quality encoding to Phred-33
 **Args:** `PE -threads 8 -phred64 R1.fastq.gz R2.fastq.gz R1_paired.fastq.gz R1_unpaired.fastq.gz R2_paired.fastq.gz R2_unpaired.fastq.gz TOPHRED33 ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 MINLEN:36`
-**Explanation:** TOPHRED33 converts Phred-64 to Phred-33; input is -phred64, output is Phred-33
+**Explanation:** trimmomatic PE mode; -threads 8 parallelism; -phred64 input quality encoding; R1.fastq.gz R2.fastq.gz inputs; four output files; TOPHRED33 converts Phred-64 to Phred-33; ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 adapter removal; MINLEN:36 minimum length
 
 ### filter by maximum read length
 **Args:** `SE -threads 4 -phred33 reads.fastq.gz trimmed.fastq.gz MAXLEN:150 MINLEN:36`
-**Explanation:** MAXLEN:150 drops reads longer than 150 bp; useful for removing chimeric reads
+**Explanation:** trimmomatic SE mode; -threads 4 parallelism; -phred33 quality encoding; reads.fastq.gz input reads; trimmed.fastq.gz output file; MAXLEN:150 drops reads longer than 150 bp; MINLEN:36 minimum length; useful for removing chimeric reads

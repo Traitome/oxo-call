@@ -38,40 +38,40 @@ source_url: "https://github.com/trinityrnaseq/trinityrnaseq"
 
 ### de novo transcriptome assembly from paired-end RNA-seq reads
 **Args:** `--seqType fq --left R1.fastq.gz --right R2.fastq.gz --max_memory 50G --CPU 16 --output trinity_output/`
-**Explanation:** --seqType fq FASTQ; --left/--right PE reads; --max_memory 50G RAM limit; --CPU 16 threads
+**Explanation:** Trinity command; --seqType fq FASTQ format; --left R1.fastq.gz paired-end R1; --right R2.fastq.gz paired-end R2; --max_memory 50G RAM limit; --CPU 16 threads; --output trinity_output/ output directory
 
 ### genome-guided Trinity assembly using STAR alignments
 **Args:** `--genome_guided_bam star_aligned.bam --genome_guided_max_intron 10000 --max_memory 50G --CPU 16 --output genome_guided_trinity/`
-**Explanation:** --genome_guided_bam STAR BAM; --genome_guided_max_intron max intron size; more accurate than de novo
+**Explanation:** Trinity command; --genome_guided_bam star_aligned.bam STAR-aligned BAM input; --genome_guided_max_intron 10000 max intron size; --max_memory 50G RAM limit; --CPU 16 threads; --output genome_guided_trinity/ output directory; more accurate than de novo
 
 ### de novo assembly from single-end RNA-seq reads
 **Args:** `--seqType fq --single reads.fastq.gz --max_memory 32G --CPU 8 --output trinity_se/`
-**Explanation:** --single for single-end reads; same Trinity pipeline with SE input
+**Explanation:** Trinity command; --seqType fq FASTQ format; --single reads.fastq.gz single-end reads; --max_memory 32G RAM limit; --CPU 8 threads; --output trinity_se/ output directory
 
 ### Trinity assembly with strand-specific library
 **Args:** `--seqType fq --left R1.fastq.gz --right R2.fastq.gz --SS_lib_type RF --max_memory 50G --CPU 16 --output stranded_trinity/`
-**Explanation:** --SS_lib_type RF for reverse-strand (dUTP) libraries; RF=reverse, FR=forward
+**Explanation:** Trinity command; --seqType fq FASTQ format; --left R1.fastq.gz --right R2.fastq.gz paired-end reads; --SS_lib_type RF reverse-strand dUTP library; --max_memory 50G RAM limit; --CPU 16 threads; --output stranded_trinity/ output directory
 
 ### Trinity assembly from multiple samples with replicates
 **Args:** `--seqType fq --samples_file samples.txt --max_memory 50G --CPU 16 --output multi_sample_trinity/`
-**Explanation:** --samples_file tab-delimited file with condition, replicate, left, right columns
+**Explanation:** Trinity command; --seqType fq FASTQ format; --samples_file samples.txt tab-delimited file with condition, replicate, left, right columns; --max_memory 50G RAM limit; --CPU 16 threads; --output multi_sample_trinity/ output directory
 
 ### Trinity with increased k-mer coverage threshold
 **Args:** `--seqType fq --left R1.fastq.gz --right R2.fastq.gz --min_kmer_cov 2 --max_memory 50G --CPU 16 --output high_cov_trinity/`
-**Explanation:** --min_kmer_cov 2 filters singleton k-mers; reduces noise in deeply sequenced data
+**Explanation:** Trinity command; --seqType fq FASTQ format; --left R1.fastq.gz --right R2.fastq.gz paired-end reads; --min_kmer_cov 2 filters singleton k-mers; --max_memory 50G RAM limit; --CPU 16 threads; --output high_cov_trinity/ output directory; reduces noise
 
 ### Trinity without read normalization
 **Args:** `--seqType fq --left R1.fastq.gz --right R2.fastq.gz --no_normalize_reads --max_memory 100G --CPU 16 --output no_norm_trinity/`
-**Explanation:** --no_normalize_reads disables normalization; retains all reads but requires more memory
+**Explanation:** Trinity command; --seqType fq FASTQ format; --left R1.fastq.gz --right R2.fastq.gz paired-end reads; --no_normalize_reads disables normalization; --max_memory 100G RAM limit (higher needed); --CPU 16 threads; --output no_norm_trinity/ output directory; retains all reads
 
 ### Trinity with custom normalization coverage
 **Args:** `--seqType fq --left R1.fastq.gz --right R2.fastq.gz --normalize_max_read_cov 50 --max_memory 50G --CPU 16 --output norm50_trinity/`
-**Explanation:** --normalize_max_read_cov 50 reduces coverage to 50x; more aggressive than default 200x
+**Explanation:** Trinity command; --seqType fq FASTQ format; --left R1.fastq.gz --right R2.fastq.gz paired-end reads; --normalize_max_read_cov 50 reduces coverage to 50x; --max_memory 50G RAM limit; --CPU 16 threads; --output norm50_trinity/ output directory; more aggressive normalization
 
 ### Trinity with shorter minimum contig length
 **Args:** `--seqType fq --left R1.fastq.gz --right R2.fastq.gz --min_contig_length 100 --max_memory 50G --CPU 16 --output short_contigs/`
-**Explanation:** --min_contig_length 100 reports contigs >=100 bp; default is 200
+**Explanation:** Trinity command; --seqType fq FASTQ format; --left R1.fastq.gz --right R2.fastq.gz paired-end reads; --min_contig_length 100 minimum contig length; --max_memory 50G RAM limit; --CPU 16 threads; --output short_contigs/ output directory; default is 200
 
 ### genome-guided Trinity with custom max intron
 **Args:** `--genome_guided_bam star_aligned.bam --genome_guided_max_intron 50000 --max_memory 50G --CPU 16 --output gg_trinity_large_intron/`
-**Explanation:** --genome_guided_max_intron 50000 for organisms with larger introns
+**Explanation:** Trinity command; --genome_guided_bam star_aligned.bam STAR-aligned BAM input; --genome_guided_max_intron 50000 larger intron size for organisms with large introns; --max_memory 50G RAM limit; --CPU 16 threads; --output gg_trinity_large_intron/ output directory

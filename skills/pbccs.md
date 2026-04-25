@@ -38,44 +38,44 @@ source_url: "https://github.com/PacificBiosciences/ccs"
 
 ### generate HiFi reads from PacBio subreads BAM
 **Args:** `subreads.bam hifi_reads.bam -j 32 --min-rq 0.99`
-**Explanation:** input subreads BAM; output HiFi BAM; -j 32 threads; --min-rq 0.99 minimum Q20 quality
+**Explanation:** ccs command; subreads.bam input PacBio subreads BAM; hifi_reads.bam output HiFi BAM; -j 32 threads; --min-rq 0.99 minimum Q20 quality
 
 ### generate HiFi reads with minimum 3 SMRTbell passes
 **Args:** `subreads.bam hifi_reads.bam -j 32 --min-rq 0.99 --min-passes 3`
-**Explanation:** --min-passes 3 ensures 3 complete circular passes; improves consensus accuracy
+**Explanation:** ccs command; subreads.bam input BAM; hifi_reads.bam output BAM; -j 32 threads; --min-rq 0.99 quality threshold; --min-passes 3 ensures 3 complete circular passes; improves consensus accuracy
 
 ### generate HiFi reads with kinetics for methylation calling
 **Args:** `subreads.bam hifi_reads_kinetics.bam -j 32 --min-rq 0.99 --hifi-kinetics`
-**Explanation:** --hifi-kinetics adds IPD and pulse width tags for subsequent methylation analysis
+**Explanation:** ccs command; subreads.bam input BAM; hifi_reads_kinetics.bam output BAM; -j 32 threads; --min-rq 0.99 quality threshold; --hifi-kinetics adds IPD and pulse width tags for subsequent methylation analysis
 
 ### generate HiFi reads using chunked processing for distributed computing
 **Args:** `subreads.bam chunk1.bam -j 16 --min-rq 0.99 --chunk 1/4`
-**Explanation:** --chunk 1/4 processes first quarter; run chunks 1-4 in parallel, then merge with pbmerge
+**Explanation:** ccs command; subreads.bam input BAM; chunk1.bam output BAM; -j 16 threads; --min-rq 0.99 quality threshold; --chunk 1/4 processes first quarter; run chunks 1-4 in parallel, then merge with pbmerge
 
 ### generate strand-specific HiFi reads
 **Args:** `subreads.bam hifi_by_strand.bam -j 32 --min-rq 0.99 --by-strand`
-**Explanation:** --by-strand generates separate consensus for forward and reverse strands
+**Explanation:** ccs command; subreads.bam input BAM; hifi_by_strand.bam output BAM; -j 32 threads; --min-rq 0.99 quality threshold; --by-strand generates separate consensus for forward and reverse strands
 
 ### detect and split heteroduplex artifacts
 **Args:** `subreads.bam hifi_split.bam -j 32 --min-rq 0.99 --hd-finder`
-**Explanation:** --hd-finder identifies heteroduplex molecules and splits them; for amplicon data
+**Explanation:** ccs command; subreads.bam input BAM; hifi_split.bam output BAM; -j 32 threads; --min-rq 0.99 quality threshold; --hd-finder identifies heteroduplex molecules and splits them; for amplicon data
 
 ### output all ZMWs including low quality
 **Args:** `subreads.bam all_reads.bam -j 32 --min-rq 0.99 --all`
-**Explanation:** --all outputs all ZMWs, not just HiFi; includes failed and below-threshold reads
+**Explanation:** ccs command; subreads.bam input BAM; all_reads.bam output BAM; -j 32 threads; --min-rq 0.99 quality threshold; --all outputs all ZMWs, not just HiFi; includes failed and below-threshold reads
 
 ### use subread fallback for failed polishing
 **Args:** `subreads.bam hifi_with_fallback.bam -j 32 --min-rq 0.99 --subread-fallback`
-**Explanation:** --subread-fallback emits representative subread if polishing fails; maximizes yield
+**Explanation:** ccs command; subreads.bam input BAM; hifi_with_fallback.bam output BAM; -j 32 threads; --min-rq 0.99 quality threshold; --subread-fallback emits representative subread if polishing fails; maximizes yield
 
 ### calculate kinetics for all ZMWs
 **Args:** `subreads.bam hifi_all_kinetics.bam -j 32 --min-rq 0.99 --all-kinetics`
-**Explanation:** --all-kinetics adds IPD/PW for all ZMWs; larger output but complete kinetics data
+**Explanation:** ccs command; subreads.bam input BAM; hifi_all_kinetics.bam output BAM; -j 32 threads; --min-rq 0.99 quality threshold; --all-kinetics adds IPD/PW for all ZMWs; larger output but complete kinetics data
 
 ### limit top passes for faster processing
 **Args:** `subreads.bam hifi_fast.bam -j 32 --min-rq 0.99 --top-passes 30`
-**Explanation:** --top-passes 30 uses only top 30 subreads per ZMW; faster for high-pass libraries
+**Explanation:** ccs command; subreads.bam input BAM; hifi_fast.bam output BAM; -j 32 threads; --min-rq 0.99 quality threshold; --top-passes 30 uses only top 30 subreads per ZMW; faster for high-pass libraries
 
 ### generate report files for QC
 **Args:** `subreads.bam hifi_reads.bam -j 32 --min-rq 0.99 --report-file ccs_report.txt --report-json ccs_report.json`
-**Explanation:** --report-file and --report-json generate detailed QC reports in text and JSON formats
+**Explanation:** ccs command; subreads.bam input BAM; hifi_reads.bam output BAM; -j 32 threads; --min-rq 0.99 quality threshold; --report-file ccs_report.txt text report; --report-json ccs_report.json JSON report; generate detailed QC reports

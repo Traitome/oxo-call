@@ -38,68 +38,68 @@ source_url: "https://docs.conda.io/projects/conda/en/stable/commands/"
 
 ### create a new Python environment with a specific version
 **Args:** `create -n myproject python=3.11`
-**Explanation:** create subcommand; -n myproject environment name; python=3.11 pins Python version; activate with 'conda activate myproject'
+**Explanation:** conda create subcommand; -n myproject environment name; python=3.11 pins Python version; activate with 'conda activate myproject'
 
 ### install packages into the active environment from conda-forge
 **Args:** `install -c conda-forge numpy pandas matplotlib`
-**Explanation:** install subcommand; -c conda-forge channel; numpy pandas matplotlib package names; add -y to skip confirmation
+**Explanation:** conda install subcommand; -c conda-forge channel; numpy pandas matplotlib package names; add -y to skip confirmation
 
 ### create an environment from a YAML specification file
 **Args:** `env create -f environment.yml`
-**Explanation:** env create subcommand; -f environment.yml YAML file; reads packages and channels from file; creates environment with name specified in YAML
+**Explanation:** conda env create subcommand; -f environment.yml YAML file; reads packages and channels from file; creates environment with name specified in YAML
 
 ### export current environment to a YAML file for sharing
 **Args:** `env export --no-builds -f environment.yml`
-**Explanation:** env export subcommand; --no-builds omits build strings for cross-platform compatibility; -f environment.yml output file
+**Explanation:** conda env export subcommand; --no-builds omits build strings for cross-platform compatibility; -f environment.yml output file
 
 ### list all installed packages in the active environment
 **Args:** `list`
-**Explanation:** list subcommand; shows all packages with versions and build strings in the currently active environment
+**Explanation:** conda list subcommand; shows all packages with versions and build strings in the currently active environment
 
 ### update all packages in the active environment
 **Args:** `update --all -y`
-**Explanation:** update subcommand; --all updates every package; -y skips confirmation; run after activating target environment
+**Explanation:** conda update subcommand; --all updates every package; -y skips confirmation; run after activating target environment
 
 ### remove a package from the active environment
 **Args:** `remove old-package -y`
-**Explanation:** remove subcommand; old-package package name to remove; -y skips confirmation; removes package and orphaned dependencies
+**Explanation:** conda remove subcommand; old-package package name to remove; -y skips confirmation; removes package and orphaned dependencies
 
 ### list all environments
 **Args:** `env list`
-**Explanation:** env list subcommand; shows all conda environments with paths; active environment marked with *
+**Explanation:** conda env list subcommand; shows all conda environments with paths; active environment marked with *
 
 ### search for available versions of a package
 **Args:** `search -c conda-forge bioconductor-deseq2`
-**Explanation:** search subcommand; -c conda-forge channel; bioconductor-deseq2 package name; shows all available versions
+**Explanation:** conda search subcommand; -c conda-forge channel; bioconductor-deseq2 package name; shows all available versions
 
 ### run a command in a specific environment without activating
 **Args:** `run -n myenv python script.py`
-**Explanation:** run subcommand; -n myenv environment name; python script.py command to run; runs in named env without conda activate; useful in scripts
+**Explanation:** conda run subcommand; -n myenv environment name; python script.py command to run; runs in named env without conda activate; useful in scripts
 
 ### export environment with only explicitly installed packages
 **Args:** `env export --from-history -f environment.yml`
-**Explanation:** env export subcommand; --from-history exports only explicitly installed packages; -f environment.yml output file; more portable across platforms
+**Explanation:** conda env export subcommand; --from-history exports only explicitly installed packages; -f environment.yml output file; more portable across platforms
 
 ### rename an existing environment
 **Args:** `rename old_env_name new_env_name`
-**Explanation:** rename subcommand; old_env_name current name; new_env_name new name; changes environment name without recreating; faster than export/create/remove workflow
+**Explanation:** conda rename subcommand; old_env_name current name; new_env_name new name; changes environment name without recreating; faster than export/create/remove workflow
 
 ### clean unused packages and caches
 **Args:** `clean --all -y`
-**Explanation:** clean subcommand; --all removes unused packages, tarballs, and caches; -y skips confirmation; frees significant disk space
+**Explanation:** conda clean subcommand; --all removes unused packages, tarballs, and caches; -y skips confirmation; frees significant disk space
 
 ### check environment health
 **Args:** `doctor`
-**Explanation:** doctor subcommand; displays health report for current environment; checks for missing files and dependency issues
+**Explanation:** conda doctor subcommand; displays health report for current environment; checks for missing files and dependency issues
 
 ### compare packages between environments
 **Args:** `compare myenv1 myenv2`
-**Explanation:** compare subcommand; myenv1 myenv2 environment names to compare; shows differences in packages; useful for debugging version issues
+**Explanation:** conda compare subcommand; myenv1 myenv2 environment names to compare; shows differences in packages; useful for debugging version issues
 
 ### update environment from YAML file
 **Args:** `env update -f environment.yml --prune`
-**Explanation:** env update subcommand; -f environment.yml YAML file; --prune removes packages not in YAML; modifies existing environment to match YAML
+**Explanation:** conda env update subcommand; -f environment.yml YAML file; --prune removes packages not in YAML; modifies existing environment to match YAML
 
 ### clone an existing environment
 **Args:** `create -n new_env --clone existing_env`
-**Explanation:** create subcommand; -n new_env new environment name; --clone existing_env existing environment to copy; creates exact copy for safe testing
+**Explanation:** conda create subcommand; -n new_env new environment name; --clone existing_env existing environment to copy; creates exact copy for safe testing

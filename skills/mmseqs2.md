@@ -38,56 +38,56 @@ source_url: "https://github.com/soedinglab/MMseqs2/wiki"
 
 ### search protein FASTA against UniRef50 and output BLAST tabular results
 **Args:** `easy-search query.fasta uniref50.fasta results.m8 tmp --format-mode 0 --threads 16 -s 7.5`
-**Explanation:** -s 7.5 is max sensitivity; --format-mode 0 gives BLAST-style TSV; tmp is the temp directory
+**Explanation:** mmseqs2 easy-search subcommand; query.fasta input FASTA; uniref50.fasta target database; results.m8 output TSV; tmp temp directory; --format-mode 0 BLAST-style TSV; --threads 16 threads; -s 7.5 max sensitivity
 
 ### cluster protein sequences at 90% identity
 **Args:** `easy-cluster proteins.fasta cluster_90 tmp --min-seq-id 0.9 -c 0.8 --cov-mode 0 --threads 16`
-**Explanation:** --min-seq-id 0.9 sets 90% identity threshold; -c 0.8 requires 80% coverage of both query and target
+**Explanation:** mmseqs2 easy-cluster subcommand; proteins.fasta input FASTA; cluster_90 output prefix; tmp temp directory; --min-seq-id 0.9 90% identity; -c 0.8 80% coverage; --cov-mode 0 query+target coverage; --threads 16 threads
 
 ### fast linear-time clustering of large metagenomic protein set at 50% identity
 **Args:** `easy-linclust proteins.fasta cluster_50 tmp --min-seq-id 0.5 -c 0.8 --threads 32`
-**Explanation:** easy-linclust scales linearly — preferred for >10M sequences; same threshold flags as easy-cluster
+**Explanation:** mmseqs2 easy-linclust subcommand; proteins.fasta input FASTA; cluster_50 output prefix; tmp temp directory; --min-seq-id 0.5 50% identity; -c 0.8 coverage; --threads 32 threads
 
 ### build an MMseqs2 database from a FASTA file
 **Args:** `createdb proteins.fasta proteinsDB`
-**Explanation:** creates proteinsDB, proteinsDB.index, etc.; required before using search/cluster subcommands directly
+**Explanation:** mmseqs2 createdb subcommand; proteins.fasta input FASTA; proteinsDB output database directory
 
 ### search one MMseqs2 DB against another and convert results to TSV
 **Args:** `search queryDB targetDB resultDB tmp -s 6 --threads 16 && convertalis queryDB targetDB resultDB results.tsv --format-mode 4`
-**Explanation:** search writes binary resultDB; convertalis converts to human-readable TSV with column headers (--format-mode 4)
+**Explanation:** mmseqs2 search subcommand; queryDB targetDB input databases; resultDB output binary; tmp temp directory; -s 6 sensitivity; --threads 16 threads; mmseqs2 convertalis subcommand converts to TSV with headers (--format-mode 4)
 
 ### extract representative sequences from a cluster result
 **Args:** `result2repseq proteinsDB proteinsDB cluster_result repseqDB && convert2fasta repseqDB representatives.fasta`
-**Explanation:** result2repseq pulls the cluster representative; convert2fasta writes FASTA output
+**Explanation:** mmseqs2 result2repseq subcommand; proteinsDB input database; cluster_result cluster result; repseqDB output representative DB; mmseqs2 convert2fasta subcommand writes FASTA output
 
 ### perform translated nucleotide-to-protein search
 **Args:** `easy-search reads.fasta proteins.fasta hits.m8 tmp --search-type 2 --threads 16`
-**Explanation:** --search-type 2 translates the query nucleotides in all 6 frames before searching against a protein target
+**Explanation:** mmseqs2 easy-search subcommand; reads.fasta nucleotide query; proteins.fasta protein target; hits.m8 output; tmp temp directory; --search-type 2 translated search; --threads 16 threads
 
 ### taxonomic classification of metagenomic reads
 **Args:** `easy-taxonomy reads.fasta seqTaxDB taxonomyResult tmp --threads 16 --lca-mode 3`
-**Explanation:** easy-taxonomy classifies sequences against seqTaxDB; --lca-mode 3 uses majority vote LCA; outputs taxonomy assignments
+**Explanation:** mmseqs2 easy-taxonomy subcommand; reads.fasta input FASTA; seqTaxDB taxonomy database; taxonomyResult output; tmp temp directory; --threads 16 threads; --lca-mode 3 majority vote LCA
 
 ### find reciprocal best hits between two protein sets
 **Args:** `easy-rbh proteins1.fasta proteins2.fasta rbhResult tmp --threads 16 --min-seq-id 0.9`
-**Explanation:** easy-rbh finds reciprocal best hits; useful for ortholog detection; --min-seq-id sets identity threshold
+**Explanation:** mmseqs2 easy-rbh subcommand; proteins1.fasta proteins2.fasta input FASTAs; rbhResult output; tmp temp directory; --threads 16 threads; --min-seq-id 0.9 identity threshold
 
 ### create index for faster repeated searches
 **Args:** `createindex targetDB tmp --threads 16 --split-memory-limit 32G`
-**Explanation:** createindex precomputes k-mer index; speeds up subsequent searches against the same database
+**Explanation:** mmseqs2 createindex subcommand; targetDB input database; tmp temp directory; --threads 16 threads; --split-memory-limit 32G memory limit
 
 ### search with alignment backtrace for visualization
 **Args:** `easy-search query.fasta target.fasta results.m8 tmp -a 1 --threads 16`
-**Explanation:** -a 1 adds backtrace strings to output; required for visualizing alignments with tools like mview
+**Explanation:** mmseqs2 easy-search subcommand; query.fasta target.fasta input FASTAs; results.m8 output; tmp temp directory; -a 1 adds backtrace strings; --threads 16 threads
 
 ### map nearly identical sequences
 **Args:** `map query.fasta target.fasta mapResult tmp --min-seq-id 0.99 -c 0.95 --threads 16`
-**Explanation:** map is optimized for nearly identical sequences; faster than search for high-identity mapping
+**Explanation:** mmseqs2 map subcommand; query.fasta target.fasta input FASTAs; mapResult output; tmp temp directory; --min-seq-id 0.99 high identity; -c 0.95 coverage; --threads 16 threads
 
 ### update existing clustering with new sequences
 **Args:** `clusterupdate oldDB newDB oldCluster newCluster clusterUpdate tmp --threads 16`
-**Explanation:** clusterupdate adds new sequences to existing clustering; faster than reclustering from scratch
+**Explanation:** mmseqs2 clusterupdate subcommand; oldDB newDB input databases; oldCluster old clustering; newCluster output; clusterUpdate temp; tmp temp directory; --threads 16 threads
 
 ### download and search against pre-built database
 **Args:** `databases UniRef50 uniref50DB tmp --threads 16 && easy-search query.fasta uniref50DB results.m8 tmp --threads 16`
-**Explanation:** databases downloads pre-built UniRef50; then easy-search queries against it
+**Explanation:** mmseqs2 databases subcommand downloads UniRef50; uniref50DB output; tmp temp directory; --threads 16 threads; mmseqs2 easy-search queries against it

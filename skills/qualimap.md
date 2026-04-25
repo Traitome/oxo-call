@@ -42,52 +42,52 @@ source_url: "http://qualimap.conesalab.org/"
 
 ### run BAM QC on a sorted, indexed BAM
 **Args:** `bamqc -bam sorted.bam --java-mem-size 8G -nt 8 -outdir qualimap_results/`
-**Explanation:** --java-mem-size 8G prevents OutOfMemoryError on large BAMs; -nt 8 parallelises coverage; output HTML/PDF in qualimap_results/
+**Explanation:** qualimap bamqc subcommand; -bam sorted.bam input BAM; --java-mem-size 8G prevents OutOfMemoryError on large BAMs; -nt 8 threads for coverage; -outdir qualimap_results/ output directory; generates HTML/PDF reports
 
 ### run RNA-seq QC with strand information
 **Args:** `rnaseq -bam sorted.bam -gtf annotation.gtf -p strand-specific-reverse --java-mem-size 8G -outdir qualimap_rnaseq/`
-**Explanation:** -p strand-specific-reverse matches dUTP/RF library prep; -gtf provides gene coordinates for proper read assignment rates
+**Explanation:** qualimap rnaseq subcommand; -bam sorted.bam input BAM; -gtf annotation.gtf gene annotation; -p strand-specific-reverse matches dUTP/RF library prep; --java-mem-size 8G heap size; -outdir qualimap_rnaseq/ output directory; provides gene coordinates for proper read assignment rates
 
 ### run multi-sample QC and aggregate report
 **Args:** `multi-bamqc -d samples.txt --java-mem-size 4G -outdir multiqc_qualimap/`
-**Explanation:** samples.txt lists: sample_name<TAB>bamqc_outdir per line; generates a comparative HTML report across all samples
+**Explanation:** qualimap multi-bamqc subcommand; -d samples.txt input TSV file listing sample_name<TAB>bamqc_outdir; --java-mem-size 4G heap size; -outdir multiqc_qualimap/ output directory; generates a comparative HTML report across all samples
 
 ### run BAM QC with GC bias correction (human)
 **Args:** `bamqc -bam sorted.bam -gd HUMAN --java-mem-size 8G -nt 8 -outdir qualimap_gc/`
-**Explanation:** -gd HUMAN computes GC bias using the human reference GC distribution; useful for identifying PCR amplification bias
+**Explanation:** qualimap bamqc subcommand; -bam sorted.bam input BAM; -gd HUMAN computes GC bias using human reference GC distribution; --java-mem-size 8G heap size; -nt 8 threads; -outdir qualimap_gc/ output directory; useful for identifying PCR amplification bias
 
 ### generate PDF and HTML reports
 **Args:** `bamqc -bam sorted.bam -outformat PDF:HTML --java-mem-size 4G -outdir qualimap_output/`
-**Explanation:** -outformat PDF:HTML generates both formats; PDF is useful for archiving; HTML is better for interactive exploration
+**Explanation:** qualimap bamqc subcommand; -bam sorted.bam input BAM; -outformat PDF:HTML generates both formats; --java-mem-size 4G heap size; -outdir qualimap_output/ output directory; PDF for archiving; HTML for interactive exploration
 
 ### run BAM QC on whole-genome sequencing data
 **Args:** `bamqc -bam wgs.bam -gd HUMAN --java-mem-size 16G -nt 16 --paint-chromosome-limits -outdir wgs_qualimap/`
-**Explanation:** --paint-chromosome-limits adds chromosome boundary lines in coverage plot; -nt 16 for WGS parallelism; 16G heap for whole-genome BAMs
+**Explanation:** qualimap bamqc subcommand; -bam wgs.bam input BAM; -gd HUMAN human GC distribution; --java-mem-size 16G heap for WGS; -nt 16 threads; --paint-chromosome-limits adds chromosome boundary lines; -outdir wgs_qualimap/ output directory
 
 ### count QC for differential expression count matrices
 **Args:** `counts -d counts.txt -c 2 -s C -outdir counts_qc/`
-**Explanation:** counts module assesses quality of count data; -c specifies the column index of count values; -s C for condition column; outputs distribution plots
+**Explanation:** qualimap counts subcommand; -d counts.txt input counts file; -c 2 specifies column index of count values; -s C condition column; -outdir counts_qc/ output directory; assesses quality of count data; outputs distribution plots
 
 ### run BAM QC excluding duplicates
 **Args:** `bamqc -bam sorted.bam --skip-duplicated --java-mem-size 8G -nt 8 -outdir qualimap_nodup/`
-**Explanation:** --skip-duplicated excludes PCR/optical duplicates from coverage analysis
+**Explanation:** qualimap bamqc subcommand; -bam sorted.bam input BAM; --skip-duplicated excludes PCR/optical duplicates from coverage analysis; --java-mem-size 8G heap size; -nt 8 threads; -outdir qualimap_nodup/ output directory
 
 ### run BAM QC with feature file
 **Args:** `bamqc -bam sorted.bam -gff targets.gff --java-mem-size 8G -nt 8 -outdir qualimap_targets/`
-**Explanation:** -gff provides feature file for targeted region analysis; useful for capture/exome data
+**Explanation:** qualimap bamqc subcommand; -bam sorted.bam input BAM; -gff targets.gff feature file for targeted region analysis; --java-mem-size 8G heap size; -nt 8 threads; -outdir qualimap_targets/ output directory; useful for capture/exome data
 
 ### run BAM QC statistics only (no graphics)
 **Args:** `bamqc -bam sorted.bam -os --java-mem-size 8G -nt 8 -outdir qualimap_stats/`
-**Explanation:** -os outputs statistics only; faster execution without generating plots
+**Explanation:** qualimap bamqc subcommand; -bam sorted.bam input BAM; -os outputs statistics only no graphics; --java-mem-size 8G heap size; -nt 8 threads; -outdir qualimap_stats/ output directory; faster execution without generating plots
 
 ### run BAM QC with chromosome limits
 **Args:** `bamqc -bam sorted.bam --paint-chromosome-limits --java-mem-size 8G -nt 8 -outdir qualimap_limits/`
-**Explanation:** --paint-chromosome-limits adds chromosome boundary lines in coverage plots
+**Explanation:** qualimap bamqc subcommand; -bam sorted.bam input BAM; --paint-chromosome-limits adds chromosome boundary lines in coverage plots; --java-mem-size 8G heap size; -nt 8 threads; -outdir qualimap_limits/ output directory
 
 ### run BAM QC skipping only optical duplicates
 **Args:** `bamqc -bam sorted.bam --skip-dup-mode 1 --java-mem-size 8G -nt 8 -outdir qualimap_nooptical/`
-**Explanation:** --skip-dup-mode 1 skips only optical duplicates; keeps PCR duplicates for coverage
+**Explanation:** qualimap bamqc subcommand; -bam sorted.bam input BAM; --skip-dup-mode 1 skips only optical duplicates keeps PCR duplicates; --java-mem-size 8G heap size; -nt 8 threads; -outdir qualimap_nooptical/ output directory
 
 ### run RNA-seq QC with forward strand specificity
 **Args:** `rnaseq -bam sorted.bam -gtf annotation.gtf -p strand-specific-forward --java-mem-size 8G -outdir qualimap_fwd/`
-**Explanation:** -p strand-specific-forward for forward-stranded libraries (e.g., Ligation method)
+**Explanation:** qualimap rnaseq subcommand; -bam sorted.bam input BAM; -gtf annotation.gtf gene annotation; -p strand-specific-forward for forward-stranded libraries; --java-mem-size 8G heap size; -outdir qualimap_fwd/ output directory; e.g., Ligation method

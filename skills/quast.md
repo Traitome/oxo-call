@@ -40,48 +40,48 @@ source_url: "https://quast.sourceforge.net/"
 
 ### assess assembly quality with reference genome
 **Args:** `-r reference.fasta -g genes.gff assembly.fasta -o quast_output/ --threads 8`
-**Explanation:** -r reference for comparison; -g gene annotation; output in quast_output/; generates HTML report
+**Explanation:** quast command; -r reference.fasta reference genome for comparison; -g genes.gff gene annotation; assembly.fasta input assembly; -o quast_output/ output directory; --threads 8 parallel processing; generates HTML report
 
 ### compare multiple assemblies without reference genome
 **Args:** `spades_assembly.fasta megahit_assembly.fasta flye_assembly.fasta -o assembly_comparison/ --threads 8`
-**Explanation:** multiple assembly FASTAs compared side-by-side; --no-icarus to skip large interactive browser
+**Explanation:** quast command; spades_assembly.fasta megahit_assembly.fasta flye_assembly.fasta multiple assembly FASTAs input; -o assembly_comparison/ output directory; --threads 8 parallel processing; compared side-by-side; --no-icarus to skip large interactive browser
 
 ### assess metagenome assembly quality with metaquast.py
 **Args:** `metaquast.py -r reference1.fasta,reference2.fasta assembly.fasta -o metaquast_output/ --threads 16`
-**Explanation:** metaquast.py for metagenome assemblies; -r multiple references; or use --auto-ref for automatic
+**Explanation:** metaquast.py command; -r reference1.fasta,reference2.fasta multiple references; assembly.fasta input metagenome assembly; -o metaquast_output/ output directory; --threads 16 parallel processing; for metagenome assemblies; or use --auto-ref for automatic
 
 ### assess assembly with minimum contig length filter
 **Args:** `-r reference.fasta assembly.fasta -o quast_out/ --min-contig 1000 --threads 8`
-**Explanation:** --min-contig 1000 excludes contigs shorter than 1000 bp from all statistics
+**Explanation:** quast command; -r reference.fasta reference genome; assembly.fasta input assembly; -o quast_out/ output directory; --min-contig 1000 excludes contigs shorter than 1000 bp from all statistics; --threads 8 parallel processing
 
 ### assess large genome with optimized parameters
 **Args:** `-r reference.fasta assembly.fasta -o quast_large/ --large --threads 16`
-**Explanation:** --large uses optimal parameters for large genomes (>100 Mbp); sets -e -m 3000 -i 500 -x 7000
+**Explanation:** quast command; -r reference.fasta reference genome; assembly.fasta input assembly; -o quast_large/ output directory; --large uses optimal parameters for large genomes >100 Mbp; --threads 16 parallel processing; sets -e -m 3000 -i 500 -x 7000
 
 ### compute k-mer based quality metrics
 **Args:** `-r reference.fasta assembly.fasta -o quast_kmer/ --k-mer-stats --k-mer-size 101 --threads 8`
-**Explanation:** --k-mer-stats computes k-mer-based metrics; --k-mer-size 101 sets k-mer size
+**Explanation:** quast command; -r reference.fasta reference genome; assembly.fasta input assembly; -o quast_kmer/ output directory; --k-mer-stats computes k-mer-based metrics; --k-mer-size 101 sets k-mer size; --threads 8 parallel processing
 
 ### assess eukaryotic genome assembly
 **Args:** `-r reference.fasta assembly.fasta -o quast_euk/ --eukaryote --gene-finding --threads 8`
-**Explanation:** --eukaryote optimizes for eukaryotic gene prediction; --gene-finding uses GeneMark-ES
+**Explanation:** quast command; -r reference.fasta reference genome; assembly.fasta input assembly; -o quast_euk/ output directory; --eukaryote optimizes for eukaryotic gene prediction; --gene-finding uses GeneMark-ES; --threads 8 parallel processing
 
 ### assess fungal genome assembly
 **Args:** `-r reference.fasta assembly.fasta -o quast_fungus/ --fungus --gene-finding --threads 8`
-**Explanation:** --fungus optimizes for fungal gene prediction; combines --eukaryote with fungal-specific settings
+**Explanation:** quast command; -r reference.fasta reference genome; assembly.fasta input assembly; -o quast_fungus/ output directory; --fungus optimizes for fungal gene prediction; --gene-finding uses GeneMark-ES; --threads 8 parallel processing; combines --eukaryote with fungal-specific settings
 
 ### predict rRNA genes during assessment
 **Args:** `-r reference.fasta assembly.fasta -o quast_rna/ --rna-finding --threads 8`
-**Explanation:** --rna-finding predicts ribosomal RNA genes using Barrnap
+**Explanation:** quast command; -r reference.fasta reference genome; assembly.fasta input assembly; -o quast_rna/ output directory; --rna-finding predicts ribosomal RNA genes using Barrnap; --threads 8 parallel processing
 
 ### assess with BUSCO conserved genes
 **Args:** `-r reference.fasta assembly.fasta -o quast_busco/ --conserved-genes-finding --threads 8`
-**Explanation:** --conserved-genes-finding counts conserved orthologs using BUSCO; requires BUSCO installation
+**Explanation:** quast command; -r reference.fasta reference genome; assembly.fasta input assembly; -o quast_busco/ output directory; --conserved-genes-finding counts conserved orthologs using BUSCO; --threads 8 parallel processing; requires BUSCO installation
 
 ### generate Circos visualization
 **Args:** `-r reference.fasta assembly.fasta -o quast_circos/ --circos --threads 8`
-**Explanation:** --circos generates Circos plot for visualizing assembly against reference
+**Explanation:** quast command; -r reference.fasta reference genome; assembly.fasta input assembly; -o quast_circos/ output directory; --circos generates Circos plot for visualizing assembly against reference; --threads 8 parallel processing
 
 ### use custom labels for multiple assemblies
 **Args:** `assembly1.fasta assembly2.fasta -o quast_compare/ -l "spades,megahit" --threads 8`
-**Explanation:** -l assigns custom labels to assemblies in reports; comma-separated list matching input order
+**Explanation:** quast command; assembly1.fasta assembly2.fasta input assemblies; -o quast_compare/ output directory; -l "spades,megahit" assigns custom labels to assemblies in reports; --threads 8 parallel processing; comma-separated list matching input order

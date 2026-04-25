@@ -37,52 +37,52 @@ source_url: "https://github.com/alexdobin/STAR/blob/master/docs/STARsolo.md"
 
 ### process 10x Chromium v3 scRNA-seq with STARsolo
 **Args:** `--soloType CB_UMI_Simple --soloCBwhitelist 3M-february-2018.txt --soloCBstart 1 --soloCBlen 16 --soloUMIstart 17 --soloUMIlen 12 --genomeDir /path/to/star_genome/ --readFilesIn R2.fastq.gz R1.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --outSAMattributes NH HI nM AS CR UR CB UB GX GN sS sQ sM --runThreadN 16 --outFileNamePrefix sample_starsolo/`
-**Explanation:** R2 (cDNA) before R1 (barcode); --soloCBwhitelist barcode whitelist; 16bp CB + 12bp UMI for 10x v3
+**Explanation:** STAR command with STARsolo; --soloType CB_UMI_Simple 10x mode; --soloCBwhitelist 3M-february-2018.txt barcode whitelist; --soloCBstart 1 --soloCBlen 16 barcode position; --soloUMIstart 17 --soloUMIlen 12 UMI position for v3; --genomeDir /path/to/star_genome/ index; --readFilesIn R2.fastq.gz R1.fastq.gz cDNA before barcode; --readFilesCommand zcat for gzip; --outSAMtype BAM SortedByCoordinate sorted BAM; --outSAMattributes NH HI nM AS CR UR CB UB GX GN sS sQ sM attributes; --runThreadN 16 threads; --outFileNamePrefix sample_starsolo/ output prefix
 
 ### process 10x Chromium v2 scRNA-seq with STARsolo
 **Args:** `--soloType CB_UMI_Simple --soloCBwhitelist 737K-august-2016.txt --soloCBlen 16 --soloUMIlen 10 --genomeDir /star_genome/ --readFilesIn R2.fastq.gz R1.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix sample_v2/`
-**Explanation:** v2 whitelist and 10bp UMI; same R2-before-R1 ordering
+**Explanation:** STAR command with STARsolo; --soloType CB_UMI_Simple 10x mode; --soloCBwhitelist 737K-august-2016.txt v2 whitelist; --soloCBlen 16 --soloUMIlen 10 v2 UMI length; --genomeDir /star_genome/ index; --readFilesIn R2.fastq.gz R1.fastq.gz cDNA before barcode; --readFilesCommand zcat for gzip; --outSAMtype BAM SortedByCoordinate sorted BAM; --runThreadN 16 threads; --outFileNamePrefix sample_v2/ output prefix
 
 ### run STARsolo with RNA velocity output
 **Args:** `--soloType CB_UMI_Simple --soloCBwhitelist 3M-february-2018.txt --soloCBlen 16 --soloUMIlen 12 --soloFeatures Gene Velocyto --genomeDir /star_genome/ --readFilesIn R2.fastq.gz R1.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix velocity_sample/`
-**Explanation:** --soloFeatures Velocyto adds spliced/unspliced/ambiguous count matrices for RNA velocity analysis
+**Explanation:** STAR command with STARsolo; --soloType CB_UMI_Simple 10x mode; --soloCBwhitelist 3M-february-2018.txt whitelist; --soloCBlen 16 --soloUMIlen 12 v3 lengths; --soloFeatures Gene Velocyto adds spliced/unspliced/ambiguous count matrices; --genomeDir /star_genome/ index; --readFilesIn R2.fastq.gz R1.fastq.gz inputs; --readFilesCommand zcat for gzip; --outSAMtype BAM SortedByCoordinate sorted BAM; --runThreadN 16 threads; --outFileNamePrefix velocity_sample/ output prefix; for RNA velocity analysis
 
 ### run STARsolo for single-nucleus RNA-seq
 **Args:** `--soloType CB_UMI_Simple --soloCBwhitelist 3M-february-2018.txt --soloCBlen 16 --soloUMIlen 12 --soloFeatures GeneFull --genomeDir /star_genome/ --readFilesIn R2.fastq.gz R1.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix snRNA_sample/`
-**Explanation:** --soloFeatures GeneFull includes intronic reads; essential for single-nucleus RNA-seq
+**Explanation:** STAR command with STARsolo; --soloType CB_UMI_Simple 10x mode; --soloCBwhitelist 3M-february-2018.txt whitelist; --soloCBlen 16 --soloUMIlen 12 v3 lengths; --soloFeatures GeneFull includes intronic reads; --genomeDir /star_genome/ index; --readFilesIn R2.fastq.gz R1.fastq.gz inputs; --readFilesCommand zcat for gzip; --outSAMtype BAM SortedByCoordinate sorted BAM; --runThreadN 16 threads; --outFileNamePrefix snRNA_sample/ output prefix; essential for single-nucleus RNA-seq
 
 ### use EmptyDrops cell filtering (Cell Ranger 3.x compatible)
 **Args:** `--soloType CB_UMI_Simple --soloCBwhitelist 3M-february-2018.txt --soloCBlen 16 --soloUMIlen 12 --soloCellFilter EmptyDrops_CR --genomeDir /star_genome/ --readFilesIn R2.fastq.gz R1.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix emptydrops_sample/`
-**Explanation:** --soloCellFilter EmptyDrops_CR uses EmptyDrops algorithm; compatible with Cell Ranger 3.x
+**Explanation:** STAR command with STARsolo; --soloType CB_UMI_Simple 10x mode; --soloCBwhitelist 3M-february-2018.txt whitelist; --soloCBlen 16 --soloUMIlen 12 v3 lengths; --soloCellFilter EmptyDrops_CR uses EmptyDrops algorithm; --genomeDir /star_genome/ index; --readFilesIn R2.fastq.gz R1.fastq.gz inputs; --readFilesCommand zcat for gzip; --outSAMtype BAM SortedByCoordinate sorted BAM; --runThreadN 16 threads; --outFileNamePrefix emptydrops_sample/ output prefix; compatible with Cell Ranger 3.x
 
 ### strict UMI deduplication (Exact match only)
 **Args:** `--soloType CB_UMI_Simple --soloCBwhitelist 3M-february-2018.txt --soloCBlen 16 --soloUMIlen 12 --soloUMIdedup Exact --genomeDir /star_genome/ --readFilesIn R2.fastq.gz R1.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix exact_umi_sample/`
-**Explanation:** --soloUMIdedup Exact requires exact UMI matches; strictest deduplication
+**Explanation:** STAR command with STARsolo; --soloType CB_UMI_Simple 10x mode; --soloCBwhitelist 3M-february-2018.txt whitelist; --soloCBlen 16 --soloUMIlen 12 v3 lengths; --soloUMIdedup Exact requires exact UMI matches; --genomeDir /star_genome/ index; --readFilesIn R2.fastq.gz R1.fastq.gz inputs; --readFilesCommand zcat for gzip; --outSAMtype BAM SortedByCoordinate sorted BAM; --runThreadN 16 threads; --outFileNamePrefix exact_umi_sample/ output prefix; strictest deduplication
 
 ### output top N cells by UMI count
 **Args:** `--soloType CB_UMI_Simple --soloCBwhitelist 3M-february-2018.txt --soloCBlen 16 --soloUMIlen 12 --soloCellFilter TopCells 5000 --genomeDir /star_genome/ --readFilesIn R2.fastq.gz R1.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix top5k_sample/`
-**Explanation:** --soloCellFilter TopCells 5000 outputs only top 5000 cells by UMI count
+**Explanation:** STAR command with STARsolo; --soloType CB_UMI_Simple 10x mode; --soloCBwhitelist 3M-february-2018.txt whitelist; --soloCBlen 16 --soloUMIlen 12 v3 lengths; --soloCellFilter TopCells 5000 outputs only top 5000 cells; --genomeDir /star_genome/ index; --readFilesIn R2.fastq.gz R1.fastq.gz inputs; --readFilesCommand zcat for gzip; --outSAMtype BAM SortedByCoordinate sorted BAM; --runThreadN 16 threads; --outFileNamePrefix top5k_sample/ output prefix
 
 ### no cell filtering (output all barcodes)
 **Args:** `--soloType CB_UMI_Simple --soloCBwhitelist 3M-february-2018.txt --soloCBlen 16 --soloUMIlen 12 --soloCellFilter None --genomeDir /star_genome/ --readFilesIn R2.fastq.gz R1.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix nofilter_sample/`
-**Explanation:** --soloCellFilter None disables cell filtering; outputs all barcodes in whitelist
+**Explanation:** STAR command with STARsolo; --soloType CB_UMI_Simple 10x mode; --soloCBwhitelist 3M-february-2018.txt whitelist; --soloCBlen 16 --soloUMIlen 12 v3 lengths; --soloCellFilter None disables cell filtering; --genomeDir /star_genome/ index; --readFilesIn R2.fastq.gz R1.fastq.gz inputs; --readFilesCommand zcat for gzip; --outSAMtype BAM SortedByCoordinate sorted BAM; --runThreadN 16 threads; --outFileNamePrefix nofilter_sample/ output prefix; outputs all barcodes in whitelist
 
 ### allow variable barcode read length
 **Args:** `--soloType CB_UMI_Simple --soloCBwhitelist 3M-february-2018.txt --soloCBlen 16 --soloUMIlen 12 --soloBarcodeReadLength 0 --genomeDir /star_genome/ --readFilesIn R2.fastq.gz R1.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix varlen_sample/`
-**Explanation:** --soloBarcodeReadLength 0 allows variable barcode read lengths; for non-standard protocols
+**Explanation:** STAR command with STARsolo; --soloType CB_UMI_Simple 10x mode; --soloCBwhitelist 3M-february-2018.txt whitelist; --soloCBlen 16 --soloUMIlen 12 v3 lengths; --soloBarcodeReadLength 0 allows variable barcode read lengths; --genomeDir /star_genome/ index; --readFilesIn R2.fastq.gz R1.fastq.gz inputs; --readFilesCommand zcat for gzip; --outSAMtype BAM SortedByCoordinate sorted BAM; --runThreadN 16 threads; --outFileNamePrefix varlen_sample/ output prefix; for non-standard protocols
 
 ### process Drop-seq data with CB_UMI_Complex
 **Args:** `--soloType CB_UMI_Complex --soloCB0_wl 0 0 12 dropseq_whitelist.txt --soloCB0 0_0_12 0_12_8 --soloUMI0 12_20_8 --genomeDir /star_genome/ --readFilesIn R2.fastq.gz R1.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix dropseq_sample/`
-**Explanation:** --soloType CB_UMI_Complex for Drop-seq; custom barcode/UMI positions; Drop-seq uses 12bp CB + 8bp UMI
+**Explanation:** STAR command with STARsolo; --soloType CB_UMI_Complex for Drop-seq; --soloCB0_wl 0 0 12 dropseq_whitelist.txt whitelist; --soloCB0 0_0_12 0_12_8 barcode positions; --soloUMI0 12_20_8 UMI position; --genomeDir /star_genome/ index; --readFilesIn R2.fastq.gz R1.fastq.gz inputs; --readFilesCommand zcat for gzip; --outSAMtype BAM SortedByCoordinate sorted BAM; --runThreadN 16 threads; --outFileNamePrefix dropseq_sample/ output prefix; Drop-seq uses 12bp CB + 8bp UMI
 
 ### process Smart-seq2 data without UMI
 **Args:** `--soloType SmartSeq --soloFeatures Gene --genomeDir /star_genome/ --readFilesIn sample.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix smartseq_sample/`
-**Explanation:** --soloType SmartSeq for plate-based Smart-seq2; no barcode/UMI demultiplexing; one sample per run
+**Explanation:** STAR command with STARsolo; --soloType SmartSeq for plate-based Smart-seq2; --soloFeatures Gene gene counts; --genomeDir /star_genome/ index; --readFilesIn sample.fastq.gz single sample input; --readFilesCommand zcat for gzip; --outSAMtype BAM SortedByCoordinate sorted BAM; --runThreadN 16 threads; --outFileNamePrefix smartseq_sample/ output prefix; no barcode/UMI demultiplexing
 
 ### run STARsolo with multi-sample batch processing
 **Args:** `--soloType CB_UMI_Simple --soloCBwhitelist 3M-february-2018.txt --soloCBlen 16 --soloUMIlen 12 --genomeDir /star_genome/ --readFilesIn sample1_R2.fq.gz,sample2_R2.fq.gz sample1_R1.fq.gz,sample2_R1.fq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix batch_samples/`
-**Explanation:** comma-separated input files for batch processing; multiple samples in one STARsolo run
+**Explanation:** STAR command with STARsolo; --soloType CB_UMI_Simple 10x mode; --soloCBwhitelist 3M-february-2018.txt whitelist; --soloCBlen 16 --soloUMIlen 12 v3 lengths; --genomeDir /star_genome/ index; --readFilesIn sample1_R2.fq.gz,sample2_R2.fq.gz comma-separated cDNA inputs sample1_R1.fq.gz,sample2_R1.fq.gz comma-separated barcode inputs; --readFilesCommand zcat for gzip; --outSAMtype BAM SortedByCoordinate sorted BAM; --runThreadN 16 threads; --outFileNamePrefix batch_samples/ output prefix; multiple samples in one STARsolo run
 
 ### output both Gene and GeneFull for comprehensive analysis
 **Args:** `--soloType CB_UMI_Simple --soloCBwhitelist 3M-february-2018.txt --soloCBlen 16 --soloUMIlen 12 --soloFeatures Gene GeneFull --genomeDir /star_genome/ --readFilesIn R2.fastq.gz R1.fastq.gz --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --runThreadN 16 --outFileNamePrefix comprehensive/`
-**Explanation:** --soloFeatures Gene GeneFull outputs both gene-level and pre-mRNA counts; enables both standard and snRNA-seq analysis
+**Explanation:** STAR command with STARsolo; --soloType CB_UMI_Simple 10x mode; --soloCBwhitelist 3M-february-2018.txt whitelist; --soloCBlen 16 --soloUMIlen 12 v3 lengths; --soloFeatures Gene GeneFull outputs both gene-level and pre-mRNA counts; --genomeDir /star_genome/ index; --readFilesIn R2.fastq.gz R1.fastq.gz inputs; --readFilesCommand zcat for gzip; --outSAMtype BAM SortedByCoordinate sorted BAM; --runThreadN 16 threads; --outFileNamePrefix comprehensive/ output prefix; enables both standard and snRNA-seq analysis

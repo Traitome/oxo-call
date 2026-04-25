@@ -31,52 +31,52 @@ source_url: "https://www.gnu.org/software/tar/manual/tar.html"
 
 ### create a gzip-compressed archive of a directory
 **Args:** `-czf archive.tar.gz data/`
-**Explanation:** -c create; -z gzip compression; -f specifies archive filename; data/ is the source directory
+**Explanation:** tar command; -c create archive; -z gzip compression; -f archive.tar.gz output archive filename; data/ source directory
 
 ### extract a gzip archive into the current directory
 **Args:** `-xzf archive.tar.gz`
-**Explanation:** -x extract; -z decompress gzip; -f specifies the archive; extracts to current directory
+**Explanation:** tar command; -x extract; -z decompress gzip; -f archive.tar.gz input archive; extracts to current directory
 
 ### extract an archive into a specific directory
 **Args:** `-xf archive.tar.gz -C /opt/myapp/`
-**Explanation:** -C changes to /opt/myapp/ before extracting; GNU tar auto-detects compression so -z is optional
+**Explanation:** tar command; -x extract; -f archive.tar.gz input archive; -C /opt/myapp/ target directory; GNU tar auto-detects compression
 
 ### list contents of an archive without extracting
 **Args:** `-tf archive.tar.gz`
-**Explanation:** -t lists archive contents; -f specifies the file; add -v for detailed listing with sizes and permissions
+**Explanation:** tar command; -t list archive contents; -f archive.tar.gz input archive; add -v for detailed listing
 
 ### create a verbose bzip2-compressed archive
 **Args:** `-cjvf backup.tar.bz2 /home/user/documents/`
-**Explanation:** -j uses bzip2 compression (better ratio than gzip); -v shows each file being archived
+**Explanation:** tar command; -c create; -j bzip2 compression; -v verbose shows each file; -f backup.tar.bz2 output archive; /home/user/documents/ source directory
 
 ### extract and strip the top-level directory from the archive
 **Args:** `-xzf project-1.0.tar.gz --strip-components=1 -C /opt/project/`
-**Explanation:** --strip-components=1 removes the leading 'project-1.0/' prefix from all extracted paths
+**Explanation:** tar command; -x extract; -z decompress gzip; -f project-1.0.tar.gz input archive; --strip-components=1 removes leading directory prefix; -C /opt/project/ target directory
 
 ### create an archive excluding certain file patterns
 **Args:** `-czf backup.tar.gz project/ --exclude='*.pyc' --exclude='.git'`
-**Explanation:** --exclude patterns prevent matched files from being archived; useful for clean source backups
+**Explanation:** tar command; -c create; -z gzip compression; -f backup.tar.gz output archive; project/ source directory; --exclude='*.pyc' exclude Python cache files; --exclude='.git' exclude Git directory
 
 ### add files to an existing uncompressed archive
 **Args:** `-rf existing.tar newfile.txt`
-**Explanation:** -r appends files to an existing .tar archive; cannot append to compressed archives
+**Explanation:** tar command; -r append to existing archive; -f existing.tar existing .tar archive; newfile.txt file to add; cannot append to compressed archives
 
 ### create a highly compressed archive using xz
 **Args:** `-cJf archive.tar.xz largedir/`
-**Explanation:** -J uses xz compression (slowest but smallest); best for long-term storage or distribution
+**Explanation:** tar command; -c create; -J xz compression (slowest but smallest); -f archive.tar.xz output archive; largedir/ source directory; best for long-term storage
 
 ### extract a single file from an archive
 **Args:** `-xzf archive.tar.gz path/inside/archive/file.txt`
-**Explanation:** specify the exact path inside the archive as the last argument to extract only that file
+**Explanation:** tar command; -x extract; -z decompress gzip; -f archive.tar.gz input archive; path/inside/archive/file.txt specific path to extract
 
 ### create a zstd-compressed archive
 **Args:** `--zstd -cf archive.tar.zst data/`
-**Explanation:** --zstd uses Zstandard compression (fast + good ratio); -c create; -f specifies archive name
+**Explanation:** tar command; --zstd Zstandard compression (fast + good ratio); -c create; -f archive.tar.zst output archive; data/ source directory
 
 ### extract an archive preserving permissions
 **Args:** `-xpzf archive.tar.gz -C /opt/app/`
-**Explanation:** -p preserves file permissions and ownership; -C extracts to the target directory
+**Explanation:** tar command; -x extract; -p preserves permissions and ownership; -z decompress gzip; -f archive.tar.gz input archive; -C /opt/app/ target directory
 
 ### compare archive contents with the filesystem
 **Args:** `-dzf archive.tar.gz`
-**Explanation:** -d (diff) compares archive contents with files on disk; reports differences without extracting
+**Explanation:** tar command; -d diff compares archive contents with files on disk; -z decompress gzip; -f archive.tar.gz input archive; reports differences without extracting
