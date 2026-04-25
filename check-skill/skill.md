@@ -24,6 +24,7 @@ source_url: "https://github.com/Traitome/oxo-call"
 - When updating examples, preserve the exact format: `### description of what to do` → `**Args:** \`command args\`` → `**Explanation:** why these flags were chosen`. The `**Args:**` value must start with the subcommand (or first positional) — never with a flag.
 - Some tools (like STAR) use long options as their primary operation selector rather than traditional subcommands. The skill's Pitfalls section must call this out explicitly with a CRITICAL note.
 - Avoid duplicating information across Concepts, Pitfalls, and Examples. Each section has a distinct role: Concepts = mental model, Pitfalls = what goes wrong, Examples = concrete commands.
+- **Args/Explanation mismatch** is a common error: when reviewing examples, verify that every option in Args is explicitly explained in Explanation, and that Explanation does not describe options absent from Args. This ensures completeness (不多不少) — no missing explanations, no extra explanations.
 
 ## Examples
 
@@ -221,6 +222,7 @@ Compare the three sources (local help, source_url docs, web search) against the 
 - Are paired-end / multi-file input patterns shown where applicable?
 - Does each example follow the exact format: `### description` → `**Args:** \`...\`` → `**Explanation:** ...`?
 - Are the Args values realistic and directly usable (real file extensions, realistic paths)?
+- **CRITICAL: Args/Explanation consistency** — Every command option/flag in Args MUST be explicitly explained in Explanation, and Explanation MUST NOT describe options that are not present in Args (不多不少). For example, if Args contains `-a file.bed -b ref.fa`, Explanation must mention both `-a` and `-b`. If Args contains `--cv=10`, Explanation must mention `--cv`. Conversely, if Explanation mentions `--threads` but Args does not contain any threading flag, this is an error.
 
 ## Step 6: Update the skill file
 
