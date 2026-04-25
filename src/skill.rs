@@ -691,7 +691,11 @@ impl Skill {
             .collect();
 
         // Sort by score descending, then by index ascending (stable)
-        scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal).then(a.0.cmp(&b.0)));
+        scored.sort_by(|a, b| {
+            b.1.partial_cmp(&a.1)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then(a.0.cmp(&b.0))
+        });
 
         // Take top max_examples, but ensure example 0 is included if there's room
         let mut selected_indices: Vec<usize> = scored
@@ -827,12 +831,35 @@ fn extract_flags_from_text(text: &str) -> std::collections::HashSet<String> {
 fn detect_subcommand_match(task: &str, example_args: &str) -> f64 {
     // Common bioinformatics subcommands
     const SUBCOMMANDS: &[&str] = &[
-        "sort", "index", "view", "filter", "merge", "intersect",
-        "mem", "align", "trim", "run", "call", "annotate",
-        "depth", "coverage", "flagstat", "mpileup", "concat",
-        "norm", "stats", "query", "isec", "consensus",
-        "faidx", "dict", "bamtobed", "bedtobam",
-        "blastn", "blastp", "blastx",
+        "sort",
+        "index",
+        "view",
+        "filter",
+        "merge",
+        "intersect",
+        "mem",
+        "align",
+        "trim",
+        "run",
+        "call",
+        "annotate",
+        "depth",
+        "coverage",
+        "flagstat",
+        "mpileup",
+        "concat",
+        "norm",
+        "stats",
+        "query",
+        "isec",
+        "consensus",
+        "faidx",
+        "dict",
+        "bamtobed",
+        "bedtobam",
+        "blastn",
+        "blastp",
+        "blastx",
     ];
 
     let first_arg = example_args.split_whitespace().next().unwrap_or("");
@@ -850,7 +877,8 @@ fn detect_subcommand_match(task: &str, example_args: &str) -> f64 {
     if task_lower.contains(&format!(" {}", first_arg))
         || task_lower.starts_with(&format!("{} ", first_arg))
         || task_lower.contains(&format!("{}ing", first_arg))  // "sorting" matches "sort"
-        || task_lower.contains(&format!("{}ed", first_arg))   // "sorted" matches "sort"
+        || task_lower.contains(&format!("{}ed", first_arg))
+    // "sorted" matches "sort"
     {
         return 2.0;
     }

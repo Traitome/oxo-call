@@ -245,9 +245,9 @@ fn deduplicate_flags(args: &[String]) -> Vec<String> {
             // -i and -I are DIFFERENT flags (lowercase for R1, uppercase for R2 in paired-end tools)
             // Only normalize long flags (--flag vs --FLAG) which are usually case-insensitive
             let flag_key = if flag_base.starts_with("--") {
-                flag_base.to_lowercase()  // Long flags are typically case-insensitive
+                flag_base.to_lowercase() // Long flags are typically case-insensitive
             } else {
-                flag_base.to_string()  // Short flags preserve case (-i vs -I are different)
+                flag_base.to_string() // Short flags preserve case (-i vs -I are different)
             };
 
             if seen_flags.contains(&flag_key) {
@@ -623,7 +623,14 @@ mod tests {
         // Should have only one occurrence of each flag
         assert_eq!(
             result,
-            vec!["--genomeDir", "/star_index", "--genomeLoad", "LoadAndKeep", "--runThreadN", "4"]
+            vec![
+                "--genomeDir",
+                "/star_index",
+                "--genomeLoad",
+                "LoadAndKeep",
+                "--runThreadN",
+                "4"
+            ]
         );
     }
 
@@ -650,7 +657,10 @@ mod tests {
             "input.bam".into(),
         ];
         let result = deduplicate_flags(&args);
-        assert_eq!(result, vec!["sort", "-@", "4", "-o", "sorted.bam", "input.bam"]);
+        assert_eq!(
+            result,
+            vec!["sort", "-@", "4", "-o", "sorted.bam", "input.bam"]
+        );
     }
 
     #[test]
@@ -671,9 +681,15 @@ mod tests {
         assert_eq!(
             result,
             vec![
-                "sort", "-o", "sorted.bam", "input.bam",
+                "sort",
+                "-o",
+                "sorted.bam",
+                "input.bam",
                 "&&",
-                "index", "-o", "sorted.bam.bai", "sorted.bam"
+                "index",
+                "-o",
+                "sorted.bam.bai",
+                "sorted.bam"
             ]
         );
     }

@@ -276,9 +276,9 @@ async fn run(cli: Cli) -> error::Result<()> {
             let (force_scenario, no_skill, no_doc, no_prompt) = match scenario {
                 Some(RunScenario::Bare) => (
                     Some(workflow_graph::WorkflowScenario::Bare),
-                    true,  // no_skill
-                    true,  // no_doc
-                    true,  // no_prompt
+                    true, // no_skill
+                    true, // no_doc
+                    true, // no_prompt
                 ),
                 Some(RunScenario::Prompt) => (
                     Some(workflow_graph::WorkflowScenario::Prompt),
@@ -1436,9 +1436,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                             );
                             // Add reference hint for skill registry
                             println!(
-                                "\n{} Reference: Browse existing skills at {}",
-                                "💡".cyan(),
-                                "https://github.com/Traitome/oxo-call/tree/main/skills"
+                                "\n{} Reference: Browse existing skills at https://github.com/Traitome/oxo-call/tree/main/skills",
+                                "💡".cyan()
                             );
                         }
                         None => {
@@ -1446,9 +1445,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                             // Add reference hint for skill registry (only for --llm or when no output)
                             if llm {
                                 eprintln!(
-                                    "\n{} Reference: Browse existing skills at {}",
-                                    "💡".cyan(),
-                                    "https://github.com/Traitome/oxo-call/tree/main/skills"
+                                    "\n{} Reference: Browse existing skills at https://github.com/Traitome/oxo-call/tree/main/skills",
+                                    "💡".cyan()
                                 );
                             }
                         }
