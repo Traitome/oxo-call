@@ -37,40 +37,40 @@ source_url: "https://cellsnp-lite.readthedocs.io/"
 
 ### pileup known SNPs in a 10x Chromium scRNA-seq BAM with cell barcodes
 **Args:** `-s possorted_genome_bam.bam -b barcodes.tsv -O cellsnp_out -R common_snps.vcf.gz -p 16 --minMAF 0.1 --minCOUNT 20`
-**Explanation:** -s BAM; -b cell barcodes file; -O output dir; -R known SNP VCF; -p threads; --minMAF and --minCOUNT for quality filter
+**Explanation:** -s possorted_genome_bam.bam BAM input; -b barcodes.tsv cell barcodes file; -O cellsnp_out output directory; -R common_snps.vcf.gz known SNP VCF; -p 16 threads; --minMAF 0.1 minimum allele frequency; --minCOUNT 20 minimum count; quality filter for Mode 1b
 
 ### pileup SNPs in a bulk BAM without cell barcodes
 **Args:** `-s bulk.bam -O bulk_snp_out -R common_snps.vcf.gz -p 16 --minMAF 0.05 --minCOUNT 10`
-**Explanation:** Mode 1a: no -b flag for bulk; -R provides known SNP positions; output has total AD/DP counts per SNP
+**Explanation:** -s bulk.bam BAM input; -O bulk_snp_out output directory; -R common_snps.vcf.gz known SNP VCF; -p 16 threads; --minMAF 0.05 minimum allele frequency; --minCOUNT 10 minimum count; Mode 1a: no -b flag for bulk; output has total AD/DP counts per SNP
 
 ### de novo SNP discovery in single-cell BAM (Mode 2)
 **Args:** `-s possorted_genome_bam.bam -b barcodes.tsv -O denovo_snp_out -p 16 --minMAF 0.1 --minCOUNT 100 --gzip`
-**Explanation:** Mode 2: no -R flag; discovers SNPs from the data; --gzip compresses output matrix files; higher --minCOUNT for quality
+**Explanation:** -s possorted_genome_bam.bam BAM input; -b barcodes.tsv cell barcodes file; -O denovo_snp_out output directory; -p 16 threads; --minMAF 0.1 minimum allele frequency; --minCOUNT 100 minimum count; --gzip compresses output; Mode 2: no -R flag; discovers SNPs from data
 
 ### pileup multiple BAMs from different samples at shared SNP positions
 **Args:** `-s sample1.bam,sample2.bam,sample3.bam -O multi_sample_out -R common_snps.vcf.gz -p 16 --minMAF 0.1 --minCOUNT 20`
-**Explanation:** comma-separated BAM list for multi-sample bulk pileup; useful for genotyping donors for Vireo demultiplexing
+**Explanation:** -s sample1.bam,sample2.bam,sample3.bam comma-separated BAM list; -O multi_sample_out output directory; -R common_snps.vcf.gz known SNP VCF; -p 16 threads; --minMAF 0.1 minimum allele frequency; --minCOUNT 20 minimum count; multi-sample bulk pileup; useful for genotyping donors for Vireo
 
 ### restrict pileup to specific chromosomes to reduce runtime
 **Args:** `-s possorted_genome_bam.bam -b barcodes.tsv -O chr1_out -R chr1_snps.vcf.gz --chrom 1 -p 8 --minMAF 0.1 --minCOUNT 20`
-**Explanation:** --chrom 1 restricts to chromosome 1; useful for testing or chromosome-level parallel jobs
+**Explanation:** -s possorted_genome_bam.bam BAM input; -b barcodes.tsv cell barcodes file; -O chr1_out output directory; -R chr1_snps.vcf.gz known SNP VCF; --chrom 1 restricts to chromosome 1; -p 8 threads; --minMAF 0.1 minimum allele frequency; --minCOUNT 20 minimum count; useful for testing or chromosome-level parallel jobs
 
 ### pileup with strict base quality filter for high-confidence allele counts
 **Args:** `-s possorted_genome_bam.bam -b barcodes.tsv -O hq_out -R snps.vcf.gz -p 16 --minMAF 0.1 --minCOUNT 20 --minMAPQ 30`
-**Explanation:** --minMAPQ 30 filters low-quality alignments; cellsnp-lite does not have --minBQ flag; use --minMAPQ and --minLEN for read filtering
+**Explanation:** -s possorted_genome_bam.bam BAM input; -b barcodes.tsv cell barcodes file; -O hq_out output directory; -R snps.vcf.gz known SNP VCF; -p 16 threads; --minMAF 0.1 minimum allele frequency; --minCOUNT 20 minimum count; --minMAPQ 30 filters low-quality alignments; cellsnp-lite does not have --minBQ flag; use --minMAPQ and --minLEN for read filtering
 
 ### genotype cells in addition to counting alleles
 **Args:** `-s possorted_genome_bam.bam -b barcodes.tsv -O genotyped_out -R snps.vcf.gz -p 16 --minMAF 0.1 --minCOUNT 20 --genotype --gzip`
-**Explanation:** --genotype outputs genotype probabilities (GP) and genotypes (GT) in addition to allele counts; --gzip compresses output files
+**Explanation:** -s possorted_genome_bam.bam BAM input; -b barcodes.tsv cell barcodes file; -O genotyped_out output directory; -R snps.vcf.gz known SNP VCF; -p 16 threads; --minMAF 0.1 minimum allele frequency; --minCOUNT 20 minimum count; --genotype outputs genotype probabilities (GP) and genotypes (GT); --gzip compresses output files
 
 ### use streaming mode for large SNP panels
 **Args:** `-s possorted_genome_bam.bam -b barcodes.tsv -O streaming_out -T large_panel.vcf.gz -p 16 --minMAF 0.1 --minCOUNT 20`
-**Explanation:** -T uses streaming instead of indexed access; better for large SNP panels (millions of SNPs) where -R would be slow
+**Explanation:** -s possorted_genome_bam.bam BAM input; -b barcodes.tsv cell barcodes file; -O streaming_out output directory; -T large_panel.vcf.gz SNP panel (streaming mode); -p 16 threads; --minMAF 0.1 minimum allele frequency; --minCOUNT 20 minimum count; -T uses streaming instead of indexed access; better for large SNP panels
 
 ### pileup without UMI counting (read-level)
 **Args:** `-s bulk.bam -O read_counts_out -R snps.vcf.gz -p 16 --minMAF 0.05 --minCOUNT 10 --UMItag None`
-**Explanation:** --UMItag None counts reads instead of UMIs; useful for bulk RNA-seq or when UMI information is not available
+**Explanation:** -s bulk.bam BAM input; -O read_counts_out output directory; -R snps.vcf.gz known SNP VCF; -p 16 threads; --minMAF 0.05 minimum allele frequency; --minCOUNT 10 minimum count; --UMItag None counts reads instead of UMIs; useful for bulk RNA-seq or when UMI information is not available
 
 ### use sample list for multi-sample bulk analysis
 **Args:** `-S bam_list.txt -O multi_sample_out -R snps.vcf.gz -p 16 --minMAF 0.1 --minCOUNT 20 -i sample_ids.txt`
-**Explanation:** -S provides a file listing BAM files; -i provides corresponding sample IDs; alternative to comma-separated -s
+**Explanation:** -S bam_list.txt file listing BAM files; -O multi_sample_out output directory; -R snps.vcf.gz known SNP VCF; -p 16 threads; --minMAF 0.1 minimum allele frequency; --minCOUNT 20 minimum count; -i sample_ids.txt file with corresponding sample IDs; alternative to comma-separated -s

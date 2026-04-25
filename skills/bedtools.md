@@ -55,7 +55,7 @@ source_url: "https://bedtools.readthedocs.io/"
 
 ### find closest non-overlapping feature in B for each interval in A
 **Args:** `closest -a query.bed -b annotations.bed -d`
-**Explanation:** -d reports distance to closest feature; output includes original A and B intervals plus distance
+**Explanation:** -a is query; -b is annotations to find closest feature in; -d reports distance to closest feature; output includes original A and B intervals plus distance
 
 ### count overlaps between A intervals and B features
 **Args:** `intersect -a genes.bed -b reads.bam -c`
@@ -87,7 +87,7 @@ source_url: "https://bedtools.readthedocs.io/"
 
 ### apply aggregate function to overlapping intervals
 **Args:** `map -a genes.bed -b scores.bed -c 5 -o mean`
-**Explanation:** maps column 5 from B intervals overlapping each A interval; -o specifies operation (sum, mean, min, max, count, collapse, distinct, median, mode, stdev)
+**Explanation:** -a is genes; -b is scores to map; -c 5 selects column 5 from B intervals; -o specifies operation (sum, mean, min, max, count, collapse, distinct, median, mode, stdev)
 
 ### merge intervals while preserving gene names
 **Args:** `merge -i exons.bed -c 4 -o distinct`
@@ -111,7 +111,7 @@ source_url: "https://bedtools.readthedocs.io/"
 
 ### profile nucleotide content of intervals
 **Args:** `nuc -fi reference.fa -bed regions.bed`
-**Explanation:** reports GC content, AT content, and nucleotide frequencies per interval; -s for strand-aware; -pattern to count specific motifs
+**Explanation:** -fi is the reference FASTA; -bed specifies the intervals; reports GC content, AT content, and nucleotide frequencies per interval; -s for strand-aware; -pattern to count specific motifs
 
 ### left-join two interval files (report A even without B overlap)
 **Args:** `intersect -a genes.bed -b snps.bed -loj`

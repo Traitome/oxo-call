@@ -39,40 +39,40 @@ source_url: "https://github.com/chklovski/CheckM2"
 
 ### assess quality of all MAG bins in a directory
 **Args:** `predict --input bins_directory/ --output-directory checkm2_results/ --threads 16`
-**Explanation:** --input directory with FASTA bins; --output-directory for results; outputs quality_report.tsv
+**Explanation:** predict subcommand; --input bins_directory/ directory with FASTA bins; --output-directory checkm2_results/ output directory; --threads 16 parallel processing; outputs quality_report.tsv
 
 ### assess genome quality with custom database path
 **Args:** `predict --input bins_directory/ --output-directory checkm2_output/ --threads 16 --database_path /path/to/checkm2_database/`
-**Explanation:** --database_path specifies downloaded CheckM2 database; required if not in default location
+**Explanation:** predict subcommand; --input bins_directory/ directory with FASTA bins; --output-directory checkm2_output/ output directory; --threads 16 parallel processing; --database_path /path/to/checkm2_database/ specifies downloaded CheckM2 database; required if not in default location
 
 ### assess quality and produce detailed outputs including protein predictions
 **Args:** `predict --input bins_directory/ --output-directory checkm2_results/ --threads 16 --allmodels`
-**Explanation:** --allmodels runs all CheckM2 quality models; provides more comprehensive quality estimates
+**Explanation:** predict subcommand; --input bins_directory/ directory with FASTA bins; --output-directory checkm2_results/ output directory; --threads 16 parallel processing; --allmodels runs all CheckM2 quality models; provides more comprehensive quality estimates
 
 ### download the CheckM2 database
 **Args:** `database --download --path /path/to/databases/`
-**Explanation:** downloads the CheckM2 DIAMOND database; must be run before first use
+**Explanation:** database subcommand; --download flag; --path /path/to/databases/ output location; downloads the CheckM2 DIAMOND database; must be run before first use
 
 ### run checkm2 in low memory mode
 **Args:** `predict --input bins_directory/ --output-directory checkm2_results/ --threads 16 --lowmem`
-**Explanation:** --lowmem reduces DIAMOND blocksize to decrease RAM usage; useful for large datasets or memory-constrained systems
+**Explanation:** predict subcommand; --input bins_directory/ directory with FASTA bins; --output-directory checkm2_results/ output directory; --threads 16 parallel processing; --lowmem reduces DIAMOND blocksize to decrease RAM usage; useful for large datasets or memory-constrained systems
 
 ### use specific prediction model only
 **Args:** `predict --input bins_directory/ --output-directory checkm2_results/ --threads 16 --specific`
-**Explanation:** --specific forces the neural network model; use when bins are from known lineages for potentially better accuracy
+**Explanation:** predict subcommand; --input bins_directory/ directory with FASTA bins; --output-directory checkm2_results/ output directory; --threads 16 parallel processing; --specific forces neural network model; use when bins are from known lineages for potentially better accuracy
 
 ### check current database location
 **Args:** `database --current`
-**Explanation:** prints the currently configured database path; useful for troubleshooting database issues
+**Explanation:** database subcommand; --current flag; prints the currently configured database path; useful for troubleshooting database issues
 
 ### set database location without downloading
 **Args:** `database --setdblocation /path/to/checkm2_database.dmnd`
-**Explanation:** points CheckM2 to an existing database file; alternative to --download for shared installations
+**Explanation:** database subcommand; --setdblocation flag; /path/to/checkm2_database.dmnd existing database file; points CheckM2 to an existing database file; alternative to --download for shared installations
 
 ### run test to verify installation
 **Args:** `testrun --threads 8`
-**Explanation:** runs CheckM2 on internal test genomes to verify installation works correctly; recommended after first install
+**Explanation:** testrun subcommand; --threads 8 parallel processing; runs CheckM2 on internal test genomes to verify installation works correctly; recommended after first install
 
 ### process protein files instead of nucleotide
 **Args:** `predict --input protein_directory/ --output-directory checkm2_protein_results/ --threads 16 --genes`
-**Explanation:** --genes treats input as protein files instead of nucleotide; skips Prodigal gene prediction step
+**Explanation:** predict subcommand; --input protein_directory/ directory with protein files; --output-directory checkm2_protein_results/ output directory; --threads 16 parallel processing; --genes treats input as protein files instead of nucleotide; skips Prodigal gene prediction step

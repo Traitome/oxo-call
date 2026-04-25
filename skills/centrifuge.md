@@ -38,60 +38,60 @@ source_url: "https://ccb.jhu.edu/software/centrifuge/manual.shtml"
 
 ### classify paired-end reads against a pre-built bacterial/viral database
 **Args:** `-x /databases/bv_bacteria -1 R1.fastq.gz -2 R2.fastq.gz -S classifications.tsv --report-file report.tsv -p 16`
-**Explanation:** -x sets the database prefix; -S is the classification output; --report-file gives per-taxon summary; -p 16 for threads
+**Explanation:** -x /databases/bv_bacteria database prefix; -1 R1.fastq.gz -2 R2.fastq.gz paired-end reads; -S classifications.tsv classification output; --report-file report.tsv per-taxon summary; -p 16 threads
 
 ### classify single-end reads against the NT database
 **Args:** `-x /databases/nt -U reads.fastq.gz -S classifications.tsv --report-file report.tsv -p 16`
-**Explanation:** -U for single-end reads; -x NT database prefix; outputs per-read classifications and summary report
+**Explanation:** -x /databases/nt NT database prefix; -U reads.fastq.gz single-end reads; -S classifications.tsv classification output; --report-file report.tsv per-taxon summary; -p 16 threads
 
 ### build a custom centrifuge index from bacterial reference genomes
 **Args:** `centrifuge-build -p 16 --taxonomy-tree nodes.dmp --name-table names.dmp --conversion-table seqid2taxid.map genomes.fasta custom_db`
-**Explanation:** centrifuge-build companion binary; --taxonomy-tree and --name-table are NCBI taxonomy files; --conversion-table maps sequence IDs to taxids
+**Explanation:** centrifuge-build companion binary; -p 16 threads; --taxonomy-tree nodes.dmp NCBI taxonomy nodes; --name-table names.dmp NCBI taxonomy names; --conversion-table seqid2taxid.map sequence-to-taxid mapping; genomes.fasta input sequences; custom_db output prefix
 
 ### classify reads with increased sensitivity for viral detection
 **Args:** `-x /databases/viral -U reads.fastq.gz -S viral_hits.tsv --report-file viral_report.tsv -p 8 --min-hitlen 16`
-**Explanation:** --min-hitlen 16 increases sensitivity for short viral reads at the cost of specificity
+**Explanation:** -x /databases/viral viral database prefix; -U reads.fastq.gz single-end reads; -S viral_hits.tsv classification output; --report-file viral_report.tsv per-taxon summary; -p 8 threads; --min-hitlen 16 increases sensitivity for short viral reads at cost of specificity
 
 ### convert centrifuge output to Kraken-style report for Pavian/Krona
 **Args:** `centrifuge-kreport -x /databases/bv_bacteria classifications.tsv > kraken_report.txt`
-**Explanation:** centrifuge-kreport companion binary; converts centrifuge output to Kraken-compatible format for Pavian/Krona visualization
+**Explanation:** centrifuge-kreport companion binary; -x /databases/bv_bacteria database prefix; classifications.tsv centrifuge output input; converts to Kraken-compatible format for Pavian/Krona visualization
 
 ### remove human reads by classifying against human genome and excluding matches
 **Args:** `-x /databases/hg38 -1 R1.fastq.gz -2 R2.fastq.gz -S human_classifications.tsv -p 16 --un-conc non_human_%.fastq.gz`
-**Explanation:** --un-conc writes paired reads that did NOT classify against the human database; useful for host depletion
+**Explanation:** -x /databases/hg38 human database prefix; -1 R1.fastq.gz -2 R2.fastq.gz paired-end reads; -S human_classifications.tsv classification output; -p 16 threads; --un-conc non_human_%.fastq.gz writes paired reads that did NOT classify against human; useful for host depletion
 
 ### build centrifuge index from viral reference sequences
 **Args:** `centrifuge-build -p 8 --taxonomy-tree nodes.dmp --name-table names.dmp --conversion-table seqid2taxid.map viral_sequences.fasta viral_db`
-**Explanation:** centrifuge-build companion binary; creates viral_db index files for rapid viral read classification
+**Explanation:** centrifuge-build companion binary; -p 8 threads; --taxonomy-tree nodes.dmp NCBI taxonomy nodes; --name-table names.dmp NCBI taxonomy names; --conversion-table seqid2taxid.map sequence-to-taxid mapping; viral_sequences.fasta input; viral_db output prefix; creates index files for rapid viral read classification
 
 ### classify reads and save unclassified reads for downstream assembly
 **Args:** `-x /databases/bv_bacteria -1 R1.fastq.gz -2 R2.fastq.gz -S classifications.tsv --report-file report.tsv -p 16 --un-conc unclassified_%.fastq.gz`
-**Explanation:** --un-conc saves unclassified paired reads; useful for recovering novel organisms for de novo assembly
+**Explanation:** -x /databases/bv_bacteria database prefix; -1 R1.fastq.gz -2 R2.fastq.gz paired-end reads; -S classifications.tsv classification output; --report-file report.tsv per-taxon summary; -p 16 threads; --un-conc unclassified_%.fastq.gz saves unclassified paired reads; useful for recovering novel organisms for de novo assembly
 
 ### use high minimum hit length for precision metagenomic classification
 **Args:** `-x /databases/nt -U reads.fastq.gz -S classifications.tsv --report-file report.tsv -p 16 --min-hitlen 30`
-**Explanation:** --min-hitlen 30 reduces false positives; useful for long reads or when database contamination is a concern
+**Explanation:** -x /databases/nt NT database prefix; -U reads.fastq.gz single-end reads; -S classifications.tsv classification output; --report-file report.tsv per-taxon summary; -p 16 threads; --min-hitlen 30 reduces false positives; useful for long reads or when database contamination is a concern
 
 ### classify paired-end metagenome against custom host-depleted database
 **Args:** `-x /databases/custom_microbiome -1 R1.fastq.gz -2 R2.fastq.gz -S classifications.tsv --report-file report.tsv -p 16 -k 5`
-**Explanation:** -k 5 reports top 5 assignments per read; useful for reads that map to multiple taxa with similar scores
+**Explanation:** -x /databases/custom_microbiome database prefix; -1 R1.fastq.gz -2 R2.fastq.gz paired-end reads; -S classifications.tsv classification output; --report-file report.tsv per-taxon summary; -p 16 threads; -k 5 reports top 5 assignments per read; useful for reads that map to multiple taxa with similar scores
 
 ### exclude human reads using taxonomy ID for microbial enrichment
 **Args:** `-x /databases/nt -1 R1.fastq.gz -2 R2.fastq.gz -S classifications.tsv --report-file report.tsv -p 16 --exclude-taxids 9606`
-**Explanation:** --exclude-taxids 9606 excludes human (taxonomy ID 9606) from classification; useful for host-associated microbiome studies
+**Explanation:** -x /databases/nt NT database prefix; -1 R1.fastq.gz -2 R2.fastq.gz paired-end reads; -S classifications.tsv classification output; --report-file report.tsv per-taxon summary; -p 16 threads; --exclude-taxids 9606 excludes human (taxonomy ID 9606) from classification; useful for host-associated microbiome studies
 
 ### preferentially classify to human when ambiguous
 **Args:** `-x /databases/nt -1 R1.fastq.gz -2 R2.fastq.gz -S classifications.tsv --report-file report.tsv -p 16 --host-taxids 9606`
-**Explanation:** --host-taxids 9606 preferentially assigns reads to human when multiple taxa have similar scores; useful for host-pathogen studies
+**Explanation:** -x /databases/nt NT database prefix; -1 R1.fastq.gz -2 R2.fastq.gz paired-end reads; -S classifications.tsv classification output; --report-file report.tsv per-taxon summary; -p 16 threads; --host-taxids 9606 preferentially assigns reads to human when multiple taxa have similar scores; useful for host-pathogen studies
 
 ### output SAM format for alignment visualization
 **Args:** `-x /databases/bv_bacteria -1 R1.fastq.gz -2 R2.fastq.gz -S alignments.sam --out-fmt sam -p 16`
-**Explanation:** --out-fmt sam outputs alignments in SAM format instead of tabular; viewable in IGV or other genome browsers
+**Explanation:** -x /databases/bv_bacteria database prefix; -1 R1.fastq.gz -2 R2.fastq.gz paired-end reads; -S alignments.sam SAM output; --out-fmt sam outputs alignments in SAM format instead of tabular; -p 16 threads; viewable in IGV or other genome browsers
 
 ### classify reads with quality trimming
 **Args:** `-x /databases/bv_bacteria -1 R1.fastq.gz -2 R2.fastq.gz -S classifications.tsv --report-file report.tsv -p 16 --trim5 10 --trim3 10`
-**Explanation:** --trim5 10 and --trim3 10 remove 10bp from each end; useful for removing adapter sequences or low-quality bases
+**Explanation:** -x /databases/bv_bacteria database prefix; -1 R1.fastq.gz -2 R2.fastq.gz paired-end reads; -S classifications.tsv classification output; --report-file report.tsv per-taxon summary; -p 16 threads; --trim5 10 --trim3 10 remove 10bp from each end; useful for removing adapter sequences or low-quality bases
 
 ### save classified reads for downstream analysis
 **Args:** `-x /databases/viral -U reads.fastq.gz -S viral_hits.tsv --report-file viral_report.tsv -p 8 --al viral_reads.fastq.gz`
-**Explanation:** --al writes reads that classified against the database to a separate file; useful for extracting pathogen reads for assembly
+**Explanation:** -x /databases/viral viral database prefix; -U reads.fastq.gz single-end reads; -S viral_hits.tsv classification output; --report-file viral_report.tsv per-taxon summary; -p 8 threads; --al viral_reads.fastq.gz writes reads that classified against the database; useful for extracting pathogen reads for assembly

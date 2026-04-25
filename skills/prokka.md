@@ -43,48 +43,48 @@ source_url: "https://github.com/tseemann/prokka"
 
 ### annotate a bacterial genome assembly
 **Args:** `--kingdom Bacteria --genus Escherichia --species coli --strain K12 --cpus 8 --outdir prokka_output --prefix ecoli_K12 assembly.fasta`
-**Explanation:** --kingdom, --genus, --species improve annotation; --prefix names output files; --outdir output directory
+**Explanation:** --kingdom Bacteria; --genus/--species/--strain improve annotation; --cpus 8 threads; --outdir output directory; --prefix names output files; assembly.fasta input
 
 ### annotate a metagenome-assembled genome (MAG)
 **Args:** `--metagenome --cpus 8 --outdir mag_annotation --prefix bin001 bin001_contigs.fasta`
-**Explanation:** --metagenome mode for MAGs; increases sensitivity for fragmented genome annotation
+**Explanation:** --metagenome mode for MAGs; --cpus 8 threads; --outdir output; --prefix names output; increases sensitivity for fragmented genomes
 
 ### annotate archaea genome
 **Args:** `--kingdom Archaea --cpus 8 --outdir archaea_output --prefix archaea_sample archaea_assembly.fasta`
-**Explanation:** --kingdom Archaea switches annotation databases appropriate for archaea
+**Explanation:** --kingdom Archaea switches annotation databases; --cpus 8 threads; --outdir output; --prefix names output; archaea_assembly.fasta input
 
 ### annotate genome with custom protein database for improved annotation
 **Args:** `--kingdom Bacteria --proteins custom_proteins.faa --cpus 8 --outdir custom_annotation --prefix sample genome.fasta`
-**Explanation:** --proteins adds custom protein FASTA for database-driven annotation; takes priority over defaults
+**Explanation:** --kingdom Bacteria; --proteins adds custom protein FASTA; --cpus 8 threads; --outdir output; --prefix names output; genome.fasta input; takes priority over defaults
 
 ### annotate genome and add specific locus tag prefix
 **Args:** `--kingdom Bacteria --locustag MYORG --cpus 8 --outdir annotated --prefix genome_v1 assembly.fasta`
-**Explanation:** --locustag sets locus tag prefix for gene names (e.g., MYORG_00001); important for GenBank submissions
+**Explanation:** --kingdom Bacteria; --locustag sets locus tag prefix for gene names; --cpus 8 threads; --outdir output; --prefix names output; assembly.fasta input; important for GenBank
 
 ### annotate with genus-specific database
 **Args:** `--kingdom Bacteria --genus Escherichia --usegenus --cpus 8 --outdir annotation --prefix ecoli assembly.fasta`
-**Explanation:** --usegenus uses genus-specific BLAST database for improved annotation accuracy
+**Explanation:** --kingdom Bacteria; --genus Escherichia; --usegenus uses genus-specific BLAST database; --cpus 8 threads; --outdir output; --prefix names output; assembly.fasta input; improved accuracy
 
 ### annotate with custom genetic code
 **Args:** `--kingdom Bacteria --gcode 4 --cpus 8 --outdir annotation --prefix myco assembly.fasta`
-**Explanation:** --gcode 4 uses Mycoplasma genetic code; check NCBI genetic code tables
+**Explanation:** --kingdom Bacteria; --gcode 4 uses Mycoplasma genetic code; --cpus 8 threads; --outdir output; --prefix names output; assembly.fasta input; check NCBI genetic code tables
 
 ### annotate with stringent e-value
 **Args:** `--kingdom Bacteria --evalue 1e-15 --cpus 8 --outdir annotation --prefix strict assembly.fasta`
-**Explanation:** --evalue 1e-15 increases annotation stringency; higher confidence but may miss distant homologs
+**Explanation:** --kingdom Bacteria; --evalue 1e-15 increases annotation stringency; --cpus 8 threads; --outdir output; --prefix names output; assembly.fasta input; higher confidence but may miss distant homologs
 
 ### annotate with Rfam ncRNA search
 **Args:** `--kingdom Bacteria --rfam --cpus 8 --outdir annotation --prefix with_ncrna assembly.fasta`
-**Explanation:** --rfam enables Infernal+Rfam search for non-coding RNAs (slow but thorough)
+**Explanation:** --kingdom Bacteria; --rfam enables Infernal+Rfam search for non-coding RNAs; --cpus 8 threads; --outdir output; --prefix names output; assembly.fasta input; slow but thorough
 
 ### fast annotation mode
 **Args:** `--kingdom Bacteria --fast --cpus 8 --outdir annotation --prefix quick assembly.fasta`
-**Explanation:** --fast uses only basic BLASTP databases; much faster but less comprehensive
+**Explanation:** --kingdom Bacteria; --fast uses only basic BLASTP databases; --cpus 8 threads; --outdir output; --prefix names output; assembly.fasta input; much faster but less comprehensive
 
 ### annotate with GenBank compliance
 **Args:** `--kingdom Bacteria --compliant --centre MYLAB --addgenes --cpus 8 --outdir annotation --prefix compliant assembly.fasta`
-**Explanation:** --compliant enforces GenBank standards; --centre required; --addgenes adds gene features
+**Explanation:** --kingdom Bacteria; --compliant enforces GenBank standards; --centre MYLAB required; --addgenes adds gene features; --cpus 8 threads; --outdir output; --prefix names output; assembly.fasta input
 
 ### annotate with HMM database
 **Args:** `--kingdom Bacteria --hmms trusted.hmm --cpus 8 --outdir annotation --prefix hmm assembly.fasta`
-**Explanation:** --hmms uses trusted HMM profiles for priority annotation
+**Explanation:** --kingdom Bacteria; --hmms uses trusted HMM profiles; --cpus 8 threads; --outdir output; --prefix names output; assembly.fasta input; priority annotation

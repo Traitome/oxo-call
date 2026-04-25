@@ -41,40 +41,40 @@ source_url: "https://github.com/pjedge/longshot"
 
 ### call SNPs from Oxford Nanopore aligned reads
 **Args:** `-b sorted.bam -f reference.fa -o snps.vcf`
-**Explanation:** -b BAM input; -f reference FASTA; -o output VCF with phased SNPs
+**Explanation:** longshot command; -b sorted.bam input BAM; -f reference.fa reference FASTA; -o snps.vcf output VCF
 
 ### call SNPs restricted to a specific region
 **Args:** `-b sorted.bam -f reference.fa -o chr1_snps.vcf -r chr1:1000000-2000000`
-**Explanation:** -r restricts calling to specified genomic region
+**Explanation:** longshot command; -b sorted.bam input BAM; -f reference.fa reference FASTA; -o chr1_snps.vcf output VCF; -r chr1:1000000-2000000 genomic region
 
 ### call SNPs with minimum coverage filter
 **Args:** `-b sorted.bam -f reference.fa -o snps_filtered.vcf -c 10 -q 20`
-**Explanation:** -c 10 minimum coverage; -q 20 minimum mapping quality threshold
+**Explanation:** longshot command; -b sorted.bam input BAM; -f reference.fa reference FASTA; -o snps_filtered.vcf output VCF; -c 10 minimum coverage; -q 20 minimum mapping quality
 
 ### output haplotype-separated BAM for downstream analysis
 **Args:** `-b sorted.bam -f reference.fa -o snps.vcf -O haplotagged.bam`
-**Explanation:** -O outputs BAM with HP:i:1/HP:i:2 tags; useful for haplotype-aware analysis like whatshap
+**Explanation:** longshot command; -b sorted.bam input BAM; -f reference.fa reference FASTA; -o snps.vcf output VCF; -O haplotagged.bam output BAM with HP:i:1/2 tags
 
 ### call SNPs with auto-coverage for variable depth regions
 **Args:** `-b sorted.bam -f reference.fa -o snps.vcf -A`
-**Explanation:** -A auto-calculates max coverage as mean + 5*sqrt(mean); slower but handles coverage spikes
+**Explanation:** longshot command; -b sorted.bam input BAM; -f reference.fa reference FASTA; -o snps.vcf output VCF; -A auto-calculate max coverage
 
 ### genotype SNPs without phasing
 **Args:** `-b sorted.bam -f reference.fa -o snps.vcf -n`
-**Explanation:** -n disables HapCUT2 phasing; outputs genotypes without haplotype information
+**Explanation:** longshot command; -b sorted.bam input BAM; -f reference.fa reference FASTA; -o snps.vcf output VCF; -n disable HapCUT2 phasing
 
 ### call SNPs with strict allele observation filters
 **Args:** `-b sorted.bam -f reference.fa -o snps_strict.vcf -e 5 -E 0.2 -a 10.0`
-**Explanation:** -e 5 min alt observations; -E 0.2 min alt fraction; -a 10.0 min allele quality; reduces false positives
+**Explanation:** longshot command; -b sorted.bam input BAM; -f reference.fa reference FASTA; -o snps_strict.vcf output VCF; -e 5 minimum alt observations; -E 0.2 minimum alt fraction; -a 10.0 minimum allele quality
 
 ### call SNPs with stable alignment for systematic errors
 **Args:** `-b sorted.bam -f reference.fa -o snps.vcf -S`
-**Explanation:** -S uses logspace pair HMM; slower but more numerically stable; may help with systematic sequencing errors
+**Explanation:** longshot command; -b sorted.bam input BAM; -f reference.fa reference FASTA; -o snps.vcf output VCF; -S stable alignment mode
 
 ### call SNPs in high-coverage region with increased max coverage
 **Args:** `-b sorted.bam -f reference.fa -o snps.vcf -C 20000`
-**Explanation:** -C 20000 increases max coverage threshold from default 8000; needed for ultra-deep sequencing
+**Explanation:** longshot command; -b sorted.bam input BAM; -f reference.fa reference FASTA; -o snps.vcf output VCF; -C 20000 max coverage threshold
 
 ### force overwrite existing output files
 **Args:** `-b sorted.bam -f reference.fa -o snps.vcf -F`
-**Explanation:** -F forces overwrite of existing VCF/BAM outputs; useful for pipeline reruns
+**Explanation:** longshot command; -b sorted.bam input BAM; -f reference.fa reference FASTA; -o snps.vcf output VCF; -F force overwrite

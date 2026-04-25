@@ -41,48 +41,48 @@ source_url: "https://mafft.cbrc.jp/alignment/software/"
 
 ### align multiple protein sequences with automatic algorithm selection
 **Args:** `--auto --thread 8 proteins.fasta > aligned_proteins.fasta`
-**Explanation:** --auto selects algorithm based on data size; output to stdout redirected to aligned_proteins.fasta
+**Explanation:** mafft command; --auto algorithm selection; --thread 8 threads; proteins.fasta input FASTA; output to aligned_proteins.fasta
 
 ### highly accurate multiple sequence alignment for fewer than 200 sequences
 **Args:** `--localpair --maxiterate 1000 --thread 8 sequences.fasta > aligned_localpair.fasta`
-**Explanation:** --localpair (L-INS-i) most accurate for conserved core sequences; --maxiterate 1000 maximum iterations
+**Explanation:** mafft command; --localpair L-INS-i algorithm; --maxiterate 1000 iterations; --thread 8 threads; sequences.fasta input FASTA; output to aligned_localpair.fasta
 
 ### align RNA sequences adjusting for strand orientation
 **Args:** `--auto --adjustdirectionaccurately --thread 8 rna_sequences.fasta > aligned_rna.fasta`
-**Explanation:** --adjustdirectionaccurately handles sequences on different strands by reverse complementing as needed
+**Explanation:** mafft command; --auto algorithm selection; --adjustdirectionaccurately strand orientation; --thread 8 threads; rna_sequences.fasta input FASTA; output to aligned_rna.fasta
 
 ### align sequences and output in PHYLIP format for phylogenetic analysis
 **Args:** `--auto --thread 8 --phylipout sequences.fasta > aligned.phy`
-**Explanation:** --phylipout generates PHYLIP format suitable for RAxML, IQ-TREE phylogenetic tools
+**Explanation:** mafft command; --auto algorithm selection; --thread 8 threads; --phylipout PHYLIP format output; sequences.fasta input FASTA; output to aligned.phy
 
 ### add new sequences to existing alignment
 **Args:** `--add new_sequences.fasta --thread 8 existing_alignment.fasta > updated_alignment.fasta`
-**Explanation:** --add incorporates new sequences into an existing alignment without re-aligning the original
+**Explanation:** mafft command; --add new_sequences.fasta add sequences; --thread 8 threads; existing_alignment.fasta existing alignment; output to updated_alignment.fasta
 
 ### align unaligned fragment sequences to existing alignment
 **Args:** `--addfragments fragments.fasta --reorder --thread 8 existing_alignment.fasta > updated.fasta`
-**Explanation:** --addfragments for unaligned sequences; aligns fragments to existing alignment preserving original gaps
+**Explanation:** mafft command; --addfragments fragments.fasta add unaligned fragments; --reorder sort by similarity; --thread 8 threads; existing_alignment.fasta existing alignment; output to updated.fasta
 
 ### merge two existing alignments without re-aligning
 **Args:** `--merge alignment1.fasta alignment2.fasta > merged_alignment.fasta`
-**Explanation:** --merge combines alignments; sequences within each input stay fixed, only between-group alignment is computed
+**Explanation:** mafft command; --merge combine alignments; alignment1.fasta alignment2.fasta input alignments; output to merged_alignment.fasta
 
 ### use seed alignment to anchor the alignment process
 **Args:** `--seed seed_alignment.fasta --auto --thread 8 sequences.fasta > anchored_alignment.fasta`
-**Explanation:** --seed provides a trusted alignment region as anchor; useful for incorporating structural or domain information
+**Explanation:** mafft command; --seed seed_alignment.fasta seed alignment; --auto algorithm selection; --thread 8 threads; sequences.fasta input FASTA; output to anchored_alignment.fasta
 
 ### align with custom gap penalties for fine-tuning
 **Args:** `--auto --op 2.0 --ep 0.5 --thread 8 sequences.fasta > aligned_custom.fasta`
-**Explanation:** --op 2.0 increases gap opening penalty; --ep 0.5 sets offset/extension penalty; tune for expected indel rates
+**Explanation:** mafft command; --auto algorithm selection; --op 2.0 gap opening penalty; --ep 0.5 extension penalty; --thread 8 threads; sequences.fasta input FASTA; output to aligned_custom.fasta
 
 ### fast alignment for very large datasets
 **Args:** `--retree 2 --maxiterate 0 --thread -1 large_dataset.fasta > aligned_fast.fasta`
-**Explanation:** --retree 2 for guide tree; --maxiterate 0 skips refinement; --thread -1 uses all cores; fastest mode
+**Explanation:** mafft command; --retree 2 guide tree iterations; --maxiterate 0 skip refinement; --thread -1 all cores; large_dataset.fasta input FASTA; output to aligned_fast.fasta
 
 ### align highly gapped sequences with E-INS-i algorithm
 **Args:** `--genafpair --maxiterate 1000 --thread 8 gapped_sequences.fasta > aligned_gapped.fasta`
-**Explanation:** --genafpair (E-INS-i) handles sequences with many long gaps; ideal for domain-insertion proteins
+**Explanation:** mafft command; --genafpair E-INS-i algorithm; --maxiterate 1000 iterations; --thread 8 threads; gapped_sequences.fasta input FASTA; output to aligned_gapped.fasta
 
 ### output in Clustal format for compatibility with legacy tools
 **Args:** `--auto --clustalout --thread 8 sequences.fasta > aligned.clustal`
-**Explanation:** --clustalout generates Clustal W format; useful for tools requiring .aln format instead of FASTA
+**Explanation:** mafft command; --auto algorithm selection; --clustalout Clustal format; --thread 8 threads; sequences.fasta input FASTA; output to aligned.clustal

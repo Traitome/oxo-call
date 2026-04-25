@@ -43,52 +43,52 @@ source_url: "https://github.com/chhylp123/hifiasm"
 
 ### assemble genome from PacBio HiFi reads
 **Args:** `-o assembly -t 32 hifi_reads.fastq.gz`
-**Explanation:** -o output prefix; -t 32 threads; creates assembly.bp.hap1.p_ctg.gfa and assembly.bp.hap2.p_ctg.gfa
+**Explanation:** -o assembly output prefix; -t 32 threads; hifi_reads.fastq.gz input file; creates assembly.bp.hap1.p_ctg.gfa and assembly.bp.hap2.p_ctg.gfa haplotype-resolved assemblies
 
 ### haplotype-resolved assembly with Hi-C phasing data
 **Args:** `-o phased_assembly -t 32 --h1 hic_R1.fastq.gz --h2 hic_R2.fastq.gz hifi_reads.fastq.gz`
-**Explanation:** --h1/--h2 provide Hi-C reads for haplotype phasing alongside HiFi reads
+**Explanation:** -o phased_assembly output prefix; -t 32 threads; --h1 hic_R1.fastq.gz --h2 hic_R2.fastq.gz provide Hi-C reads for haplotype phasing; hifi_reads.fastq.gz HiFi input
 
 ### assemble genome with custom number of haplotype rounds
 **Args:** `-o assembly -t 32 --n-hap 4 hifi_reads.fastq.gz`
-**Explanation:** --n-hap 4 sets expected ploidy level to 4; default is 2 for diploid assemblies
+**Explanation:** -o assembly output prefix; -t 32 threads; --n-hap 4 sets expected ploidy level to 4; hifi_reads.fastq.gz input; default is 2 for diploid assemblies
 
 ### assemble with ultra-long ONT reads for improved scaffolding
 **Args:** `-o assembly -t 32 --ul ultralong_reads.fastq.gz hifi_reads.fastq.gz`
-**Explanation:** --ul adds ultra-long ONT reads (>100kb) to improve scaffold N50 and telomere-to-telomere assembly
+**Explanation:** -o assembly output prefix; -t 32 threads; --ul ultralong_reads.fastq.gz adds ultra-long ONT reads (>100kb) for improved scaffold N50; hifi_reads.fastq.gz HiFi input; enables telomere-to-telomere assembly
 
 ### assemble with aggressive duplicate purging
 **Args:** `-o assembly -t 32 -l 3 hifi_reads.fastq.gz`
-**Explanation:** -l 3 aggressive purging level; useful for highly heterozygous genomes with duplicate haplotigs
+**Explanation:** -o assembly output prefix; -t 32 threads; -l 3 aggressive purging level; hifi_reads.fastq.gz input; useful for highly heterozygous genomes with duplicate haplotigs
 
 ### generate primary/alternate assembly instead of haplotype-resolved
 **Args:** `-o assembly -t 32 --primary hifi_reads.fastq.gz`
-**Explanation:** --primary outputs primary assembly (p_ctg.gfa) and alternate assembly (a_ctg.gfa); useful when haplotype phasing is not required
+**Explanation:** -o assembly output prefix; -t 32 threads; --primary outputs primary assembly (p_ctg.gfa) and alternate assembly (a_ctg.gfa); hifi_reads.fastq.gz input; useful when haplotype phasing is not required
 
 ### trio binning assembly with parental k-mers
 **Args:** `-o trio_assembly -t 32 -1 paternal.yak -2 maternal.yak hifi_reads.fastq.gz`
-**Explanation:** -1/-2 provide parental k-mer databases from yak count; produces fully phased haplotypes without Hi-C
+**Explanation:** -o trio_assembly output prefix; -t 32 threads; -1 paternal.yak -2 maternal.yak provide parental k-mer databases from yak count; hifi_reads.fastq.gz input; produces fully phased haplotypes without Hi-C
 
 ### trim adapter sequences from older HiFi reads
 **Args:** `-o assembly -t 32 -z 20 hifi_reads.fastq.gz`
-**Explanation:** -z 20 trims 20bp from both ends of reads; removes adapter contamination common in older HiFi data
+**Explanation:** -o assembly output prefix; -t 32 threads; -z 20 trims 20bp from both ends of reads; hifi_reads.fastq.gz input; removes adapter contamination common in older HiFi data
 
 ### specify homozygous coverage for low-coverage samples
 **Args:** `-o assembly -t 32 --hom-cov 30 hifi_reads.fastq.gz`
-**Explanation:** --hom-cov 30 manually sets homozygous coverage; useful when auto-detection fails on low-coverage or aneuploid samples
+**Explanation:** -o assembly output prefix; -t 32 threads; --hom-cov 30 manually sets homozygous coverage; hifi_reads.fastq.gz input; useful when auto-detection fails on low-coverage or aneuploid samples
 
 ### dual scaffolding with Hi-C and ultra-long reads
 **Args:** `-o assembly -t 32 --h1 hic_R1.fq.gz --h2 hic_R2.fq.gz --ul ont_ul.fq.gz --dual-scaf hifi_reads.fastq.gz`
-**Explanation:** --dual-scaf enables scaffolding with both Hi-C and ultra-long reads; produces more contiguous scaffolds
+**Explanation:** -o assembly output prefix; -t 32 threads; --h1 hic_R1.fq.gz --h2 hic_R2.fq.gz Hi-C reads; --ul ont_ul.fq.gz ultra-long reads; --dual-scaf enables scaffolding with both; hifi_reads.fastq.gz input; produces more contiguous scaffolds
 
 ### identify telomeres during assembly
 **Args:** `-o assembly -t 32 --telo-m CCCTAA hifi_reads.fastq.gz`
-**Explanation:** --telo-m CCCTAA specifies telomere motif for vertebrates; enables telomere identification and T2T assembly assessment
+**Explanation:** -o assembly output prefix; -t 32 threads; --telo-m CCCTAA specifies telomere motif for vertebrates; hifi_reads.fastq.gz input; enables telomere identification and T2T assembly assessment
 
 ### assemble ONT simplex reads (beta mode)
 **Args:** `-o assembly -t 32 --ont ont_reads.fastq.gz`
-**Explanation:** --ont enables ONT simplex read assembly mode; experimental feature for nanopore-only assembly
+**Explanation:** -o assembly output prefix; -t 32 threads; --ont enables ONT simplex read assembly mode; ont_reads.fastq.gz nanopore input; experimental feature for nanopore-only assembly
 
 ### resume assembly from existing overlap files
 **Args:** `-o assembly -t 32 -i hifi_reads.fastq.gz`
-**Explanation:** -i ignores saved read correction and overlaps; forces re-computation when previous steps failed or parameters changed
+**Explanation:** -o assembly output prefix; -t 32 threads; -i ignores saved read correction and overlaps; hifi_reads.fastq.gz input; forces re-computation when previous steps failed or parameters changed

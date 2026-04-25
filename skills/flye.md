@@ -44,44 +44,44 @@ source_url: "https://github.com/mikolmogorov/Flye"
 
 ### assemble bacterial genome from Oxford Nanopore reads
 **Args:** `--nano-raw reads.fastq.gz --genome-size 5m --out-dir flye_output/ --threads 16`
-**Explanation:** --nano-raw for ONT reads; --genome-size 5m (5 Mb); --out-dir output directory
+**Explanation:** --nano-raw for ONT reads; reads.fastq.gz input file; --genome-size 5m (5 Mb); --out-dir flye_output/ output directory; --threads 16 parallel threads
 
 ### assemble genome from PacBio HiFi reads
 **Args:** `--pacbio-hifi hifi_reads.fastq.gz --genome-size 3g --out-dir hifi_assembly/ --threads 32`
-**Explanation:** --pacbio-hifi for CCS/HiFi reads; --genome-size 3g for 3 Gb human-sized genome
+**Explanation:** --pacbio-hifi for CCS/HiFi reads; hifi_reads.fastq.gz input file; --genome-size 3g for 3 Gb human-sized genome; --out-dir hifi_assembly/ output directory; --threads 32 parallel threads
 
 ### assemble metagenomic community from ONT reads
 **Args:** `--meta --nano-raw meta_reads.fastq.gz --out-dir meta_flye/ --threads 32`
-**Explanation:** --meta for metagenomic mode; no --genome-size required; handles uneven coverage
+**Explanation:** --meta for metagenomic mode; --nano-raw for ONT reads; meta_reads.fastq.gz input file; --out-dir meta_flye/ output directory; --threads 32 parallel threads; no --genome-size required; handles uneven coverage
 
 ### assemble with high-quality ONT reads (R10, Q20+)
 **Args:** `--nano-hq hq_reads.fastq.gz --genome-size 4.5m --out-dir hq_assembly/ --threads 16 --iterations 2`
-**Explanation:** --nano-hq for high-accuracy ONT reads; --iterations 2 for additional polishing
+**Explanation:** --nano-hq for high-accuracy ONT reads; hq_reads.fastq.gz input file; --genome-size 4.5m estimated genome size; --out-dir hq_assembly/ output directory; --threads 16 parallel threads; --iterations 2 for additional polishing
 
 ### resume an interrupted Flye assembly
 **Args:** `--nano-raw reads.fastq.gz --genome-size 5m --out-dir flye_output/ --threads 16 --resume`
-**Explanation:** --resume continues from the last successfully completed stage
+**Explanation:** --nano-raw for ONT reads; reads.fastq.gz input file; --genome-size 5m estimated size; --out-dir flye_output/ output directory; --threads 16 threads; --resume continues from the last successfully completed stage
 
 ### assemble large genome with reduced memory using coverage subset
 **Args:** `--pacbio-hifi hifi_reads.fastq.gz --genome-size 3g --out-dir human_assembly/ --threads 32 --asm-coverage 40`
-**Explanation:** --asm-coverage 40 uses only 40x longest reads for initial disjointig; reduces memory from 80GB to ~40GB for human genome
+**Explanation:** --pacbio-hifi for HiFi reads; hifi_reads.fastq.gz input file; --genome-size 3g human genome size; --out-dir human_assembly/ output directory; --threads 32 threads; --asm-coverage 40 uses only 40x longest reads for initial disjointig; reduces memory from 80GB to ~40GB for human genome
 
 ### assemble with scaffolding enabled
 **Args:** `--nano-hq hq_reads.fastq.gz --genome-size 4.5m --out-dir scaffolded_assembly/ --threads 16 --scaffold --iterations 2`
-**Explanation:** --scaffold enables graph-based scaffolding; improves contiguity by linking contigs using repeat graph information
+**Explanation:** --nano-hq for high-quality ONT; hq_reads.fastq.gz input file; --genome-size 4.5m genome size; --out-dir scaffolded_assembly/ output directory; --threads 16 threads; --scaffold enables graph-based scaffolding; --iterations 2 polishing rounds; improves contiguity by linking contigs using repeat graph information
 
 ### preserve haplotypes for diploid genome assembly
 **Args:** `--pacbio-hifi hifi_reads.fastq.gz --genome-size 600m --out-dir diploid_assembly/ --threads 32 --keep-haplotypes --iterations 2`
-**Explanation:** --keep-haplotypes preserves heterozygous variants; outputs both haplotypes instead of collapsed mosaic
+**Explanation:** --pacbio-hifi for HiFi reads; hifi_reads.fastq.gz input file; --genome-size 600m diploid genome size; --out-dir diploid_assembly/ output directory; --threads 32 threads; --keep-haplotypes preserves heterozygous variants; --iterations 2 polishing; outputs both haplotypes instead of collapsed mosaic
 
 ### assemble with custom error rate for Guppy5+ R9 data
 **Args:** `--nano-hq guppy5_reads.fastq.gz --genome-size 5m --out-dir flye_output/ --threads 16 --read-error 0.05`
-**Explanation:** --read-error 0.05 sets 5% error rate; recommended for R9 Guppy5+ data with --nano-hq (slightly higher error than R10)
+**Explanation:** --nano-hq for high-quality ONT; guppy5_reads.fastq.gz input file; --genome-size 5m genome size; --out-dir flye_output/ output directory; --threads 16 threads; --read-error 0.05 sets 5% error rate; recommended for R9 Guppy5+ data with --nano-hq (slightly higher error than R10)
 
 ### run only specific pipeline stages
 **Args:** `--nano-raw reads.fastq.gz --genome-size 5m --out-dir flye_output/ --threads 16 --stop-after contigger`
-**Explanation:** --stop-after contigger stops after contig generation; useful for debugging or when polishing will be done separately
+**Explanation:** --nano-raw for ONT reads; reads.fastq.gz input file; --genome-size 5m genome size; --out-dir flye_output/ output directory; --threads 16 threads; --stop-after contigger stops after contig generation; useful for debugging or when polishing will be done separately
 
 ### polish existing assembly with Flye polisher
 **Args:** `--nano-raw reads.fastq.gz --polish-target draft_assembly.fasta --out-dir polished_output/ --threads 16`
-**Explanation:** --polish-target runs Flye polisher standalone on existing assembly; useful for re-polishing with different read sets
+**Explanation:** --nano-raw for ONT reads; reads.fastq.gz input file; --polish-target draft_assembly.fasta existing assembly to polish; --out-dir polished_output/ output directory; --threads 16 threads; runs Flye polisher standalone on existing assembly; useful for re-polishing with different read sets

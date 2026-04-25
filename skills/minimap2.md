@@ -46,19 +46,19 @@ source_url: "https://github.com/lh3/minimap2"
 
 ### align PacBio HiFi (CCS) reads to a reference genome
 **Args:** `-ax map-hifi reference.fa hifi_reads.fastq.gz | samtools sort -o hifi_aligned.bam`
-**Explanation:** -x map-hifi preset for PacBio HiFi/CCS reads with high accuracy
+**Explanation:** -a outputs SAM; -x map-hifi preset for PacBio HiFi/CCS reads with high accuracy
 
 ### align Nanopore cDNA reads for RNA-seq spliced alignment
 **Args:** `-ax splice --junc-bed known_junctions.bed reference.fa rna_reads.fastq.gz | samtools sort -o rna_aligned.bam`
-**Explanation:** -x splice enables spliced alignment for RNA-seq; --junc-bed provides known splice junctions
+**Explanation:** -a outputs SAM; -x splice enables spliced alignment for RNA-seq; --junc-bed provides known splice junctions
 
 ### compare two genome assemblies (assembly vs reference)
 **Args:** `-ax asm5 reference.fa assembly.fa | samtools sort -o assembly_vs_ref.bam`
-**Explanation:** -x asm5 for assemblies with ≤5% sequence divergence from reference
+**Explanation:** -a outputs SAM; -x asm5 for assemblies with ≤5% sequence divergence from reference
 
 ### map long reads and output in PAF format for structural variant analysis
 **Args:** `-x map-ont -c reference.fa reads.fastq.gz > aligned.paf`
-**Explanation:** PAF format is preferred by SV callers like Sniffles2; -c includes CIGAR in PAF
+**Explanation:** -x map-ont Nanopore preset; -c includes CIGAR in PAF; PAF format is preferred by SV callers like Sniffles2
 
 ### compute all-vs-all overlaps for de novo ONT assembly
 **Args:** `-x ava-ont reads.fastq.gz reads.fastq.gz | gzip > overlaps.paf.gz`
@@ -70,28 +70,28 @@ source_url: "https://github.com/lh3/minimap2"
 
 ### align with cs tag for variant calling
 **Args:** `-ax map-hifi --cs reference.fa reads.fastq.gz | samtools sort -o aligned_cs.bam`
-**Explanation:** --cs outputs cs tag describing sequence differences; useful for variant calling
+**Explanation:** -a outputs SAM; -x map-hifi HiFi preset; --cs outputs cs tag describing sequence differences; useful for variant calling
 
 ### align with =/X CIGAR operators
 **Args:** `-ax map-ont --eqx reference.fa reads.fastq.gz | samtools sort -o aligned_eqx.bam`
-**Explanation:** --eqx writes =/X instead of M in CIGAR; distinguishes matches from mismatches
+**Explanation:** -a outputs SAM; -x map-ont Nanopore preset; --eqx writes =/X instead of M in CIGAR; distinguishes matches from mismatches
 
 ### align suppressing secondary alignments
 **Args:** `-ax map-ont --secondary=no reference.fa reads.fastq.gz | samtools sort -o unique.bam`
-**Explanation:** --secondary=no outputs only primary alignments; useful for unique mapping
+**Explanation:** -a outputs SAM; -x map-ont Nanopore preset; --secondary=no outputs only primary alignments; useful for unique mapping
 
 ### align with soft clipping for SV calling
 **Args:** `-ax map-ont -Y --MD reference.fa reads.fastq.gz | samtools sort -o sv_ready.bam`
-**Explanation:** -Y uses soft clipping for supplementary alignments; --MD adds MD tag for SV callers
+**Explanation:** -a outputs SAM; -x map-ont Nanopore preset; -Y uses soft clipping for supplementary alignments; --MD adds MD tag for SV callers
 
 ### align short reads (Illumina)
 **Args:** `-ax sr reference.fa reads_R1.fastq.gz reads_R2.fastq.gz | samtools sort -o short_aligned.bam`
-**Explanation:** -x sr preset for short reads; accepts paired-end files
+**Explanation:** -a outputs SAM; -x sr preset for short reads; accepts paired-end files
 
 ### align with custom k-mer and window size
 **Args:** `-ax map-ont -k 17 -w 10 reference.fa reads.fastq.gz | samtools sort -o custom_k.bam`
-**Explanation:** -k 17 increases k-mer size for higher specificity; tune for data characteristics
+**Explanation:** -a outputs SAM; -x map-ont Nanopore preset; -k 17 increases k-mer size; -w 10 sets window size; tune for data characteristics
 
 ### output only mapped reads
 **Args:** `-ax map-ont --sam-hit-only reference.fa reads.fastq.gz | samtools sort -o mapped_only.bam`
-**Explanation:** --sam-hit-only excludes unmapped reads from SAM output; reduces file size
+**Explanation:** -a outputs SAM; -x map-ont Nanopore preset; --sam-hit-only excludes unmapped reads from SAM output; reduces file size

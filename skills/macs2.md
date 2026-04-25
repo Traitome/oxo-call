@@ -43,52 +43,52 @@ source_url: "https://macs3-project.github.io/MACS/"
 
 ### call narrow peaks from ChIP-seq data with input control
 **Args:** `callpeak -t chip.bam -c input.bam -f BAM -g hs -n sample_chip -q 0.05 --outdir chip_peaks/`
-**Explanation:** -t treatment; -c control; -g hs for human; -n output name prefix; -q FDR threshold
+**Explanation:** macs2 callpeak subcommand; -t chip.bam treatment BAM; -c input.bam control BAM; -f BAM format; -g hs human genome size; -n sample_chip output name; -q 0.05 FDR threshold; --outdir chip_peaks/ output directory
 
 ### call broad peaks for histone mark (H3K27me3) ChIP-seq
 **Args:** `callpeak -t h3k27me3.bam -c input.bam -f BAM -g hs --broad --broad-cutoff 0.1 -n h3k27me3 --outdir broad_peaks/`
-**Explanation:** --broad for histone marks with diffuse enrichment; --broad-cutoff 0.1 for broad peak FDR threshold
+**Explanation:** macs2 callpeak subcommand; -t h3k27me3.bam treatment BAM; -c input.bam control BAM; -f BAM format; -g hs human genome size; --broad broad peak mode; --broad-cutoff 0.1 FDR threshold; -n h3k27me3 output name; --outdir broad_peaks/ output directory
 
 ### call ATAC-seq peaks using nucleosome-free region model
 **Args:** `callpeak -t atac.bam -f BAM -g hs --nomodel --shift -100 --extsize 200 -n atac_sample -q 0.05 --outdir atac_peaks/`
-**Explanation:** --nomodel --shift -100 --extsize 200 is the standard ATAC-seq NFR peak calling setting
+**Explanation:** macs2 callpeak subcommand; -t atac.bam treatment BAM; -f BAM format; -g hs human genome size; --nomodel disable model; --shift -100 shift reads; --extsize 200 extension size; -n atac_sample output name; -q 0.05 FDR threshold; --outdir atac_peaks/ output directory
 
 ### call peaks from paired-end ATAC-seq BAM
 **Args:** `callpeak -t atac_pe.bam -f BAMPE -g hs -n atac_pe_sample -q 0.05 --outdir atac_pe_peaks/`
-**Explanation:** -f BAMPE uses actual fragment sizes from paired-end BAM; better for ATAC-seq peak calling
+**Explanation:** macs2 callpeak subcommand; -t atac_pe.bam treatment BAM; -f BAMPE paired-end format; -g hs human genome size; -n atac_pe_sample output name; -q 0.05 FDR threshold; --outdir atac_pe_peaks/ output directory
 
 ### call peaks without control for ATAC-seq open chromatin
 **Args:** `callpeak -t atac.bam -f BAM -g hs --nomodel --shift -100 --extsize 200 --keep-dup all -n open_chromatin --outdir atac_out/`
-**Explanation:** --keep-dup all prevents duplicate removal (do separately if needed); no -c for ATAC without control
+**Explanation:** macs2 callpeak subcommand; -t atac.bam treatment BAM; -f BAM format; -g hs human genome size; --nomodel disable model; --shift -100 shift reads; --extsize 200 extension size; --keep-dup all keep duplicates; -n open_chromatin output name; --outdir atac_out/ output directory
 
 ### generate bedGraph files for UCSC genome browser visualization
 **Args:** `callpeak -t chip.bam -c input.bam -f BAM -g hs -n sample --bdg --SPMR --trackline --outdir tracks/`
-**Explanation:** --bdg outputs bedGraph; --SPMR normalizes to signal per million reads; --trackline adds UCSC headers
+**Explanation:** macs2 callpeak subcommand; -t chip.bam treatment BAM; -c input.bam control BAM; -f BAM format; -g hs human genome size; -n sample output name; --bdg output bedGraph; --SPMR signal per million reads; --trackline add UCSC headers; --outdir tracks/ output directory
 
 ### analyze optimal cutoff thresholds for peak calling
 **Args:** `callpeak -t chip.bam -c input.bam -f BAM -g hs -n sample --cutoff-analysis --outdir analysis/`
-**Explanation:** --cutoff-analysis generates NAME_cutoff_analysis.txt with peaks at different thresholds; helps choose optimal -q/-p
+**Explanation:** macs2 callpeak subcommand; -t chip.bam treatment BAM; -c input.bam control BAM; -f BAM format; -g hs human genome size; -n sample output name; --cutoff-analysis analyze thresholds; --outdir analysis/ output directory
 
 ### call peaks with fold enrichment filtering
 **Args:** `callpeak -t chip.bam -c input.bam -f BAM -g hs -n sample --fe-cutoff 2.0 -q 0.01 --outdir filtered_peaks/`
-**Explanation:** --fe-cutoff 2.0 filters peaks with <2x enrichment; combines with -q for stringent peak calling
+**Explanation:** macs2 callpeak subcommand; -t chip.bam treatment BAM; -c input.bam control BAM; -f BAM format; -g hs human genome size; -n sample output name; --fe-cutoff 2.0 fold enrichment; -q 0.01 FDR threshold; --outdir filtered_peaks/ output directory
 
 ### call peaks with custom minimum length and gap
 **Args:** `callpeak -t chip.bam -c input.bam -f BAM -g hs -n sample --min-length 200 --max-gap 100 --outdir custom_peaks/`
-**Explanation:** --min-length 200 sets minimum peak size; --max-gap 100 merges peaks within 100bp; useful for specific peak shapes
+**Explanation:** macs2 callpeak subcommand; -t chip.bam treatment BAM; -c input.bam control BAM; -f BAM format; -g hs human genome size; -n sample output name; --min-length 200 minimum peak size; --max-gap 100 merge gap; --outdir custom_peaks/ output directory
 
 ### predict fragment size from alignment data
 **Args:** `predictd -i chip.bam -f BAM -g hs --outdir prediction/`
-**Explanation:** predictd estimates fragment size 'd' without calling peaks; useful for checking library quality before peak calling
+**Explanation:** macs2 predictd subcommand; -i chip.bam input BAM; -f BAM format; -g hs human genome size; --outdir prediction/ output directory
 
 ### remove duplicate reads and convert to BED
 **Args:** `filterdup -i chip.bam -f BAM --keep-dup 1 -o chip_dedup.bed`
-**Explanation:** filterdup removes duplicates and outputs BED; --keep-dup 1 keeps one duplicate; preprocessing step before peak calling
+**Explanation:** macs2 filterdup subcommand; -i chip.bam input BAM; -f BAM format; --keep-dup 1 keep one duplicate; -o chip_dedup.bed output BED
 
 ### call peaks from existing bedGraph signal track
 **Args:** `bdgpeakcall -i signal.bdg -c 2.0 -l 200 -g 100 -o peaks.bed`
-**Explanation:** bdgpeakcall calls peaks from MACS2-generated bedGraph; -c 2.0 cutoff; -l min length; -g max gap; for custom signal tracks
+**Explanation:** macs2 bdgpeakcall subcommand; -i signal.bdg input bedGraph; -c 2.0 cutoff; -l 200 minimum length; -g 100 maximum gap; -o peaks.bed output BED
 
 ### compare two signal tracks (ChIP vs input)
 **Args:** `bdgcmp -t chip.bdg -c input.bdg -m qpois -o chip_vs_input.bdg`
-**Explanation:** bdgcmp compares tracks; -m qpois calculates q-value from Poisson test; generates differential signal bedGraph
+**Explanation:** macs2 bdgcmp subcommand; -t chip.bdg treatment bedGraph; -c input.bdg control bedGraph; -m qpois method; -o chip_vs_input.bdg output bedGraph

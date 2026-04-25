@@ -43,48 +43,48 @@ source_url: "http://hmmer.org/"
 
 ### search a protein database against Pfam HMM profiles (domain annotation)
 **Args:** `hmmscan --cpu 8 --tblout pfam_hits.tbl --domtblout pfam_domains.tbl -E 1e-5 Pfam-A.hmm proteins.faa > pfam_output.txt`
-**Explanation:** hmmscan for sequence vs profile DB; --tblout per-sequence hits; --domtblout per-domain hits; -E cutoff
+**Explanation:** hmmscan subcommand for sequence vs profile DB; --cpu 8 threads; --tblout pfam_hits.tbl per-sequence hits; --domtblout pfam_domains.tbl per-domain hits; -E 1e-5 E-value cutoff; Pfam-A.hmm HMM database; proteins.faa input sequences; output to pfam_output.txt
 
 ### search a protein HMM profile against a sequence database
 **Args:** `hmmsearch --cpu 8 --tblout hits.tbl --domtblout domain_hits.tbl -E 1e-10 gene_family.hmm sequences.faa > hmmsearch_out.txt`
-**Explanation:** hmmsearch for profile vs sequence DB; opposite direction from hmmscan
+**Explanation:** hmmsearch subcommand for profile vs sequence DB; --cpu 8 threads; --tblout hits.tbl per-sequence hits; --domtblout domain_hits.tbl per-domain hits; -E 1e-10 E-value cutoff; gene_family.hmm HMM profile; sequences.faa sequence database; output to hmmsearch_out.txt
 
 ### build a profile HMM from a multiple sequence alignment
 **Args:** `hmmbuild --cpu 8 gene_family.hmm aligned_sequences.sto`
-**Explanation:** input is Stockholm (.sto) or other MSA format; outputs HMM profile for hmmsearch
+**Explanation:** hmmbuild subcommand; --cpu 8 threads; gene_family.hmm output HMM profile; aligned_sequences.sto input Stockholm-format MSA
 
 ### press Pfam database for hmmscan indexing
 **Args:** `hmmpress Pfam-A.hmm`
-**Explanation:** creates Pfam-A.hmm.h3i, .h3m, .h3f, .h3p index files required before running hmmscan
+**Explanation:** hmmpress subcommand; Pfam-A.hmm HMM database to index; creates .h3i, .h3m, .h3f, .h3p index files required before running hmmscan
 
 ### search proteins with phmmer (BLAST-like single sequence query)
 **Args:** `phmmer --cpu 8 --tblout phmmer_hits.tbl -E 1e-5 query_protein.faa target_database.faa > phmmer_out.txt`
-**Explanation:** phmmer uses query sequence directly without pre-building HMM; similar to BLASTP
+**Explanation:** phmmer subcommand; --cpu 8 threads; --tblout phmmer_hits.tbl per-sequence hits; -E 1e-5 E-value cutoff; query_protein.faa query sequence; target_database.faa target sequences; output to phmmer_out.txt
 
 ### use Pfam gathering threshold for standard annotation
 **Args:** `hmmscan --cpu 8 --cut_ga --tblout pfam_ga.tbl --domtblout pfam_ga_dom.tbl Pfam-A.hmm proteins.faa > pfam_ga.txt`
-**Explanation:** --cut_ga uses Pfam's curated gathering threshold; recommended for standard Pfam annotation; more reliable than manual E-value cutoffs
+**Explanation:** hmmscan subcommand; --cpu 8 threads; --cut_ga uses Pfam's curated gathering threshold; --tblout pfam_ga.tbl per-sequence hits; --domtblout pfam_ga_dom.tbl per-domain hits; Pfam-A.hmm HMM database; proteins.faa input sequences; output to pfam_ga.txt
 
 ### use trusted cutoff for high-confidence annotation
 **Args:** `hmmscan --cpu 8 --cut_tc --tblout pfam_tc.tbl Pfam-A.hmm proteins.faa > pfam_tc.txt`
-**Explanation:** --cut_tc uses stricter trusted cutoff; only highest confidence hits; useful when false positives are costly
+**Explanation:** hmmscan subcommand; --cpu 8 threads; --cut_tc uses stricter trusted cutoff; --tblout pfam_tc.tbl per-sequence hits; Pfam-A.hmm HMM database; proteins.faa input sequences; output to pfam_tc.txt
 
 ### save multiple alignment of significant hits
 **Args:** `hmmsearch --cpu 8 -A hits_alignment.sto --tblout hits.tbl -E 1e-5 query.hmm database.faa > hmmsearch_out.txt`
-**Explanation:** -A saves Stockholm-format alignment of all significant hits; useful for building new HMMs or phylogenetic analysis
+**Explanation:** hmmsearch subcommand; --cpu 8 threads; -A hits_alignment.sto saves Stockholm-format alignment; --tblout hits.tbl per-sequence hits; -E 1e-5 E-value cutoff; query.hmm HMM profile; database.faa sequence database; output to hmmsearch_out.txt
 
 ### run with maximum sensitivity (disable heuristics)
 **Args:** `hmmsearch --cpu 8 --max --tblout max_hits.tbl -E 1e-3 query.hmm database.faa > max_out.txt`
-**Explanation:** --max disables all heuristic filters; maximum sensitivity for distant homologs; much slower than default
+**Explanation:** hmmsearch subcommand; --cpu 8 threads; --max disables all heuristic filters for maximum sensitivity; --tblout max_hits.tbl per-sequence hits; -E 1e-3 E-value cutoff; query.hmm HMM profile; database.faa sequence database; output to max_out.txt
 
 ### set effective database size for accurate E-values
 **Args:** `hmmsearch --cpu 8 -Z 1000000 --tblout hits.tbl -E 1e-5 query.hmm database.faa > hmmsearch_out.txt`
-**Explanation:** -Z 1000000 sets effective database size to 1M sequences; important for custom databases to get accurate E-values
+**Explanation:** hmmsearch subcommand; --cpu 8 threads; -Z 1000000 sets effective database size to 1M sequences; --tblout hits.tbl per-sequence hits; -E 1e-5 E-value cutoff; query.hmm HMM profile; database.faa sequence database; output to hmmsearch_out.txt
 
 ### use bit score threshold instead of E-value
 **Args:** `hmmsearch --cpu 8 --tblout hits.tbl -T 25 query.hmm database.faa > hmmsearch_out.txt`
-**Explanation:** -T 25 sets bit score threshold to 25; bit scores are database-size independent; ~25 bits ≈ E-value 0.01
+**Explanation:** hmmsearch subcommand; --cpu 8 threads; --tblout hits.tbl per-sequence hits; -T 25 sets bit score threshold to 25; query.hmm HMM profile; database.faa sequence database; output to hmmsearch_out.txt
 
 ### search with domain-specific E-value threshold
 **Args:** `hmmsearch --cpu 8 --tblout hits.tbl --domtblout domains.tbl -E 1e-5 --domE 1e-3 query.hmm database.faa > hmmsearch_out.txt`
-**Explanation:** --domE 1e-3 is more permissive for individual domains; allows finding weak domains in proteins that already pass sequence threshold
+**Explanation:** hmmsearch subcommand; --cpu 8 threads; --tblout hits.tbl per-sequence hits; --domtblout domains.tbl per-domain hits; -E 1e-5 sequence E-value cutoff; --domE 1e-3 domain E-value cutoff; query.hmm HMM profile; database.faa sequence database; output to hmmsearch_out.txt

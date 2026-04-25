@@ -38,76 +38,76 @@ source_url: "https://docs.docker.com/reference/cli/docker/"
 
 ### run a container in the background with port mapping and a name
 **Args:** `run -d -p 8080:80 --name my-web nginx`
-**Explanation:** -d detaches (background); -p 8080:80 maps host port 8080 to container port 80; --name identifies the container
+**Explanation:** run subcommand; -d detaches (background); -p 8080:80 maps host port 8080 to container port 80; --name my-web identifies the container; nginx image name
 
 ### build a Docker image from a Dockerfile in the current directory
 **Args:** `build -t myapp:1.0 .`
-**Explanation:** -t tags the image as myapp:1.0; '.' is the build context (current directory with Dockerfile)
+**Explanation:** build subcommand; -t myapp:1.0 tags the image as myapp:1.0; '.' is the build context (current directory with Dockerfile)
 
 ### get an interactive shell inside a running container
 **Args:** `exec -it my-web bash`
-**Explanation:** -it allocates a TTY and attaches stdin; 'bash' is the command to run (use 'sh' if bash is unavailable)
+**Explanation:** exec subcommand; -it allocates a TTY and attaches stdin; my-web container name; 'bash' is the command to run (use 'sh' if bash is unavailable)
 
 ### list all containers including stopped ones
 **Args:** `ps -a`
-**Explanation:** -a shows all containers; without -a only running containers are shown; add --format for custom output
+**Explanation:** ps subcommand; -a shows all containers; without -a only running containers are shown; add --format for custom output
 
 ### view logs of a container and follow new output
 **Args:** `logs -f --tail 100 my-web`
-**Explanation:** -f follows log output in real time; --tail 100 shows only the last 100 lines first
+**Explanation:** logs subcommand; -f follows log output in real time; --tail 100 shows only the last 100 lines first; my-web container name
 
 ### mount a local directory as a volume and set environment variables
 **Args:** `run -d -v /data/app:/app -e APP_ENV=production --name app myimage:latest`
-**Explanation:** -v mounts host /data/app to container /app; -e sets an environment variable
+**Explanation:** run subcommand; -d detaches (background); -v /data/app:/app mounts host /data/app to container /app; -e APP_ENV=production sets an environment variable; --name app container name; myimage:latest image
 
 ### remove a stopped container
 **Args:** `rm my-web`
-**Explanation:** removes the named stopped container; use -f to force-remove a running container (data loss risk)
+**Explanation:** rm subcommand; my-web container name; removes the named stopped container; use -f to force-remove a running container (data loss risk)
 
 ### remove a Docker image
 **Args:** `rmi myapp:1.0`
-**Explanation:** removes the image by name:tag; fails if a container (even stopped) is still using it; use 'docker ps -a' to check
+**Explanation:** rmi subcommand; myapp:1.0 image name:tag; removes the image by name:tag; fails if a container (even stopped) is still using it; use 'docker ps -a' to check
 
 ### remove all stopped containers to free disk space
 **Args:** `container prune`
-**Explanation:** removes all stopped containers; prompts for confirmation; use -f to skip prompt
+**Explanation:** container subcommand with prune; removes all stopped containers; prompts for confirmation; use -f to skip prompt
 
 ### pull the latest version of an image from Docker Hub
 **Args:** `pull python:3.12-slim`
-**Explanation:** downloads the image without running it; useful to pre-pull before deployment
+**Explanation:** pull subcommand; python:3.12-slim image name; downloads the image without running it; useful to pre-pull before deployment
 
 ### run container with memory and CPU limits
 **Args:** `run -d --memory 4g --cpus 2 --name limited-app myimage`
-**Explanation:** --memory 4g limits RAM to 4GB; --cpus 2 limits to 2 CPU cores; prevents resource exhaustion
+**Explanation:** run subcommand; -d detaches (background); --memory 4g limits RAM to 4GB; --cpus 2 limits to 2 CPU cores; --name limited-app container name; myimage image; prevents resource exhaustion
 
 ### run container with GPU access
 **Args:** `run -d --gpus all --name gpu-app nvidia/cuda:12.0-base`
-**Explanation:** --gpus all provides access to all GPUs; requires NVIDIA Docker runtime installed
+**Explanation:** run subcommand; -d detaches (background); --gpus all provides access to all GPUs; --name gpu-app container name; nvidia/cuda:12.0-base image; requires NVIDIA Docker runtime installed
 
 ### run container as non-root user
 **Args:** `run -d --user $(id -u):$(id -g) -v $(pwd):/data --name secure-app myimage`
-**Explanation:** --user runs as current user/group; security best practice to avoid running as root
+**Explanation:** run subcommand; -d detaches (background); --user $(id -u):$(id -g) runs as current user/group; -v $(pwd):/data mounts current directory to /data; --name secure-app container name; myimage image; security best practice to avoid running as root
 
 ### copy files between host and container
 **Args:** `cp host_file.txt my-web:/app/data/`
-**Explanation:** copies host_file.txt to /app/data/ inside my-web container; reverse order to copy from container to host
+**Explanation:** cp subcommand; host_file.txt source file on host; my-web:/app/data/ destination path in container; copies host_file.txt to /app/data/ inside my-web container; reverse order to copy from container to host
 
 ### inspect container details in JSON
 **Args:** `inspect my-web`
-**Explanation:** outputs detailed container configuration and state in JSON; useful for scripting and debugging
+**Explanation:** inspect subcommand; my-web container/image name; outputs detailed container configuration and state in JSON; useful for scripting and debugging
 
 ### create and use a custom network
 **Args:** `network create my-network && docker run -d --network my-network --name web nginx`
-**Explanation:** docker network creates isolated network; containers on same network can communicate by name
+**Explanation:** network subcommand with create; my-network network name; docker run -d --network my-network --name web nginx runs container on custom network; containers on same network can communicate by name
 
 ### run multi-container application with compose
 **Args:** `compose -f docker-compose.yml up -d`
-**Explanation:** -f specifies compose file; up -d starts all services in detached mode
+**Explanation:** compose subcommand; -f docker-compose.yml specifies compose file; up starts services; -d detached mode; starts all services in detached mode
 
 ### stop and remove compose services
 **Args:** `compose down -v`
-**Explanation:** down stops and removes containers; -v also removes volumes (data loss warning)
+**Explanation:** compose subcommand; down stops and removes containers; -v also removes volumes (data loss warning)
 
 ### clean up unused Docker resources
 **Args:** `system prune -a -f`
-**Explanation:** removes all unused images, containers, networks; -f skips confirmation; use with caution
+**Explanation:** system subcommand with prune; -a removes all unused images; -f skips confirmation; removes all unused images, containers, networks; use with caution

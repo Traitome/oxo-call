@@ -42,36 +42,36 @@ source_url: "https://github.com/google/deepvariant"
 
 ### call variants from Illumina WGS data using DeepVariant
 **Args:** `run_deepvariant --model_type WGS --ref reference.fa --input_bam sorted.bam --output_vcf output.vcf --output_gvcf output.g.vcf --num_shards 16`
-**Explanation:** --model_type WGS for Illumina whole-genome; --num_shards 16 parallel CPU shards
+**Explanation:** run_deepvariant script; --model_type WGS for Illumina whole-genome; --ref reference.fa reference FASTA; --input_bam sorted.bam input BAM; --output_vcf output.vcf output VCF; --output_gvcf output.g.vcf output GVCF; --num_shards 16 parallel CPU shards
 
 ### call variants from PacBio HiFi data
 **Args:** `run_deepvariant --model_type PACBIO --ref reference.fa --input_bam hifi_sorted.bam --output_vcf pacbio_variants.vcf --output_gvcf pacbio.g.vcf --num_shards 16`
-**Explanation:** --model_type PACBIO for CCS/HiFi reads; dedicated model for long high-accuracy reads
+**Explanation:** run_deepvariant script; --model_type PACBIO for CCS/HiFi reads; --ref reference.fa reference FASTA; --input_bam hifi_sorted.bam input BAM; --output_vcf pacbio_variants.vcf output VCF; --output_gvcf pacbio.g.vcf output GVCF; --num_shards 16 parallel shards; dedicated model for long high-accuracy reads
 
 ### call variants from Oxford Nanopore reads
 **Args:** `run_deepvariant --model_type ONT --ref reference.fa --input_bam ont_sorted.bam --output_vcf ont_variants.vcf --output_gvcf ont.g.vcf --num_shards 16`
-**Explanation:** --model_type ONT for Nanopore reads; trained on ONT-specific error profiles
+**Explanation:** run_deepvariant script; --model_type ONT for Nanopore reads; --ref reference.fa reference FASTA; --input_bam ont_sorted.bam input BAM; --output_vcf ont_variants.vcf output VCF; --output_gvcf ont.g.vcf output GVCF; --num_shards 16 parallel shards; trained on ONT-specific error profiles
 
 ### call variants from WES data
 **Args:** `run_deepvariant --model_type WES --ref reference.fa --input_bam wes_sorted.bam --regions targets.bed --output_vcf wes_variants.vcf --output_gvcf wes.g.vcf --num_shards 8`
-**Explanation:** --model_type WES for whole-exome; --regions restricts calling to target BED regions
+**Explanation:** run_deepvariant script; --model_type WES for whole-exome; --ref reference.fa reference FASTA; --input_bam wes_sorted.bam input BAM; --regions targets.bed restricts calling to target BED regions; --output_vcf wes_variants.vcf output VCF; --output_gvcf wes.g.vcf output GVCF; --num_shards 8 parallel shards
 
 ### run with intermediate results for debugging
 **Args:** `run_deepvariant --model_type WGS --ref reference.fa --input_bam sorted.bam --output_vcf output.vcf --output_gvcf output.g.vcf --intermediate_results_dir /tmp/intermediate --num_shards 16`
-**Explanation:** --intermediate_results_dir saves make_examples and call_variants outputs; useful for debugging or resuming
+**Explanation:** run_deepvariant script; --model_type WGS for Illumina whole-genome; --ref reference.fa reference FASTA; --input_bam sorted.bam input BAM; --output_vcf output.vcf output VCF; --output_gvcf output.g.vcf output GVCF; --intermediate_results_dir /tmp/intermediate saves make_examples and call_variants outputs; --num_shards 16 parallel shards; useful for debugging or resuming
 
 ### dry run to preview commands
 **Args:** `run_deepvariant --model_type WGS --ref reference.fa --input_bam sorted.bam --output_vcf output.vcf --dry_run=true`
-**Explanation:** --dry_run prints all commands without executing; useful for workflow validation and debugging
+**Explanation:** run_deepvariant script; --model_type WGS for Illumina whole-genome; --ref reference.fa reference FASTA; --input_bam sorted.bam input BAM; --output_vcf output.vcf output VCF; --dry_run=true prints all commands without executing; useful for workflow validation and debugging
 
 ### hybrid PacBio-Illumina data
 **Args:** `run_deepvariant --model_type HYBRID_PACBIO_ILLUMINA --ref reference.fa --input_bam hybrid.bam --output_vcf hybrid.vcf --output_gvcf hybrid.g.vcf --num_shards 16`
-**Explanation:** HYBRID_PACBIO_ILLUMINA model for combined long and short read data
+**Explanation:** run_deepvariant script; --model_type HYBRID_PACBIO_ILLUMINA model for combined long and short read data; --ref reference.fa reference FASTA; --input_bam hybrid.bam input BAM; --output_vcf hybrid.vcf output VCF; --output_gvcf hybrid.g.vcf output GVCF; --num_shards 16 parallel shards
 
 ### run with specific region
 **Args:** `run_deepvariant --model_type WGS --ref reference.fa --input_bam sorted.bam --regions chr20:10,000,000-10,100,000 --output_vcf region.vcf --output_gvcf region.g.vcf --num_shards 4`
-**Explanation:** --regions limits calling to specific genomic region; useful for testing or targeted analysis
+**Explanation:** run_deepvariant script; --model_type WGS for Illumina whole-genome; --ref reference.fa reference FASTA; --input_bam sorted.bam input BAM; --regions chr20:10,000,000-10,100,000 limits calling to specific genomic region; --output_vcf region.vcf output VCF; --output_gvcf region.g.vcf output GVCF; --num_shards 4 parallel shards; useful for testing or targeted analysis
 
 ### GPU-accelerated variant calling
 **Args:** `run_deepvariant --model_type WGS --ref reference.fa --input_bam sorted.bam --output_vcf output.vcf --output_gvcf output.g.vcf --num_shards 1 --writer_threads=6`
-**Explanation:** For GPU runs, use --num_shards 1 (one GPU); --writer_threads limits CPU threads for output writing
+**Explanation:** run_deepvariant script; --model_type WGS for Illumina whole-genome; --ref reference.fa reference FASTA; --input_bam sorted.bam input BAM; --output_vcf output.vcf output VCF; --output_gvcf output.g.vcf output GVCF; --num_shards 1 for GPU runs (one GPU); --writer_threads=6 limits CPU threads for output writing

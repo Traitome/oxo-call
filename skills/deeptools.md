@@ -41,52 +41,52 @@ source_url: "https://deeptools.readthedocs.io/"
 
 ### generate normalized bigWig coverage track with bamCoverage
 **Args:** `bamCoverage -b sorted.bam -o output.bw --normalizeUsing RPKM --binSize 10 -p 8`
-**Explanation:** -b input BAM; -o output bigWig; --normalizeUsing RPKM normalizes by reads per kilobase per million; --binSize 10bp resolution
+**Explanation:** bamCoverage subcommand; -b sorted.bam input BAM; -o output.bw output bigWig; --normalizeUsing RPKM normalizes by reads per kilobase per million; --binSize 10bp resolution; -p 8 threads
 
 ### create log2 ratio (ChIP/Input) bigWig track with bamCompare
 **Args:** `bamCompare -b1 chip.bam -b2 input.bam -o chip_vs_input_log2.bw --normalizeUsing RPKM --binSize 10 -p 8`
-**Explanation:** -b1 treatment; -b2 control; outputs log2(ChIP/Input) bigWig for visualization
+**Explanation:** bamCompare subcommand; -b1 chip.bam treatment BAM; -b2 input.bam control BAM; -o chip_vs_input_log2.bw output bigWig; --normalizeUsing RPKM normalization; --binSize 10bp resolution; -p 8 threads; outputs log2(ChIP/Input)
 
 ### compute signal matrix around TSS with computeMatrix
 **Args:** `computeMatrix reference-point -S chip.bw -R genes.bed --referencePoint TSS -b 3000 -a 3000 -o matrix.gz -p 8`
-**Explanation:** -S bigWig input; -R regions BED/GTF; -b/-a bases before/after reference point; -o matrix for plotting
+**Explanation:** computeMatrix subcommand; reference-point mode; -S chip.bw bigWig input; -R genes.bed regions BED/GTF; --referencePoint TSS reference point; -b 3000 bases before; -a 3000 bases after; -o matrix.gz output matrix; -p 8 threads
 
 ### plot heatmap of signal around genomic regions with plotHeatmap
 **Args:** `plotHeatmap -m matrix.gz -out heatmap.png --colorMap RdBu_r --whatToShow 'heatmap and colorbar'`
-**Explanation:** -m matrix from computeMatrix; --colorMap color scheme; outputs PNG heatmap
+**Explanation:** plotHeatmap subcommand; -m matrix.gz matrix from computeMatrix; -out heatmap.png output PNG; --colorMap RdBu_r color scheme; --whatToShow 'heatmap and colorbar' display options
 
 ### compute read count correlation with multiBamSummary
 **Args:** `multiBamSummary bins -b sample1.bam sample2.bam sample3.bam -o readCounts.npz -p 8`
-**Explanation:** bins mode computes genome-wide 10kb bin counts; output .npz matrix for plotCorrelation and plotPCA
+**Explanation:** multiBamSummary subcommand; bins mode; -b sample1.bam sample2.bam sample3.bam input BAMs; -o readCounts.npz output .npz matrix; -p 8 threads; genome-wide 10kb bin counts for plotCorrelation and plotPCA
 
 ### generate ATAC-seq normalized bigWig with bamCoverage
 **Args:** `bamCoverage -b atac_sorted.bam -o atac_signal.bw --ATACshift --normalizeUsing RPGC --effectiveGenomeSize 2913022398 --binSize 10 -p 8`
-**Explanation:** --ATACshift corrects for Tn5 insertion offset; --RPGC normalization with hg38 effective genome size
+**Explanation:** bamCoverage subcommand; -b atac_sorted.bam input BAM; -o atac_signal.bw output bigWig; --ATACshift corrects for Tn5 insertion offset; --normalizeUsing RPGC normalization; --effectiveGenomeSize 2913022398 hg38 effective genome size; --binSize 10bp resolution; -p 8 threads
 
 ### generate smoothed coverage track for ChIP-seq
 **Args:** `bamCoverage -b chip.bam -o chip_smooth.bw --extendReads --smoothLength 150 --binSize 10 -p 8`
-**Explanation:** --extendReads extends to fragment length; --smoothLength 150 averages over 150bp window for smoother signal
+**Explanation:** bamCoverage subcommand; -b chip.bam input BAM; -o chip_smooth.bw output bigWig; --extendReads extends to fragment length; --smoothLength 150 averages over 150bp window for smoother signal; --binSize 10bp resolution; -p 8 threads
 
 ### centered reads for sharper peak signal
 **Args:** `bamCoverage -b chip.bam -o chip_centered.bw --centerReads --binSize 10 -p 8`
-**Explanation:** --centerReads centers reads at fragment midpoint; produces sharper signal around enriched regions
+**Explanation:** bamCoverage subcommand; -b chip.bam input BAM; -o chip_centered.bw output bigWig; --centerReads centers reads at fragment midpoint; produces sharper signal around enriched regions; --binSize 10bp resolution; -p 8 threads
 
 ### MNase-seq nucleosome positioning track
 **Args:** `bamCoverage -b mnase.bam -o nucleosomes.bw --MNase --binSize 1 -p 8`
-**Explanation:** --MNase counts only 3 nucleotides at fragment center; --binSize 1 for nucleosome-resolution signal
+**Explanation:** bamCoverage subcommand; -b mnase.bam input BAM; -o nucleosomes.bw output bigWig; --MNase counts only 3 nucleotides at fragment center; --binSize 1 for nucleosome-resolution signal; -p 8 threads
 
 ### ChIP quality assessment with plotFingerprint
 **Args:** `plotFingerprint -b chip.bam input.bam -plot fingerprint.png --outQualityMetrics metrics.txt -p 8`
-**Explanation:** plotFingerprint assesses ChIP enrichment quality; --outQualityMetrics outputs quantitative metrics
+**Explanation:** plotFingerprint subcommand; -b chip.bam input.bam input BAMs; -plot fingerprint.png output plot; --outQualityMetrics metrics.txt outputs quantitative metrics; -p 8 threads
 
 ### strand-specific RNA-seq coverage (forward strand)
 **Args:** `bamCoverage -b rnaseq.bam -o forward.bw --filterRNAstrand forward --binSize 10 -p 8`
-**Explanation:** --filterRNAstrand forward keeps reads from forward strand genes; useful for stranded RNA-seq analysis
+**Explanation:** bamCoverage subcommand; -b rnaseq.bam input BAM; -o forward.bw output bigWig; --filterRNAstrand forward keeps reads from forward strand genes; --binSize 10bp resolution; -p 8 threads; useful for stranded RNA-seq analysis
 
 ### compute matrix with scale-regions mode
 **Args:** `computeMatrix scale-regions -S chip.bw -R genes.bed -b 2000 -a 2000 --regionBodyLength 5000 -o matrix.gz -p 8`
-**Explanation:** scale-regions stretches/shrinks all regions to same length; --regionBodyLength sets target region size
+**Explanation:** computeMatrix scale-regions subcommand; -S chip.bw bigWig input; -R genes.bed regions BED/GTF; -b 2000 bases before; -a 2000 bases after; --regionBodyLength 5000 sets target region size; scale-regions stretches/shrinks all regions to same length; -o matrix.gz output matrix; -p 8 threads
 
 ### bigWig comparison (log2 ratio)
 **Args:** `bigwigCompare -b1 chip.bw -b2 input.bw -o log2ratio.bw --operation log2 --pseudocount 1 -p 8`
-**Explanation:** bigwigCompare operates on existing bigWig files; --operation log2 computes log2(ChIP/Input) ratio
+**Explanation:** bigwigCompare subcommand; -b1 chip.bw -b2 input.bw input bigWigs; -o log2ratio.bw output bigWig; --operation log2 computes log2(ChIP/Input) ratio; --pseudocount 1 adds pseudocount to avoid log2(0); -p 8 threads

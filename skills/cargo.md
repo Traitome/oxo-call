@@ -40,92 +40,92 @@ source_url: "https://doc.rust-lang.org/cargo/"
 
 ### build a project in debug mode
 **Args:** `build`
-**Explanation:** compiles the crate and dependencies; output goes to target/debug/; fast incremental builds
+**Explanation:** build subcommand; compiles the crate and dependencies; output goes to target/debug/; fast incremental builds
 
 ### build an optimised release binary
 **Args:** `build --release`
-**Explanation:** enables full optimisations; output in target/release/; use for production and benchmarks
+**Explanation:** build subcommand; --release enables full optimisations; output in target/release/; use for production and benchmarks
 
 ### run the project binary directly
 **Args:** `run`
-**Explanation:** compiles (if needed) and runs the default binary; equivalent to cargo build && ./target/debug/<name>
+**Explanation:** run subcommand; compiles (if needed) and runs the default binary; equivalent to cargo build && ./target/debug/<name>
 
 ### run all tests
 **Args:** `test`
-**Explanation:** compiles and runs all unit, integration, and doc tests; parallel execution by default
+**Explanation:** test subcommand; compiles and runs all unit, integration, and doc tests; parallel execution by default
 
 ### run tests with a specific filter
 **Args:** `test -- --test-threads 1 my_test_name`
-**Explanation:** -- passes args to the test binary; --test-threads 1 forces serial execution; filters by test name substring
+**Explanation:** test subcommand; -- passes args to the test binary; --test-threads 1 forces serial execution; my_test_name filters by test name substring
 
 ### add a dependency to Cargo.toml
 **Args:** `add serde --features derive`
-**Explanation:** inserts the latest compatible serde version into Cargo.toml with the 'derive' feature enabled; no manual TOML editing needed
+**Explanation:** add subcommand; serde dependency name; --features derive enables the 'derive' feature; inserts the latest compatible serde version into Cargo.toml; no manual TOML editing needed
 
 ### install a binary crate
 **Args:** `install ripgrep`
-**Explanation:** builds and installs the rg binary to ~/.cargo/bin/; the bin directory must be in PATH
+**Explanation:** install subcommand; ripgrep crate name; builds and installs the rg binary to ~/.cargo/bin/; the bin directory must be in PATH
 
 ### show the dependency tree
 **Args:** `tree`
-**Explanation:** prints the full crate dependency graph including transitive deps; useful for auditing and de-duplicating
+**Explanation:** tree subcommand; prints the full crate dependency graph including transitive deps; useful for auditing and de-duplicating
 
 ### check code for errors without producing a binary
 **Args:** `check`
-**Explanation:** much faster than build; only type-checks and borrow-checks; ideal for tight edit-check loops
+**Explanation:** check subcommand; much faster than build; only type-checks and borrow-checks; ideal for tight edit-check loops
 
 ### run clippy lints on the project
 **Args:** `clippy -- -D warnings`
-**Explanation:** -D warnings treats all lint warnings as errors; use in CI to enforce lint cleanliness
+**Explanation:** clippy subcommand; -- passes args to clippy; -D warnings treats all lint warnings as errors; use in CI to enforce lint cleanliness
 
 ### format source code
 **Args:** `fmt`
-**Explanation:** formats all .rs files in the workspace using rustfmt rules defined in rustfmt.toml or Cargo.toml
+**Explanation:** fmt subcommand; formats all .rs files in the workspace using rustfmt rules defined in rustfmt.toml or Cargo.toml
 
 ### show cargo and rustc version information
 **Args:** `--version`
-**Explanation:** prints the cargo version; pair with `rustc --version` to capture full toolchain version for reproducibility logs
+**Explanation:** --version flag; prints the cargo version; pair with `rustc --version` to capture full toolchain version for reproducibility logs
 
 ### clean build artefacts
 **Args:** `clean`
-**Explanation:** removes the target/ directory; use before a full rebuild or to free disk space; project must be recompiled from scratch afterward
+**Explanation:** clean subcommand; removes the target/ directory; use before a full rebuild or to free disk space; project must be recompiled from scratch afterward
 
 ### list installed binary crates
 **Args:** `install --list`
-**Explanation:** shows all crates installed to ~/.cargo/bin/ with their version and source; useful for auditing global Rust tools
+**Explanation:** install subcommand; --list flag; shows all crates installed to ~/.cargo/bin/ with their version and source; useful for auditing global Rust tools
 
 ### vendor dependencies for offline builds
 **Args:** `vendor`
-**Explanation:** downloads all dependencies to a local vendor/ directory; use on HPC or air-gapped systems where network access is restricted
+**Explanation:** vendor subcommand; downloads all dependencies to a local vendor/ directory; use on HPC or air-gapped systems where network access is restricted
 
 ### build with specific features enabled
 **Args:** `build --features "serde derive" --release`
-**Explanation:** compiles with the specified features enabled; multiple features can be space or comma separated; use --all-features to enable everything
+**Explanation:** build subcommand; --features "serde derive" enables specified features; --release enables optimisations; multiple features can be space or comma separated; use --all-features to enable everything
 
 ### run tests without running them (compile only)
 **Args:** `test --no-run`
-**Explanation:** compiles tests but does not execute them; useful for CI to verify tests compile without the time cost of running them
+**Explanation:** test subcommand; --no-run compiles tests but does not execute them; useful for CI to verify tests compile without the time cost of running them
 
 ### update dependencies to latest compatible versions
 **Args:** `update`
-**Explanation:** updates Cargo.lock to use the latest SemVer-compatible versions of all dependencies; run cargo test afterward to verify compatibility
+**Explanation:** update subcommand; updates Cargo.lock to use the latest SemVer-compatible versions of all dependencies; run cargo test afterward to verify compatibility
 
 ### show package information from registry
 **Args:** `info serde`
-**Explanation:** displays metadata about a crate from the registry including version, dependencies, and features; useful for exploring crates before adding them
+**Explanation:** info subcommand; serde crate name; displays metadata about a crate from the registry including version, dependencies, and features; useful for exploring crates before adding them
 
 ### create a new library crate
 **Args:** `new --lib my_library`
-**Explanation:** creates a new library crate (instead of binary) with src/lib.rs as the entry point; use for reusable code packages
+**Explanation:** new subcommand; --lib flag; my_library crate name; creates a new library crate (instead of binary) with src/lib.rs as the entry point; use for reusable code packages
 
 ### package for publishing (dry run)
 **Args:** `publish --dry-run`
-**Explanation:** performs all verification steps for publishing without actually uploading; use this to catch packaging errors before the real publish
+**Explanation:** publish subcommand; --dry-run performs all verification steps without uploading; use this to catch packaging errors before the real publish
 
 ### build specific package in workspace
 **Args:** `build -p package_name --release`
-**Explanation:** builds only the specified package in a workspace; useful for large workspaces where you only need to compile one crate
+**Explanation:** build subcommand; -p package_name builds only specified package; --release enables optimisations; useful for large workspaces where you only need to compile one crate
 
 ### check code with all features enabled
 **Args:** `check --all-features`
-**Explanation:** type-checks the code with all feature flags enabled; catches compilation errors that might only appear with certain feature combinations
+**Explanation:** check subcommand; --all-features type-checks the code with all feature flags enabled; catches compilation errors that might only appear with certain feature combinations

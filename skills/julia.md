@@ -44,68 +44,68 @@ source_url: "https://docs.julialang.org/"
 
 ### run a Julia script
 **Args:** `script.jl`
-**Explanation:** executes script.jl in the default environment; prints output to stdout; exit code reflects script completion status
+**Explanation:** julia command; script.jl script file positional argument
 
 ### run a script in a specific project environment
 **Args:** `--project=. script.jl`
-**Explanation:** --project=. activates the Project.toml in the current directory; ensures correct package versions are used
+**Explanation:** julia command; --project=. activates Project.toml in current directory; script.jl script file
 
 ### run a script with multiple threads
 **Args:** `--threads auto script.jl`
-**Explanation:** --threads auto uses all available CPU cores; equivalent to setting JULIA_NUM_THREADS=auto before invoking Julia
+**Explanation:** julia command; --threads auto uses all CPU cores; script.jl script file
 
 ### install BioSequences package from the Julia REPL (batch mode)
 **Args:** `-e 'using Pkg; Pkg.add("BioSequences")'`
-**Explanation:** -e evaluates the expression; installs BioSequences into the currently active environment; prefer --project for reproducibility
+**Explanation:** julia command; -e evaluates expression; 'using Pkg; Pkg.add("BioSequences")' installs BioSequences package
 
 ### show installed packages in the current environment
 **Args:** `-e 'using Pkg; Pkg.status()'`
-**Explanation:** lists all installed packages with their versions in the active environment; useful for debugging dependency issues
+**Explanation:** julia command; -e evaluates expression; 'using Pkg; Pkg.status()' shows installed packages
 
 ### add BioJulia packages BioSequences, FASTX, and GenomicFeatures
 **Args:** `-e 'using Pkg; Pkg.add(["BioSequences","FASTX","GenomicFeatures"])'`
-**Explanation:** installs multiple BioJulia packages in one call; packages are resolved together for compatible versions
+**Explanation:** julia command; -e evaluates expression; 'using Pkg; Pkg.add(["BioSequences","FASTX","GenomicFeatures"])' installs multiple packages
 
 ### run script without loading startup.jl (for CI/pipelines)
 **Args:** `--startup-file=no --project=. script.jl`
-**Explanation:** --startup-file=no skips ~/.julia/config/startup.jl; produces reproducible headless execution in pipeline contexts
+**Explanation:** julia command; --startup-file=no skips startup.jl; --project=. activates project; script.jl script file
 
 ### check Julia version and depot paths
 **Args:** `-e 'println(VERSION); println(DEPOT_PATH)'`
-**Explanation:** prints Julia version and the ordered list of depot directories Julia searches for packages and compiled artifacts
+**Explanation:** julia command; -e evaluates expression; 'println(VERSION); println(DEPOT_PATH)' prints version and depot paths
 
 ### compile a script ahead of time to reduce startup latency
 **Args:** `--compile=all -O2 script.jl`
-**Explanation:** --compile=all forces ahead-of-time compilation; -O2 enables level-2 optimisations; reduces first-run latency for recurring pipeline jobs
+**Explanation:** julia command; --compile=all forces AOT compilation; -O2 level-2 optimizations; script.jl script file
 
 ### run a Pluto notebook server on a specific port
 **Args:** `-e 'import Pluto; Pluto.run(port=1234)'`
-**Explanation:** starts the Pluto reactive notebook server on port 1234; useful when SSH tunnelling from an HPC login node to a local browser
+**Explanation:** julia command; -e evaluates expression; 'import Pluto; Pluto.run(port=1234)' starts notebook server on port 1234
 
 ### run Julia with memory limit hint
 **Args:** `--heap-size-hint=8G script.jl`
-**Explanation:** --heap-size-hint=8G forces GC when memory exceeds 8GB; prevents OOM on memory-constrained systems
+**Explanation:** julia command; --heap-size-hint=8G memory limit hint; script.jl script file
 
 ### run Julia with distributed processes
 **Args:** `--procs auto --project=. script.jl`
-**Explanation:** --procs auto launches worker processes on all CPU cores; requires @everywhere for package loading in distributed code
+**Explanation:** julia command; --procs auto launches worker processes; --project=. activates project; script.jl script file
 
 ### run Julia with maximum optimization
 **Args:** `--optimize=3 --project=. script.jl`
-**Explanation:** --optimize=3 enables highest optimization level; increases compilation time but maximizes runtime performance
+**Explanation:** julia command; --optimize=3 highest optimization level; --project=. activates project; script.jl script file
 
 ### run Julia with custom system image
 **Args:** `--sysimage=myimage.so --project=. script.jl`
-**Explanation:** --sysimage loads precompiled system image; dramatically reduces package loading time; requires PackageCompiler.jl to build
+**Explanation:** julia command; --sysimage=myimage.so custom system image; --project=. activates project; script.jl script file
 
 ### run Julia in quiet mode for pipelines
 **Args:** `--quiet --startup-file=no --project=. script.jl`
-**Explanation:** --quiet suppresses startup banner and REPL warnings; combines with --startup-file=no for clean pipeline output
+**Explanation:** julia command; --quiet suppresses banner; --startup-file=no skips startup.jl; --project=. activates project; script.jl script file
 
 ### precompile all packages in current environment
 **Args:** `-e 'using Pkg; Pkg.precompile()'`
-**Explanation:** precompiles all packages in the active environment; reduces first-run latency; useful before batch job submission
+**Explanation:** julia command; -e evaluates expression; 'using Pkg; Pkg.precompile()' precompiles packages
 
 ### instantiate environment from Manifest.toml
 **Args:** `--project=. -e 'using Pkg; Pkg.instantiate()'`
-**Explanation:** Pkg.instantiate() installs exact versions from Manifest.toml; ensures reproducible environments across different machines
+**Explanation:** julia command; --project=. activates project; -e evaluates expression; 'using Pkg; Pkg.instantiate()' installs from Manifest.toml

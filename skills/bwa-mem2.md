@@ -33,48 +33,48 @@ source_url: "https://github.com/bwa-mem2/bwa-mem2"
 
 ### build BWA-MEM2 index from reference genome
 **Args:** `index reference.fa`
-**Explanation:** creates reference.fa.* index files; may take 30-60 min and ~60 GB RAM for human genome
+**Explanation:** index subcommand; reference.fa input FASTA; creates reference.fa.* index files; may take 30-60 min and ~60 GB RAM for human genome
 
 ### align paired-end reads to reference using 16 threads
 **Args:** `mem -t 16 reference.fa R1.fastq.gz R2.fastq.gz | samtools sort -@ 4 -o sorted.bam`
-**Explanation:** BWA-MEM2 mem has same flags as BWA-MEM; pipe to samtools sort for sorted BAM
+**Explanation:** mem subcommand; -t 16 threads; reference.fa indexed reference; R1.fastq.gz R2.fastq.gz paired-end input; BWA-MEM2 mem has same flags as BWA-MEM; pipe to samtools sort for sorted BAM
 
 ### align paired-end reads with GATK read group
 **Args:** `mem -t 16 -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA' reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o aligned.bam`
-**Explanation:** -R adds read group required for GATK downstream; same syntax as BWA
+**Explanation:** mem subcommand; -t 16 threads; -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA' adds read group required for GATK downstream; reference.fa indexed reference; R1.fastq.gz R2.fastq.gz paired-end input; pipe to samtools view for BAM output; same syntax as BWA
 
 ### align long reads with preset
 **Args:** `mem -t 8 -x ont2d reference.fa reads.fastq | samtools view -b -o aligned.bam`
-**Explanation:** -x ont2d for Oxford Nanopore; -x pacbio for PacBio; -x intractg for intra-species contigs
+**Explanation:** mem subcommand; -t 8 threads; -x ont2d preset for Oxford Nanopore; reference.fa indexed reference; reads.fastq input; pipe to samtools view for BAM output; -x pacbio for PacBio; -x intractg for intra-species contigs
 
 ### align with soft-clipping for structural variant calling
 **Args:** `mem -t 16 -Y -M reference.fa R1.fastq.gz R2.fastq.gz | samtools sort -o sorted.bam`
-**Explanation:** -Y soft-clips supplementary alignments; -M marks shorter split hits as secondary (Picard compatible); recommended for SV callers
+**Explanation:** mem subcommand; -t 16 threads; -Y soft-clips supplementary alignments; -M marks shorter split hits as secondary (Picard compatible); reference.fa indexed reference; R1.fastq.gz R2.fastq.gz paired-end input; pipe to samtools sort; recommended for SV callers
 
 ### full pipeline with read group, sort, and index
 **Args:** `mem -t 16 -R '@RG\tID:s1\tSM:s1\tLB:lib1\tPL:ILLUMINA' reference.fa R1.fq.gz R2.fq.gz | samtools sort -@ 4 -o s1.bam && samtools index s1.bam`
-**Explanation:** complete pipeline: align with RG → sort → index; preserving exact identifiers in RG string
+**Explanation:** mem subcommand; -t 16 threads; -R '@RG\tID:s1\tSM:s1\tLB:lib1\tPL:ILLUMINA' read group; reference.fa indexed reference; R1.fq.gz R2.fq.gz paired-end input; pipe to samtools sort → samtools index; complete pipeline: align with RG → sort → index; preserving exact identifiers
 
 ### align with split alignment output for chimeric reads
 **Args:** `mem -t 16 -M -a reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o split_align.bam`
-**Explanation:** -a outputs all alignments for split reads; -M marks secondary alignments; useful for fusion gene detection and chimeric read analysis
+**Explanation:** mem subcommand; -t 16 threads; -M marks secondary alignments; -a outputs all alignments for split reads; reference.fa indexed reference; R1.fastq.gz R2.fastq.gz paired-end input; pipe to samtools view; output split_align.bam; useful for fusion gene detection and chimeric read analysis
 
 ### align with custom gap open and extension penalties
 **Args:** `mem -t 16 -O 6 -E 1 reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o aligned.bam`
-**Explanation:** -O 6 gap open penalty; -E 1 gap extension penalty; higher gap penalties reduce false alignments in repetitive regions
+**Explanation:** mem subcommand; -t 16 threads; -O 6 gap open penalty; -E 1 gap extension penalty; reference.fa indexed reference; R1.fastq.gz R2.fastq.gz paired-end input; pipe to samtools view; higher gap penalties reduce false alignments in repetitive regions
 
 ### align with clipping penalty adjustment for soft-clipped reads
 **Args:** `mem -t 16 -L 5 reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o aligned.bam`
-**Explanation:** -L 5 clipping penalty; lower values allow more soft-clipping; useful for reads with adapter contamination or partial alignments
+**Explanation:** mem subcommand; -t 16 threads; -L 5 clipping penalty; reference.fa indexed reference; R1.fastq.gz R2.fastq.gz paired-end input; pipe to samtools view; lower values allow more soft-clipping; useful for reads with adapter contamination or partial alignments
 
 ### align multiple samples in batch with consistent read groups
 **Args:** `mem -t 16 -R '@RG\tID:${sample}\tSM:${sample}\tLB:lib1\tPL:ILLUMINA' reference.fa ${sample}_R1.fq.gz ${sample}_R2.fq.gz | samtools sort -@ 4 -o ${sample}.bam`
-**Explanation:** use shell variable expansion for batch processing; each sample gets unique RG ID and SM; essential for multi-sample GATK pipelines
+**Explanation:** mem subcommand; -t 16 threads; -R '@RG\tID:${sample}\tSM:${sample}\tLB:lib1\tPL:ILLUMINA' read group with shell variable expansion; reference.fa indexed reference; ${sample}_R1.fq.gz ${sample}_R2.fq.gz paired-end input; pipe to samtools sort; batch processing; essential for multi-sample GATK pipelines
 
 ### align with minimum seed length adjustment for short reads
 **Args:** `mem -t 16 -k 19 reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o aligned.bam`
-**Explanation:** -k 19 minimum seed length; default is 19; increase for longer reads to reduce false seeds, decrease for very short reads (<50bp)
+**Explanation:** mem subcommand; -t 16 threads; -k 19 minimum seed length; reference.fa indexed reference; R1.fastq.gz R2.fastq.gz paired-end input; pipe to samtools view; default k=19; increase for longer reads to reduce false seeds, decrease for very short reads (<50bp)
 
 ### check SIMD mode and CPU compatibility before alignment
 **Args:** `mem -t 1 reference.fa test_R1.fq.gz test_R2.fq.gz 2>&1 | head -5`
-**Explanation:** BWA-MEM2 prints SIMD mode (AVX512/AVX2/SSE4.1) at startup; verify CPU compatibility before large-scale alignment jobs
+**Explanation:** mem subcommand; -t 1 thread; reference.fa indexed reference; test_R1.fq.gz test_R2.fq.gz paired-end input; 2>&1 captures stderr; head -5 shows first lines; BWA-MEM2 prints SIMD mode (AVX512/AVX2/SSE4.1) at startup; verify CPU compatibility before large-scale alignment jobs

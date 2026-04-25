@@ -42,60 +42,60 @@ source_url: "https://docs.oracle.com/en/java/index.html"
 
 ### check installed Java version
 **Args:** `-version`
-**Explanation:** prints the JVM version, vendor, and runtime path; use this before running tools that require a specific Java version
+**Explanation:** java command; -version prints JVM version, vendor, and runtime path
 
 ### run a JAR-based tool with increased heap memory
 **Args:** `-Xmx16g -jar picard.jar SortSam I=input.bam O=sorted.bam SORT_ORDER=coordinate`
-**Explanation:** -Xmx16g allocates up to 16 GB heap; -jar runs the Picard JAR; SortSam is the Picard tool name; crucial for large BAM files
+**Explanation:** java command; -Xmx16g allocates 16 GB heap; -jar picard.jar runs JAR; SortSam Picard tool; I=input.bam input BAM; O=sorted.bam output BAM; SORT_ORDER=coordinate
 
 ### run GATK with custom tmp directory and GC settings
 **Args:** `-Xmx8g -XX:+UseG1GC -Djava.io.tmpdir=/scratch/tmp -jar gatk.jar HaplotypeCaller -R ref.fa -I input.bam -O out.vcf`
-**Explanation:** G1GC is recommended for large heaps; tmpdir on scratch avoids filling /tmp; HaplotypeCaller for germline variant calling
+**Explanation:** java command; -Xmx8g allocates 8 GB heap; -XX:+UseG1GC G1 garbage collector; -Djava.io.tmpdir=/scratch/tmp temp directory; -jar gatk.jar runs JAR; HaplotypeCaller GATK tool; -R ref.fa reference; -I input.bam input BAM; -O out.vcf output VCF
 
 ### run FastQC via its JAR directly
 **Args:** `-Xmx2g -jar fastqc.jar --threads 4 sample.fastq.gz`
-**Explanation:** FastQC is Java-based; -Xmx2g is sufficient for most samples; --threads parallelises per-file QC
+**Explanation:** java command; -Xmx2g allocates 2 GB heap; -jar fastqc.jar runs JAR; --threads 4 parallel threads; sample.fastq.gz input FASTQ
 
 ### show all system properties and JVM settings
 **Args:** `-XshowSettings:all -version`
-**Explanation:** prints all JVM settings (memory, locale, properties) followed by the Java version; useful for auditing JAVA_HOME, heap defaults, and system properties
+**Explanation:** java command; -XshowSettings:all displays all JVM settings; -version prints Java version
 
 ### list available JVM garbage collectors and tuning flags
 **Args:** `-XX:+PrintFlagsFinal -version`
-**Explanation:** prints all JVM flags with current values; grep output for MaxHeapSize, InitialHeapSize, or UseG1GC to inspect defaults
+**Explanation:** java command; -XX:+PrintFlagsFinal prints all JVM flags; -version prints Java version
 
 ### run Trimmomatic via its JAR
 **Args:** `-Xmx4g -jar trimmomatic.jar PE -threads 8 R1.fastq.gz R2.fastq.gz R1_trimmed.fastq.gz R1_unpaired.fastq.gz R2_trimmed.fastq.gz R2_unpaired.fastq.gz ILLUMINACLIP:adapters.fa:2:30:10`
-**Explanation:** -Xmx4g for trimming; PE mode for paired-end; ILLUMINACLIP removes Illumina adapters; 8 threads for parallelism
+**Explanation:** java command; -Xmx4g allocates 4 GB heap; -jar trimmomatic.jar runs JAR; PE paired-end mode; -threads 8 parallel threads; R1.fastq.gz R2.fastq.gz inputs; R1_trimmed.fastq.gz R1_unpaired.fastq.gz R2_trimmed.fastq.gz R2_unpaired.fastq.gz outputs; ILLUMINACLIP:adapters.fa:2:30:10 adapter trimming
 
 ### check available JVM memory settings
 **Args:** `-XX:+PrintFlagsFinal -version 2>&1`
-**Explanation:** prints all JVM flags with their current values; grep for MaxHeapSize or InitialHeapSize to see actual memory settings
+**Explanation:** java command; -XX:+PrintFlagsFinal prints all JVM flags; -version prints Java version; 2>&1 redirects stderr to stdout
 
 ### run a JAR with a custom classpath
 **Args:** `-cp /path/to/lib1.jar:/path/to/lib2.jar com.example.MainClass arg1 arg2`
-**Explanation:** -cp sets the classpath with colon-separated JARs (semicolons on Windows); fully qualified class name after the classpath; arguments follow
+**Explanation:** java command; -cp sets classpath; /path/to/lib1.jar:/path/to/lib2.jar colon-separated JARs; com.example.MainClass fully qualified class name; arg1 arg2 arguments
 
 ### run Java with ZGC for ultra-low latency
 **Args:** `-Xmx32g -XX:+UseZGC -jar gatk.jar HaplotypeCaller -R ref.fa -I input.bam -O out.vcf`
-**Explanation:** -XX:+UseZGC enables Z Garbage Collector; suitable for applications requiring <10ms pause times; available in Java 11+
+**Explanation:** java command; -Xmx32g allocates 32 GB heap; -XX:+UseZGC Z garbage collector; -jar gatk.jar runs JAR; HaplotypeCaller GATK tool; -R ref.fa reference; -I input.bam input BAM; -O out.vcf output VCF
 
 ### set equal initial and maximum heap for production
 **Args:** `-Xms16g -Xmx16g -XX:+UseG1GC -jar picard.jar MarkDuplicates I=input.bam O=marked.bam M=metrics.txt`
-**Explanation:** -Xms = -Xmx avoids heap resizing overhead; recommended for long-running production pipelines
+**Explanation:** java command; -Xms16g initial heap; -Xmx16g maximum heap; -XX:+UseG1GC G1 garbage collector; -jar picard.jar runs JAR; MarkDuplicates Picard tool; I=input.bam input BAM; O=marked.bam output BAM; M=metrics.txt metrics file
 
 ### run Java with GC logging enabled
 **Args:** `-Xmx8g -Xlog:gc*:file=gc.log:time,uptime,level,tags -jar tool.jar`
-**Explanation:** -Xlog:gc* enables detailed GC logging; useful for debugging memory issues and tuning GC performance
+**Explanation:** java command; -Xmx8g allocates 8 GB heap; -Xlog:gc*:file=gc.log:time,uptime,level,tags GC logging; -jar tool.jar runs JAR
 
 ### run Java in a container with memory limits
 **Args:** `-XX:+UseContainerSupport -Xmx4g -jar tool.jar`
-**Explanation:** -XX:+UseContainerSupport (default Java 10+) respects Docker memory limits; prevents OOM kills in containerized environments
+**Explanation:** java command; -XX:+UseContainerSupport respects Docker memory limits; -Xmx4g allocates 4 GB heap; -jar tool.jar runs JAR
 
 ### run Java with system property for configuration
 **Args:** `-Xmx8g -Dconfig.file=/path/to/config.properties -jar tool.jar`
-**Explanation:** -D sets system properties accessible within the application; commonly used for configuration files
+**Explanation:** java command; -Xmx8g allocates 8 GB heap; -Dconfig.file=/path/to/config.properties system property; -jar tool.jar runs JAR
 
 ### run Java with parallel GC for throughput
 **Args:** `-Xmx16g -XX:+UseParallelGC -XX:ParallelGCThreads=8 -jar tool.jar`
-**Explanation:** -XX:+UseParallelGC optimizes for throughput; -XX:ParallelGCThreads controls GC parallelism; good for batch processing
+**Explanation:** java command; -Xmx16g allocates 16 GB heap; -XX:+UseParallelGC parallel garbage collector; -XX:ParallelGCThreads=8 GC threads; -jar tool.jar runs JAR

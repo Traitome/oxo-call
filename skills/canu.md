@@ -37,32 +37,32 @@ source_url: "https://canu.readthedocs.io/"
 
 ### assemble bacterial genome from ONT reads
 **Args:** `-p ecoli_assembly -d canu_ecoli/ genomeSize=5m -nanopore-raw reads.fastq.gz maxMemory=16g maxThreads=8`
-**Explanation:** -p prefix; -d output dir; genomeSize required; -nanopore-raw for raw ONT; maxMemory/maxThreads for local run
+**Explanation:** -p ecoli_assembly output prefix; -d canu_ecoli/ output directory; genomeSize=5m required genome size; -nanopore-raw for raw ONT reads; reads.fastq.gz input; maxMemory=16g max RAM; maxThreads=8 max threads; for local run
 
 ### assemble genome from PacBio HiFi reads
 **Args:** `-p hifi_assembly -d canu_hifi/ genomeSize=3g -pacbio-hifi hifi_reads.fastq.gz maxMemory=64g maxThreads=32`
-**Explanation:** -pacbio-hifi skips error correction; genomeSize=3g for human-sized genome
+**Explanation:** -p hifi_assembly output prefix; -d canu_hifi/ output directory; genomeSize=3g genome size; -pacbio-hifi for HiFi reads (skips error correction); hifi_reads.fastq.gz input; maxMemory=64g max RAM; maxThreads=32 max threads
 
 ### assemble metagenome from ONT reads
 **Args:** `-p metagenome -d canu_meta/ genomeSize=100m -nanopore-raw meta_reads.fastq.gz maxMemory=128g maxThreads=32 useGrid=false`
-**Explanation:** useGrid=false for local run; genomeSize estimate for metagenome; may need higher memory
+**Explanation:** -p metagenome output prefix; -d canu_meta/ output directory; genomeSize=100m genome size estimate; -nanopore-raw for raw ONT reads; meta_reads.fastq.gz input; maxMemory=128g max RAM; maxThreads=32 max threads; useGrid=false for local run; may need higher memory
 
 ### run only the assembly stage (skip correction and trimming)
 **Args:** `-p assembly_only -d canu_assembly_only/ -assemble genomeSize=5m -nanopore-corrected corrected_reads.fasta maxMemory=16g maxThreads=8`
-**Explanation:** -assemble runs only assembly stage; -nanopore-corrected for pre-corrected reads
+**Explanation:** -p assembly_only output prefix; -d canu_assembly_only/ output directory; -assemble runs only assembly stage; genomeSize=5m genome size; -nanopore-corrected for pre-corrected reads; corrected_reads.fasta input; maxMemory=16g max RAM; maxThreads=8 max threads
 
 ### run TrioCanu for diploid assembly with parental short reads
 **Args:** `-p trio_assembly -d canu_trio/ genomeSize=3g -haplotypeMAT dad/*.fastq.gz -haplotypePAT mom/*.fastq.gz -nanopore-raw offspring.fastq.gz maxMemory=256g maxThreads=64`
-**Explanation:** -haplotypeMAT/PAT separates parental haplotypes using Illumina reads; produces haplotype-specific assemblies
+**Explanation:** -p trio_assembly output prefix; -d canu_trio/ output directory; genomeSize=3g genome size; -haplotypeMAT dad/*.fastq.gz maternal haplotype reads; -haplotypePAT mom/*.fastq.gz paternal haplotype reads; -nanopore-raw offspring.fastq.gz offspring ONT reads; maxMemory=256g max RAM; maxThreads=64 max threads; produces haplotype-specific assemblies
 
 ### assemble PacBio CLR reads with adjusted error rates
 **Args:** `-p clr_assembly -d canu_clr/ genomeSize=500m -pacbio-raw reads.fastq.gz rawErrorRate=0.350 correctedErrorRate=0.05 maxMemory=64g maxThreads=32`
-**Explanation:** rawErrorRate=0.350 for lower-quality CLR data; correctedErrorRate=0.05 for stringent corrected overlaps
+**Explanation:** -p clr_assembly output prefix; -d canu_clr/ output directory; genomeSize=500m genome size; -pacbio-raw for CLR reads; reads.fastq.gz input; rawErrorRate=0.350 for lower-quality CLR data; correctedErrorRate=0.05 for stringent corrected overlaps; maxMemory=64g max RAM; maxThreads=32 max threads
 
 ### run only correction stage for later use with different assembler
 **Args:** `-p corrected_only -d canu_correct/ -correct genomeSize=5m -nanopore-raw reads.fastq.gz maxMemory=16g maxThreads=8`
-**Explanation:** -correct runs only correction stage; output corrected reads can be used with Flye or other assemblers
+**Explanation:** -p corrected_only output prefix; -d canu_correct/ output directory; -correct runs only correction stage; genomeSize=5m genome size; -nanopore-raw for raw ONT reads; reads.fastq.gz input; maxMemory=16g max RAM; maxThreads=8 max threads; output corrected reads can be used with Flye or other assemblers
 
 ### assemble with coverage limiting for high-depth data
 **Args:** `-p assembly -d canu_cov/ genomeSize=5m -nanopore-raw reads.fastq.gz maxInputCoverage=100 corOutCoverage=100 maxMemory=16g maxThreads=8`
-**Explanation:** maxInputCoverage limits coverage used; corOutCoverage limits corrected read output; saves time/memory for high-coverage data
+**Explanation:** -p assembly output prefix; -d canu_cov/ output directory; genomeSize=5m genome size; -nanopore-raw for raw ONT reads; reads.fastq.gz input; maxInputCoverage=100 limits coverage used; corOutCoverage=100 limits corrected read output; maxMemory=16g max RAM; maxThreads=8 max threads; saves time/memory for high-coverage data

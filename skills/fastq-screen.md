@@ -39,52 +39,52 @@ source_url: "https://www.bioinformatics.babraham.ac.uk/projects/fastq_screen/"
 
 ### screen a FASTQ file against default databases
 **Args:** `--conf fastq_screen.conf --outdir results/ --threads 8 sample_R1.fastq.gz`
-**Explanation:** --conf points to the database config file; --outdir sets output directory; --threads for parallel alignment
+**Explanation:** --conf fastq_screen.conf points to the database config file; --outdir results/ output directory; --threads 8 parallel alignment; sample_R1.fastq.gz input file
 
 ### screen all reads (no subsampling) for thorough contamination check
 **Args:** `--conf fastq_screen.conf --subset 0 --outdir results/ --threads 8 sample_R1.fastq.gz`
-**Explanation:** --subset 0 disables subsampling and screens every read; slower but detects rare contaminants
+**Explanation:** --conf fastq_screen.conf database config file; --subset 0 disables subsampling and screens every read; --outdir results/ output directory; --threads 8 parallel threads; sample_R1.fastq.gz input file; slower but detects rare contaminants
 
 ### screen paired-end reads and report bisulfite alignment stats
 **Args:** `--conf fastq_screen.conf --aligner bismark --paired --outdir results/ --threads 8 R1.fastq.gz R2.fastq.gz`
-**Explanation:** --aligner bismark for bisulfite-treated libraries; --paired enables paired-end mode
+**Explanation:** --conf fastq_screen.conf database config file; --aligner bismark for bisulfite-treated libraries; --paired enables paired-end mode; --outdir results/ output directory; --threads 8 parallel threads; R1.fastq.gz R2.fastq.gz input files
 
 ### screen reads and get only the table output without generating plots
 **Args:** `--conf fastq_screen.conf --no_html --outdir results/ --threads 8 sample.fastq.gz`
-**Explanation:** --no_html suppresses HTML/PNG generation; faster when only the TXT table is needed
+**Explanation:** --conf fastq_screen.conf database config file; --no_html suppresses HTML/PNG generation; --outdir results/ output directory; --threads 8 parallel threads; sample.fastq.gz input file; faster when only the TXT table is needed
 
 ### add a custom database to the config and screen for mycoplasma contamination
 **Args:** `--conf custom_screen.conf --outdir results/ --threads 8 sample_R1.fastq.gz`
-**Explanation:** custom_screen.conf should include a DATABASE line for Mycoplasma bowtie2 index; same command, custom config
+**Explanation:** --conf custom_screen.conf custom config should include a DATABASE line for Mycoplasma bowtie2 index; --outdir results/ output directory; --threads 8 parallel threads; sample_R1.fastq.gz input file; same command, custom config
 
 ### screen multiple samples in a loop and collect MultiQC report
 **Args:** `for f in *.fastq.gz; do fastq_screen --conf fastq_screen.conf --outdir screen_results/ --threads 4 $f; done && multiqc screen_results/ -o multiqc_report/`
-**Explanation:** screen each sample then aggregate all _screen.txt files with MultiQC for a combined contamination report
+**Explanation:** for loop; --conf fastq_screen.conf database config file; --outdir screen_results/ output directory; --threads 4 parallel threads; $f variable for each .fastq.gz file; screen each sample then multiqc screen_results/ -o multiqc_report/ aggregates all _screen.txt files with MultiQC for a combined contamination report
 
 ### extract reads that did not map to any reference genome
 **Args:** `--conf fastq_screen.conf --nohits --outdir results/ --threads 8 sample.fastq.gz`
-**Explanation:** --nohits extracts reads unmapped to all genomes; useful for identifying novel sequences or contamination
+**Explanation:** --conf fastq_screen.conf database config file; --nohits extracts reads unmapped to all genomes; --outdir results/ output directory; --threads 8 parallel threads; sample.fastq.gz input file; useful for identifying novel sequences or contamination
 
 ### filter reads mapping uniquely to human genome (assuming human is first in config)
 **Args:** `--conf fastq_screen.conf --filter 1000 --outdir results/ --threads 8 sample.fastq.gz`
-**Explanation:** --filter 1000 keeps reads uniquely mapping to first genome (1=unique, 0=unmapped for others); removes human contamination
+**Explanation:** --conf fastq_screen.conf database config file; --filter 1000 keeps reads uniquely mapping to first genome (1=unique, 0=unmapped for others); --outdir results/ output directory; --threads 8 parallel threads; sample.fastq.gz input file; removes human contamination
 
 ### tag reads with alignment status for all genomes
 **Args:** `--conf fastq_screen.conf --tag --subset 0 --outdir results/ --threads 8 sample.fastq.gz`
-**Explanation:** --tag adds alignment codes to read headers; --subset 0 processes all reads; output can be used for downstream filtering
+**Explanation:** --conf fastq_screen.conf database config file; --tag adds alignment codes to read headers; --subset 0 processes all reads; --outdir results/ output directory; --threads 8 parallel threads; sample.fastq.gz input file; output can be used for downstream filtering
 
 ### filter with OR logic (pass if maps to any genome)
 **Args:** `--conf fastq_screen.conf --filter 1000 --pass 1 --outdir results/ --threads 8 sample.fastq.gz`
-**Explanation:** --pass 1 means read passes if it maps to at least 1 genome; acts as OR operator for multi-genome screening
+**Explanation:** --conf fastq_screen.conf database config file; --filter 1000 filter code; --pass 1 means read passes if it maps to at least 1 genome; --outdir results/ output directory; --threads 8 parallel threads; sample.fastq.gz input file; acts as OR operator for multi-genome screening
 
 ### invert filter to exclude contaminant reads
 **Args:** `--conf fastq_screen.conf --filter 1000 --inverse --outdir results/ --threads 8 sample.fastq.gz`
-**Explanation:** --inverse inverts filter; keeps reads NOT mapping to first genome; useful for removing known contaminants
+**Explanation:** --conf fastq_screen.conf database config file; --filter 1000 filter code; --inverse inverts filter; --outdir results/ output directory; --threads 8 parallel threads; sample.fastq.gz input file; keeps reads NOT mapping to first genome; useful for removing known contaminants
 
 ### download pre-indexed reference genomes
 **Args:** `--get_genomes`
-**Explanation:** downloads pre-indexed Bowtie2 genomes for common species; run once to set up screening databases
+**Explanation:** --get_genomes flag; downloads pre-indexed Bowtie2 genomes for common species; run once to set up screening databases
 
 ### screen bisulfite-converted libraries with Bismark
 **Args:** `--conf bisulfite_screen.conf --bisulfite --paired --outdir results/ --threads 8 R1.fastq.gz R2.fastq.gz`
-**Explanation:** --bisulfite uses Bismark aligner for bisulfite libraries; requires Bismark-indexed databases in config
+**Explanation:** --conf bisulfite_screen.conf database config file; --bisulfite uses Bismark aligner for bisulfite libraries; --paired paired-end mode; --outdir results/ output directory; --threads 8 parallel threads; R1.fastq.gz R2.fastq.gz input files; requires Bismark-indexed databases in config

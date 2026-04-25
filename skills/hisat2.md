@@ -42,68 +42,68 @@ source_url: "https://daehwankimlab.github.io/hisat2/"
 
 ### build a HISAT2 genome index from a reference FASTA
 **Args:** `hisat2-build -p 8 genome.fa genome_index`
-**Explanation:** hisat2-build is the companion binary; creates genome_index.*.ht2 files used by hisat2 -x
+**Explanation:** hisat2-build companion binary; -p 8 threads; creates genome_index.*.ht2 files used by hisat2 -x
 
 ### align paired-end RNA-seq reads to the genome with 8 threads
 **Args:** `-p 8 -x genome_index -1 R1.fastq.gz -2 R2.fastq.gz --dta -S aligned.sam`
-**Explanation:** --dta optimizes for StringTie; -x index prefix; -1/-2 paired-end reads; -S output SAM file
+**Explanation:** -p 8 threads; -x index prefix; -1/-2 paired-end reads; --dta optimizes for StringTie; -S output SAM file
 
 ### align paired-end RNA-seq reads and output sorted BAM directly
 **Args:** `-p 8 -x genome_index -1 R1.fastq.gz -2 R2.fastq.gz --dta | samtools sort -@ 4 -o sorted.bam`
-**Explanation:** pipe HISAT2 output to samtools sort to produce a sorted BAM without intermediate SAM file
+**Explanation:** -p 8 threads; -x index prefix; -1/-2 paired-end reads; --dta for StringTie; pipe HISAT2 output to samtools sort to produce sorted BAM
 
 ### align strand-specific paired-end RNA-seq (reverse-strand library)
 **Args:** `-p 8 -x genome_index -1 R1.fastq.gz -2 R2.fastq.gz --rna-strandness RF --dta -S aligned.sam`
-**Explanation:** --rna-strandness RF for dUTP/reverse-strand libraries (most modern RNA-seq); use FR for forward-strand
+**Explanation:** -p 8 threads; -x index prefix; -1/-2 paired-end reads; --rna-strandness RF for dUTP/reverse-strand libraries; --dta for StringTie; -S output; use FR for forward-strand
 
 ### align single-end RNA-seq reads
 **Args:** `-p 4 -x genome_index -U reads.fastq.gz --dta -S aligned.sam`
-**Explanation:** -U for single-end reads; same index and --dta flag apply
+**Explanation:** -p 4 threads; -x index prefix; -U for single-end reads; --dta for StringTie; -S output SAM file
 
 ### build splice-site aware index using GTF annotation for improved RNA-seq
 **Args:** `hisat2-build -p 8 genome.fa genome_spliceaware_index --ss splice_sites.txt --exon exons.txt`
-**Explanation:** hisat2-build companion binary; --ss and --exon files extracted from GTF improve spliced alignment
+**Explanation:** hisat2-build companion binary; -p 8 threads; --ss and --exon files extracted from GTF improve spliced alignment
 
 ### align paired-end reads with strand information and save alignment statistics
 **Args:** `-p 8 -x genome_index -1 R1.fastq.gz -2 R2.fastq.gz --rna-strandness RF --dta -S aligned.sam 2> align_summary.txt`
-**Explanation:** 2> redirects HISAT2 alignment stats to file; --rna-strandness RF for reverse-strand library
+**Explanation:** -p 8 threads; -x index prefix; -1/-2 paired reads; --rna-strandness RF reverse-strand; --dta for StringTie; -S output; 2> redirects HISAT2 alignment stats to file
 
 ### align single-end reads in genomic (non-spliced) mode for DNA-seq
 **Args:** `-p 8 -x genome_index -U reads.fastq.gz --no-spliced-alignment -S aligned.sam`
-**Explanation:** --no-spliced-alignment disables splicing; use for ChIP-seq or WGS instead of RNA-seq
+**Explanation:** -p 8 threads; -x index prefix; -U single-end reads; --no-spliced-alignment disables splicing; -S output; use for ChIP-seq or WGS instead of RNA-seq
 
 ### align paired-end reads and discard unmapped reads
 **Args:** `-p 8 -x genome_index -1 R1.fastq.gz -2 R2.fastq.gz --dta --no-unal -S aligned.sam`
-**Explanation:** --no-unal suppresses unmapped reads in output; reduces output file size
+**Explanation:** -p 8 threads; -x index prefix; -1/-2 paired reads; --dta for StringTie; --no-unal suppresses unmapped reads; -S output; reduces file size
 
 ### align paired-end reads and output only uniquely mapped reads
 **Args:** `-p 8 -x genome_index -1 R1.fastq.gz -2 R2.fastq.gz --dta | samtools view -b -q 1 -o unique_aligned.bam`
-**Explanation:** samtools view -q 1 filters to reads with mapping quality ≥1, effectively keeping uniquely mapped reads
+**Explanation:** -p 8 threads; -x index prefix; -1/-2 paired reads; --dta for StringTie; samtools view -q 1 filters to mapping quality ≥1; -b BAM output; effectively keeps uniquely mapped reads
 
 ### align with known splice sites for improved junction accuracy
 **Args:** `-p 8 -x genome_index -1 R1.fastq.gz -2 R2.fastq.gz --known-splicesite-infile known_splicesites.txt --dta -S aligned.sam`
-**Explanation:** --known-splicesite-infile provides annotated splice sites; improves alignment accuracy at known junctions; file format: chr start end strand
+**Explanation:** -p 8 threads; -x index prefix; -1/-2 paired reads; --known-splicesite-infile provides annotated splice sites; --dta for StringTie; -S output; improves alignment at known junctions
 
 ### report novel splice sites discovered during alignment
 **Args:** `-p 8 -x genome_index -1 R1.fastq.gz -2 R2.fastq.gz --novel-splicesite-outfile novel_splicesites.txt --dta -S aligned.sam`
-**Explanation:** --novel-splicesite-outfile writes discovered splice sites to file; useful for identifying unannotated isoforms
+**Explanation:** -p 8 threads; -x index prefix; -1/-2 paired reads; --novel-splicesite-outfile writes discovered splice sites; --dta for StringTie; -S output; useful for identifying unannotated isoforms
 
 ### increase maximum intron length for organisms with large introns
 **Args:** `-p 8 -x genome_index -1 R1.fastq.gz -2 R2.fastq.gz --max-intronlen 1000000 --dta -S aligned.sam`
-**Explanation:** --max-intronlen 1000000 allows introns up to 1Mb; necessary for some plants and organisms with large introns (default 500kb)
+**Explanation:** -p 8 threads; -x index prefix; -1/-2 paired reads; --max-intronlen 1000000 allows introns up to 1Mb; --dta for StringTie; -S output; necessary for organisms with large introns
 
 ### align with multiple alignments per read for expression quantification
 **Args:** `-p 8 -x genome_index -1 R1.fastq.gz -2 R2.fastq.gz -k 10 --dta -S aligned.sam`
-**Explanation:** -k 10 reports up to 10 primary alignments per read; useful for multi-mapped read quantification with tools like Salmon/RSEM
+**Explanation:** -p 8 threads; -x index prefix; -1/-2 paired reads; -k 10 reports up to 10 primary alignments; --dta for StringTie; -S output; useful for multi-mapped read quantification
 
 ### align without soft-clipping for precise boundary detection
 **Args:** `-p 8 -x genome_index -1 R1.fastq.gz -2 R2.fastq.gz --no-softclip --dta -S aligned.sam`
-**Explanation:** --no-softclip disables soft-clipping; ensures exact alignment boundaries; useful for variant calling from RNA-seq
+**Explanation:** -p 8 threads; -x index prefix; -1/-2 paired reads; --no-softclip disables soft-clipping; --dta for StringTie; -S output; ensures exact alignment boundaries
 
 ### avoid pseudogene alignments (experimental)
 **Args:** `-p 8 -x genome_index -1 R1.fastq.gz -2 R2.fastq.gz --avoid-pseudogene --dta -S aligned.sam`
-**Explanation:** --avoid-pseudogene attempts to align reads to functional genes instead of pseudogenes; experimental feature
+**Explanation:** -p 8 threads; -x index prefix; -1/-2 paired reads; --avoid-pseudogene aligns to functional genes instead of pseudogenes; --dta for StringTie; -S output; experimental feature
 
 ### trim reads before alignment
 **Args:** `-p 8 -x genome_index -1 R1.fastq.gz -2 R2.fastq.gz --trim5 5 --trim3 10 --dta -S aligned.sam`
-**Explanation:** --trim5 5 removes 5bp from 5' end; --trim3 10 removes 10bp from 3' end; useful for removing adapter sequences or low-quality ends
+**Explanation:** -p 8 threads; -x index prefix; -1/-2 paired reads; --trim5 5 removes 5bp from 5' end; --trim3 10 removes 10bp from 3' end; --dta for StringTie; -S output; useful for removing adapters or low-quality ends

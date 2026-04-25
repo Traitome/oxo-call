@@ -38,52 +38,52 @@ source_url: "https://github.com/eggnogdb/eggnog-mapper/wiki"
 
 ### annotate a protein FASTA file with eggNOG using diamond
 **Args:** `-m diamond -i proteins.fasta --itype proteins --data_dir /data/eggnog_db -o results --cpu 16 --override`
-**Explanation:** -m diamond is fast; --itype proteins specifies protein input; -o sets output prefix; --override replaces existing output
+**Explanation:** emapper.py script; -m diamond is fast; -i proteins.fasta input proteins; --itype proteins specifies protein input; --data_dir /data/eggnog_db database location; -o results output prefix; --cpu 16 threads; --override replaces existing output
 
 ### annotate proteins and restrict to bacterial orthologs
 **Args:** `-m diamond -i proteins.fasta --itype proteins --tax_scope 2 --data_dir /data/eggnog_db -o bact_results --cpu 16`
-**Explanation:** --tax_scope 2 restricts annotation to Bacteria (NCBI taxid 2) for more specific functional assignments
+**Explanation:** emapper.py script; -m diamond search mode; -i proteins.fasta input proteins; --itype proteins input type; --tax_scope 2 restricts annotation to Bacteria (NCBI taxid 2) for more specific functional assignments; --data_dir /data/eggnog_db database location; -o bact_results output prefix; --cpu 16 threads
 
 ### annotate a nucleotide CDS file
 **Args:** `-m diamond -i genes.fna --itype CDS --translate --data_dir /data/eggnog_db -o cds_results --cpu 16`
-**Explanation:** --itype CDS tells emapper the input is coding sequences; --translate converts to protein internally for diamond
+**Explanation:** emapper.py script; -m diamond search mode; -i genes.fna input CDS; --itype CDS tells emapper the input is coding sequences; --translate converts to protein internally for diamond; --data_dir /data/eggnog_db database location; -o cds_results output prefix; --cpu 16 threads
 
 ### use mmseqs2 mode for fast annotation of large metagenomic protein set
 **Args:** `-m mmseqs -i meta_proteins.fasta --itype proteins --data_dir /data/eggnog_db -o meta_results --cpu 32`
-**Explanation:** -m mmseqs is significantly faster than diamond for millions of sequences, with slight sensitivity trade-off
+**Explanation:** emapper.py script; -m mmseqs is significantly faster than diamond for millions of sequences, with slight sensitivity trade-off; -i meta_proteins.fasta input proteins; --itype proteins input type; --data_dir /data/eggnog_db database location; -o meta_results output prefix; --cpu 32 threads
 
 ### resume an interrupted annotation run
 **Args:** `-m diamond -i proteins.fasta --itype proteins --data_dir /data/eggnog_db -o results --cpu 16 --resume`
-**Explanation:** --resume continues from existing partial results instead of restarting, saving time on large jobs
+**Explanation:** emapper.py script; -m diamond search mode; -i proteins.fasta input proteins; --itype proteins input type; --data_dir /data/eggnog_db database location; -o results output prefix; --cpu 16 threads; --resume continues from existing partial results instead of restarting, saving time on large jobs
 
 ### annotate a genome with gene prediction first
 **Args:** `-m diamond -i genome.fna --itype genome --data_dir /data/eggnog_db -o genome_results --cpu 16 --genepred prodigal`
-**Explanation:** --itype genome triggers internal gene prediction with prodigal before annotation
+**Explanation:** emapper.py script; -m diamond search mode; -i genome.fna input genome; --itype genome triggers internal gene prediction with prodigal before annotation; --data_dir /data/eggnog_db database location; -o genome_results output prefix; --cpu 16 threads; --genepred prodigal gene prediction method
 
 ### annotate with PFAM domain realignment
 **Args:** `-m diamond -i proteins.fasta --itype proteins --data_dir /data/eggnog_db -o results --cpu 16 --pfam_realign realign`
-**Explanation:** --pfam_realign realign realigns PFAM domains to query sequences; requires PFAM database
+**Explanation:** emapper.py script; -m diamond search mode; -i proteins.fasta input proteins; --itype proteins input type; --data_dir /data/eggnog_db database location; -o results output prefix; --cpu 16 threads; --pfam_realign realign realigns PFAM domains to query sequences; requires PFAM database
 
 ### annotate with experimental GO terms only
 **Args:** `-m diamond -i proteins.fasta --itype proteins --data_dir /data/eggnog_db -o results --cpu 16 --go_evidence experimental`
-**Explanation:** --go_evidence experimental uses only experimentally validated GO terms for annotation
+**Explanation:** emapper.py script; -m diamond search mode; -i proteins.fasta input proteins; --itype proteins input type; --data_dir /data/eggnog_db database location; -o results output prefix; --cpu 16 threads; --go_evidence experimental uses only experimentally validated GO terms for annotation
 
 ### annotate with one-to-one orthologs only
 **Args:** `-m diamond -i proteins.fasta --itype proteins --data_dir /data/eggnog_db -o results --cpu 16 --target_orthologs one2one`
-**Explanation:** --target_orthologs one2one uses only strict one-to-one orthologs for annotation (more conservative)
+**Explanation:** emapper.py script; -m diamond search mode; -i proteins.fasta input proteins; --itype proteins input type; --data_dir /data/eggnog_db database location; -o results output prefix; --cpu 16 threads; --target_orthologs one2one uses only strict one-to-one orthologs for annotation (more conservative)
 
 ### create decorated GFF file with annotations
 **Args:** `-m diamond -i proteins.fasta --itype proteins --data_dir /data/eggnog_db -o results --cpu 16 --decorate_gff yes`
-**Explanation:** --decorate_gff yes creates a GFF file with emapper annotations for genome browser visualization
+**Explanation:** emapper.py script; -m diamond search mode; -i proteins.fasta input proteins; --itype proteins input type; --data_dir /data/eggnog_db database location; -o results output prefix; --cpu 16 threads; --decorate_gff yes creates a GFF file with emapper annotations for genome browser visualization
 
 ### download eggNOG database with PFAM
 **Args:** `download_eggnog_data.py -P --data_dir /data/eggnog_db`
-**Explanation:** -P flag downloads PFAM database; required for --pfam_realign realign or denovo options
+**Explanation:** download_eggnog_data.py script; -P flag downloads PFAM database; --data_dir /data/eggnog_db database location; required for --pfam_realign realign or denovo options
 
 ### create custom taxonomic database
 **Args:** `create_dbs.py -m diamond --dbname bacteria --taxa Bacteria --data_dir /data/eggnog_db`
-**Explanation:** create_dbs.py creates taxon-specific Diamond database; faster searches for specific taxonomic groups
+**Explanation:** create_dbs.py script; -m diamond database format; --dbname bacteria database name; --taxa Bacteria taxonomic scope; --data_dir /data/eggnog_db database location; creates taxon-specific Diamond database; faster searches for specific taxonomic groups
 
 ### annotate using custom Diamond database
 **Args:** `-m diamond -i proteins.fasta --itype proteins --dmnd_db /data/eggnog_db/bacteria.dmnd -o results --cpu 16`
-**Explanation:** --dmnd_db specifies custom Diamond database created with create_dbs.py for taxon-specific annotation
+**Explanation:** emapper.py script; -m diamond search mode; -i proteins.fasta input proteins; --itype proteins input type; --dmnd_db /data/eggnog_db/bacteria.dmnd specifies custom Diamond database created with create_dbs.py for taxon-specific annotation; -o results output prefix; --cpu 16 threads

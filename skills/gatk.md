@@ -45,23 +45,23 @@ source_url: "https://gatk.broadinstitute.org/hc/en-us"
 
 ### call germline variants from a BAM file using HaplotypeCaller
 **Args:** `HaplotypeCaller -R reference.fa -I sorted_markdup.bam -O output.g.vcf.gz -ERC GVCF`
-**Explanation:** -ERC GVCF creates a GVCF for later joint genotyping; needed for multi-sample workflows
+**Explanation:** -R specifies reference; -I input BAM; -O output VCF; -ERC GVCF creates a GVCF for later joint genotyping; needed for multi-sample workflows
 
 ### genotype a single sample directly (not GVCF mode)
 **Args:** `HaplotypeCaller -R reference.fa -I sorted_markdup.bam -O variants.vcf.gz`
-**Explanation:** without -ERC GVCF, outputs a standard VCF directly; suitable for single-sample projects
+**Explanation:** -R specifies reference; -I input BAM; -O output VCF; without -ERC GVCF, outputs a standard VCF directly; suitable for single-sample projects
 
 ### mark PCR duplicates in a BAM file
 **Args:** `MarkDuplicates -I input.bam -O markdup.bam -M metrics.txt`
-**Explanation:** removes/marks PCR duplicates; -M writes duplicate metrics; required before HaplotypeCaller
+**Explanation:** -I input BAM; -O output BAM; -M writes duplicate metrics; removes/marks PCR duplicates; required before HaplotypeCaller
 
 ### call somatic mutations with Mutect2 using matched normal
 **Args:** `Mutect2 -R reference.fa -I tumor.bam -I normal.bam -normal normal_sample_name -O somatic.vcf.gz`
-**Explanation:** for somatic calling; -normal identifies which BAM is the matched normal
+**Explanation:** -R specifies reference; -I tumor and normal BAMs; -normal identifies which BAM is the matched normal; -O output VCF; for somatic calling
 
 ### filter Mutect2 variants with FilterMutectCalls
 **Args:** `FilterMutectCalls -R reference.fa -V somatic.vcf.gz -O filtered_somatic.vcf.gz`
-**Explanation:** applies filters to Mutect2 raw calls; variants PASS the filter or are tagged with a filter name
+**Explanation:** -R specifies reference; -V input VCF; -O output VCF; applies filters to Mutect2 raw calls; variants PASS the filter or are tagged with a filter name
 
 ### create a sequence dictionary for a reference FASTA
 **Args:** `CreateSequenceDictionary -R reference.fa`
@@ -69,27 +69,27 @@ source_url: "https://gatk.broadinstitute.org/hc/en-us"
 
 ### add read group to a BAM file (required before GATK variant calling)
 **Args:** `AddOrReplaceReadGroups -I input.bam -O output_rg.bam -RGID sample1 -RGLB lib1 -RGPL ILLUMINA -RGPU unit1 -RGSM sample1`
-**Explanation:** all four -RG fields are required; RGSM is the sample name used in the VCF
+**Explanation:** -I input BAM; -O output BAM; all four -RG fields are required; RGSM is the sample name used in the VCF
 
 ### perform base quality score recalibration (BQSR step 1) on markdup BAM with hg38 reference and dbSNP known sites
 **Args:** `BaseRecalibrator -R hg38.fa -I markdup.bam --known-sites dbsnp.vcf -O recal.table`
-**Explanation:** step 1 of BQSR: generates a recalibration table; --known-sites can be repeated for multiple VCFs (e.g., dbSNP + Mills indels)
+**Explanation:** -R specifies reference; -I input BAM; --known-sites provides known variant sites; -O output table; step 1 of BQSR: generates a recalibration table; --known-sites can be repeated for multiple VCFs (e.g., dbSNP + Mills indels)
 
 ### apply base quality score recalibration (BQSR step 2) to produce recalibrated BAM
 **Args:** `ApplyBQSR -R hg38.fa -I markdup.bam --bqsr-recal-file recal.table -O recal.bam`
-**Explanation:** step 2 of BQSR: applies the recalibration table from BaseRecalibrator to produce a recalibrated BAM ready for variant calling
+**Explanation:** -R specifies reference; -I input BAM; --bqsr-recal-file provides recalibration table; -O output BAM; step 2 of BQSR: applies the recalibration table from BaseRecalibrator to produce a recalibrated BAM ready for variant calling
 
 ### select only SNPs from a variants VCF
 **Args:** `SelectVariants -V variants.vcf -O SNPs.vcf --select-type-to-include SNP`
-**Explanation:** extracts SNP-type variants only; use INDEL for indels; can be combined with -L for region filtering
+**Explanation:** -V input VCF; -O output VCF; --select-type-to-include extracts SNP-type variants only; use INDEL for indels; can be combined with -L for region filtering
 
 ### joint genotype multiple samples from GenomicsDB
 **Args:** `GenotypeGVCFs -R reference.fa -V gendb://genomicsdb -O cohort.vcf.gz`
-**Explanation:** final joint genotyping step for cohort GVCF workflow; input is a GenomicsDB workspace created by GenomicsDBImport
+**Explanation:** -R specifies reference; -V GenomicsDB workspace; -O output VCF; final joint genotyping step for cohort GVCF workflow; input is a GenomicsDB workspace created by GenomicsDBImport
 
 ### force genotype specific alleles from a target list
 **Args:** `HaplotypeCaller -R reference.fa -I input.bam -O forced.vcf.gz --alleles targets.vcf --force-call-filtered-alleles`
-**Explanation:** --alleles forces genotyping at target sites; --force-call-filtered-alleles includes filtered sites; useful for targeted re-sequencing
+**Explanation:** -R specifies reference; -I input BAM; -O output VCF; --alleles forces genotyping at target sites; --force-call-filtered-alleles includes filtered sites; useful for targeted re-sequencing
 
 ### import multiple GVCFs into GenomicsDB for joint calling
 **Args:** `GenomicsDBImport -V sample1.g.vcf.gz -V sample2.g.vcf.gz -V sample3.g.vcf.gz --genomicsdb-workspace-path genomicsdb -L intervals.list`
@@ -97,7 +97,7 @@ source_url: "https://gatk.broadinstitute.org/hc/en-us"
 
 ### run BQSR with multiple known sites
 **Args:** `BaseRecalibrator -R reference.fa -I input.bam --known-sites dbsnp.vcf.gz --known-sites Mills_indels.vcf.gz -O recal.table`
-**Explanation:** multiple --known-sites arguments for comprehensive recalibration; recommended to include both SNP and indel databases
+**Explanation:** -R specifies reference; -I input BAM; multiple --known-sites for comprehensive recalibration; -O output table; recommended to include both SNP and indel databases
 
 ### analyze BQSR recalibration quality
 **Args:** `AnalyzeCovariates -before recal.table -plots bqsr_plots.pdf -csv bqsr_metrics.csv`
@@ -105,11 +105,11 @@ source_url: "https://gatk.broadinstitute.org/hc/en-us"
 
 ### run Spark-enabled MarkDuplicates for large BAMs
 **Args:** `MarkDuplicatesSpark -I input.bam -O markdup.bam -M metrics.txt --spark-runner LOCAL`
-**Explanation:** MarkDuplicatesSpark uses Spark for parallelization; --spark-runner LOCAL runs on single machine; faster for large files
+**Explanation:** -I input BAM; -O output BAM; -M writes metrics; --spark-runner LOCAL runs Spark on single machine; MarkDuplicatesSpark uses Spark for parallelization; faster for large files
 
 ### call variants with increased sensitivity for indels
 **Args:** `HaplotypeCaller -R reference.fa -I input.bam -O variants.vcf.gz --min-pruning 1 --max-alternate-alleles 10`
-**Explanation:** --min-pruning 1 reduces haplotype pruning for better indel detection; --max-alternate-alleles 10 allows more alternates in complex regions
+**Explanation:** -R specifies reference; -I input BAM; -O output VCF; --min-pruning 1 reduces haplotype pruning for better indel detection; --max-alternate-alleles 10 allows more alternates in complex regions
 
 ### validate SAM/BAM file before GATK analysis
 **Args:** `ValidateSamFile -I input.bam -MODE SUMMARY`
@@ -117,4 +117,4 @@ source_url: "https://gatk.broadinstitute.org/hc/en-us"
 
 ### sort BAM by coordinate for GATK compatibility
 **Args:** `SortSam -I unsorted.bam -O sorted.bam -SO coordinate`
-**Explanation:** sorts BAM by coordinate; GATK requires coordinate-sorted input; -SO coordinate specifies sort order
+**Explanation:** -I input BAM; -O output BAM; -SO coordinate specifies sort order; sorts BAM by coordinate; GATK requires coordinate-sorted input

@@ -43,56 +43,56 @@ source_url: "https://github.com/agshumate/Liftoff"
 
 ### lift annotations from reference GFF3 to a new assembly
 **Args:** `target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -u unmapped.txt`
-**Explanation:** positional args are target then reference FASTA; -g is source annotation; -o output GFF3; -u lists unmapped features
+**Explanation:** liftoff command; target.fasta target assembly; reference.fasta reference assembly; -g reference.gff3 source annotation; -o lifted.gff3 output GFF3; -u unmapped.txt unmapped features
 
 ### lift annotations and copy multi-copy gene families
 **Args:** `target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -copies -u unmapped.txt`
-**Explanation:** -copies searches for additional copies of each gene in the target beyond the best single hit
+**Explanation:** liftoff command; target.fasta target assembly; reference.fasta reference assembly; -g reference.gff3 source annotation; -o lifted.gff3 output GFF3; -copies search for gene copies; -u unmapped.txt unmapped features
 
 ### lift annotations between closely related species with lower identity threshold
 **Args:** `target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -s 0.85 -a 0.85 -u unmapped.txt`
-**Explanation:** -s 0.85 sets minimum sequence identity to 85%; -a 0.85 sets minimum alignment coverage — useful for cross-species lift
+**Explanation:** liftoff command; target.fasta target assembly; reference.fasta reference assembly; -g reference.gff3 source annotation; -o lifted.gff3 output GFF3; -s 0.85 sequence identity threshold; -a 0.85 coverage threshold; -u unmapped.txt unmapped features
 
 ### speed up repeated runs using a pre-built gffutils database
 **Args:** `target.fasta reference.fasta -db reference.db -o lifted.gff3 -u unmapped.txt`
-**Explanation:** -db uses a pre-built gffutils database instead of re-parsing the GFF3 each run; build with gffutils first
+**Explanation:** liftoff command; target.fasta target assembly; reference.fasta reference assembly; -db reference.db gffutils database; -o lifted.gff3 output GFF3; -u unmapped.txt unmapped features
 
 ### lift annotations and write output to a specific directory with minimap2 intermediates
 **Args:** `target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -dir scratch_dir/ -p 16 -u unmapped.txt`
-**Explanation:** -dir puts minimap2 intermediate files in scratch_dir/; -p 16 uses 16 parallel threads
+**Explanation:** liftoff command; target.fasta target assembly; reference.fasta reference assembly; -g reference.gff3 source annotation; -o lifted.gff3 output GFF3; -dir scratch_dir/ intermediate files directory; -p 16 threads; -u unmapped.txt unmapped features
 
 ### lift only specific feature types (e.g., just genes)
 **Args:** `target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -f gene -u unmapped.txt`
-**Explanation:** -f gene lifts only features of type gene and their children; reduces output size for specific use cases
+**Explanation:** liftoff command; target.fasta target assembly; reference.fasta reference assembly; -g reference.gff3 source annotation; -o lifted.gff3 output GFF3; -f gene filter feature type; -u unmapped.txt unmapped features
 
 ### polish lifted annotations to fix CDS issues
 **Args:** `target.fasta reference.fasta -g reference.gff3 -o lifted_polished.gff3 -polish -u unmapped.txt`
-**Explanation:** -polish re-aligns exons to fix start/stop codon issues and inframe stops; creates {output}.gff and {output}_polished.gff
+**Explanation:** liftoff command; target.fasta target assembly; reference.fasta reference assembly; -g reference.gff3 source annotation; -o lifted_polished.gff3 output GFF3; -polish re-align exons; -u unmapped.txt unmapped features
 
 ### annotate CDS status in output
 **Args:** `target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -cds -u unmapped.txt`
-**Explanation:** -cds adds status tags (partial, missing_start, missing_stop, inframe_stop) to CDS features in output GFF3
+**Explanation:** liftoff command; target.fasta target assembly; reference.fasta reference assembly; -g reference.gff3 source annotation; -o lifted.gff3 output GFF3; -cds annotate CDS status; -u unmapped.txt unmapped features
 
 ### lift annotations with chromosome mapping for large genomes
 **Args:** `target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -chroms chroms.txt -unplaced unplaced.txt -u unmapped.txt`
-**Explanation:** -chroms maps chr1->chr1, chr2->chr2 etc.; -unplaced handles scaffold genes after chromosomes; improves accuracy for complex genomes
+**Explanation:** liftoff command; target.fasta target assembly; reference.fasta reference assembly; -g reference.gff3 source annotation; -o lifted.gff3 output GFF3; -chroms chroms.txt chromosome mapping; -unplaced unplaced.txt unplaced contigs; -u unmapped.txt unmapped features
 
 ### find gene copies with relaxed identity threshold
 **Args:** `target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -copies -sc 0.95 -s 0.9 -u unmapped.txt`
-**Explanation:** -sc 0.95 for copy detection (must be > -s); finds recent duplicates; -s 0.9 for initial mapping
+**Explanation:** liftoff command; target.fasta target assembly; reference.fasta reference assembly; -g reference.gff3 source annotation; -o lifted.gff3 output GFF3; -copies search for copies; -sc 0.95 copy identity threshold; -s 0.9 mapping identity threshold; -u unmapped.txt unmapped features
 
 ### lift with custom minimap2 options for divergent genomes
 **Args:** `target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -mm2_options="-a --end-bonus 5 --eqx -N 100 -p 0.3" -u unmapped.txt`
-**Explanation:** custom minimap2 parameters; -N 100 increases secondary alignments, -p 0.3 lowers alignment score ratio for divergent genomes
+**Explanation:** liftoff command; target.fasta target assembly; reference.fasta reference assembly; -g reference.gff3 source annotation; -o lifted.gff3 output GFF3; -mm2_options="-a --end-bonus 5 --eqx -N 100 -p 0.3" minimap2 parameters; -u unmapped.txt unmapped features
 
 ### exclude partial mappings from main output
 **Args:** `target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -s 0.9 -a 0.9 -exclude_partial -u unmapped.txt`
-**Explanation:** -exclude_partial writes mappings below -s/-a thresholds to unmapped file; main output contains only high-quality mappings
+**Explanation:** liftoff command; target.fasta target assembly; reference.fasta reference assembly; -g reference.gff3 source annotation; -o lifted.gff3 output GFF3; -s 0.9 identity threshold; -a 0.9 coverage threshold; -exclude_partial exclude partial mappings; -u unmapped.txt unmapped features
 
 ### lift with flanking sequence for improved alignment
 **Args:** `target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -flank 0.1 -u unmapped.txt`
-**Explanation:** -flank 0.1 adds 10% flanking sequence to each gene; helps when gene structure differs between assemblies
+**Explanation:** liftoff command; target.fasta target assembly; reference.fasta reference assembly; -g reference.gff3 source annotation; -o lifted.gff3 output GFF3; -flank 0.1 add 10% flanking sequence; -u unmapped.txt unmapped features
 
 ### lift annotations with inferred gene and transcript features
 **Args:** `target.fasta reference.fasta -g reference.gff3 -o lifted.gff3 -infer_genes -infer_transcripts -u unmapped.txt`
-**Explanation:** -infer_genes and -infer_transcripts create parent features if GFF only has exon/CDS; useful for incomplete annotations
+**Explanation:** liftoff command; target.fasta target assembly; reference.fasta reference assembly; -g reference.gff3 source annotation; -o lifted.gff3 output GFF3; -infer_genes create gene features; -infer_transcripts create transcript features; -u unmapped.txt unmapped features

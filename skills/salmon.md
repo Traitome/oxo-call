@@ -42,44 +42,44 @@ source_url: "https://salmon.readthedocs.io/"
 
 ### quantify paired-end RNA-seq reads with automatic library type detection
 **Args:** `quant -i salmon_index -l A -1 R1.fastq.gz -2 R2.fastq.gz -p 8 --gcBias -o sample_quant`
-**Explanation:** -l A auto-detects strandedness; --gcBias corrects for GC content bias; selective-alignment is default in recent versions
+**Explanation:** quant subcommand; -i index directory; -l A auto-detects strandedness; -1/-2 paired-end inputs; -p 8 threads; --gcBias corrects for GC content bias; -o output directory; selective-alignment is default in recent versions
 
 ### quantify single-end RNA-seq reads
 **Args:** `quant -i salmon_index -l A -r reads.fastq.gz -p 8 --gcBias -o sample_quant`
-**Explanation:** -r for single-end reads; -l A auto-detects orientation; --gcBias recommended
+**Explanation:** quant subcommand; -i index directory; -l A auto-detects orientation; -r for single-end reads; -p 8 threads; --gcBias recommended; -o output directory
 
 ### build decoy-aware salmon index for more accurate quantification
 **Args:** `index -t gentrome.fa -d decoys.txt -i salmon_index_decoy --threads 8`
-**Explanation:** gentrome.fa = cat transcriptome.fa genome.fa; decoys.txt = list of genome chromosome names; more accurate
+**Explanation:** index subcommand; -t gentrome.fa = cat transcriptome.fa genome.fa; -d decoys.txt = list of genome chromosome names; -i output directory; --threads 8; more accurate quantification
 
 ### quantify bulk RNA-seq with strand-specific reverse library
 **Args:** `quant -i salmon_index -l ISR -1 R1.fastq.gz -2 R2.fastq.gz -p 8 --gcBias --seqBias -o sample_quant`
-**Explanation:** ISR = inward, stranded, reverse (dUTP libraries); --seqBias for sequence-specific bias correction; selective-alignment is now default
+**Explanation:** quant subcommand; -i index; -l ISR = inward, stranded, reverse (dUTP libraries); -1/-2 paired-end inputs; -p 8 threads; --gcBias for GC bias; --seqBias for sequence-specific bias; -o output; selective-alignment is now default
 
 ### quantify from existing BAM alignments
 **Args:** `quant -i salmon_index -l A -a aligned.bam -p 8 --gcBias -o sample_quant`
-**Explanation:** -a specifies input BAM/SAM alignments instead of raw reads; useful when re-using existing alignments from STAR/HISAT2
+**Explanation:** quant subcommand; -i index directory; -l A auto-detect library; -a specifies input BAM/SAM alignments; -p 8 threads; --gcBias bias correction; -o output; useful when re-using existing alignments from STAR/HISAT2
 
 ### merge multiple quantification results
 **Args:** `quantmerge --quants sample1_quant sample2_quant sample3_quant -o merged_quant.sf`
-**Explanation:** combines quant.sf files from multiple samples into a single file; useful for creating count matrices for downstream analysis
+**Explanation:** quantmerge subcommand; --quants specifies input directories; -o output file; combines quant.sf files from multiple samples; useful for creating count matrices for downstream analysis
 
 ### build index with custom k-mer length for short reads
 **Args:** `index -t transcriptome.fa -i salmon_index_k23 -k 23 --threads 8`
-**Explanation:** -k 23 sets shorter k-mer length for short or noisy reads (e.g., 50bp); increases sensitivity but may reduce specificity compared to default k=31
+**Explanation:** index subcommand; -t transcriptome FASTA; -i output directory; -k 23 sets shorter k-mer length for short/noisy reads; --threads 8; increases sensitivity but may reduce specificity compared to default k=31
 
 ### quantify with GENCODE transcriptome and gene name splitting
 **Args:** `quant -i salmon_index -l A -1 R1.fq.gz -2 R2.fq.gz -p 8 --gcBias --gencode -o gencode_quant`
-**Explanation:** --gencode splits transcript names at first '|' for GENCODE-formatted FASTA; simplifies downstream gene-level aggregation
+**Explanation:** quant subcommand; -i index; -l A auto-detect; -1/-2 paired inputs; -p 8 threads; --gcBias bias correction; --gencode splits transcript names at first '|' for GENCODE-formatted FASTA; -o output; simplifies downstream gene-level aggregation
 
 ### quantify with multiple bias corrections
 **Args:** `quant -i salmon_index -l A -1 R1.fq.gz -2 R2.fq.gz -p 8 --gcBias --seqBias --posBias -o bias_corrected_quant`
-**Explanation:** --gcBias (GC bias), --seqBias (sequence bias), --posBias (positional bias); comprehensive bias correction for highest accuracy
+**Explanation:** quant subcommand; -i index; -l A auto-detect; -1/-2 paired inputs; -p 8 threads; --gcBias (GC bias), --seqBias (sequence bias), --posBias (positional bias); -o output; comprehensive bias correction for highest accuracy
 
 ### quantify with range factorization for memory efficiency
 **Args:** `quant -i salmon_index -l A -1 R1.fq.gz -2 R2.fq.gz -p 8 --rangeFactorizationBins 4 -o efficient_quant`
-**Explanation:** --rangeFactorizationBins 4 reduces memory usage; useful for large transcriptomes or memory-constrained systems
+**Explanation:** quant subcommand; -i index; -l A auto-detect; -1/-2 paired inputs; -p 8 threads; --rangeFactorizationBins 4 reduces memory usage; -o output; useful for large transcriptomes or memory-constrained systems
 
 ### quantify with transcriptome mapping output
 **Args:** `quant -i salmon_index -l A -1 R1.fq.gz -2 R2.fq.gz -p 8 --writeMappings=mappings.sam -o with_mappings`
-**Explanation:** --writeMappings outputs SAM-format alignments to transcriptome; useful for debugging or alternative quantification methods
+**Explanation:** quant subcommand; -i index; -l A auto-detect; -1/-2 paired inputs; -p 8 threads; --writeMappings outputs SAM-format alignments to transcriptome; -o output; useful for debugging or alternative quantification methods

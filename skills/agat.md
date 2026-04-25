@@ -36,23 +36,23 @@ source_url: "https://github.com/NBISweden/AGAT"
 
 ### get comprehensive annotation statistics
 **Args:** `agat_sp_statistics --gff annotation.gff3 -o statistics_report.txt`
-**Explanation:** outputs gene count, mRNA count, exon statistics, intron size distribution; when isoforms are present, computes statistics twice (with all isoforms and with longest isoform only)
+**Explanation:** --gff specifies input GFF3; -o writes output report; outputs gene count, mRNA count, exon statistics, intron size distribution; when isoforms are present, computes statistics twice (with all isoforms and with longest isoform only)
 
 ### filter genes by minimum length
 **Args:** `agat_sp_filter_gene_by_length --gff annotation.gff3 --size 300 --test ">=" -o filtered.gff3`
-**Explanation:** --size 300 sets the length threshold; --test ">=" keeps genes ≥300 bp; creates two output files (pass and fail)
+**Explanation:** --gff specifies input GFF3; --size 300 sets the length threshold; --test ">=" keeps genes ≥300 bp; -o writes output; creates two output files (pass and fail)
 
 ### fix and standardize a malformed GFF3 file
 **Args:** `agat_convert_sp_gxf2gxf --gff malformed.gff3 -o fixed.gff3`
-**Explanation:** repairs common GFF3 errors: removes duplicates, fixes duplicated IDs, adds missing ID/Parent attributes, adds missing features (exon from CDS, UTR from CDS+exon), sorts output
+**Explanation:** --gff specifies input GFF3; -o writes output; repairs common GFF3 errors: removes duplicates, fixes duplicated IDs, adds missing ID/Parent attributes, adds missing features (exon from CDS, UTR from CDS+exon), sorts output
 
 ### extract CDS sequences from a genome using GFF annotations
 **Args:** `agat_sp_extract_sequences --gff annotation.gff3 -f genome.fa -t cds -o cds_sequences.fa`
-**Explanation:** -f provides the reference genome FASTA; -t cds extracts CDS features; handles split features (e.g., CDS across multiple exons) by merging chunks
+**Explanation:** --gff specifies input GFF3; -f provides the reference genome FASTA; -t cds extracts CDS features; -o writes output; handles split features (e.g., CDS across multiple exons) by merging chunks
 
 ### keep only the longest isoform per gene
 **Args:** `agat_sp_keep_longest_isoform --gff annotation.gff3 -o longest_isoforms.gff3`
-**Explanation:** for each locus, keeps the isoform with the longest CDS (or longest concatenated exons if no CDS); reduces annotation complexity
+**Explanation:** --gff specifies input GFF3; -o writes output; for each locus, keeps the isoform with the longest CDS (or longest concatenated exons if no CDS); reduces annotation complexity
 
 ### merge multiple GFF3 annotation files
 **Args:** `agat_sp_merge_annotations --gff annot1.gff3 --gff annot2.gff3 -o merged.gff3`
@@ -60,11 +60,11 @@ source_url: "https://github.com/NBISweden/AGAT"
 
 ### manage and standardize feature IDs
 **Args:** `agat_sp_manage_IDs --gff annotation.gff3 --prefix gene -o re_ided.gff3`
-**Explanation:** --prefix sets the ID prefix; IDs are reformatted as prefix.letterCode.number; useful for ensuring unique, consistent identifiers
+**Explanation:** --gff specifies input GFF3; --prefix sets the ID prefix; -o writes output; IDs are reformatted as prefix.letterCode.number; useful for ensuring unique, consistent identifiers
 
 ### convert GFF3 to BED format with coordinate adjustment
 **Args:** `agat_convert_sp_gff2bed --gff annotation.gff3 -o annotation.bed`
-**Explanation:** converts GFF3 (1-based closed) to BED (0-based half-open) with automatic coordinate adjustment
+**Explanation:** --gff specifies input GFF3; -o writes output; converts GFF3 (1-based closed) to BED (0-based half-open) with automatic coordinate adjustment
 
 ### expose and modify AGAT configuration
 **Args:** `config --expose`

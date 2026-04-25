@@ -45,32 +45,32 @@ source_url: "https://bioinf.uni-greifswald.de/augustus/"
 
 ### predict genes with RNA-seq hints for improved accuracy
 **Args:** `--species=arabidopsis --hintsfile=rnaseq_hints.gff --extrinsicCfgFile=extrinsic.cfg genome.fasta --gff3=on > improved_predictions.gff3`
-**Explanation:** --hintsfile provides RNA-seq intron/exon hints; --extrinsicCfgFile sets weights for hint integration; significantly improves sensitivity and specificity
+**Explanation:** --species=arabidopsis trained model; --hintsfile=rnaseq_hints.gff provides RNA-seq intron/exon hints; --extrinsicCfgFile=extrinsic.cfg sets weights for hint integration; genome.fasta input; --gff3=on outputs standard GFF3; significantly improves sensitivity and specificity
 
 ### generate hint file from RNA-seq BAM alignments
 **Args:** `bam2hints --in=star_alignments.bam --out=rnaseq_hints.gff`
-**Explanation:** converts spliced RNA-seq alignments to intron hints in GFF format; BAM must be sorted by reference and position
+**Explanation:** bam2hints companion tool; --in=star_alignments.bam input BAM file; --out=rnaseq_hints.gff output GFF file; converts spliced RNA-seq alignments to intron hints in GFF format; BAM must be sorted by reference and position
 
 ### predict genes and output protein sequences
 **Args:** `--species=fly --gff3=on --protein=on --codingseq=on genome.fasta > fly_predictions.gff3`
-**Explanation:** --protein=on outputs protein sequences embedded in GFF3; --codingseq=on outputs CDS sequences; both useful for downstream functional annotation
+**Explanation:** --species=fly trained model; --gff3=on outputs standard GFF3; --protein=on outputs protein sequences embedded in GFF3; --codingseq=on outputs CDS sequences; genome.fasta input; both useful for downstream functional annotation
 
 ### predict only complete genes on the forward strand
 **Args:** `--species=zebrafish --genemodel=complete --strand=forward --gff3=on genome.fasta > complete_genes.gff3`
-**Explanation:** --genemodel=complete only reports genes with start and stop codons; --strand=forward restricts to forward strand
+**Explanation:** --species=zebrafish trained model; --genemodel=complete only reports genes with start and stop codons; --strand=forward restricts to forward strand; --gff3=on outputs standard GFF3; genome.fasta input
 
 ### run Augustus on a repeat-masked genome with UTR prediction
 **Args:** `--species=human human_masked.fasta --gff3=on --softmasking=1 --UTR=on > human_genes.gff3`
-**Explanation:** --softmasking=1 uses softmasked lowercase regions to avoid predicting in repeats; --UTR=on adds UTR features (requires species with UTR training)
+**Explanation:** --species=human trained model; human_masked.fasta repeat-masked input; --gff3=on outputs standard GFF3; --softmasking=1 uses softmasked lowercase regions to avoid predicting in repeats; --UTR=on adds UTR features (requires species with UTR training)
 
 ### predict genes with alternative splicing from evidence
 **Args:** `--species=human --hintsfile=hints.gff --alternatives-from-evidence=true --maxtracks=4 --gff3=on genome.fasta > alt_splicing.gff3`
-**Explanation:** --alternatives-from-evidence=true reports alternative transcripts when hints suggest them; --maxtracks=4 limits alternative gene structures per locus
+**Explanation:** --species=human trained model; --hintsfile=hints.gff provides RNA-seq hints; --alternatives-from-evidence=true reports alternative transcripts when hints suggest them; --maxtracks=4 limits alternative gene structures per locus; --gff3=on outputs standard GFF3; genome.fasta input
 
 ### predict genes on a specific region of a chromosome
 **Args:** `--species=human --predictionStart=100000 --predictionEnd=500000 chr1.fasta --gff3=on > region_predictions.gff3`
-**Explanation:** --predictionStart/--predictionEnd restrict prediction to a specific coordinate range; useful for testing parameters or analyzing specific regions
+**Explanation:** --species=human trained model; --predictionStart=100000/--predictionEnd=500000 restrict prediction to a specific coordinate range; chr1.fasta input chromosome; --gff3=on outputs standard GFF3; useful for testing parameters or analyzing specific regions
 
 ### predict genes using protein profile for a specific gene family
 **Args:** `--species=human --proteinprofile=kinase.profile --gff3=on genome.fasta > kinase_predictions.gff3`
-**Explanation:** --proteinprofile uses protein family conservation patterns to improve prediction of genes in a specific family
+**Explanation:** --species=human trained model; --proteinprofile=kinase.profile uses protein family conservation patterns to improve prediction of genes in a specific family; --gff3=on outputs standard GFF3; genome.fasta input

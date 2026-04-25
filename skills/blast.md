@@ -39,44 +39,44 @@ source_url: "https://blast.ncbi.nlm.nih.gov/doc/blast-help/"
 
 ### build a nucleotide BLAST database from a FASTA file
 **Args:** `makeblastdb -in genome.fasta -dbtype nucl -out genome_db -title 'Genome Database' -parse_seqids`
-**Explanation:** -dbtype nucl for nucleotide (prot for protein); -out database prefix; -parse_seqids enables sequence retrieval by ID
+**Explanation:** -in specifies input FASTA; -dbtype nucl for nucleotide (prot for protein); -out database prefix; -title sets database title; -parse_seqids enables sequence retrieval by ID
 
 ### run blastn to find similar nucleotide sequences
 **Args:** `blastn -query query.fasta -db genome_db -out blast_results.txt -outfmt 6 -evalue 1e-5 -num_threads 8`
-**Explanation:** -outfmt 6 tabular output; -evalue 1e-5 threshold; -num_threads 8 parallel search
+**Explanation:** -query specifies query file; -db is the database; -out writes results; -outfmt 6 tabular output; -evalue 1e-5 threshold; -num_threads 8 parallel search
 
 ### search protein sequences against NR database
 **Args:** `blastp -query proteins.faa -db /path/to/nr -out blastp_results.txt -outfmt '6 std stitle staxids' -evalue 1e-5 -num_threads 16 -max_target_seqs 5`
-**Explanation:** -db nr (NCBI non-redundant); stitle and staxids in custom outfmt; top 5 hits per query
+**Explanation:** -query specifies query file; -db nr (NCBI non-redundant); -out writes results; -outfmt '6 std stitle staxids' adds title and taxonomy; -evalue 1e-5 threshold; -num_threads 16 parallel; -max_target_seqs 5 top hits per query
 
 ### run blastx to annotate nucleotide sequences against protein database
 **Args:** `blastx -query contigs.fasta -db /path/to/swissprot -out blastx_results.txt -outfmt 6 -evalue 1e-5 -num_threads 8 -max_target_seqs 1`
-**Explanation:** blastx translates query DNA in all 6 frames; -db swissprot for curated protein annotations
+**Explanation:** -query specifies query file; blastx translates query DNA in all 6 frames; -db swissprot for curated protein annotations; -out writes results; -outfmt 6 tabular; -evalue 1e-5 threshold; -num_threads 8 parallel; -max_target_seqs 1 top hit
 
 ### perform remote BLAST search against NCBI nr database
 **Args:** `blastn -query query.fasta -db nr -out remote_blast.txt -outfmt 6 -remote -max_target_seqs 10`
-**Explanation:** -remote searches NCBI servers directly; no local database needed; slower than local search
+**Explanation:** -query specifies query file; -db nr database; -out writes results; -outfmt 6 tabular; -remote searches NCBI servers directly; -max_target_seqs 10 hits per query; no local database needed; slower than local search
 
 ### search against a FASTA file without building a database
 **Args:** `blastn -query query.fasta -subject target.fasta -out results.txt -outfmt 6 -evalue 1e-5`
-**Explanation:** -subject replaces -db; no makeblastdb needed; incompatible with -taxids, -remote; good for quick one-off searches
+**Explanation:** -query specifies query file; -subject replaces -db; -out writes results; -outfmt 6 tabular; -evalue 1e-5 threshold; no makeblastdb needed; incompatible with -taxids, -remote; good for quick one-off searches
 
 ### use traditional blastn instead of megablast for distant homologs
 **Args:** `blastn -task blastn -query query.fasta -db genome_db -out results.txt -outfmt 6 -evalue 1e-10 -word_size 11`
-**Explanation:** -task blastn uses traditional algorithm (default is megablast); lower word_size for sensitivity; use -task dc-megablast for cross-species megablast
+**Explanation:** -task blastn uses traditional algorithm (default is megablast); -query specifies query; -db is database; -out writes results; -outfmt 6 tabular; -evalue 1e-10 threshold; -word_size 11 for sensitivity; use -task dc-megablast for cross-species megablast
 
 ### search short sequences (<30 bp) with blastn-short
 **Args:** `blastn -task blastn-short -query primers.fasta -db genome_db -out results.txt -outfmt 6 -evalue 1000 -word_size 7`
-**Explanation:** -task blastn-short optimized for queries <30 bp; requires higher -evalue threshold; -word_size 7 for maximum sensitivity
+**Explanation:** -task blastn-short optimized for queries <30 bp; -query specifies query; -db is database; -out writes results; -outfmt 6 tabular; -evalue 1000 higher threshold for short queries; -word_size 7 for maximum sensitivity
 
 ### retrieve sequences from a BLAST database by accession
 **Args:** `blastdbcmd -db genome_db -entry NM_001234 -out retrieved.fa`
-**Explanation:** -entry specifies sequence identifier; use -entry_batch for multiple IDs from a file; -taxids to retrieve by taxonomy
+**Explanation:** -db specifies database; -entry specifies sequence identifier; -out writes output; use -entry_batch for multiple IDs from a file; -taxids to retrieve by taxonomy
 
 ### filter BLAST results by taxonomy
 **Args:** `blastn -query query.fasta -db nt -out results.txt -outfmt 6 -taxids 9606 -evalue 1e-5 -remote`
-**Explanation:** -taxids 9606 restricts to human (taxonomy ID); -negative_taxids to exclude; requires -remote or taxid-indexed database
+**Explanation:** -query specifies query file; -db nt database; -out writes results; -outfmt 6 tabular; -taxids 9606 restricts to human (taxonomy ID); -evalue 1e-5 threshold; -remote enables remote search; -negative_taxids to exclude; requires -remote or taxid-indexed database
 
 ### filter by query coverage and percent identity
 **Args:** `blastn -query query.fasta -db genome_db -out results.txt -outfmt 6 -qcov_hsp_perc 80 -perc_identity 95 -evalue 1e-5`
-**Explanation:** -qcov_hsp_perc 80 requires ≥80% query coverage; -perc_identity 95 requires ≥95% identity; combined filters ensure high-quality matches
+**Explanation:** -query specifies query file; -db is database; -out writes results; -outfmt 6 tabular; -qcov_hsp_perc 80 requires ≥80% query coverage; -perc_identity 95 requires ≥95% identity; -evalue 1e-5 threshold; combined filters ensure high-quality matches

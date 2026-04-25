@@ -39,40 +39,40 @@ source_url: "https://github.com/wdecoster/chopper"
 
 ### filter ONT reads by minimum quality Q10 and minimum length 1000 bp
 **Args:** `-q 10 -l 1000 --threads 8`
-**Explanation:** pipe: gunzip -c reads.fastq.gz | chopper -q 10 -l 1000 --threads 8 | gzip > filtered.fastq.gz
+**Explanation:** -q 10 minimum mean quality; -l 1000 minimum read length; --threads 8 parallel processing; pipe: gunzip -c reads.fastq.gz | chopper -q 10 -l 1000 --threads 8 | gzip > filtered.fastq.gz
 
 ### filter high-quality ONT reads for variant calling (Q15, min 500 bp)
 **Args:** `-q 15 -l 500 --threads 8`
-**Explanation:** Q15 ≈ 97% accuracy; -l 500 minimum length; pipe input from gunzip and output to gzip
+**Explanation:** -q 15 minimum mean quality (Q15 ≈ 97% accuracy); -l 500 minimum read length; --threads 8 parallel processing; pipe input from gunzip and output to gzip
 
 ### filter reads and remove low-quality ends
 **Args:** `-q 10 -l 1000 --headcrop 30 --tailcrop 30 --threads 8`
-**Explanation:** --headcrop 30 removes first 30 bases (often lower quality); --tailcrop 30 removes last 30 bases
+**Explanation:** -q 10 minimum mean quality; -l 1000 minimum read length; --headcrop 30 removes first 30 bases; --tailcrop 30 removes last 30 bases; --threads 8 parallel processing; often removes lower quality ends
 
 ### filter reads with maximum length cutoff for specific applications
 **Args:** `-q 8 -l 200 --maxlength 50000 --threads 4`
-**Explanation:** --maxlength removes very long reads that may be chimeric; -l 200 for short-fragment applications
+**Explanation:** -q 8 minimum mean quality; -l 200 minimum read length; --maxlength 50000 maximum read length; --threads 4 parallel processing; removes very long reads that may be chimeric; -l 200 for short-fragment applications
 
 ### trim low-quality bases from read ends using trim-by-quality
 **Args:** `--trim-approach trim-by-quality --cutoff 10 -q 10 -l 1000 --threads 8`
-**Explanation:** --trim-approach trim-by-quality removes low-quality bases from ends until reaching Q10; --cutoff is required for this approach
+**Explanation:** --trim-approach trim-by-quality strategy; --cutoff 10 quality threshold for trimming; -q 10 minimum mean quality; -l 1000 minimum read length; --threads 8 parallel processing; removes low-quality bases from ends until reaching Q10
 
 ### extract highest-quality read segment using best-read-segment
 **Args:** `--trim-approach best-read-segment --cutoff 12 -q 10 -l 1000 --threads 8`
-**Explanation:** best-read-segment extracts the highest-quality portion of each read; useful for reads with variable quality across length
+**Explanation:** --trim-approach best-read-segment strategy; --cutoff 12 quality threshold; -q 10 minimum mean quality; -l 1000 minimum read length; --threads 8 parallel processing; extracts highest-quality portion of each read; useful for reads with variable quality
 
 ### filter reads by GC content for AT-rich genomes
 **Args:** `-q 10 -l 1000 --mingc 30 --maxgc 60 --threads 8`
-**Explanation:** --mingc 30 --maxgc 60 keeps reads with 30-60% GC content; useful for filtering extreme GC outliers
+**Explanation:** -q 10 minimum mean quality; -l 1000 minimum read length; --mingc 30 --maxgc 60 GC content range; --threads 8 parallel processing; keeps reads with 30-60% GC content; useful for filtering extreme GC outliers
 
 ### output reads that fail quality filters (inverse mode)
 **Args:** `-q 10 -l 1000 --inverse --threads 8`
-**Explanation:** --inverse outputs reads that FAIL the filters instead of passing; useful for examining low-quality data
+**Explanation:** -q 10 minimum mean quality; -l 1000 minimum read length; --inverse outputs reads that fail filters; --threads 8 parallel processing; useful for examining low-quality data
 
 ### filter contaminants against a reference FASTA
 **Args:** `-q 10 -l 1000 -c contaminants.fasta --threads 8`
-**Explanation:** -c filters out reads matching sequences in contaminants.fasta; useful for removing host or adapter contamination
+**Explanation:** -q 10 minimum mean quality; -l 1000 minimum read length; -c contaminants.fasta contaminant reference; --threads 8 parallel processing; filters out reads matching sequences in contaminants.fasta; useful for removing host or adapter contamination
 
 ### split reads by low-quality segments
 **Args:** `--trim-approach split-by-low-quality --cutoff 8 -q 10 -l 500 --threads 8`
-**Explanation:** split-by-low-quality breaks reads at low-quality regions and outputs high-quality parts; useful for rescue of chimeric reads
+**Explanation:** --trim-approach split-by-low-quality strategy; --cutoff 8 quality threshold; -q 10 minimum mean quality; -l 500 minimum read length; --threads 8 parallel processing; breaks reads at low-quality regions and outputs high-quality parts; useful for rescue of chimeric reads

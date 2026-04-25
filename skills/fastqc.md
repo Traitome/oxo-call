@@ -41,44 +41,44 @@ source_url: "https://www.bioinformatics.babraham.ac.uk/projects/fastqc/"
 
 ### run quality control on a single FASTQ file
 **Args:** `reads.fastq.gz -o qc_results/`
-**Explanation:** generates reads_fastqc.html and reads_fastqc.zip in qc_results/; create the output directory first
+**Explanation:** reads.fastq.gz input file; -o qc_results/ output directory; generates reads_fastqc.html and reads_fastqc.zip in qc_results/; create the output directory first
 
 ### run quality control on paired-end FASTQ files using 4 threads
 **Args:** `-t 4 -o qc_results/ R1.fastq.gz R2.fastq.gz`
-**Explanation:** -t 4 processes both files in parallel (2 files × 2 threads for I/O); output goes to qc_results/
+**Explanation:** -t 4 processes both files in parallel (2 files × 2 threads for I/O); -o qc_results/ output directory; R1.fastq.gz R2.fastq.gz input files; output goes to qc_results/
 
 ### run quality control on multiple samples and keep zip files without extracting
 **Args:** `--noextract -t 8 -o qc_output/ sample1_R1.fastq.gz sample1_R2.fastq.gz sample2_R1.fastq.gz sample2_R2.fastq.gz`
-**Explanation:** --noextract keeps only HTML and zip; -t 8 processes up to 8 files in parallel
+**Explanation:** --noextract keeps only HTML and zip without extracting; -t 8 processes up to 8 files in parallel; -o qc_output/ output directory; sample1_R1.fastq.gz sample1_R2.fastq.gz sample2_R1.fastq.gz sample2_R2.fastq.gz input files
 
 ### run fastqc on a BAM file
 **Args:** `-t 4 -o qc_results/ aligned.bam`
-**Explanation:** FastQC can process BAM files; useful for QC of already-aligned data
+**Explanation:** -t 4 threads; -o qc_results/ output directory; aligned.bam input BAM file; FastQC can process BAM files; useful for QC of already-aligned data
 
 ### run fastqc with custom adapter sequences and format specification
 **Args:** `-f fastq -a adapters.txt -t 4 -o qc_results/ reads.fastq.gz`
-**Explanation:** -f specifies format; -a provides custom adapter sequences for adapter content module
+**Explanation:** -f fastq specifies format; -a adapters.txt provides custom adapter sequences for adapter content module; -t 4 threads; -o qc_results/ output directory; reads.fastq.gz input file
 
 ### run fastqc with SVG output for publication-quality graphics
 **Args:** `--svg -t 4 -o qc_results/ sample1.fastq.gz sample2.fastq.gz`
-**Explanation:** --svg generates SVG format graphs instead of PNG; better for publications and presentations
+**Explanation:** --svg generates SVG format graphs instead of PNG; -t 4 threads; -o qc_results/ output directory; sample1.fastq.gz sample2.fastq.gz input files; better for publications and presentations
 
 ### run fastqc on long reads with increased memory
 **Args:** `--memory 1024 -t 2 -o qc_results/ long_reads.fastq.gz`
-**Explanation:** --memory 1024 allocates 1GB per file; necessary for files with very long sequences (e.g., PacBio)
+**Explanation:** --memory 1024 allocates 1GB per file; -t 2 threads; -o qc_results/ output directory; long_reads.fastq.gz input file; necessary for files with very long sequences (e.g., PacBio)
 
 ### run fastqc with custom contaminant screening
 **Args:** `-c contaminants.txt -t 4 -o qc_results/ reads.fastq.gz`
-**Explanation:** -c specifies contaminant file (name[tab]sequence format); screens overrepresented sequences
+**Explanation:** -c contaminants.txt specifies contaminant file (name[tab]sequence format); -t 4 threads; -o qc_results/ output directory; reads.fastq.gz input file; screens overrepresented sequences
 
 ### run fastqc with specific Kmer length for Kmer content analysis
 **Args:** `-k 5 -t 4 -o qc_results/ reads.fastq.gz`
-**Explanation:** -k 5 sets Kmer length to 5bp for Kmer content module; valid range is 2-10bp
+**Explanation:** -k 5 sets Kmer length to 5bp for Kmer content module; -t 4 threads; -o qc_results/ output directory; reads.fastq.gz input file; valid range is 2-10bp
 
 ### run fastqc on Casava raw output files
 **Args:** `--casava -t 4 -o qc_results/ sample_L001_R1_001.fastq.gz sample_L001_R2_001.fastq.gz`
-**Explanation:** --casava groups files from same sample and excludes filtered reads; requires Casava naming convention
+**Explanation:** --casava groups files from same sample and excludes filtered reads; -t 4 threads; -o qc_results/ output directory; sample_L001_R1_001.fastq.gz sample_L001_R2_001.fastq.gz input files; requires Casava naming convention
 
 ### run fastqc with custom duplication detection length
 **Args:** `--dup_length 75 -t 4 -o qc_results/ reads_with_umis.fastq.gz`
-**Explanation:** --dup_length 75 truncates sequences to 75bp for duplicate detection; useful for long reads with UMIs
+**Explanation:** --dup_length 75 truncates sequences to 75bp for duplicate detection; -t 4 threads; -o qc_results/ output directory; reads_with_umis.fastq.gz input file; useful for long reads with UMIs

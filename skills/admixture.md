@@ -48,11 +48,11 @@ source_url: "https://dalexander.github.io/admixture/"
 
 ### run ADMIXTURE with reproducible seed for convergence testing
 **Args:** `data.bed 3 --seed=42 --cv=10`
-**Explanation:** --seed=42 ensures reproducibility; repeat with different seeds (--seed=1, --seed=2, ...) to check that runs converge to the same optimum
+**Explanation:** --seed=42 ensures reproducibility; --cv=10 performs 10-fold cross-validation for model selection; repeat with different seeds (--seed=1, --seed=2, ...) to check that runs converge to the same optimum
 
 ### run ADMIXTURE across multiple K values to find the optimal K
 **Args:** `data.bed K --cv=10`
-**Explanation:** run for K=2,3,4,5,... in a shell loop; extract CV errors with `grep "CV error" log*.out`; the K with lowest CV error is optimal
+**Explanation:** --cv=10 performs 10-fold cross-validation; run for K=2,3,4,5,... in a shell loop; extract CV errors with `grep "CV error" log*.out`; the K with lowest CV error is optimal
 
 ### run supervised ADMIXTURE with known reference populations
 **Args:** `data.bed 3 --supervised`
@@ -68,28 +68,28 @@ source_url: "https://dalexander.github.io/admixture/"
 
 ### compare cross-validation errors across K values
 **Args:** `data.bed 6 --cv=10 | tee admixture_K6.log`
-**Explanation:** tee captures log while streaming; extract CV error with: grep "CV error" admixture_K*.log; compare across K values to find the minimum
+**Explanation:** --cv=10 performs 10-fold cross-validation; tee captures log while streaming; extract CV error with: grep "CV error" admixture_K*.log; compare across K values to find the minimum
 
 ### run ADMIXTURE with EM algorithm for difficult convergence
 **Args:** `data.bed 5 --method=em --cv=10`
-**Explanation:** --method=em uses the EM algorithm instead of the default block relaxation; slower per iteration but more reliable convergence when block relaxation fails to converge
+**Explanation:** --method=em uses the EM algorithm instead of the default block relaxation; --cv=10 performs 10-fold cross-validation; slower per iteration but more reliable convergence when block relaxation fails to converge
 
 ### run ADMIXTURE with quasi-Newton acceleration
 **Args:** `data.bed 5 --acceleration=qn5 --cv=10`
-**Explanation:** --acceleration=qn5 uses quasi-Newton acceleration with lookahead 5; can significantly reduce the number of iterations for large datasets
+**Explanation:** --acceleration=qn5 uses quasi-Newton acceleration with lookahead 5; --cv=10 performs 10-fold cross-validation; can significantly reduce the number of iterations for large datasets
 
 ### run ADMIXTURE with stricter convergence criterion
 **Args:** `data.bed 5 -C=0.00001 --cv=10`
-**Explanation:** -C=0.00001 tightens the major convergence threshold from default 0.0001; useful for high-precision results but increases runtime
+**Explanation:** -C=0.00001 tightens the major convergence threshold from default 0.0001; --cv=10 performs 10-fold cross-validation; useful for high-precision results but increases runtime
 
 ### run ADMIXTURE with runtime MAF filtering
 **Args:** `data.bed 5 --maf=0.05 --cv=10`
-**Explanation:** --maf=0.05 filters SNPs with minor allele frequency below 5% at runtime; reduces noise from rare variants without pre-filtering with PLINK
+**Explanation:** --maf=0.05 filters SNPs with minor allele frequency below 5% at runtime; --cv=10 performs 10-fold cross-validation; reduces noise from rare variants without pre-filtering with PLINK
 
 ### run ADMIXTURE using PLINK PED format input
 **Args:** `data.ped 5 --cv=10`
-**Explanation:** PED format must be "12" coded (alleles encoded as 1 and 2); output files are data.5.Q and data.5.P same as BED input
+**Explanation:** --cv=10 performs 10-fold cross-validation; PED format must be "12" coded (alleles encoded as 1 and 2); output files are data.5.Q and data.5.P same as BED input
 
 ### run ADMIXTURE with multiple replicates for convergence checking
 **Args:** `data.bed 4 --seed=1 --cv=10 > run1.log`
-**Explanation:** repeat with --seed=2, --seed=3, etc.; compare log-likelihood values across replicates with `grep "Log-likelihood" run*.log` to identify the highest-likelihood solution
+**Explanation:** --seed=1 sets the random seed; --cv=10 performs 10-fold cross-validation; repeat with --seed=2, --seed=3, etc.; compare log-likelihood values across replicates with `grep "Log-likelihood" run*.log` to identify the highest-likelihood solution

@@ -40,52 +40,52 @@ source_url: "https://pachterlab.github.io/kallisto/"
 
 ### build a kallisto index from a transcriptome FASTA
 **Args:** `index -i transcriptome.idx transcriptome.fa`
-**Explanation:** -i specifies the index output file; transcriptome.fa is the cDNA/transcript FASTA
+**Explanation:** kallisto index subcommand; -i transcriptome.idx output index file; transcriptome.fa input transcriptome FASTA
 
 ### quantify paired-end RNA-seq reads
 **Args:** `quant -i transcriptome.idx -o sample_output -b 100 --threads 8 R1.fastq.gz R2.fastq.gz`
-**Explanation:** -o output directory; -b 100 bootstrap samples for variance; R1 and R2 are positional arguments
+**Explanation:** kallisto quant subcommand; -i transcriptome.idx input index; -o sample_output output directory; -b 100 bootstrap samples; --threads 8 threads; R1.fastq.gz R2.fastq.gz paired-end reads
 
 ### quantify single-end RNA-seq reads with fragment length parameters
 **Args:** `quant -i transcriptome.idx -o sample_output --single -l 200 -s 20 -b 100 --threads 8 reads.fastq.gz`
-**Explanation:** --single for SE mode; -l mean fragment length; -s fragment length SD; required for SE mode
+**Explanation:** kallisto quant subcommand; -i transcriptome.idx input index; -o sample_output output directory; --single single-end mode; -l 200 mean fragment length; -s 20 fragment length SD; -b 100 bootstrap samples; --threads 8 threads; reads.fastq.gz input reads
 
 ### quantify strand-specific reverse-strand paired-end RNA-seq
 **Args:** `quant -i transcriptome.idx -o sample_output --rf-stranded -b 100 --threads 8 R1.fastq.gz R2.fastq.gz`
-**Explanation:** --rf-stranded for dUTP/TruSeq reverse-strand libraries; use --fr-stranded for forward-strand
+**Explanation:** kallisto quant subcommand; -i transcriptome.idx input index; -o sample_output output directory; --rf-stranded reverse-strand dUTP library; -b 100 bootstrap samples; --threads 8 threads; R1.fastq.gz R2.fastq.gz paired-end reads
 
 ### quantify multiple samples in batch
 **Args:** `quant -i transcriptome.idx -o sample1_out -b 50 --threads 4 sample1_R1.fq.gz sample1_R2.fq.gz`
-**Explanation:** run kallisto quant once per sample; loop in shell for batch processing
+**Explanation:** kallisto quant subcommand; -i transcriptome.idx input index; -o sample1_out output directory; -b 50 bootstrap samples; --threads 4 threads; sample1_R1.fq.gz sample1_R2.fq.gz paired-end reads
 
 ### build index with custom k-mer size
 **Args:** `index -k 21 -i transcriptome.idx transcriptome.fa`
-**Explanation:** -k 21 sets k-mer size to 21 (must be odd); smaller k-mers improve sensitivity for short reads or divergent sequences
+**Explanation:** kallisto index subcommand; -k 21 custom k-mer size; -i transcriptome.idx output index file; transcriptome.fa input transcriptome FASTA
 
 ### build index masking rRNA sequences
 **Args:** `index -i transcriptome.idx --d-list rRNA.fa transcriptome.fa`
-**Explanation:** --d-list rRNA.fa masks rRNA sequences from quantification; reduces rRNA contamination in results
+**Explanation:** kallisto index subcommand; -i transcriptome.idx output index; --d-list rRNA.fa mask rRNA sequences; transcriptome.fa input transcriptome FASTA
 
 ### generate pseudoalignments as BAM file
 **Args:** `quant -i transcriptome.idx -o sample_output --pseudobam -b 100 --threads 8 R1.fastq.gz R2.fastq.gz`
-**Explanation:** --pseudobam outputs pseudoalignments.bam; useful for visualization in IGV or downstream analysis
+**Explanation:** kallisto quant subcommand; -i transcriptome.idx input index; -o sample_output output directory; --pseudobam output BAM; -b 100 bootstrap samples; --threads 8 threads; R1.fastq.gz R2.fastq.gz paired-end reads
 
 ### project pseudoalignments to genome coordinates
 **Args:** `quant -i transcriptome.idx -o sample_output --genomebam -g annotation.gtf -c chromosomes.txt -b 100 R1.fastq.gz R2.fastq.gz`
-**Explanation:** --genomebam projects to genome coordinates; requires -g GTF and optionally -c chromosomes file
+**Explanation:** kallisto quant subcommand; -i transcriptome.idx input index; -o sample_output output directory; --genomebam project to genome coordinates; -g annotation.gtf GTF file; -c chromosomes.txt chromosome sizes; -b 100 bootstrap samples; R1.fastq.gz R2.fastq.gz paired-end reads
 
 ### generate BUS file for single-cell data
 **Args:** `bus -i transcriptome.idx -o bus_output -x 10xv3 --threads 8 R1.fastq.gz R2.fastq.gz`
-**Explanation:** bus command generates BUS format for single-cell; -x specifies technology (10xv3, 10xv2, etc.)
+**Explanation:** kallisto bus subcommand; -i transcriptome.idx input index; -o bus_output output directory; -x 10xv3 single-cell technology; --threads 8 threads; R1.fastq.gz R2.fastq.gz input reads
 
 ### list supported single-cell technologies
 **Args:** `bus --list`
-**Explanation:** lists all supported single-cell technologies with their barcode/UMI configurations
+**Explanation:** kallisto bus subcommand; --list displays supported technologies
 
 ### convert HDF5 output to plaintext
 **Args:** `h5dump abundance.h5 > abundance_dump.tsv`
-**Explanation:** h5dump converts HDF5 abundance file to plaintext; useful when HDF5 libraries unavailable
+**Explanation:** kallisto h5dump subcommand; abundance.h5 input HDF5; output to abundance_dump.tsv
 
 ### inspect index file information
 **Args:** `inspect transcriptome.idx`
-**Explanation:** inspect displays index statistics: number of targets, k-mer size, version information
+**Explanation:** kallisto inspect subcommand; transcriptome.idx input index file

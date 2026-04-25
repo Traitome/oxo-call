@@ -41,76 +41,76 @@ source_url: "https://git-scm.com/docs"
 
 ### clone a repository with shallow history (last commit only) on a specific branch
 **Args:** `clone --depth 1 --branch main https://github.com/user/repo.git`
-**Explanation:** --depth 1 limits history to 1 commit; --branch specifies the branch; URL is required
+**Explanation:** clone subcommand; --depth 1 limits history to 1 commit; --branch main specifies the branch; https://github.com/user/repo.git repository URL
 
 ### stage all changes and commit with a message
 **Args:** `commit -a -m "fix: resolve null pointer in parser"`
-**Explanation:** -a stages all modified tracked files automatically; -m provides the commit message inline
+**Explanation:** commit subcommand; -a stages all modified tracked files automatically; -m "fix: resolve null pointer in parser" provides the commit message inline
 
 ### push the current branch to origin and set upstream tracking
 **Args:** `push -u origin main`
-**Explanation:** -u sets the upstream so future 'git push' without args works; 'origin' is the remote name
+**Explanation:** push subcommand; -u sets the upstream so future 'git push' without args works; origin remote name; main branch name
 
 ### create and switch to a new branch
 **Args:** `checkout -b feature/new-api`
-**Explanation:** -b creates the branch and switches to it in one step
+**Explanation:** checkout subcommand; -b creates the feature/new-api branch and switches to it in one step
 
 ### view the commit log with one-line summaries and branch graph
 **Args:** `log --oneline --graph --decorate --all`
-**Explanation:** --oneline for compact output; --graph shows branch topology; --decorate shows ref names
+**Explanation:** log subcommand; --oneline for compact output; --graph shows branch topology; --decorate shows ref names; --all shows all branches
 
 ### show unstaged and staged changes
 **Args:** `diff HEAD`
-**Explanation:** diff HEAD shows all uncommitted changes (both staged and unstaged) against the last commit
+**Explanation:** diff subcommand; HEAD shows all uncommitted changes (both staged and unstaged) against the last commit
 
 ### stash current working tree changes to switch branches cleanly
 **Args:** `stash push -m "WIP: experiment with new feature"`
-**Explanation:** stash push saves working tree changes; -m provides a descriptive stash message
+**Explanation:** stash subcommand with push; -m "WIP: experiment with new feature" provides a descriptive stash message
 
 ### rebase current branch onto main to update with upstream changes
 **Args:** `rebase origin/main`
-**Explanation:** replays current branch commits on top of origin/main; resolve conflicts if they arise
+**Explanation:** rebase subcommand; origin/main replays current branch commits on top of origin/main; resolve conflicts if they arise
 
 ### stop tracking a file without deleting it from disk
 **Args:** `rm --cached secrets.env`
-**Explanation:** --cached removes from index only, leaving the file on disk; commit afterward to record removal
+**Explanation:** rm subcommand; --cached removes secrets.env from index only, leaving the file on disk; commit afterward to record removal
 
 ### pull latest changes from remote and rebase local commits on top
 **Args:** `pull --rebase origin main`
-**Explanation:** --rebase keeps history linear by replaying local commits after the fetched commits
+**Explanation:** pull subcommand; --rebase keeps history linear by replaying local commits after the fetched commits; origin remote; main branch
 
 ### cherry-pick a specific commit from another branch
 **Args:** `cherry-pick a1b2c3d`
-**Explanation:** applies commit a1b2c3d to current branch; useful for backporting fixes without full merge
+**Explanation:** cherry-pick subcommand; a1b2c3d commit hash; applies commit a1b2c3d to current branch; useful for backporting fixes without full merge
 
 ### cherry-pick a range of commits
 **Args:** `cherry-pick a1b2c3d^..e4f5g6h`
-**Explanation:** applies all commits from a1b2c3d to e4f5g6h inclusive; ^ includes the first commit in the range
+**Explanation:** cherry-pick subcommand; a1b2c3d^..e4f5g6h commit range; applies all commits from a1b2c3d to e4f5g6h inclusive; ^ includes the first commit in the range
 
 ### find which commit introduced a bug using bisect
 **Args:** `bisect start`
-**Explanation:** starts binary search; then use 'git bisect bad' and 'git bisect good <commit>' to narrow down; 'git bisect reset' when done
+**Explanation:** bisect subcommand; start begins binary search; then use 'git bisect bad' and 'git bisect good <commit>' to narrow down; 'git bisect reset' when done
 
 ### create a new worktree for parallel branch work
 **Args:** `worktree add ../hotfix-branch hotfix/urgent-fix`
-**Explanation:** creates separate working directory at ../hotfix-branch; allows simultaneous work on multiple branches
+**Explanation:** worktree subcommand with add; ../hotfix-branch working directory path; hotfix/urgent-fix branch name; creates separate working directory; allows simultaneous work on multiple branches
 
 ### initialize and update submodules after cloning
 **Args:** `submodule update --init --recursive`
-**Explanation:** initializes and updates all submodules recursively; required after cloning repos with submodules
+**Explanation:** submodule subcommand with update; --init initializes; --recursive updates nested submodules; required after cloning repos with submodules
 
 ### add a submodule to the repository
 **Args:** `submodule add https://github.com/user/lib.git libs/lib`
-**Explanation:** adds external repo as submodule at libs/lib; commits .gitmodules file; collaborators must run submodule update
+**Explanation:** submodule subcommand with add; https://github.com/user/lib.git repository URL; libs/lib target path; adds external repo as submodule; commits .gitmodules file; collaborators must run submodule update
 
 ### enable sparse-checkout for large repositories
 **Args:** `sparse-checkout init --cone`
-**Explanation:** enables sparse-checkout in cone mode; use 'git sparse-checkout set <dir>' to specify which directories to checkout
+**Explanation:** sparse-checkout subcommand; init enables sparse-checkout; --cone uses cone mode for performance; use 'git sparse-checkout set <dir>' to specify which directories to checkout
 
 ### view reflog to find lost commits
 **Args:** `reflog`
-**Explanation:** shows all reference updates; use commit hashes from reflog to recover lost commits after reset or rebase
+**Explanation:** reflog subcommand; shows all reference updates; use commit hashes from reflog to recover lost commits after reset or rebase
 
 ### restore a file to a specific commit version
 **Args:** `restore --source=HEAD~5 -- config.py`
-**Explanation:** restores config.py to its state from 5 commits ago; --source specifies the commit to restore from
+**Explanation:** restore subcommand; --source=HEAD~5 restores config.py to its state from 5 commits ago; -- separates source from path

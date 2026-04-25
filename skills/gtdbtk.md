@@ -45,40 +45,40 @@ source_url: "https://github.com/Ecogenomics/GTDBTk"
 
 ### classify a directory of genome bins with GTDB-Tk
 **Args:** `classify_wf --genome_dir bins/ --out_dir gtdbtk_output/ --cpus 32 --extension fa`
-**Explanation:** --genome_dir directory with .fa files; --out_dir results directory; --extension fa file extension
+**Explanation:** classify_wf subcommand; --genome_dir bins/ directory with .fa files; --out_dir gtdbtk_output/ results directory; --cpus 32 threads; --extension fa file extension
 
 ### classify genomes with custom GTDB database path
 **Args:** `classify_wf --genome_dir bins/ --out_dir gtdbtk_output/ --cpus 32 --extension fasta --skip_ani_screen`
-**Explanation:** --skip_ani_screen skips slow ANI check; faster for large datasets but may reduce accuracy
+**Explanation:** classify_wf subcommand; --genome_dir bins/ genome directory; --out_dir gtdbtk_output/ results directory; --cpus 32 threads; --extension fasta file extension; --skip_ani_screen skips slow ANI check; faster for large datasets but may reduce accuracy
 
 ### run only the identification step (marker gene identification)
 **Args:** `identify --genome_dir bins/ --out_dir gtdbtk_identify/ --cpus 16 --extension fa`
-**Explanation:** identify subcommand extracts marker genes; useful for intermediate workflow steps
+**Explanation:** identify subcommand; --genome_dir bins/ genome directory; --out_dir gtdbtk_identify/ output directory; --cpus 16 threads; --extension fa file extension; extracts marker genes for intermediate workflow steps
 
 ### classify genomes using a batch file with custom genome IDs
 **Args:** `classify_wf --batchfile genome_list.tsv --out_dir gtdbtk_output/ --cpus 32`
-**Explanation:** --batchfile is tab-separated: column1=FASTA path, column2=genome ID, column3=translation table (optional); allows custom genome naming
+**Explanation:** classify_wf subcommand; --batchfile genome_list.tsv tab-separated file (column1=FASTA path, column2=genome ID, column3=translation table optional); --out_dir gtdbtk_output/ results; --cpus 32 threads; allows custom genome naming
 
 ### reduce memory usage during pplacer step
 **Args:** `classify_wf --genome_dir bins/ --out_dir gtdbtk_output/ --cpus 32 --pplacer_cpus 4 --scratch_dir /scratch/gtdbtk`
-**Explanation:** --scratch_dir writes to disk to reduce RAM; --pplacer_cpus limits parallel placement; useful for memory-constrained systems
+**Explanation:** classify_wf subcommand; --genome_dir bins/ genome directory; --out_dir gtdbtk_output/ results; --cpus 32 threads; --pplacer_cpus 4 limits parallel placement; --scratch_dir /scratch/gtdbtk writes to disk to reduce RAM; useful for memory-constrained systems
 
 ### classify pre-annotated protein sequences
 **Args:** `classify_wf --genome_dir proteins/ --out_dir gtdbtk_output/ --cpus 32 --genes --extension faa`
-**Explanation:** --genes indicates input is amino acid sequences; skips gene calling; WARNING: also skips ANI screening
+**Explanation:** classify_wf subcommand; --genome_dir proteins/ input directory; --out_dir gtdbtk_output/ results; --cpus 32 threads; --genes indicates input is amino acid sequences; --extension faa protein file extension; skips gene calling; WARNING: also skips ANI screening
 
 ### run de novo tree inference for bacterial genomes
 **Args:** `de_novo_wf --genome_dir bins/ --out_dir gtdbtk_denovo/ --cpus 32 --bacteria --outgroup_taxon p__Patescibacteria`
-**Explanation:** de_novo_wf builds tree without GTDB reference; --bacteria specifies domain; --outgroup_taxon roots the tree
+**Explanation:** de_novo_wf subcommand; --genome_dir bins/ genome directory; --out_dir gtdbtk_denovo/ results; --cpus 32 threads; --bacteria specifies bacterial domain; --outgroup_taxon p__Patescibacteria roots the tree; builds tree without GTDB reference
 
 ### filter low-quality genomes by marker gene coverage
 **Args:** `classify_wf --genome_dir bins/ --out_dir gtdbtk_output/ --cpus 32 --min_perc_aa 50`
-**Explanation:** --min_perc_aa 50 excludes genomes with <50% marker gene coverage; useful for removing low-quality MAGs before classification
+**Explanation:** classify_wf subcommand; --genome_dir bins/ genome directory; --out_dir gtdbtk_output/ results; --cpus 32 threads; --min_perc_aa 50 excludes genomes with <50% marker gene coverage; useful for removing low-quality MAGs before classification
 
 ### run align step separately after identify
 **Args:** `align --identify_dir gtdbtk_identify/ --out_dir gtdbtk_align/ --cpus 16 --skip_gtdb_refs`
-**Explanation:** align creates MSA from identify output; --skip_gtdb_refs excludes reference genomes for faster processing
+**Explanation:** align subcommand; --identify_dir gtdbtk_identify/ identify output directory; --out_dir gtdbtk_align/ output directory; --cpus 16 threads; --skip_gtdb_refs excludes reference genomes for faster processing; creates MSA from identify output
 
 ### classify from existing alignment
 **Args:** `classify --genome_dir bins/ --align_dir gtdbtk_align/ --out_dir gtdbtk_classify/ --cpus 32`
-**Explanation:** classify runs final classification step using pre-computed alignment; useful for re-classification with different parameters
+**Explanation:** classify subcommand; --genome_dir bins/ genome directory; --align_dir gtdbtk_align/ alignment directory; --out_dir gtdbtk_classify/ output; --cpus 32 threads; runs final classification step using pre-computed alignment; useful for re-classification with different parameters

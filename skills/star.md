@@ -42,44 +42,44 @@ source_url: "https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf"
 
 ### build genome index for STAR alignment
 **Args:** `--runMode genomeGenerate --genomeDir /path/to/star_index --genomeFastaFiles genome.fa --sjdbGTFfile genes.gtf --runThreadN 8`
-**Explanation:** genomeGenerate builds the index; --sjdbGTFfile adds splice junctions; index is reusable
+**Explanation:** --runMode genomeGenerate builds the index; --genomeDir output directory; --genomeFastaFiles reference FASTA; --sjdbGTFfile adds splice junctions; --runThreadN 8 threads; index is reusable
 
 ### align paired-end RNA-seq gzipped FASTQ files to the genome
 **Args:** `--runMode alignReads --genomeDir /path/to/star_index --readFilesIn R1.fastq.gz R2.fastq.gz --readFilesCommand zcat --runThreadN 8 --outSAMtype BAM SortedByCoordinate --outFileNamePrefix sample1/ --outSAMattributes NH HI AS NM`
-**Explanation:** --readFilesCommand zcat handles gzipped input; --outSAMtype BAM SortedByCoordinate outputs sorted BAM
+**Explanation:** --runMode alignReads for alignment; --genomeDir index directory; --readFilesIn R1 and R2; --readFilesCommand zcat handles gzipped input; --runThreadN 8 threads; --outSAMtype outputs sorted BAM; --outFileNamePrefix output prefix; --outSAMattributes standard SAM attributes
 
 ### align single-end RNA-seq reads with two-pass mode for better junction detection
 **Args:** `--runMode alignReads --genomeDir /star_index --readFilesIn reads.fastq.gz --readFilesCommand zcat --twopassMode Basic --runThreadN 8 --outSAMtype BAM SortedByCoordinate --outFileNamePrefix sample/`
-**Explanation:** --twopassMode Basic improves junction detection; recommended for RNA-seq discovery projects
+**Explanation:** --runMode alignReads; --genomeDir index; --readFilesIn input file; --readFilesCommand zcat for gzip; --twopassMode Basic improves junction detection; --runThreadN threads; --outSAMtype sorted BAM; --outFileNamePrefix output prefix; recommended for RNA-seq discovery projects
 
 ### align reads and output unmapped reads to a FASTQ file
 **Args:** `--runMode alignReads --genomeDir /star_index --readFilesIn R1.fq.gz R2.fq.gz --readFilesCommand zcat --runThreadN 8 --outSAMtype BAM SortedByCoordinate --outFileNamePrefix sample/ --outReadsUnmapped Fastx`
-**Explanation:** --outReadsUnmapped Fastx writes unmapped reads to Unmapped.out.mate1/mate2 files
+**Explanation:** --runMode alignReads; --genomeDir index; --readFilesIn inputs; --readFilesCommand zcat; --runThreadN threads; --outSAMtype sorted BAM; --outFileNamePrefix prefix; --outReadsUnmapped Fastx writes unmapped reads to Unmapped.out.mate1/mate2 files
 
 ### align with gene count quantification for differential expression
 **Args:** `--runMode alignReads --genomeDir /star_index --readFilesIn R1.fastq.gz R2.fastq.gz --readFilesCommand zcat --runThreadN 8 --outSAMtype BAM SortedByCoordinate --outFileNamePrefix sample/ --quantMode GeneCounts`
-**Explanation:** --quantMode GeneCounts outputs ReadsPerGene.out.tab with gene-level counts for DESeq2/edgeR
+**Explanation:** --runMode alignReads; --genomeDir index; --readFilesIn inputs; --readFilesCommand zcat; --runThreadN threads; --outSAMtype sorted BAM; --outFileNamePrefix prefix; --quantMode GeneCounts outputs ReadsPerGene.out.tab for DESeq2/edgeR
 
 ### align 10x Genomics single-cell data with STARsolo
 **Args:** `--runMode alignReads --genomeDir /star_index --readFilesIn cDNA.fastq.gz barcode.fastq.gz --readFilesCommand zcat --runThreadN 16 --outSAMtype BAM Unsorted --outFileNamePrefix sample/ --soloType CB_UMI_Simple --soloCBwhitelist 737K-august-2016.txt --soloUMIlen 10 --soloFeatures Gene`
-**Explanation:** --soloType CB_UMI_Simple enables STARsolo; whitelist file required; outputs Gene/filtered matrix like CellRanger
+**Explanation:** --runMode alignReads; --genomeDir index; --readFilesIn cDNA then barcode; --readFilesCommand zcat; --runThreadN threads; --outSAMtype unsorted BAM; --outFileNamePrefix prefix; --soloType CB_UMI_Simple enables STARsolo; --soloCBwhitelist barcode whitelist; --soloUMIlen 10 for V2; --soloFeatures Gene; outputs Gene/filtered matrix like CellRanger
 
 ### detect fusion genes with chimeric alignment output
 **Args:** `--runMode alignReads --genomeDir /star_index --readFilesIn R1.fastq.gz R2.fastq.gz --readFilesCommand zcat --runThreadN 8 --outSAMtype BAM SortedByCoordinate --outFileNamePrefix sample/ --chimOutType WithinBAM --chimSegmentMin 20`
-**Explanation:** --chimOutType WithinBAM outputs chimeric/fusion reads in main BAM; --chimSegmentMin 20 filters short segments
+**Explanation:** --runMode alignReads; --genomeDir index; --readFilesIn inputs; --readFilesCommand zcat; --runThreadN threads; --outSAMtype sorted BAM; --outFileNamePrefix prefix; --chimOutType WithinBAM outputs chimeric/fusion reads in main BAM; --chimSegmentMin 20 filters short segments
 
 ### load genome into shared memory for multiple jobs
 **Args:** `--runMode alignReads --genomeDir /star_index --genomeLoad LoadAndKeep --runThreadN 1`
-**Explanation:** --genomeLoad LoadAndKeep loads genome into RAM once; subsequent jobs use same memory; remember to --genomeLoad Remove when done
+**Explanation:** --runMode alignReads; --genomeDir index; --genomeLoad LoadAndKeep loads genome into RAM once; --runThreadN 1 thread for loading; subsequent jobs use same memory; remember to --genomeLoad Remove when done
 
 ### align with unique-only mapping (no multi-mappers)
 **Args:** `--runMode alignReads --genomeDir /star_index --readFilesIn R1.fastq.gz R2.fastq.gz --readFilesCommand zcat --runThreadN 8 --outSAMtype BAM SortedByCoordinate --outFileNamePrefix sample/ --outFilterMultimapNmax 1 --outSAMattributes NH HI AS NM`
-**Explanation:** --outFilterMultimapNmax 1 keeps only unique alignments; useful for ChIP-seq or when multi-mapping is not desired
+**Explanation:** --runMode alignReads; --genomeDir index; --readFilesIn inputs; --readFilesCommand zcat; --runThreadN threads; --outSAMtype sorted BAM; --outFileNamePrefix prefix; --outFilterMultimapNmax 1 keeps only unique alignments; --outSAMattributes standard attributes; useful for ChIP-seq
 
 ### align with strict mismatch filtering for high specificity
 **Args:** `--runMode alignReads --genomeDir /star_index --readFilesIn R1.fastq.gz R2.fastq.gz --readFilesCommand zcat --runThreadN 8 --outSAMtype BAM SortedByCoordinate --outFileNamePrefix sample/ --outFilterMismatchNoverLmax 0.05 --outFilterScoreMinOverLread 0.9`
-**Explanation:** tighter filtering reduces false positives; 0.05 mismatch ratio and 0.9 score threshold for high-confidence alignments
+**Explanation:** --runMode alignReads; --genomeDir index; --readFilesIn inputs; --readFilesCommand zcat; --runThreadN threads; --outSAMtype sorted BAM; --outFileNamePrefix prefix; --outFilterMismatchNoverLmax 0.05 mismatch ratio; --outFilterScoreMinOverLread 0.9 score threshold; tighter filtering for high-confidence alignments
 
 ### remove genome from shared memory after jobs complete
 **Args:** `--runMode alignReads --genomeDir /star_index --genomeLoad Remove`
-**Explanation:** --genomeLoad Remove unloads shared genome; essential cleanup after using LoadAndKeep to free system RAM
+**Explanation:** --runMode alignReads; --genomeDir index; --genomeLoad Remove unloads shared genome; essential cleanup after using LoadAndKeep to free system RAM

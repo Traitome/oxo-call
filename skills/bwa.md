@@ -36,48 +36,48 @@ source_url: "http://bio-bwa.sourceforge.net/bwa.shtml"
 
 ### index a reference genome FASTA file
 **Args:** `index reference.fa`
-**Explanation:** creates .amb, .ann, .bwt, .pac, .sa index files alongside reference.fa
+**Explanation:** index subcommand; reference.fa input FASTA file; creates .amb, .ann, .bwt, .pac, .sa index files alongside reference.fa
 
 ### align paired-end reads to a reference genome
 **Args:** `mem reference.fa R1.fastq.gz R2.fastq.gz`
-**Explanation:** outputs SAM to stdout; pipe to samtools: bwa mem ref.fa R1.fq.gz R2.fq.gz | samtools view -b -o out.bam
+**Explanation:** mem subcommand; reference.fa indexed reference; R1.fastq.gz R2.fastq.gz paired-end input reads; outputs SAM to stdout; pipe to samtools: bwa mem ref.fa R1.fq.gz R2.fq.gz | samtools view -b -o out.bam
 
 ### align paired-end reads to a reference genome using 8 threads
 **Args:** `mem -t 8 reference.fa R1.fastq.gz R2.fastq.gz`
-**Explanation:** -t 8 uses 8 threads as requested; outputs SAM to stdout; pipe to samtools for BAM output
+**Explanation:** mem subcommand; -t 8 uses 8 threads as requested; reference.fa indexed reference; R1.fastq.gz R2.fastq.gz paired-end input reads; outputs SAM to stdout; pipe to samtools for BAM output
 
 ### align single-end reads and save as BAM with read group for GATK
 **Args:** `mem -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA' reference.fa reads.fastq.gz`
-**Explanation:** read group (-R) is required by GATK; exact RG field values (ID, SM, LB) must match the sample; output is SAM to stdout
+**Explanation:** mem subcommand; -R '@RG\tID:sample1\tSM:sample1\tLB:lib1\tPL:ILLUMINA' adds read group required by GATK; reference.fa indexed reference; reads.fastq.gz single-end input; exact RG field values (ID, SM, LB) must match the sample; output is SAM to stdout
 
 ### align long reads (PacBio/Oxford Nanopore) to reference
 **Args:** `mem -x ont2d reference.fa reads.fastq`
-**Explanation:** -x ont2d preset for Oxford Nanopore; -x pacbio for PacBio; -x intractg for intra-species contigs; outputs SAM to stdout
+**Explanation:** mem subcommand; -x ont2d preset for Oxford Nanopore; reference.fa indexed reference; reads.fastq input reads; -x pacbio for PacBio; -x intractg for intra-species contigs; outputs SAM to stdout
 
 ### align paired-end reads and sort the output directly to a BAM file
 **Args:** `mem reference.fa R1.fastq.gz R2.fastq.gz | samtools sort -o sorted.bam`
-**Explanation:** pipe bwa mem output directly to samtools sort to avoid intermediate SAM file
+**Explanation:** mem subcommand; reference.fa indexed reference; R1.fastq.gz R2.fastq.gz paired-end input reads; pipe bwa mem output directly to samtools sort to avoid intermediate SAM file; output sorted.bam
 
 ### align paired-end reads with complete read group for GATK HaplotypeCaller
 **Args:** `mem -R '@RG\tID:run1\tSM:patient1\tLB:lib1\tPL:ILLUMINA\tPU:unit1' reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o sample1.bam`
-**Explanation:** -R adds a full read group with ID, SM, LB, PL, PU fields; preserve all exact values including sample and library IDs
+**Explanation:** mem subcommand; -R '@RG\tID:run1\tSM:patient1\tLB:lib1\tPL:ILLUMINA\tPU:unit1' adds full read group with ID, SM, LB, PL, PU fields; reference.fa indexed reference; R1.fastq.gz R2.fastq.gz paired-end input; pipe to samtools view for BAM output; preserve all exact values including sample and library IDs
 
 ### align paired-end reads and report only mapped reads
 **Args:** `mem reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -F 4 -o mapped.bam`
-**Explanation:** -F 4 in samtools view excludes unmapped reads (flag 4); useful to reduce file size in the output BAM
+**Explanation:** mem subcommand; reference.fa indexed reference; R1.fastq.gz R2.fastq.gz paired-end input reads; pipe to samtools view -b -F 4 to exclude unmapped reads (flag 4); output mapped.bam; useful to reduce file size
 
 ### align with specific gap extension and mismatch penalties
 **Args:** `mem -B 4 -O 6 -E 1 reference.fa reads.fastq.gz > aligned.sam`
-**Explanation:** -B 4 mismatch penalty; -O 6 gap open penalty; -E 1 gap extension penalty; tuned for specific read types
+**Explanation:** mem subcommand; -B 4 mismatch penalty; -O 6 gap open penalty; -E 1 gap extension penalty; reference.fa indexed reference; reads.fastq.gz input reads; output aligned.sam; tuned for specific read types
 
 ### align paired-end reads in a pipeline saving both BAM and stats
 **Args:** `mem -R '@RG\tID:sample2\tSM:sample2\tLB:lib2\tPL:ILLUMINA' reference.fa R1.fastq.gz R2.fastq.gz | samtools sort -o sample2_sorted.bam && samtools index sample2_sorted.bam`
-**Explanation:** full pipeline: align with read group → sort → index; preserving exact sample2 and lib2 identifiers in the RG
+**Explanation:** mem subcommand; -R '@RG\tID:sample2\tSM:sample2\tLB:lib2\tPL:ILLUMINA' read group; reference.fa indexed reference; R1.fastq.gz R2.fastq.gz paired-end input; pipe to samtools sort → samtools index; full pipeline: align with read group → sort → index; preserving exact sample2 and lib2 identifiers
 
 ### align with soft-clipping allowed for structural variant discovery
 **Args:** `mem -Y -M reference.fa R1.fastq.gz R2.fastq.gz | samtools view -b -o sv_aligned.bam`
-**Explanation:** -Y enables soft-clipping of supplementary alignments; -M marks shorter split hits as secondary (Picard compatible); recommended for SV callers like LUMPY or Manta
+**Explanation:** mem subcommand; -Y enables soft-clipping of supplementary alignments; -M marks shorter split hits as secondary (Picard compatible); reference.fa indexed reference; R1.fastq.gz R2.fastq.gz paired-end input; pipe to samtools view; output sv_aligned.bam; recommended for SV callers like LUMPY or Manta
 
 ### align intra-species contigs to a reference genome
 **Args:** `mem -x intractg reference.fa contigs.fasta > contig_align.sam`
-**Explanation:** -x intractg preset for aligning assembled contigs to a reference of the same species; adjusts mismatch and gap penalties
+**Explanation:** mem subcommand; -x intractg preset; reference.fa indexed reference; contigs.fasta input contigs; output contig_align.sam; -x intractg preset for aligning assembled contigs to a reference of the same species; adjusts mismatch and gap penalties

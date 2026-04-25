@@ -39,56 +39,56 @@ source_url: "https://mash.readthedocs.io/en/latest/"
 
 ### sketch a collection of genome FASTA files into a single database
 **Args:** `sketch -o genomes_db *.fasta`
-**Explanation:** creates genomes_db.msh containing all genome sketches; subsequent queries use this single file
+**Explanation:** mash sketch subcommand; -o genomes_db output prefix; *.fasta input FASTA files
 
 ### compute pairwise distances between two genome sketches
 **Args:** `dist genome1.fasta genome2.fasta`
-**Explanation:** sketches both on the fly and reports distance, p-value, and shared hashes
+**Explanation:** mash dist subcommand; genome1.fasta genome2.fasta input FASTA files
 
 ### query all genomes in a database against a query genome
 **Args:** `dist -p 16 genomes_db.msh query.fasta | sort -k3 -n | head -20`
-**Explanation:** -p 16 uses 16 threads; sorting by column 3 (distance) shows closest matches first
+**Explanation:** mash dist subcommand; -p 16 threads; genomes_db.msh sketch database; query.fasta query sequence
 
 ### sketch raw sequencing reads with error filtering
 **Args:** `sketch -m 2 -s 10000 -o reads_sketch reads.fastq.gz`
-**Explanation:** -m 2 requires k-mers to appear at least twice (filters sequencing errors); -s 10000 for higher precision
+**Explanation:** mash sketch subcommand; -m 2 minimum k-mer count; -s 10000 sketch size; -o reads_sketch output prefix; reads.fastq.gz input FASTQ
 
 ### screen a metagenome for known reference genomes
 **Args:** `screen -w -p 8 refdb.msh metagenome.fastq.gz | sort -gr -k1 > screen_results.txt`
-**Explanation:** -w uses winner-takes-all to remove redundant hits; sort by identity (col 1) descending
+**Explanation:** mash screen subcommand; -w winner-takes-all; -p 8 threads; refdb.msh reference database; metagenome.fastq.gz input FASTQ
 
 ### compute all-vs-all distance triangle for genome clustering
 **Args:** `triangle -p 16 genomes_db.msh > distances.tsv`
-**Explanation:** outputs lower-triangular distance matrix suitable for clustering tools like mashtree or R
+**Explanation:** mash triangle subcommand; -p 16 threads; genomes_db.msh sketch database
 
 ### combine multiple sketch files into a single database
 **Args:** `paste -o combined_db.msh genome1.msh genome2.msh genome3.msh`
-**Explanation:** mash paste merges existing sketches without re-sketching; useful for incrementally building reference databases
+**Explanation:** mash paste subcommand; -o combined_db.msh output prefix; genome1.msh genome2.msh genome3.msh input sketch files
 
 ### display information about a sketch file
 **Args:** `info refseq_db.msh`
-**Explanation:** shows k-mer size, sketch size, number of sequences, and other metadata; verify compatibility before comparisons
+**Explanation:** mash info subcommand; refseq_db.msh input sketch file
 
 ### sketch reads with Bloom filter for large metagenomes
 **Args:** `sketch -r -b 100M -o metagenome.msh reads.fastq.gz`
-**Explanation:** -r for read set; -b 100M uses 100MB Bloom filter for memory-efficient k-mer filtering in large datasets
+**Explanation:** mash sketch subcommand; -r read set mode; -b 100M Bloom filter size; -o metagenome.msh output prefix; reads.fastq.gz input FASTQ
 
 ### sketch with target coverage for early termination
 **Args:** `sketch -r -c 50 -o highcov.msh reads.fastq.gz`
-**Explanation:** -c 50 stops sketching after reaching 50x estimated coverage; saves time for ultra-high coverage datasets
+**Explanation:** mash sketch subcommand; -r read set mode; -c 50 target coverage; -o highcov.msh output prefix; reads.fastq.gz input FASTQ
 
 ### sketch individual sequences within a multi-FASTA file
 **Args:** `sketch -i -o plasmids.msh plasmid_collection.fasta`
-**Explanation:** -i sketches each sequence individually rather than the whole file; useful for comparing plasmids in a collection
+**Explanation:** mash sketch subcommand; -i individual sequence mode; -o plasmids.msh output prefix; plasmid_collection.fasta input FASTA
 
 ### compute full distance matrix instead of lower-triangular
 **Args:** `triangle -E -p 16 genomes_db.msh > full_matrix.tsv`
-**Explanation:** -E outputs full symmetric matrix; some clustering tools require full matrix format
+**Explanation:** mash triangle subcommand; -E full matrix output; -p 16 threads; genomes_db.msh sketch database
 
 ### screen with minimum identity threshold
 **Args:** `screen -i 0.9 -p 8 refdb.msh metagenome.fastq.gz`
-**Explanation:** -i 0.9 only reports hits with ≥90% identity; filters out low-confidence matches in contamination screening
+**Explanation:** mash screen subcommand; -i 0.9 minimum identity; -p 8 threads; refdb.msh reference database; metagenome.fastq.gz input FASTQ
 
 ### list input mode for batch processing
 **Args:** `dist -l refdb.msh query_list.txt > distances.tsv`
-**Explanation:** -l indicates query_list.txt contains file paths (one per line); useful for processing many queries efficiently
+**Explanation:** mash dist subcommand; -l list mode; refdb.msh reference database; query_list.txt file list

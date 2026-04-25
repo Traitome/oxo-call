@@ -37,60 +37,60 @@ source_url: "https://github.com/pezmaster31/bamtools"
 
 ### get alignment statistics from a BAM file
 **Args:** `stats -in input.bam > alignment_stats.txt`
-**Explanation:** stats subcommand provides total reads, mapped, unmapped, duplicates, paired statistics; redirect output to save
+**Explanation:** stats subcommand; -in input.bam input file; provides total reads, mapped, unmapped, duplicates, paired statistics; redirect output to save
 
 ### count aligned reads in a BAM file
 **Args:** `count -in input.bam`
-**Explanation:** count outputs total read count to stdout; quick way to check BAM file size
+**Explanation:** count subcommand; -in input.bam input file; outputs total read count to stdout; quick way to check BAM file size
 
 ### filter BAM to keep only mapped, properly paired reads
 **Args:** `filter -in input.bam -out filtered.bam -isMapped true -isProperPair true`
-**Explanation:** -isMapped true keeps only mapped reads; -isProperPair true keeps properly paired reads; string boolean values, not numeric
+**Explanation:** filter subcommand; -in input.bam input file; -out filtered.bam output file; -isMapped true keeps only mapped reads; -isProperPair true keeps properly paired reads; string boolean values, not numeric
 
 ### filter BAM by mapping quality threshold
 **Args:** `filter -in input.bam -out filtered.bam -mapQuality 30`
-**Explanation:** -mapQuality 30 keeps reads with mapping quality >= 30; equivalent to samtools view -q 30
+**Explanation:** filter subcommand; -in input.bam input file; -out filtered.bam output file; -mapQuality 30 keeps reads with mapping quality >= 30; equivalent to samtools view -q 30
 
 ### filter BAM using a JSON script with complex rules
 **Args:** `filter -in input.bam -out filtered.bam -script filter_rules.json`
-**Explanation:** -script applies complex multi-rule filtering from a JSON file; supports AND/OR logic, tag comparisons, and multiple conditions in one pass
+**Explanation:** filter subcommand; -in input.bam input file; -out filtered.bam output file; -script filter_rules.json applies complex multi-rule filtering from a JSON file; supports AND/OR logic, tag comparisons, and multiple conditions in one pass
 
 ### merge multiple BAM files
 **Args:** `merge -in sample1.bam -in sample2.bam -in sample3.bam -out merged.bam`
-**Explanation:** multiple -in flags for each input BAM; -out for merged output; all inputs should be sorted the same way
+**Explanation:** merge subcommand; multiple -in flags for each input BAM; -out merged.bam output file; all inputs should be sorted the same way
 
 ### split BAM by reference (chromosome)
 **Args:** `split -in input.bam -reference`
-**Explanation:** -reference creates one BAM per chromosome/reference; output files named like input.REF.bam
+**Explanation:** split subcommand; -in input.bam input file; -reference creates one BAM per chromosome/reference; output files named like input.REF.bam
 
 ### split BAM by read group tag
 **Args:** `split -in input.bam -tag RG`
-**Explanation:** -tag RG splits by read group; each read group gets its own output BAM; useful for demultiplexing
+**Explanation:** split subcommand; -in input.bam input file; -tag RG splits by read group; each read group gets its own output BAM; useful for demultiplexing
 
 ### convert BAM to SAM format
 **Args:** `convert -in input.bam -format sam -out output.sam`
-**Explanation:** -format sam converts to human-readable SAM; also supports fastq, fasta, bed, json, yaml
+**Explanation:** convert subcommand; -in input.bam input file; -format sam converts to human-readable SAM; -out output.sam output file; also supports fastq, fasta, bed, json, yaml
 
 ### convert BAM to FASTQ for re-alignment
 **Args:** `convert -in input.bam -format fastq -out reads.fastq`
-**Explanation:** -format fastq extracts original read sequences; useful for re-alignment with different parameters
+**Explanation:** convert subcommand; -in input.bam input file; -format fastq extracts original read sequences; -out reads.fastq output file; useful for re-alignment with different parameters
 
 ### get coverage statistics per position
 **Args:** `coverage -in input.bam > coverage.txt`
-**Explanation:** outputs per-position depth of coverage; tab-separated format with chromosome, position, and depth
+**Explanation:** coverage subcommand; -in input.bam input file; outputs per-position depth of coverage; tab-separated format with chromosome, position, and depth
 
 ### print the BAM header
 **Args:** `header -in input.bam`
-**Explanation:** prints the SAM header (including @SQ, @RG, @PG lines) to stdout; useful for checking reference names and read groups
+**Explanation:** header subcommand; -in input.bam input file; prints the SAM header (including @SQ, @RG, @PG lines) to stdout; useful for checking reference names and read groups
 
 ### sort a BAM file by coordinate
 **Args:** `sort -in input.bam -out sorted.bam -sortby coordinate`
-**Explanation:** -sortby coordinate sorts by genomic position (default); also accepts readname for name-sorted output
+**Explanation:** sort subcommand; -in input.bam input file; -out sorted.bam output file; -sortby coordinate sorts by genomic position (default); also accepts readname for name-sorted output
 
 ### resolve paired-end reads
 **Args:** `resolve -in input.bam -out resolved.bam`
-**Explanation:** marks the IsProperPair flag for paired-end reads; ensures proper pair information is correct
+**Explanation:** resolve subcommand; -in input.bam input file; -out resolved.bam output file; marks the IsProperPair flag for paired-end reads; ensures proper pair information is correct
 
 ### create index for a BAM file
 **Args:** `index -in input.bam`
-**Explanation:** creates input.bam.bai index file; required for region-based queries; compatible with samtools
+**Explanation:** index subcommand; -in input.bam input file; creates input.bam.bai index file; required for region-based queries; compatible with samtools

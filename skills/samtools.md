@@ -48,7 +48,7 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 
 ### filter to keep only properly paired primary alignments
 **Args:** `view -b -f 2 -F 256 -F 2048 -o proper_paired.bam input.bam`
-**Explanation:** -f 2 keeps properly paired; -F 256 removes secondary; -F 2048 removes supplementary; -b outputs BAM
+**Explanation:** -b outputs BAM; -f 2 keeps properly paired; -F 256 removes secondary; -F 2048 removes supplementary; -o writes output
 
 ### get alignment statistics (mapped, unmapped, duplicates)
 **Args:** `flagstat input.bam`
@@ -60,7 +60,7 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 
 ### extract reads mapping to chromosome 1 between 100000 and 200000
 **Args:** `view -b -o region.bam input.bam chr1:100000-200000`
-**Explanation:** region queries require a sorted + indexed BAM; -b outputs BAM
+**Explanation:** -b outputs BAM; -o writes output; region queries require a sorted + indexed BAM
 
 ### mark PCR duplicates
 **Args:** `markdup -f stats.txt input_namesorted.bam output_markdup.bam`
@@ -80,7 +80,7 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 
 ### sort BAM by read name for fixmate preprocessing
 **Args:** `sort -n -o namesorted.bam input.bam`
-**Explanation:** -n sorts by read name (required before fixmate and markdup)
+**Explanation:** -n sorts by read name (required before fixmate and markdup); -o writes output
 
 ### add mate information required for duplicate marking
 **Args:** `fixmate -m namesorted.bam fixmate.bam`
@@ -88,7 +88,7 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 
 ### convert BAM to CRAM with reference for smaller storage
 **Args:** `view -C --reference reference.fa -o output.cram input.bam`
-**Explanation:** -C outputs CRAM format; --reference is required for CRAM; much smaller than BAM for WGS data
+**Explanation:** -C outputs CRAM format; --reference is required for CRAM; -o writes output; much smaller than BAM for WGS data
 
 ### calculate insert size and coverage statistics
 **Args:** `stats input.bam > stats.txt`
@@ -96,15 +96,15 @@ source_url: "http://www.htslib.org/doc/samtools.html"
 
 ### sort BAM using coordinate sort with temporary directory
 **Args:** `sort -m 2G -T /tmp/sort_tmp -o sorted.bam input.bam`
-**Explanation:** -m limits per-thread memory; -T sets temporary directory to avoid filling default tmpdir
+**Explanation:** -m limits per-thread memory; -T sets temporary directory; -o writes output; avoids filling default tmpdir
 
 ### generate pileup for variant calling
 **Args:** `mpileup -f reference.fa -o output.pileup input.bam`
-**Explanation:** -f provides reference FASTA; outputs pileup format for downstream analysis; use bcftools mpileup for direct VCF output
+**Explanation:** -f provides reference FASTA; -o writes output; outputs pileup format for downstream analysis; use bcftools mpileup for direct VCF output
 
 ### generate consensus sequence from alignments
 **Args:** `consensus -f FASTA -o consensus.fa input.bam`
-**Explanation:** -f specifies output format (FASTA/FASTQ/PILEUP); produces consensus sequence from aligned reads; useful for viral genomes or amplicon sequencing
+**Explanation:** -f specifies output format (FASTA/FASTQ/PILEUP); -o writes output; produces consensus sequence from aligned reads; useful for viral genomes or amplicon sequencing
 
 ### collate alignments by name without full sorting
 **Args:** `collate -o collated.bam input.bam`

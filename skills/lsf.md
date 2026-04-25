@@ -41,76 +41,76 @@ source_url: "https://www.ibm.com/docs/en/spectrum-lsf"
 
 ### submit a basic batch job script
 **Args:** `bsub -J align_job -q normal -n 8 -R "rusage[mem=4000] span[hosts=1]" -W 4:00 -o align_%J.out < job.lsf`
-**Explanation:** submits job.lsf with 8 CPUs, 4GB/core (32GB total), 4-hour limit on a single node; %J is job ID
+**Explanation:** bsub command; -J align_job job name; -q normal queue; -n 8 CPUs; -R "rusage[mem=4000] span[hosts=1]" memory and single node; -W 4:00 wall time; -o align_%J.out output; < job.lsf script input
 
 ### run an interactive session on a compute node
 **Args:** `bsub -Is -q interactive -n 4 -R "rusage[mem=4000] span[hosts=1]" -W 2:00 bash`
-**Explanation:** -Is opens interactive shell with pseudo-terminal; useful for testing before scripting
+**Explanation:** bsub command; -Is interactive shell; -q interactive queue; -n 4 CPUs; -R "rusage[mem=4000] span[hosts=1]" memory; -W 2:00 wall time; bash shell
 
 ### submit a sample-parallel array job
 **Args:** `bsub -J "fastp_qc[1-96]%24" -q normal -n 4 -R "rusage[mem=2000]" -W 1:00 -o logs/fastp_%J_%I.out < qc_array.lsf`
-**Explanation:** submits 96 tasks, max 24 concurrent; %I is array index in output filename; each gets $LSB_JOBINDEX
+**Explanation:** bsub command; -J "fastp_qc[1-96]%24" array job with 96 tasks max 24 concurrent; -q normal queue; -n 4 CPUs; -R "rusage[mem=2000]" memory; -W 1:00 wall time; -o logs/fastp_%J_%I.out output; < qc_array.lsf script
 
 ### check your running and pending jobs
 **Args:** `bjobs -u $USER -w`
-**Explanation:** -w wide format shows full job name and queue; states: PEND=pending, RUN=running, DONE/EXIT=finished
+**Explanation:** bjobs command; -u $USER filter by user; -w wide format
 
 ### get detailed information about a specific job
 **Args:** `bjobs -l 12345`
-**Explanation:** shows full details including resource requests, execution host, pending reasons, and resource usage
+**Explanation:** bjobs command; -l detailed view; 12345 job ID
 
 ### check available queues and their limits
 **Args:** `bqueues -l normal`
-**Explanation:** shows queue limits (RUNLIMIT, MEMLIMIT, PROCLIMIT), access control, and scheduling parameters
+**Explanation:** bqueues command; -l detailed view; normal queue name
 
 ### check host status and available resources
 **Args:** `bhosts -w`
-**Explanation:** shows each host's status, max slots, running jobs, and available resources; -w for wide output
+**Explanation:** bhosts command; -w wide format
 
 ### delete a specific job or all your jobs
 **Args:** `bkill 12345`
-**Explanation:** kills job 12345; use 'bkill 0' to kill all your jobs or 'bkill -J JOBNAME' by job name
+**Explanation:** bkill command; 12345 job ID to kill
 
 ### submit a job with dependency on a previous job
 **Args:** `bsub -w "done(12345)" -J step2 -q normal -n 4 -W 2:00 < step2.lsf`
-**Explanation:** step2 runs after job 12345 completes; -w accepts conditions: done(), ended(), exit(), started()
+**Explanation:** bsub command; -w "done(12345)" wait for job completion; -J step2 job name; -q normal queue; -n 4 CPUs; -W 2:00 wall time; < step2.lsf script input
 
 ### check historical resource usage of completed jobs
 **Args:** `bhist -l 12345`
-**Explanation:** shows detailed resource usage history including CPU time, memory, and runtime for completed jobs
+**Explanation:** bhist command; -l detailed view; 12345 job ID
 
 ### modify a pending job's queue
 **Args:** `bmod -q long 12345`
-**Explanation:** moves pending job 12345 to 'long' queue; only works for pending jobs, not running ones
+**Explanation:** bmod command; -q long target queue; 12345 pending job ID
 
 ### submit a rerunnable job for fault tolerance
 **Args:** `bsub -J backup_job -q normal -n 4 -R "rusage[mem=4000]" -W 24:00 -r -o backup_%J.out < backup.lsf`
-**Explanation:** -r makes job rerunnable after node failure; job restarts from scratch; ensure script handles restarts
+**Explanation:** bsub command; -J backup_job job name; -q normal queue; -n 4 CPUs; -R "rusage[mem=4000]" memory; -W 24:00 wall time; -r rerunnable; -o backup_%J.out output; < backup.lsf script
 
 ### delay job start until specific time
 **Args:** `bsub -J nightly_job -q normal -n 8 -W 8:00 -b 22:00 -o nightly_%J.out < process.lsf`
-**Explanation:** -b 22:00 delays start until 10 PM; job enters queue immediately but waits until begin time
+**Explanation:** bsub command; -J nightly_job job name; -q normal queue; -n 8 CPUs; -W 8:00 wall time; -b 22:00 begin time delay; -o nightly_%J.out output; < process.lsf script
 
 ### view output of a running job
 **Args:** `bpeek 12345`
-**Explanation:** displays stdout/stderr of running job 12345; useful for checking progress without waiting for completion
+**Explanation:** bpeek command; 12345 job ID
 
 ### follow output of a running job in real-time
 **Args:** `bpeek -f 12345`
-**Explanation:** -f follows output like tail -f; continuously shows new output until job completes
+**Explanation:** bpeek command; -f follow mode; 12345 job ID
 
 ### submit job with combined stdout/stderr
 **Args:** `bsub -J combined_job -q normal -n 4 -oo combined_%J.log < job.lsf`
-**Explanation:** -oo combines stdout and stderr into single file; useful for simpler log management
+**Explanation:** bsub command; -J combined_job job name; -q normal queue; -n 4 CPUs; -oo combined_%J.log combined output; < job.lsf script
 
 ### kill all jobs in a job array
 **Args:** `bkill -J "array_job[*]"`
-**Explanation:** kills all tasks in job array; use specific index like [1] for single task, [*] for all tasks
+**Explanation:** bkill command; -J "array_job[*]" kill all tasks in array
 
 ### submit job with estimated wall time (soft limit)
 **Args:** `bsub -J soft_limit -q normal -n 4 -We 4:00 -W 8:00 < job.lsf`
-**Explanation:** -We 4:00 is estimated time (soft limit), -W 8:00 is hard limit; scheduler uses estimates for optimization
+**Explanation:** bsub command; -J soft_limit job name; -q normal queue; -n 4 CPUs; -We 4:00 estimated time; -W 8:00 hard limit; < job.lsf script
 
 ### check load on all hosts
 **Args:** `lsload`
-**Explanation:** shows current load, CPU usage, memory usage per host; helps identify busy vs idle nodes
+**Explanation:** lsload command; shows host load information

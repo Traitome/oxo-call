@@ -41,7 +41,7 @@ source_url: "https://www.gnu.org/software/bash/manual/"
 
 ### run a bash script
 **Args:** `script.sh arg1 arg2`
-**Explanation:** executes script.sh with arguments; script must be executable (chmod +x) or invoked directly via bash
+**Explanation:** script.sh script file; arg1 arg2 script arguments; executes script.sh with arguments; script must be executable (chmod +x) or invoked directly via bash
 
 ### run a script with strict error handling
 **Args:** `-euo pipefail -c 'command1 | command2'`
@@ -53,11 +53,11 @@ source_url: "https://www.gnu.org/software/bash/manual/"
 
 ### check bash version
 **Args:** `--version`
-**Explanation:** prints the bash version; check whether bash 4+ features (associative arrays, etc.) are available on the system
+**Explanation:** --version flag; prints the bash version; check whether bash 4+ features (associative arrays, etc.) are available on the system
 
 ### run a script and print each command as it executes (debugging)
 **Args:** `-x script.sh`
-**Explanation:** -x enables xtrace mode; prints each command with expanded values before executing; invaluable for debugging pipeline scripts
+**Explanation:** -x flag enables xtrace mode; script.sh script file; prints each command with expanded values before executing; invaluable for debugging pipeline scripts
 
 ### list all loaded functions and aliases
 **Args:** `-c 'declare -f; alias'`
@@ -65,7 +65,7 @@ source_url: "https://www.gnu.org/software/bash/manual/"
 
 ### execute a command in a subshell without affecting the current environment
 **Args:** `-c 'export MY_VAR=test && echo $MY_VAR'`
-**Explanation:** -c runs the string in a new bash subshell; changes to variables do not affect the calling shell
+**Explanation:** -c flag runs string in new bash subshell; export MY_VAR=test sets variable; echo $MY_VAR prints it; changes to variables do not affect the calling shell
 
 ### write a multi-command pipeline using process substitution
 **Args:** `-c 'diff <(sort file1.txt) <(sort file2.txt)'`

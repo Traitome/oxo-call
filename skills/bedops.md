@@ -38,52 +38,52 @@ source_url: "https://bedops.readthedocs.io/"
 
 ### sort a BED file for use with BEDOPS tools
 **Args:** `sort-bed input.bed > input.sorted.bed`
-**Explanation:** sort-bed is required before any bedops/bedmap operation; output is written to stdout, redirect to file
+**Explanation:** sort-bed tool; input.bed input file; required before any bedops/bedmap operation; output is written to stdout, redirect to file
 
 ### intersect two sorted BED files (intervals present in both)
 **Args:** `--intersect a.sorted.bed b.sorted.bed > intersection.bed`
-**Explanation:** --intersect returns intervals that overlap between both files; equivalent to bedtools intersect
+**Explanation:** --intersect operation; a.sorted.bed b.sorted.bed sorted input files; returns intervals that overlap between both files; equivalent to bedtools intersect
 
 ### find intervals in file A that do not overlap file B
 **Args:** `--difference a.sorted.bed b.sorted.bed > a_not_b.bed`
-**Explanation:** --difference returns elements of the first file that have no overlap with any element in subsequent files
+**Explanation:** --difference operation; a.sorted.bed b.sorted.bed sorted input files; returns elements of the first file that have no overlap with any element in subsequent files
 
 ### compute coverage (sum of signal) from signal file mapped to gene windows
 **Args:** `bedmap --echo --sum --delim '\t' genes.sorted.bed signal.sorted.bedgraph > genes_with_coverage.bed`
-**Explanation:** --echo prints the reference interval; --sum computes total signal overlapping each gene; --delim sets delimiter
+**Explanation:** bedmap tool; --echo prints reference interval; --sum computes total signal overlapping each gene; --delim '\t' sets delimiter; genes.sorted.bed signal.sorted.bedgraph sorted input files; output genes_with_coverage.bed
 
 ### compress a sorted BED file to starch format
 **Args:** `starch input.sorted.bed > input.starch`
-**Explanation:** starch compresses BED to a compact binary format; subsequent bedops/bedmap operations accept starch files directly
+**Explanation:** starch tool; input.sorted.bed sorted input file; compresses BED to a compact binary format; subsequent bedops/bedmap operations accept starch files directly
 
 ### extract all intervals overlapping a specific region
 **Args:** `bedextract chr1 input.sorted.bed`
-**Explanation:** fast random-access retrieval from sorted BED by chromosome; much faster than grep for targeted region queries
+**Explanation:** bedextract tool; chr1 chromosome query; input.sorted.bed sorted input file; fast random-access retrieval from sorted BED by chromosome; much faster than grep for targeted region queries
 
 ### merge overlapping intervals and compute union across three BED files
 **Args:** `--merge a.sorted.bed b.sorted.bed c.sorted.bed > merged_union.bed`
-**Explanation:** --merge unions all intervals and collapses overlapping ones into a single interval
+**Explanation:** --merge operation; a.sorted.bed b.sorted.bed c.sorted.bed sorted input files; unions all intervals and collapses overlapping ones into a single interval
 
 ### find intervals in A that overlap B by at least 1bp
 **Args:** `--element-of 1 a.sorted.bed b.sorted.bed > overlapping.bed`
-**Explanation:** -e 1 means at least 1bp overlap (default -e is 100%, which is very strict); use -e 50% for 50% overlap
+**Explanation:** --element-of 1 operation; a.sorted.bed b.sorted.bed sorted input files; -e 1 means at least 1bp overlap (default -e is 100%, which is very strict); use -e 50% for 50% overlap
 
 ### chop intervals into windows of 100bp
 **Args:** `--chop 100 regions.sorted.bed > windows.bed`
-**Explanation:** --chop splits each interval into fixed-size windows; use --stagger to offset starting positions
+**Explanation:** --chop 100 operation; regions.sorted.bed sorted input file; splits each interval into fixed-size 100bp windows; use --stagger to offset starting positions
 
 ### count how many map elements overlap each reference interval
 **Args:** `bedmap --echo --count --delim '\t' genes.sorted.bed reads.sorted.bed > gene_read_counts.bed`
-**Explanation:** --count reports number of overlapping elements from map file per reference interval; combine with --echo for gene name
+**Explanation:** bedmap tool; --echo prints reference interval; --count reports number of overlapping elements; --delim '\t' sets delimiter; genes.sorted.bed reads.sorted.bed sorted input files; output gene_read_counts.bed
 
 ### find the closest feature in B for each interval in A
 **Args:** `closest-features --closest --dist a.sorted.bed b.sorted.bed > closest.bed`
-**Explanation:** --closest reports only the single nearest element; --dist adds signed distance column; use --no-overlaps to exclude overlapping
+**Explanation:** closest-features tool; --closest reports only single nearest element; --dist adds signed distance column; a.sorted.bed b.sorted.bed sorted input files; output closest.bed; use --no-overlaps to exclude overlapping
 
 ### convert VCF to sorted BED format
 **Args:** `vcf2bed < variants.vcf > variants.sorted.bed`
-**Explanation:** vcf2bed converts and pipes sorted BED; also available: gff2bed, gtf2bed, bam2bed, sam2bed, wig2bed
+**Explanation:** vcf2bed tool; variants.vcf input VCF; converts and pipes sorted BED; output variants.sorted.bed; also available: gff2bed, gtf2bed, bam2bed, sam2bed, wig2bed
 
 ### compute complement (regions NOT covered by any interval)
 **Args:** `--complement --chrom-sizes hg38.chromsizes intervals.sorted.bed > gaps.bed`
-**Explanation:** --complement requires chromosome sizes via --chrom-sizes to define the boundary; outputs regions not covered by input
+**Explanation:** --complement operation; --chrom-sizes hg38.chromsizes chromosome sizes file; intervals.sorted.bed sorted input file; --complement requires chromosome sizes to define boundary; outputs regions not covered by input

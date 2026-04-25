@@ -43,48 +43,48 @@ source_url: "https://subread.sourceforge.net/featureCounts.html"
 
 ### count reads per gene for paired-end RNA-seq with reverse-strand library
 **Args:** `-T 8 -a genes.gtf -o counts.txt -p -s 2 sample1.bam sample2.bam sample3.bam`
-**Explanation:** -p paired-end; -s 2 reverse-strand (dUTP); -T 8 threads; multiple BAMs counted in one run
+**Explanation:** -T 8 threads; -a GTF annotation; -o output file; -p paired-end; -s 2 reverse-strand (dUTP); multiple BAMs counted in one run
 
 ### count reads per gene for unstranded single-end RNA-seq
 **Args:** `-T 8 -a genes.gtf -o counts.txt -s 0 sample.bam`
-**Explanation:** -s 0 unstranded; outputs count matrix with 1 count column per BAM file
+**Explanation:** -T 8 threads; -a GTF annotation; -o output file; -s 0 unstranded; outputs count matrix with 1 count column per BAM file
 
 ### count reads allowing multi-mapping reads to be counted
 **Args:** `-T 8 -a genes.gtf -o counts.txt -p -s 2 --primary -M -O sample.bam`
-**Explanation:** --primary counts only primary alignments; -M allows multi-mappers; -O allows reads to count to multiple features
+**Explanation:** -T 8 threads; -a GTF annotation; -o output; -p paired-end; -s 2 reverse-strand; --primary counts only primary alignments; -M allows multi-mappers; -O allows reads to count to multiple features
 
 ### count ChIP-seq reads per peak region using BED file
 **Args:** `-T 4 -a peaks.saf -F SAF -o chip_counts.txt sample_sorted.bam`
-**Explanation:** -F SAF for simple annotation format (BED-like); -a peaks.saf; used for ChIP/ATAC peak quantification
+**Explanation:** -T 4 threads; -a peaks.saf annotation; -F SAF for simple annotation format (BED-like); -o output file; used for ChIP/ATAC peak quantification
 
 ### count exon-level reads for exon usage analysis
 **Args:** `-T 8 -f -a genes.gtf -o exon_counts.txt -p -s 2 sample.bam`
-**Explanation:** -f counts at feature level (exon) instead of meta-feature (gene); used for exon usage/splicing analysis
+**Explanation:** -T 8 threads; -f counts at feature level (exon) instead of meta-feature (gene); -a GTF annotation; -o output; -p paired-end; -s 2 reverse-strand; used for exon usage/splicing analysis
 
 ### count exon-exon junctions for splicing analysis
 **Args:** `-T 8 -a genes.gtf -o counts.txt -J -G reference.fa -p -s 2 sample.bam`
-**Explanation:** -J counts junctions; -G provides reference FASTA for accurate junction detection; .jcounts file created
+**Explanation:** -T 8 threads; -a GTF annotation; -o output file; -J counts junctions; -G provides reference FASTA for accurate junction detection; -p paired-end; -s 2 reverse-strand; .jcounts file created
 
 ### count with fractional assignment for multi-mapping reads
 **Args:** `-T 8 -a genes.gtf -o counts.txt -p -s 2 -M -O --fraction sample.bam`
-**Explanation:** --fraction assigns 1/x count to each multi-mapping alignment; more accurate than integer counting
+**Explanation:** -T 8 threads; -a GTF annotation; -o output; -p paired-end; -s 2 reverse-strand; -M multi-mappers; -O overlapping features; --fraction assigns 1/x count to each alignment; more accurate than integer counting
 
 ### count only split alignments (splice junction reads)
 **Args:** `-T 8 -a genes.gtf -o counts.txt -p -s 2 --splitOnly sample.bam`
-**Explanation:** --splitOnly counts only reads spanning splice junctions; useful for splicing-focused analysis
+**Explanation:** -T 8 threads; -a GTF annotation; -o output; -p paired-end; -s 2 reverse-strand; --splitOnly counts only reads spanning splice junctions; useful for splicing-focused analysis
 
 ### count long reads from Nanopore/PacBio
 **Args:** `-a genes.gtf -o counts.txt -L -s 0 long_reads.bam`
-**Explanation:** -L enables long read mode; runs single-threaded; no CIGAR 'M' operation limit
+**Explanation:** -a GTF annotation; -o output file; -L enables long read mode; -s 0 unstranded; runs single-threaded; no CIGAR 'M' operation limit
 
 ### count with fragment-level quantification
 **Args:** `-T 8 -a genes.gtf -o counts.txt -p --countReadPairs -s 2 sample.bam`
-**Explanation:** --countReadPairs counts fragments instead of reads; proper paired-end quantification
+**Explanation:** -T 8 threads; -a GTF annotation; -o output; -p paired-end; --countReadPairs counts fragments instead of reads; -s 2 reverse-strand; proper paired-end quantification
 
 ### count with minimum mapping quality filter
 **Args:** `-T 8 -a genes.gtf -o counts.txt -p -s 2 -Q 20 --primary sample.bam`
-**Explanation:** -Q 20 requires MAPQ >= 20; --primary counts only primary alignments; higher confidence counts
+**Explanation:** -T 8 threads; -a GTF annotation; -o output; -p paired-end; -s 2 reverse-strand; -Q 20 requires MAPQ >= 20; --primary counts only primary alignments; higher confidence counts
 
 ### count with chimeric read exclusion
 **Args:** `-T 8 -a genes.gtf -o counts.txt -p -s 2 -B -C sample.bam`
-**Explanation:** -B requires both ends aligned; -C excludes chimeric pairs (different chromosomes/strands); cleaner counts
+**Explanation:** -T 8 threads; -a GTF annotation; -o output; -p paired-end; -s 2 reverse-strand; -B requires both ends aligned; -C excludes chimeric pairs (different chromosomes/strands); cleaner counts

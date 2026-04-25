@@ -42,88 +42,88 @@ source_url: "https://kubernetes.io/docs/reference/kubectl/"
 
 ### list all pods in the current namespace
 **Args:** `get pods -o wide`
-**Explanation:** -o wide shows additional columns including node name and IP; omit -o for compact view
+**Explanation:** kubectl get subcommand; pods resource type; -o wide shows additional columns
 
 ### view logs from a specific pod
 **Args:** `logs pod-name --tail=100 -f`
-**Explanation:** --tail=100 shows last 100 lines; -f follows/streams new log output in real-time
+**Explanation:** kubectl logs subcommand; pod-name pod identifier; --tail=100 last 100 lines; -f follow/stream logs
 
 ### run a one-time bioinformatics job
 **Args:** `create job fastp-qc --image=biocontainers/fastp:0.23.4 -- fastp -i /data/reads_R1.fq.gz -I /data/reads_R2.fq.gz -o /output/clean_R1.fq.gz -O /output/clean_R2.fq.gz`
-**Explanation:** creates a Job that runs fastp in a container; mount data volumes via YAML for real workflows
+**Explanation:** kubectl create job subcommand; fastp-qc job name; --image=biocontainers/fastp:0.23.4 container image; -- separator; fastp -i /data/reads_R1.fq.gz -I /data/reads_R2.fq.gz -o /output/clean_R1.fq.gz -O /output/clean_R2.fq.gz fastp command
 
 ### apply a YAML manifest to create or update resources
 **Args:** `apply -f alignment-job.yaml`
-**Explanation:** declarative create/update; use --dry-run=client to preview changes without applying
+**Explanation:** kubectl apply subcommand; -f alignment-job.yaml YAML manifest file
 
 ### execute a command inside a running pod
 **Args:** `exec -it pod-name -- bash`
-**Explanation:** -it enables interactive terminal; -- separates kubectl args from container command; use sh if bash unavailable
+**Explanation:** kubectl exec subcommand; -it interactive terminal; pod-name pod identifier; -- separator; bash shell command
 
 ### get detailed information about a pod (including events and status)
 **Args:** `describe pod pod-name`
-**Explanation:** shows container status, events (scheduling, pulling, started), resource usage, and any error messages
+**Explanation:** kubectl describe subcommand; pod resource type; pod-name pod identifier
 
 ### check cluster node resources and capacity
 **Args:** `top nodes`
-**Explanation:** shows CPU and memory usage per node; requires metrics-server; use 'describe node NODE' for detailed capacity
+**Explanation:** kubectl top subcommand; nodes resource type
 
 ### scale a deployment up or down
 **Args:** `scale deployment alignment-workers --replicas=10`
-**Explanation:** sets desired pod count to 10; Kubernetes manages creation/deletion to reach target
+**Explanation:** kubectl scale subcommand; deployment resource type; alignment-workers deployment name; --replicas=10 desired pod count
 
 ### delete completed jobs and their pods
 **Args:** `delete jobs --field-selector status.successful=1`
-**Explanation:** removes all successfully completed jobs; use status.failed=1 for failed jobs
+**Explanation:** kubectl delete subcommand; jobs resource type; --field-selector status.successful=1 filter completed jobs
 
 ### view resource usage of pods sorted by CPU
 **Args:** `top pods --sort-by=cpu -A`
-**Explanation:** -A shows all namespaces; --sort-by=cpu sorts by CPU usage; useful for finding resource-heavy pods
+**Explanation:** kubectl top subcommand; pods resource type; --sort-by=cpu sort by CPU; -A all namespaces
 
 ### create a configmap from a reference genome index config file
 **Args:** `create configmap genome-config --from-file=genome.conf=/path/to/genome.conf`
-**Explanation:** creates a ConfigMap that can be mounted as a volume in pods; key=genome.conf maps to the file content
+**Explanation:** kubectl create configmap subcommand; genome-config configmap name; --from-file=genome.conf=/path/to/genome.conf source file
 
 ### validate YAML manifest without applying
 **Args:** `apply -f job.yaml --dry-run=client`
-**Explanation:** --dry-run=client validates YAML syntax and schema locally without creating resources; essential for CI/CD pipelines
+**Explanation:** kubectl apply subcommand; -f job.yaml YAML manifest; --dry-run=client validate without applying
 
 ### create a parallel bioinformatics job with resource limits
 **Args:** `create job parallel-bwa --image=biocontainers/bwa:0.7.17 --requests=cpu=2,memory=4Gi --limits=cpu=4,memory=8Gi -- bwa mem -t 4 ref.fa reads.fq > aligned.sam`
-**Explanation:** sets resource requests and limits; requests for scheduling, limits for runtime enforcement; ensures QoS and prevents resource exhaustion
+**Explanation:** kubectl create job subcommand; parallel-bwa job name; --image=biocontainers/bwa:0.7.17 container; --requests=cpu=2,memory=4Gi resource requests; --limits=cpu=4,memory=8Gi resource limits; -- separator; bwa mem -t 4 ref.fa reads.fq > aligned.sam bwa command
 
 ### port-forward to access a service locally
 **Args:** `port-forward svc/my-service 8080:80`
-**Explanation:** forwards local port 8080 to service port 80; useful for accessing web UIs or APIs running in the cluster
+**Explanation:** kubectl port-forward subcommand; svc/my-service service; 8080:80 local to remote port mapping
 
 ### check pod QoS class
 **Args:** `get pod my-pod -o jsonpath='{.status.qosClass}'`
-**Explanation:** outputs Guaranteed, Burstable, or BestEffort; helps verify resource configuration and eviction priority
+**Explanation:** kubectl get pod subcommand; my-pod pod name; -o jsonpath='{.status.qosClass}' extract QoS class
 
 ### copy files to/from a pod
 **Args:** `cp local/file.txt my-pod:/data/`
-**Explanation:** copies local file to pod's /data/ directory; reverse direction with pod:/data/file.txt local/ for downloading results
+**Explanation:** kubectl cp subcommand; local/file.txt source file; my-pod:/data/ destination path
 
 ### run a job with timeout and retry limits
 **Args:** `create job timed-job --image=busybox --restart=Never -- /bin/sh -c "sleep 300"`
-**Explanation:** combined with YAML: backoffLimit for retries, activeDeadlineSeconds for timeout; ensures jobs don't run indefinitely
+**Explanation:** kubectl create job subcommand; timed-job job name; --image=busybox container; --restart=Never restart policy; -- separator; /bin/sh -c "sleep 300" command
 
 ### view resource quota usage
 **Args:** `describe resourcequota -n my-namespace`
-**Explanation:** shows current vs. hard limits for CPU, memory, pods; helps diagnose scheduling failures due to quota exhaustion
+**Explanation:** kubectl describe subcommand; resourcequota resource type; -n my-namespace namespace
 
 ### set default namespace for current context
 **Args:** `config set-context --current --namespace=bioinformatics`
-**Explanation:** sets default namespace for all subsequent commands; avoids typing -n bioinformatics repeatedly
+**Explanation:** kubectl config set-context subcommand; --current current context; --namespace=bioinformatics set namespace
 
 ### rollout restart a deployment
 **Args:** `rollout restart deployment/my-app`
-**Explanation:** triggers rolling update of all pods; useful for applying config changes or pulling new image versions
+**Explanation:** kubectl rollout restart subcommand; deployment/my-app deployment resource
 
 ### wait for job completion
 **Args:** `wait --for=condition=complete --timeout=300s job/my-job`
-**Explanation:** blocks until job completes or timeout; useful in scripts that depend on job completion before proceeding
+**Explanation:** kubectl wait subcommand; --for=condition=complete condition; --timeout=300s timeout; job/my-job job resource
 
 ### view events for troubleshooting
 **Args:** `get events --sort-by=.lastTimestamp`
-**Explanation:** shows cluster events sorted by time; essential for diagnosing scheduling, image pull, or resource issues
+**Explanation:** kubectl get subcommand; events resource type; --sort-by=.lastTimestamp sort by time

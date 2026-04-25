@@ -39,60 +39,60 @@ source_url: "https://www.kallistobus.tools/"
 
 ### build kb reference from genome and GTF
 **Args:** `ref -i index.idx -g t2g.txt -f1 cdna.fasta genome.fa genes.gtf`
-**Explanation:** -i kallisto index; -g transcript-to-gene mapping; -f1 cDNA FASTA; from genome + GTF
+**Explanation:** kb ref subcommand; -i index.idx output kallisto index; -g t2g.txt transcript-to-gene mapping; -f1 cdna.fasta output cDNA FASTA; genome.fa genes.gtf input genome and annotation
 
 ### process 10x Chromium v3 scRNA-seq FASTQ files
 **Args:** `count -i index.idx -g t2g.txt -x 10xv3 -o output_dir/ -t 16 R1.fastq.gz R2.fastq.gz`
-**Explanation:** -x 10xv3 technology; R1 (barcode+UMI) R2 (cDNA); -o output directory; -t threads
+**Explanation:** kb count subcommand; -i index.idx input index; -g t2g.txt transcript-to-gene mapping; -x 10xv3 single-cell technology; -o output_dir/ output directory; -t 16 threads; R1.fastq.gz R2.fastq.gz input reads
 
 ### process scRNA-seq with RNA velocity output
 **Args:** `count -i spliced_unspliced.idx -g t2g.txt -x 10xv3 --workflow lamanno -o velocity_output/ -t 16 R1.fastq.gz R2.fastq.gz`
-**Explanation:** --workflow lamanno outputs spliced and unspliced matrices for RNA velocity with scVelo
+**Explanation:** kb count subcommand; -i spliced_unspliced.idx input index; -g t2g.txt transcript-to-gene mapping; -x 10xv3 technology; --workflow lamanno RNA velocity; -o velocity_output/ output directory; -t 16 threads; R1.fastq.gz R2.fastq.gz input reads
 
 ### process 10x Chromium v3 and output AnnData for Scanpy
 **Args:** `count -i index.idx -g t2g.txt -x 10xv3 --h5ad -o output_dir/ -t 16 R1.fastq.gz R2.fastq.gz`
-**Explanation:** --h5ad generates AnnData (.h5ad) file directly compatible with Scanpy
+**Explanation:** kb count subcommand; -i index.idx input index; -g t2g.txt transcript-to-gene mapping; -x 10xv3 technology; --h5ad output AnnData format; -o output_dir/ output directory; -t 16 threads; R1.fastq.gz R2.fastq.gz input reads
 
 ### download pre-built reference instead of building locally
 **Args:** `ref -d mouse -i index.idx -g t2g.txt`
-**Explanation:** -d mouse downloads pre-built mouse index from GitHub; skips local indexing; much faster
+**Explanation:** kb ref subcommand; -d mouse download pre-built mouse index; -i index.idx output index; -g t2g.txt transcript-to-gene mapping
 
 ### build reference for nascent/ambiguous/complete (NAC) RNA quantification
 **Args:** `ref --workflow nac -i index.idx -g t2g.txt -f1 mature.fa -f2 nascent.fa -c1 mature.t2c.txt -c2 nascent.t2c.txt genome.fa genes.gtf`
-**Explanation:** --workflow nac for single-nuclei RNA-seq; -f1/-f2 for mature/nascent FASTA; -c1/-c2 for transcript-to-capture mappings
+**Explanation:** kb ref subcommand; --workflow nac for single-nuclei; -i index.idx output index; -g t2g.txt transcript-to-gene mapping; -f1 mature.fa mature FASTA; -f2 nascent.fa nascent FASTA; -c1 mature.t2c.txt mature capture mapping; -c2 nascent.t2c.txt nascent capture mapping; genome.fa genes.gtf input genome and annotation
 
 ### process single-nuclei RNA-seq with NAC workflow
 **Args:** `count -i nac_index.idx -g t2g.txt -c1 mature.t2c.txt -c2 nascent.t2c.txt -x 10xv3 --workflow nac --h5ad -o nac_output/ -t 16 R1.fastq.gz R2.fastq.gz`
-**Explanation:** --workflow nac with -c1/-c2 files; outputs mature/ambiguous/nascent count matrices for RNA velocity
+**Explanation:** kb count subcommand; -i nac_index.idx input index; -g t2g.txt transcript-to-gene mapping; -c1 mature.t2c.txt mature capture mapping; -c2 nascent.t2c.txt nascent capture mapping; -x 10xv3 technology; --workflow nac single-nuclei; --h5ad output AnnData; -o nac_output/ output directory; -t 16 threads; R1.fastq.gz R2.fastq.gz input reads
 
 ### build feature barcode index for CITE-seq
 **Args:** `ref --workflow kite -i fb_index.idx -g f2g.txt -f1 features.fa feature_barcodes.txt`
-**Explanation:** --workflow kite for feature barcoding; feature_barcodes.txt contains barcode sequences and names
+**Explanation:** kb ref subcommand; --workflow kite for feature barcoding; -i fb_index.idx output index; -g f2g.txt feature-to-gene mapping; -f1 features.fa features FASTA; feature_barcodes.txt barcode list
 
 ### process CITE-seq data with feature barcoding
 **Args:** `count -i fb_index.idx -g f2g.txt -x 10xv3 --workflow kite --h5ad -o cite_output/ -t 16 R1.fastq.gz R2.fastq.gz`
-**Explanation:** --workflow kite for CITE-seq; quantifies both gene expression and surface protein markers
+**Explanation:** kb count subcommand; -i fb_index.idx input index; -g f2g.txt feature-to-gene mapping; -x 10xv3 technology; --workflow kite feature barcoding; --h5ad output AnnData; -o cite_output/ output directory; -t 16 threads; R1.fastq.gz R2.fastq.gz input reads
 
 ### output Cell Ranger compatible format
 **Args:** `count -i index.idx -g t2g.txt -x 10xv3 --cellranger -o cellranger_output/ -t 16 R1.fastq.gz R2.fastq.gz`
-**Explanation:** --cellranger outputs matrix.mtx.gz, barcodes.tsv.gz, features.tsv.gz; compatible with Cell Ranger pipelines
+**Explanation:** kb count subcommand; -i index.idx input index; -g t2g.txt transcript-to-gene mapping; -x 10xv3 technology; --cellranger Cell Ranger compatible output; -o cellranger_output/ output directory; -t 16 threads; R1.fastq.gz R2.fastq.gz input reads
 
 ### include multimapped reads in quantification
 **Args:** `count -i index.idx -g t2g.txt -x 10xv3 --mm --h5ad -o mm_output/ -t 16 R1.fastq.gz R2.fastq.gz`
-**Explanation:** --mm includes reads pseudoaligning to multiple genes; increases sensitivity but may add noise
+**Explanation:** kb count subcommand; -i index.idx input index; -g t2g.txt transcript-to-gene mapping; -x 10xv3 technology; --mm include multimapped reads; --h5ad output AnnData; -o mm_output/ output directory; -t 16 threads; R1.fastq.gz R2.fastq.gz input reads
 
 ### generate TCC matrix instead of gene counts
 **Args:** `count -i index.idx -g t2g.txt -x 10xv3 --tcc --h5ad -o tcc_output/ -t 16 R1.fastq.gz R2.fastq.gz`
-**Explanation:** --tcc outputs transcript-compatibility counts; required for certain downstream analyses like differential splicing
+**Explanation:** kb count subcommand; -i index.idx input index; -g t2g.txt transcript-to-gene mapping; -x 10xv3 technology; --tcc transcript-compatibility counts; --h5ad output AnnData; -o tcc_output/ output directory; -t 16 threads; R1.fastq.gz R2.fastq.gz input reads
 
 ### list all supported single-cell technologies
 **Args:** `--list`
-**Explanation:** displays all supported technologies with barcode/UMI/cDNA positions; essential for selecting correct -x value
+**Explanation:** kb command; --list displays supported technologies
 
 ### extract reads pseudoaligned to specific genes
 **Args:** `extract -i index.idx -g t2g.txt -ts GeneA GeneB -o extracted_reads/ -t 16 reads.fastq.gz`
-**Explanation:** kb extract pulls reads mapping to specific genes; -ts specifies target genes; useful for targeted analysis
+**Explanation:** kb extract subcommand; -i index.idx input index; -g t2g.txt transcript-to-gene mapping; -ts GeneA GeneB target genes; -o extracted_reads/ output directory; -t 16 threads; reads.fastq.gz input reads
 
 ### run with memory and thread limits
 **Args:** `count -i index.idx -g t2g.txt -x 10xv3 -m 32G --tmp /scratch/tmp -t 8 --h5ad -o output/ R1.fastq.gz R2.fastq.gz`
-**Explanation:** -m 32G limits memory to 32GB; --tmp specifies fast temporary directory; -t 8 uses 8 threads
+**Explanation:** kb count subcommand; -i index.idx input index; -g t2g.txt transcript-to-gene mapping; -x 10xv3 technology; -m 32G memory limit; --tmp /scratch/tmp temp directory; -t 8 threads; --h5ad output AnnData; -o output/ output directory; R1.fastq.gz R2.fastq.gz input reads

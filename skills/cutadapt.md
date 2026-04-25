@@ -45,44 +45,44 @@ source_url: "https://cutadapt.readthedocs.io/"
 
 ### trim adapters and quality-filter, discarding short reads
 **Args:** `-a AGATCGGAAGAGC -A AGATCGGAAGAGC -q 20 --minimum-length 36 -j 8 -o R1_trimmed.fastq.gz -p R2_trimmed.fastq.gz R1.fastq.gz R2.fastq.gz`
-**Explanation:** -q 20 quality trimming; --minimum-length 36 discards short reads; -j 8 uses 8 cores
+**Explanation:** -a/-A adapters for R1/R2; -q 20 quality trimming; --minimum-length 36 discards short reads; -j 8 uses 8 cores; -o/-p outputs; input files positional
 
 ### remove polyA tail from single-end RNA-seq reads
 **Args:** `-a A{20} -q 20 --minimum-length 30 -j 4 -o trimmed.fastq.gz reads.fastq.gz`
-**Explanation:** A{20} matches a polyA stretch of 20+ As; -q 20 quality trims; useful for 3'-seq or poly-A selected RNA
+**Explanation:** -a A{20} matches polyA stretch of 20+ As; -q 20 quality trims; --minimum-length 30 discards short; -j 4 cores; -o output; useful for 3'-seq
 
 ### trim Nextera transposase adapters from paired-end ATAC-seq data
 **Args:** `-a CTGTCTCTTATA -A CTGTCTCTTATA -q 20 --minimum-length 20 -j 8 -o R1_trimmed.fastq.gz -p R2_trimmed.fastq.gz R1.fastq.gz R2.fastq.gz`
-**Explanation:** Nextera adapter sequence for ATAC-seq; minimum length 20 allows short ATAC fragments
+**Explanation:** -a/-A Nextera adapters; -q 20 quality trimming; --minimum-length 20 allows short ATAC fragments; -j 8 cores; -o/-p outputs; inputs positional
 
 ### remove 5' primer from single-end amplicon reads
 **Args:** `-g ACACTGACGACATGGTTCTACA --discard-untrimmed -o trimmed.fastq.gz reads.fastq.gz`
-**Explanation:** -g specifies 5' adapter/primer; --discard-untrimmed removes reads without the primer (amplicon decontamination)
+**Explanation:** -g specifies 5' adapter/primer; --discard-untrimmed removes reads without primer; -o output file; input positional; amplicon decontamination
 
 ### use linked adapters for amplicon with both 5' and 3' primers
 **Args:** `-a ^FWDPRIMER...RCREVPRIMER -A ^REVPRIMER...RCFWDPRIMER --discard-untrimmed -o out1.fastq.gz -p out2.fastq.gz in1.fastq.gz in2.fastq.gz`
-**Explanation:** ^ anchors to 5' end; ... notation links 5' and 3' adapters; RCREVPRIMER is reverse complement of reverse primer
+**Explanation:** -a/-A linked adapters; ^ anchors to 5' end; ... notation links 5' and 3' adapters; --discard-untrimmed removes non-matching; -o/-p outputs
 
 ### NextSeq-specific quality trimming
 **Args:** `-a AGATCGGAAGAGC --nextseq-trim 20 -o trimmed.fastq.gz reads.fastq.gz`
-**Explanation:** --nextseq-trim handles dark cycles (high-quality G bases) specific to NextSeq/NOVA-seq platforms
+**Explanation:** -a adapter sequence; --nextseq-trim 20 handles dark cycles (high-quality G bases) for NextSeq/NOVA-seq; -o output; input positional
 
 ### mask adapters with N instead of trimming
 **Args:** `-a AGATCGGAAGAGC --action mask -o masked.fastq.gz reads.fastq.gz`
-**Explanation:** --action mask replaces adapter sequence with N characters; preserves read length for downstream analysis
+**Explanation:** -a adapter; --action mask replaces adapter with N characters; -o output; input positional; preserves read length
 
 ### remove multiple adapters with multiple rounds
 **Args:** `-g ^TTAAGGCC -g ^AAGCTTA -a TACGGACT -n 2 -o output.fastq input.fastq`
-**Explanation:** -n 2 runs two rounds of adapter removal; useful when multiple different adapters may be present
+**Explanation:** -g multiple 5' adapters; -a 3' adapter; -n 2 runs two rounds of adapter removal; -o output; input positional
 
 ### check reverse complement for adapter matches
 **Args:** `-a AGATCGGAAGAGC --rc -o trimmed.fastq.gz reads.fastq.gz`
-**Explanation:** --rc checks both read and its reverse complement; if match found on RC, outputs the RC version
+**Explanation:** -a adapter; --rc checks both read and reverse complement; -o output; input positional; outputs RC if match found on RC
 
 ### demultiplex using inline barcodes
 **Args:** `-g file:barcodes.fasta -o {name}.fastq.gz input.fastq.gz`
-**Explanation:** file:FASTA reads adapter sequences from file; {name} in output creates separate files per barcode
+**Explanation:** -g file:FASTA reads adapter sequences from file; -o {name} creates separate files per barcode; input positional
 
 ### anchored 5' adapter for strict primer matching
 **Args:** `-g ^ACACTGACGACATGGTTCTACA -o trimmed.fastq.gz reads.fastq.gz`
-**Explanation:** ^ anchors adapter to 5' end; adapter must be at start of read; prevents internal matches
+**Explanation:** -g 5' adapter; ^ anchors to 5' end for strict matching at start; -o output; input positional; prevents internal matches

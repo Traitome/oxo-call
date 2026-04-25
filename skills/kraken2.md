@@ -42,56 +42,56 @@ source_url: "https://github.com/DerrickWood/kraken2"
 
 ### classify paired-end metagenomic reads against the standard database
 **Args:** `--db /path/to/kraken2_db --paired --threads 8 --output kraken_output.txt --report kraken_report.txt R1.fastq.gz R2.fastq.gz`
-**Explanation:** --paired for PE; --output per-read classifications; --report summary for Bracken
+**Explanation:** kraken2 command; --db /path/to/kraken2_db database path; --paired paired-end mode; --threads 8 threads; --output kraken_output.txt per-read classifications; --report kraken_report.txt taxonomic summary; R1.fastq.gz R2.fastq.gz input reads
 
 ### classify reads with confidence threshold and save unclassified reads
 **Args:** `--db /path/to/kraken2_db --paired --confidence 0.1 --threads 8 --output kraken_out.txt --report kraken_report.txt --unclassified-out unclassified#.fastq R1.fastq.gz R2.fastq.gz`
-**Explanation:** --confidence 0.1 reduces false positives; --unclassified-out saves unclassified reads (# → _1/_2 for PE)
+**Explanation:** kraken2 command; --db /path/to/kraken2_db database; --paired paired-end mode; --confidence 0.1 confidence threshold; --threads 8 threads; --output kraken_out.txt per-read classifications; --report kraken_report.txt summary; --unclassified-out unclassified#.fastq unclassified reads; R1.fastq.gz R2.fastq.gz input reads
 
 ### classify single-end reads and generate report
 **Args:** `--db /path/to/kraken2_db --threads 8 --output kraken_out.txt --report kraken_report.txt reads.fastq.gz`
-**Explanation:** single-end classification; omit --paired for single-end reads
+**Explanation:** kraken2 command; --db /path/to/kraken2_db database; --threads 8 threads; --output kraken_out.txt per-read classifications; --report kraken_report.txt summary; reads.fastq.gz single-end input
 
 ### classify reads and extract classified reads for downstream analysis
 **Args:** `--db /path/to/kraken2_db --paired --threads 8 --output kraken_out.txt --report kraken_report.txt --classified-out classified#.fastq R1.fastq.gz R2.fastq.gz`
-**Explanation:** --classified-out saves reads that were classified; useful for host decontamination (keep unclassified)
+**Explanation:** kraken2 command; --db /path/to/kraken2_db database; --paired paired-end mode; --threads 8 threads; --output kraken_out.txt per-read classifications; --report kraken_report.txt summary; --classified-out classified#.fastq classified reads; R1.fastq.gz R2.fastq.gz input reads
 
 ### download and build standard Kraken2 database
 **Args:** `kraken2-build --standard --db /path/to/kraken2_db --threads 8`
-**Explanation:** --standard downloads and builds the default database; requires ~100 GB disk space and significant time
+**Explanation:** kraken2-build command; --standard download and build default database; --db /path/to/kraken2_db database path; --threads 8 threads
 
 ### build custom database with specific libraries
 **Args:** `kraken2-build --download-taxonomy --db custom_db && kraken2-build --download-library bacteria --db custom_db && kraken2-build --download-library viral --db custom_db && kraken2-build --build --db custom_db --threads 8`
-**Explanation:** multi-step process: download taxonomy, add libraries (bacteria, viral), then build; customize for specific needs
+**Explanation:** kraken2-build --download-taxonomy --db custom_db download taxonomy; kraken2-build --download-library bacteria --db custom_db add bacteria library; kraken2-build --download-library viral --db custom_db add viral library; kraken2-build --build --db custom_db --threads 8 build database
 
 ### classify with memory mapping for low-RAM systems
 **Args:** `--db /path/to/kraken2_db --memory-mapping --paired --threads 8 --output kraken_out.txt --report kraken_report.txt R1.fastq.gz R2.fastq.gz`
-**Explanation:** --memory-mapping avoids loading DB into RAM; slower but works on memory-constrained systems
+**Explanation:** kraken2 command; --db /path/to/kraken2_db database; --memory-mapping avoid loading DB into RAM; --paired paired-end mode; --threads 8 threads; --output kraken_out.txt per-read classifications; --report kraken_report.txt summary; R1.fastq.gz R2.fastq.gz input reads
 
 ### quick classification for preliminary analysis
 **Args:** `--db /path/to/kraken2_db --quick --paired --threads 8 --output kraken_out.txt R1.fastq.gz R2.fastq.gz`
-**Explanation:** --quick uses first hit only; much faster but less accurate; suitable for quick checks, not final analysis
+**Explanation:** kraken2 command; --db /path/to/kraken2_db database; --quick quick classification; --paired paired-end mode; --threads 8 threads; --output kraken_out.txt per-read classifications; R1.fastq.gz R2.fastq.gz input reads
 
 ### classify with minimum hit groups for stringency
 **Args:** `--db /path/to/kraken2_db --paired --minimum-hit-groups 3 --confidence 0.1 --threads 8 --output kraken_out.txt --report kraken_report.txt R1.fastq.gz R2.fastq.gz`
-**Explanation:** --minimum-hit-groups 3 requires 3+ hit groups; increases specificity; useful for reducing false positives
+**Explanation:** kraken2 command; --db /path/to/kraken2_db database; --paired paired-end mode; --minimum-hit-groups 3 minimum hit groups; --confidence 0.1 threshold; --threads 8 threads; --output kraken_out.txt per-read classifications; --report kraken_report.txt summary; R1.fastq.gz R2.fastq.gz input reads
 
 ### output report in MetaPhlAn format
 **Args:** `--db /path/to/kraken2_db --paired --threads 8 --report kraken_mpa.txt --use-mpa-style R1.fastq.gz R2.fastq.gz`
-**Explanation:** --use-mpa-style outputs MetaPhlAn-compatible format; useful for pipelines expecting mpa-style reports
+**Explanation:** kraken2 command; --db /path/to/kraken2_db database; --paired paired-end mode; --threads 8 threads; --report kraken_mpa.txt summary; --use-mpa-style MetaPhlAn format; R1.fastq.gz R2.fastq.gz input reads
 
 ### classify with minimum base quality filtering
 **Args:** `--db /path/to/kraken2_db --paired --minimum-base-quality 20 --threads 8 --output kraken_out.txt --report kraken_report.txt R1.fastq.gz R2.fastq.gz`
-**Explanation:** --minimum-base-quality 20 filters low-quality bases; only effective with FASTQ input; improves accuracy
+**Explanation:** kraken2 command; --db /path/to/kraken2_db database; --paired paired-end mode; --minimum-base-quality 20 quality filter; --threads 8 threads; --output kraken_out.txt per-read classifications; --report kraken_report.txt summary; R1.fastq.gz R2.fastq.gz input reads
 
 ### build protein database for translated search
 **Args:** `kraken2-build --download-taxonomy --db protein_db && kraken2-build --download-library nr --db protein_db && kraken2-build --build --db protein_db --protein --threads 8`
-**Explanation:** --protein builds amino acid database; enables translated search for metagenomic protein classification
+**Explanation:** kraken2-build --download-taxonomy --db protein_db download taxonomy; kraken2-build --download-library nr --db protein_db add nr library; kraken2-build --build --db protein_db --protein --threads 8 build protein database
 
 ### classify single-end reads with confidence threshold
 **Args:** `--db /path/to/kraken2_db --confidence 0.05 --threads 8 --output kraken_out.txt --report kraken_report.txt reads.fastq.gz`
-**Explanation:** --confidence 0.05 for single-end data; lower threshold compensates for reduced information content
+**Explanation:** kraken2 command; --db /path/to/kraken2_db database; --confidence 0.05 threshold; --threads 8 threads; --output kraken_out.txt per-read classifications; --report kraken_report.txt summary; reads.fastq.gz single-end input
 
 ### add custom sequences to existing database
 **Args:** `kraken2-build --add-to-library custom_sequences.fa --db custom_db && kraken2-build --build --db custom_db --threads 8`
-**Explanation:** --add-to-library adds custom FASTA; rebuild required; useful for adding novel genomes or MAGs
+**Explanation:** kraken2-build --add-to-library custom_sequences.fa --db custom_db add custom sequences; kraken2-build --build --db custom_db --threads 8 rebuild database

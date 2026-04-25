@@ -37,39 +37,39 @@ source_url: "https://busco.ezlab.org/"
 
 ### assess completeness of a bacterial genome assembly
 **Args:** `-i genome_assembly.fasta -o busco_bacteria -l bacteria_odb12 -m genome -c 8`
-**Explanation:** -l bacteria_odb12 bacterial lineage dataset (odb12 is default); -m genome mode; -c 8 threads; output in busco_bacteria/
+**Explanation:** -i genome_assembly.fasta input file; -o busco_bacteria output name; -l bacteria_odb12 bacterial lineage dataset (odb12 is default); -m genome mode; -c 8 threads; output in busco_bacteria/
 
 ### assess completeness of a eukaryotic genome assembly with miniprot
 **Args:** `-i eukaryote_assembly.fasta -o busco_euk -l eukaryota_odb12 -m genome --miniprot -c 16`
-**Explanation:** --miniprot uses Miniprot gene predictor (fast, recommended for v6); eukaryota_odb12 is the broadest eukaryote dataset
+**Explanation:** -i eukaryote_assembly.fasta input file; -o busco_euk output name; -l eukaryota_odb12 lineage dataset; -m genome mode; --miniprot uses Miniprot gene predictor (fast, recommended for v6); -c 16 threads; eukaryota_odb12 is the broadest eukaryote dataset
 
 ### assess eukaryotic genome with Augustus and self-training
 **Args:** `-i genome.fasta -o busco_augustus -l vertebrata_odb12 -m genome --augustus --long -c 16`
-**Explanation:** --augustus uses Augustus gene predictor; --long enables self-training for non-model organisms (slower but more accurate)
+**Explanation:** -i genome.fasta input file; -o busco_augustus output name; -l vertebrata_odb12 lineage dataset; -m genome mode; --augustus uses Augustus gene predictor; --long enables self-training for non-model organisms (slower but more accurate); -c 16 threads
 
 ### assess proteome completeness from predicted proteins
 **Args:** `-i proteins.faa -o busco_proteome -l fungi_odb12 -m proteins -c 8`
-**Explanation:** -m proteins for proteome mode; faster than genome mode; -l fungi_odb12 for fungal proteins
+**Explanation:** -i proteins.faa input file; -o busco_proteome output name; -l fungi_odb12 lineage dataset; -m proteins for proteome mode (faster than genome mode); -c 8 threads
 
 ### assess transcriptome completeness
 **Args:** `-i transcriptome.fasta -o busco_transcriptome -l vertebrata_odb12 -m transcriptome -c 8`
-**Explanation:** -m transcriptome mode; -l vertebrata_odb12 for vertebrate transcriptome completeness
+**Explanation:** -i transcriptome.fasta input file; -o busco_transcriptome output name; -l vertebrata_odb12 lineage dataset; -m transcriptome mode; -c 8 threads
 
 ### run BUSCO with automatic lineage detection
 **Args:** `-i genome.fasta -o busco_autolineage -m genome --auto-lineage -c 16`
-**Explanation:** --auto-lineage automatically selects best lineage; useful when unsure of phylogenetic placement
+**Explanation:** -i genome.fasta input file; -o busco_autolineage output name; -m genome mode; --auto-lineage automatically selects best lineage; -c 16 threads; useful when unsure of phylogenetic placement
 
 ### run BUSCO with Metaeuk gene predictor
 **Args:** `-i genome.fasta -o busco_metaeuk -l insecta_odb12 -m genome --metaeuk -c 16`
-**Explanation:** --metaeuk uses Metaeuk gene predictor; alternative to Augustus and Miniprot
+**Explanation:** -i genome.fasta input file; -o busco_metaeuk output name; -l insecta_odb12 lineage dataset; -m genome mode; --metaeuk uses Metaeuk gene predictor; -c 16 threads; alternative to Augustus and Miniprot
 
 ### generate summary plot from multiple BUSCO runs
 **Args:** `--plot /path/to/busco_results/ --plot_percentages`
-**Explanation:** --plot generates summary bar chart from all short_summary.txt files in directory; --plot_percentages shows percentages instead of counts
+**Explanation:** --plot flag; /path/to/busco_results/ directory containing BUSCO results; --plot_percentages shows percentages instead of counts; --plot generates summary bar chart from all short_summary.txt files in directory
 
 ### continue an interrupted BUSCO run
 **Args:** `--restart -i genome.fasta -o busco_run -l bacteria_odb12 -m genome -c 8`
-**Explanation:** --restart continues from last checkpoint; useful for long-running analyses that were interrupted
+**Explanation:** --restart flag continues from last checkpoint; -i genome.fasta input file; -o busco_run output name; -l bacteria_odb12 lineage dataset; -m genome mode; -c 8 threads; useful for long-running analyses that were interrupted
 
 ### list all available BUSCO datasets
 **Args:** `--list-datasets`

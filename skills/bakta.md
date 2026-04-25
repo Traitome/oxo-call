@@ -43,11 +43,11 @@ source_url: "https://github.com/oschwengers/bakta"
 
 ### annotate genome for NCBI submission
 **Args:** `--db /path/to/bakta_db/ --compliant --locus-tag MYORG --genus Escherichia --species coli --strain K12 --threads 8 --output ncbi_annotation/ --prefix ecoli_K12 genome.fasta`
-**Explanation:** --compliant INSDC-compliant format; --locus-tag gene name prefix; --genus/--species/--strain for taxonomy; required for NCBI submission
+**Explanation:** --db database path; --compliant INSDC-compliant format; --locus-tag MYORG gene name prefix; --genus Escherichia/--species coli/--strain K12 for taxonomy-aware annotation; --threads 8 parallel processing; --output ncbi_annotation/ output directory; --prefix ecoli_K12 file naming prefix; genome.fasta input; required for NCBI submission
 
 ### annotate plasmid sequence
 **Args:** `--db /path/to/bakta_db/ --plasmid pMYPLASMID --complete --threads 4 --output plasmid_annotation/ --prefix plasmid plasmid.fasta`
-**Explanation:** --plasmid names the plasmid; --complete indicates circular topology; --threads 4
+**Explanation:** --db database path; --plasmid pMYPLASMID names the plasmid; --complete indicates circular topology; --threads 4 parallel processing; --output plasmid_annotation/ output directory; --prefix plasmid file naming prefix; plasmid.fasta input
 
 ### download the Bakta database
 **Args:** `bakta_db download --output /path/to/bakta_db/`
@@ -55,28 +55,28 @@ source_url: "https://github.com/oschwengers/bakta"
 
 ### annotate with trusted proteins and custom HMMs
 **Args:** `--db /path/to/bakta_db/ --proteins trusted_proteins.faa --hmms custom_models.hmm --threads 8 --output annotation/ --prefix custom genome.fasta`
-**Explanation:** --proteins provides known protein sequences for improved CDS annotation; --hmms provides custom HMM profiles for specific gene families
+**Explanation:** --db database path; --proteins trusted_proteins.faa provides known protein sequences for improved CDS annotation; --hmms custom_models.hmm provides custom HMM profiles for specific gene families; --threads 8 parallel processing; --output annotation/ output directory; --prefix custom file naming prefix; genome.fasta input
 
 ### annotate a metagenome-assembled genome (MAG)
 **Args:** `--db /path/to/bakta_db/ --meta --translation-table 11 --threads 8 --output mag_annotation/ --prefix mag mag_contigs.fasta`
-**Explanation:** --meta enables metagenome mode for CDS prediction; better suited for fragmented/lower-quality assemblies
+**Explanation:** --db database path; --meta enables metagenome mode for CDS prediction; --translation-table 11 bacterial genetic code; --threads 8 parallel processing; --output mag_annotation/ output directory; --prefix mag file naming prefix; mag_contigs.fasta input; better suited for fragmented/lower-quality assemblies
 
 ### annotate with pre-annotated regions
 **Args:** `--db /path/to/bakta_db/ --regions existing_regions.gff3 --threads 8 --output annotation/ --prefix with_regions genome.fasta`
-**Explanation:** --regions imports structural annotations from a GFF3/GenBank file; functional annotations are added by Bakta
+**Explanation:** --db database path; --regions existing_regions.gff3 imports structural annotations from a GFF3/GenBank file; --threads 8 parallel processing; --output annotation/ output directory; --prefix with_regions file naming prefix; genome.fasta input; functional annotations are added by Bakta
 
 ### annotate with Gram-positive signal peptide prediction
 **Args:** `--db /path/to/bakta_db/ --gram + --genus Bacillus --species subtilis --threads 8 --output annotation/ --prefix bsub genome.fasta`
-**Explanation:** --gram + optimizes signal peptide prediction for Gram-positive bacteria; --genus/--species for taxonomy-aware annotation
+**Explanation:** --db database path; --gram + optimizes signal peptide prediction for Gram-positive bacteria; --genus Bacillus/--species subtilis for taxonomy-aware annotation; --threads 8 parallel processing; --output annotation/ output directory; --prefix bsub file naming prefix; genome.fasta input
 
 ### annotate only specific feature types (skip CRISPR and sORF)
 **Args:** `--db /path/to/bakta_db/ --skip-crispr --skip-sorf --threads 8 --output annotation/ --prefix minimal genome.fasta`
-**Explanation:** --skip-crispr and --skip-sorf speed up annotation by skipping CRISPR array and small ORF detection; useful for re-runs
+**Explanation:** --db database path; --skip-crispr and --skip-sorf speed up annotation by skipping CRISPR array and small ORF detection; --threads 8 parallel processing; --output annotation/ output directory; --prefix minimal file naming prefix; genome.fasta input; useful for re-runs
 
 ### annotate proteins directly from a FASTA file
 **Args:** `bakta_proteins --db /path/to/bakta_db/ --threads 8 --output protein_annotation/ proteins.faa`
-**Explanation:** bakta_proteins annotates protein sequences directly without genome context; useful for annotating translated CDS
+**Explanation:** bakta_proteins companion tool annotates protein sequences directly without genome context; --db database path; --threads 8 parallel processing; --output protein_annotation/ output directory; proteins.faa input protein FASTA; useful for annotating translated CDS
 
 ### force overwrite of existing output directory
 **Args:** `--db /path/to/bakta_db/ --force --threads 8 --output existing_dir/ --prefix rerun genome.fasta`
-**Explanation:** --force allows overwriting an existing output directory; useful for re-running with different parameters
+**Explanation:** --db database path; --force allows overwriting an existing output directory; --threads 8 parallel processing; --output existing_dir/ output directory; --prefix rerun file naming prefix; genome.fasta input; useful for re-running with different parameters

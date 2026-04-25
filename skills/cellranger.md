@@ -41,48 +41,48 @@ source_url: "https://www.10xgenomics.com/support/software/cell-ranger"
 
 ### count gene expression from 10x scRNA-seq FASTQ files
 **Args:** `count --id=sample_output --transcriptome=/path/to/refdata-gex-GRCh38-2020-A --fastqs=/path/to/fastqs/ --sample=sample_name --localcores=16 --localmem=64`
-**Explanation:** --id output directory name; --transcriptome 10x reference; --fastqs directory; --sample FASTQ prefix
+**Explanation:** count subcommand; --id=sample_output output directory name; --transcriptome=/path/to/refdata-gex-GRCh38-2020-A 10x reference; --fastqs=/path/to/fastqs/ FASTQ directory; --sample=sample_name FASTQ prefix; --localcores=16 CPU limit; --localmem=64 RAM limit (GB)
 
 ### process 10x multiome (RNA+ATAC) data with Cell Ranger ARC
 **Args:** `arc count --id=multiome_output --reference=/path/to/arc_ref/ --libraries=libraries.csv --localcores=16 --localmem=128`
-**Explanation:** cellranger-arc count for RNA+ATAC multiome; --libraries CSV specifies ATAC and GEX FASTQ paths
+**Explanation:** arc count subcommand for cellranger-arc; --id=multiome_output output directory; --reference=/path/to/arc_ref/ multiome reference; --libraries=libraries.csv CSV specifies ATAC and GEX FASTQ paths; --localcores=16 CPU limit; --localmem=128 RAM limit
 
 ### build a custom Cell Ranger reference from genome FASTA and GTF
 **Args:** `mkref --genome=custom_genome --fasta=genome.fa --genes=genes.gtf --nthreads=8`
-**Explanation:** --genome output reference name; --fasta genome FASTA; --genes GTF annotation; creates compatible reference
+**Explanation:** mkref subcommand; --genome=custom_genome output reference name; --fasta=genome.fa genome FASTA input; --genes=genes.gtf GTF annotation input; --nthreads=8 threads; creates Cell Ranger compatible reference
 
 ### process 10x ATAC-seq data with Cell Ranger ATAC
 **Args:** `atac count --id=atac_output --reference=/path/to/refdata-cellranger-arc-GRCh38-2020-A-2.0.0 --fastqs=/path/to/atac_fastqs/ --sample=atac_sample --localcores=16 --localmem=64`
-**Explanation:** cellranger-atac count for single-cell ATAC-seq; requires arc reference
+**Explanation:** atac count subcommand for cellranger-atac; --id=atac_output output directory; --reference=/path/to/refdata-cellranger-arc-GRCh38-2020-A-2.0.0 ATAC reference; --fastqs=/path/to/atac_fastqs/ FASTQ directory; --sample=atac_sample FASTQ prefix; --localcores=16 CPU limit; --localmem=64 RAM limit
 
 ### aggregate multiple samples with cellranger aggr
 **Args:** `aggr --id=combined_analysis --csv=aggregation.csv --localcores=16 --localmem=64`
-**Explanation:** combines outputs from multiple cellranger count runs; aggregation.csv lists sample_id,molecule_h5 columns; generates unified feature-barcode matrix
+**Explanation:** aggr subcommand; --id=combined_analysis output directory; --csv=aggregation.csv CSV lists sample_id,molecule_h5 columns; --localcores=16 CPU limit; --localmem=64 RAM limit; generates unified feature-barcode matrix
 
 ### process cell multiplexing data with cellranger multi
 **Args:** `multi --id=multiplexed_output --csv=config.csv --localcores=16 --localmem=64`
-**Explanation:** processes CellPlex multiplexed data where multiple samples share a GEM well; config.csv defines libraries and sample assignments
+**Explanation:** multi subcommand; --id=multiplexed_output output directory; --csv=config.csv CSV config file; --localcores=16 CPU limit; --localmem=64 RAM limit; processes CellPlex multiplexed data where multiple samples share a GEM well; config.csv defines libraries and sample assignments
 
 ### process VDJ immune repertoire data
 **Args:** `vdj count --id=vdj_output --reference=/path/to/refdata-cellranger-vdj-GRCh38-alts-ensembl-7.0.0 --fastqs=/path/to/vdj_fastqs/ --sample=vdj_sample --localcores=8 --localmem=32`
-**Explanation:** cellranger-vdj count for BCR/TCR repertoire analysis; separate binary for immune profiling
+**Explanation:** vdj count subcommand for cellranger-vdj; --id=vdj_output output directory; --reference=/path/to/refdata-cellranger-vdj-GRCh38-alts-ensembl-7.0.0 VDJ reference; --fastqs=/path/to/vdj_fastqs/ FASTQ directory; --sample=vdj_sample FASTQ prefix; --localcores=8 CPU limit; --localmem=32 RAM limit; separate binary for BCR/TCR repertoire analysis
 
 ### run cellranger with BAM output disabled
 **Args:** `count --id=sample_output --transcriptome=/path/to/ref --fastqs=/path/to/fastqs/ --sample=sample_name --create-bam=false --localcores=16 --localmem=64`
-**Explanation:** --create-bam=false skips BAM generation to save disk space (~50% reduction); use when BAMs are not needed for downstream analysis
+**Explanation:** count subcommand; --id=sample_output output directory; --transcriptome=/path/to/ref 10x reference; --fastqs=/path/to/fastqs/ FASTQ directory; --sample=sample_name FASTQ prefix; --create-bam=false skips BAM generation; --localcores=16 CPU limit; --localmem=64 RAM limit; saves ~50% disk space
 
 ### test cellranger count with dry-run
 **Args:** `count --id=test_run --transcriptome=/path/to/ref --fastqs=/path/to/fastqs/ --sample=sample_name --dry`
-**Explanation:** --dry performs a dry run to validate inputs and estimate resource requirements without executing the full pipeline
+**Explanation:** count subcommand; --id=test_run output directory; --transcriptome=/path/to/ref 10x reference; --fastqs=/path/to/fastqs/ FASTQ directory; --sample=sample_name FASTQ prefix; --dry performs dry run to validate inputs and estimate resource requirements without executing full pipeline
 
 ### count with custom feature-barcode matrix output
 **Args:** `count --id=sample_output --transcriptome=/path/to/ref --fastqs=/path/to/fastqs/ --sample=sample_name --feature-ref=features.csv --localcores=16 --localmem=64`
-**Explanation:** --feature-ref enables Feature Barcoding technology (CITE-seq, CellPlex); CSV defines feature barcodes and types
+**Explanation:** count subcommand; --id=sample_output output directory; --transcriptome=/path/to/ref 10x reference; --fastqs=/path/to/fastqs/ FASTQ directory; --sample=sample_name FASTQ prefix; --feature-ref=features.csv CSV defines feature barcodes and types; --localcores=16 CPU limit; --localmem=64 RAM limit; enables Feature Barcoding technology (CITE-seq, CellPlex)
 
 ### count with force cells parameter for low-quality data
 **Args:** `count --id=sample_output --transcriptome=/path/to/ref --fastqs=/path/to/fastqs/ --sample=sample_name --force-cells=5000 --localcores=16 --localmem=64`
-**Explanation:** --force-cells overrides automatic cell detection; useful for samples with low RNA content or high background
+**Explanation:** count subcommand; --id=sample_output output directory; --transcriptome=/path/to/ref 10x reference; --fastqs=/path/to/fastqs/ FASTQ directory; --sample=sample_name FASTQ prefix; --force-cells=5000 overrides automatic cell detection; --localcores=16 CPU limit; --localmem=64 RAM limit; useful for samples with low RNA content or high background
 
 ### build reference with custom reference genome and pre-mRNA
 **Args:** `mkref --genome=custom_genome --fasta=genome.fa --genes=genes.gtf --ref-version=1.0.0 --nthreads=8`
-**Explanation:** --ref-version sets reference version; Cell Ranger includes pre-mRNA sequences by default for intron counting
+**Explanation:** mkref subcommand; --genome=custom_genome output reference name; --fasta=genome.fa genome FASTA input; --genes=genes.gtf GTF annotation input; --ref-version=1.0.0 reference version; --nthreads=8 threads; Cell Ranger includes pre-mRNA sequences by default for intron counting
