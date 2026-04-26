@@ -170,6 +170,7 @@ impl LlmWorkflowExecutor {
         let needs_mini_skill = cached_mini_skill.is_none() && skill.is_none();
 
         // ── Run task standardization and mini-skill generation concurrently ──
+        // Mini-skill generation can fail (JSON parsing issues); on failure, fallback to None
         let (standardized_task, generated_mini_skill) = match (needs_standardize, needs_mini_skill)
         {
             (true, true) => {
@@ -180,7 +181,13 @@ impl LlmWorkflowExecutor {
                 );
                 llm_calls += 2;
                 total_inference_ms += 50.0; // Rough estimate for standardization
-                (std_result?, Some(ms_result?))
+                // Mini-skill failure → continue without it (documentation is still used)
+                let std = std_result?;
+                let ms = ms_result.ok(); // Use ok() to convert error to None
+                if ms.is_none() {
+                    tracing::warn!("Mini-skill generation failed, using documentation only");
+                }
+                (std, ms)
             }
             (true, false) => {
                 // Only standardization needed
@@ -194,8 +201,13 @@ impl LlmWorkflowExecutor {
                 llm_calls += 1;
                 let generated = self
                     .generate_mini_skill(tool, &cleaned_doc, &doc_hash)
-                    .await?;
-                (task.to_string(), Some(generated))
+                    .await;
+                // Mini-skill failure → continue without it
+                let ms = generated.ok();
+                if ms.is_none() {
+                    tracing::warn!("Mini-skill generation failed, using documentation only");
+                }
+                (task.to_string(), ms)
             }
             (false, false) => {
                 // Neither needed
@@ -305,19 +317,23 @@ impl LlmWorkflowExecutor {
             .unwrap_or("");
         let task_hash = hex::encode(sha2::Sha256::digest(task_pattern.as_bytes()));
 
+        // Flatten StringOrArray fields into plain strings
+        let concepts = flatten_string_or_array(parsed.concepts);
+        let pitfalls = flatten_string_or_array(parsed.pitfalls);
+
         Ok(MiniSkill {
             tool: tool.to_string(),
             task_hash,
             doc_hash: doc_hash.to_string(),
-            concepts: parsed.concepts,
-            pitfalls: parsed.pitfalls,
+            concepts,
+            pitfalls,
             examples: parsed
                 .examples
                 .into_iter()
                 .map(|ex| crate::mini_skill_cache::MiniSkillExample {
                     task: ex.task,
                     args: ex.args,
-                    explanation: ex.explanation,
+                    explanation: ex.explanation.to_string_vec().join(" "),
                 })
                 .collect(),
             created_at: chrono::Utc::now(),
@@ -327,18 +343,62 @@ impl LlmWorkflowExecutor {
 }
 
 /// Intermediate JSON structure for mini-skill parsing
+///
+/// Uses StringOrArray to handle LLM occasionally generating arrays
+/// where strings are expected (a common issue with small models).
 #[derive(Debug, Deserialize)]
 struct MiniSkillJson {
-    concepts: Vec<String>,
-    pitfalls: Vec<String>,
+    #[serde(default)]
+    concepts: Vec<StringOrArray>,
+    #[serde(default)]
+    pitfalls: Vec<StringOrArray>,
+    #[serde(default)]
     examples: Vec<ExampleJson>,
+}
+
+/// Helper type to parse either a string or an array of strings.
+/// LLMs sometimes generate `["point1", "point2"]` when a single string is expected.
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum StringOrArray {
+    String(String),
+    Array(Vec<String>),
+}
+
+impl Default for StringOrArray {
+    fn default() -> Self {
+        Self::String(String::new())
+    }
+}
+
+impl StringOrArray {
+    /// Convert to a flat list of strings.
+    /// Single strings become one-element vectors; arrays are returned directly.
+    fn to_string_vec(&self) -> Vec<String> {
+        match self {
+            Self::String(s) => {
+                if s.is_empty() {
+                    vec![]
+                } else {
+                    vec![s.clone()]
+                }
+            }
+            Self::Array(arr) => arr.clone(),
+        }
+    }
+}
+
+/// Flatten a Vec<StringOrArray> into a Vec<String>.
+fn flatten_string_or_array(items: Vec<StringOrArray>) -> Vec<String> {
+    items.iter().flat_map(|item| item.to_string_vec()).collect()
 }
 
 #[derive(Debug, Deserialize)]
 struct ExampleJson {
     task: String,
     args: String,
-    explanation: String,
+    #[serde(default)]
+    explanation: StringOrArray,
 }
 
 #[cfg(test)]
@@ -440,7 +500,16 @@ mod tests {
         let ex: ExampleJson = serde_json::from_str(json).unwrap();
         assert_eq!(ex.task, "Index BAM");
         assert_eq!(ex.args, "index sorted.bam");
-        assert_eq!(ex.explanation, "Create BAI index");
+        // explanation is StringOrArray, check it converts to string correctly
+        assert_eq!(ex.explanation.to_string_vec().join(" "), "Create BAI index");
+    }
+
+    #[test]
+    fn test_example_json_array_explanation() {
+        // Test that array explanations are handled correctly
+        let json = r#"{"task": "Index BAM", "args": "index sorted.bam", "explanation": ["Create BAI index", "Fast operation"]}"#;
+        let ex: ExampleJson = serde_json::from_str(json).unwrap();
+        assert_eq!(ex.explanation.to_string_vec().join(" "), "Create BAI index Fast operation");
     }
 
     #[test]

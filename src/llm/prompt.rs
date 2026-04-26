@@ -404,10 +404,46 @@ fn build_prompt_compact(
         } else {
             // No concrete examples in documentation — guide from USAGE line
             if !sdoc.usage.is_empty() {
-                prompt.push_str(&format!(
-                    "WARNING: Docs have NO examples. Follow USAGE exactly.\nUSAGE: {}\n\n",
-                    sdoc.usage.trim()
-                ));
+                // Parse USAGE to detect subcommand requirement
+                let usage_lines = sdoc.usage.trim();
+                let first_line = usage_lines.lines().next().unwrap_or("");
+
+                // Check if USAGE pattern shows: tool subcmd [options]
+                // e.g., "bwa mem [options]" or "samtools sort [options]"
+                let usage_parts: Vec<&str> = first_line.split_whitespace().collect();
+                let subcmd_hint = if usage_parts.len() >= 2 {
+                    // Second word after tool name might be subcommand
+                    if let Some(potential_subcmd) = usage_parts.get(1) {
+                        // Check if it's NOT a flag or placeholder (starts with [ or <)
+                        if !potential_subcmd.starts_with('-')
+                            && !potential_subcmd.starts_with('[')
+                            && !potential_subcmd.starts_with('<')
+                            && potential_subcmd.len() >= 2
+                        {
+                            Some(*potential_subcmd)
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
+                if let Some(subcmd) = subcmd_hint {
+                    prompt.push_str(&format!(
+                        "CRITICAL: USAGE shows SUBCOMMAND required.\nUSAGE: {}\n\n\
+                         The subcommand '{}' MUST appear FIRST in your ARGS.\n\
+                         Example: {} {} -t 4 ref.fa reads.fq\n\n",
+                        usage_lines, subcmd, tool, subcmd
+                    ));
+                } else {
+                    prompt.push_str(&format!(
+                        "WARNING: Docs have NO examples. Follow USAGE exactly.\nUSAGE: {}\n\n",
+                        usage_lines
+                    ));
+                }
             } else {
                 // Absolute fallback: generic bioinformatics few-shot
                 prompt.push_str(
@@ -425,11 +461,10 @@ fn build_prompt_compact(
         );
     }
 
-    // Add USAGE section for subcommand tools (critical for correct output)
+    // Add USAGE section for subcommand tools if not already shown above
+    // (Skip if we already showed USAGE with subcmd instructions)
     if skill.is_none() && let Some(sdoc) = structured_doc {
-        if !sdoc.usage.is_empty() {
-            prompt.push_str(&format!("USAGE: {}\n\n", sdoc.usage.trim().lines().take(3).collect::<Vec<_>>().join("\n")));
-        }
+        // Only show subcommands list if available (not for subcommand-specific help like bwa mem)
         if !sdoc.commands.is_empty() {
             prompt.push_str(&format!("Subcommands: {}\n\n", sdoc.commands.split(',').take(5).collect::<Vec<_>>().join(", ")));
         }
@@ -1110,6 +1145,10 @@ pub fn build_mini_skill_prompt(tool: &str, documentation: &str) -> String {
 
 \
          ## Important Notes
+\
+         - For multi-subcommand tools (samtools, bwa, bcftools, gatk), the SUBCOMMAND \
+           must be the FIRST token in args (e.g., 'mem ref.fa reads.fq' NOT '-t 4 ref.fa reads.fq'). \
+           Check the USAGE pattern: if it shows '{tool} SUBCMD [options]', args MUST start with SUBCMD.
 \
          - For companion binaries (e.g., {tool}-build), use the companion name as the first token in args
 \
