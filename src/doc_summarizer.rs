@@ -24,7 +24,8 @@ pub const MAX_DOC_LEN_LARGE_MODEL: usize = 10_000; // For 16B+ models
 pub const MIN_SUMMARIZE_LEN: usize = 2_000;
 
 /// Key sections to prioritize when summarizing
-const PRIORITY_SECTIONS: &[&str; 7] = &[
+/// Extended to include "input" and "output" which often contain flags
+const PRIORITY_SECTIONS: &[&str; 9] = &[
     "usage",
     "options",
     "arguments",
@@ -32,6 +33,8 @@ const PRIORITY_SECTIONS: &[&str; 7] = &[
     "parameters",
     "flags",
     "commands",
+    "input",
+    "output",
 ];
 
 /// Summarize tool documentation for efficient LLM consumption.
@@ -455,5 +458,62 @@ mod tests {
         assert!(result.contains("Line 1"));
         assert!(result.contains("Line 2"));
         assert!(result.contains("Line 3"));
+    }
+
+    #[test]
+    fn test_summarize_admixture_doc() {
+        // ADMIXTURE has non-standard section headers like "General options:", "Algorithm options:"
+        // These should be recognized and processed correctly
+        let admixture_doc = r#"****                   ADMIXTURE Version 1.3.0                  ****
+
+  ADMIXTURE basic usage:  (see manual for complete reference)
+    % admixture [options] inputFile K
+
+  General options:
+    -jX          : do computation on X threads
+    --seed=X     : use random seed X for initialization
+
+  Algorithm options:
+    --method=[em|block]     : set method.  block is default
+
+  Convergence criteria:
+    -C=X : set major convergence criterion (for point estimation)
+    -c=x : set minor convergence criterion (for bootstrap and CV reestimates)
+
+  Bootstrap standard errors:
+    -B[X]      : do bootstrapping [with X replicates]
+
+  Additional padding to exceed MIN_SUMMARIZE_LEN:
+"#;
+        // Pad to exceed MIN_SUMMARIZE_LEN
+        let padding = "\n".repeat(100) + &"Description line for padding.\n".repeat(50);
+        let long_doc = admixture_doc.to_string() + &padding;
+        assert!(
+            long_doc.len() > MIN_SUMMARIZE_LEN,
+            "ADMIXTURE doc ({}) must be > MIN_SUMMARIZE_LEN ({})",
+            long_doc.len(),
+            MIN_SUMMARIZE_LEN
+        );
+
+        let result = summarize_docs(&long_doc, MAX_DOC_LEN_MEDIUM_MODEL);
+
+        // Should extract sections with "options" in their title
+        // "General options" and "Algorithm options" contain "options"
+        assert!(
+            result.contains("OPTIONS") || result.contains("General options") || result.contains("Algorithm options"),
+            "Summary should contain OPTIONS section or the non-standard headers: {result}"
+        );
+
+        // Should extract flags from the sections
+        let flags = extract_flags(&result);
+        assert!(
+            !flags.is_empty(),
+            "Flags should be extracted from ADMIXTURE summary: {result}"
+        );
+        assert!(
+            flags.iter().any(|f| f.contains("-j") || f.contains("--seed") || f.contains("--method")),
+            "Expected ADMIXTURE flags (-jX, --seed=X, --method) not found in: {:?}",
+            flags
+        );
     }
 }

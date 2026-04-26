@@ -279,6 +279,40 @@ impl LlmWorkflowExecutor {
         false
     }
 
+    /// Extract subcommand from USAGE line in documentation.
+    /// For multi-subcommand tools like bwa, samtools, bcftools.
+    /// Returns the subcommand if USAGE shows: "tool subcmd [options]"
+    fn extract_subcmd_from_usage(doc: &str, tool: &str) -> Option<String> {
+        // Find the first USAGE line
+        for line in doc.lines().take(20) {
+            let line_lower = line.to_lowercase();
+            if line_lower.contains("usage:") || line_lower.starts_with("usage:") {
+                // Parse: "usage: tool subcmd [options]" or "Usage: bwa mem [options]"
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                // Look for pattern: usage tool subcmd
+                // Skip "usage:" or "Usage:", then find tool name, then subcmd
+                let mut found_tool = false;
+                for part in parts.iter().skip(1) { // Skip "usage:"
+                    let part = part.trim_start_matches(':');
+                    if part == tool || part.to_lowercase() == tool.to_lowercase() {
+                        found_tool = true;
+                    } else if found_tool {
+                        // This should be the subcommand
+                        // Check it's not a flag or placeholder
+                        if !part.starts_with('-')
+                            && !part.starts_with('[')
+                            && !part.starts_with('<')
+                            && part.len() >= 2
+                        {
+                            return Some(part.to_string());
+                        }
+                    }
+                }
+            }
+        }
+        None
+    }
+
     /// Generate a mini-skill from documentation
     async fn generate_mini_skill(
         &self,
@@ -321,21 +355,46 @@ impl LlmWorkflowExecutor {
         let concepts = flatten_string_or_array(parsed.concepts);
         let pitfalls = flatten_string_or_array(parsed.pitfalls);
 
+        // Extract subcommand from USAGE if present (for multi-subcommand tools)
+        // e.g., "bwa mem [options]" → subcmd = "mem"
+        let subcmd_from_usage = Self::extract_subcmd_from_usage(documentation, tool);
+        if subcmd_from_usage.is_some() {
+            tracing::info!("Detected subcmd from USAGE for {}: {:?}", tool, subcmd_from_usage);
+        }
+
+        // Process examples: prepend subcommand if args doesn't start with it
+        let examples = parsed
+            .examples
+            .into_iter()
+            .map(|ex| {
+                let args = if let Some(ref subcmd) = subcmd_from_usage {
+                    // Check if args already starts with subcmd
+                    if ex.args.trim().starts_with(subcmd) {
+                        tracing::debug!("Example args '{}' already has subcmd {}", ex.args, subcmd);
+                        ex.args
+                    } else {
+                        // Prepend subcmd to args
+                        tracing::info!("Prepending subcmd {} to args '{}'", subcmd, ex.args);
+                        format!("{} {}", subcmd, ex.args.trim())
+                    }
+                } else {
+                    ex.args
+                };
+                crate::mini_skill_cache::MiniSkillExample {
+                    task: ex.task,
+                    args,
+                    explanation: ex.explanation.to_string_vec().join(" "),
+                }
+            })
+            .collect();
+
         Ok(MiniSkill {
             tool: tool.to_string(),
             task_hash,
             doc_hash: doc_hash.to_string(),
             concepts,
             pitfalls,
-            examples: parsed
-                .examples
-                .into_iter()
-                .map(|ex| crate::mini_skill_cache::MiniSkillExample {
-                    task: ex.task,
-                    args: ex.args,
-                    explanation: ex.explanation.to_string_vec().join(" "),
-                })
-                .collect(),
+            examples,
             created_at: chrono::Utc::now(),
             hit_count: 0,
         })
