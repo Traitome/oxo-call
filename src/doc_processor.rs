@@ -32,9 +32,10 @@ static NOISE_COMBINED: LazyLock<Regex> = LazyLock::new(|| {
 static BLANK_LINE_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\n{3,}").expect("valid regex"));
 
-/// Matches CLI flags like `-o`, `--output`, `--output-file`.
+/// Matches CLI flags like `-o`, `--output`, `--output-file`, and bracketed flags like `[-h]`, `[-dna]`.
+/// Many bioinformatics tools (meme suite) use bracket notation for flags.
 static FLAG_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?:^|\s)(-{1,2}[a-zA-Z0-9_-]+)").expect("valid regex"));
+    LazyLock::new(|| Regex::new(r"(?:^|\s|\[)(-{1,2}[a-zA-Z0-9_-]+)").expect("valid regex"));
 
 /// Matches structured flag lines in OPTIONS sections (e.g. `  -o FILE   Output file name`).
 static FLAG_LINE_RE: LazyLock<Regex> = LazyLock::new(|| {
@@ -199,7 +200,14 @@ impl DocProcessor {
             } else if name_lower.contains("example") {
                 structured.examples.push_str(&content);
                 structured.examples.push('\n');
-            } else if name_lower.contains("option") || name_lower.contains("flag") {
+            } else if name_lower.contains("option") || name_lower.contains("flag")
+                || name_lower.contains("input") || name_lower.contains("output")
+                || name_lower.contains("preset") || name_lower.contains("alignment")
+                || name_lower.contains("scoring") || name_lower.contains("setting")
+            {
+                // Many tools (bowtie2, bwa) use non-standard section headers like
+                // "Input:", "Alignment:", "Scoring:" that contain flag definitions.
+                // Treat these as options sections for flag extraction.
                 structured
                     .options
                     .push_str(&self.compress_options(&content));
@@ -350,43 +358,8 @@ impl DocProcessor {
 
     /// Check if a line is a section header
     fn is_section_header(&self, line: &str) -> bool {
-        if line.is_empty() {
-            return false;
-        }
-
-        // Common section header patterns
-        let header_patterns = [
-            "USAGE:",
-            "Usage:",
-            "OPTIONS:",
-            "Options:",
-            "ARGUMENTS:",
-            "Arguments:",
-            "EXAMPLES:",
-            "Examples:",
-            "PARAMETERS:",
-            "Parameters:",
-            "FLAGS:",
-            "Flags:",
-            "COMMANDS:",
-            "Commands:",
-            "DESCRIPTION:",
-            "Description:",
-            "SYNOPSIS:",
-            "Synopsis:",
-        ];
-
-        // Check exact matches
-        if header_patterns.iter().any(|p| line.starts_with(p)) {
-            return true;
-        }
-
-        // Check for all-caps headers with colon
-        if line.ends_with(':') && line.chars().filter(|c| c.is_uppercase()).count() > 3 {
-            return true;
-        }
-
-        false
+        // Delegate to the standalone function (canonical implementation)
+        is_section_header(line)
     }
 
     /// Compress OPTIONS section to essential flags
@@ -416,15 +389,20 @@ impl DocProcessor {
         let mut commands = Vec::new();
         let lines: Vec<&str> = content.lines().collect();
 
-        for line in lines.iter().take(20) {
+        // Process all lines - some tools (samtools) have many subcommands spread across
+        // multiple sections, and critical ones like "sort" may appear late in the list.
+        for line in lines.iter() {
             let trimmed = line.trim();
 
             // Extract subcommand names (usually first word on line)
             if let Some(first_word) = trimmed.split_whitespace().next() {
-                // Skip if it looks like a flag or placeholder
+                // Skip if it looks like a flag, placeholder, or section header
                 if !first_word.starts_with('-')
                     && !first_word.starts_with('<')
                     && !first_word.starts_with('[')
+                    && !first_word.starts_with('=')
+                    // Skip ALL_CAPS words that are likely section headers (like "USAGE:", "OPTIONS:")
+                    && !(first_word.len() > 3 && first_word.chars().all(|c| c.is_uppercase() || !c.is_alphabetic()))
                 {
                     commands.push(first_word.to_string());
                 }
@@ -931,6 +909,8 @@ pub fn clean_noise(docs: &str) -> String {
 /// Check whether a line looks like a section header (e.g. `USAGE:`, `Options:`).
 ///
 /// Canonical implementation shared with [`crate::doc_summarizer`].
+/// Handles both standard headers and non-standard patterns like
+/// "General options:", "Algorithm options:", "Convergence criteria:"
 pub fn is_section_header(line: &str) -> bool {
     if line.is_empty() {
         return false;
@@ -957,13 +937,36 @@ pub fn is_section_header(line: &str) -> bool {
         "Synopsis:",
     ];
 
+    // Exact match for standard headers
     if header_patterns.iter().any(|p| line.starts_with(p)) {
         return true;
     }
 
-    // All-caps header with trailing colon
+    // All-caps header with trailing colon (e.g. "ADDITIONAL SETTINGS:")
     if line.ends_with(':') && line.chars().filter(|c| c.is_uppercase()).count() > 3 {
         return true;
+    }
+
+    // Non-standard headers: line ending with colon that contains keywords
+    // e.g. "General options:", "Algorithm options:", "Convergence criteria:"
+    if line.ends_with(':') {
+        let line_lower = line.to_lowercase();
+        let keyword_patterns = [
+            "option",
+            "flag",
+            "argument",
+            "param",
+            "setting",
+            "criteria",
+            "input",
+            "output",
+            "example",
+            "command",
+            "usage",
+        ];
+        if keyword_patterns.iter().any(|kw| line_lower.contains(kw)) {
+            return true;
+        }
     }
 
     false
@@ -1259,6 +1262,22 @@ mod tests {
     }
 
     #[test]
+    fn test_shared_is_section_header_non_standard() {
+        // ADMIXTURE-style headers
+        assert!(is_section_header("General options:"));
+        assert!(is_section_header("Algorithm options:"));
+        assert!(is_section_header("Convergence criteria:"));
+        assert!(is_section_header("Input/Output options:"));
+        // Other non-standard patterns
+        assert!(is_section_header("Optional flags:"));
+        assert!(is_section_header("Basic settings:"));
+        assert!(is_section_header("Advanced parameters:"));
+        // Should not match regular lines
+        assert!(!is_section_header("This is just a sentence"));
+        assert!(!is_section_header("some text without keywords"));
+    }
+
+    #[test]
     fn test_shared_extract_flags_standalone() {
         let doc = "Usage: tool --help --version -v -q --output FILE";
         let flags = extract_flags_standalone(doc);
@@ -1312,5 +1331,53 @@ mod tests {
         let text = "Line 1\nLine 2\nLine 3 which is a bit longer to go past the truncation point";
         let result = truncate_smart(text, 30);
         assert!(result.contains("[documentation truncated"));
+    }
+
+    #[test]
+    fn test_admixture_doc_processing() {
+        // ADMIXTURE has non-standard section headers like "General options:", "Algorithm options:"
+        let admixture_doc = r#"****                   ADMIXTURE Version 1.3.0                  ****
+
+  ADMIXTURE basic usage:  (see manual for complete reference)
+    % admixture [options] inputFile K
+
+  General options:
+    -jX          : do computation on X threads
+    --seed=X     : use random seed X for initialization
+
+  Algorithm options:
+    --method=[em|block]     : set method.  block is default
+
+  Convergence criteria:
+    -C=X : set major convergence criterion (for point estimation)
+    -c=x : set minor convergence criterion (for bootstrap and CV reestimates)
+
+  Bootstrap standard errors:
+    -B[X]      : do bootstrapping [with X replicates]"#;
+
+        let processor = DocProcessor::new();
+        let structured = processor.clean_and_structure(admixture_doc);
+
+        // Should recognize non-standard section headers
+        assert!(
+            !structured.options.is_empty() || !structured.quick_flags.is_empty(),
+            "ADMIXTURE flags should be extracted: options='{}', quick_flags={:?}",
+            structured.options,
+            structured.quick_flags
+        );
+
+        // Should extract flags from the documentation
+        assert!(
+            !structured.quick_flags.is_empty(),
+            "quick_flags should contain ADMIXTURE flags like -jX, --seed, --method, -C, -c, -B"
+        );
+
+        // Verify specific flags are extracted
+        let flags_str = structured.quick_flags.join(" ");
+        assert!(
+            flags_str.contains("-j") || flags_str.contains("--seed") || flags_str.contains("--method"),
+            "Expected flags not found in: {}",
+            flags_str
+        );
     }
 }

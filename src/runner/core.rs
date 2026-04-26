@@ -228,9 +228,9 @@ impl Runner {
     /// Resolve documentation for the tool, showing a spinner while fetching.
     /// Also attempts to fetch help for the specific subcommand matching the user's task.
     ///
-    /// Uses intelligent summarization based on model size to keep prompts concise
-    /// while preserving critical information.
-    pub(crate) async fn resolve_docs(&self, tool: &str, task: &str) -> Result<String> {
+    /// Returns the raw ToolDocs object for StructuredDoc processing,
+    /// then callers can compress as needed.
+    pub(crate) async fn resolve_docs_raw(&self, tool: &str, task: &str) -> Result<crate::docs::ToolDocs> {
         let mut docs = if self.no_cache {
             self.fetcher.fetch_no_cache(tool).await?
         } else {
@@ -245,29 +245,13 @@ impl Runner {
             docs.subcommand_help = self.fetcher.fetch_subcommand_help(tool, help_output, task);
         }
 
-        // Use model-specific summarization for optimal prompt length
+        Ok(docs)
+    }
+
+    /// Summarize ToolDocs for LLM prompt, with model-specific length optimization.
+    fn summarize_docs_for_model(&self, docs: &crate::docs::ToolDocs) -> String {
         let model_size = self.config.model_size_category();
-        let summarized = docs.combined_for_model(model_size);
-
-        if self.verbose {
-            let original_len = docs.combined().len();
-            let summarized_len = summarized.len();
-            let reduction = if original_len > 0 {
-                (1.0 - summarized_len as f64 / original_len as f64) * 100.0
-            } else {
-                0.0
-            };
-            eprintln!(
-                "{} Documentation: {} chars → {} chars ({:.1}% reduction, model={})",
-                "[verbose]".dimmed(),
-                original_len,
-                summarized_len,
-                reduction,
-                model_size
-            );
-        }
-
-        Ok(summarized)
+        docs.combined_for_model(model_size)
     }
 
     /// Core logic: fetch docs + load skill → select workflow mode → run LlmWorkflowExecutor.
@@ -320,55 +304,72 @@ impl Runner {
         };
 
         // Fetch docs only when needed, with spinner created only for actual fetch
-        let docs = if !should_fetch_doc {
+        let tool_docs = if !should_fetch_doc {
             if self.verbose && !self.no_doc {
                 eprintln!(
                     "{} Skipping documentation (high-quality skill available)",
                     "[verbose]".dimmed()
                 );
             }
-            String::new()
+            None
         } else {
             // Show spinner only when actually fetching docs
             let spinner = make_spinner(&format!("Fetching documentation for '{tool}'..."));
-            let result = self.resolve_docs(tool, task).await;
+            let result = self.resolve_docs_raw(tool, task).await;
             spinner.finish_and_clear();
-            result?
+            Some(result?)
         };
 
-        // ── Build StructuredDoc for flag catalog + doc-extracted examples ──
-        // This is the key innovation: deterministic extraction of flags and
-        // examples from --help output, injected into the LLM prompt to ground
-        // small models without needing skill files or extra LLM calls.
-        let structured_doc = if !docs.is_empty() {
+        // ── Build StructuredDoc from RAW docs BEFORE summarization ──
+        // This is critical: we need the full documentation to extract flags and examples.
+        // Summarization happens AFTER StructuredDoc creation, so flag_catalog remains accurate.
+        let structured_doc = if let Some(ref docs) = tool_docs {
+            let raw_docs = docs.combined(); // Full documentation, not summarized
             let processor = DocProcessor::new();
-            let sdoc = processor.clean_and_structure(&docs);
+            let sdoc = processor.clean_and_structure(&raw_docs);
             if self.verbose {
                 eprintln!(
-                    "{} Doc analysis: quality={:.2}, {} flags, {} examples extracted",
+                    "{} Doc analysis: quality={:.2}, flags={}/{} (catalog/quick), {} examples extracted, {} subcommands",
                     "[verbose]".dimmed(),
                     sdoc.quality_score,
                     sdoc.flag_catalog.len(),
+                    sdoc.quick_flags.len(),
                     sdoc.extracted_examples.len(),
+                    sdoc.commands.split(',').count().saturating_sub(1), // -1 because empty gives 1
                 );
+                if !sdoc.commands.is_empty() && sdoc.commands.split(',').count() <= 10 {
+                    eprintln!("{} Subcommands: {}", "[verbose]".dimmed(), sdoc.commands);
+                }
             }
             Some(sdoc)
         } else {
             None
         };
 
-        if self.verbose && !docs.is_empty() {
-            eprintln!(
-                "{} Documentation: {} chars{}",
-                "[verbose]".dimmed(),
-                docs.len(),
-                if self.no_cache {
-                    " (fresh, cache skipped)"
+        // Now summarize docs for LLM prompt (model-specific length optimization)
+        let docs = if let Some(ref docs_obj) = tool_docs {
+            let summarized = self.summarize_docs_for_model(docs_obj);
+            if self.verbose {
+                let original_len = docs_obj.combined().len();
+                let summarized_len = summarized.len();
+                let reduction = if original_len > 0 {
+                    (1.0 - summarized_len as f64 / original_len as f64) * 100.0
                 } else {
-                    ""
-                }
-            );
-        }
+                    0.0
+                };
+                eprintln!(
+                    "{} Documentation: {} chars → {} chars ({:.1}% reduction, model={})",
+                    "[verbose]".dimmed(),
+                    original_len,
+                    summarized_len,
+                    reduction,
+                    self.config.model_size_category()
+                );
+            }
+            summarized
+        } else {
+            String::new()
+        };
 
         let docs_hash = sha256_hex(&docs);
 

@@ -54,6 +54,123 @@ pub fn validate_tool_name(tool: &str) -> Result<()> {
     Ok(())
 }
 
+/// Common tool name aliases for bioinformatics tools where the
+/// skill file name differs from the actual executable name.
+/// Many Python tools have .py extensions or different capitalization.
+const TOOL_ALIASES: &[(&str, &[&str])] = &[
+    // Python bioinformatics tools
+    ("cnvkit", &["cnvkit.py"]),
+    ("nanocomp", &["NanoComp", "nanocomp.py"]),
+    ("nanoplot", &["NanoPlot", "nanoplot.py"]),
+    ("nanostat", &["NanoStat", "nanostat.py"]),
+    ("methyldackel", &["MethylDackel", "methyldackel.py"]),
+    ("pbccs", &["ccs"]),
+    ("eggnog-mapper", &["emapper.py", "emapper"]),
+    ("fastani", &["fastANI"]),
+    // Tools with version suffixes
+    ("bwa", &["bwa-mem2"]),
+    ("samtools", &["samtools-1.20", "samtools-1.19"]),
+];
+
+/// Semantic domain-to-subcommand mappings for common bioinformatics tools.
+/// When a task mentions a domain concept (e.g., "align") without the explicit subcommand,
+/// this mapping provides the default subcommand for that domain.
+const DOMAIN_SUBCMD_MAP: &[(&str, &str, &str)] = &[
+    // bwa: alignment domain → mem subcommand
+    ("bwa", "align", "mem"),
+    ("bwa", "alignment", "mem"),
+    ("bwa", "map", "mem"),
+    ("bwa", "mapping", "mem"),
+    ("bwa-mem2", "align", "mem"),
+    ("bwa-mem2", "alignment", "mem"),
+    // samtools: various domains
+    ("samtools", "sort", "sort"),
+    ("samtools", "sorting", "sort"),
+    ("samtools", "view", "view"),
+    ("samtools", "convert", "view"),
+    ("samtools", "index", "index"),
+    ("samtools", "indexing", "index"),
+    ("samtools", "merge", "merge"),
+    ("samtools", "merging", "merge"),
+    ("samtools", "flagstat", "flagstat"),
+    ("samtools", "stats", "stats"),
+    ("samtools", "statistic", "stats"),
+    // bcftools: variant domains
+    ("bcftools", "call", "call"),
+    ("bcftools", "calling", "call"),
+    ("bcftools", "filter", "filter"),
+    ("bcftools", "filtering", "filter"),
+    ("bcftools", "view", "view"),
+    ("bcftools", "convert", "view"),
+    ("bcftools", "merge", "merge"),
+    ("bcftools", "merging", "merge"),
+    // gatk: common variant callers
+    ("gatk", "variant", "HaplotypeCaller"),
+    ("gatk", "call", "HaplotypeCaller"),
+    ("gatk", "calling", "HaplotypeCaller"),
+    ("gatk", "haplotype", "HaplotypeCaller"),
+    ("gatk", "split", "SplitNCigarReads"),
+    ("gatk", "base", "BaseRecalibrator"),
+    ("gatk", "recalibrate", "BaseRecalibrator"),
+    // picard: common operations
+    ("picard", "sort", "SortSam"),
+    ("picard", "sorting", "SortSam"),
+    ("picard", "markdup", "MarkDuplicates"),
+    ("picard", "duplicate", "MarkDuplicates"),
+    ("picard", "add", "AddOrReplaceReadGroups"),
+    ("picard", "readgroup", "AddOrReplaceReadGroups"),
+    // fastqc: single command tool
+    ("fastqc", "quality", "fastqc"),
+    ("fastqc", "qc", "fastqc"),
+    // meme: motif analysis
+    ("meme", "motif", "meme"),
+    ("meme", "find", "meme"),
+    ("meme", "discover", "meme"),
+];
+
+/// Get inferred subcommand from task domain keywords.
+/// Returns the subcommand name if a semantic match is found.
+fn infer_subcommand_from_domain(tool: &str, task: &str) -> Option<&'static str> {
+    let task_lower = task.to_ascii_lowercase();
+    for (t, domain, subcmd) in DOMAIN_SUBCMD_MAP {
+        if tool == *t && task_lower.contains(domain) {
+            return Some(subcmd);
+        }
+    }
+    None
+}
+
+/// Get alternative tool names to try if the primary name fails.
+fn get_tool_aliases(tool: &str) -> Vec<&'static str> {
+    for (primary, aliases) in TOOL_ALIASES {
+        if tool == *primary {
+            return aliases.to_vec();
+        }
+    }
+    Vec::new()
+}
+
+/// Try to run a help command with multiple tool name variants.
+/// First tries the original tool name, then known aliases.
+async fn try_with_aliases_async(fetcher: &DocsFetcher, tool: &str, flag: &str) -> Result<String> {
+    // Try original tool name first
+    if let Ok(help) = fetcher.run_help_flag_async(tool, flag).await {
+        return Ok(help);
+    }
+
+    // Try known aliases
+    for alias in get_tool_aliases(tool) {
+        if let Ok(help) = fetcher.run_help_flag_async(alias, flag).await {
+            return Ok(help);
+        }
+    }
+
+    Err(OxoError::DocFetchError(
+        tool.to_string(),
+        format!("Tool '{}' and all aliases not found", tool),
+    ))
+}
+
 /// Fetches and returns the documentation/help text for a given tool
 pub struct DocsFetcher {
     config: Config,
@@ -278,28 +395,30 @@ impl DocsFetcher {
     }
 
     /// Async version of fetch_help using tokio::process::Command for non-blocking spawns.
-    /// Uses early-return pattern: try most common flags first, then fallback strategies.
+    /// Uses early-return pattern with alias fallback for tools whose executable differs from skill name.
     async fn fetch_help_async(&self, tool: &str) -> Result<(String, Option<String>)> {
-        // Try --help first (most common for bioinformatics tools)
-        if let Ok(help) = self.run_help_flag_async(tool, "--help").await {
+        // Try --help first with alias fallback (most common for bioinformatics tools)
+        if let Ok(help) = try_with_aliases_async(self, tool, "--help").await {
             let version = self.detect_version(tool, &help);
             return Ok((help, version));
         }
 
-        // Try -h second (common shorthand)
-        if let Ok(help) = self.run_help_flag_async(tool, "-h").await {
+        // Try -h with alias fallback (common shorthand)
+        if let Ok(help) = try_with_aliases_async(self, tool, "-h").await {
             let version = self.detect_version(tool, &help);
             return Ok((help, version));
         }
 
-        // Try bare invocation (many tools print usage when called with no args)
-        if let Ok(help) = self.run_no_args_async(tool).await {
-            let version = self.detect_version(tool, &help);
-            return Ok((help, version));
+        // Try bare invocation with alias fallback (many tools print usage when called with no args)
+        for alias in std::iter::once(tool).chain(get_tool_aliases(tool).iter().copied()) {
+            if let Ok(help) = self.run_no_args_async(alias).await {
+                let version = self.detect_version(tool, &help);
+                return Ok((help, version));
+            }
         }
 
-        // Try "help" subcommand
-        if let Ok(help) = self.run_help_flag_async(tool, "help").await {
+        // Try "help" subcommand with alias fallback
+        if let Ok(help) = try_with_aliases_async(self, tool, "help").await {
             let version = self.detect_version(tool, &help);
             return Ok((help, version));
         }
@@ -317,11 +436,21 @@ impl DocsFetcher {
 
     /// Async version of run_help_flag using tokio::process::Command
     async fn run_help_flag_async(&self, tool: &str, flag: &str) -> Result<String> {
-        let output = AsyncCommand::new(tool)
-            .arg(flag)
-            .output()
-            .await
-            .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
+        // Split flag into multiple arguments for subcommand patterns like "sort --help"
+        let flag_parts: Vec<&str> = flag.split_whitespace().collect();
+        let output = if flag_parts.len() == 1 {
+            AsyncCommand::new(tool)
+                .arg(flag)
+                .output()
+                .await
+                .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?
+        } else {
+            AsyncCommand::new(tool)
+                .args(&flag_parts)
+                .output()
+                .await
+                .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?
+        };
 
         extract_useful_output(tool, &output.stdout, &output.stderr)
     }
@@ -367,7 +496,25 @@ impl DocsFetcher {
     pub fn fetch_subcommand_help(&self, tool: &str, top_help: &str, task: &str) -> Option<String> {
         let subcommands = extract_subcommand_list(top_help);
 
-        // Strategy 0: Extract keywords from task and try standalone commands first
+        // Strategy 0a: Semantic domain inference (before keyword matching)
+        // If task mentions domain concepts (e.g., "align"), infer the subcommand
+        // This handles cases where tasks don't explicitly mention subcommand names.
+        if let Some(inferred_subcmd) = infer_subcommand_from_domain(tool, task) {
+            // Check if inferred subcommand exists in the tool's subcommand list
+            if subcommands.iter().any(|sc| sc.to_lowercase() == inferred_subcmd.to_lowercase()) {
+                // Try to fetch help for the inferred subcommand
+                if let Ok(help) = self
+                    .run_help_flag(tool, &format!("{inferred_subcmd} --help"))
+                    .or_else(|_| self.run_help_flag(tool, &format!("{inferred_subcmd} -h")))
+                    .or_else(|_| self.run_subcommand_no_args(tool, inferred_subcmd))
+                    && help.len() >= MIN_HELP_LEN
+                {
+                    return Some(format!("# {tool} {inferred_subcmd} --help\n\n{help}"));
+                }
+            }
+        }
+
+        // Strategy 0b: Extract keywords from task and try standalone commands first
         // This handles tools like medaka where medaka_consensus is a separate executable
         let task_lower = task.to_ascii_lowercase();
         let task_keywords: Vec<&str> = task_lower
@@ -485,10 +632,21 @@ impl DocsFetcher {
     }
 
     fn run_help_flag(&self, tool: &str, flag: &str) -> Result<String> {
-        let output = Command::new(tool)
-            .arg(flag)
-            .output()
-            .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
+        // Split flag into multiple arguments for subcommand patterns like "sort --help"
+        // Command::new(tool).arg("sort --help") passes "sort --help" as ONE argument,
+        // but we need "sort" and "--help" as SEPARATE arguments.
+        let flag_parts: Vec<&str> = flag.split_whitespace().collect();
+        let output = if flag_parts.len() == 1 {
+            Command::new(tool)
+                .arg(flag)
+                .output()
+                .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?
+        } else {
+            Command::new(tool)
+                .args(&flag_parts)
+                .output()
+                .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?
+        };
 
         extract_useful_output(tool, &output.stdout, &output.stderr)
     }
@@ -838,10 +996,19 @@ fn extract_useful_output(tool: &str, stdout: &[u8], stderr: &[u8]) -> Result<Str
     }
 
     // Reject responses that look like error messages rather than help text
-    if trimmed.len() < MIN_HELP_LEN && is_likely_error(trimmed) {
+    // Check regardless of length - pixi wrapper errors can be >80 chars
+    if is_likely_error(trimmed) {
         return Err(OxoError::DocFetchError(
             tool.to_string(),
             format!("Output looks like an error rather than help text: {trimmed}"),
+        ));
+    }
+
+    // Also reject very short outputs that don look like real help
+    if trimmed.len() < MIN_HELP_LEN {
+        return Err(OxoError::DocFetchError(
+            tool.to_string(),
+            format!("Output too short ({} chars) to be useful help text", trimmed.len()),
         ));
     }
 
@@ -855,15 +1022,29 @@ fn extract_useful_output(tool: &str, stdout: &[u8], stderr: &[u8]) -> Result<Str
     Ok(output)
 }
 
-/// Check whether a short string looks like a command-line error message rather
+/// Check whether a string looks like a command-line error message rather
 /// than useful help text.
+/// Extended to detect error patterns even in longer outputs (pixi wrapper messages can be >80 chars).
+/// IMPORTANT: Outputs that contain valid help indicators (Usage, Options, Examples) should NOT be rejected,
+/// even if they start with an error message. Many tools (samtools, bwa) print "unrecognized option"
+/// but then show the actual help.
 fn is_likely_error(text: &str) -> bool {
     let lower = text.to_lowercase();
+
+    // If output contains valid help indicators, it's NOT an error
+    // Tools like samtools print "unrecognized option '--help'" but then show full help
+    if lower.contains("usage:") || lower.contains("options:") || lower.contains("examples:") {
+        return false;
+    }
+
+    // Strong error indicators - reject if no help content
     lower.contains("unrecognized command")
         || lower.contains("unknown command")
-        || lower.contains("invalid option")
-        || lower.contains("unrecognized option")
         || lower.contains("no such")
+        // pixi/binary wrapper error patterns
+        || lower.contains("error: unknown command")
+        || lower.contains("error: unrecognized")
+        // Only reject "error" at start if no usage info
         || (lower.starts_with("error") && !lower.contains("usage"))
 }
 

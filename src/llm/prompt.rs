@@ -209,14 +209,22 @@ fn build_prompt_full(
                 ));
             }
 
-            // Inject compact flag catalog
-            if !sdoc.flag_catalog.is_empty() {
+            // Inject compact flag catalog (use quick_flags as fallback)
+            let has_flags = !sdoc.flag_catalog.is_empty() || !sdoc.quick_flags.is_empty();
+            if has_flags {
                 prompt.push_str("## Valid Flags (use ONLY these)\n");
-                for entry in sdoc.flag_catalog.iter().take(25) {
-                    if entry.description.is_empty() {
-                        prompt.push_str(&format!("- `{}`\n", entry.flag));
-                    } else {
-                        prompt.push_str(&format!("- `{}` — {}\n", entry.flag, entry.description));
+                if !sdoc.flag_catalog.is_empty() {
+                    for entry in sdoc.flag_catalog.iter().take(25) {
+                        if entry.description.is_empty() {
+                            prompt.push_str(&format!("- `{}`\n", entry.flag));
+                        } else {
+                            prompt.push_str(&format!("- `{}` — {}\n", entry.flag, entry.description));
+                        }
+                    }
+                } else {
+                    // Fallback to quick_flags (tools like meme without OPTIONS section)
+                    for flag in sdoc.quick_flags.iter().take(25) {
+                        prompt.push_str(&format!("- `{}`\n", flag));
                     }
                 }
                 prompt.push('\n');
@@ -271,6 +279,12 @@ fn build_prompt_medium(
             prompt.push_str(&section);
         }
     } else if let Some(sdoc) = structured_doc {
+        // Inject USAGE section FIRST - critical for subcommand placement
+        if !sdoc.usage.is_empty() {
+            prompt.push_str("## USAGE (command structure)\n");
+            prompt.push_str(&format!("{}\n\n", sdoc.usage.trim()));
+        }
+
         // Inject doc-extracted examples when no skill
         if !sdoc.extracted_examples.is_empty() {
             prompt.push_str("## Examples from Docs\n");
@@ -278,21 +292,23 @@ fn build_prompt_medium(
                 prompt.push_str(&format!("- `{}`\n", ex));
             }
             prompt.push('\n');
-        } else if !sdoc.usage.is_empty() {
-            // No examples but USAGE available — critical for tools like ADMIXTURE
-            prompt.push_str("## USAGE (no examples in docs)\n");
-            prompt.push_str(&format!("{}\n\n", sdoc.usage.trim()));
         }
 
-        // Compact flag list
-        if !sdoc.flag_catalog.is_empty() {
+        // Show subcommands if available (for multi-subcommand tools)
+        if !sdoc.commands.is_empty() {
+            prompt.push_str("## Available subcommands\n");
+            prompt.push_str(&format!("{}\n\n", sdoc.commands.trim()));
+        }
+
+        // Compact flag list (use quick_flags as fallback)
+        let has_flags = !sdoc.flag_catalog.is_empty() || !sdoc.quick_flags.is_empty();
+        if has_flags {
             prompt.push_str("## Valid flags: ");
-            let flags: Vec<_> = sdoc
-                .flag_catalog
-                .iter()
-                .take(20)
-                .map(|f| f.flag.as_str())
-                .collect();
+            let flags: Vec<_> = if !sdoc.flag_catalog.is_empty() {
+                sdoc.flag_catalog.iter().take(20).map(|f| f.flag.as_str()).collect()
+            } else {
+                sdoc.quick_flags.iter().take(20).map(|s| s.as_str()).collect()
+            };
             prompt.push_str(&flags.join(", "));
             prompt.push_str("\n\n");
         }
@@ -319,8 +335,11 @@ fn build_prompt_medium(
 
     prompt.push_str(&format!("## Task\n{task}\n\n"));
     prompt.push_str(
-        "## Output\n\
-         ARGS: <arguments — NO tool name>\n\
+        "## Output Format\n\
+         ARGS: <arguments following USAGE structure, NO tool name>\n\
+         - For multi-subcommand tools: ARGS MUST start with subcommand\n\
+           (e.g., 'sort -o out.bam in.bam' NOT '-o out.bam in.bam')\n\
+         - For single-command tools: ARGS start with flags/inputs\n\
          EXPLANATION: <brief>\n",
     );
     prompt
@@ -406,18 +425,29 @@ fn build_prompt_compact(
         );
     }
 
+    // Add USAGE section for subcommand tools (critical for correct output)
+    if skill.is_none() && let Some(sdoc) = structured_doc {
+        if !sdoc.usage.is_empty() {
+            prompt.push_str(&format!("USAGE: {}\n\n", sdoc.usage.trim().lines().take(3).collect::<Vec<_>>().join("\n")));
+        }
+        if !sdoc.commands.is_empty() {
+            prompt.push_str(&format!("Subcommands: {}\n\n", sdoc.commands.split(',').take(5).collect::<Vec<_>>().join(", ")));
+        }
+    }
+
     // Add compact flag list for doc-only scenarios (helps prevent hallucination)
-    if skill.is_none()
-        && let Some(sdoc) = structured_doc
-        && !sdoc.flag_catalog.is_empty()
-    {
-        let flags: Vec<_> = sdoc
-            .flag_catalog
-            .iter()
-            .take(15)
-            .map(|f| f.flag.as_str())
-            .collect();
-        prompt.push_str(&format!("Valid flags: {}\n\n", flags.join(" ")));
+    // Use flag_catalog if available, otherwise fall back to quick_flags for tools
+    // like meme that have flags but no OPTIONS section.
+    if skill.is_none() && let Some(sdoc) = structured_doc {
+        let has_flags = !sdoc.flag_catalog.is_empty() || !sdoc.quick_flags.is_empty();
+        if has_flags {
+            let flags: Vec<_> = if !sdoc.flag_catalog.is_empty() {
+                sdoc.flag_catalog.iter().take(15).map(|f| f.flag.as_str()).collect()
+            } else {
+                sdoc.quick_flags.iter().take(15).map(|s| s.as_str()).collect()
+            };
+            prompt.push_str(&format!("Valid flags: {}\n\n", flags.join(" ")));
+        }
     }
 
     if !documentation.is_empty() && skill.is_none_or(|s| s.examples.is_empty()) {
@@ -430,6 +460,8 @@ fn build_prompt_compact(
     }
 
     prompt.push_str(&format!("Task: {task}\n\n"));
+    // Compact instruction for small models about subcommand placement
+    prompt.push_str("NOTE: For tools with subcommands, ARGS MUST start with subcommand (e.g., 'sort -o out.bam in').\n\n");
     prompt
 }
 
