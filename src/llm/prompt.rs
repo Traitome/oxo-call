@@ -359,9 +359,42 @@ fn build_prompt_compact(
     let mut prompt = String::new();
     prompt.push_str(&format!("Tool: {tool}\n\n"));
 
-    let few_shots = skill
-        .map(|s| s.select_examples(2, Some(task)))
-        .unwrap_or_default();
+    // Tool-specific few-shot defaults for common bioinformatics tools.
+    // These provide concrete examples when skill/doc examples are missing or unreliable.
+    // Small models learn better from concrete examples than abstract instructions.
+    const TOOL_DEFAULT_FEW_SHOT: &[(&str, &str)] = &[
+        ("samtools", "sort -o output.bam input.bam"),
+        ("bwa", "mem reference.fa reads.fq"),
+        ("bcftools", "call -Oz -o output.vcf.gz input.vcf"),
+        ("fastqc", "input.fastq"),
+        ("meme", "sequences.fasta"),
+        ("admixture", "input.bed 3"),
+        ("bowtie2", "-x reference -U reads.fq -S output.sam"),
+        ("gatk", "HaplotypeCaller -R ref.fa -I input.bam -O output.vcf"),
+        ("picard", "SortSam I=input.bam O=output.bam SO=coordinate"),
+        ("bedtools", "intersect -a file1.bed -b file2.bed"),
+        ("jellyfish", "count -m 21 -s 100M -o counts.jf reads.fq"),
+    ];
+
+    // Check if we have a tool-specific default few-shot
+    // Tool-specific defaults OVERRIDE skill/mini-skill examples because they're more reliable
+    // for small models (guaranteed correct subcommand placement)
+    let default_few_shot = TOOL_DEFAULT_FEW_SHOT
+        .iter()
+        .find(|(t, _)| *t == tool)
+        .map(|(_, args)| *args);
+
+    // For small models, tool-specific default few-shot is MORE reliable than mini-skill
+    // examples (mini-skill may miss subcommand requirement)
+    let use_default_few_shot = default_few_shot.is_some() && skill.is_some();
+
+    let few_shots = if use_default_few_shot {
+        Vec::new() // Force default branch
+    } else {
+        skill
+            .map(|s| s.select_examples(2, Some(task)))
+            .unwrap_or_default()
+    };
 
     if let Some(ex) = few_shots.first() {
         prompt.push_str(&format!(
@@ -375,8 +408,13 @@ fn build_prompt_compact(
                 ex2.task, ex2.args, ex2.explanation
             ));
         }
+    } else if let Some(default_args) = default_few_shot {
+        // Use tool-specific default few-shot
+        prompt.push_str(&format!(
+            "Task: Basic {tool} usage\n\n---FEW-SHOT---\n\nARGS: {default_args}\nEXPLANATION: Standard {tool} command pattern.\n\n---FEW-SHOT---\n\n"
+        ));
     } else if let Some(sdoc) = structured_doc {
-        // No skill examples — use doc-extracted examples as few-shot
+        // No skill examples or default few-shot — use doc-extracted examples as few-shot
         // This is the key innovation for doc-only accuracy with small models
         if !sdoc.extracted_examples.is_empty() {
             // Use the first doc example as a few-shot demonstration
