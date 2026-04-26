@@ -508,9 +508,10 @@ impl ChatSession {
         match self.scenario {
             ChatScenario::Bare => String::new(),
             ChatScenario::Prompt | ChatScenario::Skill | ChatScenario::Doc | ChatScenario::Full => {
-                "You are a helpful bioinformatics assistant. Answer questions about bioinformatics tools, \
-                 workflows, and concepts clearly and accurately. When discussing specific tools, \
-                 reference their documentation and common usage patterns. Be concise but thorough."
+                "Reply with ONLY:\n\
+                 ARGS: sort -o output.bam input.bam\n\
+                 EXPLANATION: Sorts BAM.\n\
+                 Replace args. Maximum 20 words. No preamble."
                     .to_string()
             }
         }
@@ -520,15 +521,7 @@ impl ChatSession {
     fn build_general_system_prompt(&self) -> String {
         match self.scenario {
             ChatScenario::Bare => String::new(),
-            _ => "You are a versatile and knowledgeable assistant. You excel in bioinformatics, \
-                 computational biology, programming, shell scripting, and general research. \
-                 You are running inside the oxo-call CLI environment and have broad knowledge of \
-                 operating system resources, shell commands (bash, zsh, etc.), file operations, \
-                 and command-line workflows. \
-                 Answer questions clearly and practically. When the question involves shell or \
-                 file operations, provide concrete, runnable examples. \
-                 Be concise but thorough. Understand any language and respond in the language of \
-                 the question."
+            _ => "Reply with ONLY 1-2 sentences. Maximum 20 words. No preamble."
                 .to_string(),
         }
     }
@@ -628,7 +621,7 @@ impl ChatSession {
                 model: model.clone(),
                 messages,
                 max_tokens,
-                temperature: 0.7,
+                temperature: 0.1,
                 stream: true,
             };
 
@@ -668,7 +661,7 @@ impl ChatSession {
             model: model.clone(),
             messages,
             max_tokens,
-            temperature: 0.7,
+            temperature: 0.1,
         };
 
         let req_builder = apply_provider_auth_headers(
@@ -734,7 +727,7 @@ impl ChatSession {
                 model: model.clone(),
                 messages,
                 max_tokens,
-                temperature: 0.7,
+                temperature: 0.1,
                 stream: true,
             };
 
@@ -774,7 +767,7 @@ impl ChatSession {
             model: model.clone(),
             messages,
             max_tokens,
-            temperature: 0.7,
+            temperature: 0.1,
         };
 
         let req_builder = apply_provider_auth_headers(
