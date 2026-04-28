@@ -592,6 +592,14 @@ impl Skill {
     fn render_section(&self, max_examples: usize, task: &Option<String>) -> String {
         let mut s = String::new();
 
+        // Add CLI pattern hint based on skill examples
+        if !self.examples.is_empty() {
+            let first_example = &self.examples[0];
+            let pattern_hint = Self::detect_skill_pattern(&first_example.args, &self.meta.name);
+            s.push_str(&pattern_hint);
+            s.push_str("\n\n");
+        }
+
         // Compact mode: fewer concepts/pitfalls for smaller models
         // Use compact for ≤5 examples (covers Compact and Medium tiers)
         let compact = max_examples <= 5;
@@ -602,7 +610,7 @@ impl Skill {
             } else {
                 self.context.concepts.len()
             };
-            s.push_str("## Expert Domain Knowledge\n");
+            s.push_str("=== KEY CONCEPTS ===\n");
             for (i, c) in self.context.concepts.iter().take(limit).enumerate() {
                 s.push_str(&format!("{}. {}\n", i + 1, c));
             }
@@ -615,26 +623,61 @@ impl Skill {
             } else {
                 self.context.pitfalls.len()
             };
-            s.push_str("## Common Pitfalls to Avoid\n");
+            s.push_str("=== CRITICAL WARNINGS (AVOID THESE) ===\n");
             for p in self.context.pitfalls.iter().take(limit) {
-                s.push_str(&format!("- {p}\n"));
+                s.push_str(&format!("⚠ {}\n", p));
             }
             s.push('\n');
         }
 
         if !self.examples.is_empty() {
             let selected = self.select_examples(max_examples, task.as_deref());
-            s.push_str("## Worked Reference Examples\n");
+            s.push_str("=== WORKED EXAMPLES (FOLLOW THIS FORMAT) ===\n");
             for (i, ex) in selected.iter().enumerate() {
                 s.push_str(&format!("Example {}:\n", i + 1));
-                s.push_str(&format!("  Task:        {}\n", ex.task));
-                s.push_str(&format!("  ARGS:        {}\n", ex.args));
-                s.push_str(&format!("  Explanation: {}\n", ex.explanation));
+                s.push_str(&format!("  Task:  {}\n", ex.task));
+                s.push_str(&format!("  ARGS:  {}\n", ex.args));
+                if compact && i == 0 {
+                    // For compact mode, show full explanation only for first example
+                    s.push_str(&format!("  Note:  {}\n", ex.explanation));
+                }
                 s.push('\n');
             }
         }
 
         s
+    }
+
+    /// Detect CLI pattern from example args and skill name.
+    ///
+    /// Returns a pattern hint string that helps the LLM understand
+    /// the correct structure for the tool's commands.
+    fn detect_skill_pattern(first_args: &str, tool_name: &str) -> String {
+        let first_token = first_args.split_whitespace().next().unwrap_or("");
+
+        // Pattern A: Subcommand-based (first token is NOT a flag)
+        if !first_token.starts_with('-') && first_token.len() > 1 && first_token.len() < 20 {
+            return format!(
+                "=== CLI PATTERN: SUBCOMMAND REQUIRED ===\n\
+                {tool_name} REQUIRES a subcommand as FIRST argument.\n\
+                Correct: '{tool_name} {first_token} -flags args'\n\
+                WRONG: '{tool_name} -flags args' (missing subcommand)\n\
+                Subcommand '{first_token}' detected from examples."
+            );
+        }
+
+        // Pattern B: Direct flags (first token IS a flag)
+        if first_token.starts_with('-') {
+            return format!(
+                "=== CLI PATTERN: DIRECT FLAGS ===\n\
+                {tool_name} has NO subcommand. Start with flags.\n\
+                Correct: '{tool_name} {first_token} ...'\n\
+                WRONG: '{tool_name} subcommand {first_token} ...'"
+            );
+        }
+
+        // Default pattern hint
+        "=== CLI PATTERN ===\nCheck first example for correct structure.".to_string()
     }
 
     /// Select the most relevant examples for a given task.
@@ -2202,9 +2245,9 @@ explanation = "an example"
             ..Default::default()
         };
         let section = skill.to_prompt_section();
-        assert!(section.contains("Expert Domain Knowledge"));
+        assert!(section.contains("KEY CONCEPTS"));
         assert!(section.contains("concept 1"));
-        assert!(!section.contains("Common Pitfalls"));
+        assert!(!section.contains("CRITICAL WARNINGS"));
     }
 
     #[test]
@@ -2217,8 +2260,8 @@ explanation = "an example"
             ..Default::default()
         };
         let section = skill.to_prompt_section();
-        assert!(!section.contains("Expert Domain Knowledge"));
-        assert!(section.contains("Common Pitfalls"));
+        assert!(!section.contains("KEY CONCEPTS"));
+        assert!(section.contains("CRITICAL WARNINGS"));
         assert!(section.contains("pitfall 1"));
     }
 
@@ -2233,7 +2276,7 @@ explanation = "an example"
             ..Default::default()
         };
         let section = skill.to_prompt_section();
-        assert!(section.contains("Worked Reference Examples"));
+        assert!(section.contains("WORKED EXAMPLES"));
         assert!(section.contains("Sort BAM"));
         assert!(section.contains("sort -o out.bam in.bam"));
     }
@@ -2256,9 +2299,9 @@ explanation = "an example"
             }],
         };
         let section = skill.to_prompt_section();
-        assert!(section.contains("Expert Domain Knowledge"));
-        assert!(section.contains("Common Pitfalls"));
-        assert!(section.contains("Worked Reference Examples"));
+        assert!(section.contains("KEY CONCEPTS"));
+        assert!(section.contains("CRITICAL WARNINGS"));
+        assert!(section.contains("WORKED EXAMPLES"));
         assert!(section.contains("1. concept A"));
         assert!(section.contains("2. concept B"));
     }

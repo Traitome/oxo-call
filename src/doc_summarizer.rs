@@ -10,21 +10,16 @@
 
 use std::collections::HashSet;
 
-// Re-use canonical implementations from doc_processor.
 use crate::doc_processor::{
     clean_noise, extract_flags_standalone, extract_sections_standalone, truncate_smart,
 };
 
-/// Maximum documentation length for different model tiers (in characters)
-pub const MAX_DOC_LEN_SMALL_MODEL: usize = 3_000; // For 0.5B-1B models
-pub const MAX_DOC_LEN_MEDIUM_MODEL: usize = 6_000; // For 7B models
-pub const MAX_DOC_LEN_LARGE_MODEL: usize = 10_000; // For 16B+ models
+pub const MAX_DOC_LEN_SMALL_MODEL: usize = 3_000;
+pub const MAX_DOC_LEN_MEDIUM_MODEL: usize = 6_000;
+pub const MAX_DOC_LEN_LARGE_MODEL: usize = 10_000;
 
-/// Minimum length threshold for summarization (docs shorter than this are kept as-is)
 pub const MIN_SUMMARIZE_LEN: usize = 2_000;
 
-/// Key sections to prioritize when summarizing
-/// Extended to include "input" and "output" which often contain flags
 const PRIORITY_SECTIONS: &[&str; 9] = &[
     "usage",
     "options",
@@ -37,31 +32,19 @@ const PRIORITY_SECTIONS: &[&str; 9] = &[
     "output",
 ];
 
-/// Summarize tool documentation for efficient LLM consumption.
-///
-/// This function:
-/// 1. Extracts key sections (usage, options, examples)
-/// 2. Filters out noise (bug reports, links, etc.)
-/// 3. Limits total length while preserving critical information
-/// 4. Structures output for LLM readability
-/// 5. Highlights USAGE and critical flags
 pub fn summarize_docs(docs: &str, max_len: usize) -> String {
-    // Don't summarize short docs
     if docs.len() <= MIN_SUMMARIZE_LEN {
         return format_for_llm(docs);
     }
 
-    // Step 1: Clean noise (shared primitive from doc_processor)
     let cleaned = clean_noise(docs);
 
-    // Step 2: Extract key sections — use shared primitive, then filter to
-    // priority sections only (the summarizer is stricter than doc_processor).
     let all_sections = extract_sections_standalone(&cleaned);
     let sections: Vec<(String, String)> = all_sections
         .into_iter()
         .filter(|(title, _)| {
             let lower = title.to_lowercase();
-            PRIORITY_SECTIONS.iter().any(|&s| lower.contains(s)) || title == "Documentation" // keep the fallback section
+            PRIORITY_SECTIONS.iter().any(|&s| lower.contains(s)) || title == "Documentation"
         })
         .collect();
     let sections = if sections.is_empty() {
@@ -70,10 +53,8 @@ pub fn summarize_docs(docs: &str, max_len: usize) -> String {
         sections
     };
 
-    // Step 3: Build structured summary optimized for LLM
     let summary = build_llm_optimized_summary(&sections, max_len);
 
-    // Step 4: Truncate if still too long (shared primitive)
     if summary.len() > max_len {
         truncate_smart(&summary, max_len)
     } else {
@@ -81,41 +62,30 @@ pub fn summarize_docs(docs: &str, max_len: usize) -> String {
     }
 }
 
-/// Format documentation for LLM consumption, highlighting key patterns
 fn format_for_llm(docs: &str) -> String {
     let mut formatted = String::new();
     let lines: Vec<&str> = docs.lines().collect();
 
     for line in lines {
-        let _trimmed = line.trim();
-
-        // Keep other lines
         formatted.push_str(&format!("{}\n", line));
     }
 
     formatted.trim().to_string()
 }
 
-// NOTE: clean_noise, is_section_header, extract_sections, extract_flags, and
-// truncate_smart were formerly defined here.  They are now canonical in
-// `crate::doc_processor` and imported at the top of this file.
-
-/// Build LLM-optimized summary with clear structure and highlighted patterns
 fn build_llm_optimized_summary(sections: &[(String, String)], max_len: usize) -> String {
     let mut summary = String::new();
 
-    // Priority order for LLM understanding
     let priority_order = [
-        "usage",      // Most critical - shows command structure
-        "examples",   // Concrete examples for LLM to learn from
-        "options",    // Available flags
-        "arguments",  // Required inputs
-        "commands",   // Subcommands
-        "parameters", // Additional parameters
-        "flags",      // Alternative to options
+        "usage",
+        "examples",
+        "options",
+        "arguments",
+        "commands",
+        "parameters",
+        "flags",
     ];
 
-    // Sort sections by priority
     let mut sorted_sections: Vec<(usize, &String, &String)> = sections
         .iter()
         .map(|(title, content)| {
@@ -129,17 +99,15 @@ fn build_llm_optimized_summary(sections: &[(String, String)], max_len: usize) ->
 
     sorted_sections.sort_by_key(|(p, _, _)| *p);
 
-    // Build summary with clear markers
     for (priority, title, content) in sorted_sections {
         if summary.len() > (max_len as f64 * 0.8) as usize {
-            break; // Stop before exceeding limit
+            break;
         }
 
         if !summary.is_empty() {
             summary.push_str("\n\n");
         }
 
-        // Add clear section marker for LLM
         let title_lower = title.to_lowercase();
         if title_lower.contains("usage") {
             summary.push_str("=== USAGE (command structure) ===\n");
@@ -151,12 +119,10 @@ fn build_llm_optimized_summary(sections: &[(String, String)], max_len: usize) ->
             summary.push_str(&format!("=== {} ===\n", title));
         }
 
-        // Format content for LLM readability
         let formatted_content = format_section_content(content, priority);
         summary.push_str(&formatted_content);
     }
 
-    // Add quick reference if space available
     if summary.len() < (max_len as f64 * 0.9) as usize {
         let flags = extract_flags_from_sections(sections);
         if !flags.is_empty() && summary.len() + 200 < max_len {
@@ -168,17 +134,14 @@ fn build_llm_optimized_summary(sections: &[(String, String)], max_len: usize) ->
     summary
 }
 
-/// Format section content for better LLM understanding
 fn format_section_content(content: &str, priority: usize) -> String {
     let mut formatted = String::new();
     let lines: Vec<&str> = content.lines().collect();
 
-    // For USAGE (highest priority), highlight the pattern
     if priority == 0 {
         for line in lines.iter().take(5) {
             let trimmed = line.trim();
             if !trimmed.is_empty() {
-                // Highlight command patterns
                 if trimmed.contains('[') || trimmed.contains('<') || trimmed.contains('|') {
                     formatted.push_str(&format!(">>> {}\n", trimmed));
                 } else {
@@ -189,47 +152,29 @@ fn format_section_content(content: &str, priority: usize) -> String {
         return formatted;
     }
 
-    // For EXAMPLES, show concrete commands
     if priority == 1 {
         for line in lines.iter().take(10) {
             let trimmed = line.trim();
             if !trimmed.is_empty() {
-                // Highlight actual command lines (often start with $ or tool name)
-                if trimmed.starts_with('$') || trimmed.starts_with('#') {
-                    formatted.push_str(&format!("{}\n", trimmed));
-                } else if trimmed.contains("  ") && !trimmed.starts_with('-') {
-                    // Likely a command description
-                    formatted.push_str(&format!("{}\n", trimmed));
-                } else {
-                    formatted.push_str(&format!("{}\n", trimmed));
-                }
+                formatted.push_str(&format!("{}\n", trimmed));
             }
         }
         return formatted;
     }
 
-    // For OPTIONS/FLAGS, format as compact list
     if priority <= 3 {
         for line in lines.iter().take(20) {
             let trimmed = line.trim();
-            if trimmed.starts_with('-') {
-                // Flag line - keep it
-                formatted.push_str(&format!("{}\n", trimmed));
-            } else if !trimmed.is_empty() && formatted.len() < 500 {
-                // Description - keep brief
+            if trimmed.starts_with('-') || (!trimmed.is_empty() && formatted.len() < 500) {
                 formatted.push_str(&format!("{}\n", trimmed));
             }
         }
         return formatted;
     }
 
-    // Default: just trim and limit
     content.lines().take(15).collect::<Vec<_>>().join("\n")
 }
 
-/// Extract flags from all sections for quick reference.
-///
-/// Uses the shared [`extract_flags_standalone`] from `doc_processor`.
 fn extract_flags_from_sections(sections: &[(String, String)]) -> Vec<String> {
     let mut all_flags = HashSet::new();
 
@@ -244,13 +189,11 @@ fn extract_flags_from_sections(sections: &[(String, String)]) -> Vec<String> {
     sorted
 }
 
-/// Re-export of the canonical flag extractor from `doc_processor`.
 #[allow(dead_code)]
 pub fn extract_flags(docs: &str) -> Vec<String> {
     extract_flags_standalone(docs)
 }
 
-/// Extract examples from documentation
 #[allow(dead_code)]
 pub fn extract_examples(docs: &str) -> Vec<String> {
     let mut examples = Vec::new();
@@ -262,7 +205,6 @@ pub fn extract_examples(docs: &str) -> Vec<String> {
     for line in &lines {
         let trimmed = line.trim();
 
-        // Detect example start
         if trimmed.to_lowercase().contains("example") {
             if !current_example.is_empty() {
                 examples.push(current_example.trim().to_string());
@@ -270,7 +212,6 @@ pub fn extract_examples(docs: &str) -> Vec<String> {
             }
             in_example = true;
         } else if in_example {
-            // Check if we've left the example section
             if trimmed.is_empty() && !current_example.is_empty() {
                 examples.push(current_example.trim().to_string());
                 current_example = String::new();
@@ -282,14 +223,207 @@ pub fn extract_examples(docs: &str) -> Vec<String> {
         }
     }
 
-    // Don't forget the last example
     if !current_example.is_empty() {
         examples.push(current_example.trim().to_string());
     }
 
-    // Limit to top 3 examples
     examples.truncate(3);
     examples
+}
+
+pub fn extract_usage_lines(docs: &str) -> Vec<String> {
+    let mut usage_lines = Vec::new();
+    let lines: Vec<&str> = docs.lines().collect();
+
+    for line in &lines {
+        let trimmed = line.trim();
+        let lower = trimmed.to_lowercase();
+        if lower.starts_with("usage:")
+            || lower.starts_with("usage :")
+            || (lower.contains("usage:") && trimmed.len() < 200)
+        {
+            usage_lines.push(trimmed.to_string());
+        } else if !usage_lines.is_empty() {
+            if trimmed.is_empty()
+                || trimmed.starts_with("options")
+                || trimmed.starts_with("arguments")
+            {
+                break;
+            }
+            if trimmed.len() < 200
+                && (trimmed.starts_with(' ')
+                    || trimmed.starts_with('\t')
+                    || trimmed.contains(" | "))
+            {
+                usage_lines.push(trimmed.to_string());
+            }
+        }
+    }
+
+    usage_lines.truncate(5);
+    usage_lines
+}
+
+pub fn extract_subcommands_from_docs(docs: &str) -> Vec<String> {
+    let mut subcmds = Vec::new();
+    let lines: Vec<&str> = docs.lines().collect();
+
+    let mut in_commands_section = false;
+    for line in &lines {
+        let trimmed = line.trim();
+        let lower = trimmed.to_lowercase();
+
+        if lower.contains("command") && (lower.ends_with(':') || lower.ends_with("s:")) {
+            in_commands_section = true;
+            continue;
+        }
+
+        if !in_commands_section {
+            continue;
+        }
+
+        if trimmed.is_empty() || trimmed.starts_with("option") || trimmed.starts_with("usage") {
+            break;
+        }
+
+        if let Some(word) = trimmed.split_whitespace().next()
+            && !word.starts_with('-')
+            && !word.starts_with('=')
+            && word.len() > 1
+            && word.len() < 30
+            && !subcmds.contains(&word.to_string())
+        {
+            subcmds.push(word.to_string());
+        }
+    }
+
+    subcmds.truncate(20);
+    subcmds
+}
+
+pub fn build_structured_summary(docs: &str, tool: &str) -> String {
+    let mut summary = String::new();
+
+    // Detect CLI pattern type from documentation structure
+    let pattern_hint = detect_cli_pattern(docs, tool);
+    summary.push_str(&pattern_hint);
+    summary.push('\n');
+
+    let usage_lines = extract_usage_lines(docs);
+    if !usage_lines.is_empty() {
+        summary.push_str("=== COMMAND STRUCTURE (CRITICAL) ===\n");
+        for line in &usage_lines {
+            // Highlight positional argument structure for small models
+            let highlighted = highlight_positional_args(line, tool);
+            summary.push_str(&format!("  {}\n", highlighted));
+        }
+        summary.push('\n');
+    }
+
+    let all_flags = extract_flags_standalone(docs);
+    if !all_flags.is_empty() {
+        summary.push_str(&format!("=== VALID FLAGS for {} ===\n", tool));
+        summary.push_str("Use ONLY flags from this list. Do NOT invent flags.\n");
+        let short_flags: Vec<_> = all_flags
+            .iter()
+            .filter(|f| f.starts_with('-'))
+            .take(30)
+            .collect();
+        summary.push_str(&format!(
+            "  {}\n",
+            short_flags
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+        summary.push('\n');
+    }
+
+    let subcmds = extract_subcommands_from_docs(docs);
+    if !subcmds.is_empty() {
+        summary.push_str("=== SUBCOMMANDS (FIRST ARG if needed) ===\n");
+        summary.push_str(&format!("Available: {}\n", subcmds.join(", ")));
+        summary.push_str("If task matches a subcommand, it MUST be the FIRST argument.\n");
+        summary.push('\n');
+    }
+
+    summary.trim_end().to_string()
+}
+
+/// Detect CLI pattern type from documentation and provide guidance for the LLM.
+///
+/// CLI tools follow distinct patterns:
+/// - Pattern A: Subcommand-based (samtools, bcftools) - args start with subcommand
+/// - Pattern B: Direct flags (fastp, minimap2) - args start with flags like -i -o
+/// - Pattern C: Index+Action (bowtie2, bwa) - separate build/index commands
+/// - Pattern D: Long-option only (STAR) - uses --option=value format
+fn detect_cli_pattern(docs: &str, tool: &str) -> String {
+    let docs_lower = docs.to_lowercase();
+
+    // Check for subcommand pattern
+    let subcmds = extract_subcommands_from_docs(docs);
+    if !subcmds.is_empty() {
+        return format!(
+            "=== CLI PATTERN: SUBCOMMAND-BASED ===\n\
+            {} uses subcommands. ARGS MUST start with a subcommand, NOT with flags.\n\
+            Example: '{} subcommand -flags args' (NOT '{} -flags args')",
+            tool, tool, tool
+        );
+    }
+
+    // Check for common direct-flag tools
+    let direct_flag_tools = [
+        "fastp",
+        "minimap2",
+        "seqkit",
+        "seqtk",
+        "fastqc",
+        "multiqc",
+        "kraken2",
+        "kraken",
+        "centrifuge",
+        "gffread",
+    ];
+    if direct_flag_tools.contains(&tool) {
+        return format!(
+            "=== CLI PATTERN: DIRECT FLAGS ===\n\
+            {} has NO subcommand. ARGS start directly with flags.\n\
+            Example: '{} -i input -o output' (NOT '{} subcommand -i input')",
+            tool, tool, tool
+        );
+    }
+
+    // Check for STAR-style long-option tools
+    if docs_lower.contains("--runmode") || docs_lower.contains("--genomedir") || tool == "star" {
+        return String::from(
+            "=== CLI PATTERN: LONG OPTIONS ===\n\
+            This tool uses --option=value format. Put all options before positional args.",
+        );
+    }
+
+    // Check for index+action pattern (aligners)
+    let index_tools = ["bwa", "bowtie2", "hisat2"];
+    if index_tools.contains(&tool) {
+        return format!(
+            "=== CLI PATTERN: INDEX+ACTION ===\n\
+            {} requires index building first: '{}-index reference.fa'.\n\
+            Then alignment: '{} mem -t N reference.fa reads.fq'",
+            tool, tool, tool
+        );
+    }
+
+    // Default pattern hint
+    String::from("=== CLI PATTERN: STANDARD ===\nCheck USAGE line for exact structure.")
+}
+
+/// Highlight positional arguments in usage lines for better LLM comprehension.
+///
+/// Small models (3B+) struggle with understanding which tokens are positional
+/// (file paths, required arguments) vs flags. This function adds markers.
+fn highlight_positional_args(line: &str, tool: &str) -> String {
+    // Replace tool name with placeholder to clarify structure
+    line.replace(tool, "[TOOL]")
 }
 
 #[cfg(test)]
@@ -500,7 +634,9 @@ mod tests {
         // Should extract sections with "options" in their title
         // "General options" and "Algorithm options" contain "options"
         assert!(
-            result.contains("OPTIONS") || result.contains("General options") || result.contains("Algorithm options"),
+            result.contains("OPTIONS")
+                || result.contains("General options")
+                || result.contains("Algorithm options"),
             "Summary should contain OPTIONS section or the non-standard headers: {result}"
         );
 
@@ -511,7 +647,9 @@ mod tests {
             "Flags should be extracted from ADMIXTURE summary: {result}"
         );
         assert!(
-            flags.iter().any(|f| f.contains("-j") || f.contains("--seed") || f.contains("--method")),
+            flags
+                .iter()
+                .any(|f| f.contains("-j") || f.contains("--seed") || f.contains("--method")),
             "Expected ADMIXTURE flags (-jX, --seed=X, --method) not found in: {:?}",
             flags
         );
