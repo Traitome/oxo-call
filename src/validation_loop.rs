@@ -1,88 +1,60 @@
-//! Validation-Reflection Loop Module
+//! Validation-Reflection Loop Module (HDA)
 //!
-//! Integrates command generation, validation, reflection, and auto-fixing
-//! into an iterative improvement cycle.
+//! Integrates command generation, validation, and reflection
+//! into an iterative improvement cycle using schema-based validation.
 
 #![allow(dead_code)]
 
-use crate::auto_fixer::AutoFixer;
 use crate::command_validator::{CommandValidation, CommandValidator, ValidationStats};
-use crate::constraint_graph::ConstraintGraph;
 use crate::reflection_engine::{ReflectionEngine, ReflectionHistory};
+use crate::schema::CliSchema;
 use crate::subcommand_detector::SubcommandDef;
 
-/// Result of the validation loop
 #[derive(Debug, Clone)]
 pub struct ValidationLoopResult {
-    /// Final command (may be fixed or best attempt)
     pub final_command: String,
-    /// Whether the final command passed validation
     pub is_valid: bool,
-    /// Number of iterations performed
     pub iterations: usize,
-    /// History of all attempts
     pub history: ReflectionHistory,
-    /// Whether auto-fix was applied
     pub auto_fixed: bool,
-    /// Final validation result
     pub final_validation: CommandValidation,
 }
 
-/// Validation-Reflection Loop
 #[derive(Debug, Clone)]
 pub struct ValidationReflectionLoop {
-    /// Command validator
     validator: CommandValidator,
-    /// Reflection engine
     reflector: ReflectionEngine,
-    /// Auto fixer
-    auto_fixer: AutoFixer,
-    /// Maximum iterations
     max_iterations: usize,
-    /// Valid flags for context
     valid_flags: Vec<String>,
-    /// Example commands
     examples: Vec<String>,
 }
 
 impl ValidationReflectionLoop {
-    /// Create a new validation loop
-    pub fn new(constraint_graph: ConstraintGraph, subcommands: Vec<SubcommandDef>) -> Self {
+    pub fn new(schema: Option<CliSchema>, subcommands: Vec<SubcommandDef>) -> Self {
         Self {
-            validator: CommandValidator::new(constraint_graph.clone(), subcommands),
+            validator: CommandValidator::new(schema, subcommands),
             reflector: ReflectionEngine::new(),
-            auto_fixer: AutoFixer::new(),
             max_iterations: 3,
             valid_flags: Vec::new(),
             examples: Vec::new(),
         }
     }
 
-    /// Set valid flags for context
     pub fn with_valid_flags(mut self, flags: Vec<String>) -> Self {
         self.valid_flags = flags;
         self
     }
 
-    /// Set example commands
     pub fn with_examples(mut self, examples: Vec<String>) -> Self {
         self.examples = examples;
         self
     }
 
-    /// Set maximum iterations
     pub fn with_max_iterations(mut self, max: usize) -> Self {
         self.max_iterations = max;
         self
     }
 
-    /// Enable aggressive auto-fixing
-    pub fn aggressive(mut self) -> Self {
-        self.auto_fixer = AutoFixer::new().aggressive();
-        self
-    }
-
-    /// Process a generated command through validation and fixing
     pub fn process(
         &self,
         generated: &str,
@@ -92,7 +64,6 @@ impl ValidationReflectionLoop {
         let mut current = generated.to_string();
         let mut auto_fixed = false;
 
-        // Try auto-fix first (fast path)
         if let Some(validation) = self.try_auto_fix(&mut current, expected_subcommand) {
             if validation.is_valid {
                 return ValidationLoopResult {
@@ -107,13 +78,10 @@ impl ValidationReflectionLoop {
             auto_fixed = true;
         }
 
-        // Iterative validation-reflection loop
         for iteration in 0..self.max_iterations {
-            // Validate current command
             let validation = self.validator.validate(&current, expected_subcommand);
 
             if validation.is_valid {
-                // Success!
                 return ValidationLoopResult {
                     final_command: current,
                     is_valid: true,
@@ -124,30 +92,24 @@ impl ValidationReflectionLoop {
                 };
             }
 
-            // Reflect on the failure
             let reflection =
                 self.reflector
                     .reflect(&current, &validation, &self.valid_flags, &self.examples);
 
-            // Record attempt
             history.add_attempt(current.clone(), validation.clone(), reflection.clone());
 
-            // Check if we should continue
             if !self.reflector.should_retry(&reflection, iteration) {
                 break;
             }
 
-            // For now, we rely on auto-fix in the next iteration
-            // In a full implementation, this would regenerate with improved prompt
-            if let Some(fixed) = self.auto_fixer.fix(&current, &validation) {
-                current = fixed.fixed;
+            if let Some(fixed) = self.validator.auto_fix(&current, expected_subcommand) {
+                current = fixed;
+                auto_fixed = true;
             } else {
-                // No fix possible
                 break;
             }
         }
 
-        // Return best attempt
         let final_validation = self.validator.validate(&current, expected_subcommand);
 
         ValidationLoopResult {
@@ -160,7 +122,6 @@ impl ValidationReflectionLoop {
         }
     }
 
-    /// Try to auto-fix the command
     fn try_auto_fix(
         &self,
         command: &mut String,
@@ -172,18 +133,8 @@ impl ValidationReflectionLoop {
             return Some(validation);
         }
 
-        // Try quick fix first
-        if let Some(quick_fixed) = self.auto_fixer.quick_fix(command, &self.valid_flags) {
-            *command = quick_fixed;
-            let validation = self.validator.validate(command, expected_subcommand);
-            if validation.is_valid {
-                return Some(validation);
-            }
-        }
-
-        // Try full auto-fix
-        if let Some(fix_result) = self.auto_fixer.fix(command, &validation) {
-            *command = fix_result.fixed;
+        if let Some(fixed) = self.validator.auto_fix(command, expected_subcommand) {
+            *command = fixed;
             let validation = self.validator.validate(command, expected_subcommand);
             return Some(validation);
         }
@@ -191,11 +142,7 @@ impl ValidationReflectionLoop {
         None
     }
 
-    /// Validate multiple commands and get statistics
-    pub fn validate_batch(
-        &self,
-        commands: &[(String, Option<String>)], // (command, expected_subcommand)
-    ) -> BatchValidationResult {
+    pub fn validate_batch(&self, commands: &[(String, Option<String>)]) -> BatchValidationResult {
         let mut results = Vec::new();
         let mut stats = ValidationStats::default();
 
@@ -207,9 +154,7 @@ impl ValidationReflectionLoop {
                 stats.valid += 1;
             } else {
                 stats.invalid += 1;
-                stats
-                    .violations
-                    .extend(result.final_validation.violations.clone());
+                stats.errors.extend(result.final_validation.errors.clone());
             }
 
             results.push(result);
@@ -218,7 +163,6 @@ impl ValidationReflectionLoop {
         BatchValidationResult { results, stats }
     }
 
-    /// Get diagnostic information
     pub fn diagnose(&self, command: &str) -> CommandDiagnosis {
         let (subcommand, args) = self.validator.parse_command(command);
         let validation = self.validator.validate(command, None);
@@ -232,32 +176,25 @@ impl ValidationReflectionLoop {
     }
 }
 
-/// Batch validation result
 #[derive(Debug, Clone)]
 pub struct BatchValidationResult {
-    /// Individual results
     pub results: Vec<ValidationLoopResult>,
-    /// Aggregate statistics
     pub stats: ValidationStats,
 }
 
 impl BatchValidationResult {
-    /// Get accuracy rate
     pub fn accuracy(&self) -> f32 {
         self.stats.accuracy()
     }
 
-    /// Get results that needed fixing
     pub fn fixed_results(&self) -> Vec<&ValidationLoopResult> {
         self.results.iter().filter(|r| r.auto_fixed).collect()
     }
 
-    /// Get results that remained invalid
     pub fn invalid_results(&self) -> Vec<&ValidationLoopResult> {
         self.results.iter().filter(|r| !r.is_valid).collect()
     }
 
-    /// Print summary report
     pub fn print_report(&self) {
         println!("\n=== Validation Report ===");
         println!("Total commands: {}", self.stats.total);
@@ -269,11 +206,11 @@ impl BatchValidationResult {
         println!("Invalid: {}", self.stats.invalid);
         println!("Auto-fixed: {}", self.fixed_results().len());
 
-        if !self.stats.violations.is_empty() {
-            println!("\nViolation breakdown:");
-            let counts = self.stats.violation_counts();
-            for (violation_type, count) in counts {
-                println!("  - {}: {}", violation_type, count);
+        if !self.stats.errors.is_empty() {
+            println!("\nError breakdown:");
+            let counts = self.stats.error_counts();
+            for (error_type, count) in counts {
+                println!("  - {}: {}", error_type, count);
             }
         }
 
@@ -298,21 +235,15 @@ impl BatchValidationResult {
     }
 }
 
-/// Command diagnosis information
 #[derive(Debug, Clone)]
 pub struct CommandDiagnosis {
-    /// Detected subcommand
     pub parsed_subcommand: Option<String>,
-    /// Parsed arguments
     pub parsed_args: Vec<crate::command_validator::ParsedArg>,
-    /// Validation result
     pub validation: CommandValidation,
-    /// Sample of valid flags
     pub valid_flags_sample: Vec<String>,
 }
 
 impl CommandDiagnosis {
-    /// Print diagnosis
     pub fn print(&self) {
         println!("\n=== Command Diagnosis ===");
         println!(
@@ -329,10 +260,10 @@ impl CommandDiagnosis {
             }
         );
 
-        if !self.validation.violations.is_empty() {
-            println!("\nViolations:");
-            for (i, v) in self.validation.violations.iter().enumerate() {
-                println!("  {}. {:?}", i + 1, v);
+        if !self.validation.errors.is_empty() {
+            println!("\nErrors:");
+            for (i, e) in self.validation.errors.iter().enumerate() {
+                println!("  {}. {:?}", i + 1, e);
             }
         }
 
@@ -343,14 +274,12 @@ impl CommandDiagnosis {
     }
 }
 
-/// Builder for ValidationReflectionLoop
 pub struct ValidationLoopBuilder {
-    constraint_graph: Option<ConstraintGraph>,
+    schema: Option<CliSchema>,
     subcommands: Vec<SubcommandDef>,
     valid_flags: Vec<String>,
     examples: Vec<String>,
     max_iterations: usize,
-    aggressive: bool,
 }
 
 impl Default for ValidationLoopBuilder {
@@ -360,99 +289,69 @@ impl Default for ValidationLoopBuilder {
 }
 
 impl ValidationLoopBuilder {
-    /// Create a new builder
     pub fn new() -> Self {
         Self {
-            constraint_graph: None,
+            schema: None,
             subcommands: Vec::new(),
             valid_flags: Vec::new(),
             examples: Vec::new(),
             max_iterations: 3,
-            aggressive: false,
         }
     }
 
-    /// Set constraint graph
-    pub fn constraint_graph(mut self, cg: ConstraintGraph) -> Self {
-        self.constraint_graph = Some(cg);
+    pub fn schema(mut self, schema: CliSchema) -> Self {
+        self.schema = Some(schema);
         self
     }
 
-    /// Set subcommands
     pub fn subcommands(mut self, sc: Vec<SubcommandDef>) -> Self {
         self.subcommands = sc;
         self
     }
 
-    /// Set valid flags
     pub fn valid_flags(mut self, flags: Vec<String>) -> Self {
         self.valid_flags = flags;
         self
     }
 
-    /// Set examples
     pub fn examples(mut self, examples: Vec<String>) -> Self {
         self.examples = examples;
         self
     }
 
-    /// Set max iterations
     pub fn max_iterations(mut self, max: usize) -> Self {
         self.max_iterations = max;
         self
     }
 
-    /// Enable aggressive mode
-    pub fn aggressive(mut self) -> Self {
-        self.aggressive = true;
-        self
-    }
-
-    /// Build the validation loop
-    pub fn build(self) -> Option<ValidationReflectionLoop> {
-        let cg = self.constraint_graph?;
-        let mut loop_ = ValidationReflectionLoop::new(cg, self.subcommands)
+    pub fn build(self) -> ValidationReflectionLoop {
+        ValidationReflectionLoop::new(self.schema, self.subcommands)
             .with_valid_flags(self.valid_flags)
             .with_examples(self.examples)
-            .with_max_iterations(self.max_iterations);
-
-        if self.aggressive {
-            loop_ = loop_.aggressive();
-        }
-
-        Some(loop_)
+            .with_max_iterations(self.max_iterations)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::constraint_graph::ConstraintGraph;
 
     #[test]
     fn test_validation_loop_with_valid_command() {
-        let cg = ConstraintGraph::default();
-        let loop_ = ValidationReflectionLoop::new(cg, vec![]).with_max_iterations(2);
-
-        // A simple valid command (no flags to validate)
-        let result = loop_.process("sort in.bam", Some("sort"));
-
+        let loop_ = ValidationReflectionLoop::new(None, vec![]).with_max_iterations(2);
+        let result = loop_.process("sort in.bam", None);
         assert!(result.is_valid);
         assert_eq!(result.iterations, 1);
     }
 
     #[test]
     fn test_batch_validation() {
-        let cg = ConstraintGraph::default();
-        let loop_ = ValidationReflectionLoop::new(cg, vec![]);
-
+        let loop_ = ValidationReflectionLoop::new(None, vec![]);
         let commands = vec![
-            ("sort in.bam".to_string(), Some("sort".to_string())),
-            ("view in.bam".to_string(), Some("view".to_string())),
+            ("sort in.bam".to_string(), None),
+            ("view in.bam".to_string(), None),
         ];
-
         let batch = loop_.validate_batch(&commands);
-
         assert_eq!(batch.stats.total, 2);
         assert!(batch.accuracy() >= 0.0);
     }

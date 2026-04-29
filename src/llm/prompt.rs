@@ -4,6 +4,7 @@
 //! different LLM roles (command generation, verification, skill review, etc.).
 
 use crate::doc_processor::StructuredDoc;
+use crate::schema::CliSchema;
 use crate::skill::Skill;
 
 use super::types::PromptTier;
@@ -375,6 +376,11 @@ pub fn prompt_tier(context_window: u32, model: &str) -> PromptTier {
 /// When `structured_doc` is provided, the prompt gains:
 /// - A compact flag catalog (prevents hallucinated flags)
 /// - Doc-extracted examples as few-shot demonstrations (critical for ≤3B models)
+///
+/// When `schema` is provided (from HDA), the prompt gains:
+/// - Schema whitelist (ONLY valid flags allowed)
+/// - Type hints for each flag
+/// - Subcommand suggestions
 #[allow(clippy::too_many_arguments)]
 pub fn build_prompt(
     tool: &str,
@@ -385,6 +391,7 @@ pub fn build_prompt(
     context_window: u32,
     tier: PromptTier,
     structured_doc: Option<&StructuredDoc>,
+    schema: Option<&CliSchema>,
 ) -> String {
     if no_prompt {
         return format!(
@@ -397,7 +404,9 @@ pub fn build_prompt(
     }
 
     match tier {
-        PromptTier::Full => build_prompt_full(tool, documentation, task, skill, structured_doc),
+        PromptTier::Full => {
+            build_prompt_full(tool, documentation, task, skill, structured_doc, schema)
+        }
         PromptTier::Medium => build_prompt_medium(
             tool,
             documentation,
@@ -405,9 +414,10 @@ pub fn build_prompt(
             skill,
             context_window,
             structured_doc,
+            schema,
         ),
         PromptTier::Compact => {
-            build_prompt_compact(tool, documentation, task, skill, structured_doc)
+            build_prompt_compact(tool, documentation, task, skill, structured_doc, schema)
         }
     }
 }
@@ -501,6 +511,7 @@ fn build_prompt_full(
     task: &str,
     skill: Option<&Skill>,
     structured_doc: Option<&StructuredDoc>,
+    schema: Option<&CliSchema>,
 ) -> String {
     let mut prompt = String::new();
     prompt.push_str(&format!("# Tool: `{tool}`\n\n"));
@@ -512,7 +523,13 @@ fn build_prompt_full(
         prompt.push_str("\n\n");
     }
 
-    if let Some(skill) = skill {
+    // HDA: Use Schema whitelist if available (preferred over heuristic flag catalog)
+    if let Some(sch) = schema {
+        let schema_section = crate::schema::build_schema_prompt_section(sch, task);
+        if !schema_section.is_empty() {
+            prompt.push_str(&schema_section);
+        }
+    } else if let Some(skill) = skill {
         // Limit examples to 7 even in full mode to prevent overwhelming models
         // Small models struggle with prompts containing 12+ examples
         let section = skill.to_prompt_section_for_task(7, task);
@@ -520,7 +537,7 @@ fn build_prompt_full(
             prompt.push_str(&section);
         }
     } else {
-        // No skill available - emphasize learning from documentation
+        // No skill or schema available - emphasize learning from documentation
         prompt.push_str("## Important: Learn from Documentation\n");
         prompt.push_str(
             "Study the USAGE pattern and EXAMPLES carefully. Match the exact flag format.\n\n",
@@ -607,6 +624,7 @@ fn build_prompt_medium(
     skill: Option<&Skill>,
     context_window: u32,
     structured_doc: Option<&StructuredDoc>,
+    schema: Option<&CliSchema>,
 ) -> String {
     let mut prompt = String::new();
     prompt.push_str(&format!("# Tool: `{tool}`\n\n"));
@@ -659,7 +677,13 @@ fn build_prompt_medium(
         _ => {}
     }
 
-    if let Some(skill) = skill {
+    // HDA: Use Schema whitelist if available (preferred over skill or doc extraction)
+    if let Some(sch) = schema {
+        let schema_section = crate::schema::build_schema_prompt_section_compact(sch, task);
+        if !schema_section.is_empty() {
+            prompt.push_str(&schema_section);
+        }
+    } else if let Some(skill) = skill {
         let section = skill.to_prompt_section_for_task(5, task);
         if !section.is_empty() {
             prompt.push_str(&section);
@@ -822,6 +846,7 @@ fn build_prompt_compact(
     task: &str,
     skill: Option<&Skill>,
     structured_doc: Option<&StructuredDoc>,
+    schema: Option<&CliSchema>,
 ) -> String {
     let mut prompt = String::new();
 
@@ -958,6 +983,14 @@ fn build_prompt_compact(
              ❌ WRONG: 'sort {first_token} ...' (no 'sort' subcommand - will fail!)\n\
              ❌ WRONG: '--input {first_token} ...' (use positional, not --input)\n\n"
         ));
+    }
+
+    // HDA: Add Schema whitelist if available (preferred over skill examples for flag validation)
+    if let Some(sch) = schema {
+        let schema_section = crate::schema::build_schema_prompt_section_compact(sch, task);
+        if !schema_section.is_empty() {
+            prompt.push_str(&schema_section);
+        }
     }
 
     if let Some(ex) = few_shots.first() {
@@ -1824,6 +1857,7 @@ pub fn build_retry_prompt_inner(
             context_window,
             tier,
             structured_doc,
+            None, // Schema - recursive call, parent already handled schema
         );
         prompt.push_str("\nOutput EXACTLY: ARGS: ... EXPLANATION: ...\n");
         return prompt;
@@ -1838,6 +1872,7 @@ pub fn build_retry_prompt_inner(
         context_window,
         tier,
         structured_doc,
+        None, // Schema - recursive call, parent already handled schema
     );
     format!(
         "{base}\n\
@@ -1851,6 +1886,7 @@ pub fn build_retry_prompt_inner(
 // ─── Mini-skill generation prompts ─────────────────────────────────────────────
 
 /// System prompt for mini-skill generation from tool documentation.
+#[allow(dead_code)]
 pub fn mini_skill_generation_system_prompt() -> &'static str {
     "You are an expert bioinformatics tool analyst. Your task is to extract \
      structured knowledge from tool documentation to help LLMs generate accurate \
@@ -1859,6 +1895,7 @@ pub fn mini_skill_generation_system_prompt() -> &'static str {
 }
 
 /// Build a prompt for generating a mini-skill from tool documentation.
+#[allow(dead_code)]
 pub fn build_mini_skill_prompt(tool: &str, documentation: &str) -> String {
     // Sanitize the documentation: replace triple-backtick sequences that could
     // break out of the fenced code block and inject arbitrary instructions.

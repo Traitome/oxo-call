@@ -8,6 +8,7 @@ use crate::copilot_auth;
 use crate::doc_processor::{FlagEntry, StructuredDoc};
 use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
+use crate::schema::CliSchema; // HDA: Schema passed from runner, not parsed here
 use crate::skill::{Skill, SkillManager};
 use sha2::Digest;
 
@@ -72,6 +73,9 @@ impl LlmClient {
     /// When `structured_doc` is provided (from `DocProcessor::clean_and_structure`),
     /// the prompt gains doc-extracted examples as few-shot demonstrations and a
     /// compact flag catalog — critical for ≤3B model accuracy.
+    /// When `schema` is provided (from HDA), it provides the whitelist of valid flags
+    /// parsed from raw docs (parsed in runner for accuracy).
+    #[allow(clippy::too_many_arguments)]
     pub async fn suggest_command(
         &self,
         tool: &str,
@@ -80,6 +84,7 @@ impl LlmClient {
         skill: Option<&Skill>,
         no_prompt: bool,
         structured_doc: Option<&StructuredDoc>,
+        schema: Option<&CliSchema>,
     ) -> Result<LlmCommandSuggestion> {
         const MAX_RETRIES: usize = 2;
 
@@ -138,6 +143,7 @@ impl LlmClient {
             };
 
             let user_prompt = if attempt == 0 {
+                // HDA: Schema is passed from runner (parsed from raw docs), use directly
                 let prompt = build_prompt(
                     tool,
                     effective_docs,
@@ -147,6 +153,7 @@ impl LlmClient {
                     context_window,
                     tier,
                     structured_doc,
+                    schema, // HDA: Schema whitelist passed from runner
                 );
                 // Debug: write prompt to file for analysis
                 if std::env::var("OXO_DEBUG_PROMPT").is_ok() {
@@ -165,6 +172,7 @@ impl LlmClient {
                     context_window,
                     tier,
                     structured_doc,
+                    schema, // HDA: Schema whitelist passed from runner
                 )
             } else {
                 build_retry_prompt(

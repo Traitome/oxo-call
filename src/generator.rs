@@ -145,7 +145,7 @@ impl CommandGenerator for LlmCommandGenerator {
         // Use the existing LlmClient to generate command
         let suggestion = self
             .client
-            .suggest_command(tool, docs, user_request, skill, false, None)
+            .suggest_command(tool, docs, user_request, skill, false, None, None)
             .await?;
 
         // Convert LlmCommandSuggestion to GeneratedCommand

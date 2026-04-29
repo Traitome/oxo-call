@@ -48,6 +48,7 @@ fn test_build_prompt_basic() {
         0,
         PromptTier::Full,
         None,
+        None,
     );
     assert!(prompt.contains("samtools"));
     assert!(prompt.contains("sort bam"));
@@ -213,6 +214,7 @@ fn test_build_prompt_with_structured_doc() {
         0,
         PromptTier::Full,
         Some(&sdoc),
+        None, // Schema - to be integrated later
     );
     assert!(prompt.contains("samtools"));
     assert!(prompt.contains("sort input.bam"));
@@ -232,6 +234,7 @@ fn test_build_prompt_with_structured_doc() {
         4096,
         PromptTier::Compact,
         Some(&sdoc),
+        None, // Schema - to be integrated later
     );
     assert!(prompt_compact.contains("samtools"));
     // Compact prompt should have FEW-SHOT markers
@@ -258,6 +261,7 @@ fn test_build_prompt_medium_with_structured_doc() {
         8192,
         PromptTier::Medium,
         Some(&sdoc),
+        None, // Schema - to be integrated later
     );
     assert!(prompt.contains("bcftools"));
     assert!(prompt.contains("filter VCF by region chr1"));
@@ -590,6 +594,7 @@ fn test_build_prompt_no_prompt_mode() {
         0,
         PromptTier::Full,
         None,
+        None, // Schema - to be integrated later
     );
     assert!(prompt.contains("samtools"));
     assert!(prompt.contains("sort bam file"));
@@ -673,6 +678,7 @@ fn test_build_prompt_compact_no_skill_no_sdoc() {
         4096,
         PromptTier::Compact,
         None,
+        None, // Schema - to be integrated later
     );
     assert!(prompt.contains("samtools"));
     assert!(prompt.contains("sort bam file"));
@@ -725,6 +731,7 @@ fn test_build_prompt_compact_with_skill() {
         4096,
         PromptTier::Compact,
         None,
+        None, // Schema - to be integrated later
     );
     assert!(prompt.contains("samtools"));
     // Should use skill examples as few-shot
@@ -752,6 +759,7 @@ fn test_build_prompt_compact_with_sdoc_usage_only() {
         4096,
         PromptTier::Compact,
         Some(&sdoc),
+        None, // Schema - to be integrated later
     );
     assert!(prompt.contains("admixture"));
 }
@@ -774,6 +782,7 @@ fn test_build_prompt_full_no_skill_with_sdoc_having_usage_only() {
         0,
         PromptTier::Full,
         Some(&sdoc),
+        None, // Schema - to be integrated later
     );
     assert!(prompt.contains("tool"));
     // Should contain USAGE section or doc content

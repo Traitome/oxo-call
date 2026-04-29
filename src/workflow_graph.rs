@@ -41,7 +41,8 @@
 
 #![allow(dead_code)]
 
-use crate::task_complexity::{ComplexityResult, TaskComplexityEstimator, WorkflowMode};
+use crate::confidence::{ConfidenceLevel, ConfidenceResult, estimate_confidence};
+use crate::llm_workflow::WorkflowMode;
 use crate::task_normalizer::{NormalizedTask, TaskNormalizer};
 use color_eyre::Result;
 use serde::{Deserialize, Serialize};
@@ -123,7 +124,7 @@ pub struct WorkflowState {
     /// Normalized task
     pub normalized_task: Option<NormalizedTask>,
     /// Complexity estimation result
-    pub complexity: Option<ComplexityResult>,
+    pub confidence: Option<ConfidenceResult>,
     /// Selected workflow mode
     pub mode: WorkflowMode,
     /// Selected scenario
@@ -187,10 +188,7 @@ pub struct WorkflowResult {
 
 /// Workflow Graph executor
 pub struct WorkflowGraph {
-    /// Task normalizer
     normalizer: TaskNormalizer,
-    /// Complexity estimator
-    estimator: TaskComplexityEstimator,
 }
 
 impl Default for WorkflowGraph {
@@ -203,7 +201,6 @@ impl WorkflowGraph {
     pub fn new() -> Self {
         Self {
             normalizer: TaskNormalizer::new(),
-            estimator: TaskComplexityEstimator::new(),
         }
     }
 
@@ -224,7 +221,7 @@ impl WorkflowGraph {
         }
 
         // Step 3: Complexity estimation
-        self.estimate_complexity(&mut state)?;
+        self.estimate_confidence(&mut state)?;
 
         // Step 4: Execute scenario-specific path
         match state.scenario {
@@ -243,7 +240,7 @@ impl WorkflowGraph {
             command: state.command.unwrap_or_default(),
             scenario: state.scenario,
             mode: state.mode,
-            confidence: state.complexity.map(|c| c.confidence).unwrap_or(0.5),
+            confidence: state.confidence.map(|c| c.score).unwrap_or(0.5),
             metadata: state.metadata,
         })
     }
@@ -296,11 +293,8 @@ impl WorkflowGraph {
         Ok(())
     }
 
-    /// Estimate task complexity (for metadata and adaptive adjustment)
-    fn estimate_complexity(&self, state: &mut WorkflowState) -> Result<()> {
-        // Mode is already set by scenario.default_mode() or force_mode
-        // This method only estimates complexity for metadata
-
+    /// Estimate confidence (for metadata and adaptive adjustment)
+    fn estimate_confidence(&self, state: &mut WorkflowState) -> Result<()> {
         let has_skill = state.input.skill_path.is_some();
         let doc_quality = if state.input.documentation.is_some() {
             0.8
@@ -308,36 +302,38 @@ impl WorkflowGraph {
             0.3
         };
 
-        let complexity =
-            self.estimator
-                .estimate(&state.input.task, &state.input.tool, has_skill, doc_quality);
+        let confidence = estimate_confidence(
+            0,
+            doc_quality,
+            has_skill,
+            if state.input.task.len() > 20 { 2 } else { 0 },
+            None,
+            has_skill,
+        );
 
-        state.complexity = Some(complexity.clone());
+        state.confidence = Some(confidence.clone());
 
-        // Optional: Override mode if complexity suggests a different mode
-        // and mode is not forced
         if state.input.force_mode.is_none() {
-            // Only override if there's a strong signal
-            if complexity.score.0 > 0.8 && state.mode == WorkflowMode::Fast {
-                // Very complex task, upgrade to Quality mode
+            if confidence.level == ConfidenceLevel::Low && state.mode == WorkflowMode::Fast {
                 state.mode = WorkflowMode::Quality;
                 state.metadata.insert(
                     "mode_override".to_string(),
-                    "complexity-based upgrade to Quality".to_string(),
+                    "confidence-based upgrade to Quality".to_string(),
                 );
-            } else if complexity.score.0 < 0.2 && state.mode == WorkflowMode::Quality {
-                // Very simple task, downgrade to Fast mode
+            } else if confidence.level == ConfidenceLevel::High
+                && state.mode == WorkflowMode::Quality
+            {
                 state.mode = WorkflowMode::Fast;
                 state.metadata.insert(
                     "mode_override".to_string(),
-                    "complexity-based downgrade to Fast".to_string(),
+                    "confidence-based downgrade to Fast".to_string(),
                 );
             }
         }
 
         state.metadata.insert(
-            "complexity_score".to_string(),
-            format!("{:.2}", complexity.score.0),
+            "confidence_score".to_string(),
+            format!("{:.2}", confidence.score),
         );
 
         Ok(())

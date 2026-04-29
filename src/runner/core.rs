@@ -4,7 +4,6 @@
 //! and execution.
 
 use crate::config::Config;
-use crate::doc_enhancer::DocEnhancer;
 use crate::doc_processor::{DocProcessor, StructuredDoc};
 use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
@@ -20,6 +19,7 @@ use crate::orchestrator::executor::ExecutorAgent;
 use crate::orchestrator::planner::PlannerAgent;
 use crate::orchestrator::supervisor::SupervisorAgent;
 use crate::orchestrator::validator::ValidatorAgent;
+use crate::schema::{CliSchema, CliStyle, parse_help};
 use crate::skill::SkillManager;
 use chrono::Utc;
 use colored::Colorize;
@@ -49,18 +49,12 @@ pub struct GeneratedCommand {
 /// alongside the LLM suggestion.
 pub(crate) struct PrepareResult {
     pub(crate) suggestion: LlmCommandSuggestion,
-    /// SHA-256 hex digest of the documentation text used in the prompt.
     pub(crate) docs_hash: String,
-    /// Name of the matched skill, if one was loaded.
     pub(crate) skill_name: Option<String>,
-    /// The task description that was actually used (may differ from the user-supplied
-    /// task when automatic normalization is applied).
     pub(crate) effective_task: String,
-    /// Structured documentation used for flag/subcommand validation, if available.
     pub(crate) structured_doc: Option<StructuredDoc>,
-    /// Enhanced doc analysis with CLI patterns, subcommands, and constraints.
     #[allow(dead_code)]
-    pub(crate) enhanced_analysis: Option<crate::doc_enhancer::EnhancedDocAnalysis>,
+    pub(crate) parsed_schema: Option<CliSchema>,
 }
 
 pub struct Runner {
@@ -297,26 +291,14 @@ impl Runner {
         };
 
         // Determine if we need documentation based on skill quality
+        // HDA: ALWAYS fetch docs for Schema parsing (Layer 2), regardless of skill quality
+        // Schema whitelist prevents hallucination even when skill is high-quality
         let should_fetch_doc = if self.no_doc {
             false
-        } else if skill.is_none() {
-            // No skill available → need doc
-            true
         } else {
-            // Skill available → check quality
-            if let Some(ref s) = skill {
-                // Skill quality heuristics:
-                // - Low quality: <3 examples OR <3 pitfalls
-                // - Medium quality: 3-5 examples
-                // - High quality: >5 examples
-                let example_count = s.examples.len();
-                let pitfall_count = s.context.pitfalls.len();
-
-                // Only fetch doc if skill quality is low
-                example_count < 3 || pitfall_count < 3
-            } else {
-                false
-            }
+            // HDA: Always fetch docs for schema parsing
+            // The schema whitelist is critical for preventing flag hallucination
+            true
         };
 
         // Fetch docs only when needed, with spinner created only for actual fetch
@@ -339,18 +321,12 @@ impl Runner {
         // ── Build StructuredDoc from RAW docs BEFORE summarization ──
         // This is critical: we need the full documentation to extract flags and examples.
         // Summarization happens AFTER StructuredDoc creation, so flag_catalog remains accurate.
-        let (structured_doc, enhanced_analysis) = if let Some(ref docs) = tool_docs {
-            let raw_docs = docs.combined(); // Full documentation, not summarized
+        let (structured_doc, parsed_schema) = if let Some(ref docs) = tool_docs {
+            let raw_docs = docs.combined();
             let processor = DocProcessor::new();
             let sdoc = processor.clean_and_structure(&raw_docs);
 
-            // Use DocEnhancer for enhanced analysis (CLI pattern detection, subcommand detection, etc.)
-            let enhancer = if self.config.docs.rag.enabled {
-                DocEnhancer::with_rag()
-            } else {
-                DocEnhancer::new()
-            };
-            let analysis = enhancer.analyze(&raw_docs, tool, task);
+            let schema = parse_help(tool, &raw_docs);
 
             if self.verbose {
                 eprintln!(
@@ -360,21 +336,20 @@ impl Runner {
                     sdoc.flag_catalog.len(),
                     sdoc.quick_flags.len(),
                     sdoc.extracted_examples.len(),
-                    sdoc.commands.split(',').count().saturating_sub(1), // -1 because empty gives 1
+                    sdoc.commands.split(',').count().saturating_sub(1),
                 );
                 if !sdoc.commands.is_empty() && sdoc.commands.split(',').count() <= 10 {
                     eprintln!("{} Subcommands: {}", "[verbose]".dimmed(), sdoc.commands);
                 }
-                // Enhanced analysis info
                 eprintln!(
-                    "{} Enhanced analysis: pattern={:?}, valid_flags={}, constraints={}",
+                    "{} Schema: style={:?}, flags={}, subcommands={}, source={}",
                     "[verbose]".dimmed(),
-                    analysis.cli_pattern,
-                    analysis.valid_flags.len(),
-                    analysis.constraint_graph.required.len()
-                        + analysis.constraint_graph.mutually_exclusive.len(),
+                    schema.cli_style,
+                    schema.flags.len() + schema.global_flags.len(),
+                    schema.subcommands.len(),
+                    schema.schema_source,
                 );
-                if let Some(ref subcmd) = analysis.selected_subcommand {
+                if let Some(subcmd) = schema.select_subcommand(task) {
                     eprintln!(
                         "{} Selected subcommand: {}",
                         "[verbose]".dimmed(),
@@ -382,7 +357,7 @@ impl Runner {
                     );
                 }
             }
-            (Some(sdoc), Some(analysis))
+            (Some(sdoc), Some(schema))
         } else {
             (None, None)
         };
@@ -396,15 +371,13 @@ impl Runner {
             let structured_header =
                 crate::doc_summarizer::build_structured_summary(&raw_docs, tool);
 
-            // Inject enhanced analysis constraints into documentation
-            let enhanced_docs = if let Some(ref analysis) = enhanced_analysis {
+            let enhanced_docs = if let Some(ref schema) = parsed_schema {
                 let mut enhanced = summarized.clone();
 
-                // Add CLI pattern guidance
-                if let crate::cli_pattern::CliPattern::Subcommand { .. } = &analysis.cli_pattern {
+                if schema.cli_style == CliStyle::Subcommand && !schema.subcommands.is_empty() {
                     enhanced.push_str("\n\n=== CRITICAL: SUBCOMMAND REQUIRED ===\n");
                     enhanced.push_str("This tool REQUIRES a subcommand as the FIRST argument.\n");
-                    if let Some(ref subcmd) = analysis.selected_subcommand {
+                    if let Some(subcmd) = schema.select_subcommand(task) {
                         enhanced.push_str(&format!(
                             "RECOMMENDED subcommand for this task: '{}'\n",
                             subcmd.name
@@ -412,7 +385,7 @@ impl Runner {
                     }
                     enhanced.push_str(&format!(
                         "Available subcommands: {}\n",
-                        analysis
+                        schema
                             .subcommands
                             .iter()
                             .map(|s| s.name.clone())
@@ -421,31 +394,22 @@ impl Runner {
                     ));
                 }
 
-                // Add valid flags whitelist (only if structured_header doesn't already have it)
-                if !analysis.valid_flags.is_empty() && !structured_header.contains("VALID FLAGS") {
+                let all_flag_names =
+                    schema.all_flag_names(schema.select_subcommand(task).map(|s| s.name.as_str()));
+                if !all_flag_names.is_empty() && !structured_header.contains("VALID FLAGS") {
                     enhanced.push_str("\n\n=== VALID FLAGS (use ONLY these) ===\n");
-                    let flags_preview: Vec<_> = analysis
-                        .valid_flags
+                    let flags_preview: Vec<String> = all_flag_names
                         .iter()
                         .take(20)
-                        .map(|s| s.as_str())
+                        .map(|s| s.to_string())
                         .collect();
                     enhanced.push_str(&flags_preview.join(", "));
                     enhanced.push('\n');
                 }
 
-                // Add constraint information
-                if !analysis.constraint_graph.required.is_empty() {
-                    enhanced.push_str("\n=== REQUIRED PARAMETERS ===\n");
-                    for constraint in &analysis.constraint_graph.required {
-                        enhanced.push_str(&format!("- {:?}\n", constraint));
-                    }
-                }
-
-                if !analysis.constraint_graph.mutually_exclusive.is_empty() {
-                    enhanced.push_str("\n=== MUTUALLY EXCLUSIVE (don't use together) ===\n");
-                    for group in &analysis.constraint_graph.mutually_exclusive {
-                        enhanced.push_str(&format!("- {}\n", group.join(" vs ")));
+                if !schema.constraints.is_empty() {
+                    for constraint in &schema.constraints {
+                        enhanced.push_str(&format!("- {}\n", constraint.message()));
                     }
                 }
 
@@ -727,50 +691,31 @@ impl Runner {
                 skill.as_ref(),
                 self.no_prompt,
                 structured_doc.as_ref(),
+                parsed_schema.as_ref(),
             )
             .await?;
 
         if self.verbose {
+            let confidence_info = if let Some(ref c) = wf_result.confidence {
+                format!(", confidence={:.2} ({:?})", c.score, c.level)
+            } else {
+                String::new()
+            };
             eprintln!(
                 "{} Workflow complete: {} LLM call(s), {:.1}ms{}{}",
                 "[verbose]".dimmed(),
                 wf_result.llm_calls,
                 wf_result.total_inference_ms,
-                if wf_result.mini_skill_generated {
-                    ", mini-skill generated"
-                } else if wf_result.cache_hit {
-                    ", mini-skill from cache"
-                } else {
-                    ""
-                },
                 if wf_result.was_normalized {
                     ", task normalized"
                 } else {
                     ""
-                }
+                },
+                confidence_info,
             );
         }
 
-        let mut suggestion = wf_result.suggestion;
-
-        // Apply benchmark-driven command corrections
-        let corrector = crate::command_corrector::CommandCorrector::new();
-        let original_args_str = suggestion.args.join(" ");
-        if let Some(corrected_args) = corrector.correct(tool, &original_args_str, task) {
-            if self.verbose {
-                eprintln!(
-                    "{} Command corrected: '{}' -> '{}'",
-                    "[verbose]".dimmed(),
-                    original_args_str,
-                    corrected_args
-                );
-            }
-            // Parse corrected args back into Vec<String>
-            suggestion.args = corrected_args
-                .split_whitespace()
-                .map(String::from)
-                .collect();
-        }
+        let suggestion = wf_result.suggestion;
 
         Ok(PrepareResult {
             suggestion,
@@ -782,7 +727,7 @@ impl Runner {
                 task.to_string()
             },
             structured_doc,
-            enhanced_analysis,
+            parsed_schema,
         })
     }
 
