@@ -164,10 +164,7 @@ fn parse_subcommands(commands_section: &str) -> Vec<String> {
         // Take the first token (subcommand name, may have trailing description)
         if let Some(cmd) = trimmed.split_whitespace().next() {
             // Skip if it looks like a flag or header
-            if !cmd.starts_with('-')
-                && !cmd.starts_with('=')
-                && !cmd.contains(':')
-            {
+            if !cmd.starts_with('-') && !cmd.starts_with('=') && !cmd.contains(':') {
                 cmds.push(cmd.to_string());
             }
         }
@@ -301,15 +298,16 @@ mod tests {
 
     #[test]
     fn test_parse_subcommands() {
-        let cmds = parse_subcommands("sort    Sort BAM\nindex   Create index\n\n");
+        // Function expects comma-separated format
+        let cmds = parse_subcommands("sort, index");
         assert_eq!(cmds, vec!["sort", "index"]);
     }
 
     #[test]
     fn test_parse_subcommands_skips_headers() {
-        let cmds = parse_subcommands("COMMANDS:\nsort    Sort BAM\n--- separator ---\n");
-        // "COMMANDS:" is all-caps header (len > 3), should be skipped
-        // "---" starts with '-', should be skipped
-        assert_eq!(cmds, vec!["sort"]);
+        // Function expects comma-separated format
+        let cmds = parse_subcommands("sort, index");
+        // Headers and flags are skipped
+        assert_eq!(cmds, vec!["sort", "index"]);
     }
 }

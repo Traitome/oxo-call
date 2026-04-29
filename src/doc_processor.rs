@@ -69,6 +69,17 @@ pub struct StructuredDoc {
     /// Documentation quality score (0.0–1.0) computed deterministically.
     #[serde(default)]
     pub quality_score: f32,
+    /// Detected command pattern: "subcommand", "flags-first", or "positional"
+    /// Critical for small models to understand argument structure
+    #[serde(default)]
+    pub command_pattern: String,
+    /// Detected subcommand from USAGE line (e.g., "mem" for bwa mem)
+    /// Used to prepend subcommand to generated commands
+    #[serde(default)]
+    pub detected_subcommand: Option<String>,
+    /// All detected subcommands for multi-subcommand tools
+    #[serde(default)]
+    pub all_subcommands: Vec<String>,
 }
 
 /// A single flag/option entry extracted from the documentation.
@@ -190,6 +201,9 @@ impl DocProcessor {
             flag_catalog: Vec::new(),
             extracted_examples: Vec::new(),
             quality_score: 0.0,
+            command_pattern: String::new(),
+            detected_subcommand: None,
+            all_subcommands: Vec::new(),
         };
 
         for (section_name, content) in sections {
@@ -200,10 +214,14 @@ impl DocProcessor {
             } else if name_lower.contains("example") {
                 structured.examples.push_str(&content);
                 structured.examples.push('\n');
-            } else if name_lower.contains("option") || name_lower.contains("flag")
-                || name_lower.contains("input") || name_lower.contains("output")
-                || name_lower.contains("preset") || name_lower.contains("alignment")
-                || name_lower.contains("scoring") || name_lower.contains("setting")
+            } else if name_lower.contains("option")
+                || name_lower.contains("flag")
+                || name_lower.contains("input")
+                || name_lower.contains("output")
+                || name_lower.contains("preset")
+                || name_lower.contains("alignment")
+                || name_lower.contains("scoring")
+                || name_lower.contains("setting")
             {
                 // Many tools (bowtie2, bwa) use non-standard section headers like
                 // "Input:", "Alignment:", "Scoring:" that contain flag definitions.
@@ -234,6 +252,173 @@ impl DocProcessor {
 
         // Step 7: Compute documentation quality score
         structured.quality_score = self.compute_quality_score(&structured);
+
+        // Step 8: Detect command pattern and subcommands (critical for small models)
+        // This determines if the tool uses: subcommand-first, flags-first, or positional args
+        structured = self.detect_command_pattern(structured, docs);
+
+        structured
+    }
+
+    /// Detect command pattern from USAGE and examples.
+    ///
+    /// Determines if the tool uses:
+    /// - "subcommand": ARGS must start with subcommand (e.g., samtools sort, bwa mem)
+    /// - "flags-first": ARGS start with flags (e.g., fastp -i input -o output)
+    /// - "positional": ARGS are positional (e.g., admixture input.bed K)
+    ///
+    /// This is CRITICAL for small models to generate correct commands.
+    fn detect_command_pattern(&self, mut structured: StructuredDoc, _docs: &str) -> StructuredDoc {
+        // Known subcommands (short verbs, not file paths)
+        const KNOWN_SUBCOMMANDS: &[&str] = &[
+            "sort",
+            "view",
+            "index",
+            "merge",
+            "extract",
+            "filter",
+            "call",
+            "depth",
+            "mem",
+            "bwt2se",
+            "fastq2bwt",
+            "color",
+            "sam2bwt",
+            "realign",
+            "flagstat",
+            "mpileup",
+            "markdup",
+            "collate",
+            "fixmate",
+            "reheader",
+            "cat",
+            "stats",
+            "bedcov",
+            "isec",
+            "norm",
+            "annotate",
+            "predict",
+            "classify_wf",
+            "identify",
+            "align",
+            "quant",
+            "quantmerge",
+            "refine",
+            "rsem-calculate-expression",
+            "rsem-prepare-reference",
+            "discover",
+            "gff-cache",
+            "mbias",
+            "HaplotypeCaller",
+            "Mutect2",
+            "BaseRecalibrator",
+            "ApplyBQSR",
+            "SplitNCigarReads",
+            "CollectHsMetrics",
+            "MarkDuplicates",
+            "SortSam",
+            "ValidateSamFile",
+            "AddOrReplaceReadGroups",
+            "CollectAlignmentSummaryMetrics",
+            "CollectInsertSizeMetrics",
+            "MergeSamFiles",
+            "SamToFastq",
+            "CreateSequenceDictionary",
+            "blastn",
+            "blastp",
+            "blastx",
+            "tblastn",
+            "tblastx",
+            "build",
+            "quast",
+            "metaquast",
+            "count",
+            "version",
+            "help",
+        ];
+
+        // Check extracted examples first - they're the most reliable
+        if let Some(first_example) = structured.extracted_examples.first() {
+            let first_token = first_example.split_whitespace().next().unwrap_or("");
+            let looks_like_file = first_token.contains('.') || first_token.contains('/');
+
+            if KNOWN_SUBCOMMANDS.contains(&first_token) && !looks_like_file {
+                structured.command_pattern = "subcommand".to_string();
+                structured.detected_subcommand = Some(first_token.to_string());
+            } else if first_token.starts_with('-') {
+                structured.command_pattern = "flags-first".to_string();
+            } else {
+                structured.command_pattern = "positional".to_string();
+            }
+        }
+
+        // Fallback: parse USAGE line
+        if structured.command_pattern.is_empty() && !structured.usage.is_empty() {
+            let usage_first_line = structured.usage.lines().next().unwrap_or("");
+            let parts: Vec<&str> = usage_first_line.split_whitespace().collect();
+
+            // Pattern: "tool subcmd [options]" or "Usage: tool subcmd [options]"
+            // Find the tool name, then check if next token is a subcommand
+            for (i, part) in parts.iter().enumerate() {
+                let part_lower = part.to_lowercase();
+                // Skip "usage:", "usage", and tool name placeholders
+                if part_lower == "usage" || part_lower == "usage:" || part.contains("[") {
+                    continue;
+                }
+
+                // Check if this looks like the tool name (no flags, no brackets)
+                // Then the next token might be a subcommand
+                if i + 1 < parts.len() {
+                    let next = parts[i + 1];
+                    let next_lower = next.to_lowercase();
+
+                    // Check if next token is a known subcommand
+                    if KNOWN_SUBCOMMANDS.contains(&next_lower.as_str())
+                        && !next.contains('.')
+                        && !next.contains('/')
+                        && !next.starts_with('-')
+                        && !next.starts_with('[')
+                    {
+                        structured.command_pattern = "subcommand".to_string();
+                        structured.detected_subcommand = Some(next_lower);
+                        break;
+                    }
+                }
+            }
+
+            // If no subcommand detected, check if USAGE shows flags-first or positional
+            if structured.command_pattern.is_empty() {
+                // Look for flags in USAGE
+                if parts.iter().any(|p| p.starts_with('-')) {
+                    structured.command_pattern = "flags-first".to_string();
+                } else {
+                    structured.command_pattern = "positional".to_string();
+                }
+            }
+        }
+
+        // Extract all subcommands from commands section
+        if !structured.commands.is_empty() {
+            structured.all_subcommands = structured
+                .commands
+                .split(',')
+                .filter_map(|s| s.split_whitespace().next())
+                .filter(|s| {
+                    KNOWN_SUBCOMMANDS.contains(s)
+                        || s.len() >= 2 && !s.contains('.') && !s.contains('/')
+                })
+                .map(|s| s.to_string())
+                .collect();
+        }
+
+        // Log pattern detection for debugging
+        if !structured.command_pattern.is_empty() {
+            tracing::debug!(
+                "Detected command pattern: {} (subcmd: {:?})",
+                structured.command_pattern,
+                structured.detected_subcommand
+            );
+        }
 
         structured
     }
@@ -397,12 +582,12 @@ impl DocProcessor {
             // Extract subcommand names (usually first word on line)
             if let Some(first_word) = trimmed.split_whitespace().next() {
                 // Skip if it looks like a flag, placeholder, or section header
-                if !first_word.starts_with('-')
-                    && !first_word.starts_with('<')
-                    && !first_word.starts_with('[')
-                    && !first_word.starts_with('=')
+                if !(first_word.starts_with('-')
+                    || first_word.starts_with('<')
+                    || first_word.starts_with('[')
+                    || first_word.starts_with('=')
                     // Skip ALL_CAPS words that are likely section headers (like "USAGE:", "OPTIONS:")
-                    && !(first_word.len() > 3 && first_word.chars().all(|c| c.is_uppercase() || !c.is_alphabetic()))
+                    || first_word.len() > 3 && first_word.chars().all(|c| c.is_uppercase() || !c.is_alphabetic()))
                 {
                     commands.push(first_word.to_string());
                 }
@@ -952,17 +1137,8 @@ pub fn is_section_header(line: &str) -> bool {
     if line.ends_with(':') {
         let line_lower = line.to_lowercase();
         let keyword_patterns = [
-            "option",
-            "flag",
-            "argument",
-            "param",
-            "setting",
-            "criteria",
-            "input",
-            "output",
-            "example",
-            "command",
-            "usage",
+            "option", "flag", "argument", "param", "setting", "criteria", "input", "output",
+            "example", "command", "usage",
         ];
         if keyword_patterns.iter().any(|kw| line_lower.contains(kw)) {
             return true;
@@ -1375,7 +1551,9 @@ mod tests {
         // Verify specific flags are extracted
         let flags_str = structured.quick_flags.join(" ");
         assert!(
-            flags_str.contains("-j") || flags_str.contains("--seed") || flags_str.contains("--method"),
+            flags_str.contains("-j")
+                || flags_str.contains("--seed")
+                || flags_str.contains("--method"),
             "Expected flags not found in: {}",
             flags_str
         );

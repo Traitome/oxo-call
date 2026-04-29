@@ -364,11 +364,24 @@ fn detect_cli_pattern(docs: &str, tool: &str) -> String {
     // Check for subcommand pattern
     let subcmds = extract_subcommands_from_docs(docs);
     if !subcmds.is_empty() {
+        // Extract first subcommand for example
+        let first_subcmd = subcmds.first().map(|s| s.as_str()).unwrap_or("subcmd");
+        let subcmds_str = subcmds
+            .iter()
+            .take(10)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join(", ");
         return format!(
             "=== CLI PATTERN: SUBCOMMAND-BASED ===\n\
-            {} uses subcommands. ARGS MUST start with a subcommand, NOT with flags.\n\
-            Example: '{} subcommand -flags args' (NOT '{} -flags args')",
-            tool, tool, tool
+            ⚠️ CRITICAL: {tool} REQUIRES a subcommand as the FIRST argument!\n\
+            \n\
+            ✅ CORRECT: '{tool} {first_subcmd} -flags args'\n\
+            ❌ WRONG: '{tool} -flags args' (missing subcommand - will fail!)\n\
+            ❌ WRONG: '{tool} --output file' (no subcommand - will fail!)\n\
+            \n\
+            Available subcommands: {subcmds_str}\n\
+            The subcommand MUST appear immediately after the tool name."
         );
     }
 
@@ -384,13 +397,21 @@ fn detect_cli_pattern(docs: &str, tool: &str) -> String {
         "kraken",
         "centrifuge",
         "gffread",
+        "prodigal",
+        "salmon",
+        "kallisto",
+        "featurecounts",
+        "bedtools",
     ];
     if direct_flag_tools.contains(&tool) {
         return format!(
             "=== CLI PATTERN: DIRECT FLAGS ===\n\
-            {} has NO subcommand. ARGS start directly with flags.\n\
-            Example: '{} -i input -o output' (NOT '{} subcommand -i input')",
-            tool, tool, tool
+            ✅ {tool} has NO subcommand. ARGS start directly with flags.\n\
+            \n\
+            ✅ CORRECT: '{tool} -i input -o output'\n\
+            ❌ WRONG: '{tool} subcommand -i input' (no subcommand needed)\n\
+            \n\
+            First argument MUST be a flag (starts with -) or an input file."
         );
     }
 
@@ -398,7 +419,12 @@ fn detect_cli_pattern(docs: &str, tool: &str) -> String {
     if docs_lower.contains("--runmode") || docs_lower.contains("--genomedir") || tool == "star" {
         return String::from(
             "=== CLI PATTERN: LONG OPTIONS ===\n\
-            This tool uses --option=value format. Put all options before positional args.",
+            ⚠️ This tool uses --option=value format exclusively.\n\
+            \n\
+            ✅ CORRECT: '--option=value --option2=value2 input_files'\n\
+            ❌ WRONG: '-o value' (short flags not supported)\n\
+            \n\
+            Put all options before positional args. Use --option=value format.",
         );
     }
 
@@ -407,14 +433,24 @@ fn detect_cli_pattern(docs: &str, tool: &str) -> String {
     if index_tools.contains(&tool) {
         return format!(
             "=== CLI PATTERN: INDEX+ACTION ===\n\
-            {} requires index building first: '{}-index reference.fa'.\n\
-            Then alignment: '{} mem -t N reference.fa reads.fq'",
-            tool, tool, tool
+            ⚠️ {tool} requires TWO steps:\n\
+            \n\
+            Step 1: Build index\n\
+            ✅ CORRECT: '{tool}-index reference.fa' OR 'bwa index reference.fa'\n\
+            \n\
+            Step 2: Align reads\n\
+            ✅ CORRECT: '{tool} mem -t N reference.fa reads.fq'\n\
+            \n\
+            The alignment command uses 'mem' (or other algorithm) as subcommand!"
         );
     }
 
     // Default pattern hint
-    String::from("=== CLI PATTERN: STANDARD ===\nCheck USAGE line for exact structure.")
+    String::from(
+        "=== CLI PATTERN: STANDARD ===\n\
+    Check USAGE line for exact structure.\n\
+    ⚠️ Study the USAGE pattern carefully - some tools use positional args, others use flags.",
+    )
 }
 
 /// Highlight positional arguments in usage lines for better LLM comprehension.
@@ -564,10 +600,12 @@ mod tests {
 
     #[test]
     fn test_doc_length_constants_ordering() {
-        // Sanity check: constants should be in ascending order
-        assert!(MAX_DOC_LEN_SMALL_MODEL < MAX_DOC_LEN_MEDIUM_MODEL);
-        assert!(MAX_DOC_LEN_MEDIUM_MODEL < MAX_DOC_LEN_LARGE_MODEL);
-        assert!(MIN_SUMMARIZE_LEN < MAX_DOC_LEN_SMALL_MODEL);
+        // Sanity check: constants should be in ascending order (compile-time verified)
+        const {
+            assert!(MAX_DOC_LEN_SMALL_MODEL < MAX_DOC_LEN_MEDIUM_MODEL);
+            assert!(MAX_DOC_LEN_MEDIUM_MODEL < MAX_DOC_LEN_LARGE_MODEL);
+            assert!(MIN_SUMMARIZE_LEN < MAX_DOC_LEN_SMALL_MODEL);
+        }
     }
 
     #[test]

@@ -32,12 +32,19 @@
 //! - `server` — Remote server management
 //! - `license` — License activation and verification
 
+mod auto_fixer;
+mod bench;
 mod cache;
 mod chat;
 mod cli;
+mod cli_pattern;
+mod command_corrector;
+mod command_validator;
 mod config;
+mod constraint_graph;
 mod context;
 mod copilot_auth;
+mod doc_enhancer;
 mod doc_processor;
 mod doc_summarizer;
 mod docs;
@@ -58,13 +65,17 @@ mod markdown;
 mod mcp;
 mod mini_skill_cache;
 mod orchestrator;
+mod rag;
+mod reflection_engine;
 mod runner;
 mod sanitize;
 mod server;
 mod skill;
 mod streaming_display;
+mod subcommand_detector;
 mod task_complexity;
 mod task_normalizer;
+mod validation_loop;
 mod workflow;
 mod workflow_graph;
 

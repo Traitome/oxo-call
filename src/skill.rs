@@ -655,29 +655,132 @@ impl Skill {
     fn detect_skill_pattern(first_args: &str, tool_name: &str) -> String {
         let first_token = first_args.split_whitespace().next().unwrap_or("");
 
-        // Pattern A: Subcommand-based (first token is NOT a flag)
-        if !first_token.starts_with('-') && first_token.len() > 1 && first_token.len() < 20 {
+        // Known bioinformatics subcommands (short verbs, NOT file paths)
+        const KNOWN_SUBCOMMANDS: &[&str] = &[
+            "sort",
+            "view",
+            "index",
+            "merge",
+            "extract",
+            "filter",
+            "call",
+            "depth",
+            "mem",
+            "bwt2se",
+            "fastq2bwt",
+            "color",
+            "sam2bwt",
+            "realign",
+            "flagstat",
+            "mpileup",
+            "markdup",
+            "collate",
+            "fixmate",
+            "reheader",
+            "cat",
+            "stats",
+            "bedcov",
+            "isec",
+            "norm",
+            "annotate",
+            "predict",
+            "classify_wf",
+            "identify",
+            "align",
+            "quant",
+            "refine",
+            "rsem-calculate-expression",
+            "rsem-prepare-reference",
+            "discover",
+            "gff-cache",
+            "mbias",
+            "HaplotypeCaller",
+            "Mutect2",
+            "BaseRecalibrator",
+            "ApplyBQSR",
+            "SplitNCigarReads",
+            "CollectHsMetrics",
+            "MarkDuplicates",
+            "blastn",
+            "blastp",
+            "blastx",
+            "tblastn",
+            "tblastx",
+            "build",
+            "index",
+            "quast",
+            "metaquast",
+        ];
+
+        // Check if first token looks like a file (has extension)
+        let looks_like_file = first_token.contains('.')
+            || first_token.contains('/')
+            || first_token.ends_with(".bed")
+            || first_token.ends_with(".bam")
+            || first_token.ends_with(".fa")
+            || first_token.ends_with(".fq")
+            || first_token.ends_with(".fasta")
+            || first_token.ends_with(".fastq")
+            || first_token.ends_with(".vcf")
+            || first_token.ends_with(".gtf")
+            || first_token.ends_with(".gff");
+
+        // Pattern A: Subcommand-based (first token is a KNOWN subcommand, NOT a file)
+        if KNOWN_SUBCOMMANDS.contains(&first_token) && !looks_like_file {
             return format!(
                 "=== CLI PATTERN: SUBCOMMAND REQUIRED ===\n\
-                {tool_name} REQUIRES a subcommand as FIRST argument.\n\
-                Correct: '{tool_name} {first_token} -flags args'\n\
-                WRONG: '{tool_name} -flags args' (missing subcommand)\n\
-                Subcommand '{first_token}' detected from examples."
+                ⚠️ CRITICAL: {tool_name} REQUIRES a subcommand as FIRST argument!\n\
+                \n\
+                ✅ CORRECT: '{tool_name} {first_token} -flags args'\n\
+                ❌ WRONG: '{tool_name} -flags args' (missing subcommand - will fail!)\n\
+                ❌ WRONG: '{tool_name} --output file' (no subcommand - will fail!)\n\
+                ❌ WRONG: '{tool_name} -o output.bam' (missing subcommand - will fail!)\n\
+                \n\
+                The subcommand '{first_token}' is detected from examples.\n\
+                YOU MUST include a subcommand in your ARGS!"
             );
         }
 
         // Pattern B: Direct flags (first token IS a flag)
         if first_token.starts_with('-') {
             return format!(
-                "=== CLI PATTERN: DIRECT FLAGS ===\n\
-                {tool_name} has NO subcommand. Start with flags.\n\
-                Correct: '{tool_name} {first_token} ...'\n\
-                WRONG: '{tool_name} subcommand {first_token} ...'"
+                "=== CLI PATTERN: DIRECT FLAGS (NO SUBCOMMAND!) ===\n\
+                ⚠️ CRITICAL: {tool_name} has NO subcommand!\n\
+                \n\
+                ✅ CORRECT: '{tool_name} {first_token} value input -o output'\n\
+                ❌ WRONG: '{tool_name} sort {first_token} ...' (no 'sort' subcommand - will fail!)\n\
+                ❌ WRONG: '{tool_name} view {first_token} ...' (no 'view' subcommand - will fail!)\n\
+                ❌ WRONG: '{tool_name} extract {first_token} ...' (no 'extract' subcommand - will fail!)\n\
+                ❌ WRONG: '{tool_name} --output file {first_token} ...' (wrong order - will fail!)\n\
+                \n\
+                DO NOT add 'sort', 'view', 'extract', 'index', 'mem', or any other subcommand!\n\
+                ARGS MUST start with a flag (like {first_token}) or a positional input file!"
+            );
+        }
+
+        // Pattern C: Positional arguments (first token looks like a file or value)
+        // Tools like admixture: "data.bed 5 --cv=10" - positional input file + K value + flags
+        if looks_like_file || !first_token.starts_with('-') {
+            return format!(
+                "=== CLI PATTERN: POSITIONAL ARGUMENTS (NO SUBCOMMAND!) ===\n\
+                ⚠️ CRITICAL: {tool_name} uses POSITIONAL arguments, NOT subcommands!\n\
+                \n\
+                ✅ CORRECT: '{tool_name} {first_token} ...' (input file first, then options)\n\
+                ❌ WRONG: '{tool_name} sort {first_token} ...' (no 'sort' subcommand - will fail!)\n\
+                ❌ WRONG: '{tool_name} --input {first_token} ...' (wrong - use positional input, not --input)\n\
+                ❌ WRONG: '{tool_name} --K 5 ...' (wrong - K is positional, not a flag!)\n\
+                \n\
+                DO NOT add 'sort', 'view', 'extract', 'mem' or any other subcommand!\n\
+                DO NOT use --input/--output flags if the tool uses positional arguments!\n\
+                Follow the EXACT structure shown in examples: input_file positional_args [options]"
             );
         }
 
         // Default pattern hint
-        "=== CLI PATTERN ===\nCheck first example for correct structure.".to_string()
+        "=== CLI PATTERN ===\n\
+        ⚠️ Check first example for correct structure.\n\
+        Study the example ARGS carefully - structure matters!"
+            .to_string()
     }
 
     /// Select the most relevant examples for a given task.
@@ -740,26 +843,15 @@ impl Skill {
                 .then(a.0.cmp(&b.0))
         });
 
-        // Take top max_examples, but ensure example 0 is included if there's room
-        let mut selected_indices: Vec<usize> = scored
+        // Take top max_examples based on score
+        // NOTE: Do NOT force example 0 to be included. For multi-subcommand tools
+        // (salmon, samtools, gatk), example 0 may be the wrong subcommand for the task.
+        // Task-based selection should respect scores, not force arbitrary examples.
+        scored
             .into_iter()
             .take(max_examples)
             .map(|(i, _)| i)
-            .collect();
-
-        // If example 0 (the most fundamental example) is not in the selection
-        // and there's room, swap in the lowest-scoring selected example.
-        if !selected_indices.contains(&0)
-            && max_examples > 1
-            && let Some(&last_idx) = selected_indices.last()
-            && last_idx != 0
-        {
-            selected_indices.pop();
-            selected_indices.insert(0, 0);
-        }
-
-        selected_indices.sort();
-        selected_indices
+            .collect::<Vec<usize>>()
             .into_iter()
             .map(|i| &self.examples[i])
             .collect()
@@ -872,20 +964,14 @@ fn extract_flags_from_text(text: &str) -> std::collections::HashSet<String> {
 /// Detect if the task mentions a subcommand that matches the example's first arg.
 /// Returns a boost score (2.0 for match, 0.0 for no match).
 fn detect_subcommand_match(task: &str, example_args: &str) -> f64 {
-    // Common bioinformatics subcommands
+    // Common bioinformatics subcommands - comprehensive list
     const SUBCOMMANDS: &[&str] = &[
+        // samtools/bcftools
         "sort",
-        "index",
         "view",
+        "index",
         "filter",
         "merge",
-        "intersect",
-        "mem",
-        "align",
-        "trim",
-        "run",
-        "call",
-        "annotate",
         "depth",
         "coverage",
         "flagstat",
@@ -898,11 +984,135 @@ fn detect_subcommand_match(task: &str, example_args: &str) -> f64 {
         "consensus",
         "faidx",
         "dict",
-        "bamtobed",
-        "bedtobam",
+        "collate",
+        "fixmate",
+        "reheader",
+        "markdup",
+        "cat",
+        "bedcov",
+        // bwa/bowtie2
+        "mem",
+        "bwt2se",
+        "fastq2bwt",
+        "align",
+        // gatk/picard
+        "HaplotypeCaller",
+        "Mutect2",
+        "BaseRecalibrator",
+        "ApplyBQSR",
+        "MarkDuplicates",
+        "SortSam",
+        "AddOrReplaceReadGroups",
+        "ValidateSamFile",
+        "CollectAlignmentSummaryMetrics",
+        "CollectInsertSizeMetrics",
+        "MergeSamFiles",
+        "SamToFastq",
+        "CreateSequenceDictionary",
+        "CollectGcBiasMetrics",
+        "CollectHsMetrics",
+        "SplitNCigarReads",
+        // salmon/kallisto
+        "quant",
+        "index",
+        "quantmerge",
+        "swim",
+        // checkm2/gtdbtk
+        "predict",
+        "classify_wf",
+        "identify",
+        "align",
+        "ani_screen",
+        // blast/mmseqs2
         "blastn",
         "blastp",
         "blastx",
+        "tblastn",
+        "tblastx",
+        "createdb",
+        "search",
+        "easy-search",
+        "cluster",
+        "linclust",
+        // bedtools
+        "intersect",
+        "bamtobed",
+        "bedtobam",
+        "closest",
+        "slop",
+        "shift",
+        "flank",
+        "window",
+        "map",
+        "shuffle",
+        "random",
+        "merge",
+        "split",
+        "complement",
+        // prodigal/augustus
+        "predict",
+        // seqkit
+        "seq",
+        "stats",
+        "fq2fa",
+        "fa2fq",
+        "grep",
+        "locate",
+        "replace",
+        "rename",
+        "common",
+        "split",
+        "concat",
+        "subseq",
+        "head",
+        "tail",
+        "rmdup",
+        // blast/gtdbtk
+        "trim",
+        "run",
+        "call",
+        "annotate",
+        // bismark
+        "bisulfite genome preparation",
+        "bisulfite mapping",
+        "deduplicate",
+        // featurecounts/subread
+        "featureCounts",
+        // homer
+        "findMotifsGenome.pl",
+        "getDifferentialPeaksReplicates.pl",
+        "makeTagDirectory",
+        "annotatePeaks.pl",
+        // metaphlan
+        "merge_metaphlan_tables.py",
+        // canu/wtdbg2/flye
+        "correct",
+        "trim",
+        "assemble",
+        // minimap2 has no subcommand (flags first)
+        // fastqc has no subcommand (positionals)
+        // meme
+        "meme",
+        "fimo",
+        "dreme",
+        "tomtom",
+        // mafft/muscle
+        "add",
+        "addfragments",
+        "addprofile",
+        "ltree",
+        // bracken
+        "build",
+        "combine",
+        "report",
+        // quast
+        "quast",
+        "metaquast",
+        // kraken2/bracken
+        "build",
+        "classify",
+        "inspect",
+        "report",
     ];
 
     let first_arg = example_args.split_whitespace().next().unwrap_or("");
@@ -917,11 +1127,26 @@ fn detect_subcommand_match(task: &str, example_args: &str) -> f64 {
 
     // Check if the task mentions this subcommand
     let task_lower = task.to_ascii_lowercase();
+    // Match various verb forms: quantify->quant, indexing->index, etc.
     if task_lower.contains(&format!(" {}", first_arg))
         || task_lower.starts_with(&format!("{} ", first_arg))
         || task_lower.contains(&format!("{}ing", first_arg))  // "sorting" matches "sort"
-        || task_lower.contains(&format!("{}ed", first_arg))
-    // "sorted" matches "sort"
+        || task_lower.contains(&format!("{}ed", first_arg))   // "sorted" matches "sort"
+        || task_lower.contains(&format!("{}ify", first_arg))  // "quantify" matches "quant"
+        || task_lower.contains(&format!("{}ify", first_arg.replace("quant", "quantif")))  // handle quant->quantify
+        || task_lower.contains(&format!("{}ies", first_arg))
+    // "quantities" matches "quant"
+    {
+        return 2.0;
+    }
+
+    // Additional verb stem matching: extract stem from subcommand and match task verbs
+    // e.g., "quant" -> task mentions "quantify", "quantification"
+    let stem = first_arg.trim_end_matches("e");
+    if task_lower.contains(&format!("{}ify", stem))     // quant -> quantify
+        || task_lower.contains(&format!("{}ification", stem))  // quant -> quantification
+        || task_lower.contains(&format!("{}y", stem))
+    // sort -> sorty (not useful but pattern)
     {
         return 2.0;
     }

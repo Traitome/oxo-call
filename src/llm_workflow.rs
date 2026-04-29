@@ -3,6 +3,15 @@
 //! This module implements a LangGraph-inspired workflow with two modes:
 //! - Fast mode: Single LLM call (existing behavior)
 //! - Quality mode: Multi-stage pipeline (task standardization → doc cleaning → mini-skill generation → command generation)
+//!
+//! ## Model-size-aware architecture (critical for small models)
+//!
+//! For models ≤3B parameters, mini-skill generation via LLM is disabled because:
+//! 1. Small models cannot reliably extract structured JSON from unstructured docs
+//! 2. Mini-skill generation adds latency (extra LLM call) and often produces garbage
+//! 3. Deterministic StructuredDoc processing (flag_catalog, extracted_examples) is more reliable
+//!
+//! The workflow automatically detects model size and skips mini-skill generation for small models.
 
 use crate::config::Config;
 use crate::doc_processor::{DocProcessor, StructuredDoc};
@@ -44,12 +53,19 @@ pub struct LlmWorkflowExecutor {
     mini_skill_cache: Arc<RwLock<MiniSkillCache>>,
     doc_processor: DocProcessor,
     mode: WorkflowMode,
+    /// Model parameter count (e.g., 3.0 for llama3.2:3b, 7.0 for qwen2.5:7b)
+    /// Used to skip mini-skill generation for small models (≤3B)
+    model_param_count: Option<f32>,
 }
 
 impl LlmWorkflowExecutor {
     /// Create a new workflow executor
     pub fn new(config: Config, mode: WorkflowMode) -> Result<Self> {
         let llm_client = Arc::new(LlmClient::new(config.clone()));
+
+        // Infer model parameter count from model name
+        let model_name = config.llm.model.as_deref().unwrap_or("");
+        let model_param_count = crate::config::infer_model_parameter_count(model_name);
 
         // Setup mini-skill cache
         let cache_config = CacheConfig {
@@ -64,7 +80,13 @@ impl LlmWorkflowExecutor {
             mini_skill_cache: Arc::new(RwLock::new(mini_skill_cache)),
             doc_processor: DocProcessor::new(),
             mode,
+            model_param_count,
         })
+    }
+
+    /// Check if model is small (≤3B parameters) and should skip mini-skill generation
+    fn is_small_model(&self) -> bool {
+        self.model_param_count.is_some_and(|p| p <= 3.0)
     }
 
     /// Execute the workflow to generate a command.
@@ -128,6 +150,15 @@ impl LlmWorkflowExecutor {
     /// Stages 1 (task standardization) and 2 (mini-skill generation) are
     /// independent and run concurrently via `tokio::join!` when both are
     /// needed, cutting wall-clock latency by up to 50%.
+    ///
+    /// ## Model-size-aware mini-skill generation
+    ///
+    /// For models ≤3B parameters, mini-skill generation is DISABLED because:
+    /// 1. Small models cannot reliably extract structured JSON from docs
+    /// 2. Mini-skill generation adds latency (extra LLM call) without benefit
+    /// 3. StructuredDoc (flag_catalog, extracted_examples) provides reliable grounding
+    ///
+    /// This is critical for achieving high accuracy with small models.
     async fn execute_quality(
         &self,
         tool: &str,
@@ -155,8 +186,16 @@ impl LlmWorkflowExecutor {
         // Compute doc hash for cache key
         let doc_hash = hex::encode(sha2::Sha256::digest(documentation.as_bytes()));
 
-        // Check mini-skill cache first (avoids unnecessary LLM call)
-        let cached_mini_skill = {
+        // CRITICAL: For small models (≤3B) or --no-skill mode, skip mini-skill entirely
+        // Mini-skill generation via LLM fails for small models, and cached mini-skills
+        // often contain incorrect/hallucinated examples that confuse small models.
+        // Use StructuredDoc directly (flag_catalog, extracted_examples) instead.
+        let skip_mini_skill = self.is_small_model() || skill.is_some();
+
+        // Check mini-skill cache only if not skipping
+        let cached_mini_skill = if skip_mini_skill {
+            None
+        } else {
             let mut cache = self.mini_skill_cache.write().await;
             cache.get(tool, &doc_hash)
         };
@@ -167,7 +206,15 @@ impl LlmWorkflowExecutor {
 
         // Determine what LLM calls are needed
         let needs_standardize = self.should_standardize_task(task);
-        let needs_mini_skill = cached_mini_skill.is_none() && skill.is_none();
+        // CRITICAL: Skip mini-skill generation for small models (≤3B) or when skill is provided
+        let needs_mini_skill = !skip_mini_skill && cached_mini_skill.is_none();
+
+        // Log model-size-aware decision
+        if skip_mini_skill && skill.is_none() {
+            tracing::info!(
+                "Small model (≤3B) or skill provided - skipping mini-skill entirely, using StructuredDoc directly"
+            );
+        }
 
         // ── Run task standardization and mini-skill generation concurrently ──
         // Mini-skill generation can fail (JSON parsing issues); on failure, fallback to None
@@ -292,7 +339,8 @@ impl LlmWorkflowExecutor {
                 // Look for pattern: usage tool subcmd
                 // Skip "usage:" or "Usage:", then find tool name, then subcmd
                 let mut found_tool = false;
-                for part in parts.iter().skip(1) { // Skip "usage:"
+                for part in parts.iter().skip(1) {
+                    // Skip "usage:"
                     let part = part.trim_start_matches(':');
                     if part == tool || part.to_lowercase() == tool.to_lowercase() {
                         found_tool = true;
@@ -359,7 +407,11 @@ impl LlmWorkflowExecutor {
         // e.g., "bwa mem [options]" → subcmd = "mem"
         let subcmd_from_usage = Self::extract_subcmd_from_usage(documentation, tool);
         if subcmd_from_usage.is_some() {
-            tracing::info!("Detected subcmd from USAGE for {}: {:?}", tool, subcmd_from_usage);
+            tracing::info!(
+                "Detected subcmd from USAGE for {}: {:?}",
+                tool,
+                subcmd_from_usage
+            );
         }
 
         // Process examples: prepend subcommand if args doesn't start with it
@@ -568,7 +620,10 @@ mod tests {
         // Test that array explanations are handled correctly
         let json = r#"{"task": "Index BAM", "args": "index sorted.bam", "explanation": ["Create BAI index", "Fast operation"]}"#;
         let ex: ExampleJson = serde_json::from_str(json).unwrap();
-        assert_eq!(ex.explanation.to_string_vec().join(" "), "Create BAI index Fast operation");
+        assert_eq!(
+            ex.explanation.to_string_vec().join(" "),
+            "Create BAI index Fast operation"
+        );
     }
 
     #[test]

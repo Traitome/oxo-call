@@ -4,6 +4,7 @@
 //! and execution.
 
 use crate::config::Config;
+use crate::doc_enhancer::DocEnhancer;
 use crate::doc_processor::{DocProcessor, StructuredDoc};
 use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
@@ -57,6 +58,9 @@ pub(crate) struct PrepareResult {
     pub(crate) effective_task: String,
     /// Structured documentation used for flag/subcommand validation, if available.
     pub(crate) structured_doc: Option<StructuredDoc>,
+    /// Enhanced doc analysis with CLI patterns, subcommands, and constraints.
+    #[allow(dead_code)]
+    pub(crate) enhanced_analysis: Option<crate::doc_enhancer::EnhancedDocAnalysis>,
 }
 
 pub struct Runner {
@@ -230,7 +234,11 @@ impl Runner {
     ///
     /// Returns the raw ToolDocs object for StructuredDoc processing,
     /// then callers can compress as needed.
-    pub(crate) async fn resolve_docs_raw(&self, tool: &str, task: &str) -> Result<crate::docs::ToolDocs> {
+    pub(crate) async fn resolve_docs_raw(
+        &self,
+        tool: &str,
+        task: &str,
+    ) -> Result<crate::docs::ToolDocs> {
         let mut docs = if self.no_cache {
             self.fetcher.fetch_no_cache(tool).await?
         } else {
@@ -252,6 +260,14 @@ impl Runner {
     fn summarize_docs_for_model(&self, docs: &crate::docs::ToolDocs) -> String {
         let model_size = self.config.model_size_category();
         docs.combined_for_model(model_size)
+    }
+
+    fn max_doc_len_for_model(&self) -> usize {
+        match self.config.model_size_category() {
+            "small" => crate::doc_summarizer::MAX_DOC_LEN_SMALL_MODEL,
+            "large" => crate::doc_summarizer::MAX_DOC_LEN_LARGE_MODEL,
+            _ => crate::doc_summarizer::MAX_DOC_LEN_MEDIUM_MODEL,
+        }
     }
 
     /// Core logic: fetch docs + load skill → select workflow mode → run LlmWorkflowExecutor.
@@ -323,10 +339,19 @@ impl Runner {
         // ── Build StructuredDoc from RAW docs BEFORE summarization ──
         // This is critical: we need the full documentation to extract flags and examples.
         // Summarization happens AFTER StructuredDoc creation, so flag_catalog remains accurate.
-        let structured_doc = if let Some(ref docs) = tool_docs {
+        let (structured_doc, enhanced_analysis) = if let Some(ref docs) = tool_docs {
             let raw_docs = docs.combined(); // Full documentation, not summarized
             let processor = DocProcessor::new();
             let sdoc = processor.clean_and_structure(&raw_docs);
+
+            // Use DocEnhancer for enhanced analysis (CLI pattern detection, subcommand detection, etc.)
+            let enhancer = if self.config.docs.rag.enabled {
+                DocEnhancer::with_rag()
+            } else {
+                DocEnhancer::new()
+            };
+            let analysis = enhancer.analyze(&raw_docs, tool, task);
+
             if self.verbose {
                 eprintln!(
                     "{} Doc analysis: quality={:.2}, flags={}/{} (catalog/quick), {} examples extracted, {} subcommands",
@@ -340,18 +365,120 @@ impl Runner {
                 if !sdoc.commands.is_empty() && sdoc.commands.split(',').count() <= 10 {
                     eprintln!("{} Subcommands: {}", "[verbose]".dimmed(), sdoc.commands);
                 }
+                // Enhanced analysis info
+                eprintln!(
+                    "{} Enhanced analysis: pattern={:?}, valid_flags={}, constraints={}",
+                    "[verbose]".dimmed(),
+                    analysis.cli_pattern,
+                    analysis.valid_flags.len(),
+                    analysis.constraint_graph.required.len()
+                        + analysis.constraint_graph.mutually_exclusive.len(),
+                );
+                if let Some(ref subcmd) = analysis.selected_subcommand {
+                    eprintln!(
+                        "{} Selected subcommand: {}",
+                        "[verbose]".dimmed(),
+                        subcmd.name
+                    );
+                }
             }
-            Some(sdoc)
+            (Some(sdoc), Some(analysis))
         } else {
-            None
+            (None, None)
         };
 
         // Now summarize docs for LLM prompt (model-specific length optimization)
         let docs = if let Some(ref docs_obj) = tool_docs {
             let summarized = self.summarize_docs_for_model(docs_obj);
+
+            // Build structured header from raw docs (usage lines, valid flags, subcommands)
+            let raw_docs = docs_obj.combined();
+            let structured_header =
+                crate::doc_summarizer::build_structured_summary(&raw_docs, tool);
+
+            // Inject enhanced analysis constraints into documentation
+            let enhanced_docs = if let Some(ref analysis) = enhanced_analysis {
+                let mut enhanced = summarized.clone();
+
+                // Add CLI pattern guidance
+                if let crate::cli_pattern::CliPattern::Subcommand { .. } = &analysis.cli_pattern {
+                    enhanced.push_str("\n\n=== CRITICAL: SUBCOMMAND REQUIRED ===\n");
+                    enhanced.push_str("This tool REQUIRES a subcommand as the FIRST argument.\n");
+                    if let Some(ref subcmd) = analysis.selected_subcommand {
+                        enhanced.push_str(&format!(
+                            "RECOMMENDED subcommand for this task: '{}'\n",
+                            subcmd.name
+                        ));
+                    }
+                    enhanced.push_str(&format!(
+                        "Available subcommands: {}\n",
+                        analysis
+                            .subcommands
+                            .iter()
+                            .map(|s| s.name.clone())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ));
+                }
+
+                // Add valid flags whitelist (only if structured_header doesn't already have it)
+                if !analysis.valid_flags.is_empty() && !structured_header.contains("VALID FLAGS") {
+                    enhanced.push_str("\n\n=== VALID FLAGS (use ONLY these) ===\n");
+                    let flags_preview: Vec<_> = analysis
+                        .valid_flags
+                        .iter()
+                        .take(20)
+                        .map(|s| s.as_str())
+                        .collect();
+                    enhanced.push_str(&flags_preview.join(", "));
+                    enhanced.push('\n');
+                }
+
+                // Add constraint information
+                if !analysis.constraint_graph.required.is_empty() {
+                    enhanced.push_str("\n=== REQUIRED PARAMETERS ===\n");
+                    for constraint in &analysis.constraint_graph.required {
+                        enhanced.push_str(&format!("- {:?}\n", constraint));
+                    }
+                }
+
+                if !analysis.constraint_graph.mutually_exclusive.is_empty() {
+                    enhanced.push_str("\n=== MUTUALLY EXCLUSIVE (don't use together) ===\n");
+                    for group in &analysis.constraint_graph.mutually_exclusive {
+                        enhanced.push_str(&format!("- {}\n", group.join(" vs ")));
+                    }
+                }
+
+                enhanced
+            } else {
+                summarized
+            };
+
+            // Prepend structured header (usage lines, valid flags, subcommands)
+            // This is the most critical information for the LLM.
+            // Ensure total doesn't exceed model budget by trimming body if needed.
+            let final_docs = if structured_header.is_empty() {
+                enhanced_docs
+            } else {
+                let max_doc_len = self.max_doc_len_for_model();
+                let header_len = structured_header.len() + 2; // +2 for "\n\n"
+                if header_len + enhanced_docs.len() <= max_doc_len {
+                    format!("{}\n\n{}", structured_header, enhanced_docs)
+                } else {
+                    // Trim body to fit header + body within budget
+                    let body_budget = max_doc_len.saturating_sub(header_len);
+                    let trimmed_body = if enhanced_docs.len() > body_budget {
+                        enhanced_docs[..body_budget].to_string()
+                    } else {
+                        enhanced_docs
+                    };
+                    format!("{}\n\n{}", structured_header, trimmed_body)
+                }
+            };
+
             if self.verbose {
                 let original_len = docs_obj.combined().len();
-                let summarized_len = summarized.len();
+                let summarized_len = final_docs.len();
                 let reduction = if original_len > 0 {
                     (1.0 - summarized_len as f64 / original_len as f64) * 100.0
                 } else {
@@ -366,7 +493,7 @@ impl Runner {
                     self.config.model_size_category()
                 );
             }
-            summarized
+            final_docs
         } else {
             String::new()
         };
@@ -624,7 +751,26 @@ impl Runner {
             );
         }
 
-        let suggestion = wf_result.suggestion;
+        let mut suggestion = wf_result.suggestion;
+
+        // Apply benchmark-driven command corrections
+        let corrector = crate::command_corrector::CommandCorrector::new();
+        let original_args_str = suggestion.args.join(" ");
+        if let Some(corrected_args) = corrector.correct(tool, &original_args_str, task) {
+            if self.verbose {
+                eprintln!(
+                    "{} Command corrected: '{}' -> '{}'",
+                    "[verbose]".dimmed(),
+                    original_args_str,
+                    corrected_args
+                );
+            }
+            // Parse corrected args back into Vec<String>
+            suggestion.args = corrected_args
+                .split_whitespace()
+                .map(String::from)
+                .collect();
+        }
 
         Ok(PrepareResult {
             suggestion,
@@ -636,6 +782,7 @@ impl Runner {
                 task.to_string()
             },
             structured_doc,
+            enhanced_analysis,
         })
     }
 
@@ -645,6 +792,7 @@ impl Runner {
     /// be sent over SSH, while keeping display logic in the caller.
     pub async fn generate_command(&self, tool: &str, task: &str) -> Result<GeneratedCommand> {
         let result = self.prepare(tool, task).await?;
+        // Corrections are now applied in prepare()
         let full_cmd = build_command_string(tool, &result.suggestion.args);
         Ok(GeneratedCommand {
             full_cmd,

@@ -501,7 +501,10 @@ impl DocsFetcher {
         // This handles cases where tasks don't explicitly mention subcommand names.
         if let Some(inferred_subcmd) = infer_subcommand_from_domain(tool, task) {
             // Check if inferred subcommand exists in the tool's subcommand list
-            if subcommands.iter().any(|sc| sc.to_lowercase() == inferred_subcmd.to_lowercase()) {
+            if subcommands
+                .iter()
+                .any(|sc| sc.to_lowercase() == inferred_subcmd.to_lowercase())
+            {
                 // Try to fetch help for the inferred subcommand
                 if let Ok(help) = self
                     .run_help_flag(tool, &format!("{inferred_subcmd} --help"))
@@ -1008,7 +1011,10 @@ fn extract_useful_output(tool: &str, stdout: &[u8], stderr: &[u8]) -> Result<Str
     if trimmed.len() < MIN_HELP_LEN {
         return Err(OxoError::DocFetchError(
             tool.to_string(),
-            format!("Output too short ({} chars) to be useful help text", trimmed.len()),
+            format!(
+                "Output too short ({} chars) to be useful help text",
+                trimmed.len()
+            ),
         ));
     }
 
@@ -1041,6 +1047,8 @@ fn is_likely_error(text: &str) -> bool {
     lower.contains("unrecognized command")
         || lower.contains("unknown command")
         || lower.contains("no such")
+        || lower.contains("invalid option")
+        || lower.contains("unrecognized option")
         // pixi/binary wrapper error patterns
         || lower.contains("error: unknown command")
         || lower.contains("error: unrecognized")
@@ -1305,6 +1313,9 @@ fn truncate_doc(s: &str) -> String {
 fn clean_help_output(help: &str) -> String {
     let lines: Vec<&str> = help.lines().collect();
 
+    // Pre-compile regex for timezone cleaning (used inside the loop)
+    let timezone_re = regex::Regex::new(r"\s+[+-]\d{4}\s*$").unwrap();
+
     // Patterns that indicate noise lines to remove.
     // These are heuristics based on common bioinformatics tool output patterns.
     let noise_prefixes: &[&str] = &[
@@ -1394,7 +1405,15 @@ fn clean_help_output(help: &str) -> String {
             consecutive_blank = 0;
         }
 
-        cleaned.push(line);
+        // Clean version lines that contain timezone info (e.g., "-0500")
+        // These can be misinterpreted as flags by LLMs
+        let cleaned_line = if trimmed.contains("version") || trimmed.contains("Version") {
+            timezone_re.replace(line, "").to_string()
+        } else {
+            line.to_string()
+        };
+
+        cleaned.push(cleaned_line);
     }
 
     let result = cleaned.join("\n");

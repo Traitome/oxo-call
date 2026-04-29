@@ -521,8 +521,7 @@ impl ChatSession {
     fn build_general_system_prompt(&self) -> String {
         match self.scenario {
             ChatScenario::Bare => String::new(),
-            _ => "Reply with ONLY 1-2 sentences. Maximum 20 words. No preamble."
-                .to_string(),
+            _ => "Reply with ONLY 1-2 sentences. Maximum 20 words. No preamble.".to_string(),
         }
     }
 
@@ -1047,10 +1046,10 @@ mod tests {
                 "General system prompt should not be empty for scenario {:?}",
                 session.scenario_name()
             );
-            // Should mention shell/CLI awareness
+            // Should mention brevity
             assert!(
-                prompt.contains("shell") || prompt.contains("command"),
-                "General prompt should mention shell/command awareness: {prompt}"
+                prompt.contains("sentence") || prompt.contains("word"),
+                "General prompt should mention brevity: {prompt}"
             );
         }
     }
