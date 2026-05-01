@@ -95,7 +95,7 @@ fn resolve_global(tool: &str) -> Result<ToolRecord> {
 
     let interpreter = global_path
         .as_ref()
-        .map(|p| detect_interpreter(p))
+        .map(detect_interpreter)
         .unwrap_or(Interpreter::None);
 
     let version = detect_version(tool, &interpreter);
@@ -180,10 +180,10 @@ fn detect_interpreter(path: &PathBuf) -> Interpreter {
 }
 
 fn resolve_shebang_interpreter(shebang: &str, name: &str) -> PathBuf {
-    if shebang.contains("/usr/bin/env") {
-        if let Some(part) = shebang.split_whitespace().find(|p| p.contains(name)) {
-            return PathBuf::from(part);
-        }
+    if shebang.contains("/usr/bin/env")
+        && let Some(part) = shebang.split_whitespace().find(|p| p.contains(name))
+    {
+        return PathBuf::from(part);
     }
     let parts: Vec<&str> = shebang.split_whitespace().collect();
     if let Some(first) = parts.first() {
@@ -205,15 +205,15 @@ fn detect_version(tool: &str, interpreter: &Interpreter) -> Option<String> {
 
 fn try_detect_version(tool: &str, flags: &[&str]) -> Option<String> {
     for flag in flags {
-        if let Ok(output) = std::process::Command::new(tool).arg(flag).output() {
-            if output.status.success() || output.status.code() == Some(0) {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                let combined = format!("{stdout}{stderr}");
-                let first_line = combined.lines().next().unwrap_or("").trim();
-                if !first_line.is_empty() && first_line.len() < 200 {
-                    return Some(first_line.to_string());
-                }
+        if let Ok(output) = std::process::Command::new(tool).arg(flag).output()
+            && (output.status.success() || output.status.code() == Some(0))
+        {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let combined = format!("{stdout}{stderr}");
+            let first_line = combined.lines().next().unwrap_or("").trim();
+            if !first_line.is_empty() && first_line.len() < 200 {
+                return Some(first_line.to_string());
             }
         }
     }

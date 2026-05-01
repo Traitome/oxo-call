@@ -44,24 +44,24 @@ impl DocExplorer {
 
         let mut subcommand_helps = HashMap::new();
 
-        if let Some(ref schema) = cli_schema {
-            if !schema.subcommands.is_empty() {
-                let selected = schema.select_subcommand(task);
-                let subcmds_to_fetch = if let Some(sel) = selected {
-                    vec![sel.name.clone()]
-                } else {
-                    schema
-                        .subcommands
-                        .iter()
-                        .take(10)
-                        .map(|s| s.name.clone())
-                        .collect()
-                };
+        if let Some(ref schema) = cli_schema
+            && !schema.subcommands.is_empty()
+        {
+            let selected = schema.select_subcommand(task);
+            let subcmds_to_fetch = if let Some(sel) = selected {
+                vec![sel.name.clone()]
+            } else {
+                schema
+                    .subcommands
+                    .iter()
+                    .take(10)
+                    .map(|s| s.name.clone())
+                    .collect()
+            };
 
-                for subcmd_name in subcmds_to_fetch {
-                    if let Some(help) = self.fetch_subcommand_help(tool, &subcmd_name).await {
-                        subcommand_helps.insert(subcmd_name.clone(), help);
-                    }
+            for subcmd_name in subcmds_to_fetch {
+                if let Some(help) = self.fetch_subcommand_help(tool, &subcmd_name).await {
+                    subcommand_helps.insert(subcmd_name.clone(), help);
                 }
             }
         }
@@ -103,10 +103,10 @@ impl DocExplorer {
                 self.run_with_flag(tool, flag).await
             };
 
-            if let Some(output) = result {
-                if is_valid_help(&output) {
-                    return Some(output);
-                }
+            if let Some(output) = result
+                && is_valid_help(&output)
+            {
+                return Some(output);
             }
         }
 
@@ -131,10 +131,10 @@ impl DocExplorer {
                 self.run_with_args(tool, &parts).await
             };
 
-            if let Some(output) = result {
-                if is_valid_help(&output) {
-                    return Some(output);
-                }
+            if let Some(output) = result
+                && is_valid_help(&output)
+            {
+                return Some(output);
             }
         }
 
@@ -295,41 +295,41 @@ pub fn build_tool_doc(
 
     let mut subcommand_docs = Vec::new();
 
-    if let Some(schema) = cli_schema {
-        if !schema.subcommands.is_empty() {
-            subcommand_docs = schema
-                .subcommands
-                .iter()
-                .map(|s| {
-                    let mut doc = SubcommandDoc::from(s.clone());
-                    if let Some(help) = subcommand_helps.get(&s.name) {
-                        let sub_schema = parse_help(&format!("{} {}", tool, s.name), help);
-                        if !sub_schema.flags.is_empty() {
-                            doc.flags = sub_schema
-                                .flags
-                                .into_iter()
-                                .map(|f| {
-                                    let mut fd = FlagDoc::from(f);
-                                    fd.category = categorize_flag(&fd.name, &fd.description);
-                                    fd
-                                })
-                                .collect();
-                        }
-                        if !sub_schema.positionals.is_empty() {
-                            doc.positionals = sub_schema
-                                .positionals
-                                .into_iter()
-                                .map(|p| PositionalDoc::from(p.clone()))
-                                .collect();
-                        }
-                        if !sub_schema.usage_summary.is_empty() && doc.usage_pattern.is_empty() {
-                            doc.usage_pattern = sub_schema.usage_summary;
-                        }
+    if let Some(schema) = cli_schema
+        && !schema.subcommands.is_empty()
+    {
+        subcommand_docs = schema
+            .subcommands
+            .iter()
+            .map(|s| {
+                let mut doc = SubcommandDoc::from(s.clone());
+                if let Some(help) = subcommand_helps.get(&s.name) {
+                    let sub_schema = parse_help(&format!("{} {}", tool, s.name), help);
+                    if !sub_schema.flags.is_empty() {
+                        doc.flags = sub_schema
+                            .flags
+                            .into_iter()
+                            .map(|f| {
+                                let mut fd = FlagDoc::from(f);
+                                fd.category = categorize_flag(&fd.name, &fd.description);
+                                fd
+                            })
+                            .collect();
                     }
-                    doc
-                })
-                .collect();
-        }
+                    if !sub_schema.positionals.is_empty() {
+                        doc.positionals = sub_schema
+                            .positionals
+                            .into_iter()
+                            .map(|p| PositionalDoc::from(p.clone()))
+                            .collect();
+                    }
+                    if !sub_schema.usage_summary.is_empty() && doc.usage_pattern.is_empty() {
+                        doc.usage_pattern = sub_schema.usage_summary;
+                    }
+                }
+                doc
+            })
+            .collect();
     }
 
     let (cli_style, description, schema_source, doc_quality) = if let Some(schema) = cli_schema {

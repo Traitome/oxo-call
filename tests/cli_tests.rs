@@ -4784,21 +4784,23 @@ fn test_chat_scenario_bare() {
 }
 
 #[test]
-fn test_chat_scenario_prompt() {
+fn test_chat_scenario_prompt_rejected() {
+    // "prompt" is no longer a valid scenario in v0.13 fused architecture
     let output = oxo_call()
         .args(["chat", "--scenario", "prompt", "--help"])
         .output()
         .expect("failed to run oxo-call");
-    assert!(output.status.success());
+    assert!(!output.status.success());
 }
 
 #[test]
-fn test_chat_scenario_skill() {
+fn test_chat_scenario_skill_rejected() {
+    // "skill" is no longer a valid scenario in v0.13 fused architecture
     let output = oxo_call()
         .args(["chat", "--scenario", "skill", "--help"])
         .output()
         .expect("failed to run oxo-call");
-    assert!(output.status.success());
+    assert!(!output.status.success());
 }
 
 #[test]

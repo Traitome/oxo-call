@@ -873,11 +873,12 @@ mod tests {
         session.handle_command("/scenario bare", &mut tool);
         assert_eq!(session.scenario_name(), "bare");
 
+        // "prompt" and "skill" are removed in v0.13 fused architecture; they are invalid
         session.handle_command("/scenario prompt", &mut tool);
-        assert_eq!(session.scenario_name(), "prompt");
+        assert_eq!(session.scenario_name(), "bare"); // unchanged - invalid scenario
 
         session.handle_command("/scenario skill", &mut tool);
-        assert_eq!(session.scenario_name(), "skill");
+        assert_eq!(session.scenario_name(), "bare"); // unchanged - invalid scenario
 
         session.handle_command("/scenario doc", &mut tool);
         assert_eq!(session.scenario_name(), "doc");

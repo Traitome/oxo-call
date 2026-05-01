@@ -193,10 +193,10 @@ impl Pipeline {
     ) -> String {
         let mut parts = Vec::new();
 
-        if let Some(ref subcmd) = fill.subcommand {
-            if let Some(s) = doc.get_subcommand(subcmd) {
-                parts.push(format!("Using subcommand '{}': {}", subcmd, s.description));
-            }
+        if let Some(ref subcmd) = fill.subcommand
+            && let Some(s) = doc.get_subcommand(subcmd)
+        {
+            parts.push(format!("Using subcommand '{}': {}", subcmd, s.description));
         }
 
         for (flag, value) in &fill.flags {

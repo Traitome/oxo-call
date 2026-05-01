@@ -308,14 +308,12 @@ Interactive mode features:\n  \
   - Markdown rendering with syntax highlighting\n\n\
 Scenarios control what context is injected:\n  \
   --scenario bare   : plain chat (no prompt/docs/skill)\n  \
-  --scenario prompt : oxo-call system prompt only\n  \
-  --scenario skill  : load skill file only (tool mode)\n  \
   --scenario doc    : load tool documentation only (tool mode)\n  \
   --scenario full   : load everything (default)\n\n\
 EXAMPLES:\n  \
   oxo-call chat 'How do I create files starting with result in the current dir?'\n  \
   oxo-call chat samtools 'Explain the difference between SAM and BAM'\n  \
-  oxo-call chat --scenario skill bwa 'What are common pitfalls?'\n  \
+  oxo-call chat --scenario doc bwa 'What are common pitfalls?'\n  \
   oxo-call chat -i\n  \
   oxo-call chat -i gatk\n  \
   oxo-call chat --model gpt-4 samtools 'How to extract unmapped reads?'"
@@ -336,7 +334,7 @@ EXAMPLES:\n  \
         /// Skip cached documentation and fetch fresh --help output
         #[arg(long)]
         no_cache: bool,
-        /// Scenario mode: bare, prompt, skill, doc, full (default: full)
+        /// Scenario mode: bare, doc, full (default: full)
         #[arg(long, value_enum, default_value = "full")]
         scenario: ChatScenario,
         /// Output result as JSON (non-interactive mode only)

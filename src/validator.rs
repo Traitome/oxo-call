@@ -38,6 +38,12 @@ impl ValidationResult {
 
 pub struct Validator;
 
+impl Default for Validator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Validator {
     pub fn new() -> Self {
         Self
@@ -218,7 +224,7 @@ impl Validator {
                     let has_a = fill.flags.keys().any(|k| k == a);
                     if has_a {
                         let b_val = fill.flags.get(b);
-                        if b_val.map_or(true, |v| v != val) {
+                        if b_val.is_none_or(|v| v != val) {
                             errors.push(format!("Flag {} requires {}={}", a, b, val));
                         }
                     }

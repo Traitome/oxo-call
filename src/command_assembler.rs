@@ -5,6 +5,12 @@ use crate::tool_resolver::ToolRecord;
 
 pub struct CommandAssembler;
 
+impl Default for CommandAssembler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CommandAssembler {
     pub fn new() -> Self {
         Self

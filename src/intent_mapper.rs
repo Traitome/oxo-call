@@ -13,6 +13,12 @@ pub struct LlmCommandFill {
 
 pub struct IntentMapper;
 
+impl Default for IntentMapper {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl IntentMapper {
     pub fn new() -> Self {
         Self

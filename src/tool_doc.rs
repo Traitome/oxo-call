@@ -154,7 +154,7 @@ impl ToolDoc {
                 }
             }
 
-            if score > 0 && best.map_or(true, |(_, s)| score > s) {
+            if score > 0 && best.is_none_or(|(_, s)| score > s) {
                 best = Some((subcmd, score));
             }
         }
