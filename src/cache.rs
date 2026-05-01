@@ -747,7 +747,10 @@ mod tests {
     fn test_compute_hash_both_docs_and_skill() {
         let h1 = LlmCache::compute_hash("tool", "task", Some("docs"), Some("skill"), "model");
         let h2 = LlmCache::compute_hash("tool", "task", Some("docs"), None, "model");
-        assert_ne!(h1, h2, "skill_name should affect hash when docs_hash present");
+        assert_ne!(
+            h1, h2,
+            "skill_name should affect hash when docs_hash present"
+        );
     }
 
     #[test]

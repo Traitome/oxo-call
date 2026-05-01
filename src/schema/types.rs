@@ -901,10 +901,22 @@ mod tests {
 
     #[test]
     fn test_cli_style_argument_order() {
-        assert_eq!(CliStyle::Subcommand.argument_order(), ArgumentOrder::SubcommandFlagsPositionals);
-        assert_eq!(CliStyle::FlagsFirst.argument_order(), ArgumentOrder::FlagsPositionals);
-        assert_eq!(CliStyle::Positional.argument_order(), ArgumentOrder::PositionalsFlags);
-        assert_eq!(CliStyle::Hybrid.argument_order(), ArgumentOrder::PositionalsFlagsPositionals);
+        assert_eq!(
+            CliStyle::Subcommand.argument_order(),
+            ArgumentOrder::SubcommandFlagsPositionals
+        );
+        assert_eq!(
+            CliStyle::FlagsFirst.argument_order(),
+            ArgumentOrder::FlagsPositionals
+        );
+        assert_eq!(
+            CliStyle::Positional.argument_order(),
+            ArgumentOrder::PositionalsFlags
+        );
+        assert_eq!(
+            CliStyle::Hybrid.argument_order(),
+            ArgumentOrder::PositionalsFlagsPositionals
+        );
     }
 
     #[test]
@@ -929,7 +941,10 @@ mod tests {
         assert_eq!(ParamType::String.llm_hint(), "text");
         assert_eq!(ParamType::File.llm_hint(), "file path");
         assert_eq!(ParamType::Bool.llm_hint(), "boolean (no value needed)");
-        assert_eq!(ParamType::Enum(vec!["a".to_string(), "b".to_string()]).llm_hint(), "one of: a|b");
+        assert_eq!(
+            ParamType::Enum(vec!["a".to_string(), "b".to_string()]).llm_hint(),
+            "one of: a|b"
+        );
     }
 
     #[test]
@@ -1164,7 +1179,12 @@ mod tests {
         };
         let result = schema.validate_args(&["index".to_string()], Some("mem"));
         assert!(!result.is_valid);
-        assert!(result.errors.iter().any(|e| matches!(e, ValidationError::WrongSubcommand { .. })));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| matches!(e, ValidationError::WrongSubcommand { .. }))
+        );
     }
 
     #[test]
@@ -1193,7 +1213,12 @@ mod tests {
         };
         let result = schema.validate_args(&[], Some("mem"));
         assert!(!result.is_valid);
-        assert!(result.errors.iter().any(|e| matches!(e, ValidationError::MissingSubcommand { .. })));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| matches!(e, ValidationError::MissingSubcommand { .. }))
+        );
     }
 
     #[test]
@@ -1247,7 +1272,12 @@ mod tests {
         };
         let result = schema.validate_args(&["-a".to_string()], None);
         assert!(!result.is_valid);
-        assert!(result.errors.iter().any(|e| matches!(e, ValidationError::ConstraintViolation { .. })));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| matches!(e, ValidationError::ConstraintViolation { .. }))
+        );
     }
 
     #[test]
@@ -1262,7 +1292,10 @@ mod tests {
             flags: vec![],
             positionals: vec![],
             usage_summary: String::new(),
-            constraints: vec![ConstraintRule::AtLeastOne(vec!["-a".to_string(), "-b".to_string()])],
+            constraints: vec![ConstraintRule::AtLeastOne(vec![
+                "-a".to_string(),
+                "-b".to_string(),
+            ])],
             doc_quality: 0.5,
             schema_source: "test".to_string(),
         };
@@ -1282,7 +1315,10 @@ mod tests {
             flags: vec![],
             positionals: vec![],
             usage_summary: String::new(),
-            constraints: vec![ConstraintRule::AllRequired(vec!["-a".to_string(), "-b".to_string()])],
+            constraints: vec![ConstraintRule::AllRequired(vec![
+                "-a".to_string(),
+                "-b".to_string(),
+            ])],
             doc_quality: 0.5,
             schema_source: "test".to_string(),
         };
@@ -1302,7 +1338,10 @@ mod tests {
             flags: vec![],
             positionals: vec![],
             usage_summary: String::new(),
-            constraints: vec![ConstraintRule::MutuallyExclusive("-a".to_string(), "-b".to_string())],
+            constraints: vec![ConstraintRule::MutuallyExclusive(
+                "-a".to_string(),
+                "-b".to_string(),
+            )],
             doc_quality: 0.5,
             schema_source: "test".to_string(),
         };
@@ -1352,7 +1391,12 @@ mod tests {
         };
         let result = schema.validate_args(&["run".to_string()], Some("run"));
         assert!(!result.is_valid);
-        assert!(result.errors.iter().any(|e| matches!(e, ValidationError::MissingRequiredFlag { .. })));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| matches!(e, ValidationError::MissingRequiredFlag { .. }))
+        );
     }
 
     #[test]
@@ -1360,13 +1404,32 @@ mod tests {
         let result = ValidationResult {
             is_valid: false,
             errors: vec![
-                ValidationError::InvalidFlag { flag: "-x".to_string(), valid_flags: vec![] },
-                ValidationError::MissingRequiredFlag { flag: "-i".to_string() },
-                ValidationError::MissingSubcommand { expected: "mem".to_string() },
-                ValidationError::WrongSubcommand { expected: "mem".to_string(), actual: "index".to_string() },
-                ValidationError::ConstraintViolation { message: "test constraint".to_string() },
-                ValidationError::WrongValueType { flag: "-t".to_string(), expected_type: "Int".to_string(), actual_value: "abc".to_string() },
-                ValidationError::MissingPositional { position: 0, name: "INPUT".to_string() },
+                ValidationError::InvalidFlag {
+                    flag: "-x".to_string(),
+                    valid_flags: vec![],
+                },
+                ValidationError::MissingRequiredFlag {
+                    flag: "-i".to_string(),
+                },
+                ValidationError::MissingSubcommand {
+                    expected: "mem".to_string(),
+                },
+                ValidationError::WrongSubcommand {
+                    expected: "mem".to_string(),
+                    actual: "index".to_string(),
+                },
+                ValidationError::ConstraintViolation {
+                    message: "test constraint".to_string(),
+                },
+                ValidationError::WrongValueType {
+                    flag: "-t".to_string(),
+                    expected_type: "Int".to_string(),
+                    actual_value: "abc".to_string(),
+                },
+                ValidationError::MissingPositional {
+                    position: 0,
+                    name: "INPUT".to_string(),
+                },
             ],
             warnings: Vec::new(),
             used_flags: Vec::new(),

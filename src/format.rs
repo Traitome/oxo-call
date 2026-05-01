@@ -507,12 +507,7 @@ mod tests {
 
     #[test]
     fn test_check_output_format_flag_bam() {
-        let args: Vec<String> = vec![
-            "view".into(),
-            "-O".into(),
-            "bam".into(),
-            "input.sam".into(),
-        ];
+        let args: Vec<String> = vec!["view".into(), "-O".into(), "bam".into(), "input.sam".into()];
         let warnings = validate_format_compatibility(&args);
         assert!(warnings.is_empty() || !warnings.iter().any(|w| w.message.contains("BAM")));
     }

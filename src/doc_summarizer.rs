@@ -782,7 +782,8 @@ mod tests {
 
     #[test]
     fn test_build_structured_summary_no_subcommands() {
-        let doc = "Usage: fastp -i input -o output\n\nOptions:\n  -i FILE  Input\n  -o FILE  Output";
+        let doc =
+            "Usage: fastp -i input -o output\n\nOptions:\n  -i FILE  Input\n  -o FILE  Output";
         let result = build_structured_summary(doc, "fastp");
         assert!(result.contains("DIRECT FLAGS"));
     }
@@ -854,7 +855,8 @@ mod tests {
 
     #[test]
     fn test_format_section_content_priority_zero() {
-        let content = "tool [options] <input>\nAnother line\nThird line\nFourth line\nFifth line\nSixth line";
+        let content =
+            "tool [options] <input>\nAnother line\nThird line\nFourth line\nFifth line\nSixth line";
         let result = format_section_content(content, 0);
         assert!(result.contains(">>>"));
     }
@@ -869,7 +871,8 @@ mod tests {
 
     #[test]
     fn test_format_section_content_priority_three() {
-        let content = "-o FILE  Output\n-v       Verbose\n  Some description\nAnother line\nLast line";
+        let content =
+            "-o FILE  Output\n-v       Verbose\n  Some description\nAnother line\nLast line";
         let result = format_section_content(content, 3);
         assert!(result.contains("-o"));
     }
@@ -886,7 +889,10 @@ mod tests {
     fn test_build_llm_optimized_summary_with_flags() {
         let sections = vec![
             ("Usage".to_string(), "tool [options] input".to_string()),
-            ("Options".to_string(), "-v  Verbose\n-o FILE  Output".to_string()),
+            (
+                "Options".to_string(),
+                "-v  Verbose\n-o FILE  Output".to_string(),
+            ),
         ];
         let result = build_llm_optimized_summary(&sections, 5000);
         assert!(result.contains("USAGE"));
@@ -897,7 +903,10 @@ mod tests {
     fn test_build_llm_optimized_summary_truncates_at_max() {
         let sections = vec![
             ("Usage".to_string(), "tool [options] input".to_string()),
-            ("Options".to_string(), "-v  Verbose\n-o FILE  Output".to_string()),
+            (
+                "Options".to_string(),
+                "-v  Verbose\n-o FILE  Output".to_string(),
+            ),
         ];
         let result = build_llm_optimized_summary(&sections, 50);
         assert!(result.len() <= 100);
@@ -905,12 +914,17 @@ mod tests {
 
     #[test]
     fn test_extract_flags_from_sections() {
-        let sections = vec![
-            ("Options".to_string(), "-v  Verbose\n-o FILE  Output\n--threads INT  Threads".to_string()),
-        ];
+        let sections = vec![(
+            "Options".to_string(),
+            "-v  Verbose\n-o FILE  Output\n--threads INT  Threads".to_string(),
+        )];
         let flags = extract_flags_from_sections(&sections);
         assert!(!flags.is_empty());
-        assert!(flags.iter().any(|f| f == "-v" || f == "-o" || f == "--threads"));
+        assert!(
+            flags
+                .iter()
+                .any(|f| f == "-v" || f == "-o" || f == "--threads")
+        );
     }
 
     #[test]

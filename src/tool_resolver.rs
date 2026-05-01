@@ -95,7 +95,7 @@ fn resolve_global(tool: &str) -> Result<ToolRecord> {
 
     let interpreter = global_path
         .as_ref()
-        .map(|p| detect_interpreter(p))
+        .map(detect_interpreter)
         .unwrap_or(Interpreter::None);
 
     let version = detect_version(tool, &interpreter);
@@ -104,9 +104,7 @@ fn resolve_global(tool: &str) -> Result<ToolRecord> {
 
     Ok(ToolRecord {
         name: tool.to_string(),
-        resolved_path: global_path
-            .clone()
-            .unwrap_or_else(|| PathBuf::from(tool)),
+        resolved_path: global_path.clone().unwrap_or_else(|| PathBuf::from(tool)),
         interpreter: if global_path.is_some() {
             Some(interpreter)
         } else {
@@ -182,10 +180,10 @@ fn detect_interpreter(path: &PathBuf) -> Interpreter {
 }
 
 fn resolve_shebang_interpreter(shebang: &str, name: &str) -> PathBuf {
-    if shebang.contains("/usr/bin/env") {
-        if let Some(part) = shebang.split_whitespace().find(|p| p.contains(name)) {
-            return PathBuf::from(part);
-        }
+    if shebang.contains("/usr/bin/env")
+        && let Some(part) = shebang.split_whitespace().find(|p| p.contains(name))
+    {
+        return PathBuf::from(part);
     }
     let parts: Vec<&str> = shebang.split_whitespace().collect();
     if let Some(first) = parts.first() {
@@ -207,18 +205,15 @@ fn detect_version(tool: &str, interpreter: &Interpreter) -> Option<String> {
 
 fn try_detect_version(tool: &str, flags: &[&str]) -> Option<String> {
     for flag in flags {
-        if let Ok(output) = std::process::Command::new(tool)
-            .arg(flag)
-            .output()
+        if let Ok(output) = std::process::Command::new(tool).arg(flag).output()
+            && (output.status.success() || output.status.code() == Some(0))
         {
-            if output.status.success() || output.status.code() == Some(0) {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                let combined = format!("{stdout}{stderr}");
-                let first_line = combined.lines().next().unwrap_or("").trim();
-                if !first_line.is_empty() && first_line.len() < 200 {
-                    return Some(first_line.to_string());
-                }
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let combined = format!("{stdout}{stderr}");
+            let first_line = combined.lines().next().unwrap_or("").trim();
+            if !first_line.is_empty() && first_line.len() < 200 {
+                return Some(first_line.to_string());
             }
         }
     }
@@ -266,10 +261,7 @@ fn discover_companions(tool: &str) -> Vec<String> {
                     }
                     Some('.') => {
                         let rest = &suffix[1..];
-                        matches!(
-                            rest,
-                            "py" | "sh" | "pl" | "R" | "rb" | "jl"
-                        )
+                        matches!(rest, "py" | "sh" | "pl" | "R" | "rb" | "jl")
                     }
                     _ => false,
                 };
@@ -338,8 +330,10 @@ mod tests {
     fn test_discover_companions_bowtie2() {
         if which_tool("bowtie2").is_some() {
             let companions = discover_companions("bowtie2");
-            assert!(companions.contains(&"bowtie2-build".to_string())
-                || companions.contains(&"bowtie2-inspect".to_string()));
+            assert!(
+                companions.contains(&"bowtie2-build".to_string())
+                    || companions.contains(&"bowtie2-inspect".to_string())
+            );
         }
     }
 
@@ -362,7 +356,9 @@ mod tests {
         let record = ToolRecord {
             name: "./run.sh".to_string(),
             resolved_path: PathBuf::from("/home/user/run.sh"),
-            interpreter: Some(Interpreter::Bash { path: PathBuf::from("/bin/bash") }),
+            interpreter: Some(Interpreter::Bash {
+                path: PathBuf::from("/bin/bash"),
+            }),
             is_path_dependent: true,
             global_path: None,
             version: None,
@@ -513,10 +509,7 @@ mod tests {
         std::fs::create_dir_all(&dir).ok();
         let file_path = dir.join("tool.sh");
         std::fs::File::create(&file_path).ok();
-        let abs = std::env::current_dir()
-            .unwrap()
-            .join(&dir)
-            .join("tool.sh");
+        let abs = std::env::current_dir().unwrap().join(&dir).join("tool.sh");
         if abs.exists() {
             let record = resolve_path_dependent(abs.to_str().unwrap()).unwrap();
             assert!(record.is_path_dependent);
@@ -540,5 +533,103 @@ mod tests {
     fn test_try_detect_version_nonexistent() {
         let result = try_detect_version("nonexistent_tool_xyz_12345", &["--version"]);
         assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_validate_tool_name_with_slash() {
+        // Paths with slashes are allowed (they just make it path-dependent)
+        assert!(validate_tool_name("./my_tool").is_ok());
+        assert!(validate_tool_name("/usr/local/bin/my_tool").is_ok());
+    }
+
+    #[test]
+    fn test_validate_tool_name_only_traversal() {
+        assert!(validate_tool_name("..").is_err());
+    }
+
+    #[test]
+    fn test_is_path_dependent_backslash() {
+        assert!(is_path_dependent("path\\to\\tool"));
+        assert!(!is_path_dependent("tool_name"));
+    }
+
+    #[test]
+    fn test_effective_name_no_global_path() {
+        let record = ToolRecord {
+            name: "my_tool".to_string(),
+            resolved_path: PathBuf::from("/abs/path/my_tool"),
+            interpreter: None,
+            is_path_dependent: false,
+            global_path: None,
+            version: None,
+            companion_tools: Vec::new(),
+        };
+        assert_eq!(record.effective_name(), "my_tool");
+    }
+
+    #[test]
+    fn test_interpreter_variants_debug() {
+        let _ = format!("{:?}", Interpreter::None);
+        let _ = format!(
+            "{:?}",
+            Interpreter::Bash {
+                path: PathBuf::from("/bin/bash")
+            }
+        );
+        let _ = format!(
+            "{:?}",
+            Interpreter::Python {
+                path: PathBuf::from("/usr/bin/python3")
+            }
+        );
+        let _ = format!(
+            "{:?}",
+            Interpreter::Perl {
+                path: PathBuf::from("/usr/bin/perl")
+            }
+        );
+        let _ = format!(
+            "{:?}",
+            Interpreter::Rscript {
+                path: PathBuf::from("/usr/bin/Rscript")
+            }
+        );
+    }
+
+    #[test]
+    fn test_resolve_tool_empty_name_fails() {
+        let result = resolve_tool("");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_resolve_tool_traversal_fails() {
+        let result = resolve_tool("../etc/shadow");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_resolve_tool_nonexistent_path_fails() {
+        let result = resolve_tool("/nonexistent_xyz_12345/tool");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_tool_record_with_companion_tools() {
+        let record = ToolRecord {
+            name: "bowtie2".to_string(),
+            resolved_path: PathBuf::from("/usr/bin/bowtie2"),
+            interpreter: None,
+            is_path_dependent: false,
+            global_path: Some(PathBuf::from("/usr/bin/bowtie2")),
+            version: Some("2.5.0".to_string()),
+            companion_tools: vec!["bowtie2-build".to_string(), "bowtie2-inspect".to_string()],
+        };
+        assert_eq!(record.companion_tools.len(), 2);
+        assert!(
+            record
+                .companion_tools
+                .contains(&"bowtie2-build".to_string())
+        );
     }
 }

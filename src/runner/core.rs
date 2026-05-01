@@ -247,7 +247,8 @@ impl Runner {
 
         if matches!(
             scenario,
-            crate::workflow_graph::WorkflowScenario::Doc | crate::workflow_graph::WorkflowScenario::Full
+            crate::workflow_graph::WorkflowScenario::Doc
+                | crate::workflow_graph::WorkflowScenario::Full
         ) {
             return self.prepare_via_pipeline(tool, task, scenario).await;
         }
@@ -255,7 +256,8 @@ impl Runner {
         let should_load_skill = matches!(scenario, crate::workflow_graph::WorkflowScenario::Full);
         let should_fetch_doc = matches!(
             scenario,
-            crate::workflow_graph::WorkflowScenario::Doc | crate::workflow_graph::WorkflowScenario::Full
+            crate::workflow_graph::WorkflowScenario::Doc
+                | crate::workflow_graph::WorkflowScenario::Full
         );
 
         let skill = if should_load_skill {

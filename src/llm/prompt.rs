@@ -2014,8 +2014,14 @@ mod tests {
             other: String::new(),
             quick_flags: vec!["-i".to_string(), "-o".to_string()],
             flag_catalog: vec![
-                FlagEntry { flag: "-i".to_string(), description: "Input file".to_string() },
-                FlagEntry { flag: "-o".to_string(), description: "Output file".to_string() },
+                FlagEntry {
+                    flag: "-i".to_string(),
+                    description: "Input file".to_string(),
+                },
+                FlagEntry {
+                    flag: "-o".to_string(),
+                    description: "Output file".to_string(),
+                },
             ],
             extracted_examples: vec!["testtool -i input.txt -o output.txt".to_string()],
             quality_score: 0.8,
@@ -2060,41 +2066,98 @@ mod tests {
         assert_eq!(prompt_tier(32000, "model-3b"), PromptTier::Compact);
         assert_eq!(prompt_tier(32000, "model-7b"), PromptTier::Medium);
         assert_eq!(prompt_tier(32000, "model-70b"), PromptTier::Full);
-        assert_eq!(prompt_tier(32000, "qwen2.5-3b-instruct"), PromptTier::Compact);
+        assert_eq!(
+            prompt_tier(32000, "qwen2.5-3b-instruct"),
+            PromptTier::Compact
+        );
     }
 
     #[test]
     fn test_detect_subcommand_from_task_samtools() {
-        assert_eq!(detect_subcommand_from_task("samtools", "sort the bam file"), Some("sort"));
-        assert_eq!(detect_subcommand_from_task("samtools", "view the sam file"), Some("view"));
-        assert_eq!(detect_subcommand_from_task("samtools", "index the bam"), Some("index"));
-        assert_eq!(detect_subcommand_from_task("samtools", "merge bam files"), Some("merge"));
-        assert_eq!(detect_subcommand_from_task("samtools", "check flagstat"), Some("flagstat"));
-        assert_eq!(detect_subcommand_from_task("samtools", "compute depth"), Some("depth"));
-        assert_eq!(detect_subcommand_from_task("samtools", "mark duplicates"), Some("markdup"));
+        assert_eq!(
+            detect_subcommand_from_task("samtools", "sort the bam file"),
+            Some("sort")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("samtools", "view the sam file"),
+            Some("view")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("samtools", "index the bam"),
+            Some("index")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("samtools", "merge bam files"),
+            Some("merge")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("samtools", "check flagstat"),
+            Some("flagstat")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("samtools", "compute depth"),
+            Some("depth")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("samtools", "mark duplicates"),
+            Some("markdup")
+        );
     }
 
     #[test]
     fn test_detect_subcommand_from_task_bwa() {
-        assert_eq!(detect_subcommand_from_task("bwa", "align reads"), Some("mem"));
-        assert_eq!(detect_subcommand_from_task("bwa", "mapping to reference"), Some("mem"));
-        assert_eq!(detect_subcommand_from_task("bwa", "build index"), Some("index"));
+        assert_eq!(
+            detect_subcommand_from_task("bwa", "align reads"),
+            Some("mem")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("bwa", "mapping to reference"),
+            Some("mem")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("bwa", "build index"),
+            Some("index")
+        );
     }
 
     #[test]
     fn test_detect_subcommand_from_task_gatk() {
-        assert_eq!(detect_subcommand_from_task("gatk", "call variants"), Some("HaplotypeCaller"));
-        assert_eq!(detect_subcommand_from_task("gatk", "somatic mutation"), Some("Mutect2"));
-        assert_eq!(detect_subcommand_from_task("gatk", "recalibrate base quality"), Some("BaseRecalibrator"));
-        assert_eq!(detect_subcommand_from_task("gatk", "apply bqsr"), Some("BaseRecalibrator"));
-        assert_eq!(detect_subcommand_from_task("gatk", "mark duplicates"), Some("MarkDuplicates"));
-        assert_eq!(detect_subcommand_from_task("gatk", "sort sam"), Some("SortSam"));
-        assert_eq!(detect_subcommand_from_task("gatk", "merge sam files"), Some("MergeSamFiles"));
+        assert_eq!(
+            detect_subcommand_from_task("gatk", "call variants"),
+            Some("HaplotypeCaller")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("gatk", "somatic mutation"),
+            Some("Mutect2")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("gatk", "recalibrate base quality"),
+            Some("BaseRecalibrator")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("gatk", "apply bqsr"),
+            Some("BaseRecalibrator")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("gatk", "mark duplicates"),
+            Some("MarkDuplicates")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("gatk", "sort sam"),
+            Some("SortSam")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("gatk", "merge sam files"),
+            Some("MergeSamFiles")
+        );
     }
 
     #[test]
     fn test_detect_subcommand_from_task_unknown_tool() {
-        assert_eq!(detect_subcommand_from_task("unknown_tool", "do something"), None);
+        assert_eq!(
+            detect_subcommand_from_task("unknown_tool", "do something"),
+            None
+        );
     }
 
     #[test]
@@ -2105,7 +2168,10 @@ mod tests {
 
     #[test]
     fn test_detect_subcommand_from_task_no_match_returns_first() {
-        assert_eq!(detect_subcommand_from_task("samtools", "do something random"), Some("sort"));
+        assert_eq!(
+            detect_subcommand_from_task("samtools", "do something random"),
+            Some("sort")
+        );
     }
 
     #[test]
@@ -2129,32 +2195,74 @@ mod tests {
 
     #[test]
     fn test_detect_cli_pattern_from_args_subcommand() {
-        assert_eq!(detect_cli_pattern_from_args("sort -o out.bam in.bam"), ("subcommand", "sort".to_string()));
-        assert_eq!(detect_cli_pattern_from_args("view -b input.sam"), ("subcommand", "view".to_string()));
-        assert_eq!(detect_cli_pattern_from_args("mem ref.fa reads.fq"), ("subcommand", "mem".to_string()));
+        assert_eq!(
+            detect_cli_pattern_from_args("sort -o out.bam in.bam"),
+            ("subcommand", "sort".to_string())
+        );
+        assert_eq!(
+            detect_cli_pattern_from_args("view -b input.sam"),
+            ("subcommand", "view".to_string())
+        );
+        assert_eq!(
+            detect_cli_pattern_from_args("mem ref.fa reads.fq"),
+            ("subcommand", "mem".to_string())
+        );
     }
 
     #[test]
     fn test_detect_cli_pattern_from_args_flags() {
-        assert_eq!(detect_cli_pattern_from_args("-i input.fq -o output.fq"), ("flags", "-i".to_string()));
-        assert_eq!(detect_cli_pattern_from_args("--input data.txt"), ("flags", "--input".to_string()));
+        assert_eq!(
+            detect_cli_pattern_from_args("-i input.fq -o output.fq"),
+            ("flags", "-i".to_string())
+        );
+        assert_eq!(
+            detect_cli_pattern_from_args("--input data.txt"),
+            ("flags", "--input".to_string())
+        );
     }
 
     #[test]
     fn test_detect_cli_pattern_from_args_positional() {
-        assert_eq!(detect_cli_pattern_from_args("input.bed 5"), ("positional", "input.bed".to_string()));
-        assert_eq!(detect_cli_pattern_from_args("data.bam"), ("positional", "data.bam".to_string()));
-        assert_eq!(detect_cli_pattern_from_args("reads.fq"), ("positional", "reads.fq".to_string()));
+        assert_eq!(
+            detect_cli_pattern_from_args("input.bed 5"),
+            ("positional", "input.bed".to_string())
+        );
+        assert_eq!(
+            detect_cli_pattern_from_args("data.bam"),
+            ("positional", "data.bam".to_string())
+        );
+        assert_eq!(
+            detect_cli_pattern_from_args("reads.fq"),
+            ("positional", "reads.fq".to_string())
+        );
     }
 
     #[test]
     fn test_detect_cli_pattern_from_args_file_extensions() {
-        assert_eq!(detect_cli_pattern_from_args("genome.fa reads.fq"), ("positional", "genome.fa".to_string()));
-        assert_eq!(detect_cli_pattern_from_args("input.vcf"), ("positional", "input.vcf".to_string()));
-        assert_eq!(detect_cli_pattern_from_args("data.gtf"), ("positional", "data.gtf".to_string()));
-        assert_eq!(detect_cli_pattern_from_args("annotations.gff"), ("positional", "annotations.gff".to_string()));
-        assert_eq!(detect_cli_pattern_from_args("data.fasta"), ("positional", "data.fasta".to_string()));
-        assert_eq!(detect_cli_pattern_from_args("reads.fastq"), ("positional", "reads.fastq".to_string()));
+        assert_eq!(
+            detect_cli_pattern_from_args("genome.fa reads.fq"),
+            ("positional", "genome.fa".to_string())
+        );
+        assert_eq!(
+            detect_cli_pattern_from_args("input.vcf"),
+            ("positional", "input.vcf".to_string())
+        );
+        assert_eq!(
+            detect_cli_pattern_from_args("data.gtf"),
+            ("positional", "data.gtf".to_string())
+        );
+        assert_eq!(
+            detect_cli_pattern_from_args("annotations.gff"),
+            ("positional", "annotations.gff".to_string())
+        );
+        assert_eq!(
+            detect_cli_pattern_from_args("data.fasta"),
+            ("positional", "data.fasta".to_string())
+        );
+        assert_eq!(
+            detect_cli_pattern_from_args("reads.fastq"),
+            ("positional", "reads.fastq".to_string())
+        );
     }
 
     #[test]
@@ -2183,8 +2291,15 @@ mod tests {
     #[test]
     fn test_build_prompt_no_prompt_mode() {
         let result = build_prompt(
-            "testtool", "docs", "do something", None, true, 8000,
-            PromptTier::Full, None, None,
+            "testtool",
+            "docs",
+            "do something",
+            None,
+            true,
+            8000,
+            PromptTier::Full,
+            None,
+            None,
         );
         assert!(result.contains("testtool"));
         assert!(result.contains("do something"));
@@ -2199,8 +2314,15 @@ mod tests {
             explanation: "Sort BAM".to_string(),
         }]);
         let result = build_prompt(
-            "samtools", "docs", "sort the bam", Some(&skill), false, 32000,
-            PromptTier::Full, None, None,
+            "samtools",
+            "docs",
+            "sort the bam",
+            Some(&skill),
+            false,
+            32000,
+            PromptTier::Full,
+            None,
+            None,
         );
         assert!(result.contains("samtools"));
         assert!(result.contains("sort the bam"));
@@ -2210,8 +2332,15 @@ mod tests {
     fn test_build_prompt_full_with_schema() {
         let schema = make_schema();
         let result = build_prompt(
-            "testtool", "docs", "do something", None, false, 32000,
-            PromptTier::Full, None, Some(&schema),
+            "testtool",
+            "docs",
+            "do something",
+            None,
+            false,
+            32000,
+            PromptTier::Full,
+            None,
+            Some(&schema),
         );
         assert!(result.contains("testtool"));
         assert!(result.contains("do something"));
@@ -2221,8 +2350,15 @@ mod tests {
     fn test_build_prompt_full_with_structured_doc() {
         let sdoc = make_sdoc();
         let result = build_prompt(
-            "testtool", "docs", "process input.txt", None, false, 32000,
-            PromptTier::Full, Some(&sdoc), None,
+            "testtool",
+            "docs",
+            "process input.txt",
+            None,
+            false,
+            32000,
+            PromptTier::Full,
+            Some(&sdoc),
+            None,
         );
         assert!(result.contains("testtool"));
         assert!(result.contains("process input.txt"));
@@ -2233,8 +2369,15 @@ mod tests {
     fn test_build_prompt_medium_with_structured_doc() {
         let sdoc = make_sdoc();
         let result = build_prompt(
-            "testtool", "docs", "process input.txt", None, false, 8000,
-            PromptTier::Medium, Some(&sdoc), None,
+            "testtool",
+            "docs",
+            "process input.txt",
+            None,
+            false,
+            8000,
+            PromptTier::Medium,
+            Some(&sdoc),
+            None,
         );
         assert!(result.contains("testtool"));
         assert!(result.contains("process input.txt"));
@@ -2244,8 +2387,15 @@ mod tests {
     fn test_build_prompt_compact_with_structured_doc() {
         let sdoc = make_sdoc();
         let result = build_prompt(
-            "testtool", "docs", "process input.txt", None, false, 3000,
-            PromptTier::Compact, Some(&sdoc), None,
+            "testtool",
+            "docs",
+            "process input.txt",
+            None,
+            false,
+            3000,
+            PromptTier::Compact,
+            Some(&sdoc),
+            None,
         );
         assert!(result.contains("testtool"));
         assert!(result.contains("process input.txt"));
@@ -2259,8 +2409,15 @@ mod tests {
             explanation: "Sort BAM".to_string(),
         }]);
         let result = build_prompt(
-            "samtools", "docs", "sort the bam", Some(&skill), false, 3000,
-            PromptTier::Compact, None, None,
+            "samtools",
+            "docs",
+            "sort the bam",
+            Some(&skill),
+            false,
+            3000,
+            PromptTier::Compact,
+            None,
+            None,
         );
         assert!(result.contains("samtools"));
         assert!(result.contains("sort"));
@@ -2269,8 +2426,15 @@ mod tests {
     #[test]
     fn test_build_prompt_compact_subcommand_detection() {
         let result = build_prompt(
-            "samtools", "docs", "sort the bam file", None, false, 3000,
-            PromptTier::Compact, None, None,
+            "samtools",
+            "docs",
+            "sort the bam file",
+            None,
+            false,
+            3000,
+            PromptTier::Compact,
+            None,
+            None,
         );
         assert!(result.contains("CRITICAL"));
         assert!(result.contains("sort"));
@@ -2280,8 +2444,15 @@ mod tests {
     fn test_build_prompt_sanitizes_backticks() {
         let doc_with_backticks = "Usage: tool ```python\nprint('hello')\n```";
         let result = build_prompt(
-            "testtool", doc_with_backticks, "do something", None, false, 32000,
-            PromptTier::Full, None, None,
+            "testtool",
+            doc_with_backticks,
+            "do something",
+            None,
+            false,
+            32000,
+            PromptTier::Full,
+            None,
+            None,
         );
         assert!(!result.contains("```python"));
         assert!(result.contains("` ` `"));
@@ -2420,8 +2591,12 @@ mod tests {
     #[test]
     fn test_build_verification_prompt() {
         let result = build_verification_prompt(
-            "samtools", "sort bam", "samtools sort -o out.bam in.bam",
-            0, "no errors", &[("out.bam".to_string(), Some(1024))],
+            "samtools",
+            "sort bam",
+            "samtools sort -o out.bam in.bam",
+            0,
+            "no errors",
+            &[("out.bam".to_string(), Some(1024))],
         );
         assert!(result.contains("samtools"));
         assert!(result.contains("sort bam"));
@@ -2434,8 +2609,12 @@ mod tests {
     #[test]
     fn test_build_verification_prompt_missing_output() {
         let result = build_verification_prompt(
-            "samtools", "sort bam", "samtools sort -o out.bam in.bam",
-            1, "error message", &[("missing.bam".to_string(), None)],
+            "samtools",
+            "sort bam",
+            "samtools sort -o out.bam in.bam",
+            1,
+            "error message",
+            &[("missing.bam".to_string(), None)],
         );
         assert!(result.contains("NOT FOUND"));
     }
@@ -2443,9 +2622,7 @@ mod tests {
     #[test]
     fn test_build_verification_prompt_long_stderr() {
         let long_stderr = "x".repeat(5000);
-        let result = build_verification_prompt(
-            "tool", "task", "cmd", 1, &long_stderr, &[],
-        );
+        let result = build_verification_prompt("tool", "task", "cmd", 1, &long_stderr, &[]);
         assert!(result.contains("truncated"));
     }
 
@@ -2496,7 +2673,8 @@ mod tests {
 
     #[test]
     fn test_build_skill_generate_prompt_enhanced_with_skill_content() {
-        let skill_content = "## Workflow\n1. Step one\n2. Step two\n## Concepts\n- Concept 1\n- Concept 2";
+        let skill_content =
+            "## Workflow\n1. Step one\n2. Step two\n## Concepts\n- Concept 1\n- Concept 2";
         let result = build_skill_generate_prompt_enhanced("testtool", None, Some(skill_content));
         assert!(result.contains("testtool"));
     }
@@ -2533,8 +2711,14 @@ mod tests {
     #[test]
     fn test_build_retry_prompt() {
         let result = build_retry_prompt(
-            "testtool", "docs", "do something", None, "bad response",
-            false, 8000, PromptTier::Full,
+            "testtool",
+            "docs",
+            "do something",
+            None,
+            "bad response",
+            false,
+            8000,
+            PromptTier::Full,
         );
         assert!(result.contains("Correction Note"));
         assert!(result.contains("bad response"));
@@ -2543,8 +2727,14 @@ mod tests {
     #[test]
     fn test_build_retry_prompt_compact() {
         let result = build_retry_prompt(
-            "testtool", "docs", "do something", None, "bad response",
-            false, 3000, PromptTier::Compact,
+            "testtool",
+            "docs",
+            "do something",
+            None,
+            "bad response",
+            false,
+            3000,
+            PromptTier::Compact,
         );
         assert!(result.contains("ARGS:"));
         assert!(result.contains("EXPLANATION:"));
@@ -2553,8 +2743,15 @@ mod tests {
     #[test]
     fn test_build_prompt_full_no_skill_no_doc() {
         let result = build_prompt(
-            "testtool", "some docs", "do something", None, false, 32000,
-            PromptTier::Full, None, None,
+            "testtool",
+            "some docs",
+            "do something",
+            None,
+            false,
+            32000,
+            PromptTier::Full,
+            None,
+            None,
         );
         assert!(result.contains("testtool"));
         assert!(result.contains("Learn from Documentation"));
@@ -2568,8 +2765,15 @@ mod tests {
             "testtool -i in2.txt -o out2.txt".to_string(),
         ];
         let result = build_prompt(
-            "testtool", "docs", "process file", None, false, 32000,
-            PromptTier::Full, Some(&sdoc), None,
+            "testtool",
+            "docs",
+            "process file",
+            None,
+            false,
+            32000,
+            PromptTier::Full,
+            Some(&sdoc),
+            None,
         );
         assert!(result.contains("Real Examples"));
     }
@@ -2580,8 +2784,15 @@ mod tests {
         sdoc.extracted_examples = Vec::new();
         sdoc.usage = "testtool [options] INPUT OUTPUT".to_string();
         let result = build_prompt(
-            "testtool", "docs", "process file", None, false, 32000,
-            PromptTier::Full, Some(&sdoc), None,
+            "testtool",
+            "docs",
+            "process file",
+            None,
+            false,
+            32000,
+            PromptTier::Full,
+            Some(&sdoc),
+            None,
         );
         assert!(result.contains("Command Structure"));
     }
@@ -2594,8 +2805,15 @@ mod tests {
             explanation: "Run FastQC".to_string(),
         }]);
         let result = build_prompt(
-            "fastqc", "docs", "quality check", Some(&skill), false, 3000,
-            PromptTier::Compact, None, None,
+            "fastqc",
+            "docs",
+            "quality check",
+            Some(&skill),
+            false,
+            3000,
+            PromptTier::Compact,
+            None,
+            None,
         );
         assert!(result.contains("fastqc"));
         assert!(result.contains("input.fastq"));
@@ -2609,8 +2827,15 @@ mod tests {
             explanation: "Run admixture".to_string(),
         }]);
         let result = build_prompt(
-            "admixture", "docs", "population structure", Some(&skill), false, 3000,
-            PromptTier::Compact, None, None,
+            "admixture",
+            "docs",
+            "population structure",
+            Some(&skill),
+            false,
+            3000,
+            PromptTier::Compact,
+            None,
+            None,
         );
         assert!(result.contains("admixture"));
     }
@@ -2619,8 +2844,15 @@ mod tests {
     fn test_build_prompt_medium_with_schema() {
         let schema = make_schema();
         let result = build_prompt(
-            "testtool", "docs", "do something", None, false, 8000,
-            PromptTier::Medium, None, Some(&schema),
+            "testtool",
+            "docs",
+            "do something",
+            None,
+            false,
+            8000,
+            PromptTier::Medium,
+            None,
+            Some(&schema),
         );
         assert!(result.contains("testtool"));
     }
@@ -2629,8 +2861,15 @@ mod tests {
     fn test_build_prompt_compact_with_schema() {
         let schema = make_schema();
         let result = build_prompt(
-            "testtool", "docs", "do something", None, false, 3000,
-            PromptTier::Compact, None, Some(&schema),
+            "testtool",
+            "docs",
+            "do something",
+            None,
+            false,
+            3000,
+            PromptTier::Compact,
+            None,
+            Some(&schema),
         );
         assert!(result.contains("testtool"));
     }
@@ -2642,8 +2881,15 @@ mod tests {
         sdoc.detected_subcommand = Some("sort".to_string());
         sdoc.all_subcommands = vec!["sort".to_string(), "view".to_string()];
         let result = build_prompt(
-            "samtools", "docs", "sort the bam", None, false, 3000,
-            PromptTier::Compact, Some(&sdoc), None,
+            "samtools",
+            "docs",
+            "sort the bam",
+            None,
+            false,
+            3000,
+            PromptTier::Compact,
+            Some(&sdoc),
+            None,
         );
         assert!(result.contains("samtools"));
     }
@@ -2653,8 +2899,15 @@ mod tests {
         let mut sdoc = make_sdoc();
         sdoc.command_pattern = "flags-first".to_string();
         let result = build_prompt(
-            "testtool", "docs", "process file", None, false, 3000,
-            PromptTier::Compact, Some(&sdoc), None,
+            "testtool",
+            "docs",
+            "process file",
+            None,
+            false,
+            3000,
+            PromptTier::Compact,
+            Some(&sdoc),
+            None,
         );
         assert!(result.contains("testtool"));
         assert!(result.contains("FLAGS-FIRST"));
@@ -2665,8 +2918,15 @@ mod tests {
         let mut sdoc = make_sdoc();
         sdoc.command_pattern = "positional".to_string();
         let result = build_prompt(
-            "testtool", "docs", "process file", None, false, 3000,
-            PromptTier::Compact, Some(&sdoc), None,
+            "testtool",
+            "docs",
+            "process file",
+            None,
+            false,
+            3000,
+            PromptTier::Compact,
+            Some(&sdoc),
+            None,
         );
         assert!(result.contains("testtool"));
         assert!(result.contains("POSITIONAL"));
@@ -2675,8 +2935,15 @@ mod tests {
     #[test]
     fn test_build_prompt_compact_no_doc_no_skill() {
         let result = build_prompt(
-            "testtool", "", "do something", None, false, 3000,
-            PromptTier::Compact, None, None,
+            "testtool",
+            "",
+            "do something",
+            None,
+            false,
+            3000,
+            PromptTier::Compact,
+            None,
+            None,
         );
         assert!(result.contains("testtool"));
         assert!(result.contains("No documentation"));
@@ -2689,8 +2956,15 @@ mod tests {
         sdoc.command_pattern = String::new();
         sdoc.usage = "testtool sort [options] INPUT".to_string();
         let result = build_prompt(
-            "testtool", "docs", "sort file", None, false, 3000,
-            PromptTier::Compact, Some(&sdoc), None,
+            "testtool",
+            "docs",
+            "sort file",
+            None,
+            false,
+            3000,
+            PromptTier::Compact,
+            Some(&sdoc),
+            None,
         );
         assert!(result.contains("testtool"));
     }
@@ -2702,27 +2976,61 @@ mod tests {
         sdoc.command_pattern = String::new();
         sdoc.usage = String::new();
         let result = build_prompt(
-            "testtool", "docs", "do something", None, false, 3000,
-            PromptTier::Compact, Some(&sdoc), None,
+            "testtool",
+            "docs",
+            "do something",
+            None,
+            false,
+            3000,
+            PromptTier::Compact,
+            Some(&sdoc),
+            None,
         );
         assert!(result.contains("testtool"));
     }
 
     #[test]
     fn test_detect_subcommand_bcftools() {
-        assert_eq!(detect_subcommand_from_task("bcftools", "view the vcf"), Some("view"));
-        assert_eq!(detect_subcommand_from_task("bcftools", "merge vcf files"), Some("merge"));
-        assert_eq!(detect_subcommand_from_task("bcftools", "index the vcf"), Some("index"));
-        assert_eq!(detect_subcommand_from_task("bcftools", "normalize vcf"), Some("norm"));
-        assert_eq!(detect_subcommand_from_task("bcftools", "annotate the vcf"), Some("annotate"));
-        assert_eq!(detect_subcommand_from_task("bcftools", "call variants"), Some("call"));
+        assert_eq!(
+            detect_subcommand_from_task("bcftools", "view the vcf"),
+            Some("view")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("bcftools", "merge vcf files"),
+            Some("merge")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("bcftools", "index the vcf"),
+            Some("index")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("bcftools", "normalize vcf"),
+            Some("norm")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("bcftools", "annotate the vcf"),
+            Some("annotate")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("bcftools", "call variants"),
+            Some("call")
+        );
     }
 
     #[test]
     fn test_detect_subcommand_salmon() {
-        assert_eq!(detect_subcommand_from_task("salmon", "quantify expression"), Some("quant"));
-        assert_eq!(detect_subcommand_from_task("salmon", "quant reads"), Some("quant"));
-        assert_eq!(detect_subcommand_from_task("salmon", "build index"), Some("index"));
+        assert_eq!(
+            detect_subcommand_from_task("salmon", "quantify expression"),
+            Some("quant")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("salmon", "quant reads"),
+            Some("quant")
+        );
+        assert_eq!(
+            detect_subcommand_from_task("salmon", "build index"),
+            Some("index")
+        );
     }
 
     #[test]
@@ -2736,8 +3044,15 @@ mod tests {
     fn test_build_prompt_medium_doc_truncation() {
         let long_doc = "x".repeat(10000);
         let result = build_prompt(
-            "testtool", &long_doc, "do something", None, false, 8000,
-            PromptTier::Medium, None, None,
+            "testtool",
+            &long_doc,
+            "do something",
+            None,
+            false,
+            8000,
+            PromptTier::Medium,
+            None,
+            None,
         );
         assert!(result.contains("testtool"));
     }
@@ -2746,8 +3061,15 @@ mod tests {
     fn test_build_retry_prompt_inner_with_structured_doc() {
         let sdoc = make_sdoc();
         let result = build_retry_prompt_inner(
-            "testtool", "docs", "do something", None, "bad response",
-            false, 8000, PromptTier::Full, Some(&sdoc),
+            "testtool",
+            "docs",
+            "do something",
+            None,
+            "bad response",
+            false,
+            8000,
+            PromptTier::Full,
+            Some(&sdoc),
         );
         assert!(result.contains("Correction Note"));
     }
@@ -2767,8 +3089,15 @@ mod tests {
             },
         ]);
         let result = build_prompt(
-            "salmon", "docs", "quantify expression", Some(&skill), false, 3000,
-            PromptTier::Compact, None, None,
+            "salmon",
+            "docs",
+            "quantify expression",
+            Some(&skill),
+            false,
+            3000,
+            PromptTier::Compact,
+            None,
+            None,
         );
         assert!(result.contains("salmon"));
     }
@@ -2781,8 +3110,15 @@ mod tests {
             explanation: "Run QC".to_string(),
         }]);
         let result = build_prompt(
-            "fastqc", "docs", "check quality", Some(&skill), false, 3000,
-            PromptTier::Compact, None, None,
+            "fastqc",
+            "docs",
+            "check quality",
+            Some(&skill),
+            false,
+            3000,
+            PromptTier::Compact,
+            None,
+            None,
         );
         assert!(result.contains("fastqc"));
         assert!(result.contains("NO subcommand"));
@@ -2796,8 +3132,15 @@ mod tests {
             explanation: "Run admixture".to_string(),
         }]);
         let result = build_prompt(
-            "admixture", "docs", "population structure", Some(&skill), false, 3000,
-            PromptTier::Compact, None, None,
+            "admixture",
+            "docs",
+            "population structure",
+            Some(&skill),
+            false,
+            3000,
+            PromptTier::Compact,
+            None,
+            None,
         );
         assert!(result.contains("admixture"));
         assert!(result.contains("POSITIONAL"));
@@ -2805,17 +3148,13 @@ mod tests {
 
     #[test]
     fn test_build_verification_prompt_no_stderr() {
-        let result = build_verification_prompt(
-            "tool", "task", "cmd", 0, "", &[],
-        );
+        let result = build_verification_prompt("tool", "task", "cmd", 0, "", &[]);
         assert!(!result.contains("Standard Error"));
     }
 
     #[test]
     fn test_build_verification_prompt_no_output_files() {
-        let result = build_verification_prompt(
-            "tool", "task", "cmd", 0, "some output", &[],
-        );
+        let result = build_verification_prompt("tool", "task", "cmd", 0, "some output", &[]);
         assert!(!result.contains("Output Files"));
     }
 
@@ -2828,8 +3167,15 @@ mod tests {
         }]);
         let sdoc = make_sdoc();
         let result = build_prompt(
-            "samtools", "docs", "sort bam", Some(&skill), false, 32000,
-            PromptTier::Full, Some(&sdoc), None,
+            "samtools",
+            "docs",
+            "sort bam",
+            Some(&skill),
+            false,
+            32000,
+            PromptTier::Full,
+            Some(&sdoc),
+            None,
         );
         assert!(result.contains("samtools"));
     }

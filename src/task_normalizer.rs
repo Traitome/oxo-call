@@ -741,14 +741,20 @@ mod tests {
     #[tokio::test]
     async fn test_statistics_intent() {
         let n = TaskNormalizer::new();
-        let r = n.normalize("count reads in bam file", "samtools").await.unwrap();
+        let r = n
+            .normalize("count reads in bam file", "samtools")
+            .await
+            .unwrap();
         assert_eq!(r.intent, TaskIntent::Statistics);
     }
 
     #[tokio::test]
     async fn test_visualization_intent() {
         let n = TaskNormalizer::new();
-        let r = n.normalize("plot coverage of input.bam", "samtools").await.unwrap();
+        let r = n
+            .normalize("plot coverage of input.bam", "samtools")
+            .await
+            .unwrap();
         assert_eq!(r.intent, TaskIntent::Visualization);
     }
 
@@ -762,21 +768,42 @@ mod tests {
     #[tokio::test]
     async fn test_aggregation_intent() {
         let n = TaskNormalizer::new();
-        let r = n.normalize("merge multiple bam files", "samtools").await.unwrap();
+        let r = n
+            .normalize("merge multiple bam files", "samtools")
+            .await
+            .unwrap();
         assert_eq!(r.intent, TaskIntent::Aggregation);
     }
 
     #[test]
     fn test_infer_intent_from_keyword_all() {
         let n = TaskNormalizer::new();
-        assert_eq!(n.infer_intent_from_keyword("sort"), TaskIntent::DataConversion);
-        assert_eq!(n.infer_intent_from_keyword("convert"), TaskIntent::DataConversion);
+        assert_eq!(
+            n.infer_intent_from_keyword("sort"),
+            TaskIntent::DataConversion
+        );
+        assert_eq!(
+            n.infer_intent_from_keyword("convert"),
+            TaskIntent::DataConversion
+        );
         assert_eq!(n.infer_intent_from_keyword("filter"), TaskIntent::Filtering);
         assert_eq!(n.infer_intent_from_keyword("align"), TaskIntent::Alignment);
-        assert_eq!(n.infer_intent_from_keyword("variant calling"), TaskIntent::VariantCalling);
-        assert_eq!(n.infer_intent_from_keyword("quality control"), TaskIntent::QualityControl);
-        assert_eq!(n.infer_intent_from_keyword("compress"), TaskIntent::DataConversion);
-        assert_eq!(n.infer_intent_from_keyword("decompress"), TaskIntent::DataConversion);
+        assert_eq!(
+            n.infer_intent_from_keyword("variant calling"),
+            TaskIntent::VariantCalling
+        );
+        assert_eq!(
+            n.infer_intent_from_keyword("quality control"),
+            TaskIntent::QualityControl
+        );
+        assert_eq!(
+            n.infer_intent_from_keyword("compress"),
+            TaskIntent::DataConversion
+        );
+        assert_eq!(
+            n.infer_intent_from_keyword("decompress"),
+            TaskIntent::DataConversion
+        );
         assert_eq!(n.infer_intent_from_keyword("index"), TaskIntent::Indexing);
         assert_eq!(n.infer_intent_from_keyword("unknown"), TaskIntent::Custom);
     }
@@ -834,14 +861,20 @@ mod tests {
     #[tokio::test]
     async fn test_japanese_index() {
         let n = TaskNormalizer::new();
-        let r = n.normalize("インデックス reference.fa", "bwa").await.unwrap();
+        let r = n
+            .normalize("インデックス reference.fa", "bwa")
+            .await
+            .unwrap();
         assert!(r.description.contains("index"));
     }
 
     #[tokio::test]
     async fn test_russian_sort() {
         let n = TaskNormalizer::new();
-        let r = n.normalize("сортировать input.bam", "samtools").await.unwrap();
+        let r = n
+            .normalize("сортировать input.bam", "samtools")
+            .await
+            .unwrap();
         assert!(r.description.contains("sort"));
     }
 
@@ -863,5 +896,180 @@ mod tests {
             let s = format!("{intent}");
             assert!(!s.is_empty());
         }
+    }
+
+    #[test]
+    fn test_normalized_task_default() {
+        let t = NormalizedTask::default();
+        assert!(t.description.is_empty());
+        assert_eq!(t.intent, TaskIntent::Custom);
+        assert!(t.parameters.is_empty());
+        assert!(t.constraints.is_empty());
+        assert_eq!(t.confidence, 0.0);
+    }
+
+    #[test]
+    fn test_task_intent_default() {
+        let intent = TaskIntent::default();
+        assert_eq!(intent, TaskIntent::Custom);
+    }
+
+    #[tokio::test]
+    async fn test_normalize_simple_english_sort() {
+        let n = TaskNormalizer::new();
+        let r = n.normalize("sort input.bam", "samtools").await.unwrap();
+        assert_eq!(r.intent, TaskIntent::DataConversion);
+        assert!(r.confidence > 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_normalize_simple_english_filter() {
+        let n = TaskNormalizer::new();
+        let r = n
+            .normalize("filter reads from input.bam", "samtools")
+            .await
+            .unwrap();
+        assert_eq!(r.intent, TaskIntent::Filtering);
+    }
+
+    #[tokio::test]
+    async fn test_normalize_simple_english_align() {
+        let n = TaskNormalizer::new();
+        let r = n
+            .normalize("align reads to reference.fa", "bwa")
+            .await
+            .unwrap();
+        assert_eq!(r.intent, TaskIntent::Alignment);
+    }
+
+    #[tokio::test]
+    async fn test_normalize_simple_english_index() {
+        let n = TaskNormalizer::new();
+        let r = n.normalize("index a reference file", "bwa").await.unwrap();
+        assert_eq!(r.intent, TaskIntent::Indexing);
+    }
+
+    #[tokio::test]
+    async fn test_normalize_spanish_sort() {
+        let n = TaskNormalizer::new();
+        let r = n.normalize("ordenar input.bam", "samtools").await.unwrap();
+        assert!(r.description.contains("sort"));
+    }
+
+    #[tokio::test]
+    async fn test_normalize_french_filter() {
+        let n = TaskNormalizer::new();
+        let r = n
+            .normalize("filtrer les reads input.bam", "samtools")
+            .await
+            .unwrap();
+        assert!(r.description.contains("filter"));
+    }
+
+    #[tokio::test]
+    async fn test_normalize_german_sort() {
+        let n = TaskNormalizer::new();
+        let r = n
+            .normalize("sortieren input.bam", "samtools")
+            .await
+            .unwrap();
+        assert!(r.description.contains("sort"));
+    }
+
+    #[tokio::test]
+    async fn test_normalize_korean_compress() {
+        let n = TaskNormalizer::new();
+        let r = n.normalize("압축 input.bam", "samtools").await.unwrap();
+        assert!(r.description.contains("compress"));
+    }
+
+    #[tokio::test]
+    async fn test_normalize_japanese_sort() {
+        let n = TaskNormalizer::new();
+        let r = n.normalize("ソート input.bam", "samtools").await.unwrap();
+        assert!(r.description.contains("sort"));
+    }
+
+    #[test]
+    fn test_extract_parameters_threads() {
+        let n = TaskNormalizer::new();
+        let params = n.extract_parameters("sort input.bam using 8 threads");
+        assert_eq!(params.get("threads"), Some(&"8".to_string()));
+    }
+
+    #[test]
+    fn test_extract_parameters_fastq() {
+        let n = TaskNormalizer::new();
+        let params = n.extract_parameters("align reads.fastq to reference");
+        assert_eq!(params.get("input"), Some(&"reads.fastq".to_string()));
+    }
+
+    #[test]
+    fn test_extract_parameters_fq_gz() {
+        let n = TaskNormalizer::new();
+        let params = n.extract_parameters("sort reads.fq.gz");
+        assert_eq!(params.get("input"), Some(&"reads.fq.gz".to_string()));
+    }
+
+    #[test]
+    fn test_infer_intent_statistics() {
+        let n = TaskNormalizer::new();
+        assert_eq!(n.infer_intent("count reads in bam"), TaskIntent::Statistics);
+    }
+
+    #[test]
+    fn test_infer_intent_visualization() {
+        let n = TaskNormalizer::new();
+        assert_eq!(
+            n.infer_intent("plot coverage distribution"),
+            TaskIntent::Visualization
+        );
+    }
+
+    #[test]
+    fn test_infer_intent_variant_calling() {
+        let n = TaskNormalizer::new();
+        assert_eq!(
+            n.infer_intent("call variants from bam"),
+            TaskIntent::VariantCalling
+        );
+    }
+
+    #[test]
+    fn test_infer_intent_aggregation() {
+        let n = TaskNormalizer::new();
+        assert_eq!(
+            n.infer_intent("merge two bam files"),
+            TaskIntent::Aggregation
+        );
+    }
+
+    #[test]
+    fn test_infer_intent_custom_unknown() {
+        let n = TaskNormalizer::new();
+        assert_eq!(n.infer_intent("do something with file"), TaskIntent::Custom);
+    }
+
+    #[test]
+    fn test_normalized_task_clone_and_debug() {
+        let t = NormalizedTask {
+            description: "sort bam".to_string(),
+            intent: TaskIntent::DataConversion,
+            parameters: HashMap::new(),
+            constraints: vec!["constraint1".to_string()],
+            confidence: 0.9,
+        };
+        let cloned = t.clone();
+        assert_eq!(cloned.description, "sort bam");
+        assert_eq!(cloned.confidence, 0.9);
+        let _ = format!("{:?}", t);
+    }
+
+    #[test]
+    fn test_task_intent_clone_copy_eq() {
+        let a = TaskIntent::Alignment;
+        let b = a;
+        assert_eq!(a, b);
+        let _ = format!("{:?}", a);
     }
 }

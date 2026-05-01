@@ -2541,16 +2541,34 @@ Options:
 
     #[test]
     fn test_infer_subcommand_from_domain_bwa() {
-        assert_eq!(infer_subcommand_from_domain("bwa", "align reads"), Some("mem"));
-        assert_eq!(infer_subcommand_from_domain("bwa", "alignment"), Some("mem"));
-        assert_eq!(infer_subcommand_from_domain("bwa", "map reads"), Some("mem"));
+        assert_eq!(
+            infer_subcommand_from_domain("bwa", "align reads"),
+            Some("mem")
+        );
+        assert_eq!(
+            infer_subcommand_from_domain("bwa", "alignment"),
+            Some("mem")
+        );
+        assert_eq!(
+            infer_subcommand_from_domain("bwa", "map reads"),
+            Some("mem")
+        );
     }
 
     #[test]
     fn test_infer_subcommand_from_domain_samtools() {
-        assert_eq!(infer_subcommand_from_domain("samtools", "sort bam"), Some("sort"));
-        assert_eq!(infer_subcommand_from_domain("samtools", "view sam"), Some("view"));
-        assert_eq!(infer_subcommand_from_domain("samtools", "index bam"), Some("index"));
+        assert_eq!(
+            infer_subcommand_from_domain("samtools", "sort bam"),
+            Some("sort")
+        );
+        assert_eq!(
+            infer_subcommand_from_domain("samtools", "view sam"),
+            Some("view")
+        );
+        assert_eq!(
+            infer_subcommand_from_domain("samtools", "index bam"),
+            Some("index")
+        );
     }
 
     #[test]

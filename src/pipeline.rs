@@ -40,7 +40,9 @@ impl Pipeline {
         let record = self.stage1_resolve(tool)?;
         let doc = self.stage2_explore(&record, task).await?;
         let (subcommand, fill) = self.stage3_map(&record, &doc, task);
-        let filled = self.stage3b_llm_fill(&record, &doc, task, subcommand.as_deref(), &fill).await?;
+        let filled = self
+            .stage3b_llm_fill(&record, &doc, task, subcommand.as_deref(), &fill)
+            .await?;
         let command = self.stage4_assemble(&record, &filled, &doc);
         let validation = self.stage5_validate(&record, &filled, &doc);
         let explanation = self.build_explanation(&doc, &filled, &validation);
@@ -81,10 +83,9 @@ impl Pipeline {
             }),
             WorkflowScenario::Doc | WorkflowScenario::Full => {
                 let explorer = DocExplorer::new(self.config.clone());
-                let result = explorer
-                    .explore(record, task)
-                    .await
-                    .map_err(|e| crate::error::OxoError::DocFetchError(record.name.clone(), e.to_string()))?;
+                let result = explorer.explore(record, task).await.map_err(|e| {
+                    crate::error::OxoError::DocFetchError(record.name.clone(), e.to_string())
+                })?;
                 Ok(result)
             }
         }
@@ -169,12 +170,7 @@ impl Pipeline {
         }
     }
 
-    fn stage4_assemble(
-        &self,
-        record: &ToolRecord,
-        fill: &LlmCommandFill,
-        doc: &ToolDoc,
-    ) -> String {
+    fn stage4_assemble(&self, record: &ToolRecord, fill: &LlmCommandFill, doc: &ToolDoc) -> String {
         let assembler = CommandAssembler::new();
         assembler.assemble(record, fill, doc)
     }
@@ -197,10 +193,10 @@ impl Pipeline {
     ) -> String {
         let mut parts = Vec::new();
 
-        if let Some(ref subcmd) = fill.subcommand {
-            if let Some(s) = doc.get_subcommand(subcmd) {
-                parts.push(format!("Using subcommand '{}': {}", subcmd, s.description));
-            }
+        if let Some(ref subcmd) = fill.subcommand
+            && let Some(s) = doc.get_subcommand(subcmd)
+        {
+            parts.push(format!("Using subcommand '{}': {}", subcmd, s.description));
         }
 
         for (flag, value) in &fill.flags {
@@ -263,7 +259,7 @@ fn parse_args_into_fill(args_str: &str, fill: &mut LlmCommandFill) {
 mod tests {
     use super::*;
     use crate::schema::types::{CliStyle, ParamType};
-    use crate::tool_doc::{FlagDoc, FlagCategory, PositionalDoc, SubcommandDoc};
+    use crate::tool_doc::{FlagCategory, FlagDoc, PositionalDoc, SubcommandDoc};
     use std::collections::BTreeMap;
     use std::path::PathBuf;
 
@@ -734,7 +730,11 @@ mod tests {
             positionals: vec!["input.bam".to_string()],
         };
         let validation = pipeline.stage5_validate(&record, &fill, &doc);
-        assert!(!validation.is_valid || !validation.errors.is_empty() || !validation.warnings.is_empty());
+        assert!(
+            !validation.is_valid
+                || !validation.errors.is_empty()
+                || !validation.warnings.is_empty()
+        );
     }
 
     #[test]
