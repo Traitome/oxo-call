@@ -15,14 +15,15 @@
 //! The binary entry point lives in `main.rs`; this file only surfaces the
 //! library interface.
 
-pub mod auto_fixer;
 pub mod bench;
 pub mod cache;
+pub mod command_assembler;
 pub mod command_validator;
 pub mod confidence;
 pub mod config;
 pub mod context;
 pub mod copilot_auth;
+pub mod doc_explorer;
 pub mod doc_processor;
 pub mod doc_summarizer;
 pub mod docs;
@@ -34,6 +35,7 @@ pub mod generator;
 pub mod handlers;
 pub mod history;
 pub mod index;
+pub mod intent_mapper;
 pub mod job;
 pub mod knowledge;
 pub mod license;
@@ -42,17 +44,18 @@ pub mod llm_workflow;
 pub mod markdown;
 pub mod mcp;
 pub mod orchestrator;
+pub mod pipeline;
 pub mod rag;
-pub mod reflection_engine;
 pub mod runner;
-pub mod sanitize;
 pub mod schema;
 pub mod server;
 pub mod skill;
 pub mod streaming_display;
 pub mod subcommand_detector;
 pub mod task_normalizer;
-pub mod validation_loop;
+pub mod tool_doc;
+pub mod tool_resolver;
+pub mod validator;
 pub mod workflow;
 pub mod workflow_graph;
 

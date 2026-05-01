@@ -362,4 +362,108 @@ mod tests {
         assert!(UnicodeWidthStr::width(truncated.as_str()) <= MAX_MESSAGE_WIDTH);
         assert!(truncated.ends_with("..."));
     }
+
+    #[tokio::test]
+    async fn test_finish_returns_content() {
+        let display = StreamingDisplay::new(StreamingDisplayConfig {
+            message: "Test".to_string(),
+            max_preview_lines: 2,
+            show_preview: true,
+        });
+        display.add_content("Hello World").await;
+        let content = display.finish().await;
+        assert_eq!(content, "Hello World");
+    }
+
+    #[tokio::test]
+    async fn test_finish_trims_whitespace() {
+        let display = StreamingDisplay::new(StreamingDisplayConfig {
+            message: "Test".to_string(),
+            max_preview_lines: 2,
+            show_preview: true,
+        });
+        display.add_content("  Hello  \n").await;
+        let content = display.finish().await;
+        assert_eq!(content, "Hello");
+    }
+
+    #[tokio::test]
+    async fn test_content_method() {
+        let display = StreamingDisplay::new(StreamingDisplayConfig {
+            message: "Test".to_string(),
+            max_preview_lines: 2,
+            show_preview: true,
+        });
+        display.add_content("Test content").await;
+        let content = display.content().await;
+        assert_eq!(content, "Test content");
+    }
+
+    #[tokio::test]
+    async fn test_add_content_no_preview() {
+        let display = StreamingDisplay::new(StreamingDisplayConfig {
+            message: "Test".to_string(),
+            max_preview_lines: 2,
+            show_preview: false,
+        });
+        display.add_content("Line 1\nLine 2").await;
+        let state = display.state.read().await;
+        assert!(state.content.contains("Line 1"));
+        assert!(state.preview_lines.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_add_content_empty_text() {
+        let display = StreamingDisplay::new(StreamingDisplayConfig {
+            message: "Test".to_string(),
+            max_preview_lines: 2,
+            show_preview: true,
+        });
+        display.add_content("").await;
+        let state = display.state.read().await;
+        assert!(state.content.is_empty());
+    }
+
+    #[test]
+    fn test_truncate_display_empty_string() {
+        assert_eq!(truncate_display("", 10), "");
+    }
+
+    #[test]
+    fn test_truncate_display_exact_width() {
+        let s = "12345";
+        assert_eq!(truncate_display(s, 5), "12345");
+    }
+
+    #[test]
+    fn test_truncate_display_very_small_width() {
+        let truncated = truncate_display("Hello", 3);
+        assert_eq!(truncated, "...");
+    }
+
+    #[test]
+    fn test_truncate_display_zero_width() {
+        let truncated = truncate_display("Hello", 0);
+        assert_eq!(truncated, "...");
+    }
+
+    #[tokio::test]
+    async fn test_with_message() {
+        let display = StreamingDisplay::with_message("Custom Message");
+        let state = display.state.read().await;
+        assert!(state.content.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_add_content_accumulates() {
+        let display = StreamingDisplay::new(StreamingDisplayConfig {
+            message: "Test".to_string(),
+            max_preview_lines: 2,
+            show_preview: true,
+        });
+        display.add_content("Part 1 ").await;
+        display.add_content("Part 2").await;
+        let state = display.state.read().await;
+        assert_eq!(state.content, "Part 1 Part 2");
+    }
 }

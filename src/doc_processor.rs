@@ -767,309 +767,6 @@ impl DocProcessor {
     }
 }
 
-/// LLM-based intelligent document processor (reserved for future use).
-///
-/// This is an advanced processor that uses LLM to understand and extract
-/// key information from documentation, rather than simple pattern matching.
-/// Currently only uses the rule-based fast path; the LLM path is a placeholder.
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
-pub(crate) struct IntelligentDocProcessor {
-    /// Rule-based processor for fast path
-    rule_processor: DocProcessor,
-    /// Cache for processed documents
-    cache: std::collections::HashMap<String, ProcessedDoc>,
-}
-
-impl Default for IntelligentDocProcessor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[allow(dead_code)]
-impl IntelligentDocProcessor {
-    pub(crate) fn new() -> Self {
-        Self {
-            rule_processor: DocProcessor::new(),
-            cache: std::collections::HashMap::new(),
-        }
-    }
-
-    /// Process documentation using hybrid approach (rules + optional LLM)
-    ///
-    /// # Arguments
-    /// * `doc` - Raw documentation text
-    /// * `tool` - Tool name
-    /// * `use_llm` - Whether to use LLM for intelligent processing
-    ///
-    /// # Returns
-    /// Processed documentation with key information extracted
-    pub(crate) async fn process(&self, doc: &str, tool: &str, use_llm: bool) -> ProcessedDoc {
-        // Step 1: Calculate document hash for caching
-        let doc_hash = self.calculate_hash(doc);
-
-        // Step 2: Check cache
-        if let Some(cached) = self.cache.get(&doc_hash) {
-            return cached.clone();
-        }
-
-        // Step 3: Use rule-based processor first
-        let structured = self.rule_processor.clean_and_structure(doc);
-
-        // Step 4: Extract common pitfalls from documentation patterns
-        let pitfalls = self.extract_pitfalls(tool, &structured);
-
-        // Step 5: Extract common usage patterns
-        let common_patterns = self.extract_common_patterns(&structured);
-
-        if use_llm {
-            // Build the LLM prompt (ready for integration once LlmClient
-            // is injected into IntelligentDocProcessor).
-            let _llm_prompt = self.build_llm_prompt(&structured, tool);
-            // TODO(llm): Wire LlmClient here to refine structured doc via LLM.
-            // The prompt is prepared so wiring a real LlmClient is a one-line change.
-            tracing::debug!(
-                "LLM doc processing requested for '{}' — prompt ready ({} chars)",
-                tool,
-                _llm_prompt.len()
-            );
-        }
-
-        ProcessedDoc {
-            core_usage: structured.usage.clone(),
-            key_parameters: self.extract_key_parameters(&structured),
-            common_patterns,
-            pitfalls,
-            examples: self.extract_examples(&structured),
-            quality_score: self.assess_quality(&structured),
-        }
-    }
-
-    /// Extract common pitfalls from documentation structure.
-    fn extract_pitfalls(&self, tool: &str, structured: &StructuredDoc) -> Vec<String> {
-        let mut pitfalls = Vec::new();
-        if structured.usage.is_empty() {
-            pitfalls.push(format!(
-                "No clear usage pattern found in {tool} docs — verify command syntax manually"
-            ));
-        }
-        if structured.options.is_empty() {
-            pitfalls.push(
-                "No options/flags section detected — the tool may use positional arguments only"
-                    .to_string(),
-            );
-        }
-        if !structured.commands.is_empty() && !structured.commands.contains(' ') {
-            pitfalls.push(
-                "Tool requires a subcommand — ensure the first argument is a valid subcommand"
-                    .to_string(),
-            );
-        }
-        pitfalls
-    }
-
-    /// Extract common usage patterns from documentation.
-    fn extract_common_patterns(&self, structured: &StructuredDoc) -> Vec<String> {
-        let mut patterns = Vec::new();
-        if !structured.commands.is_empty() {
-            for cmd in structured
-                .commands
-                .lines()
-                .filter(|l| !l.trim().is_empty())
-                .take(5)
-            {
-                patterns.push(cmd.trim().to_string());
-            }
-        }
-        patterns
-    }
-
-    /// Calculate document hash for caching
-    fn calculate_hash(&self, doc: &str) -> String {
-        use sha2::{Digest, Sha256};
-        hex::encode(Sha256::digest(doc.as_bytes()))
-    }
-
-    /// Extract key parameters from structured documentation
-    fn extract_key_parameters(&self, structured: &StructuredDoc) -> Vec<KeyParameter> {
-        let mut params = Vec::new();
-
-        // Parse options section
-        for line in structured.options.lines() {
-            if line.trim().is_empty() {
-                continue;
-            }
-
-            // Extract flag and description
-            if let Some(param) = self.parse_parameter_line(line) {
-                params.push(param);
-            }
-        }
-
-        // Limit to top 20 parameters
-        params.into_iter().take(20).collect()
-    }
-
-    /// Parse a single parameter line
-    fn parse_parameter_line(&self, line: &str) -> Option<KeyParameter> {
-        let line = line.trim();
-
-        // Pattern: --flag <type> description
-        let parts: Vec<&str> = line.splitn(3, ' ').collect();
-        if parts.len() >= 2 && parts[0].starts_with('-') {
-            Some(KeyParameter {
-                name: parts[0].to_string(),
-                description: parts.get(2).unwrap_or(&"").to_string(),
-                default: None,
-                common_use_case: None,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Extract examples from structured documentation
-    fn extract_examples(&self, structured: &StructuredDoc) -> Vec<DocExample> {
-        let mut examples = Vec::new();
-
-        for line in structured.examples.lines() {
-            if line.trim().is_empty() {
-                continue;
-            }
-
-            // Simple heuristic: lines starting with tool name are examples
-            if line
-                .trim()
-                .starts_with(structured.usage.split_whitespace().next().unwrap_or(""))
-            {
-                examples.push(DocExample {
-                    command: line.trim().to_string(),
-                    description: "Example from documentation".to_string(),
-                });
-            }
-        }
-
-        examples.into_iter().take(5).collect()
-    }
-
-    /// Assess documentation quality (0.0-1.0)
-    fn assess_quality(&self, structured: &StructuredDoc) -> f32 {
-        let mut score = 0.0;
-
-        // Check for essential sections
-        if !structured.usage.is_empty() {
-            score += 0.3;
-        }
-        if !structured.examples.is_empty() {
-            score += 0.3;
-        }
-        if !structured.options.is_empty() {
-            score += 0.2;
-        }
-
-        // Check for quick flags
-        if !structured.quick_flags.is_empty() {
-            score += 0.1;
-        }
-
-        // Check for commands
-        if !structured.commands.is_empty() {
-            score += 0.1;
-        }
-
-        score
-    }
-
-    /// Build LLM prompt for intelligent document processing
-    fn build_llm_prompt(&self, structured: &StructuredDoc, tool: &str) -> String {
-        format!(
-            r#"You are a bioinformatics documentation expert. Extract and organize the most critical information from this {tool} documentation.
-
-Documentation:
-{structured}
-
-Output JSON format:
-{{
-  "core_usage": "The most common usage pattern (one line)",
-  "key_parameters": [
-    {{
-      "name": "parameter name",
-      "description": "brief description",
-      "default": "default value if any",
-      "common_use_case": "when to use this parameter"
-    }}
-  ],
-  "common_patterns": [
-    "pattern 1: description",
-    "pattern 2: description"
-  ],
-  "pitfalls": [
-    "common mistake 1",
-    "common mistake 2"
-  ],
-  "examples": [
-    {{
-      "command": "actual command",
-      "description": "what this command does"
-    }}
-  ]
-}}
-
-Focus on information that helps generate correct commands. Remove noise and redundancy."#
-        )
-    }
-}
-
-/// Processed documentation with extracted key information (reserved for future use).
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct ProcessedDoc {
-    /// Core usage pattern (most common)
-    pub core_usage: String,
-    /// Key parameters extracted from documentation
-    pub key_parameters: Vec<KeyParameter>,
-    /// Common usage patterns
-    pub common_patterns: Vec<String>,
-    /// Common pitfalls to avoid
-    pub pitfalls: Vec<String>,
-    /// Examples extracted from documentation
-    pub examples: Vec<DocExample>,
-    /// Quality score (0.0-1.0)
-    pub quality_score: f32,
-}
-
-impl Default for ProcessedDoc {
-    fn default() -> Self {
-        Self {
-            core_usage: String::new(),
-            key_parameters: Vec::new(),
-            common_patterns: Vec::new(),
-            pitfalls: Vec::new(),
-            examples: Vec::new(),
-            quality_score: 0.0,
-        }
-    }
-}
-
-/// Key parameter extracted from documentation (reserved for future use).
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct KeyParameter {
-    pub name: String,
-    pub description: String,
-    pub default: Option<String>,
-    pub common_use_case: Option<String>,
-}
-
-/// Example extracted from documentation (reserved for future use).
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct DocExample {
-    pub command: String,
-    pub description: String,
-}
-
 // ─── Shared free-standing primitives ──────────────────────────────────────────
 //
 // These functions are the canonical implementations of noise removal, section
@@ -1557,5 +1254,241 @@ mod tests {
             "Expected flags not found in: {}",
             flags_str
         );
+    }
+
+    #[test]
+    fn test_detect_command_pattern_subcommand() {
+        let processor = DocProcessor::new();
+        let doc = "USAGE:\n  samtools sort [options]\n\nEXAMPLES:\n  sort -o out.bam in.bam\n";
+        let structured = processor.clean_and_structure(doc);
+        assert_eq!(structured.command_pattern, "subcommand");
+    }
+
+    #[test]
+    fn test_detect_command_pattern_flags_first() {
+        let processor = DocProcessor::new();
+        let doc = "USAGE:\n  fastp [options]\n\nOPTIONS:\n  -i FILE  Input\n  -o FILE  Output\n\nEXAMPLES:\n  -i in.fq -o out.fq\n";
+        let structured = processor.clean_and_structure(doc);
+        assert_eq!(structured.command_pattern, "flags-first");
+    }
+
+    #[test]
+    fn test_detect_command_pattern_positional() {
+        let processor = DocProcessor::new();
+        let doc = "USAGE:\n  tool input.bed K\n\nEXAMPLES:\n  input.bed 5\n";
+        let structured = processor.clean_and_structure(doc);
+        assert_eq!(structured.command_pattern, "positional");
+    }
+
+    #[test]
+    fn test_detect_command_pattern_from_usage() {
+        let processor = DocProcessor::new();
+        let doc = "Usage: bwa mem [options] <ref.fa> <reads.fq>\n\nEXAMPLES:\n  mem -t 8 ref.fa reads.fq\n";
+        let structured = processor.clean_and_structure(doc);
+        assert_eq!(structured.command_pattern, "subcommand");
+        assert_eq!(structured.detected_subcommand, Some("mem".to_string()));
+    }
+
+    #[test]
+    fn test_structured_doc_display() {
+        let doc = StructuredDoc {
+            usage: "tool [options]".to_string(),
+            examples: "tool --help".to_string(),
+            options: "--help  Show help".to_string(),
+            commands: "sort, view".to_string(),
+            other: "Description text".to_string(),
+            quick_flags: vec!["--help".to_string(), "--version".to_string()],
+            flag_catalog: Vec::new(),
+            extracted_examples: Vec::new(),
+            quality_score: 0.8,
+            command_pattern: "flags-first".to_string(),
+            detected_subcommand: None,
+            all_subcommands: Vec::new(),
+        };
+        let display = format!("{doc}");
+        assert!(display.contains("=== USAGE ==="));
+        assert!(display.contains("=== EXAMPLES ==="));
+        assert!(display.contains("=== SUBCOMMANDS ==="));
+        assert!(display.contains("=== OPTIONS/FLAGS ==="));
+        assert!(display.contains("=== QUICK REFERENCE FLAGS ==="));
+    }
+
+    #[test]
+    fn test_structured_doc_display_empty() {
+        let doc = StructuredDoc::default();
+        let display = format!("{doc}");
+        assert!(display.is_empty() || display.trim().is_empty());
+    }
+
+    #[test]
+    fn test_extract_sections_no_header() {
+        let processor = DocProcessor::new();
+        let sections = processor.extract_sections("just some text\nno headers");
+        assert_eq!(sections.len(), 1);
+        assert_eq!(sections[0].0, "Documentation");
+    }
+
+    #[test]
+    fn test_extract_sections_multiple_same_type() {
+        let processor = DocProcessor::new();
+        let doc = "OPTIONS:\n  -h  Help\n\nEXAMPLES:\n  tool -h\n\nEXAMPLES:\n  tool -v\n";
+        let sections = processor.extract_sections(doc);
+        assert!(sections.len() >= 2);
+    }
+
+    #[test]
+    fn test_compress_options_with_placeholders() {
+        let processor = DocProcessor::new();
+        let options = "  -o FILE  Output\n  <input>  Input file\n  [options]  Optional\n     Just text";
+        let compressed = processor.compress_options(options);
+        assert!(compressed.contains("-o"));
+        assert!(compressed.contains("<input>"));
+        assert!(compressed.contains("[options]"));
+    }
+
+    #[test]
+    fn test_extract_subcommands_filters_flags() {
+        let processor = DocProcessor::new();
+        let content = "  sort    Sort data\n  --help  Show help\n  <input>  Input\n  merge   Merge data";
+        let extracted = processor.extract_subcommands(content);
+        assert!(extracted.contains("sort"));
+        assert!(extracted.contains("merge"));
+        assert!(!extracted.contains("--help"));
+    }
+
+    #[test]
+    fn test_extract_all_flags_bracketed() {
+        let processor = DocProcessor::new();
+        let doc = "Usage: tool [-h] [-v] [-dna]";
+        let flags = processor.extract_all_flags(doc);
+        assert!(flags.iter().any(|f| f == "-h" || f == "-v"));
+    }
+
+    #[test]
+    fn test_extract_flag_catalog_simple() {
+        let processor = DocProcessor::new();
+        let options = "--help\n--version\n--output";
+        let catalog = processor.extract_flag_catalog(options);
+        assert!(catalog.len() >= 2);
+    }
+
+    #[test]
+    fn test_extract_command_examples_pipe() {
+        let processor = DocProcessor::new();
+        let doc = "EXAMPLES:\n  samtools view -b input.sam | samtools sort -o out.bam\n";
+        let examples = processor.extract_command_examples(doc);
+        assert!(!examples.is_empty());
+    }
+
+    #[test]
+    fn test_extract_command_examples_skips_prose() {
+        let processor = DocProcessor::new();
+        let doc = "EXAMPLES:\n  This section shows examples\n  tool -o out.bam in.bam\n";
+        let examples = processor.extract_command_examples(doc);
+        assert!(examples.iter().all(|e| !e.starts_with("This")));
+    }
+
+    #[test]
+    fn test_compute_quality_score_max() {
+        let processor = DocProcessor::new();
+        let doc = StructuredDoc {
+            usage: "tool [options]".to_string(),
+            examples: "tool -h".to_string(),
+            options: "--help".to_string(),
+            commands: "sort, view".to_string(),
+            other: String::new(),
+            quick_flags: vec!["--help".to_string()],
+            flag_catalog: vec![FlagEntry { flag: "--help".to_string(), description: "Show help".to_string() }],
+            extracted_examples: vec!["tool -h".to_string()],
+            quality_score: 0.0,
+            command_pattern: String::new(),
+            detected_subcommand: None,
+            all_subcommands: Vec::new(),
+        };
+        let score = processor.compute_quality_score(&doc);
+        assert!(score > 0.5);
+    }
+
+    #[test]
+    fn test_compute_quality_score_empty() {
+        let processor = DocProcessor::new();
+        let doc = StructuredDoc::default();
+        let score = processor.compute_quality_score(&doc);
+        assert_eq!(score, 0.0);
+    }
+
+    #[test]
+    fn test_clean_noise_version_line() {
+        let noisy = "For more information see https://example.com\nUsage: tool [options]";
+        let cleaned = clean_noise(noisy);
+        assert!(!cleaned.contains("For more information"));
+        assert!(cleaned.contains("Usage:"));
+    }
+
+    #[test]
+    fn test_is_section_header_empty() {
+        assert!(!is_section_header(""));
+    }
+
+    #[test]
+    fn test_is_section_header_mixed_case() {
+        assert!(is_section_header("Input/Output options:"));
+        assert!(is_section_header("Advanced parameters:"));
+        assert!(is_section_header("Basic settings:"));
+    }
+
+    #[test]
+    fn test_truncate_smart_short_text() {
+        let text = "short";
+        assert_eq!(truncate_smart(text, 100), "short");
+    }
+
+    #[test]
+    fn test_truncate_smart_no_paragraph_break() {
+        let text = "Line 1\nLine 2\nLine 3\nLine 4\nLine 5 which is longer to exceed the limit";
+        let result = truncate_smart(text, 30);
+        assert!(result.contains("[documentation truncated"));
+    }
+
+    #[test]
+    fn test_doc_processor_default() {
+        let processor = DocProcessor::default();
+        let doc = "USAGE:\n  tool [options]\n";
+        let structured = processor.process(doc);
+        assert!(!structured.usage.is_empty());
+    }
+
+    #[test]
+    fn test_process_alias() {
+        let processor = DocProcessor::new();
+        let doc = "USAGE:\n  tool [options]\n";
+        let s1 = processor.process(doc);
+        let s2 = processor.clean_and_structure(doc);
+        assert_eq!(s1.usage, s2.usage);
+    }
+
+    #[test]
+    fn test_detect_command_pattern_usage_flags_first() {
+        let processor = DocProcessor::new();
+        let doc = "Usage: fastp -i in.fq -o out.fq\n\nOPTIONS:\n  -i FILE  Input\n";
+        let structured = processor.clean_and_structure(doc);
+        assert!(!structured.command_pattern.is_empty());
+    }
+
+    #[test]
+    fn test_all_subcommands_extracted() {
+        let processor = DocProcessor::new();
+        let doc = "COMMANDS:\n  sort  Sort data\n  view  View data\n  index  Index data\n";
+        let structured = processor.clean_and_structure(doc);
+        assert!(!structured.all_subcommands.is_empty() || !structured.commands.is_empty());
+    }
+
+    #[test]
+    fn test_format_structured_doc() {
+        let processor = DocProcessor::new();
+        let doc = "USAGE:\n  tool [options]\n\nOPTIONS:\n  -h  Help\n\nEXAMPLES:\n  tool -h";
+        let formatted = processor.process_for_llm(doc);
+        assert!(formatted.contains("USAGE"));
+        assert!(formatted.contains("EXAMPLES"));
     }
 }

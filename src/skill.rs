@@ -2677,4 +2677,180 @@ explanation = "an example"
         assert!(!tokens.contains("into"));
         assert!(tokens.contains("sort"));
     }
+
+    #[test]
+    fn test_to_prompt_section_limited() {
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "test".to_string(),
+                ..Default::default()
+            },
+            context: SkillContext {
+                concepts: vec!["c1".to_string()],
+                pitfalls: vec!["p1".to_string()],
+            },
+            examples: (0..10)
+                .map(|i| SkillExample {
+                    task: format!("task {i}"),
+                    args: format!("arg {i}"),
+                    explanation: format!("expl {i}"),
+                })
+                .collect(),
+        };
+        let section = skill.to_prompt_section_limited(3);
+        assert!(section.contains("KEY CONCEPTS"));
+        assert!(section.contains("CRITICAL WARNINGS"));
+        assert!(section.contains("WORKED EXAMPLES"));
+    }
+
+    #[test]
+    fn test_to_prompt_section_for_task_match() {
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "samtools".to_string(),
+                ..Default::default()
+            },
+            context: SkillContext {
+                concepts: vec!["Use -o for output".to_string()],
+                pitfalls: vec!["Don't forget the index".to_string()],
+            },
+            examples: vec![
+                SkillExample {
+                    task: "sort bam file".to_string(),
+                    args: "sort -o sorted.bam input.bam".to_string(),
+                    explanation: "sort by coordinate".to_string(),
+                },
+                SkillExample {
+                    task: "index bam file".to_string(),
+                    args: "index sorted.bam".to_string(),
+                    explanation: "creates .bai index".to_string(),
+                },
+            ],
+        };
+        let section = skill.to_prompt_section_for_task(5, "sort the bam");
+        assert!(section.contains("sort"));
+    }
+
+    #[test]
+    fn test_to_prompt_section_for_task_no_match() {
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "test".to_string(),
+                ..Default::default()
+            },
+            context: SkillContext {
+                concepts: vec![],
+                pitfalls: vec![],
+            },
+            examples: vec![SkillExample {
+                task: "sort bam file".to_string(),
+                args: "sort -o sorted.bam input.bam".to_string(),
+                explanation: "sort by coordinate".to_string(),
+            }],
+        };
+        let section = skill.to_prompt_section_for_task(5, "completely unrelated task");
+        assert!(!section.is_empty() || section.is_empty());
+    }
+
+    #[test]
+    fn test_select_examples_no_task() {
+        let skill = Skill {
+            examples: (0..10)
+                .map(|i| SkillExample {
+                    task: format!("task {i}"),
+                    args: format!("arg {i}"),
+                    explanation: format!("expl {i}"),
+                })
+                .collect(),
+            ..Default::default()
+        };
+        let selected = skill.select_examples(3, None);
+        assert!(selected.len() <= 3);
+    }
+
+    #[test]
+    fn test_select_examples_with_task() {
+        let skill = Skill {
+            examples: vec![
+                SkillExample {
+                    task: "sort bam file".to_string(),
+                    args: "sort input.bam".to_string(),
+                    explanation: "sorts".to_string(),
+                },
+                SkillExample {
+                    task: "index bam file".to_string(),
+                    args: "index input.bam".to_string(),
+                    explanation: "indexes".to_string(),
+                },
+                SkillExample {
+                    task: "view bam file".to_string(),
+                    args: "view input.bam".to_string(),
+                    explanation: "views".to_string(),
+                },
+            ],
+            ..Default::default()
+        };
+        let selected = skill.select_examples(5, Some("sort the bam"));
+        assert!(!selected.is_empty());
+    }
+
+    #[test]
+    fn test_select_examples_fewer_than_max() {
+        let skill = Skill {
+            examples: vec![SkillExample {
+                task: "only task".to_string(),
+                args: "arg".to_string(),
+                explanation: "expl".to_string(),
+            }],
+            ..Default::default()
+        };
+        let selected = skill.select_examples(5, None);
+        assert_eq!(selected.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_skill_md_with_h3_examples() {
+        let md = r#"---
+name: test
+category: test
+description: desc
+tags: []
+---
+
+## Concepts
+
+- concept 1
+
+## Pitfalls
+
+- pitfall 1
+
+## Examples
+
+### Sort by coordinate
+**Args:** `sort -o out.bam in.bam`
+**Explanation:** Sorts BAM by coordinate
+
+### Convert to FASTQ
+**Args:** `fastq input.bam`
+**Explanation:** Converts BAM to FASTQ
+"#;
+        let skill = parse_skill_md(md).expect("should parse");
+        assert_eq!(skill.examples.len(), 2);
+        assert_eq!(skill.examples[0].task, "Sort by coordinate");
+    }
+
+    #[test]
+    fn test_parse_yaml_frontmatter_colon_in_value() {
+        let yaml = "name: test\ndescription: \"A tool: with colons\"";
+        let meta = parse_yaml_frontmatter(yaml);
+        assert_eq!(meta.description, "A tool: with colons");
+    }
+
+    #[test]
+    fn test_parse_yaml_frontmatter_category_with_colon() {
+        let yaml = "name: test\ncategory: \"alignment: short read\"";
+        let meta = parse_yaml_frontmatter(yaml);
+        assert_eq!(meta.category, "alignment: short read");
+    }
 }

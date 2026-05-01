@@ -715,4 +715,250 @@ mod tests {
         let subcommands = parse_subcommands_generic(help);
         assert!(subcommands.len() >= 2);
     }
+
+    #[test]
+    fn test_generic_parser_name() {
+        let parser = GenericParser;
+        assert_eq!(parser.name(), "generic");
+    }
+
+    #[test]
+    fn test_generic_parser_can_always_parse() {
+        let parser = GenericParser;
+        assert!(parser.can_parse(""));
+        assert!(parser.can_parse("anything"));
+    }
+
+    #[test]
+    fn test_extract_usage_various_formats() {
+        let help1 = "Usage: mytool [options] INPUT\nOptions:\n  -h  Help\n";
+        assert!(!extract_usage_generic(help1).is_empty());
+
+        let help2 = "usage: tool [options]\n";
+        assert!(!extract_usage_generic(help2).is_empty());
+
+        let help3 = "USAGE: tool INPUT OUTPUT\n";
+        assert!(!extract_usage_generic(help3).is_empty());
+    }
+
+    #[test]
+    fn test_extract_usage_no_match() {
+        let help = "Some random text\nNo usage here\n";
+        assert!(extract_usage_generic(help).is_empty());
+    }
+
+    #[test]
+    fn test_parse_flags_long_flag_only() {
+        let help = "Options:\n  --verbose    Enable verbose mode\n  --quiet      Suppress output\n";
+        let flags = parse_flags_generic(help);
+        assert!(flags.len() >= 2);
+        assert!(flags.iter().any(|f| f.name == "--verbose"));
+        assert!(flags.iter().any(|f| f.name == "--quiet"));
+    }
+
+    #[test]
+    fn test_parse_flags_short_with_value() {
+        let help = "Options:\n  -t N      Number of threads\n  -o FILE   Output file\n";
+        let flags = parse_flags_generic(help);
+        assert!(flags.iter().any(|f| f.name == "-t"));
+        assert!(flags.iter().any(|f| f.name == "-o"));
+    }
+
+    #[test]
+    fn test_parse_flags_tab_separated() {
+        let help = "Options:\n-v\tVerbose mode\n--output\tOutput file\n";
+        let flags = parse_flags_generic(help);
+        assert!(flags.len() >= 1);
+    }
+
+    #[test]
+    fn test_parse_flags_empty_help() {
+        let flags = parse_flags_generic("");
+        assert!(flags.is_empty());
+    }
+
+    #[test]
+    fn test_infer_type_generic_file_variants() {
+        assert_eq!(infer_type_generic("INPUT.bam"), ParamType::File);
+        assert_eq!(infer_type_generic("REF.fa"), ParamType::File);
+        assert_eq!(infer_type_generic("READS.fq"), ParamType::File);
+        assert_eq!(infer_type_generic("VARIANTS.vcf"), ParamType::File);
+        assert_eq!(infer_type_generic("DATA.gz"), ParamType::File);
+        assert_eq!(infer_type_generic("PATH"), ParamType::File);
+        assert_eq!(infer_type_generic("DIR"), ParamType::File);
+        assert_eq!(infer_type_generic("OUTPUT_FILE"), ParamType::File);
+        assert_eq!(infer_type_generic("INPUT_PATH"), ParamType::File);
+    }
+
+    #[test]
+    fn test_infer_type_generic_int_variants() {
+        assert_eq!(infer_type_generic("INT"), ParamType::Int);
+        assert_eq!(infer_type_generic("NUM"), ParamType::Int);
+        assert_eq!(infer_type_generic("COUNT"), ParamType::Int);
+        assert_eq!(infer_type_generic("SIZE"), ParamType::Int);
+        assert_eq!(infer_type_generic("LENGTH"), ParamType::Int);
+        assert_eq!(infer_type_generic("THREADS"), ParamType::Int);
+        assert_eq!(infer_type_generic("CPU"), ParamType::Int);
+        assert_eq!(infer_type_generic("K"), ParamType::Int);
+        assert_eq!(infer_type_generic("M"), ParamType::Int);
+    }
+
+    #[test]
+    fn test_infer_type_generic_float_variants() {
+        assert_eq!(infer_type_generic("FLOAT"), ParamType::Float);
+        assert_eq!(infer_type_generic("THRESHOLD"), ParamType::Float);
+        assert_eq!(infer_type_generic("PROB"), ParamType::Float);
+        assert_eq!(infer_type_generic("RATE"), ParamType::Float);
+        assert_eq!(infer_type_generic("RATIO"), ParamType::Float);
+        assert_eq!(infer_type_generic("SCORE"), ParamType::Float);
+        assert_eq!(infer_type_generic("PVALUE"), ParamType::Float);
+        assert_eq!(infer_type_generic("EVALUE"), ParamType::Float);
+    }
+
+    #[test]
+    fn test_infer_type_generic_string() {
+        assert_eq!(infer_type_generic("NAME"), ParamType::String);
+        assert_eq!(infer_type_generic("PREFIX"), ParamType::String);
+        assert_eq!(infer_type_generic("FORMAT"), ParamType::String);
+    }
+
+    #[test]
+    fn test_parse_positional_line_valid() {
+        let pos = parse_positional_line("INPUT    Input BAM file", 0);
+        assert!(pos.is_some());
+        let pos = pos.unwrap();
+        assert_eq!(pos.name, "INPUT");
+        assert_eq!(pos.position, 0);
+    }
+
+    #[test]
+    fn test_parse_positional_line_empty() {
+        assert!(parse_positional_line("", 0).is_none());
+    }
+
+    #[test]
+    fn test_parse_positional_line_starts_with_dash() {
+        assert!(parse_positional_line("-flag", 0).is_none());
+    }
+
+    #[test]
+    fn test_parse_positional_line_special_chars() {
+        assert!(parse_positional_line("input@file", 0).is_none());
+    }
+
+    #[test]
+    fn test_parse_positional_line_tab_separated() {
+        let pos = parse_positional_line("OUTPUT\tOutput file", 1);
+        assert!(pos.is_some());
+        assert_eq!(pos.unwrap().name, "OUTPUT");
+    }
+
+    #[test]
+    fn test_parse_subcommands_from_usage_pattern() {
+        let help = "Usage: tool {sort,merge,index} [options]\n";
+        let subcmds = parse_subcommands_generic(help);
+        assert!(subcmds.len() >= 3, "expected 3+ subcommands, got {}", subcmds.len());
+    }
+
+    #[test]
+    fn test_parse_subcommands_ends_at_options() {
+        let help = "Commands:\n  sort    Sort data\n  merge   Merge data\n\nOptions:\n  -h  Help\n";
+        let subcmds = parse_subcommands_generic(help);
+        assert!(subcmds.len() >= 2);
+    }
+
+    #[test]
+    fn test_parse_subcommands_dash_separator() {
+        let help = "Commands:\n  sort - Sort alignments\n  index - Build index\n";
+        let subcmds = parse_subcommands_generic(help);
+        assert!(subcmds.len() >= 2);
+    }
+
+    #[test]
+    fn test_extract_task_keywords_generic() {
+        let keywords = extract_task_keywords_generic("Sort alignments by coordinate");
+        assert!(keywords.contains(&"sort".to_string()));
+    }
+
+    #[test]
+    fn test_calculate_doc_quality_empty() {
+        let schema = CliSchema::minimal("tool", CliStyle::FlagsFirst);
+        let score = calculate_doc_quality_generic(&schema);
+        assert!(score < 0.2);
+    }
+
+    #[test]
+    fn test_calculate_doc_quality_with_flags() {
+        let mut schema = CliSchema::minimal("tool", CliStyle::FlagsFirst);
+        schema.usage_summary = "tool [options]".to_string();
+        schema.flags = vec![
+            FlagSchema {
+                name: "--output".to_string(),
+                aliases: vec!["-o".to_string()],
+                param_type: ParamType::File,
+                description: "Output file".to_string(),
+                default: None,
+                required: false,
+                long_description: None,
+            },
+        ];
+        let score = calculate_doc_quality_generic(&schema);
+        assert!(score > 0.3);
+    }
+
+    #[test]
+    fn test_calculate_doc_quality_subcommand_style() {
+        let mut schema = CliSchema::minimal("tool", CliStyle::Subcommand);
+        schema.subcommands = vec![SubcommandSchema {
+            name: "sort".to_string(),
+            description: "Sort data".to_string(),
+            usage_pattern: String::new(),
+            flags: Vec::new(),
+            positionals: Vec::new(),
+            constraints: Vec::new(),
+            task_keywords: vec!["sort".to_string()],
+        }];
+        let score = calculate_doc_quality_generic(&schema);
+        assert!(score >= 0.15);
+    }
+
+    #[test]
+    fn test_generic_parser_full_parse() {
+        let help = "Usage: mytool [options] INPUT OUTPUT\n\nOptions:\n  -h, --help       Show help\n  -o, --output=FILE  Output file\n  -t INT           Threads\n  --verbose        Verbose mode\n\nArguments:\n  INPUT   Input file\n  OUTPUT  Output file\n\nCommands:\n  sort    Sort data\n  merge   Merge data\n";
+        let parser = GenericParser;
+        let schema = parser.parse("mytool", help);
+        assert!(!schema.usage_summary.is_empty());
+        assert!(!schema.flags.is_empty());
+        assert!(!schema.positionals.is_empty());
+        assert!(!schema.subcommands.is_empty());
+        assert!(schema.doc_quality > 0.0);
+    }
+
+    #[test]
+    fn test_extract_subcommands_from_usage_no_braces() {
+        let help = "Usage: tool <command> [options]\n";
+        let subcmds = extract_subcommands_from_usage(help);
+        assert!(subcmds.is_empty());
+    }
+
+    #[test]
+    fn test_extract_subcommands_from_usage_with_braces() {
+        let help = "Usage: tool {sort,merge,index} [options]\n";
+        let subcmds = extract_subcommands_from_usage(help);
+        assert_eq!(subcmds.len(), 3);
+    }
+
+    #[test]
+    fn test_parse_subcommands_skips_short_names() {
+        let help = "Commands:\n  a    Too short\n  sort Sort data\n";
+        let subcmds = parse_subcommands_generic(help);
+        assert!(subcmds.iter().all(|s| s.name.len() >= 2));
+    }
+
+    #[test]
+    fn test_parse_subcommands_skips_common_words() {
+        let help = "Commands:\n  the    The command\n  sort   Sort data\n";
+        let subcmds = parse_subcommands_generic(help);
+        assert!(subcmds.iter().all(|s| s.name != "the"));
+    }
 }

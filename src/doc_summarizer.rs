@@ -692,4 +692,281 @@ mod tests {
             flags
         );
     }
+
+    #[test]
+    fn test_extract_usage_lines_basic() {
+        let doc = "Usage: samtools sort [options] <in.bam>\nMore text\nOptions:\n  -o FILE  Output";
+        let lines = extract_usage_lines(doc);
+        assert!(!lines.is_empty());
+        assert!(lines[0].contains("samtools sort"));
+    }
+
+    #[test]
+    fn test_extract_usage_lines_empty() {
+        let lines = extract_usage_lines("No usage here\nJust options");
+        assert!(lines.is_empty());
+    }
+
+    #[test]
+    fn test_extract_usage_lines_multiple() {
+        let doc = "Usage: tool cmd1 [opts]\nUsage: tool cmd2 [opts]\n\nOptions:\n  -v  Verbose";
+        let lines = extract_usage_lines(doc);
+        assert!(lines.len() >= 2);
+    }
+
+    #[test]
+    fn test_extract_usage_lines_continuation() {
+        let doc = "Usage: tool cmd [opts]\n  | subcmd1\n  | subcmd2\n\nOptions:\n  -v  Verbose";
+        let lines = extract_usage_lines(doc);
+        assert!(!lines.is_empty(), "should extract at least the usage line");
+    }
+
+    #[test]
+    fn test_extract_usage_lines_truncates_at_five() {
+        let mut doc = String::new();
+        for i in 0..10 {
+            doc.push_str(&format!("Usage: tool cmd{}\n", i));
+        }
+        let lines = extract_usage_lines(&doc);
+        assert!(lines.len() <= 5);
+    }
+
+    #[test]
+    fn test_extract_subcommands_from_docs_basic() {
+        let doc = "Commands:\n  view     View SAM/BAM\n  sort     Sort alignments\n  index    Index BAM\n\nOptions:\n  -h  Help";
+        let subcmds = extract_subcommands_from_docs(doc);
+        assert!(subcmds.contains(&"view".to_string()));
+        assert!(subcmds.contains(&"sort".to_string()));
+        assert!(subcmds.contains(&"index".to_string()));
+    }
+
+    #[test]
+    fn test_extract_subcommands_from_docs_empty() {
+        let subcmds = extract_subcommands_from_docs("No commands here");
+        assert!(subcmds.is_empty());
+    }
+
+    #[test]
+    fn test_extract_subcommands_from_docs_stops_at_options() {
+        let doc = "Commands:\n  sort   Sort\n  view   View\n\nOptions:\n  -h  Help\n  sort  Should not appear";
+        let subcmds = extract_subcommands_from_docs(doc);
+        assert!(subcmds.contains(&"sort".to_string()));
+        assert!(subcmds.contains(&"view".to_string()));
+    }
+
+    #[test]
+    fn test_extract_subcommands_from_docs_deduplicates() {
+        let doc = "Commands:\n  sort   Sort\n  sort   Sort again\n";
+        let subcmds = extract_subcommands_from_docs(doc);
+        let sort_count = subcmds.iter().filter(|s| **s == "sort").count();
+        assert_eq!(sort_count, 1);
+    }
+
+    #[test]
+    fn test_extract_subcommands_from_docs_truncates_at_twenty() {
+        let mut doc = "Commands:\n".to_string();
+        for i in 0..30 {
+            doc.push_str(&format!("  cmd{:02}   Description {}\n", i, i));
+        }
+        let subcmds = extract_subcommands_from_docs(&doc);
+        assert!(subcmds.len() <= 20);
+    }
+
+    #[test]
+    fn test_build_structured_summary_basic() {
+        let doc = "Usage: samtools sort [options] <in.bam>\n\nCommands:\n  sort   Sort\n  view   View\n\nOptions:\n  -o FILE  Output\n  -@ INT   Threads";
+        let result = build_structured_summary(doc, "samtools");
+        assert!(result.contains("SUBCOMMAND"));
+        assert!(result.contains("sort"));
+    }
+
+    #[test]
+    fn test_build_structured_summary_no_subcommands() {
+        let doc = "Usage: fastp -i input -o output\n\nOptions:\n  -i FILE  Input\n  -o FILE  Output";
+        let result = build_structured_summary(doc, "fastp");
+        assert!(result.contains("DIRECT FLAGS"));
+    }
+
+    #[test]
+    fn test_build_structured_summary_star() {
+        let doc = "STAR --runMode alignReads --genomeDir /path\nMore info";
+        let result = build_structured_summary(doc, "star");
+        assert!(result.contains("LONG OPTIONS"));
+    }
+
+    #[test]
+    fn test_build_structured_summary_bwa() {
+        let doc = "Usage: bwa mem [options] <ref.fa> <reads.fq>\n\nCommands:\n  mem     BWA-MEM algorithm\n  index   Build index";
+        let result = build_structured_summary(doc, "bwa");
+        assert!(result.contains("SUBCOMMAND") || result.contains("INDEX+ACTION"));
+    }
+
+    #[test]
+    fn test_build_structured_summary_unknown_tool() {
+        let doc = "Usage: mytool [options] input\n\nOptions:\n  -v  Verbose";
+        let result = build_structured_summary(doc, "mytool");
+        assert!(result.contains("CLI PATTERN"));
+    }
+
+    #[test]
+    fn test_detect_cli_pattern_subcommand() {
+        let doc = "Commands:\n  sort   Sort\n  view   View";
+        let result = detect_cli_pattern(doc, "samtools");
+        assert!(result.contains("SUBCOMMAND-BASED"));
+    }
+
+    #[test]
+    fn test_detect_cli_pattern_direct_flags() {
+        let result = detect_cli_pattern("Usage: fastp -i in -o out", "fastp");
+        assert!(result.contains("DIRECT FLAGS"));
+    }
+
+    #[test]
+    fn test_detect_cli_pattern_star() {
+        let result = detect_cli_pattern("STAR --runMode alignReads", "star");
+        assert!(result.contains("LONG OPTIONS"));
+    }
+
+    #[test]
+    fn test_detect_cli_pattern_index_action_bwa() {
+        let result = detect_cli_pattern("bwa mem ref.fa reads.fq", "bwa");
+        assert!(result.contains("INDEX+ACTION"));
+    }
+
+    #[test]
+    fn test_detect_cli_pattern_index_action_bowtie2() {
+        let result = detect_cli_pattern("bowtie2 -x ref -1 r1 -2 r2", "bowtie2");
+        assert!(result.contains("INDEX+ACTION"));
+    }
+
+    #[test]
+    fn test_detect_cli_pattern_default() {
+        let result = detect_cli_pattern("mytool does stuff", "mytool");
+        assert!(result.contains("STANDARD"));
+    }
+
+    #[test]
+    fn test_highlight_positional_args() {
+        let result = highlight_positional_args("samtools sort -o out.bam in.bam", "samtools");
+        assert!(result.contains("[TOOL]"));
+        assert!(!result.contains("samtools"));
+    }
+
+    #[test]
+    fn test_format_section_content_priority_zero() {
+        let content = "tool [options] <input>\nAnother line\nThird line\nFourth line\nFifth line\nSixth line";
+        let result = format_section_content(content, 0);
+        assert!(result.contains(">>>"));
+    }
+
+    #[test]
+    fn test_format_section_content_priority_one() {
+        let content = "example 1\ncmd -v input\nexample 2\nexample 3\nexample 4\nexample 5\nexample 6\nexample 7\nexample 8\nexample 9\nexample 10\nexample 11";
+        let result = format_section_content(content, 1);
+        let line_count = result.lines().filter(|l| !l.is_empty()).count();
+        assert!(line_count <= 10);
+    }
+
+    #[test]
+    fn test_format_section_content_priority_three() {
+        let content = "-o FILE  Output\n-v       Verbose\n  Some description\nAnother line\nLast line";
+        let result = format_section_content(content, 3);
+        assert!(result.contains("-o"));
+    }
+
+    #[test]
+    fn test_format_section_content_high_priority() {
+        let content = "Line 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16";
+        let result = format_section_content(content, 5);
+        let line_count = result.lines().count();
+        assert!(line_count <= 15);
+    }
+
+    #[test]
+    fn test_build_llm_optimized_summary_with_flags() {
+        let sections = vec![
+            ("Usage".to_string(), "tool [options] input".to_string()),
+            ("Options".to_string(), "-v  Verbose\n-o FILE  Output".to_string()),
+        ];
+        let result = build_llm_optimized_summary(&sections, 5000);
+        assert!(result.contains("USAGE"));
+        assert!(result.contains("OPTIONS"));
+    }
+
+    #[test]
+    fn test_build_llm_optimized_summary_truncates_at_max() {
+        let sections = vec![
+            ("Usage".to_string(), "tool [options] input".to_string()),
+            ("Options".to_string(), "-v  Verbose\n-o FILE  Output".to_string()),
+        ];
+        let result = build_llm_optimized_summary(&sections, 50);
+        assert!(result.len() <= 100);
+    }
+
+    #[test]
+    fn test_extract_flags_from_sections() {
+        let sections = vec![
+            ("Options".to_string(), "-v  Verbose\n-o FILE  Output\n--threads INT  Threads".to_string()),
+        ];
+        let flags = extract_flags_from_sections(&sections);
+        assert!(!flags.is_empty());
+        assert!(flags.iter().any(|f| f == "-v" || f == "-o" || f == "--threads"));
+    }
+
+    #[test]
+    fn test_extract_flags_from_sections_truncates_at_thirty() {
+        let mut options = String::new();
+        for i in 0..50 {
+            options.push_str(&format!("-{} flag{}\n", i, i));
+        }
+        let sections = vec![("Options".to_string(), options)];
+        let flags = extract_flags_from_sections(&sections);
+        assert!(flags.len() <= 30);
+    }
+
+    #[test]
+    fn test_extract_examples_multiple_sections() {
+        let doc = "EXAMPLE:\n  cmd1 input\n\nEXAMPLE:\n  cmd2 input\n\nEXAMPLE:\n  cmd3 input\n\nEXAMPLE:\n  cmd4 input\n";
+        let examples = extract_examples(doc);
+        assert_eq!(examples.len(), 3);
+    }
+
+    #[test]
+    fn test_extract_examples_with_blank_line_end() {
+        let doc = "EXAMPLE:\n  cmd1 input\n\nSome other text";
+        let examples = extract_examples(doc);
+        assert!(!examples.is_empty());
+    }
+
+    #[test]
+    fn test_detect_cli_pattern_bedtools() {
+        let result = detect_cli_pattern("bedtools intersect [options]", "bedtools");
+        assert!(result.contains("DIRECT FLAGS"));
+    }
+
+    #[test]
+    fn test_detect_cli_pattern_minimap2() {
+        let result = detect_cli_pattern("minimap2 [options] ref.fa reads.fq", "minimap2");
+        assert!(result.contains("DIRECT FLAGS"));
+    }
+
+    #[test]
+    fn test_detect_cli_pattern_hisat2() {
+        let result = detect_cli_pattern("hisat2 [options] -x ref -1 r1", "hisat2");
+        assert!(result.contains("INDEX+ACTION"));
+    }
+
+    #[test]
+    fn test_build_structured_summary_with_usage() {
+        let doc = "Usage: mytool [options] <input>\n\nOptions:\n  -v  Verbose\n  -q  Quiet";
+        let result = build_structured_summary(doc, "mytool");
+        assert!(result.contains("COMMAND STRUCTURE") || result.contains("USAGE"));
+    }
+
+    #[test]
+    fn test_build_structured_summary_with_flags() {
+        let doc = "Options:\n  -v  Verbose\n  -q  Quiet\n  -o FILE  Output";
+        let result = build_structured_summary(doc, "mytool");
+        assert!(result.contains("VALID FLAGS"));
+    }
 }

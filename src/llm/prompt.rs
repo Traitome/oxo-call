@@ -243,7 +243,7 @@ pub fn system_prompt() -> &'static str {
      ARGS: <arguments for the tool — NO tool name, NO markdown>\n\
      EXPLANATION: <one sentence in the task's language>\n\
      \n\
-     ⚠️ CRITICAL RULES — FOLLOW EXACTLY:\n\
+     [!] CRITICAL RULES — FOLLOW EXACTLY:\n\
      1. The tool name is auto-prepended by the system — always omit it from ARGS.\n\
      2. NEVER repeat a flag — each flag appears at most ONCE. If conflicting values exist, use the LAST specified value.\n\
      3. Follow the EXACT argument structure from documentation USAGE line and EXAMPLES. This is THE MOST IMPORTANT RULE.\n\
@@ -253,13 +253,13 @@ pub fn system_prompt() -> &'static str {
         - Study the USAGE line carefully and replicate its structure exactly.\n\
      4. SUBCOMMAND PLACEMENT — CRITICAL:\n\
         - For tools with subcommands (samtools, bcftools, gatk, checkm2, bwa): ARGS MUST start with subcommand\n\
-          ✅ CORRECT: 'sort -o out.bam input.bam'\n\
-          ✅ CORRECT: 'mem reference.fa reads.fq'\n\
-          ❌ WRONG: '-o out.bam input.bam' (missing subcommand - will fail!)\n\
-          ❌ WRONG: '-t 4 reference.fa reads.fq' (no subcommand - will fail!)\n\
+          [OK] CORRECT: 'sort -o out.bam input.bam'\n\
+          [OK] CORRECT: 'mem reference.fa reads.fq'\n\
+          [X] WRONG: '-o out.bam input.bam' (missing subcommand - will fail!)\n\
+          [X] WRONG: '-t 4 reference.fa reads.fq' (no subcommand - will fail!)\n\
         - For tools WITHOUT subcommands (fastp, minimap2, seqkit): ARGS start with flags/inputs\n\
-          ✅ CORRECT: '-i input.fq -o output.fq'\n\
-          ❌ WRONG: 'view -i input.fq' (no such subcommand)\n\
+          [OK] CORRECT: '-i input.fq -o output.fq'\n\
+          [X] WRONG: 'view -i input.fq' (no such subcommand)\n\
      5. POSITIONAL PARAMETER TOOLS — SPECIAL HANDLING:\n\
         - Tools like admixture, prodigal, minimap2 often use POSITIONAL arguments, NOT named flags like -i, --input, -o, --output.\n\
         - If documentation shows: 'admixture input.bed K', use: ARGS: data.bed 5\n\
@@ -299,15 +299,15 @@ pub fn system_prompt_medium() -> &'static str {
      ARGS: <arguments — NO tool name>\n\
      EXPLANATION: <one sentence>\n\
      \n\
-     ⚠️ CRITICAL RULES:\n\
+     [!] CRITICAL RULES:\n\
      1. NEVER repeat flags (each flag once only).\n\
      2. Follow exact argument structure from documentation.\n\
      3. SUBCOMMAND PLACEMENT — CRITICAL:\n\
         - Multi-subcommand tools (samtools, bcftools, gatk): subcommand FIRST\n\
-          ✅ CORRECT: 'sort -o output.bam input.bam'\n\
-          ❌ WRONG: '-o output.bam input.bam' (missing subcommand)\n\
+          [OK] CORRECT: 'sort -o output.bam input.bam'\n\
+          [X] WRONG: '-o output.bam input.bam' (missing subcommand)\n\
         - Single-command tools (fastp, minimap2): flags first\n\
-          ✅ CORRECT: '-i input -o output'\n\
+          [OK] CORRECT: '-i input -o output'\n\
      4. Use ONLY documented flags. NEVER invent flags.\n\
      5. Include EVERY file from task — if R1 AND R2 mentioned, BOTH in ARGS.\n\
      6. Multi-step uses && (tool name only on first segment). Pipes allowed.\n\
@@ -321,17 +321,17 @@ pub fn system_prompt_compact() -> &'static str {
      ARGS: <arguments — never include the tool name>\n\
      EXPLANATION: <what the command does>\n\
      \n\
-     ⚠️ CRITICAL RULES:\n\
+     [!] CRITICAL RULES:\n\
      1. NEVER repeat flags. Each flag appears at most ONCE.\n\
      2. NEVER include tool name in ARGS. System prepends it automatically.\n\
      3. Use flags from documentation/examples ONLY. NEVER invent flags.\n\
      4. SUBCOMMAND PLACEMENT — CRITICAL:\n\
         - For tools with subcommands (samtools, bcftools, gatk): ARGS MUST start with subcommand\n\
-          ✅ CORRECT: 'sort -o out.bam in.bam'\n\
-          ❌ WRONG: '-o out.bam in.bam' (missing subcommand)\n\
+          [OK] CORRECT: 'sort -o out.bam in.bam'\n\
+          [X] WRONG: '-o out.bam in.bam' (missing subcommand)\n\
         - For tools without subcommands (fastp, minimap2): ARGS start with flags\n\
-          ✅ CORRECT: '-i input -o output'\n\
-          ❌ WRONG: 'view -i input' (no such subcommand)\n\
+          [OK] CORRECT: '-i input -o output'\n\
+          [X] WRONG: 'view -i input' (no such subcommand)\n\
      5. Include EVERY file from task — if R1 AND R2 mentioned, BOTH must be in ARGS.\n\
      6. Pipes and chains (&&) allowed. Do NOT add optional params (threads, seeds, reference) unless task mentions them."
 }
@@ -430,7 +430,7 @@ fn detect_critical_arg_style(tool: &str, doc: &str) -> Option<String> {
     let positional_tools = ["admixture", "prodigal"];
     if positional_tools.contains(&tool) {
         return Some(format!(
-            "⚠️ CRITICAL: `{}` uses POSITIONAL arguments, NOT named flags like -i/--input/-o/--output!\n\
+            "[!] CRITICAL: `{}` uses POSITIONAL arguments, NOT named flags like -i/--input/-o/--output!\n\
              Study the USAGE line carefully - it likely shows: `{} input_file output_file` or similar.",
             tool, tool
         ));
@@ -470,7 +470,7 @@ fn detect_critical_arg_style(tool: &str, doc: &str) -> Option<String> {
 
     if let Some(subcommands) = subcommand_map.get(tool) {
         return Some(format!(
-            "⚠️ CRITICAL: `{}` REQUIRES a subcommand as the FIRST argument!\n\
+            "[!] CRITICAL: `{}` REQUIRES a subcommand as the FIRST argument!\n\
              Valid subcommands: {}\n\
              You MUST include the correct subcommand before any flags.",
             tool,
@@ -493,7 +493,7 @@ fn detect_critical_arg_style(tool: &str, doc: &str) -> Option<String> {
 
             if has_bracket_input && !has_dash_input {
                 return Some(format!(
-                    "⚠️ CRITICAL: Based on USAGE, `{}` appears to use POSITIONAL arguments.\n\
+                    "[!] CRITICAL: Based on USAGE, `{}` appears to use POSITIONAL arguments.\n\
                      Check the USAGE line and use the exact format shown.",
                     tool
                 ));
@@ -655,23 +655,23 @@ fn build_prompt_medium(
     match pattern_type {
         "subcommand" => {
             prompt.push_str(&format!(
-                "⚠️ CRITICAL: `{tool}` REQUIRES subcommand '{first_token}' FIRST!\n\
-                 ✅ CORRECT: `{first_token} -flags args`\n\
-                 ❌ WRONG: `-flags args` (missing subcommand)\n\n"
+                "[!] CRITICAL: `{tool}` REQUIRES subcommand '{first_token}' FIRST!\n\
+                 [OK] CORRECT: `{first_token} -flags args`\n\
+                 [X] WRONG: `-flags args` (missing subcommand)\n\n"
             ));
         }
         "flags" => {
             prompt.push_str(&format!(
-                "⚠️ CRITICAL: `{tool}` has NO subcommand! ARGS start with flags.\n\
-                 ✅ CORRECT: `{first_token} value input -o output`\n\
-                 ❌ WRONG: `sort {first_token} ...` (no 'sort' subcommand)\n\n"
+                "[!] CRITICAL: `{tool}` has NO subcommand! ARGS start with flags.\n\
+                 [OK] CORRECT: `{first_token} value input -o output`\n\
+                 [X] WRONG: `sort {first_token} ...` (no 'sort' subcommand)\n\n"
             ));
         }
         "positional" => {
             prompt.push_str(&format!(
-                "⚠️ CRITICAL: `{tool}` uses POSITIONAL args, NO subcommand!\n\
-                 ✅ CORRECT: `{first_token} ...` (input file first)\n\
-                 ❌ WRONG: `sort {first_token} ...` (no 'sort' subcommand)\n\n"
+                "[!] CRITICAL: `{tool}` uses POSITIONAL args, NO subcommand!\n\
+                 [OK] CORRECT: `{first_token} ...` (input file first)\n\
+                 [X] WRONG: `sort {first_token} ...` (no 'sort' subcommand)\n\n"
             ));
         }
         _ => {}
@@ -759,9 +759,9 @@ fn build_prompt_medium(
             prompt.push_str(&format!(
                 "## Output Format\n\
                  ARGS: <arguments - NO tool name>\n\
-                 ⚠️ `{tool}` REQUIRES subcommand '{first_token}' FIRST!\n\
-                 ✅ CORRECT: `{first_token} -flags args`\n\
-                 ❌ WRONG: `-flags args` (missing subcommand)\n\
+                 [!] `{tool}` REQUIRES subcommand '{first_token}' FIRST!\n\
+                 [OK] CORRECT: `{first_token} -flags args`\n\
+                 [X] WRONG: `-flags args` (missing subcommand)\n\
                  EXPLANATION: <brief>\n"
             ));
         }
@@ -769,9 +769,9 @@ fn build_prompt_medium(
             prompt.push_str(&format!(
                 "## Output Format\n\
                  ARGS: <arguments - NO tool name>\n\
-                 ⚠️ `{tool}` has NO subcommand! Start with flags.\n\
-                 ✅ CORRECT: `{first_token} value -o output`\n\
-                 ❌ WRONG: `sort {first_token} ...` (no 'sort' subcommand)\n\
+                 [!] `{tool}` has NO subcommand! Start with flags.\n\
+                 [OK] CORRECT: `{first_token} value -o output`\n\
+                 [X] WRONG: `sort {first_token} ...` (no 'sort' subcommand)\n\
                  EXPLANATION: <brief>\n"
             ));
         }
@@ -779,9 +779,9 @@ fn build_prompt_medium(
             prompt.push_str(&format!(
                 "## Output Format\n\
                  ARGS: <arguments - NO tool name>\n\
-                 ⚠️ `{tool}` uses POSITIONAL args, NO subcommand!\n\
-                 ✅ CORRECT: `{first_token} ...` (input first)\n\
-                 ❌ WRONG: `sort {first_token} ...` (no 'sort' subcommand)\n\
+                 [!] `{tool}` uses POSITIONAL args, NO subcommand!\n\
+                 [OK] CORRECT: `{first_token} ...` (input first)\n\
+                 [X] WRONG: `sort {first_token} ...` (no 'sort' subcommand)\n\
                  EXPLANATION: <brief>\n"
             ));
         }
@@ -862,11 +862,11 @@ fn build_prompt_compact(
     // This must be the FIRST thing the model sees for maximum impact
     if let Some(subcmd) = detected_from_task {
         prompt.push_str(&format!(
-            "⚠️ CRITICAL: {tool} REQUIRES subcommand '{subcmd}' as FIRST argument!\n\
-             ✅ CORRECT: '{subcmd} -flags input output'\n\
-             ❌ WRONG: '-flags input output' (missing '{subcmd}' - command will FAIL)\n\
-             ❌ WRONG: 'other_subcmd -flags ...' (wrong subcommand)\n\
-             Task keyword detected: '{subcmd}' → you MUST start ARGS with '{subcmd}'\n\n"
+            "[CRITICAL] {tool} REQUIRES subcommand '{subcmd}' as FIRST argument!\n\
+             CORRECT: '{subcmd} -flags input output'\n\
+             WRONG: '-flags input output' (missing '{subcmd}' - command will FAIL)\n\
+             WRONG: 'other_subcmd -flags ...' (wrong subcommand)\n\
+             Task keyword detected: '{subcmd}' -> you MUST start ARGS with '{subcmd}'\n\n"
         ));
     }
 
@@ -954,34 +954,34 @@ fn build_prompt_compact(
             // Tool has MULTIPLE subcommands - show all options
             let subcmds_str = all_subcommands.join(", ");
             prompt.push_str(&format!(
-                "⚠️ PATTERN: {tool} REQUIRES a subcommand! Available: {subcmds_str}\n\
+                "[PATTERN] {tool} REQUIRES a subcommand! Available: {subcmds_str}\n\
                  MATCH subcommand to task keywords!\n\
-                 Task says 'quantify' → use 'quant'\n\
-                 Task says 'build index' → use 'index'\n\
-                 ✅ CORRECT: '{first_token} -flags args' (matches task)\n\
-                 ❌ WRONG: '-flags args' (missing subcommand)\n\n"
+                 Task says 'quantify' -> use 'quant'\n\
+                 Task says 'build index' -> use 'index'\n\
+                 CORRECT: '{first_token} -flags args' (matches task)\n\
+                 WRONG: '-flags args' (missing subcommand)\n\n"
             ));
         } else {
             prompt.push_str(&format!(
-                "⚠️ PATTERN: {tool} REQUIRES '{first_token}' as FIRST argument!\n\
-                 ✅ CORRECT: '{first_token} -flags args'\n\
-                 ❌ WRONG: '-flags args' (missing '{first_token}' - will fail!)\n\n"
+                "[!] PATTERN: {tool} REQUIRES '{first_token}' as FIRST argument!\n\
+                 [OK] CORRECT: '{first_token} -flags args'\n\
+                 [X] WRONG: '-flags args' (missing '{first_token}' - will fail!)\n\n"
             ));
         }
     } else if detected_from_task.is_none() && pattern_type == "flags" {
         prompt.push_str(&format!(
-            "⚠️ PATTERN: {tool} has NO subcommand! ARGS start with flags.\n\
-             ✅ CORRECT: '{first_token} value input -o output'\n\
-             ❌ WRONG: 'sort {first_token} ...' (no 'sort' subcommand - will fail!)\n\
-             ❌ WRONG: 'view {first_token} ...' (no 'view' subcommand - will fail!)\n\
-             ❌ WRONG: 'extract {first_token} ...' (no 'extract' subcommand - will fail!)\n\n"
+            "[!] PATTERN: {tool} has NO subcommand! ARGS start with flags.\n\
+             [OK] CORRECT: '{first_token} value input -o output'\n\
+             [X] WRONG: 'sort {first_token} ...' (no 'sort' subcommand - will fail!)\n\
+             [X] WRONG: 'view {first_token} ...' (no 'view' subcommand - will fail!)\n\
+             [X] WRONG: 'extract {first_token} ...' (no 'extract' subcommand - will fail!)\n\n"
         ));
     } else if detected_from_task.is_none() && pattern_type == "positional" {
         prompt.push_str(&format!(
-            "⚠️ PATTERN: {tool} uses POSITIONAL args, NO subcommand!\n\
-             ✅ CORRECT: '{first_token} ...' (input file first, then options)\n\
-             ❌ WRONG: 'sort {first_token} ...' (no 'sort' subcommand - will fail!)\n\
-             ❌ WRONG: '--input {first_token} ...' (use positional, not --input)\n\n"
+            "[!] PATTERN: {tool} uses POSITIONAL args, NO subcommand!\n\
+             [OK] CORRECT: '{first_token} ...' (input file first, then options)\n\
+             [X] WRONG: 'sort {first_token} ...' (no 'sort' subcommand - will fail!)\n\
+             [X] WRONG: '--input {first_token} ...' (use positional, not --input)\n\n"
         ));
     }
 
@@ -1029,37 +1029,37 @@ fn build_prompt_compact(
                 "subcommand" => {
                     if let Some(subcmd) = &sdoc.detected_subcommand {
                         prompt.push_str(&format!(
-                            "⚠️ PATTERN: {tool} REQUIRES subcommand '{subcmd}' FIRST!\n\
-                             ✅ CORRECT: '{subcmd} -flags args'\n\
-                             ❌ WRONG: '-flags args' (missing subcommand - will fail!)\n\n"
+                            "[!] PATTERN: {tool} REQUIRES subcommand '{subcmd}' FIRST!\n\
+                             [OK] CORRECT: '{subcmd} -flags args'\n\
+                             [X] WRONG: '-flags args' (missing subcommand - will fail!)\n\n"
                         ));
                     } else if !sdoc.all_subcommands.is_empty() {
                         // Multi-subcommand tool without detected specific subcommand
                         let subcmds_str = sdoc.all_subcommands.join(", ");
                         prompt.push_str(&format!(
-                            "⚠️ PATTERN: {tool} REQUIRES a subcommand! Available: {subcmds_str}\n\
+                            "[!] PATTERN: {tool} REQUIRES a subcommand! Available: {subcmds_str}\n\
                              MATCH subcommand to task keywords!\n\
-                             Task says 'quantify' → use 'quant'\n\
-                             Task says 'build index' → use 'index'\n\
-                             ✅ CORRECT: '<subcmd> -flags args'\n\
-                             ❌ WRONG: '-flags args' (missing subcommand)\n\n"
+                             Task says 'quantify' -> use 'quant'\n\
+                             Task says 'build index' -> use 'index'\n\
+                             [OK] CORRECT: '<subcmd> -flags args'\n\
+                             [X] WRONG: '-flags args' (missing subcommand)\n\n"
                         ));
                     }
                 }
                 "flags-first" => {
                     prompt.push_str(&format!(
-                        "⚠️ PATTERN: {tool} uses FLAGS-FIRST, NO subcommand!\n\
-                         ✅ CORRECT: '-i input -o output'\n\
-                         ❌ WRONG: 'sort -i ...' (no 'sort' subcommand - will fail!)\n\
-                         ❌ WRONG: 'view -i ...' (no 'view' subcommand - will fail!)\n\n"
+                        "[!] PATTERN: {tool} uses FLAGS-FIRST, NO subcommand!\n\
+                         [OK] CORRECT: '-i input -o output'\n\
+                         [X] WRONG: 'sort -i ...' (no 'sort' subcommand - will fail!)\n\
+                         [X] WRONG: 'view -i ...' (no 'view' subcommand - will fail!)\n\n"
                     ));
                 }
                 "positional" => {
                     prompt.push_str(&format!(
-                        "⚠️ PATTERN: {tool} uses POSITIONAL args, NO flags!\n\
-                         ✅ CORRECT: 'input.bed K' (positionals first, then options)\n\
-                         ❌ WRONG: '-i input.bed -k K' (use positional, not -i/-k flags)\n\
-                         ❌ WRONG: 'sort input.bed' (no 'sort' subcommand)\n\n"
+                        "[!] PATTERN: {tool} uses POSITIONAL args, NO flags!\n\
+                         [OK] CORRECT: 'input.bed K' (positionals first, then options)\n\
+                         [X] WRONG: '-i input.bed -k K' (use positional, not -i/-k flags)\n\
+                         [X] WRONG: 'sort input.bed' (no 'sort' subcommand)\n\n"
                     ));
                 }
                 _ => {}
@@ -1170,14 +1170,14 @@ fn build_prompt_compact(
             // Absolute fallback: show tool-specific pattern hint, not generic 'sort'
             // CRITICAL: Don't show 'sort' example to avoid hallucination
             prompt.push_str(
-                "⚠️ No examples available. Check tool documentation.\n\
+                "[!] No examples available. Check tool documentation.\n\
                  Study the USAGE line to understand argument structure.\n\n---FEW-SHOT---\n\n",
             );
         }
     } else {
         // No skill, no doc - minimal fallback without 'sort' bias
         prompt.push_str(
-            "⚠️ No documentation available. Study tool usage carefully.\n\n---FEW-SHOT---\n\n",
+            "[!] No documentation available. Study tool usage carefully.\n\n---FEW-SHOT---\n\n",
         );
     }
 
@@ -1249,11 +1249,11 @@ fn build_prompt_compact(
     // For doc-only mode, use task keyword detection; for skill mode, use example analysis
     if let Some(subcmd) = detected_from_task {
         prompt.push_str(&format!(
-            "⚠️ CRITICAL OUTPUT RULES - {tool} REQUIRES '{subcmd}' as FIRST argument:\n\
+            "[!] CRITICAL OUTPUT RULES - {tool} REQUIRES '{subcmd}' as FIRST argument:\n\
              1. ARGS MUST START WITH '{subcmd}' - no exceptions!\n\
-                ✅ CORRECT: '{subcmd} -@ 4 -o sorted.bam input.bam'\n\
-                ❌ WRONG: '-@ 4 -o sorted.bam input.bam' (missing '{subcmd}' - will fail!)\n\
-                ❌ WRONG: 'view -@ 4...' (wrong subcommand)\n\
+                [OK] CORRECT: '{subcmd} -@ 4 -o sorted.bam input.bam'\n\
+                [X] WRONG: '-@ 4 -o sorted.bam input.bam' (missing '{subcmd}' - will fail!)\n\
+                [X] WRONG: 'view -@ 4...' (wrong subcommand)\n\
              2. Use ONLY flags from documentation. NEVER invent flags!\n\
              3. OUTPUT naming: Use output pattern from examples or create reasonable name.\n\
              4. INPUT files: Use exact file names from task.\n\
@@ -1261,24 +1261,24 @@ fn build_prompt_compact(
         ));
     } else if pattern_type == "subcommand" {
         prompt.push_str(&format!(
-            "⚠️ CRITICAL OUTPUT RULES:\n\
+            "[!] CRITICAL OUTPUT RULES:\n\
              1. {tool} REQUIRES subcommand '{first_token}' FIRST!\n\
-                ✅ CORRECT: '{first_token} -flags args'\n\
-                ❌ WRONG: '-flags args' (missing subcommand - will fail!)\n\
+                [OK] CORRECT: '{first_token} -flags args'\n\
+                [X] WRONG: '-flags args' (missing subcommand - will fail!)\n\
              2. Use ONLY flags from examples/docs. NEVER invent flags!\n\
              3. OUTPUT naming: Use output pattern from examples, NOT input file prefixes!\n\
-                Example shows '-o sample_quant' → use '-o sample_quant' or similar\n\
-                ❌ WRONG: input='annotated.fq' → output='-o annotated' (derived from input)\n\
+                Example shows '-o sample_quant' -> use '-o sample_quant' or similar\n\
+                [X] WRONG: input='annotated.fq' -> output='-o annotated' (derived from input)\n\
              4. INPUT files: Use exact file names from task, not example placeholders.\n\
              5. Follow the few-shot examples above EXACTLY!\n\n"
         ));
     } else if pattern_type == "flags" {
         prompt.push_str(&format!(
-            "⚠️ CRITICAL OUTPUT RULES:\n\
+            "[!] CRITICAL OUTPUT RULES:\n\
              1. {tool} has NO subcommand! ARGS start with flags.\n\
-                ✅ CORRECT: '{first_token} value input -o output'\n\
-                ❌ WRONG: 'sort {first_token} ...' (no 'sort' - will fail!)\n\
-                ❌ WRONG: 'view {first_token} ...' (no 'view' - will fail!)\n\
+                [OK] CORRECT: '{first_token} value input -o output'\n\
+                [X] WRONG: 'sort {first_token} ...' (no 'sort' - will fail!)\n\
+                [X] WRONG: 'view {first_token} ...' (no 'view' - will fail!)\n\
              2. Use ONLY flags from examples/docs. NEVER invent flags!\n\
              3. OUTPUT naming: Use output pattern from examples, NOT input file prefixes!\n\
              4. INPUT files: Use exact file names from task.\n\
@@ -1286,11 +1286,11 @@ fn build_prompt_compact(
         ));
     } else if pattern_type == "positional" {
         prompt.push_str(&format!(
-            "⚠️ CRITICAL OUTPUT RULES:\n\
+            "[!] CRITICAL OUTPUT RULES:\n\
              1. {tool} uses POSITIONAL args, NO subcommand!\n\
-                ✅ CORRECT: '{first_token} ...' (input first, then options)\n\
-                ❌ WRONG: 'sort {first_token} ...' (no 'sort' - will fail!)\n\
-                ❌ WRONG: '--input {first_token} ...' (use positional, not --input)\n\
+                [OK] CORRECT: '{first_token} ...' (input first, then options)\n\
+                [X] WRONG: 'sort {first_token} ...' (no 'sort' - will fail!)\n\
+                [X] WRONG: '--input {first_token} ...' (use positional, not --input)\n\
              2. Use ONLY flags from examples/docs. NEVER invent flags!\n\
              3. OUTPUT naming: Use output pattern from examples, NOT input file prefixes!\n\
              4. INPUT files: Use exact file names from task.\n\
@@ -1299,7 +1299,7 @@ fn build_prompt_compact(
     } else {
         // Generic fallback for unknown patterns
         prompt.push_str(
-            "⚠️ CRITICAL OUTPUT RULES:\n\
+            "[!] CRITICAL OUTPUT RULES:\n\
              1. Study examples/docs to determine if tool uses:\n\
                 - SUBCOMMANDS (like samtools sort): ARGS start with subcommand\n\
                 - FLAGS (like fastp -i): ARGS start with flags\n\
@@ -1471,11 +1471,11 @@ pub fn build_task_optimization_prompt(tool: &str, raw_task: &str) -> String {
          these STRICT guidelines:\n\
          - CRITICAL: Do NOT add ANY flags, parameters, or options that are not mentioned in the original task.\n\
          - CRITICAL: Do NOT infer or hallucinate file formats, defaults, or additional parameters.\n\
-         - ONLY expand ambiguous OPERATION terms (e.g., 'sort bam' → 'sort BAM file by coordinate')\n\
+         - ONLY expand ambiguous OPERATION terms (e.g., 'sort bam' -> 'sort BAM file by coordinate')\n\
          - ONLY preserve ALL file names, paths, and values from the original task\n\
          - ONLY clarify the OPERATION, not add implementation details\n\
-         - Example: 'quantify reads from annotated.fq using salmon_index' → 'Quantify reads from file annotated.fq using index salmon_index'\n\
-         - BAD Example: 'quantify reads' → 'quantify reads with salmon quant -l A -i index -r reads' (adding flags is WRONG)\n\
+         - Example: 'quantify reads from annotated.fq using salmon_index' -> 'Quantify reads from file annotated.fq using index salmon_index'\n\
+         - BAD Example: 'quantify reads' -> 'quantify reads with salmon quant -l A -i index -r reads' (adding flags is WRONG)\n\
          - Be written in the SAME LANGUAGE as the original task\n\n\
          ## Output Format (STRICT)\n\
          Respond with EXACTLY one line:\n\
@@ -1608,7 +1608,7 @@ pub fn skill_generator_system_prompt() -> &'static str {
      - YAML front-matter: name, category, description, tags, author ('AI-generated'), source_url\n\
      - ## Concepts: ≥3 bullet points about data model, I/O, key behaviors, workflow dependencies\n\
      - ## Pitfalls: ≥3 bullet points about mistakes WITH consequences\n\
-     - ## Examples: ≥5 subsections with format: ### task → **Args:** `flags` → **Explanation:** text\n\
+     - ## Examples: ≥5 subsections with format: ### task -> **Args:** `flags` -> **Explanation:** text\n\
      \n\
      ## Critical Rules\n\
      1. Args NEVER start with the tool name itself\n\
@@ -1975,4 +1975,862 @@ pub fn build_mini_skill_prompt(tool: &str, documentation: &str) -> String {
 \
          - Do NOT invent flags not shown in the documentation\n"
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::doc_processor::{FlagEntry, StructuredDoc};
+    use crate::llm::types::PromptTier;
+    use crate::schema::types::{CliStyle, FlagSchema, ParamType};
+    use crate::skill::{Skill, SkillContext, SkillExample, SkillMeta};
+
+    fn make_skill(examples: Vec<SkillExample>) -> Skill {
+        Skill {
+            meta: SkillMeta {
+                name: "testtool".to_string(),
+                category: "test".to_string(),
+                description: "A test tool".to_string(),
+                tags: vec!["test".to_string()],
+                author: None,
+                source_url: None,
+                min_version: None,
+                max_version: None,
+            },
+            context: SkillContext {
+                concepts: vec!["Test concept".to_string()],
+                pitfalls: vec!["Test pitfall".to_string()],
+            },
+            examples,
+        }
+    }
+
+    fn make_sdoc() -> StructuredDoc {
+        StructuredDoc {
+            usage: "testtool [options] INPUT".to_string(),
+            examples: String::new(),
+            options: String::new(),
+            commands: String::new(),
+            other: String::new(),
+            quick_flags: vec!["-i".to_string(), "-o".to_string()],
+            flag_catalog: vec![
+                FlagEntry { flag: "-i".to_string(), description: "Input file".to_string() },
+                FlagEntry { flag: "-o".to_string(), description: "Output file".to_string() },
+            ],
+            extracted_examples: vec!["testtool -i input.txt -o output.txt".to_string()],
+            quality_score: 0.8,
+            command_pattern: "flags-first".to_string(),
+            detected_subcommand: None,
+            all_subcommands: Vec::new(),
+        }
+    }
+
+    fn make_schema() -> CliSchema {
+        CliSchema::minimal("testtool", CliStyle::FlagsFirst)
+    }
+
+    #[test]
+    fn test_estimate_tokens() {
+        assert_eq!(estimate_tokens(""), 0);
+        assert_eq!(estimate_tokens("a"), 1);
+        assert_eq!(estimate_tokens("ab"), 1);
+        assert_eq!(estimate_tokens("abc"), 2);
+        assert_eq!(estimate_tokens("abcd"), 2);
+        assert_eq!(estimate_tokens("hello world"), 6);
+    }
+
+    #[test]
+    fn test_estimate_tokens_cjk() {
+        assert_eq!(estimate_tokens("你好"), 1);
+        assert_eq!(estimate_tokens("你好世界"), 2);
+    }
+
+    #[test]
+    fn test_prompt_tier_by_context_window() {
+        assert_eq!(prompt_tier(0, "big-model"), PromptTier::Full);
+        assert_eq!(prompt_tier(20000, "big-model"), PromptTier::Full);
+        assert_eq!(prompt_tier(16384, "big-model"), PromptTier::Full);
+        assert_eq!(prompt_tier(8000, "mid-model"), PromptTier::Medium);
+        assert_eq!(prompt_tier(4096, "small-model"), PromptTier::Medium);
+        assert_eq!(prompt_tier(3000, "tiny-model"), PromptTier::Compact);
+    }
+
+    #[test]
+    fn test_prompt_tier_by_model_size() {
+        assert_eq!(prompt_tier(32000, "model-3b"), PromptTier::Compact);
+        assert_eq!(prompt_tier(32000, "model-7b"), PromptTier::Medium);
+        assert_eq!(prompt_tier(32000, "model-70b"), PromptTier::Full);
+        assert_eq!(prompt_tier(32000, "qwen2.5-3b-instruct"), PromptTier::Compact);
+    }
+
+    #[test]
+    fn test_detect_subcommand_from_task_samtools() {
+        assert_eq!(detect_subcommand_from_task("samtools", "sort the bam file"), Some("sort"));
+        assert_eq!(detect_subcommand_from_task("samtools", "view the sam file"), Some("view"));
+        assert_eq!(detect_subcommand_from_task("samtools", "index the bam"), Some("index"));
+        assert_eq!(detect_subcommand_from_task("samtools", "merge bam files"), Some("merge"));
+        assert_eq!(detect_subcommand_from_task("samtools", "check flagstat"), Some("flagstat"));
+        assert_eq!(detect_subcommand_from_task("samtools", "compute depth"), Some("depth"));
+        assert_eq!(detect_subcommand_from_task("samtools", "mark duplicates"), Some("markdup"));
+    }
+
+    #[test]
+    fn test_detect_subcommand_from_task_bwa() {
+        assert_eq!(detect_subcommand_from_task("bwa", "align reads"), Some("mem"));
+        assert_eq!(detect_subcommand_from_task("bwa", "mapping to reference"), Some("mem"));
+        assert_eq!(detect_subcommand_from_task("bwa", "build index"), Some("index"));
+    }
+
+    #[test]
+    fn test_detect_subcommand_from_task_gatk() {
+        assert_eq!(detect_subcommand_from_task("gatk", "call variants"), Some("HaplotypeCaller"));
+        assert_eq!(detect_subcommand_from_task("gatk", "somatic mutation"), Some("Mutect2"));
+        assert_eq!(detect_subcommand_from_task("gatk", "recalibrate base quality"), Some("BaseRecalibrator"));
+        assert_eq!(detect_subcommand_from_task("gatk", "apply bqsr"), Some("BaseRecalibrator"));
+        assert_eq!(detect_subcommand_from_task("gatk", "mark duplicates"), Some("MarkDuplicates"));
+        assert_eq!(detect_subcommand_from_task("gatk", "sort sam"), Some("SortSam"));
+        assert_eq!(detect_subcommand_from_task("gatk", "merge sam files"), Some("MergeSamFiles"));
+    }
+
+    #[test]
+    fn test_detect_subcommand_from_task_unknown_tool() {
+        assert_eq!(detect_subcommand_from_task("unknown_tool", "do something"), None);
+    }
+
+    #[test]
+    fn test_detect_subcommand_from_task_xml_stripping() {
+        let task = "<task>sort the bam file</task>\n<best_practices>Always filter before viewing</best_practices>";
+        assert_eq!(detect_subcommand_from_task("samtools", task), Some("sort"));
+    }
+
+    #[test]
+    fn test_detect_subcommand_from_task_no_match_returns_first() {
+        assert_eq!(detect_subcommand_from_task("samtools", "do something random"), Some("sort"));
+    }
+
+    #[test]
+    fn test_contains_ignore_ascii_case() {
+        assert!(contains_ignore_ascii_case("Hello World", "hello"));
+        assert!(contains_ignore_ascii_case("Hello World", "WORLD"));
+        assert!(contains_ignore_ascii_case("Hello World", "lo wo"));
+        assert!(!contains_ignore_ascii_case("Hello", "xyz"));
+        assert!(contains_ignore_ascii_case("Hello", ""));
+        assert!(!contains_ignore_ascii_case("", "hello"));
+    }
+
+    #[test]
+    fn test_starts_with_ignore_ascii_case() {
+        assert!(starts_with_ignore_ascii_case("Hello World", "hello"));
+        assert!(starts_with_ignore_ascii_case("Hello World", "HELLO"));
+        assert!(!starts_with_ignore_ascii_case("Hello World", "world"));
+        assert!(starts_with_ignore_ascii_case("Hello", ""));
+        assert!(!starts_with_ignore_ascii_case("", "hello"));
+    }
+
+    #[test]
+    fn test_detect_cli_pattern_from_args_subcommand() {
+        assert_eq!(detect_cli_pattern_from_args("sort -o out.bam in.bam"), ("subcommand", "sort".to_string()));
+        assert_eq!(detect_cli_pattern_from_args("view -b input.sam"), ("subcommand", "view".to_string()));
+        assert_eq!(detect_cli_pattern_from_args("mem ref.fa reads.fq"), ("subcommand", "mem".to_string()));
+    }
+
+    #[test]
+    fn test_detect_cli_pattern_from_args_flags() {
+        assert_eq!(detect_cli_pattern_from_args("-i input.fq -o output.fq"), ("flags", "-i".to_string()));
+        assert_eq!(detect_cli_pattern_from_args("--input data.txt"), ("flags", "--input".to_string()));
+    }
+
+    #[test]
+    fn test_detect_cli_pattern_from_args_positional() {
+        assert_eq!(detect_cli_pattern_from_args("input.bed 5"), ("positional", "input.bed".to_string()));
+        assert_eq!(detect_cli_pattern_from_args("data.bam"), ("positional", "data.bam".to_string()));
+        assert_eq!(detect_cli_pattern_from_args("reads.fq"), ("positional", "reads.fq".to_string()));
+    }
+
+    #[test]
+    fn test_detect_cli_pattern_from_args_file_extensions() {
+        assert_eq!(detect_cli_pattern_from_args("genome.fa reads.fq"), ("positional", "genome.fa".to_string()));
+        assert_eq!(detect_cli_pattern_from_args("input.vcf"), ("positional", "input.vcf".to_string()));
+        assert_eq!(detect_cli_pattern_from_args("data.gtf"), ("positional", "data.gtf".to_string()));
+        assert_eq!(detect_cli_pattern_from_args("annotations.gff"), ("positional", "annotations.gff".to_string()));
+        assert_eq!(detect_cli_pattern_from_args("data.fasta"), ("positional", "data.fasta".to_string()));
+        assert_eq!(detect_cli_pattern_from_args("reads.fastq"), ("positional", "reads.fastq".to_string()));
+    }
+
+    #[test]
+    fn test_detect_cli_pattern_from_args_empty() {
+        let (pattern, token) = detect_cli_pattern_from_args("");
+        assert!(token.is_empty());
+        assert!(pattern == "unknown" || pattern == "positional");
+    }
+
+    #[test]
+    fn test_system_prompt_not_empty() {
+        assert!(!system_prompt().is_empty());
+        assert!(!system_prompt_medium().is_empty());
+        assert!(!system_prompt_compact().is_empty());
+    }
+
+    #[test]
+    fn test_system_prompt_contains_critical_rules() {
+        let full = system_prompt();
+        assert!(full.contains("CRITICAL RULES"));
+        assert!(full.contains("ARGS:"));
+        assert!(full.contains("EXPLANATION:"));
+        assert!(full.contains("SUBCOMMAND"));
+    }
+
+    #[test]
+    fn test_build_prompt_no_prompt_mode() {
+        let result = build_prompt(
+            "testtool", "docs", "do something", None, true, 8000,
+            PromptTier::Full, None, None,
+        );
+        assert!(result.contains("testtool"));
+        assert!(result.contains("do something"));
+        assert!(result.contains("ARGS:"));
+    }
+
+    #[test]
+    fn test_build_prompt_full_with_skill() {
+        let skill = make_skill(vec![SkillExample {
+            task: "sort a file".to_string(),
+            args: "sort -o out.bam in.bam".to_string(),
+            explanation: "Sort BAM".to_string(),
+        }]);
+        let result = build_prompt(
+            "samtools", "docs", "sort the bam", Some(&skill), false, 32000,
+            PromptTier::Full, None, None,
+        );
+        assert!(result.contains("samtools"));
+        assert!(result.contains("sort the bam"));
+    }
+
+    #[test]
+    fn test_build_prompt_full_with_schema() {
+        let schema = make_schema();
+        let result = build_prompt(
+            "testtool", "docs", "do something", None, false, 32000,
+            PromptTier::Full, None, Some(&schema),
+        );
+        assert!(result.contains("testtool"));
+        assert!(result.contains("do something"));
+    }
+
+    #[test]
+    fn test_build_prompt_full_with_structured_doc() {
+        let sdoc = make_sdoc();
+        let result = build_prompt(
+            "testtool", "docs", "process input.txt", None, false, 32000,
+            PromptTier::Full, Some(&sdoc), None,
+        );
+        assert!(result.contains("testtool"));
+        assert!(result.contains("process input.txt"));
+        assert!(result.contains("Valid Flags"));
+    }
+
+    #[test]
+    fn test_build_prompt_medium_with_structured_doc() {
+        let sdoc = make_sdoc();
+        let result = build_prompt(
+            "testtool", "docs", "process input.txt", None, false, 8000,
+            PromptTier::Medium, Some(&sdoc), None,
+        );
+        assert!(result.contains("testtool"));
+        assert!(result.contains("process input.txt"));
+    }
+
+    #[test]
+    fn test_build_prompt_compact_with_structured_doc() {
+        let sdoc = make_sdoc();
+        let result = build_prompt(
+            "testtool", "docs", "process input.txt", None, false, 3000,
+            PromptTier::Compact, Some(&sdoc), None,
+        );
+        assert!(result.contains("testtool"));
+        assert!(result.contains("process input.txt"));
+    }
+
+    #[test]
+    fn test_build_prompt_compact_with_skill() {
+        let skill = make_skill(vec![SkillExample {
+            task: "sort a file".to_string(),
+            args: "sort -o out.bam in.bam".to_string(),
+            explanation: "Sort BAM".to_string(),
+        }]);
+        let result = build_prompt(
+            "samtools", "docs", "sort the bam", Some(&skill), false, 3000,
+            PromptTier::Compact, None, None,
+        );
+        assert!(result.contains("samtools"));
+        assert!(result.contains("sort"));
+    }
+
+    #[test]
+    fn test_build_prompt_compact_subcommand_detection() {
+        let result = build_prompt(
+            "samtools", "docs", "sort the bam file", None, false, 3000,
+            PromptTier::Compact, None, None,
+        );
+        assert!(result.contains("CRITICAL"));
+        assert!(result.contains("sort"));
+    }
+
+    #[test]
+    fn test_build_prompt_sanitizes_backticks() {
+        let doc_with_backticks = "Usage: tool ```python\nprint('hello')\n```";
+        let result = build_prompt(
+            "testtool", doc_with_backticks, "do something", None, false, 32000,
+            PromptTier::Full, None, None,
+        );
+        assert!(!result.contains("```python"));
+        assert!(result.contains("` ` `"));
+    }
+
+    #[test]
+    fn test_detect_critical_arg_style_positional() {
+        let result = detect_critical_arg_style("admixture", "Usage: admixture input.bed K");
+        assert!(result.is_some());
+        assert!(result.unwrap().contains("POSITIONAL"));
+    }
+
+    #[test]
+    fn test_detect_critical_arg_style_prodigal() {
+        let result = detect_critical_arg_style("prodigal", "Usage: prodigal -i input.fna");
+        assert!(result.is_some());
+        assert!(result.unwrap().contains("POSITIONAL"));
+    }
+
+    #[test]
+    fn test_detect_critical_arg_style_checkm2() {
+        let result = detect_critical_arg_style("checkm2", "Usage: checkm2 predict ...");
+        assert!(result.is_some());
+        let msg = result.unwrap();
+        assert!(msg.contains("subcommand"));
+    }
+
+    #[test]
+    fn test_detect_critical_arg_style_gtdbtk() {
+        let result = detect_critical_arg_style("gtdbtk", "Usage: gtdbtk classify_wf ...");
+        assert!(result.is_some());
+        let msg = result.unwrap();
+        assert!(msg.contains("subcommand"));
+    }
+
+    #[test]
+    fn test_detect_critical_arg_style_unknown() {
+        let result = detect_critical_arg_style("unknown_tool", "no usage info here");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_detect_critical_arg_style_from_usage() {
+        let doc = "Usage: mytool [INPUT] [OUTPUT]\nOptions:\n  -h  help";
+        let result = detect_critical_arg_style("mytool", doc);
+        assert!(result.is_some());
+        assert!(result.unwrap().contains("POSITIONAL"));
+    }
+
+    #[test]
+    fn test_truncate_documentation_short() {
+        let docs = "Short documentation";
+        let result = truncate_documentation_for_task(docs, 100, None);
+        assert_eq!(result, docs);
+    }
+
+    #[test]
+    fn test_truncate_documentation_exact_fit() {
+        let docs = "abc";
+        let result = truncate_documentation_for_task(docs, 3, None);
+        assert_eq!(result, "abc");
+    }
+
+    #[test]
+    fn test_truncate_documentation_too_small() {
+        let result = truncate_documentation_for_task("some docs", 10, None);
+        assert!(result.is_empty() || result.len() <= 10);
+    }
+
+    #[test]
+    fn test_truncate_documentation_very_small_budget() {
+        let result = truncate_documentation_for_task("some docs", 5, None);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_truncate_documentation_with_task() {
+        let docs = "Usage: tool [options]\n\nOptions:\n  -i INPUT  Input file\n  -o OUTPUT  Output file\n\nDescription:\n  This tool processes files.";
+        let result = truncate_documentation_for_task(docs, 200, Some("process input file"));
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn test_truncate_documentation_truncation_marker() {
+        let long_doc = "Line 1\n\nLine 2\n\nLine 3\n\nLine 4\n\nLine 5\n\nLine 6\n\nLine 7\n\nLine 8\n\nLine 9\n\nLine 10";
+        let result = truncate_documentation_for_task(long_doc, 30, None);
+        assert!(result.contains("[...truncated]") || result.len() <= 30);
+    }
+
+    #[test]
+    fn test_split_into_sections() {
+        let docs = "Section 1\n\nSection 2\n\nSection 3";
+        let sections = split_into_sections(docs);
+        assert_eq!(sections.len(), 3);
+        assert_eq!(sections[0], "Section 1");
+        assert_eq!(sections[1], "Section 2");
+        assert_eq!(sections[2], "Section 3");
+    }
+
+    #[test]
+    fn test_split_into_sections_single() {
+        let docs = "Single section";
+        let sections = split_into_sections(docs);
+        assert_eq!(sections.len(), 1);
+    }
+
+    #[test]
+    fn test_split_into_sections_empty() {
+        let docs = "";
+        let sections = split_into_sections(docs);
+        assert!(sections.is_empty() || (sections.len() == 1 && sections[0].trim().is_empty()));
+    }
+
+    #[test]
+    fn test_split_into_sections_multiple_blank_lines() {
+        let docs = "Section 1\n\n\n\nSection 2";
+        let sections = split_into_sections(docs);
+        assert!(sections.len() >= 2);
+    }
+
+    #[test]
+    fn test_build_task_optimization_prompt() {
+        let result = build_task_optimization_prompt("samtools", "sort bam file");
+        assert!(result.contains("samtools"));
+        assert!(result.contains("sort bam file"));
+        assert!(result.contains("TASK:"));
+    }
+
+    #[test]
+    fn test_verification_system_prompt() {
+        let prompt = verification_system_prompt();
+        assert!(!prompt.is_empty());
+        assert!(prompt.contains("bioinformatics"));
+    }
+
+    #[test]
+    fn test_build_verification_prompt() {
+        let result = build_verification_prompt(
+            "samtools", "sort bam", "samtools sort -o out.bam in.bam",
+            0, "no errors", &[("out.bam".to_string(), Some(1024))],
+        );
+        assert!(result.contains("samtools"));
+        assert!(result.contains("sort bam"));
+        assert!(result.contains("0"));
+        assert!(result.contains("out.bam"));
+        assert!(result.contains("1024"));
+        assert!(result.contains("STATUS:"));
+    }
+
+    #[test]
+    fn test_build_verification_prompt_missing_output() {
+        let result = build_verification_prompt(
+            "samtools", "sort bam", "samtools sort -o out.bam in.bam",
+            1, "error message", &[("missing.bam".to_string(), None)],
+        );
+        assert!(result.contains("NOT FOUND"));
+    }
+
+    #[test]
+    fn test_build_verification_prompt_long_stderr() {
+        let long_stderr = "x".repeat(5000);
+        let result = build_verification_prompt(
+            "tool", "task", "cmd", 1, &long_stderr, &[],
+        );
+        assert!(result.contains("truncated"));
+    }
+
+    #[test]
+    fn test_skill_reviewer_system_prompt() {
+        let prompt = skill_reviewer_system_prompt();
+        assert!(!prompt.is_empty());
+        assert!(prompt.contains("skill"));
+    }
+
+    #[test]
+    fn test_skill_generator_system_prompt() {
+        let prompt = skill_generator_system_prompt();
+        assert!(!prompt.is_empty());
+        assert!(prompt.contains("7-step"));
+    }
+
+    #[test]
+    fn test_build_skill_verify_prompt() {
+        let result = build_skill_verify_prompt("testtool", "skill content here");
+        assert!(result.contains("testtool"));
+        assert!(result.contains("skill content here"));
+        assert!(result.contains("VERDICT:"));
+    }
+
+    #[test]
+    fn test_build_skill_polish_prompt() {
+        let result = build_skill_polish_prompt("testtool", "old skill content");
+        assert!(result.contains("testtool"));
+        assert!(result.contains("old skill content"));
+    }
+
+    #[test]
+    fn test_build_skill_generate_prompt() {
+        let result = build_skill_generate_prompt("testtool");
+        assert!(result.contains("testtool"));
+        assert!(result.contains("Concepts"));
+        assert!(result.contains("Pitfalls"));
+        assert!(result.contains("Examples"));
+    }
+
+    #[test]
+    fn test_build_skill_generate_prompt_enhanced() {
+        let result = build_skill_generate_prompt_enhanced("testtool", Some("help output"), None);
+        assert!(result.contains("testtool"));
+        assert!(result.contains("help output"));
+    }
+
+    #[test]
+    fn test_build_skill_generate_prompt_enhanced_with_skill_content() {
+        let skill_content = "## Workflow\n1. Step one\n2. Step two\n## Concepts\n- Concept 1\n- Concept 2";
+        let result = build_skill_generate_prompt_enhanced("testtool", None, Some(skill_content));
+        assert!(result.contains("testtool"));
+    }
+
+    #[test]
+    fn test_build_skill_generate_prompt_enhanced_no_help() {
+        let result = build_skill_generate_prompt_enhanced("testtool", None, None);
+        assert!(result.contains("not installed locally"));
+    }
+
+    #[test]
+    fn test_build_skill_generate_prompt_enhanced_long_help() {
+        let long_help = "x".repeat(4000);
+        let result = build_skill_generate_prompt_enhanced("testtool", Some(&long_help), None);
+        assert!(result.contains("truncated"));
+    }
+
+    #[test]
+    fn test_build_mini_skill_prompt() {
+        let result = build_mini_skill_prompt("testtool", "documentation here");
+        assert!(result.contains("testtool"));
+        assert!(result.contains("documentation here"));
+        assert!(result.contains("JSON"));
+    }
+
+    #[test]
+    fn test_build_mini_skill_prompt_sanitizes_backticks() {
+        let doc = "```python\nprint('hello')\n```";
+        let result = build_mini_skill_prompt("testtool", doc);
+        assert!(!result.contains("```python"));
+        assert!(result.contains("[BACKTICKS]"));
+    }
+
+    #[test]
+    fn test_build_retry_prompt() {
+        let result = build_retry_prompt(
+            "testtool", "docs", "do something", None, "bad response",
+            false, 8000, PromptTier::Full,
+        );
+        assert!(result.contains("Correction Note"));
+        assert!(result.contains("bad response"));
+    }
+
+    #[test]
+    fn test_build_retry_prompt_compact() {
+        let result = build_retry_prompt(
+            "testtool", "docs", "do something", None, "bad response",
+            false, 3000, PromptTier::Compact,
+        );
+        assert!(result.contains("ARGS:"));
+        assert!(result.contains("EXPLANATION:"));
+    }
+
+    #[test]
+    fn test_build_prompt_full_no_skill_no_doc() {
+        let result = build_prompt(
+            "testtool", "some docs", "do something", None, false, 32000,
+            PromptTier::Full, None, None,
+        );
+        assert!(result.contains("testtool"));
+        assert!(result.contains("Learn from Documentation"));
+    }
+
+    #[test]
+    fn test_build_prompt_full_with_doc_examples() {
+        let mut sdoc = make_sdoc();
+        sdoc.extracted_examples = vec![
+            "testtool -i in.txt -o out.txt".to_string(),
+            "testtool -i in2.txt -o out2.txt".to_string(),
+        ];
+        let result = build_prompt(
+            "testtool", "docs", "process file", None, false, 32000,
+            PromptTier::Full, Some(&sdoc), None,
+        );
+        assert!(result.contains("Real Examples"));
+    }
+
+    #[test]
+    fn test_build_prompt_full_with_doc_no_examples_but_usage() {
+        let mut sdoc = make_sdoc();
+        sdoc.extracted_examples = Vec::new();
+        sdoc.usage = "testtool [options] INPUT OUTPUT".to_string();
+        let result = build_prompt(
+            "testtool", "docs", "process file", None, false, 32000,
+            PromptTier::Full, Some(&sdoc), None,
+        );
+        assert!(result.contains("Command Structure"));
+    }
+
+    #[test]
+    fn test_build_prompt_compact_with_default_few_shot() {
+        let skill = make_skill(vec![SkillExample {
+            task: "run fastqc".to_string(),
+            args: "input.fastq".to_string(),
+            explanation: "Run FastQC".to_string(),
+        }]);
+        let result = build_prompt(
+            "fastqc", "docs", "quality check", Some(&skill), false, 3000,
+            PromptTier::Compact, None, None,
+        );
+        assert!(result.contains("fastqc"));
+        assert!(result.contains("input.fastq"));
+    }
+
+    #[test]
+    fn test_build_prompt_compact_admixture() {
+        let skill = make_skill(vec![SkillExample {
+            task: "run admixture".to_string(),
+            args: "input.bed 3".to_string(),
+            explanation: "Run admixture".to_string(),
+        }]);
+        let result = build_prompt(
+            "admixture", "docs", "population structure", Some(&skill), false, 3000,
+            PromptTier::Compact, None, None,
+        );
+        assert!(result.contains("admixture"));
+    }
+
+    #[test]
+    fn test_build_prompt_medium_with_schema() {
+        let schema = make_schema();
+        let result = build_prompt(
+            "testtool", "docs", "do something", None, false, 8000,
+            PromptTier::Medium, None, Some(&schema),
+        );
+        assert!(result.contains("testtool"));
+    }
+
+    #[test]
+    fn test_build_prompt_compact_with_schema() {
+        let schema = make_schema();
+        let result = build_prompt(
+            "testtool", "docs", "do something", None, false, 3000,
+            PromptTier::Compact, None, Some(&schema),
+        );
+        assert!(result.contains("testtool"));
+    }
+
+    #[test]
+    fn test_build_prompt_compact_with_sdoc_subcommand_pattern() {
+        let mut sdoc = make_sdoc();
+        sdoc.command_pattern = "subcommand".to_string();
+        sdoc.detected_subcommand = Some("sort".to_string());
+        sdoc.all_subcommands = vec!["sort".to_string(), "view".to_string()];
+        let result = build_prompt(
+            "samtools", "docs", "sort the bam", None, false, 3000,
+            PromptTier::Compact, Some(&sdoc), None,
+        );
+        assert!(result.contains("samtools"));
+    }
+
+    #[test]
+    fn test_build_prompt_compact_with_sdoc_flags_first_pattern() {
+        let mut sdoc = make_sdoc();
+        sdoc.command_pattern = "flags-first".to_string();
+        let result = build_prompt(
+            "testtool", "docs", "process file", None, false, 3000,
+            PromptTier::Compact, Some(&sdoc), None,
+        );
+        assert!(result.contains("testtool"));
+        assert!(result.contains("FLAGS-FIRST"));
+    }
+
+    #[test]
+    fn test_build_prompt_compact_with_sdoc_positional_pattern() {
+        let mut sdoc = make_sdoc();
+        sdoc.command_pattern = "positional".to_string();
+        let result = build_prompt(
+            "testtool", "docs", "process file", None, false, 3000,
+            PromptTier::Compact, Some(&sdoc), None,
+        );
+        assert!(result.contains("testtool"));
+        assert!(result.contains("POSITIONAL"));
+    }
+
+    #[test]
+    fn test_build_prompt_compact_no_doc_no_skill() {
+        let result = build_prompt(
+            "testtool", "", "do something", None, false, 3000,
+            PromptTier::Compact, None, None,
+        );
+        assert!(result.contains("testtool"));
+        assert!(result.contains("No documentation"));
+    }
+
+    #[test]
+    fn test_build_prompt_compact_sdoc_usage_fallback() {
+        let mut sdoc = make_sdoc();
+        sdoc.extracted_examples = Vec::new();
+        sdoc.command_pattern = String::new();
+        sdoc.usage = "testtool sort [options] INPUT".to_string();
+        let result = build_prompt(
+            "testtool", "docs", "sort file", None, false, 3000,
+            PromptTier::Compact, Some(&sdoc), None,
+        );
+        assert!(result.contains("testtool"));
+    }
+
+    #[test]
+    fn test_build_prompt_compact_sdoc_no_examples_no_usage() {
+        let mut sdoc = make_sdoc();
+        sdoc.extracted_examples = Vec::new();
+        sdoc.command_pattern = String::new();
+        sdoc.usage = String::new();
+        let result = build_prompt(
+            "testtool", "docs", "do something", None, false, 3000,
+            PromptTier::Compact, Some(&sdoc), None,
+        );
+        assert!(result.contains("testtool"));
+    }
+
+    #[test]
+    fn test_detect_subcommand_bcftools() {
+        assert_eq!(detect_subcommand_from_task("bcftools", "view the vcf"), Some("view"));
+        assert_eq!(detect_subcommand_from_task("bcftools", "merge vcf files"), Some("merge"));
+        assert_eq!(detect_subcommand_from_task("bcftools", "index the vcf"), Some("index"));
+        assert_eq!(detect_subcommand_from_task("bcftools", "normalize vcf"), Some("norm"));
+        assert_eq!(detect_subcommand_from_task("bcftools", "annotate the vcf"), Some("annotate"));
+        assert_eq!(detect_subcommand_from_task("bcftools", "call variants"), Some("call"));
+    }
+
+    #[test]
+    fn test_detect_subcommand_salmon() {
+        assert_eq!(detect_subcommand_from_task("salmon", "quantify expression"), Some("quant"));
+        assert_eq!(detect_subcommand_from_task("salmon", "quant reads"), Some("quant"));
+        assert_eq!(detect_subcommand_from_task("salmon", "build index"), Some("index"));
+    }
+
+    #[test]
+    fn test_simple_truncate() {
+        let docs = "Line 1\nLine 2\nLine 3\nLine 4";
+        let result = truncate_documentation_for_task(docs, 15, None);
+        assert!(result.len() <= 20);
+    }
+
+    #[test]
+    fn test_build_prompt_medium_doc_truncation() {
+        let long_doc = "x".repeat(10000);
+        let result = build_prompt(
+            "testtool", &long_doc, "do something", None, false, 8000,
+            PromptTier::Medium, None, None,
+        );
+        assert!(result.contains("testtool"));
+    }
+
+    #[test]
+    fn test_build_retry_prompt_inner_with_structured_doc() {
+        let sdoc = make_sdoc();
+        let result = build_retry_prompt_inner(
+            "testtool", "docs", "do something", None, "bad response",
+            false, 8000, PromptTier::Full, Some(&sdoc),
+        );
+        assert!(result.contains("Correction Note"));
+    }
+
+    #[test]
+    fn test_build_prompt_compact_skill_multi_subcommand() {
+        let skill = make_skill(vec![
+            SkillExample {
+                task: "quantify".to_string(),
+                args: "quant -i index -r reads.fq".to_string(),
+                explanation: "Quantify".to_string(),
+            },
+            SkillExample {
+                task: "build index".to_string(),
+                args: "index -t transcriptome.fa".to_string(),
+                explanation: "Build index".to_string(),
+            },
+        ]);
+        let result = build_prompt(
+            "salmon", "docs", "quantify expression", Some(&skill), false, 3000,
+            PromptTier::Compact, None, None,
+        );
+        assert!(result.contains("salmon"));
+    }
+
+    #[test]
+    fn test_build_prompt_compact_skill_flags_pattern() {
+        let skill = make_skill(vec![SkillExample {
+            task: "quality check".to_string(),
+            args: "-i input.fq -o output.html".to_string(),
+            explanation: "Run QC".to_string(),
+        }]);
+        let result = build_prompt(
+            "fastqc", "docs", "check quality", Some(&skill), false, 3000,
+            PromptTier::Compact, None, None,
+        );
+        assert!(result.contains("fastqc"));
+        assert!(result.contains("NO subcommand"));
+    }
+
+    #[test]
+    fn test_build_prompt_compact_skill_positional_pattern() {
+        let skill = make_skill(vec![SkillExample {
+            task: "run admixture".to_string(),
+            args: "input.bed 5".to_string(),
+            explanation: "Run admixture".to_string(),
+        }]);
+        let result = build_prompt(
+            "admixture", "docs", "population structure", Some(&skill), false, 3000,
+            PromptTier::Compact, None, None,
+        );
+        assert!(result.contains("admixture"));
+        assert!(result.contains("POSITIONAL"));
+    }
+
+    #[test]
+    fn test_build_verification_prompt_no_stderr() {
+        let result = build_verification_prompt(
+            "tool", "task", "cmd", 0, "", &[],
+        );
+        assert!(!result.contains("Standard Error"));
+    }
+
+    #[test]
+    fn test_build_verification_prompt_no_output_files() {
+        let result = build_verification_prompt(
+            "tool", "task", "cmd", 0, "some output", &[],
+        );
+        assert!(!result.contains("Output Files"));
+    }
+
+    #[test]
+    fn test_build_prompt_full_skill_overrides_doc_flags() {
+        let skill = make_skill(vec![SkillExample {
+            task: "sort bam".to_string(),
+            args: "sort -o out.bam in.bam".to_string(),
+            explanation: "Sort".to_string(),
+        }]);
+        let sdoc = make_sdoc();
+        let result = build_prompt(
+            "samtools", "docs", "sort bam", Some(&skill), false, 32000,
+            PromptTier::Full, Some(&sdoc), None,
+        );
+        assert!(result.contains("samtools"));
+    }
 }

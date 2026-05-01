@@ -35,20 +35,10 @@ pub fn validate_tool_name(tool: &str) -> Result<()> {
             "Tool name cannot be empty".to_string(),
         ));
     }
-    if tool.contains("..") || tool.contains('/') || tool.contains('\\') {
+    if tool.contains("..") {
         return Err(OxoError::DocFetchError(
             tool.to_string(),
-            "Tool name must not contain path separators or '..'".to_string(),
-        ));
-    }
-    if !tool
-        .chars()
-        .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.')
-    {
-        return Err(OxoError::DocFetchError(
-            tool.to_string(),
-            "Tool name contains invalid characters (allowed: alphanumeric, '-', '_', '.')"
-                .to_string(),
+            "Tool name must not contain path traversal ('..')".to_string(),
         ));
     }
     Ok(())
@@ -67,15 +57,13 @@ const TOOL_ALIASES: &[(&str, &[&str])] = &[
     ("pbccs", &["ccs"]),
     ("eggnog-mapper", &["emapper.py", "emapper"]),
     ("fastani", &["fastANI"]),
-    // Tools with version suffixes
-    ("bwa", &["bwa-mem2"]),
     ("samtools", &["samtools-1.20", "samtools-1.19"]),
 ];
 
 /// Semantic domain-to-subcommand mappings for common bioinformatics tools.
 /// When a task mentions a domain concept (e.g., "align") without the explicit subcommand,
 /// this mapping provides the default subcommand for that domain.
-const DOMAIN_SUBCMD_MAP: &[(&str, &str, &str)] = &[
+pub(crate) const DOMAIN_SUBCMD_MAP: &[(&str, &str, &str)] = &[
     // bwa: alignment domain → mem subcommand
     ("bwa", "align", "mem"),
     ("bwa", "alignment", "mem"),
@@ -1568,15 +1556,20 @@ mod tests {
     fn test_validate_tool_name_path_traversal() {
         assert!(validate_tool_name("../etc/passwd").is_err());
         assert!(validate_tool_name("foo/../bar").is_err());
-        assert!(validate_tool_name("foo/bar").is_err());
-        assert!(validate_tool_name("foo\\bar").is_err());
+    }
+
+    #[test]
+    fn test_validate_tool_name_path_allowed() {
+        assert!(validate_tool_name("foo/bar").is_ok());
+        assert!(validate_tool_name("foo\\bar").is_ok());
+        assert!(validate_tool_name("./scripts/run.sh").is_ok());
     }
 
     #[test]
     fn test_validate_tool_name_invalid_chars() {
-        assert!(validate_tool_name("tool name").is_err()); // space
-        assert!(validate_tool_name("tool!").is_err());
-        assert!(validate_tool_name("tool@v1").is_err());
+        assert!(validate_tool_name("tool name").is_ok());
+        assert!(validate_tool_name("tool!").is_ok());
+        assert!(validate_tool_name("tool@v1").is_ok());
     }
 
     // ─── ToolDocs::combined ───────────────────────────────────────────────────
@@ -2195,7 +2188,7 @@ mod tests {
     #[test]
     fn test_validate_tool_name_with_slash() {
         let result = validate_tool_name("path/to/tool");
-        assert!(result.is_err());
+        assert!(result.is_ok());
     }
 
     #[test]
@@ -2544,5 +2537,204 @@ Options:
     #[test]
     fn test_extract_major_minor_no_version() {
         assert_eq!(extract_major_minor("unknown"), "unknown");
+    }
+
+    #[test]
+    fn test_infer_subcommand_from_domain_bwa() {
+        assert_eq!(infer_subcommand_from_domain("bwa", "align reads"), Some("mem"));
+        assert_eq!(infer_subcommand_from_domain("bwa", "alignment"), Some("mem"));
+        assert_eq!(infer_subcommand_from_domain("bwa", "map reads"), Some("mem"));
+    }
+
+    #[test]
+    fn test_infer_subcommand_from_domain_samtools() {
+        assert_eq!(infer_subcommand_from_domain("samtools", "sort bam"), Some("sort"));
+        assert_eq!(infer_subcommand_from_domain("samtools", "view sam"), Some("view"));
+        assert_eq!(infer_subcommand_from_domain("samtools", "index bam"), Some("index"));
+    }
+
+    #[test]
+    fn test_infer_subcommand_from_domain_no_match() {
+        assert_eq!(infer_subcommand_from_domain("mytool", "do stuff"), None);
+    }
+
+    #[test]
+    fn test_get_tool_aliases_known() {
+        let aliases = get_tool_aliases("cnvkit");
+        assert!(aliases.contains(&"cnvkit.py"));
+    }
+
+    #[test]
+    fn test_get_tool_aliases_unknown() {
+        let aliases = get_tool_aliases("unknown-tool");
+        assert!(aliases.is_empty());
+    }
+
+    #[test]
+    fn test_extract_subcmd_tokens_basic() {
+        let mut subcmds = Vec::new();
+        extract_subcmd_tokens("sort       sort alignment files", &mut subcmds);
+        assert!(subcmds.contains(&"sort".to_string()));
+    }
+
+    #[test]
+    fn test_extract_subcmd_tokens_strips_bullet() {
+        let mut subcmds = Vec::new();
+        extract_subcmd_tokens("- sort", &mut subcmds);
+        assert!(subcmds.contains(&"sort".to_string()));
+    }
+
+    #[test]
+    fn test_extract_subcmd_tokens_strips_star() {
+        let mut subcmds = Vec::new();
+        extract_subcmd_tokens("* merge", &mut subcmds);
+        assert!(subcmds.contains(&"merge".to_string()));
+    }
+
+    #[test]
+    fn test_extract_subcmd_tokens_skips_flags() {
+        let mut subcmds = Vec::new();
+        extract_subcmd_tokens("--help   show help", &mut subcmds);
+        assert!(subcmds.is_empty());
+    }
+
+    #[test]
+    fn test_extract_subcmd_tokens_skips_short_flags() {
+        let mut subcmds = Vec::new();
+        extract_subcmd_tokens("-v   verbose", &mut subcmds);
+        assert!(subcmds.is_empty());
+    }
+
+    #[test]
+    fn test_extract_subcmd_tokens_skips_empty() {
+        let mut subcmds = Vec::new();
+        extract_subcmd_tokens("", &mut subcmds);
+        assert!(subcmds.is_empty());
+    }
+
+    #[test]
+    fn test_extract_subcmd_tokens_skips_common_words() {
+        let mut subcmds = Vec::new();
+        extract_subcmd_tokens("usage   show usage", &mut subcmds);
+        assert!(subcmds.is_empty());
+    }
+
+    #[test]
+    fn test_extract_subcmd_tokens_skips_short_tokens() {
+        let mut subcmds = Vec::new();
+        extract_subcmd_tokens("x   single char", &mut subcmds);
+        assert!(subcmds.is_empty());
+    }
+
+    #[test]
+    fn test_is_common_non_subcommand() {
+        assert!(is_common_non_subcommand("usage"));
+        assert!(is_common_non_subcommand("version"));
+        assert!(is_common_non_subcommand("help"));
+        assert!(is_common_non_subcommand("options"));
+        assert!(is_common_non_subcommand("input"));
+        assert!(is_common_non_subcommand("output"));
+        assert!(is_common_non_subcommand("file"));
+        assert!(is_common_non_subcommand("the"));
+        assert!(!is_common_non_subcommand("sort"));
+        assert!(!is_common_non_subcommand("view"));
+        assert!(!is_common_non_subcommand("align"));
+    }
+
+    #[test]
+    fn test_clean_help_output_removes_license() {
+        let help = "Usage: tool [options]\nThis program is free software\nLicense: GPL\nMore license text\n\nOptions:\n  -v  Verbose";
+        let cleaned = clean_help_output(help);
+        assert!(!cleaned.contains("free software"));
+        assert!(cleaned.contains("Usage"));
+    }
+
+    #[test]
+    fn test_clean_help_output_removes_carriage_returns() {
+        let help = "Line 1\r\nLine 2\r\n";
+        let cleaned = clean_help_output(help);
+        assert!(!cleaned.contains('\r'));
+    }
+
+    #[test]
+    fn test_extract_subcommand_list_subcommands_header() {
+        let help = "Subcommands:\n  sort   Sort\n  view   View";
+        let subcmds = extract_subcommand_list(help);
+        assert!(subcmds.contains(&"sort".to_string()));
+        assert!(subcmds.contains(&"view".to_string()));
+    }
+
+    #[test]
+    fn test_extract_subcommand_list_programs_header() {
+        let help = "Programs:\n  sort   Sort\n  view   View";
+        let subcmds = extract_subcommand_list(help);
+        assert!(subcmds.contains(&"sort".to_string()));
+    }
+
+    #[test]
+    fn test_extract_subcommand_list_modules_header() {
+        let help = "Modules:\n  sort   Sort\n  view   View";
+        let subcmds = extract_subcommand_list(help);
+        assert!(subcmds.contains(&"sort".to_string()));
+    }
+
+    #[test]
+    fn test_extract_subcommand_list_stops_at_description() {
+        let help = "Commands:\n  sort   Sort\n\nDescription:\n  Some description";
+        let subcmds = extract_subcommand_list(help);
+        assert!(subcmds.contains(&"sort".to_string()));
+        assert!(!subcmds.contains(&"Some".to_string()));
+    }
+
+    #[test]
+    fn test_extract_subcommand_list_deduplicates() {
+        let help = "Commands:\n  sort   Sort\n  sort   Sort again";
+        let subcmds = extract_subcommand_list(help);
+        let sort_count = subcmds.iter().filter(|s| **s == "sort").count();
+        assert_eq!(sort_count, 1);
+    }
+
+    #[test]
+    fn test_tool_docs_combined_for_model_small() {
+        let docs = ToolDocs {
+            tool_name: "test".to_string(),
+            help_output: Some("a".repeat(5000)),
+            cached_docs: None,
+            version: None,
+            subcommand_help: None,
+        };
+        let combined = docs.combined_for_model("small");
+        assert!(combined.len() <= MAX_DOC_LEN_SMALL_MODEL + 500);
+    }
+
+    #[test]
+    fn test_tool_docs_combined_for_model_medium() {
+        let docs = ToolDocs {
+            tool_name: "test".to_string(),
+            help_output: Some("a".repeat(5000)),
+            cached_docs: None,
+            version: None,
+            subcommand_help: None,
+        };
+        let combined = docs.combined_for_model("medium");
+        assert!(!combined.is_empty());
+    }
+
+    #[test]
+    fn test_tool_docs_combined_for_model_large() {
+        let docs = ToolDocs {
+            tool_name: "test".to_string(),
+            help_output: Some("a".repeat(5000)),
+            cached_docs: None,
+            version: None,
+            subcommand_help: None,
+        };
+        let combined = docs.combined_for_model("large");
+        assert!(!combined.is_empty());
+    }
+
+    #[test]
+    fn test_extract_major_minor_with_suffix() {
+        assert_eq!(extract_major_minor("1.17-beta"), "1.17");
     }
 }

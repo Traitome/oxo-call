@@ -880,4 +880,600 @@ mod tests {
         let result = schema.validate_args(&["-i".to_string(), "input.bam".to_string()], None);
         assert!(result.is_valid);
     }
+
+    #[test]
+    fn test_cli_style_detect_subcommand_braces() {
+        let help = "usage: tool {init,run,status} [options]";
+        assert_eq!(CliStyle::detect_from_help(help), CliStyle::Subcommand);
+    }
+
+    #[test]
+    fn test_cli_style_detect_positional() {
+        let help = "usage: admixture input.bed K [options]\nOptions:\n  --cv  cross-validation";
+        assert_eq!(CliStyle::detect_from_help(help), CliStyle::Hybrid);
+    }
+
+    #[test]
+    fn test_cli_style_detect_flags_first_with_input() {
+        let help = "usage: fastp -i INPUT -o OUTPUT\nOptions:\n  -i  input\n  -o  output";
+        assert_eq!(CliStyle::detect_from_help(help), CliStyle::FlagsFirst);
+    }
+
+    #[test]
+    fn test_cli_style_argument_order() {
+        assert_eq!(CliStyle::Subcommand.argument_order(), ArgumentOrder::SubcommandFlagsPositionals);
+        assert_eq!(CliStyle::FlagsFirst.argument_order(), ArgumentOrder::FlagsPositionals);
+        assert_eq!(CliStyle::Positional.argument_order(), ArgumentOrder::PositionalsFlags);
+        assert_eq!(CliStyle::Hybrid.argument_order(), ArgumentOrder::PositionalsFlagsPositionals);
+    }
+
+    #[test]
+    fn test_param_type_validate() {
+        assert!(ParamType::Float.validate_value("3.14"));
+        assert!(!ParamType::Float.validate_value("abc"));
+        assert!(ParamType::String.validate_value("hello"));
+        assert!(!ParamType::String.validate_value(""));
+        assert!(ParamType::File.validate_value("/path/to/file"));
+        assert!(ParamType::Bool.validate_value(""));
+        assert!(ParamType::Bool.validate_value("true"));
+        assert!(ParamType::Bool.validate_value("false"));
+        assert!(ParamType::Bool.validate_value("yes"));
+        assert!(ParamType::Bool.validate_value("no"));
+        assert!(!ParamType::Bool.validate_value("maybe"));
+    }
+
+    #[test]
+    fn test_param_type_llm_hint() {
+        assert_eq!(ParamType::Int.llm_hint(), "integer");
+        assert_eq!(ParamType::Float.llm_hint(), "number");
+        assert_eq!(ParamType::String.llm_hint(), "text");
+        assert_eq!(ParamType::File.llm_hint(), "file path");
+        assert_eq!(ParamType::Bool.llm_hint(), "boolean (no value needed)");
+        assert_eq!(ParamType::Enum(vec!["a".to_string(), "b".to_string()]).llm_hint(), "one of: a|b");
+    }
+
+    #[test]
+    fn test_flag_schema_all_names() {
+        let flag = FlagSchema {
+            name: "-o".to_string(),
+            aliases: vec!["--output".to_string()],
+            param_type: ParamType::File,
+            description: "Output".to_string(),
+            default: None,
+            required: false,
+            long_description: None,
+        };
+        let names = flag.all_names();
+        assert_eq!(names, vec!["-o", "--output"]);
+    }
+
+    #[test]
+    fn test_cli_schema_is_valid_flag() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::Subcommand,
+            description: String::new(),
+            subcommands: vec![SubcommandSchema {
+                name: "run".to_string(),
+                description: String::new(),
+                usage_pattern: String::new(),
+                flags: vec![FlagSchema {
+                    name: "-t".to_string(),
+                    aliases: vec![],
+                    param_type: ParamType::Int,
+                    description: "Threads".to_string(),
+                    default: None,
+                    required: false,
+                    long_description: None,
+                }],
+                positionals: vec![],
+                constraints: vec![],
+                task_keywords: vec![],
+            }],
+            global_flags: vec![FlagSchema {
+                name: "-v".to_string(),
+                aliases: vec![],
+                param_type: ParamType::Bool,
+                description: "Verbose".to_string(),
+                default: None,
+                required: false,
+                long_description: None,
+            }],
+            flags: vec![FlagSchema {
+                name: "-o".to_string(),
+                aliases: vec![],
+                param_type: ParamType::File,
+                description: "Output".to_string(),
+                default: None,
+                required: false,
+                long_description: None,
+            }],
+            positionals: vec![],
+            usage_summary: String::new(),
+            constraints: vec![],
+            doc_quality: 0.5,
+            schema_source: "test".to_string(),
+        };
+        assert!(schema.is_valid_flag("-v", None));
+        assert!(schema.is_valid_flag("-o", None));
+        assert!(!schema.is_valid_flag("-x", None));
+        assert!(schema.is_valid_flag("-v", Some("run")));
+        assert!(schema.is_valid_flag("-t", Some("run")));
+        assert!(!schema.is_valid_flag("-o", Some("run")));
+    }
+
+    #[test]
+    fn test_cli_schema_get_flag() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: String::new(),
+            subcommands: vec![],
+            global_flags: vec![FlagSchema {
+                name: "-v".to_string(),
+                aliases: vec![],
+                param_type: ParamType::Bool,
+                description: "Verbose".to_string(),
+                default: None,
+                required: false,
+                long_description: None,
+            }],
+            flags: vec![FlagSchema {
+                name: "-o".to_string(),
+                aliases: vec![],
+                param_type: ParamType::File,
+                description: "Output".to_string(),
+                default: None,
+                required: false,
+                long_description: None,
+            }],
+            positionals: vec![],
+            usage_summary: String::new(),
+            constraints: vec![],
+            doc_quality: 0.5,
+            schema_source: "test".to_string(),
+        };
+        assert!(schema.get_flag("-v", None).is_some());
+        assert!(schema.get_flag("-o", None).is_some());
+        assert!(schema.get_flag("-x", None).is_none());
+    }
+
+    #[test]
+    fn test_cli_schema_all_flag_names() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::Subcommand,
+            description: String::new(),
+            subcommands: vec![SubcommandSchema {
+                name: "sort".to_string(),
+                description: String::new(),
+                usage_pattern: String::new(),
+                flags: vec![FlagSchema {
+                    name: "-@".to_string(),
+                    aliases: vec![],
+                    param_type: ParamType::Int,
+                    description: "Threads".to_string(),
+                    default: None,
+                    required: false,
+                    long_description: None,
+                }],
+                positionals: vec![],
+                constraints: vec![],
+                task_keywords: vec![],
+            }],
+            global_flags: vec![FlagSchema {
+                name: "-v".to_string(),
+                aliases: vec![],
+                param_type: ParamType::Bool,
+                description: "Verbose".to_string(),
+                default: None,
+                required: false,
+                long_description: None,
+            }],
+            flags: vec![],
+            positionals: vec![],
+            usage_summary: String::new(),
+            constraints: vec![],
+            doc_quality: 0.5,
+            schema_source: "test".to_string(),
+        };
+        let names = schema.all_flag_names(Some("sort"));
+        assert!(names.contains(&"-v"));
+        assert!(names.contains(&"-@"));
+    }
+
+    #[test]
+    fn test_subcommand_schema_methods() {
+        let subcmd = SubcommandSchema {
+            name: "sort".to_string(),
+            description: "Sort data".to_string(),
+            usage_pattern: "sort [options] INPUT".to_string(),
+            flags: vec![FlagSchema {
+                name: "-@".to_string(),
+                aliases: vec!["--threads".to_string()],
+                param_type: ParamType::Int,
+                description: "Threads".to_string(),
+                default: None,
+                required: false,
+                long_description: None,
+            }],
+            positionals: vec![],
+            constraints: vec![],
+            task_keywords: vec![],
+        };
+        assert!(subcmd.is_valid_flag("-@"));
+        assert!(subcmd.is_valid_flag("--threads"));
+        assert!(!subcmd.is_valid_flag("-x"));
+        assert!(subcmd.get_flag("-@").is_some());
+        assert!(subcmd.get_flag("-x").is_none());
+        let names = subcmd.all_flag_names();
+        assert!(names.contains(&"-@"));
+        assert!(names.contains(&"--threads"));
+    }
+
+    #[test]
+    fn test_cli_style_detect_hybrid_style() {
+        let help = "usage: admixture input.bed K [options] -t 4";
+        assert_eq!(CliStyle::detect_from_help(help), CliStyle::Hybrid);
+    }
+
+    #[test]
+    fn test_cli_style_detect_flags_first_via_input() {
+        let help = "tool -i input.txt -o output.txt";
+        assert_eq!(CliStyle::detect_from_help(help), CliStyle::FlagsFirst);
+    }
+
+    #[test]
+    fn test_cli_style_detect_default_flags_first() {
+        let help = "some random text without patterns";
+        assert_eq!(CliStyle::detect_from_help(help), CliStyle::FlagsFirst);
+    }
+
+    #[test]
+    fn test_cli_style_detect_positional_style() {
+        let help = "usage: mytool input.bed K";
+        assert_eq!(CliStyle::detect_from_help(help), CliStyle::Positional);
+    }
+
+    #[test]
+    fn test_validate_args_subcommand_wrong() {
+        let schema = CliSchema {
+            tool: "bwa".to_string(),
+            version: None,
+            cli_style: CliStyle::Subcommand,
+            description: String::new(),
+            subcommands: vec![SubcommandSchema {
+                name: "mem".to_string(),
+                description: "BWA-MEM".to_string(),
+                usage_pattern: String::new(),
+                flags: vec![],
+                positionals: vec![],
+                constraints: vec![],
+                task_keywords: vec![],
+            }],
+            global_flags: vec![],
+            flags: vec![],
+            positionals: vec![],
+            usage_summary: String::new(),
+            constraints: vec![],
+            doc_quality: 0.5,
+            schema_source: "test".to_string(),
+        };
+        let result = schema.validate_args(&["index".to_string()], Some("mem"));
+        assert!(!result.is_valid);
+        assert!(result.errors.iter().any(|e| matches!(e, ValidationError::WrongSubcommand { .. })));
+    }
+
+    #[test]
+    fn test_validate_args_missing_subcommand() {
+        let schema = CliSchema {
+            tool: "bwa".to_string(),
+            version: None,
+            cli_style: CliStyle::Subcommand,
+            description: String::new(),
+            subcommands: vec![SubcommandSchema {
+                name: "mem".to_string(),
+                description: "BWA-MEM".to_string(),
+                usage_pattern: String::new(),
+                flags: vec![],
+                positionals: vec![],
+                constraints: vec![],
+                task_keywords: vec![],
+            }],
+            global_flags: vec![],
+            flags: vec![],
+            positionals: vec![],
+            usage_summary: String::new(),
+            constraints: vec![],
+            doc_quality: 0.5,
+            schema_source: "test".to_string(),
+        };
+        let result = schema.validate_args(&[], Some("mem"));
+        assert!(!result.is_valid);
+        assert!(result.errors.iter().any(|e| matches!(e, ValidationError::MissingSubcommand { .. })));
+    }
+
+    #[test]
+    fn test_validate_args_constraints() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: String::new(),
+            subcommands: vec![],
+            global_flags: vec![],
+            flags: vec![
+                FlagSchema {
+                    name: "-a".to_string(),
+                    aliases: vec![],
+                    param_type: ParamType::Bool,
+                    description: "Flag A".to_string(),
+                    default: None,
+                    required: false,
+                    long_description: None,
+                },
+                FlagSchema {
+                    name: "-b".to_string(),
+                    aliases: vec![],
+                    param_type: ParamType::Bool,
+                    description: "Flag B".to_string(),
+                    default: None,
+                    required: false,
+                    long_description: None,
+                },
+                FlagSchema {
+                    name: "-c".to_string(),
+                    aliases: vec![],
+                    param_type: ParamType::Bool,
+                    description: "Flag C".to_string(),
+                    default: None,
+                    required: false,
+                    long_description: None,
+                },
+            ],
+            positionals: vec![],
+            usage_summary: String::new(),
+            constraints: vec![
+                ConstraintRule::Requires("-a".to_string(), "-b".to_string()),
+                ConstraintRule::MutuallyExclusive("-a".to_string(), "-c".to_string()),
+                ConstraintRule::AllRequired(vec!["-b".to_string(), "-c".to_string()]),
+                ConstraintRule::AtLeastOne(vec!["-a".to_string(), "-b".to_string()]),
+            ],
+            doc_quality: 0.5,
+            schema_source: "test".to_string(),
+        };
+        let result = schema.validate_args(&["-a".to_string()], None);
+        assert!(!result.is_valid);
+        assert!(result.errors.iter().any(|e| matches!(e, ValidationError::ConstraintViolation { .. })));
+    }
+
+    #[test]
+    fn test_validate_args_at_least_one_missing() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: String::new(),
+            subcommands: vec![],
+            global_flags: vec![],
+            flags: vec![],
+            positionals: vec![],
+            usage_summary: String::new(),
+            constraints: vec![ConstraintRule::AtLeastOne(vec!["-a".to_string(), "-b".to_string()])],
+            doc_quality: 0.5,
+            schema_source: "test".to_string(),
+        };
+        let result = schema.validate_args(&[], None);
+        assert!(!result.is_valid);
+    }
+
+    #[test]
+    fn test_validate_args_all_required_missing() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: String::new(),
+            subcommands: vec![],
+            global_flags: vec![],
+            flags: vec![],
+            positionals: vec![],
+            usage_summary: String::new(),
+            constraints: vec![ConstraintRule::AllRequired(vec!["-a".to_string(), "-b".to_string()])],
+            doc_quality: 0.5,
+            schema_source: "test".to_string(),
+        };
+        let result = schema.validate_args(&[], None);
+        assert!(!result.is_valid);
+    }
+
+    #[test]
+    fn test_validate_args_mutually_exclusive() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: String::new(),
+            subcommands: vec![],
+            global_flags: vec![],
+            flags: vec![],
+            positionals: vec![],
+            usage_summary: String::new(),
+            constraints: vec![ConstraintRule::MutuallyExclusive("-a".to_string(), "-b".to_string())],
+            doc_quality: 0.5,
+            schema_source: "test".to_string(),
+        };
+        let result = schema.validate_args(&["-a".to_string(), "-b".to_string()], None);
+        assert!(!result.is_valid);
+    }
+
+    #[test]
+    fn test_get_required_flags_subcommand() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::Subcommand,
+            description: String::new(),
+            subcommands: vec![SubcommandSchema {
+                name: "run".to_string(),
+                description: String::new(),
+                usage_pattern: String::new(),
+                flags: vec![FlagSchema {
+                    name: "-i".to_string(),
+                    aliases: vec![],
+                    param_type: ParamType::File,
+                    description: "Input".to_string(),
+                    default: None,
+                    required: true,
+                    long_description: None,
+                }],
+                positionals: vec![],
+                constraints: vec![],
+                task_keywords: vec![],
+            }],
+            global_flags: vec![FlagSchema {
+                name: "-v".to_string(),
+                aliases: vec![],
+                param_type: ParamType::Bool,
+                description: "Verbose".to_string(),
+                default: None,
+                required: true,
+                long_description: None,
+            }],
+            flags: vec![],
+            positionals: vec![],
+            usage_summary: String::new(),
+            constraints: vec![],
+            doc_quality: 0.5,
+            schema_source: "test".to_string(),
+        };
+        let result = schema.validate_args(&["run".to_string()], Some("run"));
+        assert!(!result.is_valid);
+        assert!(result.errors.iter().any(|e| matches!(e, ValidationError::MissingRequiredFlag { .. })));
+    }
+
+    #[test]
+    fn test_validation_result_error_summary() {
+        let result = ValidationResult {
+            is_valid: false,
+            errors: vec![
+                ValidationError::InvalidFlag { flag: "-x".to_string(), valid_flags: vec![] },
+                ValidationError::MissingRequiredFlag { flag: "-i".to_string() },
+                ValidationError::MissingSubcommand { expected: "mem".to_string() },
+                ValidationError::WrongSubcommand { expected: "mem".to_string(), actual: "index".to_string() },
+                ValidationError::ConstraintViolation { message: "test constraint".to_string() },
+                ValidationError::WrongValueType { flag: "-t".to_string(), expected_type: "Int".to_string(), actual_value: "abc".to_string() },
+                ValidationError::MissingPositional { position: 0, name: "INPUT".to_string() },
+            ],
+            warnings: Vec::new(),
+            used_flags: Vec::new(),
+            valid_flags: Vec::new(),
+        };
+        let summary = result.error_summary();
+        assert!(summary.contains("Invalid flag"));
+        assert!(summary.contains("Missing required flag"));
+        assert!(summary.contains("Missing subcommand"));
+        assert!(summary.contains("Wrong subcommand"));
+        assert!(summary.contains("test constraint"));
+        assert!(summary.contains("expected Int"));
+        assert!(summary.contains("Missing positional"));
+    }
+
+    #[test]
+    fn test_validation_result_valid() {
+        let result = ValidationResult::valid();
+        assert!(result.is_valid);
+        assert!(result.errors.is_empty());
+    }
+
+    #[test]
+    fn test_select_subcommand_keyword_match() {
+        let schema = CliSchema {
+            tool: "bwa".to_string(),
+            version: None,
+            cli_style: CliStyle::Subcommand,
+            description: String::new(),
+            subcommands: vec![
+                SubcommandSchema {
+                    name: "mem".to_string(),
+                    description: "BWA-MEM algorithm for alignment".to_string(),
+                    usage_pattern: String::new(),
+                    flags: vec![],
+                    positionals: vec![],
+                    constraints: vec![],
+                    task_keywords: vec!["align".to_string(), "mapping".to_string()],
+                },
+                SubcommandSchema {
+                    name: "index".to_string(),
+                    description: "Index reference genome".to_string(),
+                    usage_pattern: String::new(),
+                    flags: vec![],
+                    positionals: vec![],
+                    constraints: vec![],
+                    task_keywords: vec!["index".to_string(), "build".to_string()],
+                },
+            ],
+            global_flags: vec![],
+            flags: vec![],
+            positionals: vec![],
+            usage_summary: String::new(),
+            constraints: vec![],
+            doc_quality: 0.5,
+            schema_source: "test".to_string(),
+        };
+        let result = schema.select_subcommand("align reads to reference");
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().name, "mem");
+    }
+
+    #[test]
+    fn test_select_subcommand_description_match() {
+        let schema = CliSchema {
+            tool: "tool".to_string(),
+            version: None,
+            cli_style: CliStyle::Subcommand,
+            description: String::new(),
+            subcommands: vec![SubcommandSchema {
+                name: "sort".to_string(),
+                description: "Sort alignment by coordinate".to_string(),
+                usage_pattern: String::new(),
+                flags: vec![],
+                positionals: vec![],
+                constraints: vec![],
+                task_keywords: vec![],
+            }],
+            global_flags: vec![],
+            flags: vec![],
+            positionals: vec![],
+            usage_summary: String::new(),
+            constraints: vec![],
+            doc_quality: 0.5,
+            schema_source: "test".to_string(),
+        };
+        let result = schema.select_subcommand("coordinate sort my BAM file");
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().name, "sort");
+    }
+
+    #[test]
+    fn test_select_subcommand_empty() {
+        let schema = CliSchema {
+            tool: "tool".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: String::new(),
+            subcommands: vec![],
+            global_flags: vec![],
+            flags: vec![],
+            positionals: vec![],
+            usage_summary: String::new(),
+            constraints: vec![],
+            doc_quality: 0.5,
+            schema_source: "test".to_string(),
+        };
+        assert!(schema.select_subcommand("do something").is_none());
+    }
 }

@@ -124,15 +124,6 @@ EXAMPLES:\n  \
         /// completes. Useful for benchmarking or non-interactive pipelines.
         #[arg(long)]
         no_stream: bool,
-        /// [Ablation] Do not load the skill file for this tool
-        #[arg(long, hide = true)]
-        no_skill: bool,
-        /// [Ablation] Do not load tool documentation (--help output)
-        #[arg(long, hide = true)]
-        no_doc: bool,
-        /// [Ablation] Do not use the oxo-call system prompt
-        #[arg(long, hide = true)]
-        no_prompt: bool,
     },
     #[command(
         name = "dry-run",
@@ -162,15 +153,6 @@ EXAMPLES:\n  \
         /// Output result as JSON (useful for scripting and CI integration)
         #[arg(long)]
         json: bool,
-        /// [Ablation] Do not load the skill file for this tool
-        #[arg(long, hide = true)]
-        no_skill: bool,
-        /// [Ablation] Do not load tool documentation (--help output)
-        #[arg(long, hide = true)]
-        no_doc: bool,
-        /// [Ablation] Do not use the oxo-call system prompt
-        #[arg(long, hide = true)]
-        no_prompt: bool,
         /// Set a named variable for `{KEY}` substitution in the task description (repeatable)
         ///
         /// Example: --var SAMPLE=sample1 --var THREADS=8
@@ -837,28 +819,19 @@ pub enum JobCommands {
 pub enum RunScenario {
     /// Bare: Tool + Task only (no additional context)
     Bare,
-    /// Prompt: Bare + custom prompt
-    Prompt,
-    /// Doc: Bare + documentation + mini-skill generation
+    /// Doc: Tool + auto-parsed documentation + Schema
     Doc,
-    /// Skill: Bare + skill file
-    Skill,
-    /// Full: Doc + skill combined (most accurate)
+    /// Full: Doc + Skill knowledge (most accurate)
     Full,
 }
 
-/// Chat scenario modes for controlling context injection
 #[derive(Clone, Debug, ValueEnum)]
 pub enum ChatScenario {
     /// Bare: no system prompt, no docs, no skill (plain chat)
     Bare,
-    /// Prompt: use oxo-call system prompt only
-    Prompt,
-    /// Skill: load skill file only
-    Skill,
     /// Doc: load tool documentation only
     Doc,
-    /// Full: load everything (default)
+    /// Full: load documentation + skill (default)
     Full,
 }
 

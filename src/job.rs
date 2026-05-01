@@ -1523,4 +1523,349 @@ mod tests {
         #[cfg(not(unix))]
         {}
     }
+
+    #[test]
+    fn test_job_manager_add_and_find() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let entry = make_entry("test-add", "echo hello");
+        JobManager::add(entry).unwrap();
+        let found = JobManager::find("test-add").unwrap();
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().command, "echo hello");
+    }
+
+    #[test]
+    fn test_job_manager_add_duplicate_fails() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        JobManager::add(make_entry("dup", "echo 1")).unwrap();
+        let result = JobManager::add(make_entry("dup", "echo 2"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_job_manager_find_nonexistent() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let found = JobManager::find("no-such-job").unwrap();
+        assert!(found.is_none());
+    }
+
+    #[test]
+    fn test_job_manager_remove() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        JobManager::add(make_entry("to-remove", "echo rm")).unwrap();
+        JobManager::remove("to-remove").unwrap();
+        assert!(JobManager::find("to-remove").unwrap().is_none());
+    }
+
+    #[test]
+    fn test_job_manager_remove_nonexistent_fails() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let result = JobManager::remove("ghost");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_job_manager_list() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        JobManager::add(make_entry("job-a", "echo a")).unwrap();
+        JobManager::add(make_entry("job-b", "echo b")).unwrap();
+        let list = JobManager::list(None).unwrap();
+        assert_eq!(list.len(), 2);
+    }
+
+    #[test]
+    fn test_job_manager_list_with_tag_filter() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let mut entry = make_entry("tagged", "echo tagged");
+        entry.tags = vec!["bio".to_string()];
+        JobManager::add(entry).unwrap();
+        JobManager::add(make_entry("untagged", "echo plain")).unwrap();
+        let filtered = JobManager::list(Some("bio")).unwrap();
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].name, "tagged");
+    }
+
+    #[test]
+    fn test_job_manager_edit_command() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        JobManager::add(make_entry("edit-me", "echo old")).unwrap();
+        JobManager::edit("edit-me", Some("echo new"), None, false, None, None, false).unwrap();
+        let found = JobManager::find("edit-me").unwrap().unwrap();
+        assert_eq!(found.command, "echo new");
+    }
+
+    #[test]
+    fn test_job_manager_edit_description() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        JobManager::add(make_entry("desc-job", "echo hi")).unwrap();
+        JobManager::edit("desc-job", None, Some("A description"), false, None, None, false).unwrap();
+        let found = JobManager::find("desc-job").unwrap().unwrap();
+        assert_eq!(found.description.as_deref(), Some("A description"));
+    }
+
+    #[test]
+    fn test_job_manager_edit_clear_description() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let mut entry = make_entry("clear-desc", "echo hi");
+        entry.description = Some("old desc".to_string());
+        JobManager::add(entry).unwrap();
+        JobManager::edit("clear-desc", None, None, true, None, None, false).unwrap();
+        let found = JobManager::find("clear-desc").unwrap().unwrap();
+        assert!(found.description.is_none());
+    }
+
+    #[test]
+    fn test_job_manager_edit_tags() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        JobManager::add(make_entry("tag-job", "echo hi")).unwrap();
+        JobManager::edit("tag-job", None, None, false, Some(vec!["new-tag".to_string()]), None, false).unwrap();
+        let found = JobManager::find("tag-job").unwrap().unwrap();
+        assert_eq!(found.tags, vec!["new-tag"]);
+    }
+
+    #[test]
+    fn test_job_manager_edit_schedule() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        JobManager::add(make_entry("sched-job", "echo hi")).unwrap();
+        JobManager::edit("sched-job", None, None, false, None, Some("0 * * * *"), false).unwrap();
+        let found = JobManager::find("sched-job").unwrap().unwrap();
+        assert_eq!(found.schedule.as_deref(), Some("0 * * * *"));
+    }
+
+    #[test]
+    fn test_job_manager_edit_clear_schedule() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let mut entry = make_entry("clear-sched", "echo hi");
+        entry.schedule = Some("0 * * * *".to_string());
+        JobManager::add(entry).unwrap();
+        JobManager::edit("clear-sched", None, None, false, None, None, true).unwrap();
+        let found = JobManager::find("clear-sched").unwrap().unwrap();
+        assert!(found.schedule.is_none());
+    }
+
+    #[test]
+    fn test_job_manager_edit_nonexistent_fails() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let result = JobManager::edit("ghost", Some("echo"), None, false, None, None, false);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_job_manager_rename() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        JobManager::add(make_entry("old-name", "echo hi")).unwrap();
+        JobManager::rename("old-name", "new-name").unwrap();
+        assert!(JobManager::find("old-name").unwrap().is_none());
+        assert!(JobManager::find("new-name").unwrap().is_some());
+    }
+
+    #[test]
+    fn test_job_manager_rename_to_existing_fails() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        JobManager::add(make_entry("a", "echo a")).unwrap();
+        JobManager::add(make_entry("b", "echo b")).unwrap();
+        let result = JobManager::rename("a", "b");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_job_manager_rename_nonexistent_fails() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let result = JobManager::rename("ghost", "new-name");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_job_manager_record_run() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        JobManager::add(make_entry("run-job", "echo hi")).unwrap();
+        JobManager::record_run("run-job", "echo hi", None, 0, Utc::now(), 0.5).unwrap();
+        let found = JobManager::find("run-job").unwrap().unwrap();
+        assert_eq!(found.run_count, 1);
+        assert_eq!(found.last_exit_code, Some(0));
+    }
+
+    #[test]
+    fn test_job_manager_set_schedule() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        JobManager::add(make_entry("sched-me", "echo hi")).unwrap();
+        JobManager::set_schedule("sched-me", Some("0 */2 * * *")).unwrap();
+        let found = JobManager::find("sched-me").unwrap().unwrap();
+        assert_eq!(found.schedule.as_deref(), Some("0 */2 * * *"));
+    }
+
+    #[test]
+    fn test_job_manager_set_schedule_clear() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let mut entry = make_entry("clear-sched2", "echo hi");
+        entry.schedule = Some("0 * * * *".to_string());
+        JobManager::add(entry).unwrap();
+        JobManager::set_schedule("clear-sched2", None).unwrap();
+        let found = JobManager::find("clear-sched2").unwrap().unwrap();
+        assert!(found.schedule.is_none());
+    }
+
+    #[test]
+    fn test_job_manager_scheduled_jobs() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        JobManager::add(make_entry("no-sched", "echo a")).unwrap();
+        let mut entry = make_entry("has-sched", "echo b");
+        entry.schedule = Some("0 * * * *".to_string());
+        JobManager::add(entry).unwrap();
+        let scheduled = JobManager::scheduled_jobs().unwrap();
+        assert_eq!(scheduled.len(), 1);
+        assert_eq!(scheduled[0].name, "has-sched");
+    }
+
+    #[test]
+    fn test_job_run_store_append_and_load() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let run = JobRun {
+            job_name: "store-test".to_string(),
+            command: "echo test".to_string(),
+            server: None,
+            exit_code: 0,
+            started_at: Utc::now(),
+            duration_secs: 1.0,
+        };
+        JobRunStore::append(&run).unwrap();
+        let loaded = JobRunStore::load(None).unwrap();
+        assert_eq!(loaded.len(), 1);
+        assert_eq!(loaded[0].job_name, "store-test");
+    }
+
+    #[test]
+    fn test_job_run_store_load_with_filter() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let run1 = JobRun {
+            job_name: "job-a".to_string(),
+            command: "echo a".to_string(),
+            server: None,
+            exit_code: 0,
+            started_at: Utc::now(),
+            duration_secs: 1.0,
+        };
+        let run2 = JobRun {
+            job_name: "job-b".to_string(),
+            command: "echo b".to_string(),
+            server: None,
+            exit_code: 1,
+            started_at: Utc::now(),
+            duration_secs: 2.0,
+        };
+        JobRunStore::append(&run1).unwrap();
+        JobRunStore::append(&run2).unwrap();
+        let filtered = JobRunStore::load(Some("job-a")).unwrap();
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].job_name, "job-a");
+    }
+
+    #[test]
+    fn test_job_run_store_load_empty() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let loaded = JobRunStore::load(None).unwrap();
+        assert!(loaded.is_empty());
+    }
+
+    #[test]
+    fn test_builtin_jobs_no_filter_returns_all() {
+        let all = builtin_jobs(None);
+        assert_eq!(all.len(), BUILTIN_JOBS.len());
+    }
 }

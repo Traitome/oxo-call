@@ -164,3 +164,69 @@ pub fn apply_provider_auth_headers(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_stream_output_variants() {
+        assert_eq!(StreamOutput::Stderr, StreamOutput::Stderr);
+        assert_eq!(StreamOutput::Stdout, StreamOutput::Stdout);
+        assert_eq!(StreamOutput::Silent, StreamOutput::Silent);
+        assert_ne!(StreamOutput::Stderr, StreamOutput::Stdout);
+    }
+
+    #[test]
+    fn test_apply_provider_auth_headers_openai() {
+        let client = reqwest::Client::new();
+        let req = client.get("http://localhost/v1/chat/completions");
+        let req = apply_provider_auth_headers(req, "openai", "sk-test123");
+        let built = req.build().unwrap();
+        let auth = built.headers().get("Authorization").unwrap();
+        assert_eq!(auth, "Bearer sk-test123");
+    }
+
+    #[test]
+    fn test_apply_provider_auth_headers_anthropic() {
+        let client = reqwest::Client::new();
+        let req = client.get("http://localhost/v1/messages");
+        let req = apply_provider_auth_headers(req, "anthropic", "sk-ant-test");
+        let built = req.build().unwrap();
+        let api_key = built.headers().get("x-api-key").unwrap();
+        assert_eq!(api_key, "sk-ant-test");
+        let version = built.headers().get("anthropic-version").unwrap();
+        assert_eq!(version, "2023-06-01");
+    }
+
+    #[test]
+    fn test_apply_provider_auth_headers_github_copilot() {
+        let client = reqwest::Client::new();
+        let req = client.get("http://localhost/v1/chat/completions");
+        let req = apply_provider_auth_headers(req, "github-copilot", "ghu-test");
+        let built = req.build().unwrap();
+        let auth = built.headers().get("Authorization").unwrap();
+        assert_eq!(auth, "Bearer ghu-test");
+        let integ = built.headers().get("Copilot-Integration-Id").unwrap();
+        assert_eq!(integ, "vscode-chat");
+    }
+
+    #[test]
+    fn test_apply_provider_auth_headers_empty_token() {
+        let client = reqwest::Client::new();
+        let req = client.get("http://localhost/v1/chat/completions");
+        let req = apply_provider_auth_headers(req, "openai", "");
+        let built = req.build().unwrap();
+        assert!(built.headers().get("Authorization").is_none());
+    }
+
+    #[test]
+    fn test_apply_provider_auth_headers_unknown_provider_with_token() {
+        let client = reqwest::Client::new();
+        let req = client.get("http://localhost/v1/chat/completions");
+        let req = apply_provider_auth_headers(req, "custom-provider", "my-token");
+        let built = req.build().unwrap();
+        let auth = built.headers().get("Authorization").unwrap();
+        assert_eq!(auth, "Bearer my-token");
+    }
+}

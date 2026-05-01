@@ -566,4 +566,313 @@ mod tests {
         let ctx = ExperimentContext::infer("quantify expression with salmon", &[]);
         assert_eq!(ctx.analysis_stage, Stage::Quantification);
     }
+
+    #[test]
+    fn test_infer_wes_from_task() {
+        let ctx = ExperimentContext::infer("whole exome sequencing", &[]);
+        assert_eq!(ctx.assay_type, Some(AssayType::Wes));
+    }
+
+    #[test]
+    fn test_infer_atacseq_from_task() {
+        let ctx = ExperimentContext::infer("ATAC-seq analysis", &[]);
+        assert_eq!(ctx.assay_type, Some(AssayType::AtacSeq));
+    }
+
+    #[test]
+    fn test_infer_hic_from_task() {
+        let ctx = ExperimentContext::infer("Hi-C chromosome conformation", &[]);
+        assert_eq!(ctx.assay_type, Some(AssayType::HiC));
+    }
+
+    #[test]
+    fn test_infer_long_reads_nanopore() {
+        let ctx = ExperimentContext::infer("nanopore sequencing", &[]);
+        assert_eq!(ctx.assay_type, Some(AssayType::LongReads));
+    }
+
+    #[test]
+    fn test_infer_long_reads_pacbio() {
+        let ctx = ExperimentContext::infer("pacbio hifi reads", &[]);
+        assert_eq!(ctx.assay_type, Some(AssayType::LongReads));
+    }
+
+    #[test]
+    fn test_infer_assay_no_match() {
+        let ctx = ExperimentContext::infer("process some data", &[]);
+        assert_eq!(ctx.assay_type, None);
+    }
+
+    #[test]
+    fn test_infer_assay_from_bam_files() {
+        let ctx = ExperimentContext::infer("process data", &["input.bam"]);
+        assert_eq!(ctx.assay_type, None);
+    }
+
+    #[test]
+    fn test_infer_assay_from_fastq_files() {
+        let ctx = ExperimentContext::infer("process data", &["input.fastq"]);
+        assert_eq!(ctx.assay_type, None);
+    }
+
+    #[test]
+    fn test_infer_organism_hg19() {
+        let ctx = ExperimentContext::infer("align to hg19 reference", &[]);
+        assert_eq!(ctx.organism.as_deref(), Some("hg19"));
+    }
+
+    #[test]
+    fn test_infer_organism_mm39() {
+        let ctx = ExperimentContext::infer("mm39 genome", &[]);
+        assert_eq!(ctx.organism.as_deref(), Some("mm39"));
+    }
+
+    #[test]
+    fn test_infer_organism_rat() {
+        let ctx = ExperimentContext::infer("rat rn6 genome", &[]);
+        assert_eq!(ctx.organism.as_deref(), Some("rn7"));
+    }
+
+    #[test]
+    fn test_infer_organism_drosophila() {
+        let ctx = ExperimentContext::infer("drosophila dm6 genome", &[]);
+        assert_eq!(ctx.organism.as_deref(), Some("dm6"));
+    }
+
+    #[test]
+    fn test_infer_organism_zebrafish() {
+        let ctx = ExperimentContext::infer("zebrafish genome", &[]);
+        assert_eq!(ctx.organism.as_deref(), Some("danrer11"));
+    }
+
+    #[test]
+    fn test_infer_organism_yeast() {
+        let ctx = ExperimentContext::infer("yeast sacCer3 genome", &[]);
+        assert_eq!(ctx.organism.as_deref(), Some("saccer3"));
+    }
+
+    #[test]
+    fn test_infer_organism_arabidopsis() {
+        let ctx = ExperimentContext::infer("arabidopsis tair10", &[]);
+        assert_eq!(ctx.organism.as_deref(), Some("tair10"));
+    }
+
+    #[test]
+    fn test_infer_organism_celegans() {
+        let ctx = ExperimentContext::infer("c. elegans ce11", &[]);
+        assert_eq!(ctx.organism.as_deref(), Some("ce11"));
+    }
+
+    #[test]
+    fn test_infer_organism_pig() {
+        let ctx = ExperimentContext::infer("pig susScr11 genome", &[]);
+        assert_eq!(ctx.organism.as_deref(), Some("susScr11"));
+    }
+
+    #[test]
+    fn test_infer_organism_chicken() {
+        let ctx = ExperimentContext::infer("chicken galGal6", &[]);
+        assert_eq!(ctx.organism.as_deref(), Some("galGal6"));
+    }
+
+    #[test]
+    fn test_infer_organism_cow() {
+        let ctx = ExperimentContext::infer("cow bosTau9 genome", &[]);
+        assert_eq!(ctx.organism.as_deref(), Some("bosTau9"));
+    }
+
+    #[test]
+    fn test_infer_organism_dog() {
+        let ctx = ExperimentContext::infer("dog canFam3 genome", &[]);
+        assert_eq!(ctx.organism.as_deref(), Some("canFam3"));
+    }
+
+    #[test]
+    fn test_infer_organism_unknown() {
+        let ctx = ExperimentContext::infer("process some data", &[]);
+        assert_eq!(ctx.organism, None);
+    }
+
+    #[test]
+    fn test_infer_single_end_from_task() {
+        let ctx = ExperimentContext::infer("align single-end reads", &[]);
+        assert_eq!(ctx.library_type, LibraryType::SingleEnd);
+    }
+
+    #[test]
+    fn test_infer_paired_end_from_underscore_files() {
+        let ctx = ExperimentContext::infer("align reads", &["sample_1.fastq", "sample_2.fastq"]);
+        assert_eq!(ctx.library_type, LibraryType::PairedEnd);
+    }
+
+    #[test]
+    fn test_infer_library_type_unknown() {
+        let ctx = ExperimentContext::infer("process data", &["input.txt"]);
+        assert_eq!(ctx.library_type, LibraryType::Unknown);
+    }
+
+    #[test]
+    fn test_infer_trimming_stage() {
+        let ctx = ExperimentContext::infer("trim adapters with fastp", &[]);
+        assert_eq!(ctx.analysis_stage, Stage::Trimming);
+    }
+
+    #[test]
+    fn test_infer_post_alignment_stage() {
+        let ctx = ExperimentContext::infer("sort and index bam", &[]);
+        assert_eq!(ctx.analysis_stage, Stage::PostAlignment);
+    }
+
+    #[test]
+    fn test_infer_differential_stage() {
+        let ctx = ExperimentContext::infer("differential expression with deseq2", &[]);
+        assert_eq!(ctx.analysis_stage, Stage::DifferentialAnalysis);
+    }
+
+    #[test]
+    fn test_infer_annotation_stage() {
+        let ctx = ExperimentContext::infer("annotate with snpeff", &[]);
+        assert_eq!(ctx.analysis_stage, Stage::Annotation);
+    }
+
+    #[test]
+    fn test_infer_unknown_stage() {
+        let ctx = ExperimentContext::infer("process some data", &[]);
+        assert_eq!(ctx.analysis_stage, Stage::Unknown);
+    }
+
+    #[test]
+    fn test_assay_type_labels() {
+        assert_eq!(AssayType::RnaSeq.label(), "RNA-seq");
+        assert_eq!(AssayType::Wgs.label(), "WGS");
+        assert_eq!(AssayType::Wes.label(), "WES/Exome");
+        assert_eq!(AssayType::ChipSeq.label(), "ChIP-seq");
+        assert_eq!(AssayType::AtacSeq.label(), "ATAC-seq");
+        assert_eq!(AssayType::HiC.label(), "Hi-C");
+        assert_eq!(AssayType::Bisulfite.label(), "Bisulfite-seq");
+        assert_eq!(AssayType::ScRnaSeq.label(), "scRNA-seq");
+        assert_eq!(AssayType::LongReads.label(), "Long-read sequencing");
+        assert_eq!(AssayType::Metagenomics.label(), "Metagenomics");
+        assert_eq!(AssayType::Amplicon.label(), "Amplicon sequencing");
+    }
+
+    #[test]
+    fn test_recommended_workflow_all_types() {
+        let types_and_workflows = [
+            (AssayType::RnaSeq, "rnaseq"),
+            (AssayType::Wgs, "wgs"),
+            (AssayType::Wes, "wes"),
+            (AssayType::ChipSeq, "chipseq"),
+            (AssayType::AtacSeq, "atacseq"),
+            (AssayType::HiC, "hic"),
+            (AssayType::Bisulfite, "methylseq"),
+            (AssayType::ScRnaSeq, "scrnaseq"),
+            (AssayType::LongReads, "longreads"),
+            (AssayType::Metagenomics, "metagenomics"),
+            (AssayType::Amplicon, "amplicon"),
+        ];
+        for (assay, expected) in types_and_workflows {
+            let ctx = ExperimentContext {
+                assay_type: Some(assay),
+                organism: None,
+                library_type: LibraryType::Unknown,
+                analysis_stage: Stage::Unknown,
+            };
+            assert_eq!(ctx.recommended_workflow(), Some(expected));
+        }
+    }
+
+    #[test]
+    fn test_default_params_mouse_reference() {
+        let ctx = ExperimentContext::infer("mouse mm10 RNA-seq", &[]);
+        let params = ctx.default_params();
+        assert_eq!(params.get("reference").unwrap(), "mm10");
+    }
+
+    #[test]
+    fn test_default_params_mm39_reference() {
+        let ctx = ExperimentContext::infer("mm39 genome", &[]);
+        let params = ctx.default_params();
+        assert_eq!(params.get("reference").unwrap(), "mm39");
+    }
+
+    #[test]
+    fn test_default_params_unknown_organism() {
+        let ctx = ExperimentContext::infer("zebrafish genome", &[]);
+        let params = ctx.default_params();
+        assert_eq!(params.get("reference").unwrap(), "danrer11");
+    }
+
+    #[test]
+    fn test_default_params_paired_end_layout() {
+        let ctx = ExperimentContext::infer("paired-end RNA-seq", &[]);
+        let params = ctx.default_params();
+        assert_eq!(params.get("layout").unwrap(), "paired-end");
+    }
+
+    #[test]
+    fn test_prompt_hint_with_library() {
+        let ctx = ExperimentContext::infer("paired-end RNA-seq alignment", &[]);
+        let hint = ctx.to_prompt_hint();
+        assert!(hint.contains("paired-end"));
+    }
+
+    #[test]
+    fn test_prompt_hint_with_stage() {
+        let ctx = ExperimentContext::infer("align RNA-seq reads", &[]);
+        let hint = ctx.to_prompt_hint();
+        assert!(hint.contains("alignment"));
+    }
+
+    #[test]
+    fn test_prompt_hint_all_fields() {
+        let ctx = ExperimentContext::infer("paired-end RNA-seq hg38 alignment", &[]);
+        let hint = ctx.to_prompt_hint();
+        assert!(hint.contains("RNA-seq"));
+        assert!(hint.contains("hg38"));
+        assert!(hint.contains("paired-end"));
+        assert!(hint.contains("alignment"));
+    }
+
+    #[test]
+    fn test_infer_rnaseq_from_transcriptom() {
+        let ctx = ExperimentContext::infer("transcriptomics analysis", &[]);
+        assert_eq!(ctx.assay_type, Some(AssayType::RnaSeq));
+    }
+
+    #[test]
+    fn test_infer_scrnaseq_from_cellranger() {
+        let ctx = ExperimentContext::infer("run cellranger count", &[]);
+        assert_eq!(ctx.assay_type, Some(AssayType::ScRnaSeq));
+    }
+
+    #[test]
+    fn test_infer_bisulfite_from_wgbs() {
+        let ctx = ExperimentContext::infer("WGBS methylation analysis", &[]);
+        assert_eq!(ctx.assay_type, Some(AssayType::Bisulfite));
+    }
+
+    #[test]
+    fn test_infer_metagenomics_from_16s() {
+        let ctx = ExperimentContext::infer("16s sequencing analysis", &[]);
+        assert_eq!(ctx.assay_type, Some(AssayType::Metagenomics));
+    }
+
+    #[test]
+    fn test_infer_assay_from_sam_files() {
+        let ctx = ExperimentContext::infer("process data", &["input.sam"]);
+        assert_eq!(ctx.assay_type, None);
+    }
+
+    #[test]
+    fn test_infer_assay_from_cram_files() {
+        let ctx = ExperimentContext::infer("process data", &["input.cram"]);
+        assert_eq!(ctx.assay_type, None);
+    }
+
+    #[test]
+    fn test_infer_assay_from_fq_files() {
+        let ctx = ExperimentContext::infer("process data", &["input.fq"]);
+        assert_eq!(ctx.assay_type, None);
+    }
 }

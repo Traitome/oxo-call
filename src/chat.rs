@@ -443,14 +443,6 @@ impl ChatSession {
                             self.scenario = ChatScenario::Bare;
                             println!("{}", "  ✔ Scenario changed to: bare".green());
                         }
-                        "prompt" => {
-                            self.scenario = ChatScenario::Prompt;
-                            println!("{}", "  ✔ Scenario changed to: prompt".green());
-                        }
-                        "skill" => {
-                            self.scenario = ChatScenario::Skill;
-                            println!("{}", "  ✔ Scenario changed to: skill".green());
-                        }
                         "doc" => {
                             self.scenario = ChatScenario::Doc;
                             println!("{}", "  ✔ Scenario changed to: doc".green());
@@ -462,7 +454,7 @@ impl ChatSession {
                         _ => {
                             println!(
                                 "  {}",
-                                "✖ Invalid scenario. Use: bare, prompt, skill, doc, full".red()
+                                "✖ Invalid scenario. Use: bare, doc, full".red()
                             );
                         }
                     }
@@ -485,8 +477,6 @@ impl ChatSession {
     fn scenario_name(&self) -> &'static str {
         match self.scenario {
             ChatScenario::Bare => "bare",
-            ChatScenario::Prompt => "prompt",
-            ChatScenario::Skill => "skill",
             ChatScenario::Doc => "doc",
             ChatScenario::Full => "full",
         }
@@ -507,7 +497,7 @@ impl ChatSession {
     fn build_system_prompt(&self) -> String {
         match self.scenario {
             ChatScenario::Bare => String::new(),
-            ChatScenario::Prompt | ChatScenario::Skill | ChatScenario::Doc | ChatScenario::Full => {
+            ChatScenario::Doc | ChatScenario::Full => {
                 "Reply with ONLY:\n\
                  ARGS: sort -o output.bam input.bam\n\
                  EXPLANATION: Sorts BAM.\n\
@@ -529,13 +519,7 @@ impl ChatSession {
         let mut context_parts = Vec::new();
 
         match self.scenario {
-            ChatScenario::Bare | ChatScenario::Prompt => {}
-            ChatScenario::Skill => {
-                if let Some(skill) = self.skill_manager.load(tool) {
-                    context_parts
-                        .push(format!("## Skill Knowledge\n{}", skill.to_prompt_section()));
-                }
-            }
+            ChatScenario::Bare => {}
             ChatScenario::Doc => {
                 let docs = self.fetcher.fetch(tool).await?;
                 if let Some(help) = docs.help_output {
@@ -821,12 +805,6 @@ mod tests {
         let session = session.with_scenario(ChatScenario::Bare);
         assert_eq!(session.scenario_name(), "bare");
 
-        let session = session.with_scenario(ChatScenario::Prompt);
-        assert_eq!(session.scenario_name(), "prompt");
-
-        let session = session.with_scenario(ChatScenario::Skill);
-        assert_eq!(session.scenario_name(), "skill");
-
         let session = session.with_scenario(ChatScenario::Doc);
         assert_eq!(session.scenario_name(), "doc");
 
@@ -845,17 +823,11 @@ mod tests {
     fn test_build_system_prompt_non_bare_is_nonempty() {
         let config = Config::default();
 
-        let s1 = ChatSession::new(config.clone()).with_scenario(ChatScenario::Prompt);
+        let s1 = ChatSession::new(config.clone()).with_scenario(ChatScenario::Doc);
         assert!(!s1.build_system_prompt().is_empty());
 
-        let s2 = ChatSession::new(config.clone()).with_scenario(ChatScenario::Skill);
+        let s2 = ChatSession::new(config).with_scenario(ChatScenario::Full);
         assert!(!s2.build_system_prompt().is_empty());
-
-        let s3 = ChatSession::new(config.clone()).with_scenario(ChatScenario::Doc);
-        assert!(!s3.build_system_prompt().is_empty());
-
-        let s4 = ChatSession::new(config).with_scenario(ChatScenario::Full);
-        assert!(!s4.build_system_prompt().is_empty());
     }
 
     #[test]
@@ -1034,8 +1006,6 @@ mod tests {
         let config = Config::default();
 
         for scenario in [
-            ChatScenario::Prompt,
-            ChatScenario::Skill,
             ChatScenario::Doc,
             ChatScenario::Full,
         ] {

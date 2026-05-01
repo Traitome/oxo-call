@@ -674,4 +674,563 @@ mod tests {
         assert_eq!(tokens.len(), 6);
         assert_eq!(tokens[0], "sort");
     }
+
+    #[test]
+    fn test_looks_like_positional_file() {
+        assert!(looks_like_positional("input.bam"));
+        assert!(looks_like_positional("data.fastq.gz"));
+        assert!(looks_like_positional("ref.fa"));
+    }
+
+    #[test]
+    fn test_looks_like_positional_number() {
+        assert!(looks_like_positional("42"));
+        assert!(looks_like_positional("0"));
+    }
+
+    #[test]
+    fn test_looks_like_positional_flag() {
+        assert!(!looks_like_positional("-v"));
+        assert!(!looks_like_positional("--output"));
+    }
+
+    #[test]
+    fn test_looks_like_positional_empty() {
+        assert!(!looks_like_positional(""));
+    }
+
+    #[test]
+    fn test_looks_like_positional_word() {
+        assert!(!looks_like_positional("sort"));
+    }
+
+    #[test]
+    fn test_detect_subcmd_from_tokens_subcommand_style() {
+        let schema = test_subcommand_schema();
+        assert_eq!(
+            detect_subcmd_from_tokens(
+                &["sort".to_string(), "-@".to_string(), "4".to_string()],
+                &schema
+            ),
+            Some("sort".to_string())
+        );
+        assert_eq!(
+            detect_subcmd_from_tokens(
+                &["view".to_string(), "-b".to_string()],
+                &schema
+            ),
+            Some("view".to_string())
+        );
+    }
+
+    #[test]
+    fn test_detect_subcmd_from_tokens_no_match() {
+        let schema = test_subcommand_schema();
+        assert_eq!(
+            detect_subcmd_from_tokens(
+                &["unknown".to_string()],
+                &schema
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn test_detect_subcmd_from_tokens_flags_first() {
+        let mut schema = test_subcommand_schema();
+        schema.cli_style = CliStyle::FlagsFirst;
+        assert_eq!(
+            detect_subcmd_from_tokens(&["sort".to_string()], &schema),
+            None
+        );
+    }
+
+    #[test]
+    fn test_remove_invalid_flags_keeps_valid() {
+        let schema = test_subcommand_schema();
+        let tokens = vec![
+            "sort".to_string(),
+            "-@".to_string(),
+            "4".to_string(),
+            "-o".to_string(),
+            "out.bam".to_string(),
+        ];
+        let cleaned = remove_invalid_flags(tokens, &schema, Some("sort"));
+        assert!(cleaned.iter().any(|t| t == "-@"));
+        assert!(cleaned.iter().any(|t| t == "-o"));
+    }
+
+    #[test]
+    fn test_remove_invalid_flags_removes_hallucinated() {
+        let schema = test_subcommand_schema();
+        let tokens = vec![
+            "sort".to_string(),
+            "--hallucinated".to_string(),
+            "value".to_string(),
+            "-@".to_string(),
+            "4".to_string(),
+        ];
+        let cleaned = remove_invalid_flags(tokens, &schema, Some("sort"));
+        assert!(!cleaned.iter().any(|t| t == "--hallucinated"));
+    }
+
+    #[test]
+    fn test_remove_invalid_flags_empty_whitelist() {
+        let mut schema = test_subcommand_schema();
+        schema.flags.clear();
+        schema.global_flags.clear();
+        for s in &mut schema.subcommands {
+            s.flags.clear();
+        }
+        let tokens = vec!["sort".to_string(), "--flag".to_string()];
+        let cleaned = remove_invalid_flags(tokens, &mut schema, Some("sort"));
+        assert_eq!(cleaned.len(), 2);
+    }
+
+    #[test]
+    fn test_remove_invalid_flags_equals_form() {
+        let schema = test_subcommand_schema();
+        let tokens = vec![
+            "sort".to_string(),
+            "-@=4".to_string(),
+            "--invalid=foo".to_string(),
+        ];
+        let cleaned = remove_invalid_flags(tokens, &schema, Some("sort"));
+        assert!(cleaned.iter().any(|t| t == "-@=4"));
+        assert!(!cleaned.iter().any(|t| t.contains("invalid")));
+    }
+
+    #[test]
+    fn test_inject_required_flags_missing() {
+        let schema = test_subcommand_schema();
+        let tokens = vec!["sort".to_string(), "-@".to_string(), "4".to_string(), "input.bam".to_string()];
+        let result = inject_required_flags(tokens, &schema, Some("sort"));
+        assert!(result.iter().any(|t| t.contains("-o")));
+    }
+
+    #[test]
+    fn test_inject_required_flags_already_present() {
+        let schema = test_subcommand_schema();
+        let tokens = vec![
+            "sort".to_string(),
+            "-o".to_string(),
+            "out.bam".to_string(),
+            "-@".to_string(),
+            "4".to_string(),
+        ];
+        let result = inject_required_flags(tokens, &schema, Some("sort"));
+        let o_count = result.iter().filter(|t| **t == "-o" || t.starts_with("-o=")).count();
+        assert_eq!(o_count, 1);
+    }
+
+    #[test]
+    fn test_inject_required_flags_bool_type() {
+        let mut schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: "test".to_string(),
+            subcommands: Vec::new(),
+            global_flags: Vec::new(),
+            flags: vec![FlagSchema {
+                name: "--verbose".to_string(),
+                aliases: vec!["-v".to_string()],
+                param_type: ParamType::Bool,
+                description: "Verbose".to_string(),
+                default: None,
+                required: true,
+                long_description: None,
+            }],
+            positionals: Vec::new(),
+            usage_summary: String::new(),
+            constraints: Vec::new(),
+            doc_quality: 0.9,
+            schema_source: "test".to_string(),
+        };
+        let tokens = vec!["input.bam".to_string()];
+        let result = inject_required_flags(tokens, &schema, None);
+        assert!(result.iter().any(|t| t == "--verbose"));
+    }
+
+    #[test]
+    fn test_inject_required_flags_int_with_default() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: "test".to_string(),
+            subcommands: Vec::new(),
+            global_flags: Vec::new(),
+            flags: vec![FlagSchema {
+                name: "--threads".to_string(),
+                aliases: Vec::new(),
+                param_type: ParamType::Int,
+                description: "Threads".to_string(),
+                default: Some("4".to_string()),
+                required: true,
+                long_description: None,
+            }],
+            positionals: Vec::new(),
+            usage_summary: String::new(),
+            constraints: Vec::new(),
+            doc_quality: 0.9,
+            schema_source: "test".to_string(),
+        };
+        let tokens = vec!["input.bam".to_string()];
+        let result = inject_required_flags(tokens, &schema, None);
+        assert!(result.iter().any(|t| t == "--threads=4"));
+    }
+
+    #[test]
+    fn test_inject_required_flags_int_no_default() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: "test".to_string(),
+            subcommands: Vec::new(),
+            global_flags: Vec::new(),
+            flags: vec![FlagSchema {
+                name: "--count".to_string(),
+                aliases: Vec::new(),
+                param_type: ParamType::Int,
+                description: "Count".to_string(),
+                default: None,
+                required: true,
+                long_description: None,
+            }],
+            positionals: Vec::new(),
+            usage_summary: String::new(),
+            constraints: Vec::new(),
+            doc_quality: 0.9,
+            schema_source: "test".to_string(),
+        };
+        let tokens = vec!["input.bam".to_string()];
+        let result = inject_required_flags(tokens, &schema, None);
+        assert!(result.iter().any(|t| t == "--count"));
+        assert!(result.iter().any(|t| t == "1"));
+    }
+
+    #[test]
+    fn test_inject_required_flags_file_with_default() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: "test".to_string(),
+            subcommands: Vec::new(),
+            global_flags: Vec::new(),
+            flags: vec![FlagSchema {
+                name: "--output".to_string(),
+                aliases: Vec::new(),
+                param_type: ParamType::File,
+                description: "Output".to_string(),
+                default: Some("stdout".to_string()),
+                required: true,
+                long_description: None,
+            }],
+            positionals: Vec::new(),
+            usage_summary: String::new(),
+            constraints: Vec::new(),
+            doc_quality: 0.9,
+            schema_source: "test".to_string(),
+        };
+        let tokens = vec!["input.bam".to_string()];
+        let result = inject_required_flags(tokens, &schema, None);
+        assert!(result.iter().any(|t| t == "--output=stdout"));
+    }
+
+    #[test]
+    fn test_inject_required_flags_file_no_default() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: "test".to_string(),
+            subcommands: Vec::new(),
+            global_flags: Vec::new(),
+            flags: vec![FlagSchema {
+                name: "--output".to_string(),
+                aliases: Vec::new(),
+                param_type: ParamType::File,
+                description: "Output".to_string(),
+                default: None,
+                required: true,
+                long_description: None,
+            }],
+            positionals: Vec::new(),
+            usage_summary: String::new(),
+            constraints: Vec::new(),
+            doc_quality: 0.9,
+            schema_source: "test".to_string(),
+        };
+        let tokens = vec!["input.bam".to_string()];
+        let result = inject_required_flags(tokens, &schema, None);
+        assert!(result.iter().any(|t| t == "--output=OUTPUT"));
+    }
+
+    #[test]
+    fn test_inject_required_flags_string_with_default() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: "test".to_string(),
+            subcommands: Vec::new(),
+            global_flags: Vec::new(),
+            flags: vec![FlagSchema {
+                name: "--format".to_string(),
+                aliases: Vec::new(),
+                param_type: ParamType::String,
+                description: "Format".to_string(),
+                default: Some("json".to_string()),
+                required: true,
+                long_description: None,
+            }],
+            positionals: Vec::new(),
+            usage_summary: String::new(),
+            constraints: Vec::new(),
+            doc_quality: 0.9,
+            schema_source: "test".to_string(),
+        };
+        let tokens = vec!["input".to_string()];
+        let result = inject_required_flags(tokens, &schema, None);
+        assert!(result.iter().any(|t| t == "--format=json"));
+    }
+
+    #[test]
+    fn test_schema_post_process_empty() {
+        let schema = test_subcommand_schema();
+        let args: Vec<String> = vec![];
+        let result = schema_post_process(&args, &schema, "sort");
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_fix_subcommand_empty_tokens() {
+        let schema = test_subcommand_schema();
+        let tokens: Vec<String> = vec![];
+        let fixed = fix_subcommand(tokens, &schema, "sort");
+        assert!(fixed.is_empty());
+    }
+
+    #[test]
+    fn test_fix_subcommand_no_match_in_schema() {
+        let schema = test_subcommand_schema();
+        let tokens = vec!["unknown_cmd".to_string(), "input.bam".to_string()];
+        let fixed = fix_subcommand(tokens, &schema, "do something unrelated");
+        assert_eq!(fixed[0], "unknown_cmd");
+    }
+
+    #[test]
+    fn test_fix_subcommand_positional_input() {
+        let schema = test_subcommand_schema();
+        let tokens = vec!["input.bam".to_string()];
+        let fixed = fix_subcommand(tokens, &schema, "sort bam");
+        assert_eq!(fixed[0], "sort");
+    }
+
+    #[test]
+    fn test_workflow_mode_default() {
+        assert_eq!(WorkflowMode::default(), WorkflowMode::Fast);
+    }
+
+    #[test]
+    fn test_workflow_result_fields() {
+        let result = WorkflowResult {
+            suggestion: LlmCommandSuggestion {
+                args: vec!["sort".to_string()],
+                explanation: "Sort".to_string(),
+                inference_ms: 100.0,
+            },
+            llm_calls: 1,
+            total_inference_ms: 100.0,
+            effective_task: "sort".to_string(),
+            was_normalized: false,
+            confidence: None,
+        };
+        assert_eq!(result.llm_calls, 1);
+        assert!(!result.was_normalized);
+    }
+
+    #[test]
+    fn test_compute_confidence_with_schema() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        let schema = test_subcommand_schema();
+        let result = executor.compute_confidence(Some(&schema), "sort bam file", None);
+        assert!(result.is_some());
+        assert!(result.unwrap().score > 0.0);
+    }
+
+    #[test]
+    fn test_compute_confidence_no_schema() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        let result = executor.compute_confidence(None, "sort bam file", None);
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_compute_confidence_with_skill() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        let skill = Skill::default();
+        let result = executor.compute_confidence(None, "sort bam file", Some(&skill));
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_is_small_model() {
+        let mut executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        executor.model_param_count = Some(2.0);
+        assert!(executor.is_small_model());
+        executor.model_param_count = Some(7.0);
+        assert!(!executor.is_small_model());
+        executor.model_param_count = None;
+        assert!(!executor.is_small_model());
+    }
+
+    #[test]
+    fn test_remove_invalid_flags_next_starts_with_dash_equals() {
+        let schema = test_subcommand_schema();
+        let tokens = vec![
+            "sort".to_string(),
+            "-@".to_string(),
+            "--invalid=foo".to_string(),
+            "4".to_string(),
+        ];
+        let cleaned = remove_invalid_flags(tokens, &schema, Some("sort"));
+        assert!(cleaned.iter().any(|t| t == "-@"));
+    }
+
+    #[test]
+    fn test_inject_required_flags_empty_whitelist() {
+        let mut schema = test_subcommand_schema();
+        schema.flags.clear();
+        schema.global_flags.clear();
+        for s in &mut schema.subcommands {
+            s.flags.clear();
+        }
+        let tokens = vec!["sort".to_string()];
+        let result = inject_required_flags(tokens, &schema, Some("sort"));
+        assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    fn test_inject_required_flags_string_no_default() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: "test".to_string(),
+            subcommands: Vec::new(),
+            global_flags: Vec::new(),
+            flags: vec![FlagSchema {
+                name: "--format".to_string(),
+                aliases: Vec::new(),
+                param_type: ParamType::String,
+                description: "Format".to_string(),
+                default: None,
+                required: true,
+                long_description: None,
+            }],
+            positionals: Vec::new(),
+            usage_summary: String::new(),
+            constraints: Vec::new(),
+            doc_quality: 0.9,
+            schema_source: "test".to_string(),
+        };
+        let tokens = vec!["input".to_string()];
+        let result = inject_required_flags(tokens, &schema, None);
+        assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    fn test_remove_invalid_flags_bool_flag_keeps_no_value() {
+        let schema = test_subcommand_schema();
+        let tokens = vec![
+            "view".to_string(),
+            "-b".to_string(),
+            "input.bam".to_string(),
+        ];
+        let cleaned = remove_invalid_flags(tokens, &schema, Some("view"));
+        assert!(cleaned.iter().any(|t| t == "-b"));
+        assert!(cleaned.iter().any(|t| t == "input.bam"));
+    }
+
+    #[test]
+    fn test_remove_invalid_flags_invalid_bool_skips_next_if_flag() {
+        let schema = test_subcommand_schema();
+        let tokens = vec![
+            "sort".to_string(),
+            "--invalid".to_string(),
+            "--another-invalid".to_string(),
+            "-@".to_string(),
+            "4".to_string(),
+        ];
+        let cleaned = remove_invalid_flags(tokens, &schema, Some("sort"));
+        assert!(cleaned.iter().any(|t| t == "-@"));
+        assert!(!cleaned.iter().any(|t| t == "--invalid"));
+    }
+
+    #[test]
+    fn test_fix_subcommand_file_path_input() {
+        let schema = test_subcommand_schema();
+        let tokens = vec!["data/input.bam".to_string()];
+        let fixed = fix_subcommand(tokens, &schema, "sort bam");
+        assert_eq!(fixed[0], "sort");
+    }
+
+    #[test]
+    fn test_schema_post_process_flags_first_style() {
+        let mut schema = test_subcommand_schema();
+        schema.cli_style = CliStyle::FlagsFirst;
+        let args: Vec<String> = vec!["-@".to_string(), "4".to_string(), "input.bam".to_string()];
+        let result = schema_post_process(&args, &schema, "sort bam");
+        assert!(result.iter().any(|t| t == "-@"));
+    }
+
+    #[test]
+    fn test_remove_invalid_flags_non_flag_passthrough() {
+        let schema = test_subcommand_schema();
+        let tokens = vec![
+            "sort".to_string(),
+            "input.bam".to_string(),
+            "output.bam".to_string(),
+        ];
+        let cleaned = remove_invalid_flags(tokens, &schema, Some("sort"));
+        assert!(cleaned.iter().any(|t| t == "input.bam"));
+        assert!(cleaned.iter().any(|t| t == "output.bam"));
+    }
+
+    #[test]
+    fn test_inject_required_flags_alias_already_used() {
+        let schema = test_subcommand_schema();
+        let tokens = vec![
+            "sort".to_string(),
+            "--threads".to_string(),
+            "4".to_string(),
+            "input.bam".to_string(),
+        ];
+        let result = inject_required_flags(tokens, &schema, Some("sort"));
+        let threads_count = result
+            .iter()
+            .filter(|t| **t == "--threads" || **t == "-@")
+            .count();
+        assert_eq!(threads_count, 1);
+    }
+
+    #[test]
+    fn test_compute_confidence_file_mentions() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        let result = executor.compute_confidence(None, "sort input.bam to output.bam", None);
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_workflow_mode_serde() {
+        let mode = WorkflowMode::Quality;
+        let json = serde_json::to_string(&mode).unwrap();
+        assert!(json.contains("Quality"));
+        let deserialized: WorkflowMode = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized, WorkflowMode::Quality);
+    }
 }

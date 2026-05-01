@@ -64,15 +64,7 @@ pub struct Runner {
     skill_manager: SkillManager,
     pub(crate) verbose: bool,
     pub(crate) no_cache: bool,
-    /// When true, use LLM to verify the result after execution.
     pub(crate) verify: bool,
-    /// [Ablation] When true, do not load the skill file for the tool.
-    pub(crate) no_skill: bool,
-    /// [Ablation] When true, do not load tool documentation (--help output).
-    pub(crate) no_doc: bool,
-    /// [Ablation] When true, do not use the oxo-call system prompt.
-    pub(crate) no_prompt: bool,
-    /// Named variables substituted into the task description before the LLM call.
     pub(crate) vars: HashMap<String, String>,
     /// Input items for batch/parallel execution (empty = single run).
     pub(crate) input_items: Vec<String>,
@@ -116,9 +108,6 @@ impl Runner {
             verbose: false,
             no_cache: false,
             verify: false,
-            no_skill: false,
-            no_doc: false,
-            no_prompt: false,
             vars: HashMap::new(),
             input_items: Vec::new(),
             jobs: 1,
@@ -176,27 +165,6 @@ impl Runner {
         self
     }
 
-    /// [Ablation] Do not load the skill file for the tool.
-    pub fn with_no_skill(&mut self, no_skill: bool) -> &mut Self {
-        self.no_skill = no_skill;
-        self
-    }
-
-    /// [Ablation] Do not load tool documentation (--help output).
-    pub fn with_no_doc(&mut self, no_doc: bool) -> &mut Self {
-        self.no_doc = no_doc;
-        self
-    }
-
-    /// [Ablation] Do not use the oxo-call system prompt.
-    pub fn with_no_prompt(&mut self, no_prompt: bool) -> &mut Self {
-        self.no_prompt = no_prompt;
-        self
-    }
-
-    /// Set named variables that will be substituted into the task description
-    /// (and, when an input list is present, into the generated command) before
-    /// the LLM call.
     pub fn with_vars(&mut self, vars: HashMap<String, String>) -> &mut Self {
         self.vars = vars;
         self
@@ -275,43 +243,36 @@ impl Runner {
     /// generates a mini-skill from the documentation (result cached to disk), and uses it
     /// for command generation.
     pub(crate) async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
-        // ── Load skill first (fast, usually cached) ───────────────────────────────
-        // Load skill first to determine if doc is needed, avoiding spinner overhead
-        // when skill is high-quality (no doc fetch needed).
-        let skill = if self.no_skill {
-            if self.verbose {
-                eprintln!(
-                    "{} [Ablation] Skipping skill (--no-skill)",
-                    "[verbose]".dimmed()
-                );
-            }
-            None
-        } else {
+        let scenario = self.force_scenario.unwrap_or_default();
+
+        if matches!(
+            scenario,
+            crate::workflow_graph::WorkflowScenario::Doc | crate::workflow_graph::WorkflowScenario::Full
+        ) {
+            return self.prepare_via_pipeline(tool, task, scenario).await;
+        }
+
+        let should_load_skill = matches!(scenario, crate::workflow_graph::WorkflowScenario::Full);
+        let should_fetch_doc = matches!(
+            scenario,
+            crate::workflow_graph::WorkflowScenario::Doc | crate::workflow_graph::WorkflowScenario::Full
+        );
+
+        let skill = if should_load_skill {
             self.skill_manager.load_async(tool).await
-        };
-
-        // Determine if we need documentation based on skill quality
-        // HDA: ALWAYS fetch docs for Schema parsing (Layer 2), regardless of skill quality
-        // Schema whitelist prevents hallucination even when skill is high-quality
-        let should_fetch_doc = if self.no_doc {
-            false
         } else {
-            // HDA: Always fetch docs for schema parsing
-            // The schema whitelist is critical for preventing flag hallucination
-            true
-        };
-
-        // Fetch docs only when needed, with spinner created only for actual fetch
-        let tool_docs = if !should_fetch_doc {
-            if self.verbose && !self.no_doc {
+            if self.verbose && matches!(scenario, crate::workflow_graph::WorkflowScenario::Bare) {
                 eprintln!(
-                    "{} Skipping documentation (high-quality skill available)",
+                    "{} [bare] Skipping skill and documentation",
                     "[verbose]".dimmed()
                 );
             }
             None
+        };
+
+        let tool_docs = if !should_fetch_doc {
+            None
         } else {
-            // Show spinner only when actually fetching docs
             let spinner = make_spinner(&format!("Fetching documentation for '{tool}'..."));
             let result = self.resolve_docs_raw(tool, task).await;
             spinner.finish_and_clear();
@@ -515,7 +476,7 @@ impl Runner {
                     s.context.pitfalls.len(),
                     s.examples.len()
                 );
-            } else if !self.no_skill {
+            } else if should_load_skill {
                 eprintln!("{} No skill found for '{}'", "[verbose]".dimmed(), tool);
             }
             let ctx_window = self.config.effective_context_window();
@@ -689,7 +650,7 @@ impl Runner {
                 &docs,
                 &enriched_task,
                 skill.as_ref(),
-                self.no_prompt,
+                matches!(scenario, crate::workflow_graph::WorkflowScenario::Bare),
                 structured_doc.as_ref(),
                 parsed_schema.as_ref(),
             )
@@ -728,6 +689,48 @@ impl Runner {
             },
             structured_doc,
             parsed_schema,
+        })
+    }
+
+    async fn prepare_via_pipeline(
+        &self,
+        tool: &str,
+        task: &str,
+        scenario: crate::workflow_graph::WorkflowScenario,
+    ) -> Result<PrepareResult> {
+        let pipeline = crate::pipeline::Pipeline::new(self.config.clone(), scenario);
+        let result = pipeline.execute(tool, task).await?;
+
+        let args: Vec<String> = result
+            .command
+            .split_whitespace()
+            .skip(1)
+            .map(String::from)
+            .collect();
+
+        let docs_hash = {
+            use sha2::Digest;
+            let raw = result.tool_doc.raw_help.as_deref().unwrap_or("");
+            hex::encode(sha2::Sha256::digest(raw.as_bytes()))
+        };
+
+        let skill_name = if matches!(scenario, crate::workflow_graph::WorkflowScenario::Full) {
+            Some(result.tool_doc.record.name.clone())
+        } else {
+            None
+        };
+
+        Ok(PrepareResult {
+            suggestion: LlmCommandSuggestion {
+                args,
+                explanation: result.explanation,
+                inference_ms: 0.0,
+            },
+            docs_hash,
+            skill_name,
+            effective_task: result.effective_task,
+            structured_doc: None,
+            parsed_schema: None,
         })
     }
 

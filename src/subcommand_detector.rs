@@ -551,4 +551,314 @@ Options:
         assert!(selected.is_some());
         assert_eq!(selected.unwrap().name, "sort");
     }
+
+    #[test]
+    fn test_subcommand_def_builder() {
+        let sc = SubcommandDef::new("view")
+            .with_description("View SAM/BAM/CRAM files")
+            .with_usage("samtools view [options] <in.bam>")
+            .with_flag("-b")
+            .with_flag("-h");
+
+        assert_eq!(sc.name, "view");
+        assert_eq!(sc.description, "View SAM/BAM/CRAM files");
+        assert_eq!(sc.usage_pattern, "samtools view [options] <in.bam>");
+        assert!(sc.flags.contains(&"-b".to_string()));
+        assert!(sc.flags.contains(&"-h".to_string()));
+        assert!(!sc.keywords.is_empty());
+    }
+
+    #[test]
+    fn test_keyword_match_score_name_match() {
+        let sc = SubcommandDef::new("sort").with_description("Sort BAM files by coordinate");
+        let score = sc.keyword_match_score("sort the BAM file");
+        assert!(score > 0.5);
+    }
+
+    #[test]
+    fn test_keyword_match_score_format_match() {
+        let sc = SubcommandDef::new("view").with_description("View BAM files");
+        let score = sc.keyword_match_score("view the bam file");
+        assert!(score > 0.3);
+    }
+
+    #[test]
+    fn test_keyword_match_score_no_match() {
+        let sc = SubcommandDef::new("sort").with_description("Sort alignments");
+        let score = sc.keyword_match_score("align reads to genome");
+        assert!(score < 0.3);
+    }
+
+    #[test]
+    fn test_keyword_match_score_max_one() {
+        let sc = SubcommandDef::new("sort").with_description("Sort BAM files by coordinate sort");
+        let score = sc.keyword_match_score("sort BAM file sort");
+        assert!(score <= 1.0);
+    }
+
+    #[test]
+    fn test_extract_verbs() {
+        let verbs = extract_verbs("sort and filter the bam file then index it");
+        assert!(verbs.contains(&"sort".to_string()));
+        assert!(verbs.contains(&"filter".to_string()));
+        assert!(verbs.contains(&"index".to_string()));
+    }
+
+    #[test]
+    fn test_extract_verbs_empty() {
+        let verbs = extract_verbs("hello world");
+        assert!(verbs.is_empty());
+    }
+
+    #[test]
+    fn test_detect_full_pipeline() {
+        let detector = SubcommandDetectorV2::new();
+        let doc = r#"
+samtools - Tools for dealing with SAM, BAM and CRAM
+
+Commands:
+  view     View SAM/BAM/CRAM files
+  sort     Sort alignment files
+  index    Index sorted alignments
+  flagstat Show alignment statistics
+  depth    Compute depth coverage
+
+Options:
+  -h       Show help
+  --version Show version
+"#;
+        let subcmds = detector.detect(doc, "samtools");
+        assert!(!subcmds.is_empty());
+        assert!(subcmds.iter().any(|c| c.name == "view"));
+        assert!(subcmds.iter().any(|c| c.name == "sort"));
+    }
+
+    #[test]
+    fn test_detect_from_usage_patterns() {
+        let detector = SubcommandDetectorV2::new();
+        let doc = r#"Usage: git commit [options]
+Usage: git push [options]
+Usage: git pull [options]"#;
+        let subcmds = detector.extract_from_usage(doc, "git");
+        assert!(subcmds.iter().any(|c| c.name == "commit"));
+        assert!(subcmds.iter().any(|c| c.name == "push"));
+        assert!(subcmds.iter().any(|c| c.name == "pull"));
+    }
+
+    #[test]
+    fn test_detect_from_preamble() {
+        let detector = SubcommandDetectorV2::new();
+        let doc = "Use 'sort' to sort alignments. The view command displays BAM files.";
+        let subcmds = detector.extract_from_preamble(doc);
+        assert!(subcmds.iter().any(|c| c.name == "sort"));
+    }
+
+    #[test]
+    fn test_tool_specific_extraction_gatk() {
+        let detector = SubcommandDetectorV2::new();
+        let doc = "Genome Analysis Toolkit\nHaplotypeCaller: Tool for calling variants\nBaseRecalibrator: Walker for base quality";
+        let subcmds = detector.tool_specific_extraction(doc, "gatk");
+        assert!(!subcmds.is_empty());
+    }
+
+    #[test]
+    fn test_tool_specific_extraction_samtools() {
+        let detector = SubcommandDetectorV2::new();
+        let doc = "samtools - Tools for alignments\n view sort index flagstat depth merge";
+        let subcmds = detector.tool_specific_extraction(doc, "samtools");
+        assert!(!subcmds.is_empty());
+        assert!(subcmds.iter().any(|c| c.name == "view"));
+        assert!(subcmds.iter().any(|c| c.name == "sort"));
+    }
+
+    #[test]
+    fn test_tool_specific_extraction_unknown() {
+        let detector = SubcommandDetectorV2::new();
+        let subcmds = detector.tool_specific_extraction("some doc", "unknown_tool");
+        assert!(subcmds.is_empty());
+    }
+
+    #[test]
+    fn test_parse_subcommand_line_valid() {
+        let detector = SubcommandDetectorV2::new();
+        let result = detector.parse_subcommand_line("  sort     Sort alignment files");
+        assert!(result.is_some());
+        let sc = result.unwrap();
+        assert_eq!(sc.name, "sort");
+    }
+
+    #[test]
+    fn test_parse_subcommand_line_invalid_false_positive() {
+        let detector = SubcommandDetectorV2::new();
+        let result = detector.parse_subcommand_line("  usage     Show usage information");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_parse_subcommand_line_options() {
+        let detector = SubcommandDetectorV2::new();
+        let result = detector.parse_subcommand_line("  options     Show options");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_parse_subcommand_line_no_match() {
+        let detector = SubcommandDetectorV2::new();
+        let result = detector.parse_subcommand_line("not a subcommand line");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_is_section_header_all_caps() {
+        let detector = SubcommandDetectorV2::new();
+        assert!(detector.is_section_header("OPTIONS:"));
+        assert!(detector.is_section_header("COMMANDS"));
+        assert!(!detector.is_section_header("Options"));
+    }
+
+    #[test]
+    fn test_is_section_header_underline() {
+        let detector = SubcommandDetectorV2::new();
+        assert!(detector.is_section_header("==="));
+        assert!(detector.is_section_header("---"));
+        assert!(!detector.is_section_header("normal text"));
+    }
+
+    #[test]
+    fn test_deduplicate_and_merge() {
+        let detector = SubcommandDetectorV2::new();
+        let subcmds = vec![
+            SubcommandDef::new("sort"),
+            SubcommandDef::new("sort").with_description("Sort alignments"),
+            SubcommandDef::new("view").with_description("View files"),
+        ];
+        let result = detector.deduplicate_and_merge(subcmds);
+        assert_eq!(result.len(), 2);
+        let sort = result.iter().find(|c| c.name == "sort").unwrap();
+        assert_eq!(sort.description, "Sort alignments");
+    }
+
+    #[test]
+    fn test_deduplicate_and_merge_flags() {
+        let detector = SubcommandDetectorV2::new();
+        let subcmds = vec![
+            SubcommandDef::new("sort").with_flag("-o"),
+            SubcommandDef::new("sort").with_flag("-@"),
+        ];
+        let result = detector.deduplicate_and_merge(subcmds);
+        assert_eq!(result.len(), 1);
+        assert!(result[0].flags.contains(&"-o".to_string()));
+        assert!(result[0].flags.contains(&"-@".to_string()));
+    }
+
+    #[test]
+    fn test_deduplicate_sorted_output() {
+        let detector = SubcommandDetectorV2::new();
+        let subcmds = vec![
+            SubcommandDef::new("view"),
+            SubcommandDef::new("sort"),
+            SubcommandDef::new("index"),
+        ];
+        let result = detector.deduplicate_and_merge(subcmds);
+        let names: Vec<&str> = result.iter().map(|c| c.name.as_str()).collect();
+        assert_eq!(names, ["index", "sort", "view"]);
+    }
+
+    #[test]
+    fn test_select_for_task_empty() {
+        let detector = SubcommandDetectorV2::new();
+        let result = detector.select_for_task("sort", &[]);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_select_for_task_low_score() {
+        let detector = SubcommandDetectorV2::new();
+        let subcommands = vec![
+            SubcommandDef::new("sort").with_description("Sort alignments"),
+        ];
+        let result = detector.select_for_task("completely unrelated task xyz", &subcommands);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_get_common_subcommands_samtools() {
+        let detector = SubcommandDetectorV2::new();
+        let subcmds = detector.get_common_subcommands("samtools");
+        assert!(!subcmds.is_empty());
+        assert!(subcmds.iter().any(|c| c.name == "sort"));
+        assert!(subcmds.iter().any(|c| c.name == "view"));
+    }
+
+    #[test]
+    fn test_get_common_subcommands_bcftools() {
+        let detector = SubcommandDetectorV2::new();
+        let subcmds = detector.get_common_subcommands("bcftools");
+        assert!(!subcmds.is_empty());
+        assert!(subcmds.iter().any(|c| c.name == "view"));
+    }
+
+    #[test]
+    fn test_get_common_subcommands_bedtools() {
+        let detector = SubcommandDetectorV2::new();
+        let subcmds = detector.get_common_subcommands("bedtools");
+        assert!(!subcmds.is_empty());
+        assert!(subcmds.iter().any(|c| c.name == "intersect"));
+    }
+
+    #[test]
+    fn test_get_common_subcommands_unknown() {
+        let detector = SubcommandDetectorV2::new();
+        let subcmds = detector.get_common_subcommands("unknown_tool");
+        assert!(subcmds.is_empty());
+    }
+
+    #[test]
+    fn test_extract_from_commands_section_with_blank_lines() {
+        let detector = SubcommandDetectorV2::new();
+        let doc = r#"
+Commands:
+  view     View files
+
+
+  sort     Sort files
+
+
+Options:
+  -h       Help
+"#;
+        let subcmds = detector.extract_from_commands_section(doc);
+        assert!(subcmds.iter().any(|c| c.name == "view"));
+        assert!(subcmds.iter().any(|c| c.name == "sort"));
+    }
+
+    #[test]
+    fn test_extract_from_usage_skips_options() {
+        let detector = SubcommandDetectorV2::new();
+        let doc = "Usage: mytool --help\nUsage: mytool sort [options]";
+        let subcmds = detector.extract_from_usage(doc, "mytool");
+        assert!(subcmds.iter().any(|c| c.name == "sort"));
+        assert!(!subcmds.iter().any(|c| c.name == "--help"));
+    }
+
+    #[test]
+    fn test_subcommand_def_equality() {
+        let a = SubcommandDef::new("sort").with_description("Sort");
+        let b = SubcommandDef::new("sort").with_description("Sort");
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn test_subcommand_def_inequality() {
+        let a = SubcommandDef::new("sort");
+        let b = SubcommandDef::new("view");
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn test_detect_empty_doc() {
+        let detector = SubcommandDetectorV2::new();
+        let subcmds = detector.detect("", "tool");
+        assert!(subcmds.is_empty());
+    }
 }

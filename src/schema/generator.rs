@@ -559,4 +559,329 @@ mod tests {
         let flags = suggest_flags_for_task(&schema, "sort bam with 8 threads", Some("sort"));
         assert!(flags.contains(&"-@".to_string()));
     }
+
+    #[test]
+    fn test_build_schema_prompt_section_compact() {
+        let schema = test_schema();
+        let section = build_schema_prompt_section_compact(&schema, "sort bam file");
+        assert!(section.contains("SUBCOMMAND"));
+        assert!(section.contains("sort"));
+    }
+
+    #[test]
+    fn test_build_schema_prompt_section_compact_no_match() {
+        let schema = test_schema();
+        let section = build_schema_prompt_section_compact(&schema, "random task xyz");
+        assert!(section.contains("SUBCOMMAND"));
+    }
+
+    #[test]
+    fn test_build_schema_prompt_section_flags_first() {
+        let schema = CliSchema {
+            tool: "bwa".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: "Burrows-Wheeler Aligner".to_string(),
+            schema_source: "test".to_string(),
+            usage_summary: "bwa mem [options] ref.fa reads.fq".to_string(),
+            doc_quality: 0.8,
+            subcommands: Vec::new(),
+            global_flags: Vec::new(),
+            flags: vec![
+                FlagSchema {
+                    name: "-t".to_string(),
+                    aliases: vec!["--threads".to_string()],
+                    param_type: ParamType::Int,
+                    description: "Number of threads".to_string(),
+                    default: Some("1".to_string()),
+                    required: false,
+                    long_description: None,
+                },
+                FlagSchema {
+                    name: "-o".to_string(),
+                    aliases: Vec::new(),
+                    param_type: ParamType::File,
+                    description: "Output file".to_string(),
+                    default: None,
+                    required: true,
+                    long_description: None,
+                },
+            ],
+            positionals: vec![],
+            constraints: vec![],
+        };
+        let section = build_schema_prompt_section(&schema, "align reads");
+        assert!(section.contains("Valid Flags"));
+        assert!(section.contains("-t"));
+        assert!(section.contains("-o"));
+        assert!(section.contains("REQUIRED"));
+    }
+
+    #[test]
+    fn test_build_schema_prompt_section_with_global_flags() {
+        let mut schema = test_schema();
+        schema.global_flags = vec![FlagSchema {
+            name: "--version".to_string(),
+            aliases: Vec::new(),
+            param_type: ParamType::Bool,
+            description: "Show version".to_string(),
+            default: None,
+            required: false,
+            long_description: None,
+        }];
+        let section = build_schema_prompt_section(&schema, "sort bam file");
+        assert!(section.contains("Global Flags"));
+        assert!(section.contains("--version"));
+    }
+
+    #[test]
+    fn test_build_schema_prompt_section_with_positionals() {
+        let mut schema = test_schema();
+        schema.positionals = vec![crate::schema::PositionalSchema {
+            name: "input".to_string(),
+            position: 1,
+            description: "Input BAM file".to_string(),
+            required: true,
+            param_type: ParamType::File,
+            default: None,
+        }];
+        let section = build_schema_prompt_section(&schema, "sort bam file");
+        assert!(section.contains("Positional Arguments"));
+        assert!(section.contains("input"));
+    }
+
+    #[test]
+    fn test_build_schema_prompt_section_with_constraints() {
+        let mut schema = test_schema();
+        schema.constraints = vec![crate::schema::ConstraintRule::MutuallyExclusive(
+            "-b".to_string(),
+            "-S".to_string(),
+        )];
+        let section = build_schema_prompt_section(&schema, "sort bam file");
+        assert!(section.contains("Flag Constraints"));
+    }
+
+    #[test]
+    fn test_format_flag_entry_with_alias() {
+        let flag = FlagSchema {
+            name: "-@".to_string(),
+            aliases: vec!["--threads".to_string()],
+            param_type: ParamType::Int,
+            description: "Number of threads".to_string(),
+            default: Some("1".to_string()),
+            required: false,
+            long_description: None,
+        };
+        let entry = format_flag_entry(&flag);
+        assert!(entry.contains("-@"));
+        assert!(entry.contains("--threads"));
+        assert!(entry.contains("integer"));
+        assert!(entry.contains("threads"));
+        assert!(entry.contains("Default"));
+        assert!(entry.contains("1"));
+    }
+
+    #[test]
+    fn test_format_flag_entry_required() {
+        let flag = FlagSchema {
+            name: "-o".to_string(),
+            aliases: Vec::new(),
+            param_type: ParamType::File,
+            description: "Output file".to_string(),
+            default: None,
+            required: true,
+            long_description: None,
+        };
+        let entry = format_flag_entry(&flag);
+        assert!(entry.contains("REQUIRED"));
+    }
+
+    #[test]
+    fn test_format_flag_entry_no_description() {
+        let flag = FlagSchema {
+            name: "-v".to_string(),
+            aliases: Vec::new(),
+            param_type: ParamType::Bool,
+            description: String::new(),
+            default: None,
+            required: false,
+            long_description: None,
+        };
+        let entry = format_flag_entry(&flag);
+        assert!(entry.contains("-v"));
+        assert!(!entry.contains("→"));
+    }
+
+    #[test]
+    fn test_format_type_hint_string() {
+        assert_eq!(format_type_hint(&ParamType::String), "⟨text⟩");
+    }
+
+    #[test]
+    fn test_suggest_flags_for_task_output() {
+        let schema = test_schema();
+        let flags = suggest_flags_for_task(&schema, "sort bam output to file", Some("sort"));
+        assert!(flags.contains(&"-o".to_string()));
+    }
+
+    #[test]
+    fn test_suggest_flags_for_task_no_subcmd() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: "test".to_string(),
+            schema_source: "test".to_string(),
+            usage_summary: String::new(),
+            doc_quality: 0.5,
+            subcommands: Vec::new(),
+            global_flags: Vec::new(),
+            flags: vec![FlagSchema {
+                name: "-o".to_string(),
+                aliases: vec!["--output".to_string()],
+                param_type: ParamType::File,
+                description: "Output".to_string(),
+                default: None,
+                required: false,
+                long_description: None,
+            }],
+            positionals: Vec::new(),
+            constraints: Vec::new(),
+        };
+        let flags = suggest_flags_for_task(&schema, "output to file", None);
+        assert!(flags.contains(&"-o".to_string()));
+    }
+
+    #[test]
+    fn test_suggest_flags_for_task_invalid_subcmd() {
+        let schema = test_schema();
+        let flags = suggest_flags_for_task(&schema, "sort bam with threads", Some("nonexistent"));
+        assert!(flags.is_empty() || flags.contains(&"-@".to_string()));
+    }
+
+    #[test]
+    fn test_build_schema_prompt_compact_flags_first() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: "test".to_string(),
+            schema_source: "test".to_string(),
+            usage_summary: String::new(),
+            doc_quality: 0.5,
+            subcommands: Vec::new(),
+            global_flags: Vec::new(),
+            flags: vec![
+                FlagSchema {
+                    name: "-t".to_string(),
+                    aliases: vec!["--threads".to_string()],
+                    param_type: ParamType::Int,
+                    description: "Threads".to_string(),
+                    default: Some("1".to_string()),
+                    required: false,
+                    long_description: None,
+                },
+                FlagSchema {
+                    name: "-o".to_string(),
+                    aliases: Vec::new(),
+                    param_type: ParamType::File,
+                    description: "Output".to_string(),
+                    default: None,
+                    required: true,
+                    long_description: None,
+                },
+            ],
+            positionals: vec![crate::schema::PositionalSchema {
+                name: "input".to_string(),
+                position: 1,
+                description: "Input file".to_string(),
+                required: true,
+                param_type: ParamType::File,
+            default: None,
+            }],
+            constraints: Vec::new(),
+        };
+        let section = build_schema_prompt_section_compact(&schema, "align reads");
+        assert!(section.contains("VALID FLAGS"));
+        assert!(section.contains("REQUIRED"));
+        assert!(section.contains("POSITIONAL"));
+    }
+
+    #[test]
+    fn test_constraint_rule_message_requires() {
+        let rule = crate::schema::ConstraintRule::Requires("-a".to_string(), "-b".to_string());
+        assert!(rule.message().contains("requires"));
+    }
+
+    #[test]
+    fn test_constraint_rule_message_exclusive() {
+        let rule = crate::schema::ConstraintRule::MutuallyExclusive("-a".to_string(), "-b".to_string());
+        assert!(rule.message().contains("cannot be used together"));
+    }
+
+    #[test]
+    fn test_constraint_rule_message_implies() {
+        let rule = crate::schema::ConstraintRule::ImpliesValue("-a".to_string(), "-b".to_string(), "val".to_string());
+        assert!(rule.message().contains("implies"));
+    }
+
+    #[test]
+    fn test_constraint_rule_message_all_required() {
+        let rule = crate::schema::ConstraintRule::AllRequired(vec!["-a".to_string(), "-b".to_string()]);
+        assert!(rule.message().contains("All of"));
+    }
+
+    #[test]
+    fn test_constraint_rule_message_at_least_one() {
+        let rule = crate::schema::ConstraintRule::AtLeastOne(vec!["-a".to_string(), "-b".to_string()]);
+        assert!(rule.message().contains("At least one"));
+    }
+
+    #[test]
+    fn test_suggest_subcommand_empty() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: "test".to_string(),
+            schema_source: "test".to_string(),
+            usage_summary: String::new(),
+            doc_quality: 0.5,
+            subcommands: Vec::new(),
+            global_flags: Vec::new(),
+            flags: Vec::new(),
+            positionals: Vec::new(),
+            constraints: Vec::new(),
+        };
+        assert!(suggest_subcommand_for_task(&schema, "sort").is_none());
+    }
+
+    #[test]
+    fn test_validate_command_valid_no_subcommand() {
+        let schema = CliSchema {
+            tool: "test".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: "test".to_string(),
+            schema_source: "test".to_string(),
+            usage_summary: String::new(),
+            doc_quality: 0.5,
+            subcommands: Vec::new(),
+            global_flags: Vec::new(),
+            flags: vec![FlagSchema {
+                name: "-v".to_string(),
+                aliases: Vec::new(),
+                param_type: ParamType::Bool,
+                description: "Verbose".to_string(),
+                default: None,
+                required: false,
+                long_description: None,
+            }],
+            positionals: Vec::new(),
+            constraints: Vec::new(),
+        };
+        let args = vec!["-v".to_string()];
+        let result = validate_command_against_schema(&args, &schema, None);
+        assert!(result.is_valid);
+    }
 }
