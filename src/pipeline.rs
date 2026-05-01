@@ -821,4 +821,36 @@ mod tests {
         assert!(command.contains("-v"));
         assert!(command.contains("input.bam"));
     }
+
+    #[test]
+    fn test_build_explanation_multiple_flags() {
+        let config = Config::default();
+        let pipeline = Pipeline::new(config, WorkflowScenario::Doc);
+        let doc = make_doc();
+        let fill = LlmCommandFill {
+            subcommand: None,
+            flags: {
+                let mut m = BTreeMap::new();
+                m.insert("-o".to_string(), "out.bam".to_string());
+                m.insert("-@".to_string(), "4".to_string());
+                m
+            },
+            positionals: Vec::new(),
+        };
+        let validation = ValidationResult::valid();
+        let explanation = pipeline.build_explanation(&doc, &fill, &validation);
+        assert!(explanation.contains("-o"));
+        assert!(explanation.contains("-@"));
+    }
+
+    #[test]
+    fn test_stage1_resolve_known_tool() {
+        // stage1_resolve delegates to resolve_tool; verify it returns something for a known binary
+        // (e.g. "sh" which is always present) and does not panic.
+        let config = Config::default();
+        let pipeline = Pipeline::new(config, WorkflowScenario::Bare);
+        // We only assert the call completes without panicking; the returned Result may be Ok or Err
+        // depending on whether resolve_tool can find the binary.
+        let _ = pipeline.stage1_resolve("sh");
+    }
 }

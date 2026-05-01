@@ -417,4 +417,171 @@ mod tests {
         assert!(suggestion.contains("Check"));
         assert!(suggestion.contains("MissingInput"));
     }
+
+    #[test]
+    fn test_error_record_round_trip_json() {
+        let record = ErrorRecord {
+            tool: "samtools".to_string(),
+            task: "sort BAM file".to_string(),
+            failed_command: "samtools sort -o out.bam in.bam".to_string(),
+            exit_code: 1,
+            stderr_snippet: "no such file or directory".to_string(),
+            error_category: ErrorCategory::MissingInput,
+            resolution: Some("use -f flag".to_string()),
+            recorded_at: "2024-01-01T00:00:00Z".to_string(),
+        };
+        let json = serde_json::to_string(&record).unwrap();
+        let back: ErrorRecord = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.tool, "samtools");
+        assert_eq!(back.task, "sort BAM file");
+        assert_eq!(back.exit_code, 1);
+        assert_eq!(back.error_category, ErrorCategory::MissingInput);
+        assert_eq!(back.resolution.as_deref(), Some("use -f flag"));
+    }
+
+    #[test]
+    fn test_error_knowledge_db_record_and_count() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+
+        for i in 0..3 {
+            let record = ErrorRecord {
+                tool: "samtools".to_string(),
+                task: format!("task {i}"),
+                failed_command: "samtools view".to_string(),
+                exit_code: 1,
+                stderr_snippet: "no such file or directory".to_string(),
+                error_category: ErrorCategory::MissingInput,
+                resolution: None,
+                recorded_at: "2024-01-01T00:00:00Z".to_string(),
+            };
+            ErrorKnowledgeDb::record(record).unwrap();
+        }
+        assert_eq!(ErrorKnowledgeDb::count().unwrap(), 3);
+    }
+
+    #[test]
+    fn test_error_knowledge_db_search_finds_match() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+
+        for i in 0..2 {
+            ErrorKnowledgeDb::record(ErrorRecord {
+                tool: "samtools".to_string(),
+                task: format!("task {i}"),
+                failed_command: "samtools sort".to_string(),
+                exit_code: 1,
+                stderr_snippet: "no such file".to_string(),
+                error_category: ErrorCategory::MissingInput,
+                resolution: None,
+                recorded_at: "2024-01-01T00:00:00Z".to_string(),
+            })
+            .unwrap();
+        }
+        ErrorKnowledgeDb::record(ErrorRecord {
+            tool: "bwa".to_string(),
+            task: "align reads".to_string(),
+            failed_command: "bwa mem ref.fa reads.fq".to_string(),
+            exit_code: 1,
+            stderr_snippet: "no such file".to_string(),
+            error_category: ErrorCategory::MissingInput,
+            resolution: None,
+            recorded_at: "2024-01-01T00:00:00Z".to_string(),
+        })
+        .unwrap();
+
+        let results =
+            ErrorKnowledgeDb::search("samtools", ErrorCategory::MissingInput, 10).unwrap();
+        assert_eq!(results.len(), 2);
+    }
+
+    #[test]
+    fn test_error_knowledge_db_search_no_match() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+
+        ErrorKnowledgeDb::record(ErrorRecord {
+            tool: "samtools".to_string(),
+            task: "sort".to_string(),
+            failed_command: "samtools sort".to_string(),
+            exit_code: 1,
+            stderr_snippet: "no such file".to_string(),
+            error_category: ErrorCategory::MissingInput,
+            resolution: None,
+            recorded_at: "2024-01-01T00:00:00Z".to_string(),
+        })
+        .unwrap();
+
+        let results = ErrorKnowledgeDb::search("bwa", ErrorCategory::MissingInput, 10).unwrap();
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_error_knowledge_db_suggest_recovery_with_past_resolution() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+
+        ErrorKnowledgeDb::record(ErrorRecord {
+            tool: "samtools".to_string(),
+            task: "sort".to_string(),
+            failed_command: "samtools sort".to_string(),
+            exit_code: 1,
+            stderr_snippet: "no such file or directory".to_string(),
+            error_category: ErrorCategory::MissingInput,
+            resolution: Some("use -f flag".to_string()),
+            recorded_at: "2024-01-01T00:00:00Z".to_string(),
+        })
+        .unwrap();
+
+        let suggestion =
+            ErrorKnowledgeDb::suggest_recovery("samtools", "no such file or directory");
+        assert!(
+            suggestion.contains("use -f flag"),
+            "expected past resolution in suggestion, got: {suggestion}"
+        );
+    }
+
+    #[test]
+    fn test_error_category_classify_reference_genome_missing() {
+        assert_eq!(
+            ErrorCategory::classify("genome not found at /data/ref.fa"),
+            ErrorCategory::MissingReference
+        );
+    }
+
+    #[test]
+    fn test_error_category_classify_not_installed() {
+        assert_eq!(
+            ErrorCategory::classify("tool not installed"),
+            ErrorCategory::ToolMissing
+        );
+    }
+
+    #[test]
+    fn test_error_category_classify_access_denied() {
+        assert_eq!(
+            ErrorCategory::classify("access denied: /data/output.bam"),
+            ErrorCategory::Permission
+        );
+    }
+
+    #[test]
+    fn test_error_category_classify_memory_allocation_failed() {
+        assert_eq!(
+            ErrorCategory::classify("memory allocation failed for 4GB"),
+            ErrorCategory::OutOfMemory
+        );
+    }
 }
