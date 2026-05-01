@@ -13,6 +13,12 @@ pub struct LlmCommandFill {
 
 pub struct IntentMapper;
 
+impl Default for IntentMapper {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl IntentMapper {
     pub fn new() -> Self {
         Self
@@ -35,12 +41,7 @@ impl IntentMapper {
         (subcommand, fill)
     }
 
-    fn resolve_subcommand(
-        &self,
-        record: &ToolRecord,
-        doc: &ToolDoc,
-        task: &str,
-    ) -> Option<String> {
+    fn resolve_subcommand(&self, record: &ToolRecord, doc: &ToolDoc, task: &str) -> Option<String> {
         if doc.subcommands.is_empty() {
             return None;
         }
@@ -130,9 +131,9 @@ impl IntentMapper {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::schema::types::{CliStyle, ParamType};
     use crate::tool_doc::{FlagDoc, SubcommandDoc};
     use crate::tool_resolver::ToolRecord;
-    use crate::schema::types::{CliStyle, ParamType};
     use std::path::PathBuf;
 
     fn make_test_record() -> ToolRecord {
@@ -197,7 +198,11 @@ mod tests {
                     flags: Vec::new(),
                     positionals: Vec::new(),
                     constraints: Vec::new(),
-                    task_keywords: vec!["view".to_string(), "convert".to_string(), "extract".to_string()],
+                    task_keywords: vec![
+                        "view".to_string(),
+                        "convert".to_string(),
+                        "extract".to_string(),
+                    ],
                 },
             ],
             global_flags: Vec::new(),
@@ -481,5 +486,58 @@ mod tests {
         let prompt = mapper.build_llm_prompt(&record, &doc, "sort data", Some("sort"));
         assert!(prompt.contains("sort"));
         assert!(prompt.contains("Selected subcommand: sort"));
+    }
+
+    #[test]
+    fn test_map_intent_fill_has_subcommand_set() {
+        let mapper = IntentMapper::new();
+        let record = make_test_record();
+        let doc = make_test_doc();
+        let (subcmd, fill) = mapper.map_intent(&record, &doc, "sort input.bam");
+        assert_eq!(subcmd, fill.subcommand);
+    }
+
+    #[test]
+    fn test_map_intent_fill_flags_and_positionals_empty() {
+        let mapper = IntentMapper::new();
+        let record = make_test_record();
+        let doc = make_test_doc();
+        let (_, fill) = mapper.map_intent(&record, &doc, "sort input.bam");
+        // Initial fill has no flags/positionals – LLM populates those later
+        assert!(fill.flags.is_empty());
+        assert!(fill.positionals.is_empty());
+    }
+
+    #[test]
+    fn test_llm_command_fill_default_construction() {
+        use std::collections::BTreeMap;
+        let fill = LlmCommandFill {
+            subcommand: None,
+            flags: BTreeMap::new(),
+            positionals: Vec::new(),
+        };
+        assert!(fill.subcommand.is_none());
+        assert!(fill.flags.is_empty());
+        assert!(fill.positionals.is_empty());
+    }
+
+    #[test]
+    fn test_build_llm_prompt_contains_task() {
+        let mapper = IntentMapper::new();
+        let record = make_test_record();
+        let doc = make_test_doc();
+        let task = "sort input.bam by coordinate";
+        let prompt = mapper.build_llm_prompt(&record, &doc, task, Some("sort"));
+        assert!(prompt.contains(task));
+    }
+
+    #[test]
+    fn test_resolve_subcommand_exact_name_in_task() {
+        let mapper = IntentMapper::new();
+        let record = make_test_record();
+        let doc = make_test_doc();
+        // "view" appears as a word in the task
+        let (subcmd, _) = mapper.map_intent(&record, &doc, "view the bam file");
+        assert_eq!(subcmd, Some("view".to_string()));
     }
 }

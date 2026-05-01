@@ -263,4 +263,51 @@ mod tests {
         assert_eq!(plan.steps[0].tool, "bwa");
         assert_eq!(plan.strategy, "Direct single-call execution");
     }
+
+    #[test]
+    fn test_pipeline_separators_table() {
+        let planner = PlannerAgent::new();
+        let cases: Vec<(&str, bool)> = vec![
+            ("sort input.bam then index it", true),
+            ("sort input.bam && index sorted.bam", true),
+            ("sort input.bam 然后 index it", true),
+            ("simple sort task", false),
+            ("sort and view", false), // "and" alone doesn't trigger pipeline
+        ];
+        for (task, expect_multi) in cases {
+            let plan = planner.plan("samtools", task);
+            assert_eq!(
+                plan.is_multi_step(),
+                expect_multi,
+                "task={task:?} → is_multi_step should be {expect_multi}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_task_plan_estimated_llm_calls() {
+        let planner = PlannerAgent::new();
+        // Single step should have 1 estimated call + 1 validation call = 2? Actually 1.
+        let single = planner.plan("samtools", "sort input.bam");
+        assert!(single.estimated_llm_calls >= 1);
+
+        // Multi-step should have more estimated calls
+        let multi = planner.plan("samtools", "sort input.bam then index then flagstat");
+        assert!(multi.estimated_llm_calls > single.estimated_llm_calls);
+    }
+
+    #[test]
+    fn test_plan_step_fields() {
+        let step = PlanStep {
+            step: 1,
+            tool: "samtools".to_string(),
+            description: "sort BAM file".to_string(),
+            depends_on: vec![],
+            needs_validation: true,
+        };
+        assert_eq!(step.step, 1);
+        assert_eq!(step.tool, "samtools");
+        assert!(step.needs_validation);
+        assert!(step.depends_on.is_empty());
+    }
 }

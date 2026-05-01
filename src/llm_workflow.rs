@@ -715,10 +715,7 @@ mod tests {
             Some("sort".to_string())
         );
         assert_eq!(
-            detect_subcmd_from_tokens(
-                &["view".to_string(), "-b".to_string()],
-                &schema
-            ),
+            detect_subcmd_from_tokens(&["view".to_string(), "-b".to_string()], &schema),
             Some("view".to_string())
         );
     }
@@ -727,10 +724,7 @@ mod tests {
     fn test_detect_subcmd_from_tokens_no_match() {
         let schema = test_subcommand_schema();
         assert_eq!(
-            detect_subcmd_from_tokens(
-                &["unknown".to_string()],
-                &schema
-            ),
+            detect_subcmd_from_tokens(&["unknown".to_string()], &schema),
             None
         );
     }
@@ -803,7 +797,12 @@ mod tests {
     #[test]
     fn test_inject_required_flags_missing() {
         let schema = test_subcommand_schema();
-        let tokens = vec!["sort".to_string(), "-@".to_string(), "4".to_string(), "input.bam".to_string()];
+        let tokens = vec![
+            "sort".to_string(),
+            "-@".to_string(),
+            "4".to_string(),
+            "input.bam".to_string(),
+        ];
         let result = inject_required_flags(tokens, &schema, Some("sort"));
         assert!(result.iter().any(|t| t.contains("-o")));
     }
@@ -819,7 +818,10 @@ mod tests {
             "4".to_string(),
         ];
         let result = inject_required_flags(tokens, &schema, Some("sort"));
-        let o_count = result.iter().filter(|t| **t == "-o" || t.starts_with("-o=")).count();
+        let o_count = result
+            .iter()
+            .filter(|t| **t == "-o" || t.starts_with("-o="))
+            .count();
         assert_eq!(o_count, 1);
     }
 
@@ -1232,5 +1234,286 @@ mod tests {
         assert!(json.contains("Quality"));
         let deserialized: WorkflowMode = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized, WorkflowMode::Quality);
+    }
+
+    // ── WorkflowMode additional ───────────────────────────────────────────────
+
+    #[test]
+    fn test_workflow_mode_fast_serde() {
+        let mode = WorkflowMode::Fast;
+        let json = serde_json::to_string(&mode).unwrap();
+        assert!(json.contains("Fast"));
+        let back: WorkflowMode = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, WorkflowMode::Fast);
+    }
+
+    #[test]
+    fn test_workflow_mode_default_is_fast() {
+        let mode = WorkflowMode::default();
+        assert_eq!(mode, WorkflowMode::Fast);
+    }
+
+    #[test]
+    fn test_workflow_mode_debug() {
+        let fast = format!("{:?}", WorkflowMode::Fast);
+        let quality = format!("{:?}", WorkflowMode::Quality);
+        assert_eq!(fast, "Fast");
+        assert_eq!(quality, "Quality");
+    }
+
+    #[test]
+    fn test_workflow_mode_copy() {
+        let a = WorkflowMode::Quality;
+        let b = a; // Copy
+        assert_eq!(a, b);
+    }
+
+    // ── LlmWorkflowExecutor::new with Quality mode ────────────────────────────
+
+    #[test]
+    fn test_llm_workflow_executor_new_quality() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Quality);
+        assert!(executor.is_ok());
+        let executor = executor.unwrap();
+        assert_eq!(executor.mode, WorkflowMode::Quality);
+    }
+
+    #[test]
+    fn test_llm_workflow_executor_new_fast() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast);
+        assert!(executor.is_ok());
+        let executor = executor.unwrap();
+        assert_eq!(executor.mode, WorkflowMode::Fast);
+    }
+
+    // ── should_standardize_task: more keyword variations ─────────────────────
+
+    #[test]
+    fn test_should_standardize_task_simply() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        assert!(executor.should_standardize_task("simply sort the bam file by coordinates"));
+    }
+
+    #[test]
+    fn test_should_standardize_task_basically() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        assert!(executor.should_standardize_task("basically I want to sort reads"));
+    }
+
+    #[test]
+    fn test_should_standardize_task_short() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        // Short tasks (< 10 chars) should always be standardized
+        assert!(executor.should_standardize_task("sort bam"));
+    }
+
+    #[test]
+    fn test_should_standardize_task_non_ascii() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        assert!(executor.should_standardize_task("对BAM文件按坐标排序并建立索引"));
+    }
+
+    #[test]
+    fn test_should_not_standardize_clear_task() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        assert!(
+            !executor
+                .should_standardize_task("Sort BAM file by coordinate order using samtools sort")
+        );
+    }
+
+    // ── resolve_mode with None confidence ─────────────────────────────────────
+
+    #[test]
+    fn test_resolve_mode_none_confidence_uses_executor_mode() {
+        let fast_exec = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        assert_eq!(fast_exec.resolve_mode(&None), WorkflowMode::Fast);
+
+        let quality_exec =
+            LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Quality).unwrap();
+        assert_eq!(quality_exec.resolve_mode(&None), WorkflowMode::Quality);
+    }
+
+    // ── compute_confidence edge cases ─────────────────────────────────────────
+
+    #[test]
+    fn test_compute_confidence_no_schema_returns_some() {
+        // compute_confidence always returns Some, even without a schema
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        let result = executor.compute_confidence(None, "sort bam file", None);
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_compute_confidence_with_bam_mention() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        let schema = test_subcommand_schema();
+        let result =
+            executor.compute_confidence(Some(&schema), "sort input.bam to output.bam", None);
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_compute_confidence_with_fastq_mention() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        let schema = test_subcommand_schema();
+        let result =
+            executor.compute_confidence(Some(&schema), "align reads.fastq to reference", None);
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_compute_confidence_score_range() {
+        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        let schema = test_subcommand_schema();
+        let result =
+            executor.compute_confidence(Some(&schema), "sort bam file by coordinate", None);
+        if let Some(conf) = result {
+            assert!((0.0..=1.0).contains(&conf.score));
+        }
+    }
+
+    // ── is_small_model ────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_is_small_model_with_small_param_count() {
+        let mut executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        executor.model_param_count = Some(1.5);
+        assert!(executor.is_small_model());
+    }
+
+    #[test]
+    fn test_is_small_model_with_large_param_count() {
+        let mut executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        executor.model_param_count = Some(70.0);
+        assert!(!executor.is_small_model());
+    }
+
+    #[test]
+    fn test_is_small_model_with_none() {
+        let mut executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        executor.model_param_count = None;
+        assert!(!executor.is_small_model());
+    }
+
+    // ── fix_subcommand additional edge cases ──────────────────────────────────
+
+    #[test]
+    fn test_fix_subcommand_already_present() {
+        let schema = test_subcommand_schema();
+        let tokens = vec!["sort".to_string(), "-o".to_string(), "out.bam".to_string()];
+        let result = fix_subcommand(tokens.clone(), &schema, "sort");
+        assert_eq!(result[0], "sort");
+    }
+
+    #[test]
+    fn test_fix_subcommand_case_insensitive_match() {
+        let schema = test_subcommand_schema();
+        // Task keyword "sort" should match "sort" subcommand
+        let tokens = vec![
+            "-o".to_string(),
+            "out.bam".to_string(),
+            "in.bam".to_string(),
+        ];
+        let result = fix_subcommand(tokens, &schema, "sort");
+        assert_eq!(result[0], "sort");
+    }
+
+    // ── looks_like_positional ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_looks_like_positional_file_path() {
+        assert!(looks_like_positional("input.bam"));
+        assert!(looks_like_positional("/data/reads.fastq.gz"));
+        assert!(looks_like_positional("reads.fq"));
+    }
+
+    #[test]
+    fn test_looks_like_positional_not_a_file() {
+        assert!(!looks_like_positional("--output"));
+        assert!(!looks_like_positional("-o"));
+    }
+
+    #[test]
+    fn test_looks_like_positional_number_with_dot() {
+        // "1.5" has a dot but is a number
+        // behavior depends on implementation; just should not panic
+        let _ = looks_like_positional("1.5");
+    }
+
+    // ── detect_subcmd_from_tokens ─────────────────────────────────────────────
+
+    #[test]
+    fn test_detect_subcmd_from_tokens_no_subcommand() {
+        let schema = test_subcommand_schema();
+        let tokens = vec!["-o".to_string(), "output.bam".to_string()];
+        let result = detect_subcmd_from_tokens(&tokens, &schema);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_detect_subcmd_from_tokens_with_sort() {
+        let schema = test_subcommand_schema();
+        let tokens = vec!["sort".to_string(), "input.bam".to_string()];
+        let result = detect_subcmd_from_tokens(&tokens, &schema);
+        assert_eq!(result.as_deref(), Some("sort"));
+    }
+
+    // ── schema_post_process: subcommand injection for FlagsFirst ──────────────
+
+    #[test]
+    fn test_schema_post_process_flags_first_bwa() {
+        let schema = CliSchema {
+            tool: "bwa".to_string(),
+            version: None,
+            cli_style: CliStyle::FlagsFirst,
+            description: "BWA aligner".to_string(),
+            subcommands: Vec::new(),
+            global_flags: Vec::new(),
+            flags: vec![FlagSchema {
+                name: "-t".to_string(),
+                aliases: Vec::new(),
+                param_type: ParamType::Int,
+                description: "Threads".to_string(),
+                default: None,
+                required: false,
+                long_description: None,
+            }],
+            positionals: Vec::new(),
+            usage_summary: String::new(),
+            constraints: Vec::new(),
+            doc_quality: 0.9,
+            schema_source: "test".to_string(),
+        };
+        let tokens = vec![
+            "-t".to_string(),
+            "8".to_string(),
+            "ref.fa".to_string(),
+            "reads.fq".to_string(),
+        ];
+        let result = schema_post_process(&tokens, &schema, "align reads");
+        // Tokens should be kept or re-ordered; must not panic
+        assert!(!result.is_empty());
+    }
+
+    // ── WorkflowResult fields ────────────────────────────────────────────────
+
+    #[test]
+    fn test_workflow_result_debug() {
+        use crate::llm::LlmCommandSuggestion;
+        let result = WorkflowResult {
+            suggestion: LlmCommandSuggestion {
+                args: vec!["sort".to_string()],
+                explanation: "Sort BAM".to_string(),
+                inference_ms: 100.0,
+            },
+            llm_calls: 1,
+            total_inference_ms: 100.0,
+            effective_task: "sort bam".to_string(),
+            was_normalized: false,
+            confidence: None,
+        };
+        let dbg = format!("{result:?}");
+        assert!(dbg.contains("WorkflowResult"));
     }
 }

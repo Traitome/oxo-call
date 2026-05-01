@@ -4785,20 +4785,28 @@ fn test_chat_scenario_bare() {
 
 #[test]
 fn test_chat_scenario_prompt() {
+    // "prompt" was removed in v0.13; the CLI must reject it
     let output = oxo_call()
-        .args(["chat", "--scenario", "prompt", "--help"])
+        .args(["chat", "--scenario", "prompt"])
         .output()
         .expect("failed to run oxo-call");
-    assert!(output.status.success());
+    assert!(
+        !output.status.success(),
+        "scenario 'prompt' should be rejected after v0.13 refactor"
+    );
 }
 
 #[test]
 fn test_chat_scenario_skill() {
+    // "skill" was removed in v0.13; the CLI must reject it
     let output = oxo_call()
-        .args(["chat", "--scenario", "skill", "--help"])
+        .args(["chat", "--scenario", "skill"])
         .output()
         .expect("failed to run oxo-call");
-    assert!(output.status.success());
+    assert!(
+        !output.status.success(),
+        "scenario 'skill' should be rejected after v0.13 refactor"
+    );
 }
 
 #[test]

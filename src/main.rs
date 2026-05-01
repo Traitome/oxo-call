@@ -64,7 +64,6 @@ mod markdown;
 mod mcp;
 mod orchestrator;
 mod pipeline;
-mod rag;
 mod runner;
 mod schema;
 mod server;

@@ -230,4 +230,55 @@ mod tests {
         ];
         print_index_table(&entries);
     }
+
+    #[test]
+    fn test_with_source_empty_strings() {
+        let result = with_source("", "");
+        // Should not panic and return something reasonable
+        assert!(result.is_empty() || result.contains('['));
+    }
+
+    #[test]
+    fn test_config_verify_suggestions_table() {
+        let cfg = default_cfg();
+        let cases: Vec<(&str, &str)> = vec![
+            ("No API token configured", "token"),
+            ("Personal Access Tokens are not supported", "copilot"),
+            ("401 Unauthorized", "rejected"),
+            ("403 Forbidden", "rejected"),
+            ("404 Not Found", "endpoint"),
+            ("API base URL must use HTTPS", "https"),
+            ("HTTP request failed: timeout", "network"),
+            ("Failed to parse API response", "OpenAI"),
+        ];
+        for (error_msg, expected_fragment) in cases {
+            let suggestions = config_verify_suggestions(&cfg, error_msg);
+            assert!(
+                !suggestions.is_empty(),
+                "should have suggestion for: {error_msg}"
+            );
+            let combined = suggestions.join(" ").to_lowercase();
+            assert!(
+                combined.contains(&expected_fragment.to_lowercase()),
+                "suggestions for '{error_msg}' should mention '{expected_fragment}', got: {combined}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_with_source_various_inputs() {
+        let cases: Vec<(&str, &str)> = vec![
+            ("gpt-4o", "stored config"),
+            ("openai", "env:OXO_CALL_LLM_PROVIDER"),
+            ("sk-abc123", "config file"),
+            ("", "default"),
+        ];
+        for (value, source) in cases {
+            let result = with_source(value, source);
+            if !value.is_empty() {
+                assert!(result.contains(value), "should contain value '{value}'");
+            }
+            assert!(result.contains(source), "should contain source '{source}'");
+        }
+    }
 }

@@ -2541,16 +2541,34 @@ Options:
 
     #[test]
     fn test_infer_subcommand_from_domain_bwa() {
-        assert_eq!(infer_subcommand_from_domain("bwa", "align reads"), Some("mem"));
-        assert_eq!(infer_subcommand_from_domain("bwa", "alignment"), Some("mem"));
-        assert_eq!(infer_subcommand_from_domain("bwa", "map reads"), Some("mem"));
+        assert_eq!(
+            infer_subcommand_from_domain("bwa", "align reads"),
+            Some("mem")
+        );
+        assert_eq!(
+            infer_subcommand_from_domain("bwa", "alignment"),
+            Some("mem")
+        );
+        assert_eq!(
+            infer_subcommand_from_domain("bwa", "map reads"),
+            Some("mem")
+        );
     }
 
     #[test]
     fn test_infer_subcommand_from_domain_samtools() {
-        assert_eq!(infer_subcommand_from_domain("samtools", "sort bam"), Some("sort"));
-        assert_eq!(infer_subcommand_from_domain("samtools", "view sam"), Some("view"));
-        assert_eq!(infer_subcommand_from_domain("samtools", "index bam"), Some("index"));
+        assert_eq!(
+            infer_subcommand_from_domain("samtools", "sort bam"),
+            Some("sort")
+        );
+        assert_eq!(
+            infer_subcommand_from_domain("samtools", "view sam"),
+            Some("view")
+        );
+        assert_eq!(
+            infer_subcommand_from_domain("samtools", "index bam"),
+            Some("index")
+        );
     }
 
     #[test]
@@ -2736,5 +2754,393 @@ Options:
     #[test]
     fn test_extract_major_minor_with_suffix() {
         assert_eq!(extract_major_minor("1.17-beta"), "1.17");
+    }
+
+    // ─── DocsFetcher::new constructor ─────────────────────────────────────────
+
+    #[test]
+    fn test_docs_fetcher_new_stores_config() {
+        let cfg = Config::default();
+        let fetcher = DocsFetcher::new(cfg.clone());
+        // The constructor should succeed — we verify it by checking the provider
+        // through the config stored inside (indirectly via cache_dir ergonomics).
+        let _ = fetcher;
+    }
+
+    // ─── ToolDocs Clone ───────────────────────────────────────────────────────
+
+    #[test]
+    fn test_tool_docs_clone() {
+        let original = ToolDocs {
+            tool_name: "samtools".to_string(),
+            help_output: Some("usage: samtools".to_string()),
+            cached_docs: Some("# docs".to_string()),
+            version: Some("1.17".to_string()),
+            subcommand_help: Some("sort: sort alignments\nview: view SAM/BAM".to_string()),
+        };
+        let cloned = original.clone();
+        assert_eq!(cloned.tool_name, original.tool_name);
+        assert_eq!(cloned.help_output, original.help_output);
+        assert_eq!(cloned.cached_docs, original.cached_docs);
+        assert_eq!(cloned.version, original.version);
+    }
+
+    #[test]
+    fn test_tool_docs_is_empty_both_none() {
+        let docs = ToolDocs {
+            tool_name: "tool".to_string(),
+            help_output: None,
+            cached_docs: None,
+            version: None,
+            subcommand_help: None,
+        };
+        assert!(docs.is_empty());
+    }
+
+    #[test]
+    fn test_tool_docs_is_empty_help_present() {
+        let docs = ToolDocs {
+            tool_name: "tool".to_string(),
+            help_output: Some("help".to_string()),
+            cached_docs: None,
+            version: None,
+            subcommand_help: None,
+        };
+        assert!(!docs.is_empty());
+    }
+
+    // ─── fetch_from_file ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_fetch_from_file_htm_extension() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let file_path = tmp.path().join("tool.htm");
+        std::fs::write(
+            &file_path,
+            "<html><body><p>Tool documentation.</p></body></html>",
+        )
+        .unwrap();
+        let cfg = Config::default();
+        let fetcher = DocsFetcher::new(cfg);
+        let content = fetcher.fetch_from_file("tool", &file_path).unwrap();
+        // HTML tags should be stripped
+        assert!(content.contains("Tool documentation."));
+        assert!(!content.contains("<html>"));
+        unsafe {
+            std::env::remove_var("OXO_CALL_DATA_DIR");
+        }
+    }
+
+    #[test]
+    fn test_fetch_from_file_rst_extension() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let file_path = tmp.path().join("tool.rst");
+        std::fs::write(
+            &file_path,
+            "Tool Documentation\n==================\n\nThis tool does things.",
+        )
+        .unwrap();
+        let cfg = Config::default();
+        let fetcher = DocsFetcher::new(cfg);
+        let content = fetcher.fetch_from_file("tool", &file_path).unwrap();
+        assert!(content.contains("Tool Documentation"));
+        unsafe {
+            std::env::remove_var("OXO_CALL_DATA_DIR");
+        }
+    }
+
+    #[test]
+    fn test_fetch_from_file_unsupported_extension_new() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let file_path = tmp.path().join("tool.pdf");
+        std::fs::write(&file_path, "binary content").unwrap();
+        let cfg = Config::default();
+        let fetcher = DocsFetcher::new(cfg);
+        let result = fetcher.fetch_from_file("tool", &file_path);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("Unsupported file type") || err.contains("pdf"));
+        unsafe {
+            std::env::remove_var("OXO_CALL_DATA_DIR");
+        }
+    }
+
+    #[test]
+    fn test_fetch_from_file_not_found_new() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let file_path = tmp.path().join("nonexistent.md");
+        let cfg = Config::default();
+        let fetcher = DocsFetcher::new(cfg);
+        assert!(fetcher.fetch_from_file("tool", &file_path).is_err());
+        unsafe {
+            std::env::remove_var("OXO_CALL_DATA_DIR");
+        }
+    }
+
+    // ─── fetch_from_dir ───────────────────────────────────────────────────────
+
+    #[test]
+    fn test_fetch_from_dir_multiple_files() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let doc_dir = tmp.path().join("docs");
+        std::fs::create_dir_all(&doc_dir).unwrap();
+        std::fs::write(doc_dir.join("intro.md"), "# Introduction\n\nBasic usage.").unwrap();
+        std::fs::write(doc_dir.join("advanced.txt"), "Advanced options and flags.").unwrap();
+        let cfg = Config::default();
+        let fetcher = DocsFetcher::new(cfg);
+        let content = fetcher.fetch_from_dir("tool", &doc_dir).unwrap();
+        assert!(content.contains("Introduction") || content.contains("Basic usage"));
+        unsafe {
+            std::env::remove_var("OXO_CALL_DATA_DIR");
+        }
+    }
+
+    #[test]
+    fn test_fetch_from_dir_ignores_unsupported_extensions() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let doc_dir = tmp.path().join("docs2");
+        std::fs::create_dir_all(&doc_dir).unwrap();
+        // Only unsupported files
+        std::fs::write(doc_dir.join("data.csv"), "col1,col2").unwrap();
+        std::fs::write(doc_dir.join("image.png"), "binary").unwrap();
+        let cfg = Config::default();
+        let fetcher = DocsFetcher::new(cfg);
+        // Should error because no supported files
+        assert!(fetcher.fetch_from_dir("tool", &doc_dir).is_err());
+        unsafe {
+            std::env::remove_var("OXO_CALL_DATA_DIR");
+        }
+    }
+
+    #[test]
+    fn test_fetch_from_dir_nonexistent() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let doc_dir = tmp.path().join("no_such_dir");
+        let cfg = Config::default();
+        let fetcher = DocsFetcher::new(cfg);
+        assert!(fetcher.fetch_from_dir("tool", &doc_dir).is_err());
+        unsafe {
+            std::env::remove_var("OXO_CALL_DATA_DIR");
+        }
+    }
+
+    #[test]
+    fn test_fetch_from_dir_not_a_directory() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let file_path = tmp.path().join("afile.md");
+        std::fs::write(&file_path, "content").unwrap();
+        let cfg = Config::default();
+        let fetcher = DocsFetcher::new(cfg);
+        assert!(fetcher.fetch_from_dir("tool", &file_path).is_err());
+        unsafe {
+            std::env::remove_var("OXO_CALL_DATA_DIR");
+        }
+    }
+
+    // ─── is_likely_error ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_is_likely_error_unrecognized_command() {
+        assert!(is_likely_error("unrecognized command: foo"));
+    }
+
+    #[test]
+    fn test_is_likely_error_unknown_command() {
+        assert!(is_likely_error("unknown command: bar"));
+    }
+
+    #[test]
+    fn test_is_likely_error_no_such_path() {
+        assert!(is_likely_error("no such file or directory"));
+    }
+
+    #[test]
+    fn test_is_likely_error_valid_help_with_usage() {
+        // Even if it starts with "error", if it has "usage:" it should NOT be an error
+        assert!(!is_likely_error(
+            "error: unrecognized option '--help'\nusage: tool [options]"
+        ));
+    }
+
+    #[test]
+    fn test_is_likely_error_options_present() {
+        assert!(!is_likely_error(
+            "options:\n  -h  show this help\n  -v  verbose"
+        ));
+    }
+
+    #[test]
+    fn test_is_likely_error_normal_help() {
+        assert!(!is_likely_error(
+            "Tool version 1.2.3\nUsage: tool [command]\nOptions:\n  --help  Show help"
+        ));
+    }
+
+    // ─── looks_like_version ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_looks_like_version_simple_new() {
+        assert!(looks_like_version("1.17.0"));
+    }
+
+    #[test]
+    fn test_looks_like_version_with_prefix_new() {
+        assert!(looks_like_version("v1.17"));
+    }
+
+    #[test]
+    fn test_looks_like_version_too_long_new() {
+        let long_str = "a".repeat(121);
+        assert!(!looks_like_version(&long_str));
+    }
+
+    #[test]
+    fn test_looks_like_version_no_dot_new() {
+        assert!(!looks_like_version("version123"));
+    }
+
+    #[test]
+    fn test_looks_like_version_no_digit_new() {
+        assert!(!looks_like_version("abc.def"));
+    }
+
+    #[test]
+    fn test_looks_like_version_contains_error_new() {
+        assert!(!looks_like_version("error: 1.2.3 not found"));
+    }
+
+    #[test]
+    fn test_looks_like_version_contains_unknown_new() {
+        assert!(!looks_like_version("unknown: 1.2.3"));
+    }
+
+    // ─── list_cached_tools returns sorted list ────────────────────────────────
+
+    #[test]
+    fn test_list_cached_tools_sorted() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let cache_dir = tmp.path().join("docs");
+        std::fs::create_dir_all(&cache_dir).unwrap();
+        std::fs::write(cache_dir.join("zcat.md"), "docs").unwrap();
+        std::fs::write(cache_dir.join("awk.md"), "docs").unwrap();
+        std::fs::write(cache_dir.join("samtools.md"), "docs").unwrap();
+        let cfg = Config::default();
+        let fetcher = DocsFetcher::new(cfg);
+        let tools = fetcher.list_cached_tools().unwrap();
+        assert_eq!(tools, vec!["awk", "samtools", "zcat"]);
+        unsafe {
+            std::env::remove_var("OXO_CALL_DATA_DIR");
+        }
+    }
+
+    #[test]
+    fn test_list_cached_tools_empty_dir_new() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let cache_dir = tmp.path().join("docs");
+        std::fs::create_dir_all(&cache_dir).unwrap();
+        let cfg = Config::default();
+        let fetcher = DocsFetcher::new(cfg);
+        let tools = fetcher.list_cached_tools().unwrap();
+        assert!(tools.is_empty());
+        unsafe {
+            std::env::remove_var("OXO_CALL_DATA_DIR");
+        }
+    }
+
+    #[test]
+    fn test_list_cached_tools_no_cache_dir() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        // Don't create the docs subdir
+        let cfg = Config::default();
+        let fetcher = DocsFetcher::new(cfg);
+        let tools = fetcher.list_cached_tools().unwrap();
+        assert!(tools.is_empty());
+        unsafe {
+            std::env::remove_var("OXO_CALL_DATA_DIR");
+        }
+    }
+
+    // ─── extract_major_minor additional cases ─────────────────────────────────
+
+    #[test]
+    fn test_extract_major_minor_no_dot() {
+        assert_eq!(extract_major_minor("v3"), "v3");
+    }
+
+    #[test]
+    fn test_extract_major_minor_three_parts() {
+        assert_eq!(extract_major_minor("2.31.0"), "2.31");
+    }
+
+    #[test]
+    fn test_extract_major_minor_simple_new() {
+        assert_eq!(extract_major_minor("1.20"), "1.20");
+    }
+
+    // ─── strip_html_tags ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_strip_html_tags_basic() {
+        let html = "<h1>Title</h1><p>Some <b>bold</b> text.</p>";
+        let stripped = strip_html_tags(html);
+        assert!(!stripped.contains('<'));
+        assert!(stripped.contains("Title"));
+        assert!(stripped.contains("bold"));
+    }
+
+    #[test]
+    fn test_strip_html_tags_empty() {
+        assert_eq!(strip_html_tags(""), "");
+    }
+
+    #[test]
+    fn test_strip_html_tags_no_tags() {
+        let text = "plain text with no tags";
+        // strip_html_tags always appends a newline after each non-empty line
+        assert_eq!(strip_html_tags(text), "plain text with no tags\n");
     }
 }

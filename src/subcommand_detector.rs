@@ -774,9 +774,7 @@ Usage: git pull [options]"#;
     #[test]
     fn test_select_for_task_low_score() {
         let detector = SubcommandDetectorV2::new();
-        let subcommands = vec![
-            SubcommandDef::new("sort").with_description("Sort alignments"),
-        ];
+        let subcommands = vec![SubcommandDef::new("sort").with_description("Sort alignments")];
         let result = detector.select_for_task("completely unrelated task xyz", &subcommands);
         assert!(result.is_none());
     }

@@ -1461,6 +1461,279 @@ mod tests {
         assert!(resp.choices.is_empty());
     }
 
+    // ── WorkflowTemplate clone/debug ─────────────────────────────────────────
+
+    #[test]
+    fn test_workflow_template_debug() {
+        let t = find_template("rnaseq").unwrap();
+        let dbg = format!("{t:?}");
+        assert!(dbg.contains("WorkflowTemplate"));
+        assert!(dbg.contains("rnaseq"));
+    }
+
+    #[test]
+    fn test_workflow_template_clone() {
+        let t = find_template("wgs").unwrap();
+        let cloned = t.clone();
+        assert_eq!(cloned.name, t.name);
+        assert_eq!(cloned.assay, t.assay);
+        assert_eq!(cloned.description, t.description);
+    }
+
+    // ── GeneratedWorkflow clone/debug ─────────────────────────────────────────
+
+    #[test]
+    fn test_generated_workflow_debug() {
+        let wf = GeneratedWorkflow {
+            engine: "native".to_string(),
+            content: "[workflow]\nname = \"test\"".to_string(),
+            explanation: "A test workflow.".to_string(),
+        };
+        let dbg = format!("{wf:?}");
+        assert!(dbg.contains("GeneratedWorkflow"));
+        assert!(dbg.contains("native"));
+    }
+
+    #[test]
+    fn test_generated_workflow_clone() {
+        let wf = GeneratedWorkflow {
+            engine: "snakemake".to_string(),
+            content: "rule all: pass".to_string(),
+            explanation: "Snakemake workflow".to_string(),
+        };
+        let cloned = wf.clone();
+        assert_eq!(cloned.engine, wf.engine);
+        assert_eq!(cloned.content, wf.content);
+        assert_eq!(cloned.explanation, wf.explanation);
+    }
+
+    // ── BUILTIN_TEMPLATES count ───────────────────────────────────────────────
+
+    #[test]
+    fn test_builtin_templates_count() {
+        assert_eq!(BUILTIN_TEMPLATES.len(), 9);
+    }
+
+    #[test]
+    fn test_all_templates_have_all_formats() {
+        for t in BUILTIN_TEMPLATES {
+            assert!(
+                !t.native.is_empty(),
+                "Template '{}' has empty native content",
+                t.name
+            );
+            assert!(
+                !t.snakemake.is_empty(),
+                "Template '{}' has empty snakemake content",
+                t.name
+            );
+            assert!(
+                !t.nextflow.is_empty(),
+                "Template '{}' has empty nextflow content",
+                t.name
+            );
+        }
+    }
+
+    // ── DataContext default/clone/debug ───────────────────────────────────────
+
+    #[test]
+    fn test_data_context_default_new() {
+        let ctx = DataContext::default();
+        assert!(ctx.samples.is_empty());
+        assert!(ctx.files.is_empty());
+        assert!(ctx.data_type_hint.is_empty());
+    }
+
+    #[test]
+    fn test_data_context_debug() {
+        let ctx = DataContext {
+            samples: vec!["sample1".to_string()],
+            files: vec!["/data/sample1_R1.fastq.gz".to_string()],
+            data_type_hint: "paired-end FASTQ".to_string(),
+        };
+        let dbg = format!("{ctx:?}");
+        assert!(dbg.contains("DataContext"));
+        assert!(dbg.contains("sample1"));
+    }
+
+    #[test]
+    fn test_data_context_clone() {
+        let ctx = DataContext {
+            samples: vec!["s1".to_string()],
+            files: vec!["f1.bam".to_string()],
+            data_type_hint: "BAM".to_string(),
+        };
+        let cloned = ctx.clone();
+        assert_eq!(cloned.samples, ctx.samples);
+        assert_eq!(cloned.files, ctx.files);
+        assert_eq!(cloned.data_type_hint, ctx.data_type_hint);
+    }
+
+    // ── scan_data_directory: .fq and .fq.gz extensions ───────────────────────
+
+    #[test]
+    fn test_scan_data_directory_fq_gz() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("sample1_R1.fq.gz"), b"").unwrap();
+        std::fs::write(tmp.path().join("sample1_R2.fq.gz"), b"").unwrap();
+        let ctx = scan_data_directory(tmp.path());
+        assert!(ctx.data_type_hint.contains("FASTQ"));
+        assert!(ctx.samples.contains(&"sample1".to_string()));
+    }
+
+    #[test]
+    fn test_scan_data_directory_fq() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("sampleA_1.fq"), b"").unwrap();
+        std::fs::write(tmp.path().join("sampleA_2.fq"), b"").unwrap();
+        let ctx = scan_data_directory(tmp.path());
+        assert!(ctx.data_type_hint.contains("FASTQ"));
+    }
+
+    #[test]
+    fn test_scan_data_directory_mixed_types() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("sample1.bam"), b"").unwrap();
+        std::fs::write(tmp.path().join("reads_R1.fastq.gz"), b"").unwrap();
+        let ctx = scan_data_directory(tmp.path());
+        // Should detect FASTQ as primary type
+        assert!(!ctx.data_type_hint.is_empty());
+    }
+
+    #[test]
+    fn test_scan_data_directory_nonexistent_returns_empty() {
+        let ctx = scan_data_directory(Path::new("/nonexistent/path/xyz"));
+        assert!(ctx.samples.is_empty());
+        assert!(ctx.files.is_empty());
+    }
+
+    // ── strip_read_pair_suffix ────────────────────────────────────────────────
+
+    #[test]
+    fn test_strip_read_pair_suffix_bare_name() {
+        // A name without any read-pair suffix should be returned unchanged
+        let result = strip_read_pair_suffix("mysample");
+        assert_eq!(result, "mysample");
+    }
+
+    #[test]
+    fn test_strip_read_pair_suffix_underscore_r1() {
+        let result = strip_read_pair_suffix("sample_r1");
+        assert_eq!(result, "sample");
+    }
+
+    #[test]
+    fn test_strip_read_pair_suffix_underscore_1() {
+        let result = strip_read_pair_suffix("sample_1");
+        assert_eq!(result, "sample");
+    }
+
+    #[test]
+    fn test_strip_read_pair_suffix_r1_001_new() {
+        let result = strip_read_pair_suffix("sample_r1_001");
+        assert_eq!(result, "sample");
+    }
+
+    // ── strip_bam_suffix ─────────────────────────────────────────────────────
+
+    #[test]
+    fn test_strip_bam_suffix_sorted_bam() {
+        let result = strip_bam_suffix("sample.sorted");
+        assert_eq!(result, "sample");
+    }
+
+    #[test]
+    fn test_strip_bam_suffix_markdup() {
+        let result = strip_bam_suffix("sample.markdup");
+        assert_eq!(result, "sample");
+    }
+
+    #[test]
+    fn test_strip_bam_suffix_bare_name() {
+        // Plain name with no known BAM suffix
+        let result = strip_bam_suffix("mysample");
+        assert_eq!(result, "mysample");
+    }
+
+    #[test]
+    fn test_strip_bam_suffix_chained_sorted_markdup() {
+        // Chained: strip multiple suffixes
+        let result = strip_bam_suffix("sample.sorted.markdup");
+        // After one pass: "sample.sorted"; tests that at least one suffix is stripped
+        assert!(result.len() < "sample.sorted.markdup".len());
+    }
+
+    // ── build_infer_prompt ────────────────────────────────────────────────────
+
+    #[test]
+    fn test_build_infer_prompt_empty_context() {
+        let ctx = DataContext::default();
+        let prompt = build_infer_prompt("analyze reads", &ctx, "/data");
+        assert!(prompt.contains("analyze reads"));
+    }
+
+    #[test]
+    fn test_build_infer_prompt_with_samples() {
+        let ctx = DataContext {
+            samples: vec!["ctrl".to_string(), "treated".to_string()],
+            files: vec!["/data/ctrl_R1.fastq.gz".to_string()],
+            data_type_hint: "paired-end FASTQ".to_string(),
+        };
+        let prompt = build_infer_prompt("rnaseq analysis", &ctx, "/data");
+        assert!(prompt.contains("ctrl"));
+        assert!(prompt.contains("treated"));
+    }
+
+    // ── system prompt non-empty ───────────────────────────────────────────────
+
+    #[test]
+    fn test_native_system_prompt_non_empty() {
+        let p = native_system_prompt();
+        assert!(!p.is_empty());
+        assert!(p.len() > 100);
+    }
+
+    #[test]
+    fn test_snakemake_system_prompt_non_empty() {
+        let p = snakemake_system_prompt();
+        assert!(!p.is_empty());
+    }
+
+    #[test]
+    fn test_nextflow_system_prompt_non_empty() {
+        let p = nextflow_system_prompt();
+        assert!(!p.is_empty());
+    }
+
+    // ── parse_workflow_response: snakemake/nextflow engines ─────────────────
+
+    #[test]
+    fn test_parse_workflow_response_snakemake_engine() {
+        let raw = "WORKFLOW:\nrule all:\n    input: \"output.txt\"\nEND_WORKFLOW\nEXPLANATION:\nSnakemake workflow.";
+        let wf = parse_workflow_response(raw, "snakemake");
+        assert!(wf.is_some());
+        let wf = wf.unwrap();
+        assert_eq!(wf.engine, "snakemake");
+        assert!(wf.content.contains("rule all"));
+    }
+
+    #[test]
+    fn test_parse_workflow_response_nextflow_engine() {
+        let raw = "WORKFLOW:\nprocess foo {}\nEND_WORKFLOW\nEXPLANATION:\nNextflow.";
+        let wf = parse_workflow_response(raw, "nextflow");
+        assert!(wf.is_some());
+        assert_eq!(wf.unwrap().engine, "nextflow");
+    }
+
+    #[test]
+    fn test_parse_workflow_response_whitespace_explanation() {
+        let raw =
+            "WORKFLOW:\n[workflow]\nname = \"test\"\nEND_WORKFLOW\nEXPLANATION:\n   trimmed   ";
+        let wf = parse_workflow_response(raw, "native").unwrap();
+        assert_eq!(wf.explanation.trim(), "trimmed");
+    }
+
     // ─── Mock HTTP tests for generate_workflow / infer_workflow ───────────────
 
     mod mock_tests {

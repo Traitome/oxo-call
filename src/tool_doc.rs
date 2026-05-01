@@ -154,7 +154,7 @@ impl ToolDoc {
                 }
             }
 
-            if score > 0 && best.map_or(true, |(_, s)| score > s) {
+            if score > 0 && best.is_none_or(|(_, s)| score > s) {
                 best = Some((subcmd, score));
             }
         }
@@ -195,7 +195,11 @@ impl ToolDoc {
                     lines.push(format!(
                         "  <{}> {} - {}",
                         p.name,
-                        if p.required { "(required)" } else { "(optional)" },
+                        if p.required {
+                            "(required)"
+                        } else {
+                            "(optional)"
+                        },
                         p.description
                     ));
                 }
@@ -229,7 +233,11 @@ impl ToolDoc {
                 lines.push(format!(
                     "  <{}> {} - {}",
                     p.name,
-                    if p.required { "(required)" } else { "(optional)" },
+                    if p.required {
+                        "(required)"
+                    } else {
+                        "(optional)"
+                    },
                     p.description
                 ));
             }
@@ -442,7 +450,11 @@ mod tests {
     #[test]
     fn test_build_flag_prompt_section_with_subcommand() {
         let mut doc = make_doc();
-        doc.subcommands[0].flags = vec![make_flag("-@", vec!["--threads"], FlagCategory::Performance)];
+        doc.subcommands[0].flags = vec![make_flag(
+            "-@",
+            vec!["--threads"],
+            FlagCategory::Performance,
+        )];
         doc.subcommands[0].positionals = vec![PositionalDoc {
             position: 0,
             name: "INPUT".to_string(),
@@ -598,7 +610,11 @@ mod tests {
             FlagDoc {
                 name: "--format".to_string(),
                 aliases: vec![],
-                param_type: ParamType::Enum(vec!["bam".to_string(), "sam".to_string(), "cram".to_string()]),
+                param_type: ParamType::Enum(vec![
+                    "bam".to_string(),
+                    "sam".to_string(),
+                    "cram".to_string(),
+                ]),
                 description: "Output format".to_string(),
                 default: Some("bam".to_string()),
                 required: false,
@@ -684,19 +700,133 @@ mod tests {
                 category: FlagCategory::General,
             },
         ];
-        doc.positionals = vec![
-            PositionalDoc {
-                position: 0,
-                name: "INPUT".to_string(),
-                param_type: ParamType::File,
-                description: "Input".to_string(),
-                required: true,
-                default: None,
-            },
-        ];
+        doc.positionals = vec![PositionalDoc {
+            position: 0,
+            name: "INPUT".to_string(),
+            param_type: ParamType::File,
+            description: "Input".to_string(),
+            required: true,
+            default: None,
+        }];
         let section = doc.build_flag_prompt_section(None);
         assert!(section.contains("INT"));
         assert!(section.contains("[4]"));
         assert!(section.contains("(required)"));
+    }
+
+    #[test]
+    fn test_get_subcommand_found() {
+        let doc = make_doc();
+        let subcmd = doc.get_subcommand("sort");
+        assert!(subcmd.is_some());
+        assert_eq!(subcmd.unwrap().name, "sort");
+    }
+
+    #[test]
+    fn test_get_subcommand_not_found() {
+        let doc = make_doc();
+        let subcmd = doc.get_subcommand("nonexistent");
+        assert!(subcmd.is_none());
+    }
+
+    #[test]
+    fn test_select_subcommand_by_keyword_new() {
+        let doc = make_doc();
+        let subcmd = doc.select_subcommand("sort reads by coordinate");
+        assert!(subcmd.is_some());
+        assert_eq!(subcmd.unwrap().name, "sort");
+    }
+
+    #[test]
+    fn test_select_subcommand_no_match_new() {
+        let doc = make_doc();
+        let subcmd = doc.select_subcommand("completely unrelated task xyz");
+        assert!(subcmd.is_none());
+    }
+
+    #[test]
+    fn test_select_subcommand_empty_list_new() {
+        let mut doc = make_doc();
+        doc.subcommands = Vec::new();
+        let subcmd = doc.select_subcommand("sort reads");
+        assert!(subcmd.is_none());
+    }
+
+    #[test]
+    fn test_select_subcommand_index() {
+        let doc = make_doc();
+        let subcmd = doc.select_subcommand("index the bam file");
+        assert!(subcmd.is_some());
+        assert_eq!(subcmd.unwrap().name, "index");
+    }
+
+    #[test]
+    fn test_flag_doc_all_names_with_multiple_aliases() {
+        let flag = FlagDoc {
+            name: "-t".to_string(),
+            aliases: vec!["--threads".to_string(), "--nthreads".to_string()],
+            param_type: ParamType::Int,
+            description: "threads".to_string(),
+            default: None,
+            required: false,
+            category: FlagCategory::Performance,
+        };
+        let names = flag.all_names();
+        assert!(names.contains(&"-t"));
+        assert!(names.contains(&"--threads"));
+        assert!(names.contains(&"--nthreads"));
+        assert_eq!(names.len(), 3);
+    }
+
+    #[test]
+    fn test_flag_doc_matches_name_negative() {
+        let flag = make_flag("-o", vec!["--output"], FlagCategory::Output);
+        assert!(!flag.matches_name("-x"));
+        assert!(!flag.matches_name("--extra"));
+    }
+
+    #[test]
+    fn test_flag_doc_no_aliases_new() {
+        let flag = make_flag("-v", vec![], FlagCategory::General);
+        let names = flag.all_names();
+        assert_eq!(names, vec!["-v"]);
+        assert!(flag.matches_name("-v"));
+        assert!(!flag.matches_name("--verbose"));
+    }
+
+    #[test]
+    fn test_flag_category_debug() {
+        let _ = format!("{:?}", FlagCategory::Performance);
+        let _ = format!("{:?}", FlagCategory::Output);
+        let _ = format!("{:?}", FlagCategory::Input);
+        let _ = format!("{:?}", FlagCategory::Quality);
+        let _ = format!("{:?}", FlagCategory::Format);
+        let _ = format!("{:?}", FlagCategory::General);
+        let _ = format!("{:?}", FlagCategory::Algorithm);
+    }
+
+    #[test]
+    fn test_example_source_variants() {
+        let _ = format!("{:?}", ExampleSource::HelpText);
+        let _ = format!("{:?}", ExampleSource::SkillFile);
+        let _ = format!("{:?}", ExampleSource::LlmGenerated);
+    }
+
+    #[test]
+    fn test_tool_doc_build_flag_prompt_no_subcommand_and_empty() {
+        let mut doc = make_doc();
+        doc.flags = Vec::new();
+        doc.positionals = Vec::new();
+        let section = doc.build_flag_prompt_section(None);
+        // Should not panic - may be empty
+        let _ = section;
+    }
+
+    #[test]
+    fn test_tool_doc_build_flag_prompt_unknown_subcommand() {
+        let doc = make_doc();
+        // Unknown subcommand falls back gracefully
+        let section = doc.build_flag_prompt_section(Some("nonexistent_subcmd"));
+        let _ = section;
     }
 }

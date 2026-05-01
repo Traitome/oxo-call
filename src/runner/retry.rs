@@ -315,3 +315,56 @@ impl RetryRunner for Runner {
         println!("{}", "─".repeat(60).dimmed());
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_max_auto_retries_constant() {
+        // Ensure MAX_AUTO_RETRIES is a reasonable value and hasn't been accidentally changed.
+        assert!(MAX_AUTO_RETRIES >= 1, "should allow at least 1 retry");
+        assert!(MAX_AUTO_RETRIES <= 10, "should not retry excessively");
+    }
+
+    #[test]
+    fn test_verify_params_fields() {
+        // VerifyParams is a plain struct; verify it can be constructed correctly.
+        let args = vec!["sort".to_string(), "-o".to_string(), "out.bam".to_string()];
+        let params = VerifyParams {
+            tool: "samtools",
+            task: "sort bam file",
+            command: "samtools sort -o out.bam in.bam",
+            exit_code: 0,
+            stderr: "",
+            args: &args,
+            json: false,
+        };
+        assert_eq!(params.tool, "samtools");
+        assert_eq!(params.task, "sort bam file");
+        assert_eq!(params.exit_code, 0);
+        assert!(!params.json);
+    }
+
+    #[test]
+    fn test_verify_params_failure_fields() {
+        let cases: Vec<(&str, i32, &str)> = vec![
+            ("tool1", 1, "error: file not found"),
+            ("tool2", 127, "command not found"),
+            ("tool3", -1, ""),
+        ];
+        for (tool, exit_code, stderr) in cases {
+            let params = VerifyParams {
+                tool,
+                task: "some task",
+                command: "some command",
+                exit_code,
+                stderr,
+                args: &[],
+                json: false,
+            };
+            assert_eq!(params.exit_code, exit_code);
+            assert_eq!(params.stderr, stderr);
+        }
+    }
+}

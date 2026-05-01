@@ -797,7 +797,7 @@ mod tests {
                 description: "Input file".to_string(),
                 required: true,
                 param_type: ParamType::File,
-            default: None,
+                default: None,
             }],
             constraints: Vec::new(),
         };
@@ -815,25 +815,32 @@ mod tests {
 
     #[test]
     fn test_constraint_rule_message_exclusive() {
-        let rule = crate::schema::ConstraintRule::MutuallyExclusive("-a".to_string(), "-b".to_string());
+        let rule =
+            crate::schema::ConstraintRule::MutuallyExclusive("-a".to_string(), "-b".to_string());
         assert!(rule.message().contains("cannot be used together"));
     }
 
     #[test]
     fn test_constraint_rule_message_implies() {
-        let rule = crate::schema::ConstraintRule::ImpliesValue("-a".to_string(), "-b".to_string(), "val".to_string());
+        let rule = crate::schema::ConstraintRule::ImpliesValue(
+            "-a".to_string(),
+            "-b".to_string(),
+            "val".to_string(),
+        );
         assert!(rule.message().contains("implies"));
     }
 
     #[test]
     fn test_constraint_rule_message_all_required() {
-        let rule = crate::schema::ConstraintRule::AllRequired(vec!["-a".to_string(), "-b".to_string()]);
+        let rule =
+            crate::schema::ConstraintRule::AllRequired(vec!["-a".to_string(), "-b".to_string()]);
         assert!(rule.message().contains("All of"));
     }
 
     #[test]
     fn test_constraint_rule_message_at_least_one() {
-        let rule = crate::schema::ConstraintRule::AtLeastOne(vec!["-a".to_string(), "-b".to_string()]);
+        let rule =
+            crate::schema::ConstraintRule::AtLeastOne(vec!["-a".to_string(), "-b".to_string()]);
         assert!(rule.message().contains("At least one"));
     }
 

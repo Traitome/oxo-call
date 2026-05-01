@@ -207,3 +207,198 @@ pub(crate) struct OllamaChatResponseMessage {
     #[serde(default)]
     pub thinking: Option<String>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_llm_command_suggestion_fields() {
+        let s = LlmCommandSuggestion {
+            args: vec!["-o".to_string(), "out.bam".to_string()],
+            explanation: "Sort the BAM file".to_string(),
+            inference_ms: 123.4,
+        };
+        assert_eq!(s.args.len(), 2);
+        assert_eq!(s.explanation, "Sort the BAM file");
+        assert!((s.inference_ms - 123.4).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_llm_command_suggestion_zero_inference() {
+        let s = LlmCommandSuggestion {
+            args: vec![],
+            explanation: String::new(),
+            inference_ms: 0.0,
+        };
+        assert!(s.args.is_empty());
+        assert!(s.explanation.is_empty());
+        assert_eq!(s.inference_ms, 0.0);
+    }
+
+    #[test]
+    fn test_llm_run_verification_success() {
+        let v = LlmRunVerification {
+            success: true,
+            summary: "All good".to_string(),
+            issues: vec![],
+            suggestions: vec![],
+        };
+        assert!(v.success);
+        assert!(v.issues.is_empty());
+    }
+
+    #[test]
+    fn test_llm_run_verification_failure() {
+        let v = LlmRunVerification {
+            success: false,
+            summary: "Command failed".to_string(),
+            issues: vec!["Missing file".to_string()],
+            suggestions: vec!["Check path".to_string()],
+        };
+        assert!(!v.success);
+        assert_eq!(v.issues.len(), 1);
+        assert_eq!(v.suggestions.len(), 1);
+    }
+
+    #[test]
+    fn test_llm_skill_verification_passed() {
+        let v = LlmSkillVerification {
+            passed: true,
+            summary: "Skill looks good".to_string(),
+            issues: vec![],
+            suggestions: vec![],
+        };
+        assert!(v.passed);
+        assert!(v.issues.is_empty());
+    }
+
+    #[test]
+    fn test_llm_skill_verification_failed() {
+        let v = LlmSkillVerification {
+            passed: false,
+            summary: "Needs improvement".to_string(),
+            issues: vec!["Missing examples".to_string(), "No pitfalls".to_string()],
+            suggestions: vec!["Add 3+ examples".to_string()],
+        };
+        assert!(!v.passed);
+        assert_eq!(v.issues.len(), 2);
+    }
+
+    #[test]
+    fn test_prompt_tier_variants() {
+        assert_eq!(PromptTier::Full, PromptTier::Full);
+        assert_eq!(PromptTier::Medium, PromptTier::Medium);
+        assert_eq!(PromptTier::Compact, PromptTier::Compact);
+        assert_ne!(PromptTier::Full, PromptTier::Compact);
+    }
+
+    #[test]
+    fn test_chat_message_serialize() {
+        let msg = ChatMessage {
+            role: "user".to_string(),
+            content: "Hello".to_string(),
+            reasoning: None,
+        };
+        let json = serde_json::to_string(&msg).unwrap();
+        assert!(json.contains("\"user\""));
+        assert!(json.contains("\"Hello\""));
+    }
+
+    #[test]
+    fn test_chat_message_with_reasoning() {
+        let msg = ChatMessage {
+            role: "assistant".to_string(),
+            content: "The answer is 42".to_string(),
+            reasoning: Some("I thought about it...".to_string()),
+        };
+        assert_eq!(msg.reasoning, Some("I thought about it...".to_string()));
+    }
+
+    #[test]
+    fn test_chat_request_serialize() {
+        let req = ChatRequest {
+            model: "gpt-4".to_string(),
+            messages: vec![ChatMessage {
+                role: "user".to_string(),
+                content: "Hi".to_string(),
+                reasoning: None,
+            }],
+            max_tokens: 512,
+            temperature: 0.2,
+        };
+        let json = serde_json::to_string(&req).unwrap();
+        assert!(json.contains("\"gpt-4\""));
+        assert!(json.contains("512"));
+    }
+
+    #[test]
+    fn test_chat_request_streaming_has_stream_field() {
+        let req = ChatRequestStreaming {
+            model: "gpt-4".to_string(),
+            messages: vec![],
+            max_tokens: 256,
+            temperature: 0.0,
+            stream: true,
+        };
+        let json = serde_json::to_string(&req).unwrap();
+        assert!(json.contains("\"stream\":true"));
+    }
+
+    #[test]
+    fn test_ollama_chat_request_serialize() {
+        let req = OllamaChatRequest {
+            model: "qwen2.5-coder:7b".to_string(),
+            messages: vec![OllamaChatMessage {
+                role: "user".to_string(),
+                content: "sort a bam file".to_string(),
+            }],
+            stream: false,
+            options: None,
+            think: None,
+        };
+        let json = serde_json::to_string(&req).unwrap();
+        assert!(json.contains("qwen2.5-coder:7b"));
+        assert!(json.contains("\"stream\":false"));
+    }
+
+    #[test]
+    fn test_ollama_options_skip_none_fields() {
+        let opts = OllamaOptions {
+            num_ctx: Some(4096),
+            temperature: None,
+            num_predict: None,
+        };
+        let json = serde_json::to_string(&opts).unwrap();
+        assert!(json.contains("\"num_ctx\":4096"));
+        assert!(!json.contains("temperature"));
+    }
+
+    #[test]
+    fn test_stream_delta_deserialize_content() {
+        let json = r#"{"content":"hello"}"#;
+        let delta: StreamDelta = serde_json::from_str(json).unwrap();
+        assert_eq!(delta.content, Some("hello".to_string()));
+        assert!(delta.reasoning.is_none());
+    }
+
+    #[test]
+    fn test_stream_delta_deserialize_reasoning() {
+        let json = r#"{"reasoning":"thinking..."}"#;
+        let delta: StreamDelta = serde_json::from_str(json).unwrap();
+        assert!(delta.content.is_none());
+        assert_eq!(delta.reasoning, Some("thinking...".to_string()));
+    }
+
+    #[test]
+    fn test_llm_verification_result_fields() {
+        let r = LlmVerificationResult {
+            provider: "openai".to_string(),
+            api_base: "https://api.openai.com".to_string(),
+            model: "gpt-4".to_string(),
+            response_preview: "ARGS: -o out.bam".to_string(),
+        };
+        assert_eq!(r.provider, "openai");
+        assert_eq!(r.model, "gpt-4");
+    }
+}

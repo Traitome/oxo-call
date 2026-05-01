@@ -2853,4 +2853,468 @@ tags: []
         let meta = parse_yaml_frontmatter(yaml);
         assert_eq!(meta.category, "alignment: short read");
     }
+
+    // ─── SkillExample construction / clone / serde ────────────────────────────
+
+    #[test]
+    fn test_skill_example_construction() {
+        let ex = SkillExample {
+            task: "sort bam by coordinate".to_string(),
+            args: "sort -o sorted.bam input.bam".to_string(),
+            explanation: "Coordinate sort for downstream tools.".to_string(),
+        };
+        assert_eq!(ex.task, "sort bam by coordinate");
+        assert_eq!(ex.args, "sort -o sorted.bam input.bam");
+        assert_eq!(ex.explanation, "Coordinate sort for downstream tools.");
+    }
+
+    #[test]
+    fn test_skill_example_clone() {
+        let ex = SkillExample {
+            task: "index bam".to_string(),
+            args: "index file.bam".to_string(),
+            explanation: "Creates .bai index.".to_string(),
+        };
+        let cloned = ex.clone();
+        assert_eq!(cloned.task, ex.task);
+        assert_eq!(cloned.args, ex.args);
+        assert_eq!(cloned.explanation, ex.explanation);
+    }
+
+    #[test]
+    fn test_skill_example_serde_roundtrip() {
+        let ex = SkillExample {
+            task: "view bam".to_string(),
+            args: "view -h file.bam".to_string(),
+            explanation: "Shows header.".to_string(),
+        };
+        let json = serde_json::to_string(&ex).unwrap();
+        let restored: SkillExample = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.task, ex.task);
+        assert_eq!(restored.args, ex.args);
+    }
+
+    // ─── SkillContext default ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_skill_context_default_empty() {
+        let ctx = SkillContext::default();
+        assert!(ctx.concepts.is_empty());
+        assert!(ctx.pitfalls.is_empty());
+    }
+
+    // ─── Skill default ────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_skill_default() {
+        let skill = Skill::default();
+        assert!(skill.meta.name.is_empty());
+        assert!(skill.context.concepts.is_empty());
+        assert!(skill.examples.is_empty());
+    }
+
+    // ─── SkillMeta min_version / max_version ──────────────────────────────────
+
+    #[test]
+    fn test_parse_skill_md_with_min_max_version() {
+        // parse_skill_md uses a simple custom YAML parser that only recognises
+        // a fixed set of keys; unknown keys (including min_version/max_version)
+        // are silently ignored.  This test verifies the document is still parsed
+        // successfully and the recognised fields are populated correctly.
+        let md = r#"---
+name: testtool
+category: test
+description: A test tool
+tags: [test]
+author: tester
+source_url: https://example.com
+min_version: "1.10"
+max_version: "2.0"
+---
+
+## Concepts
+
+- Concept A
+- Concept B
+- Concept C
+
+## Pitfalls
+
+- Pitfall A
+- Pitfall B
+- Pitfall C
+
+## Examples
+
+### do thing one
+**Args:** `--flag value`
+**Explanation:** does thing one
+
+### do thing two
+**Args:** `--other value`
+**Explanation:** does thing two
+
+### do thing three
+**Args:** `-x -y`
+**Explanation:** combined flags
+
+### do thing four
+**Args:** `subcommand --param`
+**Explanation:** uses subcommand
+
+### do thing five
+**Args:** `--verbose output.txt`
+**Explanation:** verbose mode
+"#;
+        let skill = parse_skill_md(md).expect("should parse");
+        assert_eq!(skill.meta.name, "testtool");
+        assert_eq!(skill.meta.category, "test");
+        assert_eq!(skill.examples.len(), 5);
+    }
+
+    #[test]
+    fn test_parse_skill_md_without_version_fields() {
+        let md = r#"---
+name: testtool
+category: test
+description: A test tool
+tags: [test]
+---
+
+## Concepts
+
+- Concept A
+- Concept B
+- Concept C
+
+## Pitfalls
+
+- Pitfall A
+- Pitfall B
+- Pitfall C
+
+## Examples
+
+### do thing one
+**Args:** `--flag value`
+**Explanation:** does thing one
+
+### do thing two
+**Args:** `--other value`
+**Explanation:** does thing two
+
+### do thing three
+**Args:** `-x -y`
+**Explanation:** combined flags
+
+### do thing four
+**Args:** `subcommand --param`
+**Explanation:** uses subcommand
+
+### do thing five
+**Args:** `--verbose output.txt`
+**Explanation:** verbose mode
+"#;
+        let skill = parse_skill_md(md).expect("should parse");
+        assert!(skill.meta.min_version.is_none());
+        assert!(skill.meta.max_version.is_none());
+    }
+
+    // ─── BUILTIN_SKILLS count ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_builtin_skills_not_empty() {
+        assert!(!BUILTIN_SKILLS.is_empty());
+    }
+
+    #[test]
+    fn test_builtin_skills_have_samtools() {
+        assert!(BUILTIN_SKILLS.iter().any(|(name, _)| *name == "samtools"));
+    }
+
+    #[test]
+    fn test_builtin_skills_have_git() {
+        assert!(BUILTIN_SKILLS.iter().any(|(name, _)| *name == "git"));
+    }
+
+    // ─── SkillManager::list_all with user skills ───────────────────────────────
+
+    #[test]
+    fn test_skill_manager_list_all_includes_user_skills() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+            std::env::set_var("OXO_CALL_CONFIG_DIR", tmp.path());
+        }
+        // Create user skills directory with a custom skill
+        let user_skills_dir = tmp.path().join("skills");
+        std::fs::create_dir_all(&user_skills_dir).unwrap();
+        let skill_content = r#"---
+name: mytool
+category: custom
+description: My custom tool
+tags: [custom]
+author: me
+source_url: https://example.com
+---
+
+## Concepts
+
+- Concept one for mytool
+- Concept two for mytool
+- Concept three for mytool
+
+## Pitfalls
+
+- Pitfall one for mytool
+- Pitfall two for mytool
+- Pitfall three for mytool
+
+## Examples
+
+### first task
+**Args:** `--flag value`
+**Explanation:** does the first thing
+
+### second task
+**Args:** `--other flag`
+**Explanation:** does the second thing
+
+### third task
+**Args:** `-x -y -z`
+**Explanation:** combined flags
+
+### fourth task
+**Args:** `subcommand --opt`
+**Explanation:** uses subcommand
+
+### fifth task
+**Args:** `--verbose result.txt`
+**Explanation:** verbose output
+"#;
+        std::fs::write(user_skills_dir.join("mytool.md"), skill_content).unwrap();
+        let cfg = Config::default();
+        let mgr = SkillManager::new(cfg);
+        let all_skills = mgr.list_all();
+        let names: Vec<String> = all_skills.into_iter().map(|(name, _)| name).collect();
+        assert!(
+            names.contains(&"mytool".to_string()),
+            "user skill 'mytool' not found in list_all: {names:?}"
+        );
+        unsafe {
+            std::env::remove_var("OXO_CALL_DATA_DIR");
+            std::env::remove_var("OXO_CALL_CONFIG_DIR");
+        }
+    }
+
+    // ─── SkillManager::remove with .toml extension ────────────────────────────
+
+    #[test]
+    fn test_skill_manager_remove_toml_extension() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+            std::env::set_var("OXO_CALL_CONFIG_DIR", tmp.path());
+        }
+        let skills_dir = tmp.path().join("skills");
+        std::fs::create_dir_all(&skills_dir).unwrap();
+        // Create a minimal TOML skill file
+        let toml_content = r#"
+[meta]
+name = "toml-tool"
+category = "test"
+description = "A toml tool"
+
+[context]
+concepts = ["c1", "c2", "c3"]
+pitfalls = ["p1", "p2", "p3"]
+
+[[examples]]
+task = "task1"
+args = "--flag"
+explanation = "explanation1"
+"#;
+        std::fs::write(skills_dir.join("toml-tool.toml"), toml_content).unwrap();
+        let cfg = Config::default();
+        let mgr = SkillManager::new(cfg);
+        // Should successfully remove the toml file
+        let result = mgr.remove("toml-tool");
+        assert!(result.is_ok(), "remove failed: {result:?}");
+        assert!(!skills_dir.join("toml-tool.toml").exists());
+        unsafe {
+            std::env::remove_var("OXO_CALL_DATA_DIR");
+            std::env::remove_var("OXO_CALL_CONFIG_DIR");
+        }
+    }
+
+    // ─── tokenize_for_match ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_tokenize_for_match_basic() {
+        let tokens = tokenize_for_match("sort bam by coordinate");
+        assert!(tokens.contains("sort"));
+        assert!(tokens.contains("bam"));
+        assert!(tokens.contains("coordinate"));
+        // stop word "by" should be filtered
+        assert!(!tokens.contains("by"));
+    }
+
+    #[test]
+    fn test_tokenize_for_match_removes_stop_words() {
+        let tokens = tokenize_for_match("convert a file to bam");
+        assert!(!tokens.contains("a"));
+        assert!(!tokens.contains("to"));
+        assert!(tokens.contains("convert"));
+        assert!(tokens.contains("bam"));
+    }
+
+    #[test]
+    fn test_tokenize_for_match_lowercases() {
+        let tokens = tokenize_for_match("Sort BAM");
+        assert!(tokens.contains("sort") || tokens.contains("Sort".to_lowercase().as_str()));
+    }
+
+    #[test]
+    fn test_tokenize_for_match_empty() {
+        let tokens = tokenize_for_match("");
+        assert!(tokens.is_empty());
+    }
+
+    // ─── select_examples with empty task ─────────────────────────────────────
+
+    #[test]
+    fn test_select_examples_empty_task_returns_first_n() {
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "tool".to_string(),
+                ..Default::default()
+            },
+            context: SkillContext::default(),
+            examples: vec![
+                SkillExample {
+                    task: "task1".to_string(),
+                    args: "--a".to_string(),
+                    explanation: "exp1".to_string(),
+                },
+                SkillExample {
+                    task: "task2".to_string(),
+                    args: "--b".to_string(),
+                    explanation: "exp2".to_string(),
+                },
+                SkillExample {
+                    task: "task3".to_string(),
+                    args: "--c".to_string(),
+                    explanation: "exp3".to_string(),
+                },
+            ],
+        };
+        let selected = skill.select_examples(2, None);
+        assert_eq!(selected.len(), 2);
+        assert_eq!(selected[0].task, "task1");
+    }
+
+    #[test]
+    fn test_select_examples_whitespace_only_task() {
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "tool".to_string(),
+                ..Default::default()
+            },
+            context: SkillContext::default(),
+            examples: (0..5)
+                .map(|i| SkillExample {
+                    task: format!("task{i}"),
+                    args: format!("--arg{i}"),
+                    explanation: format!("exp{i}"),
+                })
+                .collect(),
+        };
+        // Whitespace-only task = no task = return first n
+        let selected = skill.select_examples(3, Some("   "));
+        assert_eq!(selected.len(), 3);
+    }
+
+    // ─── validate_skill_depth boundary: exactly MIN_EXAMPLES ──────────────────
+
+    #[test]
+    fn test_validate_skill_depth_exactly_min_examples() {
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "tool".to_string(),
+                ..Default::default()
+            },
+            context: SkillContext {
+                concepts: vec!["c1".to_string(), "c2".to_string(), "c3".to_string()],
+                pitfalls: vec!["p1".to_string(), "p2".to_string(), "p3".to_string()],
+            },
+            examples: (0..MIN_EXAMPLES)
+                .map(|i| SkillExample {
+                    task: format!("task{i}"),
+                    args: format!("--arg{i}"),
+                    explanation: format!("exp{i}"),
+                })
+                .collect(),
+        };
+        // validate_skill_depth returns Vec<String>; empty = valid
+        assert!(validate_skill_depth(&skill).is_empty());
+    }
+
+    #[test]
+    fn test_validate_skill_depth_one_below_min_examples() {
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "tool".to_string(),
+                ..Default::default()
+            },
+            context: SkillContext {
+                concepts: vec!["c1".to_string(), "c2".to_string(), "c3".to_string()],
+                pitfalls: vec!["p1".to_string(), "p2".to_string(), "p3".to_string()],
+            },
+            examples: (0..(MIN_EXAMPLES - 1))
+                .map(|i| SkillExample {
+                    task: format!("task{i}"),
+                    args: format!("--arg{i}"),
+                    explanation: format!("exp{i}"),
+                })
+                .collect(),
+        };
+        // validate_skill_depth returns Vec<String>; non-empty = errors
+        assert!(!validate_skill_depth(&skill).is_empty());
+    }
+
+    // ─── Skill serde roundtrip ────────────────────────────────────────────────
+
+    #[test]
+    fn test_skill_serde_roundtrip() {
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "mytool".to_string(),
+                category: "bioinformatics".to_string(),
+                description: "A great tool".to_string(),
+                tags: vec!["ngs".to_string(), "bam".to_string()],
+                author: Some("author".to_string()),
+                source_url: Some("https://example.com".to_string()),
+                min_version: Some("1.0".to_string()),
+                max_version: None,
+            },
+            context: SkillContext {
+                concepts: vec!["concept1".to_string()],
+                pitfalls: vec!["pitfall1".to_string()],
+            },
+            examples: vec![SkillExample {
+                task: "do thing".to_string(),
+                args: "--flag value".to_string(),
+                explanation: "because".to_string(),
+            }],
+        };
+        let json = serde_json::to_string(&skill).unwrap();
+        let restored: Skill = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.meta.name, "mytool");
+        assert_eq!(restored.meta.min_version.as_deref(), Some("1.0"));
+        assert!(restored.meta.max_version.is_none());
+        assert_eq!(restored.examples.len(), 1);
+        assert_eq!(restored.examples[0].task, "do thing");
+    }
 }

@@ -340,4 +340,60 @@ mod tests {
             "find /var/log/ -name \"\\*.log\" -exec mv {} /backup \\;"
         );
     }
+
+    #[test]
+    fn test_render_markdown_to_string_various_elements() {
+        let cases: Vec<(&str, &str)> = vec![
+            ("# Header 1", "Header 1"),
+            ("**bold text**", "bold text"),
+            ("- list item", "list item"),
+            ("`inline code`", "inline code"),
+            ("> blockquote", "blockquote"),
+        ];
+        for (input, expected_fragment) in cases {
+            let output = render_markdown_to_string(input);
+            assert!(
+                output.contains(expected_fragment),
+                "render_markdown_to_string({input:?}) should contain {expected_fragment:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_escape_glob_table() {
+        let cases: Vec<(&str, &str)> = vec![
+            ("no wildcards", "no wildcards"),
+            ("*.bam", "\\*.bam"),
+            ("*.fastq.gz", "\\*.fastq.gz"),
+            ("**bold**", "**bold**"), // bold marker - not escaped
+            ("* item", "* item"),     // list item - not escaped
+            ("`*.log`", "`*.log`"),   // inline code - not escaped
+        ];
+        for (input, expected) in cases {
+            assert_eq!(
+                escape_glob_asterisks(input),
+                expected,
+                "escape_glob_asterisks({input:?}) should be {expected:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_render_markdown_preview_zero_max_lines() {
+        let text = "Line 1\nLine 2\nLine 3";
+        // Edge case: max_lines=0 → should not panic
+        let _preview = render_markdown_preview(text, 0);
+    }
+
+    #[test]
+    fn test_render_markdown_preview_exact_count() {
+        let lines: Vec<String> = (1..=5).map(|i| format!("Line {i}")).collect();
+        let text = lines.join("\n");
+        // Request exactly the number of lines → no ellipsis
+        let preview = render_markdown_preview(&text, 5);
+        assert!(
+            !preview.contains("..."),
+            "should not have ellipsis when not truncated"
+        );
+    }
 }

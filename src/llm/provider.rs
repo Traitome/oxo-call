@@ -1077,3 +1077,84 @@ fn validate_flags_against_catalog(
 
     args.to_vec()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+
+    #[test]
+    fn test_llm_client_new_defaults() {
+        let client = LlmClient::new(Config::default());
+        // stream_enabled should match config default (true)
+        assert!(client.stream_enabled);
+    }
+
+    #[test]
+    fn test_set_no_stream_disables_streaming() {
+        let cases: Vec<(bool, bool)> = vec![
+            (true, false), // set no_stream=true → stream_enabled=false
+            (false, true), // set no_stream=false → stream_enabled unchanged (true by default)
+        ];
+        for (no_stream, expected_stream) in cases {
+            let mut client = LlmClient::new(Config::default());
+            client.set_no_stream(no_stream);
+            assert_eq!(
+                client.stream_enabled, expected_stream,
+                "no_stream={no_stream} → stream_enabled should be {expected_stream}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_validate_flags_against_catalog_keeps_all() {
+        use crate::doc_processor::FlagEntry;
+        let catalog = vec![
+            FlagEntry {
+                flag: "-o".to_string(),
+                description: "output".to_string(),
+            },
+            FlagEntry {
+                flag: "--threads".to_string(),
+                description: "threads".to_string(),
+            },
+        ];
+        let quick_flags: Vec<String> = vec![];
+        let args: Vec<String> = vec![
+            "-o".to_string(),
+            "out.bam".to_string(),
+            "--threads".to_string(),
+            "4".to_string(),
+        ];
+        let result = validate_flags_against_catalog(&args, &catalog, &quick_flags);
+        // validate_flags_against_catalog is a soft pass-through: all args are returned.
+        assert_eq!(result.len(), args.len());
+    }
+
+    #[test]
+    fn test_validate_flags_unknown_flag_still_kept() {
+        use crate::doc_processor::FlagEntry;
+        let catalog: Vec<FlagEntry> = vec![];
+        let quick_flags: Vec<String> = vec![];
+        let args: Vec<String> = vec!["--unknown-flag".to_string(), "value".to_string()];
+        let result = validate_flags_against_catalog(&args, &catalog, &quick_flags);
+        // Soft validation: keeps unknown flags too.
+        assert_eq!(result, args);
+    }
+
+    #[test]
+    fn test_validate_flags_universal_flags_kept() {
+        use crate::doc_processor::FlagEntry;
+        let catalog: Vec<FlagEntry> = vec![];
+        let quick_flags: Vec<String> = vec![];
+        // Universal flags should be recognised even with empty catalog.
+        let args: Vec<String> = vec![
+            "-h".to_string(),
+            "--help".to_string(),
+            "-v".to_string(),
+            "--version".to_string(),
+        ];
+        let result = validate_flags_against_catalog(&args, &catalog, &quick_flags);
+        assert_eq!(result.len(), args.len());
+    }
+}

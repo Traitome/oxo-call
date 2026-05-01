@@ -45,7 +45,6 @@ pub mod markdown;
 pub mod mcp;
 pub mod orchestrator;
 pub mod pipeline;
-pub mod rag;
 pub mod runner;
 pub mod schema;
 pub mod server;
