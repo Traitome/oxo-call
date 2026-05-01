@@ -15,18 +15,15 @@ pub mod validator;
 
 #[cfg(test)]
 mod tests {
-    use crate::orchestrator::supervisor::{OrchestrationMode, SupervisorAgent};
-    use crate::orchestrator::planner::PlannerAgent;
-    use crate::orchestrator::validator::ValidatorAgent;
-    use crate::orchestrator::executor::ExecutorAgent;
     use crate::config::Config;
+    use crate::orchestrator::executor::ExecutorAgent;
+    use crate::orchestrator::planner::PlannerAgent;
+    use crate::orchestrator::supervisor::{OrchestrationMode, SupervisorAgent};
+    use crate::orchestrator::validator::ValidatorAgent;
 
     #[test]
     fn test_orchestration_mode_variants() {
-        let modes = vec![
-            OrchestrationMode::SingleCall,
-            OrchestrationMode::MultiStage,
-        ];
+        let modes = vec![OrchestrationMode::SingleCall, OrchestrationMode::MultiStage];
         // Verify we can create all variants without panic.
         assert_eq!(modes.len(), 2);
     }

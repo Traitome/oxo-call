@@ -400,13 +400,8 @@ mod tests {
     #[test]
     fn test_analyze_exit_code_table() {
         let analyzer = ResultAnalyzer::new();
-        let cases: Vec<(i32, bool)> = vec![
-            (0, true),
-            (1, false),
-            (2, false),
-            (127, false),
-            (-1, false),
-        ];
+        let cases: Vec<(i32, bool)> =
+            vec![(0, true), (1, false), (2, false), (127, false), (-1, false)];
         for (exit_code, expect_success) in cases {
             let result = analyzer.analyze("samtools", exit_code, "", "");
             assert_eq!(
@@ -419,11 +414,27 @@ mod tests {
     #[test]
     fn test_pattern_category_equality() {
         let cases: Vec<(PatternCategory, PatternCategory, bool)> = vec![
-            (PatternCategory::QualityMetric, PatternCategory::QualityMetric, true),
-            (PatternCategory::Performance, PatternCategory::Performance, true),
+            (
+                PatternCategory::QualityMetric,
+                PatternCategory::QualityMetric,
+                true,
+            ),
+            (
+                PatternCategory::Performance,
+                PatternCategory::Performance,
+                true,
+            ),
             (PatternCategory::Warning, PatternCategory::Warning, true),
-            (PatternCategory::FileOutput, PatternCategory::FileOutput, true),
-            (PatternCategory::QualityMetric, PatternCategory::Performance, false),
+            (
+                PatternCategory::FileOutput,
+                PatternCategory::FileOutput,
+                true,
+            ),
+            (
+                PatternCategory::QualityMetric,
+                PatternCategory::Performance,
+                false,
+            ),
         ];
         for (a, b, expected_eq) in cases {
             assert_eq!(a == b, expected_eq);
@@ -440,9 +451,18 @@ mod tests {
             "mapping rate: 95.5%\nprocessed in 120 seconds",
             "",
         );
-        let has_quality = result.output_patterns.iter().any(|p| p.category == PatternCategory::QualityMetric);
-        let has_performance = result.output_patterns.iter().any(|p| p.category == PatternCategory::Performance);
-        assert!(has_quality || has_performance, "should detect at least one pattern");
+        let has_quality = result
+            .output_patterns
+            .iter()
+            .any(|p| p.category == PatternCategory::QualityMetric);
+        let has_performance = result
+            .output_patterns
+            .iter()
+            .any(|p| p.category == PatternCategory::Performance);
+        assert!(
+            has_quality || has_performance,
+            "should detect at least one pattern"
+        );
     }
 
     #[test]

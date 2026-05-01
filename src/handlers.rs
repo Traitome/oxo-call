@@ -253,7 +253,10 @@ mod tests {
         ];
         for (error_msg, expected_fragment) in cases {
             let suggestions = config_verify_suggestions(&cfg, error_msg);
-            assert!(!suggestions.is_empty(), "should have suggestion for: {error_msg}");
+            assert!(
+                !suggestions.is_empty(),
+                "should have suggestion for: {error_msg}"
+            );
             let combined = suggestions.join(" ").to_lowercase();
             assert!(
                 combined.contains(&expected_fragment.to_lowercase()),

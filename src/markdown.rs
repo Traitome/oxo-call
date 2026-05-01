@@ -365,9 +365,9 @@ mod tests {
             ("no wildcards", "no wildcards"),
             ("*.bam", "\\*.bam"),
             ("*.fastq.gz", "\\*.fastq.gz"),
-            ("**bold**", "**bold**"),       // bold marker - not escaped
-            ("* item", "* item"),            // list item - not escaped
-            ("`*.log`", "`*.log`"),          // inline code - not escaped
+            ("**bold**", "**bold**"), // bold marker - not escaped
+            ("* item", "* item"),     // list item - not escaped
+            ("`*.log`", "`*.log`"),   // inline code - not escaped
         ];
         for (input, expected) in cases {
             assert_eq!(
@@ -391,6 +391,9 @@ mod tests {
         let text = lines.join("\n");
         // Request exactly the number of lines → no ellipsis
         let preview = render_markdown_preview(&text, 5);
-        assert!(!preview.contains("..."), "should not have ellipsis when not truncated");
+        assert!(
+            !preview.contains("..."),
+            "should not have ellipsis when not truncated"
+        );
     }
 }

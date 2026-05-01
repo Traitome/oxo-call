@@ -323,7 +323,10 @@ mod tests {
         // --output=file.bam should be recognized as --output
         let args: Vec<String> = vec!["--output=file.bam".to_string()];
         let result = validate_args(&args, &doc);
-        assert!(result.unknown_flags.is_empty(), "should recognize --output=file.bam");
+        assert!(
+            result.unknown_flags.is_empty(),
+            "should recognize --output=file.bam"
+        );
     }
 
     #[test]
@@ -331,16 +334,23 @@ mod tests {
         let cases: Vec<(Vec<FlagEntry>, &str, bool)> = vec![
             (
                 vec![
-                    FlagEntry { flag: "-a".to_string(), description: "a".to_string() },
-                    FlagEntry { flag: "-b".to_string(), description: "b".to_string() },
+                    FlagEntry {
+                        flag: "-a".to_string(),
+                        description: "a".to_string(),
+                    },
+                    FlagEntry {
+                        flag: "-b".to_string(),
+                        description: "b".to_string(),
+                    },
                 ],
                 "-ab",
-                true,  // combined -ab: both -a and -b are known → clean
+                true, // combined -ab: both -a and -b are known → clean
             ),
             (
-                vec![
-                    FlagEntry { flag: "-a".to_string(), description: "a".to_string() },
-                ],
+                vec![FlagEntry {
+                    flag: "-a".to_string(),
+                    description: "a".to_string(),
+                }],
                 "-abc",
                 false, // -b and -c are unknown → not clean
             ),
@@ -350,7 +360,8 @@ mod tests {
             let args: Vec<String> = vec![flag_str.to_string()];
             let result = validate_args(&args, &doc);
             assert_eq!(
-                result.is_clean(), expect_clean,
+                result.is_clean(),
+                expect_clean,
                 "validate_args with {flag_str:?}: expected is_clean={expect_clean}"
             );
         }
@@ -359,12 +370,18 @@ mod tests {
     #[test]
     fn test_validate_args_no_flags_only_positionals() {
         let doc = make_structured_doc(
-            vec![FlagEntry { flag: "-o".to_string(), description: "output".to_string() }],
+            vec![FlagEntry {
+                flag: "-o".to_string(),
+                description: "output".to_string(),
+            }],
             "",
         );
         let args: Vec<String> = vec!["input.bam".to_string(), "output.bam".to_string()];
         let result = validate_args(&args, &doc);
-        assert!(result.unknown_flags.is_empty(), "positional args should not be flagged");
+        assert!(
+            result.unknown_flags.is_empty(),
+            "positional args should not be flagged"
+        );
     }
 
     #[test]
@@ -373,8 +390,11 @@ mod tests {
             ("sort, index, view", vec!["sort", "index", "view"]),
             ("", vec![]),
             ("single", vec!["single"]),
-            ("-flag, sort", vec!["sort"]),  // flags should be skipped
-            ("dict, faidx, sort, index", vec!["dict", "faidx", "sort", "index"]),
+            ("-flag, sort", vec!["sort"]), // flags should be skipped
+            (
+                "dict, faidx, sort, index",
+                vec!["dict", "faidx", "sort", "index"],
+            ),
         ];
         for (input, expected) in cases {
             let result = parse_subcommands(input);
@@ -385,8 +405,14 @@ mod tests {
     #[test]
     fn test_build_flag_set_deduplication() {
         let catalog = vec![
-            FlagEntry { flag: "-o, --output".to_string(), description: "output".to_string() },
-            FlagEntry { flag: "--output".to_string(), description: "duplicate".to_string() },
+            FlagEntry {
+                flag: "-o, --output".to_string(),
+                description: "output".to_string(),
+            },
+            FlagEntry {
+                flag: "--output".to_string(),
+                description: "duplicate".to_string(),
+            },
         ];
         let set = build_flag_set(&catalog);
         // Both -o and --output should be in the set (exactly once each, but HashSet handles dedup)

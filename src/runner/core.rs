@@ -1230,12 +1230,24 @@ mod tests {
         for (label, checker) in &cases {
             let mut r = default_runner();
             match *label {
-                "verbose=true" => { r.with_verbose(true); }
-                "no_cache=true" => { r.with_no_cache(true); }
-                "verify=true" => { r.with_verify(true); }
-                "auto_retry=true" => { r.with_auto_retry(true); }
-                "stop_on_error=true" => { r.with_stop_on_error(true); }
-                "no_stream=true" => { r.with_no_stream(true); }
+                "verbose=true" => {
+                    r.with_verbose(true);
+                }
+                "no_cache=true" => {
+                    r.with_no_cache(true);
+                }
+                "verify=true" => {
+                    r.with_verify(true);
+                }
+                "auto_retry=true" => {
+                    r.with_auto_retry(true);
+                }
+                "stop_on_error=true" => {
+                    r.with_stop_on_error(true);
+                }
+                "no_stream=true" => {
+                    r.with_no_stream(true);
+                }
                 _ => {}
             }
             assert!(checker(&r), "flag {} should be true", label);
@@ -1264,7 +1276,11 @@ mod tests {
 
     #[test]
     fn test_runner_with_input_items() {
-        let items = vec!["a.bam".to_string(), "b.bam".to_string(), "c.bam".to_string()];
+        let items = vec![
+            "a.bam".to_string(),
+            "b.bam".to_string(),
+            "c.bam".to_string(),
+        ];
         let mut r = default_runner();
         r.with_input_items(items.clone());
         assert_eq!(r.input_items, items);
@@ -1274,8 +1290,8 @@ mod tests {
     fn test_runner_with_scenario() {
         use crate::workflow_graph::WorkflowScenario;
         let cases = vec![
-            WorkflowScenario::Fast,
-            WorkflowScenario::Quality,
+            WorkflowScenario::Bare,
+            WorkflowScenario::Full,
             WorkflowScenario::Doc,
         ];
         for scenario in cases {

@@ -19,24 +19,23 @@ mod tests {
 
     #[test]
     fn test_feedback_entry_roundtrip() {
-        let cases: Vec<(&str, i32, bool)> = vec![
-            ("samtools", 0, true),
-            ("bwa", 1, false),
-            ("gatk", 2, false),
-        ];
-        for (tool, exit_code, success) in cases {
+        let cases: Vec<(&str, i32, bool)> =
+            vec![("samtools", 0, true), ("bwa", 1, false), ("gatk", 2, false)];
+        for (tool, exit_code, user_approved) in cases {
             let entry = FeedbackEntry {
                 tool: tool.to_string(),
                 task: "test task".to_string(),
-                command: format!("{tool} test"),
+                generated_command: format!("{tool} test"),
+                was_modified: false,
+                modified_command: None,
                 exit_code,
-                success,
-                stderr_snippet: None,
-                suggested_improvement: None,
+                user_approved,
+                model: "test-model".to_string(),
+                recorded_at: "2026-01-01T00:00:00Z".to_string(),
             };
             assert_eq!(entry.tool, tool);
             assert_eq!(entry.exit_code, exit_code);
-            assert_eq!(entry.success, success);
+            assert_eq!(entry.user_approved, user_approved);
         }
     }
 

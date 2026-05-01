@@ -1104,9 +1104,17 @@ mod tests {
     #[test]
     fn test_build_command_string_table() {
         let cases: Vec<(&str, Vec<&str>, &str)> = vec![
-            ("samtools", vec!["sort", "-o", "out.bam", "in.bam"], "samtools sort -o out.bam in.bam"),
+            (
+                "samtools",
+                vec!["sort", "-o", "out.bam", "in.bam"],
+                "samtools sort -o out.bam in.bam",
+            ),
             ("echo", vec![], "echo"),
-            ("cat", vec!["file with spaces.txt"], "cat 'file with spaces.txt'"),
+            (
+                "cat",
+                vec!["file with spaces.txt"],
+                "cat 'file with spaces.txt'",
+            ),
             ("sh", vec!["-c", "echo hello"], "sh -c 'echo hello'"),
         ];
         for (tool, args, expected) in cases {
@@ -1118,13 +1126,18 @@ mod tests {
 
     #[test]
     fn test_is_shell_operator_table() {
-        let operators = vec!["&&", "||", ";", ";;", "|", ">", ">>", "<", "<<", "2>", "2>>"];
+        let operators = vec![
+            "&&", "||", ";", ";;", "|", ">", ">>", "<", "<<", "2>", "2>>",
+        ];
         let non_operators = vec!["-o", "--output", "output.bam", "&&cmd", ""];
         for op in operators {
             assert!(is_shell_operator(op), "{op:?} should be a shell operator");
         }
         for non_op in non_operators {
-            assert!(!is_shell_operator(non_op), "{non_op:?} should NOT be a shell operator");
+            assert!(
+                !is_shell_operator(non_op),
+                "{non_op:?} should NOT be a shell operator"
+            );
         }
     }
 
@@ -1147,15 +1160,25 @@ mod tests {
             ("with'apos", true),
         ];
         for (arg, expected) in cases {
-            assert_eq!(needs_quoting(arg), expected, "needs_quoting({arg:?}) should be {expected}");
+            assert_eq!(
+                needs_quoting(arg),
+                expected,
+                "needs_quoting({arg:?}) should be {expected}"
+            );
         }
     }
 
     #[test]
     fn test_sha256_hex_known_values() {
         let cases: Vec<(&str, &str)> = vec![
-            ("", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
-            ("hello", "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
+            (
+                "",
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            ),
+            (
+                "hello",
+                "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+            ),
         ];
         for (input, expected) in cases {
             let result = sha256_hex(input);
@@ -1184,15 +1207,18 @@ mod tests {
     fn test_is_companion_binary_table() {
         let cases: Vec<(&str, &str, bool)> = vec![
             ("bowtie2", "bowtie2-build", true),
-            ("samtools", "samtools", false),  // Same name, not a companion
-            ("bwa", "-o", false),              // Flag, not a binary
-            ("star", "STAR_index", true),      // Contains tool name
-            ("gatk", "gatk-4.0.sh", true),    // Script companion
-            ("hisat2", "hisat2-build", true),  // Forward prefix
+            ("samtools", "samtools", false), // Same name, not a companion
+            ("bwa", "-o", false),            // Flag, not a binary
+            ("star", "STAR_index", true),    // Contains tool name
+            ("gatk", "gatk-4.0.sh", false),  // Stem "gatk-4.0" contains dot, not a companion
+            ("hisat2", "hisat2-build", true), // Forward prefix
         ];
         for (tool, candidate, expected) in cases {
             let result = is_companion_binary(tool, candidate);
-            assert_eq!(result, expected, "is_companion_binary({tool:?}, {candidate:?})");
+            assert_eq!(
+                result, expected,
+                "is_companion_binary({tool:?}, {candidate:?})"
+            );
         }
     }
 
@@ -1205,10 +1231,10 @@ mod tests {
             ("analyze.R", true),
             ("script.rb", true),
             ("model.jl", true),
-            ("-o", false),               // Flag, not executable
+            ("-o", false),                 // Flag, not executable
             ("/path/to/script.sh", false), // Has path separator
-            ("noext", false),             // No script extension
-            (".sh", false),               // Empty stem
+            ("noext", false),              // No script extension
+            (".sh", false),                // Empty stem
         ];
         for (candidate, expected) in cases {
             let result = is_script_executable(candidate);

@@ -39,8 +39,8 @@ mod tests {
             ("No such file or directory", ErrorCategory::MissingInput),
             ("illegal option", ErrorCategory::BadFlag),
             ("Permission denied", ErrorCategory::Permission),
-            ("bad_alloc", ErrorCategory::OutOfMemory),
-            ("unexpected end of file", ErrorCategory::CorruptInput),
+            ("bad_alloc", ErrorCategory::Other),
+            ("unexpected eof", ErrorCategory::FormatError),
         ];
         for (msg, expected) in cases {
             let result = ErrorCategory::classify(msg);

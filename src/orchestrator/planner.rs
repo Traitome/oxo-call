@@ -272,7 +272,7 @@ mod tests {
             ("sort input.bam && index sorted.bam", true),
             ("sort input.bam 然后 index it", true),
             ("simple sort task", false),
-            ("sort and view", false),  // "and" alone doesn't trigger pipeline
+            ("sort and view", false), // "and" alone doesn't trigger pipeline
         ];
         for (task, expect_multi) in cases {
             let plan = planner.plan("samtools", task);

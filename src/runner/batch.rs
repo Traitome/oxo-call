@@ -297,8 +297,8 @@ impl BatchRunner for Runner {
 
 #[cfg(test)]
 mod tests {
-    use crate::config::Config;
     use super::super::core::Runner;
+    use crate::config::Config;
 
     /// Verify that Runner can be constructed and has the expected defaults for batch-related fields.
     #[test]
@@ -313,7 +313,9 @@ mod tests {
     fn test_runner_batch_with_items_and_jobs() {
         let mut r = Runner::new(Config::default());
         let items = vec!["a.bam".to_string(), "b.bam".to_string()];
-        r.with_input_items(items.clone()).with_jobs(4).with_stop_on_error(true);
+        r.with_input_items(items.clone())
+            .with_jobs(4)
+            .with_stop_on_error(true);
         assert_eq!(r.input_items, items);
         assert_eq!(r.jobs, 4);
         assert!(r.stop_on_error);

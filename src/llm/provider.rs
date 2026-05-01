@@ -1093,8 +1093,8 @@ mod tests {
     #[test]
     fn test_set_no_stream_disables_streaming() {
         let cases: Vec<(bool, bool)> = vec![
-            (true, false),   // set no_stream=true → stream_enabled=false
-            (false, true),   // set no_stream=false → stream_enabled unchanged (true by default)
+            (true, false), // set no_stream=true → stream_enabled=false
+            (false, true), // set no_stream=false → stream_enabled unchanged (true by default)
         ];
         for (no_stream, expected_stream) in cases {
             let mut client = LlmClient::new(Config::default());
@@ -1110,8 +1110,14 @@ mod tests {
     fn test_validate_flags_against_catalog_keeps_all() {
         use crate::doc_processor::FlagEntry;
         let catalog = vec![
-            FlagEntry { flag: "-o".to_string(), description: "output".to_string() },
-            FlagEntry { flag: "--threads".to_string(), description: "threads".to_string() },
+            FlagEntry {
+                flag: "-o".to_string(),
+                description: "output".to_string(),
+            },
+            FlagEntry {
+                flag: "--threads".to_string(),
+                description: "threads".to_string(),
+            },
         ];
         let quick_flags: Vec<String> = vec![];
         let args: Vec<String> = vec![
