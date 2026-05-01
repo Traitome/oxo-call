@@ -3888,7 +3888,9 @@ cmd  = "echo hello"
         let def = WorkflowDef::from_str_content(toml).expect("parse");
         let diags = verify(&def);
         assert!(
-            diags.iter().any(|d| d.level == DiagLevel::Error && d.message.contains("empty name")),
+            diags
+                .iter()
+                .any(|d| d.level == DiagLevel::Error && d.message.contains("empty name")),
             "should error on empty step name"
         );
     }

@@ -101,28 +101,27 @@ impl Validator {
         doc: &ToolDoc,
         errors: &mut Vec<String>,
     ) {
-        let required_flag_groups: Vec<(&str, Vec<&str>)> = if let Some(ref subcmd_name) = fill.subcommand {
-            doc.get_subcommand(subcmd_name)
-                .map(|s| {
-                    s.flags
-                        .iter()
-                        .filter(|f| f.required)
-                        .map(|f| (f.name.as_str(), f.all_names()))
-                        .collect()
-                })
-                .unwrap_or_default()
-        } else {
-            doc.flags
-                .iter()
-                .filter(|f| f.required)
-                .map(|f| (f.name.as_str(), f.all_names()))
-                .collect()
-        };
+        let required_flag_groups: Vec<(&str, Vec<&str>)> =
+            if let Some(ref subcmd_name) = fill.subcommand {
+                doc.get_subcommand(subcmd_name)
+                    .map(|s| {
+                        s.flags
+                            .iter()
+                            .filter(|f| f.required)
+                            .map(|f| (f.name.as_str(), f.all_names()))
+                            .collect()
+                    })
+                    .unwrap_or_default()
+            } else {
+                doc.flags
+                    .iter()
+                    .filter(|f| f.required)
+                    .map(|f| (f.name.as_str(), f.all_names()))
+                    .collect()
+            };
 
         for (primary_name, all_names) in required_flag_groups {
-            let provided = fill.flags.keys().any(|k| {
-                all_names.contains(&k.as_str())
-            });
+            let provided = fill.flags.keys().any(|k| all_names.contains(&k.as_str()));
             if !provided {
                 errors.push(format!("Missing required flag: {}", primary_name));
             }
@@ -169,12 +168,7 @@ impl Validator {
         }
     }
 
-    fn validate_constraints(
-        &self,
-        fill: &LlmCommandFill,
-        doc: &ToolDoc,
-        errors: &mut Vec<String>,
-    ) {
+    fn validate_constraints(&self, fill: &LlmCommandFill, doc: &ToolDoc, errors: &mut Vec<String>) {
         use crate::schema::types::ConstraintRule;
 
         let constraints = &doc.constraints;
@@ -225,10 +219,7 @@ impl Validator {
                     if has_a {
                         let b_val = fill.flags.get(b);
                         if b_val.map_or(true, |v| v != val) {
-                            errors.push(format!(
-                                "Flag {} requires {}={}",
-                                a, b, val
-                            ));
+                            errors.push(format!("Flag {} requires {}={}", a, b, val));
                         }
                     }
                 }
@@ -253,8 +244,15 @@ impl Validator {
                 .join(" ")
                 .to_lowercase();
 
-            if pitfall_lower.contains("input") && pitfall_lower.contains("output")
-                && all_values.contains(&pitfall_lower.split_whitespace().next().unwrap_or("").to_string())
+            if pitfall_lower.contains("input")
+                && pitfall_lower.contains("output")
+                && all_values.contains(
+                    &pitfall_lower
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or("")
+                        .to_string(),
+                )
             {
                 warnings.push(format!("Skill pitfall check: {}", pitfall));
             }
@@ -265,8 +263,8 @@ impl Validator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tool_doc::FlagDoc;
     use crate::schema::types::{CliStyle, ConstraintRule, ParamType};
+    use crate::tool_doc::FlagDoc;
     use std::collections::BTreeMap;
     use std::path::PathBuf;
 
@@ -412,7 +410,12 @@ mod tests {
 
         let result = validator.validate(&record, &fill, &doc);
         assert!(!result.is_valid);
-        assert!(result.errors.iter().any(|e| e.contains("Missing required flag")));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("Missing required flag"))
+        );
     }
 
     #[test]
@@ -498,7 +501,12 @@ mod tests {
 
         let result = validator.validate(&record, &fill, &doc);
         assert!(!result.is_valid);
-        assert!(result.errors.iter().any(|e| e.contains("Missing required positional")));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("Missing required positional"))
+        );
     }
 
     #[test]
@@ -539,7 +547,12 @@ mod tests {
 
         let result = validator.validate(&record, &fill, &doc);
         assert!(result.is_valid);
-        assert!(result.warnings.iter().any(|w| w.contains("More positional")));
+        assert!(
+            result
+                .warnings
+                .iter()
+                .any(|w| w.contains("More positional"))
+        );
     }
 
     #[test]
@@ -576,7 +589,10 @@ mod tests {
             ],
             positionals: Vec::new(),
             usage_patterns: Vec::new(),
-            constraints: vec![ConstraintRule::MutuallyExclusive("-a".to_string(), "-b".to_string())],
+            constraints: vec![ConstraintRule::MutuallyExclusive(
+                "-a".to_string(),
+                "-b".to_string(),
+            )],
             examples: Vec::new(),
             concepts: Vec::new(),
             pitfalls: Vec::new(),
@@ -597,7 +613,12 @@ mod tests {
 
         let result = validator.validate(&record, &fill, &doc);
         assert!(!result.is_valid);
-        assert!(result.errors.iter().any(|e| e.contains("Mutually exclusive")));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("Mutually exclusive"))
+        );
     }
 
     #[test]
@@ -691,7 +712,10 @@ mod tests {
             ],
             positionals: Vec::new(),
             usage_patterns: Vec::new(),
-            constraints: vec![ConstraintRule::AtLeastOne(vec!["-a".to_string(), "-b".to_string()])],
+            constraints: vec![ConstraintRule::AtLeastOne(vec![
+                "-a".to_string(),
+                "-b".to_string(),
+            ])],
             examples: Vec::new(),
             concepts: Vec::new(),
             pitfalls: Vec::new(),
@@ -865,7 +889,10 @@ mod tests {
             ],
             positionals: Vec::new(),
             usage_patterns: Vec::new(),
-            constraints: vec![ConstraintRule::AllRequired(vec!["-a".to_string(), "-b".to_string()])],
+            constraints: vec![ConstraintRule::AllRequired(vec![
+                "-a".to_string(),
+                "-b".to_string(),
+            ])],
             examples: Vec::new(),
             concepts: Vec::new(),
             pitfalls: Vec::new(),
@@ -885,7 +912,12 @@ mod tests {
 
         let result = validator.validate(&record, &fill, &doc);
         assert!(!result.is_valid);
-        assert!(result.errors.iter().any(|e| e.contains("required when using this flag group")));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("required when using this flag group"))
+        );
     }
 
     #[test]
@@ -922,7 +954,11 @@ mod tests {
             ],
             positionals: Vec::new(),
             usage_patterns: Vec::new(),
-            constraints: vec![ConstraintRule::ImpliesValue("-a".to_string(), "-b".to_string(), "special".to_string())],
+            constraints: vec![ConstraintRule::ImpliesValue(
+                "-a".to_string(),
+                "-b".to_string(),
+                "special".to_string(),
+            )],
             examples: Vec::new(),
             concepts: Vec::new(),
             pitfalls: Vec::new(),
@@ -943,7 +979,12 @@ mod tests {
 
         let result = validator.validate(&record, &fill, &doc);
         assert!(!result.is_valid);
-        assert!(result.errors.iter().any(|e| e.contains("requires") && e.contains("special")));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("requires") && e.contains("special"))
+        );
     }
 
     #[test]

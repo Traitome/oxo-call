@@ -1634,7 +1634,16 @@ mod tests {
             std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
         }
         JobManager::add(make_entry("desc-job", "echo hi")).unwrap();
-        JobManager::edit("desc-job", None, Some("A description"), false, None, None, false).unwrap();
+        JobManager::edit(
+            "desc-job",
+            None,
+            Some("A description"),
+            false,
+            None,
+            None,
+            false,
+        )
+        .unwrap();
         let found = JobManager::find("desc-job").unwrap().unwrap();
         assert_eq!(found.description.as_deref(), Some("A description"));
     }
@@ -1662,7 +1671,16 @@ mod tests {
             std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
         }
         JobManager::add(make_entry("tag-job", "echo hi")).unwrap();
-        JobManager::edit("tag-job", None, None, false, Some(vec!["new-tag".to_string()]), None, false).unwrap();
+        JobManager::edit(
+            "tag-job",
+            None,
+            None,
+            false,
+            Some(vec!["new-tag".to_string()]),
+            None,
+            false,
+        )
+        .unwrap();
         let found = JobManager::find("tag-job").unwrap().unwrap();
         assert_eq!(found.tags, vec!["new-tag"]);
     }
@@ -1675,7 +1693,16 @@ mod tests {
             std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
         }
         JobManager::add(make_entry("sched-job", "echo hi")).unwrap();
-        JobManager::edit("sched-job", None, None, false, None, Some("0 * * * *"), false).unwrap();
+        JobManager::edit(
+            "sched-job",
+            None,
+            None,
+            false,
+            None,
+            Some("0 * * * *"),
+            false,
+        )
+        .unwrap();
         let found = JobManager::find("sched-job").unwrap().unwrap();
         assert_eq!(found.schedule.as_deref(), Some("0 * * * *"));
     }

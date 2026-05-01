@@ -452,10 +452,7 @@ impl ChatSession {
                             println!("{}", "  ✔ Scenario changed to: full".green());
                         }
                         _ => {
-                            println!(
-                                "  {}",
-                                "✖ Invalid scenario. Use: bare, doc, full".red()
-                            );
+                            println!("  {}", "✖ Invalid scenario. Use: bare, doc, full".red());
                         }
                     }
                 }
@@ -497,13 +494,11 @@ impl ChatSession {
     fn build_system_prompt(&self) -> String {
         match self.scenario {
             ChatScenario::Bare => String::new(),
-            ChatScenario::Doc | ChatScenario::Full => {
-                "Reply with ONLY:\n\
+            ChatScenario::Doc | ChatScenario::Full => "Reply with ONLY:\n\
                  ARGS: sort -o output.bam input.bam\n\
                  EXPLANATION: Sorts BAM.\n\
                  Replace args. Maximum 20 words. No preamble."
-                    .to_string()
-            }
+                .to_string(),
         }
     }
 
@@ -1005,10 +1000,7 @@ mod tests {
     fn test_build_general_system_prompt_non_bare_is_nonempty() {
         let config = Config::default();
 
-        for scenario in [
-            ChatScenario::Doc,
-            ChatScenario::Full,
-        ] {
+        for scenario in [ChatScenario::Doc, ChatScenario::Full] {
             let session = ChatSession::new(config.clone()).with_scenario(scenario);
             let prompt = session.build_general_system_prompt();
             assert!(

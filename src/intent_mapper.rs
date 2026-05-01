@@ -35,12 +35,7 @@ impl IntentMapper {
         (subcommand, fill)
     }
 
-    fn resolve_subcommand(
-        &self,
-        record: &ToolRecord,
-        doc: &ToolDoc,
-        task: &str,
-    ) -> Option<String> {
+    fn resolve_subcommand(&self, record: &ToolRecord, doc: &ToolDoc, task: &str) -> Option<String> {
         if doc.subcommands.is_empty() {
             return None;
         }
@@ -130,9 +125,9 @@ impl IntentMapper {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::schema::types::{CliStyle, ParamType};
     use crate::tool_doc::{FlagDoc, SubcommandDoc};
     use crate::tool_resolver::ToolRecord;
-    use crate::schema::types::{CliStyle, ParamType};
     use std::path::PathBuf;
 
     fn make_test_record() -> ToolRecord {
@@ -197,7 +192,11 @@ mod tests {
                     flags: Vec::new(),
                     positionals: Vec::new(),
                     constraints: Vec::new(),
-                    task_keywords: vec!["view".to_string(), "convert".to_string(), "extract".to_string()],
+                    task_keywords: vec![
+                        "view".to_string(),
+                        "convert".to_string(),
+                        "extract".to_string(),
+                    ],
                 },
             ],
             global_flags: Vec::new(),

@@ -765,7 +765,12 @@ mod tests {
 
     #[test]
     fn test_build_command_string_with_shell_operator() {
-        let args: Vec<String> = vec!["sort".to_string(), "in.bam".to_string(), ">".to_string(), "out.bam".to_string()];
+        let args: Vec<String> = vec![
+            "sort".to_string(),
+            "in.bam".to_string(),
+            ">".to_string(),
+            "out.bam".to_string(),
+        ];
         let result = build_command_string("samtools", &args);
         assert!(result.contains(" > "));
     }
@@ -852,8 +857,16 @@ mod tests {
 
     #[test]
     fn test_args_require_shell() {
-        assert!(args_require_shell(&["sort".to_string(), "|".to_string(), "grep".to_string()]));
-        assert!(!args_require_shell(&["sort".to_string(), "-o".to_string(), "out.bam".to_string()]));
+        assert!(args_require_shell(&[
+            "sort".to_string(),
+            "|".to_string(),
+            "grep".to_string()
+        ]));
+        assert!(!args_require_shell(&[
+            "sort".to_string(),
+            "-o".to_string(),
+            "out.bam".to_string()
+        ]));
     }
 
     #[test]
@@ -976,13 +989,23 @@ mod tests {
 
     #[test]
     fn test_assess_command_risk_warning_force() {
-        let args: Vec<String> = vec!["cp".to_string(), "--force".to_string(), "a".to_string(), "b".to_string()];
+        let args: Vec<String> = vec![
+            "cp".to_string(),
+            "--force".to_string(),
+            "a".to_string(),
+            "b".to_string(),
+        ];
         assert_eq!(assess_command_risk(&args), RiskLevel::Warning);
     }
 
     #[test]
     fn test_assess_command_risk_warning_redirect() {
-        let args: Vec<String> = vec!["echo".to_string(), "hello".to_string(), ">".to_string(), "file.txt".to_string()];
+        let args: Vec<String> = vec![
+            "echo".to_string(),
+            "hello".to_string(),
+            ">".to_string(),
+            "file.txt".to_string(),
+        ];
         assert_eq!(assess_command_risk(&args), RiskLevel::Warning);
     }
 
@@ -993,8 +1016,14 @@ mod tests {
 
     #[test]
     fn test_risk_level_max() {
-        assert_eq!(RiskLevel::Safe.max_level(RiskLevel::Warning), RiskLevel::Warning);
-        assert_eq!(RiskLevel::Warning.max_level(RiskLevel::Dangerous), RiskLevel::Dangerous);
+        assert_eq!(
+            RiskLevel::Safe.max_level(RiskLevel::Warning),
+            RiskLevel::Warning
+        );
+        assert_eq!(
+            RiskLevel::Warning.max_level(RiskLevel::Dangerous),
+            RiskLevel::Dangerous
+        );
         assert_eq!(RiskLevel::Safe.max_level(RiskLevel::Safe), RiskLevel::Safe);
     }
 
@@ -1007,13 +1036,21 @@ mod tests {
 
     #[test]
     fn test_has_same_input_output() {
-        let args: Vec<String> = vec!["-o".to_string(), "file.bam".to_string(), "file.bam".to_string()];
+        let args: Vec<String> = vec![
+            "-o".to_string(),
+            "file.bam".to_string(),
+            "file.bam".to_string(),
+        ];
         assert!(has_same_input_output(&args));
     }
 
     #[test]
     fn test_has_different_input_output() {
-        let args: Vec<String> = vec!["-o".to_string(), "out.bam".to_string(), "in.bam".to_string()];
+        let args: Vec<String> = vec![
+            "-o".to_string(),
+            "out.bam".to_string(),
+            "in.bam".to_string(),
+        ];
         assert!(!has_same_input_output(&args));
     }
 

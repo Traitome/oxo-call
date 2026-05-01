@@ -195,7 +195,11 @@ impl ToolDoc {
                     lines.push(format!(
                         "  <{}> {} - {}",
                         p.name,
-                        if p.required { "(required)" } else { "(optional)" },
+                        if p.required {
+                            "(required)"
+                        } else {
+                            "(optional)"
+                        },
                         p.description
                     ));
                 }
@@ -229,7 +233,11 @@ impl ToolDoc {
                 lines.push(format!(
                     "  <{}> {} - {}",
                     p.name,
-                    if p.required { "(required)" } else { "(optional)" },
+                    if p.required {
+                        "(required)"
+                    } else {
+                        "(optional)"
+                    },
                     p.description
                 ));
             }
@@ -442,7 +450,11 @@ mod tests {
     #[test]
     fn test_build_flag_prompt_section_with_subcommand() {
         let mut doc = make_doc();
-        doc.subcommands[0].flags = vec![make_flag("-@", vec!["--threads"], FlagCategory::Performance)];
+        doc.subcommands[0].flags = vec![make_flag(
+            "-@",
+            vec!["--threads"],
+            FlagCategory::Performance,
+        )];
         doc.subcommands[0].positionals = vec![PositionalDoc {
             position: 0,
             name: "INPUT".to_string(),
@@ -598,7 +610,11 @@ mod tests {
             FlagDoc {
                 name: "--format".to_string(),
                 aliases: vec![],
-                param_type: ParamType::Enum(vec!["bam".to_string(), "sam".to_string(), "cram".to_string()]),
+                param_type: ParamType::Enum(vec![
+                    "bam".to_string(),
+                    "sam".to_string(),
+                    "cram".to_string(),
+                ]),
                 description: "Output format".to_string(),
                 default: Some("bam".to_string()),
                 required: false,
@@ -684,16 +700,14 @@ mod tests {
                 category: FlagCategory::General,
             },
         ];
-        doc.positionals = vec![
-            PositionalDoc {
-                position: 0,
-                name: "INPUT".to_string(),
-                param_type: ParamType::File,
-                description: "Input".to_string(),
-                required: true,
-                default: None,
-            },
-        ];
+        doc.positionals = vec![PositionalDoc {
+            position: 0,
+            name: "INPUT".to_string(),
+            param_type: ParamType::File,
+            description: "Input".to_string(),
+            required: true,
+            default: None,
+        }];
         let section = doc.build_flag_prompt_section(None);
         assert!(section.contains("INT"));
         assert!(section.contains("[4]"));

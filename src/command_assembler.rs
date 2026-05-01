@@ -1,7 +1,7 @@
+use crate::intent_mapper::LlmCommandFill;
 use crate::schema::types::CliStyle;
 use crate::tool_doc::ToolDoc;
 use crate::tool_resolver::ToolRecord;
-use crate::intent_mapper::LlmCommandFill;
 
 pub struct CommandAssembler;
 
@@ -10,12 +10,7 @@ impl CommandAssembler {
         Self
     }
 
-    pub fn assemble(
-        &self,
-        record: &ToolRecord,
-        fill: &LlmCommandFill,
-        doc: &ToolDoc,
-    ) -> String {
+    pub fn assemble(&self, record: &ToolRecord, fill: &LlmCommandFill, doc: &ToolDoc) -> String {
         let mut parts = Vec::new();
 
         parts.push(record.effective_name().to_string());
@@ -42,18 +37,19 @@ impl CommandAssembler {
         parts.join(" ")
     }
 
-    fn append_flags(
-        &self,
-        parts: &mut Vec<String>,
-        fill: &LlmCommandFill,
-        doc: &ToolDoc,
-    ) {
+    fn append_flags(&self, parts: &mut Vec<String>, fill: &LlmCommandFill, doc: &ToolDoc) {
         let all_flags: Vec<&str> = doc.all_flag_names();
 
         let mut sorted_flags: Vec<(&String, &String)> = fill.flags.iter().collect();
         sorted_flags.sort_by(|a, b| {
-            let a_idx = all_flags.iter().position(|n| *n == a.0.as_str()).unwrap_or(usize::MAX);
-            let b_idx = all_flags.iter().position(|n| *n == b.0.as_str()).unwrap_or(usize::MAX);
+            let a_idx = all_flags
+                .iter()
+                .position(|n| *n == a.0.as_str())
+                .unwrap_or(usize::MAX);
+            let b_idx = all_flags
+                .iter()
+                .position(|n| *n == b.0.as_str())
+                .unwrap_or(usize::MAX);
             a_idx.cmp(&b_idx)
         });
 
@@ -69,11 +65,7 @@ impl CommandAssembler {
         }
     }
 
-    fn append_positionals(
-        &self,
-        parts: &mut Vec<String>,
-        fill: &LlmCommandFill,
-    ) {
+    fn append_positionals(&self, parts: &mut Vec<String>, fill: &LlmCommandFill) {
         for pos in &fill.positionals {
             parts.push(pos.clone());
         }
@@ -83,8 +75,8 @@ impl CommandAssembler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tool_doc::{FlagDoc, SubcommandDoc};
     use crate::schema::types::ParamType;
+    use crate::tool_doc::{FlagDoc, SubcommandDoc};
     use std::collections::BTreeMap;
     use std::path::PathBuf;
 
@@ -214,7 +206,10 @@ mod tests {
         assert!(cmd.contains("out.fq"));
         let i_pos = cmd.find("-i").unwrap();
         let o_pos = cmd.rfind("out.fq").unwrap();
-        assert!(i_pos < o_pos, "flags should come before positionals in FlagsFirst style");
+        assert!(
+            i_pos < o_pos,
+            "flags should come before positionals in FlagsFirst style"
+        );
     }
 
     #[test]
@@ -307,7 +302,10 @@ mod tests {
         let cmd = assembler.assemble(&record, &fill, &doc);
         let input_pos = cmd.find("input.txt").unwrap();
         let flag_pos = cmd.find("-o").unwrap();
-        assert!(input_pos < flag_pos, "positionals should come before flags in Positional style");
+        assert!(
+            input_pos < flag_pos,
+            "positionals should come before flags in Positional style"
+        );
     }
 
     #[test]
@@ -356,7 +354,10 @@ mod tests {
         assert!(cmd.contains("-k 31"));
         let pos_pos = cmd.find("reads.fq").unwrap();
         let flag_pos = cmd.find("-k").unwrap();
-        assert!(pos_pos < flag_pos, "positionals should come before flags in Hybrid style");
+        assert!(
+            pos_pos < flag_pos,
+            "positionals should come before flags in Hybrid style"
+        );
     }
 
     #[test]
@@ -562,6 +563,9 @@ mod tests {
         let cmd = assembler.assemble(&record, &fill, &doc);
         let a_pos = cmd.find("-a").unwrap();
         let c_pos = cmd.find("-c").unwrap();
-        assert!(a_pos < c_pos, "flags should follow doc order, not insertion order");
+        assert!(
+            a_pos < c_pos,
+            "flags should follow doc order, not insertion order"
+        );
     }
 }

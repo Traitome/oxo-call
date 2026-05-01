@@ -709,14 +709,16 @@ mod tests {
     #[test]
     fn test_find_closest_flag_exact_match() {
         let v = CommandValidator::new(None, vec![]);
-        let result = v.find_closest_flag("--output", &["--output".to_string(), "--input".to_string()]);
+        let result =
+            v.find_closest_flag("--output", &["--output".to_string(), "--input".to_string()]);
         assert_eq!(result, Some("--output".to_string()));
     }
 
     #[test]
     fn test_find_closest_flag_close_match() {
         let v = CommandValidator::new(None, vec![]);
-        let result = v.find_closest_flag("--outpt", &["--output".to_string(), "--input".to_string()]);
+        let result =
+            v.find_closest_flag("--outpt", &["--output".to_string(), "--input".to_string()]);
         assert_eq!(result, Some("--output".to_string()));
     }
 

@@ -578,10 +578,7 @@ mod tests {
     #[test]
     fn test_rule_generator_apply_with_file_names() {
         let generator = RuleCommandGenerator::new();
-        let cmd = generator.apply(
-            &generator.rules[0],
-            "sort bam file input.bam to output.bam",
-        );
+        let cmd = generator.apply(&generator.rules[0], "sort bam file input.bam to output.bam");
         assert!(cmd.args.contains("sort"));
         assert!(cmd.confidence > 0.9);
     }
@@ -589,7 +586,11 @@ mod tests {
     #[test]
     fn test_rule_generator_apply_with_fastq() {
         let generator = RuleCommandGenerator::new();
-        let fastqc_rule = generator.rules.iter().find(|r| r.id == "fastqc_basic").unwrap();
+        let fastqc_rule = generator
+            .rules
+            .iter()
+            .find(|r| r.id == "fastqc_basic")
+            .unwrap();
         let cmd = generator.apply(fastqc_rule, "quality check reads.fastq.gz");
         assert!(cmd.args.contains("reads"));
     }
@@ -597,7 +598,11 @@ mod tests {
     #[test]
     fn test_rule_generator_apply_bwa_index() {
         let generator = RuleCommandGenerator::new();
-        let bwa_rule = generator.rules.iter().find(|r| r.id == "bwa_index").unwrap();
+        let bwa_rule = generator
+            .rules
+            .iter()
+            .find(|r| r.id == "bwa_index")
+            .unwrap();
         let cmd = generator.apply(bwa_rule, "build index for ref.fa");
         assert!(cmd.args.contains("index"));
     }
@@ -605,7 +610,11 @@ mod tests {
     #[test]
     fn test_rule_generator_apply_samtools_index() {
         let generator = RuleCommandGenerator::new();
-        let idx_rule = generator.rules.iter().find(|r| r.id == "samtools_index").unwrap();
+        let idx_rule = generator
+            .rules
+            .iter()
+            .find(|r| r.id == "samtools_index")
+            .unwrap();
         let cmd = generator.apply(idx_rule, "index bam file aligned.bam");
         assert!(cmd.args.contains("index"));
     }
@@ -613,7 +622,11 @@ mod tests {
     #[test]
     fn test_rule_generator_apply_samtools_flagstat() {
         let generator = RuleCommandGenerator::new();
-        let rule = generator.rules.iter().find(|r| r.id == "samtools_flagstat").unwrap();
+        let rule = generator
+            .rules
+            .iter()
+            .find(|r| r.id == "samtools_flagstat")
+            .unwrap();
         let cmd = generator.apply(rule, "alignment statistics for aligned.bam");
         assert!(cmd.args.contains("flagstat"));
     }
@@ -685,7 +698,11 @@ mod tests {
     #[test]
     fn test_rule_matches_case_insensitive() {
         let generator = RuleCommandGenerator::new();
-        assert!(generator.matches(&generator.rules[0], "samtools", "Sort BAM file by coordinate"));
+        assert!(generator.matches(
+            &generator.rules[0],
+            "samtools",
+            "Sort BAM file by coordinate"
+        ));
     }
 
     #[test]
@@ -707,10 +724,7 @@ mod tests {
     #[test]
     fn test_apply_with_compound_extensions() {
         let generator = RuleCommandGenerator::new();
-        let cmd = generator.apply(
-            &generator.rules[3],
-            "quality check reads.fastq.gz",
-        );
+        let cmd = generator.apply(&generator.rules[3], "quality check reads.fastq.gz");
         assert!(cmd.args.contains("reads"));
     }
 }

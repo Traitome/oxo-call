@@ -715,10 +715,7 @@ mod tests {
             Some("sort".to_string())
         );
         assert_eq!(
-            detect_subcmd_from_tokens(
-                &["view".to_string(), "-b".to_string()],
-                &schema
-            ),
+            detect_subcmd_from_tokens(&["view".to_string(), "-b".to_string()], &schema),
             Some("view".to_string())
         );
     }
@@ -727,10 +724,7 @@ mod tests {
     fn test_detect_subcmd_from_tokens_no_match() {
         let schema = test_subcommand_schema();
         assert_eq!(
-            detect_subcmd_from_tokens(
-                &["unknown".to_string()],
-                &schema
-            ),
+            detect_subcmd_from_tokens(&["unknown".to_string()], &schema),
             None
         );
     }
@@ -803,7 +797,12 @@ mod tests {
     #[test]
     fn test_inject_required_flags_missing() {
         let schema = test_subcommand_schema();
-        let tokens = vec!["sort".to_string(), "-@".to_string(), "4".to_string(), "input.bam".to_string()];
+        let tokens = vec![
+            "sort".to_string(),
+            "-@".to_string(),
+            "4".to_string(),
+            "input.bam".to_string(),
+        ];
         let result = inject_required_flags(tokens, &schema, Some("sort"));
         assert!(result.iter().any(|t| t.contains("-o")));
     }
@@ -819,7 +818,10 @@ mod tests {
             "4".to_string(),
         ];
         let result = inject_required_flags(tokens, &schema, Some("sort"));
-        let o_count = result.iter().filter(|t| **t == "-o" || t.starts_with("-o=")).count();
+        let o_count = result
+            .iter()
+            .filter(|t| **t == "-o" || t.starts_with("-o="))
+            .count();
         assert_eq!(o_count, 1);
     }
 

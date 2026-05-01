@@ -1339,7 +1339,8 @@ mod tests {
     #[test]
     fn test_compress_options_with_placeholders() {
         let processor = DocProcessor::new();
-        let options = "  -o FILE  Output\n  <input>  Input file\n  [options]  Optional\n     Just text";
+        let options =
+            "  -o FILE  Output\n  <input>  Input file\n  [options]  Optional\n     Just text";
         let compressed = processor.compress_options(options);
         assert!(compressed.contains("-o"));
         assert!(compressed.contains("<input>"));
@@ -1349,7 +1350,8 @@ mod tests {
     #[test]
     fn test_extract_subcommands_filters_flags() {
         let processor = DocProcessor::new();
-        let content = "  sort    Sort data\n  --help  Show help\n  <input>  Input\n  merge   Merge data";
+        let content =
+            "  sort    Sort data\n  --help  Show help\n  <input>  Input\n  merge   Merge data";
         let extracted = processor.extract_subcommands(content);
         assert!(extracted.contains("sort"));
         assert!(extracted.contains("merge"));
@@ -1398,7 +1400,10 @@ mod tests {
             commands: "sort, view".to_string(),
             other: String::new(),
             quick_flags: vec!["--help".to_string()],
-            flag_catalog: vec![FlagEntry { flag: "--help".to_string(), description: "Show help".to_string() }],
+            flag_catalog: vec![FlagEntry {
+                flag: "--help".to_string(),
+                description: "Show help".to_string(),
+            }],
             extracted_examples: vec!["tool -h".to_string()],
             quality_score: 0.0,
             command_pattern: String::new(),

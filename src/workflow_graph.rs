@@ -656,9 +656,7 @@ mod tests {
             scenario: WorkflowScenario::Doc,
             mode: WorkflowMode::Quality,
             confidence: 0.85,
-            metadata: HashMap::from([
-                ("scenario".to_string(), "determined: doc".to_string()),
-            ]),
+            metadata: HashMap::from([("scenario".to_string(), "determined: doc".to_string())]),
         };
         let json = serde_json::to_string(&result).unwrap();
         let back: WorkflowResult = serde_json::from_str(&json).unwrap();

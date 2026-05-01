@@ -152,10 +152,7 @@ impl DocExplorer {
     }
 
     async fn run_no_args(&self, tool: &str) -> Option<String> {
-        let output = tokio::process::Command::new(tool)
-            .output()
-            .await
-            .ok()?;
+        let output = tokio::process::Command::new(tool).output().await.ok()?;
 
         extract_useful(&output.stdout, &output.stderr)
     }
@@ -199,8 +196,7 @@ fn is_valid_help(output: &str) -> bool {
         || lower.contains("command")
         || lower.contains("argument")
         || lower.contains("syntax");
-    let is_pure_error =
-        (lower.contains("error:") || lower.contains("fatal:")) && !has_help_section;
+    let is_pure_error = (lower.contains("error:") || lower.contains("fatal:")) && !has_help_section;
     let long_enough = output.trim().len() >= 40;
     has_help_section && !is_pure_error && long_enough
 }
@@ -307,10 +303,7 @@ pub fn build_tool_doc(
                 .map(|s| {
                     let mut doc = SubcommandDoc::from(s.clone());
                     if let Some(help) = subcommand_helps.get(&s.name) {
-                        let sub_schema = parse_help(
-                            &format!("{} {}", tool, s.name),
-                            help,
-                        );
+                        let sub_schema = parse_help(&format!("{} {}", tool, s.name), help);
                         if !sub_schema.flags.is_empty() {
                             doc.flags = sub_schema
                                 .flags
@@ -339,8 +332,7 @@ pub fn build_tool_doc(
         }
     }
 
-    let (cli_style, description, schema_source, doc_quality) = if let Some(schema) = cli_schema
-    {
+    let (cli_style, description, schema_source, doc_quality) = if let Some(schema) = cli_schema {
         (
             schema.cli_style,
             schema.description.clone(),
@@ -382,7 +374,9 @@ pub fn build_tool_doc(
         pitfalls = s.context.pitfalls.clone();
 
         for subcmd in &mut subcommand_docs {
-            if let Some(skill_subcmd_keywords) = get_skill_subcmd_keywords(&s.meta.name, &subcmd.name) {
+            if let Some(skill_subcmd_keywords) =
+                get_skill_subcmd_keywords(&s.meta.name, &subcmd.name)
+            {
                 for kw in skill_subcmd_keywords {
                     if !subcmd.task_keywords.contains(&kw) {
                         subcmd.task_keywords.push(kw);
@@ -471,8 +465,12 @@ mod tests {
 
     #[test]
     fn test_is_valid_help() {
-        assert!(is_valid_help("Usage: tool [options]\nOptions:\n  -h  Show help"));
-        assert!(is_valid_help("SYNTAX: tool input output\nArguments:\n  input  Input file"));
+        assert!(is_valid_help(
+            "Usage: tool [options]\nOptions:\n  -h  Show help"
+        ));
+        assert!(is_valid_help(
+            "SYNTAX: tool input output\nArguments:\n  input  Input file"
+        ));
         assert!(!is_valid_help("Error: command not found"));
         assert!(!is_valid_help("hi"));
         assert!(!is_valid_help(""));
@@ -504,26 +502,58 @@ mod tests {
     #[test]
     fn test_categorize_flag_aliases() {
         assert_eq!(categorize_flag("--input", "read file"), FlagCategory::Input);
-        assert_eq!(categorize_flag("--output", "write file"), FlagCategory::Output);
-        assert_eq!(categorize_flag("--threads", "parallel threads"), FlagCategory::Performance);
-        assert_eq!(categorize_flag("--min-quality", "quality threshold"), FlagCategory::Quality);
-        assert_eq!(categorize_flag("--sam", "output SAM format"), FlagCategory::Format);
-        assert_eq!(categorize_flag("--mode", "running mode"), FlagCategory::Algorithm);
+        assert_eq!(
+            categorize_flag("--output", "write file"),
+            FlagCategory::Output
+        );
+        assert_eq!(
+            categorize_flag("--threads", "parallel threads"),
+            FlagCategory::Performance
+        );
+        assert_eq!(
+            categorize_flag("--min-quality", "quality threshold"),
+            FlagCategory::Quality
+        );
+        assert_eq!(
+            categorize_flag("--sam", "output SAM format"),
+            FlagCategory::Format
+        );
+        assert_eq!(
+            categorize_flag("--mode", "running mode"),
+            FlagCategory::Algorithm
+        );
     }
 
     #[test]
     fn test_categorize_flag_combined() {
-        assert_eq!(categorize_flag("--format", "output format type"), FlagCategory::Format);
-        assert_eq!(categorize_flag("-o", "output file path"), FlagCategory::Output);
-        assert_eq!(categorize_flag("--read1", "input read1 fastq"), FlagCategory::Input);
+        assert_eq!(
+            categorize_flag("--format", "output format type"),
+            FlagCategory::Format
+        );
+        assert_eq!(
+            categorize_flag("-o", "output file path"),
+            FlagCategory::Output
+        );
+        assert_eq!(
+            categorize_flag("--read1", "input read1 fastq"),
+            FlagCategory::Input
+        );
     }
 
     #[test]
     fn test_is_valid_help_various() {
-        assert!(is_valid_help("Usage: mytool [options]\nOptions:\n  -v  Verbose mode\n  -o FILE  Output"));
-        assert!(is_valid_help("usage: tool input output\nCommands:\n  run  Run analysis"));
-        assert!(is_valid_help("SYNTAX: tool [flags]\nFlags:\n  --help  Show help"));
-        assert!(is_valid_help("Arguments:\n  INPUT   Input file\n  OUTPUT  Output file\nThis tool processes files."));
+        assert!(is_valid_help(
+            "Usage: mytool [options]\nOptions:\n  -v  Verbose mode\n  -o FILE  Output"
+        ));
+        assert!(is_valid_help(
+            "usage: tool input output\nCommands:\n  run  Run analysis"
+        ));
+        assert!(is_valid_help(
+            "SYNTAX: tool [flags]\nFlags:\n  --help  Show help"
+        ));
+        assert!(is_valid_help(
+            "Arguments:\n  INPUT   Input file\n  OUTPUT  Output file\nThis tool processes files."
+        ));
         assert!(!is_valid_help("Error: command not found"));
         assert!(!is_valid_help("fatal: cannot open file"));
         assert!(!is_valid_help("hi"));
@@ -533,7 +563,9 @@ mod tests {
 
     #[test]
     fn test_is_valid_help_error_with_help() {
-        assert!(is_valid_help("Error: missing argument\nUsage: tool [options]\nOptions:\n  -h  Help"));
+        assert!(is_valid_help(
+            "Error: missing argument\nUsage: tool [options]\nOptions:\n  -h  Help"
+        ));
     }
 
     #[test]
@@ -581,47 +613,92 @@ mod tests {
 
     #[test]
     fn test_categorize_flag_performance_variants() {
-        assert_eq!(categorize_flag("--memory", "memory limit"), FlagCategory::Performance);
-        assert_eq!(categorize_flag("--mem", "memory usage"), FlagCategory::Performance);
-        assert_eq!(categorize_flag("--process", "number of processes"), FlagCategory::Performance);
-        assert_eq!(categorize_flag("-p", "cpu parallel"), FlagCategory::Performance);
+        assert_eq!(
+            categorize_flag("--memory", "memory limit"),
+            FlagCategory::Performance
+        );
+        assert_eq!(
+            categorize_flag("--mem", "memory usage"),
+            FlagCategory::Performance
+        );
+        assert_eq!(
+            categorize_flag("--process", "number of processes"),
+            FlagCategory::Performance
+        );
+        assert_eq!(
+            categorize_flag("-p", "cpu parallel"),
+            FlagCategory::Performance
+        );
     }
 
     #[test]
     fn test_categorize_flag_quality_variants() {
-        assert_eq!(categorize_flag("--min-mapq", "minimum mapping quality"), FlagCategory::Quality);
-        assert_eq!(categorize_flag("--qual", "quality score"), FlagCategory::Quality);
-        assert_eq!(categorize_flag("--filter", "quality filter"), FlagCategory::Quality);
+        assert_eq!(
+            categorize_flag("--min-mapq", "minimum mapping quality"),
+            FlagCategory::Quality
+        );
+        assert_eq!(
+            categorize_flag("--qual", "quality score"),
+            FlagCategory::Quality
+        );
+        assert_eq!(
+            categorize_flag("--filter", "quality filter"),
+            FlagCategory::Quality
+        );
     }
 
     #[test]
     fn test_categorize_flag_format_variants() {
-        assert_eq!(categorize_flag("--json", "JSON output"), FlagCategory::Format);
+        assert_eq!(
+            categorize_flag("--json", "JSON output"),
+            FlagCategory::Format
+        );
         assert_eq!(categorize_flag("--tsv", "TSV output"), FlagCategory::Format);
         assert_eq!(categorize_flag("--csv", "CSV output"), FlagCategory::Format);
-        assert_eq!(categorize_flag("--cram", "CRAM format"), FlagCategory::Format);
+        assert_eq!(
+            categorize_flag("--cram", "CRAM format"),
+            FlagCategory::Format
+        );
     }
 
     #[test]
     fn test_categorize_flag_input_variants() {
         assert_eq!(categorize_flag("--read", "read file"), FlagCategory::Input);
-        assert_eq!(categorize_flag("--ref", "reference file"), FlagCategory::Input);
+        assert_eq!(
+            categorize_flag("--ref", "reference file"),
+            FlagCategory::Input
+        );
         assert_eq!(categorize_flag("--bam", "BAM input"), FlagCategory::Input);
-        assert_eq!(categorize_flag("--fastq", "FASTQ input"), FlagCategory::Input);
+        assert_eq!(
+            categorize_flag("--fastq", "FASTQ input"),
+            FlagCategory::Input
+        );
         assert_eq!(categorize_flag("--vcf", "VCF input"), FlagCategory::Input);
         assert_eq!(categorize_flag("--bed", "BED input"), FlagCategory::Input);
     }
 
     #[test]
     fn test_categorize_flag_output_variants() {
-        assert_eq!(categorize_flag("--out", "output prefix"), FlagCategory::Output);
-        assert_eq!(categorize_flag("--write", "write output"), FlagCategory::Output);
+        assert_eq!(
+            categorize_flag("--out", "output prefix"),
+            FlagCategory::Output
+        );
+        assert_eq!(
+            categorize_flag("--write", "write output"),
+            FlagCategory::Output
+        );
     }
 
     #[test]
     fn test_categorize_flag_algorithm_variants() {
-        assert_eq!(categorize_flag("--strategy", "search strategy"), FlagCategory::Algorithm);
-        assert_eq!(categorize_flag("--method", "alignment method"), FlagCategory::Algorithm);
+        assert_eq!(
+            categorize_flag("--strategy", "search strategy"),
+            FlagCategory::Algorithm
+        );
+        assert_eq!(
+            categorize_flag("--method", "alignment method"),
+            FlagCategory::Algorithm
+        );
     }
 
     fn make_test_record() -> ToolRecord {
@@ -639,14 +716,7 @@ mod tests {
     #[test]
     fn test_build_tool_doc_no_schema_no_skill() {
         let record = make_test_record();
-        let doc = build_tool_doc(
-            &record,
-            &None,
-            &None,
-            &None,
-            &HashMap::new(),
-            &None,
-        );
+        let doc = build_tool_doc(&record, &None, &None, &None, &HashMap::new(), &None);
         assert_eq!(doc.record.name, "testtool");
         assert_eq!(doc.schema_source, "none");
         assert_eq!(doc.doc_quality, 0.0);
@@ -681,15 +751,9 @@ mod tests {
     #[test]
     fn test_build_tool_doc_with_schema() {
         let record = make_test_record();
-        let schema = crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::FlagsFirst);
-        let doc = build_tool_doc(
-            &record,
-            &None,
-            &Some(schema),
-            &None,
-            &HashMap::new(),
-            &None,
-        );
+        let schema =
+            crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::FlagsFirst);
+        let doc = build_tool_doc(&record, &None, &Some(schema), &None, &HashMap::new(), &None);
         assert_eq!(doc.schema_source, "minimal");
         assert_eq!(doc.cli_style, crate::schema::CliStyle::FlagsFirst);
     }
@@ -711,14 +775,7 @@ mod tests {
             detected_subcommand: None,
             all_subcommands: Vec::new(),
         };
-        let doc = build_tool_doc(
-            &record,
-            &None,
-            &None,
-            &Some(sdoc),
-            &HashMap::new(),
-            &None,
-        );
+        let doc = build_tool_doc(&record, &None, &None, &Some(sdoc), &HashMap::new(), &None);
         assert_eq!(doc.examples.len(), 1);
         assert_eq!(doc.examples[0].args, "testtool -v input.txt");
         assert_eq!(doc.examples[0].source, ExampleSource::HelpText);
@@ -742,14 +799,7 @@ mod tests {
             detected_subcommand: None,
             all_subcommands: Vec::new(),
         };
-        let doc = build_tool_doc(
-            &record,
-            &None,
-            &None,
-            &Some(sdoc),
-            &HashMap::new(),
-            &None,
-        );
+        let doc = build_tool_doc(&record, &None, &None, &Some(sdoc), &HashMap::new(), &None);
         assert!(doc.usage_patterns.is_empty());
     }
 
@@ -777,14 +827,7 @@ mod tests {
                 explanation: "verbose mode".to_string(),
             }],
         };
-        let doc = build_tool_doc(
-            &record,
-            &None,
-            &None,
-            &None,
-            &HashMap::new(),
-            &Some(skill),
-        );
+        let doc = build_tool_doc(&record, &None, &None, &None, &HashMap::new(), &Some(skill));
         assert_eq!(doc.concepts, vec!["alignment"]);
         assert_eq!(doc.pitfalls, vec!["wrong order"]);
         assert_eq!(doc.examples.len(), 1);
@@ -795,7 +838,8 @@ mod tests {
     #[test]
     fn test_build_tool_doc_with_subcommand_helps() {
         let record = make_test_record();
-        let mut schema = crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::Subcommand);
+        let mut schema =
+            crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::Subcommand);
         schema.subcommands = vec![crate::schema::types::SubcommandSchema {
             name: "sort".to_string(),
             description: "Sort data".to_string(),
@@ -808,25 +852,22 @@ mod tests {
         let mut subcmd_helps = HashMap::new();
         subcmd_helps.insert("sort".to_string(), "Usage: testtool sort [options] INPUT\nOptions:\n  -t INT    Number of threads\n  -o FILE   Output file".to_string());
 
-        let doc = build_tool_doc(
-            &record,
-            &None,
-            &Some(schema),
-            &None,
-            &subcmd_helps,
-            &None,
-        );
+        let doc = build_tool_doc(&record, &None, &Some(schema), &None, &subcmd_helps, &None);
         assert_eq!(doc.subcommands.len(), 1);
         assert_eq!(doc.subcommands[0].name, "sort");
         assert!(!doc.subcommands[0].flags.is_empty());
         assert_eq!(doc.subcommands[0].flags[0].name, "-t");
-        assert_eq!(doc.subcommands[0].flags[0].category, FlagCategory::Performance);
+        assert_eq!(
+            doc.subcommands[0].flags[0].category,
+            FlagCategory::Performance
+        );
     }
 
     #[test]
     fn test_build_tool_doc_schema_with_flags() {
         let record = make_test_record();
-        let mut schema = crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::FlagsFirst);
+        let mut schema =
+            crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::FlagsFirst);
         schema.flags = vec![crate::schema::types::FlagSchema {
             name: "-o".to_string(),
             aliases: vec!["--output".to_string()],
@@ -846,14 +887,7 @@ mod tests {
             long_description: None,
         }];
 
-        let doc = build_tool_doc(
-            &record,
-            &None,
-            &Some(schema),
-            &None,
-            &HashMap::new(),
-            &None,
-        );
+        let doc = build_tool_doc(&record, &None, &Some(schema), &None, &HashMap::new(), &None);
         assert_eq!(doc.flags.len(), 1);
         assert_eq!(doc.flags[0].name, "-o");
         assert_eq!(doc.flags[0].category, FlagCategory::Output);
@@ -865,7 +899,8 @@ mod tests {
     #[test]
     fn test_build_tool_doc_schema_with_positionals() {
         let record = make_test_record();
-        let mut schema = crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::Positional);
+        let mut schema =
+            crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::Positional);
         schema.positionals = vec![crate::schema::types::PositionalSchema {
             name: "INPUT".to_string(),
             position: 0,
@@ -875,14 +910,7 @@ mod tests {
             default: None,
         }];
 
-        let doc = build_tool_doc(
-            &record,
-            &None,
-            &Some(schema),
-            &None,
-            &HashMap::new(),
-            &None,
-        );
+        let doc = build_tool_doc(&record, &None, &Some(schema), &None, &HashMap::new(), &None);
         assert_eq!(doc.positionals.len(), 1);
         assert_eq!(doc.positionals[0].name, "INPUT");
     }
@@ -890,26 +918,22 @@ mod tests {
     #[test]
     fn test_build_tool_doc_schema_with_constraints() {
         let record = make_test_record();
-        let mut schema = crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::FlagsFirst);
+        let mut schema =
+            crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::FlagsFirst);
         schema.constraints = vec![crate::schema::types::ConstraintRule::MutuallyExclusive(
-            "-a".to_string(), "-b".to_string()
+            "-a".to_string(),
+            "-b".to_string(),
         )];
 
-        let doc = build_tool_doc(
-            &record,
-            &None,
-            &Some(schema),
-            &None,
-            &HashMap::new(),
-            &None,
-        );
+        let doc = build_tool_doc(&record, &None, &Some(schema), &None, &HashMap::new(), &None);
         assert_eq!(doc.constraints.len(), 1);
     }
 
     #[test]
     fn test_build_tool_doc_subcommand_no_help() {
         let record = make_test_record();
-        let mut schema = crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::Subcommand);
+        let mut schema =
+            crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::Subcommand);
         schema.subcommands = vec![crate::schema::types::SubcommandSchema {
             name: "index".to_string(),
             description: "Build index".to_string(),
@@ -920,14 +944,7 @@ mod tests {
             task_keywords: vec!["index".to_string()],
         }];
 
-        let doc = build_tool_doc(
-            &record,
-            &None,
-            &Some(schema),
-            &None,
-            &HashMap::new(),
-            &None,
-        );
+        let doc = build_tool_doc(&record, &None, &Some(schema), &None, &HashMap::new(), &None);
         assert_eq!(doc.subcommands.len(), 1);
         assert_eq!(doc.subcommands[0].name, "index");
         assert!(doc.subcommands[0].flags.is_empty());
@@ -987,7 +1004,8 @@ mod tests {
     #[test]
     fn test_build_tool_doc_subcommand_help_with_positionals() {
         let record = make_test_record();
-        let mut schema = crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::Subcommand);
+        let mut schema =
+            crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::Subcommand);
         schema.subcommands = vec![crate::schema::types::SubcommandSchema {
             name: "view".to_string(),
             description: "View data".to_string(),
@@ -1000,14 +1018,7 @@ mod tests {
         let mut subcmd_helps = HashMap::new();
         subcmd_helps.insert("view".to_string(), "Usage: testtool view INPUT OUTPUT\nPositional arguments:\n  INPUT   Input file\n  OUTPUT  Output file".to_string());
 
-        let doc = build_tool_doc(
-            &record,
-            &None,
-            &Some(schema),
-            &None,
-            &subcmd_helps,
-            &None,
-        );
+        let doc = build_tool_doc(&record, &None, &Some(schema), &None, &subcmd_helps, &None);
         assert_eq!(doc.subcommands.len(), 1);
         assert!(!doc.subcommands[0].positionals.is_empty());
     }
@@ -1015,7 +1026,8 @@ mod tests {
     #[test]
     fn test_build_tool_doc_subcommand_help_with_usage() {
         let record = make_test_record();
-        let mut schema = crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::Subcommand);
+        let mut schema =
+            crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::Subcommand);
         schema.subcommands = vec![crate::schema::types::SubcommandSchema {
             name: "sort".to_string(),
             description: "Sort data".to_string(),
@@ -1026,23 +1038,22 @@ mod tests {
             task_keywords: vec!["sort".to_string()],
         }];
         let mut subcmd_helps = HashMap::new();
-        subcmd_helps.insert("sort".to_string(), "Usage: testtool sort [options] INPUT\nOptions:\n  -@ INT  Threads".to_string());
-
-        let doc = build_tool_doc(
-            &record,
-            &None,
-            &Some(schema),
-            &None,
-            &subcmd_helps,
-            &None,
+        subcmd_helps.insert(
+            "sort".to_string(),
+            "Usage: testtool sort [options] INPUT\nOptions:\n  -@ INT  Threads".to_string(),
         );
-        assert!(!doc.subcommands[0].usage_pattern.is_empty() || !doc.subcommands[0].flags.is_empty());
+
+        let doc = build_tool_doc(&record, &None, &Some(schema), &None, &subcmd_helps, &None);
+        assert!(
+            !doc.subcommands[0].usage_pattern.is_empty() || !doc.subcommands[0].flags.is_empty()
+        );
     }
 
     #[test]
     fn test_build_tool_doc_skill_with_subcommands() {
         let record = make_test_record();
-        let mut schema = crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::Subcommand);
+        let mut schema =
+            crate::schema::CliSchema::minimal("testtool", crate::schema::CliStyle::Subcommand);
         schema.subcommands = vec![crate::schema::types::SubcommandSchema {
             name: "run".to_string(),
             description: "Run analysis".to_string(),

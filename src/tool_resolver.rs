@@ -104,9 +104,7 @@ fn resolve_global(tool: &str) -> Result<ToolRecord> {
 
     Ok(ToolRecord {
         name: tool.to_string(),
-        resolved_path: global_path
-            .clone()
-            .unwrap_or_else(|| PathBuf::from(tool)),
+        resolved_path: global_path.clone().unwrap_or_else(|| PathBuf::from(tool)),
         interpreter: if global_path.is_some() {
             Some(interpreter)
         } else {
@@ -207,10 +205,7 @@ fn detect_version(tool: &str, interpreter: &Interpreter) -> Option<String> {
 
 fn try_detect_version(tool: &str, flags: &[&str]) -> Option<String> {
     for flag in flags {
-        if let Ok(output) = std::process::Command::new(tool)
-            .arg(flag)
-            .output()
-        {
+        if let Ok(output) = std::process::Command::new(tool).arg(flag).output() {
             if output.status.success() || output.status.code() == Some(0) {
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 let stderr = String::from_utf8_lossy(&output.stderr);
@@ -266,10 +261,7 @@ fn discover_companions(tool: &str) -> Vec<String> {
                     }
                     Some('.') => {
                         let rest = &suffix[1..];
-                        matches!(
-                            rest,
-                            "py" | "sh" | "pl" | "R" | "rb" | "jl"
-                        )
+                        matches!(rest, "py" | "sh" | "pl" | "R" | "rb" | "jl")
                     }
                     _ => false,
                 };
@@ -338,8 +330,10 @@ mod tests {
     fn test_discover_companions_bowtie2() {
         if which_tool("bowtie2").is_some() {
             let companions = discover_companions("bowtie2");
-            assert!(companions.contains(&"bowtie2-build".to_string())
-                || companions.contains(&"bowtie2-inspect".to_string()));
+            assert!(
+                companions.contains(&"bowtie2-build".to_string())
+                    || companions.contains(&"bowtie2-inspect".to_string())
+            );
         }
     }
 
@@ -362,7 +356,9 @@ mod tests {
         let record = ToolRecord {
             name: "./run.sh".to_string(),
             resolved_path: PathBuf::from("/home/user/run.sh"),
-            interpreter: Some(Interpreter::Bash { path: PathBuf::from("/bin/bash") }),
+            interpreter: Some(Interpreter::Bash {
+                path: PathBuf::from("/bin/bash"),
+            }),
             is_path_dependent: true,
             global_path: None,
             version: None,
@@ -513,10 +509,7 @@ mod tests {
         std::fs::create_dir_all(&dir).ok();
         let file_path = dir.join("tool.sh");
         std::fs::File::create(&file_path).ok();
-        let abs = std::env::current_dir()
-            .unwrap()
-            .join(&dir)
-            .join("tool.sh");
+        let abs = std::env::current_dir().unwrap().join(&dir).join("tool.sh");
         if abs.exists() {
             let record = resolve_path_dependent(abs.to_str().unwrap()).unwrap();
             assert!(record.is_path_dependent);

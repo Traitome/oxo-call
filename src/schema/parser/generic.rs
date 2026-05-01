@@ -857,7 +857,11 @@ mod tests {
     fn test_parse_subcommands_from_usage_pattern() {
         let help = "Usage: tool {sort,merge,index} [options]\n";
         let subcmds = parse_subcommands_generic(help);
-        assert!(subcmds.len() >= 3, "expected 3+ subcommands, got {}", subcmds.len());
+        assert!(
+            subcmds.len() >= 3,
+            "expected 3+ subcommands, got {}",
+            subcmds.len()
+        );
     }
 
     #[test]
@@ -891,17 +895,15 @@ mod tests {
     fn test_calculate_doc_quality_with_flags() {
         let mut schema = CliSchema::minimal("tool", CliStyle::FlagsFirst);
         schema.usage_summary = "tool [options]".to_string();
-        schema.flags = vec![
-            FlagSchema {
-                name: "--output".to_string(),
-                aliases: vec!["-o".to_string()],
-                param_type: ParamType::File,
-                description: "Output file".to_string(),
-                default: None,
-                required: false,
-                long_description: None,
-            },
-        ];
+        schema.flags = vec![FlagSchema {
+            name: "--output".to_string(),
+            aliases: vec!["-o".to_string()],
+            param_type: ParamType::File,
+            description: "Output file".to_string(),
+            default: None,
+            required: false,
+            long_description: None,
+        }];
         let score = calculate_doc_quality_generic(&schema);
         assert!(score > 0.3);
     }
