@@ -223,10 +223,8 @@ mod tests {
 
     #[test]
     fn test_feedback_record_and_load() {
-        // Use a temporary data dir to avoid clobbering real data.
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         let tmp = tempfile::tempdir().unwrap();
-        // SAFETY: This test is single-threaded within its own tempdir and
-        // the env var is restored at the end.
         unsafe { std::env::set_var("OXO_CALL_DATA_DIR", tmp.path()) };
 
         let entry = FeedbackEntry {
@@ -277,8 +275,5 @@ mod tests {
         // Stats for unknown tool
         let empty_stats = FeedbackCollector::stats_for_tool("unknown_tool").unwrap();
         assert_eq!(empty_stats.total, 0);
-
-        // SAFETY: Restoring the env var; single-threaded test context.
-        unsafe { std::env::remove_var("OXO_CALL_DATA_DIR") };
     }
 }

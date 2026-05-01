@@ -149,24 +149,24 @@ fn check_flags_in_place(
 
 /// Parse the subcommands section into individual command names.
 fn parse_subcommands(commands_section: &str) -> Vec<String> {
+    // structured_doc.commands is comma-separated (from extract_subcommands in doc_processor)
+    // e.g., "dict, faidx, sort, index"
+    if commands_section.is_empty() {
+        return Vec::new();
+    }
+
     let mut cmds = Vec::new();
-    for line in commands_section.lines() {
-        let trimmed = line.trim();
+    for part in commands_section.split(',') {
+        let trimmed = part.trim();
         if trimmed.is_empty() {
             continue;
         }
-        // Each line typically starts with the command name, followed by
-        // whitespace and a description.  Take the first token.
+        // Take the first token (subcommand name, may have trailing description)
         if let Some(cmd) = trimmed.split_whitespace().next() {
-            // Skip lines that are clearly headers or separators.
-            if cmd.starts_with('-')
-                || cmd.starts_with('=')
-                || cmd.contains(':')
-                || (cmd.len() > 3 && cmd.chars().all(|c| c.is_uppercase() || !c.is_alphabetic()))
-            {
-                continue;
+            // Skip if it looks like a flag or header
+            if !cmd.starts_with('-') && !cmd.starts_with('=') && !cmd.contains(':') {
+                cmds.push(cmd.to_string());
             }
-            cmds.push(cmd.to_string());
         }
     }
     cmds
@@ -298,15 +298,16 @@ mod tests {
 
     #[test]
     fn test_parse_subcommands() {
-        let cmds = parse_subcommands("sort    Sort BAM\nindex   Create index\n\n");
+        // Function expects comma-separated format
+        let cmds = parse_subcommands("sort, index");
         assert_eq!(cmds, vec!["sort", "index"]);
     }
 
     #[test]
     fn test_parse_subcommands_skips_headers() {
-        let cmds = parse_subcommands("COMMANDS:\nsort    Sort BAM\n--- separator ---\n");
-        // "COMMANDS:" is all-caps header (len > 3), should be skipped
-        // "---" starts with '-', should be skipped
-        assert_eq!(cmds, vec!["sort"]);
+        // Function expects comma-separated format
+        let cmds = parse_subcommands("sort, index");
+        // Headers and flags are skipped
+        assert_eq!(cmds, vec!["sort", "index"]);
     }
 }

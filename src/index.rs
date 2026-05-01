@@ -658,4 +658,59 @@ mod tests {
         assert!(loaded.get("star").is_some());
         assert!(loaded.get("hisat2").is_some());
     }
+
+    #[test]
+    fn test_docindex_entries_vec() {
+        let mut idx = DocIndex::default();
+        idx.upsert(make_entry("samtools", 1024));
+        idx.upsert(make_entry("bwa", 512));
+        let vec = idx.entries_vec();
+        assert_eq!(vec.len(), 2);
+    }
+
+    #[test]
+    fn test_docindex_corrupt_json_falls_back() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        std::fs::write(tmp.path().join("index.json"), "not valid json at all").unwrap();
+        let result = DocIndex::load();
+        assert!(result.is_err(), "corrupt JSON should error");
+    }
+
+    #[test]
+    fn test_index_entry_multiple_sources() {
+        let entry = IndexEntry {
+            tool_name: "gatk".to_string(),
+            version: Some("4.2.6.1".to_string()),
+            indexed_at: Utc::now(),
+            doc_size_bytes: 8192,
+            sources: vec!["help".to_string(), "remote:https://example.com".to_string()],
+        };
+        let json = serde_json::to_string(&entry).unwrap();
+        let back: IndexEntry = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.sources.len(), 2);
+        assert_eq!(back.version.as_deref(), Some("4.2.6.1"));
+    }
+
+    #[test]
+    fn test_docindex_save_creates_directory() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let mut idx = DocIndex::default();
+        idx.upsert(make_entry("test", 100));
+        idx.save().unwrap();
+        assert!(tmp.path().join("index.json").exists());
+    }
+
+    #[test]
+    fn test_index_manager_new() {
+        let config = Config::default();
+        let _mgr = IndexManager::new(config);
+    }
 }

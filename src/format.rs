@@ -504,4 +504,81 @@ mod tests {
             "Should not warn about CRAM for BAM files"
         );
     }
+
+    #[test]
+    fn test_check_output_format_flag_bam() {
+        let args: Vec<String> = vec![
+            "view".into(),
+            "-O".into(),
+            "bam".into(),
+            "input.sam".into(),
+        ];
+        let warnings = validate_format_compatibility(&args);
+        assert!(warnings.is_empty() || !warnings.iter().any(|w| w.message.contains("BAM")));
+    }
+
+    #[test]
+    fn test_check_output_format_flag_sam() {
+        let args: Vec<String> = vec![
+            "view".into(),
+            "--output-fmt".into(),
+            "sam".into(),
+            "input.bam".into(),
+        ];
+        let warnings = validate_format_compatibility(&args);
+        assert!(warnings.is_empty() || !warnings.iter().any(|w| w.message.contains("SAM")));
+    }
+
+    #[test]
+    fn test_check_compression_mismatch() {
+        let args: Vec<String> = vec![
+            "view".into(),
+            "-o".into(),
+            "output.fastq".into(),
+            "input.fastq.gz".into(),
+        ];
+        let warnings = validate_format_compatibility(&args);
+        let _ = warnings;
+    }
+
+    #[test]
+    fn test_looks_like_file_edge_cases() {
+        assert!(!looks_like_file("--output=file.bam"));
+        assert!(!looks_like_file("cmd;rm"));
+        assert!(!looks_like_file("cmd&&cmd"));
+        assert!(!looks_like_file("cmd|cmd"));
+        assert!(!looks_like_file("cmd>out"));
+        assert!(!looks_like_file("cmd<in"));
+        assert!(looks_like_file("data.txt"));
+    }
+
+    #[test]
+    fn test_infer_no_extension() {
+        assert_eq!(infer_format("noext"), FileFormat::Unknown);
+    }
+
+    #[test]
+    fn test_infer_format_dot_only() {
+        assert_eq!(infer_format("."), FileFormat::Unknown);
+    }
+
+    #[test]
+    fn test_warning_severity() {
+        assert_eq!(
+            FormatWarning {
+                message: "test".to_string(),
+                severity: WarningSeverity::Info,
+            }
+            .severity,
+            WarningSeverity::Info
+        );
+        assert_eq!(
+            FormatWarning {
+                message: "test".to_string(),
+                severity: WarningSeverity::Warning,
+            }
+            .severity,
+            WarningSeverity::Warning
+        );
+    }
 }

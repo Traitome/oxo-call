@@ -32,12 +32,17 @@
 //! - `server` — Remote server management
 //! - `license` — License activation and verification
 
+mod bench;
 mod cache;
 mod chat;
 mod cli;
+mod command_assembler;
+mod command_validator;
+mod confidence;
 mod config;
 mod context;
 mod copilot_auth;
+mod doc_explorer;
 mod doc_processor;
 mod doc_summarizer;
 mod docs;
@@ -49,6 +54,7 @@ mod generator;
 mod handlers;
 mod history;
 mod index;
+mod intent_mapper;
 mod job;
 mod knowledge;
 mod license;
@@ -56,15 +62,19 @@ mod llm;
 mod llm_workflow;
 mod markdown;
 mod mcp;
-mod mini_skill_cache;
 mod orchestrator;
+mod pipeline;
+mod rag;
 mod runner;
-mod sanitize;
+mod schema;
 mod server;
 mod skill;
 mod streaming_display;
-mod task_complexity;
+mod subcommand_detector;
 mod task_normalizer;
+mod tool_doc;
+mod tool_resolver;
+mod validator;
 mod workflow;
 mod workflow_graph;
 
@@ -261,58 +271,18 @@ async fn run(cli: Cli) -> error::Result<()> {
             auto_retry,
             scenario,
             no_stream,
-            no_skill: cli_no_skill,
-            no_doc: cli_no_doc,
-            no_prompt: cli_no_prompt,
         } => {
             let mut cfg = base_cfg.clone();
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
             }
 
-            // Convert validated scenario enum to workflow scenario
-            // and set ablation flags based on scenario OR CLI options
-            // CLI options override scenario defaults when explicitly set
-            let (force_scenario, no_skill, no_doc, no_prompt) = match scenario {
-                Some(RunScenario::Bare) => (
-                    Some(workflow_graph::WorkflowScenario::Bare),
-                    true, // no_skill
-                    true, // no_doc
-                    true, // no_prompt
-                ),
-                Some(RunScenario::Prompt) => (
-                    Some(workflow_graph::WorkflowScenario::Prompt),
-                    true,  // no_skill
-                    true,  // no_doc
-                    false, // no_prompt
-                ),
-                Some(RunScenario::Doc) => (
-                    Some(workflow_graph::WorkflowScenario::Doc),
-                    true,  // no_skill
-                    false, // no_doc
-                    false, // no_prompt
-                ),
-                Some(RunScenario::Skill) => (
-                    Some(workflow_graph::WorkflowScenario::Skill),
-                    false, // no_skill
-                    true,  // no_doc
-                    false, // no_prompt
-                ),
-                Some(RunScenario::Full) => (
-                    Some(workflow_graph::WorkflowScenario::Full),
-                    false, // no_skill
-                    false, // no_doc
-                    false, // no_prompt
-                ),
-                None => (None, false, false, false),
-            };
+            let force_scenario = scenario.map(|s| match s {
+                RunScenario::Bare => workflow_graph::WorkflowScenario::Bare,
+                RunScenario::Doc => workflow_graph::WorkflowScenario::Doc,
+                RunScenario::Full => workflow_graph::WorkflowScenario::Full,
+            });
 
-            // CLI ablation options override scenario-based settings
-            let no_skill = no_skill || cli_no_skill;
-            let no_doc = no_doc || cli_no_doc;
-            let no_prompt = no_prompt || cli_no_prompt;
-
-            // Collect input items from --input-list / --input-items.
             let all_items = {
                 let mut v: Vec<String> = Vec::new();
                 if let Some(ref path) = input_list {
@@ -329,7 +299,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                 v
             };
 
-            // Parse --var KEY=VALUE pairs.
             let var_map = {
                 let mut m = std::collections::HashMap::new();
                 for v in &vars {
@@ -343,9 +312,6 @@ async fn run(cli: Cli) -> error::Result<()> {
             runner
                 .with_verbose(verbose)
                 .with_no_cache(no_cache)
-                .with_no_skill(no_skill)
-                .with_no_doc(no_doc)
-                .with_no_prompt(no_prompt)
                 .with_verify(verify)
                 .with_auto_retry(auto_retry)
                 .with_no_stream(no_stream);
@@ -366,9 +332,6 @@ async fn run(cli: Cli) -> error::Result<()> {
             model,
             no_cache,
             json,
-            no_skill,
-            no_doc,
-            no_prompt,
             vars,
             input_list,
             input_items,
@@ -382,41 +345,11 @@ async fn run(cli: Cli) -> error::Result<()> {
                 cfg.llm.model = Some(m.clone());
             }
 
-            // Convert validated scenario enum to workflow scenario
-            // and set ablation flags based on scenario
-            let (force_scenario, no_skill, no_doc, no_prompt) = match scenario {
-                Some(RunScenario::Bare) => (
-                    Some(workflow_graph::WorkflowScenario::Bare),
-                    true,
-                    true,
-                    true,
-                ),
-                Some(RunScenario::Prompt) => (
-                    Some(workflow_graph::WorkflowScenario::Prompt),
-                    true,
-                    true,
-                    false,
-                ),
-                Some(RunScenario::Doc) => (
-                    Some(workflow_graph::WorkflowScenario::Doc),
-                    true,
-                    false,
-                    false,
-                ),
-                Some(RunScenario::Skill) => (
-                    Some(workflow_graph::WorkflowScenario::Skill),
-                    false,
-                    true,
-                    false,
-                ),
-                Some(RunScenario::Full) => (
-                    Some(workflow_graph::WorkflowScenario::Full),
-                    false,
-                    false,
-                    false,
-                ),
-                None => (None, no_skill, no_doc, no_prompt),
-            };
+            let force_scenario = scenario.map(|s| match s {
+                RunScenario::Bare => workflow_graph::WorkflowScenario::Bare,
+                RunScenario::Doc => workflow_graph::WorkflowScenario::Doc,
+                RunScenario::Full => workflow_graph::WorkflowScenario::Full,
+            });
 
             let all_items = {
                 let mut v: Vec<String> = Vec::new();
@@ -447,9 +380,6 @@ async fn run(cli: Cli) -> error::Result<()> {
             runner
                 .with_verbose(verbose)
                 .with_no_cache(no_cache)
-                .with_no_skill(no_skill)
-                .with_no_doc(no_doc)
-                .with_no_prompt(no_prompt)
                 .with_no_stream(no_stream)
                 .with_jobs(jobs)
                 .with_stop_on_error(stop_on_error);

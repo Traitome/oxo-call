@@ -187,6 +187,33 @@ pub struct DocsConfig {
     pub remote_sources: Vec<String>,
     /// Whether to auto-update docs cache on first use
     pub auto_update: bool,
+    /// RAG (Retrieval-Augmented Generation) configuration
+    #[serde(default)]
+    pub rag: RagConfig,
+}
+
+/// RAG configuration for enhanced command generation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RagConfig {
+    /// Enable RAG for doc mode
+    pub enabled: bool,
+    /// Number of similar examples to retrieve
+    pub num_examples: usize,
+    /// Similarity threshold for examples
+    pub similarity_threshold: f32,
+    /// Enable semantic search
+    pub semantic_search: bool,
+}
+
+impl Default for RagConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false, // Disabled by default for backward compatibility
+            num_examples: 3,
+            similarity_threshold: 0.3,
+            semantic_search: true,
+        }
+    }
 }
 
 /// License configuration — kept for backward-compatible TOML deserialization.
@@ -219,6 +246,7 @@ impl Default for Config {
                 local_paths: Vec::new(),
                 remote_sources: Vec::new(),
                 auto_update: true,
+                rag: RagConfig::default(),
             },
             license: LicenseConfig::default(),
             mcp: McpConfig::default(),

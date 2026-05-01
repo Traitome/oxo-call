@@ -703,3 +703,364 @@ pub(crate) fn has_bio_extension(path: &str) -> bool {
         .iter()
         .any(|ext| ends_with_ignore_ascii_case(path, ext))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_contains_ignore_ascii_case_basic() {
+        assert!(contains_ignore_ascii_case("Sort BAM file", "sort"));
+        assert!(contains_ignore_ascii_case("Sort BAM file", "bam"));
+        assert!(!contains_ignore_ascii_case("Sort BAM file", "xyz"));
+    }
+
+    #[test]
+    fn test_contains_ignore_ascii_case_empty_needle() {
+        assert!(contains_ignore_ascii_case("any text", ""));
+    }
+
+    #[test]
+    fn test_contains_ignore_ascii_case_short_haystack() {
+        assert!(!contains_ignore_ascii_case("ab", "abc"));
+    }
+
+    #[test]
+    fn test_ends_with_ignore_ascii_case() {
+        assert!(ends_with_ignore_ascii_case("file.BAM", ".bam"));
+        assert!(ends_with_ignore_ascii_case("file.fastq.gz", ".gz"));
+        assert!(!ends_with_ignore_ascii_case("file.txt", ".bam"));
+    }
+
+    #[test]
+    fn test_ends_with_ignore_ascii_case_empty_needle() {
+        assert!(ends_with_ignore_ascii_case("anything", ""));
+    }
+
+    #[test]
+    fn test_ends_with_ignore_ascii_case_short_haystack() {
+        assert!(!ends_with_ignore_ascii_case("a", ".bam"));
+    }
+
+    #[test]
+    fn test_build_command_string_simple() {
+        let args: Vec<String> = vec!["sort".to_string(), "-o".to_string(), "out.bam".to_string()];
+        let result = build_command_string("samtools", &args);
+        assert!(result.starts_with("samtools"));
+        assert!(result.contains("sort"));
+    }
+
+    #[test]
+    fn test_build_command_string_no_args() {
+        let result = build_command_string("ls", &[]);
+        assert_eq!(result, "ls");
+    }
+
+    #[test]
+    fn test_build_command_string_with_spaces() {
+        let args: Vec<String> = vec!["my file.bam".to_string()];
+        let result = build_command_string("cat", &args);
+        assert!(result.contains("'my file.bam'"));
+    }
+
+    #[test]
+    fn test_build_command_string_with_shell_operator() {
+        let args: Vec<String> = vec!["sort".to_string(), "in.bam".to_string(), ">".to_string(), "out.bam".to_string()];
+        let result = build_command_string("samtools", &args);
+        assert!(result.contains(" > "));
+    }
+
+    #[test]
+    fn test_build_command_string_with_single_quotes() {
+        let args: Vec<String> = vec!["it's".to_string()];
+        let result = build_command_string("echo", &args);
+        assert!(result.contains("'\\''"));
+    }
+
+    #[test]
+    fn test_effective_command_no_companion() {
+        let args: Vec<String> = vec!["sort".to_string(), "in.bam".to_string()];
+        let (tool, eff_args) = effective_command("samtools", &args);
+        assert_eq!(tool, "samtools");
+        assert_eq!(eff_args.len(), 2);
+    }
+
+    #[test]
+    fn test_effective_command_companion_binary() {
+        let args: Vec<String> = vec!["bowtie2-build".to_string(), "ref.fa".to_string()];
+        let (tool, eff_args) = effective_command("bowtie2", &args);
+        assert_eq!(tool, "bowtie2-build");
+        assert_eq!(eff_args.len(), 1);
+    }
+
+    #[test]
+    fn test_effective_command_script_executable() {
+        let args: Vec<String> = vec!["run_bwa.sh".to_string(), "ref.fa".to_string()];
+        let (tool, eff_args) = effective_command("bwa", &args);
+        assert_eq!(tool, "run_bwa.sh");
+        assert_eq!(eff_args.len(), 1);
+    }
+
+    #[test]
+    fn test_is_script_executable() {
+        assert!(is_script_executable("run_bwa.sh"));
+        assert!(is_script_executable("process.py"));
+        assert!(is_script_executable("analyze.R"));
+        assert!(!is_script_executable("path/to/run.sh"));
+        assert!(!is_script_executable("-flag.sh"));
+        assert!(!is_script_executable("noext"));
+        assert!(!is_script_executable(".sh"));
+    }
+
+    #[test]
+    fn test_is_companion_binary_forward_prefix() {
+        assert!(is_companion_binary("bowtie2", "bowtie2-build"));
+        assert!(is_companion_binary("samtools", "samtools_sort"));
+    }
+
+    #[test]
+    fn test_is_companion_binary_reverse_suffix() {
+        assert!(is_companion_binary("bwa", "run_bwa"));
+    }
+
+    #[test]
+    fn test_is_companion_binary_flag() {
+        assert!(!is_companion_binary("samtools", "-sort"));
+    }
+
+    #[test]
+    fn test_is_companion_binary_script() {
+        assert!(is_companion_binary("bwa", "bwa_align.sh"));
+    }
+
+    #[test]
+    fn test_is_companion_binary_unrelated() {
+        assert!(!is_companion_binary("samtools", "bwa-mem"));
+    }
+
+    #[test]
+    fn test_is_shell_operator() {
+        assert!(is_shell_operator("&&"));
+        assert!(is_shell_operator("||"));
+        assert!(is_shell_operator("|"));
+        assert!(is_shell_operator(">"));
+        assert!(is_shell_operator(">>"));
+        assert!(is_shell_operator("2>"));
+        assert!(!is_shell_operator("sort"));
+        assert!(!is_shell_operator("-o"));
+    }
+
+    #[test]
+    fn test_args_require_shell() {
+        assert!(args_require_shell(&["sort".to_string(), "|".to_string(), "grep".to_string()]));
+        assert!(!args_require_shell(&["sort".to_string(), "-o".to_string(), "out.bam".to_string()]));
+    }
+
+    #[test]
+    fn test_needs_quoting() {
+        assert!(needs_quoting("my file.bam"));
+        assert!(needs_quoting("$HOME"));
+        assert!(needs_quoting("a;b"));
+        assert!(!needs_quoting("simple.bam"));
+        assert!(!needs_quoting("-o"));
+    }
+
+    #[test]
+    fn test_sha256_hex() {
+        let h = sha256_hex("hello");
+        assert_eq!(h.len(), 64);
+        let h2 = sha256_hex("hello");
+        assert_eq!(h, h2, "deterministic");
+        let h3 = sha256_hex("world");
+        assert_ne!(h, h3, "different inputs");
+    }
+
+    #[test]
+    fn test_parse_version_simple() {
+        assert_eq!(parse_version("1.17.0"), Some((1, 17, 0)));
+        assert_eq!(parse_version("1.17"), Some((1, 17, 0)));
+        assert_eq!(parse_version("2.0.1"), Some((2, 0, 1)));
+    }
+
+    #[test]
+    fn test_parse_version_with_prefix() {
+        assert_eq!(parse_version("samtools 1.17"), Some((1, 17, 0)));
+        assert_eq!(parse_version("bwa-mem2 version 2.2.1"), Some((2, 2, 1)));
+    }
+
+    #[test]
+    fn test_parse_version_no_dots() {
+        assert_eq!(parse_version("42"), None);
+    }
+
+    #[test]
+    fn test_parse_version_empty() {
+        assert_eq!(parse_version(""), None);
+    }
+
+    #[test]
+    fn test_check_version_compatible() {
+        assert!(check_version_compatibility("1.17.0", Some("1.0.0"), None).is_ok());
+        assert!(check_version_compatibility("1.17.0", None, Some("2.0.0")).is_ok());
+        assert!(check_version_compatibility("1.17.0", Some("2.0.0"), None).is_err());
+        assert!(check_version_compatibility("3.0.0", None, Some("2.0.0")).is_err());
+    }
+
+    #[test]
+    fn test_check_version_compatible_no_constraints() {
+        assert!(check_version_compatibility("1.0.0", None, None).is_ok());
+    }
+
+    #[test]
+    fn test_check_version_compatible_unparseable() {
+        assert!(check_version_compatibility("no-version", Some("1.0.0"), None).is_err());
+    }
+
+    #[test]
+    fn test_make_spinner() {
+        let pb = make_spinner("testing");
+        pb.finish_and_clear();
+    }
+
+    #[test]
+    fn test_detect_output_files_dash_o() {
+        let args: Vec<String> = vec!["-o".to_string(), "out.bam".to_string()];
+        let files = detect_output_files(&args);
+        assert!(files.contains(&"out.bam".to_string()));
+    }
+
+    #[test]
+    fn test_detect_output_files_equals() {
+        let args: Vec<String> = vec!["--output=out.bam".to_string()];
+        let files = detect_output_files(&args);
+        assert!(files.contains(&"out.bam".to_string()));
+    }
+
+    #[test]
+    fn test_detect_output_files_positional() {
+        let args: Vec<String> = vec!["input.bam".to_string(), "output.bam".to_string()];
+        let files = detect_output_files(&args);
+        assert!(files.contains(&"input.bam".to_string()));
+        assert!(files.contains(&"output.bam".to_string()));
+    }
+
+    #[test]
+    fn test_detect_output_files_empty() {
+        let files = detect_output_files(&[]);
+        assert!(files.is_empty());
+    }
+
+    #[test]
+    fn test_assess_command_risk_safe() {
+        let args: Vec<String> = vec!["sort".to_string(), "-o".to_string(), "out.bam".to_string()];
+        assert_eq!(assess_command_risk(&args), RiskLevel::Safe);
+    }
+
+    #[test]
+    fn test_assess_command_risk_dangerous_rm() {
+        let args: Vec<String> = vec!["rm".to_string(), "-rf".to_string(), "/".to_string()];
+        assert_eq!(assess_command_risk(&args), RiskLevel::Dangerous);
+    }
+
+    #[test]
+    fn test_assess_command_risk_dangerous_sudo() {
+        let args: Vec<String> = vec!["sudo".to_string(), "apt".to_string(), "install".to_string()];
+        assert_eq!(assess_command_risk(&args), RiskLevel::Dangerous);
+    }
+
+    #[test]
+    fn test_assess_command_risk_dangerous_via_path() {
+        let args: Vec<String> = vec!["/bin/rm".to_string(), "file.txt".to_string()];
+        assert_eq!(assess_command_risk(&args), RiskLevel::Dangerous);
+    }
+
+    #[test]
+    fn test_assess_command_risk_warning_force() {
+        let args: Vec<String> = vec!["cp".to_string(), "--force".to_string(), "a".to_string(), "b".to_string()];
+        assert_eq!(assess_command_risk(&args), RiskLevel::Warning);
+    }
+
+    #[test]
+    fn test_assess_command_risk_warning_redirect() {
+        let args: Vec<String> = vec!["echo".to_string(), "hello".to_string(), ">".to_string(), "file.txt".to_string()];
+        assert_eq!(assess_command_risk(&args), RiskLevel::Warning);
+    }
+
+    #[test]
+    fn test_assess_command_risk_empty() {
+        assert_eq!(assess_command_risk(&[]), RiskLevel::Safe);
+    }
+
+    #[test]
+    fn test_risk_level_max() {
+        assert_eq!(RiskLevel::Safe.max_level(RiskLevel::Warning), RiskLevel::Warning);
+        assert_eq!(RiskLevel::Warning.max_level(RiskLevel::Dangerous), RiskLevel::Dangerous);
+        assert_eq!(RiskLevel::Safe.max_level(RiskLevel::Safe), RiskLevel::Safe);
+    }
+
+    #[test]
+    fn test_risk_warning_message() {
+        assert!(risk_warning_message(RiskLevel::Dangerous).is_some());
+        assert!(risk_warning_message(RiskLevel::Warning).is_some());
+        assert!(risk_warning_message(RiskLevel::Safe).is_none());
+    }
+
+    #[test]
+    fn test_has_same_input_output() {
+        let args: Vec<String> = vec!["-o".to_string(), "file.bam".to_string(), "file.bam".to_string()];
+        assert!(has_same_input_output(&args));
+    }
+
+    #[test]
+    fn test_has_different_input_output() {
+        let args: Vec<String> = vec!["-o".to_string(), "out.bam".to_string(), "in.bam".to_string()];
+        assert!(!has_same_input_output(&args));
+    }
+
+    #[test]
+    fn test_validate_input_files_nonexistent() {
+        let args: Vec<String> = vec!["nonexistent_file.bam".to_string()];
+        let missing = validate_input_files(&args);
+        assert!(missing.contains(&"nonexistent_file.bam".to_string()));
+    }
+
+    #[test]
+    fn test_validate_input_files_existing() {
+        let tmp = tempfile::NamedTempFile::with_suffix(".bam").unwrap();
+        let path = tmp.path().to_string_lossy().to_string();
+        let args: Vec<String> = vec![path.clone()];
+        let missing = validate_input_files(&args);
+        assert!(!missing.contains(&path));
+    }
+
+    #[test]
+    fn test_validate_input_files_empty() {
+        let missing = validate_input_files(&[]);
+        assert!(missing.is_empty());
+    }
+
+    #[test]
+    fn test_looks_like_file_path() {
+        assert!(looks_like_file_path("file.bam"));
+        assert!(looks_like_file_path("/path/to/file.fastq.gz"));
+        assert!(!looks_like_file_path("noextension"));
+        assert!(!looks_like_file_path("http://example.com/file.bam"));
+        assert!(!looks_like_file_path("a;b.txt"));
+    }
+
+    #[test]
+    fn test_has_bio_extension() {
+        assert!(has_bio_extension("file.bam"));
+        assert!(has_bio_extension("file.fastq.gz"));
+        assert!(has_bio_extension("file.VCF"));
+        assert!(has_bio_extension("file.fa"));
+        assert!(!has_bio_extension("file.txt"));
+        assert!(!has_bio_extension("file.csv"));
+    }
+
+    #[test]
+    fn test_detect_tool_version_nonexistent() {
+        let result = detect_tool_version("nonexistent_tool_xyz_123");
+        assert!(result.is_none());
+    }
+}

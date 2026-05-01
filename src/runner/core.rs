@@ -19,6 +19,7 @@ use crate::orchestrator::executor::ExecutorAgent;
 use crate::orchestrator::planner::PlannerAgent;
 use crate::orchestrator::supervisor::SupervisorAgent;
 use crate::orchestrator::validator::ValidatorAgent;
+use crate::schema::{CliSchema, CliStyle, parse_help};
 use crate::skill::SkillManager;
 use chrono::Utc;
 use colored::Colorize;
@@ -48,15 +49,12 @@ pub struct GeneratedCommand {
 /// alongside the LLM suggestion.
 pub(crate) struct PrepareResult {
     pub(crate) suggestion: LlmCommandSuggestion,
-    /// SHA-256 hex digest of the documentation text used in the prompt.
     pub(crate) docs_hash: String,
-    /// Name of the matched skill, if one was loaded.
     pub(crate) skill_name: Option<String>,
-    /// The task description that was actually used (may differ from the user-supplied
-    /// task when automatic normalization is applied).
     pub(crate) effective_task: String,
-    /// Structured documentation used for flag/subcommand validation, if available.
     pub(crate) structured_doc: Option<StructuredDoc>,
+    #[allow(dead_code)]
+    pub(crate) parsed_schema: Option<CliSchema>,
 }
 
 pub struct Runner {
@@ -66,15 +64,7 @@ pub struct Runner {
     skill_manager: SkillManager,
     pub(crate) verbose: bool,
     pub(crate) no_cache: bool,
-    /// When true, use LLM to verify the result after execution.
     pub(crate) verify: bool,
-    /// [Ablation] When true, do not load the skill file for the tool.
-    pub(crate) no_skill: bool,
-    /// [Ablation] When true, do not load tool documentation (--help output).
-    pub(crate) no_doc: bool,
-    /// [Ablation] When true, do not use the oxo-call system prompt.
-    pub(crate) no_prompt: bool,
-    /// Named variables substituted into the task description before the LLM call.
     pub(crate) vars: HashMap<String, String>,
     /// Input items for batch/parallel execution (empty = single run).
     pub(crate) input_items: Vec<String>,
@@ -118,9 +108,6 @@ impl Runner {
             verbose: false,
             no_cache: false,
             verify: false,
-            no_skill: false,
-            no_doc: false,
-            no_prompt: false,
             vars: HashMap::new(),
             input_items: Vec::new(),
             jobs: 1,
@@ -178,27 +165,6 @@ impl Runner {
         self
     }
 
-    /// [Ablation] Do not load the skill file for the tool.
-    pub fn with_no_skill(&mut self, no_skill: bool) -> &mut Self {
-        self.no_skill = no_skill;
-        self
-    }
-
-    /// [Ablation] Do not load tool documentation (--help output).
-    pub fn with_no_doc(&mut self, no_doc: bool) -> &mut Self {
-        self.no_doc = no_doc;
-        self
-    }
-
-    /// [Ablation] Do not use the oxo-call system prompt.
-    pub fn with_no_prompt(&mut self, no_prompt: bool) -> &mut Self {
-        self.no_prompt = no_prompt;
-        self
-    }
-
-    /// Set named variables that will be substituted into the task description
-    /// (and, when an input list is present, into the generated command) before
-    /// the LLM call.
     pub fn with_vars(&mut self, vars: HashMap<String, String>) -> &mut Self {
         self.vars = vars;
         self
@@ -228,9 +194,13 @@ impl Runner {
     /// Resolve documentation for the tool, showing a spinner while fetching.
     /// Also attempts to fetch help for the specific subcommand matching the user's task.
     ///
-    /// Uses intelligent summarization based on model size to keep prompts concise
-    /// while preserving critical information.
-    pub(crate) async fn resolve_docs(&self, tool: &str, task: &str) -> Result<String> {
+    /// Returns the raw ToolDocs object for StructuredDoc processing,
+    /// then callers can compress as needed.
+    pub(crate) async fn resolve_docs_raw(
+        &self,
+        tool: &str,
+        task: &str,
+    ) -> Result<crate::docs::ToolDocs> {
         let mut docs = if self.no_cache {
             self.fetcher.fetch_no_cache(tool).await?
         } else {
@@ -245,29 +215,21 @@ impl Runner {
             docs.subcommand_help = self.fetcher.fetch_subcommand_help(tool, help_output, task);
         }
 
-        // Use model-specific summarization for optimal prompt length
+        Ok(docs)
+    }
+
+    /// Summarize ToolDocs for LLM prompt, with model-specific length optimization.
+    fn summarize_docs_for_model(&self, docs: &crate::docs::ToolDocs) -> String {
         let model_size = self.config.model_size_category();
-        let summarized = docs.combined_for_model(model_size);
+        docs.combined_for_model(model_size)
+    }
 
-        if self.verbose {
-            let original_len = docs.combined().len();
-            let summarized_len = summarized.len();
-            let reduction = if original_len > 0 {
-                (1.0 - summarized_len as f64 / original_len as f64) * 100.0
-            } else {
-                0.0
-            };
-            eprintln!(
-                "{} Documentation: {} chars → {} chars ({:.1}% reduction, model={})",
-                "[verbose]".dimmed(),
-                original_len,
-                summarized_len,
-                reduction,
-                model_size
-            );
+    fn max_doc_len_for_model(&self) -> usize {
+        match self.config.model_size_category() {
+            "small" => crate::doc_summarizer::MAX_DOC_LEN_SMALL_MODEL,
+            "large" => crate::doc_summarizer::MAX_DOC_LEN_LARGE_MODEL,
+            _ => crate::doc_summarizer::MAX_DOC_LEN_MEDIUM_MODEL,
         }
-
-        Ok(summarized)
     }
 
     /// Core logic: fetch docs + load skill → select workflow mode → run LlmWorkflowExecutor.
@@ -281,94 +243,185 @@ impl Runner {
     /// generates a mini-skill from the documentation (result cached to disk), and uses it
     /// for command generation.
     pub(crate) async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
-        // ── Load skill first (fast, usually cached) ───────────────────────────────
-        // Load skill first to determine if doc is needed, avoiding spinner overhead
-        // when skill is high-quality (no doc fetch needed).
-        let skill = if self.no_skill {
-            if self.verbose {
+        let scenario = self.force_scenario.unwrap_or_default();
+
+        if matches!(
+            scenario,
+            crate::workflow_graph::WorkflowScenario::Doc | crate::workflow_graph::WorkflowScenario::Full
+        ) {
+            return self.prepare_via_pipeline(tool, task, scenario).await;
+        }
+
+        let should_load_skill = matches!(scenario, crate::workflow_graph::WorkflowScenario::Full);
+        let should_fetch_doc = matches!(
+            scenario,
+            crate::workflow_graph::WorkflowScenario::Doc | crate::workflow_graph::WorkflowScenario::Full
+        );
+
+        let skill = if should_load_skill {
+            self.skill_manager.load_async(tool).await
+        } else {
+            if self.verbose && matches!(scenario, crate::workflow_graph::WorkflowScenario::Bare) {
                 eprintln!(
-                    "{} [Ablation] Skipping skill (--no-skill)",
+                    "{} [bare] Skipping skill and documentation",
                     "[verbose]".dimmed()
                 );
             }
             None
-        } else {
-            self.skill_manager.load_async(tool).await
         };
 
-        // Determine if we need documentation based on skill quality
-        let should_fetch_doc = if self.no_doc {
-            false
-        } else if skill.is_none() {
-            // No skill available → need doc
-            true
+        let tool_docs = if !should_fetch_doc {
+            None
         } else {
-            // Skill available → check quality
-            if let Some(ref s) = skill {
-                // Skill quality heuristics:
-                // - Low quality: <3 examples OR <3 pitfalls
-                // - Medium quality: 3-5 examples
-                // - High quality: >5 examples
-                let example_count = s.examples.len();
-                let pitfall_count = s.context.pitfalls.len();
-
-                // Only fetch doc if skill quality is low
-                example_count < 3 || pitfall_count < 3
-            } else {
-                false
-            }
-        };
-
-        // Fetch docs only when needed, with spinner created only for actual fetch
-        let docs = if !should_fetch_doc {
-            if self.verbose && !self.no_doc {
-                eprintln!(
-                    "{} Skipping documentation (high-quality skill available)",
-                    "[verbose]".dimmed()
-                );
-            }
-            String::new()
-        } else {
-            // Show spinner only when actually fetching docs
             let spinner = make_spinner(&format!("Fetching documentation for '{tool}'..."));
-            let result = self.resolve_docs(tool, task).await;
+            let result = self.resolve_docs_raw(tool, task).await;
             spinner.finish_and_clear();
-            result?
+            Some(result?)
         };
 
-        // ── Build StructuredDoc for flag catalog + doc-extracted examples ──
-        // This is the key innovation: deterministic extraction of flags and
-        // examples from --help output, injected into the LLM prompt to ground
-        // small models without needing skill files or extra LLM calls.
-        let structured_doc = if !docs.is_empty() {
+        // ── Build StructuredDoc from RAW docs BEFORE summarization ──
+        // This is critical: we need the full documentation to extract flags and examples.
+        // Summarization happens AFTER StructuredDoc creation, so flag_catalog remains accurate.
+        let (structured_doc, parsed_schema) = if let Some(ref docs) = tool_docs {
+            let raw_docs = docs.combined();
             let processor = DocProcessor::new();
-            let sdoc = processor.clean_and_structure(&docs);
+            let sdoc = processor.clean_and_structure(&raw_docs);
+
+            let schema = parse_help(tool, &raw_docs);
+
             if self.verbose {
                 eprintln!(
-                    "{} Doc analysis: quality={:.2}, {} flags, {} examples extracted",
+                    "{} Doc analysis: quality={:.2}, flags={}/{} (catalog/quick), {} examples extracted, {} subcommands",
                     "[verbose]".dimmed(),
                     sdoc.quality_score,
                     sdoc.flag_catalog.len(),
+                    sdoc.quick_flags.len(),
                     sdoc.extracted_examples.len(),
+                    sdoc.commands.split(',').count().saturating_sub(1),
                 );
+                if !sdoc.commands.is_empty() && sdoc.commands.split(',').count() <= 10 {
+                    eprintln!("{} Subcommands: {}", "[verbose]".dimmed(), sdoc.commands);
+                }
+                eprintln!(
+                    "{} Schema: style={:?}, flags={}, subcommands={}, source={}",
+                    "[verbose]".dimmed(),
+                    schema.cli_style,
+                    schema.flags.len() + schema.global_flags.len(),
+                    schema.subcommands.len(),
+                    schema.schema_source,
+                );
+                if let Some(subcmd) = schema.select_subcommand(task) {
+                    eprintln!(
+                        "{} Selected subcommand: {}",
+                        "[verbose]".dimmed(),
+                        subcmd.name
+                    );
+                }
             }
-            Some(sdoc)
+            (Some(sdoc), Some(schema))
         } else {
-            None
+            (None, None)
         };
 
-        if self.verbose && !docs.is_empty() {
-            eprintln!(
-                "{} Documentation: {} chars{}",
-                "[verbose]".dimmed(),
-                docs.len(),
-                if self.no_cache {
-                    " (fresh, cache skipped)"
-                } else {
-                    ""
+        // Now summarize docs for LLM prompt (model-specific length optimization)
+        let docs = if let Some(ref docs_obj) = tool_docs {
+            let summarized = self.summarize_docs_for_model(docs_obj);
+
+            // Build structured header from raw docs (usage lines, valid flags, subcommands)
+            let raw_docs = docs_obj.combined();
+            let structured_header =
+                crate::doc_summarizer::build_structured_summary(&raw_docs, tool);
+
+            let enhanced_docs = if let Some(ref schema) = parsed_schema {
+                let mut enhanced = summarized.clone();
+
+                if schema.cli_style == CliStyle::Subcommand && !schema.subcommands.is_empty() {
+                    enhanced.push_str("\n\n=== CRITICAL: SUBCOMMAND REQUIRED ===\n");
+                    enhanced.push_str("This tool REQUIRES a subcommand as the FIRST argument.\n");
+                    if let Some(subcmd) = schema.select_subcommand(task) {
+                        enhanced.push_str(&format!(
+                            "RECOMMENDED subcommand for this task: '{}'\n",
+                            subcmd.name
+                        ));
+                    }
+                    enhanced.push_str(&format!(
+                        "Available subcommands: {}\n",
+                        schema
+                            .subcommands
+                            .iter()
+                            .map(|s| s.name.clone())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ));
                 }
-            );
-        }
+
+                let all_flag_names =
+                    schema.all_flag_names(schema.select_subcommand(task).map(|s| s.name.as_str()));
+                if !all_flag_names.is_empty() && !structured_header.contains("VALID FLAGS") {
+                    enhanced.push_str("\n\n=== VALID FLAGS (use ONLY these) ===\n");
+                    let flags_preview: Vec<String> = all_flag_names
+                        .iter()
+                        .take(20)
+                        .map(|s| s.to_string())
+                        .collect();
+                    enhanced.push_str(&flags_preview.join(", "));
+                    enhanced.push('\n');
+                }
+
+                if !schema.constraints.is_empty() {
+                    for constraint in &schema.constraints {
+                        enhanced.push_str(&format!("- {}\n", constraint.message()));
+                    }
+                }
+
+                enhanced
+            } else {
+                summarized
+            };
+
+            // Prepend structured header (usage lines, valid flags, subcommands)
+            // This is the most critical information for the LLM.
+            // Ensure total doesn't exceed model budget by trimming body if needed.
+            let final_docs = if structured_header.is_empty() {
+                enhanced_docs
+            } else {
+                let max_doc_len = self.max_doc_len_for_model();
+                let header_len = structured_header.len() + 2; // +2 for "\n\n"
+                if header_len + enhanced_docs.len() <= max_doc_len {
+                    format!("{}\n\n{}", structured_header, enhanced_docs)
+                } else {
+                    // Trim body to fit header + body within budget
+                    let body_budget = max_doc_len.saturating_sub(header_len);
+                    let trimmed_body = if enhanced_docs.len() > body_budget {
+                        enhanced_docs[..body_budget].to_string()
+                    } else {
+                        enhanced_docs
+                    };
+                    format!("{}\n\n{}", structured_header, trimmed_body)
+                }
+            };
+
+            if self.verbose {
+                let original_len = docs_obj.combined().len();
+                let summarized_len = final_docs.len();
+                let reduction = if original_len > 0 {
+                    (1.0 - summarized_len as f64 / original_len as f64) * 100.0
+                } else {
+                    0.0
+                };
+                eprintln!(
+                    "{} Documentation: {} chars → {} chars ({:.1}% reduction, model={})",
+                    "[verbose]".dimmed(),
+                    original_len,
+                    summarized_len,
+                    reduction,
+                    self.config.model_size_category()
+                );
+            }
+            final_docs
+        } else {
+            String::new()
+        };
 
         let docs_hash = sha256_hex(&docs);
 
@@ -423,7 +476,7 @@ impl Runner {
                     s.context.pitfalls.len(),
                     s.examples.len()
                 );
-            } else if !self.no_skill {
+            } else if should_load_skill {
                 eprintln!("{} No skill found for '{}'", "[verbose]".dimmed(), tool);
             }
             let ctx_window = self.config.effective_context_window();
@@ -597,29 +650,29 @@ impl Runner {
                 &docs,
                 &enriched_task,
                 skill.as_ref(),
-                self.no_prompt,
+                matches!(scenario, crate::workflow_graph::WorkflowScenario::Bare),
                 structured_doc.as_ref(),
+                parsed_schema.as_ref(),
             )
             .await?;
 
         if self.verbose {
+            let confidence_info = if let Some(ref c) = wf_result.confidence {
+                format!(", confidence={:.2} ({:?})", c.score, c.level)
+            } else {
+                String::new()
+            };
             eprintln!(
                 "{} Workflow complete: {} LLM call(s), {:.1}ms{}{}",
                 "[verbose]".dimmed(),
                 wf_result.llm_calls,
                 wf_result.total_inference_ms,
-                if wf_result.mini_skill_generated {
-                    ", mini-skill generated"
-                } else if wf_result.cache_hit {
-                    ", mini-skill from cache"
-                } else {
-                    ""
-                },
                 if wf_result.was_normalized {
                     ", task normalized"
                 } else {
                     ""
-                }
+                },
+                confidence_info,
             );
         }
 
@@ -635,6 +688,49 @@ impl Runner {
                 task.to_string()
             },
             structured_doc,
+            parsed_schema,
+        })
+    }
+
+    async fn prepare_via_pipeline(
+        &self,
+        tool: &str,
+        task: &str,
+        scenario: crate::workflow_graph::WorkflowScenario,
+    ) -> Result<PrepareResult> {
+        let pipeline = crate::pipeline::Pipeline::new(self.config.clone(), scenario);
+        let result = pipeline.execute(tool, task).await?;
+
+        let args: Vec<String> = result
+            .command
+            .split_whitespace()
+            .skip(1)
+            .map(String::from)
+            .collect();
+
+        let docs_hash = {
+            use sha2::Digest;
+            let raw = result.tool_doc.raw_help.as_deref().unwrap_or("");
+            hex::encode(sha2::Sha256::digest(raw.as_bytes()))
+        };
+
+        let skill_name = if matches!(scenario, crate::workflow_graph::WorkflowScenario::Full) {
+            Some(result.tool_doc.record.name.clone())
+        } else {
+            None
+        };
+
+        Ok(PrepareResult {
+            suggestion: LlmCommandSuggestion {
+                args,
+                explanation: result.explanation,
+                inference_ms: 0.0,
+            },
+            docs_hash,
+            skill_name,
+            effective_task: result.effective_task,
+            structured_doc: None,
+            parsed_schema: None,
         })
     }
 
@@ -644,6 +740,7 @@ impl Runner {
     /// be sent over SSH, while keeping display logic in the caller.
     pub async fn generate_command(&self, tool: &str, task: &str) -> Result<GeneratedCommand> {
         let result = self.prepare(tool, task).await?;
+        // Corrections are now applied in prepare()
         let full_cmd = build_command_string(tool, &result.suggestion.args);
         Ok(GeneratedCommand {
             full_cmd,

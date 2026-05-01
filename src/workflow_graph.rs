@@ -1,65 +1,35 @@
-//! Workflow Graph - DAG-based orchestration for command generation
+//! Workflow Graph - Fused pipeline for command generation.
 //!
-//! This module implements a LangGraph-inspired workflow engine that orchestrates
-//! multiple stages of LLM processing based on input conditions.
+//! Implements the v0.13 fused architecture with three scenarios:
 //!
-//! # Workflow Scenarios
+//! 1. **bare**: Tool + Task → Command (no additional context)
+//! 2. **doc**: Tool + auto-parsed documentation + Schema → Command
+//! 3. **full**: Tool + documentation + Schema + Skill → Command
 //!
-//! 1. **basic**: Tool + Task → Command (fastest)
-//! 2. **prompt**: basic + Custom Prompt → Command
-//! 3. **doc**: basic + Documentation + Mini-skill → Command
-//! 4. **skill**: basic + Skill File → Command
-//! 5. **full**: doc + skill (combined) → Command
-//!
-//! # Architecture
-//!
-//! ```text
-//! Start → [Task Normalization] → [Complexity Estimation]
-//!                                     ↓
-//!                 ┌───────────────────┴───────────────────┐
-//!                 │                                       │
-//!            Fast Path                              Quality Path
-//!                 │                                       │
-//!                 ↓                                       ↓
-//!         Basic Generator              ┌─────────────────┴─────────────────┐
-//!                 │                     │                                   │
-//!                 │                [Doc Processing]                  [Skill Loading]
-//!                 │                     │                                   │
-//!                 │                     ↓                                   ↓
-//!                 │              [Mini-skill Gen]              [Skill Integration]
-//!                 │                     │                                   │
-//!                 │                     └───────────────┬───────────────────┘
-//!                 │                                     │
-//!                 │                              [Command Generation]
-//!                 │                                     │
-//!                 └─────────────────────────────────────┘
-//!                                                       ↓
-//!                                                [Validation]
-//!                                                       ↓
-//!                                                      End
-//! ```
+//! The pipeline follows five stages:
+//! 1. Tool Resolution (pure code)
+//! 2. Doc Exploration (code + optional LLM cleaning)
+//! 3. Intent Mapping (code + LLM structured output)
+//! 4. Command Assembly (pure code)
+//! 5. Validation (code + optional LLM review)
 
 #![allow(dead_code)]
 
-use crate::task_complexity::{ComplexityResult, TaskComplexityEstimator, WorkflowMode};
+use crate::confidence::{ConfidenceLevel, ConfidenceResult, estimate_confidence};
+use crate::llm_workflow::WorkflowMode;
 use crate::task_normalizer::{NormalizedTask, TaskNormalizer};
 use color_eyre::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Workflow scenario type
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum WorkflowScenario {
     /// Bare: Tool + Task → Command (no additional context)
     #[default]
     Bare,
-    /// Prompt: Bare + Custom Prompt
-    Prompt,
-    /// Doc: Bare + Documentation + Mini-skill
+    /// Doc: Tool + auto-parsed documentation + Schema
     Doc,
-    /// Skill: Bare + Skill File
-    Skill,
-    /// Full: Doc + Skill (combined)
+    /// Full: Tool + documentation + Schema + Skill
     Full,
 }
 
@@ -67,30 +37,17 @@ impl std::fmt::Display for WorkflowScenario {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             WorkflowScenario::Bare => write!(f, "bare"),
-            WorkflowScenario::Prompt => write!(f, "prompt"),
             WorkflowScenario::Doc => write!(f, "doc"),
-            WorkflowScenario::Skill => write!(f, "skill"),
             WorkflowScenario::Full => write!(f, "full"),
         }
     }
 }
 
 impl WorkflowScenario {
-    /// Get default workflow mode for this scenario
-    ///
-    /// # Scenario-Mode Mapping
-    ///
-    /// - **Bare**: Fast (simplest, no processing needed)
-    /// - **Prompt**: Fast (user-defined, trust their prompt)
-    /// - **Doc**: Quality (needs mini-skill generation)
-    /// - **Skill**: Fast (existing skill is sufficient)
-    /// - **Full**: Quality (complex combination)
     pub fn default_mode(&self) -> WorkflowMode {
         match self {
             Self::Bare => WorkflowMode::Fast,
-            Self::Prompt => WorkflowMode::Fast,
             Self::Doc => WorkflowMode::Quality,
-            Self::Skill => WorkflowMode::Fast,
             Self::Full => WorkflowMode::Quality,
         }
     }
@@ -99,19 +56,11 @@ impl WorkflowScenario {
 /// Workflow input
 #[derive(Debug, Clone, Default)]
 pub struct WorkflowInput {
-    /// Tool name
     pub tool: String,
-    /// User task description
     pub task: String,
-    /// Custom prompt (optional)
-    pub custom_prompt: Option<String>,
-    /// Documentation (optional)
     pub documentation: Option<String>,
-    /// Skill file path (optional)
     pub skill_path: Option<String>,
-    /// Force workflow mode (optional)
     pub force_mode: Option<WorkflowMode>,
-    /// Force scenario (optional)
     pub force_scenario: Option<WorkflowScenario>,
 }
 
@@ -123,7 +72,7 @@ pub struct WorkflowState {
     /// Normalized task
     pub normalized_task: Option<NormalizedTask>,
     /// Complexity estimation result
-    pub complexity: Option<ComplexityResult>,
+    pub confidence: Option<ConfidenceResult>,
     /// Selected workflow mode
     pub mode: WorkflowMode,
     /// Selected scenario
@@ -187,10 +136,7 @@ pub struct WorkflowResult {
 
 /// Workflow Graph executor
 pub struct WorkflowGraph {
-    /// Task normalizer
     normalizer: TaskNormalizer,
-    /// Complexity estimator
-    estimator: TaskComplexityEstimator,
 }
 
 impl Default for WorkflowGraph {
@@ -203,7 +149,6 @@ impl WorkflowGraph {
     pub fn new() -> Self {
         Self {
             normalizer: TaskNormalizer::new(),
-            estimator: TaskComplexityEstimator::new(),
         }
     }
 
@@ -224,14 +169,12 @@ impl WorkflowGraph {
         }
 
         // Step 3: Complexity estimation
-        self.estimate_complexity(&mut state)?;
+        self.estimate_confidence(&mut state)?;
 
         // Step 4: Execute scenario-specific path
         match state.scenario {
             WorkflowScenario::Bare => self.execute_basic(&mut state).await?,
-            WorkflowScenario::Prompt => self.execute_prompt(&mut state).await?,
             WorkflowScenario::Doc => self.execute_doc(&mut state).await?,
-            WorkflowScenario::Skill => self.execute_skill(&mut state).await?,
             WorkflowScenario::Full => self.execute_full(&mut state).await?,
         }
 
@@ -243,37 +186,31 @@ impl WorkflowGraph {
             command: state.command.unwrap_or_default(),
             scenario: state.scenario,
             mode: state.mode,
-            confidence: state.complexity.map(|c| c.confidence).unwrap_or(0.5),
+            confidence: state.confidence.map(|c| c.score).unwrap_or(0.5),
             metadata: state.metadata,
         })
     }
 
     /// Determine workflow scenario based on input
     fn determine_scenario(&self, state: &mut WorkflowState) -> Result<()> {
-        // Check if scenario is forced
         if let Some(scenario) = state.input.force_scenario {
             state.scenario = scenario;
-            // Set default mode for this scenario
             if state.input.force_mode.is_none() {
                 state.mode = scenario.default_mode();
             }
             return Ok(());
         }
 
-        // Determine scenario based on available inputs
         let has_doc = state.input.documentation.is_some();
         let has_skill = state.input.skill_path.is_some();
-        let has_prompt = state.input.custom_prompt.is_some();
 
-        state.scenario = match (has_doc, has_skill, has_prompt) {
-            (true, true, _) => WorkflowScenario::Full, // doc + skill = full
-            (true, false, _) => WorkflowScenario::Doc, // doc only
-            (false, true, _) => WorkflowScenario::Skill, // skill only
-            (false, false, true) => WorkflowScenario::Prompt, // prompt only
-            (false, false, false) => WorkflowScenario::Bare, // bare
+        state.scenario = match (has_doc, has_skill) {
+            (true, true) => WorkflowScenario::Full,
+            (true, false) => WorkflowScenario::Doc,
+            (false, true) => WorkflowScenario::Full,
+            (false, false) => WorkflowScenario::Bare,
         };
 
-        // Set default mode for this scenario (unless forced)
         if state.input.force_mode.is_none() {
             state.mode = state.scenario.default_mode();
         }
@@ -296,11 +233,8 @@ impl WorkflowGraph {
         Ok(())
     }
 
-    /// Estimate task complexity (for metadata and adaptive adjustment)
-    fn estimate_complexity(&self, state: &mut WorkflowState) -> Result<()> {
-        // Mode is already set by scenario.default_mode() or force_mode
-        // This method only estimates complexity for metadata
-
+    /// Estimate confidence (for metadata and adaptive adjustment)
+    fn estimate_confidence(&self, state: &mut WorkflowState) -> Result<()> {
         let has_skill = state.input.skill_path.is_some();
         let doc_quality = if state.input.documentation.is_some() {
             0.8
@@ -308,36 +242,38 @@ impl WorkflowGraph {
             0.3
         };
 
-        let complexity =
-            self.estimator
-                .estimate(&state.input.task, &state.input.tool, has_skill, doc_quality);
+        let confidence = estimate_confidence(
+            0,
+            doc_quality,
+            has_skill,
+            if state.input.task.len() > 20 { 2 } else { 0 },
+            None,
+            has_skill,
+        );
 
-        state.complexity = Some(complexity.clone());
+        state.confidence = Some(confidence.clone());
 
-        // Optional: Override mode if complexity suggests a different mode
-        // and mode is not forced
         if state.input.force_mode.is_none() {
-            // Only override if there's a strong signal
-            if complexity.score.0 > 0.8 && state.mode == WorkflowMode::Fast {
-                // Very complex task, upgrade to Quality mode
+            if confidence.level == ConfidenceLevel::Low && state.mode == WorkflowMode::Fast {
                 state.mode = WorkflowMode::Quality;
                 state.metadata.insert(
                     "mode_override".to_string(),
-                    "complexity-based upgrade to Quality".to_string(),
+                    "confidence-based upgrade to Quality".to_string(),
                 );
-            } else if complexity.score.0 < 0.2 && state.mode == WorkflowMode::Quality {
-                // Very simple task, downgrade to Fast mode
+            } else if confidence.level == ConfidenceLevel::High
+                && state.mode == WorkflowMode::Quality
+            {
                 state.mode = WorkflowMode::Fast;
                 state.metadata.insert(
                     "mode_override".to_string(),
-                    "complexity-based downgrade to Fast".to_string(),
+                    "confidence-based downgrade to Fast".to_string(),
                 );
             }
         }
 
         state.metadata.insert(
-            "complexity_score".to_string(),
-            format!("{:.2}", complexity.score.0),
+            "confidence_score".to_string(),
+            format!("{:.2}", confidence.score),
         );
 
         Ok(())
@@ -353,24 +289,6 @@ impl WorkflowGraph {
         Ok(())
     }
 
-    /// Execute prompt scenario
-    async fn execute_prompt(&self, state: &mut WorkflowState) -> Result<()> {
-        // Use custom prompt for generation
-        let prompt =
-            state.input.custom_prompt.as_ref().ok_or_else(|| {
-                color_eyre::eyre::eyre!("Custom prompt required for prompt scenario")
-            })?;
-        state.command = Some(format!(
-            "{} {} # prompt: {}",
-            state.input.tool, state.input.task, prompt
-        ));
-        state
-            .metadata
-            .insert("path".to_string(), "prompt".to_string());
-        Ok(())
-    }
-
-    /// Execute doc scenario (includes mini-skill generation)
     async fn execute_doc(&self, state: &mut WorkflowState) -> Result<()> {
         // Step 1: Process documentation
         let doc =
@@ -398,35 +316,6 @@ impl WorkflowGraph {
         Ok(())
     }
 
-    /// Execute skill scenario
-    async fn execute_skill(&self, state: &mut WorkflowState) -> Result<()> {
-        // Load skill from file
-        let skill_path = state
-            .input
-            .skill_path
-            .as_ref()
-            .ok_or_else(|| color_eyre::eyre::eyre!("Skill path required for skill scenario"))?;
-        let skill = self.load_skill(skill_path).await?;
-        state.skill = Some(skill.clone());
-
-        // Use skill for command generation
-        state.command = Some(format!(
-            "{} {} # skill: {} examples",
-            state.input.tool,
-            state.input.task,
-            skill.examples.len()
-        ));
-
-        state
-            .metadata
-            .insert("path".to_string(), "skill".to_string());
-        state
-            .metadata
-            .insert("skill_loaded".to_string(), "true".to_string());
-        Ok(())
-    }
-
-    /// Execute full scenario (doc + skill combined)
     async fn execute_full(&self, state: &mut WorkflowState) -> Result<()> {
         // Step 1: Process documentation and generate mini-skill
         let doc =
@@ -605,7 +494,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_basic_scenario() {
+    async fn test_bare_scenario() {
         let graph = WorkflowGraph::new();
         let input = WorkflowInput {
             tool: "samtools".to_string(),
@@ -634,21 +523,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_skill_scenario() {
-        let graph = WorkflowGraph::new();
-        let input = WorkflowInput {
-            tool: "samtools".to_string(),
-            task: "sort input.bam".to_string(),
-            skill_path: Some("skills/samtools.md".to_string()),
-            ..Default::default()
-        };
-
-        let result = graph.execute(input).await.unwrap();
-        assert_eq!(result.scenario, WorkflowScenario::Skill);
-        assert!(result.metadata.contains_key("skill_loaded"));
-    }
-
-    #[tokio::test]
     async fn test_full_scenario() {
         let graph = WorkflowGraph::new();
         let input = WorkflowInput {
@@ -662,8 +536,22 @@ mod tests {
         let result = graph.execute(input).await.unwrap();
         assert_eq!(result.scenario, WorkflowScenario::Full);
         assert!(result.metadata.contains_key("mini_skill_generated"));
-        // skill_loaded may be "true" or "fallback" depending on availability
         assert!(result.metadata.contains_key("skill_loaded"));
+    }
+
+    #[tokio::test]
+    async fn test_skill_only_upgrades_to_full() {
+        let graph = WorkflowGraph::new();
+        let input = WorkflowInput {
+            tool: "samtools".to_string(),
+            task: "sort input.bam".to_string(),
+            documentation: Some("Usage: samtools sort [options] INPUT\nOptions:\n  -@ INT  Threads\n  -o FILE  Output".to_string()),
+            skill_path: Some("skills/samtools.md".to_string()),
+            ..Default::default()
+        };
+
+        let result = graph.execute(input).await.unwrap();
+        assert_eq!(result.scenario, WorkflowScenario::Full);
     }
 
     #[tokio::test]
@@ -686,5 +574,261 @@ mod tests {
         assert_eq!(format!("{}", WorkflowScenario::Bare), "bare");
         assert_eq!(format!("{}", WorkflowScenario::Doc), "doc");
         assert_eq!(format!("{}", WorkflowScenario::Full), "full");
+    }
+
+    #[test]
+    fn test_scenario_default() {
+        assert_eq!(WorkflowScenario::default(), WorkflowScenario::Bare);
+    }
+
+    #[test]
+    fn test_scenario_default_mode() {
+        assert_eq!(WorkflowScenario::Bare.default_mode(), WorkflowMode::Fast);
+        assert_eq!(WorkflowScenario::Doc.default_mode(), WorkflowMode::Quality);
+        assert_eq!(WorkflowScenario::Full.default_mode(), WorkflowMode::Quality);
+    }
+
+    #[test]
+    fn test_workflow_input_default() {
+        let input = WorkflowInput::default();
+        assert!(input.tool.is_empty());
+        assert!(input.task.is_empty());
+        assert!(input.documentation.is_none());
+        assert!(input.skill_path.is_none());
+        assert!(input.force_mode.is_none());
+        assert!(input.force_scenario.is_none());
+    }
+
+    #[test]
+    fn test_workflow_state_default() {
+        let state = WorkflowState::default();
+        assert!(state.normalized_task.is_none());
+        assert!(state.confidence.is_none());
+        assert!(state.mini_skill.is_none());
+        assert!(state.skill.is_none());
+        assert!(state.command.is_none());
+        assert!(!state.validation_passed);
+        assert!(state.metadata.is_empty());
+    }
+
+    #[test]
+    fn test_mini_skill_data_serialization() {
+        let data = MiniSkillData {
+            tool: "samtools".to_string(),
+            concepts: vec!["sort".to_string(), "index".to_string()],
+            pitfalls: vec!["Check threads".to_string()],
+            examples: vec![MiniSkillExample {
+                task: "sort bam".to_string(),
+                args: "sort -o out.bam in.bam".to_string(),
+                explanation: "Sort BAM".to_string(),
+            }],
+        };
+        let json = serde_json::to_string(&data).unwrap();
+        let back: MiniSkillData = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.tool, "samtools");
+        assert_eq!(back.concepts.len(), 2);
+        assert_eq!(back.examples.len(), 1);
+    }
+
+    #[test]
+    fn test_skill_data_serialization() {
+        let data = SkillData {
+            name: "bwa".to_string(),
+            category: "alignment".to_string(),
+            concepts: vec!["mem".to_string()],
+            pitfalls: vec!["Check reference".to_string()],
+            examples: vec![SkillExample {
+                task: "align reads".to_string(),
+                args: "mem ref.fa reads.fq".to_string(),
+                explanation: "Align reads".to_string(),
+            }],
+        };
+        let json = serde_json::to_string(&data).unwrap();
+        let back: SkillData = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.name, "bwa");
+        assert_eq!(back.category, "alignment");
+    }
+
+    #[test]
+    fn test_workflow_result_serialization() {
+        let result = WorkflowResult {
+            command: "samtools sort -o out.bam in.bam".to_string(),
+            scenario: WorkflowScenario::Doc,
+            mode: WorkflowMode::Quality,
+            confidence: 0.85,
+            metadata: HashMap::from([
+                ("scenario".to_string(), "determined: doc".to_string()),
+            ]),
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let back: WorkflowResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.command, "samtools sort -o out.bam in.bam");
+        assert_eq!(back.scenario, WorkflowScenario::Doc);
+        assert!((back.confidence - 0.85).abs() < 0.001);
+    }
+
+    #[tokio::test]
+    async fn test_forced_mode() {
+        let graph = WorkflowGraph::new();
+        let input = WorkflowInput {
+            tool: "samtools".to_string(),
+            task: "sort input.bam".to_string(),
+            force_mode: Some(WorkflowMode::Fast),
+            ..Default::default()
+        };
+        let result = graph.execute(input).await.unwrap();
+        assert_eq!(result.mode, WorkflowMode::Fast);
+    }
+
+    #[tokio::test]
+    async fn test_doc_scenario_no_skill() {
+        let graph = WorkflowGraph::new();
+        let input = WorkflowInput {
+            tool: "mytool".to_string(),
+            task: "process data".to_string(),
+            documentation: Some("Usage: mytool [options]\nOptions:\n  -v  Verbose".to_string()),
+            ..Default::default()
+        };
+        let result = graph.execute(input).await.unwrap();
+        assert_eq!(result.scenario, WorkflowScenario::Doc);
+        assert!(!result.metadata.contains_key("skill_loaded"));
+    }
+
+    #[tokio::test]
+    async fn test_determine_scenario_force() {
+        let graph = WorkflowGraph::new();
+        let mut state = WorkflowState {
+            input: WorkflowInput {
+                tool: "test".to_string(),
+                task: "test".to_string(),
+                force_scenario: Some(WorkflowScenario::Full),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        graph.determine_scenario(&mut state).unwrap();
+        assert_eq!(state.scenario, WorkflowScenario::Full);
+    }
+
+    #[tokio::test]
+    async fn test_determine_scenario_auto_doc_skill() {
+        let graph = WorkflowGraph::new();
+        let mut state = WorkflowState {
+            input: WorkflowInput {
+                tool: "test".to_string(),
+                task: "test".to_string(),
+                documentation: Some("docs".to_string()),
+                skill_path: Some("skill.md".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        graph.determine_scenario(&mut state).unwrap();
+        assert_eq!(state.scenario, WorkflowScenario::Full);
+    }
+
+    #[tokio::test]
+    async fn test_determine_scenario_auto_skill_only() {
+        let graph = WorkflowGraph::new();
+        let mut state = WorkflowState {
+            input: WorkflowInput {
+                tool: "test".to_string(),
+                task: "test".to_string(),
+                documentation: None,
+                skill_path: Some("skill.md".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        graph.determine_scenario(&mut state).unwrap();
+        assert_eq!(state.scenario, WorkflowScenario::Full);
+    }
+
+    #[tokio::test]
+    async fn test_determine_scenario_auto_doc_only() {
+        let graph = WorkflowGraph::new();
+        let mut state = WorkflowState {
+            input: WorkflowInput {
+                tool: "test".to_string(),
+                task: "test".to_string(),
+                documentation: Some("docs".to_string()),
+                skill_path: None,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        graph.determine_scenario(&mut state).unwrap();
+        assert_eq!(state.scenario, WorkflowScenario::Doc);
+    }
+
+    #[tokio::test]
+    async fn test_determine_scenario_auto_bare() {
+        let graph = WorkflowGraph::new();
+        let mut state = WorkflowState {
+            input: WorkflowInput {
+                tool: "test".to_string(),
+                task: "test".to_string(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        graph.determine_scenario(&mut state).unwrap();
+        assert_eq!(state.scenario, WorkflowScenario::Bare);
+    }
+
+    #[test]
+    fn test_validate_result_empty_command() {
+        let graph = WorkflowGraph::new();
+        let mut state = WorkflowState {
+            command: Some(String::new()),
+            ..Default::default()
+        };
+        graph.validate_result(&mut state).unwrap();
+        assert!(!state.validation_passed);
+    }
+
+    #[test]
+    fn test_validate_result_none_command() {
+        let graph = WorkflowGraph::new();
+        let mut state = WorkflowState {
+            command: None,
+            ..Default::default()
+        };
+        graph.validate_result(&mut state).unwrap();
+        assert!(!state.validation_passed);
+    }
+
+    #[test]
+    fn test_validate_result_valid_command() {
+        let graph = WorkflowGraph::new();
+        let mut state = WorkflowState {
+            command: Some("samtools sort in.bam".to_string()),
+            ..Default::default()
+        };
+        graph.validate_result(&mut state).unwrap();
+        assert!(state.validation_passed);
+    }
+
+    #[test]
+    fn test_workflow_graph_default() {
+        let _graph = WorkflowGraph::default();
+    }
+
+    #[tokio::test]
+    async fn test_generate_mini_skill() {
+        let graph = WorkflowGraph::new();
+        let doc = "Usage: mytool [options]\nOptions:\n  -v  Verbose\n  -h  Help\n\nExamples:\n  mytool -v input.txt\n  mytool -h";
+        let result = graph.generate_mini_skill("mytool", doc).await.unwrap();
+        assert_eq!(result.tool, "mytool");
+        assert!(!result.concepts.is_empty() || !result.pitfalls.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_generate_mini_skill_empty_doc() {
+        let graph = WorkflowGraph::new();
+        let result = graph.generate_mini_skill("emptytool", "").await.unwrap();
+        assert_eq!(result.tool, "emptytool");
+        assert!(!result.concepts.is_empty());
+        assert!(!result.pitfalls.is_empty());
     }
 }

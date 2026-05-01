@@ -780,27 +780,12 @@ fn test_runner_builder_auto_retry() {
 }
 
 #[test]
-fn test_runner_builder_no_skill() {
+fn test_runner_builder_scenario_doc() {
     use crate::config::Config;
+    use crate::workflow_graph::WorkflowScenario;
     let mut runner = Runner::new(Config::default());
-    runner.with_no_skill(true);
-    assert!(runner.no_skill);
-}
-
-#[test]
-fn test_runner_builder_no_doc() {
-    use crate::config::Config;
-    let mut runner = Runner::new(Config::default());
-    runner.with_no_doc(true);
-    assert!(runner.no_doc);
-}
-
-#[test]
-fn test_runner_builder_no_prompt() {
-    use crate::config::Config;
-    let mut runner = Runner::new(Config::default());
-    runner.with_no_prompt(true);
-    assert!(runner.no_prompt);
+    runner.with_scenario(WorkflowScenario::Doc);
+    assert_eq!(runner.force_scenario, Some(WorkflowScenario::Doc));
 }
 
 #[test]
@@ -860,14 +845,13 @@ fn test_runner_builder_scenario() {
 #[test]
 fn test_runner_builder_chaining() {
     use crate::config::Config;
+    use crate::workflow_graph::WorkflowScenario;
     let mut runner = Runner::new(Config::default());
     runner.with_verbose(true);
     runner.with_no_cache(true);
     runner.with_verify(true);
     runner.with_auto_retry(true);
-    runner.with_no_skill(true);
-    runner.with_no_doc(true);
-    runner.with_no_prompt(true);
+    runner.with_scenario(WorkflowScenario::Full);
     runner.with_jobs(8);
     runner.with_stop_on_error(true);
 
@@ -875,9 +859,7 @@ fn test_runner_builder_chaining() {
     assert!(runner.no_cache);
     assert!(runner.verify);
     assert!(runner.auto_retry);
-    assert!(runner.no_skill);
-    assert!(runner.no_doc);
-    assert!(runner.no_prompt);
+    assert_eq!(runner.force_scenario, Some(WorkflowScenario::Full));
     assert_eq!(runner.jobs, 8);
     assert!(runner.stop_on_error);
 }
@@ -890,9 +872,6 @@ fn test_runner_defaults() {
     assert!(!runner.no_cache);
     assert!(!runner.verify);
     assert!(!runner.auto_retry);
-    assert!(!runner.no_skill);
-    assert!(!runner.no_doc);
-    assert!(!runner.no_prompt);
     assert_eq!(runner.jobs, 1);
     assert!(!runner.stop_on_error);
     assert!(runner.force_scenario.is_none());

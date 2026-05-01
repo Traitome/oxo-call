@@ -3782,4 +3782,212 @@ cmd = "echo hello"
         assert!(toml.contains("threads"));
         assert!(toml.contains("memory"));
     }
+
+    #[test]
+    fn test_workflow_checkpoint_new() {
+        let ckpt = WorkflowCheckpoint::new("test-wf");
+        assert_eq!(ckpt.workflow_name, "test-wf");
+        assert!(ckpt.completed_tasks.is_empty());
+        assert!(ckpt.failed_task.is_none());
+        assert!(!ckpt.timestamp.is_empty());
+    }
+
+    #[test]
+    fn test_workflow_checkpoint_save_and_load() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("checkpoint.json");
+        let mut ckpt = WorkflowCheckpoint::new("test-wf");
+        ckpt.completed_tasks.insert("step1".to_string());
+        ckpt.save(&path).unwrap();
+
+        let loaded = WorkflowCheckpoint::load(&path).unwrap();
+        assert_eq!(loaded.workflow_name, "test-wf");
+        assert!(loaded.completed_tasks.contains("step1"));
+    }
+
+    #[test]
+    fn test_workflow_checkpoint_load_nonexistent() {
+        assert!(WorkflowCheckpoint::load(std::path::Path::new("/nonexistent/ckpt.json")).is_none());
+    }
+
+    #[test]
+    fn test_workflow_checkpoint_mark_completed() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("checkpoint.json");
+        let mut ckpt = WorkflowCheckpoint::new("test-wf");
+        ckpt.mark_completed("step1", &path).unwrap();
+        ckpt.mark_completed("step2", &path).unwrap();
+
+        let loaded = WorkflowCheckpoint::load(&path).unwrap();
+        assert_eq!(loaded.completed_tasks.len(), 2);
+        assert!(loaded.completed_tasks.contains("step1"));
+        assert!(loaded.completed_tasks.contains("step2"));
+    }
+
+    #[test]
+    fn test_workflow_checkpoint_mark_failed() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("checkpoint.json");
+        let mut ckpt = WorkflowCheckpoint::new("test-wf");
+        ckpt.mark_failed("step_broken", &path).unwrap();
+
+        let loaded = WorkflowCheckpoint::load(&path).unwrap();
+        assert_eq!(loaded.failed_task, Some("step_broken".to_string()));
+    }
+
+    #[test]
+    fn test_expand_single_wildcard_combo() {
+        let toml = r#"
+[workflow]
+name = "single-combo"
+
+[wildcards]
+sample = ["only_one"]
+
+[[step]]
+name = "qc"
+cmd  = "fastqc {sample}.fq"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let tasks = expand(&def).expect("expand");
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0].cmd, "fastqc only_one.fq");
+    }
+
+    #[test]
+    fn test_expand_with_inputs_outputs_substitution() {
+        let toml = r#"
+[workflow]
+name = "io-sub"
+
+[wildcards]
+sample = ["s1"]
+
+[[step]]
+name    = "align"
+cmd     = "bwa mem ref.fa {sample}.fq"
+inputs  = ["data/{sample}.fq"]
+outputs = ["aligned/{sample}.bam"]
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let tasks = expand(&def).expect("expand");
+        assert_eq!(tasks[0].inputs[0], "data/s1.fq");
+        assert_eq!(tasks[0].outputs[0], "aligned/s1.bam");
+    }
+
+    #[test]
+    fn test_verify_empty_step_name_error() {
+        let toml = r#"
+[workflow]
+name = "empty-name"
+
+[[step]]
+name = ""
+cmd  = "echo hello"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let diags = verify(&def);
+        assert!(
+            diags.iter().any(|d| d.level == DiagLevel::Error && d.message.contains("empty name")),
+            "should error on empty step name"
+        );
+    }
+
+    #[test]
+    fn test_to_snakemake_no_wildcards_no_params() {
+        let toml = r#"
+[workflow]
+name = "simple-smk"
+
+[[step]]
+name    = "qc"
+cmd     = "fastqc input.fq"
+inputs  = ["input.fq"]
+outputs = ["qc.html"]
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let smk = to_snakemake(&def);
+        assert!(smk.contains("rule qc:"));
+        assert!(smk.contains("rule all:"));
+    }
+
+    #[test]
+    fn test_to_nextflow_no_wildcards() {
+        let toml = r#"
+[workflow]
+name = "simple-nf"
+
+[[step]]
+name    = "qc"
+cmd     = "fastqc input.fq"
+inputs  = ["input.fq"]
+outputs = ["qc.html"]
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let nf = to_nextflow(&def);
+        assert!(nf.contains("process QC {"));
+        assert!(nf.contains("QC()"));
+    }
+
+    #[test]
+    fn test_format_toml_with_version() {
+        let toml = r#"
+[workflow]
+name = "ver-test"
+version = "1.0"
+
+[[step]]
+name = "s1"
+cmd  = "echo"
+"#;
+        let def = WorkflowDef::from_str_content(toml).expect("parse");
+        let formatted = format_toml(&def);
+        assert!(formatted.contains("version"));
+        assert!(formatted.contains("1.0"));
+    }
+
+    #[test]
+    fn test_checkpoint_path_returns_path() {
+        let path = checkpoint_path("test-wf");
+        assert!(path.to_string_lossy().contains("test-wf"));
+    }
+
+    #[test]
+    fn test_concrete_task_clone() {
+        let t = ConcreteTask {
+            id: "test".to_string(),
+            step_name: "test".to_string(),
+            cmd: "echo".to_string(),
+            inputs: vec!["in.txt".to_string()],
+            outputs: vec!["out.txt".to_string()],
+            deps: vec![],
+            gather: false,
+            env: Some("env &&".to_string()),
+        };
+        let cloned = t.clone();
+        assert_eq!(cloned.id, t.id);
+        assert_eq!(cloned.env, t.env);
+    }
+
+    #[test]
+    fn test_workflow_meta_default() {
+        let meta = WorkflowMeta::default();
+        assert!(meta.name.is_empty());
+        assert!(meta.description.is_empty());
+        assert!(meta.version.is_empty());
+    }
+
+    #[test]
+    fn test_workflow_def_default() {
+        let def = WorkflowDef::default();
+        assert!(def.steps.is_empty());
+        assert!(def.wildcards.is_empty());
+        assert!(def.params.is_empty());
+    }
+
+    #[test]
+    fn test_diagnostic_level_display() {
+        assert_eq!(format!("{}", DiagLevel::Error), "error");
+        assert_eq!(format!("{}", DiagLevel::Warning), "warning");
+    }
 }

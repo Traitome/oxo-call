@@ -484,4 +484,293 @@ mod tests {
         assert_eq!(deserialized.total_hits, 100);
         assert_eq!(deserialized.oldest_entry_age_days, 3);
     }
+
+    #[test]
+    fn test_cache_clear() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let path = LlmCache::cache_path().unwrap();
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).unwrap();
+        }
+        std::fs::write(&path, "").unwrap();
+        LlmCache::clear().unwrap();
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn test_cache_clear_no_file() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        LlmCache::clear().unwrap();
+    }
+
+    #[test]
+    fn test_cache_stats_empty() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        LlmCache::clear().unwrap();
+        let stats = LlmCache::stats().unwrap();
+        assert_eq!(stats.total_entries, 0);
+        assert_eq!(stats.total_hits, 0);
+        assert_eq!(stats.oldest_entry_age_days, 0);
+    }
+
+    #[test]
+    fn test_cache_flush_to_disk() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        LlmCache::clear().unwrap();
+        let mut mem = acquire_cache();
+        mem.entries.insert(
+            "testhash".to_string(),
+            CacheEntry {
+                hash: "testhash".to_string(),
+                tool: "samtools".to_string(),
+                task: "sort".to_string(),
+                args: "sort -o out.bam in.bam".to_string(),
+                explanation: "Sort BAM".to_string(),
+                model: "gpt-4".to_string(),
+                created_at: 1700000000,
+                hit_count: 0,
+            },
+        );
+        mem.loaded = true;
+        mem.dirty = true;
+        LlmCache::flush_to_disk(&mem).unwrap();
+        let path = LlmCache::cache_path().unwrap();
+        assert!(path.exists());
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert!(content.contains("testhash"));
+        drop(mem);
+        LlmCache::clear().unwrap();
+    }
+
+    #[test]
+    fn test_cache_sync_no_changes() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        LlmCache::clear().unwrap();
+        LlmCache::sync().unwrap();
+    }
+
+    #[test]
+    fn test_cache_sync_with_dirty() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        LlmCache::clear().unwrap();
+        let mut mem = acquire_cache();
+        mem.entries.insert(
+            "synchash".to_string(),
+            CacheEntry {
+                hash: "synchash".to_string(),
+                tool: "bwa".to_string(),
+                task: "align".to_string(),
+                args: "mem ref.fa reads.fq".to_string(),
+                explanation: "Align reads".to_string(),
+                model: "gpt-4".to_string(),
+                created_at: 1700000000,
+                hit_count: 1,
+            },
+        );
+        mem.loaded = true;
+        mem.dirty = true;
+        drop(mem);
+        LlmCache::sync().unwrap();
+        let path = LlmCache::cache_path().unwrap();
+        assert!(path.exists());
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert!(content.contains("synchash"));
+        LlmCache::clear().unwrap();
+    }
+
+    #[test]
+    fn test_ensure_loaded_from_disk() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        LlmCache::clear().unwrap();
+        let path = LlmCache::cache_path().unwrap();
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).unwrap();
+        }
+        let entry = CacheEntry {
+            hash: "loaddhash".to_string(),
+            tool: "samtools".to_string(),
+            task: "view".to_string(),
+            args: "view -b in.sam".to_string(),
+            explanation: "Convert SAM to BAM".to_string(),
+            model: "gpt-4".to_string(),
+            created_at: 1700000000,
+            hit_count: 0,
+        };
+        let json = serde_json::to_string(&entry).unwrap();
+        std::fs::write(&path, format!("{json}\n")).unwrap();
+        let mut mem = acquire_cache();
+        LlmCache::ensure_loaded(&mut mem).unwrap();
+        assert!(mem.entries.contains_key("loaddhash"));
+        drop(mem);
+        LlmCache::clear().unwrap();
+    }
+
+    #[test]
+    fn test_ensure_loaded_no_file() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let mut mem = acquire_cache();
+        mem.entries.clear();
+        mem.loaded = false;
+        LlmCache::ensure_loaded(&mut mem).unwrap();
+        assert!(mem.entries.is_empty());
+        assert!(mem.loaded);
+        drop(mem);
+    }
+
+    #[test]
+    fn test_ensure_loaded_skips_bad_lines() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        LlmCache::clear().unwrap();
+        let path = LlmCache::cache_path().unwrap();
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).unwrap();
+        }
+        let entry = CacheEntry {
+            hash: "goodhash".to_string(),
+            tool: "bwa".to_string(),
+            task: "index".to_string(),
+            args: "index ref.fa".to_string(),
+            explanation: "Index reference".to_string(),
+            model: "gpt-4".to_string(),
+            created_at: 1700000000,
+            hit_count: 0,
+        };
+        let json = serde_json::to_string(&entry).unwrap();
+        std::fs::write(&path, format!("bad json line\n{json}\n")).unwrap();
+        let mut mem = acquire_cache();
+        mem.loaded = false;
+        LlmCache::ensure_loaded(&mut mem).unwrap();
+        assert!(mem.entries.contains_key("goodhash"));
+        assert_eq!(mem.entries.len(), 1);
+        drop(mem);
+        LlmCache::clear().unwrap();
+    }
+
+    #[test]
+    fn test_stats_with_entries() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        LlmCache::clear().unwrap();
+        let mut mem = acquire_cache();
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        mem.entries.insert(
+            "statshash1".to_string(),
+            CacheEntry {
+                hash: "statshash1".to_string(),
+                tool: "samtools".to_string(),
+                task: "sort".to_string(),
+                args: "sort in.bam".to_string(),
+                explanation: "Sort".to_string(),
+                model: "gpt-4".to_string(),
+                created_at: now,
+                hit_count: 3,
+            },
+        );
+        mem.entries.insert(
+            "statshash2".to_string(),
+            CacheEntry {
+                hash: "statshash2".to_string(),
+                tool: "bwa".to_string(),
+                task: "mem".to_string(),
+                args: "mem ref.fa".to_string(),
+                explanation: "Align".to_string(),
+                model: "gpt-4".to_string(),
+                created_at: now - 86400,
+                hit_count: 7,
+            },
+        );
+        mem.loaded = true;
+        drop(mem);
+        let stats = LlmCache::stats().unwrap();
+        assert_eq!(stats.total_entries, 2);
+        assert_eq!(stats.total_hits, 10);
+        assert!(stats.oldest_entry_age_days <= 1);
+        LlmCache::clear().unwrap();
+    }
+
+    #[test]
+    fn test_compute_hash_task_with_extra_spaces() {
+        let h1 = LlmCache::compute_hash("tool", "sort  bam", None, None, "model");
+        let h2 = LlmCache::compute_hash("tool", "sort bam", None, None, "model");
+        assert_eq!(h1, h2, "Multiple internal spaces should be collapsed");
+    }
+
+    #[test]
+    fn test_compute_hash_empty_task() {
+        let h = LlmCache::compute_hash("tool", "", None, None, "model");
+        assert_eq!(h.len(), 64);
+    }
+
+    #[test]
+    fn test_compute_hash_both_docs_and_skill() {
+        let h1 = LlmCache::compute_hash("tool", "task", Some("docs"), Some("skill"), "model");
+        let h2 = LlmCache::compute_hash("tool", "task", Some("docs"), None, "model");
+        assert_ne!(h1, h2, "skill_name should affect hash when docs_hash present");
+    }
+
+    #[test]
+    fn test_cache_entry_all_fields() {
+        let entry = CacheEntry {
+            hash: "fullhash".to_string(),
+            tool: "gatk".to_string(),
+            task: "call variants".to_string(),
+            args: "HaplotypeCaller -R ref.fa -I in.bam".to_string(),
+            explanation: "Call germline SNPs and indels".to_string(),
+            model: "gpt-4o".to_string(),
+            created_at: 1700000000,
+            hit_count: 42,
+        };
+        let json = serde_json::to_string(&entry).unwrap();
+        let back: CacheEntry = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.hash, "fullhash");
+        assert_eq!(back.tool, "gatk");
+        assert_eq!(back.task, "call variants");
+        assert_eq!(back.args, "HaplotypeCaller -R ref.fa -I in.bam");
+        assert_eq!(back.explanation, "Call germline SNPs and indels");
+        assert_eq!(back.model, "gpt-4o");
+        assert_eq!(back.created_at, 1700000000);
+        assert_eq!(back.hit_count, 42);
+    }
 }

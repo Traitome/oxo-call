@@ -592,6 +592,14 @@ impl Skill {
     fn render_section(&self, max_examples: usize, task: &Option<String>) -> String {
         let mut s = String::new();
 
+        // Add CLI pattern hint based on skill examples
+        if !self.examples.is_empty() {
+            let first_example = &self.examples[0];
+            let pattern_hint = Self::detect_skill_pattern(&first_example.args, &self.meta.name);
+            s.push_str(&pattern_hint);
+            s.push_str("\n\n");
+        }
+
         // Compact mode: fewer concepts/pitfalls for smaller models
         // Use compact for ≤5 examples (covers Compact and Medium tiers)
         let compact = max_examples <= 5;
@@ -602,7 +610,7 @@ impl Skill {
             } else {
                 self.context.concepts.len()
             };
-            s.push_str("## Expert Domain Knowledge\n");
+            s.push_str("=== KEY CONCEPTS ===\n");
             for (i, c) in self.context.concepts.iter().take(limit).enumerate() {
                 s.push_str(&format!("{}. {}\n", i + 1, c));
             }
@@ -615,26 +623,164 @@ impl Skill {
             } else {
                 self.context.pitfalls.len()
             };
-            s.push_str("## Common Pitfalls to Avoid\n");
+            s.push_str("=== CRITICAL WARNINGS (AVOID THESE) ===\n");
             for p in self.context.pitfalls.iter().take(limit) {
-                s.push_str(&format!("- {p}\n"));
+                s.push_str(&format!("⚠ {}\n", p));
             }
             s.push('\n');
         }
 
         if !self.examples.is_empty() {
             let selected = self.select_examples(max_examples, task.as_deref());
-            s.push_str("## Worked Reference Examples\n");
+            s.push_str("=== WORKED EXAMPLES (FOLLOW THIS FORMAT) ===\n");
             for (i, ex) in selected.iter().enumerate() {
                 s.push_str(&format!("Example {}:\n", i + 1));
-                s.push_str(&format!("  Task:        {}\n", ex.task));
-                s.push_str(&format!("  ARGS:        {}\n", ex.args));
-                s.push_str(&format!("  Explanation: {}\n", ex.explanation));
+                s.push_str(&format!("  Task:  {}\n", ex.task));
+                s.push_str(&format!("  ARGS:  {}\n", ex.args));
+                if compact && i == 0 {
+                    // For compact mode, show full explanation only for first example
+                    s.push_str(&format!("  Note:  {}\n", ex.explanation));
+                }
                 s.push('\n');
             }
         }
 
         s
+    }
+
+    /// Detect CLI pattern from example args and skill name.
+    ///
+    /// Returns a pattern hint string that helps the LLM understand
+    /// the correct structure for the tool's commands.
+    fn detect_skill_pattern(first_args: &str, tool_name: &str) -> String {
+        let first_token = first_args.split_whitespace().next().unwrap_or("");
+
+        // Known bioinformatics subcommands (short verbs, NOT file paths)
+        const KNOWN_SUBCOMMANDS: &[&str] = &[
+            "sort",
+            "view",
+            "index",
+            "merge",
+            "extract",
+            "filter",
+            "call",
+            "depth",
+            "mem",
+            "bwt2se",
+            "fastq2bwt",
+            "color",
+            "sam2bwt",
+            "realign",
+            "flagstat",
+            "mpileup",
+            "markdup",
+            "collate",
+            "fixmate",
+            "reheader",
+            "cat",
+            "stats",
+            "bedcov",
+            "isec",
+            "norm",
+            "annotate",
+            "predict",
+            "classify_wf",
+            "identify",
+            "align",
+            "quant",
+            "refine",
+            "rsem-calculate-expression",
+            "rsem-prepare-reference",
+            "discover",
+            "gff-cache",
+            "mbias",
+            "HaplotypeCaller",
+            "Mutect2",
+            "BaseRecalibrator",
+            "ApplyBQSR",
+            "SplitNCigarReads",
+            "CollectHsMetrics",
+            "MarkDuplicates",
+            "blastn",
+            "blastp",
+            "blastx",
+            "tblastn",
+            "tblastx",
+            "build",
+            "index",
+            "quast",
+            "metaquast",
+        ];
+
+        // Check if first token looks like a file (has extension)
+        let looks_like_file = first_token.contains('.')
+            || first_token.contains('/')
+            || first_token.ends_with(".bed")
+            || first_token.ends_with(".bam")
+            || first_token.ends_with(".fa")
+            || first_token.ends_with(".fq")
+            || first_token.ends_with(".fasta")
+            || first_token.ends_with(".fastq")
+            || first_token.ends_with(".vcf")
+            || first_token.ends_with(".gtf")
+            || first_token.ends_with(".gff");
+
+        // Pattern A: Subcommand-based (first token is a KNOWN subcommand, NOT a file)
+        if KNOWN_SUBCOMMANDS.contains(&first_token) && !looks_like_file {
+            return format!(
+                "=== CLI PATTERN: SUBCOMMAND REQUIRED ===\n\
+                ⚠️ CRITICAL: {tool_name} REQUIRES a subcommand as FIRST argument!\n\
+                \n\
+                ✅ CORRECT: '{tool_name} {first_token} -flags args'\n\
+                ❌ WRONG: '{tool_name} -flags args' (missing subcommand - will fail!)\n\
+                ❌ WRONG: '{tool_name} --output file' (no subcommand - will fail!)\n\
+                ❌ WRONG: '{tool_name} -o output.bam' (missing subcommand - will fail!)\n\
+                \n\
+                The subcommand '{first_token}' is detected from examples.\n\
+                YOU MUST include a subcommand in your ARGS!"
+            );
+        }
+
+        // Pattern B: Direct flags (first token IS a flag)
+        if first_token.starts_with('-') {
+            return format!(
+                "=== CLI PATTERN: DIRECT FLAGS (NO SUBCOMMAND!) ===\n\
+                ⚠️ CRITICAL: {tool_name} has NO subcommand!\n\
+                \n\
+                ✅ CORRECT: '{tool_name} {first_token} value input -o output'\n\
+                ❌ WRONG: '{tool_name} sort {first_token} ...' (no 'sort' subcommand - will fail!)\n\
+                ❌ WRONG: '{tool_name} view {first_token} ...' (no 'view' subcommand - will fail!)\n\
+                ❌ WRONG: '{tool_name} extract {first_token} ...' (no 'extract' subcommand - will fail!)\n\
+                ❌ WRONG: '{tool_name} --output file {first_token} ...' (wrong order - will fail!)\n\
+                \n\
+                DO NOT add 'sort', 'view', 'extract', 'index', 'mem', or any other subcommand!\n\
+                ARGS MUST start with a flag (like {first_token}) or a positional input file!"
+            );
+        }
+
+        // Pattern C: Positional arguments (first token looks like a file or value)
+        // Tools like admixture: "data.bed 5 --cv=10" - positional input file + K value + flags
+        if looks_like_file || !first_token.starts_with('-') {
+            return format!(
+                "=== CLI PATTERN: POSITIONAL ARGUMENTS (NO SUBCOMMAND!) ===\n\
+                ⚠️ CRITICAL: {tool_name} uses POSITIONAL arguments, NOT subcommands!\n\
+                \n\
+                ✅ CORRECT: '{tool_name} {first_token} ...' (input file first, then options)\n\
+                ❌ WRONG: '{tool_name} sort {first_token} ...' (no 'sort' subcommand - will fail!)\n\
+                ❌ WRONG: '{tool_name} --input {first_token} ...' (wrong - use positional input, not --input)\n\
+                ❌ WRONG: '{tool_name} --K 5 ...' (wrong - K is positional, not a flag!)\n\
+                \n\
+                DO NOT add 'sort', 'view', 'extract', 'mem' or any other subcommand!\n\
+                DO NOT use --input/--output flags if the tool uses positional arguments!\n\
+                Follow the EXACT structure shown in examples: input_file positional_args [options]"
+            );
+        }
+
+        // Default pattern hint
+        "=== CLI PATTERN ===\n\
+        ⚠️ Check first example for correct structure.\n\
+        Study the example ARGS carefully - structure matters!"
+            .to_string()
     }
 
     /// Select the most relevant examples for a given task.
@@ -697,26 +843,15 @@ impl Skill {
                 .then(a.0.cmp(&b.0))
         });
 
-        // Take top max_examples, but ensure example 0 is included if there's room
-        let mut selected_indices: Vec<usize> = scored
+        // Take top max_examples based on score
+        // NOTE: Do NOT force example 0 to be included. For multi-subcommand tools
+        // (salmon, samtools, gatk), example 0 may be the wrong subcommand for the task.
+        // Task-based selection should respect scores, not force arbitrary examples.
+        scored
             .into_iter()
             .take(max_examples)
             .map(|(i, _)| i)
-            .collect();
-
-        // If example 0 (the most fundamental example) is not in the selection
-        // and there's room, swap in the lowest-scoring selected example.
-        if !selected_indices.contains(&0)
-            && max_examples > 1
-            && let Some(&last_idx) = selected_indices.last()
-            && last_idx != 0
-        {
-            selected_indices.pop();
-            selected_indices.insert(0, 0);
-        }
-
-        selected_indices.sort();
-        selected_indices
+            .collect::<Vec<usize>>()
             .into_iter()
             .map(|i| &self.examples[i])
             .collect()
@@ -829,20 +964,14 @@ fn extract_flags_from_text(text: &str) -> std::collections::HashSet<String> {
 /// Detect if the task mentions a subcommand that matches the example's first arg.
 /// Returns a boost score (2.0 for match, 0.0 for no match).
 fn detect_subcommand_match(task: &str, example_args: &str) -> f64 {
-    // Common bioinformatics subcommands
+    // Common bioinformatics subcommands - comprehensive list
     const SUBCOMMANDS: &[&str] = &[
+        // samtools/bcftools
         "sort",
-        "index",
         "view",
+        "index",
         "filter",
         "merge",
-        "intersect",
-        "mem",
-        "align",
-        "trim",
-        "run",
-        "call",
-        "annotate",
         "depth",
         "coverage",
         "flagstat",
@@ -855,11 +984,135 @@ fn detect_subcommand_match(task: &str, example_args: &str) -> f64 {
         "consensus",
         "faidx",
         "dict",
-        "bamtobed",
-        "bedtobam",
+        "collate",
+        "fixmate",
+        "reheader",
+        "markdup",
+        "cat",
+        "bedcov",
+        // bwa/bowtie2
+        "mem",
+        "bwt2se",
+        "fastq2bwt",
+        "align",
+        // gatk/picard
+        "HaplotypeCaller",
+        "Mutect2",
+        "BaseRecalibrator",
+        "ApplyBQSR",
+        "MarkDuplicates",
+        "SortSam",
+        "AddOrReplaceReadGroups",
+        "ValidateSamFile",
+        "CollectAlignmentSummaryMetrics",
+        "CollectInsertSizeMetrics",
+        "MergeSamFiles",
+        "SamToFastq",
+        "CreateSequenceDictionary",
+        "CollectGcBiasMetrics",
+        "CollectHsMetrics",
+        "SplitNCigarReads",
+        // salmon/kallisto
+        "quant",
+        "index",
+        "quantmerge",
+        "swim",
+        // checkm2/gtdbtk
+        "predict",
+        "classify_wf",
+        "identify",
+        "align",
+        "ani_screen",
+        // blast/mmseqs2
         "blastn",
         "blastp",
         "blastx",
+        "tblastn",
+        "tblastx",
+        "createdb",
+        "search",
+        "easy-search",
+        "cluster",
+        "linclust",
+        // bedtools
+        "intersect",
+        "bamtobed",
+        "bedtobam",
+        "closest",
+        "slop",
+        "shift",
+        "flank",
+        "window",
+        "map",
+        "shuffle",
+        "random",
+        "merge",
+        "split",
+        "complement",
+        // prodigal/augustus
+        "predict",
+        // seqkit
+        "seq",
+        "stats",
+        "fq2fa",
+        "fa2fq",
+        "grep",
+        "locate",
+        "replace",
+        "rename",
+        "common",
+        "split",
+        "concat",
+        "subseq",
+        "head",
+        "tail",
+        "rmdup",
+        // blast/gtdbtk
+        "trim",
+        "run",
+        "call",
+        "annotate",
+        // bismark
+        "bisulfite genome preparation",
+        "bisulfite mapping",
+        "deduplicate",
+        // featurecounts/subread
+        "featureCounts",
+        // homer
+        "findMotifsGenome.pl",
+        "getDifferentialPeaksReplicates.pl",
+        "makeTagDirectory",
+        "annotatePeaks.pl",
+        // metaphlan
+        "merge_metaphlan_tables.py",
+        // canu/wtdbg2/flye
+        "correct",
+        "trim",
+        "assemble",
+        // minimap2 has no subcommand (flags first)
+        // fastqc has no subcommand (positionals)
+        // meme
+        "meme",
+        "fimo",
+        "dreme",
+        "tomtom",
+        // mafft/muscle
+        "add",
+        "addfragments",
+        "addprofile",
+        "ltree",
+        // bracken
+        "build",
+        "combine",
+        "report",
+        // quast
+        "quast",
+        "metaquast",
+        // kraken2/bracken
+        "build",
+        "classify",
+        "inspect",
+        "report",
     ];
 
     let first_arg = example_args.split_whitespace().next().unwrap_or("");
@@ -874,11 +1127,26 @@ fn detect_subcommand_match(task: &str, example_args: &str) -> f64 {
 
     // Check if the task mentions this subcommand
     let task_lower = task.to_ascii_lowercase();
+    // Match various verb forms: quantify->quant, indexing->index, etc.
     if task_lower.contains(&format!(" {}", first_arg))
         || task_lower.starts_with(&format!("{} ", first_arg))
         || task_lower.contains(&format!("{}ing", first_arg))  // "sorting" matches "sort"
-        || task_lower.contains(&format!("{}ed", first_arg))
-    // "sorted" matches "sort"
+        || task_lower.contains(&format!("{}ed", first_arg))   // "sorted" matches "sort"
+        || task_lower.contains(&format!("{}ify", first_arg))  // "quantify" matches "quant"
+        || task_lower.contains(&format!("{}ify", first_arg.replace("quant", "quantif")))  // handle quant->quantify
+        || task_lower.contains(&format!("{}ies", first_arg))
+    // "quantities" matches "quant"
+    {
+        return 2.0;
+    }
+
+    // Additional verb stem matching: extract stem from subcommand and match task verbs
+    // e.g., "quant" -> task mentions "quantify", "quantification"
+    let stem = first_arg.trim_end_matches("e");
+    if task_lower.contains(&format!("{}ify", stem))     // quant -> quantify
+        || task_lower.contains(&format!("{}ification", stem))  // quant -> quantification
+        || task_lower.contains(&format!("{}y", stem))
+    // sort -> sorty (not useful but pattern)
     {
         return 2.0;
     }
@@ -2202,9 +2470,9 @@ explanation = "an example"
             ..Default::default()
         };
         let section = skill.to_prompt_section();
-        assert!(section.contains("Expert Domain Knowledge"));
+        assert!(section.contains("KEY CONCEPTS"));
         assert!(section.contains("concept 1"));
-        assert!(!section.contains("Common Pitfalls"));
+        assert!(!section.contains("CRITICAL WARNINGS"));
     }
 
     #[test]
@@ -2217,8 +2485,8 @@ explanation = "an example"
             ..Default::default()
         };
         let section = skill.to_prompt_section();
-        assert!(!section.contains("Expert Domain Knowledge"));
-        assert!(section.contains("Common Pitfalls"));
+        assert!(!section.contains("KEY CONCEPTS"));
+        assert!(section.contains("CRITICAL WARNINGS"));
         assert!(section.contains("pitfall 1"));
     }
 
@@ -2233,7 +2501,7 @@ explanation = "an example"
             ..Default::default()
         };
         let section = skill.to_prompt_section();
-        assert!(section.contains("Worked Reference Examples"));
+        assert!(section.contains("WORKED EXAMPLES"));
         assert!(section.contains("Sort BAM"));
         assert!(section.contains("sort -o out.bam in.bam"));
     }
@@ -2256,9 +2524,9 @@ explanation = "an example"
             }],
         };
         let section = skill.to_prompt_section();
-        assert!(section.contains("Expert Domain Knowledge"));
-        assert!(section.contains("Common Pitfalls"));
-        assert!(section.contains("Worked Reference Examples"));
+        assert!(section.contains("KEY CONCEPTS"));
+        assert!(section.contains("CRITICAL WARNINGS"));
+        assert!(section.contains("WORKED EXAMPLES"));
         assert!(section.contains("1. concept A"));
         assert!(section.contains("2. concept B"));
     }
@@ -2408,5 +2676,181 @@ explanation = "an example"
         assert!(!tokens.contains("the"));
         assert!(!tokens.contains("into"));
         assert!(tokens.contains("sort"));
+    }
+
+    #[test]
+    fn test_to_prompt_section_limited() {
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "test".to_string(),
+                ..Default::default()
+            },
+            context: SkillContext {
+                concepts: vec!["c1".to_string()],
+                pitfalls: vec!["p1".to_string()],
+            },
+            examples: (0..10)
+                .map(|i| SkillExample {
+                    task: format!("task {i}"),
+                    args: format!("arg {i}"),
+                    explanation: format!("expl {i}"),
+                })
+                .collect(),
+        };
+        let section = skill.to_prompt_section_limited(3);
+        assert!(section.contains("KEY CONCEPTS"));
+        assert!(section.contains("CRITICAL WARNINGS"));
+        assert!(section.contains("WORKED EXAMPLES"));
+    }
+
+    #[test]
+    fn test_to_prompt_section_for_task_match() {
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "samtools".to_string(),
+                ..Default::default()
+            },
+            context: SkillContext {
+                concepts: vec!["Use -o for output".to_string()],
+                pitfalls: vec!["Don't forget the index".to_string()],
+            },
+            examples: vec![
+                SkillExample {
+                    task: "sort bam file".to_string(),
+                    args: "sort -o sorted.bam input.bam".to_string(),
+                    explanation: "sort by coordinate".to_string(),
+                },
+                SkillExample {
+                    task: "index bam file".to_string(),
+                    args: "index sorted.bam".to_string(),
+                    explanation: "creates .bai index".to_string(),
+                },
+            ],
+        };
+        let section = skill.to_prompt_section_for_task(5, "sort the bam");
+        assert!(section.contains("sort"));
+    }
+
+    #[test]
+    fn test_to_prompt_section_for_task_no_match() {
+        let skill = Skill {
+            meta: SkillMeta {
+                name: "test".to_string(),
+                ..Default::default()
+            },
+            context: SkillContext {
+                concepts: vec![],
+                pitfalls: vec![],
+            },
+            examples: vec![SkillExample {
+                task: "sort bam file".to_string(),
+                args: "sort -o sorted.bam input.bam".to_string(),
+                explanation: "sort by coordinate".to_string(),
+            }],
+        };
+        let section = skill.to_prompt_section_for_task(5, "completely unrelated task");
+        assert!(!section.is_empty() || section.is_empty());
+    }
+
+    #[test]
+    fn test_select_examples_no_task() {
+        let skill = Skill {
+            examples: (0..10)
+                .map(|i| SkillExample {
+                    task: format!("task {i}"),
+                    args: format!("arg {i}"),
+                    explanation: format!("expl {i}"),
+                })
+                .collect(),
+            ..Default::default()
+        };
+        let selected = skill.select_examples(3, None);
+        assert!(selected.len() <= 3);
+    }
+
+    #[test]
+    fn test_select_examples_with_task() {
+        let skill = Skill {
+            examples: vec![
+                SkillExample {
+                    task: "sort bam file".to_string(),
+                    args: "sort input.bam".to_string(),
+                    explanation: "sorts".to_string(),
+                },
+                SkillExample {
+                    task: "index bam file".to_string(),
+                    args: "index input.bam".to_string(),
+                    explanation: "indexes".to_string(),
+                },
+                SkillExample {
+                    task: "view bam file".to_string(),
+                    args: "view input.bam".to_string(),
+                    explanation: "views".to_string(),
+                },
+            ],
+            ..Default::default()
+        };
+        let selected = skill.select_examples(5, Some("sort the bam"));
+        assert!(!selected.is_empty());
+    }
+
+    #[test]
+    fn test_select_examples_fewer_than_max() {
+        let skill = Skill {
+            examples: vec![SkillExample {
+                task: "only task".to_string(),
+                args: "arg".to_string(),
+                explanation: "expl".to_string(),
+            }],
+            ..Default::default()
+        };
+        let selected = skill.select_examples(5, None);
+        assert_eq!(selected.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_skill_md_with_h3_examples() {
+        let md = r#"---
+name: test
+category: test
+description: desc
+tags: []
+---
+
+## Concepts
+
+- concept 1
+
+## Pitfalls
+
+- pitfall 1
+
+## Examples
+
+### Sort by coordinate
+**Args:** `sort -o out.bam in.bam`
+**Explanation:** Sorts BAM by coordinate
+
+### Convert to FASTQ
+**Args:** `fastq input.bam`
+**Explanation:** Converts BAM to FASTQ
+"#;
+        let skill = parse_skill_md(md).expect("should parse");
+        assert_eq!(skill.examples.len(), 2);
+        assert_eq!(skill.examples[0].task, "Sort by coordinate");
+    }
+
+    #[test]
+    fn test_parse_yaml_frontmatter_colon_in_value() {
+        let yaml = "name: test\ndescription: \"A tool: with colons\"";
+        let meta = parse_yaml_frontmatter(yaml);
+        assert_eq!(meta.description, "A tool: with colons");
+    }
+
+    #[test]
+    fn test_parse_yaml_frontmatter_category_with_colon() {
+        let yaml = "name: test\ncategory: \"alignment: short read\"";
+        let meta = parse_yaml_frontmatter(yaml);
+        assert_eq!(meta.category, "alignment: short read");
     }
 }
