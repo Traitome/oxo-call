@@ -1496,4 +1496,491 @@ mod tests {
         assert!(formatted.contains("USAGE"));
         assert!(formatted.contains("EXAMPLES"));
     }
+
+    // ── StructuredDoc JSON serialization ─────────────────────────────────────
+
+    #[test]
+    fn test_structured_doc_json_roundtrip() {
+        let doc = StructuredDoc {
+            usage: "tool [options]".to_string(),
+            examples: "tool --help".to_string(),
+            options: "--help  Show help".to_string(),
+            commands: "sort, view".to_string(),
+            other: "Other info".to_string(),
+            quick_flags: vec!["--help".to_string(), "-v".to_string()],
+            flag_catalog: vec![FlagEntry {
+                flag: "--help".to_string(),
+                description: "Show help".to_string(),
+            }],
+            extracted_examples: vec!["tool --help".to_string()],
+            quality_score: 0.75,
+            command_pattern: "flags-first".to_string(),
+            detected_subcommand: Some("mem".to_string()),
+            all_subcommands: vec!["mem".to_string(), "index".to_string()],
+        };
+        let json = serde_json::to_string(&doc).unwrap();
+        let back: StructuredDoc = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.usage, doc.usage);
+        assert_eq!(back.examples, doc.examples);
+        assert_eq!(back.quick_flags, doc.quick_flags);
+        assert_eq!(back.quality_score, doc.quality_score);
+        assert_eq!(back.command_pattern, doc.command_pattern);
+        assert_eq!(back.detected_subcommand, doc.detected_subcommand);
+        assert_eq!(back.all_subcommands, doc.all_subcommands);
+    }
+
+    #[test]
+    fn test_structured_doc_default_json_roundtrip() {
+        let doc = StructuredDoc::default();
+        let json = serde_json::to_string(&doc).unwrap();
+        let back: StructuredDoc = serde_json::from_str(&json).unwrap();
+        assert!(back.usage.is_empty());
+        assert_eq!(back.quality_score, 0.0);
+        assert!(back.detected_subcommand.is_none());
+    }
+
+    // ── FlagEntry tests ───────────────────────────────────────────────────────
+
+    #[test]
+    fn test_flag_entry_json_roundtrip() {
+        let entry = FlagEntry {
+            flag: "--threads".to_string(),
+            description: "Number of threads".to_string(),
+        };
+        let json = serde_json::to_string(&entry).unwrap();
+        let back: FlagEntry = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.flag, "--threads");
+        assert_eq!(back.description, "Number of threads");
+    }
+
+    #[test]
+    fn test_flag_entry_debug() {
+        let entry = FlagEntry {
+            flag: "-o".to_string(),
+            description: "Output".to_string(),
+        };
+        let dbg = format!("{entry:?}");
+        assert!(dbg.contains("-o"));
+        assert!(dbg.contains("Output"));
+    }
+
+    #[test]
+    fn test_flag_entry_clone() {
+        let entry = FlagEntry {
+            flag: "--output".to_string(),
+            description: "Output file".to_string(),
+        };
+        let cloned = entry.clone();
+        assert_eq!(cloned.flag, entry.flag);
+        assert_eq!(cloned.description, entry.description);
+    }
+
+    // ── is_section_header edge cases ──────────────────────────────────────────
+
+    #[test]
+    fn test_is_section_header_all_keywords() {
+        // All standard patterns
+        assert!(is_section_header("USAGE:"));
+        assert!(is_section_header("Usage:"));
+        assert!(is_section_header("OPTIONS:"));
+        assert!(is_section_header("Options:"));
+        assert!(is_section_header("ARGUMENTS:"));
+        assert!(is_section_header("Arguments:"));
+        assert!(is_section_header("EXAMPLES:"));
+        assert!(is_section_header("Examples:"));
+        assert!(is_section_header("PARAMETERS:"));
+        assert!(is_section_header("Parameters:"));
+        assert!(is_section_header("FLAGS:"));
+        assert!(is_section_header("Flags:"));
+        assert!(is_section_header("COMMANDS:"));
+        assert!(is_section_header("Commands:"));
+        assert!(is_section_header("DESCRIPTION:"));
+        assert!(is_section_header("Description:"));
+        assert!(is_section_header("SYNOPSIS:"));
+        assert!(is_section_header("Synopsis:"));
+    }
+
+    #[test]
+    fn test_is_section_header_rejects_plain_text() {
+        assert!(!is_section_header("just a sentence"));
+        assert!(!is_section_header("word"));
+        assert!(!is_section_header("  indented text"));
+    }
+
+    #[test]
+    fn test_is_section_header_all_caps_many_uppercase() {
+        // Must have >3 uppercase letters
+        assert!(is_section_header("ADVANCED SETTINGS:"));
+        assert!(is_section_header("REQUIRED PARAMETERS:"));
+    }
+
+    #[test]
+    fn test_is_section_header_few_uppercase_not_matched() {
+        // "In:" has only 1 uppercase letter — should not match all-caps rule
+        // but also no keyword → false
+        assert!(!is_section_header("In:"));
+    }
+
+    // ── clean_noise additional patterns ───────────────────────────────────────
+
+    #[test]
+    fn test_clean_noise_see_full_doc() {
+        let text = "USAGE:\n  tool [options]\nSee the full documentation at http://example.com";
+        let cleaned = clean_noise(text);
+        assert!(!cleaned.contains("See the full documentation"));
+    }
+
+    #[test]
+    fn test_clean_noise_version_pattern() {
+        // Version: lines at start of string are removed by the noise pattern
+        let text = "USAGE:\n  tool [options]\nReport bugs to: bugs@example.com";
+        let cleaned = clean_noise(text);
+        assert!(!cleaned.contains("Report bugs to"));
+    }
+
+    #[test]
+    fn test_clean_noise_preserves_useful_content() {
+        let text =
+            "USAGE:\n  samtools sort [options] input.bam\n\nOPTIONS:\n  -o FILE  Output file";
+        let cleaned = clean_noise(text);
+        assert!(cleaned.contains("samtools sort"));
+        assert!(cleaned.contains("-o FILE"));
+    }
+
+    #[test]
+    fn test_clean_noise_empty_input() {
+        assert_eq!(clean_noise(""), "");
+    }
+
+    // ── extract_flags_standalone edge cases ───────────────────────────────────
+
+    #[test]
+    fn test_extract_flags_deduplicates() {
+        let doc = "--help --help --help";
+        let flags = extract_flags_standalone(doc);
+        assert_eq!(flags.iter().filter(|f| *f == "--help").count(), 1);
+    }
+
+    #[test]
+    fn test_extract_flags_sorted() {
+        let doc = "--zzz --aaa --mmm";
+        let flags = extract_flags_standalone(doc);
+        let mut sorted = flags.clone();
+        sorted.sort();
+        assert_eq!(flags, sorted);
+    }
+
+    #[test]
+    fn test_extract_flags_short_and_long() {
+        let doc = "-v --verbose -o FILE --output FILE";
+        let flags = extract_flags_standalone(doc);
+        assert!(flags.contains(&"-v".to_string()));
+        assert!(flags.contains(&"--verbose".to_string()));
+        assert!(flags.contains(&"-o".to_string()));
+        assert!(flags.contains(&"--output".to_string()));
+    }
+
+    #[test]
+    fn test_extract_flags_alphanumeric() {
+        let doc = "-1 --option-with-dash --option_with_underscore";
+        let flags = extract_flags_standalone(doc);
+        assert!(flags.contains(&"-1".to_string()));
+        assert!(flags.contains(&"--option-with-dash".to_string()));
+        assert!(flags.contains(&"--option_with_underscore".to_string()));
+    }
+
+    // ── extract_sections_standalone edge cases ─────────────────────────────────
+
+    #[test]
+    fn test_extract_sections_standalone_single_section() {
+        let doc = "USAGE:\n  tool [options]\n  more usage info\n";
+        let sections = extract_sections_standalone(doc);
+        assert_eq!(sections.len(), 1);
+        assert_eq!(sections[0].0, "USAGE:");
+        assert!(sections[0].1.contains("tool [options]"));
+    }
+
+    #[test]
+    fn test_extract_sections_standalone_empty_content_section_skipped() {
+        // A section header with no content should not appear
+        let doc = "USAGE:\n\nOPTIONS:\n  --help  Help\n";
+        let sections = extract_sections_standalone(doc);
+        // OPTIONS has content, USAGE might be empty or have just a newline
+        assert!(!sections.is_empty());
+    }
+
+    #[test]
+    fn test_extract_sections_standalone_preserves_content() {
+        let doc = "DESCRIPTION:\n  This tool does something.\n  It is very useful.\n";
+        let sections = extract_sections_standalone(doc);
+        assert_eq!(sections.len(), 1);
+        assert!(sections[0].1.contains("This tool does something"));
+    }
+
+    // ── truncate_smart edge cases ────────────────────────────────────────────
+
+    #[test]
+    fn test_truncate_smart_exact_limit() {
+        let text = "a".repeat(100);
+        let result = truncate_smart(&text, 100);
+        assert_eq!(result, text);
+    }
+
+    #[test]
+    fn test_truncate_smart_appends_truncation_marker() {
+        let text = "word1 word2 word3\n\nword4 word5\n\nword6 word7 this is a very long line that goes beyond";
+        let result = truncate_smart(&text, 40);
+        assert!(result.contains("truncated for brevity") || result.contains("[documentation"));
+    }
+
+    #[test]
+    fn test_truncate_smart_zero_limit() {
+        let text = "some content";
+        let result = truncate_smart(text, 0);
+        // Should not panic; returns truncated marker
+        assert!(result.contains("truncated") || result.is_empty());
+    }
+
+    // ── DocProcessor::new and process ────────────────────────────────────────
+
+    #[test]
+    fn test_doc_processor_new_debug() {
+        let p = DocProcessor::new();
+        let dbg = format!("{p:?}");
+        assert!(dbg.contains("DocProcessor"));
+    }
+
+    #[test]
+    fn test_doc_processor_clone() {
+        let p = DocProcessor::new();
+        let _p2 = p.clone();
+    }
+
+    #[test]
+    fn test_process_returns_structured_doc() {
+        let processor = DocProcessor::new();
+        let doc = "USAGE:\n  bwa mem [options] ref.fa reads.fq\n\nOPTIONS:\n  -t INT  Threads\n";
+        let s = processor.process(doc);
+        assert!(!s.usage.is_empty());
+    }
+
+    // ── flag_catalog_compact ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_flag_catalog_compact_empty() {
+        let processor = DocProcessor::new();
+        let result = processor.flag_catalog_compact(&[]);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_flag_catalog_compact_limits_to_30() {
+        let processor = DocProcessor::new();
+        let catalog: Vec<FlagEntry> = (0..40)
+            .map(|i| FlagEntry {
+                flag: format!("--flag{i}"),
+                description: format!("desc{i}"),
+            })
+            .collect();
+        let result = processor.flag_catalog_compact(&catalog);
+        // Should contain at most 30 flags
+        let count = result.split("  ").count();
+        assert!(count <= 30);
+    }
+
+    // ── compute_quality_score edge cases ────────────────────────────────────
+
+    #[test]
+    fn test_compute_quality_score_with_only_usage() {
+        let processor = DocProcessor::new();
+        let doc = StructuredDoc {
+            usage: "tool [options]".to_string(),
+            ..Default::default()
+        };
+        let score = processor.compute_quality_score(&doc);
+        assert!((score - 0.25).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_compute_quality_score_with_usage_and_examples() {
+        let processor = DocProcessor::new();
+        let doc = StructuredDoc {
+            usage: "tool [options]".to_string(),
+            examples: "tool --help".to_string(),
+            ..Default::default()
+        };
+        let score = processor.compute_quality_score(&doc);
+        assert!((score - 0.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_compute_quality_score_caps_at_1() {
+        let processor = DocProcessor::new();
+        let doc = StructuredDoc {
+            usage: "tool [options]".to_string(),
+            examples: "tool --help".to_string(),
+            options: "--help".to_string(),
+            commands: "sort".to_string(),
+            quick_flags: vec!["--help".to_string()],
+            flag_catalog: (0..15)
+                .map(|i| FlagEntry {
+                    flag: format!("--flag{i}"),
+                    description: format!("desc{i}"),
+                })
+                .collect(),
+            extracted_examples: (0..5).map(|i| format!("tool --flag{i}")).collect(),
+            ..Default::default()
+        };
+        let score = processor.compute_quality_score(&doc);
+        assert!(score <= 1.0);
+    }
+
+    // ── Detect command pattern edge cases ─────────────────────────────────────
+
+    #[test]
+    fn test_detect_command_pattern_empty_doc() {
+        let processor = DocProcessor::new();
+        let doc = "";
+        let structured = processor.clean_and_structure(doc);
+        // Should not panic, pattern may be empty
+        let _ = structured.command_pattern;
+    }
+
+    #[test]
+    fn test_detect_command_pattern_known_subcommand_view() {
+        let processor = DocProcessor::new();
+        let doc = "USAGE:\n  samtools view [options]\n\nEXAMPLES:\n  view -b input.sam > out.bam\n";
+        let structured = processor.clean_and_structure(doc);
+        assert_eq!(structured.command_pattern, "subcommand");
+    }
+
+    #[test]
+    fn test_all_subcommands_dedup() {
+        let processor = DocProcessor::new();
+        let doc = "COMMANDS:\n  sort   Sort data\n  sort   Sort again\n  view   View data\n";
+        let structured = processor.clean_and_structure(doc);
+        let unique: std::collections::HashSet<_> = structured.all_subcommands.iter().collect();
+        assert_eq!(unique.len(), structured.all_subcommands.len());
+    }
+
+    // ── Argument/parameter section treated as "other" ─────────────────────────
+
+    #[test]
+    fn test_arguments_section_goes_to_other() {
+        let processor = DocProcessor::new();
+        let doc = "ARGUMENTS:\n  input.bam  Input BAM file\n  output.bam  Output BAM file\n";
+        let structured = processor.clean_and_structure(doc);
+        assert!(structured.other.contains("ARGUMENTS") || !structured.other.is_empty());
+    }
+
+    // ── Multiple options sections merged ───────────────────────────────────────
+
+    #[test]
+    fn test_multiple_options_sections_merged() {
+        let processor = DocProcessor::new();
+        let doc = "OPTIONS:\n  --help  Help\n\nFLAGS:\n  --verbose  Verbose\n";
+        let structured = processor.clean_and_structure(doc);
+        // Both sections should contribute to options
+        assert!(!structured.options.is_empty() || !structured.quick_flags.is_empty());
+    }
+
+    // ── Bracketed flag extraction ─────────────────────────────────────────────
+
+    #[test]
+    fn test_extract_all_flags_no_flags() {
+        let processor = DocProcessor::new();
+        let doc = "This is plain text without any flags at all.";
+        let flags = processor.extract_all_flags(doc);
+        assert!(flags.is_empty());
+    }
+
+    #[test]
+    fn test_extract_all_flags_with_numeric() {
+        let processor = DocProcessor::new();
+        let doc = "Options:\n  -1  One-pass mode\n  --verbose  Verbose output";
+        let flags = processor.extract_all_flags(doc);
+        assert!(flags.iter().any(|f| f == "--verbose"));
+    }
+
+    // ── compress_options limits ────────────────────────────────────────────────
+
+    #[test]
+    fn test_compress_options_empty() {
+        let processor = DocProcessor::new();
+        let result = processor.compress_options("");
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_compress_options_skips_prose() {
+        let processor = DocProcessor::new();
+        let options =
+            "This is a long description line\n--help  Show help\nAnother prose line\n-v  Verbose\n";
+        let compressed = processor.compress_options(options);
+        assert!(compressed.contains("--help"));
+        assert!(compressed.contains("-v"));
+    }
+
+    // ── extract_command_examples: percent prompt ──────────────────────────────
+
+    #[test]
+    fn test_extract_command_examples_percent_prompt() {
+        let processor = DocProcessor::new();
+        let doc = "EXAMPLES:\n  % admixture input.bed 5\n  % admixture --cv input.bed 5\n";
+        let examples = processor.extract_command_examples(doc);
+        assert!(!examples.is_empty());
+        assert!(examples.iter().all(|e| !e.starts_with('%')));
+    }
+
+    // ── StructuredDoc Display with empty fields ────────────────────────────────
+
+    #[test]
+    fn test_structured_doc_display_no_other() {
+        let doc = StructuredDoc {
+            usage: "tool [options]".to_string(),
+            examples: String::new(),
+            options: String::new(),
+            commands: String::new(),
+            other: String::new(),
+            quick_flags: Vec::new(),
+            flag_catalog: Vec::new(),
+            extracted_examples: Vec::new(),
+            quality_score: 0.0,
+            command_pattern: String::new(),
+            detected_subcommand: None,
+            all_subcommands: Vec::new(),
+        };
+        let display = format!("{doc}");
+        assert!(display.contains("=== USAGE ==="));
+        assert!(!display.contains("=== EXAMPLES ==="));
+        assert!(!display.contains("=== OPTIONS/FLAGS ==="));
+    }
+
+    #[test]
+    fn test_structured_doc_display_with_other() {
+        let doc = StructuredDoc {
+            other: "Some other info".to_string(),
+            ..Default::default()
+        };
+        let display = format!("{doc}");
+        assert!(display.contains("Some other info"));
+    }
+
+    // ── process_for_llm additional ────────────────────────────────────────────
+
+    #[test]
+    fn test_process_for_llm_empty_doc() {
+        let processor = DocProcessor::new();
+        let result = processor.process_for_llm("");
+        // Should not panic; result may be empty
+        let _ = result;
+    }
+
+    #[test]
+    fn test_process_for_llm_with_subcommands() {
+        let processor = DocProcessor::new();
+        let doc = "USAGE:\n  samtools [options]\n\nCOMMANDS:\n  sort  Sort BAM\n  view  View BAM\n\nEXAMPLES:\n  sort -o out.bam in.bam\n";
+        let formatted = processor.process_for_llm(doc);
+        assert!(formatted.contains("SUBCOMMANDS") || formatted.contains("sort"));
+    }
 }

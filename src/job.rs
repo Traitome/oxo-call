@@ -1895,4 +1895,352 @@ mod tests {
         let all = builtin_jobs(None);
         assert_eq!(all.len(), BUILTIN_JOBS.len());
     }
+
+    // ── BuiltinJob derive traits ──────────────────────────────────────────────
+
+    #[test]
+    fn test_builtin_job_debug() {
+        let job = &BUILTIN_JOBS[0];
+        let dbg = format!("{job:?}");
+        assert!(dbg.contains("BuiltinJob"));
+    }
+
+    #[test]
+    fn test_builtin_job_clone() {
+        let job = BUILTIN_JOBS[0].clone();
+        assert_eq!(job.name, BUILTIN_JOBS[0].name);
+        assert_eq!(job.command, BUILTIN_JOBS[0].command);
+    }
+
+    // ── JobEntry clone ────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_job_entry_clone() {
+        let now = chrono::Utc::now();
+        let entry = JobEntry {
+            name: "my-job".to_string(),
+            command: "echo hello".to_string(),
+            description: Some("A test job".to_string()),
+            tags: vec!["test".to_string()],
+            schedule: None,
+            run_count: 3,
+            last_run: Some(now),
+            last_exit_code: Some(0),
+            created_at: now,
+            updated_at: now,
+        };
+        let cloned = entry.clone();
+        assert_eq!(cloned.name, entry.name);
+        assert_eq!(cloned.command, entry.command);
+        assert_eq!(cloned.run_count, entry.run_count);
+        assert_eq!(cloned.tags, entry.tags);
+    }
+
+    // ── JobRun with no server ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_job_run_no_server_json() {
+        let run = JobRun {
+            job_name: "test-job".to_string(),
+            command: "echo test".to_string(),
+            server: None,
+            exit_code: 0,
+            started_at: chrono::Utc::now(),
+            duration_secs: 0.123,
+        };
+        let json = serde_json::to_string(&run).unwrap();
+        assert!(!json.contains("\"server\""));
+        let back: JobRun = serde_json::from_str(&json).unwrap();
+        assert!(back.server.is_none());
+        assert_eq!(back.job_name, "test-job");
+        assert_eq!(back.exit_code, 0);
+    }
+
+    #[test]
+    fn test_job_run_with_server_json() {
+        let run = JobRun {
+            job_name: "remote-job".to_string(),
+            command: "ls /tmp".to_string(),
+            server: Some("hpc-01".to_string()),
+            exit_code: 0,
+            started_at: chrono::Utc::now(),
+            duration_secs: 1.5,
+        };
+        let json = serde_json::to_string(&run).unwrap();
+        assert!(json.contains("\"server\""));
+        let back: JobRun = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.server, Some("hpc-01".to_string()));
+    }
+
+    // ── builtin_jobs tag filtering edge cases ─────────────────────────────────
+
+    #[test]
+    fn test_builtin_jobs_unknown_tag_returns_empty() {
+        let result = builtin_jobs(Some("nonexistent-tag-xyz-123"));
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_builtin_jobs_system_tag() {
+        let jobs = builtin_jobs(Some("system"));
+        assert!(!jobs.is_empty());
+        for job in &jobs {
+            assert!(
+                job.tags.contains(&"system"),
+                "job '{}' missing system tag",
+                job.name
+            );
+        }
+    }
+
+    #[test]
+    fn test_builtin_jobs_git_tag() {
+        let jobs = builtin_jobs(Some("git"));
+        assert!(!jobs.is_empty());
+        for job in &jobs {
+            assert!(
+                job.tags.contains(&"git"),
+                "job '{}' missing git tag",
+                job.name
+            );
+        }
+    }
+
+    #[test]
+    fn test_builtin_jobs_slurm_tag() {
+        let jobs = builtin_jobs(Some("slurm"));
+        assert!(!jobs.is_empty());
+    }
+
+    // ── interpolate_command: {} alias combined with other placeholders ─────────
+
+    #[test]
+    fn test_interpolate_command_curly_alias_and_stem() {
+        let vars = HashMap::new();
+        let result = interpolate_command("cp {} {stem}_copy.bam", "sample.bam", 1, &vars);
+        assert_eq!(result, "cp sample.bam sample_copy.bam");
+    }
+
+    #[test]
+    fn test_interpolate_command_curly_and_nr() {
+        let vars = HashMap::new();
+        let result = interpolate_command("echo {nr}: {}", "hello.txt", 5, &vars);
+        assert_eq!(result, "echo 5: hello.txt");
+    }
+
+    #[test]
+    fn test_interpolate_command_all_placeholders() {
+        let vars = HashMap::new();
+        let result = interpolate_command(
+            "{} {item} {line} {nr} {basename} {dir} {stem} {ext}",
+            "/data/sample.bam",
+            2,
+            &vars,
+        );
+        assert_eq!(
+            result,
+            "/data/sample.bam /data/sample.bam /data/sample.bam 2 sample.bam /data sample bam"
+        );
+    }
+
+    #[test]
+    fn test_interpolate_command_empty_item_path_derived() {
+        let vars = HashMap::new();
+        let result = interpolate_command("{item}|{basename}|{stem}|{ext}|{dir}", "", 1, &vars);
+        assert_eq!(result, "||||.");
+    }
+
+    // ── parse_var edge cases ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_parse_var_value_with_equals() {
+        let (k, v) = parse_var("key=a=b=c").unwrap();
+        assert_eq!(k, "key");
+        assert_eq!(v, "a=b=c");
+    }
+
+    #[test]
+    fn test_parse_var_missing_equals_error() {
+        let result = parse_var("keyonly");
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("KEY=VALUE"));
+    }
+
+    // ── JobRunStore: skip malformed JSON lines ─────────────────────────────────
+
+    #[test]
+    fn test_job_run_store_skip_malformed_lines() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let runs_path = tmp.path().join("job_runs.jsonl");
+        let valid_run = JobRun {
+            job_name: "test-job".to_string(),
+            command: "echo ok".to_string(),
+            server: None,
+            exit_code: 0,
+            started_at: chrono::Utc::now(),
+            duration_secs: 0.1,
+        };
+        let valid_json = serde_json::to_string(&valid_run).unwrap();
+        std::fs::write(&runs_path, format!("{valid_json}\nnot valid json at all\n")).unwrap();
+        let loaded = JobRunStore::load(None).unwrap();
+        assert_eq!(loaded.len(), 1);
+        assert_eq!(loaded[0].job_name, "test-job");
+    }
+
+    // ── JobRunStore: multiple appends ─────────────────────────────────────────
+
+    #[test]
+    fn test_job_run_store_append_multiple() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        for i in 0..3u32 {
+            let run = JobRun {
+                job_name: "multi-job".to_string(),
+                command: format!("echo {i}"),
+                server: None,
+                exit_code: 0,
+                started_at: chrono::Utc::now(),
+                duration_secs: 0.01,
+            };
+            JobRunStore::append(&run).unwrap();
+        }
+        let loaded = JobRunStore::load(Some("multi-job")).unwrap();
+        assert_eq!(loaded.len(), 3);
+    }
+
+    // ── JobManager: edit command and description ──────────────────────────────
+
+    #[test]
+    fn test_job_manager_edit_and_find() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        JobManager::add(make_entry("update-test", "echo old")).unwrap();
+        JobManager::edit(
+            "update-test",
+            Some("echo new"),
+            Some("new desc"),
+            false,
+            None,
+            None,
+            false,
+        )
+        .unwrap();
+        let entry = JobManager::find("update-test").unwrap().unwrap();
+        assert_eq!(entry.command, "echo new");
+        assert_eq!(entry.description.as_deref(), Some("new desc"));
+    }
+
+    #[test]
+    fn test_job_manager_record_run_increments_count() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        JobManager::add(make_entry("run-count-job", "echo run")).unwrap();
+        let t = chrono::Utc::now();
+        JobManager::record_run("run-count-job", "echo run", None, 0, t, 0.1).unwrap();
+        JobManager::record_run("run-count-job", "echo run", None, 0, t, 0.2).unwrap();
+        JobManager::record_run("run-count-job", "echo run", None, 1, t, 0.3).unwrap();
+        let entry = JobManager::find("run-count-job").unwrap().unwrap();
+        assert_eq!(entry.run_count, 3);
+        assert_eq!(entry.last_exit_code, Some(1));
+    }
+
+    #[test]
+    fn test_job_manager_list_by_tag_combinations() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        let mut alpha = make_entry("alpha-job", "echo alpha");
+        alpha.tags = vec!["alpha".to_string(), "shared".to_string()];
+        JobManager::add(alpha).unwrap();
+        let mut beta = make_entry("beta-job", "echo beta");
+        beta.tags = vec!["beta".to_string(), "shared".to_string()];
+        JobManager::add(beta).unwrap();
+        let mut gamma = make_entry("gamma-job", "echo gamma");
+        gamma.tags = vec!["gamma".to_string()];
+        JobManager::add(gamma).unwrap();
+
+        let shared = JobManager::list(Some("shared")).unwrap();
+        assert_eq!(shared.len(), 2);
+        let alpha_only = JobManager::list(Some("alpha")).unwrap();
+        assert_eq!(alpha_only.len(), 1);
+        assert_eq!(alpha_only[0].name, "alpha-job");
+        let none_tag = JobManager::list(Some("no-such-tag")).unwrap();
+        assert!(none_tag.is_empty());
+    }
+
+    // ── JobManager: rename ────────────────────────────────────────────────────
+
+    #[test]
+    fn test_job_manager_rename_job() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        JobManager::add(make_entry("old-name", "echo rename")).unwrap();
+        JobManager::rename("old-name", "new-name").unwrap();
+        assert!(JobManager::find("old-name").unwrap().is_none());
+        let found = JobManager::find("new-name").unwrap();
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().command, "echo rename");
+    }
+
+    #[test]
+    fn test_job_manager_rename_conflict_fails() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        JobManager::add(make_entry("rename-a", "echo a")).unwrap();
+        JobManager::add(make_entry("rename-b", "echo b")).unwrap();
+        let result = JobManager::rename("rename-a", "rename-b");
+        assert!(result.is_err());
+    }
+
+    // ── JobManager: set_schedule and scheduled_jobs ────────────────────────────
+
+    #[test]
+    fn test_job_manager_set_and_clear_schedule() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("OXO_CALL_DATA_DIR", tmp.path());
+        }
+        JobManager::add(make_entry("sched-job", "echo sched")).unwrap();
+        JobManager::set_schedule("sched-job", Some("0 * * * *")).unwrap();
+        let entry = JobManager::find("sched-job").unwrap().unwrap();
+        assert_eq!(entry.schedule.as_deref(), Some("0 * * * *"));
+
+        // Clear schedule
+        JobManager::set_schedule("sched-job", None).unwrap();
+        let entry = JobManager::find("sched-job").unwrap().unwrap();
+        assert!(entry.schedule.is_none());
+    }
+
+    // ── read_input_list edge cases ─────────────────────────────────────────────
+
+    #[test]
+    fn test_read_input_list_nonexistent_returns_error() {
+        let result = read_input_list("/nonexistent/path/items.txt");
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("cannot open"));
+    }
 }
