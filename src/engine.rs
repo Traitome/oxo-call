@@ -3992,4 +3992,324 @@ cmd  = "echo"
         assert_eq!(format!("{}", DiagLevel::Error), "error");
         assert_eq!(format!("{}", DiagLevel::Warning), "warning");
     }
+
+    // ─── DiagLevel Clone / PartialEq / Eq ─────────────────────────────────────
+
+    #[test]
+    fn test_diag_level_clone() {
+        let level = DiagLevel::Error;
+        let cloned = level.clone();
+        assert_eq!(level, cloned);
+    }
+
+    #[test]
+    fn test_diag_level_eq() {
+        assert_eq!(DiagLevel::Warning, DiagLevel::Warning);
+        assert_ne!(DiagLevel::Error, DiagLevel::Warning);
+    }
+
+    #[test]
+    fn test_diag_level_debug() {
+        let err_str = format!("{:?}", DiagLevel::Error);
+        let warn_str = format!("{:?}", DiagLevel::Warning);
+        assert!(!err_str.is_empty());
+        assert!(!warn_str.is_empty());
+    }
+
+    // ─── Diagnostic construction ──────────────────────────────────────────────
+
+    #[test]
+    fn test_diagnostic_error_construction() {
+        let d = Diagnostic {
+            level: DiagLevel::Error,
+            message: "output file missing".to_string(),
+        };
+        assert_eq!(d.level, DiagLevel::Error);
+        assert!(d.message.contains("output"));
+    }
+
+    #[test]
+    fn test_diagnostic_warning_construction() {
+        let d = Diagnostic {
+            level: DiagLevel::Warning,
+            message: "no outputs declared".to_string(),
+        };
+        assert_eq!(d.level, DiagLevel::Warning);
+        assert!(d.message.contains("outputs"));
+    }
+
+    // ─── WorkflowMeta clone / serde ───────────────────────────────────────────
+
+    #[test]
+    fn test_workflow_meta_clone() {
+        let meta = WorkflowMeta {
+            name: "rnaseq".to_string(),
+            description: "RNA-seq pipeline".to_string(),
+            version: "1.0".to_string(),
+        };
+        let cloned = meta.clone();
+        assert_eq!(cloned.name, meta.name);
+        assert_eq!(cloned.description, meta.description);
+        assert_eq!(cloned.version, meta.version);
+    }
+
+    #[test]
+    fn test_workflow_meta_serde_roundtrip() {
+        let meta = WorkflowMeta {
+            name: "pipeline".to_string(),
+            description: "test pipeline".to_string(),
+            version: "0.1".to_string(),
+        };
+        let json = serde_json::to_string(&meta).unwrap();
+        let restored: WorkflowMeta = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.name, meta.name);
+        assert_eq!(restored.version, meta.version);
+    }
+
+    // ─── StepDef with env field ───────────────────────────────────────────────
+
+    #[test]
+    fn test_step_def_with_env() {
+        let step = StepDef {
+            name: "align".to_string(),
+            cmd: "bwa mem ref.fa {input}".to_string(),
+            inputs: vec!["{sample}.fastq".to_string()],
+            outputs: vec!["{sample}.bam".to_string()],
+            depends_on: vec![],
+            gather: false,
+            env: Some("source activate bwa-env &&".to_string()),
+        };
+        assert_eq!(step.env.as_deref(), Some("source activate bwa-env &&"));
+        assert_eq!(step.name, "align");
+    }
+
+    #[test]
+    fn test_step_def_without_env() {
+        let step = StepDef {
+            name: "qc".to_string(),
+            cmd: "fastqc {input}".to_string(),
+            inputs: vec!["{sample}.fastq".to_string()],
+            outputs: vec!["{sample}_fastqc.html".to_string()],
+            depends_on: vec![],
+            gather: false,
+            env: None,
+        };
+        assert!(step.env.is_none());
+    }
+
+    // ─── format_elapsed boundary values ──────────────────────────────────────
+
+    #[test]
+    fn test_format_elapsed_zero_seconds() {
+        let d = std::time::Duration::from_secs(0);
+        let s = format_elapsed(d);
+        assert!(s.contains('s'));
+    }
+
+    #[test]
+    fn test_format_elapsed_just_below_60() {
+        let d = std::time::Duration::from_millis(59_900);
+        let s = format_elapsed(d);
+        assert!(s.contains('s'), "expected seconds format, got: {s}");
+        assert!(!s.contains("m "), "should not contain minutes: {s}");
+    }
+
+    #[test]
+    fn test_format_elapsed_exactly_60() {
+        let d = std::time::Duration::from_secs(60);
+        let s = format_elapsed(d);
+        assert!(s.contains('m'), "expected minutes format, got: {s}");
+    }
+
+    #[test]
+    fn test_format_elapsed_one_hour() {
+        let d = std::time::Duration::from_secs(3600);
+        let s = format_elapsed(d);
+        assert!(s.contains('h'), "expected hours format, got: {s}");
+    }
+
+    #[test]
+    fn test_format_elapsed_one_hour_30_min() {
+        let d = std::time::Duration::from_secs(5400);
+        let s = format_elapsed(d);
+        assert!(s.contains('h'), "expected hours format, got: {s}");
+        assert!(
+            s.contains('m'),
+            "expected minutes in hours format, got: {s}"
+        );
+    }
+
+    // ─── substitute edge cases ────────────────────────────────────────────────
+
+    #[test]
+    fn test_substitute_no_placeholders_new() {
+        let wc = std::collections::HashMap::new();
+        let params = std::collections::HashMap::new();
+        assert_eq!(substitute("echo hello", &wc, &params), "echo hello");
+    }
+
+    #[test]
+    fn test_substitute_multiple_different_placeholders() {
+        let mut wc = std::collections::HashMap::new();
+        wc.insert("sample".to_string(), "s1".to_string());
+        wc.insert("ref".to_string(), "hg38".to_string());
+        let params = std::collections::HashMap::new();
+        let result = substitute("bwa mem {ref} {sample}.fastq", &wc, &params);
+        assert_eq!(result, "bwa mem hg38 s1.fastq");
+    }
+
+    #[test]
+    fn test_substitute_same_placeholder_twice() {
+        let mut wc = std::collections::HashMap::new();
+        wc.insert("sample".to_string(), "mysample".to_string());
+        let params = std::collections::HashMap::new();
+        let result = substitute("cp {sample}.txt {sample}.bak", &wc, &params);
+        assert_eq!(result, "cp mysample.txt mysample.bak");
+    }
+
+    #[test]
+    fn test_substitute_params_key() {
+        let wc = std::collections::HashMap::new();
+        let mut params = std::collections::HashMap::new();
+        params.insert("threads".to_string(), "8".to_string());
+        let result = substitute("echo {params.threads}", &wc, &params);
+        assert_eq!(result, "echo 8");
+    }
+
+    // ─── task_id ──────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_task_id_no_wildcards_new() {
+        let wc: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+        let id = task_id("myStep", &wc);
+        assert_eq!(id, "myStep");
+    }
+
+    #[test]
+    fn test_task_id_with_one_wildcard() {
+        let mut wc = std::collections::HashMap::new();
+        wc.insert("sample".to_string(), "s1".to_string());
+        let id = task_id("align", &wc);
+        assert!(id.contains("align"));
+        assert!(id.contains("s1"));
+    }
+
+    // ─── uses_wildcards ───────────────────────────────────────────────────────
+
+    #[test]
+    fn test_uses_wildcards_yes_new() {
+        let step = StepDef {
+            name: "align".to_string(),
+            cmd: "bwa mem ref {sample}.fastq > {sample}.bam".to_string(),
+            inputs: vec!["{sample}.fastq".to_string()],
+            outputs: vec!["{sample}.bam".to_string()],
+            depends_on: vec![],
+            gather: false,
+            env: None,
+        };
+        let mut wildcards = std::collections::HashMap::new();
+        wildcards.insert("sample".to_string(), vec!["s1".to_string()]);
+        assert!(uses_wildcards(&step, &wildcards));
+    }
+
+    #[test]
+    fn test_uses_wildcards_no_new() {
+        let step = StepDef {
+            name: "index".to_string(),
+            cmd: "samtools index all.bam".to_string(),
+            inputs: vec!["all.bam".to_string()],
+            outputs: vec!["all.bam.bai".to_string()],
+            depends_on: vec![],
+            gather: false,
+            env: None,
+        };
+        let mut wildcards = std::collections::HashMap::new();
+        wildcards.insert("sample".to_string(), vec!["s1".to_string()]);
+        assert!(!uses_wildcards(&step, &wildcards));
+    }
+
+    // ─── wildcard_combinations ────────────────────────────────────────────────
+
+    #[test]
+    fn test_wildcard_combinations_single_key_new() {
+        let mut wildcards = std::collections::HashMap::new();
+        wildcards.insert(
+            "sample".to_string(),
+            vec!["s1".to_string(), "s2".to_string()],
+        );
+        let combos = wildcard_combinations(&wildcards);
+        assert_eq!(combos.len(), 2);
+    }
+
+    #[test]
+    fn test_wildcard_combinations_empty_new() {
+        let wildcards: std::collections::HashMap<String, Vec<String>> =
+            std::collections::HashMap::new();
+        let combos = wildcard_combinations(&wildcards);
+        assert_eq!(combos.len(), 1);
+    }
+
+    // ─── WorkflowDef from_str_content error cases ────────────────────────────
+
+    #[test]
+    fn test_workflow_def_from_str_empty_toml_is_default() {
+        // Empty TOML is missing the required `[workflow]` field, so it errors
+        let result = WorkflowDef::from_str_content("");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_workflow_def_from_str_invalid_toml() {
+        let result = WorkflowDef::from_str_content("[[[invalid toml");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_workflow_def_from_str_valid_step() {
+        let toml = r#"
+[workflow]
+name = "test"
+description = "a test workflow"
+version = "0.1"
+
+[[step]]
+name = "qc"
+cmd  = "fastqc {sample}.fastq"
+inputs  = ["{sample}.fastq"]
+outputs = ["{sample}_fastqc.html"]
+
+[wildcards]
+sample = ["s1", "s2"]
+"#;
+        let def = WorkflowDef::from_str_content(toml).unwrap();
+        assert_eq!(def.steps.len(), 1);
+        assert_eq!(def.steps[0].name, "qc");
+        assert_eq!(def.wildcards.get("sample").unwrap(), &vec!["s1", "s2"]);
+    }
+
+    // ─── WorkflowDef serde roundtrip ─────────────────────────────────────────
+
+    #[test]
+    fn test_workflow_def_toml_roundtrip() {
+        let toml = r#"
+[workflow]
+name = "roundtrip"
+description = "roundtrip test"
+version = "1.0"
+
+[[step]]
+name = "trim"
+cmd  = "trimmomatic {sample}.fastq {sample}_trimmed.fastq"
+inputs  = ["{sample}.fastq"]
+outputs = ["{sample}_trimmed.fastq"]
+
+[wildcards]
+sample = ["a", "b"]
+"#;
+        let def = WorkflowDef::from_str_content(toml).unwrap();
+        let reserialized = toml::to_string(&def).unwrap();
+        let def2 = toml::from_str::<WorkflowDef>(&reserialized).unwrap();
+        assert_eq!(def2.steps.len(), def.steps.len());
+        assert_eq!(def2.wildcards, def.wildcards);
+    }
 }

@@ -3310,4 +3310,587 @@ mod tests {
         let profile_m27 = get_model_profile("m2.7");
         assert!(profile_m27.instruction_following >= 0.89);
     }
+
+    // ─── contains_ignore_ascii_case ───────────────────────────────────────────
+
+    #[test]
+    fn test_contains_ignore_ascii_case_exact_match() {
+        assert!(contains_ignore_ascii_case("llama-7b", "7b"));
+    }
+
+    #[test]
+    fn test_contains_ignore_ascii_case_mixed_case() {
+        assert!(contains_ignore_ascii_case("Llama-7B", "7b"));
+        assert!(contains_ignore_ascii_case("llama-7b", "7B"));
+    }
+
+    #[test]
+    fn test_contains_ignore_ascii_case_no_match() {
+        assert!(!contains_ignore_ascii_case("llama-70b", "7b-instruct"));
+    }
+
+    #[test]
+    fn test_contains_ignore_ascii_case_empty_needle() {
+        assert!(contains_ignore_ascii_case("anything", ""));
+    }
+
+    #[test]
+    fn test_contains_ignore_ascii_case_empty_haystack() {
+        assert!(!contains_ignore_ascii_case("", "7b"));
+    }
+
+    #[test]
+    fn test_contains_ignore_ascii_case_haystack_shorter_than_needle() {
+        assert!(!contains_ignore_ascii_case("7b", "7b-instruct"));
+    }
+
+    // ─── find_ignore_ascii_case ───────────────────────────────────────────────
+
+    #[test]
+    fn test_find_ignore_ascii_case_found_at_zero() {
+        assert_eq!(find_ignore_ascii_case("7b-instruct", "7b"), Some(0));
+    }
+
+    #[test]
+    fn test_find_ignore_ascii_case_found_mid_string() {
+        let pos = find_ignore_ascii_case("llama-7b-instruct", "7b");
+        assert!(pos.is_some());
+        assert!(pos.unwrap() > 0);
+    }
+
+    #[test]
+    fn test_find_ignore_ascii_case_not_found() {
+        assert!(find_ignore_ascii_case("llama-70b", "7b-instruct").is_none());
+    }
+
+    #[test]
+    fn test_find_ignore_ascii_case_empty_needle() {
+        assert_eq!(find_ignore_ascii_case("anything", ""), Some(0));
+    }
+
+    #[test]
+    fn test_find_ignore_ascii_case_case_insensitive() {
+        assert!(find_ignore_ascii_case("Llama-7B-instruct", "7b").is_some());
+    }
+
+    // ─── has_param_tag ────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_has_param_tag_simple_match() {
+        assert!(has_param_tag("llama-7b-instruct", &["7b"]));
+    }
+
+    #[test]
+    fn test_has_param_tag_no_match_prefix_digit() {
+        // "72b" should NOT match "2b" because '7' precedes '2b'
+        assert!(!has_param_tag("llama-72b", &["2b"]));
+    }
+
+    #[test]
+    fn test_has_param_tag_no_match_prefix_dot() {
+        // "0.8b" should NOT match "8b" because '.' precedes '8b'
+        assert!(!has_param_tag("qwen-0.8b", &["8b"]));
+    }
+
+    #[test]
+    fn test_has_param_tag_no_match_prefix_letter() {
+        // "e4b" should NOT match "4b" because 'e' precedes '4b'
+        assert!(!has_param_tag("e4b-model", &["4b"]));
+    }
+
+    #[test]
+    fn test_has_param_tag_match_at_start() {
+        assert!(has_param_tag("7b-instruct", &["7b"]));
+    }
+
+    #[test]
+    fn test_has_param_tag_72b_matches_72b() {
+        assert!(has_param_tag("llama-72b", &["72b"]));
+    }
+
+    #[test]
+    fn test_has_param_tag_multiple_tags_first_matches() {
+        assert!(has_param_tag("llama-7b", &["7b", "13b"]));
+    }
+
+    #[test]
+    fn test_has_param_tag_multiple_tags_second_matches() {
+        assert!(has_param_tag("llama-13b", &["7b", "13b"]));
+    }
+
+    // ─── config_tier_to_llm_tier ──────────────────────────────────────────────
+
+    #[test]
+    fn test_config_tier_to_llm_tier_full() {
+        let result = config_tier_to_llm_tier(&PromptTierConfig::Full);
+        assert_eq!(result, crate::llm::PromptTier::Full);
+    }
+
+    #[test]
+    fn test_config_tier_to_llm_tier_medium() {
+        let result = config_tier_to_llm_tier(&PromptTierConfig::Medium);
+        assert_eq!(result, crate::llm::PromptTier::Medium);
+    }
+
+    #[test]
+    fn test_config_tier_to_llm_tier_compact() {
+        let result = config_tier_to_llm_tier(&PromptTierConfig::Compact);
+        assert_eq!(result, crate::llm::PromptTier::Compact);
+    }
+
+    #[test]
+    fn test_config_tier_to_llm_tier_auto_falls_back_to_full() {
+        let result = config_tier_to_llm_tier(&PromptTierConfig::Auto);
+        assert_eq!(result, crate::llm::PromptTier::Full);
+    }
+
+    // ─── PromptTierConfig::from_str_loose ─────────────────────────────────────
+
+    #[test]
+    fn test_prompt_tier_from_str_loose_auto() {
+        assert_eq!(
+            PromptTierConfig::from_str_loose("auto"),
+            Some(PromptTierConfig::Auto)
+        );
+        assert_eq!(
+            PromptTierConfig::from_str_loose("AUTO"),
+            Some(PromptTierConfig::Auto)
+        );
+    }
+
+    #[test]
+    fn test_prompt_tier_from_str_loose_full() {
+        assert_eq!(
+            PromptTierConfig::from_str_loose("full"),
+            Some(PromptTierConfig::Full)
+        );
+        assert_eq!(
+            PromptTierConfig::from_str_loose("Full"),
+            Some(PromptTierConfig::Full)
+        );
+    }
+
+    #[test]
+    fn test_prompt_tier_from_str_loose_medium() {
+        assert_eq!(
+            PromptTierConfig::from_str_loose("medium"),
+            Some(PromptTierConfig::Medium)
+        );
+    }
+
+    #[test]
+    fn test_prompt_tier_from_str_loose_compact() {
+        assert_eq!(
+            PromptTierConfig::from_str_loose("compact"),
+            Some(PromptTierConfig::Compact)
+        );
+    }
+
+    #[test]
+    fn test_prompt_tier_from_str_loose_invalid() {
+        assert_eq!(PromptTierConfig::from_str_loose("unknown"), None);
+        assert_eq!(PromptTierConfig::from_str_loose(""), None);
+    }
+
+    // ─── PromptStyle Debug ────────────────────────────────────────────────────
+
+    #[test]
+    fn test_prompt_style_debug_instruct() {
+        assert_eq!(format!("{:?}", PromptStyle::Instruct), "Instruct");
+    }
+
+    #[test]
+    fn test_prompt_style_debug_chat() {
+        assert_eq!(format!("{:?}", PromptStyle::Chat), "Chat");
+    }
+
+    #[test]
+    fn test_prompt_style_debug_completion() {
+        assert_eq!(format!("{:?}", PromptStyle::Completion), "Completion");
+    }
+
+    #[test]
+    fn test_prompt_style_clone() {
+        let s = PromptStyle::Chat;
+        let cloned = s;
+        assert_eq!(s, cloned);
+    }
+
+    // ─── RagConfig::default ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_rag_config_default_disabled() {
+        let rag = RagConfig::default();
+        assert!(!rag.enabled);
+    }
+
+    #[test]
+    fn test_rag_config_default_num_examples() {
+        let rag = RagConfig::default();
+        assert_eq!(rag.num_examples, 3);
+    }
+
+    #[test]
+    fn test_rag_config_default_similarity_threshold() {
+        let rag = RagConfig::default();
+        assert!((rag.similarity_threshold - 0.3_f32).abs() < 1e-5);
+    }
+
+    #[test]
+    fn test_rag_config_default_semantic_search_enabled() {
+        let rag = RagConfig::default();
+        assert!(rag.semantic_search);
+    }
+
+    // ─── LicenseConfig::default ───────────────────────────────────────────────
+
+    #[test]
+    fn test_license_config_default_notice_not_shown() {
+        let lc = LicenseConfig::default();
+        assert!(!lc.notice_shown);
+    }
+
+    // ─── provider_requires_token ──────────────────────────────────────────────
+
+    #[test]
+    fn test_provider_requires_token_ollama_false() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "ollama".to_string();
+        assert!(!cfg.provider_requires_token());
+    }
+
+    #[test]
+    fn test_provider_requires_token_openai_true() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "openai".to_string();
+        assert!(cfg.provider_requires_token());
+    }
+
+    #[test]
+    fn test_provider_requires_token_github_copilot_true() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let cfg = Config::default();
+        assert!(cfg.provider_requires_token());
+    }
+
+    // ─── effective_context_window ─────────────────────────────────────────────
+
+    #[test]
+    fn test_effective_context_window_explicit_config() {
+        let mut cfg = Config::default();
+        cfg.llm.context_window = 32768;
+        assert_eq!(cfg.effective_context_window(), 32768);
+    }
+
+    #[test]
+    fn test_effective_context_window_zero_falls_back_to_inference() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_MODEL");
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.context_window = 0;
+        // With an unknown model (no name set), context_window returns 0 or some default
+        let cw = cfg.effective_context_window();
+        // Should not panic, result is any non-negative u32
+        let _ = cw;
+    }
+
+    // ─── effective_prompt_tier ────────────────────────────────────────────────
+
+    #[test]
+    fn test_effective_prompt_tier_full_config_override() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROMPT_TIER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.prompt_tier = PromptTierConfig::Full;
+        assert_eq!(cfg.effective_prompt_tier(), crate::llm::PromptTier::Full);
+    }
+
+    #[test]
+    fn test_effective_prompt_tier_medium_config_override() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROMPT_TIER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.prompt_tier = PromptTierConfig::Medium;
+        assert_eq!(cfg.effective_prompt_tier(), crate::llm::PromptTier::Medium);
+    }
+
+    #[test]
+    fn test_effective_prompt_tier_compact_config_override() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROMPT_TIER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.prompt_tier = PromptTierConfig::Compact;
+        assert_eq!(cfg.effective_prompt_tier(), crate::llm::PromptTier::Compact);
+    }
+
+    #[test]
+    fn test_effective_prompt_tier_env_override() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::set_var("OXO_CALL_LLM_PROMPT_TIER", "compact");
+        }
+        let cfg = Config::default();
+        let tier = cfg.effective_prompt_tier();
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROMPT_TIER");
+        }
+        assert_eq!(tier, crate::llm::PromptTier::Compact);
+    }
+
+    // ─── Config::set for additional keys ─────────────────────────────────────
+
+    #[test]
+    fn test_config_set_context_window_valid() {
+        let mut cfg = Config::default();
+        cfg.set("llm.context_window", "131072").unwrap();
+        assert_eq!(cfg.llm.context_window, 131072);
+    }
+
+    #[test]
+    fn test_config_set_context_window_invalid() {
+        let mut cfg = Config::default();
+        assert!(cfg.set("llm.context_window", "not-a-number").is_err());
+    }
+
+    #[test]
+    fn test_config_set_cache_enabled_true() {
+        let mut cfg = Config::default();
+        cfg.set("llm.cache_enabled", "true").unwrap();
+        assert!(cfg.llm.cache_enabled);
+    }
+
+    #[test]
+    fn test_config_set_cache_enabled_false() {
+        let mut cfg = Config::default();
+        cfg.llm.cache_enabled = true;
+        cfg.set("llm.cache_enabled", "false").unwrap();
+        assert!(!cfg.llm.cache_enabled);
+    }
+
+    #[test]
+    fn test_config_set_stream_disable() {
+        let mut cfg = Config::default();
+        cfg.set("llm.stream", "false").unwrap();
+        assert!(!cfg.llm.stream);
+    }
+
+    #[test]
+    fn test_config_set_stream_enable() {
+        let mut cfg = Config::default();
+        cfg.llm.stream = false;
+        cfg.set("llm.stream", "true").unwrap();
+        assert!(cfg.llm.stream);
+    }
+
+    #[test]
+    fn test_config_set_prompt_tier_compact() {
+        let mut cfg = Config::default();
+        cfg.set("llm.prompt_tier", "compact").unwrap();
+        assert_eq!(cfg.llm.prompt_tier, PromptTierConfig::Compact);
+    }
+
+    #[test]
+    fn test_config_set_prompt_tier_full() {
+        let mut cfg = Config::default();
+        cfg.set("llm.prompt_tier", "full").unwrap();
+        assert_eq!(cfg.llm.prompt_tier, PromptTierConfig::Full);
+    }
+
+    #[test]
+    fn test_config_set_prompt_tier_invalid() {
+        let mut cfg = Config::default();
+        assert!(cfg.set("llm.prompt_tier", "maximum").is_err());
+    }
+
+    // ─── effective_value for additional keys ──────────────────────────────────
+
+    #[test]
+    fn test_effective_value_cache_enabled() {
+        let cfg = Config::default();
+        let val = cfg.get("llm.cache_enabled").unwrap();
+        assert_eq!(val, "false");
+    }
+
+    #[test]
+    fn test_effective_value_stream() {
+        let cfg = Config::default();
+        let val = cfg.get("llm.stream").unwrap();
+        assert_eq!(val, "true");
+    }
+
+    #[test]
+    fn test_effective_value_context_window_zero() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_MODEL");
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let cfg = Config::default();
+        // context_window=0 means auto-detect; just ensure it doesn't error
+        assert!(cfg.get("llm.context_window").is_ok());
+    }
+
+    #[test]
+    fn test_effective_value_prompt_tier_contains_effective() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_PROMPT_TIER");
+        }
+        let cfg = Config::default();
+        let val = cfg.get("llm.prompt_tier").unwrap();
+        // Should contain "auto" and "effective:"
+        assert!(val.contains("auto"));
+        assert!(val.contains("effective:"));
+    }
+
+    // ─── effective_api_base additional providers ──────────────────────────────
+
+    #[test]
+    fn test_effective_api_base_ollama_provider() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_BASE");
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "ollama".to_string();
+        assert_eq!(cfg.effective_api_base(), "http://localhost:11434/v1");
+    }
+
+    #[test]
+    fn test_effective_api_base_deepseek() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_BASE");
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "deepseek".to_string();
+        assert_eq!(cfg.effective_api_base(), "https://api.deepseek.com/v1");
+    }
+
+    #[test]
+    fn test_effective_api_base_moonshot() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_BASE");
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "moonshot".to_string();
+        assert_eq!(cfg.effective_api_base(), "https://api.moonshot.cn/v1");
+    }
+
+    #[test]
+    fn test_effective_api_base_kimi() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_BASE");
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "kimi".to_string();
+        assert_eq!(cfg.effective_api_base(), "https://api.moonshot.cn/v1");
+    }
+
+    #[test]
+    fn test_effective_api_base_unknown_fallback() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        unsafe {
+            std::env::remove_var("OXO_CALL_LLM_API_BASE");
+            std::env::remove_var("OXO_CALL_LLM_PROVIDER");
+        }
+        let mut cfg = Config::default();
+        cfg.llm.provider = "some-unknown-provider".to_string();
+        assert_eq!(cfg.effective_api_base(), "https://api.openai.com/v1");
+    }
+
+    // ─── infer_model_parameter_count edge cases ───────────────────────────────
+
+    #[test]
+    fn test_infer_model_parameter_count_1_5b() {
+        let count = infer_model_parameter_count("qwen2.5-coder-1.5b-instruct");
+        assert_eq!(count, Some(1.5));
+    }
+
+    #[test]
+    fn test_infer_model_parameter_count_72b_not_2b() {
+        // "72b" should match 72b tag, not 2b
+        let count = infer_model_parameter_count("llama-72b");
+        assert_eq!(count, Some(72.0));
+    }
+
+    #[test]
+    fn test_infer_model_parameter_count_0_5b() {
+        let count = infer_model_parameter_count("qwen2.5-coder-0.5b");
+        assert_eq!(count, Some(0.5));
+    }
+
+    #[test]
+    fn test_infer_model_parameter_count_none_for_cloud_model() {
+        let count = infer_model_parameter_count("gpt-4o");
+        assert_eq!(count, None);
+    }
+
+    #[test]
+    fn test_infer_model_parameter_count_110b() {
+        let count = infer_model_parameter_count("llama-110b");
+        assert_eq!(count, Some(110.0));
+    }
+
+    // ─── LlmConfig models field ───────────────────────────────────────────────
+
+    #[test]
+    fn test_llm_config_default_models_empty() {
+        let cfg = Config::default();
+        assert!(cfg.llm.models.is_empty());
+    }
+
+    #[test]
+    fn test_llm_config_models_can_be_populated() {
+        let mut cfg = Config::default();
+        cfg.llm.models = vec!["gpt-4.1".to_string(), "claude-3-5-sonnet".to_string()];
+        assert_eq!(cfg.llm.models.len(), 2);
+        assert_eq!(cfg.llm.models[0], "gpt-4.1");
+    }
+
+    // ─── PromptTierConfig default and equality ────────────────────────────────
+
+    #[test]
+    fn test_prompt_tier_config_default_is_auto() {
+        assert_eq!(PromptTierConfig::default(), PromptTierConfig::Auto);
+    }
+
+    #[test]
+    fn test_prompt_tier_config_equality() {
+        assert_eq!(PromptTierConfig::Full, PromptTierConfig::Full);
+        assert_ne!(PromptTierConfig::Full, PromptTierConfig::Compact);
+    }
+
+    #[test]
+    fn test_prompt_tier_config_clone() {
+        let t = PromptTierConfig::Medium;
+        let cloned = t.clone();
+        assert_eq!(t, cloned);
+    }
 }
