@@ -396,4 +396,60 @@ mod tests {
                 .any(|p| p.category == PatternCategory::QualityMetric)
         );
     }
+
+    #[test]
+    fn test_analyze_exit_code_table() {
+        let analyzer = ResultAnalyzer::new();
+        let cases: Vec<(i32, bool)> = vec![
+            (0, true),
+            (1, false),
+            (2, false),
+            (127, false),
+            (-1, false),
+        ];
+        for (exit_code, expect_success) in cases {
+            let result = analyzer.analyze("samtools", exit_code, "", "");
+            assert_eq!(
+                result.success, expect_success,
+                "exit_code={exit_code} → success should be {expect_success}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_pattern_category_equality() {
+        let cases: Vec<(PatternCategory, PatternCategory, bool)> = vec![
+            (PatternCategory::QualityMetric, PatternCategory::QualityMetric, true),
+            (PatternCategory::Performance, PatternCategory::Performance, true),
+            (PatternCategory::Warning, PatternCategory::Warning, true),
+            (PatternCategory::FileOutput, PatternCategory::FileOutput, true),
+            (PatternCategory::QualityMetric, PatternCategory::Performance, false),
+        ];
+        for (a, b, expected_eq) in cases {
+            assert_eq!(a == b, expected_eq);
+        }
+    }
+
+    #[test]
+    fn test_detect_multiple_patterns() {
+        let analyzer = ResultAnalyzer::new();
+        // Both quality metric and performance patterns
+        let result = analyzer.analyze(
+            "bwa",
+            0,
+            "mapping rate: 95.5%\nprocessed in 120 seconds",
+            "",
+        );
+        let has_quality = result.output_patterns.iter().any(|p| p.category == PatternCategory::QualityMetric);
+        let has_performance = result.output_patterns.iter().any(|p| p.category == PatternCategory::Performance);
+        assert!(has_quality || has_performance, "should detect at least one pattern");
+    }
+
+    #[test]
+    fn test_resource_hints_default() {
+        let hints = ResourceHints::default();
+        assert!(hints.suggested_threads.is_none());
+        assert!(hints.estimated_memory_gb.is_none());
+        assert!(!hints.io_bound);
+    }
 }

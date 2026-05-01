@@ -1192,3 +1192,108 @@ impl Runner {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn default_runner() -> Runner {
+        Runner::new(Config::default())
+    }
+
+    #[test]
+    fn test_runner_new_defaults() {
+        let r = default_runner();
+        assert!(!r.verbose);
+        assert!(!r.no_cache);
+        assert!(!r.verify);
+        assert!(!r.auto_retry);
+        assert!(!r.stop_on_error);
+        assert!(!r.no_stream);
+        assert_eq!(r.jobs, 1);
+        assert!(r.vars.is_empty());
+        assert!(r.input_items.is_empty());
+        assert!(r.force_scenario.is_none());
+    }
+
+    #[test]
+    fn test_runner_builder_flags() {
+        let cases: Vec<(&str, Box<dyn Fn(&Runner) -> bool>)> = vec![
+            ("verbose=true", Box::new(|r: &Runner| r.verbose)),
+            ("no_cache=true", Box::new(|r: &Runner| r.no_cache)),
+            ("verify=true", Box::new(|r: &Runner| r.verify)),
+            ("auto_retry=true", Box::new(|r: &Runner| r.auto_retry)),
+            ("stop_on_error=true", Box::new(|r: &Runner| r.stop_on_error)),
+            ("no_stream=true", Box::new(|r: &Runner| r.no_stream)),
+        ];
+
+        for (label, checker) in &cases {
+            let mut r = default_runner();
+            match *label {
+                "verbose=true" => { r.with_verbose(true); }
+                "no_cache=true" => { r.with_no_cache(true); }
+                "verify=true" => { r.with_verify(true); }
+                "auto_retry=true" => { r.with_auto_retry(true); }
+                "stop_on_error=true" => { r.with_stop_on_error(true); }
+                "no_stream=true" => { r.with_no_stream(true); }
+                _ => {}
+            }
+            assert!(checker(&r), "flag {} should be true", label);
+        }
+    }
+
+    #[test]
+    fn test_runner_with_jobs_clamps_to_one() {
+        let cases = vec![(0, 1), (1, 1), (4, 4), (16, 16)];
+        for (input, expected) in cases {
+            let mut r = default_runner();
+            r.with_jobs(input);
+            assert_eq!(r.jobs, expected, "jobs({}) should be {}", input, expected);
+        }
+    }
+
+    #[test]
+    fn test_runner_with_vars() {
+        let mut r = default_runner();
+        let mut vars = HashMap::new();
+        vars.insert("key1".to_string(), "val1".to_string());
+        vars.insert("key2".to_string(), "val2".to_string());
+        r.with_vars(vars.clone());
+        assert_eq!(r.vars, vars);
+    }
+
+    #[test]
+    fn test_runner_with_input_items() {
+        let items = vec!["a.bam".to_string(), "b.bam".to_string(), "c.bam".to_string()];
+        let mut r = default_runner();
+        r.with_input_items(items.clone());
+        assert_eq!(r.input_items, items);
+    }
+
+    #[test]
+    fn test_runner_with_scenario() {
+        use crate::workflow_graph::WorkflowScenario;
+        let cases = vec![
+            WorkflowScenario::Fast,
+            WorkflowScenario::Quality,
+            WorkflowScenario::Doc,
+        ];
+        for scenario in cases {
+            let mut r = default_runner();
+            r.with_scenario(scenario);
+            assert!(r.force_scenario.is_some());
+        }
+    }
+
+    #[test]
+    fn test_generated_command_fields() {
+        let cmd = GeneratedCommand {
+            full_cmd: "samtools sort -o out.bam in.bam".to_string(),
+            explanation: "Sort BAM by coordinate".to_string(),
+            effective_task: "sort BAM file".to_string(),
+        };
+        assert!(cmd.full_cmd.contains("samtools"));
+        assert!(!cmd.explanation.is_empty());
+        assert!(!cmd.effective_task.is_empty());
+    }
+}

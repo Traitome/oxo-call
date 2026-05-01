@@ -1100,4 +1100,119 @@ mod tests {
         let result = detect_tool_version("nonexistent_tool_xyz_123");
         assert!(result.is_none());
     }
+
+    #[test]
+    fn test_build_command_string_table() {
+        let cases: Vec<(&str, Vec<&str>, &str)> = vec![
+            ("samtools", vec!["sort", "-o", "out.bam", "in.bam"], "samtools sort -o out.bam in.bam"),
+            ("echo", vec![], "echo"),
+            ("cat", vec!["file with spaces.txt"], "cat 'file with spaces.txt'"),
+            ("sh", vec!["-c", "echo hello"], "sh -c 'echo hello'"),
+        ];
+        for (tool, args, expected) in cases {
+            let args: Vec<String> = args.into_iter().map(String::from).collect();
+            let result = build_command_string(tool, &args);
+            assert_eq!(result, expected, "build_command_string({tool}, {args:?})");
+        }
+    }
+
+    #[test]
+    fn test_is_shell_operator_table() {
+        let operators = vec!["&&", "||", ";", ";;", "|", ">", ">>", "<", "<<", "2>", "2>>"];
+        let non_operators = vec!["-o", "--output", "output.bam", "&&cmd", ""];
+        for op in operators {
+            assert!(is_shell_operator(op), "{op:?} should be a shell operator");
+        }
+        for non_op in non_operators {
+            assert!(!is_shell_operator(non_op), "{non_op:?} should NOT be a shell operator");
+        }
+    }
+
+    #[test]
+    fn test_needs_quoting_table() {
+        let cases: Vec<(&str, bool)> = vec![
+            ("simple", false),
+            ("with space", true),
+            ("with\ttab", true),
+            ("with;semi", true),
+            ("with&amp", true),
+            ("with|pipe", true),
+            ("with$var", true),
+            ("with`backtick", true),
+            ("with(paren)", true),
+            ("with<angle>", true),
+            ("with!exclaim", true),
+            ("with\\backslash", true),
+            ("with\"quote", true),
+            ("with'apos", true),
+        ];
+        for (arg, expected) in cases {
+            assert_eq!(needs_quoting(arg), expected, "needs_quoting({arg:?}) should be {expected}");
+        }
+    }
+
+    #[test]
+    fn test_sha256_hex_known_values() {
+        let cases: Vec<(&str, &str)> = vec![
+            ("", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
+            ("hello", "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
+        ];
+        for (input, expected) in cases {
+            let result = sha256_hex(input);
+            assert_eq!(result, expected, "sha256_hex({input:?})");
+        }
+    }
+
+    #[test]
+    fn test_parse_version_table() {
+        let cases: Vec<(&str, Option<(u32, u32, u32)>)> = vec![
+            ("1.17.0", Some((1, 17, 0))),
+            ("samtools 1.17", Some((1, 17, 0))),
+            ("2.0", Some((2, 0, 0))),
+            ("0.7.17-r1188", Some((0, 7, 17))),
+            ("no-dots-here", None),
+            ("", None),
+            ("4.5.6.7", Some((4, 5, 6))),
+        ];
+        for (input, expected) in cases {
+            let result = parse_version(input);
+            assert_eq!(result, expected, "parse_version({input:?})");
+        }
+    }
+
+    #[test]
+    fn test_is_companion_binary_table() {
+        let cases: Vec<(&str, &str, bool)> = vec![
+            ("bowtie2", "bowtie2-build", true),
+            ("samtools", "samtools", false),  // Same name, not a companion
+            ("bwa", "-o", false),              // Flag, not a binary
+            ("star", "STAR_index", true),      // Contains tool name
+            ("gatk", "gatk-4.0.sh", true),    // Script companion
+            ("hisat2", "hisat2-build", true),  // Forward prefix
+        ];
+        for (tool, candidate, expected) in cases {
+            let result = is_companion_binary(tool, candidate);
+            assert_eq!(result, expected, "is_companion_binary({tool:?}, {candidate:?})");
+        }
+    }
+
+    #[test]
+    fn test_is_script_executable_table() {
+        let cases: Vec<(&str, bool)> = vec![
+            ("run_pipeline.sh", true),
+            ("analyze.py", true),
+            ("process.pl", true),
+            ("analyze.R", true),
+            ("script.rb", true),
+            ("model.jl", true),
+            ("-o", false),               // Flag, not executable
+            ("/path/to/script.sh", false), // Has path separator
+            ("noext", false),             // No script extension
+            (".sh", false),               // Empty stem
+        ];
+        for (candidate, expected) in cases {
+            let result = is_script_executable(candidate);
+            assert_eq!(result, expected, "is_script_executable({candidate:?})");
+        }
+    }
 }
