@@ -269,6 +269,9 @@ async fn run(cli: Cli) -> error::Result<()> {
             stop_on_error,
             auto_retry,
             scenario,
+            no_skill,
+            no_doc,
+            no_prompt,
             no_stream,
         } => {
             let mut cfg = base_cfg.clone();
@@ -313,6 +316,9 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_no_cache(no_cache)
                 .with_verify(verify)
                 .with_auto_retry(auto_retry)
+                .with_no_skill(no_skill)
+                .with_no_doc(no_doc)
+                .with_no_prompt(no_prompt)
                 .with_no_stream(no_stream);
             if let Some(sc) = force_scenario {
                 runner.with_scenario(sc);
@@ -322,7 +328,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_input_items(all_items)
                 .with_jobs(jobs)
                 .with_stop_on_error(stop_on_error);
-            runner.run(&tool, &task, ask, json).await?;
+            runner.run(&tool, &task, ask, json).await?
         }
 
         Commands::DryRun {
@@ -337,6 +343,9 @@ async fn run(cli: Cli) -> error::Result<()> {
             jobs,
             stop_on_error,
             scenario,
+            no_skill,
+            no_doc,
+            no_prompt,
             no_stream,
         } => {
             let mut cfg = base_cfg.clone();
@@ -379,6 +388,9 @@ async fn run(cli: Cli) -> error::Result<()> {
             runner
                 .with_verbose(verbose)
                 .with_no_cache(no_cache)
+                .with_no_skill(no_skill)
+                .with_no_doc(no_doc)
+                .with_no_prompt(no_prompt)
                 .with_no_stream(no_stream)
                 .with_jobs(jobs)
                 .with_stop_on_error(stop_on_error);

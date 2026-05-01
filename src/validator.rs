@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::intent_mapper::LlmCommandFill;
 use crate::tool_doc::ToolDoc;
 use crate::tool_resolver::ToolRecord;

@@ -76,6 +76,12 @@ pub struct Runner {
     pub(crate) auto_retry: bool,
     /// Force a specific workflow scenario (auto-detected by default)
     pub(crate) force_scenario: Option<crate::workflow_graph::WorkflowScenario>,
+    /// When true, disable skill loading.
+    pub(crate) no_skill: bool,
+    /// When true, disable documentation fetching.
+    pub(crate) no_doc: bool,
+    /// When true, disable the system prompt (bare LLM mode).
+    pub(crate) no_prompt: bool,
     /// When true, disable SSE streaming for LLM responses.
     pub(crate) no_stream: bool,
     // ── Orchestration layer ──────────────────────────────────────────────────
@@ -114,6 +120,9 @@ impl Runner {
             stop_on_error: false,
             auto_retry: false,
             force_scenario: None,
+            no_skill: false,
+            no_doc: false,
+            no_prompt: false,
             no_stream: false,
             supervisor: SupervisorAgent::new(),
             planner: PlannerAgent::new(),
@@ -153,6 +162,24 @@ impl Runner {
         scenario: crate::workflow_graph::WorkflowScenario,
     ) -> &mut Self {
         self.force_scenario = Some(scenario);
+        self
+    }
+
+    /// Disable skill loading for this run.
+    pub fn with_no_skill(&mut self, no_skill: bool) -> &mut Self {
+        self.no_skill = no_skill;
+        self
+    }
+
+    /// Disable documentation fetching for this run.
+    pub fn with_no_doc(&mut self, no_doc: bool) -> &mut Self {
+        self.no_doc = no_doc;
+        self
+    }
+
+    /// Disable the system prompt for this run (bare LLM mode).
+    pub fn with_no_prompt(&mut self, no_prompt: bool) -> &mut Self {
+        self.no_prompt = no_prompt;
         self
     }
 
@@ -243,22 +270,27 @@ impl Runner {
     /// generates a mini-skill from the documentation (result cached to disk), and uses it
     /// for command generation.
     pub(crate) async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
-        let scenario = self.force_scenario.unwrap_or_default();
+        let scenario = self
+            .force_scenario
+            .unwrap_or(crate::workflow_graph::WorkflowScenario::Full);
 
-        if matches!(
-            scenario,
-            crate::workflow_graph::WorkflowScenario::Doc
-                | crate::workflow_graph::WorkflowScenario::Full
-        ) {
-            return self.prepare_via_pipeline(tool, task, scenario).await;
-        }
-
-        let should_load_skill = matches!(scenario, crate::workflow_graph::WorkflowScenario::Full);
-        let should_fetch_doc = matches!(
-            scenario,
-            crate::workflow_graph::WorkflowScenario::Doc
-                | crate::workflow_graph::WorkflowScenario::Full
-        );
+        // Ablation flags override scenario-based defaults.
+        // This supports the 5 benchmark ablation scenarios:
+        //   bare:   --no-skill --no-doc --no-prompt
+        //   prompt: --no-skill --no-doc
+        //   skill:  --no-doc
+        //   doc:    --no-skill
+        //   full:   (no flags)
+        let should_load_skill =
+            !self.no_skill && matches!(scenario, crate::workflow_graph::WorkflowScenario::Full);
+        let should_fetch_doc = !self.no_doc
+            && matches!(
+                scenario,
+                crate::workflow_graph::WorkflowScenario::Doc
+                    | crate::workflow_graph::WorkflowScenario::Full
+            );
+        let no_prompt =
+            self.no_prompt || matches!(scenario, crate::workflow_graph::WorkflowScenario::Bare);
 
         let skill = if should_load_skill {
             self.skill_manager.load_async(tool).await
@@ -652,7 +684,7 @@ impl Runner {
                 &docs,
                 &enriched_task,
                 skill.as_ref(),
-                matches!(scenario, crate::workflow_graph::WorkflowScenario::Bare),
+                no_prompt,
                 structured_doc.as_ref(),
                 parsed_schema.as_ref(),
             )
@@ -691,48 +723,6 @@ impl Runner {
             },
             structured_doc,
             parsed_schema,
-        })
-    }
-
-    async fn prepare_via_pipeline(
-        &self,
-        tool: &str,
-        task: &str,
-        scenario: crate::workflow_graph::WorkflowScenario,
-    ) -> Result<PrepareResult> {
-        let pipeline = crate::pipeline::Pipeline::new(self.config.clone(), scenario);
-        let result = pipeline.execute(tool, task).await?;
-
-        let args: Vec<String> = result
-            .command
-            .split_whitespace()
-            .skip(1)
-            .map(String::from)
-            .collect();
-
-        let docs_hash = {
-            use sha2::Digest;
-            let raw = result.tool_doc.raw_help.as_deref().unwrap_or("");
-            hex::encode(sha2::Sha256::digest(raw.as_bytes()))
-        };
-
-        let skill_name = if matches!(scenario, crate::workflow_graph::WorkflowScenario::Full) {
-            Some(result.tool_doc.record.name.clone())
-        } else {
-            None
-        };
-
-        Ok(PrepareResult {
-            suggestion: LlmCommandSuggestion {
-                args,
-                explanation: result.explanation,
-                inference_ms: 0.0,
-            },
-            docs_hash,
-            skill_name,
-            effective_task: result.effective_task,
-            structured_doc: None,
-            parsed_schema: None,
         })
     }
 
@@ -1224,6 +1214,9 @@ mod tests {
             ("verify=true", Box::new(|r: &Runner| r.verify)),
             ("auto_retry=true", Box::new(|r: &Runner| r.auto_retry)),
             ("stop_on_error=true", Box::new(|r: &Runner| r.stop_on_error)),
+            ("no_skill=true", Box::new(|r: &Runner| r.no_skill)),
+            ("no_doc=true", Box::new(|r: &Runner| r.no_doc)),
+            ("no_prompt=true", Box::new(|r: &Runner| r.no_prompt)),
             ("no_stream=true", Box::new(|r: &Runner| r.no_stream)),
         ];
 
@@ -1244,6 +1237,15 @@ mod tests {
                 }
                 "stop_on_error=true" => {
                     r.with_stop_on_error(true);
+                }
+                "no_skill=true" => {
+                    r.with_no_skill(true);
+                }
+                "no_doc=true" => {
+                    r.with_no_doc(true);
+                }
+                "no_prompt=true" => {
+                    r.with_no_prompt(true);
                 }
                 "no_stream=true" => {
                     r.with_no_stream(true);

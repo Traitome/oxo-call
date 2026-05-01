@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::command_assembler::CommandAssembler;
 use crate::config::Config;
 use crate::doc_explorer::DocExplorer;

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::docs::DOMAIN_SUBCMD_MAP;
 use crate::tool_doc::ToolDoc;
 use crate::tool_resolver::ToolRecord;

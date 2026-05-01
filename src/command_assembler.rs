@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::intent_mapper::LlmCommandFill;
 use crate::schema::types::CliStyle;
 use crate::tool_doc::ToolDoc;

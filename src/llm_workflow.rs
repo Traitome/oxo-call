@@ -398,46 +398,48 @@ fn remove_invalid_flags(
     while i < tokens.len() {
         let token = &tokens[i];
 
-        if token.starts_with('-') && !token.contains('=') {
+        if token.starts_with('-') && token.contains('=') {
+            // --flag=value form: validate the flag part before '='
             let flag_name = token.split('=').next().unwrap_or(token);
+            if valid_flags.contains(&flag_name) {
+                result.push(token.clone());
+            }
+            i += 1;
+        } else if token.starts_with('-') {
+            // -flag or --flag form (without =)
+            let flag_name = token.as_str();
             let is_valid = valid_flags.contains(&flag_name);
 
             if is_valid {
                 result.push(token.clone());
-                let takes_value = schema
-                    .get_flag(flag_name, subcommand)
-                    .is_some_and(|f| !matches!(f.param_type, crate::schema::ParamType::Bool));
-                if takes_value && i + 1 < tokens.len() {
-                    let next = &tokens[i + 1];
-                    if !next.starts_with('-') || next.starts_with('-') && next.contains('=') {
-                        result.push(next.clone());
-                        i += 1;
-                    }
-                }
-            } else {
+                // If this flag takes a value, consume the next token if it's a value
                 let takes_value = schema
                     .get_flag(flag_name, subcommand)
                     .is_some_and(|f| !matches!(f.param_type, crate::schema::ParamType::Bool));
                 if takes_value && i + 1 < tokens.len() {
                     let next = &tokens[i + 1];
                     if !next.starts_with('-') {
+                        result.push(next.clone());
+                        i += 1;
+                    }
+                }
+            } else {
+                // Invalid flag: skip it AND skip the next token if it looks like a value
+                // (i.e., doesn't start with '-'). This prevents hallucinated flag values
+                // from being incorrectly treated as positional arguments.
+                if i + 1 < tokens.len() {
+                    let next = &tokens[i + 1];
+                    if !next.starts_with('-') {
                         i += 1;
                     }
                 }
             }
-        } else if token.contains('=') && token.starts_with('-') {
-            let parts: Vec<&str> = token.splitn(2, '=').collect();
-            let flag_name = parts[0];
-            let is_valid = valid_flags.contains(&flag_name);
-
-            if is_valid {
-                result.push(token.clone());
-            }
+            i += 1;
         } else {
+            // Not a flag (positional, subcommand, or value that belongs to a preceding flag)
             result.push(token.clone());
+            i += 1;
         }
-
-        i += 1;
     }
 
     result
@@ -766,6 +768,10 @@ mod tests {
         ];
         let cleaned = remove_invalid_flags(tokens, &schema, Some("sort"));
         assert!(!cleaned.iter().any(|t| t == "--hallucinated"));
+        // The value following an invalid flag must also be removed to prevent
+        // it from being incorrectly treated as a positional argument.
+        assert!(!cleaned.iter().any(|t| t == "value"));
+        assert!(cleaned.iter().any(|t| t == "-@"));
     }
 
     #[test]

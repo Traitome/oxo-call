@@ -119,6 +119,15 @@ EXAMPLES:\n  \
         /// Force a specific workflow scenario (auto-detected by default)
         #[arg(long, value_enum, value_name = "SCENARIO")]
         scenario: Option<RunScenario>,
+        /// Disable the loaded skill file for this invocation.
+        #[arg(long)]
+        no_skill: bool,
+        /// Disable tool documentation fetching for this invocation.
+        #[arg(long)]
+        no_doc: bool,
+        /// Disable the system prompt for this invocation (bare LLM mode).
+        #[arg(long)]
+        no_prompt: bool,
         /// Disable streaming (SSE) output from the LLM. Tokens will not be
         /// printed incrementally; the full response is shown after generation
         /// completes. Useful for benchmarking or non-interactive pipelines.
@@ -175,6 +184,15 @@ EXAMPLES:\n  \
         /// Force a specific workflow scenario (auto-detected by default)
         #[arg(long, value_enum, value_name = "SCENARIO")]
         scenario: Option<RunScenario>,
+        /// Disable the loaded skill file for this invocation.
+        #[arg(long)]
+        no_skill: bool,
+        /// Disable tool documentation fetching for this invocation.
+        #[arg(long)]
+        no_doc: bool,
+        /// Disable the system prompt for this invocation (bare LLM mode).
+        #[arg(long)]
+        no_prompt: bool,
         /// Disable streaming (SSE) output from the LLM
         #[arg(long)]
         no_stream: bool,
