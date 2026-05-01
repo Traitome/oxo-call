@@ -736,4 +736,280 @@ mod tests {
         let result = sanitize_args("star", args);
         assert_eq!(result, vec!["--genomeLoad", "LoadAndKeep"]);
     }
+
+    // ── parse_verification_response additional tests ──────────────────────────
+
+    #[test]
+    fn test_parse_verification_response_warning_status() {
+        let raw = "STATUS: warning\nSUMMARY: Some warnings.\nISSUES:\n- Low coverage\nSUGGESTIONS:\n- Increase depth";
+        let v = parse_verification_response(raw);
+        assert!(v.success); // warning is not failure
+        assert_eq!(v.summary, "Some warnings.");
+        assert_eq!(v.issues.len(), 1);
+        assert_eq!(v.suggestions.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_verification_response_failure_status() {
+        let raw = "STATUS: failure\nSUMMARY: Died.\nISSUES:\n- Crash\nSUGGESTIONS:\n- Retry";
+        let v = parse_verification_response(raw);
+        assert!(!v.success);
+    }
+
+    #[test]
+    fn test_parse_verification_response_none_items_ignored() {
+        let raw = "STATUS: success\nSUMMARY: OK\nISSUES:\n- none\nSUGGESTIONS:\n- none";
+        let v = parse_verification_response(raw);
+        assert!(v.issues.is_empty());
+        assert!(v.suggestions.is_empty());
+    }
+
+    #[test]
+    fn test_parse_verification_response_empty_input() {
+        let v = parse_verification_response("");
+        assert!(v.success); // default is success
+        assert!(v.summary.is_empty());
+        assert!(v.issues.is_empty());
+    }
+
+    // ── parse_skill_verify_response tests ────────────────────────────────────
+
+    #[test]
+    fn test_parse_skill_verify_response_pass() {
+        let raw = "VERDICT: pass\nSUMMARY: Great skill.\nISSUES:\n- none\nSUGGESTIONS:\n- none";
+        let v = parse_skill_verify_response(raw);
+        assert!(v.passed);
+        assert_eq!(v.summary, "Great skill.");
+        assert!(v.issues.is_empty());
+    }
+
+    #[test]
+    fn test_parse_skill_verify_response_fail() {
+        let raw = "VERDICT: fail\nSUMMARY: Needs work.\nISSUES:\n- Missing examples\nSUGGESTIONS:\n- Add 5+ examples";
+        let v = parse_skill_verify_response(raw);
+        assert!(!v.passed);
+        assert_eq!(v.issues.len(), 1);
+        assert_eq!(v.suggestions.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_skill_verify_response_empty() {
+        let v = parse_skill_verify_response("");
+        assert!(v.passed); // default is pass
+        assert!(v.summary.is_empty());
+    }
+
+    // ── strip_markdown_fences tests ───────────────────────────────────────────
+
+    #[test]
+    fn test_strip_markdown_fences_basic() {
+        let raw = "```\nsome content\n```";
+        let stripped = strip_markdown_fences(raw);
+        assert_eq!(stripped, "some content");
+    }
+
+    #[test]
+    fn test_strip_markdown_fences_with_language() {
+        let raw = "```markdown\n# Title\nContent\n```";
+        let stripped = strip_markdown_fences(raw);
+        assert_eq!(stripped, "# Title\nContent");
+    }
+
+    #[test]
+    fn test_strip_markdown_fences_no_fences() {
+        let raw = "plain text";
+        let stripped = strip_markdown_fences(raw);
+        assert_eq!(stripped, "plain text");
+    }
+
+    #[test]
+    fn test_strip_markdown_fences_empty() {
+        let stripped = strip_markdown_fences("");
+        assert!(stripped.is_empty());
+    }
+
+    // ── strip_prefix_case_insensitive tests ───────────────────────────────────
+
+    #[test]
+    fn test_strip_prefix_case_insensitive_match() {
+        let result = strip_prefix_case_insensitive("ARGS: -o out.bam", "args:");
+        assert_eq!(result, Some(" -o out.bam"));
+    }
+
+    #[test]
+    fn test_strip_prefix_case_insensitive_no_match() {
+        let result = strip_prefix_case_insensitive("EXPLANATION: text", "args:");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_strip_prefix_case_insensitive_too_short() {
+        let result = strip_prefix_case_insensitive("a", "args:");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_strip_prefix_case_insensitive_exact() {
+        let result = strip_prefix_case_insensitive("ARGS:", "ARGS:");
+        assert_eq!(result, Some(""));
+    }
+
+    // ── is_valid_suggestion tests ─────────────────────────────────────────────
+
+    #[test]
+    fn test_is_valid_suggestion_empty_args() {
+        let s = super::super::types::LlmCommandSuggestion {
+            args: vec![],
+            explanation: "Some explanation".to_string(),
+            inference_ms: 0.0,
+        };
+        assert!(!is_valid_suggestion(&s));
+    }
+
+    #[test]
+    fn test_is_valid_suggestion_empty_explanation() {
+        let s = super::super::types::LlmCommandSuggestion {
+            args: vec!["-o".to_string()],
+            explanation: String::new(),
+            inference_ms: 0.0,
+        };
+        assert!(!is_valid_suggestion(&s));
+    }
+
+    #[test]
+    fn test_is_valid_suggestion_both_empty() {
+        let s = super::super::types::LlmCommandSuggestion {
+            args: vec![],
+            explanation: String::new(),
+            inference_ms: 0.0,
+        };
+        assert!(!is_valid_suggestion(&s));
+    }
+
+    // ── extract_command_from_freeform tests ───────────────────────────────────
+
+    #[test]
+    fn test_extract_command_from_freeform_code_block() {
+        let raw = "Here is the command:\n```\nsort -o out.bam in.bam\n```";
+        let cmd = extract_command_from_freeform(raw);
+        assert_eq!(cmd, "sort -o out.bam in.bam");
+    }
+
+    #[test]
+    fn test_extract_command_from_freeform_flag_line() {
+        let raw = "Use the following flags:\n-o out.bam input.bam";
+        let cmd = extract_command_from_freeform(raw);
+        assert!(cmd.starts_with('-'));
+    }
+
+    #[test]
+    fn test_extract_command_from_freeform_empty() {
+        let cmd = extract_command_from_freeform("");
+        assert!(cmd.is_empty());
+    }
+
+    // ── try_parse_json_response tests ─────────────────────────────────────────
+
+    #[test]
+    fn test_try_parse_json_response_valid() {
+        let raw = r#"{"args": "-o out.bam in.bam", "explanation": "Sort the file"}"#;
+        let result = try_parse_json_response(raw);
+        assert!(result.is_some());
+        let s = result.unwrap();
+        assert!(!s.args.is_empty());
+        assert_eq!(s.explanation, "Sort the file");
+    }
+
+    #[test]
+    fn test_try_parse_json_response_invalid() {
+        let raw = "ARGS: -o out.bam\nEXPLANATION: Sort the file";
+        let result = try_parse_json_response(raw);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_try_parse_json_response_in_code_fence() {
+        let raw = "```json\n{\"args\": \"-o out.bam\", \"explanation\": \"Output file\"}\n```";
+        let result = try_parse_json_response(raw);
+        assert!(result.is_some());
+    }
+
+    // ── strip_code_fences tests ───────────────────────────────────────────────
+
+    #[test]
+    fn test_strip_code_fences_bash() {
+        let s = "```bash\ncommand -o out\n```";
+        assert_eq!(strip_code_fences(s), "command -o out");
+    }
+
+    #[test]
+    fn test_strip_code_fences_single_backtick() {
+        let s = "`command -o out`";
+        assert_eq!(strip_code_fences(s), "command -o out");
+    }
+
+    #[test]
+    fn test_strip_code_fences_no_fences() {
+        let s = "command -o out";
+        assert_eq!(strip_code_fences(s), "command -o out");
+    }
+
+    // ── parse_shell_args tests ────────────────────────────────────────────────
+
+    #[test]
+    fn test_parse_shell_args_quoted() {
+        let args = parse_shell_args("sort 'my file.bam' -o out.bam");
+        assert_eq!(args, vec!["sort", "my file.bam", "-o", "out.bam"]);
+    }
+
+    #[test]
+    fn test_parse_shell_args_double_quoted() {
+        let args = parse_shell_args(r#"echo "hello world""#);
+        assert_eq!(args, vec!["echo", "hello world"]);
+    }
+
+    #[test]
+    fn test_parse_shell_args_empty() {
+        let args = parse_shell_args("");
+        assert!(args.is_empty());
+    }
+
+    #[test]
+    fn test_parse_shell_args_whitespace_only() {
+        let args = parse_shell_args("   ");
+        assert!(args.is_empty());
+    }
+
+    // ── sanitize_args additional tests ───────────────────────────────────────
+
+    #[test]
+    fn test_sanitize_args_empty() {
+        let result = sanitize_args("samtools", vec![]);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_sanitize_args_injects_tool_after_operator() {
+        let args: Vec<String> = vec![
+            "sort".into(),
+            "-o".into(),
+            "sorted.bam".into(),
+            "in.bam".into(),
+            "&&".into(),
+            "index".into(), // no tool name here — should be injected
+            "sorted.bam".into(),
+        ];
+        let result = sanitize_args("samtools", args);
+        // Find && in result and check next token is "samtools"
+        let and_pos = result.iter().position(|a| a == "&&").unwrap();
+        assert_eq!(result[and_pos + 1], "samtools");
+    }
+
+    #[test]
+    fn test_sanitize_args_does_not_strip_companion_binary() {
+        // bowtie2-build is a companion binary — should NOT be stripped
+        let args: Vec<String> = vec!["bowtie2-build".into(), "ref.fa".into(), "ref_idx".into()];
+        let result = sanitize_args("bowtie2", args);
+        assert_eq!(result[0], "bowtie2-build");
+    }
 }
