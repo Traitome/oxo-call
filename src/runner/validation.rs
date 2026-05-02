@@ -179,10 +179,12 @@ mod tests {
             vec![
                 FlagEntry {
                     flag: "-o".to_string(),
+                    value_type: None,
                     description: "output file".to_string(),
                 },
                 FlagEntry {
                     flag: "-@ INT".to_string(),
+                    value_type: Some("INT".to_string()),
                     description: "threads".to_string(),
                 },
             ],
@@ -202,6 +204,7 @@ mod tests {
         let doc = make_structured_doc(
             vec![FlagEntry {
                 flag: "-o".to_string(),
+                value_type: None,
                 description: "output".to_string(),
             }],
             "",

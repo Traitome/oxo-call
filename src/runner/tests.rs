@@ -837,11 +837,10 @@ fn test_runner_builder_stop_on_error() {
 }
 
 #[test]
-fn test_runner_builder_scenario() {
+fn test_runner_builder_scenario_removed() {
+    // with_scenario was removed; test that the runner builds without it
     use crate::config::Config;
-    use crate::workflow_graph::WorkflowScenario;
-    let runner = Runner::new(Config::default()).with_scenario(WorkflowScenario::Full);
-    assert!(runner.force_scenario.is_some());
+    let _runner = Runner::new(Config::default());
 }
 
 #[test]
@@ -882,7 +881,6 @@ fn test_runner_defaults() {
     assert!(!runner.no_prompt);
     assert_eq!(runner.jobs, 1);
     assert!(!runner.stop_on_error);
-    assert!(runner.force_scenario.is_none());
     assert!(runner.vars.is_empty());
     assert!(runner.input_items.is_empty());
 }

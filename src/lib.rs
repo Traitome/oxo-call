@@ -17,16 +17,13 @@
 
 pub mod cache;
 pub mod config;
-pub mod context;
 pub mod copilot_auth;
 pub mod doc_processor;
 pub mod doc_summarizer;
 pub mod docs;
 pub mod engine;
 pub mod error;
-pub mod execution;
 pub mod format;
-pub mod generator;
 pub mod handlers;
 pub mod history;
 pub mod index;
@@ -34,19 +31,13 @@ pub mod job;
 pub mod knowledge;
 pub mod license;
 pub mod llm;
-pub mod llm_workflow;
 pub mod mcp;
-pub mod mini_skill_cache;
-pub mod orchestrator;
 pub mod runner;
 pub mod sanitize;
 pub mod server;
 pub mod skill;
 pub mod streaming_display;
-pub mod task_complexity;
-pub mod task_normalizer;
 pub mod workflow;
-pub mod workflow_graph;
 
 // Re-export commonly used types for convenience
 pub use history::{ArgCombo, CommandProvenance, HistoryEntry, WorkflowSuggestion};
