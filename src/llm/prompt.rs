@@ -364,6 +364,8 @@ fn build_prompt_medium(
             ));
         } else if !sdoc.has_subcommands {
             prompt.push_str("First token is flag or input (NO subcommand).\n");
+            // Add few-shot examples for tools without subcommands
+            prompt.push_str("Examples: admixture data.bed 5 --cv=10 | metaphlan --input_type fastq reads.fq -o out.txt\n");
         }
         if !sdoc.companion_binaries.is_empty() {
             prompt.push_str(&format!(
