@@ -4968,68 +4968,60 @@ fn test_config_show_includes_stream() {
 }
 
 // ─── Scenario validation tests (run/dry-run) ─────────────────────────────────
+// NOTE: --scenario was removed from run/dry-run in v0.14 (it was an ablation
+// testing concept; use --no-skill / --no-doc / --no-prompt for the same effect).
 
 #[test]
-fn test_run_invalid_scenario_rejected() {
+fn test_run_scenario_flag_removed() {
+    // --scenario no longer exists on run; clap should reject it
     let output = oxo_call()
-        .args(["run", "--scenario", "invalid", "samtools", "view"])
+        .args(["run", "--scenario", "doc", "samtools", "view"])
         .output()
         .expect("failed to run oxo-call");
     assert!(
         !output.status.success(),
-        "Invalid --scenario should return non-zero exit code"
-    );
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(
-        stderr.contains("invalid") || stderr.contains("error"),
-        "Invalid scenario should produce an error message, got: {stderr}"
+        "Unknown --scenario flag should return non-zero exit code"
     );
 }
 
 #[test]
-fn test_dry_run_invalid_scenario_rejected() {
+fn test_dry_run_scenario_flag_removed() {
+    // --scenario no longer exists on dry-run; clap should reject it
     let output = oxo_call()
-        .args(["dry-run", "--scenario", "invalid", "samtools", "view"])
+        .args(["dry-run", "--scenario", "doc", "samtools", "view"])
         .output()
         .expect("failed to run oxo-call");
     assert!(
         !output.status.success(),
-        "Invalid --scenario on dry-run should return non-zero exit code"
-    );
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(
-        stderr.contains("invalid") || stderr.contains("error"),
-        "Invalid scenario should produce an error message, got: {stderr}"
+        "Unknown --scenario flag on dry-run should return non-zero exit code"
     );
 }
 
 #[test]
-fn test_run_scenario_value_enum_in_help() {
+fn test_run_help_does_not_contain_scenario() {
     let output = oxo_call()
         .args(["run", "--help"])
         .output()
         .expect("failed to run oxo-call");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    // ValueEnum should show valid scenario values in help text
     assert!(
-        stdout.contains("bare") && stdout.contains("full"),
-        "Expected scenario values listed in run help, got: {stdout}"
+        !stdout.contains("--scenario"),
+        "--scenario should no longer appear in run help"
     );
 }
 
 #[test]
-fn test_dry_run_scenario_value_enum_in_help() {
+fn test_dry_run_help_does_not_contain_scenario() {
     let output = oxo_call()
         .args(["dry-run", "--help"])
         .output()
         .expect("failed to run oxo-call");
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    // ValueEnum should show valid scenario values in help text
     assert!(
-        stdout.contains("bare") && stdout.contains("full"),
-        "Expected scenario values listed in dry-run help, got: {stdout}"
+        !stdout.contains("--scenario"),
+        "--scenario should no longer appear in dry-run help"
     );
 }
 

@@ -17,13 +17,8 @@
 
 pub mod bench;
 pub mod cache;
-pub mod command_assembler;
-pub mod command_validator;
-pub mod confidence;
 pub mod config;
-pub mod context;
 pub mod copilot_auth;
-pub mod doc_explorer;
 pub mod doc_processor;
 pub mod doc_summarizer;
 pub mod docs;
@@ -31,32 +26,21 @@ pub mod engine;
 pub mod error;
 pub mod execution;
 pub mod format;
-pub mod generator;
 pub mod handlers;
 pub mod history;
 pub mod index;
-pub mod intent_mapper;
 pub mod job;
 pub mod knowledge;
 pub mod license;
 pub mod llm;
-// pub mod llm_workflow;  // Removed in v0.13
 pub mod markdown;
 pub mod mcp;
-pub mod orchestrator;
-pub mod pipeline;
 pub mod runner;
 pub mod schema;
 pub mod server;
 pub mod skill;
 pub mod streaming_display;
-pub mod subcommand_detector;
-pub mod task_normalizer;
-pub mod tool_doc;
-pub mod tool_resolver;
-pub mod validator;
 pub mod workflow;
-pub mod workflow_graph;
 
 // Re-export commonly used types for convenience
 pub use history::{ArgCombo, CommandProvenance, HistoryEntry, WorkflowSuggestion};

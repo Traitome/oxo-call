@@ -494,7 +494,11 @@ impl CliSchema {
         self.flags.iter().find(|f| f.matches_name(name))
     }
 
-    /// Validate generated command (flag, value) pairs against schema
+    /// Validate generated command (flag, value) pairs against schema.
+    ///
+    /// This is a test-oriented helper that converts the (flag, value) tuple form
+    /// into a flat string slice and delegates to `validate_args`.
+    #[cfg(test)]
     pub fn validate_command(
         &self,
         flag_args: &[(String, Option<String>)],
@@ -707,6 +711,7 @@ pub struct ValidationResult {
 }
 
 impl ValidationResult {
+    #[cfg(test)]
     pub fn valid() -> Self {
         Self {
             is_valid: true,

@@ -34,7 +34,9 @@ pub use generator::build_schema_prompt_section;
 pub use generator::build_schema_prompt_section_compact;
 pub use parser::parse_help;
 pub use post_process::schema_post_process;
+#[cfg(test)]
+pub use types::ValidationError;
 pub use types::{
     CliSchema, CliStyle, ConstraintRule, FlagSchema, ParamType, PositionalSchema, SubcommandSchema,
-    ValidationError, ValidationResult,
+    ValidationResult,
 };
