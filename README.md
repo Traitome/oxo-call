@@ -30,7 +30,7 @@ Describe your task in plain language — `oxo-call` fetches the tool's documenta
 oxo-call is an AI-powered CLI assistant for bioinformatics. Instead of memorizing hundreds of flags across dozens of tools, you describe what you want to accomplish — oxo-call translates that into a correct, grounded command you can inspect, explain, and reproduce.
 
 ```
-  Natural-language task  ──▶  Documentation + Skill  ──▶  LLM  ──▶  Exact command
+  Natural-language task  ──▶  Documentation + Skill + LLM  ──▶  Exact command
 ```
 
 - 🧠 **LLM-powered** — GitHub Copilot, OpenAI, Anthropic, or local Ollama

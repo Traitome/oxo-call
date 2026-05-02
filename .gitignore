@@ -52,3 +52,9 @@ docs/bench/usage_descriptions.csv.bak
 
 # Temporary test outputs
 output.txt
+
+# Serena MCP cache (local tool state)
+.serena/
+
+# Random test outputs
+meme_out/

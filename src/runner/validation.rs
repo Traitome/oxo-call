@@ -178,11 +178,17 @@ mod tests {
         let doc = make_structured_doc(
             vec![
                 FlagEntry {
+                    alt_form: None,
+                    default: None,
+                    required: false,
                     flag: "-o".to_string(),
                     value_type: None,
                     description: "output file".to_string(),
                 },
                 FlagEntry {
+                    alt_form: None,
+                    default: None,
+                    required: false,
                     flag: "-@ INT".to_string(),
                     value_type: Some("INT".to_string()),
                     description: "threads".to_string(),
@@ -203,6 +209,9 @@ mod tests {
     fn test_unknown_flag_detected() {
         let doc = make_structured_doc(
             vec![FlagEntry {
+                alt_form: None,
+                default: None,
+                required: false,
                 flag: "-o".to_string(),
                 value_type: None,
                 description: "output".to_string(),

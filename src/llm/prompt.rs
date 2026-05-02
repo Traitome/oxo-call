@@ -145,7 +145,9 @@ fn build_prompt_full(
                 sdoc.subcommands.join(", ")
             ));
         } else if !sdoc.has_subcommands {
-            prompt.push_str("  SUBCOMMAND_REQUIRED: NO\n  First token must be a flag or input file.\n");
+            prompt.push_str(
+                "  SUBCOMMAND_REQUIRED: NO\n  First token must be a flag or input file.\n",
+            );
         }
 
         // Companion binaries
@@ -256,7 +258,12 @@ fn build_prompt_medium(
         if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
             prompt.push_str(&format!(
                 "First token MUST be subcommand: {}\n",
-                sdoc.subcommands.iter().take(5).cloned().collect::<Vec<_>>().join(", ")
+                sdoc.subcommands
+                    .iter()
+                    .take(5)
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join(", ")
             ));
         } else if !sdoc.has_subcommands {
             prompt.push_str("First token is flag or input (NO subcommand).\n");
@@ -345,7 +352,12 @@ fn build_prompt_compact(
         if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
             prompt.push_str(&format!(
                 "Subcommand: {}\n",
-                sdoc.subcommands.iter().take(3).cloned().collect::<Vec<_>>().join("|")
+                sdoc.subcommands
+                    .iter()
+                    .take(3)
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join("|")
             ));
         } else if !sdoc.has_subcommands {
             prompt.push_str("No subcommand\n");

@@ -277,7 +277,8 @@ impl DocProcessor {
         structured.format_hint = format_hint;
 
         // Step 8: Detect companion binaries from documentation
-        structured.companion_binaries = self.detect_companion_binaries(&cleaned, &structured.examples);
+        structured.companion_binaries =
+            self.detect_companion_binaries(&cleaned, &structured.examples);
 
         // Step 9: Enhance flag catalog with required/default detection and alt_form pairing
         self.enhance_flag_catalog(&mut structured.flag_catalog);
@@ -325,13 +326,12 @@ impl DocProcessor {
 
         // Check for positional argument patterns (input files) without subcommands
         // Pattern: "Usage: tool [options] <input>" suggests no subcommand
-        if usage_lower.contains("<input>")
+        if (usage_lower.contains("<input>")
             || usage_lower.contains("<file>")
-            || usage_lower.contains("<path>")
+            || usage_lower.contains("<path>"))
+            && !has_subcommands
         {
-            if !has_subcommands {
-                format_hint = Some("First token is a flag or input file".to_string());
-            }
+            format_hint = Some("First token is a flag or input file".to_string());
         }
 
         // Extract subcommands from COMMANDS section or detected commands
@@ -349,10 +349,9 @@ impl DocProcessor {
         // Look for common subcommand patterns in examples
         // Tools like samtools show usage patterns like "samtools sort [options]"
         let common_subcommands = [
-            "sort", "view", "index", "merge", "cat", "faidx", "dict",
-            "sort", "view", "index", "merge", "mpileup", "fasta", "fastq",
-            "call", "filter", "norm", "annotate", "merge", "concat",
-            "align", "index", "build", "extract", "stat",
+            "sort", "view", "index", "merge", "cat", "faidx", "dict", "sort", "view", "index",
+            "merge", "mpileup", "fasta", "fastq", "call", "filter", "norm", "annotate", "merge",
+            "concat", "align", "index", "build", "extract", "stat",
         ];
 
         // Analyze examples to infer subcommands
@@ -419,7 +418,6 @@ impl DocProcessor {
                 let parts: Vec<&str> = trimmed
                     .trim_start_matches('$')
                     .trim_start_matches('%')
-                    .trim()
                     .split_whitespace()
                     .collect();
 
@@ -431,7 +429,9 @@ impl DocProcessor {
                         && !potential_subcommand.starts_with('<')
                         && !potential_subcommand.starts_with('[')
                         && potential_subcommand.len() > 1
-                        && potential_subcommand.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+                        && potential_subcommand
+                            .chars()
+                            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
                     {
                         subcommands.insert(potential_subcommand.to_string());
                     }
@@ -453,8 +453,14 @@ impl DocProcessor {
 
         // Common companion binary suffixes/prefixes
         let companion_patterns = [
-            "-build", "-index", "-prepare-reference", "-calculate-expression",
-            "-generate-data-matrix", "-generate-library-type", "-sort", "-view",
+            "-build",
+            "-index",
+            "-prepare-reference",
+            "-calculate-expression",
+            "-generate-data-matrix",
+            "-generate-library-type",
+            "-sort",
+            "-view",
         ];
 
         // Scan for companion binary patterns
@@ -465,10 +471,12 @@ impl DocProcessor {
             for pattern in &companion_patterns {
                 if let Some(pos) = trimmed.to_lowercase().find(pattern) {
                     // Extract the full binary name
-                    let start = trimmed[..pos].rfind(|c: char| c.is_whitespace() || c == '`' || c == '[')
+                    let start = trimmed[..pos]
+                        .rfind(|c: char| c.is_whitespace() || c == '`' || c == '[')
                         .map(|i| i + 1)
                         .unwrap_or(0);
-                    let end = trimmed[pos..].find(|c: char| c.is_whitespace() || c == '`' || c == ']')
+                    let end = trimmed[pos..]
+                        .find(|c: char| c.is_whitespace() || c == '`' || c == ']')
                         .map(|i| pos + i)
                         .unwrap_or(trimmed.len());
 
@@ -498,7 +506,7 @@ impl DocProcessor {
     }
 
     /// Enhance flag catalog with required/default detection and alt_form pairing.
-    fn enhance_flag_catalog(&self, catalog: &mut Vec<FlagEntry>) {
+    fn enhance_flag_catalog(&self, catalog: &mut [FlagEntry]) {
         // Detect required flags from descriptions
         for entry in catalog.iter_mut() {
             let desc_lower = entry.description.to_lowercase();
@@ -521,20 +529,21 @@ impl DocProcessor {
             ];
 
             for pattern in &default_patterns {
-                if let Ok(re) = regex::Regex::new(pattern) {
-                    if let Some(cap) = re.captures(&entry.description) {
-                        if let Some(m) = cap.get(1) {
-                            entry.default = Some(m.as_str().trim().to_string());
-                            break;
-                        }
-                    }
+                if let Ok(re) = regex::Regex::new(pattern)
+                    && let Some(cap) = re.captures(&entry.description)
+                    && let Some(m) = cap.get(1)
+                {
+                    entry.default = Some(m.as_str().trim().to_string());
+                    break;
                 }
             }
         }
 
         // Pair short and long forms
-        let mut short_forms: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
-        let mut long_forms: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+        let mut short_forms: std::collections::HashMap<String, usize> =
+            std::collections::HashMap::new();
+        let mut long_forms: std::collections::HashMap<String, usize> =
+            std::collections::HashMap::new();
 
         for (idx, entry) in catalog.iter().enumerate() {
             if entry.flag.starts_with("--") && entry.flag.len() > 2 {
@@ -567,15 +576,16 @@ impl DocProcessor {
         ];
 
         for (short_ch, long_str) in &semantic_pairs {
-            if let Some(&short_idx) = short_forms.get(&short_ch.to_string()) {
-                if let Some(&long_idx) = long_forms.get(*long_str) {
-                    let short_flag = catalog[short_idx].flag.clone();
-                    let long_flag = catalog[long_idx].flag.clone();
+            if let (Some(&short_idx), Some(&long_idx)) = (
+                short_forms.get(&short_ch.to_string()),
+                long_forms.get(*long_str),
+            ) {
+                let short_flag = catalog[short_idx].flag.clone();
+                let long_flag = catalog[long_idx].flag.clone();
 
-                    // Set alt_form on both entries
-                    catalog[short_idx].alt_form = Some(long_flag);
-                    catalog[long_idx].alt_form = Some(short_flag);
-                }
+                // Set alt_form on both entries
+                catalog[short_idx].alt_form = Some(long_flag);
+                catalog[long_idx].alt_form = Some(short_flag);
             }
         }
     }
