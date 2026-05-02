@@ -51,6 +51,89 @@ pub fn system_prompt_compact() -> &'static str {
      Use flags from examples only. Pipes and chains allowed."
 }
 
+/// Built-in few-shot examples for common bioinformatics tools.
+/// Used in Compact prompt tier for small models (≤3B parameters) when no skill is available.
+const TOOL_DEFAULT_FEW_SHOT: &[(&str, &str, &str)] = &[
+    // (tool, task_keyword, args)
+    ("samtools", "sort", "sort -@ 4 -o sorted.bam input.bam"),
+    ("samtools", "index", "index sorted.bam"),
+    (
+        "samtools",
+        "view",
+        "view -b -o output.bam input.bam chr1:1000-2000",
+    ),
+    ("bwa", "align", "mem -t 4 reference.fa read1.fq read2.fq"),
+    ("bwa", "mem", "mem -t 4 reference.fa read1.fq read2.fq"),
+    ("bwa", "index", "index reference.fa"),
+    ("bcftools", "call", "call -o output.vcf input.bcf"),
+    (
+        "bcftools",
+        "filter",
+        "filter -i 'QUAL>30' -o output.vcf input.vcf",
+    ),
+    ("fastqc", "quality", "input.fastq"),
+    (
+        "bowtie2",
+        "align",
+        "-x index -1 read1.fq -2 read2.fq -S output.sam",
+    ),
+    (
+        "bowtie2",
+        "build",
+        "bowtie2-build reference.fa index_prefix",
+    ),
+    (
+        "picard",
+        "duplicate",
+        "MarkDuplicates -I input.bam -O output.bam -M metrics.txt",
+    ),
+    (
+        "gatk",
+        "haplotype",
+        "HaplotypeCaller -R reference.fa -I input.bam -O output.vcf",
+    ),
+    (
+        "bedtools",
+        "intersect",
+        "intersect -a file1.bed -b file2.bed > output.bed",
+    ),
+    ("bedtools", "sort", "sort -i input.bed > output.bed"),
+    (
+        "hisat2",
+        "align",
+        "-x genome_index -1 read1.fq -2 read2.fq -S output.sam",
+    ),
+    ("hisat2", "build", "hisat2-build genome.fa genome_index"),
+    (
+        "macs3",
+        "callpeak",
+        "callpeak -t treatment.bam -c control.bam -n output_prefix",
+    ),
+    (
+        "macs2",
+        "callpeak",
+        "callpeak -t treatment.bam -c control.bam -n output_prefix",
+    ),
+    ("cutadapt", "trim", "-a AGATCGGAAGAG -o output.fq input.fq"),
+    ("fastp", "trim", "-i input.fq -o output.fq"),
+    ("multiqc", "report", "."),
+    (
+        "salmon",
+        "quant",
+        "quant -i index -l A -r reads.fq -o output_dir",
+    ),
+    (
+        "kallisto",
+        "quant",
+        "quant -i index -o output_dir read1.fq read2.fq",
+    ),
+    (
+        "featurecounts",
+        "count",
+        "-a annotation.gtf -o counts.txt input.bam",
+    ),
+];
+
 // ── Token estimation ─────────────────────────────────────────────────────────
 
 /// Rough token count estimate for prompt budgeting.
@@ -164,6 +247,20 @@ fn build_prompt_full(
         }
 
         prompt.push_str("</format_constraints>\n\n");
+        // ── Format examples (few-shot for small models) ─────────────────────
+        // Add concrete RIGHT vs WRONG examples when no subcommands
+        if !sdoc.has_subcommands && sdoc.subcommands.is_empty() {
+            prompt.push_str("<format_examples>\n");
+            prompt.push_str("  CORRECT (no subcommand): admixture data.bed 5 --cv=10\n");
+            prompt.push_str("  WRONG (hallucinated subcommand): admixture run -i data.bed -K 5\n");
+            prompt.push_str(
+                "  CORRECT (no subcommand): metaphlan --input_type fastq -o out.txt reads.fq\n",
+            );
+            prompt.push_str(
+                "  WRONG (hallucinated subcommand): metaphlan profile --input reads.fq\n",
+            );
+            prompt.push_str("</format_examples>\n\n");
+        }
     }
 
     // ── Flag catalog (deterministic constraint anchor) ────────────────────
@@ -411,6 +508,39 @@ fn build_prompt_compact(
                 ));
             }
         } else {
+            // No doc examples — use tool-specific defaults or generic fallback
+            add_tool_specific_few_shot(&mut prompt, tool, task);
+        }
+    } else {
+        // No structured doc — use tool-specific defaults or generic fallback
+        add_tool_specific_few_shot(&mut prompt, tool, task);
+    }
+
+    fn add_tool_specific_few_shot(prompt: &mut String, tool: &str, task: &str) {
+        let task_lower = task.to_ascii_lowercase();
+
+        // Find matching tool-specific examples
+        let matches: Vec<&(&str, &str, &str)> = TOOL_DEFAULT_FEW_SHOT
+            .iter()
+            .filter(|(t, keyword, _)| {
+                *t == tool && (task_lower.contains(*keyword) || keyword == &"sort")
+            })
+            .take(2)
+            .collect();
+
+        if !matches.is_empty() {
+            for (_, keyword, args) in &matches {
+                let task_desc = if task_lower.contains(*keyword) {
+                    task
+                } else {
+                    "Use tool"
+                };
+                prompt.push_str(&format!(
+                    "Task: {}\n\n---FEW-SHOT---\n\nARGS: {}\nEXPLANATION: Example for {} tasks.\n\n---FEW-SHOT---\n\n",
+                    task_desc, args, keyword
+                ));
+            }
+        } else {
             // Absolute fallback: generic bioinformatics few-shot
             prompt.push_str(
                 "Task: Sort a BAM file by coordinate\n\n---FEW-SHOT---\n\n\
@@ -418,12 +548,6 @@ fn build_prompt_compact(
                  EXPLANATION: Sort BAM by coordinate with 4 threads.\n\n---FEW-SHOT---\n\n",
             );
         }
-    } else {
-        prompt.push_str(
-            "Task: Sort a BAM file by coordinate\n\n---FEW-SHOT---\n\n\
-             ARGS: sort -@ 4 -o sorted.bam input.bam\n\
-             EXPLANATION: Sort BAM by coordinate with 4 threads.\n\n---FEW-SHOT---\n\n",
-        );
     }
 
     // Add compact flag list with type constraints for doc-only scenarios
