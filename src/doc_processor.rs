@@ -80,6 +80,21 @@ pub struct StructuredDoc {
     /// Documentation quality score (0.0–1.0) computed deterministically.
     #[serde(default)]
     pub quality_score: f32,
+    /// Does this tool require a subcommand as the first token?
+    /// E.g., samtools needs "sort", "view", etc. before flags.
+    /// Tools like flye have NO subcommands - flags come first.
+    #[serde(default)]
+    pub has_subcommands: bool,
+    /// List of detected subcommands (sort, view, index, etc.)
+    #[serde(default)]
+    pub subcommands: Vec<String>,
+    /// Format hint extracted from USAGE line for LLM guidance.
+    #[serde(default)]
+    pub format_hint: Option<String>,
+    /// Companion binaries that should be used as first token instead of subcommands.
+    /// E.g., rsem-prepare-reference, bowtie2-build, bwa-mem2.
+    #[serde(default)]
+    pub companion_binaries: Vec<String>,
 }
 
 /// A single flag/option entry extracted from the documentation.
@@ -93,6 +108,15 @@ pub struct FlagEntry {
     pub value_type: Option<String>,
     /// Brief description extracted from the help text.
     pub description: String,
+    /// Is this flag required? Detected from keywords like "required", "mandatory".
+    #[serde(default)]
+    pub required: bool,
+    /// Default value if specified in docs (e.g., `[default: 4]`).
+    #[serde(default)]
+    pub default: Option<String>,
+    /// Alternative form pairing (e.g., `-o` paired with `--output`).
+    #[serde(default)]
+    pub alt_form: Option<String>,
 }
 
 impl fmt::Display for StructuredDoc {
@@ -206,6 +230,10 @@ impl DocProcessor {
             flag_catalog: Vec::new(),
             extracted_examples: Vec::new(),
             quality_score: 0.0,
+            has_subcommands: false,
+            subcommands: Vec::new(),
+            format_hint: None,
+            companion_binaries: Vec::new(),
         };
 
         for (section_name, content) in sections {
@@ -241,10 +269,315 @@ impl DocProcessor {
         // Step 6: Extract concrete command examples from EXAMPLES section & raw text
         structured.extracted_examples = self.extract_command_examples(&cleaned);
 
-        // Step 7: Compute documentation quality score
+        // Step 7: Detect format constraints (subcommand requirements, companion binaries)
+        let (has_subcommands, detected_subcommands, format_hint) =
+            self.detect_format_constraints(&structured.usage, &structured.commands, &cleaned);
+        structured.has_subcommands = has_subcommands;
+        structured.subcommands = detected_subcommands;
+        structured.format_hint = format_hint;
+
+        // Step 8: Detect companion binaries from documentation
+        structured.companion_binaries = self.detect_companion_binaries(&cleaned, &structured.examples);
+
+        // Step 9: Enhance flag catalog with required/default detection and alt_form pairing
+        self.enhance_flag_catalog(&mut structured.flag_catalog);
+
+        // Step 10: Compute documentation quality score
         structured.quality_score = self.compute_quality_score(&structured);
 
         structured
+    }
+
+    /// Detect format constraints from USAGE section and examples.
+    ///
+    /// Returns (has_subcommands, subcommands_list, format_hint)
+    fn detect_format_constraints(
+        &self,
+        usage: &str,
+        commands: &str,
+        full_doc: &str,
+    ) -> (bool, Vec<String>, Option<String>) {
+        let mut has_subcommands = false;
+        let mut subcommands = Vec::new();
+        let mut format_hint = None;
+
+        // Parse USAGE line patterns
+        // Pattern 1: "Usage: tool COMMAND" or "Usage: tool <command>" -> has subcommands
+        // Pattern 2: "Usage: tool [options] <input>" -> no subcommands
+        // Pattern 3: "Usage: tool [subcommand]" -> optional subcommands
+
+        let usage_lower = usage.to_lowercase();
+
+        // Check for explicit subcommand indicators in USAGE
+        if usage_lower.contains(" command")
+            || usage_lower.contains(" <command>")
+            || usage_lower.contains(" [command]")
+            || usage_lower.contains(" command ")
+        {
+            has_subcommands = true;
+            format_hint = Some("First token must be a subcommand".to_string());
+        }
+
+        // Check for "COMMAND" or "SUBCOMMAND" placeholder in usage
+        if usage.contains("COMMAND") || usage.contains("SUBCOMMAND") {
+            has_subcommands = true;
+        }
+
+        // Check for positional argument patterns (input files) without subcommands
+        // Pattern: "Usage: tool [options] <input>" suggests no subcommand
+        if usage_lower.contains("<input>")
+            || usage_lower.contains("<file>")
+            || usage_lower.contains("<path>")
+        {
+            if !has_subcommands {
+                format_hint = Some("First token is a flag or input file".to_string());
+            }
+        }
+
+        // Extract subcommands from COMMANDS section or detected commands
+        if !commands.is_empty() {
+            has_subcommands = true;
+            // Split comma-separated list and clean up
+            for cmd in commands.split(',') {
+                let cmd = cmd.trim();
+                if !cmd.is_empty() && !cmd.contains(' ') {
+                    subcommands.push(cmd.to_string());
+                }
+            }
+        }
+
+        // Look for common subcommand patterns in examples
+        // Tools like samtools show usage patterns like "samtools sort [options]"
+        let common_subcommands = [
+            "sort", "view", "index", "merge", "cat", "faidx", "dict",
+            "sort", "view", "index", "merge", "mpileup", "fasta", "fastq",
+            "call", "filter", "norm", "annotate", "merge", "concat",
+            "align", "index", "build", "extract", "stat",
+        ];
+
+        // Analyze examples to infer subcommands
+        for line in full_doc.lines() {
+            let trimmed = line.trim();
+            // Look for "tool subcommand" patterns in examples
+            for word in trimmed.split_whitespace() {
+                let word = word.trim_start_matches('$').trim_start_matches('%').trim();
+                if common_subcommands.contains(&word) && word.len() > 2 {
+                    if !subcommands.contains(&word.to_string()) {
+                        subcommands.push(word.to_string());
+                    }
+                    has_subcommands = true;
+                }
+            }
+        }
+
+        // Sort and deduplicate subcommands
+        subcommands.sort();
+        subcommands.dedup();
+
+        // Limit to reasonable number
+        if subcommands.len() > 15 {
+            subcommands.truncate(15);
+        }
+
+        // Final inference from examples if still unclear
+        if !has_subcommands && subcommands.is_empty() {
+            // Check if examples show subcommand patterns
+            let example_subcommands = self.infer_subcommands_from_examples(full_doc);
+            if !example_subcommands.is_empty() {
+                has_subcommands = true;
+                subcommands = example_subcommands;
+            }
+        }
+
+        (has_subcommands, subcommands, format_hint)
+    }
+
+    /// Infer subcommands from example usage patterns.
+    fn infer_subcommands_from_examples(&self, docs: &str) -> Vec<String> {
+        let mut subcommands = HashSet::new();
+        let mut in_examples = false;
+
+        for line in docs.lines() {
+            let trimmed = line.trim();
+
+            // Track examples section
+            if self.is_section_header(trimmed) && trimmed.to_lowercase().contains("example") {
+                in_examples = true;
+                continue;
+            } else if self.is_section_header(trimmed) {
+                in_examples = false;
+            }
+
+            if !in_examples {
+                continue;
+            }
+
+            // Look for command patterns
+            // e.g., "$ tool sort ..." -> "sort" is the subcommand
+            // e.g., "tool view ..." -> "view" is the subcommand
+            if trimmed.starts_with('$') || trimmed.starts_with('%') {
+                let parts: Vec<&str> = trimmed
+                    .trim_start_matches('$')
+                    .trim_start_matches('%')
+                    .trim()
+                    .split_whitespace()
+                    .collect();
+
+                if parts.len() >= 2 {
+                    // First part after $ is usually the tool name
+                    // Second part is potentially the subcommand if it doesn't start with -
+                    let potential_subcommand = parts[1];
+                    if !potential_subcommand.starts_with('-')
+                        && !potential_subcommand.starts_with('<')
+                        && !potential_subcommand.starts_with('[')
+                        && potential_subcommand.len() > 1
+                        && potential_subcommand.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+                    {
+                        subcommands.insert(potential_subcommand.to_string());
+                    }
+                }
+            }
+        }
+
+        let mut result: Vec<String> = subcommands.into_iter().collect();
+        result.sort();
+        result.into_iter().take(10).collect()
+    }
+
+    /// Detect companion binaries from documentation.
+    ///
+    /// Companion binaries are separate executables that share the tool name prefix,
+    /// e.g., rsem-prepare-reference, bowtie2-build, bwa-mem2.
+    fn detect_companion_binaries(&self, docs: &str, examples: &str) -> Vec<String> {
+        let mut binaries = HashSet::new();
+
+        // Common companion binary suffixes/prefixes
+        let companion_patterns = [
+            "-build", "-index", "-prepare-reference", "-calculate-expression",
+            "-generate-data-matrix", "-generate-library-type", "-sort", "-view",
+        ];
+
+        // Scan for companion binary patterns
+        for line in docs.lines() {
+            let trimmed = line.trim();
+
+            // Look for binary names in text
+            for pattern in &companion_patterns {
+                if let Some(pos) = trimmed.to_lowercase().find(pattern) {
+                    // Extract the full binary name
+                    let start = trimmed[..pos].rfind(|c: char| c.is_whitespace() || c == '`' || c == '[')
+                        .map(|i| i + 1)
+                        .unwrap_or(0);
+                    let end = trimmed[pos..].find(|c: char| c.is_whitespace() || c == '`' || c == ']')
+                        .map(|i| pos + i)
+                        .unwrap_or(trimmed.len());
+
+                    let binary = trimmed[start..end].trim().to_string();
+                    if !binary.is_empty() && binary.len() > 3 {
+                        binaries.insert(binary);
+                    }
+                }
+            }
+        }
+
+        // Also check examples for companion binary invocations
+        for line in examples.lines() {
+            let trimmed = line.trim();
+            if let Some(first_word) = trimmed.split_whitespace().next() {
+                // If first word contains a hyphen and looks like a companion binary
+                if first_word.contains('-') && first_word.len() > 5 {
+                    binaries.insert(first_word.to_string());
+                }
+            }
+        }
+
+        let mut result: Vec<String> = binaries.into_iter().collect();
+        result.sort();
+        result.dedup();
+        result.into_iter().take(5).collect()
+    }
+
+    /// Enhance flag catalog with required/default detection and alt_form pairing.
+    fn enhance_flag_catalog(&self, catalog: &mut Vec<FlagEntry>) {
+        // Detect required flags from descriptions
+        for entry in catalog.iter_mut() {
+            let desc_lower = entry.description.to_lowercase();
+
+            // Check for required keywords
+            if desc_lower.contains("required")
+                || desc_lower.contains("mandatory")
+                || desc_lower.contains("must be")
+                || desc_lower.contains("must specify")
+            {
+                entry.required = true;
+            }
+
+            // Extract default value
+            // Patterns: [default: X], (default: X), default=X, default: X
+            let default_patterns = [
+                r"\[default:\s*([^\]]+)\]",
+                r"\(default:\s*([^)]+)\)",
+                r"default[=:]\s*(\S+)",
+            ];
+
+            for pattern in &default_patterns {
+                if let Ok(re) = regex::Regex::new(pattern) {
+                    if let Some(cap) = re.captures(&entry.description) {
+                        if let Some(m) = cap.get(1) {
+                            entry.default = Some(m.as_str().trim().to_string());
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Pair short and long forms
+        let mut short_forms: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+        let mut long_forms: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+
+        for (idx, entry) in catalog.iter().enumerate() {
+            if entry.flag.starts_with("--") && entry.flag.len() > 2 {
+                // Long form - store without dashes
+                let key = entry.flag.trim_start_matches('-').to_string();
+                long_forms.insert(key, idx);
+            } else if entry.flag.starts_with('-') && !entry.flag.starts_with("--") {
+                // Short form - store the single char
+                if let Some(ch) = entry.flag.chars().nth(1) {
+                    short_forms.insert(ch.to_string(), idx);
+                }
+            }
+        }
+
+        // Look for semantic matches between short and long forms
+        // e.g., -o and --output, -t and --threads
+        let semantic_pairs = [
+            ('o', "output"),
+            ('i', "input"),
+            ('t', "threads"),
+            ('n', "name"),
+            ('f', "file"),
+            ('d', "dir"),
+            ('p', "prefix"),
+            ('r', "reference"),
+            ('g', "genome"),
+            ('b', "bam"),
+            ('v', "vcf"),
+            ('h', "help"),
+        ];
+
+        for (short_ch, long_str) in &semantic_pairs {
+            if let Some(&short_idx) = short_forms.get(&short_ch.to_string()) {
+                if let Some(&long_idx) = long_forms.get(*long_str) {
+                    let short_flag = catalog[short_idx].flag.clone();
+                    let long_flag = catalog[long_idx].flag.clone();
+
+                    // Set alt_form on both entries
+                    catalog[short_idx].alt_form = Some(long_flag);
+                    catalog[long_idx].alt_form = Some(short_flag);
+                }
+            }
+        }
     }
 
     /// Process documentation for LLM with intelligent formatting
@@ -509,6 +842,9 @@ impl DocProcessor {
                         flag: flag_clean.to_string(),
                         value_type,
                         description: desc.to_string(),
+                        required: false,
+                        default: None,
+                        alt_form: None,
                     });
                 }
             } else {
@@ -531,6 +867,9 @@ impl DocProcessor {
                         flag: parts[0].trim_end_matches(',').to_string(),
                         value_type,
                         description,
+                        required: false,
+                        default: None,
+                        alt_form: None,
                     });
                 }
             }
@@ -609,24 +948,34 @@ impl DocProcessor {
 
         // Has USAGE section (essential)
         if !doc.usage.is_empty() {
-            score += 0.25;
+            score += 0.20;
         }
 
         // Has EXAMPLES section (very valuable for few-shot)
         if !doc.examples.is_empty() {
-            score += 0.25;
+            score += 0.20;
         }
 
         // Has extracted command examples (directly usable as few-shot)
         let example_count = doc.extracted_examples.len();
-        score += (example_count.min(5) as f32) * 0.05; // up to 0.25
+        score += (example_count.min(5) as f32) * 0.04; // up to 0.20
 
         // Has OPTIONS / flag catalog (prevents flag hallucination)
         let flag_count = doc.flag_catalog.len();
         score += (flag_count.min(10) as f32) * 0.015; // up to 0.15
 
-        // Has subcommands
-        if !doc.commands.is_empty() {
+        // Has subcommands detected (important for format constraints)
+        if !doc.subcommands.is_empty() || doc.has_subcommands {
+            score += 0.10;
+        }
+
+        // Has format hint (critical for correct command structure)
+        if doc.format_hint.is_some() {
+            score += 0.05;
+        }
+
+        // Has companion binaries detected
+        if !doc.companion_binaries.is_empty() {
             score += 0.05;
         }
 
@@ -1247,11 +1596,17 @@ mod tests {
                 flag: "-o".to_string(),
                 value_type: Some("FILE".to_string()),
                 description: "Output".to_string(),
+                required: false,
+                default: None,
+                alt_form: None,
             },
             FlagEntry {
                 flag: "-@".to_string(),
                 value_type: Some("INT".to_string()),
                 description: "Threads".to_string(),
+                required: false,
+                default: None,
+                alt_form: None,
             },
         ];
         let compact = processor.flag_catalog_compact(&catalog);

@@ -134,6 +134,36 @@ fn build_prompt_full(
     let mut prompt = String::new();
     prompt.push_str(&format!("# Tool: `{tool}`\n\n"));
 
+    // ── Format constraints (critical for correct command structure) ────────
+    if let Some(sdoc) = structured_doc {
+        prompt.push_str("<format_constraints>\n");
+
+        // Subcommand requirement
+        if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
+            prompt.push_str(&format!(
+                "  SUBCOMMAND_REQUIRED: YES\n  Valid subcommands: {}\n",
+                sdoc.subcommands.join(", ")
+            ));
+        } else if !sdoc.has_subcommands {
+            prompt.push_str("  SUBCOMMAND_REQUIRED: NO\n  First token must be a flag or input file.\n");
+        }
+
+        // Companion binaries
+        if !sdoc.companion_binaries.is_empty() {
+            prompt.push_str(&format!(
+                "  COMPANION_BINARIES: {}\n  Use these as first token instead of main tool.\n",
+                sdoc.companion_binaries.join(", ")
+            ));
+        }
+
+        // Format hint
+        if let Some(ref hint) = sdoc.format_hint {
+            prompt.push_str(&format!("  FORMAT_HINT: {}\n", hint));
+        }
+
+        prompt.push_str("</format_constraints>\n\n");
+    }
+
     // ── Flag catalog (deterministic constraint anchor) ────────────────────
     if let Some(sdoc) = structured_doc
         && !sdoc.flag_catalog.is_empty()
@@ -198,10 +228,11 @@ fn build_prompt_full(
     // ── Output format ────────────────────────────────────────────────────
     prompt.push_str(
         "## Output Requirements\n\
-         1. Use ONLY flags from <flag_catalog> — NEVER invent flags\n\
-         2. Follow exact formats shown in <examples>\n\
-         3. First token must be the subcommand (if any), NOT the tool name\n\
-         4. Include ALL required parameters from the task\n\n\
+         1. Check <format_constraints> — if SUBCOMMAND_REQUIRED=YES, first token MUST be a listed subcommand\n\
+         2. If COMPANION_BINARIES listed, use that name as first token instead of main tool\n\
+         3. Use ONLY flags from <flag_catalog> — NEVER invent flags\n\
+         4. Follow exact formats shown in <examples>\n\
+         5. Include ALL required parameters from the task\n\n\
          ARGS: <subcommand then flags, NO tool name>\n\
          EXPLANATION: <brief one-sentence description>\n",
     );
@@ -219,6 +250,27 @@ fn build_prompt_medium(
 ) -> String {
     let mut prompt = String::new();
     prompt.push_str(&format!("# Tool: `{tool}`\n\n"));
+
+    // Format constraints for medium prompt (inline, compact)
+    if let Some(sdoc) = structured_doc {
+        if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
+            prompt.push_str(&format!(
+                "First token MUST be subcommand: {}\n",
+                sdoc.subcommands.iter().take(5).cloned().collect::<Vec<_>>().join(", ")
+            ));
+        } else if !sdoc.has_subcommands {
+            prompt.push_str("First token is flag or input (NO subcommand).\n");
+        }
+        if !sdoc.companion_binaries.is_empty() {
+            prompt.push_str(&format!(
+                "Use companion binary: {}\n",
+                sdoc.companion_binaries.join(", ")
+            ));
+        }
+        if !prompt.is_empty() {
+            prompt.push('\n');
+        }
+    }
 
     if let Some(skill) = skill {
         let section = skill.to_prompt_section_for_task(5, task);
@@ -286,7 +338,23 @@ fn build_prompt_compact(
     structured_doc: Option<&StructuredDoc>,
 ) -> String {
     let mut prompt = String::new();
-    prompt.push_str(&format!("Tool: {tool}\n\n"));
+    prompt.push_str(&format!("Tool: {tool}\n"));
+
+    // Format constraints for compact prompt (ultra-compact)
+    if let Some(sdoc) = structured_doc {
+        if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
+            prompt.push_str(&format!(
+                "Subcommand: {}\n",
+                sdoc.subcommands.iter().take(3).cloned().collect::<Vec<_>>().join("|")
+            ));
+        } else if !sdoc.has_subcommands {
+            prompt.push_str("No subcommand\n");
+        }
+        if !sdoc.companion_binaries.is_empty() {
+            prompt.push_str(&format!("Binary: {}\n", sdoc.companion_binaries[0]));
+        }
+    }
+    prompt.push('\n');
 
     let few_shots = skill
         .map(|s| s.select_examples(2, Some(task)))
