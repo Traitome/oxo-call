@@ -68,8 +68,6 @@ pub struct Runner {
     pub(crate) stop_on_error: bool,
     /// When true, automatically retry failed commands with LLM-corrected arguments.
     pub(crate) auto_retry: bool,
-    /// Force a specific workflow scenario (auto-detected by default)
-    pub(crate) force_scenario: Option<crate::workflow_graph::WorkflowScenario>,
     /// When true, disable skill loading.
     pub(crate) no_skill: bool,
     /// When true, disable documentation fetching.
@@ -101,7 +99,6 @@ impl Runner {
             jobs: 1,
             stop_on_error: false,
             auto_retry: false,
-            force_scenario: None,
             no_skill: false,
             no_doc: false,
             no_prompt: false,
@@ -130,15 +127,6 @@ impl Runner {
     /// Enable automatic retry with LLM-corrected commands on failure.
     pub fn with_auto_retry(&mut self, auto_retry: bool) -> &mut Self {
         self.auto_retry = auto_retry;
-        self
-    }
-
-    /// Force a specific workflow scenario.
-    pub fn with_scenario(
-        &mut self,
-        scenario: crate::workflow_graph::WorkflowScenario,
-    ) -> &mut Self {
-        self.force_scenario = Some(scenario);
         self
     }
 
@@ -236,48 +224,22 @@ impl Runner {
         }
     }
 
-    /// Core logic: fetch docs + load skill → select workflow mode → run LlmWorkflowExecutor.
+    /// Core pipeline: fetch docs → load skill → call LLM → post-process.
     ///
-    /// Mode selection rules (in priority order):
-    /// 1. `--scenario` flag set → use scenario's default mode.
-    /// 2. No static skill + docs available → Quality (generates mini-skill from doc, cached).
-    /// 3. Static skill available or no docs → Fast (skill already provides grounding).
-    ///
-    /// In Quality mode the executor optionally normalizes the task (if vague/short/non-ASCII),
-    /// generates a mini-skill from the documentation (result cached to disk), and uses it
-    /// for command generation.
+    /// Steps:
+    /// 1. Load skill file (unless `--no-skill`).
+    /// 2. Fetch tool documentation (unless `--no-doc`).
+    /// 3. Build structured doc + schema from raw docs.
+    /// 4. Call LLM with prompt containing docs + skill + task.
+    /// 5. Apply deterministic schema post-processing.
     pub(crate) async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
-        let scenario = self
-            .force_scenario
-            .unwrap_or(crate::workflow_graph::WorkflowScenario::Full);
-
-        // Ablation flags override scenario-based defaults.
-        // This supports the 5 benchmark ablation scenarios:
-        //   bare:   --no-skill --no-doc --no-prompt
-        //   prompt: --no-skill --no-doc
-        //   skill:  --no-doc
-        //   doc:    --no-skill
-        //   full:   (no flags)
-        let should_load_skill =
-            !self.no_skill && matches!(scenario, crate::workflow_graph::WorkflowScenario::Full);
-        let should_fetch_doc = !self.no_doc
-            && matches!(
-                scenario,
-                crate::workflow_graph::WorkflowScenario::Doc
-                    | crate::workflow_graph::WorkflowScenario::Full
-            );
-        let no_prompt =
-            self.no_prompt || matches!(scenario, crate::workflow_graph::WorkflowScenario::Bare);
+        let should_load_skill = !self.no_skill;
+        let should_fetch_doc = !self.no_doc;
+        let no_prompt = self.no_prompt;
 
         let skill = if should_load_skill {
             self.skill_manager.load_async(tool).await
         } else {
-            if self.verbose && matches!(scenario, crate::workflow_graph::WorkflowScenario::Bare) {
-                eprintln!(
-                    "{} [bare] Skipping skill and documentation",
-                    "[verbose]".dimmed()
-                );
-            }
             None
         };
 
@@ -971,7 +933,6 @@ mod tests {
         assert_eq!(r.jobs, 1);
         assert!(r.vars.is_empty());
         assert!(r.input_items.is_empty());
-        assert!(r.force_scenario.is_none());
     }
 
     #[test]
@@ -1054,21 +1015,6 @@ mod tests {
         let mut r = default_runner();
         r.with_input_items(items.clone());
         assert_eq!(r.input_items, items);
-    }
-
-    #[test]
-    fn test_runner_with_scenario() {
-        use crate::workflow_graph::WorkflowScenario;
-        let cases = vec![
-            WorkflowScenario::Bare,
-            WorkflowScenario::Full,
-            WorkflowScenario::Doc,
-        ];
-        for scenario in cases {
-            let mut r = default_runner();
-            r.with_scenario(scenario);
-            assert!(r.force_scenario.is_some());
-        }
     }
 
     #[test]

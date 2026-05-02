@@ -780,15 +780,6 @@ fn test_runner_builder_auto_retry() {
 }
 
 #[test]
-fn test_runner_builder_scenario_doc() {
-    use crate::config::Config;
-    use crate::workflow_graph::WorkflowScenario;
-    let mut runner = Runner::new(Config::default());
-    runner.with_scenario(WorkflowScenario::Doc);
-    assert_eq!(runner.force_scenario, Some(WorkflowScenario::Doc));
-}
-
-#[test]
 fn test_runner_builder_vars() {
     use crate::config::Config;
     let mut vars = HashMap::new();
@@ -834,24 +825,13 @@ fn test_runner_builder_stop_on_error() {
 }
 
 #[test]
-fn test_runner_builder_scenario() {
-    use crate::config::Config;
-    use crate::workflow_graph::WorkflowScenario;
-    let mut runner = Runner::new(Config::default());
-    runner.with_scenario(WorkflowScenario::Full);
-    assert!(runner.force_scenario.is_some());
-}
-
-#[test]
 fn test_runner_builder_chaining() {
     use crate::config::Config;
-    use crate::workflow_graph::WorkflowScenario;
     let mut runner = Runner::new(Config::default());
     runner.with_verbose(true);
     runner.with_no_cache(true);
     runner.with_verify(true);
     runner.with_auto_retry(true);
-    runner.with_scenario(WorkflowScenario::Full);
     runner.with_jobs(8);
     runner.with_stop_on_error(true);
 
@@ -859,7 +839,6 @@ fn test_runner_builder_chaining() {
     assert!(runner.no_cache);
     assert!(runner.verify);
     assert!(runner.auto_retry);
-    assert_eq!(runner.force_scenario, Some(WorkflowScenario::Full));
     assert_eq!(runner.jobs, 8);
     assert!(runner.stop_on_error);
 }
@@ -874,7 +853,6 @@ fn test_runner_defaults() {
     assert!(!runner.auto_retry);
     assert_eq!(runner.jobs, 1);
     assert!(!runner.stop_on_error);
-    assert!(runner.force_scenario.is_none());
     assert!(runner.vars.is_empty());
     assert!(runner.input_items.is_empty());
 }

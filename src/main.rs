@@ -36,13 +36,8 @@ mod bench;
 mod cache;
 mod chat;
 mod cli;
-mod command_assembler;
-mod command_validator;
-mod confidence;
 mod config;
-mod context;
 mod copilot_auth;
-mod doc_explorer;
 mod doc_processor;
 mod doc_summarizer;
 mod docs;
@@ -50,32 +45,21 @@ mod engine;
 mod error;
 mod execution;
 mod format;
-mod generator;
 mod handlers;
 mod history;
 mod index;
-mod intent_mapper;
 mod job;
 mod knowledge;
 mod license;
 mod llm;
-// mod llm_workflow;  // Removed in v0.13 — schema_post_process in schema/ now
 mod markdown;
 mod mcp;
-mod orchestrator;
-mod pipeline;
 mod runner;
 mod schema;
 mod server;
 mod skill;
 mod streaming_display;
-mod subcommand_detector;
-mod task_normalizer;
-mod tool_doc;
-mod tool_resolver;
-mod validator;
 mod workflow;
-mod workflow_graph;
 
 /// A single crate-wide mutex that **all** test modules must acquire before
 /// reading or writing `OXO_CALL_DATA_DIR` (or any other process-global
@@ -86,8 +70,8 @@ pub(crate) static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 use clap::{CommandFactory, Parser};
 use cli::{
     Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, JobCommands,
-    LicenseCommands, ModelCommands, RunScenario, ServerCommands, ShellType, SkillCommands,
-    SkillMcpCommands, WorkflowCommands,
+    LicenseCommands, ModelCommands, ServerCommands, ShellType, SkillCommands, SkillMcpCommands,
+    WorkflowCommands,
 };
 use colored::Colorize;
 use handlers::{config_verify_suggestions, print_index_table, with_source};
@@ -268,7 +252,6 @@ async fn run(cli: Cli) -> error::Result<()> {
             jobs,
             stop_on_error,
             auto_retry,
-            scenario,
             no_skill,
             no_doc,
             no_prompt,
@@ -278,12 +261,6 @@ async fn run(cli: Cli) -> error::Result<()> {
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
             }
-
-            let force_scenario = scenario.map(|s| match s {
-                RunScenario::Bare => workflow_graph::WorkflowScenario::Bare,
-                RunScenario::Doc => workflow_graph::WorkflowScenario::Doc,
-                RunScenario::Full => workflow_graph::WorkflowScenario::Full,
-            });
 
             let all_items = {
                 let mut v: Vec<String> = Vec::new();
@@ -320,9 +297,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_no_doc(no_doc)
                 .with_no_prompt(no_prompt)
                 .with_no_stream(no_stream);
-            if let Some(sc) = force_scenario {
-                runner.with_scenario(sc);
-            }
             runner
                 .with_vars(var_map)
                 .with_input_items(all_items)
@@ -342,7 +316,6 @@ async fn run(cli: Cli) -> error::Result<()> {
             input_items,
             jobs,
             stop_on_error,
-            scenario,
             no_skill,
             no_doc,
             no_prompt,
@@ -352,12 +325,6 @@ async fn run(cli: Cli) -> error::Result<()> {
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
             }
-
-            let force_scenario = scenario.map(|s| match s {
-                RunScenario::Bare => workflow_graph::WorkflowScenario::Bare,
-                RunScenario::Doc => workflow_graph::WorkflowScenario::Doc,
-                RunScenario::Full => workflow_graph::WorkflowScenario::Full,
-            });
 
             let all_items = {
                 let mut v: Vec<String> = Vec::new();
@@ -394,9 +361,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_no_stream(no_stream)
                 .with_jobs(jobs)
                 .with_stop_on_error(stop_on_error);
-            if let Some(sc) = force_scenario {
-                runner.with_scenario(sc);
-            }
             let runner = runner.with_vars(var_map).with_input_items(all_items);
             runner.dry_run(&tool, &task, json, None).await?;
         }

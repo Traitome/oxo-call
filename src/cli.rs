@@ -66,8 +66,7 @@ EXAMPLES:\n  \
   oxo-call run --ask samtools 'filter only mapped reads from input.bam'\n  \
   oxo-call run --model gpt-4 samtools 'index sorted.bam'\n  \
   oxo-call run --json samtools 'flagstat input.bam'\n  \
-  oxo-call run --verify samtools 'sort input.bam by coordinate'\n  \
-  oxo-call run --scenario doc samtools 'sort bam'"
+  oxo-call run --verify samtools 'sort input.bam by coordinate'"
     )]
     Run {
         /// The tool to run (must be in PATH)
@@ -116,9 +115,6 @@ EXAMPLES:\n  \
         /// and retry with a corrected command (up to 2 retries)
         #[arg(long)]
         auto_retry: bool,
-        /// Force a specific workflow scenario (auto-detected by default)
-        #[arg(long, value_enum, value_name = "SCENARIO")]
-        scenario: Option<RunScenario>,
         /// Disable the loaded skill file for this invocation.
         #[arg(long)]
         no_skill: bool,
@@ -145,8 +141,7 @@ EXAMPLES:\n  \
   oxo-call dry-run samtools 'sort input.bam by coordinate'\n  \
   oxo-call dry-run bwa 'align reads.fq to reference.fa with 8 threads'\n  \
   oxo-call dry-run --model gpt-4 gatk 'call variants on sample.bam'\n  \
-  oxo-call dry-run --json samtools 'flagstat input.bam'\n  \
-  oxo-call dry-run --scenario doc samtools 'sort bam'"
+  oxo-call dry-run --json samtools 'flagstat input.bam'"
     )]
     DryRun {
         /// The tool to preview
@@ -181,9 +176,6 @@ EXAMPLES:\n  \
         /// Stop processing after the first failed item (exit immediately, do not run remaining items)
         #[arg(short = 'x', long = "stop-on-error")]
         stop_on_error: bool,
-        /// Force a specific workflow scenario (auto-detected by default)
-        #[arg(long, value_enum, value_name = "SCENARIO")]
-        scenario: Option<RunScenario>,
         /// Disable the loaded skill file for this invocation.
         #[arg(long)]
         no_skill: bool,
@@ -833,16 +825,6 @@ pub enum JobCommands {
 ///
 /// Controls how much context (documentation, skills, prompt) is injected
 /// into the LLM call when generating tool commands.
-#[derive(Clone, Debug, ValueEnum)]
-pub enum RunScenario {
-    /// Bare: Tool + Task only (no additional context)
-    Bare,
-    /// Doc: Tool + auto-parsed documentation + Schema
-    Doc,
-    /// Full: Doc + Skill knowledge (most accurate)
-    Full,
-}
-
 #[derive(Clone, Debug, ValueEnum)]
 pub enum ChatScenario {
     /// Bare: no system prompt, no docs, no skill (plain chat)
