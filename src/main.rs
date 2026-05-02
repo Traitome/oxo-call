@@ -86,8 +86,8 @@ pub(crate) static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 use clap::{CommandFactory, Parser};
 use cli::{
     Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, JobCommands,
-    LicenseCommands, ModelCommands, RunScenario, ServerCommands, ShellType, SkillCommands,
-    SkillMcpCommands, WorkflowCommands,
+    LicenseCommands, ModelCommands, ServerCommands, ShellType, SkillCommands, SkillMcpCommands,
+    WorkflowCommands,
 };
 use colored::Colorize;
 use handlers::{config_verify_suggestions, print_index_table, with_source};
@@ -182,6 +182,79 @@ const COPILOT_MODELS: &[(&str, &str, bool)] = &[
     ),
 ];
 
+fn collect_input_items(
+    input_list: &Option<String>,
+    input_items: &Option<String>,
+) -> error::Result<Vec<String>> {
+    let mut items = Vec::new();
+    if let Some(path) = input_list {
+        items.extend(job::read_input_list(path)?);
+    }
+    if let Some(items_str) = input_items {
+        items.extend(
+            items_str
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty()),
+        );
+    }
+    Ok(items)
+}
+
+fn collect_vars(vars: &[String]) -> error::Result<std::collections::HashMap<String, String>> {
+    let mut parsed = std::collections::HashMap::new();
+    for var in vars {
+        let (key, value) = job::parse_var(var)?;
+        parsed.insert(key, value);
+    }
+    Ok(parsed)
+}
+
+struct TaskRunnerOptions<'a> {
+    verbose: bool,
+    model: &'a Option<String>,
+    no_cache: bool,
+    verify: bool,
+    auto_retry: bool,
+    scenario: Option<workflow_graph::WorkflowScenario>,
+    vars: &'a [String],
+    input_list: &'a Option<String>,
+    input_items: &'a Option<String>,
+    jobs: usize,
+    stop_on_error: bool,
+    no_stream: bool,
+}
+
+fn build_task_runner(
+    base_cfg: &config::Config,
+    options: TaskRunnerOptions<'_>,
+) -> error::Result<runner::Runner> {
+    let mut cfg = base_cfg.clone();
+    if let Some(model) = options.model {
+        cfg.llm.model = Some(model.clone());
+    }
+
+    let all_items = collect_input_items(options.input_list, options.input_items)?;
+    let var_map = collect_vars(options.vars)?;
+
+    let mut runner = runner::Runner::new(cfg);
+    runner
+        .with_verbose(options.verbose)
+        .with_no_cache(options.no_cache)
+        .with_verify(options.verify)
+        .with_auto_retry(options.auto_retry)
+        .with_no_stream(options.no_stream)
+        .with_jobs(options.jobs)
+        .with_stop_on_error(options.stop_on_error)
+        .with_vars(var_map)
+        .with_input_items(all_items);
+    if let Some(scenario) = options.scenario {
+        runner.with_scenario(scenario);
+    }
+
+    Ok(runner)
+}
+
 async fn run(cli: Cli) -> error::Result<()> {
     // Commands that are permitted without a valid license file.
     // `--help` and `--version` are handled by clap before reaching this function.
@@ -269,65 +342,25 @@ async fn run(cli: Cli) -> error::Result<()> {
             stop_on_error,
             auto_retry,
             scenario,
-            no_skill,
-            no_doc,
-            no_prompt,
             no_stream,
         } => {
-            let mut cfg = base_cfg.clone();
-            if let Some(ref m) = model {
-                cfg.llm.model = Some(m.clone());
-            }
-
-            let force_scenario = scenario.map(|s| match s {
-                RunScenario::Bare => workflow_graph::WorkflowScenario::Bare,
-                RunScenario::Doc => workflow_graph::WorkflowScenario::Doc,
-                RunScenario::Full => workflow_graph::WorkflowScenario::Full,
-            });
-
-            let all_items = {
-                let mut v: Vec<String> = Vec::new();
-                if let Some(ref path) = input_list {
-                    v.extend(job::read_input_list(path)?);
-                }
-                if let Some(ref items_str) = input_items {
-                    v.extend(
-                        items_str
-                            .split(',')
-                            .map(|s| s.trim().to_string())
-                            .filter(|s| !s.is_empty()),
-                    );
-                }
-                v
-            };
-
-            let var_map = {
-                let mut m = std::collections::HashMap::new();
-                for v in &vars {
-                    let (k, val) = job::parse_var(v)?;
-                    m.insert(k, val);
-                }
-                m
-            };
-
-            let mut runner = runner::Runner::new(cfg);
-            runner
-                .with_verbose(verbose)
-                .with_no_cache(no_cache)
-                .with_verify(verify)
-                .with_auto_retry(auto_retry)
-                .with_no_skill(no_skill)
-                .with_no_doc(no_doc)
-                .with_no_prompt(no_prompt)
-                .with_no_stream(no_stream);
-            if let Some(sc) = force_scenario {
-                runner.with_scenario(sc);
-            }
-            runner
-                .with_vars(var_map)
-                .with_input_items(all_items)
-                .with_jobs(jobs)
-                .with_stop_on_error(stop_on_error);
+            let runner = build_task_runner(
+                &base_cfg,
+                TaskRunnerOptions {
+                    verbose,
+                    model: &model,
+                    no_cache,
+                    verify,
+                    auto_retry,
+                    scenario,
+                    vars: &vars,
+                    input_list: &input_list,
+                    input_items: &input_items,
+                    jobs,
+                    stop_on_error,
+                    no_stream,
+                },
+            )?;
             runner.run(&tool, &task, ask, json).await?
         }
 
@@ -343,61 +376,25 @@ async fn run(cli: Cli) -> error::Result<()> {
             jobs,
             stop_on_error,
             scenario,
-            no_skill,
-            no_doc,
-            no_prompt,
             no_stream,
         } => {
-            let mut cfg = base_cfg.clone();
-            if let Some(ref m) = model {
-                cfg.llm.model = Some(m.clone());
-            }
-
-            let force_scenario = scenario.map(|s| match s {
-                RunScenario::Bare => workflow_graph::WorkflowScenario::Bare,
-                RunScenario::Doc => workflow_graph::WorkflowScenario::Doc,
-                RunScenario::Full => workflow_graph::WorkflowScenario::Full,
-            });
-
-            let all_items = {
-                let mut v: Vec<String> = Vec::new();
-                if let Some(ref path) = input_list {
-                    v.extend(job::read_input_list(path)?);
-                }
-                if let Some(ref items_str) = input_items {
-                    v.extend(
-                        items_str
-                            .split(',')
-                            .map(|s| s.trim().to_string())
-                            .filter(|s| !s.is_empty()),
-                    );
-                }
-                v
-            };
-
-            let var_map = {
-                let mut m = std::collections::HashMap::new();
-                for v in &vars {
-                    let (k, val) = job::parse_var(v)?;
-                    m.insert(k, val);
-                }
-                m
-            };
-
-            let mut runner = runner::Runner::new(cfg);
-            runner
-                .with_verbose(verbose)
-                .with_no_cache(no_cache)
-                .with_no_skill(no_skill)
-                .with_no_doc(no_doc)
-                .with_no_prompt(no_prompt)
-                .with_no_stream(no_stream)
-                .with_jobs(jobs)
-                .with_stop_on_error(stop_on_error);
-            if let Some(sc) = force_scenario {
-                runner.with_scenario(sc);
-            }
-            let runner = runner.with_vars(var_map).with_input_items(all_items);
+            let runner = build_task_runner(
+                &base_cfg,
+                TaskRunnerOptions {
+                    verbose,
+                    model: &model,
+                    no_cache,
+                    verify: false,
+                    auto_retry: false,
+                    scenario,
+                    vars: &vars,
+                    input_list: &input_list,
+                    input_items: &input_items,
+                    jobs,
+                    stop_on_error,
+                    no_stream,
+                },
+            )?;
             runner.dry_run(&tool, &task, json, None).await?;
         }
 

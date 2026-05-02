@@ -70,12 +70,6 @@ pub struct Runner {
     pub(crate) auto_retry: bool,
     /// Force a specific workflow scenario (auto-detected by default)
     pub(crate) force_scenario: Option<crate::workflow_graph::WorkflowScenario>,
-    /// When true, disable skill loading.
-    pub(crate) no_skill: bool,
-    /// When true, disable documentation fetching.
-    pub(crate) no_doc: bool,
-    /// When true, disable the system prompt (bare LLM mode).
-    pub(crate) no_prompt: bool,
     /// When true, disable SSE streaming for LLM responses.
     pub(crate) no_stream: bool,
 }
@@ -102,9 +96,6 @@ impl Runner {
             stop_on_error: false,
             auto_retry: false,
             force_scenario: None,
-            no_skill: false,
-            no_doc: false,
-            no_prompt: false,
             no_stream: false,
         }
     }
@@ -139,24 +130,6 @@ impl Runner {
         scenario: crate::workflow_graph::WorkflowScenario,
     ) -> &mut Self {
         self.force_scenario = Some(scenario);
-        self
-    }
-
-    /// Disable skill loading for this run.
-    pub fn with_no_skill(&mut self, no_skill: bool) -> &mut Self {
-        self.no_skill = no_skill;
-        self
-    }
-
-    /// Disable documentation fetching for this run.
-    pub fn with_no_doc(&mut self, no_doc: bool) -> &mut Self {
-        self.no_doc = no_doc;
-        self
-    }
-
-    /// Disable the system prompt for this run (bare LLM mode).
-    pub fn with_no_prompt(&mut self, no_prompt: bool) -> &mut Self {
-        self.no_prompt = no_prompt;
         self
     }
 
@@ -236,103 +209,124 @@ impl Runner {
         }
     }
 
-    /// Core logic: fetch docs + load skill → select workflow mode → run LlmWorkflowExecutor.
-    ///
-    /// Mode selection rules (in priority order):
-    /// 1. `--scenario` flag set → use scenario's default mode.
-    /// 2. No static skill + docs available → Quality (generates mini-skill from doc, cached).
-    /// 3. Static skill available or no docs → Fast (skill already provides grounding).
-    ///
-    /// In Quality mode the executor optionally normalizes the task (if vague/short/non-ASCII),
-    /// generates a mini-skill from the documentation (result cached to disk), and uses it
-    /// for command generation.
-    pub(crate) async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
-        let scenario = self
-            .force_scenario
-            .unwrap_or(crate::workflow_graph::WorkflowScenario::Full);
+    fn generation_scenario(&self) -> crate::workflow_graph::WorkflowScenario {
+        self.force_scenario
+            .unwrap_or(crate::workflow_graph::WorkflowScenario::Full)
+    }
 
-        // Ablation flags override scenario-based defaults.
-        // This supports the 5 benchmark ablation scenarios:
-        //   bare:   --no-skill --no-doc --no-prompt
-        //   prompt: --no-skill --no-doc
-        //   skill:  --no-doc
-        //   doc:    --no-skill
-        //   full:   (no flags)
-        let should_load_skill =
-            !self.no_skill && matches!(scenario, crate::workflow_graph::WorkflowScenario::Full);
-        let should_fetch_doc = !self.no_doc
-            && matches!(
-                scenario,
-                crate::workflow_graph::WorkflowScenario::Doc
-                    | crate::workflow_graph::WorkflowScenario::Full
-            );
-        let no_prompt =
-            self.no_prompt || matches!(scenario, crate::workflow_graph::WorkflowScenario::Bare);
+    fn scenario_fetches_docs(&self, scenario: crate::workflow_graph::WorkflowScenario) -> bool {
+        matches!(
+            scenario,
+            crate::workflow_graph::WorkflowScenario::Doc
+                | crate::workflow_graph::WorkflowScenario::Full
+        )
+    }
 
-        let skill = if should_load_skill {
+    fn scenario_loads_skill(&self, scenario: crate::workflow_graph::WorkflowScenario) -> bool {
+        matches!(scenario, crate::workflow_graph::WorkflowScenario::Full)
+    }
+
+    fn scenario_disables_prompt(&self, scenario: crate::workflow_graph::WorkflowScenario) -> bool {
+        matches!(scenario, crate::workflow_graph::WorkflowScenario::Bare)
+    }
+
+    async fn load_skill_context(
+        &self,
+        tool: &str,
+        scenario: crate::workflow_graph::WorkflowScenario,
+    ) -> Option<crate::skill::Skill> {
+        if self.scenario_loads_skill(scenario) {
             self.skill_manager.load_async(tool).await
         } else {
             if self.verbose && matches!(scenario, crate::workflow_graph::WorkflowScenario::Bare) {
                 eprintln!(
-                    "{} [bare] Skipping skill and documentation",
+                    "{} [bare] Skipping documentation and skill grounding",
                     "[verbose]".dimmed()
                 );
             }
             None
+        }
+    }
+
+    async fn load_tool_docs(
+        &self,
+        tool: &str,
+        task: &str,
+        scenario: crate::workflow_graph::WorkflowScenario,
+    ) -> Result<Option<crate::docs::ToolDocs>> {
+        if !self.scenario_fetches_docs(scenario) {
+            return Ok(None);
+        }
+
+        let spinner = make_spinner(&format!("Fetching documentation for '{tool}'..."));
+        let result = self.resolve_docs_raw(tool, task).await;
+        spinner.finish_and_clear();
+        result.map(Some)
+    }
+
+    fn analyze_tool_docs(
+        &self,
+        tool: &str,
+        task: &str,
+        tool_docs: Option<&crate::docs::ToolDocs>,
+    ) -> (Option<StructuredDoc>, Option<CliSchema>) {
+        let Some(docs) = tool_docs else {
+            return (None, None);
         };
 
-        let tool_docs = if !should_fetch_doc {
-            None
-        } else {
-            let spinner = make_spinner(&format!("Fetching documentation for '{tool}'..."));
-            let result = self.resolve_docs_raw(tool, task).await;
-            spinner.finish_and_clear();
-            Some(result?)
-        };
+        let raw_docs = docs.combined();
+        let processor = DocProcessor::new();
+        let structured_doc = processor.clean_and_structure(&raw_docs);
+        let parsed_schema = parse_help(tool, &raw_docs);
 
-        // ── Build StructuredDoc from RAW docs BEFORE summarization ──
-        // This is critical: we need the full documentation to extract flags and examples.
-        // Summarization happens AFTER StructuredDoc creation, so flag_catalog remains accurate.
-        let (structured_doc, parsed_schema) = if let Some(ref docs) = tool_docs {
-            let raw_docs = docs.combined();
-            let processor = DocProcessor::new();
-            let sdoc = processor.clean_and_structure(&raw_docs);
-
-            let schema = parse_help(tool, &raw_docs);
-
-            if self.verbose {
+        if self.verbose {
+            eprintln!(
+                "{} Doc analysis: quality={:.2}, flags={}/{} (catalog/quick), {} examples extracted, {} subcommands",
+                "[verbose]".dimmed(),
+                structured_doc.quality_score,
+                structured_doc.flag_catalog.len(),
+                structured_doc.quick_flags.len(),
+                structured_doc.extracted_examples.len(),
+                structured_doc.commands.split(',').count().saturating_sub(1),
+            );
+            if !structured_doc.commands.is_empty()
+                && structured_doc.commands.split(',').count() <= 10
+            {
                 eprintln!(
-                    "{} Doc analysis: quality={:.2}, flags={}/{} (catalog/quick), {} examples extracted, {} subcommands",
+                    "{} Subcommands: {}",
                     "[verbose]".dimmed(),
-                    sdoc.quality_score,
-                    sdoc.flag_catalog.len(),
-                    sdoc.quick_flags.len(),
-                    sdoc.extracted_examples.len(),
-                    sdoc.commands.split(',').count().saturating_sub(1),
+                    structured_doc.commands
                 );
-                if !sdoc.commands.is_empty() && sdoc.commands.split(',').count() <= 10 {
-                    eprintln!("{} Subcommands: {}", "[verbose]".dimmed(), sdoc.commands);
-                }
-                eprintln!(
-                    "{} Schema: style={:?}, flags={}, subcommands={}, source={}",
-                    "[verbose]".dimmed(),
-                    schema.cli_style,
-                    schema.flags.len() + schema.global_flags.len(),
-                    schema.subcommands.len(),
-                    schema.schema_source,
-                );
-                if let Some(subcmd) = schema.select_subcommand(task) {
-                    eprintln!(
-                        "{} Selected subcommand: {}",
-                        "[verbose]".dimmed(),
-                        subcmd.name
-                    );
-                }
             }
-            (Some(sdoc), Some(schema))
-        } else {
-            (None, None)
-        };
+            eprintln!(
+                "{} Schema: style={:?}, flags={}, subcommands={}, source={}",
+                "[verbose]".dimmed(),
+                parsed_schema.cli_style,
+                parsed_schema.flags.len() + parsed_schema.global_flags.len(),
+                parsed_schema.subcommands.len(),
+                parsed_schema.schema_source,
+            );
+            if let Some(subcmd) = parsed_schema.select_subcommand(task) {
+                eprintln!(
+                    "{} Selected subcommand: {}",
+                    "[verbose]".dimmed(),
+                    subcmd.name
+                );
+            }
+        }
+
+        (Some(structured_doc), Some(parsed_schema))
+    }
+
+    /// Core logic for `run`/`dry-run`: resolve docs-first grounding, optionally
+    /// load a skill, then ask the LLM for exact arguments.
+    pub(crate) async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
+        let scenario = self.generation_scenario();
+        let skill = self.load_skill_context(tool, scenario).await;
+        let tool_docs = self.load_tool_docs(tool, task, scenario).await?;
+        let (structured_doc, parsed_schema) =
+            self.analyze_tool_docs(tool, task, tool_docs.as_ref());
+        let no_prompt = self.scenario_disables_prompt(scenario);
 
         // Now summarize docs for LLM prompt (model-specific length optimization)
         let docs = if let Some(ref docs_obj) = tool_docs {
@@ -453,7 +447,7 @@ impl Runner {
                     s.meta.name,
                     s.examples.len()
                 );
-            } else if should_load_skill {
+            } else if self.scenario_loads_skill(scenario) {
                 eprintln!("{} No skill found for '{}'", "[verbose]".dimmed(), tool);
             }
             let model_name = self.config.effective_model();
@@ -982,9 +976,6 @@ mod tests {
             ("verify=true", Box::new(|r: &Runner| r.verify)),
             ("auto_retry=true", Box::new(|r: &Runner| r.auto_retry)),
             ("stop_on_error=true", Box::new(|r: &Runner| r.stop_on_error)),
-            ("no_skill=true", Box::new(|r: &Runner| r.no_skill)),
-            ("no_doc=true", Box::new(|r: &Runner| r.no_doc)),
-            ("no_prompt=true", Box::new(|r: &Runner| r.no_prompt)),
             ("no_stream=true", Box::new(|r: &Runner| r.no_stream)),
         ];
 
@@ -1005,15 +996,6 @@ mod tests {
                 }
                 "stop_on_error=true" => {
                     r.with_stop_on_error(true);
-                }
-                "no_skill=true" => {
-                    r.with_no_skill(true);
-                }
-                "no_doc=true" => {
-                    r.with_no_doc(true);
-                }
-                "no_prompt=true" => {
-                    r.with_no_prompt(true);
                 }
                 "no_stream=true" => {
                     r.with_no_stream(true);

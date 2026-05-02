@@ -124,10 +124,10 @@ mod angsd_integration_tests {
 
     #[test]
     fn test_parse_help_angsd() {
-        let help = std::process::Command::new("angsd")
-            .arg("--help")
-            .output()
-            .unwrap();
+        let Ok(help) = std::process::Command::new("angsd").arg("--help").output() else {
+            eprintln!("skipping angsd integration test because 'angsd' is not installed");
+            return;
+        };
         let help_str = String::from_utf8_lossy(&help.stderr);
         let schema = parse_help("angsd", &help_str);
         let names: Vec<_> = schema.flags.iter().map(|f| f.name.as_str()).collect();
@@ -143,10 +143,10 @@ mod angsd_debug {
 
     #[test]
     fn test_angsd_schema_structure() {
-        let help = std::process::Command::new("angsd")
-            .arg("--help")
-            .output()
-            .unwrap();
+        let Ok(help) = std::process::Command::new("angsd").arg("--help").output() else {
+            eprintln!("skipping angsd schema debug test because 'angsd' is not installed");
+            return;
+        };
         let help_str = String::from_utf8_lossy(&help.stderr);
         let schema = parse_help("angsd", &help_str);
         println!(

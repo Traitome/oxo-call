@@ -19,7 +19,7 @@ oxo-call d       [OPTIONS] <TOOL> <TASK>
 | `-V`, `--var KEY=VALUE` | Substitute `{KEY}` in the task description before the LLM call (repeatable) |
 | `-i`, `--input-list <FILE>` | Read input items from a file; shows the command for each item |
 | `--input-items <ITEMS>` | Comma-separated input items; shows the command for each item |
-| `--scenario <SCENARIO>` | Force a workflow scenario: `basic`, `prompt`, `doc`, `skill`, or `full` (auto-detected by default). Invalid values are rejected with a non-zero exit code |
+| `--scenario <SCENARIO>` | Advanced grounding override for `bare`, `doc`, or `full`. The default is `full` (`Documentation + Skill`) |
 | `--no-stream` | Disable streaming (SSE) output from the LLM; the full response is shown after generation completes |
 | `-v`, `--verbose` | Show docs source, skill info, and LLM details (global) |
 | `--license <PATH>` | Path to license file (global option) |
@@ -84,9 +84,17 @@ oxo-call dry-run samtools "sort {item} by coordinate, output {stem}.sorted.bam" 
     --input-list bam_files.txt
 ```
 
-## Automatic Task Normalization
+## Grounding Scenarios
 
-oxo-call automatically detects vague, short, or non-English task descriptions and normalizes them via an extra LLM call before command generation. The normalized task is shown when it differs from the original, and is used as the actual prompt for the LLM.
+`dry-run` uses the same generation pipeline as `run` and defaults to the fully
+grounded path (`Documentation + Skill + LLM`). Use `--scenario` only when you
+want to inspect a reduced grounding mode:
+
+| Scenario | Behavior |
+|----------|----------|
+| `full` | Default. Fetch docs, parse structure, load skill if available, then call the LLM |
+| `doc` | Docs-only grounding. Skip skill loading |
+| `bare` | Minimal fallback. Skip docs and skill, and call the LLM without the oxo-call grounding prompt |
 
 ## Batch Preview (`--input-list` / `--input-items`)
 
@@ -154,5 +162,4 @@ For batch dry-run (`--input-list` / `--input-items`) with `--json`:
   "model": "gpt-4o"
 }
 ```
-
 

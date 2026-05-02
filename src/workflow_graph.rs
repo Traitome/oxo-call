@@ -16,6 +16,7 @@
 #![allow(dead_code)]
 
 use crate::confidence::{ConfidenceLevel, ConfidenceResult, estimate_confidence};
+use clap::ValueEnum;
 /// Workflow execution mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum WorkflowMode {
@@ -30,7 +31,7 @@ use color_eyre::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default, ValueEnum)]
 pub enum WorkflowScenario {
     /// Bare: Tool + Task → Command (no additional context)
     #[default]

@@ -1043,10 +1043,10 @@ mod angsd_tests {
 
     #[test]
     fn test_angsd_full_help() {
-        let help = std::process::Command::new("angsd")
-            .arg("--help")
-            .output()
-            .unwrap();
+        let Ok(help) = std::process::Command::new("angsd").arg("--help").output() else {
+            eprintln!("skipping angsd parser test because 'angsd' is not installed");
+            return;
+        };
         let help_str = String::from_utf8_lossy(&help.stderr);
         let flags = parse_flags_generic(&help_str);
         let names: Vec<_> = flags.iter().map(|f| f.name.as_str()).collect();

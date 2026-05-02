@@ -194,25 +194,13 @@ lib.rs              — Programmatic API surface (re-exports all modules)
 
 ```text
 1. License verification (Ed25519 signature check)
-2. Parallel fetch:
-   a. Skill loading (user → community → MCP → built-in)
-   b. Documentation fetch (cache → --help → local files → remote URLs)
-      [skipped if high-quality skill is already available]
-3. Structured doc extraction (flag catalog + command examples, deterministic)
-4. Supervisor decision (orchestrator/supervisor.rs):
-   - has_skill=true  → Fast mode (single-call), regardless of task complexity
-   - has_skill=false AND complexity ≥ 0.5 → Quality mode (multi-stage)
-   - has_skill=false AND complexity < 0.5  → Fast mode
-5. Prompt enrichment (context, user preferences, best practices, executor hints)
-6a. Fast mode (single LLM call):
-   - Doc-enriched prompt: flag catalog + doc-extracted examples + skill knowledge
-   - One LLM call → ARGS: / EXPLANATION: response
-6b. Quality mode (parallel LLM calls via tokio::join!):
-   - Stage 1 (concurrent): task standardization (if vague/short/non-ASCII)
-   - Stage 2 (concurrent): mini-skill generation from doc (tool-keyed cache)
-   - Stage 3: command generation with mini-skill + structured doc
-7. Response parsing (extract ARGS: and EXPLANATION: lines, retry on invalid)
-8. Flag validation against doc catalog (post-processing)
+2. Choose grounding scenario (`full` by default; `doc` or `bare` only when forced)
+3. Documentation fetch (cache → `--help` → local files → remote URLs)
+4. Structured doc extraction (flag catalog + schema + command examples, deterministic)
+5. Optional skill loading (user → community → MCP → built-in)
+6. Prompt enrichment (task + structured docs + optional skill)
+7. One LLM call → `ARGS:` / `EXPLANATION:` response
+8. Deterministic schema post-processing and validation
 9. Command execution (run) or display (dry-run)
 10. History recording (JSONL with UUID, exit code, timestamp)
 ```
@@ -240,9 +228,8 @@ lib.rs              — Programmatic API surface (re-exports all modules)
 8. **Extensible generation**: CommandGenerator trait enables multiple generation strategies (LLM, rule-based, composite) with chain-of-responsibility pattern
 9. **Response caching**: Optional LLM cache reduces API costs for repeated tasks via semantic hash (tool + task + docs + skill + model)
 10. **Smart model classification**: Cloud API models (GPT, Claude, Gemini) are always classified as "large" regardless of marketing name (e.g., "gpt-5-mini"); local models use parameter-size tags for classification
-11. **Skill-aware orchestration**: When a skill is available, the orchestrator always uses Fast (single-call) mode — the skill already provides the grounding that Quality mode would generate
-12. **Parallel LLM pipeline**: In Quality mode, independent stages (task standardization + mini-skill generation) run concurrently via `tokio::join!`
-13. **Tool-level mini-skill cache**: Mini-skills are cached by `(tool, doc_hash)`, not by task — a single cache entry serves all tasks for the same tool
+11. **Single grounded generation path**: `run` and `dry-run` share the same docs-first preparation and command-generation pipeline
+12. **Skill as enhancement, not prerequisite**: Skills refine generation when present but do not replace documentation parsing
 
 ## Why This Matters In Practice
 

@@ -24,7 +24,7 @@ oxo-call r   [OPTIONS] <TOOL> <TASK>
 | `-j`, `--jobs <N>` | Maximum parallel jobs when using `--input-list` / `--input-items` (default: 1) |
 | `-x`, `--stop-on-error` | Abort remaining items after the first failure |
 | `--auto-retry` | On failure, ask the LLM to analyze stderr and re-run with a corrected command (up to 2 retries) |
-| `--scenario <SCENARIO>` | Force a workflow scenario: `basic`, `prompt`, `doc`, `skill`, or `full` (auto-detected by default). Invalid values are rejected with a non-zero exit code |
+| `--scenario <SCENARIO>` | Advanced grounding override for `bare`, `doc`, or `full`. The default is `full` (`Documentation + Skill`) |
 | `--no-stream` | Disable streaming (SSE) output from the LLM; the full response is shown after generation completes |
 | `-v`, `--verbose` | Show docs source, skill info, and LLM details (global) |
 | `--license <PATH>` | Path to license file (global option) |
@@ -50,13 +50,14 @@ Use `--verbose` to see which tier was selected for a given invocation.
 The `run` command is the primary way to use oxo-call. It:
 
 1. Fetches the tool's documentation (from cache or `--help` output)
-2. **Extracts structured knowledge** — flag catalog and command examples from the help text
-3. Loads any matching skill (built-in, community, or user-defined)
-4. Sends the doc-enriched prompt to the configured LLM (single call by default)
-5. Parses the response to extract command arguments
-6. *(with `--input-list` / `--input-items`)* Executes the command template for each item
-7. Records the execution in command history
-8. *(with `--verify`)* Asks the LLM to review the outputs and report issues
+2. **Extracts structured knowledge** — flag catalog, subcommands, and command examples from the help text
+3. Loads an optional matching skill (built-in, community, user-defined, or MCP)
+4. Sends one grounded prompt to the configured LLM
+5. Parses the response to extract exact command arguments
+6. Validates the generated arguments against the parsed documentation schema
+7. *(with `--input-list` / `--input-items`)* Executes the command template for each item
+8. Records the execution in command history
+9. *(with `--verify`)* Asks the LLM to review the outputs and report issues
 
 Step 2 is the key innovation: the flag catalog prevents hallucinated flags and
 doc-extracted examples serve as few-shot demonstrations — enabling reliable
@@ -191,26 +192,16 @@ When `--verify` is set, oxo-call captures the tool's stderr and probes the decla
 
 Verification is advisory — it never changes the process exit code. Use `--json` to get the verification block in machine-readable form.
 
-## Automatic Task Normalization
+## Grounding Scenarios
 
-oxo-call uses a two-step process for task normalization:
+`run` now treats `Documentation + Skill + LLM` as the primary product path.
+Use `--scenario` only when you intentionally want less grounding:
 
-1. **Quality mode selection**: When there is no static skill file for the tool and
-   documentation is available, oxo-call selects Quality mode (multi-stage pipeline).
-   If `--scenario` is set, the scenario's default mode takes precedence.
-
-2. **Optional normalization within Quality mode**: Within the Quality pipeline, an extra
-   LLM call normalizes the task **only if** it is considered vague or ambiguous:
-
-- Input: `"sort bam"`
-- Normalized: `"sort BAM file input.bam by coordinate using samtools sort with 8 threads, output to sorted.bam"`
-
-The normalized task is shown when it differs from the original and is used for the command
-generation prompt. This secondary normalization triggers when:
-
-- The task is shorter than 10 characters
-- The task contains vague keywords (e.g., "just", "simply", "basically")
-- The task contains non-ASCII characters (e.g., Chinese, Japanese)
+| Scenario | Behavior |
+|----------|----------|
+| `full` | Default. Fetch docs, parse structure, load skill if available, then call the LLM |
+| `doc` | Docs-only grounding. Skip skill loading |
+| `bare` | Minimal fallback. Skip docs and skill, and call the LLM without the oxo-call grounding prompt |
 
 ## Risk Assessment
 

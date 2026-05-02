@@ -137,39 +137,25 @@ oxo-call dry-run --verbose samtools "sort input.bam by coordinate"
 
 ## Automatic Task Normalization
 
-oxo-call uses a doc-enriched prompting strategy that works in a single LLM call by default:
+oxo-call uses a doc-enriched prompting strategy centered on one grounded LLM call:
 
 1. **Structured Doc Extraction** (deterministic, no LLM): When documentation is fetched,
    oxo-call extracts a structured `FlagEntry` catalog and concrete command examples from
    the help text. This is injected directly into the prompt.
 
-2. **Default (Fast) mode**: A single LLM call with the doc-enriched prompt. The flag
+2. **Default command generation path**: A single LLM call with the doc-enriched prompt. The flag
    catalog prevents hallucinated flags and doc-extracted examples serve as few-shot
    demonstrations — critical for small models (≤3B).
 
-3. **Quality mode** (via `--scenario full`): Multi-stage pipeline with optional task
-   normalization, mini-skill generation, and doc cleaning. Activated only when explicitly
-   requested or when the orchestrator determines high complexity **and** no skill is
-   available. When a skill is available, the orchestrator always selects Fast mode
-   since the skill already provides the grounding that Quality mode would generate.
+3. **Optional skill grounding**: When a matching skill exists, oxo-call injects the
+   skill's concepts, pitfalls, and examples on top of the parsed documentation. Skills
+   are an enhancement layer; they do not replace documentation parsing.
 
-When Quality mode is active:
+Advanced `--scenario` overrides intentionally reduce grounding:
 
-- **Task standardization** and **mini-skill generation** run concurrently via
-  `tokio::join!` when both are needed, reducing wall-clock latency by up to 50%.
-- **Mini-skill cache** is keyed by `(tool, doc_hash)` rather than `(tool, task, doc_hash)`,
-  so the second invocation for the same tool is always a cache hit regardless of
-  the user's task description.
-- Task standardization only triggers when the task is shorter than 10 characters,
-  contains vague keywords (e.g., "just", "simply"), or contains non-ASCII characters.
-
-When the task is normalized, the enriched version:
-
-- Expands ambiguous terms into specific operations (e.g., "sort bam" → "sort BAM file input.bam by genomic coordinate and write to sorted.bam")
-- Infers bioinformatics defaults (paired-end reads, hg38, 8 threads, gzipped output, Phred+33 encoding)
-- Specifies output file names when omitted (derived from input names)
-- Preserves all file names, paths, and sample identifiers from the original task
-- Responds in the same language as the original task
+- `full` — docs + parsed structure + optional skill + oxo-call system prompt
+- `doc` — docs + parsed structure only
+- `bare` — tool + task only, without the oxo-call grounding prompt
 
 ### Doc-Enriched Prompt Architecture
 

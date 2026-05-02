@@ -118,16 +118,7 @@ EXAMPLES:\n  \
         auto_retry: bool,
         /// Force a specific workflow scenario (auto-detected by default)
         #[arg(long, value_enum, value_name = "SCENARIO")]
-        scenario: Option<RunScenario>,
-        /// Disable the loaded skill file for this invocation.
-        #[arg(long)]
-        no_skill: bool,
-        /// Disable tool documentation fetching for this invocation.
-        #[arg(long)]
-        no_doc: bool,
-        /// Disable the system prompt for this invocation (bare LLM mode).
-        #[arg(long)]
-        no_prompt: bool,
+        scenario: Option<crate::workflow_graph::WorkflowScenario>,
         /// Disable streaming (SSE) output from the LLM. Tokens will not be
         /// printed incrementally; the full response is shown after generation
         /// completes. Useful for benchmarking or non-interactive pipelines.
@@ -183,16 +174,7 @@ EXAMPLES:\n  \
         stop_on_error: bool,
         /// Force a specific workflow scenario (auto-detected by default)
         #[arg(long, value_enum, value_name = "SCENARIO")]
-        scenario: Option<RunScenario>,
-        /// Disable the loaded skill file for this invocation.
-        #[arg(long)]
-        no_skill: bool,
-        /// Disable tool documentation fetching for this invocation.
-        #[arg(long)]
-        no_doc: bool,
-        /// Disable the system prompt for this invocation (bare LLM mode).
-        #[arg(long)]
-        no_prompt: bool,
+        scenario: Option<crate::workflow_graph::WorkflowScenario>,
         /// Disable streaming (SSE) output from the LLM
         #[arg(long)]
         no_stream: bool,
@@ -827,20 +809,6 @@ pub enum JobCommands {
         #[arg(long, conflicts_with_all = ["name", "as_name"])]
         all: bool,
     },
-}
-
-/// Scenario modes for `run` and `dry-run` commands.
-///
-/// Controls how much context (documentation, skills, prompt) is injected
-/// into the LLM call when generating tool commands.
-#[derive(Clone, Debug, ValueEnum)]
-pub enum RunScenario {
-    /// Bare: Tool + Task only (no additional context)
-    Bare,
-    /// Doc: Tool + auto-parsed documentation + Schema
-    Doc,
-    /// Full: Doc + Skill knowledge (most accurate)
-    Full,
 }
 
 #[derive(Clone, Debug, ValueEnum)]
