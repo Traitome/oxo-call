@@ -83,6 +83,7 @@ impl ToolKnowledgeBase {
     }
 
     /// Look up a tool by exact name (case-insensitive).
+    #[allow(dead_code)] // Public API for future use
     pub fn lookup(&self, name: &str) -> Option<&ToolEntry> {
         let name_lower = name.to_lowercase();
         self.tools
@@ -124,6 +125,7 @@ impl ToolKnowledgeBase {
     }
 
     /// Find tools in the same category as the given tool.
+    #[allow(dead_code)] // Public API for future use
     pub fn related_tools(&self, tool_name: &str, limit: usize) -> Vec<&ToolEntry> {
         let category = match self.lookup(tool_name) {
             Some(entry) => &entry.category,

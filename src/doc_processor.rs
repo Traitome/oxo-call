@@ -46,6 +46,14 @@ static FLAG_LINE_RE: LazyLock<Regex> = LazyLock::new(|| {
         .expect("valid regex")
 });
 
+/// Matches the value-type metavar in a flag line (e.g. `INT`, `FILE`, `STR`, `N`, `PATH`).
+static FLAG_TYPE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"\b(INT|FILE|STR|STRING|FLOAT|NUM|N|PATH|DIR|URL|FMT|FORMAT|NAME|KEY|VALUE|PATTERN)\b",
+    )
+    .expect("valid regex")
+});
+
 /// Structured documentation with separated sections
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct StructuredDoc {
@@ -62,7 +70,7 @@ pub struct StructuredDoc {
     /// Quick reference flags extracted from all sections
     pub quick_flags: Vec<String>,
     /// Structured flag catalog extracted from the documentation.
-    /// Each entry is `(flag, brief_description)`.
+    /// Each entry carries the flag, its type constraint (if detectable), and description.
     #[serde(default)]
     pub flag_catalog: Vec<FlagEntry>,
     /// Concrete command-line examples extracted from EXAMPLES / documentation.
@@ -79,6 +87,10 @@ pub struct StructuredDoc {
 pub struct FlagEntry {
     /// The flag itself, e.g. `-o`, `--output`, `-@ INT`.
     pub flag: String,
+    /// Value-type constraint inferred from the metavar, e.g. `INT`, `FILE`, `STR`.
+    /// `None` when the flag is a boolean switch with no argument.
+    #[serde(default)]
+    pub value_type: Option<String>,
     /// Brief description extracted from the help text.
     pub description: String,
 }
@@ -163,6 +175,7 @@ impl DocProcessor {
     }
 
     /// Process documentation (alias for clean_and_structure)
+    #[allow(dead_code)] // Public API
     pub fn process(&self, docs: &str) -> StructuredDoc {
         self.clean_and_structure(docs)
     }
@@ -461,8 +474,8 @@ impl DocProcessor {
 
     /// Extract a structured flag catalog from the OPTIONS section.
     ///
-    /// Parses lines that start with `-` and captures the flag name plus its
-    /// description.  Handles common help-text layouts:
+    /// Parses lines that start with `-` and captures the flag name, type
+    /// constraint (INT/FILE/STR/…), and description.  Handles common layouts:
     ///   -o FILE         Output file name
     ///   --threads INT   Number of threads [4]
     ///   -@ INT          Number of threads (samtools style)
@@ -476,21 +489,48 @@ impl DocProcessor {
             }
 
             if let Some(caps) = FLAG_LINE_RE.captures(line) {
-                let flag = caps.get(1).map(|m| m.as_str().trim()).unwrap_or("");
+                let flag_with_meta = caps.get(1).map(|m| m.as_str().trim()).unwrap_or("");
                 let desc = caps.get(2).map(|m| m.as_str().trim()).unwrap_or("");
-                if !flag.is_empty() {
+                if !flag_with_meta.is_empty() {
+                    // Extract value type from the metavar token in the flag field
+                    // (e.g., `-@ INT` → `INT`, `--output FILE` → `FILE`).
+                    let value_type = FLAG_TYPE_RE
+                        .find(flag_with_meta)
+                        .map(|m| m.as_str().to_uppercase());
+
+                    // Strip the metavar from the flag token to keep it clean.
+                    let flag_clean = flag_with_meta
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or(flag_with_meta)
+                        .trim_end_matches(',');
+
                     catalog.push(FlagEntry {
-                        flag: flag.to_string(),
+                        flag: flag_clean.to_string(),
+                        value_type,
                         description: desc.to_string(),
                     });
                 }
             } else {
-                // Simpler pattern: just the flag token
+                // Simpler pattern: just the flag token (boolean switch).
                 let parts: Vec<&str> = trimmed.splitn(2, |c: char| c.is_whitespace()).collect();
                 if !parts.is_empty() && parts[0].starts_with('-') {
+                    let rest = parts.get(1).unwrap_or(&"").trim();
+                    // Check if the next word looks like a metavar type.
+                    let (value_type, description) = if let Some(first_word) = rest
+                        .split_whitespace()
+                        .next()
+                        .filter(|w| FLAG_TYPE_RE.is_match(w))
+                    {
+                        let desc = rest[first_word.len()..].trim();
+                        (Some(first_word.to_uppercase()), desc.to_string())
+                    } else {
+                        (None, rest.to_string())
+                    };
                     catalog.push(FlagEntry {
-                        flag: parts[0].to_string(),
-                        description: parts.get(1).unwrap_or(&"").trim().to_string(),
+                        flag: parts[0].trim_end_matches(',').to_string(),
+                        value_type,
+                        description,
                     });
                 }
             }
@@ -601,12 +641,16 @@ impl DocProcessor {
     /// Build a compact flag list suitable for injection into LLM prompts.
     ///
     /// Returns a string like: `-o FILE  --threads INT  -@ INT  --output-fmt FMT`
+    /// including the value-type constraint when known.
     #[allow(dead_code)] // Public API; used in tests
     pub fn flag_catalog_compact(&self, catalog: &[FlagEntry]) -> String {
         catalog
             .iter()
             .take(30)
-            .map(|f| f.flag.clone())
+            .map(|f| match &f.value_type {
+                Some(t) => format!("{} {}", f.flag, t),
+                None => f.flag.clone(),
+            })
             .collect::<Vec<_>>()
             .join("  ")
     }
@@ -1200,11 +1244,13 @@ mod tests {
         let processor = DocProcessor::new();
         let catalog = vec![
             FlagEntry {
-                flag: "-o FILE".to_string(),
+                flag: "-o".to_string(),
+                value_type: Some("FILE".to_string()),
                 description: "Output".to_string(),
             },
             FlagEntry {
-                flag: "-@ INT".to_string(),
+                flag: "-@".to_string(),
+                value_type: Some("INT".to_string()),
                 description: "Threads".to_string(),
             },
         ];

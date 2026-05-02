@@ -2,22 +2,24 @@
 //!
 //! Contains the `Runner` struct and its primary methods for command generation
 //! and execution.
+//!
+//! # Core flow
+//!
+//! ```text
+//! Natural-language task
+//!   ──▶ resolve_docs   (fetch --help, subcommand help, build StructuredDoc)
+//!   ──▶ load_skill     (built-in / community / MCP; None if not found)
+//!   ──▶ llm.suggest_command  (single LLM call, enriched prompt)
+//!   ──▶ execute / dry_run
+//! ```
 
 use crate::config::Config;
 use crate::doc_processor::{DocProcessor, StructuredDoc};
 use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
-use crate::execution::feedback::{FeedbackCollector, FeedbackEntry};
-use crate::execution::result_analyzer::ResultAnalyzer;
 use crate::history::{CommandProvenance, HistoryEntry, HistoryStore};
 use crate::job;
-use crate::knowledge::error_db::ErrorKnowledgeDb;
 use crate::llm::{LlmClient, LlmCommandSuggestion};
-use crate::llm_workflow::LlmWorkflowExecutor;
-use crate::orchestrator::executor::ExecutorAgent;
-use crate::orchestrator::planner::PlannerAgent;
-use crate::orchestrator::supervisor::SupervisorAgent;
-use crate::orchestrator::validator::ValidatorAgent;
 use crate::skill::SkillManager;
 use chrono::Utc;
 use colored::Colorize;
@@ -38,8 +40,7 @@ pub struct GeneratedCommand {
     pub full_cmd: String,
     /// Human-readable explanation from the LLM.
     pub explanation: String,
-    /// The task description actually used (may differ from user input when
-    /// automatic normalization is active).
+    /// The task description actually used.
     pub effective_task: String,
 }
 
@@ -51,8 +52,7 @@ pub(crate) struct PrepareResult {
     pub(crate) docs_hash: String,
     /// Name of the matched skill, if one was loaded.
     pub(crate) skill_name: Option<String>,
-    /// The task description that was actually used (may differ from the user-supplied
-    /// task when automatic normalization is applied).
+    /// The task description that was actually used.
     pub(crate) effective_task: String,
     /// Structured documentation used for flag/subcommand validation, if available.
     pub(crate) structured_doc: Option<StructuredDoc>,
@@ -83,32 +83,15 @@ pub struct Runner {
     pub(crate) stop_on_error: bool,
     /// When true, automatically retry failed commands with LLM-corrected arguments.
     pub(crate) auto_retry: bool,
-    /// Force a specific workflow scenario (auto-detected by default)
-    pub(crate) force_scenario: Option<crate::workflow_graph::WorkflowScenario>,
     /// When true, disable SSE streaming for LLM responses.
     pub(crate) no_stream: bool,
-    // ── Orchestration layer ──────────────────────────────────────────────────
-    /// Supervisor agent for orchestration decisions.
-    supervisor: SupervisorAgent,
-    /// Planner agent for task decomposition.
-    planner: PlannerAgent,
-    /// Executor agent for task enrichment.
-    executor_agent: ExecutorAgent,
-    /// Validator agent for result verification.
-    validator_agent: ValidatorAgent,
-    /// Result analyzer for post-execution insights.
-    result_analyzer: ResultAnalyzer,
 }
 
 impl Runner {
     pub fn new(config: Config) -> Self {
-        // Build sub-components before consuming `config`, using clones only
-        // where the constructor takes ownership.  The final field assignment
-        // consumes the original—one fewer clone than the naïve approach.
         let fetcher = DocsFetcher::new(config.clone());
         let llm = LlmClient::new(config.clone());
         let skill_manager = SkillManager::new(config.clone());
-        let executor_agent = ExecutorAgent::new_with_config(config.clone());
         Runner {
             fetcher,
             llm,
@@ -125,13 +108,7 @@ impl Runner {
             jobs: 1,
             stop_on_error: false,
             auto_retry: false,
-            force_scenario: None,
             no_stream: false,
-            supervisor: SupervisorAgent::new(),
-            planner: PlannerAgent::new(),
-            executor_agent,
-            validator_agent: ValidatorAgent::new(),
-            result_analyzer: ResultAnalyzer::new(),
         }
     }
 
@@ -156,12 +133,6 @@ impl Runner {
     /// Enable automatic retry with LLM-corrected commands on failure.
     pub fn with_auto_retry(mut self, auto_retry: bool) -> Self {
         self.auto_retry = auto_retry;
-        self
-    }
-
-    /// Force a specific workflow scenario.
-    pub fn with_scenario(mut self, scenario: crate::workflow_graph::WorkflowScenario) -> Self {
-        self.force_scenario = Some(scenario);
         self
     }
 
@@ -192,18 +163,13 @@ impl Runner {
         self
     }
 
-    /// Set named variables that will be substituted into the task description
-    /// (and, when an input list is present, into the generated command) before
-    /// the LLM call.
+    /// Set named variables that will be substituted into the task description.
     pub fn with_vars(mut self, vars: HashMap<String, String>) -> Self {
         self.vars = vars;
         self
     }
 
     /// Set input items for batch / parallel execution.
-    ///
-    /// When non-empty, the LLM is called once and the generated command
-    /// template (which may contain `{item}`) is executed for every item.
     pub fn with_input_items(mut self, items: Vec<String>) -> Self {
         self.input_items = items;
         self
@@ -223,9 +189,6 @@ impl Runner {
 
     /// Resolve documentation for the tool, showing a spinner while fetching.
     /// Also attempts to fetch help for the specific subcommand matching the user's task.
-    ///
-    /// Uses intelligent summarization based on model size to keep prompts concise
-    /// while preserving critical information.
     pub(crate) async fn resolve_docs(&self, tool: &str, task: &str) -> Result<String> {
         let mut docs = if self.no_cache {
             self.fetcher.fetch_no_cache(tool).await?
@@ -266,89 +229,63 @@ impl Runner {
         Ok(summarized)
     }
 
-    /// Core logic: fetch docs + load skill → select workflow mode → run LlmWorkflowExecutor.
+    /// Core pipeline:
     ///
-    /// Mode selection rules (in priority order):
-    /// 1. `--scenario` flag set → use scenario's default mode.
-    /// 2. No static skill + docs available → Quality (generates mini-skill from doc, cached).
-    /// 3. Static skill available or no docs → Fast (skill already provides grounding).
-    ///
-    /// In Quality mode the executor optionally normalizes the task (if vague/short/non-ASCII),
-    /// generates a mini-skill from the documentation (result cached to disk), and uses it
-    /// for command generation.
+    /// 1. Fetch tool documentation (always — docs ground the flag catalog).
+    /// 2. Load skill (optional enhancement; does not replace docs).
+    /// 3. Extract `StructuredDoc` (flag catalog + examples for anti-hallucination).
+    /// 4. Single LLM call with enriched, structured prompt.
     pub(crate) async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
-        // ── Parallel fetch: docs + skill ──────────────────────────────────────
         let spinner = if !self.no_doc {
             make_spinner(&format!("Fetching documentation for '{tool}'..."))
         } else {
             make_spinner("Loading skill...")
         };
 
-        // Load skill first to determine if doc is needed
-        let skill_future = async {
-            if self.no_skill {
-                if self.verbose {
-                    eprintln!(
-                        "{} [Ablation] Skipping skill (--no-skill)",
-                        "[verbose]".dimmed()
-                    );
-                }
-                None
-            } else {
-                self.skill_manager.load_async(tool).await
+        // ── Step 1: Fetch docs (always, regardless of skill availability) ───────
+        let docs = if self.no_doc {
+            if self.verbose {
+                eprintln!(
+                    "{} [Ablation] Skipping documentation (--no-doc)",
+                    "[verbose]".dimmed()
+                );
             }
-        };
-
-        // Run skill loading first
-        let skill = skill_future.await;
-
-        // Determine if we need documentation based on skill quality
-        let should_fetch_doc = if self.no_doc {
-            false
-        } else if skill.is_none() {
-            // No skill available → need doc
-            true
+            String::new()
         } else {
-            // Skill available → check quality
-            if let Some(ref s) = skill {
-                // Skill quality heuristics:
-                // - Low quality: <3 examples OR <3 pitfalls
-                // - Medium quality: 3-5 examples
-                // - High quality: >5 examples
-                let example_count = s.examples.len();
-                let pitfall_count = s.context.pitfalls.len();
-
-                // Only fetch doc if skill quality is low
-                example_count < 3 || pitfall_count < 3
-            } else {
-                false
-            }
+            self.resolve_docs(tool, task).await?
         };
 
-        let docs_future = async {
-            if !should_fetch_doc {
-                if self.verbose && !self.no_doc {
-                    eprintln!(
-                        "{} Skipping documentation (high-quality skill available)",
-                        "[verbose]".dimmed()
-                    );
-                }
-                Ok(String::new())
-            } else {
-                self.resolve_docs(tool, task).await
-            }
-        };
-
-        // Run doc fetching if needed
-        let docs_result = docs_future.await;
         spinner.finish_and_clear();
 
-        let docs = docs_result?;
+        // ── Step 2: Load skill (enhancement, not replacement) ────────────────
+        let skill = if self.no_skill {
+            if self.verbose {
+                eprintln!(
+                    "{} [Ablation] Skipping skill (--no-skill)",
+                    "[verbose]".dimmed()
+                );
+            }
+            None
+        } else {
+            self.skill_manager.load_async(tool).await
+        };
 
-        // ── Build StructuredDoc for flag catalog + doc-extracted examples ──
-        // This is the key innovation: deterministic extraction of flags and
-        // examples from --help output, injected into the LLM prompt to ground
-        // small models without needing skill files or extra LLM calls.
+        if self.verbose {
+            if let Some(ref s) = skill {
+                eprintln!(
+                    "{} Skill loaded: {} ({} concepts, {} pitfalls, {} examples)",
+                    "[verbose]".dimmed(),
+                    s.meta.name,
+                    s.context.concepts.len(),
+                    s.context.pitfalls.len(),
+                    s.examples.len()
+                );
+            } else if !self.no_skill {
+                eprintln!("{} No skill found for '{}'", "[verbose]".dimmed(), tool);
+            }
+        }
+
+        // ── Step 3: Build StructuredDoc (flag catalog + anti-hallucination) ───
         let structured_doc = if !docs.is_empty() {
             let processor = DocProcessor::new();
             let sdoc = processor.clean_and_structure(&docs);
@@ -366,78 +303,10 @@ impl Runner {
             None
         };
 
-        if self.verbose && !docs.is_empty() {
-            eprintln!(
-                "{} Documentation: {} chars{}",
-                "[verbose]".dimmed(),
-                docs.len(),
-                if self.no_cache {
-                    " (fresh, cache skipped)"
-                } else {
-                    ""
-                }
-            );
-        }
-
-        let docs_hash = sha256_hex(&docs);
-
-        let effective_task = task.to_string();
-
-        let skill_name = skill.as_ref().map(|s| s.meta.name.clone());
-
-        // ── Version compatibility check ───────────────────────────────────────────
-        if let Some(s) = &skill
-            && (s.meta.min_version.is_some() || s.meta.max_version.is_some())
-        {
-            if let Some(detected) = detect_tool_version(tool) {
-                if let Err(e) = crate::runner::utils::check_version_compatibility(
-                    &detected,
-                    s.meta.min_version.as_deref(),
-                    s.meta.max_version.as_deref(),
-                ) {
-                    eprintln!("{} {}", "warning:".bold().yellow(), e);
-                    eprintln!(
-                        "{} Skill '{}' may have outdated examples or flags.",
-                        "warning:".bold().yellow(),
-                        s.meta.name
-                    );
-                } else if self.verbose {
-                    eprintln!(
-                        "{} Tool version {} is compatible with skill requirements",
-                        "[verbose]".dimmed(),
-                        detected
-                    );
-                }
-            } else if self.verbose {
-                eprintln!(
-                    "{} Could not detect tool version for compatibility check",
-                    "[verbose]".dimmed(),
-                );
-            }
-        }
-
-        let skill_label = if let Some(ref s) = skill {
-            format!(" (skill: {})", s.meta.name)
-        } else {
-            String::new()
-        };
-
         if self.verbose {
-            if let Some(ref s) = skill {
-                eprintln!(
-                    "{} Skill loaded: {} ({} concepts, {} pitfalls, {} examples)",
-                    "[verbose]".dimmed(),
-                    s.meta.name,
-                    s.context.concepts.len(),
-                    s.context.pitfalls.len(),
-                    s.examples.len()
-                );
-            } else if !self.no_skill {
-                eprintln!("{} No skill found for '{}'", "[verbose]".dimmed(), tool);
-            }
+            let model_name = self.config.effective_model();
             let ctx_window = self.config.effective_context_window();
             let tier = self.config.effective_prompt_tier();
-            let model_name = self.config.effective_model();
             let profile = crate::config::get_model_profile(&model_name);
             eprintln!(
                 "{} LLM: provider={}, model={}, max_tokens={}, temperature={}, context_window={}, prompt_tier={:?}",
@@ -459,11 +328,35 @@ impl Runner {
             );
         }
 
-        // ── Experiment context inference ──────────────────────────────────────
-        let context = crate::context::ExperimentContext::infer(&effective_task, &[]);
-        let context_hint = context.to_prompt_hint();
+        // ── Version compatibility check ───────────────────────────────────────
+        if let Some(s) = &skill
+            && (s.meta.min_version.is_some() || s.meta.max_version.is_some())
+            && let Some(detected) = detect_tool_version(tool)
+        {
+            if let Err(e) = crate::runner::utils::check_version_compatibility(
+                &detected,
+                s.meta.min_version.as_deref(),
+                s.meta.max_version.as_deref(),
+            ) {
+                eprintln!("{} {}", "warning:".bold().yellow(), e);
+                eprintln!(
+                    "{} Skill '{}' may have outdated examples or flags.",
+                    "warning:".bold().yellow(),
+                    s.meta.name
+                );
+            } else if self.verbose {
+                eprintln!(
+                    "{} Tool version {} is compatible with skill requirements",
+                    "[verbose]".dimmed(),
+                    detected
+                );
+            }
+        }
 
-        // ── User preference learning ─────────────────────────────────────────
+        let docs_hash = sha256_hex(&docs);
+        let skill_name = skill.as_ref().map(|s| s.meta.name.clone());
+
+        // ── User preference hints from history ───────────────────────────────
         let preferences_hint = {
             let history = match crate::history::HistoryStore::load_all() {
                 Ok(h) => h,
@@ -476,132 +369,41 @@ impl Runner {
             prefs.to_prompt_hint()
         };
 
-        // ── Orchestration: Supervisor decision ───────────────────────────────
-        let doc_quality = structured_doc
-            .as_ref()
-            .map(|sd| sd.quality_score)
-            .unwrap_or(0.0);
-        let supervisor_decision =
-            self.supervisor
-                .decide(tool, task, skill.is_some(), doc_quality, None);
-
-        if self.verbose {
-            eprintln!(
-                "{} Orchestrator: mode={}, domain={}, reasons=[{}]",
-                "[verbose]".dimmed(),
-                supervisor_decision.mode,
-                supervisor_decision.domain.as_deref().unwrap_or("unknown"),
-                supervisor_decision.reasons.join(", "),
-            );
-        }
-
-        // ── Orchestration: Planner → step decomposition ──────────────────────
-        let plan = self.planner.plan(tool, task);
-        if self.verbose && plan.is_multi_step() {
-            eprintln!(
-                "{} Planner: {} steps, strategy='{}'",
-                "[verbose]".dimmed(),
-                plan.steps.len(),
-                plan.strategy,
-            );
-        }
-
-        // ── Orchestration: Executor Agent → task enrichment ──────────────────
-        let executor_ctx = self.executor_agent.prepare(tool, task).await.ok();
-        let enrichment_from_executor = executor_ctx
-            .as_ref()
-            .map(|ctx| self.executor_agent.enrich_task(ctx))
-            .unwrap_or_default();
-
-        // Build enriched task with all sources: context, preferences,
-        // supervisor hints, and executor enrichment.
-        // Use labeled XML-style delimiters so the LLM can correctly distinguish
-        // the user's actual task from system-generated hints.
-        // XML special characters in user-supplied text are escaped so that a
-        // task like "do </task><inject>" cannot break out of the <task> block.
+        // Build enriched task with preferences hint when available.
+        // XML special characters in user-supplied text are escaped.
         let enriched_task = {
             fn xml_escape(s: &str) -> String {
                 s.replace('&', "&amp;")
                     .replace('<', "&lt;")
                     .replace('>', "&gt;")
             }
-            let safe_task = xml_escape(&effective_task);
-            let mut parts = vec![format!("<task>\n{safe_task}\n</task>")];
-            if !context_hint.is_empty() {
-                parts.push(format!("<context>\n{context_hint}\n</context>"));
-            }
-            if !preferences_hint.is_empty() {
-                parts.push(format!("<hints>\n{preferences_hint}\n</hints>"));
-            }
-            // Add supervisor enrichment hints (best practices, related tools).
-            let supervisor_hints: Vec<_> = supervisor_decision
-                .enrichment_hints
-                .iter()
-                .map(String::as_str)
-                .collect();
-            if !supervisor_hints.is_empty() {
-                parts.push(format!(
-                    "<best_practices>\n{}\n</best_practices>",
-                    supervisor_hints.join("\n")
-                ));
-            }
-            // Add executor enrichment (normalized task, params, constraints).
-            if !enrichment_from_executor.is_empty() && enrichment_from_executor != effective_task {
-                parts.push(format!(
-                    "<enrichment>\n{enrichment_from_executor}\n</enrichment>"
-                ));
-            }
-            if parts.len() == 1 {
-                effective_task.clone()
+            let safe_task = xml_escape(task);
+            if preferences_hint.is_empty() {
+                task.to_string()
             } else {
-                parts.join("\n")
+                format!("<task>\n{safe_task}\n</task>\n<hints>\n{preferences_hint}\n</hints>")
             }
         };
 
-        if self.verbose && enriched_task != effective_task {
+        if self.verbose && enriched_task != task {
             eprintln!(
-                "{} Enriched task with context/preferences/knowledge",
+                "{} Enriched task with user preference hints",
                 "[verbose]".dimmed()
             );
         }
 
         let spinner = make_spinner(&format!(
-            "Asking LLM to generate command arguments{skill_label}..."
+            "Asking LLM to generate command arguments{}...",
+            skill_name
+                .as_deref()
+                .map(|n| format!(" (skill: {n})"))
+                .unwrap_or_default()
         ));
 
-        // Select workflow mode based on orchestrator decision:
-        // - Supervisor decision maps directly to workflow mode
-        // - --scenario override takes priority
-        let effective_mode = if let Some(sc) = self.force_scenario {
-            sc.default_mode()
-        } else {
-            supervisor_decision.mode.to_workflow_mode()
-        };
-
-        if self.verbose {
-            let has_sdoc = structured_doc.is_some();
-            let reason = if self.force_scenario.is_some() {
-                "forced by --scenario"
-            } else if has_sdoc {
-                "doc-enriched single-call (flag catalog + doc examples)"
-            } else if skill.is_some() {
-                "skill-grounded single-call"
-            } else {
-                "single-call (no docs/skill)"
-            };
-            eprintln!(
-                "{} Workflow mode: {:?} ({})",
-                "[verbose]".dimmed(),
-                effective_mode,
-                reason
-            );
-        }
-
-        spinner.finish_and_clear();
-
-        let executor = LlmWorkflowExecutor::new(self.config.clone(), effective_mode)?;
-        let wf_result = executor
-            .execute(
+        // ── Step 4: Single LLM call ──────────────────────────────────────────
+        let suggestion = self
+            .llm
+            .suggest_command(
                 tool,
                 &docs,
                 &enriched_task,
@@ -611,38 +413,21 @@ impl Runner {
             )
             .await?;
 
+        spinner.finish_and_clear();
+
         if self.verbose {
             eprintln!(
-                "{} Workflow complete: {} LLM call(s), {:.1}ms{}{}",
+                "{} LLM call complete: {:.1}ms",
                 "[verbose]".dimmed(),
-                wf_result.llm_calls,
-                wf_result.total_inference_ms,
-                if wf_result.mini_skill_generated {
-                    ", mini-skill generated"
-                } else if wf_result.cache_hit {
-                    ", mini-skill from cache"
-                } else {
-                    ""
-                },
-                if wf_result.was_normalized {
-                    ", task normalized"
-                } else {
-                    ""
-                }
+                suggestion.inference_ms,
             );
         }
-
-        let suggestion = wf_result.suggestion;
 
         Ok(PrepareResult {
             suggestion,
             docs_hash,
             skill_name,
-            effective_task: if wf_result.was_normalized {
-                wf_result.effective_task
-            } else {
-                task.to_string()
-            },
+            effective_task: task.to_string(),
             structured_doc,
         })
     }
@@ -730,13 +515,6 @@ impl Runner {
         println!("{}", "─".repeat(60).dimmed());
         println!("  {} {}", "Tool:".bold(), tool.cyan());
         println!("  {} {}", "Task:".bold(), task);
-        if result.effective_task != task {
-            println!(
-                "  {} {}",
-                "Normalized task:".bold().dimmed(),
-                result.effective_task.dimmed()
-            );
-        }
         println!("{}", "─".repeat(60).dimmed());
         println!();
         println!("  {}", "Command (dry-run):".bold().yellow());
@@ -793,13 +571,6 @@ impl Runner {
             println!("{}", "─".repeat(60).dimmed());
             println!("  {} {}", "Tool:".bold(), tool.cyan());
             println!("  {} {}", "Task:".bold(), task);
-            if result.effective_task != task {
-                println!(
-                    "  {} {}",
-                    "Normalized task:".bold().dimmed(),
-                    result.effective_task.dimmed()
-                );
-            }
             println!("{}", "─".repeat(60).dimmed());
             println!();
 
@@ -1002,63 +773,6 @@ impl Runner {
                 json,
             })
             .await;
-        }
-
-        // ── Orchestration: Validator Agent (always runs) ─────────────────
-        let validation =
-            self.validator_agent
-                .validate(tool, task, &full_cmd, exit_code, &captured_stderr);
-
-        if self.verbose && !validation.success {
-            eprintln!(
-                "{} Validator: {} — {:?}",
-                "[verbose]".dimmed(),
-                validation.summary,
-                validation.error_category,
-            );
-            for suggestion in &validation.suggestions {
-                eprintln!("{} → {}", "[verbose]".dimmed(), suggestion);
-            }
-        }
-
-        // ── Execution: Result Analyzer ──────────────────────────────────
-        let analysis = self
-            .result_analyzer
-            .analyze(tool, exit_code, "", &captured_stderr);
-
-        if self.verbose && !analysis.improvements.is_empty() {
-            for improvement in &analysis.improvements {
-                eprintln!("{} Improvement: {}", "[verbose]".dimmed(), improvement);
-            }
-        }
-
-        // ── Execution: Feedback Collector ────────────────────────────────
-        let _ = FeedbackCollector::record(FeedbackEntry {
-            tool: tool.to_string(),
-            task: task.to_string(),
-            generated_command: full_cmd.clone(),
-            was_modified: false,
-            modified_command: None,
-            exit_code,
-            user_approved: success,
-            model: self.config.effective_model(),
-            recorded_at: Utc::now().to_rfc3339(),
-        });
-
-        // ── Execution: Error Knowledge DB learning ──────────────────────
-        if !success {
-            let _ = ErrorKnowledgeDb::record(crate::knowledge::error_db::ErrorRecord {
-                tool: tool.to_string(),
-                task: task.to_string(),
-                failed_command: full_cmd.clone(),
-                exit_code,
-                stderr_snippet: captured_stderr.chars().take(2000).collect(),
-                error_category: crate::knowledge::error_db::ErrorCategory::classify(
-                    &captured_stderr,
-                ),
-                resolution: None,
-                recorded_at: Utc::now().to_rfc3339(),
-            });
         }
 
         // ── Auto-retry on failure ─────────────────────────────────────────

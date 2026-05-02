@@ -12,9 +12,8 @@ use sha2::Digest;
 
 use super::prompt::{
     build_prompt, build_retry_prompt, build_skill_generate_prompt, build_skill_polish_prompt,
-    build_skill_verify_prompt, build_task_optimization_prompt, build_verification_prompt,
-    skill_reviewer_system_prompt, system_prompt, system_prompt_compact, system_prompt_medium,
-    verification_system_prompt,
+    build_skill_verify_prompt, build_verification_prompt, skill_reviewer_system_prompt,
+    system_prompt, system_prompt_compact, system_prompt_medium, verification_system_prompt,
 };
 use super::response::{
     is_valid_suggestion, parse_response, parse_skill_verify_response, parse_verification_response,
@@ -238,41 +237,6 @@ impl LlmClient {
             model,
             response_preview,
         })
-    }
-
-    /// Use the LLM to optimize/expand a raw task description into a precise instruction.
-    ///
-    /// Returns the refined task text on success, or falls back to the original task
-    /// if the LLM response is not parseable.  Errors from the API are propagated.
-    pub async fn optimize_task(&self, tool: &str, raw_task: &str) -> Result<String> {
-        let prompt = build_task_optimization_prompt(tool, raw_task);
-        let raw = self.request_text(&prompt, Some(256), Some(0.2)).await?;
-
-        // Extract the TASK: line.
-        for line in raw.lines() {
-            if let Some(rest) = line.strip_prefix("TASK:") {
-                let refined = rest.trim().to_string();
-                if !refined.is_empty() {
-                    return Ok(refined);
-                }
-            }
-        }
-        // Fall back to original task if parsing fails.
-        Ok(raw_task.to_string())
-    }
-
-    /// Make a raw chat completion call with custom system prompt.
-    ///
-    /// This is a low-level API for specialized workflows (e.g., mini-skill generation).
-    pub async fn chat_completion(
-        &self,
-        system: &str,
-        user_prompt: &str,
-        max_tokens: Option<u32>,
-        temperature: Option<f32>,
-    ) -> Result<String> {
-        self.request_with_system(system, user_prompt, max_tokens, temperature)
-            .await
     }
 
     /// Ask the LLM to verify the result of a completed command execution.

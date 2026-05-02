@@ -36,16 +36,13 @@ mod cache;
 mod chat;
 mod cli;
 mod config;
-mod context;
 mod copilot_auth;
 mod doc_processor;
 mod doc_summarizer;
 mod docs;
 mod engine;
 mod error;
-mod execution;
 mod format;
-mod generator;
 mod handlers;
 mod history;
 mod index;
@@ -53,19 +50,13 @@ mod job;
 mod knowledge;
 mod license;
 mod llm;
-mod llm_workflow;
 mod mcp;
-mod mini_skill_cache;
-mod orchestrator;
 mod runner;
 mod sanitize;
 mod server;
 mod skill;
 mod streaming_display;
-mod task_complexity;
-mod task_normalizer;
 mod workflow;
-mod workflow_graph;
 
 /// A single crate-wide mutex that **all** test modules must acquire before
 /// reading or writing `OXO_CALL_DATA_DIR` (or any other process-global
@@ -76,8 +67,8 @@ pub(crate) static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 use clap::{CommandFactory, Parser};
 use cli::{
     Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, JobCommands,
-    LicenseCommands, ModelCommands, RunScenario, ServerCommands, ShellType, SkillCommands,
-    SkillMcpCommands, WorkflowCommands,
+    LicenseCommands, ModelCommands, ServerCommands, ShellType, SkillCommands, SkillMcpCommands,
+    WorkflowCommands,
 };
 use colored::Colorize;
 use handlers::{config_verify_suggestions, print_index_table, with_source};
@@ -172,17 +163,6 @@ const COPILOT_MODELS: &[(&str, &str, bool)] = &[
     ),
 ];
 
-/// Convert a CLI [`RunScenario`] into its corresponding [`WorkflowScenario`].
-fn run_scenario_to_workflow(rs: RunScenario) -> workflow_graph::WorkflowScenario {
-    match rs {
-        RunScenario::Bare => workflow_graph::WorkflowScenario::Bare,
-        RunScenario::Prompt => workflow_graph::WorkflowScenario::Prompt,
-        RunScenario::Doc => workflow_graph::WorkflowScenario::Doc,
-        RunScenario::Skill => workflow_graph::WorkflowScenario::Skill,
-        RunScenario::Full => workflow_graph::WorkflowScenario::Full,
-    }
-}
-
 async fn run(cli: Cli) -> error::Result<()> {
     // Commands that are permitted without a valid license file.
     // `--help` and `--version` are handled by clap before reaching this function.
@@ -261,16 +241,13 @@ async fn run(cli: Cli) -> error::Result<()> {
             jobs,
             stop_on_error,
             auto_retry,
-            scenario,
+            scenario: _,
             no_stream,
         } => {
             let mut cfg = config::Config::load()?;
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
             }
-
-            // Convert validated scenario enum to workflow scenario
-            let force_scenario = scenario.map(run_scenario_to_workflow);
 
             // Collect input items from --input-list / --input-items.
             let all_items = {
@@ -304,13 +281,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_no_cache(no_cache)
                 .with_verify(verify)
                 .with_auto_retry(auto_retry)
-                .with_no_stream(no_stream);
-            let runner = if let Some(sc) = force_scenario {
-                runner.with_scenario(sc)
-            } else {
-                runner
-            };
-            let runner = runner
+                .with_no_stream(no_stream)
                 .with_vars(var_map)
                 .with_input_items(all_items)
                 .with_jobs(jobs)
@@ -330,16 +301,13 @@ async fn run(cli: Cli) -> error::Result<()> {
             vars,
             input_list,
             input_items,
-            scenario,
+            scenario: _,
             no_stream,
         } => {
             let mut cfg = config::Config::load()?;
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
             }
-
-            // Convert validated scenario enum to workflow scenario
-            let force_scenario = scenario.map(run_scenario_to_workflow);
 
             let all_items = {
                 let mut v: Vec<String> = Vec::new();
@@ -372,13 +340,9 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_no_skill(no_skill)
                 .with_no_doc(no_doc)
                 .with_no_prompt(no_prompt)
-                .with_no_stream(no_stream);
-            let runner = if let Some(sc) = force_scenario {
-                runner.with_scenario(sc)
-            } else {
-                runner
-            };
-            let runner = runner.with_vars(var_map).with_input_items(all_items);
+                .with_no_stream(no_stream)
+                .with_vars(var_map)
+                .with_input_items(all_items);
             runner.dry_run(&tool, &task, json, None).await?;
         }
 

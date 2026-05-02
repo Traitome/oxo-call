@@ -66,8 +66,7 @@ EXAMPLES:\n  \
   oxo-call run --ask samtools 'filter only mapped reads from input.bam'\n  \
   oxo-call run --model gpt-4 samtools 'index sorted.bam'\n  \
   oxo-call run --json samtools 'flagstat input.bam'\n  \
-  oxo-call run --verify samtools 'sort input.bam by coordinate'\n  \
-  oxo-call run --scenario doc samtools 'sort bam'"
+  oxo-call run --verify samtools 'sort input.bam by coordinate'"
     )]
     Run {
         /// The tool to run (must be in PATH)
@@ -117,7 +116,7 @@ EXAMPLES:\n  \
         #[arg(long)]
         auto_retry: bool,
         /// Force a specific workflow scenario (auto-detected by default)
-        #[arg(long, value_enum, value_name = "SCENARIO")]
+        #[arg(long, value_enum, value_name = "SCENARIO", hide = true)]
         scenario: Option<RunScenario>,
         /// Disable streaming (SSE) output from the LLM. Tokens will not be
         /// printed incrementally; the full response is shown after generation
@@ -136,8 +135,7 @@ EXAMPLES:\n  \
   oxo-call dry-run samtools 'sort input.bam by coordinate'\n  \
   oxo-call dry-run bwa 'align reads.fq to reference.fa with 8 threads'\n  \
   oxo-call dry-run --model gpt-4 gatk 'call variants on sample.bam'\n  \
-  oxo-call dry-run --json samtools 'flagstat input.bam'\n  \
-  oxo-call dry-run --scenario doc samtools 'sort bam'"
+  oxo-call dry-run --json samtools 'flagstat input.bam'"
     )]
     DryRun {
         /// The tool to preview
@@ -175,8 +173,8 @@ EXAMPLES:\n  \
         /// Comma-separated input items; previews the command for each item
         #[arg(long = "input-items", value_name = "ITEMS")]
         input_items: Option<String>,
-        /// Force a specific workflow scenario (auto-detected by default)
-        #[arg(long, value_enum, value_name = "SCENARIO")]
+        /// Force a specific workflow scenario (hidden, for testing)
+        #[arg(long, value_enum, value_name = "SCENARIO", hide = true)]
         scenario: Option<RunScenario>,
         /// Disable streaming (SSE) output from the LLM
         #[arg(long)]
