@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Planner Agent — decomposes complex tasks into executable steps.
 //!
 //! When the supervisor selects multi-stage mode, the planner analyzes the task

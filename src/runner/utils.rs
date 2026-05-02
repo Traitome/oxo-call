@@ -258,6 +258,7 @@ pub(crate) fn detect_tool_version(tool: &str) -> Option<String> {
 ///
 /// Parses strings like "samtools 1.17" or "1.17.0" into a comparable version tuple.
 /// Prefers version patterns that include a dot (X.Y or X.Y.Z).
+#[allow(dead_code)]
 pub(crate) fn parse_version(version: &str) -> Option<(u32, u32, u32)> {
     let version = version.trim();
 
@@ -310,6 +311,7 @@ pub(crate) fn parse_version(version: &str) -> Option<(u32, u32, u32)> {
 /// Check if a tool version is compatible with skill requirements.
 ///
 /// Returns `Ok(())` if compatible, or an error message describing the incompatibility.
+#[allow(dead_code)]
 pub fn check_version_compatibility(
     tool_version: &str,
     min_version: Option<&str>,

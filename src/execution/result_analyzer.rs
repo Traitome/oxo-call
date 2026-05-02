@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Result Analyzer — post-execution analysis and learning.
 //!
 //! Analyzes command execution results to extract actionable insights

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Embedded bioconda tool knowledge base with keyword-based similarity search.
 //!
 //! Provides fast, offline lookup of tool metadata (name, description, category,

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::config::Config;
 use crate::error::Result;
 use chrono::{DateTime, Utc};

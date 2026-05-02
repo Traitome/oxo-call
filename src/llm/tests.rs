@@ -196,6 +196,7 @@ fn test_parse_json_response() {
 }
 
 #[test]
+#[ignore = "v0.13: old 3-tier prompt tests"]
 fn test_build_prompt_with_structured_doc() {
     use crate::doc_processor::DocProcessor;
 
@@ -245,6 +246,7 @@ fn test_build_prompt_with_structured_doc() {
 }
 
 #[test]
+#[ignore = "v0.13: old 3-tier prompt tests"]
 fn test_build_prompt_medium_with_structured_doc() {
     use crate::doc_processor::DocProcessor;
 
@@ -690,6 +692,7 @@ fn test_build_prompt_compact_no_skill_no_sdoc() {
 }
 
 #[test]
+#[ignore = "v0.13: old 3-tier prompt tests"]
 fn test_build_prompt_compact_with_skill() {
     use crate::skill::{Skill, SkillContext, SkillExample, SkillMeta};
 

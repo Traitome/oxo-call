@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Experiment context inference for bioinformatics task understanding.
 //!
 //! When a user provides a high-level task description (e.g., "analyze RNA-seq data"),

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Error Knowledge Database for learning from past failures.
 //!
 //! Records execution failures with their context (tool, task, error message,

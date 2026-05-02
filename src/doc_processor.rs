@@ -550,17 +550,12 @@ impl DocProcessor {
     /// Compress OPTIONS section to essential flags
     fn compress_options(&self, content: &str) -> String {
         let mut compressed = String::new();
-        let lines: Vec<&str> = content.lines().collect();
 
-        for line in lines.iter().take(30) {
+        for line in content.lines() {
             let trimmed = line.trim();
 
-            // Keep flag lines
-            if trimmed.starts_with('-') {
-                compressed.push_str(trimmed);
-                compressed.push('\n');
-            } else if trimmed.starts_with('<') || trimmed.starts_with('[') {
-                // Keep placeholder descriptions
+            // Keep flag lines and placeholder descriptions
+            if trimmed.starts_with('-') || trimmed.starts_with('<') || trimmed.starts_with('[') {
                 compressed.push_str(trimmed);
                 compressed.push('\n');
             }
@@ -857,6 +852,23 @@ pub fn extract_flags_standalone(docs: &str) -> Vec<String> {
             flags.insert(flag.as_str().to_string());
         }
     }
+
+    // Filter: only keep flags that appear as standalone tokens in the text.
+    // This removes false positives from hyphenated prose words like
+    // "file-for-file" producing "-file" or "20-bp" producing "-bp".
+    // We split each line by whitespace and punctuation, then check if the
+    // extracted flag matches a token that actually appears in the text.
+    let line_tokens: std::collections::HashSet<String> = docs
+        .lines()
+        .map(|l| l.trim().to_string())
+        .flat_map(|l| {
+            l.split(|c: char| c.is_whitespace() || c == ',' || c == '/')
+                .map(|s| s.to_string())
+                .collect::<Vec<_>>()
+        })
+        .collect();
+
+    flags.retain(|f| line_tokens.contains(f));
 
     let mut flags_vec: Vec<String> = flags.into_iter().collect();
     flags_vec.sort();

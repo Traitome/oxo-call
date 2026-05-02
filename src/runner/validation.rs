@@ -120,7 +120,11 @@ fn check_flags_in_place(
             unknown_flags.push(flag.to_string());
         }
     } else if arg.starts_with('-') && arg.len() > 2 {
-        // Could be combined short flags like -abc, or a short flag with value
+        // Could be combined short flags like -abc, or a multi-letter short flag like -bam, -GL
+        // First check if the entire arg is a known flag to avoid false splitting
+        if known_flags.contains(arg) {
+            return;
+        }
         let rest = &arg[1..];
         if rest.chars().all(|c| c.is_ascii_alphabetic()) {
             // Combined short flags: check each individually without format! allocation

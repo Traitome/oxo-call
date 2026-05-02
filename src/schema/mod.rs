@@ -24,6 +24,7 @@ mod integration_test;
 
 pub mod generator;
 pub mod parser;
+pub mod post_process;
 pub mod types;
 // TODO: Implement these modules
 // pub mod catalog;
@@ -32,6 +33,7 @@ pub mod types;
 pub use generator::build_schema_prompt_section;
 pub use generator::build_schema_prompt_section_compact;
 pub use parser::parse_help;
+pub use post_process::schema_post_process;
 pub use types::{
     CliSchema, CliStyle, ConstraintRule, FlagSchema, ParamType, PositionalSchema, SubcommandSchema,
     ValidationError, ValidationResult,

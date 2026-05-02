@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::error::{OxoError, Result};
 use crate::server::ServerConfig;
 use directories::ProjectDirs;

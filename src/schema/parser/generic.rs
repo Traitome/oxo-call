@@ -83,7 +83,7 @@ fn extract_usage_generic(help: &str) -> String {
 /// Parse flags using generic regex patterns
 fn parse_flags_generic(help: &str) -> Vec<FlagSchema> {
     let mut flags = Vec::new();
-    let seen_flags: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut seen_flags: std::collections::HashSet<String> = std::collections::HashSet::new();
 
     // Pattern 1: --flag=VALUE or --flag VALUE
     // Pattern 2: -f VALUE, -fVALUE
@@ -91,24 +91,36 @@ fn parse_flags_generic(help: &str) -> Vec<FlagSchema> {
     // Pattern 4: Tab-separated: -f\tDescription
 
     let patterns = [
-        // Long flag with value: --output=FILE, --output FILE
-        r"--([a-zA-Z0-9_-]+)[=\s]+([A-Z_][A-Z0-9_]*)(?:\s+(.+))?",
-        // Short and long combined: -f, --flag VALUE
-        r"-([a-zA-Z]),\s+--([a-zA-Z0-9_-]+)\s+([A-Z_][A-Z0-9_]*)(?:\s+(.+))?",
-        // Short and long bool: -f, --flag
-        r"-([a-zA-Z]),\s+--([a-zA-Z0-9_-]+)(?:\s+(.+))?",
+        // Short and long combined: -f, --flag VALUE (must be BEFORE single --flag)
+        // (?m) enables multiline mode so ^ matches start of each line
+        // Short and long combined: supports both -f, --flag and -f/--flag formats
+        r"(?m)^(-[a-zA-Z0-9@])[,/]\s*--([a-zA-Z0-9_-]+)\s+([^\s]+)(?:\s+(.+))?",
+        // Short and long bool: supports both -f, --flag and -f/--flag formats
+        r"(?m)^(-[a-zA-Z0-9@])[,/]\s*--([a-zA-Z0-9_-]+)(?:\s+(.+))?",
+        // Long flag with value: --output=FILE, --output=none, --output FILE
+        r"(?m)^(--[a-zA-Z0-9_-]+)[=\s]+([^\s]+)(?:\s+(.+))?",
         // Single long flag: --flag
-        r"--([a-zA-Z0-9_-]+)(?:\s+(.+))?",
-        // Single short flag with value: -f VALUE
-        r"-([a-zA-Z])\s+([A-Z_][A-Z0-9_]*)(?:\s+(.+))?",
+        r"(?m)^(--[a-zA-Z0-9_-]+)(?:\s+(.+))?",
+        // Multi-letter short flag with description: -GL description, -doMaf description
+        // Must come before single-letter patterns to avoid -G matching before -GL
+        r"(?m)^(-[a-zA-Z][a-zA-Z0-9_]+)\s+(.+)",
+        // Single short flag with value: -f VALUE, -1 <mates1>
+        r"(?m)^(-[a-zA-Z0-9@])\s+([^\s]+)(?:\s+(.+))?",
+        // Short flag with attached value: -jX, -a=, -C=X, -B[X]
+        r#"(?m)^(-[a-zA-Z])([=A-Za-z0-9_<>'"\[\]|]+)(?:\s+(.+))?"#,
         // Tab-separated format
-        r"-([a-zA-Z])\t(.+)",
-        r"--([a-zA-Z0-9_-]+)\t(.+)",
+        r"(?m)^(-[a-zA-Z0-9@])\t(.+)",
+        r"(?m)^(--[a-zA-Z0-9_-]+)\t(.+)",
     ];
 
     for line in help.lines() {
         let line = line.trim();
         if line.is_empty() {
+            continue;
+        }
+        // Only process lines that look like flag definitions (start with - or --).
+        // This prevents matching hyphens inside prose text like "file-for-file" or "paired-end".
+        if !line.starts_with('-') {
             continue;
         }
 
@@ -117,9 +129,13 @@ fn parse_flags_generic(help: &str) -> Vec<FlagSchema> {
                 && let Some(caps) = re.captures(line)
             {
                 if let Some(flag) = extract_flag_from_caps(i, &caps) {
-                    // Avoid duplicates
+                    // Avoid duplicates - check both primary name and all aliases
                     let key = flag.name.clone();
                     if !seen_flags.contains(&key) {
+                        seen_flags.insert(key);
+                        for alias in &flag.aliases {
+                            seen_flags.insert(alias.clone());
+                        }
                         flags.push(flag);
                     }
                 }
@@ -131,33 +147,31 @@ fn parse_flags_generic(help: &str) -> Vec<FlagSchema> {
     flags
 }
 
+/// Ensure a short flag has the `-` prefix
+fn ensure_short_prefix(s: &str) -> String {
+    if s.starts_with('-') {
+        s.to_string()
+    } else {
+        format!("-{}", s)
+    }
+}
+
+/// Ensure a long flag has the `--` prefix
+fn ensure_long_prefix(s: &str) -> String {
+    if s.starts_with("--") {
+        s.to_string()
+    } else {
+        format!("--{}", s)
+    }
+}
+
 /// Extract FlagSchema from regex captures based on pattern index
 fn extract_flag_from_caps(pattern_idx: usize, caps: &regex::Captures) -> Option<FlagSchema> {
     match pattern_idx {
-        // Pattern 0: --flag=VALUE
+        // Pattern 0: -f, --flag VALUE
         0 => {
-            let name = format!("--{}", caps.get(1)?.as_str());
-            let placeholder = caps.get(2)?.as_str();
-            let description = caps
-                .get(3)
-                .map(|m| m.as_str().trim().to_string())
-                .unwrap_or_default();
-            let param_type = infer_type_generic(placeholder);
-
-            Some(FlagSchema {
-                name,
-                aliases: Vec::new(),
-                param_type,
-                description,
-                default: None,
-                required: false,
-                long_description: None,
-            })
-        }
-        // Pattern 1: -f, --flag VALUE
-        1 => {
-            let short = format!("-{}", caps.get(1)?.as_str());
-            let long = format!("--{}", caps.get(2)?.as_str());
+            let short = ensure_short_prefix(caps.get(1)?.as_str());
+            let long = ensure_long_prefix(caps.get(2)?.as_str());
             let placeholder = caps.get(3)?.as_str();
             let description = caps
                 .get(4)
@@ -175,10 +189,10 @@ fn extract_flag_from_caps(pattern_idx: usize, caps: &regex::Captures) -> Option<
                 long_description: None,
             })
         }
-        // Pattern 2: -f, --flag (bool)
-        2 => {
-            let short = format!("-{}", caps.get(1)?.as_str());
-            let long = format!("--{}", caps.get(2)?.as_str());
+        // Pattern 1: -f, --flag (bool)
+        1 => {
+            let short = ensure_short_prefix(caps.get(1)?.as_str());
+            let long = ensure_long_prefix(caps.get(2)?.as_str());
             let description = caps
                 .get(3)
                 .map(|m| m.as_str().trim().to_string())
@@ -194,27 +208,9 @@ fn extract_flag_from_caps(pattern_idx: usize, caps: &regex::Captures) -> Option<
                 long_description: None,
             })
         }
-        // Pattern 3: --flag
-        3 => {
-            let name = format!("--{}", caps.get(1)?.as_str());
-            let description = caps
-                .get(2)
-                .map(|m| m.as_str().trim().to_string())
-                .unwrap_or_default();
-
-            Some(FlagSchema {
-                name,
-                aliases: Vec::new(),
-                param_type: ParamType::Bool,
-                description,
-                default: None,
-                required: false,
-                long_description: None,
-            })
-        }
-        // Pattern 4: -f VALUE
-        4 => {
-            let name = format!("-{}", caps.get(1)?.as_str());
+        // Pattern 2: --flag=VALUE
+        2 => {
+            let name = ensure_long_prefix(caps.get(1)?.as_str());
             let placeholder = caps.get(2)?.as_str();
             let description = caps
                 .get(3)
@@ -232,10 +228,86 @@ fn extract_flag_from_caps(pattern_idx: usize, caps: &regex::Captures) -> Option<
                 long_description: None,
             })
         }
-        // Pattern 5, 6: Tab-separated
-        5 | 6 => {
-            let prefix = if pattern_idx == 5 { "-" } else { "--" };
-            let name = format!("{}{}", prefix, caps.get(1)?.as_str());
+        // Pattern 3: --flag
+        3 => {
+            let name = ensure_long_prefix(caps.get(1)?.as_str());
+            let description = caps
+                .get(2)
+                .map(|m| m.as_str().trim().to_string())
+                .unwrap_or_default();
+
+            Some(FlagSchema {
+                name,
+                aliases: Vec::new(),
+                param_type: ParamType::Bool,
+                description,
+                default: None,
+                required: false,
+                long_description: None,
+            })
+        }
+        // Pattern 4: -GL description (multi-letter short flag like angsd)
+        4 => {
+            let name = ensure_short_prefix(caps.get(1)?.as_str());
+            let description = caps
+                .get(2)
+                .map(|m| m.as_str().trim().to_string())
+                .unwrap_or_default();
+
+            Some(FlagSchema {
+                name,
+                aliases: Vec::new(),
+                param_type: ParamType::Bool,
+                description,
+                default: None,
+                required: false,
+                long_description: None,
+            })
+        }
+        // Pattern 5: -f VALUE
+        5 => {
+            let name = ensure_short_prefix(caps.get(1)?.as_str());
+            let placeholder = caps.get(2)?.as_str();
+            let description = caps
+                .get(3)
+                .map(|m| m.as_str().trim().to_string())
+                .unwrap_or_default();
+            let param_type = infer_type_generic(placeholder);
+
+            Some(FlagSchema {
+                name,
+                aliases: Vec::new(),
+                param_type,
+                description,
+                default: None,
+                required: false,
+                long_description: None,
+            })
+        }
+        // Pattern 6: -fVALUE (attached value, no space)
+        6 => {
+            let name = ensure_short_prefix(caps.get(1)?.as_str());
+            let _attached = caps.get(2)?.as_str();
+            let description = caps
+                .get(3)
+                .map(|m| m.as_str().trim().to_string())
+                .unwrap_or_default();
+            // The attached value indicates this flag takes a parameter
+            let param_type = infer_type_generic(_attached);
+
+            Some(FlagSchema {
+                name,
+                aliases: Vec::new(),
+                param_type,
+                description,
+                default: None,
+                required: false,
+                long_description: None,
+            })
+        }
+        // Pattern 7, 8: Tab-separated
+        7 | 8 => {
+            let name = ensure_short_prefix(caps.get(1)?.as_str());
             let description = caps
                 .get(2)
                 .map(|m| m.as_str().trim().to_string())
@@ -662,11 +734,11 @@ mod tests {
     #[test]
     fn test_extract_flag_long_with_value() {
         let line = "--output=FILE    Output file path";
-        let patterns = [r"--([a-zA-Z0-9_-]+)[=\s]+([A-Z_][A-Z0-9_]*)(?:\s+(.+))?"];
+        let patterns = [r"--([a-zA-Z0-9_-]+)[=\s]+([^\s]+)(?:\s+(.+))?"];
 
         if let Ok(re) = Regex::new(&patterns[0]) {
             if let Some(caps) = re.captures(line) {
-                let flag = extract_flag_from_caps(0, &caps);
+                let flag = extract_flag_from_caps(2, &caps); // pattern 2 is now --flag=VALUE
                 assert!(flag.is_some());
                 let f = flag.unwrap();
                 assert_eq!(f.name, "--output");
@@ -682,7 +754,7 @@ mod tests {
 
         if let Ok(re) = Regex::new(pattern) {
             if let Some(caps) = re.captures(line) {
-                let flag = extract_flag_from_caps(2, &caps);
+                let flag = extract_flag_from_caps(1, &caps); // pattern 1 is now -f, --flag (bool)
                 assert!(flag.is_some());
                 let f = flag.unwrap();
                 assert_eq!(f.name, "--verbose");
@@ -962,5 +1034,24 @@ mod tests {
         let help = "Commands:\n  the    The command\n  sort   Sort data\n";
         let subcmds = parse_subcommands_generic(help);
         assert!(subcmds.iter().all(|s| s.name != "the"));
+    }
+}
+
+#[cfg(test)]
+mod angsd_tests {
+    use super::*;
+
+    #[test]
+    fn test_angsd_full_help() {
+        let help = std::process::Command::new("angsd")
+            .arg("--help")
+            .output()
+            .unwrap();
+        let help_str = String::from_utf8_lossy(&help.stderr);
+        let flags = parse_flags_generic(&help_str);
+        let names: Vec<_> = flags.iter().map(|f| f.name.as_str()).collect();
+        println!("angsd flags: {:?}", names);
+        assert!(names.contains(&"-GL"), "missing -GL, got: {:?}", names);
+        assert!(names.contains(&"-bam"), "missing -bam, got: {:?}", names);
     }
 }

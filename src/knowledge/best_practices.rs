@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Bioinformatics best practices knowledge base.
 //!
 //! Provides domain-specific best practices that can be injected into LLM prompts

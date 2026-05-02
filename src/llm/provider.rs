@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! LLM provider implementation.
 //!
 //! This module contains the `LlmClient` struct and its implementation for
@@ -88,8 +89,9 @@ impl LlmClient {
     ) -> Result<LlmCommandSuggestion> {
         const MAX_RETRIES: usize = 2;
 
-        let context_window = self.config.effective_context_window();
-        let tier = self.config.effective_prompt_tier();
+        // Prompt tier and context window are no longer used — unified prompt
+        // template handles all models. Documentation is truncated if needed.
+        let _context_window = self.config.effective_context_window();
         let model = self.config.effective_model();
         let profile = crate::config::get_model_profile(&model);
         let temperature = Some(profile.optimal_temperature);
@@ -150,8 +152,8 @@ impl LlmClient {
                     task,
                     skill,
                     no_prompt,
-                    context_window,
-                    tier,
+                    0,
+                    crate::llm::types::PromptTier::Full,
                     structured_doc,
                     schema, // HDA: Schema whitelist passed from runner
                 );
@@ -169,8 +171,8 @@ impl LlmClient {
                     task,
                     skill,
                     no_prompt,
-                    context_window,
-                    tier,
+                    0,
+                    crate::llm::types::PromptTier::Full,
                     structured_doc,
                     schema, // HDA: Schema whitelist passed from runner
                 )
@@ -182,14 +184,19 @@ impl LlmClient {
                     skill,
                     &last_raw,
                     no_prompt,
-                    context_window,
-                    tier,
+                    0,
+                    crate::llm::types::PromptTier::Full,
                 )
             };
 
             let api_start = std::time::Instant::now();
             let raw = self
-                .call_api(&user_prompt, no_prompt, tier, temperature)
+                .call_api(
+                    &user_prompt,
+                    no_prompt,
+                    crate::llm::types::PromptTier::Full,
+                    temperature,
+                )
                 .await?;
             total_inference_ms += api_start.elapsed().as_secs_f64() * 1000.0;
 

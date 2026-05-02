@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Validator Agent — verifies execution results and provides feedback.
 //!
 //! The validator inspects command output (exit code, stderr, output files)

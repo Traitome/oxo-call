@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Supervisor Agent — routes tasks and selects orchestration strategy (HDA).
 //!
 //! Uses confidence-driven decision making instead of task_complexity.
@@ -23,10 +24,10 @@ impl std::fmt::Display for OrchestrationMode {
 }
 
 impl OrchestrationMode {
-    pub fn to_workflow_mode(self) -> crate::llm_workflow::WorkflowMode {
+    pub fn to_workflow_mode(self) -> crate::workflow_graph::WorkflowMode {
         match self {
-            Self::SingleCall => crate::llm_workflow::WorkflowMode::Fast,
-            Self::MultiStage => crate::llm_workflow::WorkflowMode::Quality,
+            Self::SingleCall => crate::workflow_graph::WorkflowMode::Fast,
+            Self::MultiStage => crate::workflow_graph::WorkflowMode::Quality,
         }
     }
 }

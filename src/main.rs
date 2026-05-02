@@ -59,7 +59,7 @@ mod job;
 mod knowledge;
 mod license;
 mod llm;
-mod llm_workflow;
+// mod llm_workflow;  // Removed in v0.13 — schema_post_process in schema/ now
 mod markdown;
 mod mcp;
 mod orchestrator;

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Executor Agent — generates and runs commands.
 //!
 //! The executor is responsible for the actual command generation step.

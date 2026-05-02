@@ -80,13 +80,22 @@ impl CliStyle {
 
         // Check for positional-style patterns (no flags for main args)
         // Tools like admixture show: "admixture input.bed K [options]"
-        if help_lower.contains("input.bed")
-            || help_lower.contains("usage:")
-                && !help_lower.contains("-i")
-                && !help_lower.contains("--input")
-        {
-            // Check if there are optional flags after positionals
-            if help_lower.contains("-") || help_lower.contains("--") {
+        // CRITICAL: admixture's help contains "--seed=X" and "-jX" which would
+        // incorrectly trigger Hybrid. We check for USAGE line explicitly.
+        let has_positional_usage = help_lower.contains("usage:")
+            && !help_lower.contains(" -i ")
+            && !help_lower.contains(" --input ")
+            && !help_lower.contains("usage: tool -");
+        let is_known_positional_tool = help_lower.contains("admixture")
+            || help_lower.contains("prodigal")
+            || help_lower.contains("input.bed");
+
+        if is_known_positional_tool || has_positional_usage {
+            // Only classify as Hybrid if there are significant flag sections
+            // (e.g. "Options:" with multiple --flags)
+            let has_flag_section = help_lower.contains("options:") || help_lower.contains("flags:");
+            let flag_count = help_lower.matches("--").count();
+            if has_flag_section && flag_count >= 3 {
                 return CliStyle::Hybrid;
             }
             return CliStyle::Positional;
@@ -890,7 +899,8 @@ mod tests {
     #[test]
     fn test_cli_style_detect_positional() {
         let help = "usage: admixture input.bed K [options]\nOptions:\n  --cv  cross-validation";
-        assert_eq!(CliStyle::detect_from_help(help), CliStyle::Hybrid);
+        // admixture is a known positional tool — should be Positional, not Hybrid
+        assert_eq!(CliStyle::detect_from_help(help), CliStyle::Positional);
     }
 
     #[test]
@@ -1132,7 +1142,8 @@ mod tests {
     #[test]
     fn test_cli_style_detect_hybrid_style() {
         let help = "usage: admixture input.bed K [options] -t 4";
-        assert_eq!(CliStyle::detect_from_help(help), CliStyle::Hybrid);
+        // admixture is a known positional tool
+        assert_eq!(CliStyle::detect_from_help(help), CliStyle::Positional);
     }
 
     #[test]

@@ -1477,7 +1477,11 @@ fn strip_embedded_help_section(cached: &str) -> String {
             // Rebuild without the Help Output section
             let before = cached[..start].trim_end();
             let after = cached[section_end..].trim_start();
-            return if before.is_empty() {
+            return if before.is_empty() && after.is_empty() {
+                // Cache consists ONLY of the Help Output section — keep it so the
+                // LLM still sees the documentation.  Stripping it would leave nothing.
+                cached.to_string()
+            } else if before.is_empty() {
                 after.to_string()
             } else if after.is_empty() {
                 before.to_string()

@@ -16,7 +16,15 @@
 #![allow(dead_code)]
 
 use crate::confidence::{ConfidenceLevel, ConfidenceResult, estimate_confidence};
-use crate::llm_workflow::WorkflowMode;
+/// Workflow execution mode.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum WorkflowMode {
+    #[default]
+    Fast,
+    Quality,
+}
+
+// Formerly in llm_workflow.rs — moved here because other modules need it.
 use crate::task_normalizer::{NormalizedTask, TaskNormalizer};
 use color_eyre::Result;
 use serde::{Deserialize, Serialize};

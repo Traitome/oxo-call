@@ -40,7 +40,7 @@ pub mod job;
 pub mod knowledge;
 pub mod license;
 pub mod llm;
-pub mod llm_workflow;
+// pub mod llm_workflow;  // Removed in v0.13
 pub mod markdown;
 pub mod mcp;
 pub mod orchestrator;

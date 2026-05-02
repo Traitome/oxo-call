@@ -117,3 +117,48 @@ mod tests {
         assert_eq!(detect_parser_type(help), ParserType::Generic);
     }
 }
+
+#[cfg(test)]
+mod angsd_integration_tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_help_angsd() {
+        let help = std::process::Command::new("angsd")
+            .arg("--help")
+            .output()
+            .unwrap();
+        let help_str = String::from_utf8_lossy(&help.stderr);
+        let schema = parse_help("angsd", &help_str);
+        let names: Vec<_> = schema.flags.iter().map(|f| f.name.as_str()).collect();
+        println!("angsd flags from parse_help: {:?}", names);
+        assert!(names.contains(&"-GL"), "missing -GL, got: {:?}", names);
+        assert!(names.contains(&"-bam"), "missing -bam, got: {:?}", names);
+    }
+}
+
+#[cfg(test)]
+mod angsd_debug {
+    use super::*;
+
+    #[test]
+    fn test_angsd_schema_structure() {
+        let help = std::process::Command::new("angsd")
+            .arg("--help")
+            .output()
+            .unwrap();
+        let help_str = String::from_utf8_lossy(&help.stderr);
+        let schema = parse_help("angsd", &help_str);
+        println!(
+            "subcommands: {:?}",
+            schema
+                .subcommands
+                .iter()
+                .map(|s| &s.name)
+                .collect::<Vec<_>>()
+        );
+        println!("flags count: {}", schema.flags.len());
+        println!("global_flags count: {}", schema.global_flags.len());
+        println!("all_flag_names(None): {:?}", schema.all_flag_names(None));
+    }
+}
