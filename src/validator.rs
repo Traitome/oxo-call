@@ -657,27 +657,26 @@ fn correct_agat(args_str: &str, _sdoc: &StructuredDoc) -> String {
                               first.starts_with("agat_convert_") ||
                               first.starts_with("agat_");
 
-    // If it's already valid, just fix common flag issues
-    if is_valid_subcommand {
-        return args_str.replace("--output", "-o").replace("--input", "-i");
-    }
-
-    // Model generated a hallucinated subcommand - need to replace it
-    // Infer correct subcommand from context
+    // Infer correct subcommand from task context (ALWAYS do this check)
+    // The model may generate a VALID but WRONG subcommand
     let correct_subcommand = if args_lower.contains("statistic") || first.contains("stat") {
         "agat_sp_statistics"
     } else if args_lower.contains("filter") && args_lower.contains("length") {
+        "agat_sp_filter_gene_by_length"
+    } else if args_lower.contains("filter") && args_lower.contains("gene") {
         "agat_sp_filter_gene_by_length"
     } else if args_lower.contains("isoform") || args_lower.contains("longest") {
         "agat_sp_keep_longest_isoform"
     } else if args_lower.contains("merge") || first.contains("merge") {
         "agat_sp_merge_annotations"
-    } else if args_lower.contains("fix") || first.contains("fix") {
-        "agat_sp_fix_features"
+    } else if args_lower.contains("fix") || first.contains("fix") || args_lower.contains("standardize") {
+        "agat_convert_sp_gxf2gxf"
     } else if args_lower.contains("id") || args_lower.contains("manage") {
         "agat_sp_manage_IDs"
     } else if args_lower.contains("extract") || args_lower.contains("sequen") {
         "agat_sp_extract_sequences"
+    } else if args_lower.contains("bed") && (args_lower.contains("convert") || args_lower.contains("gff")) {
+        "agat_convert_sp_gff2bed"
     } else if (args_lower.contains("convert") || first.contains("gtf")) && args_lower.contains("gff") {
         "agat_convert_sp_gff2gtf"
     } else if args_lower.contains("convert") && args_lower.contains("bed") {
@@ -686,15 +685,24 @@ fn correct_agat(args_str: &str, _sdoc: &StructuredDoc) -> String {
         "agat_convert_sp_gff2gtf"
     } else if first.contains("filter") {
         "agat_sp_filter_gene_by_length"
+    } else if is_valid_subcommand {
+        // Keep the existing valid subcommand
+        return args_str.replace("--output", "-o").replace("--input", "-i");
     } else {
         // Default fallback
         "agat_sp_statistics"
     };
 
-    // Replace first token with correct subcommand
-    let mut result = vec![correct_subcommand.to_string()];
-    result.extend(tokens.into_iter().skip(1));
-    result.join(" ")
+    // Check if we need to replace the subcommand
+    if first != correct_subcommand {
+        // Replace first token with correct subcommand
+        let mut result = vec![correct_subcommand.to_string()];
+        result.extend(tokens.into_iter().skip(1));
+        result.join(" ").replace("--output", "-o").replace("--input", "-i")
+    } else {
+        // Subcommand is correct, just fix flag names
+        args_str.replace("--output", "-o").replace("--input", "-i")
+    }
 }
 
 /// Correct bismark commands.
