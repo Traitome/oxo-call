@@ -95,6 +95,141 @@ pub struct StructuredDoc {
     /// E.g., rsem-prepare-reference, bowtie2-build, bwa-mem2.
     #[serde(default)]
     pub companion_binaries: Vec<String>,
+    /// Detailed USAGE pattern analysis for format validation.
+    #[serde(default)]
+    pub usage_pattern: UsagePattern,
+    /// File type to flag mappings extracted from examples.
+    #[serde(default)]
+    pub file_type_mappings: Vec<FileTypeMapping>,
+}
+
+impl StructuredDoc {
+    /// Extract USAGE patterns for a specific subcommand from the documentation.
+    ///
+    /// This is the key method for Phase 2: Mini-Skill USAGE Injection.
+    /// It scans the USAGE section and examples to find patterns that match
+    /// the given subcommand, returning a compact representation suitable
+    /// for few-shot injection.
+    ///
+    /// # Arguments
+    /// * `subcommand` - The subcommand to find USAGE for (e.g., "sort", "build")
+    /// * `tool` - The tool name (e.g., "samtools", "bowtie2")
+    ///
+    /// # Returns
+    /// * `Some(String)` - The extracted USAGE pattern if found
+    /// * `None` - If no specific USAGE pattern is found for the subcommand
+    pub fn extract_subcommand_usage(&self, subcommand: &str, tool: &str) -> Option<String> {
+        let subcommand_lower = subcommand.to_ascii_lowercase();
+
+        // Strategy 1: Look for explicit USAGE lines containing the subcommand
+        for line in self.usage.lines() {
+            let line_lower = line.to_ascii_lowercase();
+            // Match patterns like "Usage: tool subcommand [options]" or "tool COMMAND [options]"
+            if line_lower.contains(&subcommand_lower)
+                || (line_lower.contains("<command>") && line_lower.contains(&subcommand_lower))
+            {
+                return Some(line.trim().to_string());
+            }
+        }
+
+        // Strategy 2: Look in examples for patterns with this subcommand
+        for line in self.examples.lines() {
+            let line_lower = line.to_ascii_lowercase();
+            // Match example lines that start with the tool and subcommand
+            if line_lower.starts_with(&format!("{tool} {subcommand_lower}").to_ascii_lowercase())
+                || line_lower
+                    .starts_with(&format!("$ {tool} {subcommand_lower}").to_ascii_lowercase())
+                || line_lower
+                    .starts_with(&format!("% {tool} {subcommand_lower}").to_ascii_lowercase())
+            {
+                // Extract just the command pattern
+                let cmd = line.trim_start_matches('$').trim_start_matches('%').trim();
+                return Some(format!("Example: {cmd}"));
+            }
+        }
+
+        // Strategy 3: Check extracted examples
+        for ex in &self.extracted_examples {
+            let ex_lower = ex.to_ascii_lowercase();
+            if ex_lower.starts_with(&format!("{tool} {subcommand_lower}").to_ascii_lowercase())
+                || ex_lower.starts_with(subcommand_lower.as_str())
+            {
+                return Some(format!("Example: {ex}"));
+            }
+        }
+
+        // Strategy 4: For tools with companion binaries, check if subcommand matches a companion
+        for companion in &self.companion_binaries {
+            let companion_lower = companion.to_ascii_lowercase();
+            if companion_lower.contains(&subcommand_lower)
+                || subcommand_lower.contains(&companion_lower)
+            {
+                return Some(format!("Usage: {companion} [options] <args>"));
+            }
+        }
+
+        None
+    }
+
+    /// Build a mini-skill injection string for compact prompts.
+    ///
+    /// This creates a focused few-shot example from the documentation
+    /// that demonstrates the correct command structure for a specific task.
+    pub fn build_mini_skill_injection(&self, tool: &str, task: &str) -> Option<String> {
+        // Extract task keywords to match with subcommands
+        let task_lower = task.to_ascii_lowercase();
+
+        // Find the best matching subcommand
+        let best_subcommand = self.subcommands.iter().find(|cmd| {
+            let cmd_lower = cmd.to_ascii_lowercase();
+            task_lower.contains(&cmd_lower)
+                || cmd_lower.contains(
+                    &task_lower
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or("")
+                        .to_string(),
+                )
+        });
+
+        if let Some(subcommand) = best_subcommand {
+            // Try to extract specific USAGE for this subcommand
+            if let Some(usage) = self.extract_subcommand_usage(subcommand, tool) {
+                // Look for a matching example
+                let example = self
+                    .extracted_examples
+                    .iter()
+                    .find(|ex| {
+                        ex.to_ascii_lowercase()
+                            .contains(&subcommand.to_ascii_lowercase())
+                    })
+                    .cloned()
+                    .unwrap_or_else(|| format!("{tool} {subcommand} [options] <input>"));
+
+                return Some(format!("USAGE: {usage}\nExample: {example}",));
+            }
+        }
+
+        // Fallback: if no specific subcommand match, try companion binaries
+        for companion in &self.companion_binaries {
+            let companion_lower = companion.to_ascii_lowercase();
+            if task_lower.contains(&companion_lower)
+                || companion_lower.contains(
+                    &task_lower
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or("")
+                        .to_string(),
+                )
+            {
+                return Some(format!(
+                    "USAGE: {companion} [options] <args>\nNote: Use companion binary '{companion}' instead of main tool"
+                ));
+            }
+        }
+
+        None
+    }
 }
 
 /// A single flag/option entry extracted from the documentation.
@@ -119,6 +254,78 @@ pub struct FlagEntry {
     pub alt_form: Option<String>,
 }
 
+/// File type to flag mapping extracted from documentation examples.
+/// Maps file extensions (e.g., "fastq", "bam") to the flags used for those inputs.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileTypeMapping {
+    /// File extension without dot (e.g., "fastq", "bam", "vcf")
+    pub extension: String,
+    /// Flag(s) typically used with this file type (e.g., "-i", "--input")
+    pub flags: Vec<String>,
+    /// Whether this is an input or output file type
+    pub io_type: FileIOType,
+}
+
+/// Whether a file type is used for input or output.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum FileIOType {
+    Input,
+    Output,
+    Both,
+}
+
+impl Default for FileIOType {
+    fn default() -> Self {
+        FileIOType::Input
+    }
+}
+
+/// Detailed USAGE pattern analysis for format constraint extraction.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct UsagePattern {
+    /// The raw USAGE line(s) extracted from docs
+    pub raw_usage: String,
+    /// Pattern type: subcommand-required, flag-first, positional-args, etc.
+    pub pattern_type: UsagePatternType,
+    /// Arguments position: subcommand-first, flags-first, files-first
+    pub arg_order: Vec<ArgPosition>,
+    /// Whether the tool uses companion binaries (e.g., bowtie2-build)
+    pub uses_companion_binaries: bool,
+    /// Detected positional argument patterns (e.g., "INPUT", "OUTPUT")
+    pub positional_args: Vec<String>,
+}
+
+/// Types of USAGE patterns found in bioinformatics tools.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum UsagePatternType {
+    /// Tool requires subcommand: `tool COMMAND [options]` (e.g., samtools, bcftools)
+    SubcommandRequired,
+    /// Tool uses flags directly: `tool [options] <input>` (e.g., flye, metaphlan)
+    FlagFirst,
+    /// Tool uses positional arguments: `tool <input> <output>` (e.g., admixture)
+    PositionalArgs,
+    /// Tool has companion binaries: `tool-build [options]` (e.g., bowtie2-build)
+    CompanionBinary,
+    /// Mixed or unclear pattern
+    Mixed,
+}
+
+impl Default for UsagePatternType {
+    fn default() -> Self {
+        UsagePatternType::Mixed
+    }
+}
+
+/// Position of arguments in command structure.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ArgPosition {
+    Subcommand,
+    Flag,
+    InputFile,
+    OutputFile,
+    Positional,
+}
+
 impl fmt::Display for StructuredDoc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut output = String::new();
@@ -140,6 +347,8 @@ impl fmt::Display for StructuredDoc {
         // COMMANDS - available subcommands
         if !self.commands.is_empty() {
             output.push_str("=== SUBCOMMANDS ===\n");
+            // Add "Subcommands:" prefix so extract_subcommands can parse it correctly
+            output.push_str("Subcommands: ");
             output.push_str(&self.commands);
             output.push_str("\n\n");
         }
@@ -234,6 +443,8 @@ impl DocProcessor {
             subcommands: Vec::new(),
             format_hint: None,
             companion_binaries: Vec::new(),
+            usage_pattern: UsagePattern::default(),
+            file_type_mappings: Vec::new(),
         };
 
         for (section_name, content) in sections {
@@ -283,7 +494,18 @@ impl DocProcessor {
         // Step 9: Enhance flag catalog with required/default detection and alt_form pairing
         self.enhance_flag_catalog(&mut structured.flag_catalog);
 
-        // Step 10: Compute documentation quality score
+        // Step 10: Extract detailed USAGE pattern analysis
+        structured.usage_pattern = self.extract_usage_pattern(
+            &structured.usage,
+            &structured.examples,
+            structured.has_subcommands,
+        );
+
+        // Step 11: Extract file type to flag mappings from examples
+        structured.file_type_mappings =
+            self.extract_file_type_mappings(&structured.examples, &structured.flag_catalog);
+
+        // Step 12: Compute documentation quality score
         structured.quality_score = self.compute_quality_score(&structured);
 
         structured
@@ -334,8 +556,12 @@ impl DocProcessor {
             format_hint = Some("First token is a flag or input file".to_string());
         }
 
-        // Extract subcommands from COMMANDS section or detected commands
-        if !commands.is_empty() {
+        // Extract subcommands from COMMANDS section ONLY if USAGE indicates subcommands
+        // Some tools (e.g., canu) have a "Commands:" section describing pipeline stages/modes
+        // that are selected via flags, NOT positional subcommands. Check USAGE first.
+        let usage_indicates_subcommands = has_subcommands; // set by USAGE patterns above
+
+        if !commands.is_empty() && usage_indicates_subcommands {
             has_subcommands = true;
             // Split comma-separated list and clean up
             for cmd in commands.split(',') {
@@ -344,6 +570,17 @@ impl DocProcessor {
                     subcommands.push(cmd.to_string());
                 }
             }
+        } else if !commands.is_empty() {
+            // Commands section exists but USAGE doesn't indicate subcommands
+            // Store the commands but don't mark as has_subcommands
+            // This handles tools like canu where "Commands:" are pipeline stages
+            for cmd in commands.split(',') {
+                let cmd = cmd.trim();
+                if !cmd.is_empty() && !cmd.contains(' ') {
+                    subcommands.push(cmd.to_string());
+                }
+            }
+            // has_subcommands remains false - first token is a flag
         }
 
         // Look for common subcommand patterns in examples
@@ -373,9 +610,9 @@ impl DocProcessor {
         subcommands.sort();
         subcommands.dedup();
 
-        // Limit to reasonable number
-        if subcommands.len() > 15 {
-            subcommands.truncate(15);
+        // Limit to reasonable number (allow more for multi-command tools like samtools)
+        if subcommands.len() > 50 {
+            subcommands.truncate(50);
         }
 
         // Final inference from examples if still unclear
@@ -588,6 +825,186 @@ impl DocProcessor {
                 catalog[long_idx].alt_form = Some(short_flag);
             }
         }
+
+        // Heuristic: Mark critical flags as required based on semantics
+        for entry in catalog.iter_mut() {
+            let flag_lower = entry.flag.to_lowercase();
+            let desc_lower = entry.description.to_lowercase();
+
+            // Skip if already marked required
+            if entry.required {
+                continue;
+            }
+
+            // Heuristic 1: Database/index flags for specific tools
+            if (flag_lower.contains("--index") || flag_lower.contains("--db") || flag_lower.contains("--database"))
+                && (desc_lower.contains("database") || desc_lower.contains("index"))
+            {
+                entry.required = true;
+            }
+
+            // Heuristic 2: Input type flags when they're critical
+            if flag_lower.contains("--input_type") || flag_lower.contains("--input-type") {
+                entry.required = true;
+            }
+
+            // Heuristic 3: Output directory flags (most tools need output)
+            if (flag_lower.contains("-d") || flag_lower.contains("--outdir") || flag_lower.contains("--output-dir"))
+                && desc_lower.contains("output")
+                && (desc_lower.contains("directory") || desc_lower.contains("dir"))
+            {
+                entry.required = true;
+            }
+
+            // Heuristic 4: Thread/CPU flags - set default if not present
+            if (flag_lower.contains("-t") || flag_lower.contains("-@") || flag_lower.contains("--thread") || flag_lower.contains("--nproc"))
+                && entry.default.is_none()
+            {
+                entry.default = Some("4".to_string());
+            }
+        }
+    }
+
+    /// Extract detailed USAGE pattern analysis from documentation.
+    ///
+    /// This analyzes the USAGE section and examples to determine:
+    /// - Pattern type (subcommand-required, flag-first, positional-args, etc.)
+    /// - Argument order (subcommand, flags, files)
+    /// - Positional argument patterns
+    fn extract_usage_pattern(&self, usage: &str, examples: &str, has_subcommands: bool) -> UsagePattern {
+        let mut pattern = UsagePattern {
+            raw_usage: usage.to_string(),
+            pattern_type: UsagePatternType::Mixed,
+            arg_order: Vec::new(),
+            uses_companion_binaries: false,
+            positional_args: Vec::new(),
+        };
+
+        let usage_lower = usage.to_lowercase();
+
+        // Determine pattern type from USAGE line
+        if has_subcommands {
+            pattern.pattern_type = UsagePatternType::SubcommandRequired;
+            pattern.arg_order.push(ArgPosition::Subcommand);
+        } else if usage_lower.contains("<input>") || usage_lower.contains("<file>") {
+            // Check if positional args come before flags
+            if usage_lower.contains("<input>") && !usage_lower.contains("[options]") {
+                pattern.pattern_type = UsagePatternType::PositionalArgs;
+                pattern.arg_order.push(ArgPosition::Positional);
+            } else {
+                pattern.pattern_type = UsagePatternType::FlagFirst;
+                pattern.arg_order.push(ArgPosition::Flag);
+            }
+        } else {
+            pattern.pattern_type = UsagePatternType::FlagFirst;
+            pattern.arg_order.push(ArgPosition::Flag);
+        }
+
+        // Check for companion binaries in examples
+        for line in examples.lines() {
+            let trimmed = line.trim();
+            if trimmed.contains("-build") || trimmed.contains("-prepare") || trimmed.contains("-index") {
+                if let Some(first_word) = trimmed.split_whitespace().next() {
+                    if first_word.contains('-') && first_word.len() > 5 {
+                        pattern.uses_companion_binaries = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Extract positional argument patterns from USAGE
+        for line in usage.lines() {
+            // Look for patterns like <INPUT>, <OUTPUT>, <FILE>, etc.
+            let re = regex::Regex::new(r"<([A-Z_]+)>").unwrap();
+            for cap in re.captures_iter(line) {
+                if let Some(m) = cap.get(1) {
+                    let arg = m.as_str().to_string();
+                    if !pattern.positional_args.contains(&arg) {
+                        pattern.positional_args.push(arg);
+                    }
+                }
+            }
+        }
+
+        pattern
+    }
+
+    /// Extract file type to flag mappings from documentation examples.
+    ///
+    /// Analyzes example commands to map file extensions to the flags used with them.
+    /// e.g., "-i input.fastq" -> FileTypeMapping { extension: "fastq", flags: ["-i"], io_type: Input }
+    #[allow(dead_code)] // flag_catalog reserved for future semantic analysis
+    fn extract_file_type_mappings(&self, examples: &str, _flag_catalog: &[FlagEntry]) -> Vec<FileTypeMapping> {
+        let mut mappings: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+        let mut output_mappings: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+
+        // Common file extensions in bioinformatics
+        let file_extensions = [
+            "fastq", "fq", "fasta", "fa", "fna", "bam", "sam", "cram",
+            "vcf", "bcf", "bed", "gtf", "gff", "bam.bai", "sam.gz",
+            "txt", "tsv", "csv", "json", "html", "pdf", "png",
+            "gz", "bgz", "zip", "tar", "tar.gz",
+        ];
+
+        for line in examples.lines() {
+            let trimmed = line.trim();
+
+            // Look for flag + file patterns: "-i file.fastq", "--input file.fasta"
+            let words: Vec<&str> = trimmed.split_whitespace().collect();
+            for (i, word) in words.iter().enumerate() {
+                // Check if this word is a flag
+                if word.starts_with('-') && i + 1 < words.len() {
+                    let next_word = words[i + 1];
+
+                    // Check if next word is a file path with extension
+                    for ext in &file_extensions {
+                        if next_word.ends_with(&format!(".{}", ext)) ||
+                           next_word.ends_with(&format!(".{}.{}", ext, "gz")) ||
+                           next_word.ends_with(&format!(".{}.{}", ext, "bgz")) {
+                            let flag = word.to_string();
+                            let ext_key = ext.to_string();
+
+                            // Determine if input or output based on flag semantics
+                            let is_output = flag.contains("-o") ||
+                                           flag.contains("--output") ||
+                                           flag.contains("--out") ||
+                                           flag.contains("-O");
+
+                            if is_output {
+                                output_mappings.entry(ext_key).or_default().push(flag);
+                            } else {
+                                mappings.entry(ext_key).or_default().push(flag);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Build FileTypeMapping results
+        let mut results = Vec::new();
+
+        for (ext, flags) in mappings {
+            let unique_flags: Vec<String> = flags.into_iter().collect::<std::collections::HashSet<_>>().into_iter().collect();
+            results.push(FileTypeMapping {
+                extension: ext,
+                flags: unique_flags,
+                io_type: FileIOType::Input,
+            });
+        }
+
+        for (ext, flags) in output_mappings {
+            let unique_flags: Vec<String> = flags.into_iter().collect::<std::collections::HashSet<_>>().into_iter().collect();
+            results.push(FileTypeMapping {
+                extension: ext,
+                flags: unique_flags,
+                io_type: FileIOType::Output,
+            });
+        }
+
+        results
     }
 
     /// Process documentation for LLM with intelligent formatting
@@ -621,6 +1038,8 @@ impl DocProcessor {
         // COMMANDS - available subcommands
         if !doc.commands.is_empty() {
             output.push_str("=== SUBCOMMANDS ===\n");
+            // Add "Subcommands:" prefix so extract_subcommands can parse it correctly
+            output.push_str("Subcommands: ");
             output.push_str(&doc.commands);
             output.push_str("\n\n");
         }
@@ -732,6 +1151,8 @@ impl DocProcessor {
             "Parameters:",
             "FLAGS:",
             "Flags:",
+            "COMMAND:",
+            "Command:",
             "COMMANDS:",
             "Commands:",
             "DESCRIPTION:",
@@ -742,6 +1163,11 @@ impl DocProcessor {
 
         // Check exact matches
         if header_patterns.iter().any(|p| line.starts_with(p)) {
+            return true;
+        }
+
+        // Check for "=== SECTION ===" format (from doc_summarizer)
+        if line.starts_with("=== ") && line.ends_with(" ===") {
             return true;
         }
 
@@ -778,18 +1204,101 @@ impl DocProcessor {
     /// Extract subcommands from COMMANDS section
     fn extract_subcommands(&self, content: &str) -> String {
         let mut commands = Vec::new();
+
+
+        // Check for formatted subcommand list (e.g., "Subcommands: cmd1, cmd2, cmd3")
+        for line in content.lines() {
+            let trimmed = line.trim();
+            if trimmed.to_lowercase().starts_with("subcommands:") {
+                // Parse comma-separated subcommands from formatted line
+                let after_colon = trimmed.splitn(2, ':').nth(1).unwrap_or("").trim();
+                for cmd in after_colon.split(',') {
+                    let cmd = cmd.trim();
+                    if !cmd.is_empty()
+                        && cmd.chars().all(|c| {
+                            c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '_'
+                        })
+                    {
+                        commands.push(cmd.to_string());
+                    }
+                }
+                // Return immediately if we found formatted subcommands
+                if !commands.is_empty() {
+                    commands.sort();
+                    commands.dedup();
+                    return commands.join(", ");
+                }
+            }
+        }
+
+        // Fall back to parsing raw help text format
+        // Handle formats like:
+        //   samtools: "  sort     Sort BAM file" (indented with spaces)
+        //   bwa: "         mem           BWA-MEM algorithm" (indented after "Command:")
         let lines: Vec<&str> = content.lines().collect();
 
-        for line in lines.iter().take(20) {
+        for line in lines.iter() {
             let trimmed = line.trim();
+
+            // Skip the "Command:" header line itself (not the subcommands listed after it)
+            if trimmed.to_lowercase().starts_with("command:") {
+                // Extract the subcommand from the same line if present (e.g., "Command: index")
+                if let Some(rest) = trimmed.strip_prefix("Command:").or_else(|| trimmed.strip_prefix("command:")) {
+                    let rest_trimmed = rest.trim();
+                    if let Some(first_word) = rest_trimmed.split_whitespace().next() {
+                        if first_word.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '_') {
+                            commands.push(first_word.to_string());
+                        }
+                    }
+                }
+                continue;
+            }
+
+            // Skip empty lines
+            if trimmed.is_empty() {
+                continue;
+            }
+
+            // Skip category headers (lines starting with "--")
+            if trimmed.starts_with("--") {
+                continue;
+            }
 
             // Extract subcommand names (usually first word on line)
             if let Some(first_word) = trimmed.split_whitespace().next() {
-                // Skip if it looks like a flag or placeholder
-                if !first_word.starts_with('-')
-                    && !first_word.starts_with('<')
-                    && !first_word.starts_with('[')
+                // Skip if it looks like a flag, placeholder, or description text
+                if first_word.starts_with('-')
+                    || first_word.starts_with('<')
+                    || first_word.starts_with('[')
                 {
+                    continue;
+                }
+
+                // Skip common non-subcommand words that might appear in descriptions
+                let non_command_words = [
+                    "and", "or", "the", "a", "an", "to", "of", "for", "in", "on", "with",
+                    "from", "by", "at", "as", "into", "through", "during", "before", "after",
+                    "above", "below", "between", "under", "again", "further", "then", "once",
+                    "here", "there", "when", "where", "why", "how", "all", "each", "few",
+                    "more", "most", "other", "some", "such", "only", "own", "same", "so",
+                    "than", "too", "very", "can", "will", "just", "should", "now", "use",
+                    "using", "used", "using", "see", "also", "e.g.", "i.e.", "etc.", "note",
+                    "this", "that", "these", "those", "am", "is", "are", "was", "were",
+                    "be", "been", "being", "have", "has", "had", "do", "does", "did",
+                    "but", "if", "because", "until", "while", "although", "though",
+                ];
+                if non_command_words.contains(&first_word.to_lowercase().as_str()) {
+                    continue;
+                }
+
+                // Valid subcommand names are typically lowercase alphanumeric with hyphens/underscores
+                // and don't contain sentence punctuation
+                if first_word.chars().all(|c| {
+                    c.is_ascii_lowercase()
+                        || c.is_ascii_digit()
+                        || c == '-'
+                        || c == '_'
+                }) {
                     commands.push(first_word.to_string());
                 }
             }
@@ -1647,6 +2156,94 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_samtools_style_extraction() {
+        let processor = DocProcessor::new();
+        let samtools_doc = r#"Program: samtools (Tools for alignments in the SAM format)
+Version: 1.23.1 (using htslib 1.23.1)
+
+Usage:   samtools <command> [options]
+
+Commands:
+  -- Indexing
+     dict           create a sequence dictionary file
+     faidx          index/extract FASTA
+     fqidx          index/extract FASTQ
+     index          index alignment
+
+  -- Editing
+     calmd          recalculate MD/NM tags and '=' bases
+     fixmate        fix mate information
+
+  -- File operations
+     sort           sort alignment file
+     view           SAM<->BAM<->CRAM conversion
+
+  -- Statistics
+     flagstat       simple stats
+     idxstats       BAM index stats
+
+  -- Viewing
+     flags          explain BAM flags
+     tview          text alignment viewer
+
+  -- Misc
+     help [cmd]     display this help message
+     version        detailed version information"#;
+
+        let structured = processor.clean_and_structure(samtools_doc);
+
+        // Check that subcommands were extracted
+        println!("Subcommands: {:?}", structured.subcommands);
+        println!("Has subcommands: {}", structured.has_subcommands);
+        println!("Usage pattern type: {:?}", structured.usage_pattern.pattern_type);
+
+        // Should NOT contain "--" (category headers)
+        assert!(
+            !structured.subcommands.iter().any(|s| s == "--"),
+            "Should not contain category headers like '--', got: {:?}",
+            structured.subcommands
+        );
+
+        // Should have detected subcommands are required
+        assert!(
+            structured.has_subcommands,
+            "Should detect that subcommands are required"
+        );
+
+        // Should contain actual subcommands
+        assert!(
+            structured.subcommands.iter().any(|s| s == "sort"),
+            "Should contain 'sort' subcommand, got: {:?}",
+            structured.subcommands
+        );
+        assert!(
+            structured.subcommands.iter().any(|s| s == "view"),
+            "Should contain 'view' subcommand, got: {:?}",
+            structured.subcommands
+        );
+        assert!(
+            structured.subcommands.iter().any(|s| s == "index"),
+            "Should contain 'index' subcommand, got: {:?}",
+            structured.subcommands
+        );
+        assert!(
+            structured.subcommands.iter().any(|s| s == "dict"),
+            "Should contain 'dict' subcommand, got: {:?}",
+            structured.subcommands
+        );
+
+        // Usage pattern should be SubcommandRequired
+        assert!(
+            matches!(
+                structured.usage_pattern.pattern_type,
+                UsagePatternType::SubcommandRequired
+            ),
+            "Usage pattern should be SubcommandRequired, got: {:?}",
+            structured.usage_pattern.pattern_type
+        );
+    }
+
     // ── Tests for shared free-standing primitives ─────────────────────────────
 
     #[test]
@@ -1734,5 +2331,317 @@ mod tests {
         let text = "Line 1\nLine 2\nLine 3 which is a bit longer to go past the truncation point";
         let result = truncate_smart(text, 30);
         assert!(result.contains("[documentation truncated"));
+    }
+
+    // ─── Tests for Phase 2: Mini-Skill USAGE Injection ─────────────────────────
+
+    #[test]
+    fn test_extract_subcommand_usage() {
+        let processor = DocProcessor::new();
+        let doc = r#"USAGE:
+  bowtie2 [options]* -x <idx> {-1 <m1> -2 <m2> | -U <r>} [-S <sam>]
+  bowtie2-build [options]* <reference_in> <bt2_index_base>
+
+OPTIONS:
+        // Test extracting usage for build (should find bowtie2-build via companion binary)
+
+EXAMPLES:
+
+        // Test extracting usage for align (should find bowtie2 USAGE)
+        let align_usage = sdoc.extract_subcommand_usage("align", "bowtie2");
+        assert!(align_usage.is_some(), "Should find usage for \'align\'");
+        let usage = align_usage.unwrap();
+        assert!(
+            usage.contains("bowtie2") || usage.contains("Example:"),
+            "Usage should contain bowtie2 pattern or example: {}",
+            usage
+        );
+
+        // Test extracting usage for build (should find bowtie2-build)
+        let build_usage = sdoc.extract_subcommand_usage("build", "bowtie2");
+        assert!(build_usage.is_some(), "Should find usage for \'build\'");
+        let usage = build_usage.unwrap();
+        assert!(
+            usage.contains("bowtie2-build") || usage.contains("Example:"),
+            "Usage should contain bowtie2-build pattern: {}",
+            usage
+        );
+    }
+
+    #[test]
+    fn test_build_mini_skill_injection() {
+        let processor = DocProcessor::new();
+        let doc = r#"USAGE:
+  samtools sort [options] <in.bam>
+  samtools view [options] <in.bam>
+
+OPTIONS:
+  -o FILE  Output file
+  -@ INT   Threads
+
+EXAMPLES:
+  $ samtools sort -o sorted.bam input.bam
+  $ samtools view -b input.sam > output.bam
+"#;
+        let sdoc = processor.clean_and_structure(doc);
+
+        // Should detect subcommands
+        assert!(sdoc.has_subcommands, "Should detect subcommands");
+        assert!(
+            sdoc.subcommands.contains(&"sort".to_string()),
+            "Should detect \'sort\' subcommand"
+        );
+        assert!(
+            sdoc.subcommands.contains(&"view".to_string()),
+            "Should detect \'view\' subcommand"
+        );
+
+        // Test mini-skill for sort task
+        let mini_skill = sdoc.build_mini_skill_injection("samtools", "sort the bam file");
+        assert!(
+            mini_skill.is_some(),
+            "Should build mini-skill for \'sort\' task"
+        );
+        let skill = mini_skill.unwrap();
+        assert!(
+            skill.contains("sort") || skill.contains("Example:"),
+            "Mini-skill should contain sort: {}",
+            skill
+        );
+
+        // Test mini-skill for view task
+        let mini_skill_view = sdoc.build_mini_skill_injection("samtools", "view the bam file");
+        assert!(
+            mini_skill_view.is_some(),
+            "Should build mini-skill for \'view\' task"
+        );
+        let skill_view = mini_skill_view.unwrap();
+        assert!(
+            skill_view.contains("view") || skill_view.contains("Example:"),
+            "Mini-skill should contain view: {}",
+            skill_view
+        );
+    }
+
+    #[test]
+    fn test_extract_subcommand_usage_with_companion_binary() {
+        let processor = DocProcessor::new();
+        let doc = r#"USAGE:
+  rsem-calculate-expression [options] <input> <index> <output>
+  rsem-prepare-reference [options] <reference_fasta> <index_name>
+
+EXAMPLES:
+  rsem-prepare-reference reference.fa reference_index
+"#;
+        let sdoc = processor.clean_and_structure(doc);
+
+        // Should detect companion binaries
+        assert!(
+            !sdoc.companion_binaries.is_empty(),
+            "Should detect companion binaries"
+        );
+        let has_prepare_ref = sdoc
+            .companion_binaries
+            .iter()
+            .any(|b| b.contains("prepare-reference"));
+        assert!(has_prepare_ref, "Should detect rsem-prepare-reference");
+
+        // Test extracting usage for prepare-reference task
+        let prepare_usage = sdoc.extract_subcommand_usage("prepare", "rsem");
+        assert!(
+            prepare_usage.is_some(),
+            "Should find usage for \'prepare\' task"
+        );
+    }
+
+    #[test]
+    fn test_bwa_style_extraction() {
+        let processor = DocProcessor::new();
+        let bwa_doc = r#"Program: bwa (alignment via Burrows-Wheeler transformation)
+Version: 0.7.19-r1273
+
+Usage:   bwa <command> [options]
+
+Command: index         index sequences in the FASTA format
+         mem           BWA-MEM algorithm
+         fastmap       identify super-maximal exact matches
+         aln           gapped/ungapped alignment
+         samse         generate alignment (single ended)
+         sampe         generate alignment (paired ended)
+         bwasw         BWA-SW for long queries
+
+Note: To use BWA, you need to first index the genome with `bwa index'.
+      There are three alignment algorithms in BWA: `mem', `bwasw', and
+      `aln/samse/sampe'."#;
+
+        let structured = processor.clean_and_structure(bwa_doc);
+
+        println!("BWA Subcommands: {:?}", structured.subcommands);
+        println!("Has subcommands: {}", structured.has_subcommands);
+
+        // Should contain all major subcommands
+        assert!(structured.subcommands.iter().any(|s| s == "index"), "Should contain 'index'");
+        assert!(structured.subcommands.iter().any(|s| s == "mem"), "Should contain 'mem'");
+        assert!(structured.subcommands.iter().any(|s| s == "aln"), "Should contain 'aln'");
+        assert!(structured.subcommands.iter().any(|s| s == "samse"), "Should contain 'samse'");
+        assert!(structured.subcommands.iter().any(|s| s == "sampe"), "Should contain 'sampe'");
+        assert!(structured.subcommands.iter().any(|s| s == "bwasw"), "Should contain 'bwasw'");
+    }
+
+    #[test]
+    fn test_bcftools_style_extraction() {
+        let processor = DocProcessor::new();
+        let bcftools_doc = r#"Program: bcftools (Tools for variant calling and manipulating VCFs and BCFs)
+Version: 1.21.1 (using htslib 1.21.1)
+
+Usage:   bcftools [--version|--version-only] [--help] <command> <argument>
+Commands:
+   -- Indexing
+      index        index VCF/BCF files
+   -- VCF/BCF manipulation
+      annotate     annotate and edit VCF/BCF files
+      concat       concatenate VCF/BCF files from the same set of samples
+      convert      convert VCF/BCF files to different formats and back
+      isec         intersections of VCF/BCF files
+      merge        merge VCF/BCF files files from non-overlapping sample sets
+      norm         left-align and normalize indels
+      plugin       user-defined plugins
+      query        transform VCF/BCF into user-defined formats
+      reheader     modify VCF/BCF header, change sample names
+      sort         sort VCF/BCF files
+      view         VCF/BCF conversion, view, subset and filter VCF/BCF files
+   -- VCF/BCF analysis
+      call         SNP/indel calling
+      consensus    create consensus sequence by applying VCF variants
+      csq          call variation consequences
+      filter       filter VCF/BCF files using fixed thresholds
+      gtcheck      check sample concordance
+      roh          identify runs of autozygosity
+      stats        produce VCF/BCF stats
+
+Use "bcftools <command>" to see command-specific help."#;
+
+        let structured = processor.clean_and_structure(bcftools_doc);
+
+        println!("BCFTOOLS Subcommands: {:?}", structured.subcommands);
+        println!("Has subcommands: {}", structured.has_subcommands);
+        println!("Commands field: '{}'", structured.commands);
+
+        // Should detect subcommands are required
+        assert!(structured.has_subcommands, "Should detect that subcommands are required");
+
+        // Should contain major subcommands
+        assert!(structured.subcommands.iter().any(|s| s == "view"), "Should contain 'view', got: {:?}", structured.subcommands);
+        assert!(structured.subcommands.iter().any(|s| s == "index"), "Should contain 'index', got: {:?}", structured.subcommands);
+        assert!(structured.subcommands.iter().any(|s| s == "sort"), "Should contain 'sort', got: {:?}", structured.subcommands);
+        assert!(structured.subcommands.iter().any(|s| s == "merge"), "Should contain 'merge', got: {:?}", structured.subcommands);
+        assert!(structured.subcommands.iter().any(|s| s == "call"), "Should contain 'call', got: {:?}", structured.subcommands);
+    }
+
+    #[test]
+    fn test_summarized_bcftools_extraction() {
+        use crate::doc_summarizer::summarize_docs;
+
+        let processor = DocProcessor::new();
+        let bcftools_doc = r#"Program: bcftools (Tools for variant calling and manipulating VCFs and BCFs)
+Version: 1.21.1 (using htslib 1.21.1)
+
+Usage:   bcftools [--version|--version-only] [--help] <command> <argument>
+Commands:
+   -- Indexing
+      index        index VCF/BCF files
+   -- VCF/BCF manipulation
+      annotate     annotate and edit VCF/BCF files
+      concat       concatenate VCF/BCF files from the same set of samples
+      convert      convert VCF/BCF files to different formats and back
+      isec         intersections of VCF/BCF files
+      merge        merge VCF/BCF files files from non-overlapping sample sets
+      norm         left-align and normalize indels
+      plugin       user-defined plugins
+      query        transform VCF/BCF into user-defined formats
+      reheader     modify VCF/BCF header, change sample names
+      sort         sort VCF/BCF files
+      view         VCF/BCF conversion, view, subset and filter VCF/BCF files
+   -- VCF/BCF analysis
+      call         SNP/indel calling
+      consensus    create consensus sequence by applying VCF variants
+      csq          call variation consequences
+      filter       filter VCF/BCF files using fixed thresholds
+      gtcheck      check sample concordance
+      roh          identify runs of autozygosity
+      stats        produce VCF/BCF stats
+
+Use "bcftools <command>" to see command-specific help."#;
+
+        // First, summarize the docs (like the LLM pipeline does)
+        let summarized = summarize_docs(bcftools_doc, 6000);
+        println!("Summarized docs:\n{}", summarized);
+        println!("--- End summarized docs ---");
+
+        // Then process the summarized docs
+        let structured = processor.clean_and_structure(&summarized);
+
+        println!("From summarized - Subcommands: {:?}", structured.subcommands);
+        println!("From summarized - Has subcommands: {}", structured.has_subcommands);
+        println!("From summarized - Commands field: '{}'", structured.commands);
+
+        // Should still detect subcommands even after summarization
+        assert!(structured.has_subcommands, "Should detect subcommands after summarization");
+        assert!(!structured.subcommands.is_empty(), "Should have non-empty subcommands after summarization, got: {:?}", structured.subcommands);
+
+        // Test what happens when we format the structured doc and re-parse it
+        // (this is what happens in the actual pipeline)
+        let formatted = format!("{}", structured);
+        println!("Formatted structured doc:\n{}", formatted);
+        println!("--- End formatted ---");
+
+        let reparsed = processor.clean_and_structure(&formatted);
+        println!("From reparsed - Commands field: '{}' (len={})", reparsed.commands, reparsed.commands.len());
+        println!("From reparsed - Subcommands: {:?}", reparsed.subcommands);
+    }
+
+    #[test]
+    fn test_canu_style_extraction() {
+        let processor = DocProcessor::new();
+        // Canu help text format (simplified) - NOTE: canu does NOT have subcommands!
+        // The "Commands:" section describes MODES/PIPELINE STAGES, not subcommands
+        let canu_doc = r#"USAGE:
+  canu [-haplotype] [-options] [-help] \
+       [-version]
+
+DESCRIPTION:
+  canu is a next-generation sequencing read assembler.
+
+COMMANDS:
+  denovo          Assemble reads de novo.
+  genome          Assemble a genome.
+  meta-assembly   Assemble a metagenome.
+  assembly        Run just the assembly step.
+  correct         Run just the correction step.
+  trim            Run just the trimming step.
+
+OPTIONS:
+  -p <name>       Assembly name (required)
+  -d <dir>        Output directory (required)
+  genomeSize=<X>  Estimated genome size (required)
+  -nanopore-raw   Input is raw ONT data
+  -pacbio-hifi    Input is PacBio HiFi data
+  maxMemory=<X>   Maximum memory to use
+  maxThreads=<N>  Maximum threads to use
+
+EXAMPLES:
+  canu -p ecoli -d ecoli_asm genomeSize=5m -nanopore-raw reads.fastq.gz
+  canu -p asm -d out genomeSize=3g -pacbio-hifi reads.bam maxThreads=8"#;
+
+        let structured = processor.clean_and_structure(canu_doc);
+
+        println!("Canu subcommands: {:?}", structured.subcommands);
+        println!("Has subcommands: {}", structured.has_subcommands);
+        println!("Commands field: '{}'", structured.commands);
+
+        // IMPORTANT: canu does NOT have subcommands - the "Commands:" section
+        // describes pipeline stages that are selected via OPTIONS (-assemble, -correct, -trim)
+        // NOT positional subcommands. First token is always a flag.
+        assert!(!structured.has_subcommands, "Canu should NOT have subcommands - first token is always a flag");
     }
 }

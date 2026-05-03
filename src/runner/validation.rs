@@ -137,6 +137,19 @@ fn expand_flags(arg: &str) -> Vec<String> {
 /// Parse the subcommands section into individual command names.
 fn parse_subcommands(commands_section: &str) -> Vec<String> {
     let mut cmds = Vec::new();
+
+    // Check if input is comma-separated (from doc_processor's extract_subcommands)
+    if commands_section.contains(',') {
+        for cmd in commands_section.split(',') {
+            let cmd = cmd.trim();
+            if !cmd.is_empty() {
+                cmds.push(cmd.to_string());
+            }
+        }
+        return cmds;
+    }
+
+    // Otherwise parse line by line (original format)
     for line in commands_section.lines() {
         let trimmed = line.trim();
         if trimmed.is_empty() {
