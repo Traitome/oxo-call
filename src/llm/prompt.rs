@@ -19,15 +19,17 @@ pub fn system_prompt() -> &'static str {
      \n\
      RULES:\n\
      1. NEVER start ARGS with the tool name (auto-prepended by system).\n\
-     2. First token = subcommand (sort, view, mem, index, etc), NEVER a flag.\n\
+     2. First token depends on tool: subcommand for samtools/bwa/bcftools, flag for canu/flye, companion binary for bowtie2-build.\n\
      3. Companion binaries (e.g. bowtie2-build) or scripts (e.g. bbduk.sh) go as first token when skill docs say so.\n\
      4. Multi-step: join with &&. Tool name auto-prepended ONLY to first segment — later commands MUST include their full binary name.\n\
      5. Pipes (|) and redirects (>) go directly in ARGS.\n\
-     6. Use ONLY flags from docs or skill examples — never invent flags.\n\
-     7. Include every file/path from the task. Prefer skill example flags. Include thread flags and output flags when applicable (use the exact flag form from docs/examples, never combine short and long forms like -o/--output).\n\
+     6. Use ONLY flags from <flag_catalog> — never invent flags.\n\
+     7. Include every file/path from the task. Include thread flags and output flags when applicable.\n\
      8. Default conventions: paired-end, coordinate-sorted BAM, hg38, gzipped FASTQ, Phred+33.\n\
      9. Match format flags to actual types (BAM/SAM/CRAM, gzipped/plain, paired/single, FASTA/FASTQ).\n\
-     10. If no arguments needed: ARGS: (none)."
+     10. If no arguments needed: ARGS: (none).\n\
+     11. CRITICAL: NEVER copy example values verbatim. Extract actual values from the TASK. Examples show flag FORMAT only.\n\
+"
 }
 
 /// Medium-compression system prompt for 4k–16k context or 4B–7B models.
@@ -62,9 +64,17 @@ const TOOL_DEFAULT_FEW_SHOT: &[(&str, &str, &str)] = &[
         "view",
         "view -b -o output.bam input.bam chr1:1000-2000",
     ),
+    ("samtools", "flagstat", "flagstat input.bam"),
+    (
+        "samtools",
+        "merge",
+        "merge -o merged.bam input1.bam input2.bam",
+    ),
     ("bwa", "align", "mem -t 4 reference.fa read1.fq read2.fq"),
     ("bwa", "mem", "mem -t 4 reference.fa read1.fq read2.fq"),
     ("bwa", "index", "index reference.fa"),
+    ("bwa", "aln", "aln -t 4 reference.fa reads.fq > reads.sai"),
+    ("bwa", "samse", "samse reference.fa reads.sai reads.fq > output.sam"),
     ("bcftools", "call", "call -o output.vcf input.bcf"),
     (
         "bcftools",
@@ -116,6 +126,16 @@ const TOOL_DEFAULT_FEW_SHOT: &[(&str, &str, &str)] = &[
     ),
     ("cutadapt", "trim", "-a AGATCGGAAGAG -o output.fq input.fq"),
     ("fastp", "trim", "-i input.fq -o output.fq"),
+    (
+        "fastp",
+        "paired",
+        "-i read1.fq -I read2.fq -o out1.fq -O out2.fq -w 8 -h report.html -j report.json",
+    ),
+    (
+        "fastp",
+        "filter",
+        "-i input.fq -o output.fq -q 20 -l 50 --cut_front --cut_tail",
+    ),
     ("multiqc", "report", "."),
     (
         "salmon",
@@ -132,6 +152,78 @@ const TOOL_DEFAULT_FEW_SHOT: &[(&str, &str, &str)] = &[
         "count",
         "-a annotation.gtf -o counts.txt input.bam",
     ),
+    // Tools without subcommands (positional arguments first)
+    ("admixture", "ancestry", "data.bed 5 --cv=10"),
+    ("admixture", "estimate", "data.bed 3"),
+    ("metaphlan", "profile", "--input_type fastq -o out.txt reads.fq"),
+    ("metaphlan", "taxonomic", "--input_type fastq reads.fq -o profile.txt"),
+    // Additional alignment tools
+    ("minimap2", "align", "-t 4 -x map-ont reference.fa reads.fq > output.sam"),
+    ("minimap2", "map", "-t 4 reference.fa reads.fq -o output.sam"),
+    // Variant calling
+    ("freebayes", "call", "-f reference.fa -o output.vcf input.bam"),
+    ("varscan2", "snp", "input.bam output.vcf --min-coverage 10"),
+    // RNA-seq
+    ("star", "align", "--runThreadN 4 --genomeDir genome --readFilesIn reads.fq"),
+    ("stringtie", "assemble", "-p 4 -G genes.gtf -o output.gtf input.bam"),
+    // Assembly
+    ("spades", "assemble", "-t 4 -1 reads1.fq -2 reads2.fq -o output_dir"),
+    ("spades", "rna", "--rna -1 reads1.fq -2 reads2.fq -o output_dir"),
+    ("megahit", "assemble", "-t 4 -1 reads1.fq -2 reads2.fq -o output_dir"),
+    ("flye", "assemble", "--genome-size 5m --out-dir output reads.fq"),
+    // Assembly QC
+    ("quast", "qc", "-t 4 -o output_dir assembly.fa"),
+    ("busco", "assess", "-i assembly.fa -l bacteria -o output_dir -m genome"),
+    // k-mer tools
+    ("jellyfish", "count", "-t 4 -m 21 -o output.jf input.fq"),
+    ("mash", "dist", "-p 4 reference.msh query.fasta"),
+    ("mash", "sketch", "-p 4 -o output input.fasta"),
+    // Metagenomics
+    ("kraken2", "classify", "--db kraken2_db --output output.txt --report report.txt reads.fq"),
+    ("bracken", "abundance", "-d kraken2_db -i report.txt -o output.txt"),
+    ("humann3", "profile", "--input reads.fq --output output_dir"),
+    ("diamond", "blastx", "-d nr -q reads.fq -o output.m8 --threads 4"),
+    // Genome annotation
+    ("prokka", "annotate", "--outdir output --prefix genome assembly.fa"),
+    ("bakta", "annotate", "--db db_path --output output_dir assembly.fa"),
+    ("checkm2", "check", "--input genomes_dir --output_dir output --threads 4"),
+    // Additional QC and preprocessing tools
+    ("trimmomatic", "trim", "PE -threads 4 -phred33 input_R1.fq input_R2.fq output_R1.fq output_unpaired_R1.fq output_R2.fq output_unpaired_R2.fq ILLUMINACLIP:adapters.fa:2:30:10"),
+    ("trimgalore", "trim", "--paired --quality 20 --length 20 --output_dir output --cores 4 read1.fq read2.fq"),
+    ("seqkit", "stats", "stats -j 4 -a *.fastq.gz"),
+    ("seqtk", "sample", "sample -s 100 input.fq 10000 > output.fq"),
+    ("seqtk", "seq", "seq -a input.fq > output.fa"),
+    // Alignment tools
+    ("bwa-mem2", "align", "mem -t 4 reference.fa read1.fq read2.fq > output.sam"),
+    ("bwa-mem2", "index", "index reference.fa"),
+    ("bowtie2", "align", "-x index -1 read1.fq -2 read2.fq -S output.sam --threads 4"),
+    ("bowtie2", "build", "bowtie2-build reference.fa index_prefix"),
+    // Variant calling
+    ("gatk", "haplotypecaller", "HaplotypeCaller -R reference.fa -I input.bam -O output.vcf"),
+    ("gatk", "markduplicates", "MarkDuplicates -I input.bam -O output.bam -M metrics.txt"),
+    ("picard", "markduplicates", "MarkDuplicates -I input.bam -O output.bam -M metrics.txt"),
+    // Peak calling
+    ("macs3", "callpeak", "callpeak -t treatment.bam -c control.bam -n output_prefix -g hs"),
+    ("macs2", "callpeak", "callpeak -t treatment.bam -c control.bam -n output_prefix -g hs"),
+    // Metagenomics
+    ("kraken2", "classify", "--db kraken2_db --output output.txt --report report.txt --threads 4 reads.fq"),
+    ("bracken", "abundance", "-d kraken2_db -i report.txt -o output.txt -r 150 -l S"),
+    // Phylogenetics
+    ("iqtree", "tree", "-s alignment.fa -m MFP -bb 1000 -nt 4"),
+    ("raxml-ng", "tree", "--msa alignment.fa --model GTR+G --threads 4 --bootstrap 100"),
+    // Additional RNA-seq
+    ("featurecounts", "count", "-a annotation.gtf -o counts.txt -T 4 -p input.bam"),
+    ("salmon", "quant", "quant -i index -l A -1 reads1.fq -2 reads2.fq -o output_dir --threads 4"),
+    ("kallisto", "quant", "quant -i index -o output_dir --threads 4 reads1.fq reads2.fq"),
+    // Additional utilities
+    ("bedops", "convert", "-c --delim '\t' < input.bed > output.bed"),
+    ("tabix", "index", "-p vcf input.vcf.gz"),
+    ("bgzip", "compress", "-c input.vcf > output.vcf.gz"),
+    ("vcftools", "filter", "--vcf input.vcf --minQ 30 --recode --out output"),
+    ("vcflib", "filter", "vcffilter -f \"QUAL > 30\" input.vcf > output.vcf"),
+    ("bamtools", "convert", "convert -in input.bam -out output.sam"),
+    ("sambamba", "sort", "sort -t 4 -o sorted.bam input.bam"),
+    ("sambamba", "markdup", "markdup -t 4 input.bam output.bam"),
 ];
 
 // ── Token estimation ─────────────────────────────────────────────────────────
@@ -247,10 +339,41 @@ fn build_prompt_full(
         }
 
         prompt.push_str("</format_constraints>\n\n");
+
+        // ── Tool-specific required flags (extracted from community knowledge) ──────
+        let tool_lower = tool.to_lowercase();
+        let required_flags_hint = match tool_lower.as_str() {
+            "metaphlan" => Some("CRITICAL: MetaPhlAn requires --input_type, --db_dir (database directory), and --index (index prefix)"),
+            "kraken2" | "kraken" => Some("CRITICAL: Kraken2 requires --db (database path)"),
+            "bracken" => Some("CRITICAL: Bracken requires -d (database), -i (input), -o (output), and -r (read length)"),
+            "bowtie2" => Some("CRITICAL: bowtie2 align requires -x (index prefix) and input reads (-1/-2/-U)"),
+            "bwa" => Some("CRITICAL: bwa mem requires reference index and input reads"),
+            "hisat2" => Some("CRITICAL: hisat2 requires -x (index prefix) and input reads (-1/-2/-U)"),
+            "salmon" => Some("CRITICAL: salmon quant requires -i (index), -l (library type), and -o (output)"),
+            "kallisto" => Some("CRITICAL: kallisto quant requires -i (index), -o (output), and input reads"),
+            "canu" => Some("CRITICAL: canu requires -p (prefix), -d (directory), genomeSize, and input type (-nanopore/-pacbio)"),
+            "trinity" => Some("CRITICAL: Trinity requires --seqType, --max_memory, --CPU, and input files"),
+            "spades" => Some("CRITICAL: SPAdes requires -o (output directory) and input reads (-1/-2 or -s)"),
+            _ => None,
+        };
+
+        if let Some(hint) = required_flags_hint {
+            prompt.push_str("<tool_requirements>\n");
+            prompt.push_str(&format!("  {}\n", hint));
+            prompt.push_str("</tool_requirements>\n\n");
+        }
+
         // ── Format examples (few-shot for small models) ─────────────────────
-        // Add concrete RIGHT vs WRONG examples when no subcommands
-        if !sdoc.has_subcommands && sdoc.subcommands.is_empty() {
-            prompt.push_str("<format_examples>\n");
+        // Phase 3: Add concrete RIGHT vs WRONG examples for clarity
+        prompt.push_str("<format_examples>\n");
+        if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
+            // Tools WITH subcommands - show subcommand-first examples
+            prompt.push_str("  CORRECT (subcommand first): samtools sort -o out.bam in.bam\n");
+            prompt.push_str("  WRONG (missing subcommand): samtools -o out.bam in.bam\n");
+            prompt.push_str("  CORRECT (subcommand first): bwa mem -t 4 ref.fa reads.fq\n");
+            prompt.push_str("  WRONG (missing subcommand): bwa -t 4 ref.fa reads.fq\n");
+        } else if !sdoc.has_subcommands {
+            // Tools WITHOUT subcommands - show flag-first examples
             prompt.push_str("  CORRECT (no subcommand): admixture data.bed 5 --cv=10\n");
             prompt.push_str("  WRONG (hallucinated subcommand): admixture run -i data.bed -K 5\n");
             prompt.push_str(
@@ -259,22 +382,69 @@ fn build_prompt_full(
             prompt.push_str(
                 "  WRONG (hallucinated subcommand): metaphlan profile --input reads.fq\n",
             );
-            prompt.push_str("</format_examples>\n\n");
         }
+        prompt.push_str("</format_examples>\n\n");
     }
 
     // ── Flag catalog (deterministic constraint anchor) ────────────────────
     if let Some(sdoc) = structured_doc
         && !sdoc.flag_catalog.is_empty()
     {
+        // Separate required and optional flags for clarity
+        let required_flags: Vec<_> = sdoc.flag_catalog.iter()
+            .filter(|e| e.required)
+            .take(20)
+            .collect();
+        let optional_flags: Vec<_> = sdoc.flag_catalog.iter()
+            .filter(|e| !e.required)
+            .take(30)
+            .collect();
+
         prompt.push_str("<flag_catalog>\n");
-        for entry in sdoc.flag_catalog.iter().take(40) {
-            if entry.description.is_empty() {
-                prompt.push_str(&format!("  {}\n", entry.flag));
-            } else {
-                prompt.push_str(&format!("  {}    {}\n", entry.flag, entry.description));
+
+        // Show required flags first with clear marking
+        if !required_flags.is_empty() {
+            prompt.push_str("  [REQUIRED FLAGS - must include these]:\n");
+            for entry in &required_flags {
+                let default_info = entry.default.as_ref()
+                    .map(|d| format!(" [default: {}]", d))
+                    .unwrap_or_default();
+                if entry.description.is_empty() {
+                    prompt.push_str(&format!("    {}{}\n", entry.flag, default_info));
+                } else {
+                    prompt.push_str(&format!("    {}    {}{}\n",
+                        entry.flag, entry.description, default_info));
+                }
+            }
+            prompt.push_str("\n");
+        }
+
+        // Show optional flags
+        if !optional_flags.is_empty() {
+            prompt.push_str("  [OPTIONAL FLAGS]:\n");
+            for entry in optional_flags {
+                if entry.description.is_empty() {
+                    prompt.push_str(&format!("    {}\n", entry.flag));
+                } else {
+                    prompt.push_str(&format!("    {}    {}\n", entry.flag, entry.description));
+                }
             }
         }
+        prompt.push_str("</flag_catalog>\n\n");
+    } else if let Some(sdoc) = structured_doc
+        && sdoc.has_subcommands
+        && !sdoc.subcommands.is_empty()
+    {
+        // Multi-command tool with empty flag catalog - provide guidance
+        prompt.push_str("<flag_catalog>\n");
+        prompt.push_str("  [MULTI-COMMAND TOOL - Flags are subcommand-specific]\n");
+        prompt.push_str("  This tool has subcommands with their own specific flags.\n");
+        prompt.push_str("  Common flags for most subcommands:\n");
+        prompt.push_str("    -@ INT       Number of threads (parallel processing)\n");
+        prompt.push_str("    -o FILE      Output file (write to file instead of stdout)\n");
+        prompt.push_str("    -b           Output BAM format (binary, compressed)\n");
+        prompt.push_str("    -h           Show help for the subcommand\n");
+        prompt.push_str("  Use 'tool help <subcommand>' to see specific flags for each subcommand.\n");
         prompt.push_str("</flag_catalog>\n\n");
     }
 
@@ -287,7 +457,20 @@ fn build_prompt_full(
         .map(|s| s.extracted_examples.iter().take(5).collect())
         .unwrap_or_default();
 
-    let has_examples = !skill_examples.is_empty() || !doc_examples.is_empty();
+    // Generate synthetic examples for multi-command tools with no examples
+    let synthetic_examples = if skill_examples.is_empty()
+        && doc_examples.is_empty()
+        && let Some(sdoc) = structured_doc
+        && sdoc.has_subcommands
+        && !sdoc.subcommands.is_empty()
+    {
+        // Generate examples based on common subcommand patterns
+        generate_synthetic_examples(tool, task, sdoc)
+    } else {
+        Vec::new()
+    };
+
+    let has_examples = !skill_examples.is_empty() || !doc_examples.is_empty() || !synthetic_examples.is_empty();
     if has_examples {
         prompt.push_str("<examples>\n");
         for ex in &skill_examples {
@@ -296,10 +479,20 @@ fn build_prompt_full(
                 ex.task, ex.args, ex.explanation
             ));
         }
+        // Add warning for doc-extracted examples (not skill examples)
+        if !doc_examples.is_empty() {
+            prompt.push_str("  # NOTE: The following examples show flag FORMAT only.\n");
+            prompt.push_str("  # DO NOT copy the example values - use values from YOUR task above.\n\n");
+        }
         for ex in &doc_examples {
             // Strip leading tool name if present.
             let args_part = ex.strip_prefix(tool).map(|s| s.trim_start()).unwrap_or(ex);
             prompt.push_str(&format!("  ARGS: {args_part}\n\n"));
+        }
+        for ex in &synthetic_examples {
+            prompt.push_str(&format!("  Task: {}\n  ARGS: {}\n  # {}\n\n",
+                ex.task, ex.args, ex.explanation
+            ));
         }
         prompt.push_str("</examples>\n\n");
     }
@@ -330,8 +523,9 @@ fn build_prompt_full(
          1. Check <format_constraints> — if SUBCOMMAND_REQUIRED=YES, first token MUST be a listed subcommand\n\
          2. If COMPANION_BINARIES listed, use that name as first token instead of main tool\n\
          3. Use ONLY flags from <flag_catalog> — NEVER invent flags\n\
-         4. Follow exact formats shown in <examples>\n\
-         5. Include ALL required parameters from the task\n\n\
+         4. REQUIRED FLAGS: MUST include ALL flags marked [REQUIRED] from flag_catalog\n\
+         5. Use <examples> ONLY for flag FORMAT — NEVER copy example values verbatim\n\
+         6. Extract ALL values (file paths, names, parameters) from the TASK description\n\n\
          ARGS: <subcommand then flags, NO tool name>\n\
          EXPLANATION: <brief one-sentence description>\n",
     );
@@ -362,6 +556,9 @@ fn build_prompt_medium(
                     .collect::<Vec<_>>()
                     .join(", ")
             ));
+            // Phase 3: Add RIGHT/WRONG examples for subcommand tools
+            prompt.push_str("Example CORRECT: bwa mem -t 4 ref.fa reads.fq\n");
+            prompt.push_str("Example WRONG: bwa -t 4 ref.fa reads.fq (missing 'mem')\n");
         } else if !sdoc.has_subcommands {
             prompt.push_str("First token is flag or input (NO subcommand).\n");
             // Add few-shot examples for tools without subcommands
@@ -484,12 +681,38 @@ fn build_prompt_compact(
             ));
         }
     } else if let Some(sdoc) = structured_doc {
-        // No skill examples — use doc-extracted examples as few-shot
-        // This is the key innovation for doc-only accuracy with small models
-        if !sdoc.extracted_examples.is_empty() {
-            // Use the first doc example as a few-shot demonstration
+        // Phase 3: Unified Architecture - Prioritize tool defaults over extracted examples
+        // Check if we have tool-specific defaults first (more reliable than extracted examples)
+        let task_lower = task.to_ascii_lowercase();
+        let has_tool_defaults = TOOL_DEFAULT_FEW_SHOT.iter().any(|(t, keyword, _)| {
+            *t == tool && (task_matches_keyword(&task_lower, keyword) || *keyword == "sort")
+        });
+
+        if has_tool_defaults {
+            // Use tool-specific defaults for common tools (more reliable)
+            add_tool_specific_few_shot(&mut prompt, tool, task);
+        } else if let Some(mini_skill) = sdoc.build_mini_skill_injection(tool, task) {
+            // Phase 2: Mini-Skill USAGE Injection for tools without defaults
+            // Use the mini-skill injection which includes USAGE + example
+            // Use FEW-SHOT markers to trigger multi-turn formatting in provider
+            prompt.push_str(&format!(
+                "Task: {task}\n\n---FEW-SHOT---\n\n{mini_skill}\n\n---FEW-SHOT---\n\n"
+            ));
+
+            // Also add a concrete extracted example as assistant response if available
+            if !sdoc.extracted_examples.is_empty() {
+                let ex_cmd = &sdoc.extracted_examples[0];
+                let args_part = ex_cmd
+                    .strip_prefix(tool)
+                    .map(|s| s.trim_start())
+                    .unwrap_or(ex_cmd);
+                prompt.push_str(&format!(
+                    "ARGS: {args_part}\nEXPLANATION: Example from docs."
+                ));
+            }
+        } else if !sdoc.extracted_examples.is_empty() {
+            // No mini-skill, but have doc examples — use them as few-shot
             let ex_cmd = &sdoc.extracted_examples[0];
-            // Strip the tool name if it starts with it
             let args_part = ex_cmd
                 .strip_prefix(tool)
                 .map(|s| s.trim_start())
@@ -499,7 +722,6 @@ fn build_prompt_compact(
                 "Task: Use {tool}\n\n---FEW-SHOT---\n\nARGS: {args_part}\nEXPLANATION: Example from documentation.\n\n---FEW-SHOT---\n\n"
             ));
 
-            // Second doc example if available
             if let Some(ex2) = sdoc.extracted_examples.get(1) {
                 let args_part2 = ex2
                     .strip_prefix(tool)
@@ -525,14 +747,14 @@ fn build_prompt_compact(
         let matches: Vec<&(&str, &str, &str)> = TOOL_DEFAULT_FEW_SHOT
             .iter()
             .filter(|(t, keyword, _)| {
-                *t == tool && (task_lower.contains(*keyword) || keyword == &"sort")
+                *t == tool && (task_matches_keyword(&task_lower, keyword) || keyword == &"sort")
             })
             .take(2)
             .collect();
 
         if !matches.is_empty() {
             for (_, keyword, args) in &matches {
-                let task_desc = if task_lower.contains(*keyword) {
+                let task_desc = if task_matches_keyword(&task_lower, keyword) {
                     task
                 } else {
                     "Use tool"
@@ -974,4 +1196,254 @@ pub fn build_retry_prompt_inner(
          {prev_raw}\n\
          Please respond again with EXACTLY two lines starting with 'ARGS:' and 'EXPLANATION:'.\n"
     )
+}
+
+/// Check if task contains keyword as a whole word (not substring).
+/// Prevents "aligned" from matching "align" keyword.
+fn task_matches_keyword(task: &str, keyword: &str) -> bool {
+    if task.contains(keyword) {
+        // Check word boundaries: either at start, after whitespace/punctuation,
+        // or at end, before whitespace/punctuation
+        let keyword_bytes = keyword.as_bytes();
+        let task_bytes = task.as_bytes();
+
+        for (idx, window) in task_bytes.windows(keyword_bytes.len()).enumerate() {
+            if window == keyword_bytes {
+                // Check left boundary
+                let left_ok = idx == 0 || {
+                    let left_char = task_bytes[idx - 1] as char;
+                    left_char.is_whitespace() || left_char == '-' || left_char == '_'
+                };
+                // Check right boundary
+                let right_ok = idx + keyword_bytes.len() >= task_bytes.len() || {
+                    let right_char = task_bytes[idx + keyword_bytes.len()] as char;
+                    right_char.is_whitespace()
+                        || right_char == '-'
+                        || right_char == '_'
+                        || matches!(right_char, ',' | '.' | ';' | '!' | '?')
+                };
+                if left_ok && right_ok {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+/// Synthetic example for few-shot prompting.
+#[derive(Debug)]
+struct SyntheticExample {
+    task: String,
+    args: String,
+    explanation: String,
+}
+
+/// Generate synthetic examples for multi-command tools with no doc examples.
+/// Uses common patterns for bioinformatics subcommands.
+fn generate_synthetic_examples(
+    tool: &str,
+    task: &str,
+    sdoc: &crate::doc_processor::StructuredDoc,
+) -> Vec<SyntheticExample> {
+    let mut examples = Vec::new();
+    let task_lower = task.to_lowercase();
+
+    // Find the most relevant subcommand based on task keywords
+    let mut best_subcommand = None;
+    for sub in &sdoc.subcommands {
+        let sub_lower = sub.to_lowercase();
+        if task_lower.contains(&sub_lower) {
+            best_subcommand = Some(sub.as_str());
+            break;
+        }
+    }
+
+    // If no direct match, infer from common task patterns
+    let subcommand = best_subcommand.unwrap_or_else(|| {
+        if task_lower.contains("sort") {
+            "sort"
+        } else if task_lower.contains("view") || task_lower.contains("convert") {
+            "view"
+        } else if task_lower.contains("index") {
+            "index"
+        } else if task_lower.contains("stat") || task_lower.contains("stats") {
+            "flagstat"
+        } else if task_lower.contains("merge") {
+            "merge"
+        } else if task_lower.contains("fastq") {
+            "fastq"
+        } else if task_lower.contains("fasta") {
+            "fasta"
+        } else {
+            // Default to first subcommand if nothing matches
+            sdoc.subcommands.first().map(|s| s.as_str()).unwrap_or("help")
+        }
+    });
+
+    // Generate example based on subcommand type
+    let (args, explanation) = match subcommand {
+        "sort" => (
+            format!("sort -@ 4 -o output.bam input.bam"),
+            "Sort BAM file by coordinate, 4 threads, output to file".to_string(),
+        ),
+        "view" => (
+            format!("view -b -@ 4 -o output.bam input.sam"),
+            "Convert SAM to BAM, 4 threads, output to file".to_string(),
+        ),
+        "index" => (
+            format!("index input.bam"),
+            "Create index for BAM file".to_string(),
+        ),
+        "flagstat" => (
+            format!("flagstat input.bam"),
+            "Get alignment statistics".to_string(),
+        ),
+        "merge" => (
+            format!("merge -@ 4 -o merged.bam input1.bam input2.bam"),
+            "Merge multiple BAM files, 4 threads".to_string(),
+        ),
+        "dict" => (
+            format!("dict -o reference.dict reference.fa"),
+            "Create sequence dictionary from FASTA".to_string(),
+        ),
+        "faidx" => (
+            format!("faidx reference.fa"),
+            "Index FASTA file for random access".to_string(),
+        ),
+        "fastq" => (
+            format!("fastq -@ 4 -1 R1.fastq.gz -2 R2.fastq.gz input.bam"),
+            "Convert BAM to paired FASTQ files".to_string(),
+        ),
+        "fasta" => (
+            format!("fasta -@ 4 -o output.fa input.bam"),
+            "Convert BAM to FASTA".to_string(),
+        ),
+        "depth" => (
+            format!("depth -a input.bam"),
+            "Compute per-base depth including zero coverage".to_string(),
+        ),
+        "markdup" => (
+            format!("markdup -@ 4 -f stats.txt input.bam output.bam"),
+            "Mark PCR duplicates, 4 threads".to_string(),
+        ),
+        "fixmate" => (
+            format!("fixmate -m -@ 4 input.bam output.bam"),
+            "Fix mate information for duplicate marking".to_string(),
+        ),
+        _ => (
+            format!("{} -o output.txt input.txt", subcommand),
+            format!("Run {} subcommand with output file", subcommand),
+        ),
+    };
+
+    examples.push(SyntheticExample {
+        task: task.to_string(),
+        args,
+        explanation,
+    });
+
+    examples
+}
+
+/// Infer values from task description to help the model extract them.
+/// Returns a list of (value_type, example_value) pairs.
+fn infer_values_from_task(task: &str, sdoc: &crate::doc_processor::StructuredDoc) -> Vec<(String, String)> {
+    use regex::Regex;
+    let mut values = Vec::new();
+    let task_lower = task.to_lowercase();
+
+    // Extract file paths with extensions
+    let file_pattern = Regex::new(r"[\w\-./]+\.(fastq|fq|fasta|fa|fna|bam|sam|cram|vcf|bcf|bed|gtf|gff|txt|tsv|csv|json|html|pdf|png|gz|zip)(\.gz)?\b").unwrap();
+    let files: Vec<&str> = file_pattern.find_iter(task).map(|m| m.as_str()).collect();
+
+    // Categorize files by type
+    let mut input_files = Vec::new();
+    let mut output_files = Vec::new();
+    let mut reference_files = Vec::new();
+
+    for file in files {
+        let file_lower = file.to_lowercase();
+        // Reference files often contain "ref", "genome", "index", "fa"
+        if file_lower.contains("ref") || file_lower.contains("genome") || file_lower.contains("index") ||
+           file_lower.ends_with(".fa") || file_lower.ends_with(".fasta") || file_lower.ends_with(".fna") {
+            reference_files.push(file);
+        }
+        // Output files often contain "out", "result", "sorted", "aligned"
+        else if file_lower.contains("out") || file_lower.contains("result") || file_lower.contains("sorted") ||
+                file_lower.contains("aligned") || file_lower.contains("filtered") {
+            output_files.push(file);
+        } else {
+            input_files.push(file);
+        }
+    }
+
+    // Add inferred values with appropriate flag hints
+    if !input_files.is_empty() {
+        values.push(("Input files".to_string(), input_files.join(", ")));
+        // Try to find appropriate input flag from catalog
+        let input_flag = sdoc.flag_catalog.iter()
+            .find(|e| {
+                let flag_lower = e.flag.to_lowercase();
+                let desc_lower = e.description.to_lowercase();
+                (flag_lower.contains("-i") || flag_lower.contains("--input") || flag_lower.contains("-1")) &&
+                (desc_lower.contains("input") || desc_lower.contains("file"))
+            })
+            .map(|e| e.flag.clone())
+            .unwrap_or_else(|| "-i or --input".to_string());
+        values.push(("Input flag".to_string(), input_flag));
+    }
+
+    if !output_files.is_empty() {
+        values.push(("Output files".to_string(), output_files.join(", ")));
+        let output_flag = sdoc.flag_catalog.iter()
+            .find(|e| {
+                let flag_lower = e.flag.to_lowercase();
+                flag_lower.contains("-o") || flag_lower.contains("--output") || flag_lower.contains("--out")
+            })
+            .map(|e| e.flag.clone())
+            .unwrap_or_else(|| "-o or --output".to_string());
+        values.push(("Output flag".to_string(), output_flag));
+    }
+
+    if !reference_files.is_empty() {
+        values.push(("Reference/index files".to_string(), reference_files.join(", ")));
+    }
+
+    // Extract thread count
+    let thread_pattern = Regex::new(r"([0-9]+)\s*(?:thread|cpu|core|parallel)").unwrap();
+    if let Some(cap) = thread_pattern.captures(&task_lower) {
+        if let Some(threads) = cap.get(1) {
+            values.push(("Thread count".to_string(), threads.as_str().to_string()));
+            // Find thread flag
+            let thread_flag = sdoc.flag_catalog.iter()
+                .find(|e| {
+                    let flag_lower = e.flag.to_lowercase();
+                    let desc_lower = e.description.to_lowercase();
+                    (flag_lower.contains("-@") || flag_lower.contains("-t") || flag_lower.contains("--thread")) &&
+                    (desc_lower.contains("thread") || desc_lower.contains("cpu") || desc_lower.contains("parallel"))
+                })
+                .map(|e| e.flag.clone())
+                .unwrap_or_else(|| "-@ or -t".to_string());
+            values.push(("Thread flag".to_string(), thread_flag));
+        }
+    }
+
+    // Extract sample/prefix name
+    let sample_pattern = Regex::new("(?:sample|prefix|name)\\s+(?:is\\s+)?['\"]?([a-z0-9_-]+)['\"]?").unwrap();
+    if let Some(cap) = sample_pattern.captures(&task_lower) {
+        if let Some(sample) = cap.get(1) {
+            values.push(("Sample/prefix name".to_string(), sample.as_str().to_string()));
+        }
+    }
+
+    // Extract genome size
+    let genome_pattern = Regex::new("genome\\s*size\\s*(?:of\\s*)?(\\d+[kmg]?)").unwrap();
+    if let Some(cap) = genome_pattern.captures(&task_lower) {
+        if let Some(size) = cap.get(1) {
+            values.push(("Genome size".to_string(), size.as_str().to_string()));
+        }
+    }
+
+    values
 }

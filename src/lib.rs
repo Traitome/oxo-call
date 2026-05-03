@@ -35,6 +35,7 @@ pub mod runner;
 pub mod server;
 pub mod skill;
 pub mod streaming_display;
+pub mod validator;
 pub mod workflow;
 
 // Re-export commonly used types for convenience
