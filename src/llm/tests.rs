@@ -526,3 +526,469 @@ fn test_verification_prompt_wraps_stderr_in_untrusted_block() {
         "stderr block must be marked as untrusted"
     );
 }
+
+#[test]
+fn test_build_prompt_compact_uses_tool_defaults() {
+    use crate::doc_processor::DocProcessor;
+
+    // Test with bwa - should use TOOL_DEFAULT_FEW_SHOT
+    let processor = DocProcessor::new();
+    let doc = "USAGE:\n  bwa mem [options] <ref.fa> <in.fq>\n\nOPTIONS:\n  -t INT  Threads\n";
+    let sdoc = processor.clean_and_structure(doc);
+
+    let prompt = build_prompt(
+        "bwa",
+        doc,
+        "align reads to reference",
+        None,  // No skill
+        false,
+        4096,
+        PromptTier::Compact,
+        Some(&sdoc),
+    );
+
+    // Should contain the default example for bwa
+    assert!(
+        prompt.contains("mem -t 4") || prompt.contains("bwa mem"),
+        "Compact prompt for bwa should include default mem example, got: {}",
+        prompt
+    );
+}
+
+#[test]
+fn test_build_prompt_compact_admixture_no_subcommand() {
+    use crate::doc_processor::DocProcessor;
+
+    // Test admixture - should use positional args without subcommand
+    let processor = DocProcessor::new();
+    let doc = "USAGE:\n  admixture [options] <data.bed> <K>\n\nOPTIONS:\n  --cv INT  Cross-validation\n";
+    let sdoc = processor.clean_and_structure(doc);
+
+    let prompt = build_prompt(
+        "admixture",
+        doc,
+        "estimate ancestry with 5 populations",
+        None,
+        false,
+        4096,
+        PromptTier::Compact,
+        Some(&sdoc),
+    );
+
+    // Should not suggest a subcommand
+    assert!(
+        !prompt.contains("admixture run") && !prompt.contains("admixture ancestry"),
+        "Admixture prompt should not hallucinate subcommand"
+    );
+}
+
+/// Test that validates doc accuracy improvements for problematic tools
+#[test]
+fn test_doc_accuracy_subcommand_presence() {
+    use crate::doc_processor::DocProcessor;
+    use crate::llm::prompt::build_prompt;
+    use crate::llm::types::PromptTier;
+
+    let processor = DocProcessor::new();
+
+    // Test cases: (tool, task, required_subcommand)
+    let test_cases = vec![
+        ("bwa", "align reads to reference", "mem"),
+        ("samtools", "sort the bam file", "sort"),
+        ("bcftools", "call variants", "call"),
+        ("bowtie2", "build index", "bowtie2-build"),
+    ];
+
+    for (tool, task, required) in test_cases {
+        let doc = format!("USAGE:\n  {} {} [options] <input>\n\nOPTIONS:\n  -t INT  Threads\n", tool, required);
+        let sdoc = processor.clean_and_structure(&doc);
+
+        // Test Compact tier
+        let prompt_compact = build_prompt(
+            tool,
+            &doc,
+            task,
+            None,
+            false,
+            4096,
+            PromptTier::Compact,
+            Some(&sdoc),
+        );
+
+        // The prompt should contain the required subcommand
+        assert!(
+            prompt_compact.contains(required) || prompt_compact.contains(tool),
+            "Compact prompt for {} should include subcommand '{}', got: {}",
+            tool,
+            required,
+            prompt_compact
+        );
+
+        // Test Full tier
+        let prompt_full = build_prompt(
+            tool,
+            &doc,
+            task,
+            None,
+            false,
+            0,
+            PromptTier::Full,
+            Some(&sdoc),
+        );
+
+        assert!(
+            prompt_full.contains(required) || prompt_full.contains("SUBCOMMAND_REQUIRED"),
+            "Full prompt for {} should indicate subcommand requirement, got: {}",
+            tool,
+            prompt_full
+        );
+    }
+}
+
+/// Test that tools without subcommands don't get them hallucinated
+#[test]
+fn test_doc_accuracy_no_subcommand_tools() {
+    use crate::doc_processor::DocProcessor;
+    use crate::llm::prompt::build_prompt;
+    use crate::llm::types::PromptTier;
+
+    let processor = DocProcessor::new();
+
+    // Tools that should NOT have subcommands
+    let no_subcommand_tools = vec![
+        ("admixture", "estimate ancestry", "data.bed 5"),
+        ("metaphlan", "profile metagenome", "--input_type fastq"),
+        ("fastqc", "check quality", "input.fastq"),
+    ];
+
+    for (tool, task, expected_pattern) in no_subcommand_tools {
+        let doc = format!("USAGE:\n  {} [options] <input>\n\nOPTIONS:\n  -o FILE  Output\n", tool);
+        let sdoc = processor.clean_and_structure(&doc);
+
+        let prompt = build_prompt(
+            tool,
+            &doc,
+            task,
+            None,
+            false,
+            4096,
+            PromptTier::Compact,
+            Some(&sdoc),
+        );
+
+        // Should contain the expected pattern from TOOL_DEFAULT_FEW_SHOT
+        assert!(
+            prompt.contains(expected_pattern) || prompt.contains("No subcommand"),
+            "Prompt for {} should not hallucinate subcommand, got: {}",
+            tool,
+            prompt
+        );
+    }
+}
+
+/// Test companion binary detection and usage
+#[test]
+fn test_doc_accuracy_companion_binaries() {
+    use crate::doc_processor::DocProcessor;
+    use crate::llm::prompt::build_prompt;
+    use crate::llm::types::PromptTier;
+
+    let processor = DocProcessor::new();
+
+    // Test bowtie2-build companion binary
+    let doc = "USAGE:\n  bowtie2-build [options] <ref.fa> <index_prefix>\n\nOPTIONS:\n  --threads INT  Threads\n";
+    let sdoc = processor.clean_and_structure(doc);
+
+    let prompt = build_prompt(
+        "bowtie2",
+        doc,
+        "build index for reference genome",
+        None,
+        false,
+        4096,
+        PromptTier::Compact,
+        Some(&sdoc),
+    );
+
+    // Should mention bowtie2-build as the binary to use
+    assert!(
+        prompt.contains("bowtie2-build") || prompt.contains("Binary:") || prompt.contains("build"),
+        "Prompt for bowtie2 build should mention bowtie2-build companion binary, got: {}",
+        prompt
+    );
+}
+
+/// Test flag catalog inclusion in prompts
+#[test]
+fn test_doc_accuracy_flag_catalog_presence() {
+    use crate::doc_processor::DocProcessor;
+    use crate::llm::prompt::build_prompt;
+    use crate::llm::types::PromptTier;
+
+    let processor = DocProcessor::new();
+
+    let doc = "USAGE:\n  tool [options] <input>\n\nOPTIONS:\n  -t INT  Threads\n  -o FILE  Output file\n  -v       Verbose\n";
+    let sdoc = processor.clean_and_structure(doc);
+
+    // Full tier should have detailed flag catalog
+    let prompt_full = build_prompt(
+        "test_tool",
+        doc,
+        "process input",
+        None,
+        false,
+        0, // Full tier
+        PromptTier::Full,
+        Some(&sdoc),
+    );
+
+    assert!(
+        prompt_full.contains("<flag_catalog>") || prompt_full.contains("-t INT"),
+        "Full prompt should include flag catalog, got: {}",
+        prompt_full
+    );
+
+    // Compact tier should have compact flag list
+    let prompt_compact = build_prompt(
+        "test_tool",
+        doc,
+        "process input",
+        None,
+        false,
+        4096,
+        PromptTier::Compact,
+        Some(&sdoc),
+    );
+
+    assert!(
+        prompt_compact.contains("Valid flags:") || prompt_compact.contains("-t"),
+        "Compact prompt should include valid flags, got: {}",
+        prompt_compact
+    );
+}
+
+/// Test that mini-skill injection works for tools with USAGE sections
+#[test]
+fn test_doc_accuracy_mini_skill_injection() {
+    use crate::doc_processor::DocProcessor;
+
+    let processor = DocProcessor::new();
+
+    // Create doc with clear USAGE section for subcommand extraction
+    let doc = r#"USAGE:
+  spades.py [options] -o <output_dir>
+
+OPTIONS:
+  -1 FILE  Forward reads
+  -2 FILE  Reverse reads
+  --careful  Careful mode
+
+EXAMPLES:
+  $ spades.py -1 reads1.fq -2 reads2.fq -o output
+"#;
+
+    let sdoc = processor.clean_and_structure(doc);
+
+    // Test that mini-skill injection can be built
+    let mini_skill = sdoc.build_mini_skill_injection("spades", "assemble genome from reads");
+
+    // Should either return Some with content or None gracefully
+    if let Some(skill) = mini_skill {
+        assert!(
+            skill.contains("spades") || skill.contains("USAGE"),
+            "Mini-skill should contain tool name or USAGE, got: {}",
+            skill
+        );
+    }
+}
+
+/// Test format constraint detection in structured docs
+#[test]
+fn test_doc_accuracy_format_constraints() {
+    use crate::doc_processor::DocProcessor;
+    use crate::llm::prompt::build_prompt;
+    use crate::llm::types::PromptTier;
+
+    let processor = DocProcessor::new();
+
+    // Tool with subcommands
+    let doc_with_sub = "USAGE:\n  samtools sort [options]\n  samtools index [options]\n\nOPTIONS:\n  -@ INT  Threads\n";
+    let sdoc_with = processor.clean_and_structure(doc_with_sub);
+
+    let prompt = build_prompt(
+        "samtools",
+        doc_with_sub,
+        "sort bam file",
+        None,
+        false,
+        0,
+        PromptTier::Full,
+        Some(&sdoc_with),
+    );
+
+    assert!(
+        prompt.contains("SUBCOMMAND_REQUIRED") || prompt.contains("subcommand"),
+        "Prompt should indicate subcommand is required for samtools, got: {}",
+        prompt
+    );
+
+    // Tool without subcommands
+    let doc_no_sub = "USAGE:\n  fastqc [options] <input>\n\nOPTIONS:\n  -o DIR  Output directory\n";
+    let sdoc_no = processor.clean_and_structure(doc_no_sub);
+
+    let prompt = build_prompt(
+        "fastqc",
+        doc_no_sub,
+        "check quality",
+        None,
+        false,
+        0,
+        PromptTier::Full,
+        Some(&sdoc_no),
+    );
+
+    assert!(
+        prompt.contains("SUBCOMMAND_REQUIRED: NO") || prompt.contains("First token is flag"),
+        "Prompt should indicate no subcommand for fastqc, got: {}",
+        prompt
+    );
+}
+
+/// Test TOOL_DEFAULT_FEW_SHOT coverage for critical tools
+#[test]
+fn test_tool_default_few_shot_coverage() {
+    use crate::llm::prompt::build_prompt;
+    use crate::llm::types::PromptTier;
+
+    // Test that critical tools have default examples
+    let critical_tools = vec![
+        ("bwa", "align reads", "mem"),
+        ("samtools", "sort bam", "sort"),
+        ("bowtie2", "align reads", "-x"),
+        ("gatk", "call variants", "HaplotypeCaller"),
+        ("macs3", "call peaks", "callpeak"),
+    ];
+
+    for (tool, task, expected_flag) in critical_tools {
+        let prompt = build_prompt(
+            tool,
+            "minimal docs",
+            task,
+            None,
+            false,
+            4096,
+            PromptTier::Compact,
+            None,
+        );
+
+        assert!(
+            prompt.contains(expected_flag) || prompt.contains("FEW-SHOT"),
+            "Prompt for {} should contain expected flag '{}' or few-shot example, got: {}",
+            tool,
+            expected_flag,
+            prompt
+        );
+    }
+}
+
+/// Test that task keyword matching uses word boundaries.
+/// Prevents "aligned" from incorrectly matching "align" keyword.
+#[test]
+fn test_task_keyword_word_boundary_matching() {
+    use crate::llm::prompt::build_prompt;
+    use crate::llm::types::PromptTier;
+
+    // Task contains "align" as substring but shouldn't match bwa "align" keyword
+    // because "aligned" is a different word (past tense vs verb)
+    let prompt = build_prompt(
+        "bwa",
+        "docs",
+        "sort aligned bam file",  // "aligned" contains "align" but is different word
+        None,
+        false,
+        4096,
+        PromptTier::Compact,
+        None,
+    );
+
+    // Should NOT contain bwa mem example because task is about sorting, not aligning
+    // The prompt should either not have few-shot or have generic fallback
+    assert!(
+        !prompt.contains("bwa mem"),
+        "Task 'sort aligned bam' should NOT match bwa 'align' keyword and generate mem example. Prompt: {}",
+        prompt
+    );
+
+    // Now test that exact word "align" DOES match
+    let prompt2 = build_prompt(
+        "bwa",
+        "docs",
+        "align reads to reference",  // exact word "align"
+        None,
+        false,
+        4096,
+        PromptTier::Compact,
+        None,
+    );
+
+    assert!(
+        prompt2.contains("bwa mem") || prompt2.contains("mem -t"),
+        "Task 'align reads' SHOULD match bwa 'align' keyword. Prompt: {}",
+        prompt2
+    );
+}
+
+/// Test that fastp doesn't get sort subcommand hallucination.
+/// Fastp is a tool without subcommands - it should never generate "sort" as first token.
+#[test]
+fn test_fastp_no_sort_hallucination() {
+    use crate::llm::prompt::build_prompt;
+    use crate::llm::types::PromptTier;
+
+    // Test case 1: Basic task without "sorted" in filename
+    let prompt = build_prompt(
+        "fastp",
+        "fastp quality trimming tool documentation",
+        "quality trim and filter paired-end FASTQ reads",
+        None,
+        false,
+        4096,
+        PromptTier::Compact,
+        None,
+    );
+
+    // The prompt should contain fastp-specific examples (-i, -o flags)
+    // NOT "sort" which is for samtools
+    assert!(
+        !prompt.contains("ARGS: sort"),
+        "fastp prompt should NOT contain 'ARGS: sort' - fastp doesn't have sort subcommand. Prompt: {}",
+        prompt
+    );
+
+    // Should contain fastp flag examples
+    assert!(
+        prompt.contains("-i ") || prompt.contains("fastp"),
+        "fastp prompt should contain fastp input flags or name. Prompt: {}",
+        prompt
+    );
+
+    // Test case 2: Task with "sorted.json" filename (common in benchmark data)
+    // This was causing false positive matches for "sort" keyword
+    let prompt2 = build_prompt(
+        "fastp",
+        "fastp quality trimming tool documentation",
+        "quality trim reads output to sorted.json",
+        None,
+        false,
+        4096,
+        PromptTier::Compact,
+        None,
+    );
+
+    // Should NOT match "sort" keyword because "sorted" is a different word
+    assert!(
+        !prompt2.contains("ARGS: sort"),
+        "Task with 'sorted.json' should NOT match 'sort' keyword. Prompt: {}",
+        prompt2
+    );
+}

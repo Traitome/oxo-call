@@ -54,6 +54,7 @@ mod runner;
 mod server;
 mod skill;
 mod streaming_display;
+mod validator;
 mod workflow;
 
 /// A single crate-wide mutex that **all** test modules must acquire before

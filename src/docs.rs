@@ -56,6 +56,7 @@ pub fn validate_tool_name(tool: &str) -> Result<()> {
 /// Fetches and returns the documentation/help text for a given tool
 pub struct DocsFetcher {
     config: Config,
+    last_matched_subcommand: std::cell::RefCell<Option<String>>,
 }
 
 /// Combined documentation from all available sources
@@ -106,22 +107,39 @@ impl ToolDocs {
             parts.push(format!("Version: {version}"));
         }
 
-        // Prefer cached docs (they may contain more detail from remote sources),
-        // but always append fresh help so the LLM sees current flags too.
+        let has_subcommand_help = self.subcommand_help.is_some();
+
+        let mut stripped_cached: Option<String> = None;
+
         if let Some(cached) = &self.cached_docs {
-            // Strip any embedded help section to avoid duplication when we append
-            // the live --help below. This keeps the combined output lean.
             let stripped = strip_embedded_help_section(cached);
-            parts.push(stripped);
+            stripped_cached = Some(stripped.clone());
+            if !stripped.trim().is_empty() {
+                if has_subcommand_help {
+                    // When subcommand help is available, only include the first
+                    // few lines of the general help (usage pattern + subcommand list)
+                    let brief: String = stripped.lines().take(10).collect::<Vec<_>>().join("\n");
+                    if !brief.trim().is_empty() {
+                        parts.push(brief);
+                    }
+                } else {
+                    parts.push(stripped);
+                }
+            }
         }
         if let Some(help) = &self.help_output {
-            // Only add live --help if it isn't already embedded verbatim in cached docs
-            let already_present = self
-                .cached_docs
+            let already_present = stripped_cached
                 .as_deref()
                 .is_some_and(|c| deduplicate_check(c, help));
             if !already_present {
-                parts.push(clean_help_output(help));
+                if has_subcommand_help {
+                    let brief: String = clean_help_output(help).lines().take(10).collect::<Vec<_>>().join("\n");
+                    if !brief.trim().is_empty() {
+                        parts.push(brief);
+                    }
+                } else {
+                    parts.push(clean_help_output(help));
+                }
             }
         }
 
@@ -147,7 +165,14 @@ impl ToolDocs {
 
 impl DocsFetcher {
     pub fn new(config: Config) -> Self {
-        DocsFetcher { config }
+        DocsFetcher {
+            config,
+            last_matched_subcommand: std::cell::RefCell::new(None),
+        }
+    }
+
+    pub fn last_matched_subcommand(&self) -> Option<String> {
+        self.last_matched_subcommand.borrow().clone()
     }
 
     /// Fetch documentation for a tool from all available sources
@@ -256,7 +281,7 @@ impl DocsFetcher {
     ///  2. `-h`  
     ///  3. `help` (as a subcommand)  
     ///  4. No arguments (many bioinformatics tools print usage when invoked bare)
-    fn fetch_help(&self, tool: &str) -> Result<(String, Option<String>)> {
+    pub fn fetch_help(&self, tool: &str) -> Result<(String, Option<String>)> {
         let help = self
             .run_help_flag(tool, "--help")
             .or_else(|_| self.run_help_flag(tool, "-h"))
@@ -288,77 +313,129 @@ impl DocsFetcher {
     /// the user needs (e.g., `samtools sort` instead of just `samtools` top-level).
     pub fn fetch_subcommand_help(&self, tool: &str, top_help: &str, task: &str) -> Option<String> {
         let subcommands = extract_subcommand_list(top_help);
+        let subcmd_descs = extract_subcommand_descriptions(top_help);
 
-        // Strategy 0: Extract keywords from task and try standalone commands first
-        // This handles tools like medaka where medaka_consensus is a separate executable
         let task_lower = task.to_ascii_lowercase();
+        // Filter out words that look like filenames (contain dots, slashes, or file extensions)
         let task_keywords: Vec<&str> = task_lower
             .split_whitespace()
-            .filter(|word| word.len() >= 3) // Skip short words
+            .filter(|word| word.len() >= 3)
+            .filter(|word| !word.contains('.') && !word.contains('/') && !word.contains('\\'))
             .collect();
 
-        // Try each keyword as a potential standalone command tool_keyword
+        // Strategy 0: Try standalone commands tool_keyword
         for keyword in &task_keywords {
             let standalone_cmd = format!("{tool}_{keyword}");
             if let Ok(help) = self.fetch_help(&standalone_cmd).map(|(h, _)| h)
                 && help.len() >= MIN_HELP_LEN
             {
+                *self.last_matched_subcommand.borrow_mut() = Some(standalone_cmd.clone());
                 return Some(format!("# {standalone_cmd} --help\n\n{help}"));
             }
         }
 
-        // If no standalone commands found, fall back to subcommand matching
         if subcommands.is_empty() {
             return None;
         }
 
-        // Find the best-matching subcommand from the task description.
-        // We look for exact word-boundary matches of subcommand names in the task.
-        let matched = subcommands
+        // Score ALL subcommands and pick the best match
+        let best_match = subcommands
             .iter()
-            .filter(|sc| sc.len() >= 2) // skip single-char subcommands (likely noise)
-            .filter(|sc| {
+            .filter(|sc| sc.len() >= 2)
+            .filter_map(|sc| {
                 let sc_lower = sc.to_ascii_lowercase();
-                // Exact word match: "sort" matches "sort the bam" but not "resort"
-                task_lower.split_whitespace().any(|word| word == sc_lower)
-                    // Also match hyphenated forms: "fastq-dump" in "fastq dump"
+                let desc = subcmd_descs.get(&sc_lower).map(|s| s.as_str()).unwrap_or("");
+                let desc_lower = desc.to_ascii_lowercase();
+
+                let mut score = 0i32;
+
+                // Exact word match in task (highest priority, but penalize short generic words)
+                let is_exact = task_keywords.iter().any(|word| word == &sc_lower)
                     || task_lower.contains(&format!(" {sc_lower}"))
                     || task_lower.contains(&format!("{sc_lower} "))
-                    // Match underscore forms: "consensus" matches "medaka_consensus"
-                    || task_lower.contains(&format!("_{}", sc_lower))
+                    || task_lower.contains(&format!("_{}", sc_lower));
+
+                if is_exact {
+                    // Penalize very short or very generic subcommand names that might
+                    // match accidentally (e.g., "sample" matching filename "sample.bed")
+                    let generic_subs = ["sample", "list", "show", "get", "set", "run", "test",
+                                       "check", "info", "help", "status", "log", "print"];
+                    if generic_subs.contains(&sc_lower.as_str()) {
+                        score += 5; // Low score for generic matches
+                    } else {
+                        score += 20; // High score for specific exact matches
+                    }
+                }
+
+                // Description matching: task keywords appearing in subcommand description
+                for keyword in &task_keywords {
+                    if desc_lower.contains(keyword) {
+                        score += 12;
+                    }
+                    for desc_word in desc_lower.split_whitespace() {
+                        if desc_word.starts_with(keyword) || keyword.starts_with(desc_word) {
+                            score += 6;
+                        }
+                    }
+                }
+
+                // Partial name match: subcommand name contains task keyword or vice versa
+                for keyword in &task_keywords {
+                    if sc_lower.contains(keyword) || keyword.contains(&sc_lower) {
+                        score += 8;
+                    }
+                    let parts: Vec<&str> = sc_lower
+                        .split(|c: char| c.is_uppercase() || c == '_' || c == '-')
+                        .filter(|p| p.len() >= 3)
+                        .collect();
+                    for part in &parts {
+                        if keyword.contains(part) || part.contains(keyword) {
+                            score += 6;
+                        }
+                    }
+                }
+
+                // Synonym matching for common patterns
+                score += synonym_match_score(&sc_lower, &task_keywords);
+
+                if score > 0 { Some((sc, score)) } else { None }
             })
-            .max_by_key(|sc| sc.len()); // prefer longer (more specific) match
+            .max_by_key(|(_, score)| *score);
 
-        if let Some(subcmd) = matched {
-            // Try multiple strategies to fetch help for this subcommand
-
-            // Strategy 1: Try standalone executable tool_subcommand (e.g., medaka_consensus)
-            let standalone_cmd = format!("{tool}_{subcmd}");
-            if let Ok(help) = self.fetch_help(&standalone_cmd).map(|(h, _)| h)
-                && help.len() >= MIN_HELP_LEN
-            {
-                return Some(format!("# {standalone_cmd} --help\n\n{help}"));
+        if let Some((subcmd, score)) = best_match {
+            if score >= 5 {
+                if let Some(help) = self.try_fetch_subcommand_help(tool, subcmd) {
+                    return Some(help);
+                }
             }
+        }
 
-            // Strategy 2: Try tool subcommand --help (standard subcommand pattern)
-            if let Ok(help) = self
-                .run_help_flag(tool, &format!("{subcmd} --help"))
-                .or_else(|_| self.run_help_flag(tool, &format!("{subcmd} -h")))
-                .or_else(|_| {
-                    // Some tools (e.g. GATK) use: tool SubCommand --help
-                    self.run_help_flag(tool, subcmd)
-                })
-                && help.len() >= MIN_HELP_LEN
-            {
-                return Some(format!("# {tool} {subcmd} --help\n\n{help}"));
-            }
+        None
+    }
 
-            // Strategy 3: Run subcommand bare (many bioinfo tools print help when called with no args)
-            if let Ok(help) = self.run_subcommand_no_args(tool, subcmd)
-                && help.len() >= MIN_HELP_LEN
-            {
-                return Some(format!("# {tool} {subcmd} --help\n\n{help}"));
-            }
+    pub fn try_fetch_subcommand_help(&self, tool: &str, subcmd: &str) -> Option<String> {
+        *self.last_matched_subcommand.borrow_mut() = Some(subcmd.to_string());
+
+        let standalone_cmd = format!("{tool}_{subcmd}");
+        if let Ok(help) = self.fetch_help(&standalone_cmd).map(|(h, _)| h)
+            && help.len() >= MIN_HELP_LEN
+        {
+            return Some(format!("# {standalone_cmd} --help\n\n{help}"));
+        }
+
+        if let Ok(help) = self
+            .run_help_flag(tool, &format!("{subcmd} --help"))
+            .or_else(|_| self.run_help_flag(tool, &format!("{subcmd} -h")))
+            .or_else(|_| self.run_help_flag(tool, subcmd))
+            && help.len() >= MIN_HELP_LEN
+        {
+            return Some(format!("# {tool} {subcmd} --help\n\n{help}"));
+        }
+
+        if let Ok(help) = self.run_subcommand_no_args(tool, subcmd)
+            && help.len() >= MIN_HELP_LEN
+        {
+            return Some(format!("# {tool} {subcmd} --help\n\n{help}"));
         }
 
         None
@@ -407,8 +484,9 @@ impl DocsFetcher {
     }
 
     fn run_help_flag(&self, tool: &str, flag: &str) -> Result<String> {
+        let args: Vec<&str> = flag.split_whitespace().collect();
         let output = Command::new(tool)
-            .arg(flag)
+            .args(&args)
             .output()
             .map_err(|e| OxoError::ToolNotFound(format!("{tool}: {e}")))?;
 
@@ -772,7 +850,8 @@ fn extract_useful_output(tool: &str, stdout: &[u8], stderr: &[u8]) -> Result<Str
 
     // Truncate to keep LLM prompts manageable
     let output = if trimmed.len() > MAX_HELP_LEN {
-        format!("{}\n...[truncated]", &trimmed[..MAX_HELP_LEN])
+        let end = trimmed.floor_char_boundary(MAX_HELP_LEN);
+        format!("{}\n...[truncated]", &trimmed[..end])
     } else {
         trimmed.to_string()
     };
@@ -827,36 +906,149 @@ fn looks_like_version(s: &str) -> bool {
 ///
 /// The goal is to extract just the subcommand names (e.g., ["view", "sort", "index"])
 /// so we can match them against the user's task and fetch their detailed help.
-fn extract_subcommand_list(help: &str) -> Vec<String> {
+
+/// Strip ANSI escape sequences from a string.
+fn strip_ansi_escapes(s: &str) -> String {
+    let mut result = String::with_capacity(s.len());
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == 0x1b {
+            i += 1;
+            if i < bytes.len() && bytes[i] == b'[' {
+                i += 1;
+                while i < bytes.len() {
+                    let b = bytes[i];
+                    i += 1;
+                    if b >= 0x40 && b <= 0x7e {
+                        break;
+                    }
+                }
+            }
+        } else {
+            result.push(bytes[i] as char);
+            i += 1;
+        }
+    }
+    result
+}
+
+pub fn extract_subcommand_list(help: &str) -> Vec<String> {
     let mut subcommands = Vec::new();
     let mut in_commands_section = false;
 
-    for line in help.lines() {
+    let clean_help = strip_ansi_escapes(help);
+
+    // First pass: detect curly-brace subcommand lists like {callpeak,bdgpeakcall,...}
+    // Common in Python argparse tools (macs2, sourmash, etc.)
+    for line in clean_help.lines() {
+        let trimmed = line.trim();
+        if let Some(start) = trimmed.find('{') {
+            if let Some(end) = trimmed[start..].find('}') {
+                let brace_content = &trimmed[start + 1..start + end];
+                for token in brace_content.split(',') {
+                    let token = token.trim();
+                    if token.len() >= 2 && token.len() <= 40
+                        && token.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+                        && !is_common_non_subcommand(token)
+                    {
+                        subcommands.push(token.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    for line in clean_help.lines() {
         let trimmed = line.trim();
 
         // Detect section headers that indicate a subcommand list
-        if trimmed.starts_with("Commands:")
-            || trimmed.starts_with("Subcommands:")
-            || trimmed.starts_with("Available commands:")
-            || trimmed.starts_with("Usage:")
-            || trimmed.starts_with("Command")
-            || trimmed.starts_with("Programs:")
-            || trimmed.starts_with("Modules:")
+        let lower = trimmed.to_lowercase();
+        if lower.starts_with("commands:")
+            || lower.starts_with("subcommands:")
+            || lower.starts_with("sub-commands:")
+            || lower.starts_with("available commands:")
+            || lower.starts_with("available subcommands:")
+            || lower.starts_with("available programs:")
+            || lower.starts_with("programs:")
+            || lower.starts_with("modules:")
         {
             in_commands_section = true;
-            // Some tools put the first subcommand on the same line after "Commands:"
             if let Some(rest) = trimmed.split(':').nth(1) {
                 extract_subcmd_tokens(rest, &mut subcommands);
             }
             continue;
         }
 
-        // Stop collecting if we hit another section header
-        if in_commands_section && trimmed.starts_with('-') && trimmed.contains("Options")
-            || trimmed.starts_with("Options:")
-            || trimmed.starts_with("Arguments:")
-            || trimmed.starts_with("Description:")
-            || trimmed.starts_with("Examples:")
+        // Handle bracketed section headers like "[ Tools for BAM ... ]"
+        // These often appear in Python tools (deeptools, etc.) and bedtools
+        if trimmed.starts_with('[') && trimmed.ends_with(']') {
+            let section_name = trimmed[1..trimmed.len()-1].trim().to_lowercase();
+            // Check if this is a category header within the commands section
+            // (e.g., "[ Genome arithmetic ]", "[ Format conversion ]")
+            // These should NOT turn off the commands section
+            if in_commands_section {
+                // Category headers within commands section - keep in_commands_section true
+                // Only turn off if it's clearly a non-command section
+                if section_name.contains("option") || section_name.contains("argument")
+                    || section_name.contains("parameter") || section_name.contains("general")
+                {
+                    in_commands_section = false;
+                }
+                // Otherwise, it's a category header within the commands section - stay in
+                continue;
+            }
+            // Not in commands section yet - check if this header starts one
+            if section_name.contains("tool") || section_name.contains("command")
+                || section_name.contains("program") || section_name.contains("module")
+                || section_name.contains("analysis") || section_name.contains("processing")
+                || section_name.contains("qc") || section_name.contains("plot")
+                || section_name.contains("bam") || section_name.contains("bigwig")
+                || section_name.contains("coverage") || section_name.contains("matrix")
+                || section_name.contains("heatmap") || section_name.contains("filter")
+                || section_name.contains("quantification") || section_name.contains("mapping")
+                || section_name.contains("arithmetic") || section_name.contains("comparison")
+                || section_name.contains("manipulation") || section_name.contains("conversion")
+                || section_name.contains("fasta") || section_name.contains("statistical")
+                || section_name.contains("genomic") || section_name.contains("genome")
+                || section_name.contains("sequence") || section_name.contains("alignment")
+                || section_name.contains("variant") || section_name.contains("annotation")
+                || section_name.contains("utility") || section_name.contains("miscellaneous")
+                || section_name.contains("misc") || section_name.contains("other")
+            {
+                in_commands_section = true;
+                continue;
+            }
+            continue;
+        }
+
+        if lower.contains("commands:")
+            || lower.contains("subcommands:")
+            || lower.contains("sub-commands")
+            || lower.contains("sub command")
+        {
+            let word_count = trimmed.split_whitespace().count();
+            if word_count <= 5 {
+                in_commands_section = true;
+                if let Some(rest) = trimmed.split(':').nth(1) {
+                    extract_subcmd_tokens(rest, &mut subcommands);
+                }
+                continue;
+            }
+        }
+
+        let stop_lower = trimmed.to_lowercase();
+        if in_commands_section
+            && (trimmed.starts_with('-') && trimmed.contains("Options")
+                || stop_lower.starts_with("options:")
+                || stop_lower.starts_with("arguments:")
+                || stop_lower.starts_with("description:")
+                || stop_lower.starts_with("examples:")
+                || stop_lower.starts_with("parameters:")
+                || stop_lower.starts_with("flags:")
+                || stop_lower.starts_with("usage:")
+                || stop_lower.starts_with("notes:")
+                || stop_lower.starts_with("note:"))
         {
             in_commands_section = false;
             continue;
@@ -880,29 +1072,332 @@ fn extract_subcommand_list(help: &str) -> Vec<String> {
     subcommands
 }
 
+pub fn extract_subcommand_descriptions(help: &str) -> std::collections::HashMap<String, String> {
+    let mut descs = std::collections::HashMap::new();
+    let clean_help = strip_ansi_escapes(help);
+    let mut in_commands_section = false;
+
+    for line in clean_help.lines() {
+        let trimmed = line.trim();
+        let lower = trimmed.to_lowercase();
+
+        if lower.starts_with("commands:")
+            || lower.starts_with("subcommands:")
+            || lower.starts_with("sub-commands:")
+            || lower.starts_with("available commands:")
+            || lower.starts_with("available subcommands:")
+            || lower.starts_with("available programs:")
+            || lower.starts_with("programs:")
+            || lower.starts_with("modules:")
+        {
+            in_commands_section = true;
+            continue;
+        }
+
+        if trimmed.starts_with('[') && trimmed.ends_with(']') {
+            let section_name = trimmed[1..trimmed.len()-1].trim().to_lowercase();
+            if in_commands_section {
+                if section_name.contains("option") || section_name.contains("argument")
+                    || section_name.contains("parameter") || section_name.contains("general")
+                {
+                    in_commands_section = false;
+                }
+                continue;
+            }
+            if section_name.contains("tool") || section_name.contains("command")
+                || section_name.contains("program") || section_name.contains("module")
+                || section_name.contains("analysis") || section_name.contains("processing")
+                || section_name.contains("qc") || section_name.contains("plot")
+                || section_name.contains("bam") || section_name.contains("bigwig")
+                || section_name.contains("coverage") || section_name.contains("matrix")
+                || section_name.contains("heatmap") || section_name.contains("filter")
+                || section_name.contains("quantification") || section_name.contains("mapping")
+                || section_name.contains("arithmetic") || section_name.contains("comparison")
+                || section_name.contains("manipulation") || section_name.contains("conversion")
+                || section_name.contains("fasta") || section_name.contains("statistical")
+                || section_name.contains("genomic") || section_name.contains("genome")
+                || section_name.contains("sequence") || section_name.contains("alignment")
+                || section_name.contains("variant") || section_name.contains("annotation")
+                || section_name.contains("utility") || section_name.contains("miscellaneous")
+                || section_name.contains("misc") || section_name.contains("other")
+            {
+                in_commands_section = true;
+            }
+            continue;
+        }
+
+        if lower.contains("commands:")
+            || lower.contains("subcommands:")
+            || lower.contains("sub-commands")
+            || lower.contains("sub command")
+        {
+            let word_count = trimmed.split_whitespace().count();
+            if word_count <= 5 {
+                in_commands_section = true;
+                continue;
+            }
+        }
+
+        let stop_lower = trimmed.to_lowercase();
+        if in_commands_section
+            && (trimmed.starts_with('-') && trimmed.contains("Options")
+                || stop_lower.starts_with("options:")
+                || stop_lower.starts_with("arguments:")
+                || stop_lower.starts_with("description:")
+                || stop_lower.starts_with("examples:")
+                || stop_lower.starts_with("parameters:")
+                || stop_lower.starts_with("flags:")
+                || stop_lower.starts_with("usage:")
+                || stop_lower.starts_with("notes:")
+                || stop_lower.starts_with("note:"))
+        {
+            in_commands_section = false;
+            continue;
+        }
+
+        if !in_commands_section {
+            continue;
+        }
+
+        let line = trimmed.trim_start_matches('-').trim_start_matches('*').trim();
+        if line.is_empty() || line.chars().all(|c| c == '-' || c == '=' || c == ' ') {
+            continue;
+        }
+        if line.ends_with(':') && line.contains(' ') && !line.starts_with('-') {
+            let before_colon = line.split(':').next().unwrap_or("");
+            if before_colon.split_whitespace().count() == 1
+                && before_colon.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+                && before_colon.len() >= 2
+            {
+                let name = before_colon.trim();
+                let desc = line.split(':').nth(1).map(|s| s.trim()).unwrap_or("");
+                if !is_common_non_subcommand(name) && !desc.is_empty() {
+                    descs.insert(name.to_ascii_lowercase(), desc.to_string());
+                }
+            }
+            continue;
+        }
+
+        if let Some(token) = line.split_whitespace().next() {
+            if token.starts_with('-') {
+                continue;
+            }
+            let token_clean = token.trim_end_matches(':');
+            if token_clean.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.')
+                && token_clean.len() >= 2
+                && token_clean.len() <= 40
+                && !is_common_non_subcommand(token_clean)
+            {
+                let rest = line[token.len()..].trim().trim_start_matches(':').trim();
+                if !rest.is_empty() {
+                    descs.insert(token_clean.to_ascii_lowercase(), rest.to_string());
+                }
+            }
+        }
+    }
+
+    descs
+}
+
+pub fn synonym_match_score_static(subcmd: &str, task_keywords: &[&str]) -> i32 {
+    synonym_match_score(subcmd, task_keywords)
+}
+
+pub fn synonym_exact_match_bonus(subcmd: &str, task_keywords: &[&str]) -> i32 {
+    let synonyms: &[(&[&str], &[&str])] = &[
+        (&["stats"], &["statistics", "stats", "summary", "stat"]),
+        (&["seq"], &["sequence", "seq"]),
+        (&["fx2tab"], &["table", "tab"]),
+        (&["tab2fx"], &["fasta", "fastq"]),
+        (&["grep"], &["search", "find", "filter", "grep"]),
+        (&["rmdup"], &["duplicate", "deduplicate", "unique"]),
+        (&["sample"], &["sample", "subsample"]),
+        (&["subseq"], &["subsequence", "subseq"]),
+        (&["replace"], &["replace", "substitute"]),
+        (&["translate"], &["translate", "translation"]),
+        (&["concat"], &["concatenate", "concat"]),
+        (&["split2"], &["split"]),
+        (&["fq2fa"], &["fastq to fasta"]),
+        (&["common"], &["common", "shared"]),
+        (&["head"], &["head", "first"]),
+        (&["ann"], &["annotate", "annotation"]),
+        (&["bamqc"], &["bam qc", "bam quality"]),
+        (&["rnaseq"], &["rna-seq", "rnaseq"]),
+        (&["markduplicates"], &["duplicate", "deduplicate"]),
+        (&["haplotypecaller"], &["haplotype", "variant calling"]),
+        (&["baserecalibrator"], &["recalibrate", "bqsr"]),
+        (&["applybqsr"], &["apply bqsr"]),
+        (&["callpeak"], &["peak", "peaks", "peak calling"]),
+        (&["intersect"], &["overlap", "overlapping", "intersect"]),
+        (&["subtract"], &["remove", "exclude", "subtract"]),
+        (&["merge"], &["combine", "join", "merge"]),
+        (&["sort"], &["sort", "order"]),
+        (&["index"], &["index", "indexing"]),
+        (&["view"], &["view", "convert"]),
+        (&["call"], &["call", "calling"]),
+        (&["filter"], &["filter", "select"]),
+        (&["quant"], &["quantify", "quant", "expression"]),
+        (&["phase"], &["phase", "phasing"]),
+        (&["discover"], &["discover", "find", "detect"]),
+        (&["build"], &["build", "index"]),
+        (&["batch"], &["batch", "pipeline"]),
+        (&["segment"], &["segment", "segmentation"]),
+        (&["plot"], &["plot", "visualize"]),
+        (&["compute"], &["compute", "calculate"]),
+        (&["search"], &["search", "query"]),
+        (&["cluster"], &["cluster", "clustering"]),
+        (&["download"], &["download", "fetch"]),
+        (&["consensus"], &["consensus", "polish"]),
+    ];
+
+    let mut bonus = 0i32;
+    for (subcmds, keywords) in synonyms {
+        if subcmds.iter().any(|s| s.to_lowercase() == subcmd) {
+            for keyword in task_keywords {
+                if keywords.iter().any(|k| k == keyword) {
+                    bonus += 25;
+                }
+            }
+        }
+    }
+    bonus
+}
+
+fn synonym_match_score(subcmd: &str, task_keywords: &[&str]) -> i32 {
+    let synonyms: &[(&[&str], &[&str])] = &[
+        (&["intersect"], &["overlap", "overlapping", "overlaps", "find overlap", "common"]),
+        (&["subtract"], &["remove", "exclude", "subtract", "difference", "non-overlapping"]),
+        (&["merge"], &["combine", "join", "merge", "union", "collapse"]),
+        (&["closest"], &["nearest", "closest", "nearby", "proximal"]),
+        (&["genomecov"], &["coverage", "depth", "genome-wide coverage"]),
+        (&["coverage"], &["coverage", "depth", "covered"]),
+        (&["callpeak", "macs2_callpeak"], &["peak", "peaks", "call peak", "peak calling", "chip-seq"]),
+        (&["sort"], &["sort", "order", "arrange"]),
+        (&["index"], &["index", "indexing", "create index"]),
+        (&["view"], &["view", "convert", "display", "extract"]),
+        (&["flagstat"], &["flagstat", "flag statistics", "alignment stats"]),
+        (&["mpileup"], &["pileup", "mpileup", "variant calling", "consensus"]),
+        (&["depth"], &["depth", "coverage", "read depth"]),
+        (&["idxstats"], &["idxstats", "index stats", "chromosome stats"]),
+        (&["cat"], &["concatenate", "cat", "combine", "merge bam"]),
+        (&["calmd"], &["calmd", "calibrate", "fix md"]),
+        (&["bam2fq"], &["bam2fq", "bam to fastq", "convert bam", "extract fastq"]),
+        (&["fastq-dump"], &["fastq", "dump", "download", "sra"]),
+        (&["fasterq-dump"], &["fastq", "dump", "download", "sra"]),
+        (&["prefetch"], &["prefetch", "download", "sra"]),
+        (&["call"], &["call", "variant", "calling"]),
+        (&["filter"], &["filter", "select", "subset", "exclude"]),
+        (&["annotate"], &["annotate", "annotation", "add info"]),
+        (&["convert"], &["convert", "conversion", "transform"]),
+        (&["predict"], &["predict", "prediction", "classify"]),
+        (&["batch"], &["batch", "pipeline", "run all"]),
+        (&["target"], &["target", "bait", "capture"]),
+        (&["segment"], &["segment", "segmentation", "copy number"]),
+        (&["phase"], &["phase", "phasing", "haplotype"]),
+        (&["haplotag"], &["haplotag", "tag", "assign haplotype"]),
+        (&["discover"], &["discover", "find", "detect", "identify"]),
+        (&["build"], &["build", "index", "create", "prepare"]),
+        (&["quant"], &["quantify", "quant", "quantification", "expression", "count"]),
+        (&["map"], &["map", "mapping", "align"]),
+        (&["assemble"], &["assemble", "assembly"]),
+        (&["align"], &["align", "alignment", "map"]),
+        (&["extract"], &["extract", "extract sequences", "get"]),
+        (&["statistics"], &["statistics", "stats", "summary"]),
+        (&["stats"], &["statistics", "stats", "summary", "stat", "info", "report"]),
+        (&["seq"], &["sequence", "convert", "transform", "format", "seq"]),
+        (&["fx2tab"], &["table", "tab", "tsv", "csv", "convert"]),
+        (&["tab2fx"], &["fasta", "fastq", "convert", "from table"]),
+        (&["grep"], &["search", "find", "filter", "grep", "match", "select"]),
+        (&["rmdup"], &["duplicate", "deduplicate", "remove duplicate", "unique"]),
+        (&["sample"], &["sample", "subsample", "random", "subset"]),
+        (&["subseq"], &["subsequence", "region", "extract", "subseq", "slice"]),
+        (&["replace"], &["replace", "substitute", "rename", "modify"]),
+        (&["translate"], &["translate", "translation", "protein", "orf"]),
+        (&["concat"], &["concatenate", "merge", "combine", "join"]),
+        (&["split2"], &["split", "divide", "separate"]),
+        (&["fq2fa"], &["fastq to fasta", "convert to fasta"]),
+        (&["common"], &["common", "shared", "intersection", "overlap"]),
+        (&["head"], &["head", "first", "beginning", "preview"]),
+        (&["ann"], &["annotate", "annotation", "variant effect", "snp effect", "ann"]),
+        (&["bamqc"], &["bam qc", "bam quality", "quality control"]),
+        (&["rnaseq"], &["rna-seq", "rnaseq", "rna seq"]),
+        (&["markduplicates"], &["duplicate", "deduplicate", "mark dup", "remove duplicate"]),
+        (&["haplotypecaller"], &["haplotype", "call variant", "variant calling", "snp"]),
+        (&["baserecalibrator"], &["recalibrate", "bqsr", "base quality"]),
+        (&["applybqsr"], &["apply bqsr", "recalibrate", "base quality"]),
+        (&["callpeak"], &["peak", "peaks", "call peak", "peak calling", "chip-seq"]),
+        (&["compare"], &["compare", "comparison", "diff", "difference"]),
+        (&["plot"], &["plot", "visualize", "graph", "heatmap"]),
+        (&["compute"], &["compute", "calculate", "matrix"]),
+        (&["bus"], &["bus", "barcode"]),
+        (&["ref"], &["reference", "ref", "index", "prepare"]),
+        (&["count"], &["count", "quantify", "expression"]),
+        (&["run"], &["run", "execute", "launch"]),
+        (&["train"], &["train", "training", "model"]),
+        (&["classify"], &["classify", "classification", "categorize"]),
+        (&["search"], &["search", "query", "find", "lookup"]),
+        (&["cluster"], &["cluster", "clustering", "group"]),
+        (&["download"], &["download", "fetch", "get"]),
+        (&["database"], &["database", "db", "download"]),
+        (&["consensus"], &["consensus", "polish", "correct"]),
+        (&["correct"], &["correct", "correction", "polish", "consensus"]),
+    ];
+
+    let mut score = 0i32;
+    for (subcmds, keywords) in synonyms {
+        if subcmds.iter().any(|s| s.to_lowercase() == subcmd) {
+            for keyword in task_keywords {
+                if keywords.iter().any(|k| k == keyword || k.contains(keyword) || keyword.contains(k)) {
+                    score += 15;
+                }
+            }
+        }
+    }
+    score
+}
+
 /// Extract potential subcommand tokens from a single line of help text.
 fn extract_subcmd_tokens(line: &str, subcommands: &mut Vec<String>) {
-    // Strip leading bullet characters
     let line = line.trim_start_matches('-').trim_start_matches('*').trim();
 
     if line.is_empty() {
         return;
     }
 
-    // Take the first whitespace-separated token as a potential subcommand name.
-    // It must look like a valid identifier (alphanumeric + hyphens/underscores).
+    if line.chars().all(|c| c == '-' || c == '=' || c == ' ') {
+        return;
+    }
+
+    // Skip category header lines like "Base Calling:" or "Diagnostics and Quality Control:"
+    // These end with ':' and contain spaces (subcommand names don't have spaces)
+    // But NOT lines like "levels: Handle feature types" which are name:description pairs
+    if line.ends_with(':') && line.contains(' ') && !line.starts_with('-') {
+        // Check if this is a name:description pair (single word before colon)
+        let before_colon = line.split(':').next().unwrap_or("");
+        if before_colon.split_whitespace().count() == 1
+            && before_colon.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+            && before_colon.len() >= 2
+        {
+            // This is a name:description pair, extract the name
+            let name = before_colon.trim();
+            if !is_common_non_subcommand(name) {
+                subcommands.push(name.to_string());
+            }
+        }
+        return;
+    }
+
     if let Some(token) = line.split_whitespace().next() {
-        // Must not start with a dash (those are flags, not subcommands)
         if token.starts_with('-') {
             return;
         }
-        // Must look like a subcommand name: alphanumeric, hyphens, underscores, dots
+        // Strip trailing colon from token (e.g., "levels:" -> "levels")
+        let token = token.trim_end_matches(':');
         if token
             .chars()
             .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.')
             && token.len() >= 2
             && token.len() <= 40
-            // Reject common false positives
             && !is_common_non_subcommand(token)
         {
             subcommands.push(token.to_string());
@@ -979,6 +1474,13 @@ fn is_common_non_subcommand(token: &str) -> bool {
             | "path"
             | "name"
             | "type"
+            | "indexing"
+            | "editing"
+            | "viewing"
+            | "statistics"
+            | "misc"
+            | "file operations"
+            | "operations"
             | "value"
             | "default"
             | "required"
@@ -1004,6 +1506,43 @@ fn is_common_non_subcommand(token: &str) -> bool {
     )
 }
 
+/// Discover subcommands by scanning PATH for executables that start with `tool_` or `tool-`.
+///
+/// Many bioinformatics tools (agat, bakta, rsem, medaka, etc.) install their
+/// subcommands as separate executables (e.g., `agat_convert_sp_gff2gtf`,
+/// `rsem-prepare-reference`, `medaka_consensus`). These are not listed in the
+/// main tool's `--help` output, so we discover them by scanning the filesystem.
+pub fn discover_path_subcommands(tool: &str) -> Vec<String> {
+    let tool_lower = tool.to_lowercase();
+    let prefix_underscore = format!("{}_", tool_lower);
+    let prefix_hyphen = format!("{}-", tool_lower);
+
+    let path_var = std::env::var("PATH").unwrap_or_default();
+    let mut found = std::collections::HashSet::new();
+
+    for dir in path_var.split(':') {
+        if let Ok(entries) = std::fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                let name = match entry.file_name().to_str() {
+                    Some(n) => n.to_string(),
+                    None => continue,
+                };
+                let name_lower = name.to_lowercase();
+                if (name_lower.starts_with(&prefix_underscore)
+                    || name_lower.starts_with(&prefix_hyphen))
+                    && name.len() > tool.len() + 1
+                {
+                    found.insert(name);
+                }
+            }
+        }
+    }
+
+    let mut result: Vec<String> = found.into_iter().collect();
+    result.sort();
+    result.into_iter().take(20).collect()
+}
+
 /// Clean up a raw version string by stripping common prefixes like "Version:", "v", etc.
 fn clean_version_string(raw: &str) -> String {
     let s = raw.trim();
@@ -1027,7 +1566,8 @@ fn clean_version_string(raw: &str) -> String {
 fn truncate_doc(s: &str) -> String {
     let trimmed = s.trim();
     if trimmed.len() > MAX_HELP_LEN {
-        format!("{}\n...[truncated]", &trimmed[..MAX_HELP_LEN])
+        let end = trimmed.floor_char_boundary(MAX_HELP_LEN);
+        format!("{}\n...[truncated]", &trimmed[..end])
     } else {
         trimmed.to_string()
     }
@@ -1154,12 +1694,12 @@ fn deduplicate_check(cached: &str, help: &str) -> bool {
     if significant_len == 0 {
         return false;
     }
-    // Check for verbatim inclusion first (fast path)
     if cached.contains(help) {
         return true;
     }
-    // Sliding-window check: does the leading significant portion of `help` appear in `cached`?
-    let probe = &help[..significant_len.min(help.len())];
+    let probe_end = significant_len.min(help.len());
+    let probe_end = help.floor_char_boundary(probe_end);
+    let probe = &help[..probe_end];
     cached.contains(probe)
 }
 

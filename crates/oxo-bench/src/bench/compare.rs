@@ -400,7 +400,62 @@ fn are_alias_subcommands(a: &str, b: &str) -> bool {
 
 /// Normalise an ARGS string into a canonical token list.
 fn normalise_tokens(args: &str) -> Vec<String> {
-    args.split_whitespace().map(|s| s.to_string()).collect()
+    args.split_whitespace()
+        .map(|s| normalise_flag_alias(s))
+        .collect()
+}
+
+/// Normalise flag aliases so that equivalent short/long forms compare equal.
+///
+/// For example, `-o` and `--outdir` both normalise to `--outdir`, so that
+/// `multiqc -o dir/` and `multiqc --outdir dir/` score identically on
+/// flag-level metrics.
+fn normalise_flag_alias(token: &str) -> String {
+    if !token.starts_with('-') {
+        return token.to_string();
+    }
+
+    let aliases: &[(&[&str], &str)] = &[
+        (&["-o", "--outdir", "--output-dir", "--output", "--out", "-O", "--output-file"], "--outdir"),
+        (&["-f", "--force", "--force-overwrite"], "--force"),
+        (&["-t", "-@", "--threads", "--nproc", "--thread"], "--threads"),
+        (&["-i", "--input", "--input-file", "--in"], "--input"),
+        (&["-R", "--reference", "--ref", "--reference-genome", "--genome", "--fasta-ref"], "--reference"),
+        (&["-n", "--name", "--sample-name"], "--name"),
+        (&["-p", "--prefix"], "--prefix"),
+        (&["-h", "--help"], "--help"),
+        (&["-v", "--version"], "--version"),
+        (&["-e", "--exclude", "--exclude-module"], "--exclude"),
+        (&["-m", "--module"], "--module"),
+        (&["-b", "--bam", "--bam-output"], "--bam"),
+        (&["-S", "--output-file"], "--output-file"),
+        (&["-r", "--read-group"], "--read-group"),
+        (&["-w", "--workers"], "--workers"),
+        (&["-q", "--quality", "--min-quality"], "--quality"),
+        (&["-l", "--length", "--min-length"], "--length"),
+        (&["-c", "--contaminant", "--contaminants"], "--contaminant"),
+        (&["-k", "--kmer"], "--kmer"),
+        (&["-d", "--dir", "--directory"], "--dir"),
+        (&["-s", "--sort"], "--sort"),
+        (&["--noextract", "--no-extract"], "--noextract"),
+        (&["--casava", "--casava-filter"], "--casava"),
+        (&["--svg"], "--svg"),
+        (&["--memory", "--mem"], "--memory"),
+        (&["--flat"], "--flat"),
+        (&["--pdf"], "--pdf"),
+        (&["--data-format"], "--data-format"),
+        (&["--no-report"], "--no-report"),
+        (&["--sample-names", "--replace-names"], "--sample-names"),
+    ];
+
+    let token_lower = token.to_lowercase();
+    for (patterns, canonical) in aliases {
+        if patterns.iter().any(|p| p.to_lowercase() == token_lower) {
+            return canonical.to_string();
+        }
+    }
+
+    token.to_string()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

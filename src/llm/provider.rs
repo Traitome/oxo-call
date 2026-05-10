@@ -8,6 +8,8 @@ use crate::copilot_auth;
 use crate::doc_processor::{FlagEntry, StructuredDoc};
 use crate::error::{OxoError, Result};
 use crate::skill::Skill;
+use crate::validator::{aggressive_correct, correct_format, validate_subcommand};
+use colored::Colorize;
 use sha2::Digest;
 
 use super::prompt::{
@@ -32,6 +34,44 @@ pub struct LlmClient {
     /// Whether to use SSE streaming for LLM responses.
     /// When true, tokens are printed to stderr as they arrive.
     stream_enabled: bool,
+}
+
+/// Apply validation and corrections to generated or cached args.
+/// This ensures corrections are applied regardless of whether the result
+/// came from cache or fresh LLM generation.
+fn apply_corrections_to_args(
+    args: &[String],
+    tool: &str,
+    structured_doc: Option<&StructuredDoc>,
+    task: Option<&str>,
+) -> Vec<String> {
+    if let Some(sdoc) = structured_doc {
+        let mut args = args.to_vec();
+
+        // Only validate flags against catalog if catalog is available
+        if !sdoc.flag_catalog.is_empty() {
+            args = validate_flags_against_catalog(&args, &sdoc.flag_catalog, &sdoc.quick_flags);
+        }
+
+        // Always apply format corrections (subcommand detection, etc.)
+        let args_str = args.join(" ");
+        let corrected = correct_format(&args_str, sdoc);
+        args = crate::llm::response::parse_shell_args(&corrected);
+
+        // Always apply tool-specific aggressive corrections
+        let args_str = args.join(" ");
+        let corrected = aggressive_correct(&args_str, sdoc, tool, task);
+        args = crate::llm::response::parse_shell_args(&corrected);
+
+        // Validate subcommand correctness (critical for doc accuracy)
+        let args_str = args.join(" ");
+        let corrected = validate_subcommand(&args_str, tool, sdoc);
+        args = crate::llm::response::parse_shell_args(&corrected);
+
+        args
+    } else {
+        args.to_vec()
+    }
 }
 
 impl LlmClient {
@@ -102,11 +142,11 @@ impl LlmClient {
             skill_name.as_deref(),
             &model,
         ) {
-            // Cache hit - return cached response
-            // Parse cached args string into Vec<String>
-            let args_vec = cached.args.split_whitespace().map(String::from).collect();
+            // Cache hit - apply corrections to cached response before returning
+            let args_vec: Vec<String> = cached.args.split_whitespace().map(String::from).collect();
+            let corrected_args = apply_corrections_to_args(&args_vec, tool, structured_doc, Some(task));
             return Ok(LlmCommandSuggestion {
-                args: args_vec,
+                args: corrected_args,
                 explanation: cached.explanation,
                 inference_ms: 0.0, // Cache hit has no inference time
             });
@@ -169,9 +209,49 @@ impl LlmClient {
             };
 
             let api_start = std::time::Instant::now();
-            let raw = self
-                .call_api(&user_prompt, no_prompt, tier, temperature)
-                .await?;
+            if std::env::var("OXO_CALL_DEBUG_PROMPT").is_ok() {
+                eprintln!("[DEBUG PROMPT] === System Prompt ===\n{}", match tier {
+                    PromptTier::Compact => system_prompt_compact(),
+                    PromptTier::Medium => system_prompt_medium(),
+                    PromptTier::Full => system_prompt(),
+                });
+                eprintln!("[DEBUG PROMPT] === User Prompt ===\n{}", user_prompt);
+            }
+            let raw = {
+                let mut result = self
+                    .call_api(&user_prompt, no_prompt, tier, temperature)
+                    .await;
+                let is_retryable = |e: &OxoError| {
+                    let msg = e.to_string();
+                    msg.contains("429")
+                        || msg.contains("Stream read error")
+                        || msg.contains("error sending request")
+                        || msg.contains("connection reset")
+                        || msg.contains("timed out")
+                        || msg.contains("502")
+                        || msg.contains("503")
+                };
+                for retry in 0..3 {
+                    match &result {
+                        Err(e) if is_retryable(e) => {
+                            let delay = std::time::Duration::from_secs(2u64.pow(retry as u32 + 1));
+                            eprintln!(
+                                "{} API error (retry {}/3 after {:?}): {}",
+                                "[warn]".yellow(),
+                                retry + 1,
+                                delay,
+                                e
+                            );
+                            tokio::time::sleep(delay).await;
+                            result = self
+                                .call_api(&user_prompt, no_prompt, tier, temperature)
+                                .await;
+                        }
+                        _ => break,
+                    }
+                }
+                result?
+            };
             total_inference_ms += api_start.elapsed().as_secs_f64() * 1000.0;
 
             // Detect empty/blank responses (model was overwhelmed)
@@ -185,15 +265,31 @@ impl LlmClient {
             // Post-process: strip accidental tool name prefix
             suggestion.args = sanitize_args(tool, suggestion.args);
 
-            // Post-process: validate flags against doc catalog when available
-            if let Some(sdoc) = structured_doc
-                && !sdoc.flag_catalog.is_empty()
-            {
-                suggestion.args = validate_flags_against_catalog(
-                    &suggestion.args,
-                    &sdoc.flag_catalog,
-                    &sdoc.quick_flags,
-                );
+            // Post-process: validate and correct generated args
+            if let Some(sdoc) = structured_doc {
+                // Only validate flags against catalog if catalog is available
+                if !sdoc.flag_catalog.is_empty() {
+                    suggestion.args = validate_flags_against_catalog(
+                        &suggestion.args,
+                        &sdoc.flag_catalog,
+                        &sdoc.quick_flags,
+                    );
+                }
+
+                // Always apply format corrections (subcommand detection, etc.)
+                let args_str = suggestion.args.join(" ");
+                let corrected = correct_format(&args_str, sdoc);
+                suggestion.args = crate::llm::response::parse_shell_args(&corrected);
+
+                // Always apply tool-specific aggressive corrections
+                let args_str = suggestion.args.join(" ");
+                let corrected = aggressive_correct(&args_str, sdoc, tool, Some(task));
+                suggestion.args = crate::llm::response::parse_shell_args(&corrected);
+
+                // Validate subcommand correctness (critical for doc accuracy)
+                let args_str = suggestion.args.join(" ");
+                let corrected = validate_subcommand(&args_str, tool, sdoc);
+                suggestion.args = crate::llm::response::parse_shell_args(&corrected);
             }
 
             if is_valid_suggestion(&suggestion) {

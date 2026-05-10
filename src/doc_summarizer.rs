@@ -16,9 +16,9 @@ use crate::doc_processor::{
 };
 
 /// Maximum documentation length for different model tiers (in characters)
-pub const MAX_DOC_LEN_SMALL_MODEL: usize = 3_000; // For 0.5B-1B models
-pub const MAX_DOC_LEN_MEDIUM_MODEL: usize = 6_000; // For 7B models
-pub const MAX_DOC_LEN_LARGE_MODEL: usize = 10_000; // For 16B+ models
+pub const MAX_DOC_LEN_SMALL_MODEL: usize = 4_000; // For 0.5B-1B models
+pub const MAX_DOC_LEN_MEDIUM_MODEL: usize = 8_000; // For 7B models
+pub const MAX_DOC_LEN_LARGE_MODEL: usize = 16_000; // For 16B+ models
 
 /// Minimum length threshold for summarization (docs shorter than this are kept as-is)
 pub const MIN_SUMMARIZE_LEN: usize = 2_000;
@@ -43,26 +43,22 @@ const PRIORITY_SECTIONS: &[&str; 7] = &[
 /// 4. Structures output for LLM readability
 /// 5. Highlights USAGE and critical flags
 pub fn summarize_docs(docs: &str, max_len: usize) -> String {
-    // Don't summarize short docs
-    if docs.len() <= MIN_SUMMARIZE_LEN {
+    if docs.len() <= max_len {
         return format_for_llm(docs);
     }
 
-    // Step 1: Clean noise (shared primitive from doc_processor)
     let cleaned = clean_noise(docs);
 
-    // Step 2: Extract key sections — use shared primitive, then filter to
-    // priority sections only (the summarizer is stricter than doc_processor).
-    let all_sections = extract_sections_standalone(&cleaned);
-    eprintln!("[DEBUG] summarize_docs: extracted {} sections", all_sections.len());
-    for (title, content) in &all_sections {
-        eprintln!("[DEBUG]   Section '{}': {} chars", title, content.len());
+    if cleaned.len() <= max_len {
+        return format_for_llm(&cleaned);
     }
+
+    let all_sections = extract_sections_standalone(&cleaned);
     let sections: Vec<(String, String)> = all_sections
         .into_iter()
         .filter(|(title, _)| {
             let lower = title.to_lowercase();
-            PRIORITY_SECTIONS.iter().any(|&s| lower.contains(s)) || title == "Documentation" // keep the fallback section
+            PRIORITY_SECTIONS.iter().any(|&s| lower.contains(s)) || title == "Documentation"
         })
         .collect();
     let sections = if sections.is_empty() {
@@ -71,15 +67,10 @@ pub fn summarize_docs(docs: &str, max_len: usize) -> String {
         sections
     };
 
-    // Step 3: Build structured summary optimized for LLM
     let summary = build_llm_optimized_summary(&sections, max_len);
-    eprintln!("[DEBUG] summarize_docs: built summary with {} chars (max_len={})", summary.len(), max_len);
 
-    // Step 4: Truncate if still too long (shared primitive)
     if summary.len() > max_len {
-        let truncated = truncate_smart(&summary, max_len);
-        eprintln!("[DEBUG] summarize_docs: truncated to {} chars", truncated.len());
-        truncated
+        truncate_smart(&summary, max_len)
     } else {
         summary
     }
@@ -108,19 +99,12 @@ fn format_for_llm(docs: &str) -> String {
 fn build_llm_optimized_summary(sections: &[(String, String)], max_len: usize) -> String {
     let mut summary = String::new();
 
-    // Debug: print all sections found
-    eprintln!("[DEBUG] build_llm_optimized_summary: found {} sections", sections.len());
-    for (title, content) in sections {
-        eprintln!("[DEBUG]   Section '{}' : {} chars", title, content.len());
-    }
-
-    // Priority order for LLM understanding
     let priority_order = [
         "usage",      // Most critical - shows command structure
         "examples",   // Concrete examples for LLM to learn from
         "options",    // Available flags
-        "arguments",  // Required inputs
         "commands",   // Subcommands
+        "arguments",  // Required inputs
         "parameters", // Additional parameters
         "flags",      // Alternative to options
     ];
@@ -141,11 +125,7 @@ fn build_llm_optimized_summary(sections: &[(String, String)], max_len: usize) ->
 
     // Build summary with clear markers
     for (priority, title, content) in sorted_sections {
-        eprintln!("[DEBUG] build_llm_optimized_summary: processing section '{}' (priority={}, {} chars), current summary len={}",
-                  title, priority, content.len(), summary.len());
-
         if summary.len() > (max_len as f64 * 0.8) as usize {
-            eprintln!("[DEBUG] build_llm_optimized_summary: breaking due to 80% limit");
             break; // Stop before exceeding limit
         }
 
@@ -168,14 +148,14 @@ fn build_llm_optimized_summary(sections: &[(String, String)], max_len: usize) ->
         }
 
         // Format content for LLM readability
-        let formatted_content = if title_lower.contains("command") {
+        let formatted_content = if title_lower.contains("usage") {
+            format_section_content(content, priority)
+        } else if title_lower.contains("command") {
             format_subcommand_content(content)
         } else {
             format_section_content(content, priority)
         };
-        eprintln!("[DEBUG] build_llm_optimized_summary: formatted_content = {} chars, preview: {:?}", formatted_content.len(), &formatted_content[..100.min(formatted_content.len())]);
         summary.push_str(&formatted_content);
-        eprintln!("[DEBUG] build_llm_optimized_summary: after push, summary = {} chars", summary.len());
     }
 
     // Add quick reference if space available
@@ -197,7 +177,7 @@ fn format_section_content(content: &str, priority: usize) -> String {
 
     // For USAGE (highest priority), highlight the pattern
     if priority == 0 {
-        for line in lines.iter().take(5) {
+        for line in lines.iter().take(10) {
             let trimmed = line.trim();
             if !trimmed.is_empty() {
                 // Highlight command patterns
@@ -232,21 +212,18 @@ fn format_section_content(content: &str, priority: usize) -> String {
 
     // For OPTIONS/FLAGS, format as compact list
     if priority <= 3 {
-        for line in lines.iter().take(20) {
+        for line in lines.iter().take(200) {
             let trimmed = line.trim();
             if trimmed.starts_with('-') {
-                // Flag line - keep it
                 formatted.push_str(&format!("{}\n", trimmed));
-            } else if !trimmed.is_empty() && formatted.len() < 500 {
-                // Description - keep brief
+            } else if !trimmed.is_empty() {
                 formatted.push_str(&format!("{}\n", trimmed));
             }
         }
         return formatted;
     }
 
-    // Default: just trim and limit
-    content.lines().take(15).collect::<Vec<_>>().join("\n")
+    content.lines().take(100).collect::<Vec<_>>().join("\n")
 }
 
 /// Format subcommand content for LLM consumption.
@@ -254,23 +231,25 @@ fn format_subcommand_content(content: &str) -> String {
     let mut formatted = String::new();
     let mut subcommands = Vec::new();
 
-    eprintln!("[DEBUG] format_subcommand_content: content length = {} chars", content.len());
-    eprintln!("[DEBUG] First 200 chars: {:?}", &content[..200.min(content.len())]);
-
-    // Common words to filter out (not subcommands)
     let common_words: std::collections::HashSet<&str> = [
         "program", "version", "usage", "tools", "for", "the", "and", "with", "using",
         "htslib", "sam", "format", "alignments", "high", "throughput", "sequencing",
         "data", "in", "command", "options", "see", "help", "more", "information",
         "http", "www", "org", "doc", "man", "page", "available", "commands",
+        "note", "description", "example", "examples", "license", "author",
+        "use", "also", "when", "where", "which", "how", "can", "may", "must",
+        "this", "that", "these", "those", "from", "into", "onto",
+        "not", "automatically", "only", "just", "each", "all", "both",
+        "first", "last", "new", "old", "original", "default",
+        "without", "before", "after", "between", "during", "while",
+        "such", "same", "other", "than", "very", "most", "some",
+        "any", "no", "yes", "true", "false", "none",
     ]
     .iter()
     .cloned()
     .collect();
 
     for line in content.lines() {
-        // Check if line is indented (subcommands are typically indented in help text)
-        let is_indented = line.starts_with("     ") || line.starts_with("\t");
         let trimmed = line.trim();
 
         if trimmed.is_empty() {
@@ -289,10 +268,7 @@ fn format_subcommand_content(content: &str) -> String {
                 && first_word.len() > 1
                 && !common_words.contains(first_word)
             {
-                // Prefer indented lines as they're more likely to be actual subcommands
-                if is_indented {
-                    subcommands.push(first_word.to_string());
-                }
+                subcommands.push(first_word.to_string());
             }
         }
     }
@@ -300,8 +276,6 @@ fn format_subcommand_content(content: &str) -> String {
     // Deduplicate and format
     subcommands.sort();
     subcommands.dedup();
-
-    eprintln!("[DEBUG] format_subcommand_content: extracted {} subcommands: {:?}", subcommands.len(), subcommands);
 
     if !subcommands.is_empty() {
         formatted.push_str(&format!("Subcommands: {}\n", subcommands.join(", ")));

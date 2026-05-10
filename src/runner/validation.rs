@@ -197,6 +197,7 @@ mod tests {
                     flag: "-o".to_string(),
                     value_type: None,
                     description: "output file".to_string(),
+                    enum_values: Vec::new(),
                 },
                 FlagEntry {
                     alt_form: None,
@@ -205,6 +206,7 @@ mod tests {
                     flag: "-@ INT".to_string(),
                     value_type: Some("INT".to_string()),
                     description: "threads".to_string(),
+                    enum_values: Vec::new(),
                 },
             ],
             "",
@@ -228,6 +230,7 @@ mod tests {
                 flag: "-o".to_string(),
                 value_type: None,
                 description: "output".to_string(),
+                enum_values: Vec::new(),
             }],
             "",
         );

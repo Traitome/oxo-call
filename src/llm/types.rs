@@ -72,6 +72,7 @@ pub(crate) struct ChatRequest {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) struct ChatMessage {
     pub role: String,
+    #[serde(default)]
     pub content: String,
 }
 

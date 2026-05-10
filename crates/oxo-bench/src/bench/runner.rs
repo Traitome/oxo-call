@@ -566,11 +566,14 @@ impl CommandGenerator for OxoCallGenerator {
         cmd.args([tool, task]);
 
         // Pass provider configuration via environment.
+        if let Some(ref provider) = self.provider {
+            cmd.env("OXO_CALL_LLM_PROVIDER", provider);
+        }
         if let Some(ref base) = self.api_base {
-            cmd.env("OXO_CALL_API_BASE", base);
+            cmd.env("OXO_CALL_LLM_API_BASE", base);
         }
         if let Some(ref key) = self.api_key {
-            cmd.env("OXO_CALL_API_KEY", key);
+            cmd.env("OXO_CALL_LLM_API_TOKEN", key);
         }
 
         let output = cmd.output();

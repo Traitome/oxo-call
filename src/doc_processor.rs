@@ -32,6 +32,14 @@ static NOISE_PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
     ]
 });
 
+static UNICODE_BOX_CLEANER: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"[╭╮╰╯│─┃━┏┓┗┛┎┒└┘┌┐└┘├┤┬┴┼]").expect("valid regex")
+});
+
+static ANSI_ESCAPE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\x1b\[[0-9;]*[a-zA-Z]").expect("valid regex")
+});
+
 /// Matches three or more consecutive newlines (for collapsing blank lines).
 static BLANK_LINE_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\n{3,}").expect("valid regex"));
@@ -41,8 +49,27 @@ static FLAG_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?:^|\s)(-{1,2}[a-zA-Z0-9_-]+)").expect("valid regex"));
 
 /// Matches structured flag lines in OPTIONS sections (e.g. `  -o FILE   Output file name`).
+/// Also handles tab-separated and single-space-separated formats.
 static FLAG_LINE_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^\s*(-{1,2}[a-zA-Z0-9@_-]+(?:[,\s]+--?[a-zA-Z0-9_-]+)?(?:\s+\S+)?)\s{2,}(.+)")
+    Regex::new(r"^\s*(-{1,2}[a-zA-Z0-9@_-]+(?:[=\[][^,\s]*)?(?:[,\s]+(?:or\s+)?--?[a-zA-Z0-9_-]+(?:[=\[][^,\s]*)?)*(?:\s+[<\[]?\S+[>\]]?)?)\s{2,}(.+)")
+        .expect("valid regex")
+});
+
+/// Matches Picard-style KEY=VALUE parameter lines (e.g. `I=input.bam   Input BAM file`).
+static PICARD_PARAM_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^\s*([A-Z][A-Za-z0-9_]*(?:=\S+)?)\s{2,}(.+)")
+        .expect("valid regex")
+});
+
+/// Matches flag lines with tab or single-space separation (broader than FLAG_LINE_RE).
+static FLAG_LINE_LOOSE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^\s*(-{1,2}[a-zA-Z0-9@_-]+(?:[=\[][^,\s]*)?(?:[,\s]+--?[a-zA-Z0-9_-]+(?:[=\[][^,\s]*)?)?(?:\s+[A-Z_]{1,12})?)\s+(.+)")
+        .expect("valid regex")
+});
+
+/// Matches admixture-style flags: --seed=X     : description
+static FLAG_COLON_DESC_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^\s*(-{1,2}[a-zA-Z0-9@_-]+(?:[=\[][^,\s]*)?)\s*:\s*(.+)")
         .expect("valid regex")
 });
 
@@ -88,6 +115,9 @@ pub struct StructuredDoc {
     /// List of detected subcommands (sort, view, index, etc.)
     #[serde(default)]
     pub subcommands: Vec<String>,
+    /// Descriptions for each subcommand (subcommand -> description)
+    #[serde(default)]
+    pub subcommand_descriptions: Vec<(String, String)>,
     /// Format hint extracted from USAGE line for LLM guidance.
     #[serde(default)]
     pub format_hint: Option<String>,
@@ -252,6 +282,9 @@ pub struct FlagEntry {
     /// Alternative form pairing (e.g., `-o` paired with `--output`).
     #[serde(default)]
     pub alt_form: Option<String>,
+    /// Enumerated values for this flag (e.g., `["fastq", "bam", "mapout"]`).
+    #[serde(default)]
+    pub enum_values: Vec<String>,
 }
 
 /// File type to flag mapping extracted from documentation examples.
@@ -422,6 +455,31 @@ impl DocProcessor {
     /// 4. Extract subcommands
     /// 5. Build quick reference flags
     pub fn clean_and_structure(&self, docs: &str) -> StructuredDoc {
+        self.clean_and_structure_with_hint(docs, None, None, None, None)
+    }
+
+    /// Process documentation with hints about subcommands and matched subcommand.
+    ///
+    /// When `subcommand_hint` is provided, the processor will force
+    /// `has_subcommands = true` and use the hint as the subcommand list,
+    /// overriding any detection from the documentation itself. This is
+    /// critical when subcommand-specific help is fetched (e.g., `samtools sort --help`)
+    /// because the subcommand help doesn't list all subcommands.
+    ///
+    /// When `matched_subcommand` is provided, it will be ensured to appear
+    /// first in the subcommand list so the LLM prioritizes it.
+    ///
+    /// When `tool_name` is provided, it is used for known-tool subcommand detection
+    /// (e.g., sra-tools, bismark, strelka2) where the USAGE line may not contain
+    /// the tool name.
+    pub fn clean_and_structure_with_hint(
+        &self,
+        docs: &str,
+        subcommand_hint: Option<&[String]>,
+        matched_subcommand: Option<&str>,
+        tool_name: Option<&str>,
+        path_companions: Option<&[String]>,
+    ) -> StructuredDoc {
         // Step 1: Remove noise
         let cleaned = self.remove_noise(docs);
 
@@ -441,6 +499,7 @@ impl DocProcessor {
             quality_score: 0.0,
             has_subcommands: false,
             subcommands: Vec::new(),
+            subcommand_descriptions: Vec::new(),
             format_hint: None,
             companion_binaries: Vec::new(),
             usage_pattern: UsagePattern::default(),
@@ -455,14 +514,16 @@ impl DocProcessor {
             } else if name_lower.contains("example") {
                 structured.examples.push_str(&content);
                 structured.examples.push('\n');
-            } else if name_lower.contains("option") || name_lower.contains("flag") {
+            } else if name_lower.contains("option") || name_lower.contains("flag")
+                || name_lower.contains("argument") || name_lower.contains("parameter")
+            {
                 structured
                     .options
                     .push_str(&self.compress_options(&content));
                 structured.options.push('\n');
             } else if name_lower.contains("command") {
                 structured.commands = self.extract_subcommands(&content);
-            } else if name_lower.contains("argument") || name_lower.contains("parameter") {
+            } else {
                 structured
                     .other
                     .push_str(&format!("=== {} ===\n", section_name));
@@ -474,22 +535,109 @@ impl DocProcessor {
         // Step 4: Extract quick reference flags
         structured.quick_flags = self.extract_all_flags(&cleaned);
 
-        // Step 5: Build structured flag catalog from options section
-        structured.flag_catalog = self.extract_flag_catalog(&structured.options);
+        // Step 5: Build structured flag catalog from ALL sections (not just options)
+        {
+            let mut catalog = self.extract_flag_catalog(&structured.options);
+
+            let extra = self.extract_flag_catalog(&structured.other);
+            for entry in extra {
+                if !catalog.iter().any(|e| e.flag == entry.flag) {
+                    catalog.push(entry);
+                }
+            }
+
+            let usage_flags = self.extract_flag_catalog(&structured.usage);
+            for entry in usage_flags {
+                if !catalog.iter().any(|e| e.flag == entry.flag) {
+                    catalog.push(entry);
+                }
+            }
+
+            let example_flags = self.extract_flags_from_examples(&structured.examples);
+            for entry in example_flags {
+                if !catalog.iter().any(|e| e.flag == entry.flag) {
+                    catalog.push(entry);
+                }
+            }
+
+            // Fallback: if flag catalog is still empty, extract from the full documentation
+            if catalog.is_empty() {
+                catalog = self.extract_flag_catalog(&cleaned);
+            }
+
+            // Extract required flags from USAGE line patterns
+            // e.g., "bedtools intersect [OPTIONS] -a <bed/gff/vcf/bam> -b <bed/gff/vcf/bam>"
+            let usage_required = self.extract_usage_required_flags(&structured.usage);
+            for entry in &usage_required {
+                if let Some(existing) = catalog.iter_mut().find(|e| e.flag == entry.flag) {
+                    existing.required = true;
+                    if existing.description.is_empty() {
+                        existing.description = entry.description.clone();
+                    }
+                    if existing.value_type.is_none() && entry.value_type.is_some() {
+                        existing.value_type = entry.value_type.clone();
+                    }
+                } else {
+                    catalog.push(entry.clone());
+                }
+            }
+
+            structured.flag_catalog = catalog;
+        }
 
         // Step 6: Extract concrete command examples from EXAMPLES section & raw text
         structured.extracted_examples = self.extract_command_examples(&cleaned);
 
         // Step 7: Detect format constraints (subcommand requirements, companion binaries)
         let (has_subcommands, detected_subcommands, format_hint) =
-            self.detect_format_constraints(&structured.usage, &structured.commands, &cleaned);
-        structured.has_subcommands = has_subcommands;
-        structured.subcommands = detected_subcommands;
-        structured.format_hint = format_hint;
+            self.detect_format_constraints(&structured.usage, &structured.commands, &cleaned, tool_name);
+
+        // Merge PATH-discovered subcommands (subcommand_hint) with doc-detected ones
+        if let Some(hint_subs) = subcommand_hint {
+            if !hint_subs.is_empty() {
+                structured.has_subcommands = true;
+                let mut merged = detected_subcommands;
+                for sub in hint_subs {
+                    if !merged.contains(sub) {
+                        merged.push(sub.clone());
+                    }
+                }
+                structured.subcommands = merged;
+                if structured.format_hint.is_none() {
+                    structured.format_hint = Some(
+                        "First token must be a subcommand or companion binary".to_string(),
+                    );
+                }
+            } else {
+                structured.has_subcommands = has_subcommands;
+                structured.subcommands = detected_subcommands;
+                structured.format_hint = format_hint;
+            }
+        } else {
+            structured.has_subcommands = has_subcommands;
+            structured.subcommands = detected_subcommands;
+            structured.format_hint = format_hint;
+        }
+
+        // Extract subcommand descriptions from help text
+        structured.subcommand_descriptions = self.extract_subcommand_descs_from_help(
+            &structured.subcommands, &cleaned
+        );
 
         // Step 8: Detect companion binaries from documentation
         structured.companion_binaries =
             self.detect_companion_binaries(&cleaned, &structured.examples);
+
+        // Merge PATH-scanned companion binaries (e.g., metaphlan_analysis, rsem-prepare-reference)
+        // These are executables found in PATH that share the tool's prefix but are NOT
+        // subcommands (they're invoked directly, not as `tool subcommand [opts]`).
+        if let Some(companions) = path_companions {
+            for companion in companions {
+                if !structured.companion_binaries.contains(companion) {
+                    structured.companion_binaries.push(companion.clone());
+                }
+            }
+        }
 
         // Step 9: Enhance flag catalog with required/default detection and alt_form pairing
         self.enhance_flag_catalog(&mut structured.flag_catalog);
@@ -508,6 +656,73 @@ impl DocProcessor {
         // Step 12: Compute documentation quality score
         structured.quality_score = self.compute_quality_score(&structured);
 
+        // Step 13: Apply subcommand hints if provided
+        if let Some(hint_subs) = subcommand_hint {
+            if !hint_subs.is_empty() {
+                structured.has_subcommands = true;
+                let mut subs = structured.subcommands.clone();
+                for sub in hint_subs {
+                    if !subs.contains(sub) {
+                        subs.push(sub.clone());
+                    }
+                }
+                subs.sort();
+                subs.dedup();
+
+                if let Some(matched) = matched_subcommand {
+                    subs.retain(|s| s != matched);
+                    subs.insert(0, matched.to_string());
+                }
+
+                structured.subcommands = subs;
+                if structured.format_hint.is_none() {
+                    structured.format_hint = Some("First token must be a subcommand".to_string());
+                }
+            }
+        } else if let Some(matched) = matched_subcommand {
+            if structured.has_subcommands {
+                structured.subcommands.retain(|s| s != matched);
+                structured.subcommands.insert(0, matched.to_string());
+            }
+        }
+
+        // Step 14: Final override — known NO-subcommand tools must NEVER have subcommands
+        // This check MUST come after all other subcommand detection to prevent overrides
+        let effective_tool_name = tool_name
+            .map(|n| n.to_lowercase())
+            .unwrap_or_default();
+        let known_no_subcommand_tools = [
+            "rm", "find", "wget", "curl", "ssh", "rsync", "tar", "r",
+            "cutadapt", "trim_galore", "fastp", "fastqc", "multiqc",
+            "mosdepth", "liftoff", "fastani", "pilon",
+            "shapeit4", "hifiasm", "vep", "canu", "flye", "arriba",
+            "pbfusion", "orthofinder",
+            "bowtie2", "minimap2", "hisat2", "star",
+            "spades", "megahit", "prokka", "quast", "busco",
+            "kraken2", "bracken",
+            "featurecounts", "stringtie",
+            "freebayes", "vcftools", "tabix",
+            "sniffles", "longshot",
+            "racon", "miniasm", "wtdbg2", "verkko",
+            "muscle", "mafft", "fasttree", "iqtree2",
+            "prodigal", "augustus",
+            "plink2", "admixture", "angsd",
+            "chromap",
+            "java", "python", "perl", "bash", "julia",
+            "grep", "sed", "awk",
+            "vcfanno", "centrifuge",
+            "blastn", "blastp", "blastx", "tblastn", "tblastx",
+            "chopper", "cellsnp-lite",
+            "metaphlan", "snakemake", "pbccs",
+        ];
+        if known_no_subcommand_tools.contains(&effective_tool_name.as_str()) {
+            structured.has_subcommands = false;
+            structured.subcommands.clear();
+            structured.format_hint = Some(
+                "First token is a flag or input file. NO subcommands exist.".to_string(),
+            );
+        }
+
         structured
     }
 
@@ -519,6 +734,7 @@ impl DocProcessor {
         usage: &str,
         commands: &str,
         full_doc: &str,
+        tool_name: Option<&str>,
     ) -> (bool, Vec<String>, Option<String>) {
         let mut has_subcommands = false;
         let mut subcommands = Vec::new();
@@ -591,17 +807,35 @@ impl DocProcessor {
             "concat", "align", "index", "build", "extract", "stat",
         ];
 
-        // Analyze examples to infer subcommands
+        // Analyze USAGE lines and explicit command examples to infer subcommands
+        // ONLY scan lines that look like USAGE or shell examples, not flag descriptions
         for line in full_doc.lines() {
             let trimmed = line.trim();
-            // Look for "tool subcommand" patterns in examples
+
+            // Only process USAGE lines and shell command examples:
+            // - Lines starting with "Usage:" or "usage:"
+            // - Lines starting with "$" or "%" (shell prompts)
+            let is_usage_line = trimmed.to_lowercase().starts_with("usage:");
+            let is_shell_example = trimmed.starts_with('$') || trimmed.starts_with('%');
+
+            if !is_usage_line && !is_shell_example {
+                // Skip flag descriptions and other documentation text
+                continue;
+            }
+
+            // Look for common subcommand patterns in these specific lines only
             for word in trimmed.split_whitespace() {
                 let word = word.trim_start_matches('$').trim_start_matches('%').trim();
-                if common_subcommands.contains(&word) && word.len() > 2 {
+                // Skip flag-like tokens (starting with -)
+                if word.starts_with('-') {
+                    continue;
+                }
+                // Only consider this a subcommand if USAGE already indicates subcommands
+                // Don't use this to SET has_subcommands - too many false positives
+                if has_subcommands && common_subcommands.contains(&word) && word.len() > 2 {
                     if !subcommands.contains(&word.to_string()) {
                         subcommands.push(word.to_string());
                     }
-                    has_subcommands = true;
                 }
             }
         }
@@ -625,10 +859,219 @@ impl DocProcessor {
             }
         }
 
+        // Scan for tool-prefixed subcommand patterns (e.g., agat_convert_sp_gff2gtf,
+        // bakta_db, rsem-prepare-reference, mummer nucmer)
+        // Only apply when no subcommands were detected from USAGE/COMMANDS sections,
+        // and require at least 2 matches to avoid false positives from env vars etc.
+        if !has_subcommands {
+            let tool_name = full_doc
+                .lines()
+                .find(|l| l.trim().to_lowercase().starts_with("usage:"))
+                .and_then(|l| {
+                    let after_usage = l.trim().trim_start_matches("usage:")
+                        .trim_start_matches("Usage:")
+                        .trim_start_matches("USAGE:")
+                        .trim();
+                    after_usage.split_whitespace().next()
+                })
+                .unwrap_or("");
+
+            if !tool_name.is_empty() {
+                let prefixed = self.scan_tool_prefixed_subcommands(full_doc, tool_name);
+                if prefixed.len() >= 2 {
+                    has_subcommands = true;
+                    subcommands = prefixed;
+                    if format_hint.is_none() {
+                        format_hint = Some("First token must be a subcommand or companion binary".to_string());
+                    }
+                }
+            }
+        }
+
+        // Known multi-subcommand tools: force subcommand detection
+        // These tools are known to require subcommands but their help text
+        // may not clearly indicate this
+        let known_subcommand_tools: &[(&str, &[&str])] = &[
+            ("sra-tools", &["prefetch", "fasterq-dump", "fastq-dump", "sam-dump",
+                           "sra-stat", "vdb-validate", "vdb-dump"]),
+            ("bismark", &["bismark", "bismark_genome_preparation", "bismark_methylation_extractor",
+                          "deduplicate_bismark", "bismark2report", "bismark2bedGraph",
+                          "bismark2coverage", "coverage2cytosine"]),
+            ("strelka2", &["configureStrelkaGermlineWorkflow.py", "configureStrelkaSomaticWorkflow.py"]),
+            ("mummer", &["nucmer", "promer", "delta-filter", "show-coords",
+                        "show-snps", "show-tiling", "mummerplot", "dnadiff"]),
+            ("homer", &["findPeaks", "findMotifsGenome.pl", "makeUCSCfile",
+                       "annotatePeaks.pl", "mergePeaks", "getDifferentialPeaks"]),
+            ("igvtools", &["count", "index", "sort", "toTDF", "tile"]),
+            ("nextflow", &["run", "pull", "info", "list", "help"]),
+            ("blast", &["blastn", "blastp", "blastx", "tblastn", "tblastx",
+                        "makeblastdb", "blastdbcmd", "blast_formatter",
+                        "dustmasker", "segmasker", "update_blastdb.pl"]),
+            ("hmmer", &["hmmsearch", "hmmscan", "hmmalign", "hmmbuild",
+                        "hmmemit", "hmmfetch", "hmmpress", "hmmconvert"]),
+            ("mmseqs2", &["easy-search", "easy-cluster", "search", "cluster",
+                         "index", "convert2fasta", "createdb", "convertalis"]),
+            ("gtdbtk", &["classify_wf", "ani_screen", "de_novo_wf", "infer",
+                        "root", "decorate", "export_msa", "identify",
+                        "align", "tree"]),
+            ("seqkit", &["seq", "fx2tab", "tab2fx", "grep", "rmdup", "sample",
+                         "subseq", "replace", "translate", "sort", "stats", "concat",
+                         "split2", "fq2fa", "genautocomplete", "common", "head"]),
+            ("qualimap", &["bamqc", "rnaseq", "counts", "clustering", "multi-bamqc"]),
+            ("varscan2", &["mpileup2cns", "mpileup2indel", "mpileup2snp",
+                          "somatic", "copynumber", "readcounts", "processSomatic"]),
+            ("survivor", &["simSV", "merge", "stats"]),
+            ("snpeff", &["ann", "download", "build", "databases"]),
+            ("trimmomatic", &["PE", "SE"]),
+            ("deeptools", &["bamCoverage", "computeMatrix", "plotHeatmap", "plotProfile",
+                           "multiBamSummary", "plotCorrelation", "bamCompare",
+                           "computeMatrixOperations", "plotPCA", "plotFingerprint",
+                           "alignSieve", "bamHandler"]),
+            ("agat", &["agat_convert_sp_gff2gtf", "agat_convert_sp_gff2zff",
+                      "agat_sp_statistics", "agat_sp_filter_record_by_attribute_value",
+                      "agat_sp_manage_IDs", "agat_sp_fix_features_locations_duplicated",
+                      "agat_sp_extract_sequences", "agat_sp_merge_annotations",
+                      "agat_sp_keep_longest_isoform", "agat_sp_filter_gene_by_length",
+                      "agat_sp_compare_two_annotations", "agat_convert_sp_gxf2gxf",
+                      "agat_sp_convert_to_bed", "agat_config", "agat_sp_add_attribute"]),
+            ("rsem", &["rsem-prepare-reference", "rsem-calculate-expression",
+                      "rsem-plot-model", "rsem-run-em", "rsem-run-gibbs"]),
+            ("bakta", &["bakta", "bakta_db", "bakta_proteins"]),
+            ("methyldackel", &["extract", "mbias", "summary"]),
+            ("modkit", &["pileup", "summary", "extract", "motif-bed",
+                        "sample-probs", "call-mods", "update-tags"]),
+            ("medaka", &["medaka_consensus", "medaka_variant", "medaka_haplotype",
+                        "medaka_snp_pipeline", "medaka_variant_pipeline"]),
+            ("nanocomp", &["NanoComp", "NanoPlot", "NanoStat"]),
+            ("macs2", &["callpeak", "bdgcmp", "bdgdiff", "filterdup",
+                        "predictd", "pileup", "randsample", "refinepeak"]),
+            ("macs3", &["callpeak", "bdgcmp", "bdgdiff", "filterdup",
+                        "predictd", "pileup", "randsample", "refinepeak"]),
+            ("cnvkit", &["batch", "target", "access", "antitarget", "coverage",
+                        "reference", "fix", "segment", "call", "diagram",
+                        "scatter", "heatmap", "breaks", "genemetrics"]),
+            ("pairtools", &["parse", "sort", "merge", "dedup", "flip", "restrict",
+                           "select", "split", "stats", "scale"]),
+            ("delly", &["call", "filter", "merge", "lr", "genotype"]),
+            ("checkm2", &["predict", "test", "database", "plot"]),
+            ("diamond", &["blastp", "blastx", "makedb", "view", "getseq",
+                         "dbinfo", "test", "merge-db", "prep-db"]),
+            ("sourmash", &["compute", "compare", "plot", "gather", "search",
+                          "index", "cat", "watch", "sigs"]),
+            ("meme", &["meme", "fimo", "dreme", "mcast", "glam2", "tomtom",
+                      "ama", "centrimo", "spamo"]),
+            ("truvari", &["bench", "collapse", "anno", "gap", "refine",
+                         "segment", "consistency", "hist"]),
+            ("whatshap", &["phase", "haplotag", "stats", "split", "compare"]),
+            ("pbsv", &["discover", "call"]),
+            ("bwa", &["mem", "index", "aln", "samse", "sampe", "bwasw"]),
+            ("bwa-mem2", &["mem", "index"]),
+            ("salmon", &["quant", "index", "decoy", "validate", "swim"]),
+            ("kallisto", &["quant", "index", "bus", "merge", "h5dump", "pseudo"]),
+            ("seqtk", &["seq", "sample", "subseq", "trimfq", "hseq", "fqchk",
+                        "mergefa", "comp", "listhet"]),
+            ("pbmm2", &["align", "sort", "index", "circularize", "sag",
+                        "ccs", "unzip", "zip"]),
+            ("samtools", &["view", "sort", "index", "merge", "cat", "flagstat",
+                           "depth", "mpileup", "faidx", "dict", "fastq", "fasta",
+                           "markdup", "fixmate", "calmd", "reheader", "stats",
+                           "bedcov", "coverage"]),
+            ("bcftools", &["view", "filter", "call", "norm", "annotate", "concat",
+                           "merge", "isec", "index", "stats", "query", "sort",
+                           "reheader", "csq", "mpileup", "consensus", "convert"]),
+            ("bedtools", &["intersect", "subtract", "merge", "sort", "closest",
+                           "window", "coverage", "complement", "genome", "slop",
+                           "shift", "flank", "map", "cluster", "groupby",
+                           "bamtofastq", "fastafrombed", "getfasta", "makewindows",
+                           "shuffle", "random", "annotate", "multiinter", "unionbedg"]),
+            ("picard", &["MarkDuplicates", "SortSam", "AddOrReplaceReadGroups",
+                        "CreateSequenceDictionary", "CollectAlignmentSummaryMetrics",
+                        "CollectInsertSizeMetrics", "ValidateSamFile", "MergeSamFiles",
+                        "ReorderSam", "SamFormatConverter"]),
+            ("gatk", &["HaplotypeCaller", "MarkDuplicates", "BaseRecalibrator",
+                      "ApplyBQSR", "GenomicsDBImport", "GenotypeGVCFs",
+                      "SelectVariants", "VariantFiltration", "CombineGVCFs",
+                      "SplitNCigarReads", "Mutect2", "CalculateContamination",
+                      "LearnReadOrientationModel", "GetPileupSummaries",
+                      "FilterMutectCalls", "AnnotateIntervals"]),
+            ("porechop", &["porechop"]),
+        ];
+
+        // Extract tool name from USAGE line
+        let doc_tool_name = full_doc
+            .lines()
+            .find(|l| l.trim().to_lowercase().starts_with("usage:"))
+            .and_then(|l| {
+                let after_usage = l.trim().trim_start_matches("usage:")
+                    .trim_start_matches("Usage:")
+                    .trim_start_matches("USAGE:")
+                    .trim();
+                after_usage.split_whitespace().next()
+            })
+            .unwrap_or("");
+
+        // Use both the passed tool_name and the doc-extracted tool name for matching
+        let effective_tool_name = tool_name
+            .map(|n| n.to_lowercase())
+            .unwrap_or_else(|| doc_tool_name.to_lowercase());
+
+        for (known_tool, subs) in known_subcommand_tools {
+            if effective_tool_name == *known_tool || doc_tool_name.to_lowercase() == *known_tool {
+                if !has_subcommands {
+                    has_subcommands = true;
+                    if format_hint.is_none() {
+                        format_hint = Some("First token must be a subcommand".to_string());
+                    }
+                }
+                for sub in *subs {
+                    if !subcommands.contains(&sub.to_string()) {
+                        subcommands.push(sub.to_string());
+                    }
+                }
+            }
+        }
+
+        // Known NO-subcommand tools: force has_subcommands = false
+        let known_no_subcommand_tools = [
+            "rm", "find", "wget", "curl", "ssh", "rsync", "tar", "r",
+            "cutadapt", "trim_galore", "fastp", "fastqc", "multiqc",
+            "mosdepth", "liftoff", "fastani", "pilon",
+            "shapeit4", "hifiasm", "vep", "canu", "flye", "arriba",
+            "pbfusion", "orthofinder",
+            "bowtie2", "minimap2", "hisat2", "star",
+            "spades", "megahit", "prokka", "quast", "busco",
+            "kraken2", "bracken",
+            "featurecounts", "stringtie",
+            "freebayes", "vcftools", "tabix",
+            "sniffles", "longshot",
+            "racon", "miniasm", "wtdbg2", "verkko",
+            "muscle", "mafft", "fasttree", "iqtree2",
+            "prodigal", "augustus",
+            "plink2", "admixture", "angsd",
+            "chromap",
+            "java", "python", "perl", "bash", "julia",
+            "grep", "sed", "awk",
+            "vcfanno", "centrifuge",
+            "blastn", "blastp", "blastx", "tblastn", "tblastx",
+            "chopper", "cellsnp-lite",
+            "metaphlan", "snakemake", "pbccs",
+        ];
+        for no_sub_tool in &known_no_subcommand_tools {
+            if effective_tool_name == *no_sub_tool || doc_tool_name.to_lowercase() == *no_sub_tool {
+                has_subcommands = false;
+                subcommands.clear();
+                format_hint = Some("First token is a flag or input file. NO subcommands exist.".to_string());
+                break;
+            }
+        }
+
         (has_subcommands, subcommands, format_hint)
     }
 
     /// Infer subcommands from example usage patterns.
+    ///
+    /// Enhanced to also scan for `tool_subcommand` patterns (e.g., agat_convert_sp_gff2gtf,
+    /// bakta_db, rsem-prepare-reference) and companion binary invocations in examples.
     fn infer_subcommands_from_examples(&self, docs: &str) -> Vec<String> {
         let mut subcommands = HashSet::new();
         let mut in_examples = false;
@@ -636,7 +1079,6 @@ impl DocProcessor {
         for line in docs.lines() {
             let trimmed = line.trim();
 
-            // Track examples section
             if self.is_section_header(trimmed) && trimmed.to_lowercase().contains("example") {
                 in_examples = true;
                 continue;
@@ -648,9 +1090,6 @@ impl DocProcessor {
                 continue;
             }
 
-            // Look for command patterns
-            // e.g., "$ tool sort ..." -> "sort" is the subcommand
-            // e.g., "tool view ..." -> "view" is the subcommand
             if trimmed.starts_with('$') || trimmed.starts_with('%') {
                 let parts: Vec<&str> = trimmed
                     .trim_start_matches('$')
@@ -659,8 +1098,6 @@ impl DocProcessor {
                     .collect();
 
                 if parts.len() >= 2 {
-                    // First part after $ is usually the tool name
-                    // Second part is potentially the subcommand if it doesn't start with -
                     let potential_subcommand = parts[1];
                     if !potential_subcommand.starts_with('-')
                         && !potential_subcommand.starts_with('<')
@@ -681,6 +1118,156 @@ impl DocProcessor {
         result.into_iter().take(10).collect()
     }
 
+    /// Scan the full document for `tool_subcommand` or `tool-subcommand` patterns.
+    ///
+    /// Many tools (e.g., agat, bakta, rsem, mummer) use the tool name as a prefix
+    /// for their subcommands/companion binaries. This method detects those patterns
+    /// across the entire document, not just in the COMMANDS section.
+    fn scan_tool_prefixed_subcommands(&self, docs: &str, tool: &str) -> Vec<String> {
+        let mut found = HashSet::new();
+        let tool_lower = tool.to_lowercase();
+        let tool_with_underscore = format!("{}_", tool_lower);
+        let tool_with_hyphen = format!("{}-", tool_lower);
+
+        let env_suffixes = [
+            "_DIR", "_INDEX", "_FILE", "_PATH", "_HOME", "_EDITOR",
+            "_PAGER", "_SHELL", "_USER", "_PORT", "_HOST", "_EXEC",
+            "_ALIAS", "_COMMIT", "_BRANCH", "_REMOTE", "_WORK",
+            "_DB", "_DATABASE", "_FOLDER", "_OUTPUT", "_INPUT",
+            "_ANALYSIS", "_SAMPLE", "_READ", "_REF", "_LOG",
+            "_COLOR", "_COLORS", "_OPTIONS", "_OPTS", "_ARGS",
+            "_ENV", "_VAR", "_VARIABLE", "_SETTING", "_CONFIG",
+            "_DEBUG", "_VERBOSE", "_QUIET", "_TRACE", "_LEVEL",
+        ];
+
+        let false_positive_suffixes = [
+            "databases", "database", "analysis", "sample", "samples",
+            "output", "input", "reference", "references", "config",
+            "configurations", "data", "results", "logs", "tmp",
+            "color", "colors", "options", "opts", "args",
+            "env", "debug", "verbose", "quiet", "trace",
+        ];
+
+        for line in docs.lines() {
+            let line_lower = line.to_lowercase();
+            let trimmed = line.trim();
+
+            for word in trimmed.split_whitespace() {
+                let word_clean = word
+                    .trim_start_matches('`')
+                    .trim_end_matches('`')
+                    .trim_start_matches('(')
+                    .trim_end_matches(')')
+                    .trim_start_matches('[')
+                    .trim_end_matches(']')
+                    .trim_end_matches(',')
+                    .trim_end_matches(':')
+                    .trim_end_matches(';')
+                    .trim_start_matches('\'')
+                    .trim_end_matches('\'')
+                    .trim_start_matches('"')
+                    .trim_end_matches('"');
+
+                let word_lower = word_clean.to_lowercase();
+
+                if (word_lower.starts_with(&tool_with_underscore)
+                    || word_lower.starts_with(&tool_with_hyphen))
+                    && word_clean.len() > tool.len() + 1
+                {
+                    let is_env = env_suffixes.iter().any(|s| word_clean.to_uppercase().ends_with(s));
+                    let has_lowercase_after_prefix = word_lower[tool.len() + 1..]
+                        .chars()
+                        .any(|c| c.is_ascii_lowercase());
+                    let is_all_upper_after_prefix = word_clean[tool.len() + 1..]
+                        .chars()
+                        .filter(|c| c.is_ascii_alphabetic())
+                        .all(|c| c.is_ascii_uppercase());
+
+                    if is_env || is_all_upper_after_prefix {
+                        continue;
+                    }
+
+                    // Skip false-positive suffixes (directory names, default values, etc.)
+                    let suffix = &word_lower[tool.len() + 1..];
+                    if false_positive_suffixes.iter().any(|fp| suffix == *fp) {
+                        continue;
+                    }
+
+                    // Skip if the word appears inside quotes (default value, not a command)
+                    if word.starts_with('\'') || word.starts_with('"') {
+                        continue;
+                    }
+
+                    // Skip if the word contains '/' (it's a path, not a command)
+                    if word.contains('/') {
+                        continue;
+                    }
+
+                    if has_lowercase_after_prefix {
+                        found.insert(word_clean.to_string());
+                    }
+                }
+            }
+
+            if line_lower.contains(&format!("{}_", tool_lower))
+                || line_lower.contains(&format!("{}-", tool_lower))
+            {
+                let pattern = format!(
+                    r"(?:^|\s|`|')({}[_-][a-z][a-zA-Z0-9_-]+)",
+                    tool_lower
+                );
+                if let Ok(re) = regex::Regex::new(&pattern) {
+                    for cap in re.captures_iter(&line_lower) {
+                        if let Some(m) = cap.get(1) {
+                            let matched = m.as_str();
+                            if matched.len() > tool.len() + 1 {
+                                let suffix = &matched[tool.len() + 1..];
+                                let is_env = env_suffixes.iter().any(|s| matched.to_uppercase().ends_with(s));
+                                let is_false_positive = false_positive_suffixes.iter().any(|fp| suffix == *fp);
+                                if !is_env && !is_false_positive {
+                                    found.insert(matched.to_string());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut result: Vec<String> = found.iter().cloned().collect();
+        result.sort();
+        result.dedup();
+
+        // Also scan for known tool-specific subcommand patterns
+        // These are tools where subcommands use the tool name as prefix
+        let known_prefixed_tools: &[(&str, &[&str])] = &[
+            ("bismark", &["bismark_genome_preparation", "bismark_methylation_extractor",
+                          "deduplicate_bismark", "bismark2report", "bismark2bedGraph",
+                          "bismark2coverage", "coverage2cytosine"]),
+            ("strelka2", &["configureStrelkaGermlineWorkflow.py", "configureStrelkaSomaticWorkflow.py"]),
+            ("sra-tools", &["prefetch", "fasterq-dump", "fastq-dump", "sam-dump",
+                           "sra-stat", "vdb-validate", "vdb-dump"]),
+            ("mummer", &["nucmer", "promer", "delta-filter", "show-coords",
+                        "show-snps", "show-tiling", "mummerplot", "dnadiff"]),
+            ("homer", &["findPeaks", "findMotifsGenome.pl", "makeUCSCfile",
+                       "annotatePeaks.pl", "mergePeaks", "getDifferentialPeaks"]),
+            ("igvtools", &["count", "index", "sort", "toTDF", "tile"]),
+        ];
+
+        for (tool_name, subs) in known_prefixed_tools {
+            if tool_lower == *tool_name {
+                for sub in *subs {
+                    found.insert(sub.to_string());
+                }
+            }
+        }
+
+        result = found.iter().cloned().collect();
+        result.sort();
+        result.dedup();
+        result.into_iter().take(15).collect()
+    }
+
     /// Detect companion binaries from documentation.
     ///
     /// Companion binaries are separate executables that share the tool name prefix,
@@ -688,7 +1275,6 @@ impl DocProcessor {
     fn detect_companion_binaries(&self, docs: &str, examples: &str) -> Vec<String> {
         let mut binaries = HashSet::new();
 
-        // Common companion binary suffixes/prefixes
         let companion_patterns = [
             "-build",
             "-index",
@@ -698,16 +1284,26 @@ impl DocProcessor {
             "-generate-library-type",
             "-sort",
             "-view",
+            "-call",
+            "-convert",
+            "-download",
+            "-plot",
+            "-db",
+            "-sfs",
+            "-fst",
+            "_genome_preparation",
+            "_methylation_extractor",
+            "_deduplicate",
+            "_2report",
+            "_2bedGraph",
+            "_2coverage",
         ];
 
-        // Scan for companion binary patterns
         for line in docs.lines() {
             let trimmed = line.trim();
 
-            // Look for binary names in text
             for pattern in &companion_patterns {
                 if let Some(pos) = trimmed.to_lowercase().find(pattern) {
-                    // Extract the full binary name
                     let start = trimmed[..pos]
                         .rfind(|c: char| c.is_whitespace() || c == '`' || c == '[')
                         .map(|i| i + 1)
@@ -725,12 +1321,13 @@ impl DocProcessor {
             }
         }
 
-        // Also check examples for companion binary invocations
         for line in examples.lines() {
             let trimmed = line.trim();
             if let Some(first_word) = trimmed.split_whitespace().next() {
-                // If first word contains a hyphen and looks like a companion binary
                 if first_word.contains('-') && first_word.len() > 5 {
+                    binaries.insert(first_word.to_string());
+                }
+                if first_word.contains('_') && first_word.len() > 5 {
                     binaries.insert(first_word.to_string());
                 }
             }
@@ -739,7 +1336,7 @@ impl DocProcessor {
         let mut result: Vec<String> = binaries.into_iter().collect();
         result.sort();
         result.dedup();
-        result.into_iter().take(5).collect()
+        result.into_iter().take(10).collect()
     }
 
     /// Enhance flag catalog with required/default detection and alt_form pairing.
@@ -772,6 +1369,33 @@ impl DocProcessor {
                 {
                     entry.default = Some(m.as_str().trim().to_string());
                     break;
+                }
+            }
+
+            // Extract enumerated values from descriptions
+            // Patterns: "one of: fastq, bam, mapout", "(fastq|bam|mapout)",
+            //           "{fastq,bam,mapout}", "[fastq|bam|mapout]"
+            let enum_patterns = [
+                r"one of[:\s]+([a-zA-Z0-9_|,\s]+?)(?:[.;)\]]|$)",
+                r"\(([a-zA-Z0-9_]+(?:\|[a-zA-Z0-9_])+)\)",
+                r"\{([a-zA-Z0-9_]+(?:[,|][a-zA-Z0-9_])+)\}",
+                r"\[([a-zA-Z0-9_]+(?:\|[a-zA-Z0-9_])+)\]",
+            ];
+
+            for pattern in &enum_patterns {
+                if let Ok(re) = regex::Regex::new(pattern)
+                    && let Some(cap) = re.captures(&entry.description)
+                    && let Some(m) = cap.get(1)
+                {
+                    let values: Vec<String> = m.as_str()
+                        .split(|c: char| c == '|' || c == ',')
+                        .map(|v| v.trim().to_string())
+                        .filter(|v| !v.is_empty() && v.len() < 20)
+                        .collect();
+                    if values.len() >= 2 && values.len() <= 10 {
+                        entry.enum_values = values;
+                        break;
+                    }
                 }
             }
         }
@@ -831,33 +1455,21 @@ impl DocProcessor {
             let flag_lower = entry.flag.to_lowercase();
             let desc_lower = entry.description.to_lowercase();
 
-            // Skip if already marked required
             if entry.required {
                 continue;
             }
 
-            // Heuristic 1: Database/index flags for specific tools
             if (flag_lower.contains("--index") || flag_lower.contains("--db") || flag_lower.contains("--database"))
                 && (desc_lower.contains("database") || desc_lower.contains("index"))
             {
                 entry.required = true;
             }
 
-            // Heuristic 2: Input type flags when they're critical
             if flag_lower.contains("--input_type") || flag_lower.contains("--input-type") {
                 entry.required = true;
             }
 
-            // Heuristic 3: Output directory flags (most tools need output)
-            if (flag_lower.contains("-d") || flag_lower.contains("--outdir") || flag_lower.contains("--output-dir"))
-                && desc_lower.contains("output")
-                && (desc_lower.contains("directory") || desc_lower.contains("dir"))
-            {
-                entry.required = true;
-            }
-
-            // Heuristic 4: Thread/CPU flags - set default if not present
-            if (flag_lower.contains("-t") || flag_lower.contains("-@") || flag_lower.contains("--thread") || flag_lower.contains("--nproc"))
+            if flag_lower.contains("-t") || flag_lower.contains("-@") || flag_lower.contains("--thread") || flag_lower.contains("--nproc")
                 && entry.default.is_none()
             {
                 entry.default = Some("4".to_string());
@@ -1077,12 +1689,14 @@ impl DocProcessor {
     fn remove_noise(&self, docs: &str) -> String {
         let mut cleaned = docs.to_string();
 
-        // Apply statically-compiled noise patterns
+        cleaned = ANSI_ESCAPE_RE.replace_all(&cleaned, "").to_string();
+
+        cleaned = UNICODE_BOX_CLEANER.replace_all(&cleaned, " ").to_string();
+
         for pattern in NOISE_PATTERNS.iter() {
             cleaned = pattern.replace_all(&cleaned, "").to_string();
         }
 
-        // Collapse multiple blank lines to double newline
         cleaned = BLANK_LINE_RE.replace_all(&cleaned, "\n\n").to_string();
 
         cleaned.trim().to_string()
@@ -1106,9 +1720,11 @@ impl DocProcessor {
                     sections.push((current_section.clone(), current_content.clone()));
                 }
 
-                // Start new section
+                // Start new section — include header line as content because
+                // headers like "Usage: tool <command> [options]" carry the
+                // command-structure pattern that downstream detection relies on.
                 current_section = trimmed.to_string();
-                current_content = String::new();
+                current_content = format!("{}\n", trimmed);
             } else {
                 // Add content to current section
                 if !current_section.is_empty() {
@@ -1137,41 +1753,46 @@ impl DocProcessor {
             return false;
         }
 
-        // Common section header patterns
-        let header_patterns = [
-            "USAGE:",
-            "Usage:",
-            "OPTIONS:",
-            "Options:",
-            "ARGUMENTS:",
-            "Arguments:",
-            "EXAMPLES:",
-            "Examples:",
-            "PARAMETERS:",
-            "Parameters:",
-            "FLAGS:",
-            "Flags:",
-            "COMMAND:",
-            "Command:",
-            "COMMANDS:",
-            "Commands:",
-            "DESCRIPTION:",
-            "Description:",
-            "SYNOPSIS:",
-            "Synopsis:",
-        ];
-
-        // Check exact matches
-        if header_patterns.iter().any(|p| line.starts_with(p)) {
-            return true;
-        }
-
-        // Check for "=== SECTION ===" format (from doc_summarizer)
         if line.starts_with("=== ") && line.ends_with(" ===") {
             return true;
         }
 
-        // Check for all-caps headers with colon
+        let header_prefixes = [
+            "USAGE:", "Usage:", "usage:",
+            "OPTIONS:", "Options:", "options:",
+            "ARGUMENTS:", "Arguments:", "arguments:",
+            "EXAMPLES:", "Examples:", "examples:",
+            "PARAMETERS:", "Parameters:", "parameters:",
+            "FLAGS:", "Flags:", "flags:",
+            "COMMAND:", "Command:", "command:",
+            "COMMANDS:", "Commands:", "commands:",
+            "SUBCOMMAND:", "Subcommand:", "subcommand:",
+            "SUBCOMMANDS:", "Subcommands:", "subcommands:",
+            "DESCRIPTION:", "Description:", "description:",
+            "SYNOPSIS:", "Synopsis:", "synopsis:",
+        ];
+
+        if header_prefixes.iter().any(|p| line.starts_with(p)) {
+            return true;
+        }
+
+        if line.ends_with(':') {
+            let trimmed = line.trim_end_matches(':').trim();
+            let word_count = trimmed.split_whitespace().count();
+            if word_count <= 3 {
+                let line_lower = line.to_lowercase();
+                let header_keywords = [
+                    "usage", "options", "arguments", "examples", "parameters",
+                    "flags", "commands", "subcommands", "description", "synopsis",
+                ];
+                for kw in &header_keywords {
+                    if line_lower.contains(kw) {
+                        return true;
+                    }
+                }
+            }
+        }
+
         if line.ends_with(':') && line.chars().filter(|c| c.is_uppercase()).count() > 3 {
             return true;
         }
@@ -1184,15 +1805,20 @@ impl DocProcessor {
         let mut compressed = String::new();
         let lines: Vec<&str> = content.lines().collect();
 
-        for line in lines.iter().take(30) {
+        for line in lines.iter().take(200) {
             let trimmed = line.trim();
 
-            // Keep flag lines
             if trimmed.starts_with('-') {
                 compressed.push_str(trimmed);
                 compressed.push('\n');
             } else if trimmed.starts_with('<') || trimmed.starts_with('[') {
-                // Keep placeholder descriptions
+                compressed.push_str(trimmed);
+                compressed.push('\n');
+            } else if !trimmed.is_empty()
+                && !trimmed.starts_with("===")
+                && !trimmed.chars().all(|c| c == '=')
+                && !trimmed.chars().all(|c| c == '-')
+            {
                 compressed.push_str(trimmed);
                 compressed.push('\n');
             }
@@ -1286,19 +1912,30 @@ impl DocProcessor {
                     "this", "that", "these", "those", "am", "is", "are", "was", "were",
                     "be", "been", "being", "have", "has", "had", "do", "does", "did",
                     "but", "if", "because", "until", "while", "although", "though",
+                    "automatically", "available", "most", "not", "run", "detect", "even",
+                    "complete", "list", "collection", "programs", "manipulation", "analysis",
+                    "calling", "file", "files", "format", "formats", "same", "set",
+                    "sample", "samples", "non-overlapping", "overlapping", "streaming",
+                    "pipe", "indexed", "un-indexed", "streams", "situations",
+                    "plugins", "version", "license", "program",
                 ];
                 if non_command_words.contains(&first_word.to_lowercase().as_str()) {
                     continue;
                 }
 
+                // Skip pure numbers (e.g., "41 plugins available")
+                if first_word.chars().all(|c| c.is_ascii_digit()) {
+                    continue;
+                }
+
                 // Valid subcommand names are typically lowercase alphanumeric with hyphens/underscores
-                // and don't contain sentence punctuation
+                // and don't contain sentence punctuation. Must start with a letter.
                 if first_word.chars().all(|c| {
                     c.is_ascii_lowercase()
                         || c.is_ascii_digit()
                         || c == '-'
                         || c == '_'
-                }) {
+                }) && first_word.chars().next().map(|c| c.is_ascii_lowercase()).unwrap_or(false) {
                     commands.push(first_word.to_string());
                 }
             }
@@ -1333,64 +1970,369 @@ impl DocProcessor {
     ///   -@ INT          Number of threads (samtools style)
     fn extract_flag_catalog(&self, options: &str) -> Vec<FlagEntry> {
         let mut catalog = Vec::new();
+        let mut seen_flags = HashSet::new();
 
-        for line in options.lines() {
+        let lines: Vec<&str> = options.lines().collect();
+        let mut i = 0;
+
+        while i < lines.len() {
+            let line = lines[i];
             let trimmed = line.trim();
-            if !trimmed.starts_with('-') {
+
+            // Try Picard-style KEY=VALUE parameter detection first
+            if !trimmed.starts_with('-') && !trimmed.starts_with("      --") {
+                if let Some(caps) = PICARD_PARAM_RE.captures(line) {
+                    let param = caps.get(1).map(|m| m.as_str().trim()).unwrap_or("");
+                    let desc = caps.get(2).map(|m| m.as_str().trim()).unwrap_or("");
+                    if !param.is_empty() && !desc.is_empty() && param.len() > 1 {
+                        let param_clean = if param.contains('=') {
+                            param.split('=').next().unwrap_or(param)
+                        } else {
+                            param
+                        };
+                        if !seen_flags.contains(param_clean) && param_clean.chars().next().map(|c| c.is_ascii_uppercase()).unwrap_or(false) {
+                            seen_flags.insert(param_clean.to_string());
+                            let value_type = if param.contains('=') {
+                                Some("VALUE".to_string())
+                            } else {
+                                None
+                            };
+                            catalog.push(FlagEntry {
+                                flag: param_clean.to_string(),
+                                value_type,
+                                description: desc.to_string(),
+                                required: false,
+                                default: None,
+                                alt_form: None,
+                                enum_values: Vec::new(),
+                            });
+                        }
+                    }
+                }
+                i += 1;
                 continue;
             }
 
-            if let Some(caps) = FLAG_LINE_RE.captures(line) {
-                let flag_with_meta = caps.get(1).map(|m| m.as_str().trim()).unwrap_or("");
-                let desc = caps.get(2).map(|m| m.as_str().trim()).unwrap_or("");
-                if !flag_with_meta.is_empty() {
-                    // Extract value type from the metavar token in the flag field
-                    // (e.g., `-@ INT` → `INT`, `--output FILE` → `FILE`).
-                    let value_type = FLAG_TYPE_RE
-                        .find(flag_with_meta)
-                        .map(|m| m.as_str().to_uppercase());
-
-                    // Strip the metavar from the flag token to keep it clean.
-                    let flag_clean = flag_with_meta
-                        .split_whitespace()
-                        .next()
-                        .unwrap_or(flag_with_meta)
-                        .trim_end_matches(',');
-
-                    catalog.push(FlagEntry {
-                        flag: flag_clean.to_string(),
-                        value_type,
-                        description: desc.to_string(),
-                        required: false,
-                        default: None,
-                        alt_form: None,
-                    });
+            let (flag_with_meta, desc) = if let Some(caps) = FLAG_LINE_RE.captures(line) {
+                let fm = caps.get(1).map(|m| m.as_str().trim()).unwrap_or("");
+                let d = caps.get(2).map(|m| m.as_str().trim()).unwrap_or("");
+                if !fm.is_empty() {
+                    (fm.to_string(), d.to_string())
+                } else {
+                    i += 1;
+                    continue;
+                }
+            } else if let Some(caps) = FLAG_LINE_LOOSE_RE.captures(line) {
+                let fm = caps.get(1).map(|m| m.as_str().trim()).unwrap_or("");
+                let d = caps.get(2).map(|m| m.as_str().trim()).unwrap_or("");
+                if !fm.is_empty() {
+                    let mut full_desc = d.to_string();
+                    if full_desc.len() <= 15 && full_desc.chars().filter(|c| c.is_uppercase()).count() > full_desc.len() / 2 {
+                        let mut next_parts = Vec::new();
+                        let mut j = i + 1;
+                        while j < lines.len() {
+                            let next_trimmed = lines[j].trim();
+                            if next_trimmed.is_empty() || next_trimmed.starts_with('-') {
+                                break;
+                            }
+                            if next_trimmed.starts_with("See ") || next_trimmed.starts_with("http") {
+                                break;
+                            }
+                            next_parts.push(next_trimmed.to_string());
+                            j += 1;
+                            if next_parts.join(" ").len() > 200 {
+                                break;
+                            }
+                        }
+                        if !next_parts.is_empty() {
+                            full_desc = next_parts.join(" ");
+                        }
+                    }
+                    (fm.to_string(), full_desc)
+                } else {
+                    i += 1;
+                    continue;
+                }
+            } else if let Some(caps) = FLAG_COLON_DESC_RE.captures(line) {
+                let fm = caps.get(1).map(|m| m.as_str().trim()).unwrap_or("");
+                let d = caps.get(2).map(|m| m.as_str().trim()).unwrap_or("");
+                if !fm.is_empty() && !d.is_empty() {
+                    (fm.to_string(), d.to_string())
+                } else {
+                    i += 1;
+                    continue;
                 }
             } else {
-                // Simpler pattern: just the flag token (boolean switch).
-                let parts: Vec<&str> = trimmed.splitn(2, |c: char| c.is_whitespace()).collect();
-                if !parts.is_empty() && parts[0].starts_with('-') {
-                    let rest = parts.get(1).unwrap_or(&"").trim();
-                    // Check if the next word looks like a metavar type.
-                    let (value_type, description) = if let Some(first_word) = rest
-                        .split_whitespace()
-                        .next()
-                        .filter(|w| FLAG_TYPE_RE.is_match(w))
-                    {
-                        let desc = rest[first_word.len()..].trim();
-                        (Some(first_word.to_uppercase()), desc.to_string())
-                    } else {
-                        (None, rest.to_string())
-                    };
-                    catalog.push(FlagEntry {
-                        flag: parts[0].trim_end_matches(',').to_string(),
-                        value_type,
-                        description,
-                        required: false,
-                        default: None,
-                        alt_form: None,
-                    });
+                let flag_line = trimmed.trim_end_matches(',');
+                let mut desc_parts = Vec::new();
+
+                // Handle "or" separated flag forms like "--gff, --gtf or -i <file>"
+                let (flag_part, rest_after_flags) = if flag_line.contains(" or -") || flag_line.contains(" or --") {
+                    // Split at the last flag form
+                    let mut flag_forms = Vec::new();
+                    let mut remaining = flag_line;
+                    loop {
+                        let before = remaining.len();
+                        // Try to extract flag forms: --flag, -f, or --flag, or -f
+                        if let Some(idx) = remaining.find(" or -") {
+                            let (head, tail) = remaining.split_at(idx);
+                            flag_forms.push(head.trim().trim_end_matches(',').to_string());
+                            remaining = tail.strip_prefix(" or ").unwrap_or(tail);
+                        } else if let Some(idx) = remaining.find(", --") {
+                            let (head, tail) = remaining.split_at(idx);
+                            flag_forms.push(head.trim().trim_end_matches(',').to_string());
+                            remaining = tail.strip_prefix(", ").unwrap_or(tail);
+                        } else if let Some(idx) = remaining.find(", -") {
+                            let (head, tail) = remaining.split_at(idx);
+                            flag_forms.push(head.trim().trim_end_matches(',').to_string());
+                            remaining = tail.strip_prefix(", ").unwrap_or(tail);
+                        } else {
+                            // Last form - split flag from value type
+                            let parts: Vec<&str> = remaining.splitn(2, |c: char| c.is_whitespace()).collect();
+                            flag_forms.push(parts[0].trim_end_matches(',').to_string());
+                            remaining = parts.get(1).unwrap_or(&"").trim();
+                            break;
+                        }
+                        if remaining.len() >= before { break; }
+                    }
+                    let combined_flags = flag_forms.join(", ");
+                    (combined_flags, remaining.to_string())
+                } else {
+                    let parts: Vec<&str> = flag_line.splitn(2, |c: char| c.is_whitespace()).collect();
+                    if parts.is_empty() || !parts[0].starts_with('-') {
+                        i += 1;
+                        continue;
+                    }
+                    (parts[0].trim_end_matches(',').to_string(), parts.get(1).unwrap_or(&"").trim().to_string())
+                };
+
+                if !flag_part.starts_with('-') {
+                    i += 1;
+                    continue;
                 }
+
+                let (value_type_str, inline_desc) = if let Some(first_word) = rest_after_flags
+                    .split_whitespace()
+                    .next()
+                    .filter(|w| FLAG_TYPE_RE.is_match(w) || w.starts_with('<') || w.starts_with('['))
+                {
+                    let d = rest_after_flags[first_word.len()..].trim();
+                    (format!(" {}", first_word), d.to_string())
+                } else if !rest_after_flags.is_empty() {
+                    (String::new(), rest_after_flags)
+                } else {
+                    (String::new(), String::new())
+                };
+
+                let has_inline_desc = !inline_desc.is_empty();
+                if has_inline_desc {
+                    desc_parts.push(inline_desc);
+                }
+
+                let mut j = i + 1;
+                while j < lines.len() {
+                    let next_trimmed = lines[j].trim();
+                    if next_trimmed.is_empty() || next_trimmed.starts_with('-') {
+                        break;
+                    }
+                    if next_trimmed.starts_with("See ") || next_trimmed.starts_with("http") {
+                        break;
+                    }
+                    if has_inline_desc || j == i + 1 {
+                        desc_parts.push(next_trimmed.to_string());
+                    }
+                    j += 1;
+                    if desc_parts.join(" ").len() > 200 {
+                        break;
+                    }
+                }
+
+                let full_desc = desc_parts.join(" ");
+                let fm = format!("{}{}", flag_part, value_type_str);
+                (fm, full_desc)
+            };
+
+            let flag_clean = flag_with_meta
+                .split_whitespace()
+                .next()
+                .unwrap_or(&flag_with_meta)
+                .trim_end_matches(',');
+
+            if seen_flags.contains(flag_clean) {
+                i += 1;
+                continue;
+            }
+            seen_flags.insert(flag_clean.to_string());
+
+            let value_type = FLAG_TYPE_RE
+                .find(&flag_with_meta)
+                .map(|m| m.as_str().to_uppercase());
+
+            let alt_form = extract_alt_form(&flag_with_meta, flag_clean);
+
+            catalog.push(FlagEntry {
+                flag: flag_clean.to_string(),
+                value_type,
+                description: desc,
+                required: false,
+                default: None,
+                alt_form,
+                enum_values: Vec::new(),
+            });
+
+            i += 1;
+        }
+
+        catalog
+    }
+
+    /// Extract flags from example commands in the EXAMPLES section.
+    ///
+    fn extract_subcommand_descs_from_help(
+        &self, subcommands: &[String], help_text: &str,
+    ) -> Vec<(String, String)> {
+        let mut descs = Vec::new();
+        if subcommands.is_empty() {
+            return descs;
+        }
+
+        for sub in subcommands {
+            let sub_lower = sub.to_ascii_lowercase();
+            let mut best_desc = String::new();
+
+            for line in help_text.lines() {
+                let trimmed = line.trim();
+                if trimmed.is_empty() { continue; }
+
+                let line_lower = trimmed.to_ascii_lowercase();
+
+                if line_lower.starts_with(&sub_lower) || line_lower.starts_with(&format!("  {}", sub_lower)) {
+                    let desc_part = trimmed
+                        .trim_start_matches(&sub_lower)
+                        .trim_start_matches(|c: char| c == ' ' || c == '\t' || c == '-' || c == ':')
+                        .trim();
+                    if !desc_part.is_empty() && desc_part.len() < 120 {
+                        best_desc = desc_part.to_string();
+                        break;
+                    }
+                }
+            }
+
+            if best_desc.is_empty() {
+                for line in help_text.lines() {
+                    let trimmed = line.trim();
+                    let line_lower = trimmed.to_ascii_lowercase();
+                    if line_lower.contains(&sub_lower) && line_lower.len() < 150 {
+                        let idx = line_lower.find(&sub_lower).unwrap_or(0);
+                        if idx < 5 {
+                            let desc_part = trimmed
+                                .trim_start_matches(|c: char| c == ' ' || c == '\t')
+                                .trim();
+                            if !desc_part.is_empty() && desc_part.len() < 120 {
+                                best_desc = desc_part.to_string();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            descs.push((sub.clone(), best_desc));
+        }
+
+        descs
+    }
+
+    /// This catches flags that appear in examples but not in the OPTIONS section,
+    /// which is common for tools with subcommand-specific flags.
+    fn extract_usage_required_flags(&self, usage: &str) -> Vec<FlagEntry> {
+        let mut catalog = Vec::new();
+        let re = regex::Regex::new(r"(-[a-zA-Z@])\s*<([^>]+)>").expect("valid regex");
+
+        for line in usage.lines() {
+            let trimmed = line.trim();
+            if !trimmed.starts_with("Usage") && !trimmed.starts_with("usage")
+                && !trimmed.contains("bedtools")
+                && !trimmed.contains("samtools")
+                && !trimmed.contains("bcftools")
+                && !trimmed.contains("[OPTIONS]")
+                && !trimmed.contains("[options]")
+            {
+                continue;
+            }
+
+            for cap in re.captures_iter(trimmed) {
+                let flag = cap.get(1).map(|m| m.as_str()).unwrap_or("");
+                let value_type = cap.get(2).map(|m| m.as_str()).unwrap_or("");
+
+                if flag.is_empty() || flag.len() < 2 {
+                    continue;
+                }
+
+                catalog.push(FlagEntry {
+                    flag: flag.to_string(),
+                    value_type: Some(format!("<{}>", value_type)),
+                    description: format!("Input file ({})", value_type),
+                    required: true,
+                    default: None,
+                    alt_form: None,
+                    enum_values: Vec::new(),
+                });
+            }
+
+            let long_re = regex::Regex::new(r"(--?[a-zA-Z][a-zA-Z0-9_-]+)\s*<([^>]+)>").expect("valid regex");
+            for cap in long_re.captures_iter(trimmed) {
+                let flag = cap.get(1).map(|m| m.as_str()).unwrap_or("");
+                let value_type = cap.get(2).map(|m| m.as_str()).unwrap_or("");
+
+                if flag.is_empty() || flag.len() < 3 {
+                    continue;
+                }
+
+                if catalog.iter().any(|e| e.flag == flag) {
+                    continue;
+                }
+
+                catalog.push(FlagEntry {
+                    flag: flag.to_string(),
+                    value_type: Some(format!("<{}>", value_type)),
+                    description: format!("Input ({})", value_type),
+                    required: true,
+                    default: None,
+                    alt_form: None,
+                    enum_values: Vec::new(),
+                });
+            }
+        }
+
+        catalog
+    }
+
+    fn extract_flags_from_examples(&self, examples: &str) -> Vec<FlagEntry> {
+        let mut catalog = Vec::new();
+        let mut seen = HashSet::new();
+
+        for cap in FLAG_RE.captures_iter(examples) {
+            if let Some(flag_match) = cap.get(1) {
+                let flag = flag_match.as_str();
+                if flag.len() < 2 || !flag.starts_with('-') {
+                    continue;
+                }
+
+                if seen.contains(flag) {
+                    continue;
+                }
+                seen.insert(flag.to_string());
+
+                catalog.push(FlagEntry {
+                    flag: flag.to_string(),
+                    value_type: None,
+                    description: String::new(),
+                    required: false,
+                    default: None,
+                    alt_form: None,
+                    enum_values: Vec::new(),
+                });
             }
         }
 
@@ -1841,12 +2783,14 @@ pub(crate) struct DocExample {
 pub fn clean_noise(docs: &str) -> String {
     let mut cleaned = docs.to_string();
 
+    cleaned = UNICODE_BOX_CLEANER.replace_all(&cleaned, " ").to_string();
+
     for re in NOISE_PATTERNS.iter() {
         cleaned = re.replace_all(&cleaned, "").to_string();
     }
 
-    // Collapse multiple blank lines to double newline
-    cleaned = BLANK_LINE_RE.replace_all(&cleaned, "\n\n").to_string();
+    let blank_re = Regex::new(r"\n{3,}").expect("valid regex");
+    cleaned = blank_re.replace_all(&cleaned, "\n\n").to_string();
 
     cleaned.trim().to_string()
 }
@@ -1859,32 +2803,42 @@ pub fn is_section_header(line: &str) -> bool {
         return false;
     }
 
-    let header_patterns = [
-        "USAGE:",
-        "Usage:",
-        "OPTIONS:",
-        "Options:",
-        "ARGUMENTS:",
-        "Arguments:",
-        "EXAMPLES:",
-        "Examples:",
-        "PARAMETERS:",
-        "Parameters:",
-        "FLAGS:",
-        "Flags:",
-        "COMMANDS:",
-        "Commands:",
-        "DESCRIPTION:",
-        "Description:",
-        "SYNOPSIS:",
-        "Synopsis:",
+    let header_prefixes = [
+        "USAGE:", "Usage:", "usage:",
+        "OPTIONS:", "Options:", "options:",
+        "ARGUMENTS:", "Arguments:", "arguments:",
+        "EXAMPLES:", "Examples:", "examples:",
+        "PARAMETERS:", "Parameters:", "parameters:",
+        "FLAGS:", "Flags:", "flags:",
+        "COMMAND:", "Command:", "command:",
+        "COMMANDS:", "Commands:", "commands:",
+        "SUBCOMMAND:", "Subcommand:", "subcommand:",
+        "SUBCOMMANDS:", "Subcommands:", "subcommands:",
+        "DESCRIPTION:", "Description:", "description:",
+        "SYNOPSIS:", "Synopsis:", "synopsis:",
     ];
 
-    if header_patterns.iter().any(|p| line.starts_with(p)) {
+    if header_prefixes.iter().any(|p| line.starts_with(p)) {
         return true;
     }
 
-    // All-caps header with trailing colon
+    if line.ends_with(':') {
+        let trimmed = line.trim_end_matches(':').trim();
+        let word_count = trimmed.split_whitespace().count();
+        if word_count <= 3 {
+            let line_lower = line.to_lowercase();
+            let header_keywords = [
+                "usage", "options", "arguments", "examples", "parameters",
+                "flags", "commands", "subcommands", "description", "synopsis",
+            ];
+            for kw in &header_keywords {
+                if line_lower.contains(kw) {
+                    return true;
+                }
+            }
+        }
+    }
+
     if line.ends_with(':') && line.chars().filter(|c| c.is_uppercase()).count() > 3 {
         return true;
     }
@@ -1931,7 +2885,9 @@ pub fn extract_sections_standalone(docs: &str) -> Vec<(String, String)> {
                 sections.push((current_section.clone(), current_content.clone()));
             }
             current_section = trimmed.to_string();
-            current_content = String::new();
+            // Include the header line itself as content — e.g., "Usage: tool <command> [options]"
+            // carries the command structure pattern that downstream code relies on.
+            current_content = format!("{}\n", trimmed);
         } else if !current_section.is_empty() {
             current_content.push_str(line);
             current_content.push('\n');
@@ -1949,6 +2905,34 @@ pub fn extract_sections_standalone(docs: &str) -> Vec<(String, String)> {
     sections
 }
 
+/// Extract the alternative form (long flag from `-x, --xxx` or short flag from `--xxx, -x`).
+fn extract_alt_form(flag_with_meta: &str, primary_flag: &str) -> Option<String> {
+    if !flag_with_meta.contains(',') {
+        return None;
+    }
+
+    let parts: Vec<&str> = flag_with_meta.split(',').collect();
+    if parts.len() < 2 {
+        return None;
+    }
+
+    let alt = parts[1].trim().split_whitespace().next().unwrap_or("");
+    if alt.starts_with('-') && alt != primary_flag {
+        Some(alt.to_string())
+    } else {
+        None
+    }
+}
+
+fn prefer_long_flag(flag: &str, alt_form: &Option<String>) -> (String, Option<String>) {
+    match alt_form {
+        Some(alt) if alt.starts_with("--") && flag.starts_with('-') && !flag.starts_with("--") => {
+            (alt.clone(), Some(flag.to_string()))
+        }
+        _ => (flag.to_string(), alt_form.clone()),
+    }
+}
+
 /// Smart truncation that preserves complete lines and sections.
 pub fn truncate_smart(text: &str, max_len: usize) -> String {
     if text.len() <= max_len {
@@ -1956,6 +2940,7 @@ pub fn truncate_smart(text: &str, max_len: usize) -> String {
     }
 
     let truncate_at = max_len.saturating_sub(50);
+    let truncate_at = text.floor_char_boundary(truncate_at);
 
     if let Some(pos) = text[..truncate_at].rfind("\n\n") {
         let truncated = &text[..pos];
@@ -2118,6 +3103,7 @@ mod tests {
                 required: false,
                 default: None,
                 alt_form: None,
+                enum_values: Vec::new(),
             },
             FlagEntry {
                 flag: "-@".to_string(),
@@ -2126,6 +3112,7 @@ mod tests {
                 required: false,
                 default: None,
                 alt_form: None,
+                enum_values: Vec::new(),
             },
         ];
         let compact = processor.flag_catalog_compact(&catalog);
