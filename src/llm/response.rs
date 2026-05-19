@@ -7,6 +7,20 @@ use crate::runner::{is_companion_binary, is_script_executable};
 
 use super::types::{LlmCommandSuggestion, LlmRunVerification, LlmSkillVerification};
 
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+pub enum ResponseFormat {
+    JsonStructured,
+    ArgsExplanation,
+    Freeform,
+    Empty,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ParseResult {
+    pub suggestion: LlmCommandSuggestion,
+    pub format: ResponseFormat,
+}
+
 // ─── Response parsing ─────────────────────────────────────────────────────────
 
 /// Parse the structured verification response from the LLM.
@@ -371,12 +385,27 @@ pub fn parse_shell_args(input: &str) -> Vec<String> {
 ///
 /// Tries JSON structured output first, then falls back to standard ARGS:/EXPLANATION: format.
 pub fn parse_response(raw: &str) -> crate::error::Result<LlmCommandSuggestion> {
-    // ── Try JSON structured output first ──────────────────────────────────
-    //
-    // Models that support JSON mode (GPT-4+, Claude) may return structured
-    // output.  This is more reliable than regex parsing.
+    let result = parse_response_with_format(raw)?;
+    Ok(result.suggestion)
+}
+
+pub fn parse_response_with_format(raw: &str) -> crate::error::Result<ParseResult> {
+    if raw.trim().is_empty() {
+        return Ok(ParseResult {
+            suggestion: LlmCommandSuggestion {
+                args: Vec::new(),
+                explanation: String::new(),
+                inference_ms: 0.0,
+            },
+            format: ResponseFormat::Empty,
+        });
+    }
+
     if let Some(suggestion) = try_parse_json_response(raw) {
-        return Ok(suggestion);
+        return Ok(ParseResult {
+            suggestion,
+            format: ResponseFormat::JsonStructured,
+        });
     }
 
     // ── Standard ARGS:/EXPLANATION: format ────────────────────────────────
@@ -413,21 +442,27 @@ pub fn parse_response(raw: &str) -> crate::error::Result<LlmCommandSuggestion> {
         args_line.clear();
     }
 
-    // Fallback: when the model doesn't output ARGS: format (common for
-    // small models like deepseek-coder:1.3b), try to extract the command
-    // from the raw response using heuristics.
+    let mut format = ResponseFormat::ArgsExplanation;
+
     if args_line.is_empty() {
         args_line = extract_command_from_freeform(raw);
+        format = ResponseFormat::Freeform;
     }
 
-    // Strip markdown code fences that weak LLMs sometimes add
     let cleaned = strip_code_fences(&args_line);
     let args = parse_shell_args(cleaned);
 
-    Ok(LlmCommandSuggestion {
-        args,
-        explanation: explanation_line,
-        inference_ms: 0.0, // Set by caller (suggest_command)
+    if args.is_empty() {
+        format = ResponseFormat::Empty;
+    }
+
+    Ok(ParseResult {
+        suggestion: LlmCommandSuggestion {
+            args,
+            explanation: explanation_line,
+            inference_ms: 0.0,
+        },
+        format,
     })
 }
 
@@ -436,10 +471,8 @@ pub fn parse_response(raw: &str) -> crate::error::Result<LlmCommandSuggestion> {
 /// This handles models that support structured/JSON output mode.
 /// Returns `None` if the response is not valid JSON or doesn't have the expected shape.
 pub fn try_parse_json_response(raw: &str) -> Option<LlmCommandSuggestion> {
-    // Try to find JSON in the response (may be wrapped in markdown code fences)
     let trimmed = raw.trim();
     let json_str = if trimmed.starts_with("```json") || trimmed.starts_with("```") {
-        // Extract content between code fences
         let start = trimmed.find('{').unwrap_or(0);
         let end = trimmed.rfind('}').map(|i| i + 1).unwrap_or(trimmed.len());
         &trimmed[start..end]
@@ -451,11 +484,6 @@ pub fn try_parse_json_response(raw: &str) -> Option<LlmCommandSuggestion> {
 
     let parsed: serde_json::Value = serde_json::from_str(json_str).ok()?;
 
-    let args_str = parsed
-        .get("args")
-        .and_then(|v| v.as_str())
-        .or_else(|| parsed.get("ARGS").and_then(|v| v.as_str()))?;
-
     let explanation = parsed
         .get("explanation")
         .and_then(|v| v.as_str())
@@ -463,8 +491,83 @@ pub fn try_parse_json_response(raw: &str) -> Option<LlmCommandSuggestion> {
         .unwrap_or("")
         .to_string();
 
-    let cleaned = strip_code_fences(args_str);
-    let args = parse_shell_args(cleaned);
+    if let Some(args_str) = parsed
+        .get("args")
+        .and_then(|v| v.as_str())
+        .or_else(|| parsed.get("ARGS").and_then(|v| v.as_str()))
+    {
+        let cleaned = strip_code_fences(args_str);
+        let args = parse_shell_args(cleaned);
+        return Some(LlmCommandSuggestion {
+            args,
+            explanation,
+            inference_ms: 0.0,
+        });
+    }
+
+    let mut args: Vec<String> = Vec::new();
+
+    if let Some(sub) = parsed.get("subcommand").and_then(|v| v.as_str()) {
+        if !sub.is_empty() {
+            args.push(sub.to_string());
+        }
+    }
+
+    if let Some(flags) = parsed.get("flags") {
+        if let Some(obj) = flags.as_object() {
+            let mut sorted_keys: Vec<&str> = obj.keys().map(|s| s.as_str()).collect();
+            sorted_keys.sort();
+            for key in sorted_keys {
+                let val = &obj[key];
+                if let Some(v) = val.as_str() {
+                    if key.contains('=') {
+                        args.push(key.to_string());
+                        if !v.is_empty() {
+                            args.push(v.to_string());
+                        }
+                    } else {
+                        args.push(key.to_string());
+                        if !v.is_empty() {
+                            args.push(v.to_string());
+                        }
+                    }
+                } else if val.as_bool() == Some(true) {
+                    args.push(key.to_string());
+                } else if let Some(n) = val.as_f64() {
+                    if key.contains('=') {
+                        args.push(format!("{}{}", key, if n == n.floor() { (n as i64).to_string() } else { n.to_string() }));
+                    } else {
+                        args.push(key.to_string());
+                        args.push(if n == n.floor() {
+                            (n as i64).to_string()
+                        } else {
+                            n.to_string()
+                        });
+                    }
+                }
+            }
+        } else if let Some(arr) = flags.as_array() {
+            for item in arr {
+                if let Some(s) = item.as_str() {
+                    args.push(s.to_string());
+                }
+            }
+        }
+    }
+
+    if let Some(pos) = parsed.get("positional_args") {
+        if let Some(arr) = pos.as_array() {
+            for item in arr {
+                if let Some(s) = item.as_str() {
+                    args.push(s.to_string());
+                }
+            }
+        }
+    }
+
+    if args.is_empty() {
+        return None;
+    }
 
     Some(LlmCommandSuggestion {
         args,

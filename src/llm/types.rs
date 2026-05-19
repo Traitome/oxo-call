@@ -6,7 +6,7 @@
 use serde::{Deserialize, Serialize};
 
 /// A parsed LLM response with command arguments and explanation
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct LlmCommandSuggestion {
     pub args: Vec<String>,
     pub explanation: String,

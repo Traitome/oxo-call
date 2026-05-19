@@ -59,6 +59,12 @@ pub struct CacheEntry {
     pub created_at: u64,
     /// Number of times this cache entry has been used
     pub hit_count: u64,
+    /// oxo-call version that created this entry
+    #[serde(default)]
+    pub version: String,
+    /// Generation source (rule, template, llm, fallback)
+    #[serde(default)]
+    pub source: String,
 }
 
 /// In-memory cache state backed by a JSONL file on disk.
@@ -174,6 +180,8 @@ impl LlmCache {
         hasher.update(b"\0");
 
         hasher.update(model.as_bytes());
+        hasher.update(b"\0");
+        hasher.update(env!("CARGO_PKG_VERSION").as_bytes());
 
         hex::encode(hasher.finalize())
     }
@@ -273,6 +281,8 @@ impl LlmCache {
                 .expect("system clock before UNIX epoch")
                 .as_secs(),
             hit_count: 0,
+            version: env!("CARGO_PKG_VERSION").to_string(),
+            source: String::new(),
         };
 
         // Write-through: update in-memory map.
@@ -441,6 +451,8 @@ mod tests {
             model: "gpt-4".to_string(),
             created_at: 1700000000,
             hit_count: 5,
+            version: "0.12.1".to_string(),
+            source: String::new(),
         };
         let json = serde_json::to_string(&entry).unwrap();
         let deserialized: CacheEntry = serde_json::from_str(&json).unwrap();

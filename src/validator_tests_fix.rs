@@ -18,7 +18,6 @@ mod tests {
             has_subcommands: false,
             subcommand_descriptions: Vec::new(),
             subcommands: vec![],
-            subcommand_descriptions: Vec::new(),
             format_hint: None,
             companion_binaries: vec![],
         };
@@ -37,7 +36,6 @@ mod tests {
             has_subcommands: false,
             subcommand_descriptions: Vec::new(),
             subcommands: vec![],
-            subcommand_descriptions: Vec::new(),
             format_hint: None,
             companion_binaries: vec![],
         };
@@ -77,7 +75,6 @@ mod tests {
             has_subcommands: false,
             subcommand_descriptions: Vec::new(),
             subcommands: vec![],
-            subcommand_descriptions: Vec::new(),
             format_hint: None,
             companion_binaries: vec![],
         };

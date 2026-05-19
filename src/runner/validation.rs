@@ -68,23 +68,28 @@ pub fn validate_args(args: &[String], structured_doc: &StructuredDoc) -> Validat
     }
 
     // ── Subcommand validation ────────────────────────────────────────────
-    if !structured_doc.commands.is_empty() {
-        let known_cmds = parse_subcommands(&structured_doc.commands);
-        if !known_cmds.is_empty() {
-            // The first non-flag argument is the likely subcommand.
-            if let Some(first_positional) = args.iter().find(|a| !a.starts_with('-')) {
-                result.subcommand = Some(first_positional.clone());
-                let valid = known_cmds
-                    .iter()
-                    .any(|c| c.eq_ignore_ascii_case(first_positional));
-                result.subcommand_valid = Some(valid);
-                if !valid {
-                    result.warnings.push(format!(
-                        "Subcommand '{}' not found in documentation. Known subcommands: {}",
-                        first_positional,
-                        known_cmds.join(", ")
-                    ));
-                }
+    let known_cmds: Vec<String> = if !structured_doc.subcommands.is_empty() {
+        structured_doc.subcommands.clone()
+    } else if !structured_doc.commands.is_empty() {
+        parse_subcommands(&structured_doc.commands)
+    } else {
+        Vec::new()
+    };
+
+    if !known_cmds.is_empty() {
+        // The first non-flag argument is the likely subcommand.
+        if let Some(first_positional) = args.iter().find(|a| !a.starts_with('-')) {
+            result.subcommand = Some(first_positional.clone());
+            let valid = known_cmds
+                .iter()
+                .any(|c| c.eq_ignore_ascii_case(first_positional));
+            result.subcommand_valid = Some(valid);
+            if !valid {
+                result.warnings.push(format!(
+                    "Subcommand '{}' not found in documentation. Known subcommands: {}",
+                    first_positional,
+                    known_cmds.iter().take(10).cloned().collect::<Vec<_>>().join(", ")
+                ));
             }
         }
     }

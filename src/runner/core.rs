@@ -157,94 +157,7 @@ impl Runner {
     }
 
     fn get_known_subcommands(tool: &str) -> Vec<String> {
-        let known_subcommand_tools: &[(&str, &[&str])] = &[
-            ("sra-tools", &["prefetch", "fasterq-dump", "fastq-dump", "sam-dump",
-                           "sra-stat", "vdb-validate", "vdb-dump"]),
-            ("bismark", &["bismark_genome_preparation", "bismark_methylation_extractor",
-                          "deduplicate_bismark", "bismark2report", "bismark2bedGraph",
-                          "bismark2coverage", "coverage2cytosine"]),
-            ("strelka2", &["configureStrelkaGermlineWorkflow.py", "configureStrelkaSomaticWorkflow.py"]),
-            ("mummer", &["nucmer", "promer", "delta-filter", "show-coords",
-                        "show-snps", "show-tiling", "mummerplot", "dnadiff"]),
-            ("homer", &["findPeaks", "findMotifsGenome.pl", "makeUCSCfile",
-                       "annotatePeaks.pl", "mergePeaks", "getDifferentialPeaks"]),
-            ("igvtools", &["count", "index", "sort", "toTDF", "tile"]),
-            ("nextflow", &["run", "pull", "info", "list", "help"]),
-            ("blast", &["blastn", "blastp", "blastx", "tblastn", "tblastx",
-                        "makeblastdb", "blastdbcmd", "blast_formatter",
-                        "dustmasker", "segmasker", "update_blastdb.pl"]),
-            ("hmmer", &["hmmsearch", "hmmscan", "hmmalign", "hmmbuild",
-                        "hmmemit", "hmmfetch", "hmmpress", "hmmconvert"]),
-            ("mmseqs2", &["easy-search", "easy-cluster", "search", "cluster",
-                         "index", "convert2fasta", "createdb", "convertalis"]),
-            ("gtdbtk", &["classify_wf", "ani_screen", "de_novo_wf", "infer",
-                        "root", "decorate", "export_msa"]),
-            ("seqkit", &["seq", "fx2tab", "tab2fx", "grep", "rmdup", "sample",
-                         "subseq", "replace", "translate", "sort", "stats", "concat",
-                         "split2", "fq2fa", "common", "head"]),
-            ("qualimap", &["bamqc", "rnaseq", "counts", "clustering", "multi-bamqc"]),
-            ("varscan2", &["mpileup2cns", "mpileup2indel", "mpileup2snp",
-                          "somatic", "copynumber", "readcounts", "processSomatic"]),
-            ("survivor", &["simSV", "merge", "stats"]),
-            ("snpeff", &["ann", "download", "build", "databases"]),
-            ("centrifuge", &["centrifuge-class", "centrifuge-build",
-                            "centrifuge-download", "centrifuge-inspect"]),
-            ("trimmomatic", &["PE", "SE"]),
-            ("deeptools", &["bamCoverage", "computeMatrix", "plotHeatmap", "plotProfile",
-                           "multiBamSummary", "plotCorrelation", "bamCompare",
-                           "computeMatrixOperations", "plotPCA", "plotFingerprint",
-                           "alignSieve", "bamHandler"]),
-            ("agat", &["agat_convert_sp_gff2gtf", "agat_convert_sp_gff2zff",
-                      "agat_sp_statistics", "agat_sp_filter_record_by_attribute_value",
-                      "agat_sp_manage_IDs", "agat_sp_fix_features_locations_duplicated"]),
-            ("rsem", &["rsem-prepare-reference", "rsem-calculate-expression",
-                      "rsem-plot-model", "rsem-run-em", "rsem-run-gibbs"]),
-            ("bakta", &["bakta", "bakta_db"]),
-            ("snakemake", &[]),
-            ("gatk", &["HaplotypeCaller", "Mutect2", "MarkDuplicates", "BaseRecalibrator",
-                      "ApplyBQSR", "AddOrReplaceReadGroups", "SelectVariants",
-                      "FilterMutectCalls", "CreateSequenceDictionary", "GatherVcfs",
-                      "GenomicsDBImport", "GenotypeGVCFs", "CombineGVCFs",
-                      "SplitNCigarReads", "VariantFiltration", "CollectAlignmentSummaryMetrics",
-                      "CollectInsertSizeMetrics", "ValidateSamFile", "SortSam",
-                      "RevertSam", "PrintReads", "FlagStat", "DepthOfCoverage"]),
-            ("picard", &["MarkDuplicates", "AddOrReplaceReadGroups", "SortSam",
-                        "CollectAlignmentSummaryMetrics", "CollectInsertSizeMetrics",
-                        "CreateSequenceDictionary", "ValidateSamFile", "GatherVcfs",
-                        "MergeBamAlignment", "MergeSamFiles", "RevertSam",
-                        "BuildBamIndex", "ExtractSequences"]),
-            ("cnvkit", &["batch", "target", "access", "antitarget", "coverage",
-                       "reference", "fix", "segment", "call", "scatter",
-                       "diagram", "heatmap", "genemetrics", "breaks",
-                       "gainloss", "sex", "metrics", "segmetrics", "export"]),
-            ("macs2", &["callpeak", "bdgpeakcall", "bdgbroadcall", "bdgcmp",
-                       "bdgopt", "cmbreps", "bdgdiff", "filterdup",
-                       "predictd", "pileup", "randsample", "refinepeak"]),
-            ("sourmash", &["compute", "compare", "plot", "gather", "search",
-                          "index", "categorize", "watch", "lca",
-                          "lca_summarize", "lca_gather", "lca_index"]),
-            ("truvari", &["bench", "consistency", "anno", "collapse", "div", "stats", "validate"]),
-            ("whatshap", &["phase", "polyphase", "haplotag", "split", "stats", "compare"]),
-            ("delly", &["call", "filter", "merge", "bcftools", "stats"]),
-            ("checkm2", &["predict", "plot", "database", "test"]),
-            ("git", &["clone", "init", "add", "commit", "push", "pull",
-                     "checkout", "branch", "merge", "rebase", "log",
-                     "diff", "status", "stash", "fetch", "remote"]),
-            ("kallisto", &["quant", "bus", "pseudo", "merge", "h5dump",
-                          "index", "inspect", "version"]),
-            ("kb", &["ref", "count", "matrix", "filter", "compile", "info", "download", "test"]),
-            ("meme", &["fimo", "meme", "dreme", "ame", "centrimo",
-                      "tomtom", "mast", "mcast", "glam2", "glam2scan"]),
-            ("pbsv", &["discover", "call", "annotate"]),
-        ];
-
-        let tool_lower = tool.to_lowercase();
-        for (known_tool, subs) in known_subcommand_tools {
-            if tool_lower == *known_tool {
-                return subs.iter().map(|s| s.to_string()).collect();
-            }
-        }
-        Vec::new()
+        crate::llm::task_values::get_known_subcommands_for_tool(tool)
     }
 
     fn extract_subcommand_help_section(raw_text: &str, marker: &str, marker_alt: &str) -> Option<String> {
@@ -845,6 +758,25 @@ impl Runner {
                 eprintln!("{} Raw text 'Options:' occurrences: {}", "[verbose]".dimmed(), options_count);
             }
 
+            let filtered_companions: Vec<String> = {
+                let help_flag_count = resolved.raw_text.lines()
+                    .filter(|l| l.trim().starts_with('-'))
+                    .count();
+                let has_usage = resolved.raw_text.to_ascii_lowercase().contains("usage:");
+                let has_positional = resolved.raw_text.contains("genomeSize=")
+                    || resolved.raw_text.contains("<input")
+                    || resolved.raw_text.contains("<file")
+                    || resolved.raw_text.contains("[options]")
+                    || resolved.raw_text.contains("[arguments]");
+                let is_dispatcher = (help_flag_count < 15 || resolved.top_subcommands.len() > 3)
+                    && !has_usage && !has_positional;
+                if is_dispatcher {
+                    resolved.path_companions.clone()
+                } else {
+                    Vec::new()
+                }
+            };
+
             let (subcommand_hint, matched_subcommand) = if resolved.subcommands_from_help && !resolved.top_subcommands.is_empty() {
                 (Some(resolved.top_subcommands), resolved.matched_subcommand.as_deref())
             } else {
@@ -856,7 +788,7 @@ impl Runner {
                 subcommand_hint.as_deref(),
                 matched_subcommand,
                 Some(tool),
-                Some(&resolved.path_companions),
+                Some(&filtered_companions),
             );
 
             // When we have subcommand help, extract a subcommand-specific flag catalog
@@ -877,7 +809,7 @@ impl Runner {
                             subcommand_hint.as_deref(),
                             matched_subcommand,
                             Some(tool),
-                            Some(&resolved.path_companions),
+                            Some(&filtered_companions),
                         );
 
                         // Replace flag catalog with subcommand-specific one if it has flags
@@ -1014,18 +946,50 @@ impl Runner {
                 .unwrap_or_default()
         ));
 
-        // ── Step 4: Single LLM call ──────────────────────────────────────────
-        let suggestion = self
-            .llm
-            .suggest_command(
-                tool,
-                &docs,
-                &enriched_task,
-                skill.as_ref(),
-                self.no_prompt,
-                structured_doc.as_ref(),
-            )
-            .await?;
+        // ── Step 4: LLM call ──────────────────────────────────────────
+        // For medium/small models (≤8B), use two-step generation by default.
+        // Two-step decomposes the task: first select subcommand (classification),
+        // then generate arguments (simpler generation). This significantly
+        // improves accuracy for 7B models by reducing cognitive load.
+        let model_category = self.config.model_size_category();
+        let use_two_step = false;
+
+        let mut suggestion = if use_two_step {
+            self.llm
+                .suggest_command_two_step(
+                    tool,
+                    &docs,
+                    &enriched_task,
+                    skill.as_ref(),
+                    self.no_prompt,
+                    structured_doc.as_ref(),
+                )
+                .await?
+        } else {
+            self.llm
+                .suggest_command(
+                    tool,
+                    &docs,
+                    &enriched_task,
+                    skill.as_ref(),
+                    self.no_prompt,
+                    structured_doc.as_ref(),
+                )
+                .await?
+        };
+
+        if suggestion.args.is_empty() && !use_two_step && skill.is_none() && structured_doc.is_some() {
+            suggestion = self.llm
+                .suggest_command_two_step(
+                    tool,
+                    &docs,
+                    &enriched_task,
+                    skill.as_ref(),
+                    self.no_prompt,
+                    structured_doc.as_ref(),
+                )
+                .await?;
+        }
 
         spinner.finish_and_clear();
 

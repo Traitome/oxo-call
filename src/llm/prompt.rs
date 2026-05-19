@@ -3,7 +3,7 @@
 //! This module contains all functions related to constructing prompts for
 //! different LLM roles (command generation, verification, skill review, etc.).
 
-use crate::doc_processor::StructuredDoc;
+use crate::doc_processor::{FlagEntry, StructuredDoc};
 use crate::skill::Skill;
 
 use super::types::PromptTier;
@@ -11,54 +11,46 @@ use super::types::PromptTier;
 // ─── System prompts ────────────────────────────────────────────────────────────
 
 pub fn system_prompt() -> &'static str {
-    "You are a bioinformatics CLI assistant. Translate the task into command-line arguments for the specified tool. Understand any language.\n\
+    "You are a bioinformatics CLI assistant. Translate the task into command-line arguments for the specified tool.\n\
      \n\
-     FORMAT: Respond with EXACTLY two lines, nothing else:\n\
-     ARGS: <subcommand then flags and values — NO tool name, NO markdown>\n\
-     EXPLANATION: <one sentence in the task's language>\n\
+     OUTPUT FORMAT — Respond with a JSON object:\n\
+     {\"subcommand\":\"<subcommand or empty>\",\"flags\":{\"--flag\":\"value\"},\"positional_args\":[\"file1\",\"file2\"],\"explanation\":\"...\"}\n\
      \n\
      RULES:\n\
-     1. NEVER start ARGS with the tool name (auto-prepended by system).\n\
-     2. If <format_constraints> says SUBCOMMAND_REQUIRED=YES, first token MUST be a listed subcommand. Pick the one matching the task.\n\
-     3. If <format_constraints> says SUBCOMMAND_REQUIRED=NO, first token is a flag or input file. NEVER invent subcommands.\n\
-     4. Companion binaries (e.g. bowtie2-build, rsem-prepare-reference) go as first token when listed.\n\
-     5. Multi-step: join with &&. Tool name auto-prepended ONLY to first segment — later commands MUST include their full binary name.\n\
-     6. Pipes (|) and redirects (>) go directly in ARGS.\n\
-     7. Use ONLY flags from <flag_catalog>. NEVER invent, guess, or hallucinate flags not in the catalog. If unsure about a flag, OMIT it entirely.\n\
-     8. Extract EXACT values from the TASK — file paths, parameter values, names. NEVER use placeholder values like 'input.bam' or 'output.vcf'. Use the actual values from the task.\n\
-     9. ALWAYS include: output flag (-o/--output/--outdir) when task implies output, thread flag (-t/-@/--threads/--nproc) for compute-intensive tools.\n\
-     10. Default conventions: paired-end, coordinate-sorted BAM, hg38, gzipped FASTQ, Phred+33.\n\
-     11. Match format flags to actual types (BAM/SAM/CRAM, gzipped/plain, paired/single, FASTA/FASTQ).\n\
-     12. If no arguments needed: ARGS: (none).\n\
-     13. REQUIRED FLAGS marked [REQUIRED] in catalog MUST appear in your ARGS — no exceptions.\n\
-     14. LESS IS MORE: Only include flags directly relevant to the task. Extra wrong flags are worse than missing optional flags.\n\
-     15. NEVER fabricate subcommands. Only use subcommands explicitly listed in <format_constraints>.\n\
-     16. For tools with prefixed subcommands (e.g., agat_convert_sp_gff2gtf), use the FULL prefixed name as the first token.\n\
-     17. Use the EXACT flag names from <flag_catalog>. If catalog shows --output-dir, use --output-dir NOT --output_prefix or -O.\n\
-     18. When <flag_catalog> shows both short and long forms (e.g., '--bam / -b'), use the FIRST form shown (the primary form). Only use the alternate form if the primary form doesn't match your context.\n\
+     1. NEVER include the tool name — it is auto-prepended by the system.\n\
+     2. If SUBCOMMAND_REQUIRED=YES, put the subcommand in \"subcommand\" field. Pick the one matching the task.\n\
+     3. If SUBCOMMAND_REQUIRED=NO, leave \"subcommand\" empty. First positional arg or flag comes first.\n\
+     4. Put all flags with their values in \"flags\" object. Boolean flags use true as value.\n\
+     5. Put file paths and other positional arguments in \"positional_args\" array.\n\
+     6. Use ONLY flags from <flag_catalog>. NEVER invent, guess, or hallucinate flags not in the catalog.\n\
+     7. Extract EXACT values from the TASK — file paths, parameter values, names.\n\
+     8. ALWAYS include: output flag when task implies output, thread flag for compute-intensive tools.\n\
+     9. REQUIRED FLAGS marked [REQUIRED] in catalog MUST appear in your flags — no exceptions.\n\
+     10. LESS IS MORE: Only include flags directly relevant to the task. Extra wrong flags are worse than missing optional flags.\n\
+     11. Use the EXACT flag names from <flag_catalog>. If catalog shows --output-dir, use --output-dir NOT --output_prefix.\n\
+     12. When <flag_catalog> shows both short and long forms, use the FIRST form shown (primary form).\n\
+     13. Multi-step commands: join with &&. Tool name auto-prepended ONLY to first segment.\n\
+     14. Pipes (|) and redirects (>) go directly in positional_args.\n\
     "
 }
 
 /// Medium-compression system prompt for 4k–16k context or 4B–7B models.
 pub fn system_prompt_medium() -> &'static str {
     "You translate bioinformatics tasks into CLI arguments.\n\
-     Output EXACTLY two lines:\n\
-     ARGS: <subcommand then flags, NO tool name>\n\
-     EXPLANATION: <one sentence>\n\
-     Rules: subcommand first (sort/view/mem), never tool name. Use only documented flags. \
-     Include paths from task. Multi-step uses && (tool name only on first segment). \
-     Pipes allowed. Include threads and output flags when applicable. \
-     Check REQUIRED flags before output. Include input/output file flags."
+     Output JSON: {\"subcommand\":\"sort\",\"flags\":{\"-@\":\"4\",\"-o\":\"out.bam\"},\"positional_args\":[\"in.bam\"],\"explanation\":\"...\"}\n\
+     CRITICAL RULES:\n\
+     1. subcommand in \"subcommand\" field. Never tool name.\n\
+     2. Use ONLY flags from <flag_catalog>. NEVER invent flags.\n\
+     3. Include ONLY required flags + flags explicitly mentioned in the task. Do NOT add extra optional flags.\n\
+     4. Files go in \"positional_args\". Extract EXACT paths from task.\n\
+     5. Boolean flags use true. Include output and thread flags when task implies them.\n\
+     6. FEWER FLAGS IS BETTER. Missing optional flags is OK. Wrong extra flags is BAD."
 }
 
 /// Ultra-compact system prompt for mini models (≤ 3B parameters).
 pub fn system_prompt_compact() -> &'static str {
-    "You translate tasks into CLI arguments.\n\
-     Output EXACTLY two lines:\n\
-     ARGS: sort -@ 4 -o out.bam in.bam\n\
-     EXPLANATION: Sort BAM by coordinate.\n\
-     Rules: first token = subcommand (sort, view, mem, etc), never tool name. \
-     Use flags from examples only. Pipes and chains allowed."
+    "Output JSON: {\"subcommand\":\"sort\",\"flags\":{\"-@\":\"4\",\"-o\":\"out.bam\"},\"positional_args\":[\"in.bam\"],\"explanation\":\"...\"}\n\
+     Rules: subcommand in \"subcommand\". Never tool name. Use ONLY flags from examples. Boolean flags use true. ONLY required flags. No extra flags."
 }
 
 /// Built-in few-shot examples for common bioinformatics tools.
@@ -394,9 +386,9 @@ fn build_prompt_full(
                 sorted_subs.sort_by(|a, b| b.1.cmp(&a.1));
                 let top_sub = sorted_subs[0].0;
                 let top_subs: Vec<&String> = sorted_subs.iter().take(3).map(|(s, _)| *s).collect();
-                if sorted_subs[0].1 >= 15 {
+                if sorted_subs[0].1 >= 5 {
                     prompt.push_str(&format!(
-                        "  BEST_SUBCOMMAND: {} (strongly recommended for this task)\n",
+                        "  BEST_SUBCOMMAND: {}\n  You MUST use this subcommand as the value of \"subcommand\" in your JSON output.\n",
                         top_sub
                     ));
                 }
@@ -861,9 +853,9 @@ fn build_prompt_full(
 
         let optional_flags: Vec<_> = optional_flags.into_iter().take(30).collect();
         prompt.push_str("<flag_catalog>\n");
-        prompt.push_str("  # IMPORTANT: Use ONLY flags listed below. DO NOT invent flags not in this catalog.\n");
-        prompt.push_str("  # If a flag is not listed here, it does NOT exist for this tool. Omit it.\n");
-        prompt.push_str("  # When two forms are shown (e.g., '--bam / -b'), use the FIRST form (primary).\n\n");
+        prompt.push_str("  # CRITICAL: Use EXACT flag names below. --queryList ≠ --query. --refList ≠ --ref.\n");
+        prompt.push_str("  # If a flag is not listed here, it does NOT exist. Omit it entirely.\n");
+        prompt.push_str("  # When two forms shown (e.g., '--bam / -b'), use the FIRST form (primary).\n\n");
 
         // Show required flags first with clear marking
         if !required_flags.is_empty() {
@@ -1011,20 +1003,158 @@ fn build_prompt_full(
     // ── Output format ────────────────────────────────────────────────────
     prompt.push_str(
         "## Output Requirements\n\
-         1. Check <format_constraints> — if SUBCOMMAND_REQUIRED=YES, first token MUST be a listed subcommand\n\
-         2. If SUBCOMMAND_REQUIRED=NO, first token is a flag or input file — NEVER invent a subcommand\n\
-         3. If COMPANION_BINARIES listed, use that name as first token instead of main tool\n\
-         4. Use ONLY flags from <flag_catalog> — NEVER invent flags. If unsure about a flag, OMIT it entirely.\n\
+         1. Check <format_constraints> — if SUBCOMMAND_REQUIRED=YES, put the subcommand in \"subcommand\" field\n\
+         2. If SUBCOMMAND_REQUIRED=NO, leave \"subcommand\" empty — NEVER invent a subcommand\n\
+         3. If COMPANION_BINARIES listed, put that name in \"subcommand\" field\n\
+         4. Use ONLY flags from <flag_catalog> in \"flags\" object — NEVER invent flags. If unsure, OMIT it.\n\
          5. REQUIRED FLAGS: MUST include ALL flags marked [REQUIRED] from flag_catalog — this is critical\n\
          6. Use <examples> ONLY for flag FORMAT — NEVER copy example values verbatim\n\
          7. Extract ALL values from <task_values> and include each with its corresponding flag from <flag_catalog>\n\
-         8. ALWAYS include output flag (-o/--output/--outdir/-dir) when task mentions output directory or writing results\n\
-         9. ALWAYS include thread flag (-t/-@/--threads/--nproc/-p) for compute tools (alignment, variant calling, assembly)\n\
+         8. ALWAYS include output flag when task mentions output directory or writing results\n\
+         9. ALWAYS include thread flag for compute tools (alignment, variant calling, assembly)\n\
          10. Use the EXACT flag names shown in <flag_catalog>. Do NOT substitute with similar-sounding flags.\n\
-         11. LESS IS MORE: Include only flags directly relevant to the task. Extra wrong flags hurt more than missing optional flags.\n\n\
-         ARGS: <subcommand then flags, NO tool name>\n\
-         EXPLANATION: <brief one-sentence description>\n",
+         11. LESS IS MORE: Include only flags directly relevant to the task. Extra wrong flags hurt more than missing optional flags.\n\
+         11b. Include ONLY: (a) all REQUIRED flags, (b) output/thread flags when task implies them, (c) flags explicitly mentioned in the task. OMIT all other optional flags.\n\
+         12. Boolean/switch flags: use true as value (e.g., {\"--bam\": true})\n\
+         13. Flags with values: use string value (e.g., {\"-t\": \"8\", \"-o\": \"output.bam\"})\n\
+         14. File paths go in \"positional_args\" array, NOT in flags (unless the flag requires a file value)\n\n\
+         Respond with JSON ONLY:\n\
+         {\"subcommand\":\"<subcommand or empty>\",\"flags\":{\"--flag\":\"value\"},\"positional_args\":[\"file1\"],\"explanation\":\"...\"}\n",
     );
+    prompt
+}
+
+pub fn build_example_driven_prompt(
+    tool: &str,
+    task: &str,
+    sdoc: &StructuredDoc,
+    selected_subcommand: Option<&str>,
+    task_values: &crate::llm::task_values::TaskValues,
+) -> String {
+    let mut prompt = String::new();
+
+    prompt.push_str(&format!("Tool: {}\n", tool));
+    if let Some(sub) = selected_subcommand {
+        prompt.push_str(&format!("Subcommand: {}\n", sub));
+    }
+    prompt.push_str(&format!("Task: {}\n\n", task));
+
+    let sub_lower = selected_subcommand.map(|s| s.to_ascii_lowercase());
+    let mut best_example: Option<String> = None;
+    let mut best_score: i32 = -1;
+
+    for ex in &sdoc.extracted_examples {
+        let ex_lower = ex.to_ascii_lowercase();
+        let mut score: i32 = 0;
+
+        if let Some(ref sub) = sub_lower {
+            if ex_lower.contains(sub) {
+                score += 10;
+            }
+        }
+
+        let task_lower = task.to_ascii_lowercase();
+        let task_words: Vec<&str> = task_lower.split_whitespace()
+            .filter(|w| w.len() >= 3)
+            .collect();
+        for tw in &task_words {
+            if ex_lower.contains(tw) {
+                score += 2;
+            }
+        }
+
+        let flag_count = ex.matches('-').count();
+        if flag_count >= 3 {
+            score += 3;
+        }
+
+        if score > best_score {
+            best_score = score;
+            let cleaned = ex.trim()
+                .trim_start_matches(&format!("{} ", tool))
+                .trim_start_matches(&format!("{} ", tool.to_lowercase()))
+                .to_string();
+            best_example = Some(cleaned);
+        }
+    }
+
+    if let Some(ref example) = best_example {
+        prompt.push_str("EXAMPLE (modify for the task):\n");
+        prompt.push_str(&format!("  {}\n\n", example));
+    }
+
+    let task_lower = task.to_ascii_lowercase();
+    let task_words: std::collections::HashSet<&str> = task_lower
+        .split_whitespace()
+        .filter(|w| w.len() > 2)
+        .collect();
+
+    let score_relevance = |entry: &FlagEntry| -> i32 {
+        let desc_lower = entry.description.to_ascii_lowercase();
+        let flag_lower = entry.flag.to_ascii_lowercase();
+        let mut score = 0;
+        for word in &task_words {
+            if desc_lower.contains(word) { score += 2; }
+            if flag_lower.contains(word) { score += 1; }
+        }
+        if desc_lower.contains("output") && (task_lower.contains("output") || task_lower.contains("save") || task_lower.contains("write") || task_lower.contains("to ")) {
+            score += 3;
+        }
+        if (desc_lower.contains("thread") || desc_lower.contains("proc") || desc_lower.contains("cpu")) && (task_lower.contains("thread") || task_lower.contains("cpu") || task_lower.contains("proc") || task_lower.contains("core")) {
+            score += 3;
+        }
+        if desc_lower.contains("input") && (task_lower.contains("input") || task_lower.contains("read") || task_lower.contains("file")) {
+            score += 2;
+        }
+        if entry.required {
+            score += 10;
+        }
+        score
+    };
+
+    let mut all_flags: Vec<&FlagEntry> = sdoc.flag_catalog.iter().collect();
+    all_flags.sort_by(|a, b| score_relevance(b).cmp(&score_relevance(a)));
+
+    let top_flags: Vec<&&FlagEntry> = all_flags.iter().take(15).collect();
+
+    if !top_flags.is_empty() {
+        prompt.push_str("FLAGS:\n");
+        for entry in &top_flags {
+            let req_mark = if entry.required { "*" } else { " " };
+            let alt_info = entry.alt_form.as_ref()
+                .map(|a| format!("/{}", a))
+                .unwrap_or_default();
+            let type_info = entry.value_type.as_ref()
+                .map(|t| format!("<{}>", t))
+                .unwrap_or_default();
+            prompt.push_str(&format!("  {}{}{} {} - {}\n", req_mark, entry.flag, alt_info, type_info, entry.description.chars().take(50).collect::<String>()));
+        }
+        prompt.push_str("  (* = required)\n\n");
+    }
+
+    if !task_values.input_files.is_empty() {
+        prompt.push_str(&format!("Input files: {}\n", task_values.input_files.join(", ")));
+    }
+    if !task_values.output_files.is_empty() {
+        prompt.push_str(&format!("Output files: {}\n", task_values.output_files.join(", ")));
+    }
+    if !task_values.numbers.is_empty() {
+        prompt.push_str(&format!("Values: {}\n", task_values.numbers.join(", ")));
+    }
+
+    if !sdoc.usage_pattern.positional_args.is_empty() {
+        prompt.push_str(&format!("Positional args: {}\n", sdoc.usage_pattern.positional_args.join(", ")));
+    }
+
+    prompt.push('\n');
+    prompt.push_str("Generate the command arguments.\n");
+    if let Some(sub) = selected_subcommand {
+        prompt.push_str(&format!("Start with: {} ", sub));
+    }
+    prompt.push_str("Do NOT include the tool name.\n");
+    prompt.push_str("Use ONLY flags from the list. Include required flags and output/thread flags.\n");
+    prompt.push_str("ARGS:");
+
     prompt
 }
 
@@ -1040,34 +1170,35 @@ fn build_prompt_medium(
     let mut prompt = String::new();
     prompt.push_str(&format!("# Tool: `{tool}`\n\n"));
 
-    // Format constraints for medium prompt (inline, compact)
     if let Some(sdoc) = structured_doc {
         if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
-            prompt.push_str(&format!(
-                "First token MUST be subcommand: {}\n",
-                sdoc.subcommands
-                    .iter()
-                    .take(5)
-                    .cloned()
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ));
-            // Phase 3: Add RIGHT/WRONG examples for subcommand tools
-            prompt.push_str("Example CORRECT: bwa mem -t 4 ref.fa reads.fq\n");
-            prompt.push_str("Example WRONG: bwa -t 4 ref.fa reads.fq (missing 'mem')\n");
+            prompt.push_str("First token MUST be subcommand:\n");
+            for (i, sub) in sdoc.subcommands.iter().take(15).enumerate() {
+                let desc = sdoc.subcommand_descriptions.iter()
+                    .find(|(s, _)| s == sub)
+                    .and_then(|(_, d)| if d.is_empty() { None } else { Some(d.as_str()) })
+                    .unwrap_or("");
+                if desc.is_empty() {
+                    prompt.push_str(&format!("  {}. {}\n", i + 1, sub));
+                } else {
+                    let short_desc: String = desc.chars().take(60).collect();
+                    prompt.push_str(&format!("  {}. {} - {}\n", i + 1, sub, short_desc));
+                }
+            }
+            prompt.push('\n');
+            prompt.push_str("CORRECT: tool subcommand [flags]\n");
+            prompt.push_str("WRONG: tool [flags] (missing subcommand)\n\n");
         } else if !sdoc.has_subcommands {
-            prompt.push_str("First token is flag or input (NO subcommand).\n");
-            // Add few-shot examples for tools without subcommands
-            prompt.push_str("Examples: admixture data.bed 5 --cv=10 | metaphlan --input_type fastq reads.fq -o out.txt\n");
+            prompt.push_str("First token is flag or input (NO subcommand).\n\n");
         }
         if !sdoc.companion_binaries.is_empty() {
             prompt.push_str(&format!(
-                "Use companion binary: {}\n",
+                "Use companion binary: {}\n\n",
                 sdoc.companion_binaries.join(", ")
             ));
         }
-        if !prompt.is_empty() {
-            prompt.push('\n');
+        if let Some(ref hint) = sdoc.format_hint {
+            prompt.push_str(&format!("Format: {}\n\n", hint));
         }
     }
 
@@ -1077,25 +1208,85 @@ fn build_prompt_medium(
             prompt.push_str(&section);
         }
     } else if let Some(sdoc) = structured_doc {
-        // Inject doc-extracted examples when no skill
         if !sdoc.extracted_examples.is_empty() {
+            let task_lower = task.to_ascii_lowercase();
+            let relevant: Vec<&String> = sdoc.extracted_examples.iter()
+                .filter(|ex| {
+                    let ex_lower = ex.to_ascii_lowercase();
+                    task_lower.split_whitespace()
+                        .filter(|w| w.len() > 3)
+                        .any(|w| ex_lower.contains(w))
+                })
+                .take(3)
+                .collect();
+            let examples = if relevant.is_empty() {
+                sdoc.extracted_examples.iter().take(2).collect()
+            } else {
+                relevant
+            };
             prompt.push_str("## Examples from Docs\n");
-            for ex in sdoc.extracted_examples.iter().take(3) {
-                prompt.push_str(&format!("- `{ex}`\n"));
+            for ex in &examples {
+                let cleaned = ex.trim()
+                    .trim_start_matches(&format!("{} ", tool))
+                    .trim_start_matches(&format!("{} ", tool.to_lowercase()));
+                prompt.push_str(&format!("- `{}`\n", cleaned));
             }
             prompt.push('\n');
         }
 
-        // Compact flag list with type constraints
+        let template_example = get_template_example(tool, task);
+        if let Some(ref tmpl) = template_example {
+            prompt.push_str(&format!("## START from this command (change values to match task)\n{}\n\n", tmpl));
+            prompt.push_str("RULES for modifying:\n");
+            prompt.push_str("1. KEEP all flags from the start command\n");
+            prompt.push_str("2. REPLACE placeholder values with EXACT values from the task\n");
+            prompt.push_str("3. ADD any flags from REQUIRED FLAGS below that are missing\n");
+            prompt.push_str("4. Do NOT remove flags unless they conflict with the task\n\n");
+        }
+
         if !sdoc.flag_catalog.is_empty() {
-            prompt.push_str("<flag_catalog>\n");
-            for f in sdoc.flag_catalog.iter().take(20) {
-                match &f.value_type {
-                    Some(t) => prompt.push_str(&format!("  {} {}\n", f.flag, t)),
-                    None => prompt.push_str(&format!("  {}\n", f.flag)),
+            let required: Vec<&FlagEntry> = sdoc.flag_catalog.iter()
+                .filter(|e| e.required)
+                .collect();
+            let optional: Vec<&FlagEntry> = sdoc.flag_catalog.iter()
+                .filter(|e| !e.required)
+                .collect();
+
+            if !required.is_empty() {
+                prompt.push_str("REQUIRED FLAGS:\n");
+                for f in &required {
+                    let alt = f.alt_form.as_ref().map(|a| format!(" / {}", a)).unwrap_or_default();
+                    let vt = f.value_type.as_ref().map(|t| format!(" <{}>", t)).unwrap_or_default();
+                    prompt.push_str(&format!("  {}{}{}  {}\n", f.flag, alt, vt, f.description));
                 }
+                prompt.push('\n');
+            }
+
+            prompt.push_str("<flag_catalog>\n");
+            for f in optional.iter().take(20) {
+                let alt = f.alt_form.as_ref().map(|a| format!(" / {}", a)).unwrap_or_default();
+                let vt = f.value_type.as_ref().map(|t| format!(" <{}>", t)).unwrap_or_default();
+                let enums = if !f.enum_values.is_empty() {
+                    format!(" [{}]", f.enum_values.join("|"))
+                } else {
+                    String::new()
+                };
+                prompt.push_str(&format!("  {}{}{}{}  {}\n", f.flag, alt, vt, enums, f.description));
             }
             prompt.push_str("</flag_catalog>\n\n");
+        }
+
+        if !sdoc.file_type_mappings.is_empty() {
+            prompt.push_str("FILE TYPES:\n");
+            for ftm in sdoc.file_type_mappings.iter().take(6) {
+                let io = match ftm.io_type {
+                    crate::doc_processor::FileIOType::Input => "in",
+                    crate::doc_processor::FileIOType::Output => "out",
+                    crate::doc_processor::FileIOType::Both => "in/out",
+                };
+                prompt.push_str(&format!("  .{} -> {} ({})\n", ftm.extension, ftm.flags.join(","), io));
+            }
+            prompt.push('\n');
         }
     }
 
@@ -1119,8 +1310,8 @@ fn build_prompt_medium(
     prompt.push_str(&format!("## Task\n{task}\n\n"));
     prompt.push_str(
         "## Output\n\
-         ARGS: <subcommand then flags, NO tool name>\n\
-         EXPLANATION: <brief>\n",
+         JSON: {\"subcommand\":\"<subcommand or empty>\",\"flags\":{\"--flag\":\"value\"},\"positional_args\":[\"file1\"],\"explanation\":\"...\"}\n\
+         IMPORTANT: Include ONLY required flags + flags the task explicitly mentions. Do NOT add extra optional flags.\n",
     );
     prompt
 }
@@ -1164,6 +1355,8 @@ fn build_prompt_compact(
         .map(|s| s.select_examples(2, Some(task)))
         .unwrap_or_default();
 
+    let template_example = get_template_example(tool, task);
+
     if let Some(ex) = few_shots.first() {
         prompt.push_str(&format!(
             "Task: {}\n\n---FEW-SHOT---\n\nARGS: {}\nEXPLANATION: {}\n\n---FEW-SHOT---\n\n",
@@ -1176,6 +1369,10 @@ fn build_prompt_compact(
                 ex2.task, ex2.args, ex2.explanation
             ));
         }
+    } else if let Some(ref tmpl) = template_example {
+        prompt.push_str(&format!(
+            "Task: Use {tool}\n\n---FEW-SHOT---\n\nARGS: {tmpl}\nEXPLANATION: Template command for {tool}.\n\n---FEW-SHOT---\n\n"
+        ));
     } else if let Some(sdoc) = structured_doc {
         // Phase 3: Unified Architecture - Prioritize tool defaults over extracted examples
         // Check if we have tool-specific defaults first (more reliable than extracted examples)
@@ -1296,6 +1493,7 @@ fn build_prompt_compact(
 
     prompt.push_str(&format!("Tool: {tool}\n"));
     prompt.push_str(&format!("Task: {task}\n\n"));
+    prompt.push_str("JSON: {\"subcommand\":\"\",\"flags\":{},\"positional_args\":[],\"explanation\":\"\"}\n");
     prompt
 }
 
@@ -1890,6 +2088,45 @@ fn extract_task_values(task: &str) -> Vec<(String, String)> {
 
 /// Check if task contains keyword as a whole word (not substring).
 /// Prevents "aligned" from matching "align" keyword.
+fn get_template_example(tool: &str, task: &str) -> Option<String> {
+    let task_lower = task.to_ascii_lowercase();
+    let tool_lower = tool.to_lowercase();
+
+    let mut best_match: Option<(&'static str, i32)> = None;
+
+    for tmpl in crate::llm::template_engine::TOOL_TEMPLATES {
+        if tmpl.tool.to_lowercase() != tool_lower {
+            continue;
+        }
+
+        let mut score: i32 = 0;
+        for keyword in tmpl.keywords {
+            let kw_lower: String = keyword.to_ascii_lowercase();
+            if task_lower.contains(&kw_lower as &str) {
+                score += 20;
+            }
+            for kw_part in kw_lower.split(|c: char| c == '-' || c == '_') {
+                if kw_part.len() >= 3 && task_lower.contains(kw_part) {
+                    score += 5;
+                }
+            }
+        }
+
+        if score > 0 {
+            match best_match {
+                Some((_, best_score)) if score <= best_score => {}
+                _ => best_match = Some((tmpl.template, score)),
+            }
+        }
+    }
+
+    best_match.map(|(template, _)| {
+        let task_values = crate::llm::task_values::extract_task_values(task);
+        let filled = crate::llm::template_engine::fill_template(template, task, &task_values);
+        filled.join(" ")
+    })
+}
+
 fn task_matches_keyword(task: &str, keyword: &str) -> bool {
     if task.contains(keyword) {
         // Check word boundaries: either at start, after whitespace/punctuation,
@@ -1932,7 +2169,7 @@ struct SyntheticExample {
 /// Generate synthetic examples for multi-command tools with no doc examples.
 /// Uses common patterns for bioinformatics subcommands.
 fn generate_synthetic_examples(
-    tool: &str,
+    _tool: &str,
     task: &str,
     sdoc: &crate::doc_processor::StructuredDoc,
 ) -> Vec<SyntheticExample> {
@@ -2034,4 +2271,354 @@ fn generate_synthetic_examples(
     });
 
     examples
+}
+
+/// Step 1 of two-step generation: select the correct subcommand.
+/// This is a simple classification task that small models handle well.
+pub fn build_subcommand_selection_prompt(
+    tool: &str,
+    task: &str,
+    sdoc: &StructuredDoc,
+) -> String {
+    let mut prompt = String::new();
+
+    prompt.push_str(&format!("Tool: {}\n", tool));
+    prompt.push_str(&format!("Task: {}\n\n", task));
+
+    if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
+        prompt.push_str("Select the BEST subcommand for this task.\n");
+        prompt.push_str("Available subcommands:\n");
+        for (i, sub) in sdoc.subcommands.iter().take(20).enumerate() {
+            let desc = sdoc.subcommand_descriptions.iter()
+                .find(|(s, _)| s == sub)
+                .and_then(|(_, d)| if d.is_empty() { None } else { Some(d.as_str()) })
+                .unwrap_or("");
+            if desc.is_empty() {
+                prompt.push_str(&format!("{}. {}\n", i + 1, sub));
+            } else {
+                let short_desc: String = desc.chars().take(80).collect();
+                prompt.push_str(&format!("{}. {} - {}\n", i + 1, sub, short_desc));
+            }
+        }
+        prompt.push_str("\nRespond with ONLY the subcommand name from the list above.\n");
+        prompt.push_str("Do NOT explain. Do NOT add extra words.\n");
+        prompt.push_str("SUBCOMMAND:");
+    } else if !sdoc.companion_binaries.is_empty() {
+        prompt.push_str("Select the BEST companion binary for this task.\n");
+        prompt.push_str("Available companions:\n");
+        for (i, comp) in sdoc.companion_binaries.iter().take(10).enumerate() {
+            prompt.push_str(&format!("{}. {}\n", i + 1, comp));
+        }
+        prompt.push_str("\nRespond with ONLY the companion binary name, nothing else.\n");
+        prompt.push_str("COMPANION:");
+    } else {
+        prompt.push_str("This tool has NO subcommands. First token is a flag or input file.\n");
+        prompt.push_str("Respond with: NONE\n");
+        prompt.push_str("SUBCOMMAND:");
+    }
+
+    prompt
+}
+
+/// Step 2 of two-step generation: generate arguments given the selected subcommand.
+/// The prompt is much simpler because the subcommand is already determined.
+pub fn build_args_generation_prompt(
+    tool: &str,
+    task: &str,
+    sdoc: &StructuredDoc,
+    selected_subcommand: Option<&str>,
+) -> String {
+    let mut prompt = String::new();
+
+    prompt.push_str(&format!("Tool: {}\n", tool));
+    if let Some(sub) = selected_subcommand {
+        prompt.push_str(&format!("Subcommand: {}\n", sub));
+    }
+    prompt.push_str(&format!("Task: {}\n\n", task));
+
+    if !sdoc.usage_pattern.raw_usage.is_empty() && sdoc.usage_pattern.raw_usage.len() < 300 {
+        let usage_lines: Vec<&str> = sdoc.usage_pattern.raw_usage.lines().take(3).collect();
+        prompt.push_str(&format!("Usage pattern: {}\n", usage_lines.join(" | ")));
+    }
+
+    if !sdoc.usage_pattern.positional_args.is_empty() {
+        prompt.push_str(&format!("Positional args (no flag needed): {}\n", sdoc.usage_pattern.positional_args.join(", ")));
+    }
+
+    if let Some(ref hint) = sdoc.format_hint {
+        prompt.push_str(&format!("Format: {}\n", hint));
+    }
+
+    prompt.push('\n');
+
+    let task_values = crate::llm::task_values::extract_task_values(task);
+    let task_lower = task.to_ascii_lowercase();
+    let task_words: std::collections::HashSet<&str> = task_lower
+        .split_whitespace()
+        .filter(|w| w.len() > 2)
+        .collect();
+
+    let score_relevance = |entry: &FlagEntry| -> i32 {
+        let desc_lower = entry.description.to_ascii_lowercase();
+        let flag_lower = entry.flag.to_ascii_lowercase();
+        let mut score = 0;
+        if entry.required { score += 100; }
+        for word in &task_words {
+            if desc_lower.contains(word) { score += 5; }
+            if flag_lower.contains(word) { score += 3; }
+        }
+        if desc_lower.contains("output") && (task_lower.contains("output") || task_lower.contains("save") || task_lower.contains("write") || task_lower.contains("to ") || task_lower.contains("export") || task_lower.contains("generate") || task_lower.contains("produce") || task_lower.contains("create") || task_lower.contains("result")) {
+            score += 20;
+        }
+        if (desc_lower.contains("thread") || desc_lower.contains("proc") || desc_lower.contains("cpu")) && (task_lower.contains("thread") || task_lower.contains("cpu") || task_lower.contains("proc") || task_lower.contains("core") || task_lower.contains("parallel")) {
+            score += 20;
+        }
+        if desc_lower.contains("input") && (task_lower.contains("input") || task_lower.contains("read") || task_lower.contains("file") || task_lower.contains("bam") || task_lower.contains("fastq") || task_lower.contains("vcf") || task_lower.contains("from")) {
+            score += 15;
+        }
+        if desc_lower.contains("reference") && (task_lower.contains("reference") || task_lower.contains("genome") || task_lower.contains("ref") || task_lower.contains("fasta") || task_lower.contains("index")) {
+            score += 15;
+        }
+        if (desc_lower.contains("bam") || desc_lower.contains("sam")) && (task_lower.contains("bam") || task_lower.contains("sam")) {
+            score += 10;
+        }
+        if (desc_lower.contains("fastq") || desc_lower.contains("fq") || desc_lower.contains("read")) && (task_lower.contains("fastq") || task_lower.contains("fq") || task_lower.contains("read")) {
+            score += 10;
+        }
+        if (desc_lower.contains("vcf") || desc_lower.contains("variant")) && (task_lower.contains("vcf") || task_lower.contains("variant") || task_lower.contains("snp")) {
+            score += 10;
+        }
+        if (desc_lower.contains("gtf") || desc_lower.contains("gff") || desc_lower.contains("annotation")) && (task_lower.contains("gtf") || task_lower.contains("gff") || task_lower.contains("annotation")) {
+            score += 10;
+        }
+        if desc_lower.contains("species") && task_lower.contains("species") {
+            score += 12;
+        }
+        if desc_lower.contains("kingdom") && (task_lower.contains("kingdom") || task_lower.contains("bacteria") || task_lower.contains("archaea")) {
+            score += 12;
+        }
+        if desc_lower.contains("quality") && (task_lower.contains("quality") || task_lower.contains("qual") || task_lower.contains("qc") || task_lower.contains("filter")) {
+            score += 10;
+        }
+        if desc_lower.contains("region") && (task_lower.contains("region") || task_lower.contains("chrom") || task_lower.contains("window")) {
+            score += 10;
+        }
+        if desc_lower.contains("database") && (task_lower.contains("database") || task_lower.contains("db") || task_lower.contains("index")) {
+            score += 10;
+        }
+        if desc_lower.contains("prefix") && (task_lower.contains("prefix") || task_lower.contains("name") || task_lower.contains("output")) {
+            score += 8;
+        }
+        if desc_lower.contains("directory") && (task_lower.contains("directory") || task_lower.contains("dir") || task_lower.contains("folder")) {
+            score += 8;
+        }
+        if desc_lower.contains("coverage") && (task_lower.contains("coverage") || task_lower.contains("depth") || task_lower.contains("cov")) {
+            score += 10;
+        }
+        if desc_lower.contains("assembly") && (task_lower.contains("assembly") || task_lower.contains("assemble")) {
+            score += 10;
+        }
+        if desc_lower.contains("index") && (task_lower.contains("index") || task_lower.contains("build")) {
+            score += 8;
+        }
+        if desc_lower.contains("compress") && (task_lower.contains("compress") || task_lower.contains("gzip") || task_lower.contains("zip")) {
+            score += 10;
+        }
+        if (desc_lower.contains("adapter") || desc_lower.contains("trim")) && (task_lower.contains("adapter") || task_lower.contains("trim")) {
+            score += 10;
+        }
+        if desc_lower.contains("evalue") && (task_lower.contains("evalue") || task_lower.contains("e-value")) {
+            score += 15;
+        }
+        if desc_lower.contains("model") && (task_lower.contains("model") || task_lower.contains("preset")) {
+            score += 8;
+        }
+        if desc_lower.contains("memory") && (task_lower.contains("memory") || task_lower.contains("ram") || task_lower.contains("mem")) {
+            score += 10;
+        }
+        if desc_lower.contains("length") && (task_lower.contains("length") || task_lower.contains("size") || task_lower.contains("minlen")) {
+            score += 5;
+        }
+        if desc_lower.contains("format") && (task_lower.contains("format") || task_lower.contains("convert")) {
+            score += 8;
+        }
+        if desc_lower.contains("paired") && (task_lower.contains("paired") || task_lower.contains("pair")) {
+            score += 10;
+        }
+        if desc_lower.contains("genome") && (task_lower.contains("genome") || task_lower.contains("genomic")) {
+            score += 8;
+        }
+        if desc_lower.contains("runmode") || flag_lower.contains("runmode") {
+            score += 15;
+        }
+        if desc_lower.contains("genomedir") || flag_lower.contains("genomedir") {
+            if task_lower.contains("genome") || task_lower.contains("index") || task_lower.contains("align") {
+                score += 15;
+            }
+        }
+        if desc_lower.contains("readfilesin") || flag_lower.contains("readfilesin") {
+            if task_lower.contains("read") || task_lower.contains("fastq") || task_lower.contains("align") {
+                score += 15;
+            }
+        }
+        if let Some(sub) = selected_subcommand {
+            let sub_lower = sub.to_lowercase();
+            if desc_lower.contains(&sub_lower) || flag_lower.contains(&sub_lower) {
+                score += 8;
+            }
+        }
+        if desc_lower.contains("help") || flag_lower.contains("version") {
+            score -= 50;
+        }
+        if desc_lower.contains("verbose") || desc_lower.contains("debug") || desc_lower.contains("quiet") {
+            score -= 20;
+        }
+        if desc_lower.contains("test") && !task_lower.contains("test") {
+            score -= 10;
+        }
+        if desc_lower.contains("example") && !task_lower.contains("example") {
+            score -= 10;
+        }
+        if desc_lower.contains("log") && !task_lower.contains("log") {
+            score -= 5;
+        }
+        score
+    };
+
+    let required_flags: Vec<_> = sdoc.flag_catalog.iter()
+        .filter(|e| e.required)
+        .collect();
+    let mut optional_flags: Vec<_> = sdoc.flag_catalog.iter()
+        .filter(|e| !e.required)
+        .collect();
+
+    optional_flags.sort_by(|a, b| score_relevance(b).cmp(&score_relevance(a)));
+
+    if !required_flags.is_empty() {
+        prompt.push_str("REQUIRED FLAGS (must include):\n");
+        for entry in &required_flags {
+            let alt_info = entry.alt_form.as_ref()
+                .map(|a| format!(" / {}", a))
+                .unwrap_or_default();
+            let type_info = entry.value_type.as_ref()
+                .map(|t| format!(" <{}>", t))
+                .unwrap_or_default();
+            let enum_info = if !entry.enum_values.is_empty() {
+                format!(" [{}]", entry.enum_values.join("|"))
+            } else {
+                String::new()
+            };
+            prompt.push_str(&format!("  {}{}{}    {}{}\n", entry.flag, alt_info, type_info, entry.description, enum_info));
+        }
+        prompt.push('\n');
+    }
+
+    if !optional_flags.is_empty() {
+        prompt.push_str("AVAILABLE FLAGS (pick relevant ones only):\n");
+        for entry in optional_flags.iter().take(15) {
+            let alt_info = entry.alt_form.as_ref()
+                .map(|a| format!(" / {}", a))
+                .unwrap_or_default();
+            let type_info = entry.value_type.as_ref()
+                .map(|t| format!(" <{}>", t))
+                .unwrap_or_default();
+            let enum_info = if !entry.enum_values.is_empty() {
+                format!(" [{}]", entry.enum_values.join("|"))
+            } else {
+                String::new()
+            };
+            prompt.push_str(&format!("  {}{}{}    {}{}\n", entry.flag, alt_info, type_info, entry.description, enum_info));
+        }
+        prompt.push('\n');
+    }
+
+    if !sdoc.file_type_mappings.is_empty() {
+        prompt.push_str("FILE TYPE MAPPINGS:\n");
+        for ftm in sdoc.file_type_mappings.iter().take(8) {
+            let io = match ftm.io_type {
+                crate::doc_processor::FileIOType::Input => "input",
+                crate::doc_processor::FileIOType::Output => "output",
+                crate::doc_processor::FileIOType::Both => "input/output",
+            };
+            prompt.push_str(&format!("  .{} -> {} ({})\n", ftm.extension, ftm.flags.join(","), io));
+        }
+        prompt.push('\n');
+    }
+
+    if !sdoc.extracted_examples.is_empty() {
+        let sub_lower = selected_subcommand.map(|s| s.to_ascii_lowercase());
+        let mut relevant_examples: Vec<&String> = sdoc.extracted_examples.iter()
+            .filter(|ex| {
+                if let Some(ref sub) = sub_lower {
+                    let ex_lower = ex.to_ascii_lowercase();
+                    ex_lower.contains(sub)
+                } else {
+                    true
+                }
+            })
+            .collect();
+        if relevant_examples.is_empty() {
+            relevant_examples = sdoc.extracted_examples.iter().take(2).collect();
+        }
+        if !relevant_examples.is_empty() {
+            prompt.push_str("REFERENCE EXAMPLE (modify for the task):\n");
+            for ex in relevant_examples.iter().take(2) {
+                let cleaned = ex.trim()
+                    .trim_start_matches(&format!("{} ", tool))
+                    .trim_start_matches(&format!("{} ", tool.to_lowercase()));
+                prompt.push_str(&format!("  {}\n", cleaned));
+            }
+            prompt.push('\n');
+        }
+    }
+
+    if !task_values.input_files.is_empty() || !task_values.output_files.is_empty() || !task_values.numbers.is_empty() {
+        prompt.push_str("TASK VALUES (each MUST appear in the command):\n");
+        if !task_values.input_files.is_empty() {
+            prompt.push_str(&format!("  Input files: {}\n", task_values.input_files.join(", ")));
+        }
+        if !task_values.output_files.is_empty() {
+            prompt.push_str(&format!("  Output files: {}\n", task_values.output_files.join(", ")));
+        }
+        if !task_values.reference_files.is_empty() {
+            prompt.push_str(&format!("  Reference files: {}\n", task_values.reference_files.join(", ")));
+        }
+        if !task_values.read_files.is_empty() {
+            prompt.push_str(&format!("  Read files: {}\n", task_values.read_files.join(", ")));
+        }
+        if !task_values.annotation_files.is_empty() {
+            prompt.push_str(&format!("  Annotation files: {}\n", task_values.annotation_files.join(", ")));
+        }
+        if !task_values.genome_dirs.is_empty() {
+            prompt.push_str(&format!("  Genome dirs: {}\n", task_values.genome_dirs.join(", ")));
+        }
+        if !task_values.database_files.is_empty() {
+            prompt.push_str(&format!("  Database files: {}\n", task_values.database_files.join(", ")));
+        }
+        if !task_values.numbers.is_empty() {
+            prompt.push_str(&format!("  Numeric values: {}\n", task_values.numbers.join(", ")));
+        }
+        prompt.push('\n');
+    }
+
+    prompt.push_str("Generate the command arguments.\n");
+    if let Some(sub) = selected_subcommand {
+        prompt.push_str(&format!("Start with: {} ", sub));
+    }
+
+    prompt.push_str("Do NOT include the tool name.\n");
+    prompt.push_str("Rules:\n");
+    prompt.push_str("1. Use ONLY flags from the list above. Any flag not listed is WRONG.\n");
+    prompt.push_str("2. Place file paths as positional args when shown above, NOT with -f/-i/-b.\n");
+    prompt.push_str("3. Extract EXACT file paths and values from the task.\n");
+    prompt.push_str("4. Include -o/--output and -t/--threads when task implies them.\n");
+    prompt.push_str("5. EVERY file from TASK VALUES must appear in the command.\n");
+    prompt.push_str("6. EVERY required flag must have a value from the task.\n");
+    if selected_subcommand.is_none() && !sdoc.has_subcommands {
+        prompt.push_str("7. Do NOT start with a subcommand - this tool has none.\n");
+    }
+    prompt.push('\n');
+    prompt.push_str("Output JSON: {\"subcommand\":\"\",\"flags\":{\"--flag\":\"value\"},\"positional_args\":[\"file1\"],\"explanation\":\"...\"}");
+
+    prompt
 }

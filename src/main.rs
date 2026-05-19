@@ -37,6 +37,7 @@ mod chat;
 mod cli;
 mod config;
 mod copilot_auth;
+mod diagnostic;
 mod doc_processor;
 mod doc_summarizer;
 mod docs;

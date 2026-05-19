@@ -330,33 +330,70 @@ fn extract_subcommand(tokens: &[String]) -> String {
         return String::new();
     }
 
-    let first = tokens[0].as_str();
+    let hallucinated_prefixes = [
+        "bam_unsorted", "bam_sortedbycoordinate", "alignreads", "genomegenerate",
+        "bam", "unsorted", "sortedbycoordinate",
+    ];
 
-    // STAR-style: --runMode <value> is the effective subcommand.
-    // We must include the value to distinguish --runMode alignReads from
-    // --runMode genomeGenerate.
+    let mut start_idx = 0;
+    while start_idx < tokens.len() {
+        let first_lower = tokens[start_idx].to_ascii_lowercase();
+        if !tokens[start_idx].starts_with('-') && hallucinated_prefixes.contains(&first_lower.as_str()) {
+            start_idx += 1;
+        } else {
+            break;
+        }
+    }
+
+    if start_idx >= tokens.len() {
+        return String::new();
+    }
+
+    let first = tokens[start_idx].as_str();
+
     if first == "--runMode" || first == "--genomeDir" || first == "--readFilesIn" {
-        if tokens.len() > 1 {
-            return format!("{} {}", first, tokens[1]);
+        if tokens.len() > start_idx + 1 {
+            return format!("{} {}", first, tokens[start_idx + 1]);
         }
         return first.to_string();
     }
 
-    // Standard case: first token is the subcommand (not a short flag)
-    // Short flags like "-t", "-x" indicate the model omitted the subcommand
-    // — return the first token as-is (it will fail the match check).
-    // Long options like "--runMode" are handled above.
     if first.starts_with("--") {
-        // Other long options as first token — treat as subcommand attempt
         return first.to_string();
     }
 
-    // For the standard case, the first token should be the subcommand
-    // If it starts with a single `-`, it's a flag, not a subcommand —
-    // but we still return it because it IS what the model generated as
-    // the first token and it will correctly fail the subcommand match
-    // against a proper subcommand like "mem" or "sort".
+    if looks_like_filepath_or_placeholder(first) {
+        return String::new();
+    }
+
     first.to_string()
+}
+
+fn looks_like_filepath_or_placeholder(token: &str) -> bool {
+    if token.starts_with('<') && token.ends_with('>') {
+        return true;
+    }
+    if token == "." || token == ".." {
+        return true;
+    }
+    if token.starts_with('/') || token.starts_with("./") || token.starts_with("../") || token.starts_with("~/") {
+        return true;
+    }
+    if token.contains("://") {
+        return true;
+    }
+    if let Some(dot_pos) = token.rfind('.') {
+        if dot_pos > 0 {
+            let after_dot = &token[dot_pos + 1..];
+            if (1..=5).contains(&after_dot.len()) && after_dot.chars().all(|c| c.is_ascii_alphabetic()) {
+                return true;
+            }
+        }
+    }
+    if token.ends_with('/') && token.len() > 1 {
+        return true;
+    }
+    false
 }
 
 /// Check whether two subcommand names are semantically equivalent aliases.
@@ -389,10 +426,120 @@ fn are_alias_subcommands(a: &str, b: &str) -> bool {
         ("bamToBed", "bamtobed"),
     ];
 
-    for (old, new) in BEDTOOLS_ALIASES {
+    const SOURMASH_ALIASES: &[(&str, &str)] = &[
+        ("compute", "sketch"),
+    ];
+
+    const MUSCLE_ALIASES: &[(&str, &str)] = &[
+        ("-align", "align"),
+        ("-super5", "super5"),
+    ];
+
+    const R_ALIASES: &[(&str, &str)] = &[
+        ("Rscript", "r"),
+        ("Rscript", "-e"),
+    ];
+
+    const BOWTIE2_ALIASES: &[(&str, &str)] = &[
+        ("bowtie2-build", "build"),
+        ("bowtie2-inspect", "inspect"),
+    ];
+
+    const BISMARK_ALIASES: &[(&str, &str)] = &[
+        ("bismark_genome_preparation", "genome_preparation"),
+        ("bismark_methylation_extractor", "methylation_extractor"),
+        ("deduplicate_bismark", "deduplicate"),
+        ("bismark2report", "report"),
+        ("bismark2summary", "summary"),
+        ("coverage2cytosine", "cytosine"),
+    ];
+
+    const KRKN2_ALIASES: &[(&str, &str)] = &[
+        ("kraken2-build", "build"),
+        ("kraken2-classify", "classify"),
+    ];
+
+    const MEDAKA_ALIASES: &[(&str, &str)] = &[
+        ("medaka_consensus", "consensus"),
+        ("medaka_variant", "variant"),
+        ("medaka_haploid_variant", "haploid_variant"),
+    ];
+
+    const ARIBA_ALIASES: &[(&str, &str)] = &[
+        ("run_arriba", "arriba"),
+        ("draw_fusions.R", "draw"),
+        ("convert_fusions_to_vcf", "convert"),
+        ("run_arriba_on_prealigned_bam", "wrapper"),
+    ];
+
+    const GTDBTK_ALIASES: &[(&str, &str)] = &[
+        ("classify_wf", "classify"),
+        ("de_novo_wf", "de_novo"),
+    ];
+
+    const SRA_ALIASES: &[(&str, &str)] = &[
+        ("fasterq-dump", "fastq"),
+        ("fastq-dump", "fastq"),
+        ("prefetch", "download"),
+    ];
+
+    const KALLISTO_ALIASES: &[(&str, &str)] = &[
+        ("quant", "quantify"),
+        ("index", "build"),
+    ];
+
+    const SALMON_ALIASES: &[(&str, &str)] = &[
+        ("quant", "quantify"),
+        ("index", "build"),
+    ];
+
+    const RSEM_ALIASES: &[(&str, &str)] = &[
+        ("rsem-calculate-expression", "calculate-expression"),
+        ("rsem-prepare-reference", "prepare-reference"),
+    ];
+
+    const CENTRIFUGE_ALIASES: &[(&str, &str)] = &[
+        ("centrifuge-build", "build"),
+        ("centrifuge-kreport", "kreport"),
+    ];
+
+    const BRACKEN_ALIASES: &[(&str, &str)] = &[
+        ("bracken-build", "build"),
+        ("combine_bracken_outputs", "combine"),
+    ];
+
+    const STRELKA2_ALIASES: &[(&str, &str)] = &[
+        ("configureStrelkaSomaticWorkflow.py", "somatic"),
+        ("configureStrelkaGermlineWorkflow.py", "germline"),
+    ];
+
+    for (old, new) in BEDTOOLS_ALIASES.iter()
+        .chain(SOURMASH_ALIASES.iter())
+        .chain(MUSCLE_ALIASES.iter())
+        .chain(R_ALIASES.iter())
+        .chain(BOWTIE2_ALIASES.iter())
+        .chain(BISMARK_ALIASES.iter())
+        .chain(KRKN2_ALIASES.iter())
+        .chain(MEDAKA_ALIASES.iter())
+        .chain(ARIBA_ALIASES.iter())
+        .chain(GTDBTK_ALIASES.iter())
+        .chain(SRA_ALIASES.iter())
+        .chain(KALLISTO_ALIASES.iter())
+        .chain(SALMON_ALIASES.iter())
+        .chain(RSEM_ALIASES.iter())
+        .chain(CENTRIFUGE_ALIASES.iter())
+        .chain(BRACKEN_ALIASES.iter())
+        .chain(STRELKA2_ALIASES.iter())
+    {
         if (a == *old && b == *new) || (a == *new && b == *old) {
             return true;
         }
+    }
+
+    let a_lower = a.to_ascii_lowercase();
+    let b_lower = b.to_ascii_lowercase();
+    if a_lower == b_lower {
+        return true;
     }
 
     false

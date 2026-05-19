@@ -1,0 +1,201 @@
+# oxo-call Synonym Mapping Configuration
+# This file maps task description keywords to tool subcommands.
+# Users can add their own mappings without recompiling oxo-call.
+#
+# Format: [[synonym]]
+#   task_keywords = ["keyword1", "keyword2"]  # Keywords found in task descriptions
+#   subcommands = ["sub1", "sub2"]             # Matching subcommands to select
+
+[[synonym]]
+task_keywords = ["sort", "sorted", "sortby"]
+subcommands = ["sort"]
+
+[[synonym]]
+task_keywords = ["index", "indexing"]
+subcommands = ["index"]
+
+[[synonym]]
+task_keywords = ["view", "convert", "extract", "filter", "subset"]
+subcommands = ["view"]
+
+[[synonym]]
+task_keywords = ["merge", "combine", "join", "concat"]
+subcommands = ["merge", "concat"]
+
+[[synonym]]
+task_keywords = ["call", "genotype", "variant"]
+subcommands = ["call", "mpileup2cns", "mpileup2snp"]
+
+[[synonym]]
+task_keywords = ["align", "mapping", "map", "alignment"]
+subcommands = ["mem", "align", "map"]
+
+[[synonym]]
+task_keywords = ["quantify", "quant", "expression", "count", "counts"]
+subcommands = ["count", "quant", "count-reads"]
+
+[[synonym]]
+task_keywords = ["peak", "peaks", "callpeak"]
+subcommands = ["callpeak", "findPeaks"]
+
+[[synonym]]
+task_keywords = ["annotate", "annotation"]
+subcommands = ["annotate", "ann"]
+
+[[synonym]]
+task_keywords = ["coverage", "depth", "cov"]
+subcommands = ["depth", "coverage", "bamCoverage"]
+
+[[synonym]]
+task_keywords = ["calibrate", "recalibrat", "bqsr"]
+subcommands = ["BaseRecalibrator"]
+
+[[synonym]]
+task_keywords = ["duplicate", "dedup", "markdup"]
+subcommands = ["MarkDuplicates", "markdup", "deduplicate_bismark", "rmdup"]
+
+[[synonym]]
+task_keywords = ["fastq", "bam2fq"]
+subcommands = ["bam2fq", "fastq"]
+
+[[synonym]]
+task_keywords = ["stats", "statistics", "stat"]
+subcommands = ["stats", "flagstat", "idxstats"]
+
+[[synonym]]
+task_keywords = ["motif", "motifs"]
+subcommands = ["findMotifsGenome"]
+
+[[synonym]]
+task_keywords = ["methylation", "methyl"]
+subcommands = ["bismark_methylation_extractor"]
+
+[[synonym]]
+task_keywords = ["genome", "index", "prepare"]
+subcommands = ["bismark_genome_preparation", "genomeGenerate"]
+
+[[synonym]]
+task_keywords = ["download", "fetch", "prefetch"]
+subcommands = ["prefetch", "fasterq-dump", "fastq-dump"]
+
+[[synonym]]
+task_keywords = ["build", "database", "db"]
+subcommands = ["build", "bakta_db", "hmmpress", "makeblastdb"]
+
+[[synonym]]
+task_keywords = ["classify", "taxonom"]
+subcommands = ["classify_wf", "classify"]
+
+[[synonym]]
+task_keywords = ["assemble", "assembly"]
+subcommands = ["assemble"]
+
+[[synonym]]
+task_keywords = ["plot", "heatmap", "profile"]
+subcommands = ["plotHeatmap", "plotProfile"]
+
+[[synonym]]
+task_keywords = ["matrix"]
+subcommands = ["computeMatrix"]
+
+[[synonym]]
+task_keywords = ["somatic"]
+subcommands = ["Mutect2", "somatic", "configureStrelkaSomaticWorkflow.py"]
+
+[[synonym]]
+task_keywords = ["haplotype", "germline"]
+subcommands = ["HaplotypeCaller", "configureStrelkaGermlineWorkflow.py"]
+
+[[synonym]]
+task_keywords = ["apply", "bqsr"]
+subcommands = ["ApplyBQSR"]
+
+[[synonym]]
+task_keywords = ["dictionary"]
+subcommands = ["CreateSequenceDictionary"]
+
+[[synonym]]
+task_keywords = ["collect", "metrics"]
+subcommands = ["CollectAlignmentSummaryMetrics", "CollectInsertSizeMetrics"]
+
+[[synonym]]
+task_keywords = ["validate"]
+subcommands = ["ValidateSamFile"]
+
+[[synonym]]
+task_keywords = ["realSFS", "sfs", "frequency", "spectrum"]
+subcommands = ["realSFS"]
+
+[[synonym]]
+task_keywords = ["fst", "differentiation"]
+subcommands = ["fst"]
+
+[[synonym]]
+task_keywords = ["theta", "diversity", "tajima"]
+subcommands = ["doThetas"]
+
+[[synonym]]
+task_keywords = ["association", "gw"]
+subcommands = ["doAsso"]
+
+[[synonym]]
+task_keywords = ["consensus", "fasta"]
+subcommands = ["doFasta"]
+
+[[synonym]]
+task_keywords = ["search", "hmm"]
+subcommands = ["hmmsearch"]
+
+[[synonym]]
+task_keywords = ["scan"]
+subcommands = ["hmmscan"]
+
+[[synonym]]
+task_keywords = ["blastn", "nucleotide"]
+subcommands = ["blastn"]
+
+[[synonym]]
+task_keywords = ["blastp", "protein"]
+subcommands = ["blastp"]
+
+[[synonym]]
+task_keywords = ["makeblastdb"]
+subcommands = ["makeblastdb"]
+
+[[synonym]]
+task_keywords = ["nucmer", "nucleotide", "align"]
+subcommands = ["nucmer"]
+
+[[synonym]]
+task_keywords = ["bamcoverage", "coverage", "bigwig"]
+subcommands = ["bamCoverage"]
+
+[[synonym]]
+task_keywords = ["computematrix", "matrix"]
+subcommands = ["computeMatrix"]
+
+[[synonym]]
+task_keywords = ["plotheatmap", "heatmap"]
+subcommands = ["plotHeatmap"]
+
+[[synonym]]
+task_keywords = ["plotprofile", "profile"]
+subcommands = ["plotProfile"]
+
+[[synonym]]
+task_keywords = ["prepare", "reference", "rsem"]
+subcommands = ["rsem-prepare-reference"]
+
+[[synonym]]
+task_keywords = ["calculate", "expression", "rsem"]
+subcommands = ["rsem-calculate-expression"]
+
+[[synonym]]
+task_keywords = ["PE", "paired"]
+subcommands = ["PE"]
+
+[[synonym]]
+task_keywords = ["SE", "single"]
+subcommands = ["SE"]
+
+# Add your custom synonym mappings below:

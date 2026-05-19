@@ -18,6 +18,7 @@
 pub mod cache;
 pub mod config;
 pub mod copilot_auth;
+pub mod diagnostic;
 pub mod doc_processor;
 pub mod doc_summarizer;
 pub mod docs;
