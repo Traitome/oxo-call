@@ -128,67 +128,170 @@ fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
         "output.sam", "output.bed", "output.txt", "output_dir/",
         "output_dir", "genome_index", "reference_index", "database",
         "input.bam", "input.vcf", "input.fastq", "input.fasta",
+        "input.sam", "input.bed", "input.txt",
+        "reads.fq", "reads.fastq", "reads_1.fq", "reads_2.fq",
+        "reads_1.fastq", "reads_2.fastq",
+        "reference.fa", "reference.fasta", "ref.fa", "ref.fasta",
+        "input_file", "output_file", "input_dir", "output_directory",
+        "query.fasta", "query.fa", "target.fasta", "target.fa",
+        "annotation.gtf", "annotation.gff", "annotation.gff3",
+        "metrics.txt", "result.txt", "result.tsv", "result.csv",
+        "out.sam", "out.bam", "out.vcf", "out.fastq", "out.fasta",
+        "output_file", "input_file", "output_path", "input_path",
+    ];
+
+    let placeholder_prefixes: &[&str] = &[
+        "/path/to/", "path/to/", "<", "example_", "sample_",
     ];
 
     let mut result = args.to_vec();
     let mut used_replacements: std::collections::HashSet<String> = std::collections::HashSet::new();
 
     for i in 0..result.len() {
+        if result[i].starts_with('-') { continue; }
         let val_lower = result[i].to_ascii_lowercase();
-        for pattern in generic_patterns {
-            if val_lower == *pattern {
-                let replacement = if pattern.starts_with("output") {
-                    if let Some(out) = task_values.output_files.iter()
-                        .find(|f| !used_replacements.contains(&f.to_ascii_lowercase())) {
-                        used_replacements.insert(out.to_ascii_lowercase());
-                        Some(out.clone())
-                    } else { None }
-                } else if pattern.contains("index") {
-                    if let Some(ref_file) = task_values.reference_files.iter()
-                        .find(|f| !used_replacements.contains(&f.to_ascii_lowercase())) {
-                        used_replacements.insert(ref_file.to_ascii_lowercase());
-                        Some(ref_file.clone())
-                    } else if let Some(ref_file) = task_values.input_files.iter()
+
+        let is_placeholder = generic_patterns.iter().any(|p| val_lower == *p)
+            || placeholder_prefixes.iter().any(|p| val_lower.starts_with(p))
+            || (val_lower.starts_with('<') && val_lower.ends_with('>'));
+
+        if !is_placeholder { continue; }
+
+        let replacement = if val_lower.starts_with("output") || val_lower.starts_with("out.") || val_lower.starts_with("out_") {
+            task_values.output_files.iter()
+                .find(|f| !used_replacements.contains(&f.to_ascii_lowercase()))
+                .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+        } else if val_lower.contains("index") {
+            task_values.reference_files.iter()
+                .find(|f| !used_replacements.contains(&f.to_ascii_lowercase()))
+                .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+                .or_else(|| {
+                    task_values.input_files.iter()
                         .find(|f| {
                             let fl = f.to_ascii_lowercase();
                             (fl.ends_with(".fa") || fl.ends_with(".fasta") || fl.ends_with(".fna"))
                                 && !used_replacements.contains(&fl)
-                        }) {
-                        used_replacements.insert(ref_file.to_ascii_lowercase());
-                        Some(ref_file.clone())
-                    } else { None }
-                } else if *pattern == "database" {
-                    if let Some(db) = task_values.database_files.iter()
-                        .find(|f| !used_replacements.contains(&f.to_ascii_lowercase())) {
-                        used_replacements.insert(db.to_ascii_lowercase());
-                        Some(db.clone())
-                    } else { None }
-                } else if pattern.starts_with("input") {
-                    let ext = if pattern.contains(".bam") { ".bam" }
-                        else if pattern.contains(".vcf") { ".vcf" }
-                        else if pattern.contains(".fastq") { ".fastq" }
-                        else if pattern.contains(".fasta") { ".fasta" }
-                        else { "" };
-                    if let Some(inp) = task_values.input_files.iter()
+                        })
+                        .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+                })
+        } else if val_lower == "database" || val_lower.contains("db") {
+            task_values.database_files.iter()
+                .find(|f| !used_replacements.contains(&f.to_ascii_lowercase()))
+                .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+        } else if val_lower.contains("annotation") || val_lower.contains(".gtf") || val_lower.contains(".gff") {
+            task_values.annotation_files.iter()
+                .find(|f| !used_replacements.contains(&f.to_ascii_lowercase()))
+                .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+                .or_else(|| {
+                    task_values.input_files.iter()
                         .find(|f| {
                             let fl = f.to_ascii_lowercase();
-                            fl.ends_with(ext) && !used_replacements.contains(&fl)
-                        }) {
-                        used_replacements.insert(inp.to_ascii_lowercase());
-                        Some(inp.clone())
-                    } else { None }
-                } else {
-                    None
-                };
-
-                if let Some(repl) = replacement {
-                    result[i] = repl;
-                }
-                break;
+                            (fl.ends_with(".gtf") || fl.ends_with(".gff") || fl.ends_with(".gff3"))
+                                && !used_replacements.contains(&fl)
+                        })
+                        .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+                })
+        } else if val_lower.contains("reference") || val_lower.contains("ref.") || val_lower == "ref.fa" || val_lower == "ref.fasta" {
+            task_values.reference_files.iter()
+                .find(|f| !used_replacements.contains(&f.to_ascii_lowercase()))
+                .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+                .or_else(|| {
+                    task_values.input_files.iter()
+                        .find(|f| {
+                            let fl = f.to_ascii_lowercase();
+                            (fl.ends_with(".fa") || fl.ends_with(".fasta") || fl.ends_with(".fna"))
+                                && !used_replacements.contains(&fl)
+                        })
+                        .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+                })
+        } else if val_lower.contains("query") || val_lower.contains("target") {
+            task_values.input_files.iter()
+                .find(|f| {
+                    let fl = f.to_ascii_lowercase();
+                    (fl.ends_with(".fa") || fl.ends_with(".fasta") || fl.ends_with(".fna"))
+                        && !used_replacements.contains(&fl)
+                })
+                .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+                .or_else(|| {
+                    find_any_unused_file(&task_values.input_files, &used_replacements)
+                        .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+                })
+        } else if val_lower.contains("fastq") || val_lower.contains("reads") {
+            task_values.read_files.iter()
+                .find(|f| !used_replacements.contains(&f.to_ascii_lowercase()))
+                .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+                .or_else(|| {
+                    task_values.input_files.iter()
+                        .find(|f| {
+                            let fl = f.to_ascii_lowercase();
+                            (fl.ends_with(".fq") || fl.ends_with(".fastq") || fl.ends_with(".gz"))
+                                && !used_replacements.contains(&fl)
+                        })
+                        .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+                })
+        } else if val_lower.contains("bam") || val_lower.contains("sam") {
+            task_values.input_files.iter()
+                .find(|f| {
+                    let fl = f.to_ascii_lowercase();
+                    (fl.ends_with(".bam") || fl.ends_with(".sam"))
+                        && !used_replacements.contains(&fl)
+                })
+                .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+        } else if val_lower.contains("vcf") {
+            task_values.input_files.iter()
+                .find(|f| {
+                    let fl = f.to_ascii_lowercase();
+                    (fl.ends_with(".vcf") || fl.ends_with(".bcf"))
+                        && !used_replacements.contains(&fl)
+                })
+                .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+        } else if val_lower.contains("bed") {
+            task_values.input_files.iter()
+                .find(|f| {
+                    let fl = f.to_ascii_lowercase();
+                    fl.ends_with(".bed") && !used_replacements.contains(&fl)
+                })
+                .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+        } else if val_lower.starts_with("input") {
+            let ext = if val_lower.contains(".bam") { ".bam" }
+                else if val_lower.contains(".vcf") { ".vcf" }
+                else if val_lower.contains(".fastq") { ".fastq" }
+                else if val_lower.contains(".fasta") { ".fasta" }
+                else if val_lower.contains(".sam") { ".sam" }
+                else if val_lower.contains(".bed") { ".bed" }
+                else if val_lower.contains(".txt") { ".txt" }
+                else { "" };
+            if !ext.is_empty() {
+                task_values.input_files.iter()
+                    .find(|f| {
+                        let fl = f.to_ascii_lowercase();
+                        fl.ends_with(ext) && !used_replacements.contains(&fl)
+                    })
+                    .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+            } else {
+                find_any_unused_file(&task_values.input_files, &used_replacements)
+                    .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
             }
+        } else if val_lower.starts_with("/path/to/") || val_lower.starts_with("path/to/") {
+            find_any_unused_file(&task_values.input_files, &used_replacements)
+                .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+        } else {
+            find_any_unused_file(&task_values.input_files, &used_replacements)
+                .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+        };
+
+        if let Some(repl) = replacement {
+            result[i] = repl;
         }
     }
     result
+}
+
+fn find_any_unused_file<'a>(
+    files: &'a [String],
+    used: &std::collections::HashSet<String>,
+) -> Option<&'a String> {
+    files.iter().find(|f| !used.contains(&f.to_ascii_lowercase()))
 }
 
 fn clean_help_text_in_args(args: &[String]) -> Vec<String> {
@@ -6268,9 +6371,40 @@ pub fn fix_output_extensions(args: &[String], tool: &str, task: &str) -> Vec<Str
                 }
             }
         }
+    } else {
+        let tv = extract_task_values(task);
+        if let Some(ref_output) = tv.output_files.first() {
+            let ref_ext = get_file_extension(&ref_output.to_ascii_lowercase());
+            if !ref_ext.is_empty() {
+                let output_flags = ["-o", "--output", "-out", "--out", "--output-file", "-O", "--outfile"];
+                for i in 0..args.len() {
+                    if output_flags.iter().any(|f| *f == args[i]) && i + 1 < args.len() {
+                        let out_lower = args[i + 1].to_ascii_lowercase();
+                        let out_ext = get_file_extension(&out_lower);
+                        if !out_ext.is_empty() && out_ext != ref_ext && !out_lower.ends_with('/') {
+                            args[i + 1] = ref_output.clone();
+                        }
+                    }
+                }
+            }
+        }
     }
 
     args
+}
+
+fn get_file_extension(filename: &str) -> String {
+    if filename.ends_with(".fastq.gz") || filename.ends_with(".fq.gz") { return ".fastq.gz".to_string(); }
+    if filename.ends_with(".fasta.gz") || filename.ends_with(".fa.gz") { return ".fasta.gz".to_string(); }
+    if filename.ends_with(".vcf.gz") { return ".vcf.gz".to_string(); }
+    if filename.ends_with(".bed.gz") { return ".bed.gz".to_string(); }
+    if filename.ends_with(".gtf.gz") { return ".gtf.gz".to_string(); }
+    if filename.ends_with(".gff.gz") { return ".gff.gz".to_string(); }
+    if filename.ends_with('/') { return "/".to_string(); }
+    if let Some(dot_pos) = filename.rfind('.') {
+        return filename[dot_pos..].to_string();
+    }
+    String::new()
 }
 
 pub fn fix_generic_output_bam(args: &[String], tool: &str) -> Vec<String> {
@@ -6910,21 +7044,45 @@ fn resolve_flag_value(
 }
 
 fn resolve_species(task_lower: &str, default: &Option<String>) -> Option<String> {
-    if task_lower.contains("human") { Some("human".to_string()) }
-    else if task_lower.contains("mouse") { Some("mouse".to_string()) }
-    else if task_lower.contains("arabidopsis") { Some("arabidopsis".to_string()) }
-    else if task_lower.contains("fly") { Some("fly".to_string()) }
-    else if task_lower.contains("yeast") { Some("yeast".to_string()) }
-    else if task_lower.contains("ecoli") || task_lower.contains("e. coli") { Some("ecoli".to_string()) }
-    else if task_lower.contains("zebrafish") { Some("zebrafish".to_string()) }
-    else { default.clone() }
+    let species_map: &[(&str, &str)] = &[
+        ("human", "human"), ("homo sapiens", "human"), ("hg38", "human"), ("hg19", "human"),
+        ("mouse", "mouse"), ("mus musculus", "mouse"), ("mm10", "mouse"), ("mm9", "mouse"),
+        ("arabidopsis", "arabidopsis"), ("thaliana", "arabidopsis"),
+        ("fly", "fly"), ("drosophila", "fly"), ("dm6", "fly"), ("dm3", "fly"),
+        ("yeast", "yeast"), ("saccharomyces", "yeast"),
+        ("ecoli", "ecoli"), ("e. coli", "ecoli"), ("escherichia", "ecoli"),
+        ("zebrafish", "zebrafish"), ("danio", "zebrafish"),
+        ("rat", "rat"), ("rattus", "rat"),
+        ("chicken", "chicken"), ("gallus", "chicken"),
+        ("worm", "worm"), ("celegans", "worm"), ("c. elegans", "worm"),
+        ("rice", "rice"), ("oryza", "rice"),
+        ("maize", "maize"), ("zea", "maize"),
+        ("soybean", "soybean"), ("glycine", "soybean"),
+        ("tomato", "tomato"), ("solanum", "tomato"),
+        ("pig", "pig"), ("sus scrofa", "pig"),
+        ("cow", "cow"), ("bos taurus", "cow"), ("bovine", "cow"),
+        ("dog", "dog"), ("canis", "dog"),
+        ("cat", "cat"), ("felis", "cat"),
+        ("frog", "frog"), ("xenopus", "frog"),
+    ];
+    for (pattern, value) in species_map {
+        if task_lower.contains(pattern) {
+            return Some(value.to_string());
+        }
+    }
+    default.clone()
 }
 
 fn resolve_region(task_lower: &str, default: &Option<String>) -> Option<String> {
-    if task_lower.contains("chr1") { Some("chr1".to_string()) }
-    else if task_lower.contains("chr2") { Some("chr2".to_string()) }
-    else if task_lower.contains("chr22") { Some("chr22".to_string()) }
-    else { default.clone() }
+    for i in 1..=22 {
+        if task_lower.contains(&format!("chr{}", i)) {
+            return Some(format!("chr{}", i));
+        }
+    }
+    if task_lower.contains("chrx") { return Some("chrX".to_string()); }
+    if task_lower.contains("chry") { return Some("chrY".to_string()); }
+    if task_lower.contains("chrm") || task_lower.contains("chrmt") { return Some("chrM".to_string()); }
+    default.clone()
 }
 
 pub fn validate_flags_against_catalog(

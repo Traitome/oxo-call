@@ -412,39 +412,37 @@ impl LlmClient {
             let has_flags = rule_assembled.iter().any(|a| a.starts_with('-'));
             let has_files = rule_assembled.iter().any(|a| a.contains('.') && !a.starts_with('-'));
 
-            if (has_subcmd || !sdoc.has_subcommands) && (has_flags || has_files) {
-                let rule_has_real_files = rule_assembled.iter().any(|a| {
-                    a.contains('.') && !a.starts_with('-')
-                        && a != "input.bam" && a != "output.bam"
-                        && a != "reads_1.fq" && a != "reads_2.fq"
-                        && a != "reference.fa" && a != "input2.bed"
-                        && a != "annotation.gtf" && a != "database"
-                        && !a.starts_with("/path/to/")
-                });
-                let rule_has_task_files = !task_values.input_files.is_empty() || !task_values.output_files.is_empty();
+            let is_small_model = crate::config::infer_model_parameter_count(&model)
+                .map(|p| p <= 8.0)
+                .unwrap_or(false);
 
-                if (rule_has_real_files || rule_has_task_files) && has_flags {
-                    let mut final_args = rule_assembled;
-                    final_args = add_missing_required_flags(&final_args, sdoc, task);
-                    final_args = add_task_implied_flags(&final_args, sdoc, task);
-                    final_args = remove_duplicate_flags_vec(&final_args);
-                    final_args = apply_corrections_to_args(&final_args, tool, structured_doc, Some(task));
+            let rule_is_good = if is_small_model {
+                (has_subcmd || !sdoc.has_subcommands) && has_flags
+            } else {
+                (has_subcmd || !sdoc.has_subcommands) && (has_flags || has_files)
+            };
 
-                    if std::env::var("OXO_CALL_VERBOSE").is_ok() {
-                        eprintln!(
-                            "{} [TwoStep] rule-direct: sub={:?} final='{}'",
-                            "[verbose]".dimmed(),
-                            selected_subcommand,
-                            final_args.join(" ").chars().take(80).collect::<String>()
-                        );
-                    }
+            if rule_is_good {
+                let mut final_args = rule_assembled;
+                final_args = add_missing_required_flags(&final_args, sdoc, task);
+                final_args = add_task_implied_flags(&final_args, sdoc, task);
+                final_args = remove_duplicate_flags_vec(&final_args);
+                final_args = apply_corrections_to_args(&final_args, tool, structured_doc, Some(task));
 
-                    return Ok(LlmCommandSuggestion {
-                        args: final_args,
-                        explanation: String::new(),
-                        inference_ms: 0.0,
-                    });
+                if std::env::var("OXO_CALL_VERBOSE").is_ok() {
+                    eprintln!(
+                        "{} [TwoStep] rule-direct: sub={:?} final='{}'",
+                        "[verbose]".dimmed(),
+                        selected_subcommand,
+                        final_args.join(" ").chars().take(80).collect::<String>()
+                    );
                 }
+
+                return Ok(LlmCommandSuggestion {
+                    args: final_args,
+                    explanation: String::new(),
+                    inference_ms: 0.0,
+                });
             }
         }
 
@@ -869,7 +867,17 @@ impl LlmClient {
                         let has_flags = assembled.iter().any(|a| a.starts_with('-'));
                         let has_files = assembled.iter().any(|a| a.contains('.') && !a.starts_with('-'));
 
-                        if (has_subcmd || !sdoc.has_subcommands) && (has_flags || has_files) {
+                        let is_small_model = crate::config::infer_model_parameter_count(&model)
+                            .map(|p| p <= 8.0)
+                            .unwrap_or(false);
+
+                        let should_use_rule = if is_small_model {
+                            (has_subcmd || !sdoc.has_subcommands) && has_flags
+                        } else {
+                            (has_subcmd || !sdoc.has_subcommands) && (has_flags || has_files)
+                        };
+
+                        if should_use_rule {
                             let mut final_args = assembled;
                             final_args = add_missing_required_flags(&final_args, sdoc, task);
                             final_args = add_task_implied_flags(&final_args, sdoc, task);
@@ -880,8 +888,8 @@ impl LlmClient {
                             trace.set_final(&final_args.join(" "), overall_start.elapsed().as_millis() as u64);
                             trace.emit();
                             if std::env::var("OXO_CALL_VERBOSE").is_ok() {
-                                eprintln!("[verbose] Rule-engine-direct path: using rules for {} (sub={}, flags={}, files={})", 
-                                    tool, has_subcmd, has_flags, has_files);
+                                eprintln!("[verbose] Rule-engine-direct path: using rules for {} (sub={}, flags={}, files={}, small_model={})", 
+                                    tool, has_subcmd, has_flags, has_files, is_small_model);
                             }
                             return Ok(LlmCommandSuggestion {
                                 args: final_args,

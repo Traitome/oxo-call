@@ -435,22 +435,42 @@ pub fn rule_based_subcommand_match(
         }
     }
 
-    let task_words: Vec<&str> = task_lower.split_whitespace().collect();
+    let task_words: Vec<&str> = task_lower.split_whitespace()
+        .filter(|w| w.len() >= 3)
+        .collect();
     let mut best_match: Option<String> = None;
-    let mut best_score = 0;
+    let mut best_score = 0i32;
+
+    let desc_stop_words: &[&str] = &[
+        "the", "and", "for", "with", "this", "that", "from", "into",
+        "when", "where", "which", "what", "how", "can", "will",
+        "use", "used", "using", "option", "optional", "default",
+        "file", "path", "name", "value", "number", "list",
+    ];
 
     for (sub, desc) in subcommand_descriptions {
         let desc_lower = desc.to_ascii_lowercase();
         let sub_lower = sub.to_ascii_lowercase();
-        let mut score = 0;
+        let mut score = 0i32;
 
         for word in &task_words {
-            if word.len() < 3 { continue; }
-            if desc_lower.contains(word) {
-                score += 2;
+            if desc_stop_words.contains(word) { continue; }
+            if desc_lower.split_whitespace().any(|dw| dw == *word) {
+                score += if word.len() >= 6 { 4 } else if word.len() >= 4 { 3 } else { 2 };
+            } else if desc_lower.contains(word) {
+                score += 1;
             }
             if sub_lower.contains(word) {
                 score += 3;
+            }
+        }
+
+        let sub_parts: Vec<&str> = sub_lower.split(|c: char| c == '_' || c == '-')
+            .filter(|p| p.len() >= 3)
+            .collect();
+        for part in &sub_parts {
+            if task_lower.contains(part) {
+                score += 5;
             }
         }
 
@@ -460,7 +480,7 @@ pub fn rule_based_subcommand_match(
         }
     }
 
-    if best_score >= 2 {
+    if best_score >= 3 {
         return best_match;
     }
 

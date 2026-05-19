@@ -1,6 +1,412 @@
 use crate::doc_processor::{FlagEntry, StructuredDoc};
 use super::task_values::{TaskValues, rule_based_subcommand_match, get_known_subcommands_for_tool};
 
+const STOP_WORDS: &[&str] = &[
+    "the", "and", "for", "with", "this", "that", "from", "into",
+    "when", "where", "which", "what", "how", "can", "will", "shall",
+    "may", "must", "should", "could", "would", "also", "than",
+    "then", "been", "being", "have", "has", "had", "does", "did",
+    "not", "but", "are", "was", "were", "its", "our", "your",
+    "all", "any", "each", "every", "both", "few", "more", "most",
+    "other", "some", "such", "only", "own", "same", "very", "just",
+    "use", "used", "using", "set", "specify", "specifies", "specified",
+    "option", "optional", "default", "given", "provide", "provided",
+    "whether", "either", "neither", "number", "name", "value",
+    "file", "path", "list", "type", "mode", "format",
+];
+
+fn compute_word_overlap_score(task_words: &std::collections::HashSet<&str>, desc_lower: &str) -> i32 {
+    let desc_word_set: std::collections::HashSet<&str> = desc_lower
+        .split(|c: char| c.is_whitespace() || c == '_' || c == '-' || c == '/' || c == ',')
+        .filter(|w| w.len() > 2 && !STOP_WORDS.contains(w))
+        .collect();
+
+    let mut score = 0i32;
+    for word in task_words {
+        if STOP_WORDS.contains(word) { continue; }
+        if desc_word_set.contains(word) {
+            score += if word.len() >= 7 { 10 } else if word.len() >= 5 { 7 } else if word.len() >= 4 { 5 } else { 3 };
+        }
+    }
+    score
+}
+
+fn compute_semantic_bonus(desc_lower: &str, flag_lower: &str, task_lower: &str, task_values: &TaskValues) -> i32 {
+    let mut bonus = 0i32;
+
+    let task_has_output = !task_values.output_files.is_empty()
+        || task_lower.contains("output") || task_lower.contains("save") || task_lower.contains("write")
+        || task_lower.contains(" to ") || task_lower.contains("export") || task_lower.contains("generate")
+        || task_lower.contains("produce") || task_lower.contains("create") || task_lower.contains("result")
+        || task_lower.contains("convert") || task_lower.contains("call") || task_lower.contains("assemble")
+        || task_lower.contains("align") || task_lower.contains("map") || task_lower.contains("index")
+        || task_lower.contains("sort") || task_lower.contains("filter") || task_lower.contains("quantify")
+        || task_lower.contains("annotate") || task_lower.contains("predict") || task_lower.contains("store");
+
+    if desc_lower.contains("output") && !desc_lower.contains("stdout") && !desc_lower.contains("format") && task_has_output {
+        bonus += 20;
+    }
+
+    if (desc_lower.contains("thread") || desc_lower.contains("cpu") || desc_lower.contains("proc") || desc_lower.contains("parallel"))
+        && !task_lower.contains("single") {
+        let task_mentions_threads = task_lower.contains("thread") || task_lower.contains("cpu")
+            || task_lower.contains("core") || task_lower.contains("parallel") || task_lower.contains("process");
+        if task_mentions_threads {
+            bonus += 20;
+        } else {
+            bonus += 3;
+        }
+    }
+
+    if desc_lower.contains("input") && (task_lower.contains("input") || task_lower.contains("read")
+        || task_lower.contains("file") || task_lower.contains("bam") || task_lower.contains("fastq")
+        || task_lower.contains("vcf") || task_lower.contains("from")) {
+        bonus += 12;
+    }
+
+    if (desc_lower.contains("reference") || desc_lower.contains("ref genome") || desc_lower.contains("genome fasta"))
+        && (task_lower.contains("reference") || task_lower.contains("genome") || task_lower.contains("ref")
+            || task_lower.contains("fasta") || task_lower.contains("index")) {
+        bonus += 15;
+    }
+
+    if (desc_lower.contains("index") || flag_lower == "-x" || flag_lower.contains("index-prefix"))
+        && (task_lower.contains("index") || task_lower.contains("align") || task_lower.contains("map") || task_lower.contains("reference")) {
+        bonus += 12;
+    }
+
+    if (desc_lower.contains("database") || flag_lower.contains("db"))
+        && (task_lower.contains("database") || task_lower.contains("db") || task_lower.contains("classify")
+            || task_lower.contains("search") || task_lower.contains("blast")) {
+        bonus += 8;
+    }
+
+    if (desc_lower.contains("annotation") || desc_lower.contains("gtf") || desc_lower.contains("gff"))
+        && (task_lower.contains("annotation") || task_lower.contains("gtf") || task_lower.contains("gff")
+            || task_lower.contains("transcript")) {
+        bonus += 10;
+    }
+
+    let file_type_pairs: &[(&[&str], &[&str])] = &[
+        (&["bam", "sam"], &["bam", "sam"]),
+        (&["fastq", "fq", "read"], &["fastq", "fq"]),
+        (&["vcf", "variant", "snp"], &["vcf", "variant", "snp"]),
+        (&["bed", "interval"], &["bed"]),
+        (&["fasta", "fna", "sequence"], &["fa", "fasta", "fna"]),
+    ];
+    for (desc_keywords, task_keywords) in file_type_pairs {
+        let desc_matches = desc_keywords.iter().any(|k| desc_lower.contains(k));
+        let task_matches = task_keywords.iter().any(|k| task_lower.contains(k));
+        if desc_matches && task_matches {
+            bonus += 10;
+        }
+    }
+
+    let semantic_pairs: &[(&[&str], &[&str], i32)] = &[
+        (&["quality", "qual"], &["quality", "qual"], 8),
+        (&["region", "chrom", "window"], &["region", "chrom", "window"], 10),
+        (&["species"], &["species"], 10),
+        (&["seed"], &["seed"], 15),
+        (&["bootstrap", "replicat"], &["bootstrap", "replicat"], 15),
+        (&["evalue", "e-value", "expect"], &["evalue", "e-value", "significance"], 12),
+        (&["identity", "similarity"], &["identity", "similarity", "percent"], 10),
+        (&["coverage", "depth"], &["coverage", "depth", "cov"], 10),
+        (&["preset"], &["preset"], 8),
+        (&["method"], &["method"], 8),
+        (&["strand"], &["strand"], 10),
+        (&["paired", "pair"], &["paired", "pair"], 10),
+        (&["cutoff", "threshold"], &["cutoff", "threshold"], 10),
+        (&["pvalue", "p-value", "pval"], &["pvalue", "p-value", "pval", "significance"], 15),
+        (&["format"], &["format"], 8),
+        (&["length", "len"], &["length", "len", "size"], 5),
+    ];
+    for (desc_keywords, task_keywords, score) in semantic_pairs {
+        let desc_matches = desc_keywords.iter().any(|k| desc_lower.contains(k));
+        let task_matches = task_keywords.iter().any(|k| task_lower.contains(k));
+        if desc_matches && task_matches {
+            bonus += score;
+        }
+    }
+
+    bonus
+}
+
+fn compute_negative_score(desc_lower: &str, flag_lower: &str, task_lower: &str) -> i32 {
+    let mut neg = 0i32;
+
+    if desc_lower.contains("help") || flag_lower.contains("version") { neg -= 50; }
+    if desc_lower.contains("verbose") || desc_lower.contains("debug") || desc_lower.contains("quiet") { neg -= 20; }
+    if desc_lower.contains("test") && !task_lower.contains("test") { neg -= 10; }
+    if desc_lower.contains("example") && !task_lower.contains("example") { neg -= 10; }
+    if desc_lower.contains("log") && !task_lower.contains("log") { neg -= 5; }
+    if desc_lower.contains("config") && !task_lower.contains("config") && !task_lower.contains("setting") { neg -= 3; }
+    if desc_lower.contains("tmp") || desc_lower.contains("temp") { neg -= 5; }
+    if (desc_lower.contains("color") || desc_lower.contains("colour")) && !task_lower.contains("color") { neg -= 10; }
+    if desc_lower.contains("silent") && !task_lower.contains("silent") { neg -= 10; }
+    if desc_lower.contains("memory") || desc_lower.contains("mem") { neg -= 3; }
+    if desc_lower.contains("intermediate") { neg -= 8; }
+    if desc_lower.contains("progress") && !task_lower.contains("progress") { neg -= 5; }
+    if desc_lower.contains("statistics") && !task_lower.contains("stat") && !task_lower.contains("statistics") { neg -= 3; }
+
+    neg
+}
+
+fn find_matching_file<'a>(
+    files: &'a [String],
+    used_files: &std::collections::HashSet<String>,
+    extensions: &[&str],
+) -> Option<&'a String> {
+    files.iter().find(|f| {
+        let fl = f.to_ascii_lowercase();
+        extensions.iter().any(|ext| fl.ends_with(ext)) && !used_files.contains(&fl)
+    })
+}
+
+fn find_any_unused_file<'a>(
+    files: &'a [String],
+    used_files: &std::collections::HashSet<String>,
+) -> Option<&'a String> {
+    files.iter().find(|f| !used_files.contains(&f.to_ascii_lowercase()))
+}
+
+fn resolve_flag_value(
+    entry: &FlagEntry,
+    desc_lower: &str,
+    flag_lower: &str,
+    task_lower: &str,
+    task_values: &TaskValues,
+    used_files: &mut std::collections::HashSet<String>,
+) -> Option<String> {
+    if desc_lower.contains("output") || flag_lower.contains("out") {
+        if desc_lower.contains("stdout") || desc_lower.contains("format") {
+            return None;
+        }
+        if desc_lower.contains("prefix") {
+            return task_values.output_files.first()
+                .map(|f| {
+                    let path = std::path::Path::new(f);
+                    path.with_extension("").to_string_lossy().to_string()
+                })
+                .or_else(|| entry.default.clone());
+        }
+        if desc_lower.contains("dir") || desc_lower.contains("directory") || desc_lower.contains("path") {
+            return task_values.output_files.first()
+                .map(|f| {
+                    let path = std::path::Path::new(f);
+                    path.parent()
+                        .map(|p| p.to_string_lossy().to_string())
+                        .unwrap_or_else(|| ".".to_string())
+                })
+                .or_else(|| entry.default.clone());
+        }
+        return task_values.output_files.iter()
+            .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
+            .map(|f| {
+                used_files.insert(f.to_ascii_lowercase());
+                f.clone()
+            })
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("input") || flag_lower.contains("in") {
+        if desc_lower.contains("bam") || desc_lower.contains("sam") {
+            return find_matching_file(&task_values.input_files, used_files, &[".bam", ".sam"])
+                .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+                .or_else(|| entry.default.clone());
+        }
+        if desc_lower.contains("fastq") || desc_lower.contains("fq") || desc_lower.contains("read") {
+            return find_matching_file(&task_values.input_files, used_files, &[".fq", ".fastq", ".fq.gz", ".fastq.gz"])
+                .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+                .or_else(|| entry.default.clone());
+        }
+        if desc_lower.contains("vcf") {
+            return find_matching_file(&task_values.input_files, used_files, &[".vcf", ".bcf", ".vcf.gz"])
+                .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+                .or_else(|| entry.default.clone());
+        }
+        return find_any_unused_file(&task_values.input_files, used_files)
+            .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("thread") || desc_lower.contains("cpu") || flag_lower == "-@" || flag_lower.contains("thread") {
+        return task_values.numbers.iter()
+            .find(|n| { let v: f64 = n.parse().unwrap_or(0.0); v >= 1.0 && v <= 128.0 })
+            .cloned()
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("reference") || flag_lower.contains("ref") || flag_lower.contains("genome") {
+        if desc_lower.contains("dir") || desc_lower.contains("directory") || desc_lower.contains("path") {
+            return task_values.genome_dirs.first().cloned()
+                .or_else(|| entry.default.clone());
+        }
+        return task_values.reference_files.iter()
+            .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
+            .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+            .or_else(|| {
+                find_matching_file(&task_values.input_files, used_files, &[".fa", ".fasta", ".fna", ".fa.gz", ".fasta.gz"])
+                    .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+            })
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("index") || flag_lower == "-x" || flag_lower.contains("index-prefix") {
+        if desc_lower.contains("dir") || desc_lower.contains("path") {
+            return task_values.genome_dirs.first().cloned()
+                .or_else(|| entry.default.clone());
+        }
+        return task_values.reference_files.iter()
+            .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
+            .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+            .or_else(|| {
+                task_values.input_files.iter()
+                    .find(|f| {
+                        let fl = f.to_ascii_lowercase();
+                        (fl.ends_with(".fa") || fl.ends_with(".fasta") || fl.ends_with(".fna")
+                            || fl.contains("index") || fl.contains("genome"))
+                            && !used_files.contains(&fl)
+                    })
+                    .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+            })
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("database") || flag_lower.contains("db") {
+        return task_values.database_files.iter()
+            .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
+            .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("annotation") || desc_lower.contains("gtf") || desc_lower.contains("gff") {
+        return task_values.annotation_files.iter()
+            .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
+            .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+            .or_else(|| {
+                find_matching_file(&task_values.input_files, used_files, &[".gtf", ".gff", ".gff3"])
+                    .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+            })
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("bed") {
+        return find_matching_file(&task_values.input_files, used_files, &[".bed", ".bed.gz"])
+            .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("fasta") || desc_lower.contains("fna") {
+        return find_matching_file(&task_values.input_files, used_files, &[".fa", ".fasta", ".fna", ".fa.gz", ".fasta.gz"])
+            .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("species") {
+        let species_map: &[(&str, &str)] = &[
+            ("human", "human"), ("mouse", "mouse"), ("arabidopsis", "arabidopsis"),
+            ("fly", "fly"), ("yeast", "yeast"), ("ecoli", "ecoli"), ("e. coli", "ecoli"),
+            ("zebrafish", "zebrafish"), ("rat", "rat"), ("chicken", "chicken"),
+            ("worm", "worm"), ("celegans", "celegans"), ("drosophila", "drosophila"),
+        ];
+        for (pattern, value) in species_map {
+            if task_lower.contains(pattern) {
+                return Some(value.to_string());
+            }
+        }
+        return entry.default.clone();
+    }
+
+    if desc_lower.contains("seed") {
+        return task_values.numbers.iter()
+            .find(|n| { let v: f64 = n.parse().unwrap_or(0.0); v >= 1.0 && v <= 999999.0 })
+            .cloned()
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("k") || flag_lower.contains("k=") || flag_lower == "-k" {
+        return task_values.numbers.iter()
+            .find(|n| { let v: f64 = n.parse().unwrap_or(0.0); v >= 1.0 && v <= 100.0 })
+            .cloned()
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("region") || flag_lower.contains("region") || flag_lower.contains("chrom") {
+        let chr_patterns = ["chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8",
+            "chr9", "chr10", "chr11", "chr12", "chr13", "chr14", "chr15", "chr16", "chr17",
+            "chr18", "chr19", "chr20", "chr21", "chr22", "chrx", "chry", "chrm"];
+        for pat in &chr_patterns {
+            if task_lower.contains(pat) {
+                return Some(pat.to_string());
+            }
+        }
+        return entry.default.clone();
+    }
+
+    if desc_lower.contains("runmode") || flag_lower.contains("runmode") {
+        if task_lower.contains("genomegenerate") || task_lower.contains("generate genome") || task_lower.contains("genome index") {
+            return Some("genomeGenerate".to_string());
+        }
+        return Some("alignReads".to_string());
+    }
+
+    if desc_lower.contains("readfilescommand") || flag_lower.contains("readfilescommand") {
+        if task_values.input_files.iter().any(|f| f.to_ascii_lowercase().ends_with(".gz")) {
+            return Some("zcat".to_string());
+        }
+        return None;
+    }
+
+    if desc_lower.contains("outsamtype") || flag_lower.contains("outsamtype") {
+        return Some("BAM SortedByCoordinate".to_string());
+    }
+
+    if desc_lower.contains("outfilenamprefix") || flag_lower.contains("outfilenamprefix") {
+        return task_values.output_files.first()
+            .map(|f| {
+                let path = std::path::Path::new(f);
+                path.parent()
+                    .map(|p| format!("{}/", p.to_string_lossy()))
+                    .unwrap_or_else(|| "".to_string())
+            })
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("outfmt") || desc_lower.contains("output format") || flag_lower.contains("outfmt") {
+        if !entry.enum_values.is_empty() {
+            return Some(entry.enum_values[0].clone());
+        }
+        return entry.default.clone();
+    }
+
+    if let Some(ref vt) = entry.value_type {
+        let vt_lower = vt.to_ascii_lowercase();
+        if vt_lower.contains("file") || vt_lower.contains("path") || vt_lower.contains("dir") {
+            if desc_lower.contains("output") || flag_lower.contains("out") {
+                return task_values.output_files.iter()
+                    .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
+                    .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+                    .or_else(|| entry.default.clone());
+            }
+            return find_any_unused_file(&task_values.input_files, used_files)
+                .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+                .or_else(|| entry.default.clone());
+        }
+        if vt_lower.contains("int") || vt_lower.contains("float") || vt_lower.contains("num") {
+            return task_values.numbers.first().cloned()
+                .or_else(|| entry.default.clone());
+        }
+        if vt_lower.contains("bool") {
+            return Some("true".to_string());
+        }
+        if !entry.enum_values.is_empty() {
+            return Some(entry.enum_values[0].clone());
+        }
+    }
+
+    entry.default.clone()
+}
+
 pub fn assemble_command_from_rules(
     tool: &str,
     task: &str,
@@ -12,7 +418,7 @@ pub fn assemble_command_from_rules(
     let task_lower = task.to_ascii_lowercase();
     let task_words: std::collections::HashSet<&str> = task_lower
         .split_whitespace()
-        .filter(|w| w.len() > 2)
+        .filter(|w| w.len() > 2 && !STOP_WORDS.contains(w))
         .collect();
 
     let effective_subcommand = selected_subcommand.map(|s| s.to_string())
@@ -63,189 +469,24 @@ pub fn assemble_command_from_rules(
     let score_flag = |entry: &FlagEntry| -> i32 {
         let desc_lower = entry.description.to_ascii_lowercase();
         let flag_lower = entry.flag.to_ascii_lowercase();
-        let mut score = 0;
+        let mut score = 0i32;
 
         if entry.required {
             score += 100;
         }
 
+        score += compute_word_overlap_score(&task_words, &desc_lower);
+
         for word in &task_words {
-            if desc_lower.contains(word) { score += 5; }
             if flag_lower.contains(word) { score += 3; }
         }
 
-        if desc_lower.contains("output") && (task_lower.contains("output") || task_lower.contains("save") || task_lower.contains("write") || task_lower.contains("to ") || task_lower.contains("export") || task_lower.contains("generate") || task_lower.contains("produce") || task_lower.contains("create") || task_lower.contains("result") || task_lower.contains("store")) {
-            score += 20;
-        }
-        if (desc_lower.contains("thread") || desc_lower.contains("cpu") || desc_lower.contains("proc")) && (task_lower.contains("thread") || task_lower.contains("cpu") || task_lower.contains("core") || task_lower.contains("parallel") || task_lower.contains("process")) {
-            score += 20;
-        }
-        if desc_lower.contains("input") && (task_lower.contains("input") || task_lower.contains("read") || task_lower.contains("file") || task_lower.contains("bam") || task_lower.contains("fastq") || task_lower.contains("vcf") || task_lower.contains("from")) {
-            score += 12;
-        }
-        if desc_lower.contains("reference") && (task_lower.contains("reference") || task_lower.contains("genome") || task_lower.contains("ref") || task_lower.contains("fasta") || task_lower.contains("index")) {
-            score += 15;
-        }
-        if (desc_lower.contains("bam") || desc_lower.contains("sam")) && (task_lower.contains("bam") || task_lower.contains("sam")) {
-            score += 10;
-        }
-        if (desc_lower.contains("fastq") || desc_lower.contains("fq")) && (task_lower.contains("fastq") || task_lower.contains("fq")) {
-            score += 10;
-        }
-        if (desc_lower.contains("vcf") || desc_lower.contains("variant")) && (task_lower.contains("vcf") || task_lower.contains("variant") || task_lower.contains("snp")) {
-            score += 10;
-        }
-        if (desc_lower.contains("gtf") || desc_lower.contains("gff") || desc_lower.contains("annotation")) && (task_lower.contains("gtf") || task_lower.contains("gff") || task_lower.contains("annotation")) {
-            score += 10;
-        }
-        if desc_lower.contains("quality") && (task_lower.contains("quality") || task_lower.contains("qual")) {
-            score += 8;
-        }
-        if desc_lower.contains("region") && (task_lower.contains("region") || task_lower.contains("chrom") || task_lower.contains("window")) {
-            score += 10;
-        }
-        if desc_lower.contains("species") && task_lower.contains("species") {
-            score += 10;
-        }
-        if desc_lower.contains("seed") && task_lower.contains("seed") {
-            score += 15;
-        }
-        if (desc_lower.contains("bootstrap") || desc_lower.contains("replicat")) && (task_lower.contains("bootstrap") || task_lower.contains("replicat")) {
-            score += 15;
-        }
-        if desc_lower.contains("convergence") && task_lower.contains("convergence") {
-            score += 15;
-        }
-        if desc_lower.contains("supervised") && task_lower.contains("supervised") {
-            score += 15;
-        }
-        if desc_lower.contains("projection") && (task_lower.contains("projection") || task_lower.contains("project")) {
-            score += 15;
-        }
-        if desc_lower.contains("acceleration") && task_lower.contains("acceleration") {
-            score += 15;
-        }
-        if desc_lower.contains("method") && task_lower.contains("method") {
-            score += 10;
-        }
-        if desc_lower.contains("cross-validation") && (task_lower.contains("cross-validation") || task_lower.contains("cv")) {
-            score += 15;
-        }
-        if desc_lower.contains("format") && task_lower.contains("format") {
-            score += 8;
-        }
-        if desc_lower.contains("strand") && task_lower.contains("strand") {
-            score += 10;
-        }
-        if desc_lower.contains("paired") && (task_lower.contains("paired") || task_lower.contains("pair")) {
-            score += 10;
-        }
-        if desc_lower.contains("single") && (task_lower.contains("single-end") || task_lower.contains("single")) {
-            score += 10;
-        }
-        if desc_lower.contains("min") && task_lower.contains("min") {
-            score += 5;
-        }
-        if desc_lower.contains("max") && task_lower.contains("max") {
-            score += 5;
-        }
-        if desc_lower.contains("cutoff") && (task_lower.contains("cutoff") || task_lower.contains("threshold")) {
-            score += 10;
-        }
-        if desc_lower.contains("pvalue") || desc_lower.contains("p-value") || desc_lower.contains("pval") {
-            if task_lower.contains("pvalue") || task_lower.contains("p-value") || task_lower.contains("pval") || task_lower.contains("significance") {
-                score += 15;
-            }
-        }
+        score += compute_semantic_bonus(&desc_lower, &flag_lower, &task_lower, task_values);
+        score += compute_negative_score(&desc_lower, &flag_lower, &task_lower);
 
         if let Some(ref sub) = effective_subcommand {
             let sub_lower = sub.to_lowercase();
             if desc_lower.contains(&sub_lower) { score += 5; }
-        }
-
-        if desc_lower.contains("help") || flag_lower.contains("version") {
-            score -= 50;
-        }
-        if desc_lower.contains("verbose") || desc_lower.contains("debug") || desc_lower.contains("quiet") {
-            score -= 20;
-        }
-        if desc_lower.contains("test") && !task_lower.contains("test") {
-            score -= 10;
-        }
-        if desc_lower.contains("example") && !task_lower.contains("example") {
-            score -= 10;
-        }
-        if desc_lower.contains("log") && !task_lower.contains("log") {
-            score -= 5;
-        }
-        if desc_lower.contains("config") && !task_lower.contains("config") && !task_lower.contains("setting") {
-            score -= 3;
-        }
-        if desc_lower.contains("tmp") || desc_lower.contains("temp") {
-            score -= 5;
-        }
-        if (desc_lower.contains("color") || desc_lower.contains("colour")) && !task_lower.contains("color") {
-            score -= 10;
-        }
-        if desc_lower.contains("silent") && !task_lower.contains("silent") {
-            score -= 10;
-        }
-
-        if desc_lower.contains("output") && !desc_lower.contains("stdout") && !desc_lower.contains("format") {
-            if task_lower.contains("output") || task_lower.contains("save") || task_lower.contains("write")
-                || task_lower.contains("to ") || task_lower.contains("export") || task_lower.contains("generate")
-                || task_lower.contains("produce") || task_lower.contains("create") || task_lower.contains("result")
-                || task_lower.contains("convert") || task_lower.contains("call") || task_lower.contains("assemble")
-                || task_lower.contains("align") || task_lower.contains("map") || task_lower.contains("index")
-                || task_lower.contains("sort") || task_lower.contains("filter") || task_lower.contains("quantify")
-                || task_lower.contains("annotate") || task_lower.contains("predict") {
-                score += 8;
-            }
-        }
-
-        if (desc_lower.contains("thread") || desc_lower.contains("cpu") || desc_lower.contains("proc") || desc_lower.contains("parallel"))
-            && !task_lower.contains("single") {
-            score += 3;
-        }
-
-        if (desc_lower.contains("database") || flag_lower.contains("db")) && (task_lower.contains("database") || task_lower.contains("db") || task_lower.contains("classify") || task_lower.contains("search") || task_lower.contains("blast")) {
-            score += 5;
-        }
-
-        if (desc_lower.contains("index") || flag_lower == "-x") && (task_lower.contains("index") || task_lower.contains("align") || task_lower.contains("map") || task_lower.contains("reference")) {
-            score += 12;
-        }
-
-        if (desc_lower.contains("annotation") || desc_lower.contains("gtf") || desc_lower.contains("gff")) && (task_lower.contains("annotation") || task_lower.contains("gtf") || task_lower.contains("gff") || task_lower.contains("transcript")) {
-            score += 10;
-        }
-
-        if desc_lower.contains("preset") || desc_lower.contains("preset option") {
-            score += 8;
-        }
-
-        if (desc_lower.contains("evalue") || desc_lower.contains("e-value") || desc_lower.contains("expect")) && (task_lower.contains("evalue") || task_lower.contains("e-value") || task_lower.contains("significance")) {
-            score += 12;
-        }
-
-        if (desc_lower.contains("identity") || desc_lower.contains("similarity")) && (task_lower.contains("identity") || task_lower.contains("similarity") || task_lower.contains("percent")) {
-            score += 10;
-        }
-
-        if desc_lower.contains("coverage") && (task_lower.contains("coverage") || task_lower.contains("depth") || task_lower.contains("cov")) {
-            score += 10;
-        }
-
-        if (desc_lower.contains("length") || desc_lower.contains("len")) && (task_lower.contains("length") || task_lower.contains("len") || task_lower.contains("size")) {
-            score += 5;
-        }
-
-        if desc_lower.contains("memory") || desc_lower.contains("mem") {
-            score -= 3;
-        }
-
-        if desc_lower.contains("intermediate") || desc_lower.contains("temp") || desc_lower.contains("tmp") {
-            score -= 8;
         }
 
         score
@@ -256,6 +497,9 @@ pub fn assemble_command_from_rules(
 
     let mut included_flags: std::collections::HashSet<String> = std::collections::HashSet::new();
 
+    let task_has_output = !task_values.output_files.is_empty();
+    let task_has_input = !task_values.input_files.is_empty();
+
     for entry in &all_flags {
         let flag_key = entry.flag.clone();
         if included_flags.contains(&flag_key) { continue; }
@@ -264,242 +508,26 @@ pub fn assemble_command_from_rules(
         }
 
         let score = score_flag(entry);
-        let should_include = entry.required || score >= 1;
-
-        if !should_include { continue; }
-
         let desc_lower = entry.description.to_ascii_lowercase();
         let flag_lower = entry.flag.to_ascii_lowercase();
 
-        let value = if desc_lower.contains("output") || flag_lower.contains("out") {
-            if desc_lower.contains("stdout") || desc_lower.contains("format") {
-                None
-            } else if desc_lower.contains("prefix") {
-                task_values.output_files.first()
-                    .map(|f| {
-                        let path = std::path::Path::new(f);
-                        path.with_extension("").to_string_lossy().to_string()
-                    })
-                    .or_else(|| entry.default.clone())
-            } else if desc_lower.contains("dir") || desc_lower.contains("directory") || desc_lower.contains("path") {
-                task_values.output_files.first()
-                    .map(|f| {
-                        let path = std::path::Path::new(f);
-                        path.parent()
-                            .map(|p| p.to_string_lossy().to_string())
-                            .unwrap_or_else(|| ".".to_string())
-                    })
-                    .or_else(|| entry.default.clone())
-            } else {
-                task_values.output_files.iter()
-                    .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
-                    .map(|f| {
-                        used_files.insert(f.to_ascii_lowercase());
-                        f.clone()
-                    })
-                    .or_else(|| entry.default.clone())
-            }
-        } else if desc_lower.contains("input") || flag_lower.contains("in") {
-            if desc_lower.contains("bam") || desc_lower.contains("sam") {
-                task_values.input_files.iter()
-                    .find(|f| {
-                        let fl = f.to_ascii_lowercase();
-                        (fl.ends_with(".bam") || fl.ends_with(".sam"))
-                            && !used_files.contains(&fl)
-                    })
-                    .map(|f| {
-                        used_files.insert(f.to_ascii_lowercase());
-                        f.clone()
-                    })
-                    .or_else(|| entry.default.clone())
-            } else if desc_lower.contains("fastq") || desc_lower.contains("fq") || desc_lower.contains("read") {
-                task_values.input_files.iter()
-                    .find(|f| {
-                        let fl = f.to_ascii_lowercase();
-                        (fl.ends_with(".fq") || fl.ends_with(".fastq") || fl.ends_with(".gz"))
-                            && !used_files.contains(&fl)
-                    })
-                    .map(|f| {
-                        used_files.insert(f.to_ascii_lowercase());
-                        f.clone()
-                    })
-                    .or_else(|| entry.default.clone())
-            } else if desc_lower.contains("vcf") {
-                task_values.input_files.iter()
-                    .find(|f| {
-                        let fl = f.to_ascii_lowercase();
-                        (fl.ends_with(".vcf") || fl.ends_with(".bcf"))
-                            && !used_files.contains(&fl)
-                    })
-                    .map(|f| {
-                        used_files.insert(f.to_ascii_lowercase());
-                        f.clone()
-                    })
-                    .or_else(|| entry.default.clone())
-            } else {
-                task_values.input_files.iter()
-                    .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
-                    .map(|f| {
-                        used_files.insert(f.to_ascii_lowercase());
-                        f.clone()
-                    })
-                    .or_else(|| entry.default.clone())
-            }
-        } else if desc_lower.contains("thread") || desc_lower.contains("cpu") || flag_lower == "-@" || flag_lower.contains("thread") {
-            task_values.numbers.iter()
-                .find(|n| {
-                    let v: f64 = n.parse().unwrap_or(0.0);
-                    v >= 1.0 && v <= 128.0
-                })
-                .cloned()
-                .or_else(|| entry.default.clone())
-        } else if desc_lower.contains("reference") || flag_lower.contains("ref") || flag_lower.contains("genome") {
-            if desc_lower.contains("dir") || desc_lower.contains("directory") || desc_lower.contains("path") {
-                task_values.genome_dirs.first().cloned()
-                    .or_else(|| entry.default.clone())
-            } else {
-                task_values.reference_files.iter()
-                    .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
-                    .map(|f| {
-                        used_files.insert(f.to_ascii_lowercase());
-                        f.clone()
-                    })
-                    .or_else(|| task_values.input_files.iter()
-                        .find(|f| {
-                            let fl = f.to_ascii_lowercase();
-                            (fl.ends_with(".fa") || fl.ends_with(".fasta") || fl.ends_with(".fna")
-                                || fl.ends_with(".fa.gz") || fl.ends_with(".fasta.gz"))
-                                && !used_files.contains(&fl)
-                        })
-                        .map(|f| {
-                            used_files.insert(f.to_ascii_lowercase());
-                            f.clone()
-                        })
-                        .or_else(|| entry.default.clone()))
-            }
-        } else if desc_lower.contains("species") {
-            if task_lower.contains("human") {
-                Some("human".to_string())
-            } else if task_lower.contains("mouse") {
-                Some("mouse".to_string())
-            } else if task_lower.contains("arabidopsis") {
-                Some("arabidopsis".to_string())
-            } else if task_lower.contains("fly") {
-                Some("fly".to_string())
-            } else if task_lower.contains("yeast") {
-                Some("yeast".to_string())
-            } else if task_lower.contains("ecoli") || task_lower.contains("e. coli") {
-                Some("ecoli".to_string())
-            } else if task_lower.contains("zebrafish") {
-                Some("zebrafish".to_string())
-            } else {
-                entry.default.clone()
-            }
-        } else if desc_lower.contains("seed") {
-            task_values.numbers.iter().find(|n| {
-                let v: f64 = n.parse().unwrap_or(0.0);
-                v >= 1.0 && v <= 999999.0
-            }).cloned().or_else(|| entry.default.clone())
-        } else if desc_lower.contains("k") || flag_lower.contains("k=") || flag_lower == "-k" {
-            task_values.numbers.iter().find(|n| {
-                let v: f64 = n.parse().unwrap_or(0.0);
-                v >= 1.0 && v <= 100.0
-            }).cloned().or_else(|| entry.default.clone())
-        } else if desc_lower.contains("region") || flag_lower.contains("region") || flag_lower.contains("chrom") {
-            if task_lower.contains("chr1") {
-                Some("chr1".to_string())
-            } else if task_lower.contains("chr2") {
-                Some("chr2".to_string())
-            } else if task_lower.contains("chr22") {
-                Some("chr22".to_string())
-            } else {
-                entry.default.clone()
-            }
-        } else if desc_lower.contains("runmode") || flag_lower.contains("runmode") {
-            if task_lower.contains("genomegenerate") || task_lower.contains("generate genome") || task_lower.contains("genome index") {
-                Some("genomeGenerate".to_string())
-            } else {
-                Some("alignReads".to_string())
-            }
-        } else if desc_lower.contains("readfilescommand") || flag_lower.contains("readfilescommand") {
-            if task_values.input_files.iter().any(|f| f.to_ascii_lowercase().ends_with(".gz")) {
-                Some("zcat".to_string())
-            } else {
-                None
-            }
-        } else if desc_lower.contains("outsamtype") || flag_lower.contains("outsamtype") {
-            Some("BAM SortedByCoordinate".to_string())
-        } else if desc_lower.contains("outfilenamprefix") || flag_lower.contains("outfilenamprefix") {
-            task_values.output_files.first()
-                .map(|f| {
-                    let path = std::path::Path::new(f);
-                    path.parent()
-                        .map(|p| format!("{}/", p.to_string_lossy()))
-                        .unwrap_or_else(|| "".to_string())
-                })
-                .or_else(|| entry.default.clone())
-        } else if desc_lower.contains("index") || flag_lower == "-x" || flag_lower.contains("index-prefix") {
-            if desc_lower.contains("dir") || desc_lower.contains("path") {
-                task_values.genome_dirs.first().cloned()
-                    .or_else(|| entry.default.clone())
-            } else {
-                task_values.reference_files.iter()
-                    .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
-                    .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
-                    .or_else(|| task_values.input_files.iter()
-                        .find(|f| {
-                            let fl = f.to_ascii_lowercase();
-                            (fl.ends_with(".fa") || fl.ends_with(".fasta") || fl.ends_with(".fna")
-                                || fl.contains("index") || fl.contains("genome"))
-                                && !used_files.contains(&fl)
-                        })
-                        .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
-                        .or_else(|| entry.default.clone()))
-            }
-        } else if desc_lower.contains("database") || flag_lower.contains("db") {
-            task_values.database_files.iter()
-                .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
-                .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
-                .or_else(|| entry.default.clone())
-        } else if desc_lower.contains("annotation") || desc_lower.contains("gtf") || desc_lower.contains("gff") {
-            task_values.annotation_files.iter()
-                .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
-                .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
-                .or_else(|| task_values.input_files.iter()
-                    .find(|f| {
-                        let fl = f.to_ascii_lowercase();
-                        (fl.ends_with(".gtf") || fl.ends_with(".gff") || fl.ends_with(".gff3"))
-                            && !used_files.contains(&fl)
-                    })
-                    .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
-                    .or_else(|| entry.default.clone()))
-        } else if desc_lower.contains("bed") {
-            task_values.input_files.iter()
-                .find(|f| {
-                    let fl = f.to_ascii_lowercase();
-                    (fl.ends_with(".bed") || fl.ends_with(".bed.gz")) && !used_files.contains(&fl)
-                })
-                .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
-                .or_else(|| entry.default.clone())
-        } else if desc_lower.contains("fasta") || desc_lower.contains("fna") {
-            task_values.input_files.iter()
-                .find(|f| {
-                    let fl = f.to_ascii_lowercase();
-                    (fl.ends_with(".fa") || fl.ends_with(".fasta") || fl.ends_with(".fna")
-                        || fl.ends_with(".fa.gz") || fl.ends_with(".fasta.gz"))
-                        && !used_files.contains(&fl)
-                })
-                .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
-                .or_else(|| entry.default.clone())
-        } else if desc_lower.contains("outfmt") || desc_lower.contains("output format") || flag_lower.contains("outfmt") {
-            if !entry.enum_values.is_empty() {
-                Some(entry.enum_values[0].clone())
-            } else {
-                entry.default.clone()
-            }
-        } else {
-            entry.default.clone()
-        };
+        let is_output_flag = (desc_lower.contains("output") || flag_lower.contains("out"))
+            && !desc_lower.contains("stdout") && !desc_lower.contains("format");
+        let is_input_flag = desc_lower.contains("input") || flag_lower.contains("in");
+        let is_thread_flag = desc_lower.contains("thread") || desc_lower.contains("cpu")
+            || flag_lower == "-@" || flag_lower.contains("thread");
+        let is_ref_flag = desc_lower.contains("reference") || flag_lower.contains("ref")
+            || desc_lower.contains("genome") || flag_lower == "-x";
+
+        let should_auto_include = (is_output_flag && task_has_output)
+            || (is_input_flag && task_has_input)
+            || (is_ref_flag && (!task_values.reference_files.is_empty() || !task_values.genome_dirs.is_empty()));
+
+        let should_include = entry.required || should_auto_include || score >= 5;
+
+        if !should_include { continue; }
+
+        let value = resolve_flag_value(entry, &desc_lower, &flag_lower, &task_lower, task_values, &mut used_files);
 
         if entry.flag.contains('=') {
             if let Some(val) = value {
