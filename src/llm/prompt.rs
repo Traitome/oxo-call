@@ -40,11 +40,12 @@ pub fn system_prompt_medium() -> &'static str {
      Output JSON: {\"subcommand\":\"sort\",\"flags\":{\"-@\":\"4\",\"-o\":\"out.bam\"},\"positional_args\":[\"in.bam\"],\"explanation\":\"...\"}\n\
      CRITICAL RULES:\n\
      1. subcommand in \"subcommand\" field. Never tool name.\n\
-     2. Use ONLY flags from <flag_catalog>. NEVER invent flags.\n\
-     3. Include ONLY required flags + flags explicitly mentioned in the task. Do NOT add extra optional flags.\n\
+     2. Use ONLY flags from <flag_catalog>. NEVER invent or guess flags.\n\
+     3. Include ONLY required flags + flags the task explicitly mentions. Do NOT add extra optional flags.\n\
      4. Files go in \"positional_args\". Extract EXACT paths from task.\n\
      5. Boolean flags use true. Include output and thread flags when task implies them.\n\
-     6. FEWER FLAGS IS BETTER. Missing optional flags is OK. Wrong extra flags is BAD."
+     6. FEWER FLAGS IS BETTER. Missing optional flags is OK. Wrong extra flags is BAD.\n\
+     7. Maximum 8 flags total. If you have more than 8, remove the least important ones."
 }
 
 /// Ultra-compact system prompt for mini models (≤ 3B parameters).
@@ -1248,7 +1249,7 @@ fn build_prompt_medium(
             let required: Vec<&FlagEntry> = sdoc.flag_catalog.iter()
                 .filter(|e| e.required)
                 .collect();
-            let optional: Vec<&FlagEntry> = sdoc.flag_catalog.iter()
+            let mut optional: Vec<&FlagEntry> = sdoc.flag_catalog.iter()
                 .filter(|e| !e.required)
                 .collect();
 
@@ -1262,8 +1263,19 @@ fn build_prompt_medium(
                 prompt.push('\n');
             }
 
+            let task_lower = task.to_ascii_lowercase();
+            let task_keywords: Vec<&str> = task_lower.split_whitespace()
+                .filter(|w| w.len() >= 3 && !w.contains('.'))
+                .collect();
+
+            optional.sort_by(|a, b| {
+                let score_a = score_flag_for_task(a, &task_keywords, &task_lower);
+                let score_b = score_flag_for_task(b, &task_keywords, &task_lower);
+                score_b.cmp(&score_a)
+            });
+
             prompt.push_str("<flag_catalog>\n");
-            for f in optional.iter().take(20) {
+            for f in optional.iter().take(12) {
                 let alt = f.alt_form.as_ref().map(|a| format!(" / {}", a)).unwrap_or_default();
                 let vt = f.value_type.as_ref().map(|t| format!(" <{}>", t)).unwrap_or_default();
                 let enums = if !f.enum_values.is_empty() {
@@ -2088,6 +2100,33 @@ fn extract_task_values(task: &str) -> Vec<(String, String)> {
 
 /// Check if task contains keyword as a whole word (not substring).
 /// Prevents "aligned" from matching "align" keyword.
+fn score_flag_for_task(entry: &FlagEntry, task_keywords: &[&str], task_lower: &str) -> i32 {
+    let desc_lower = entry.description.to_ascii_lowercase();
+    let flag_lower = entry.flag.to_ascii_lowercase();
+    let mut score = 0;
+
+    for kw in task_keywords {
+        if desc_lower.contains(kw) { score += 10; }
+        if flag_lower.contains(kw) { score += 8; }
+    }
+
+    if desc_lower.contains("output") || flag_lower.contains("out") { score += 15; }
+    if desc_lower.contains("input") || flag_lower.contains("in") { score += 12; }
+    if desc_lower.contains("thread") || desc_lower.contains("cpu") || desc_lower.contains("nproc") { score += 10; }
+    if desc_lower.contains("reference") || flag_lower.contains("ref") { score += 12; }
+    if desc_lower.contains("genome") { score += 8; }
+    if desc_lower.contains("database") || flag_lower.contains("db") { score += 8; }
+
+    if desc_lower.contains("verbose") || desc_lower.contains("debug") { score -= 20; }
+    if desc_lower.contains("quiet") || desc_lower.contains("silent") { score -= 20; }
+    if desc_lower.contains("help") || desc_lower.contains("version") { score -= 30; }
+    if desc_lower.contains("color") || desc_lower.contains("colour") { score -= 15; }
+    if desc_lower.contains("log") && !task_lower.contains("log") { score -= 5; }
+    if desc_lower.contains("test") && !task_lower.contains("test") { score -= 10; }
+
+    score
+}
+
 fn get_template_example(tool: &str, task: &str) -> Option<String> {
     let task_lower = task.to_ascii_lowercase();
     let tool_lower = tool.to_lowercase();

@@ -20,6 +20,8 @@ pub fn apply_corrections_to_args(
             }
         }
 
+        args = clean_help_text_in_args(&args);
+
         if !sdoc.flag_catalog.is_empty() {
             args = validate_flags_against_catalog(&args, &sdoc.flag_catalog, &sdoc.quick_flags);
         }
@@ -77,6 +79,8 @@ pub fn apply_corrections_to_args(
             args = limit_flag_count(&args, sdoc, task);
             args = add_missing_required_flags(&args, sdoc, task);
             args = add_task_implied_flags(&args, sdoc, task);
+            args = fill_missing_flag_values(&args, sdoc, task);
+            args = replace_generic_values(&args, task);
         }
 
         args
@@ -115,6 +119,182 @@ pub fn apply_template_corrections(
     } else {
         args.to_vec()
     }
+}
+
+fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
+    let task_values = extract_task_values(task);
+    let generic_patterns: &[&str] = &[
+        "output.bam", "output.vcf", "output.fastq", "output.fasta",
+        "output.sam", "output.bed", "output.txt", "output_dir/",
+        "output_dir", "genome_index", "reference_index", "database",
+        "input.bam", "input.vcf", "input.fastq", "input.fasta",
+    ];
+
+    let mut result = args.to_vec();
+    let mut used_replacements: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+    for i in 0..result.len() {
+        let val_lower = result[i].to_ascii_lowercase();
+        for pattern in generic_patterns {
+            if val_lower == *pattern {
+                let replacement = if pattern.starts_with("output") {
+                    if let Some(out) = task_values.output_files.iter()
+                        .find(|f| !used_replacements.contains(&f.to_ascii_lowercase())) {
+                        used_replacements.insert(out.to_ascii_lowercase());
+                        Some(out.clone())
+                    } else { None }
+                } else if pattern.contains("index") {
+                    if let Some(ref_file) = task_values.reference_files.iter()
+                        .find(|f| !used_replacements.contains(&f.to_ascii_lowercase())) {
+                        used_replacements.insert(ref_file.to_ascii_lowercase());
+                        Some(ref_file.clone())
+                    } else if let Some(ref_file) = task_values.input_files.iter()
+                        .find(|f| {
+                            let fl = f.to_ascii_lowercase();
+                            (fl.ends_with(".fa") || fl.ends_with(".fasta") || fl.ends_with(".fna"))
+                                && !used_replacements.contains(&fl)
+                        }) {
+                        used_replacements.insert(ref_file.to_ascii_lowercase());
+                        Some(ref_file.clone())
+                    } else { None }
+                } else if *pattern == "database" {
+                    if let Some(db) = task_values.database_files.iter()
+                        .find(|f| !used_replacements.contains(&f.to_ascii_lowercase())) {
+                        used_replacements.insert(db.to_ascii_lowercase());
+                        Some(db.clone())
+                    } else { None }
+                } else if pattern.starts_with("input") {
+                    let ext = if pattern.contains(".bam") { ".bam" }
+                        else if pattern.contains(".vcf") { ".vcf" }
+                        else if pattern.contains(".fastq") { ".fastq" }
+                        else if pattern.contains(".fasta") { ".fasta" }
+                        else { "" };
+                    if let Some(inp) = task_values.input_files.iter()
+                        .find(|f| {
+                            let fl = f.to_ascii_lowercase();
+                            fl.ends_with(ext) && !used_replacements.contains(&fl)
+                        }) {
+                        used_replacements.insert(inp.to_ascii_lowercase());
+                        Some(inp.clone())
+                    } else { None }
+                } else {
+                    None
+                };
+
+                if let Some(repl) = replacement {
+                    result[i] = repl;
+                }
+                break;
+            }
+        }
+    }
+    result
+}
+
+fn clean_help_text_in_args(args: &[String]) -> Vec<String> {
+    let mut result = Vec::new();
+    for arg in args {
+        if arg.starts_with('-') && arg.contains(',') {
+            let parts: Vec<&str> = arg.split(',').collect();
+            if parts.len() == 2 {
+                let first = parts[0];
+                let second = parts[1];
+                if second.starts_with('-') && first.starts_with('-') {
+                    if second.len() <= first.len() {
+                        result.push(second.to_string());
+                    } else {
+                        result.push(first.to_string());
+                    }
+                    continue;
+                }
+                if second.starts_with('-') && !first.contains('=') {
+                    result.push(second.to_string());
+                    continue;
+                }
+            }
+            if arg.contains("=<") || arg.contains("= <") || arg.contains("[") {
+                if let Some(flag_part) = arg.split(',').next() {
+                    let cleaned = flag_part.split('=').next().unwrap_or(flag_part);
+                    result.push(cleaned.to_string());
+                    continue;
+                }
+            }
+        }
+        if arg.starts_with('-') && (arg.contains("[") || arg.contains("=<") || arg.contains("= <")) {
+            if let Some(flag_part) = arg.split('[').next() {
+                let cleaned = flag_part.split('=').next().unwrap_or(flag_part).trim();
+                result.push(cleaned.to_string());
+                continue;
+            }
+        }
+        result.push(arg.clone());
+    }
+    result
+}
+
+fn fill_missing_flag_values(args: &[String], sdoc: &StructuredDoc, task: &str) -> Vec<String> {
+    let task_values = extract_task_values(task);
+    let task_lower = task.to_ascii_lowercase();
+    let mut result = Vec::new();
+    let args_len = args.len();
+
+    let known_value_flags: std::collections::HashSet<String> = sdoc.flag_catalog.iter()
+        .filter(|e| e.value_type.is_some() || e.flag.ends_with('='))
+        .flat_map(|e| {
+            let mut flags = vec![e.flag.split('=').next().unwrap_or(&e.flag).to_string()];
+            if let Some(ref alt) = e.alt_form {
+                flags.push(alt.split('=').next().unwrap_or(alt).to_string());
+            }
+            flags
+        })
+        .collect();
+
+    let mut i = 0;
+    while i < args_len {
+        result.push(args[i].clone());
+        if args[i].starts_with('-') && !args[i].contains('=') {
+            let flag_key = if args[i].starts_with("--") {
+                args[i].as_str()
+            } else if args[i].len() > 2 {
+                &args[i][..2]
+            } else {
+                args[i].as_str()
+            };
+
+            let needs_value = known_value_flags.contains(flag_key);
+            let has_next_value = i + 1 < args_len && !args[i + 1].starts_with('-');
+
+            if needs_value && !has_next_value {
+                let entry = sdoc.flag_catalog.iter().find(|e| {
+                    e.flag.split('=').next().unwrap_or(&e.flag) == flag_key
+                        || e.alt_form.as_ref().map_or(false, |a| a.split('=').next().unwrap_or(a) == flag_key)
+                });
+
+                if let Some(e) = entry {
+                    let desc_lower = e.description.to_ascii_lowercase();
+                    let flag_lower = e.flag.to_ascii_lowercase();
+
+                    if let Some(ref default) = e.default {
+                        result.push(default.clone());
+                    } else if desc_lower.contains("sort") && desc_lower.contains("order") {
+                        result.push("coordinate".to_string());
+                    } else if desc_lower.contains("output") || flag_lower.contains("out") {
+                        if let Some(out) = task_values.output_files.first() {
+                            result.push(out.clone());
+                        }
+                    } else if desc_lower.contains("thread") || desc_lower.contains("cpu") {
+                        result.push("4".to_string());
+                    } else if desc_lower.contains("format") || flag_lower.contains("outfmt") {
+                        if !e.enum_values.is_empty() {
+                            result.push(e.enum_values[0].clone());
+                        }
+                    }
+                }
+            }
+        }
+        i += 1;
+    }
+    result
 }
 
 fn extract_subcommand_from_task(tool: &str, task: &str) -> Option<String> {
@@ -3620,23 +3800,39 @@ pub fn apply_tool_specific_corrections(args: &[String], tool: &str, task: Option
             if let Some(task) = task {
                 let task_lower = task.to_ascii_lowercase();
                 let tv = extract_task_values(task);
-                while !args.is_empty() && !args[0].starts_with('-') {
-                    args.remove(0);
+                let valid_flags: &[&str] = &["-x", "-g", "-i", "-fo", "-t", "-L", "-f", "--edge-min", "--rescue-low-cov"];
+                let mut clean_args = Vec::new();
+                let mut skip_next = false;
+                for (idx, arg) in args.iter().enumerate() {
+                    if skip_next { skip_next = false; continue; }
+                    if arg.starts_with('-') {
+                        if valid_flags.iter().any(|f| *f == arg.as_str()) {
+                            clean_args.push(arg.clone());
+                            if idx + 1 < args.len() && !args[idx + 1].starts_with('-') {
+                                clean_args.push(args[idx + 1].clone());
+                                skip_next = true;
+                            }
+                        }
+                    } else if arg.contains('.') || arg.contains('/') {
+                        clean_args.push(arg.clone());
+                    }
                 }
+                args = clean_args;
                 if !args.iter().any(|a| a == "-x") {
-                    let preset = if task_lower.contains("hifi") || task_lower.contains("ccs") || task_lower.contains("pacbio") {
+                    let preset = if task_lower.contains("hifi") || task_lower.contains("ccs") || task_lower.contains("pacbio hifi") {
                         "ccs"
-                    } else if task_lower.contains("rs") || task_lower.contains("clr") {
+                    } else if task_lower.contains("rs") || task_lower.contains("clr") || task_lower.contains("pacbio clr") {
                         "rs"
                     } else {
                         "ont"
                     };
-                    args.push("-x".to_string());
-                    args.push(preset.to_string());
+                    args.insert(0, "-x".to_string());
+                    args.insert(1, preset.to_string());
                 }
                 if !args.iter().any(|a| a == "-g") {
-                    args.push("-g".to_string());
-                    args.push("5m".to_string());
+                    let g_pos = args.iter().position(|a| a == "-x").map(|p| p + 2).unwrap_or(2);
+                    args.insert(g_pos, "-g".to_string());
+                    args.insert(g_pos + 1, "5m".to_string());
                 }
                 if !args.iter().any(|a| a == "-i") {
                     if let Some(fq) = tv.input_files.iter().find(|f| {
@@ -6169,10 +6365,47 @@ pub fn add_missing_required_flags(args: &[String], sdoc: &StructuredDoc, task: &
         }
     }
 
+    let has_input_file_in_args = args.iter().any(|a| {
+        let al = a.to_ascii_lowercase();
+        al.ends_with(".bam") || al.ends_with(".sam") || al.ends_with(".fq") || al.ends_with(".fastq")
+            || al.ends_with(".fa") || al.ends_with(".fasta") || al.ends_with(".fna")
+            || al.ends_with(".vcf") || al.ends_with(".bed") || al.ends_with(".gtf") || al.ends_with(".gff")
+            || al.ends_with(".gz") || al.ends_with(".fastq.gz") || al.ends_with(".fq.gz")
+    });
+    let has_output_file_in_args = args.iter().any(|a| {
+        let al = a.to_ascii_lowercase();
+        (al.contains("out") || al.contains("result") || al.contains("output"))
+            && (al.contains('.') || al.contains('/'))
+    });
+    let task_has_input = !task_values.input_files.is_empty() || !task_values.read_files.is_empty();
+    let task_has_output = !task_values.output_files.is_empty();
+    let task_has_reference = !task_values.reference_files.is_empty();
+    let task_has_genome_dir = !task_values.genome_dirs.is_empty();
+    let task_mentions_threads = task_lower.contains("thread") || task_lower.contains("cpu")
+        || task_lower.contains("core") || task_lower.contains("parallel")
+        || task_lower.contains("process") || task_lower.contains("-p ") || task_lower.contains("-t ")
+        || task_lower.contains("-@ ");
+
+    let has_any_input_flag = args_lower.contains("input") || args_lower.contains("read")
+        || args_lower.contains("fastq") || args_lower.contains("bam")
+        || args_lower.contains("query") || args_lower.contains("-i ") || args_lower.contains("-f ")
+        || args_lower.contains("-1 ") || args_lower.contains("-r ");
+    let has_any_output_flag = args_lower.contains("output") || args_lower.contains("out")
+        || args_lower.contains("-o ") || args_lower.contains("--out") || args_lower.contains("--o ");
+    let has_any_thread_flag = args_lower.contains("thread") || args_lower.contains("cpu")
+        || args_lower.contains("nproc") || args_lower.contains("-p ") || args_lower.contains("-t ")
+        || args_lower.contains("-@ ") || args_lower.contains("--threads");
+    let has_any_reference_flag = args_lower.contains("reference") || args_lower.contains("ref")
+        || args_lower.contains("genome") || args_lower.contains("index")
+        || args_lower.contains("-x ") || args_lower.contains("-r ");
+    let has_any_db_flag = args_lower.contains("database") || args_lower.contains("db")
+        || args_lower.contains("-d ");
+
     for entry in &sdoc.flag_catalog {
         if !entry.required {
             let desc_lower = entry.description.to_ascii_lowercase();
             let flag_lower = entry.flag.to_ascii_lowercase();
+
             let is_critical = (desc_lower.contains("runmode") || flag_lower.contains("runmode"))
                 || (desc_lower.contains("genomedir") || flag_lower.contains("genomedir"))
                 || (desc_lower.contains("genomefastafiles") || flag_lower.contains("genomefastafiles"))
@@ -6180,7 +6413,28 @@ pub fn add_missing_required_flags(args: &[String], sdoc: &StructuredDoc, task: &
                 || (desc_lower.contains("readfilescommand") || flag_lower.contains("readfilescommand"))
                 || (desc_lower.contains("outsamtype") || flag_lower.contains("outsamtype"))
                 || (desc_lower.contains("outfilenamprefix") || flag_lower.contains("outfilenamprefix"));
-            if !is_critical { continue; }
+
+            let is_semantic_critical = (task_has_input && !has_any_input_flag && !has_input_file_in_args
+                && (desc_lower.contains("input") || desc_lower.contains("read file") || desc_lower.contains("fastq")
+                    || desc_lower.contains("query") || desc_lower.contains("bam file")
+                    || (flag_lower.contains("input") && !desc_lower.contains("format"))))
+            || (task_has_output && !has_any_output_flag && !has_output_file_in_args
+                && (desc_lower.contains("output file") || desc_lower.contains("output dir")
+                    || desc_lower.contains("output prefix") || desc_lower.contains("output name")
+                    || (flag_lower.contains("out") && !desc_lower.contains("format") && !desc_lower.contains("stdout"))))
+            || (task_mentions_threads && !has_any_thread_flag
+                && (desc_lower.contains("thread") || desc_lower.contains("number of cpu") || desc_lower.contains("nproc")
+                    || desc_lower.contains("parallel") || desc_lower.contains("number of process")))
+            || (task_has_reference && !has_any_reference_flag
+                && (desc_lower.contains("reference") || desc_lower.contains("reference genome")
+                    || desc_lower.contains("reference sequence") || desc_lower.contains("genome fasta")))
+            || (task_has_genome_dir && !has_any_reference_flag
+                && (desc_lower.contains("genome dir") || desc_lower.contains("genome directory")
+                    || desc_lower.contains("genome index") || desc_lower.contains("index dir")))
+            || (task_lower.contains("database") && !has_any_db_flag
+                && (desc_lower.contains("database") || desc_lower.contains("db path") || desc_lower.contains("db file")));
+
+            if !is_critical && !is_semantic_critical { continue; }
         }
 
         let flag_present = args_lower.contains(&entry.flag.to_ascii_lowercase());
@@ -6600,6 +6854,58 @@ fn resolve_flag_value(
             v >= 1.0 && v <= 100.0
         }).cloned().or_else(|| entry.default.clone());
     }
+    if desc_lower.contains("index") || flag_lower == "-x" || flag_lower.contains("index-prefix")
+        || flag_lower.contains("index_path") || flag_lower.contains("index-dir") {
+        if desc_lower.contains("dir") || desc_lower.contains("path") || flag_lower.contains("dir") {
+            return task_values.genome_dirs.first().cloned()
+                .or_else(|| entry.default.clone());
+        }
+        return task_values.reference_files.iter()
+            .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
+            .map(|f| {
+                used_files.insert(f.to_ascii_lowercase());
+                f.clone()
+            })
+            .or_else(|| task_values.input_files.iter()
+                .find(|f| {
+                    let fl = f.to_ascii_lowercase();
+                    (fl.ends_with(".fa") || fl.ends_with(".fasta") || fl.ends_with(".fna")
+                        || fl.contains("index") || fl.contains("genome"))
+                        && !used_files.contains(&fl)
+                })
+                .map(|f| {
+                    used_files.insert(f.to_ascii_lowercase());
+                    f.clone()
+                })
+                .or_else(|| entry.default.clone()));
+    }
+    if desc_lower.contains("outfmt") || desc_lower.contains("output format") || flag_lower.contains("outfmt")
+        || flag_lower == "-O" || flag_lower == "--format" {
+        if !entry.enum_values.is_empty() {
+            return Some(entry.enum_values[0].clone());
+        }
+        return entry.default.clone();
+    }
+    if desc_lower.contains("fasta") || desc_lower.contains("fna") {
+        return task_values.input_files.iter()
+            .find(|f| {
+                let fl = f.to_ascii_lowercase();
+                (fl.ends_with(".fa") || fl.ends_with(".fasta") || fl.ends_with(".fna")
+                    || fl.ends_with(".fa.gz") || fl.ends_with(".fasta.gz"))
+                    && !used_files.contains(&fl)
+            })
+            .map(|f| {
+                used_files.insert(f.to_ascii_lowercase());
+                f.clone()
+            })
+            .or_else(|| entry.default.clone());
+    }
+    if desc_lower.contains("seed") || flag_lower.contains("seed") {
+        return task_values.numbers.iter().find(|n| {
+            let v: f64 = n.parse().unwrap_or(0.0);
+            v >= 1.0 && v <= 999999.0
+        }).cloned().or_else(|| entry.default.clone());
+    }
     entry.default.clone()
 }
 
@@ -6652,18 +6958,16 @@ pub fn validate_flags_against_catalog(
         }
     }
 
-    for &universal in &[
-        "-h", "--help", "-v", "--version", "-V", "--verbose",
-        "-q", "--quiet", "-o", "--output", "-i", "--input",
-        "-t", "--threads", "-f", "--force", "-@", "-p",
-        "--outdir", "--prefix", "--out", "--infile",
-        "--nproc", "--cpu", "--memory", "--tmpdir",
-    ] {
-        known.insert(universal.to_string());
-    }
-
     if catalog.is_empty() {
         return args.to_vec();
+    }
+
+    for &universal in &[
+        "-h", "--help", "-v", "--version",
+        "-o", "--output", "-t", "--threads", "-@",
+        "--outdir", "--prefix", "--out",
+    ] {
+        known.insert(universal.to_string());
     }
 
     let mut result: Vec<String> = Vec::new();
@@ -6777,7 +7081,7 @@ pub fn limit_flag_count(
     let flag_count = args.iter().filter(|a| a.starts_with('-')).count();
     let required_count = sdoc.flag_catalog.iter().filter(|e| e.required).count();
 
-    let max_optional = if required_count >= 8 { 3 } else if required_count >= 5 { 4 } else if required_count >= 3 { 4 } else { 5 };
+    let max_optional = if required_count >= 8 { 2 } else if required_count >= 5 { 3 } else if required_count >= 3 { 4 } else { 4 };
     let max_total_flags = required_count + max_optional;
 
     if flag_count <= max_total_flags {

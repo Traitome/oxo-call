@@ -2626,7 +2626,7 @@ pub fn generate_from_template(
 ) -> Option<Vec<String>> {
     let (template, score) = find_best_template_with_score(tool, task)?;
 
-    if score < 8 {
+    if score < 5 {
         return None;
     }
 
