@@ -45,7 +45,9 @@ pub fn system_prompt_medium() -> &'static str {
      4. Files go in \"positional_args\". Extract EXACT paths from task.\n\
      5. Boolean flags use true. Include output and thread flags when task implies them.\n\
      6. FEWER FLAGS IS BETTER. Missing optional flags is OK. Wrong extra flags is BAD.\n\
-     7. Maximum 8 flags total. If you have more than 8, remove the least important ones."
+     7. Maximum 6 flags total. If you have more than 6, remove the least important ones.\n\
+     8. REQUIRED flags marked [REQUIRED] MUST appear. No exceptions.\n\
+     9. For file values, use the EXACT path from the task description."
 }
 
 /// Ultra-compact system prompt for mini models (≤ 3B parameters).

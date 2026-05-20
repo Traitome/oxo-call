@@ -181,11 +181,21 @@ fn resolve_flag_value(
         if desc_lower.contains("stdout") || desc_lower.contains("format") {
             return None;
         }
-        if desc_lower.contains("prefix") {
+        if desc_lower.contains("prefix") || flag_lower.contains("prefix") || flag_lower.contains("-n ") || flag_lower == "-n" {
             return task_values.output_files.first()
                 .map(|f| {
                     let path = std::path::Path::new(f);
-                    path.with_extension("").to_string_lossy().to_string()
+                    let stem = path.file_stem()
+                        .map(|s| s.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "output".to_string());
+                    let parent = path.parent()
+                        .map(|p| p.to_string_lossy().to_string())
+                        .unwrap_or_else(|| ".".to_string());
+                    if parent == "." {
+                        stem
+                    } else {
+                        format!("{}/{}", parent, stem)
+                    }
                 })
                 .or_else(|| entry.default.clone());
         }
@@ -196,6 +206,15 @@ fn resolve_flag_value(
                     path.parent()
                         .map(|p| p.to_string_lossy().to_string())
                         .unwrap_or_else(|| ".".to_string())
+                })
+                .or_else(|| entry.default.clone());
+        }
+        if desc_lower.contains("file") || desc_lower.contains("name") {
+            return task_values.output_files.iter()
+                .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
+                .map(|f| {
+                    used_files.insert(f.to_ascii_lowercase());
+                    f.clone()
                 })
                 .or_else(|| entry.default.clone());
         }
@@ -215,6 +234,12 @@ fn resolve_flag_value(
                 .or_else(|| entry.default.clone());
         }
         if desc_lower.contains("fastq") || desc_lower.contains("fq") || desc_lower.contains("read") {
+            if !task_values.read_files.is_empty() {
+                return task_values.read_files.iter()
+                    .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
+                    .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+                    .or_else(|| entry.default.clone());
+            }
             return find_matching_file(&task_values.input_files, used_files, &[".fq", ".fastq", ".fq.gz", ".fastq.gz"])
                 .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
                 .or_else(|| entry.default.clone());
@@ -224,7 +249,53 @@ fn resolve_flag_value(
                 .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
                 .or_else(|| entry.default.clone());
         }
+        if desc_lower.contains("fasta") || desc_lower.contains("fna") || desc_lower.contains("genome") {
+            return task_values.reference_files.iter()
+                .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
+                .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+                .or_else(|| {
+                    find_matching_file(&task_values.input_files, used_files, &[".fa", ".fasta", ".fna", ".fa.gz", ".fasta.gz"])
+                        .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+                })
+                .or_else(|| entry.default.clone());
+        }
+        if desc_lower.contains("bed") {
+            return find_matching_file(&task_values.input_files, used_files, &[".bed", ".bed.gz"])
+                .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+                .or_else(|| entry.default.clone());
+        }
+        if desc_lower.contains("gtf") || desc_lower.contains("gff") {
+            return task_values.annotation_files.iter()
+                .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
+                .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+                .or_else(|| {
+                    find_matching_file(&task_values.input_files, used_files, &[".gtf", ".gff", ".gff3"])
+                        .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+                })
+                .or_else(|| entry.default.clone());
+        }
         return find_any_unused_file(&task_values.input_files, used_files)
+            .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("query") || flag_lower.contains("query") {
+        return find_matching_file(&task_values.input_files, used_files, &[".fa", ".fasta", ".fna", ".fa.gz", ".fasta.gz"])
+            .or_else(|| find_any_unused_file(&task_values.input_files, used_files))
+            .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("target") || flag_lower.contains("target") {
+        return find_matching_file(&task_values.input_files, used_files, &[".fa", ".fasta", ".fna", ".fa.gz", ".fasta.gz"])
+            .or_else(|| find_any_unused_file(&task_values.input_files, used_files))
+            .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("subject") || flag_lower.contains("subject") {
+        return find_matching_file(&task_values.input_files, used_files, &[".fa", ".fasta", ".fna", ".fa.gz", ".fasta.gz"])
+            .or_else(|| find_any_unused_file(&task_values.input_files, used_files))
             .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
             .or_else(|| entry.default.clone());
     }
@@ -518,14 +589,23 @@ pub fn assemble_command_from_rules(
             || flag_lower == "-@" || flag_lower.contains("thread");
         let is_ref_flag = desc_lower.contains("reference") || flag_lower.contains("ref")
             || desc_lower.contains("genome") || flag_lower == "-x";
+        let is_db_flag = desc_lower.contains("database") || flag_lower.contains("db");
+        let is_annotation_flag = desc_lower.contains("annotation") || desc_lower.contains("gtf") || desc_lower.contains("gff");
 
         let should_auto_include = (is_output_flag && task_has_output)
             || (is_input_flag && task_has_input)
-            || (is_ref_flag && (!task_values.reference_files.is_empty() || !task_values.genome_dirs.is_empty()));
+            || (is_ref_flag && (!task_values.reference_files.is_empty() || !task_values.genome_dirs.is_empty()))
+            || (is_db_flag && !task_values.database_files.is_empty())
+            || (is_annotation_flag && !task_values.annotation_files.is_empty());
 
-        let should_include = entry.required || should_auto_include || score >= 5;
+        let should_include = entry.required || should_auto_include || score >= 8;
 
         if !should_include { continue; }
+
+        if !entry.required && !is_output_flag && !is_input_flag && !is_ref_flag
+            && !is_db_flag && !is_annotation_flag && included_flags.len() >= 12 {
+            continue;
+        }
 
         let value = resolve_flag_value(entry, &desc_lower, &flag_lower, &task_lower, task_values, &mut used_files);
 
@@ -552,10 +632,12 @@ pub fn assemble_command_from_rules(
         .filter(|f| !used_files.contains(&f.to_ascii_lowercase()))
         .collect();
 
-    if !sdoc.usage_pattern.positional_args.is_empty() || !positional_remaining.is_empty() {
+    if !positional_remaining.is_empty() {
         for f in &positional_remaining {
             parts.push((*f).clone());
         }
+    } else if !sdoc.usage_pattern.positional_args.is_empty() && task_values.input_files.is_empty() {
+        // no input files extracted from task
     }
 
     if !task_values.numbers.is_empty() && !sdoc.has_subcommands {

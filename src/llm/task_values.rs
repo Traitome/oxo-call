@@ -291,24 +291,66 @@ pub fn rule_based_subcommand_match(
     subcommand_descriptions: &[(String, String)],
 ) -> Option<String> {
     let task_lower = task.to_ascii_lowercase();
+    let task_words: Vec<&str> = task_lower.split_whitespace()
+        .filter(|w| w.len() >= 3)
+        .collect();
+
+    let desc_stop_words: &[&str] = &[
+        "the", "and", "for", "with", "this", "that", "from", "into",
+        "when", "where", "which", "what", "how", "can", "will",
+        "use", "used", "using", "option", "optional", "default",
+        "file", "path", "name", "value", "number", "list",
+    ];
+
+    let mut best_match: Option<String> = None;
+    let mut best_score = 0i32;
 
     for sub in subcommands {
         let sub_lower = sub.to_ascii_lowercase();
+        let mut score = 0i32;
+
         if task_lower.split_whitespace().any(|w| w == sub_lower) {
-            return Some(sub.clone());
+            score += 50;
         }
-    }
 
-    for sub in subcommands {
-        let sub_lower = sub.to_ascii_lowercase();
         let sub_parts: Vec<&str> = sub_lower.split(|c: char| c == '_' || c == '-')
             .filter(|p| p.len() >= 3)
             .collect();
         for part in &sub_parts {
             if task_lower.contains(part) {
-                return Some(sub.clone());
+                score += 15;
             }
         }
+
+        for word in &task_words {
+            if sub_lower.contains(word) {
+                score += 5;
+            }
+        }
+
+        for (sub_desc, desc) in subcommand_descriptions {
+            if sub.eq_ignore_ascii_case(sub_desc) {
+                let desc_lower = desc.to_ascii_lowercase();
+                for word in &task_words {
+                    if desc_stop_words.contains(word) { continue; }
+                    if desc_lower.split_whitespace().any(|dw| dw == *word) {
+                        score += if word.len() >= 6 { 4 } else if word.len() >= 4 { 3 } else { 2 };
+                    } else if desc_lower.contains(word) {
+                        score += 1;
+                    }
+                }
+                break;
+            }
+        }
+
+        if score > best_score {
+            best_score = score;
+            best_match = Some(sub.clone());
+        }
+    }
+
+    if best_score >= 15 {
+        return best_match;
     }
 
     let synonym_map: &[(&[&str], &[&str])] = &[
@@ -421,6 +463,149 @@ pub fn rule_based_subcommand_match(
         (&["bin", "binning"], &["bin"]),
         (&["ref", "reference", "index"], &["ref"]),
         (&["count", "quantify"], &["count"]),
+        (&["sketch", "compute", "signature", "minhash"], &["sketch", "compute"]),
+        (&["gather", "metagenome", "containment"], &["gather"]),
+        (&["compare", "distance", "similarity"], &["compare"]),
+        (&["search", "find similar", "nearest"], &["search"]),
+        (&["taxonomy", "classify", "annotate"], &["taxonomy"]),
+        (&["predict", "gene predict", "coding"], &["predict"]),
+        (&["batch"], &["batch"]),
+        (&["segment"], &["segment"]),
+        (&["fix", "standardize"], &["fix"]),
+        (&["pileup"], &["pileup", "mpileup"]),
+        (&["phase", "phasing"], &["phase"]),
+        (&["haplotag"], &["haplotag"]),
+        (&["discover"], &["discover"]),
+        (&["consensus", "polish", "correct"], &["consensus"]),
+        (&["assemble", "assembly"], &["assemble"]),
+        (&["extract", "sequence"], &["extract", "agat_sp_extract_sequences"]),
+        (&["statistics", "stats", "gff stats"], &["agat_sp_statistics", "statistics", "stats"]),
+        (&["convert", "format"], &["agat_convert_sp_gff2gtf", "agat_convert_sp_gff2bed", "convert"]),
+        (&["makedb", "database build"], &["makedb"]),
+        (&["easy-search", "search"], &["easy-search"]),
+        (&["easy-cluster", "cluster"], &["easy-cluster"]),
+        (&["createdb"], &["createdb"]),
+        (&["fimo", "motif scan"], &["fimo"]),
+        (&["meme", "motif discover"], &["meme"]),
+        (&["dreme"], &["dreme"]),
+        (&["ame"], &["ame"]),
+        (&["bamcompare"], &["bamCompare"]),
+        (&["plotfingerprint"], &["plotFingerprint"]),
+        (&["multibamsummary"], &["multiBamSummary"]),
+        (&["parse"], &["parse"]),
+        (&["dedup"], &["dedup"]),
+        (&["select"], &["select"]),
+        (&["split"], &["split"]),
+        (&["call-mods"], &["call-mods"]),
+        (&["summary"], &["summary"]),
+        (&["extract"], &["extract"]),
+        (&["pileup"], &["pileup"]),
+        (&["motif-bed"], &["motif-bed"]),
+        (&["sample-probs"], &["sample-probs"]),
+        (&["update-tags"], &["update-tags"]),
+        (&["delta-filter", "filter"], &["delta-filter"]),
+        (&["show-coords"], &["show-coords"]),
+        (&["show-snps"], &["show-snps"]),
+        (&["dnadiff"], &["dnadiff"]),
+        (&["reheader"], &["reheader"]),
+        (&["collate"], &["collate"]),
+        (&["cat"], &["cat"]),
+        (&["calmd"], &["calmd"]),
+        (&["fixmate"], &["fixmate"]),
+        (&["bam2fq"], &["bam2fq"]),
+        (&["dict"], &["dict"]),
+        (&["target"], &["target"]),
+        (&["call"], &["call"]),
+        (&["bamqc"], &["bamqc"]),
+        (&["rnaseq"], &["rnaseq"]),
+        (&["toTDF", "tdf", "count"], &["toTDF"]),
+        (&["prefetch"], &["prefetch"]),
+        (&["fasterq-dump", "fastq-dump", "fastq", "dump"], &["fasterq-dump", "fastq-dump"]),
+        (&["convert"], &["convert"]),
+        (&["findpeaks"], &["findPeaks"]),
+        (&["findMotifsGenome"], &["findMotifsGenome"]),
+        (&["annotatePeaks"], &["annotatePeaks"]),
+        (&["predict"], &["predict"]),
+        (&["bin", "binning"], &["bin"]),
+        (&["ref", "reference", "index"], &["ref"]),
+        (&["count", "quantify"], &["count"]),
+        (&["mbias", "bias"], &["mbias"]),
+        (&["extract", "methylation extract"], &["extract"]),
+        (&["prepare-reference", "prepare reference"], &["rsem-prepare-reference"]),
+        (&["calculate-expression", "calculate expression", "expression"], &["rsem-calculate-expression"]),
+        (&["generate-data-matrix", "data matrix"], &["rsem-generate-data-matrix"]),
+        (&["simulate-reads", "simulate reads"], &["rsem-simulate-reads"]),
+        (&["genome_generation", "genome generation", "generate genome"], &["genomeGenerate"]),
+        (&["align_reads", "alignment"], &["alignReads"]),
+        (&["prefetch", "download sra"], &["prefetch"]),
+        (&["fasterq-dump", "dump fastq", "convert sra"], &["fasterq-dump"]),
+        (&["fastq-dump", "dump fastq old"], &["fastq-dump"]),
+        (&["bam2fq", "bam to fastq", "convert bam to fastq"], &["bam2fq"]),
+        (&["flagstat", "flag statistics"], &["flagstat"]),
+        (&["idxstats", "index statistics"], &["idxstats"]),
+        (&["quickcheck", "quick check"], &["quickcheck"]),
+        (&["collate", "collate bam"], &["collate"]),
+        (&["reheader", "change header"], &["reheader"]),
+        (&["calmd", "calibrate md"], &["calmd"]),
+        (&["fixmate", "fix mate"], &["fixmate"]),
+        (&["markdup", "mark duplicate", "dedup"], &["markdup"]),
+        (&["mpileup", "pileup"], &["mpileup"]),
+        (&["dict", "create sequence dictionary"], &["dict"]),
+        (&["cat", "concatenate"], &["cat"]),
+        (&["merge", "combine bam"], &["merge"]),
+        (&["sort", "sort bam"], &["sort"]),
+        (&["index", "index bam", "bai"], &["index"]),
+        (&["view", "convert bam", "bam to sam"], &["view"]),
+        (&["depth", "coverage depth"], &["depth"]),
+        (&["faidx", "fasta index"], &["faidx"]),
+        (&["stats", "bam statistics"], &["stats"]),
+        (&["bedcov", "bed coverage"], &["bedcov"]),
+        (&["clip", "adapter trim", "trimming"], &["clip"]),
+        (&["plot", "plotting", "visualization"], &["plot"]),
+        (&["report", "generate report"], &["report"]),
+        (&["validate", "validate bam"], &["validate"]),
+        (&["filter", "filter bam", "filter reads"], &["filter"]),
+        (&["split", "split bam"], &["split"]),
+        (&["shuffle", "randomize"], &["shuffle"]),
+        (&["sample", "subsample"], &["sample"]),
+        (&["bam2bed", "bam to bed"], &["bam2bed"]),
+        (&["bam2fastq", "bam to fastq"], &["bam2fastq"]),
+        (&["convert2bed", "to bed"], &["convert2bed"]),
+        (&["coverage", "compute coverage"], &["coverage"]),
+        (&["genomecov", "genome coverage"], &["genomecov"]),
+        (&["intersect", "overlap", "intersect intervals"], &["intersect"]),
+        (&["window", "window overlap"], &["window"]),
+        (&["closest", "nearest"], &["closest"]),
+        (&["merge", "merge intervals", "merge bed"], &["merge"]),
+        (&["sort", "sort bed"], &["sort"]),
+        (&["slop", "extend intervals"], &["slop"]),
+        (&["shift", "shift intervals"], &["shift"]),
+        (&["subtract", "remove intervals"], &["subtract"]),
+        (&["complement", "complement intervals"], &["complement"]),
+        (&["getfasta", "extract sequences", "sequence from bed"], &["getfasta"]),
+        (&["makewindows", "create windows", "tile genome"], &["makewindows"]),
+        (&["groupby", "group by"], &["groupby"]),
+        (&["map", "apply function"], &["map"]),
+        (&["multiinter", "multiple intersect"], &["multiinter"]),
+        (&["unionbedg", "union bedgraph"], &["unionbedg"]),
+        (&["pairtobed", "pair to bed"], &["pairtobed"]),
+        (&["pairtopair", "pair to pair"], &["pairtopair"]),
+        (&["bamtofastq", "bam to fastq"], &["bamtofastq"]),
+        (&["bamtobed", "bam to bed"], &["bamtobed"]),
+        (&["bamtoigv", "bam to igv"], &["bamtoigv"]),
+        (&["tagbam", "tag bam"], &["tagbam"]),
+        (&["tagbed", "tag bed"], &["tagbed"]),
+        (&["multiinter", "multiple intersect"], &["multiinter"]),
+        (&["jaccard", "jaccard similarity"], &["jaccard"]),
+        (&["fisher", "fisher test"], &["fisher"]),
+        (&["reldist", "relative distance"], &["reldist"]),
+        (&["nuc", "nucleotide content"], &["nuc"]),
+        (&["annotate", "annotate intervals"], &["annotate"]),
+        (&["flank", "flank intervals"], &["flank"]),
+        (&["sample", "random sample"], &["sample"]),
+        (&["spacing", "interval spacing"], &["spacing"]),
+        (&["cluster", "cluster intervals"], &["cluster"]),
+        (&["disjoin", "disjoint intervals"], &["disjoin"]),
     ];
 
     for (task_synonyms, sub_synonyms) in synonym_map {
@@ -435,52 +620,7 @@ pub fn rule_based_subcommand_match(
         }
     }
 
-    let task_words: Vec<&str> = task_lower.split_whitespace()
-        .filter(|w| w.len() >= 3)
-        .collect();
-    let mut best_match: Option<String> = None;
-    let mut best_score = 0i32;
-
-    let desc_stop_words: &[&str] = &[
-        "the", "and", "for", "with", "this", "that", "from", "into",
-        "when", "where", "which", "what", "how", "can", "will",
-        "use", "used", "using", "option", "optional", "default",
-        "file", "path", "name", "value", "number", "list",
-    ];
-
-    for (sub, desc) in subcommand_descriptions {
-        let desc_lower = desc.to_ascii_lowercase();
-        let sub_lower = sub.to_ascii_lowercase();
-        let mut score = 0i32;
-
-        for word in &task_words {
-            if desc_stop_words.contains(word) { continue; }
-            if desc_lower.split_whitespace().any(|dw| dw == *word) {
-                score += if word.len() >= 6 { 4 } else if word.len() >= 4 { 3 } else { 2 };
-            } else if desc_lower.contains(word) {
-                score += 1;
-            }
-            if sub_lower.contains(word) {
-                score += 3;
-            }
-        }
-
-        let sub_parts: Vec<&str> = sub_lower.split(|c: char| c == '_' || c == '-')
-            .filter(|p| p.len() >= 3)
-            .collect();
-        for part in &sub_parts {
-            if task_lower.contains(part) {
-                score += 5;
-            }
-        }
-
-        if score > best_score {
-            best_score = score;
-            best_match = Some(sub.clone());
-        }
-    }
-
-    if best_score >= 3 {
+    if best_score >= 5 {
         return best_match;
     }
 

@@ -81,6 +81,7 @@ pub fn apply_corrections_to_args(
             args = add_task_implied_flags(&args, sdoc, task);
             args = fill_missing_flag_values(&args, sdoc, task);
             args = replace_generic_values(&args, task);
+            args = enforce_mandatory_positional_args(&args, tool, task, sdoc);
         }
 
         args
@@ -138,14 +139,38 @@ fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
         "metrics.txt", "result.txt", "result.tsv", "result.csv",
         "out.sam", "out.bam", "out.vcf", "out.fastq", "out.fasta",
         "output_file", "input_file", "output_path", "input_path",
+        "input1", "input2", "output1", "output2",
+        "input.bam", "input2.bam", "output.bam",
+        "input.fq", "input.fastq", "input.fa", "input.fasta",
+        "output.html", "output.json", "output.log",
+        "reference.fasta", "genome.fa", "genome.fasta",
+        "reads_1.fq.gz", "reads_2.fq.gz",
+        "sample.fastq", "sample.fq", "sample.bam",
+        "sample_1.fastq", "sample_2.fastq",
+        "sample_R1.fastq.gz", "sample_R2.fastq.gz",
+        "r1.fastq.gz", "r2.fastq.gz",
+        "read1.fq", "read2.fq", "read1.fastq", "read2.fastq",
+        "contigs.fasta", "assembly.fasta",
+        "variants.vcf", "snps.vcf",
+        "aligned.sam", "aligned.bam",
+        "sorted.bam", "dedup.bam",
     ];
 
     let placeholder_prefixes: &[&str] = &[
         "/path/to/", "path/to/", "<", "example_", "sample_",
+        "your_", "my_", "the_", "placeholder_",
     ];
 
     let mut result = args.to_vec();
     let mut used_replacements: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+    let prev_flag = |result: &[String], i: usize| -> Option<String> {
+        if i > 0 && result[i - 1].starts_with('-') {
+            Some(result[i - 1].to_ascii_lowercase())
+        } else {
+            None
+        }
+    };
 
     for i in 0..result.len() {
         if result[i].starts_with('-') { continue; }
@@ -153,11 +178,15 @@ fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
 
         let is_placeholder = generic_patterns.iter().any(|p| val_lower == *p)
             || placeholder_prefixes.iter().any(|p| val_lower.starts_with(p))
-            || (val_lower.starts_with('<') && val_lower.ends_with('>'));
+            || (val_lower.starts_with('<') && val_lower.ends_with('>'))
+            || (val_lower == "output" && i > 0 && result[i-1].starts_with('-'))
+            || (val_lower == "input" && i > 0 && result[i-1].starts_with('-'));
 
         if !is_placeholder { continue; }
 
-        let replacement = if val_lower.starts_with("output") || val_lower.starts_with("out.") || val_lower.starts_with("out_") {
+        let flag_hint = prev_flag(&result, i);
+
+        let replacement = if val_lower.starts_with("output") || val_lower.starts_with("out.") || val_lower.starts_with("out_") || val_lower == "output" {
             task_values.output_files.iter()
                 .find(|f| !used_replacements.contains(&f.to_ascii_lowercase()))
                 .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
@@ -191,7 +220,7 @@ fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
                         })
                         .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
                 })
-        } else if val_lower.contains("reference") || val_lower.contains("ref.") || val_lower == "ref.fa" || val_lower == "ref.fasta" {
+        } else if val_lower.contains("reference") || val_lower.contains("ref.") || val_lower == "ref.fa" || val_lower == "ref.fasta" || val_lower.contains("genome.fa") || val_lower.contains("genome.fasta") {
             task_values.reference_files.iter()
                 .find(|f| !used_replacements.contains(&f.to_ascii_lowercase()))
                 .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
@@ -216,7 +245,7 @@ fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
                     find_any_unused_file(&task_values.input_files, &used_replacements)
                         .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
                 })
-        } else if val_lower.contains("fastq") || val_lower.contains("reads") {
+        } else if val_lower.contains("fastq") || val_lower.contains("reads") || val_lower.contains("read1") || val_lower.contains("read2") || val_lower.contains("r1") || val_lower.contains("r2") {
             task_values.read_files.iter()
                 .find(|f| !used_replacements.contains(&f.to_ascii_lowercase()))
                 .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
@@ -229,7 +258,7 @@ fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
                         })
                         .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
                 })
-        } else if val_lower.contains("bam") || val_lower.contains("sam") {
+        } else if val_lower.contains("bam") || val_lower.contains("sam") || val_lower.contains("aligned") || val_lower.contains("sorted") || val_lower.contains("dedup") {
             task_values.input_files.iter()
                 .find(|f| {
                     let fl = f.to_ascii_lowercase();
@@ -237,14 +266,42 @@ fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
                         && !used_replacements.contains(&fl)
                 })
                 .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
-        } else if val_lower.contains("vcf") {
-            task_values.input_files.iter()
-                .find(|f| {
-                    let fl = f.to_ascii_lowercase();
-                    (fl.ends_with(".vcf") || fl.ends_with(".bcf"))
-                        && !used_replacements.contains(&fl)
+                .or_else(|| {
+                    if let Some(ref flag) = flag_hint {
+                        if flag.contains("out") || flag == "-o" || flag == "--output" || flag == "-O" {
+                            task_values.output_files.iter()
+                                .find(|f| {
+                                    let fl = f.to_ascii_lowercase();
+                                    (fl.ends_with(".bam") || fl.ends_with(".sam"))
+                                        && !used_replacements.contains(&fl)
+                                })
+                                .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
                 })
-                .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+        } else if val_lower.contains("vcf") || val_lower.contains("variants") || val_lower.contains("snps") {
+            let is_out_flag = flag_hint.as_ref().map_or(false, |f| f.contains("out") || f == "-o" || f == "--output" || f == "-v");
+            if is_out_flag {
+                task_values.output_files.iter()
+                    .find(|f| {
+                        let fl = f.to_ascii_lowercase();
+                        (fl.ends_with(".vcf") || fl.ends_with(".bcf"))
+                            && !used_replacements.contains(&fl)
+                    })
+                    .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+            } else {
+                task_values.input_files.iter()
+                    .find(|f| {
+                        let fl = f.to_ascii_lowercase();
+                        (fl.ends_with(".vcf") || fl.ends_with(".bcf"))
+                            && !used_replacements.contains(&fl)
+                    })
+                    .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+            }
         } else if val_lower.contains("bed") {
             task_values.input_files.iter()
                 .find(|f| {
@@ -252,11 +309,35 @@ fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
                     fl.ends_with(".bed") && !used_replacements.contains(&fl)
                 })
                 .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+        } else if val_lower.contains("contig") || val_lower.contains("assembly") || val_lower.contains("fasta") || val_lower.contains(".fa") || val_lower.contains(".fna") {
+            let is_out_flag = flag_hint.as_ref().map_or(false, |f| f.contains("out") || f == "-o" || f == "--output");
+            if is_out_flag {
+                task_values.output_files.iter()
+                    .find(|f| {
+                        let fl = f.to_ascii_lowercase();
+                        (fl.ends_with(".fa") || fl.ends_with(".fasta") || fl.ends_with(".fna"))
+                            && !used_replacements.contains(&fl)
+                    })
+                    .or_else(|| task_values.output_files.iter().find(|f| !used_replacements.contains(&f.to_ascii_lowercase())))
+                    .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+            } else {
+                task_values.reference_files.iter()
+                    .find(|f| !used_replacements.contains(&f.to_ascii_lowercase()))
+                    .or_else(|| {
+                        task_values.input_files.iter()
+                            .find(|f| {
+                                let fl = f.to_ascii_lowercase();
+                                (fl.ends_with(".fa") || fl.ends_with(".fasta") || fl.ends_with(".fna"))
+                                    && !used_replacements.contains(&fl)
+                            })
+                    })
+                    .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+            }
         } else if val_lower.starts_with("input") {
             let ext = if val_lower.contains(".bam") { ".bam" }
                 else if val_lower.contains(".vcf") { ".vcf" }
-                else if val_lower.contains(".fastq") { ".fastq" }
-                else if val_lower.contains(".fasta") { ".fasta" }
+                else if val_lower.contains(".fastq") || val_lower.contains(".fq") { ".fastq" }
+                else if val_lower.contains(".fasta") || val_lower.contains(".fa") { ".fasta" }
                 else if val_lower.contains(".sam") { ".sam" }
                 else if val_lower.contains(".bed") { ".bed" }
                 else if val_lower.contains(".txt") { ".txt" }
@@ -275,9 +356,19 @@ fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
         } else if val_lower.starts_with("/path/to/") || val_lower.starts_with("path/to/") {
             find_any_unused_file(&task_values.input_files, &used_replacements)
                 .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
-        } else {
+        } else if val_lower == "input" {
             find_any_unused_file(&task_values.input_files, &used_replacements)
                 .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+        } else {
+            let is_out_flag = flag_hint.as_ref().map_or(false, |f| f.contains("out") || f == "-o" || f == "--output" || f == "-O");
+            if is_out_flag {
+                task_values.output_files.iter()
+                    .find(|f| !used_replacements.contains(&f.to_ascii_lowercase()))
+                    .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+            } else {
+                find_any_unused_file(&task_values.input_files, &used_replacements)
+                    .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+            }
         };
 
         if let Some(repl) = replacement {
@@ -285,6 +376,489 @@ fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
         }
     }
     result
+}
+
+fn enforce_mandatory_positional_args(
+    args: &[String],
+    tool: &str,
+    task: &str,
+    sdoc: &StructuredDoc,
+) -> Vec<String> {
+    let mut args = args.to_vec();
+    let task_lower = task.to_ascii_lowercase();
+    let task_values = extract_task_values(task);
+
+    let flag_set: std::collections::HashSet<String> = sdoc.flag_catalog.iter()
+        .flat_map(|e| {
+            let mut flags = vec![e.flag.to_ascii_lowercase()];
+            if let Some(ref alt) = e.alt_form { flags.push(alt.to_ascii_lowercase()); }
+            flags
+        })
+        .collect();
+
+    let non_flag_non_subcmd_args: Vec<&String> = args.iter()
+        .filter(|a| {
+            !a.starts_with('-')
+                && !flag_set.contains(&a.to_ascii_lowercase())
+                && !sdoc.subcommands.iter().any(|s| s.eq_ignore_ascii_case(a))
+        })
+        .collect();
+
+    let subcmd_offset = if sdoc.has_subcommands && !args.is_empty()
+        && sdoc.subcommands.iter().any(|s| s.eq_ignore_ascii_case(&args[0])) {
+        1
+    } else {
+        0
+    };
+
+    match tool {
+        "grep" => {
+            let has_pattern = args.iter().enumerate().any(|(i, a)| {
+                i >= subcmd_offset && !a.starts_with('-') && !flag_set.contains(&a.to_ascii_lowercase())
+                    && !a.contains('.') && !a.contains('/') && a.len() > 0
+                    && !task_values.input_files.iter().any(|f| f == a)
+            });
+            if !has_pattern {
+                if let Some(pattern) = extract_grep_pattern(task) {
+                    let insert_pos = find_pattern_insert_pos(&args, subcmd_offset);
+                    args.insert(insert_pos, pattern);
+                }
+            }
+            let has_input_file = args.iter().any(|a| {
+                let al = a.to_ascii_lowercase();
+                task_values.input_files.iter().any(|f| f.to_ascii_lowercase() == al)
+                    || (al.contains('.') && !al.starts_with('-') && !flag_set.contains(&al))
+            });
+            if !has_input_file {
+                if let Some(input) = task_values.input_files.first() {
+                    args.push(input.clone());
+                }
+            }
+        }
+        "awk" => {
+            let has_program = args.iter().any(|a| {
+                a.starts_with('\'') || a.starts_with('{') || a.contains("print")
+                    || a.contains("END") || a.contains("BEGIN") || a.contains("$")
+                    || a.contains("if(") || a.contains("for(")
+            });
+            if !has_program {
+                if let Some(program) = generate_awk_program(task) {
+                    let insert_pos = find_program_insert_pos(&args, subcmd_offset);
+                    args.insert(insert_pos, program);
+                }
+            }
+            let has_input_file = args.iter().any(|a| {
+                let al = a.to_ascii_lowercase();
+                task_values.input_files.iter().any(|f| f.to_ascii_lowercase() == al)
+                    || (al.contains('.') && !al.starts_with('-') && !flag_set.contains(&al))
+            });
+            if !has_input_file {
+                if let Some(input) = task_values.input_files.first() {
+                    args.push(input.clone());
+                }
+            }
+        }
+        "sed" => {
+            let has_expr = args.iter().any(|a| {
+                a.starts_with('\'') || a.contains("s/") || a.contains("/d")
+                    || a.contains("/p") || a.contains("/a") || a.contains("/i")
+                    || a.contains("/c")
+            });
+            if !has_expr {
+                if let Some(expr) = generate_sed_expression(task) {
+                    let insert_pos = find_program_insert_pos(&args, subcmd_offset);
+                    args.insert(insert_pos, expr);
+                }
+            }
+            let has_input_file = args.iter().any(|a| {
+                let al = a.to_ascii_lowercase();
+                task_values.input_files.iter().any(|f| f.to_ascii_lowercase() == al)
+                    || (al.contains('.') && !al.starts_with('-') && !flag_set.contains(&al))
+            });
+            if !has_input_file {
+                if let Some(input) = task_values.input_files.first() {
+                    args.push(input.clone());
+                }
+            }
+        }
+        "ssh" => {
+            let has_dest = args.iter().any(|a| a.contains('@') || a.contains("hostname") || a.contains("host"));
+            if !has_dest {
+                if let Some(dest) = extract_ssh_destination(task) {
+                    let insert_pos = find_dest_insert_pos(&args);
+                    args.insert(insert_pos, dest);
+                }
+            }
+            let has_command = args.iter().any(|a| a.starts_with('\'') || a.starts_with('"'));
+            if !has_command {
+                if let Some(cmd) = extract_ssh_command(task) {
+                    args.push(cmd);
+                }
+            }
+        }
+        "tar" => {
+            let has_archive = args.iter().any(|a| {
+                (a.ends_with(".tar.gz") || a.ends_with(".tgz") || a.ends_with(".tar.bz2")
+                    || a.ends_with(".tar.xz") || a.ends_with(".tar"))
+                    && !a.starts_with('-')
+            });
+            let has_files = non_flag_non_subcmd_args.iter().any(|a| {
+                !a.ends_with(".tar.gz") && !a.ends_with(".tgz") && !a.ends_with(".tar.bz2")
+                    && !a.ends_with(".tar.xz") && !a.ends_with(".tar")
+            });
+            if !has_archive || !has_files {
+                if let Some(archive) = task_values.output_files.first() {
+                    if !has_archive {
+                        let pos = find_archive_insert_pos(&args);
+                        args.insert(pos, archive.clone());
+                    }
+                }
+                if !has_files {
+                    for f in &task_values.input_files {
+                        if !args.contains(f) {
+                            args.push(f.clone());
+                        }
+                    }
+                }
+            }
+        }
+        "find" => {
+            let has_path = args.iter().any(|a| {
+                !a.starts_with('-') && (a.contains('/') || a == "." || a == "..")
+                    && !flag_set.contains(&a.to_ascii_lowercase())
+            });
+            if !has_path {
+                if let Some(dir) = task_values.genome_dirs.first() {
+                    args.insert(0, dir.clone());
+                } else {
+                    args.insert(0, ".".to_string());
+                }
+            }
+        }
+        "rm" => {
+            let has_target = non_flag_non_subcmd_args.iter().any(|a| {
+                a.contains('.') || a.contains('/') || a.contains('*')
+            });
+            if !has_target {
+                for f in &task_values.input_files {
+                    if !args.contains(f) {
+                        args.push(f.clone());
+                    }
+                }
+            }
+        }
+        "curl" | "wget" => {
+            let has_url = args.iter().any(|a| a.starts_with("http") || a.starts_with("ftp"));
+            if !has_url {
+                if let Some(url) = task_values.input_files.iter().find(|f| f.starts_with("http") || f.starts_with("ftp")) {
+                    if !args.contains(url) {
+                        args.push(url.clone());
+                    }
+                }
+            }
+        }
+        "rsync" => {
+            let has_source = args.iter().any(|a| a.contains(':') || a.contains('/') || a.contains('@'));
+            if !has_source {
+                for f in &task_values.input_files {
+                    if !args.contains(f) {
+                        args.push(f.clone());
+                    }
+                }
+            }
+        }
+        "nextflow" => {
+            let has_pipeline = args.iter().any(|a| {
+                a.contains('/') || a.ends_with(".nf") || a.contains("nf-core")
+                    || a == "run" || a == "pull" || a == "list" || a == "clean"
+            });
+            if !has_pipeline && !args.iter().any(|a| a == "run" || a == "pull" || a == "list") {
+                if let Some(pipeline) = extract_nextflow_pipeline(task) {
+                    let insert_pos = if !args.is_empty() && !args[0].starts_with('-') { 1 } else { 0 };
+                    args.insert(insert_pos.min(args.len()), pipeline);
+                }
+            }
+        }
+        _ => {
+            if !sdoc.usage_pattern.positional_args.is_empty() && non_flag_non_subcmd_args.is_empty() {
+                for f in &task_values.input_files {
+                    if !args.contains(f) {
+                        args.push(f.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    args
+}
+
+fn find_pattern_insert_pos(args: &[String], subcmd_offset: usize) -> usize {
+    let mut pos = subcmd_offset;
+    for (i, arg) in args.iter().enumerate() {
+        if i < subcmd_offset { continue; }
+        if arg.starts_with('-') {
+            pos = i + 1;
+            if pos < args.len() && !args[pos].starts_with('-') {
+                pos += 1;
+            }
+        } else {
+            break;
+        }
+    }
+    pos.min(args.len())
+}
+
+fn find_program_insert_pos(args: &[String], subcmd_offset: usize) -> usize {
+    let mut pos = subcmd_offset;
+    for (i, arg) in args.iter().enumerate() {
+        if i < subcmd_offset { continue; }
+        if arg.starts_with('-') {
+            pos = i + 1;
+            if pos < args.len() && !args[pos].starts_with('-') && !args[pos].starts_with('\'') {
+                pos += 1;
+            }
+        } else {
+            break;
+        }
+    }
+    pos.min(args.len())
+}
+
+fn find_dest_insert_pos(args: &[String]) -> usize {
+    for (i, arg) in args.iter().enumerate() {
+        if arg.starts_with('-') {
+            continue;
+        }
+        if arg.contains('@') {
+            return i;
+        }
+        return i;
+    }
+    args.len()
+}
+
+fn find_archive_insert_pos(args: &[String]) -> usize {
+    for (i, arg) in args.iter().enumerate() {
+        if !arg.starts_with('-') {
+            return i;
+        }
+    }
+    args.len()
+}
+
+fn generate_awk_program(task: &str) -> Option<String> {
+    let task_lower = task.to_ascii_lowercase();
+
+    if let Some(start) = task.find('\'') {
+        if let Some(end) = task.rfind('\'') {
+            if start < end {
+                let program = &task[start..=end];
+                if program.len() > 3 {
+                    return Some(program.to_string());
+                }
+            }
+        }
+    }
+
+    if task_lower.contains("sum") || task_lower.contains("total") {
+        if task_lower.contains("average") || task_lower.contains("mean") {
+            return Some("'{sum+=$1; n++} END{if(n>0) print \"Average:\", sum/n}'".to_string());
+        }
+        return Some("'{sum+=$1} END{print \"Total:\", sum}'".to_string());
+    }
+    if task_lower.contains("count") {
+        return Some("'{count[$1]++} END{for(k in count) print k, count[k]}'".to_string());
+    }
+    if task_lower.contains("print") || task_lower.contains("extract") {
+        if task_lower.contains("column") || task_lower.contains("field") {
+            let col = extract_column_number(task);
+            return Some(format!("'{{print ${}}}'", col));
+        }
+        return Some("'{print $1}'".to_string());
+    }
+    if task_lower.contains("filter") || task_lower.contains("greater") || task_lower.contains("larger") {
+        let col = extract_column_number(task);
+        let threshold = extract_threshold(task);
+        return Some(format!("'${} > {} {{print $0}}'", col, threshold));
+    }
+    if task_lower.contains("delimiter") || task_lower.contains("separator") || task_lower.contains("csv") {
+        return Some("'{print $1,$2}'".to_string());
+    }
+
+    None
+}
+
+fn extract_column_number(task: &str) -> usize {
+    let words: Vec<&str> = task.split_whitespace().collect();
+    for (i, w) in words.iter().enumerate() {
+        let wl = w.to_ascii_lowercase();
+        if wl == "column" || wl == "field" || wl == "col" {
+            if i + 1 < words.len() {
+                if let Ok(n) = words[i + 1].parse::<usize>() {
+                    return n;
+                }
+                let next = words[i + 1].to_ascii_lowercase();
+                if next == "first" || next == "1st" { return 1; }
+                if next == "second" || next == "2nd" { return 2; }
+                if next == "third" || next == "3rd" { return 3; }
+            }
+        }
+    }
+    for w in &words {
+        if let Ok(n) = w.parse::<usize>() {
+            if n >= 1 && n <= 20 { return n; }
+        }
+    }
+    1
+}
+
+fn extract_threshold(task: &str) -> &str {
+    let words: Vec<&str> = task.split_whitespace().collect();
+    for w in &words {
+        if let Ok(n) = w.parse::<f64>() {
+            if n > 0.0 { return w; }
+        }
+    }
+    "100"
+}
+
+fn generate_sed_expression(task: &str) -> Option<String> {
+    let task_lower = task.to_ascii_lowercase();
+
+    if let Some(start) = task.find('\'') {
+        if let Some(end) = task.rfind('\'') {
+            if start < end {
+                let expr = &task[start..=end];
+                if expr.len() > 3 {
+                    return Some(expr.to_string());
+                }
+            }
+        }
+    }
+
+    if task_lower.contains("replace") || task_lower.contains("substitute") {
+        let (old, new) = extract_replace_pairs(task);
+        return Some(format!("'s/{}/{}/g'", old, new));
+    }
+    if task_lower.contains("delete") || task_lower.contains("remove") {
+        if task_lower.contains("empty") || task_lower.contains("blank") {
+            return Some("'/^$/d'".to_string());
+        }
+        if task_lower.contains("comment") || task_lower.contains("#") {
+            return Some("'/^#/d'".to_string());
+        }
+        return Some("'/pattern/d'".to_string());
+    }
+    if task_lower.contains("extract") || task_lower.contains("print") || task_lower.contains("show") {
+        return Some("'/pattern/p'".to_string());
+    }
+    if task_lower.contains("insert") || task_lower.contains("add") {
+        return Some("'/pattern/a text'".to_string());
+    }
+
+    None
+}
+
+fn extract_replace_pairs(task: &str) -> (String, String) {
+    let task_lower = task.to_ascii_lowercase();
+    let with_pos = task_lower.find(" with ");
+    let replace_pos = task_lower.find("replace ").or_else(|| task_lower.find("substitute "));
+
+    if let Some(with) = with_pos {
+        let before_with = &task[..with];
+        let after_with = &task[with + 6..];
+        let new = after_with.split_whitespace().next().unwrap_or("new").to_string();
+
+        if let Some(rep) = replace_pos {
+            let after_rep = &before_with[rep + 8..];
+            let old = after_rep.split_whitespace().next().unwrap_or("old").to_string();
+            return (old, new);
+        }
+    }
+
+    if let Some(start) = task.find('"') {
+        if let Some(end) = task.rfind('"') {
+            if start < end {
+                let content = &task[start + 1..end];
+                if content.contains(" with ") {
+                    let parts: Vec<&str> = content.splitn(2, " with ").collect();
+                    if parts.len() == 2 {
+                        return (parts[0].to_string(), parts[1].to_string());
+                    }
+                }
+                if content.contains('/') {
+                    let parts: Vec<&str> = content.splitn(2, '/').collect();
+                    if parts.len() == 2 {
+                        return (parts[0].to_string(), parts[1].to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    ("old".to_string(), "new".to_string())
+}
+
+fn extract_ssh_destination(task: &str) -> Option<String> {
+    for word in task.split_whitespace() {
+        if word.contains('@') && word.contains('.') {
+            return Some(word.to_string());
+        }
+    }
+    let task_lower = task.to_ascii_lowercase();
+    if task_lower.contains("localhost") {
+        return Some("user@localhost".to_string());
+    }
+    if task_lower.contains("remote") || task_lower.contains("server") {
+        return Some("user@hostname".to_string());
+    }
+    None
+}
+
+fn extract_ssh_command(task: &str) -> Option<String> {
+    if let Some(start) = task.find('\'') {
+        if let Some(end) = task.rfind('\'') {
+            if start < end {
+                let cmd = &task[start..=end];
+                if cmd.len() > 2 {
+                    return Some(cmd.to_string());
+                }
+            }
+        }
+    }
+    if let Some(start) = task.find('"') {
+        if let Some(end) = task.rfind('"') {
+            if start < end {
+                let cmd = &task[start..=end];
+                if cmd.len() > 2 {
+                    return Some(cmd.to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
+fn extract_nextflow_pipeline(task: &str) -> Option<String> {
+    for word in task.split_whitespace() {
+        if word.contains("nf-core/") || word.contains("/") {
+            let cleaned = word.trim_matches(|c: char| c == ',' || c == '.' || c == ';');
+            if cleaned.contains("/") && cleaned.len() > 3 {
+                return Some(cleaned.to_string());
+            }
+        }
+        if word.ends_with(".nf") {
+            return Some(word.to_string());
+        }
+    }
+    let task_lower = task.to_ascii_lowercase();
+    if task_lower.contains("rnaseq") { return Some("nf-core/rnaseq".to_string()); }
+    if task_lower.contains("chipseq") { return Some("nf-core/chipseq".to_string()); }
+    if task_lower.contains("sarek") { return Some("nf-core/sarek".to_string()); }
+    if task_lower.contains("atacseq") { return Some("nf-core/atacseq".to_string()); }
+    if task_lower.contains("viralrecon") { return Some("nf-core/viralrecon".to_string()); }
+    None
 }
 
 fn find_any_unused_file<'a>(
@@ -856,11 +1430,11 @@ fn extract_subcommand_from_task(tool: &str, task: &str) -> Option<String> {
             (&["inspect", "bowtie2-inspect", "inspect index"], "bowtie2-inspect"),
         ],
         "bwa" => &[
-            (&["mem", "bwa mem", "align read", "map read"], "mem"),
+            (&["mem", "bwa mem", "align", "map ", "mapping", "paired-end", "single-end", "long read", "ont2d", "pacbio"], "mem"),
             (&["index", "bwa index", "build index"], "index"),
         ],
         "bwa-mem2" => &[
-            (&["mem", "bwa-mem2 mem", "align read", "map read"], "mem"),
+            (&["mem", "bwa-mem2 mem", "align", "map ", "mapping", "paired-end", "single-end", "long read", "ont2d", "pacbio", "soft-clip"], "mem"),
             (&["index", "bwa-mem2 index", "build index"], "index"),
         ],
         "wget" => &[
@@ -1347,7 +1921,6 @@ fn get_subcmd_keywords(subcmd: &str) -> &[&str] {
 }
 
 fn extract_grep_pattern(task: &str) -> Option<String> {
-    let task_lower = task.to_ascii_lowercase();
     if let Some(start) = task.find('"') {
         if let Some(end) = task.rfind('"') {
             if start < end {
@@ -1368,22 +1941,123 @@ fn extract_grep_pattern(task: &str) -> Option<String> {
             }
         }
     }
-    let pattern_keywords = [
-        ("搜索", "search for"), ("查找", "find"), ("匹配", "match"),
-        ("包含", "contain"), ("关键字", "keyword"), ("模式", "pattern"),
+
+    let task_lower = task.to_ascii_lowercase();
+
+    let specific_patterns: &[(&str, &str)] = &[
+        ("error", "\"error\""), ("warning", "\"warning\""), ("exception", "\"exception\""),
+        ("todo", "\"TODO\""), ("fixme", "\"FIXME\""), ("hack", "\"HACK\""),
+        ("nullpointer", "\"NullPointerException\""),
+        ("^error", "\"^ERROR\""), ("^# ", "\"^#\""), ("^$", "\"^$\""),
+        ("def ", "\"def \""), ("class ", "\"class \""), ("function ", "\"function \""),
+        ("import ", "\"import \""), ("from ", "\"from \""),
     ];
-    for (cn, _en) in &pattern_keywords {
-        if let Some(pos) = task_lower.find(cn) {
-            let after = &task[pos + cn.len()..];
-            let trimmed = after.trim_start_matches(|c: char| c == ' ' || c == ':' || c == '：');
-            if let Some(word) = trimmed.split_whitespace().next() {
-                if word.len() > 0 && !word.starts_with('(') && !word.starts_with('（') {
-                    return Some(format!("\"{}\"", word));
+    for (pattern, replacement) in specific_patterns {
+        if task_lower.contains(pattern) {
+            return Some(replacement.to_string());
+        }
+    }
+
+    let high_priority_keywords: &[(&str, &str)] = &[
+        ("search for ", "after"), ("find lines ", "after"), ("find ", "after"),
+        ("look for ", "after"), ("grep for ", "after"),
+        ("lines containing ", "after"), ("lines matching ", "after"),
+        ("lines with ", "after"), ("pattern ", "after"),
+        ("keyword ", "after"), ("string ", "after"),
+    ];
+    for (keyword, _) in high_priority_keywords {
+        if let Some(pos) = task_lower.find(keyword) {
+            let after = &task[pos + keyword.len()..];
+            let trimmed = after.trim_start_matches(|c: char| c == ' ' || c == ':' || c == ',');
+            let rest = trimmed.split_whitespace().take(3).collect::<Vec<_>>().join(" ");
+            if !rest.is_empty() && rest.len() > 1 && rest.len() < 60 {
+                let stop_words = ["in", "the", "a", "an", "from", "to", "and", "or", "of", "for", "with", "that", "this", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "may", "might", "can", "shall", "not", "but", "file", "files", "directory", "dir", "log", "text", "output", "input"];
+                let words: Vec<&str> = rest.split_whitespace().collect();
+                let filtered: Vec<&str> = words.iter()
+                    .filter(|w| !stop_words.contains(&w.to_ascii_lowercase().as_str()))
+                    .copied()
+                    .collect();
+                if !filtered.is_empty() {
+                    return Some(format!("\"{}\"", filtered.join(" ")));
                 }
             }
         }
     }
+
     None
+}
+
+fn strip_double_subcommand(args: &mut Vec<String>, tool: &str) {
+    if args.len() < 2 {
+        return;
+    }
+    let first = &args[0];
+    let second = &args[1];
+    if first.starts_with('-') || second.starts_with('-') {
+        return;
+    }
+    if first.contains('.') || first.contains('/') || second.contains('.') || second.contains('/') {
+        return;
+    }
+    let known_subcmds_map: &[(&str, &[&str])] = &[
+        ("gatk", &["HaplotypeCaller", "MarkDuplicates", "Mutect2", "FilterMutectCalls", "CreateSequenceDictionary", "AddOrReplaceReadGroups", "BaseRecalibrator", "ApplyBQSR", "SelectVariants", "VariantFiltration"]),
+        ("picard", &["SortSam", "MarkDuplicates", "AddOrReplaceReadGroups", "CollectAlignmentSummaryMetrics", "CollectInsertSizeMetrics", "ValidateSamFile", "CreateSequenceDictionary"]),
+        ("bcftools", &["view", "mpileup", "merge", "norm", "stats", "annotate", "isec", "query", "call", "filter", "sort", "index", "concat", "roh", "consensus"]),
+        ("delly", &["call", "filter", "merge", "lr", "cnv"]),
+        ("varscan2", &["mpileup2snp", "mpileup2indel", "somatic", "processSomatic", "copycaller"]),
+        ("samtools", &["view", "sort", "index", "flagstat", "fastq", "markdup", "merge", "depth", "stats", "faidx", "dict", "idxstats", "collate", "fixmate", "calmd"]),
+        ("bedtools", &["intersect", "genomecov", "subtract", "merge", "closest", "getfasta", "makewindows", "coverage", "slop", "shift", "flank", "sort", "complement", "window", "cluster", "groupby", "bamtobed"]),
+        ("hmmer", &["hmmsearch", "hmmscan", "hmmbuild", "hmmpress", "phmmer", "hmmalign"]),
+        ("sourmash", &["sketch", "compare", "gather", "taxonomy", "search", "index"]),
+        ("mmseqs2", &["easy-search", "easy-cluster", "easy-linclust", "createdb", "search", "linclust", "cluster"]),
+        ("mummer", &["nucmer", "dnadiff", "delta-filter", "show-coords", "mummerplot", "show-tiling", "promer"]),
+        ("rsem", &["rsem-prepare-reference", "rsem-calculate-expression", "rsem-generate-data-matrix"]),
+        ("gtdbtk", &["classify_wf", "identify", "de_novo_wf", "align", "classify"]),
+        ("igvtools", &["count", "index", "sort", "toTDF"]),
+        ("bamtools", &["stats", "count", "filter", "merge", "split", "convert", "index", "coverage", "header"]),
+        ("cnvkit", &["batch", "scatter", "call", "segment", "heatmap", "genemetrics", "access", "coverage", "reference", "fix"]),
+        ("deeptools", &["bamCoverage", "bamCompare", "computeMatrix", "plotHeatmap", "multiBamSummary", "plotFingerprint", "plotCoverage", "plotProfile"]),
+        ("macs2", &["callpeak", "predictd", "bdgcmp", "bdgdiff", "filterdup", "pileup"]),
+        ("seqkit", &["stats", "seq", "grep", "sample", "fq2fa", "split2", "subseq", "translate", "replace", "rmdup", "sort"]),
+        ("seqtk", &["sample", "seq", "subseq", "trimfq", "comp", "mergefa", "mergepe", "dropse"]),
+        ("whatshap", &["phase", "haplotag", "stats", "compare"]),
+        ("modkit", &["pileup", "extract", "summary", "motif-bed", "sample-probs"]),
+        ("pairtools", &["parse", "sort", "dedup", "cload", "flip", "merge", "select", "restrict", "split", "scale"]),
+        ("survivor", &["merge", "stats", "filter", "simSV"]),
+        ("snpeff", &["ann", "build", "download", "databases"]),
+        ("diamond", &["makedb", "blastp", "blastx", "cluster", "linclust", "realign", "view"]),
+        ("bracken", &["bracken-build", "combine_bracken_outputs"]),
+        ("medaka", &["medaka_consensus", "medaka_variant", "medaka_haploid_variant"]),
+        ("pbsv", &["discover", "call"]),
+        ("kb", &["ref", "count"]),
+        ("truvari", &["bench", "collapse", "refine"]),
+        ("strelka2", &["configureStrelkaGermlineWorkflow.py", "configureStrelkaSomaticWorkflow.py"]),
+        ("bbtools", &["bbduk.sh", "bbmap.sh", "bbmerge.sh", "reformat.sh", "dedupe.sh", "bbsplit.sh"]),
+        ("nextflow", &["run", "pull", "list", "clean", "info", "log"]),
+        ("checkm2", &["predict", "database", "testrun"]),
+        ("qualimap", &["bamqc", "rnaseq", "multi-bamqc"]),
+        ("homer", &["makeTagDirectory", "findPeaks", "annotatePeaks.pl", "findMotifsGenome.pl", "mergePeaks"]),
+        ("salmon", &["index", "quant"]),
+        ("kallisto", &["index", "quant", "bus"]),
+        ("plink2", &[]),
+        ("mash", &["sketch", "dist", "screen", "triangle", "paste", "info"]),
+        ("meme", &["fimo", "tomtom", "ame", "streme", "meme", "dreme"]),
+        ("agat", &["agat_convert_sp_gff2gtf", "agat_sp_statistics", "agat_sp_filter_gene_by_length", "agat_convert_sp_gxf2gxf", "agat_sp_extract_sequences", "agat_sp_keep_longest_isoform", "agat_sp_merge_annotations", "agat_sp_manage_IDs", "agat_convert_sp_gff2bed"]),
+    ];
+
+    let known_subcmds: Option<&[&str]> = known_subcmds_map.iter()
+        .find(|(t, _)| *t == tool)
+        .map(|(_, subcmds)| *subcmds);
+
+    if let Some(subcmds) = known_subcmds {
+        let first_is_known = subcmds.iter().any(|s| s.eq_ignore_ascii_case(first));
+        let second_is_known = subcmds.iter().any(|s| s.eq_ignore_ascii_case(second));
+        if first_is_known && second_is_known {
+            args.remove(0);
+        } else if !first_is_known && second_is_known {
+            args.remove(0);
+        }
+    }
 }
 
 fn strip_spurious_subcommand_for_no_subcommand_tools(args: &mut Vec<String>, tool: &str) {
@@ -1560,6 +2234,7 @@ pub fn apply_tool_specific_corrections(args: &[String], tool: &str, task: Option
     let args_str_lower = args_lower.join(" ");
 
     if let Some(task) = task {
+        strip_double_subcommand(&mut args, &tool_lower);
         fix_subcommand_for_tool(&mut args, &tool_lower, task);
     }
 
@@ -6413,12 +7088,13 @@ pub fn fix_generic_output_bam(args: &[String], tool: &str) -> Vec<String> {
         "samtools", "bamtools", "picard", "gatk", "sambamba", "bamutil",
         "bwa", "bwa-mem2", "bowtie2", "hisat2", "star", "minimap2",
         "bcftools", "freebayes", "varscan2", "longshot",
+        "sambamba", "pbmm2", "strelka2", "whatshap",
     ];
     if bam_output_tools.iter().any(|t| *t == tool_lower) {
         return args.to_vec();
     }
     let mut args = args.to_vec();
-    let output_flags = ["-o", "--output", "-out", "--out", "--output-file", "-O"];
+    let output_flags = ["-o", "--output", "-out", "--out", "--output-file", "-O", "--outfile"];
     for i in 0..args.len() {
         if output_flags.iter().any(|f| *f == args[i]) && i + 1 < args.len() {
             let val = args[i + 1].to_ascii_lowercase();
@@ -6426,34 +7102,64 @@ pub fn fix_generic_output_bam(args: &[String], tool: &str) -> Vec<String> {
                 let stem = args[i + 1].trim_end_matches(".bam")
                     .trim_end_matches(".BAM")
                     .to_string();
-                let new_ext = if tool_lower == "blast" || tool_lower == "blastn" || tool_lower == "blastp" || tool_lower == "blastx" {
-                    ".txt"
-                } else if tool_lower == "hmmer" || tool_lower == "hmmsearch" || tool_lower == "hmmscan" {
-                    ".tbl"
-                } else if tool_lower == "nanostat" || tool_lower == "nanoplot" {
-                    ".txt"
-                } else if tool_lower == "fasttree" || tool_lower == "iqtree2" || tool_lower == "raxml" {
-                    ".treefile"
-                } else if tool_lower == "mafft" || tool_lower == "muscle" || tool_lower == "clustalo" {
-                    ".fasta"
-                } else if tool_lower == "prodigal" {
-                    ".faa"
-                } else if tool_lower == "stringtie" {
-                    ".gtf"
-                } else if tool_lower == "sniffles" || tool_lower == "pbsv" || tool_lower == "delly" || tool_lower == "svim" {
-                    ".vcf"
-                } else if tool_lower == "kraken2" || tool_lower == "bracken" || tool_lower == "centrifuge" {
-                    ".txt"
-                } else if tool_lower == "sourmash" {
-                    ".sig"
-                } else if tool_lower == "racon" || tool_lower == "miniasm" || tool_lower == "flye" {
-                    ".fasta"
-                } else if tool_lower == "pilon" {
-                    ".fasta"
-                } else if tool_lower == "macs2" {
-                    ""
-                } else {
-                    ".txt"
+                let new_ext = match tool_lower.as_str() {
+                    "blast" | "blastn" | "blastp" | "blastx" | "tblastn" | "makeblastdb" => ".txt",
+                    "hmmer" | "hmmsearch" | "hmmscan" | "hmmbuild" | "hmmalign" => ".tbl",
+                    "nanostat" | "nanoplot" | "nanocomp" => ".txt",
+                    "fasttree" | "iqtree2" | "raxml" => ".treefile",
+                    "mafft" | "muscle" | "clustalo" => ".fasta",
+                    "prodigal" => ".faa",
+                    "stringtie" => ".gtf",
+                    "sniffles" | "pbsv" | "delly" | "svim" => ".vcf",
+                    "kraken2" | "bracken" | "centrifuge" => ".txt",
+                    "sourmash" => ".sig",
+                    "racon" | "miniasm" | "flye" | "pilon" | "wtdbg2" | "verkko" | "hifiasm" | "canu" => ".fasta",
+                    "macs2" => "",
+                    "cutadapt" | "fastp" | "trimmomatic" | "chopper" | "porechop" | "trim_galore" => ".fastq.gz",
+                    "salmon" | "kallisto" => "",
+                    "featurecounts" | "htseq" => ".txt",
+                    "bedtools" | "bedops" => ".bed",
+                    "vcftools" | "bcftools" | "gatk" => ".vcf",
+                    "minimap2" => ".sam",
+                    "seqkit" | "seqtk" => ".fasta",
+                    "mummer" | "nucmer" | "promer" => ".delta",
+                    "fastqc" | "multiqc" => ".html",
+                    "methyldackel" => ".csv",
+                    "metaphlan" => ".txt",
+                    "spades" | "megahit" => "",
+                    "quast" | "busco" | "prokka" | "bakta" => "",
+                    "diamond" | "mmseqs2" => ".m8",
+                    "eggnog-mapper" => ".annotations",
+                    "gtdbtk" | "checkm2" => "",
+                    "repeatmasker" => ".out",
+                    "liftoff" => ".gff3",
+                    "mosdepth" => "",
+                    "arriba" => ".tsv",
+                    "chromap" => ".bed",
+                    "deeptools" => ".bw",
+                    "shapeit4" => ".vcf",
+                    "plink2" => "",
+                    "angsd" => "",
+                    "fastani" => ".txt",
+                    "orthofinder" => "",
+                    "bbtools" => ".fasta",
+                    "igvtools" => ".tdf",
+                    "sra-tools" => "",
+                    "pairtools" => ".pairs",
+                    "modkit" => ".bed",
+                    "snpeff" | "vep" => ".vcf",
+                    "survivor" => ".vcf",
+                    "cnvkit" => ".vcf",
+                    "truvari" => ".vcf",
+                    "vcfanno" => ".vcf",
+                    "agat" => ".gff3",
+                    "rsem" => ".txt",
+                    "trinity" => ".fasta",
+                    "homer" => ".txt",
+                    "meme" | "fimo" | "ame" | "streme" => ".txt",
+                    "medaka" => ".vcf",
+                    "nextflow" | "snakemake" => "",
+                    _ => ".txt",
                 };
                 if new_ext.is_empty() {
                     args[i + 1] = stem;
@@ -7123,7 +7829,7 @@ pub fn validate_flags_against_catalog(
     for &universal in &[
         "-h", "--help", "-v", "--version",
         "-o", "--output", "-t", "--threads", "-@",
-        "--outdir", "--prefix", "--out",
+        "--outdir", "--out",
     ] {
         known.insert(universal.to_string());
     }
@@ -7239,7 +7945,7 @@ pub fn limit_flag_count(
     let flag_count = args.iter().filter(|a| a.starts_with('-')).count();
     let required_count = sdoc.flag_catalog.iter().filter(|e| e.required).count();
 
-    let max_optional = if required_count >= 8 { 2 } else if required_count >= 5 { 3 } else if required_count >= 3 { 4 } else { 4 };
+    let max_optional = if required_count >= 8 { 2 } else if required_count >= 5 { 3 } else if required_count >= 3 { 4 } else { 5 };
     let max_total_flags = required_count + max_optional;
 
     if flag_count <= max_total_flags {

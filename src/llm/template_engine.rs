@@ -2569,7 +2569,7 @@ pub fn fill_template(
         ("{source}", input_file.clone()),
         ("{destination}", output_file.clone()),
         ("{directory}", ".".to_string()),
-        ("{pattern}", "*.bam".to_string()),
+        ("{pattern}", extract_pattern_from_task(task)),
         ("{path}", input_file.clone()),
         ("{accession}", "SRR123456".to_string()),
         ("{branch}", "main".to_string()),
@@ -2617,6 +2617,71 @@ fn task_lower_extract_k(task: &str) -> Option<String> {
         }
     }
     None
+}
+
+fn extract_pattern_from_task(task: &str) -> String {
+    if let Some(start) = task.find('"') {
+        if let Some(end) = task.rfind('"') {
+            if start < end {
+                let pattern = &task[start..=end];
+                if pattern.len() > 2 {
+                    return pattern.to_string();
+                }
+            }
+        }
+    }
+    if let Some(start) = task.find('\'') {
+        if let Some(end) = task.rfind('\'') {
+            if start < end {
+                let pattern = &task[start..=end];
+                if pattern.len() > 2 {
+                    return pattern.to_string();
+                }
+            }
+        }
+    }
+
+    let task_lower = task.to_ascii_lowercase();
+
+    let specific_patterns: &[(&str, &str)] = &[
+        ("error", "\"error\""), ("warning", "\"warning\""), ("exception", "\"exception\""),
+        ("todo", "\"TODO\""), ("fixme", "\"FIXME\""),
+        ("nullpointer", "\"NullPointerException\""),
+        ("^error", "\"^ERROR\""), ("^#", "\"^#\""), ("^$", "\"^$\""),
+        ("def ", "\"def \""), ("class ", "\"class \""), ("function ", "\"function \""),
+    ];
+    for (pattern, replacement) in specific_patterns {
+        if task_lower.contains(pattern) {
+            return replacement.to_string();
+        }
+    }
+
+    let high_priority_keywords: &[(&str, &str)] = &[
+        ("search for ", "after"), ("find lines ", "after"), ("find ", "after"),
+        ("look for ", "after"), ("grep for ", "after"),
+        ("lines containing ", "after"), ("lines matching ", "after"),
+        ("lines with ", "after"), ("pattern ", "after"),
+        ("keyword ", "after"), ("string ", "after"),
+        ("replace ", "after"), ("substitute ", "after"),
+        ("delete ", "after"), ("remove ", "after"),
+    ];
+    for (keyword, _) in high_priority_keywords {
+        if let Some(pos) = task_lower.find(keyword) {
+            let after = &task[pos + keyword.len()..];
+            let trimmed = after.trim_start_matches(|c: char| c == ' ' || c == ':' || c == ',');
+            let words: Vec<&str> = trimmed.split_whitespace().take(3).collect();
+            let stop_words = ["in", "the", "a", "an", "from", "to", "and", "or", "of", "for", "with", "that", "this", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "may", "might", "can", "shall", "not", "but", "file", "files", "directory", "dir", "log", "text", "output", "input"];
+            let filtered: Vec<&str> = words.iter()
+                .filter(|w| !stop_words.contains(&w.to_ascii_lowercase().as_str()))
+                .copied()
+                .collect();
+            if !filtered.is_empty() {
+                return format!("\"{}\"", filtered.join(" "));
+            }
+        }
+    }
+
+    "pattern".to_string()
 }
 
 pub fn generate_from_template(
@@ -2727,6 +2792,149 @@ pub fn generate_from_template(
     Some(result)
 }
 
+pub fn merge_llm_into_template(
+    template_args: &[String],
+    llm_args: &[String],
+    sdoc: &StructuredDoc,
+) -> Vec<String> {
+    if template_args.is_empty() {
+        return llm_args.to_vec();
+    }
+    if llm_args.is_empty() {
+        return template_args.to_vec();
+    }
+
+    let mut result = template_args.to_vec();
+
+    let placeholder_values = [
+        "input.bam", "output.bam", "reads_1.fq", "reads_2.fq",
+        "reference.fa", "input2.bed", "annotation.gtf", "database",
+        "metrics.txt", "tool.jar", "*.bam", "SRR123456",
+        "/path/to/", "genome_index", "output", "input",
+        "pattern", "https://example.com",
+    ];
+
+    let llm_files: Vec<&String> = llm_args.iter()
+        .filter(|a| {
+            !a.starts_with('-')
+                && (a.contains('.') || a.contains('/') || a.contains('@'))
+                && a.len() > 2
+        })
+        .collect();
+
+    let known_flags: std::collections::HashSet<String> = sdoc.flag_catalog.iter()
+        .flat_map(|e| {
+            let mut flags = vec![e.flag.to_ascii_lowercase()];
+            if let Some(ref alt) = e.alt_form { flags.push(alt.to_ascii_lowercase()); }
+            flags
+        })
+        .collect();
+
+    let required_flags_missing: Vec<String> = sdoc.flag_catalog.iter()
+        .filter(|e| e.required)
+        .filter(|e| {
+            let ef = e.flag.to_ascii_lowercase();
+            let ef_alt = e.alt_form.as_ref().map(|a| a.to_ascii_lowercase());
+            !result.iter().any(|a| {
+                let al = a.to_ascii_lowercase();
+                al == ef || ef_alt.as_ref().map_or(false, |alt| al == *alt)
+                    || al.starts_with(&format!("{}=", ef))
+            })
+        })
+        .map(|e| e.flag.clone())
+        .collect();
+
+    for i in 0..result.len() {
+        let is_placeholder = placeholder_values.iter().any(|pv| {
+            result[i].to_ascii_lowercase().contains(&pv.to_ascii_lowercase())
+        });
+
+        if is_placeholder {
+            let prev_is_flag = i > 0 && result[i - 1].starts_with('-');
+            if prev_is_flag {
+                let flag_lower = result[i - 1].split('=').next().unwrap_or(&result[i - 1]).to_ascii_lowercase();
+                let entry = sdoc.flag_catalog.iter().find(|e| {
+                    e.flag.to_ascii_lowercase() == flag_lower
+                        || e.alt_form.as_ref().map_or(false, |a| a.to_ascii_lowercase() == flag_lower)
+                });
+
+                let is_output_flag = entry.map_or(false, |e| {
+                    let dl = e.description.to_ascii_lowercase();
+                    let fl = e.flag.to_ascii_lowercase();
+                    dl.contains("output") || fl.contains("out") || fl.contains("-o")
+                });
+                let is_input_flag = entry.map_or(false, |e| {
+                    let dl = e.description.to_ascii_lowercase();
+                    let fl = e.flag.to_ascii_lowercase();
+                    dl.contains("input") || fl.contains("in") || fl.contains("-i") || fl.contains("-I")
+                });
+
+                let matching_llm_value = llm_args.iter().enumerate()
+                    .filter(|(_, a)| !a.starts_with('-'))
+                    .find(|(idx, a)| {
+                        if *idx > 0 && idx + 1 <= llm_args.len() {
+                            let prev = &llm_args[*idx - 1];
+                            if prev.starts_with('-') {
+                                let prev_lower = prev.split('=').next().unwrap_or(prev).to_ascii_lowercase();
+                                if is_output_flag && (prev_lower.contains("out") || prev_lower.contains("-o")) {
+                                    return a.contains('.') || a.contains('/');
+                                }
+                                if is_input_flag && (prev_lower.contains("in") || prev_lower.contains("-i") || prev_lower.contains("-I")) {
+                                    return a.contains('.') || a.contains('/');
+                                }
+                                return flag_lower == prev_lower;
+                            }
+                        }
+                        false
+                    })
+                    .map(|(_, a)| a.clone());
+
+                if let Some(llm_val) = matching_llm_value {
+                    result[i] = llm_val;
+                } else if is_output_flag {
+                    if let Some(f) = llm_files.first() {
+                        result[i] = (*f).clone();
+                    }
+                } else if is_input_flag {
+                    if let Some(f) = llm_files.first() {
+                        result[i] = (*f).clone();
+                    }
+                }
+            } else {
+                if let Some(f) = llm_files.first() {
+                    result[i] = (*f).clone();
+                }
+            }
+        }
+    }
+
+    for req_flag in &required_flags_missing {
+        if let Some(entry) = sdoc.flag_catalog.iter().find(|e| e.flag == *req_flag) {
+            let dl = entry.description.to_ascii_lowercase();
+            let fl = entry.flag.to_ascii_lowercase();
+
+            let value = if dl.contains("output") || fl.contains("out") {
+                llm_files.first().map(|f| (*f).clone())
+                    .or_else(|| entry.default.clone())
+            } else if dl.contains("input") || fl.contains("in") {
+                llm_files.first().map(|f| (*f).clone())
+                    .or_else(|| entry.default.clone())
+            } else {
+                entry.default.clone()
+            };
+
+            if let Some(v) = value {
+                result.push(entry.flag.clone());
+                result.push(v);
+            } else {
+                result.push(entry.flag.clone());
+            }
+        }
+    }
+
+    result
+}
+
 pub fn merge_template_with_llm(
     template_args: &[String],
     llm_args: &[String],
@@ -2817,7 +3025,16 @@ pub fn merge_template_with_llm(
         let flag_base = flag_key.trim_start_matches('-');
         let is_known = known_flags.contains(&flag_key)
             || known_flags.iter().any(|kf| kf.trim_start_matches('-') == flag_base);
-        if is_known || value.is_some() {
+        let is_required = sdoc.flag_catalog.iter().any(|e| {
+            let ef = e.flag.to_ascii_lowercase();
+            let ef_base = ef.trim_start_matches('-');
+            ef == flag_key || ef_base == flag_base
+                || e.alt_form.as_ref().map_or(false, |alt| {
+                    let al = alt.to_ascii_lowercase();
+                    al == flag_key || al.trim_start_matches('-') == flag_base
+                })
+        } && e.required);
+        if is_required || (is_known && value.is_some()) {
             merged.push((flag.clone(), value.clone()));
         }
         seen_flags.insert(flag_key);

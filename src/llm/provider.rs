@@ -23,7 +23,7 @@ use super::types::{
 };
 use crate::streaming_display;
 use super::task_values::{extract_task_values, rule_based_subcommand_match, detect_subcommand_for_tool, is_no_subcommand_tool};
-use super::template_engine::{find_best_template, fill_template, generate_from_template, merge_template_with_llm, remove_duplicate_flags_vec};
+use super::template_engine::{find_best_template, fill_template, generate_from_template, merge_template_with_llm, merge_llm_into_template, remove_duplicate_flags_vec};
 use super::postprocess::{apply_corrections_to_args, apply_template_corrections, add_missing_required_flags, add_task_implied_flags, validate_flags_against_catalog, limit_flag_count, apply_tool_specific_corrections, fix_output_extensions};
 use super::rule_engine::assemble_command_from_rules;
 
@@ -404,7 +404,21 @@ impl LlmClient {
             }
         }
 
+        let is_small_model = crate::config::infer_model_parameter_count(&model)
+            .map(|p| p <= 8.0)
+            .unwrap_or(false);
+
         let rule_assembled = assemble_command_from_rules(tool, task, sdoc, selected_subcommand.as_deref(), &task_values);
+
+        if std::env::var("OXO_CALL_VERBOSE").is_ok() {
+            eprintln!(
+                "{} [TwoStep] rule_assembled='{}' has_subcommands={}",
+                "[verbose]".dimmed(),
+                rule_assembled.join(" ").chars().take(120).collect::<String>(),
+                sdoc.has_subcommands
+            );
+        }
+
         if !rule_assembled.is_empty() {
             let has_subcmd = sdoc.has_subcommands && !rule_assembled.is_empty()
                 && !rule_assembled[0].starts_with('-')
@@ -412,17 +426,47 @@ impl LlmClient {
             let has_flags = rule_assembled.iter().any(|a| a.starts_with('-'));
             let has_files = rule_assembled.iter().any(|a| a.contains('.') && !a.starts_with('-'));
 
-            let is_small_model = crate::config::infer_model_parameter_count(&model)
-                .map(|p| p <= 8.0)
-                .unwrap_or(false);
-
             let rule_is_good = if is_small_model {
-                (has_subcmd || !sdoc.has_subcommands) && has_flags
+                (has_subcmd || !sdoc.has_subcommands) && (has_flags || has_files)
             } else {
                 (has_subcmd || !sdoc.has_subcommands) && (has_flags || has_files)
             };
 
-            if rule_is_good {
+            let has_required_flags = {
+                let required_flags: Vec<&str> = sdoc.flag_catalog.iter()
+                    .filter(|e| e.required)
+                    .map(|e| e.flag.as_str())
+                    .collect();
+                if required_flags.is_empty() {
+                    true
+                } else {
+                    let args_lower = rule_assembled.iter()
+                        .map(|a| a.to_ascii_lowercase())
+                        .collect::<Vec<_>>();
+                    required_flags.iter().all(|rf| {
+                        let rf_lower = rf.to_ascii_lowercase();
+                        args_lower.iter().any(|a| a == &rf_lower || a.starts_with(&format!("{}=", rf_lower)))
+                    })
+                }
+            };
+
+            let has_positional_args = {
+                let flag_args: std::collections::HashSet<String> = sdoc.flag_catalog.iter()
+                    .flat_map(|e| {
+                        let mut flags = vec![e.flag.clone()];
+                        if let Some(ref alt) = e.alt_form { flags.push(alt.clone()); }
+                        flags
+                    })
+                    .map(|f| f.to_ascii_lowercase())
+                    .collect();
+                rule_assembled.iter()
+                    .filter(|a| !a.starts_with('-') && !flag_args.contains(&a.to_ascii_lowercase()))
+                    .count() > if sdoc.has_subcommands { 1 } else { 0 }
+            };
+
+            let rule_is_excellent = rule_is_good && has_required_flags && has_positional_args;
+
+            if rule_is_excellent {
                 let mut final_args = rule_assembled;
                 final_args = add_missing_required_flags(&final_args, sdoc, task);
                 final_args = add_task_implied_flags(&final_args, sdoc, task);
@@ -431,7 +475,7 @@ impl LlmClient {
 
                 if std::env::var("OXO_CALL_VERBOSE").is_ok() {
                     eprintln!(
-                        "{} [TwoStep] rule-direct: sub={:?} final='{}'",
+                        "{} [TwoStep] rule-direct (excellent): sub={:?} final='{}'",
                         "[verbose]".dimmed(),
                         selected_subcommand,
                         final_args.join(" ").chars().take(80).collect::<String>()
@@ -446,16 +490,22 @@ impl LlmClient {
             }
         }
 
-        let step2_prompt = build_args_generation_prompt(
+        let rule_hint = if !rule_assembled.is_empty() {
+            format!("\n\nSuggested base command (refine this):\n{}\n", rule_assembled.join(" "))
+        } else {
+            String::new()
+        };
+
+        let step2_prompt = format!("{}{}", build_args_generation_prompt(
             tool, task, sdoc, selected_subcommand.as_deref()
-        );
+        ), rule_hint);
 
         let step2_system = if selected_subcommand.is_some() {
-            "Generate CLI arguments. Respond with exactly:\nARGS: <complete arguments>\nEXPLANATION: <brief>\n\nRules:\n1. Start with the subcommand.\n2. Use ONLY flags from the list above.\n3. Include ALL required flags.\n4. Extract EXACT file paths and values from the task.\n5. Include -o/--output and -t/--threads when relevant.\n6. Do NOT include the tool name."
+            "Generate CLI arguments. Respond with exactly:\nARGS: <complete arguments>\nEXPLANATION: <brief>\n\nRules:\n1. Start with the subcommand.\n2. Use ONLY flags from the list above.\n3. Include ALL required flags. Skip optional flags not mentioned in task.\n4. Extract EXACT file paths and values from the task.\n5. Include positional arguments (file paths, patterns, targets) after flags.\n6. Maximum 8 flags. Fewer is better.\n7. Do NOT include the tool name."
         } else if sdoc.has_subcommands {
-            "Generate CLI arguments. Respond with exactly:\nARGS: <subcommand then flags and values>\nEXPLANATION: <brief>\n\nRules:\n1. First token MUST be a valid subcommand.\n2. Use ONLY flags from the list above.\n3. Include ALL required flags.\n4. Extract EXACT file paths and values from the task."
+            "Generate CLI arguments. Respond with exactly:\nARGS: <subcommand then flags and values>\nEXPLANATION: <brief>\n\nRules:\n1. First token MUST be a valid subcommand.\n2. Use ONLY flags from the list above.\n3. Include ALL required flags. Skip optional flags not mentioned in task.\n4. Extract EXACT file paths and values from the task.\n5. Include positional arguments (file paths, patterns, targets) after flags.\n6. Maximum 8 flags. Fewer is better."
         } else {
-            "Generate CLI arguments. Respond with exactly:\nARGS: <flags and values>\nEXPLANATION: <brief>\n\nRules:\n1. Do NOT start with a subcommand - this tool has none.\n2. Use ONLY flags from the list above.\n3. Include ALL required flags.\n4. Extract EXACT file paths and values from the task.\n5. Positional arguments (files, numbers) go after flags."
+            "Generate CLI arguments. Respond with exactly:\nARGS: <flags and values>\nEXPLANATION: <brief>\n\nRules:\n1. Do NOT start with a subcommand - this tool has none.\n2. Use ONLY flags from the list above.\n3. Include ALL required flags. Skip optional flags not mentioned in task.\n4. Extract EXACT file paths and values from the task.\n5. Positional arguments (files, patterns, numbers) MUST be included after flags.\n6. Maximum 8 flags. Fewer is better."
         };
 
         let api_start = std::time::Instant::now();
@@ -588,7 +638,11 @@ impl LlmClient {
 
                 if let Some(ref tmpl_args) = template_args {
                     if !tmpl_args.is_empty() {
-                        final_args = merge_template_with_llm(tmpl_args, &final_args, sdoc);
+                        if is_small_model {
+                            final_args = merge_llm_into_template(tmpl_args, &final_args, sdoc);
+                        } else {
+                            final_args = merge_template_with_llm(tmpl_args, &final_args, sdoc);
+                        }
                         final_args = remove_duplicate_flags_vec(&final_args);
                     }
                 }
@@ -872,7 +926,7 @@ impl LlmClient {
                             .unwrap_or(false);
 
                         let should_use_rule = if is_small_model {
-                            (has_subcmd || !sdoc.has_subcommands) && has_flags
+                            (has_subcmd || !sdoc.has_subcommands) && (has_flags || has_files)
                         } else {
                             (has_subcmd || !sdoc.has_subcommands) && (has_flags || has_files)
                         };
