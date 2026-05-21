@@ -122,7 +122,7 @@ pub fn apply_template_corrections(
     }
 }
 
-fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
+pub fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
     let task_values = extract_task_values(task);
     let generic_patterns: &[&str] = &[
         "output.bam", "output.vcf", "output.fastq", "output.fasta",
@@ -154,6 +154,12 @@ fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
         "variants.vcf", "snps.vcf",
         "aligned.sam", "aligned.bam",
         "sorted.bam", "dedup.bam",
+        "output.fastq.gz", "output.bam.bai", "output.vcf.gz",
+        "output.fa", "output.fq", "output.fna",
+        "output.gtf", "output.gff", "output.gff3",
+        "output.bed", "output.tsv", "output.csv",
+        "output.prefix", "output_dir", "out_dir",
+        "gtdbtk_align/", "gtdbtk_output/",
     ];
 
     let placeholder_prefixes: &[&str] = &[
@@ -163,6 +169,10 @@ fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
 
     let mut result = args.to_vec();
     let mut used_replacements: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+    for input_file in &task_values.input_files {
+        used_replacements.insert(input_file.to_ascii_lowercase());
+    }
 
     let prev_flag = |result: &[String], i: usize| -> Option<String> {
         if i > 0 && result[i - 1].starts_with('-') {
@@ -176,11 +186,22 @@ fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
         if result[i].starts_with('-') { continue; }
         let val_lower = result[i].to_ascii_lowercase();
 
-        let is_placeholder = generic_patterns.iter().any(|p| val_lower == *p)
-            || placeholder_prefixes.iter().any(|p| val_lower.starts_with(p))
-            || (val_lower.starts_with('<') && val_lower.ends_with('>'))
-            || (val_lower == "output" && i > 0 && result[i-1].starts_with('-'))
-            || (val_lower == "input" && i > 0 && result[i-1].starts_with('-'));
+        let is_exact_placeholder = generic_patterns.iter().any(|p| val_lower == *p);
+        let is_prefix_placeholder = placeholder_prefixes.iter().any(|p| val_lower.starts_with(p));
+        let is_angle_placeholder = val_lower.starts_with('<') && val_lower.ends_with('>');
+        let is_output_keyword = (val_lower == "output" || val_lower == "input") && i > 0 && result[i-1].starts_with('-');
+        let looks_like_generic_output = val_lower.starts_with("output") && val_lower.contains('.')
+            && !task_values.output_files.iter().any(|f| f.to_ascii_lowercase() == val_lower)
+            && !task_values.input_files.iter().any(|f| f.to_ascii_lowercase() == val_lower);
+        let looks_like_generic_dir = (val_lower == "output_dir/" || val_lower == "output_dir" || val_lower == "out_dir/" || val_lower == "out_dir")
+            && !task_values.output_files.iter().any(|f| f.to_ascii_lowercase() == val_lower);
+
+        let is_placeholder = is_exact_placeholder
+            || is_prefix_placeholder
+            || is_angle_placeholder
+            || is_output_keyword
+            || looks_like_generic_output
+            || looks_like_generic_dir;
 
         if !is_placeholder { continue; }
 
@@ -190,6 +211,10 @@ fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
             task_values.output_files.iter()
                 .find(|f| !used_replacements.contains(&f.to_ascii_lowercase()))
                 .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+                .or_else(|| {
+                    infer_output_from_input(&val_lower, &task_values.input_files, &used_replacements)
+                        .map(|f| { used_replacements.insert(f.to_ascii_lowercase()); f.clone() })
+                })
         } else if val_lower.contains("index") {
             task_values.reference_files.iter()
                 .find(|f| !used_replacements.contains(&f.to_ascii_lowercase()))
@@ -376,6 +401,57 @@ fn replace_generic_values(args: &[String], task: &str) -> Vec<String> {
         }
     }
     result
+}
+
+fn infer_output_from_input(
+    placeholder: &str,
+    input_files: &[String],
+    used: &std::collections::HashSet<String>,
+) -> Option<String> {
+    let first_unused = input_files.iter()
+        .find(|f| !used.contains(&f.to_ascii_lowercase()))?;
+
+    let pl = placeholder.to_ascii_lowercase();
+    let stem = std::path::Path::new(first_unused)
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "output".to_string());
+    let stem = stem.trim_end_matches(".fastq").trim_end_matches(".fq")
+        .trim_end_matches(".fa").trim_end_matches(".fasta")
+        .trim_end_matches(".bam").trim_end_matches(".sam")
+        .trim_end_matches(".vcf").trim_end_matches(".gz");
+
+    if pl.contains("dir") || pl == "output_dir/" {
+        return Some(format!("{}/", stem));
+    }
+    if pl.contains(".bam") {
+        return Some(format!("{}.bam", stem));
+    }
+    if pl.contains(".vcf") {
+        return Some(format!("{}.vcf", stem));
+    }
+    if pl.contains(".sam") {
+        return Some(format!("{}.sam", stem));
+    }
+    if pl.contains(".fa") || pl.contains(".fasta") {
+        return Some(format!("{}.fasta", stem));
+    }
+    if pl.contains(".fq") || pl.contains(".fastq") {
+        return Some(format!("{}.fastq", stem));
+    }
+    if pl.contains(".txt") {
+        return Some(format!("{}.txt", stem));
+    }
+    if pl.contains(".html") {
+        return Some(format!("{}.html", stem));
+    }
+    if pl.contains(".json") {
+        return Some(format!("{}.json", stem));
+    }
+    if pl == "output" {
+        return Some(format!("{}.bam", stem));
+    }
+    Some(first_unused.clone())
 }
 
 fn enforce_mandatory_positional_args(
@@ -580,7 +656,31 @@ fn enforce_mandatory_positional_args(
             }
         }
         _ => {
-            if !sdoc.usage_pattern.positional_args.is_empty() && non_flag_non_subcmd_args.is_empty() {
+            let has_any_positional_file = non_flag_non_subcmd_args.iter().any(|a| {
+                a.contains('.') || a.contains('/') || a.contains('@')
+            });
+            if !has_any_positional_file && !task_values.input_files.is_empty() {
+                let flag_values_in_args: std::collections::HashSet<String> = {
+                    let mut fv = std::collections::HashSet::new();
+                    let mut i = 0;
+                    while i < args.len() {
+                        if args[i].starts_with('-') && !args[i].contains('=') {
+                            if i + 1 < args.len() && !args[i + 1].starts_with('-') {
+                                fv.insert(args[i + 1].to_ascii_lowercase());
+                                i += 2;
+                                continue;
+                            }
+                        }
+                        i += 1;
+                    }
+                    fv
+                };
+                for f in &task_values.input_files {
+                    if !args.contains(f) && !flag_values_in_args.contains(&f.to_ascii_lowercase()) {
+                        args.push(f.clone());
+                    }
+                }
+            } else if !sdoc.usage_pattern.positional_args.is_empty() && non_flag_non_subcmd_args.is_empty() {
                 for f in &task_values.input_files {
                     if !args.contains(f) {
                         args.push(f.clone());
@@ -909,7 +1009,7 @@ fn clean_help_text_in_args(args: &[String]) -> Vec<String> {
     result
 }
 
-fn fill_missing_flag_values(args: &[String], sdoc: &StructuredDoc, task: &str) -> Vec<String> {
+pub fn fill_missing_flag_values(args: &[String], sdoc: &StructuredDoc, task: &str) -> Vec<String> {
     let task_values = extract_task_values(task);
     let task_lower = task.to_ascii_lowercase();
     let mut result = Vec::new();
@@ -958,11 +1058,96 @@ fn fill_missing_flag_values(args: &[String], sdoc: &StructuredDoc, task: &str) -
                     } else if desc_lower.contains("output") || flag_lower.contains("out") {
                         if let Some(out) = task_values.output_files.first() {
                             result.push(out.clone());
+                        } else if let Some(input) = task_values.input_files.first() {
+                            let stem = std::path::Path::new(input)
+                                .file_stem()
+                                .map(|s| s.to_string_lossy().to_string())
+                                .unwrap_or_else(|| "output".to_string());
+                            let stem = stem.trim_end_matches(".fastq").trim_end_matches(".fq")
+                                .trim_end_matches(".fa").trim_end_matches(".fasta")
+                                .trim_end_matches(".bam").trim_end_matches(".sam")
+                                .trim_end_matches(".vcf").trim_end_matches(".gz");
+                            if desc_lower.contains("dir") || desc_lower.contains("directory") {
+                                result.push(format!("{}/", stem));
+                            } else if desc_lower.contains("prefix") {
+                                result.push(stem.to_string());
+                            } else if desc_lower.contains(".bam") || flag_lower.contains("bam") {
+                                result.push(format!("{}.bam", stem));
+                            } else if desc_lower.contains(".vcf") || flag_lower.contains("vcf") {
+                                result.push(format!("{}.vcf", stem));
+                            } else if desc_lower.contains(".fasta") || flag_lower.contains("fasta") {
+                                result.push(format!("{}.fasta", stem));
+                            } else if desc_lower.contains(".txt") || flag_lower.contains("txt") {
+                                result.push(format!("{}.txt", stem));
+                            } else if desc_lower.contains(".html") || flag_lower.contains("html") {
+                                result.push(format!("{}.html", stem));
+                            } else {
+                                result.push(format!("{}/", stem));
+                            }
                         }
                     } else if desc_lower.contains("thread") || desc_lower.contains("cpu") {
-                        result.push("4".to_string());
+                        if let Some(n) = task_values.numbers.iter().find(|n| {
+                            let v: f64 = n.parse().unwrap_or(0.0); v >= 1.0 && v <= 128.0
+                        }) {
+                            result.push(n.clone());
+                        } else {
+                            result.push("4".to_string());
+                        }
                     } else if desc_lower.contains("format") || flag_lower.contains("outfmt") {
                         if !e.enum_values.is_empty() {
+                            if let Some(best) = e.enum_values.iter().find(|v| task_lower.contains(&v.to_ascii_lowercase())) {
+                                result.push(best.clone());
+                            } else {
+                                result.push(e.enum_values[0].clone());
+                            }
+                        }
+                    } else if desc_lower.contains("reference") || flag_lower.contains("ref") || flag_lower == "-x" {
+                        if let Some(ref_file) = task_values.reference_files.first() {
+                            result.push(ref_file.clone());
+                        } else if let Some(input) = task_values.input_files.iter().find(|f| {
+                            let fl = f.to_ascii_lowercase();
+                            fl.ends_with(".fa") || fl.ends_with(".fasta") || fl.ends_with(".fna")
+                        }) {
+                            result.push(input.clone());
+                        }
+                    } else if desc_lower.contains("database") || flag_lower.contains("db") {
+                        if let Some(db) = task_values.database_files.first() {
+                            result.push(db.clone());
+                        }
+                    } else if desc_lower.contains("genome") && desc_lower.contains("dir") {
+                        if let Some(gdir) = task_values.genome_dirs.first() {
+                            result.push(gdir.clone());
+                        }
+                    } else if desc_lower.contains("annotation") || desc_lower.contains("gtf") || desc_lower.contains("gff") {
+                        if let Some(ann) = task_values.annotation_files.first() {
+                            result.push(ann.clone());
+                        } else if let Some(input) = task_values.input_files.iter().find(|f| {
+                            let fl = f.to_ascii_lowercase();
+                            fl.ends_with(".gtf") || fl.ends_with(".gff") || fl.ends_with(".gff3")
+                        }) {
+                            result.push(input.clone());
+                        }
+                    } else if desc_lower.contains("input") || flag_lower.contains("in") {
+                        if let Some(input) = task_values.input_files.iter().find(|f| {
+                            !result.iter().any(|r| r == *f)
+                        }) {
+                            result.push(input.clone());
+                        }
+                    } else if desc_lower.contains("read") && (desc_lower.contains("group") || desc_lower.contains("rg")) {
+                        result.push("RG1".to_string());
+                    } else if desc_lower.contains("platform") {
+                        if task_lower.contains("illumina") { result.push("ILLUMINA".to_string()); }
+                        else if task_lower.contains("pacbio") { result.push("PACBIO".to_string()); }
+                        else if task_lower.contains("ont") { result.push("ONT".to_string()); }
+                        else { result.push("ILLUMINA".to_string()); }
+                    } else if desc_lower.contains("library") {
+                        result.push("lib1".to_string());
+                    } else if desc_lower.contains("sample") && (desc_lower.contains("name") || desc_lower.contains("id")) {
+                        result.push("sample1".to_string());
+                    } else if !e.enum_values.is_empty() {
+                        if let Some(best) = e.enum_values.iter().find(|v| task_lower.contains(&v.to_ascii_lowercase())) {
+                            result.push(best.clone());
+                        } else {
                             result.push(e.enum_values[0].clone());
                         }
                     }
@@ -7427,9 +7612,14 @@ fn resolve_flag_value(
                 .or_else(|| task_values.input_files.first()
                     .map(|f| {
                         let path = std::path::Path::new(f);
-                        path.parent()
-                            .map(|p| p.to_string_lossy().to_string())
-                            .unwrap_or_else(|| ".".to_string())
+                        let stem = path.file_stem()
+                            .map(|s| s.to_string_lossy().to_string())
+                            .unwrap_or_else(|| "output".to_string());
+                        let stem = stem.trim_end_matches(".fastq").trim_end_matches(".fq")
+                            .trim_end_matches(".fa").trim_end_matches(".fasta")
+                            .trim_end_matches(".bam").trim_end_matches(".sam")
+                            .trim_end_matches(".vcf").trim_end_matches(".gz");
+                        format!("{}/", stem)
                     }))
                 .or_else(|| entry.default.clone());
         }
@@ -7441,6 +7631,18 @@ fn resolve_flag_value(
                         .map(|p| format!("{}/", p.to_string_lossy()))
                         .unwrap_or_else(|| "".to_string())
                 })
+                .or_else(|| task_values.input_files.first()
+                    .map(|f| {
+                        let path = std::path::Path::new(f);
+                        let stem = path.file_stem()
+                            .map(|s| s.to_string_lossy().to_string())
+                            .unwrap_or_else(|| "output".to_string());
+                        let stem = stem.trim_end_matches(".fastq").trim_end_matches(".fq")
+                            .trim_end_matches(".fa").trim_end_matches(".fasta")
+                            .trim_end_matches(".bam").trim_end_matches(".sam")
+                            .trim_end_matches(".vcf").trim_end_matches(".gz");
+                        stem.to_string()
+                    }))
                 .or_else(|| entry.default.clone());
         }
         if desc_lower.contains("name") || flag_lower == "-n" {
@@ -7460,6 +7662,7 @@ fn resolve_flag_value(
                     used_files.insert(f.to_ascii_lowercase());
                     f.clone()
                 })
+                .or_else(|| infer_output_from_input(flag_lower, &task_values.input_files, used_files))
                 .or_else(|| entry.default.clone());
         }
         return task_values.output_files.iter()
@@ -7468,6 +7671,7 @@ fn resolve_flag_value(
                 used_files.insert(f.to_ascii_lowercase());
                 f.clone()
             })
+            .or_else(|| infer_output_from_input(flag_lower, &task_values.input_files, used_files))
             .or_else(|| entry.default.clone());
     }
     if desc_lower.contains("input") || flag_lower.contains("in") || flag_lower.contains("bam") {

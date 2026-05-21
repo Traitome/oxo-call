@@ -23,8 +23,8 @@ use super::types::{
 };
 use crate::streaming_display;
 use super::task_values::{extract_task_values, rule_based_subcommand_match, detect_subcommand_for_tool, is_no_subcommand_tool};
-use super::template_engine::{find_best_template, fill_template, generate_from_template, merge_template_with_llm, merge_llm_into_template, remove_duplicate_flags_vec};
-use super::postprocess::{apply_corrections_to_args, apply_template_corrections, add_missing_required_flags, add_task_implied_flags, validate_flags_against_catalog, limit_flag_count, apply_tool_specific_corrections, fix_output_extensions};
+use super::template_engine::{find_best_template, fill_template, generate_from_template, generate_from_template_with_score, merge_template_with_llm, merge_llm_into_template, remove_duplicate_flags_vec};
+use super::postprocess::{apply_corrections_to_args, apply_template_corrections, add_missing_required_flags, add_task_implied_flags, validate_flags_against_catalog, limit_flag_count, apply_tool_specific_corrections, fix_output_extensions, fill_missing_flag_values, replace_generic_values};
 use super::rule_engine::assemble_command_from_rules;
 
 fn find_best_example(
@@ -464,7 +464,13 @@ impl LlmClient {
                     .count() > if sdoc.has_subcommands { 1 } else { 0 }
             };
 
-            let rule_is_excellent = rule_is_good && has_required_flags && has_positional_args;
+            let needs_llm_for_pattern = tool == "grep" || tool == "awk" || tool == "sed"
+                || tool == "perl" || tool == "python" || tool == "r" || tool == "bash"
+                || tool == "julia" || tool == "java" || tool == "find" || tool == "ssh";
+
+            let rule_is_excellent = is_small_model && rule_is_good
+                && (has_required_flags || sdoc.flag_catalog.iter().all(|e| !e.required))
+                && !needs_llm_for_pattern;
 
             if rule_is_excellent {
                 let mut final_args = rule_assembled;
@@ -472,6 +478,8 @@ impl LlmClient {
                 final_args = add_task_implied_flags(&final_args, sdoc, task);
                 final_args = remove_duplicate_flags_vec(&final_args);
                 final_args = apply_corrections_to_args(&final_args, tool, structured_doc, Some(task));
+                final_args = fill_missing_flag_values(&final_args, sdoc, task);
+                final_args = replace_generic_values(&final_args, task);
 
                 if std::env::var("OXO_CALL_VERBOSE").is_ok() {
                     eprintln!(
@@ -855,29 +863,149 @@ impl LlmClient {
 
         if skill.is_none() {
             if let Some(sdoc) = structured_doc {
-                if let Some(template_args) = generate_from_template(tool, task, sdoc) {
-                    if !template_args.is_empty() {
-                        let tmpl_has_flags = template_args.iter().any(|a| a.starts_with('-'));
+                let is_small_model = crate::config::infer_model_parameter_count(&model)
+                    .map(|p| p <= 8.0)
+                    .unwrap_or(false);
 
-                        if tmpl_has_flags || template_args.len() >= 2 {
-                            let tmpl_len = template_args.len();
-                            let mut final_args = template_args;
+                let tmpl_result = generate_from_template_with_score(tool, task, sdoc);
+
+                if is_small_model {
+                    let task_values = extract_task_values(task);
+                    let rule_subcmd = if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
+                        rule_based_subcommand_match(task, &sdoc.subcommands, &sdoc.subcommand_descriptions)
+                    } else {
+                        None
+                    };
+                    let rule_assembled = assemble_command_from_rules(tool, task, sdoc, rule_subcmd.as_deref(), &task_values);
+
+                    let needs_llm_for_pattern = tool == "grep" || tool == "awk" || tool == "sed"
+                        || tool == "perl" || tool == "python" || tool == "r" || tool == "bash"
+                        || tool == "julia" || tool == "java" || tool == "find" || tool == "ssh";
+
+                    let rule_has_content = !rule_assembled.is_empty() && rule_assembled.len() >= 2;
+                    let rule_has_real_files = rule_assembled.iter().any(|a| {
+                        a.contains('.') && !a.starts_with('-')
+                            && a != "input.bam" && a != "output.bam"
+                            && a != "reads_1.fq" && a != "reads_2.fq"
+                            && a != "reference.fa" && a != "input2.bed"
+                            && a != "annotation.gtf" && a != "database"
+                            && a != "metrics.txt" && a != "tool.jar"
+                            && a != "*.bam" && a != "SRR123456"
+                            && !a.starts_with("/path/to/")
+                    });
+                    let rule_has_subcmd = sdoc.has_subcommands && !rule_assembled.is_empty()
+                        && !rule_assembled[0].starts_with('-')
+                        && sdoc.subcommands.iter().any(|s| s.to_ascii_lowercase() == rule_assembled[0].to_ascii_lowercase());
+                    let rule_has_flags = rule_assembled.iter().any(|a| a.starts_with('-'));
+
+                    let tmpl_is_high_quality = tmpl_result.as_ref()
+                        .map(|(_, _, hq)| *hq)
+                        .unwrap_or(false);
+
+                    if rule_has_content && !needs_llm_for_pattern {
+                        let rule_quality_score = {
+                            let mut qs = 0i32;
+                            if rule_has_subcmd { qs += 30; }
+                            if rule_has_flags { qs += 20; }
+                            if rule_has_real_files { qs += 25; }
+                            if !task_values.input_files.is_empty() { qs += 10; }
+                            if !task_values.output_files.is_empty() { qs += 10; }
+                            qs += (rule_assembled.len() as i32).min(15);
+                            qs
+                        };
+
+                        let tmpl_quality_score = tmpl_result.as_ref()
+                            .map(|(args, match_score, hq)| {
+                                let mut qs = 0i32;
+                                if *hq { qs += 50; }
+                                let tmpl_has_sub = sdoc.has_subcommands && !args.is_empty()
+                                    && !args[0].starts_with('-')
+                                    && sdoc.subcommands.iter().any(|s| s.to_ascii_lowercase() == args[0].to_ascii_lowercase());
+                                if tmpl_has_sub { qs += 30; }
+                                let tmpl_has_flags = args.iter().any(|a| a.starts_with('-'));
+                                if tmpl_has_flags { qs += 20; }
+                                let tmpl_has_real = args.iter().any(|a| {
+                                    a.contains('.') && !a.starts_with('-')
+                                        && a != "input.bam" && a != "output.bam"
+                                        && a != "reads_1.fq" && a != "reads_2.fq"
+                                        && a != "reference.fa" && a != "input2.bed"
+                                        && a != "annotation.gtf" && a != "database"
+                                        && a != "metrics.txt" && a != "tool.jar"
+                                        && a != "*.bam" && a != "SRR123456"
+                                        && !a.starts_with("/path/to/")
+                                });
+                                if tmpl_has_real { qs += 25; }
+                                qs += (*match_score).min(20);
+                                qs
+                            })
+                            .unwrap_or(0);
+
+                        if rule_quality_score >= tmpl_quality_score || !tmpl_is_high_quality {
+                            let mut final_args = rule_assembled;
+                            final_args = add_missing_required_flags(&final_args, sdoc, task);
+                            final_args = add_task_implied_flags(&final_args, sdoc, task);
+                            final_args = limit_flag_count(&final_args, sdoc, task);
                             final_args = remove_duplicate_flags_vec(&final_args);
-                            final_args = apply_template_corrections(&final_args, tool, structured_doc, Some(task));
-                            final_args = apply_tool_specific_corrections(&final_args, tool, Some(task));
-                            final_args = fix_output_extensions(&final_args, tool, task);
-                            trace.record("template_direct", task, &final_args.join(" "), crate::diagnostic::DecisionSource::Template, 0);
+                            final_args = apply_corrections_to_args(&final_args, tool, structured_doc, Some(task));
+                            final_args = fill_missing_flag_values(&final_args, sdoc, task);
+                            final_args = replace_generic_values(&final_args, task);
+                            trace.record("rule_engine_direct", task, &final_args.join(" "), crate::diagnostic::DecisionSource::Rule, 0);
                             trace.set_final(&final_args.join(" "), overall_start.elapsed().as_millis() as u64);
                             trace.emit();
                             if std::env::var("OXO_CALL_VERBOSE").is_ok() {
-                                eprintln!("[verbose] Template-direct path: using template for {} (flags={}, len={})", 
-                                    tool, tmpl_has_flags, tmpl_len);
+                                eprintln!("[verbose] Rule-engine-direct path (small model, rule_score={}, tmpl_score={}): using rules for {}", 
+                                    rule_quality_score, tmpl_quality_score, tool);
                             }
                             return Ok(LlmCommandSuggestion {
                                 args: final_args,
                                 explanation: String::new(),
                                 inference_ms: 0.0,
                             });
+                        }
+                    }
+
+                    if let Some((tmpl_args, _match_score, _hq)) = tmpl_result {
+                        if !tmpl_args.is_empty() {
+                            let tmpl_has_flags = tmpl_args.iter().any(|a| a.starts_with('-'));
+                            if tmpl_has_flags || tmpl_args.len() >= 2 {
+                                let mut final_args = tmpl_args;
+                                final_args = remove_duplicate_flags_vec(&final_args);
+                                final_args = apply_template_corrections(&final_args, tool, structured_doc, Some(task));
+                                final_args = apply_tool_specific_corrections(&final_args, tool, Some(task));
+                                final_args = fix_output_extensions(&final_args, tool, task);
+                                trace.record("template_direct", task, &final_args.join(" "), crate::diagnostic::DecisionSource::Template, 0);
+                                trace.set_final(&final_args.join(" "), overall_start.elapsed().as_millis() as u64);
+                                trace.emit();
+                                if std::env::var("OXO_CALL_VERBOSE").is_ok() {
+                                    eprintln!("[verbose] Template-direct path (small model, high quality): using template for {}", tool);
+                                }
+                                return Ok(LlmCommandSuggestion {
+                                    args: final_args,
+                                    explanation: String::new(),
+                                    inference_ms: 0.0,
+                                });
+                            }
+                        }
+                    }
+                } else {
+                    if let Some((tmpl_args, _match_score, _hq)) = tmpl_result {
+                        if !tmpl_args.is_empty() {
+                            let tmpl_has_flags = tmpl_args.iter().any(|a| a.starts_with('-'));
+                            if tmpl_has_flags || tmpl_args.len() >= 2 {
+                                let mut final_args = tmpl_args;
+                                final_args = remove_duplicate_flags_vec(&final_args);
+                                final_args = apply_template_corrections(&final_args, tool, structured_doc, Some(task));
+                                final_args = apply_tool_specific_corrections(&final_args, tool, Some(task));
+                                final_args = fix_output_extensions(&final_args, tool, task);
+                                trace.record("template_direct", task, &final_args.join(" "), crate::diagnostic::DecisionSource::Template, 0);
+                                trace.set_final(&final_args.join(" "), overall_start.elapsed().as_millis() as u64);
+                                trace.emit();
+                                return Ok(LlmCommandSuggestion {
+                                    args: final_args,
+                                    explanation: String::new(),
+                                    inference_ms: 0.0,
+                                });
+                            }
                         }
                     }
                 }
@@ -906,7 +1034,7 @@ impl LlmClient {
                     }
                 }
 
-                {
+                if !is_small_model {
                     let task_values = extract_task_values(task);
                     let rule_subcmd = if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
                         rule_based_subcommand_match(task, &sdoc.subcommands, &sdoc.subcommand_descriptions)
@@ -921,15 +1049,7 @@ impl LlmClient {
                         let has_flags = assembled.iter().any(|a| a.starts_with('-'));
                         let has_files = assembled.iter().any(|a| a.contains('.') && !a.starts_with('-'));
 
-                        let is_small_model = crate::config::infer_model_parameter_count(&model)
-                            .map(|p| p <= 8.0)
-                            .unwrap_or(false);
-
-                        let should_use_rule = if is_small_model {
-                            (has_subcmd || !sdoc.has_subcommands) && (has_flags || has_files)
-                        } else {
-                            (has_subcmd || !sdoc.has_subcommands) && (has_flags || has_files)
-                        };
+                        let should_use_rule = (has_subcmd || !sdoc.has_subcommands) && (has_flags || has_files);
 
                         if should_use_rule {
                             let mut final_args = assembled;
@@ -938,13 +1058,11 @@ impl LlmClient {
                             final_args = limit_flag_count(&final_args, sdoc, task);
                             final_args = remove_duplicate_flags_vec(&final_args);
                             final_args = apply_corrections_to_args(&final_args, tool, structured_doc, Some(task));
+                            final_args = fill_missing_flag_values(&final_args, sdoc, task);
+                            final_args = replace_generic_values(&final_args, task);
                             trace.record("rule_engine_direct", task, &final_args.join(" "), crate::diagnostic::DecisionSource::Rule, 0);
                             trace.set_final(&final_args.join(" "), overall_start.elapsed().as_millis() as u64);
                             trace.emit();
-                            if std::env::var("OXO_CALL_VERBOSE").is_ok() {
-                                eprintln!("[verbose] Rule-engine-direct path: using rules for {} (sub={}, flags={}, files={}, small_model={})", 
-                                    tool, has_subcmd, has_flags, has_files, is_small_model);
-                            }
                             return Ok(LlmCommandSuggestion {
                                 args: final_args,
                                 explanation: String::new(),
@@ -1437,6 +1555,8 @@ impl LlmClient {
                     suggestion.args = add_missing_required_flags(&suggestion.args, sdoc, task);
                     suggestion.args = add_task_implied_flags(&suggestion.args, sdoc, task);
                     suggestion.args = limit_flag_count(&suggestion.args, sdoc, task);
+                    suggestion.args = fill_missing_flag_values(&suggestion.args, sdoc, task);
+                    suggestion.args = replace_generic_values(&suggestion.args, task);
                 }
             }
 

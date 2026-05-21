@@ -2792,6 +2792,135 @@ pub fn generate_from_template(
     Some(result)
 }
 
+pub fn generate_from_template_with_score(
+    tool: &str,
+    task: &str,
+    sdoc: &StructuredDoc,
+) -> Option<(Vec<String>, i32, bool)> {
+    let (template, match_score) = find_best_template_with_score(tool, task)?;
+
+    if match_score < 5 {
+        return None;
+    }
+
+    let task_values = super::task_values::extract_task_values(task);
+    let args = fill_template(template, task, &task_values);
+
+    if args.is_empty() {
+        return None;
+    }
+
+    let mut result = args;
+
+    if !sdoc.has_subcommands && !result.is_empty() {
+        let first = result[0].to_ascii_lowercase();
+        let looks_like_flag = first.starts_with('-');
+        let looks_like_file = first.contains('.') || first.contains('/');
+        let known_subcommand = sdoc.subcommands.iter().any(|s| s.to_ascii_lowercase() == first);
+        let is_companion = sdoc.companion_binaries.iter().any(|s| s.to_ascii_lowercase() == first);
+        let looks_like_executable = !first.contains('.')
+            && !first.contains('/')
+            && !first.starts_with('-')
+            && first.len() >= 3
+            && (first.contains('_')
+                || first.contains('-')
+                || first.starts_with("rscript")
+                || first == "realsfs"
+                || first.starts_with("bracken")
+                || first.starts_with("deduplicate")
+                || first.starts_with("bismark")
+                || first.starts_with("medaka")
+                || first.starts_with("nano")
+                || first == "bowtie2-build"
+                || first == "hisat2-build"
+                || first == "bwa-mem2"
+                || first == "convert2bed"
+                || first == "combine_bracken_outputs"
+                || first == "bakta_db"
+                || first == "bakta_proteins"
+                || first == "merge_metaphlan_tables.py"
+                || first == "strainphlan"
+                || first == "findmotifsgenome.pl"
+                || first == "annotatepeaks.pl"
+                || first == "getdifferentialpeaks"
+                || first == "getdifferentialgenes.pl"
+                || first == "makegenomedirectory.pl"
+                || first == "pos2bed.pl"
+                || first == "makeucscfile"
+                || first == "run_bowtie2_for_trinity.pl"
+                || first == "draw_fusions.r"
+                || first == "convert_fusions_to_vcf"
+                || first == "run_arriba"
+                || first == "run_arriba_on_prealigned_bam"
+                || first == "bismark2report"
+                || first == "bismark_methylation_extractor"
+                || first == "metaquast.py"
+                || first == "normalize_by_kmer_coverage"
+                || first == "kraken2-build"
+                || first == "centrifuge-build"
+                || first == "centrifuge-kreport"
+                || first == "fastq-dump"
+                || first == "fasterq-dump"
+                || first == "sam-dump"
+                || first == "prefetch"
+                || first == "abidump"
+                || first == "wibtotdf"
+                || first == "emapper.py"
+                || first == "jgi_summarize_bam_contig_depths"
+                || first == "agat_convert_sp_gff2gtf"
+                || first == "agat_sp_statistics"
+                || first == "agat_sp_filter_gene_by_length"
+                || first == "agat_convert_sp_gxf2gxf"
+                || first == "agat_sp_extract_sequences"
+                || first == "agat_sp_keep_longest_isoform"
+                || first == "agat_sp_merge_annotations"
+                || first == "agat_sp_manage_ids"
+                || first == "agat_convert_sp_gff2bed"
+                || first == "makeblastdb"
+                || first == "blastn"
+                || first == "blastp"
+                || first == "blastx"
+                || first == "tblastn"
+                || first == "blastdbcmd"
+                || first == "medaka_consensus"
+                || first == "medaka_haploid_variant"
+                || first == "medaka_variant"
+                || first == "medaka_inference"
+                || first == "medaka_sequence"
+            );
+        if !looks_like_flag && !looks_like_file && !known_subcommand && !looks_like_executable && !is_companion {
+            result.remove(0);
+        }
+    }
+
+    if result.is_empty() {
+        return None;
+    }
+
+    let placeholder_values = [
+        "input.bam", "output.bam", "reads_1.fq", "reads_2.fq",
+        "reference.fa", "input2.bed", "annotation.gtf", "database",
+        "metrics.txt", "tool.jar", "*.bam", "SRR123456",
+        "/path/to/", "genome_index", "output_dir/",
+        "pattern", "https://example.com",
+    ];
+    let placeholder_count = result.iter()
+        .filter(|a| placeholder_values.iter().any(|p| a == p || a.starts_with(p)))
+        .count();
+    let has_real_files = task_values.input_files.iter()
+        .chain(task_values.output_files.iter())
+        .any(|f| {
+            let fl = f.to_ascii_lowercase();
+            !placeholder_values.iter().any(|p| fl == *p || fl.starts_with(p))
+        });
+    let has_task_files = !task_values.input_files.is_empty() || !task_values.output_files.is_empty();
+    let template_is_high_quality = has_task_files
+        && (has_real_files || placeholder_count == 0)
+        && match_score >= 15;
+
+    Some((result, match_score, template_is_high_quality))
+}
+
 pub fn merge_llm_into_template(
     template_args: &[String],
     llm_args: &[String],

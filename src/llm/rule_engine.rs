@@ -169,6 +169,69 @@ fn find_any_unused_file<'a>(
     files.iter().find(|f| !used_files.contains(&f.to_ascii_lowercase()))
 }
 
+fn infer_output_from_input_for_rule(
+    desc_lower: &str,
+    flag_lower: &str,
+    input_files: &[String],
+    used_files: &std::collections::HashSet<String>,
+) -> Option<String> {
+    let first_unused = input_files.iter()
+        .find(|f| !used_files.contains(&f.to_ascii_lowercase()))?;
+
+    let path = std::path::Path::new(first_unused);
+    let stem = path.file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "output".to_string());
+    let stem = stem.trim_end_matches(".fastq").trim_end_matches(".fq")
+        .trim_end_matches(".fa").trim_end_matches(".fasta")
+        .trim_end_matches(".bam").trim_end_matches(".sam")
+        .trim_end_matches(".vcf").trim_end_matches(".gz")
+        .trim_end_matches(".bed").trim_end_matches(".txt");
+    let parent = path.parent()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| ".".to_string());
+    let stem_with_dir = if parent != "." {
+        format!("{}/{}", parent, stem)
+    } else {
+        stem.to_string()
+    };
+
+    if desc_lower.contains("dir") || desc_lower.contains("directory") || flag_lower.contains("outdir") || flag_lower.contains("out-dir") {
+        return Some(format!("{}/", stem_with_dir));
+    }
+    if desc_lower.contains("prefix") || flag_lower.contains("prefix") {
+        return Some(stem_with_dir);
+    }
+    if desc_lower.contains(".bam") || flag_lower.contains("bam") {
+        return Some(format!("{}.bam", stem_with_dir));
+    }
+    if desc_lower.contains(".vcf") || flag_lower.contains("vcf") {
+        return Some(format!("{}.vcf", stem_with_dir));
+    }
+    if desc_lower.contains(".sam") || flag_lower.contains("sam") {
+        return Some(format!("{}.sam", stem_with_dir));
+    }
+    if desc_lower.contains(".fasta") || desc_lower.contains(".fa") || flag_lower.contains("fasta") {
+        return Some(format!("{}.fasta", stem_with_dir));
+    }
+    if desc_lower.contains(".fastq") || desc_lower.contains(".fq") || flag_lower.contains("fastq") {
+        return Some(format!("{}.fastq", stem_with_dir));
+    }
+    if desc_lower.contains(".txt") || flag_lower.contains("txt") {
+        return Some(format!("{}.txt", stem_with_dir));
+    }
+    if desc_lower.contains(".html") || flag_lower.contains("html") {
+        return Some(format!("{}.html", stem_with_dir));
+    }
+    if desc_lower.contains(".json") || flag_lower.contains("json") {
+        return Some(format!("{}.json", stem_with_dir));
+    }
+    if desc_lower.contains("file") || desc_lower.contains("name") || desc_lower.contains("path") {
+        return Some(format!("{}.out", stem_with_dir));
+    }
+    Some(format!("{}/", stem_with_dir))
+}
+
 fn resolve_flag_value(
     entry: &FlagEntry,
     desc_lower: &str,
@@ -197,6 +260,7 @@ fn resolve_flag_value(
                         format!("{}/{}", parent, stem)
                     }
                 })
+                .or_else(|| infer_output_from_input_for_rule(desc_lower, flag_lower, &task_values.input_files, used_files))
                 .or_else(|| entry.default.clone());
         }
         if desc_lower.contains("dir") || desc_lower.contains("directory") || desc_lower.contains("path") {
@@ -207,6 +271,7 @@ fn resolve_flag_value(
                         .map(|p| p.to_string_lossy().to_string())
                         .unwrap_or_else(|| ".".to_string())
                 })
+                .or_else(|| infer_output_from_input_for_rule(desc_lower, flag_lower, &task_values.input_files, used_files))
                 .or_else(|| entry.default.clone());
         }
         if desc_lower.contains("file") || desc_lower.contains("name") {
@@ -216,6 +281,7 @@ fn resolve_flag_value(
                     used_files.insert(f.to_ascii_lowercase());
                     f.clone()
                 })
+                .or_else(|| infer_output_from_input_for_rule(desc_lower, flag_lower, &task_values.input_files, used_files))
                 .or_else(|| entry.default.clone());
         }
         return task_values.output_files.iter()
@@ -224,6 +290,7 @@ fn resolve_flag_value(
                 used_files.insert(f.to_ascii_lowercase());
                 f.clone()
             })
+            .or_else(|| infer_output_from_input_for_rule(desc_lower, flag_lower, &task_values.input_files, used_files))
             .or_else(|| entry.default.clone());
     }
 
@@ -445,7 +512,118 @@ fn resolve_flag_value(
 
     if desc_lower.contains("outfmt") || desc_lower.contains("output format") || flag_lower.contains("outfmt") {
         if !entry.enum_values.is_empty() {
+            if let Some(best) = entry.enum_values.iter().find(|v| {
+                let v_lower = v.to_ascii_lowercase();
+                task_lower.contains(&v_lower) || task_lower.contains(&v_lower.replace("_", " ").replace("-", " "))
+            }) {
+                return Some(best.clone());
+            }
             return Some(entry.enum_values[0].clone());
+        }
+        if task_lower.contains("bam") { return Some("bam".to_string()); }
+        if task_lower.contains("sam") { return Some("sam".to_string()); }
+        if task_lower.contains("vcf") { return Some("vcf".to_string()); }
+        if task_lower.contains("json") { return Some("json".to_string()); }
+        if task_lower.contains("tsv") { return Some("tsv".to_string()); }
+        if task_lower.contains("csv") { return Some("csv".to_string()); }
+        return entry.default.clone();
+    }
+
+    if desc_lower.contains("readgroup") || flag_lower.contains("read-group") || flag_lower.contains("rg") {
+        if task_lower.contains("read group") || task_lower.contains("readgroup") || task_lower.contains("rg_") {
+            let rg_match = task_lower.split("read group")
+                .nth(1)
+                .or_else(|| task_lower.split("readgroup").nth(1))
+                .or_else(|| task_lower.split("rg").nth(1));
+            if let Some(rest) = rg_match {
+                let id = rest.trim_start()
+                    .split(|c: char| c.is_whitespace() || c == '=' || c == ':')
+                    .filter(|s| !s.is_empty())
+                    .next();
+                if let Some(id) = id {
+                    return Some(id.to_string());
+                }
+            }
+        }
+        return entry.default.clone();
+    }
+
+    if desc_lower.contains("library") && (desc_lower.contains("name") || desc_lower.contains("id")) {
+        for word in task_lower.split_whitespace() {
+            if word.starts_with("lib") || word.contains("library") {
+                return Some(word.to_string());
+            }
+        }
+        return entry.default.clone();
+    }
+
+    if desc_lower.contains("sample") && (desc_lower.contains("name") || desc_lower.contains("id")) {
+        for word in task_lower.split_whitespace() {
+            if word.starts_with("sample") || word.starts_with("s_") {
+                return Some(word.to_string());
+            }
+        }
+        return entry.default.clone();
+    }
+
+    if desc_lower.contains("platform") || flag_lower.contains("platform") {
+        if task_lower.contains("illumina") { return Some("ILLUMINA".to_string()); }
+        if task_lower.contains("pacbio") { return Some("PACBIO".to_string()); }
+        if task_lower.contains("ont") || task_lower.contains("oxford") { return Some("ONT".to_string()); }
+        return entry.default.clone();
+    }
+
+    if (desc_lower.contains("preset") || flag_lower.contains("preset"))
+        && !desc_lower.contains("format") {
+        if task_lower.contains("very-sensitive") { return Some("very-sensitive".to_string()); }
+        if task_lower.contains("sensitive") { return Some("sensitive".to_string()); }
+        if task_lower.contains("very-fast") { return Some("very-fast".to_string()); }
+        if task_lower.contains("fast") && !task_lower.contains("fastq") { return Some("fast".to_string()); }
+        if task_lower.contains("pacbio") || task_lower.contains("hifi") { return Some("map-pb".to_string()); }
+        if task_lower.contains("ont") || task_lower.contains("nanopore") { return Some("map-ont".to_string()); }
+        if task_lower.contains("sr") || task_lower.contains("short-read") { return Some("sr".to_string()); }
+        return entry.default.clone();
+    }
+
+    if desc_lower.contains("evalue") || desc_lower.contains("e-value") || flag_lower.contains("evalue") {
+        return task_values.numbers.iter()
+            .filter(|n| { let v: f64 = n.parse().unwrap_or(0.0); v > 0.0 && v < 1.0 })
+            .cloned()
+            .next()
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("min-length") || desc_lower.contains("min_len") || flag_lower.contains("minlen") {
+        return task_values.numbers.iter()
+            .filter(|n| { let v: f64 = n.parse().unwrap_or(0.0); v >= 50.0 })
+            .cloned()
+            .next()
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("max-length") || desc_lower.contains("max_len") || flag_lower.contains("maxlen") {
+        return task_values.numbers.iter()
+            .filter(|n| { let v: f64 = n.parse().unwrap_or(0.0); v >= 50.0 })
+            .cloned()
+            .next()
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("min-quality") || desc_lower.contains("min_qual") || flag_lower.contains("minqual") {
+        return task_values.numbers.iter()
+            .filter(|n| { let v: f64 = n.parse().unwrap_or(0.0); v >= 1.0 && v <= 60.0 })
+            .cloned()
+            .next()
+            .or_else(|| entry.default.clone());
+    }
+
+    if desc_lower.contains("coverage") || desc_lower.contains("depth") || flag_lower.contains("cov") {
+        if flag_lower.contains("min") || desc_lower.contains("minimum") {
+            return task_values.numbers.iter()
+                .filter(|n| { let v: f64 = n.parse().unwrap_or(0.0); v >= 1.0 && v <= 1000.0 })
+                .cloned()
+                .next()
+                .or_else(|| entry.default.clone());
         }
         return entry.default.clone();
     }
@@ -592,7 +770,11 @@ pub fn assemble_command_from_rules(
         let is_db_flag = desc_lower.contains("database") || flag_lower.contains("db");
         let is_annotation_flag = desc_lower.contains("annotation") || desc_lower.contains("gtf") || desc_lower.contains("gff");
 
-        let should_auto_include = (is_output_flag && task_has_output)
+        let should_auto_include = (is_output_flag && (task_has_output || task_values.input_files.iter().any(|f| {
+            let fl = f.to_ascii_lowercase();
+            fl.ends_with(".bam") || fl.ends_with(".sam") || fl.ends_with(".fastq") || fl.ends_with(".fq")
+                || fl.ends_with(".vcf") || fl.ends_with(".fa") || fl.ends_with(".fasta")
+        })))
             || (is_input_flag && task_has_input)
             || (is_ref_flag && (!task_values.reference_files.is_empty() || !task_values.genome_dirs.is_empty()))
             || (is_db_flag && !task_values.database_files.is_empty())
@@ -603,7 +785,7 @@ pub fn assemble_command_from_rules(
         if !should_include { continue; }
 
         if !entry.required && !is_output_flag && !is_input_flag && !is_ref_flag
-            && !is_db_flag && !is_annotation_flag && included_flags.len() >= 12 {
+            && !is_db_flag && !is_annotation_flag && included_flags.len() >= 8 {
             continue;
         }
 

@@ -1585,6 +1585,51 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
         "ssh" | "wget" | "curl" | "rsync" | "find" | "rm" | "tar" => {
             None
         }
+        "verkko" => {
+            Some("_NO_SUB_".to_string())
+        }
+        "longshot" => {
+            Some("_NO_SUB_".to_string())
+        }
+        "racon" => {
+            Some("_NO_SUB_".to_string())
+        }
+        "freebayes" => {
+            Some("_NO_SUB_".to_string())
+        }
+        "sniffles" => {
+            Some("_NO_SUB_".to_string())
+        }
+        "gtdbtk" => {
+            if task_lower.contains("classify") {
+                Some("classify_wf".to_string())
+            } else if task_lower.contains("infer") {
+                Some("infer".to_string())
+            } else if task_lower.contains("de_novo") || task_lower.contains("denovo") {
+                Some("de_novo_wf".to_string())
+            } else if task_lower.contains("ani") {
+                Some("ani_screen".to_string())
+            } else if task_lower.contains("trim") {
+                Some("trim_msa".to_string())
+            } else {
+                Some("classify_wf".to_string())
+            }
+        }
+        "rsem" => {
+            if task_lower.contains("calculate-expression") || task_lower.contains("quantify") || task_lower.contains("expression") {
+                Some("rsem-calculate-expression".to_string())
+            } else if task_lower.contains("prepare-reference") || task_lower.contains("index") {
+                Some("rsem-prepare-reference".to_string())
+            } else {
+                Some("rsem-calculate-expression".to_string())
+            }
+        }
+        "nanocomp" => {
+            Some("NanoComp".to_string())
+        }
+        "nanoplot" => {
+            Some("_NO_SUB_".to_string())
+        }
         "bedops" => {
             if task_lower.contains("bedmap") || task_lower.contains("map") {
                 Some("bedmap".to_string())
