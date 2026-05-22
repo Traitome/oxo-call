@@ -2619,7 +2619,7 @@ pub fn get_known_subcommands_for_tool(tool: &str) -> Vec<String> {
             .iter()
             .map(|s| s.to_string())
             .collect(),
-        "bwa-mem2" => vec!["mem", "index"].iter().map(|s| s.to_string()).collect(),
+        "bwa-mem2" => ["mem", "index"].iter().map(|s| s.to_string()).collect(),
         "bowtie2" => vec!["build", "inspect", "align", "sam"]
             .iter()
             .map(|s| s.to_string())
@@ -2647,7 +2647,7 @@ pub fn get_known_subcommands_for_tool(tool: &str) -> Vec<String> {
         .map(|s| s.to_string())
         .collect(),
         "featurecounts" => vec![],
-        "htseq" => vec!["count", "qa"].iter().map(|s| s.to_string()).collect(),
+        "htseq" => ["count", "qa"].iter().map(|s| s.to_string()).collect(),
         "vcftools" => vec![],
         "plink" => vec![
             "--vcf",
@@ -3027,10 +3027,10 @@ pub fn get_known_subcommands_for_tool(tool: &str) -> Vec<String> {
         "pbccs" => vec![],
         "porechop" => vec![],
         "chopper" => vec![],
-        "nanocomp" => vec!["NanoComp"].iter().map(|s| s.to_string()).collect(),
+        "nanocomp" => ["NanoComp"].iter().map(|s| s.to_string()).collect(),
         "nanoplot" => vec![],
         "nanostat" => vec![],
-        "trimmomatic" => vec!["PE", "SE"].iter().map(|s| s.to_string()).collect(),
+        "trimmomatic" => ["PE", "SE"].iter().map(|s| s.to_string()).collect(),
         "trim_galore" => vec![],
         "cutadapt" => vec![],
         "fastp" => vec![],
@@ -3238,9 +3238,9 @@ pub fn pre_process(tool: &str, task: &str, sdoc: &StructuredDoc) -> PreProcessRe
         })
         .collect();
 
-    // Sort by score descending, take top 8
+    // Sort by score descending, take top 6 (keep prompt minimal)
     scored_flags.sort_by(|a, b| b.1.cmp(&a.1));
-    let relevant_flags: Vec<FlagEntry> = scored_flags.into_iter().take(8).map(|(f, _)| f).collect();
+    let relevant_flags: Vec<FlagEntry> = scored_flags.into_iter().take(6).map(|(f, _)| f).collect();
 
     // 3. Best example — use doc-extracted examples
     let best_example = sdoc.extracted_examples.first().cloned();

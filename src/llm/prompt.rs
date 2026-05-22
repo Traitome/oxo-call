@@ -465,15 +465,20 @@ fn build_slim_prompt(
 
     if let Some(sdoc) = structured_doc {
         if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
-            let subs: Vec<&str> = sdoc
-                .subcommands
-                .iter()
-                .take(5)
-                .map(|s| s.as_str())
-                .collect();
-            prompt.push_str(&format!("Subcommand: {}\n", subs.join("|")));
+            let best_sub = find_best_subcommand_for_task(task, sdoc);
+            if let Some(ref sub) = best_sub {
+                prompt.push_str(&format!("Subcommand: {sub} (MUST use this)\n"));
+            } else {
+                let subs: Vec<&str> = sdoc
+                    .subcommands
+                    .iter()
+                    .take(5)
+                    .map(|s| s.as_str())
+                    .collect();
+                prompt.push_str(&format!("Subcommand: {}\n", subs.join("|")));
+            }
         } else if !sdoc.has_subcommands {
-            prompt.push_str("Subcommand: none\n");
+            prompt.push_str("Subcommand: none (do NOT invent one)\n");
         }
         if !sdoc.companion_binaries.is_empty() {
             prompt.push_str(&format!("Binary: {}\n", sdoc.companion_binaries[0]));
@@ -503,7 +508,7 @@ fn build_slim_prompt(
             let sb = flag_relevance_score(b, &task_keywords, &task_lower);
             sb.cmp(&sa)
         });
-        let optional = optional.into_iter().take(4).collect::<Vec<_>>();
+        let optional = optional.into_iter().take(2).collect::<Vec<_>>();
 
         if !required.is_empty() || !optional.is_empty() {
             prompt.push_str("\nFlags (use ONLY these):\n");
@@ -571,6 +576,43 @@ fn build_slim_prompt(
 }
 
 /// Relevance score for a flag against task keywords.
+/// Find the best subcommand for a task from the structured doc's subcommand list.
+fn find_best_subcommand_for_task(task: &str, sdoc: &StructuredDoc) -> Option<String> {
+    let task_lower = task.to_ascii_lowercase();
+    let task_keywords: Vec<&str> = task_lower
+        .split_whitespace()
+        .filter(|w| w.len() >= 3 && !w.contains('.'))
+        .collect();
+
+    sdoc.subcommands
+        .iter()
+        .filter_map(|sub| {
+            let sub_lower = sub.to_ascii_lowercase();
+            let mut score = 0i32;
+            // Exact match
+            if task_keywords.iter().any(|w| *w == sub_lower) {
+                score += 20;
+            }
+            // Task contains subcommand
+            if task_lower.contains(&sub_lower) {
+                score += 15;
+            }
+            // Subcommand parts match task keywords
+            for part in sub_lower.split(|c: char| c == '_' || c == '-') {
+                if part.len() >= 3 {
+                    for kw in &task_keywords {
+                        if kw.contains(part) || part.contains(kw) {
+                            score += 8;
+                        }
+                    }
+                }
+            }
+            if score > 0 { Some((sub.clone(), score)) } else { None }
+        })
+        .max_by_key(|(_, s)| *s)
+        .map(|(sub, _)| sub)
+}
+
 fn flag_relevance_score(entry: &FlagEntry, task_keywords: &[&str], task_lower: &str) -> i32 {
     let desc_lower = entry.description.to_ascii_lowercase();
     let flag_lower = entry.flag.to_ascii_lowercase();
