@@ -456,9 +456,8 @@ pub fn build_prompt(
 
 /// Slim unified prompt for small models (≤ 8B).
 ///
-/// Value-assignment approach: the LLM maps extracted values to flags rather
-/// than generating the full command from scratch. This is much easier for
-/// small models and dramatically reduces hallucination.
+/// Minimal approach: show only the most critical 2-3 flags, pre-assign
+/// values to flags where possible, and ask the LLM solely to arrange them.
 fn build_slim_prompt(
     tool: &str,
     task: &str,
@@ -472,53 +471,20 @@ fn build_slim_prompt(
     prompt.push_str(&format!("Task: {task}\n"));
 
     if let Some(sdoc) = structured_doc {
-        // ── Subcommand (deterministic hint) ──────────────────────────
+        // ── Subcommand ────────────────────────────────────────────
         if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
             let best_sub = find_best_subcommand_for_task(task, sdoc);
             if let Some(ref sub) = best_sub {
                 prompt.push_str(&format!("Subcommand: {sub}\n"));
-            } else {
-                let subs: Vec<&str> = sdoc
-                    .subcommands
-                    .iter()
-                    .take(5)
-                    .map(|s| s.as_str())
-                    .collect();
-                prompt.push_str(&format!("Subcommand (pick one): {}\n", subs.join(", ")));
+            } else if sdoc.subcommands.len() <= 5 {
+                let subs = sdoc.subcommands.join(", ");
+                prompt.push_str(&format!("Subcommand: {subs}\n"));
             }
         } else if !sdoc.has_subcommands {
             prompt.push_str("(no subcommand)\n");
         }
-        if !sdoc.companion_binaries.is_empty() {
-            prompt.push_str(&format!("Use binary: {}\n", sdoc.companion_binaries[0]));
-        }
 
-        // ── Values extracted from task ──────────────────────────────
-        let mut values: Vec<String> = Vec::new();
-        values.extend(
-            task_values
-                .input_files
-                .iter()
-                .map(|f| format!("  {} → input file", f)),
-        );
-        values.extend(
-            task_values
-                .output_files
-                .iter()
-                .map(|f| format!("  {} → output file", f)),
-        );
-        for n in &task_values.numbers {
-            values.push(format!("  {n} → numeric value"));
-        }
-        if !values.is_empty() {
-            prompt.push_str("\nValues from task:\n");
-            for v in &values {
-                prompt.push_str(v);
-                prompt.push('\n');
-            }
-        }
-
-        // ── Flag catalog (compact, max 5 total) ─────────────────────
+        // ── Critical flags (max 2, with value assignment) ──────────
         let task_lower = task.to_ascii_lowercase();
         let task_keywords: Vec<&str> = task_lower
             .split_whitespace()
@@ -529,7 +495,7 @@ fn build_slim_prompt(
             .flag_catalog
             .iter()
             .filter(|e| e.required)
-            .take(3)
+            .take(2)
             .collect();
         let mut optional: Vec<&FlagEntry> =
             sdoc.flag_catalog.iter().filter(|e| !e.required).collect();
@@ -538,34 +504,27 @@ fn build_slim_prompt(
             let sb = flag_relevance_score(b, &task_keywords, &task_lower);
             sb.cmp(&sa)
         });
-        let optional = optional.into_iter().take(2).collect::<Vec<_>>();
+        let optional = optional.into_iter().take(1).collect::<Vec<_>>();
 
         if !required.is_empty() || !optional.is_empty() {
-            prompt.push_str("\nAvailable flags:\n");
+            prompt.push_str("\nFlags:\n");
             for f in &required {
-                let alt = f
-                    .alt_form
-                    .as_ref()
-                    .map(|a| format!(" / {}", a))
-                    .unwrap_or_default();
-                prompt.push_str(&format!("  * {}{} : {}\n", f.flag, alt, f.description));
+                let assigned = assign_value_to_flag(f, &task_values);
+                prompt.push_str(&format!("  {}{}\n", f.flag, assigned));
             }
             for f in &optional {
-                let alt = f
-                    .alt_form
-                    .as_ref()
-                    .map(|a| format!(" / {}", a))
-                    .unwrap_or_default();
-                prompt.push_str(&format!("    {}{} : {}\n", f.flag, alt, f.description));
+                let assigned = assign_value_to_flag(f, &task_values);
+                prompt.push_str(&format!("  {}{}\n", f.flag, assigned));
             }
-        } else if !sdoc.usage_pattern.raw_usage.is_empty() {
-            let usage = if sdoc.usage_pattern.raw_usage.len() > 300 {
-                &sdoc.usage_pattern.raw_usage[..300]
-            } else {
-                &sdoc.usage_pattern.raw_usage
-            };
-            prompt.push_str(&format!("\nUsage: {usage}\n"));
         }
+    }
+
+    // ── Files ──────────────────────────────────────────────────────
+    if !task_values.input_files.is_empty() {
+        prompt.push_str(&format!("\nInput: {}\n", task_values.input_files.join(" ")));
+    }
+    if !task_values.output_files.is_empty() {
+        prompt.push_str(&format!("Output: {}\n", task_values.output_files.join(" ")));
     }
 
     // ── Example ────────────────────────────────────────────────────
@@ -583,8 +542,56 @@ fn build_slim_prompt(
         prompt.push_str(&format!("\nExample:\n  ARGS: {args}\n"));
     }
 
-    prompt.push_str("\nOutput ONLY the ARGS line:\nARGS:");
+    prompt.push_str("\nARGS:");
     prompt
+}
+
+/// Assign task values to a flag's expected type, producing a value hint.
+fn assign_value_to_flag(entry: &FlagEntry, tv: &super::task_values::TaskValues) -> String {
+    let desc = entry.description.to_ascii_lowercase();
+    let flag = entry.flag.to_ascii_lowercase();
+
+    // Output flag
+    if desc.contains("output") || flag.contains("-o") || flag.contains("out") {
+        if let Some(f) = tv.output_files.first() {
+            return format!(" {}", f);
+        }
+    }
+    // Thread flag
+    if desc.contains("thread") || desc.contains("cpu") || flag == "-@" || flag == "-p" {
+        for n in &tv.numbers {
+            if let Ok(v) = n.parse::<u32>() {
+                if v <= 128 {
+                    return format!(" {n}");
+                }
+            }
+        }
+    }
+    // Input flag
+    if desc.contains("input") || flag == "-i" || flag == "-f" || flag == "-1" {
+        if let Some(f) = tv.input_files.first() {
+            return format!(" {f}");
+        }
+    }
+    // Reference flag
+    if desc.contains("reference") || desc.contains("genome") || flag == "-x" || flag == "-r" {
+        if let Some(f) = tv.reference_files.first() {
+            return format!(" {f}");
+        }
+        // Check input files for reference-like names
+        for f in &tv.input_files {
+            let fl = f.to_ascii_lowercase();
+            if fl.ends_with(".fa") || fl.ends_with(".fasta") || fl.ends_with(".fna") {
+                return format!(" {f}");
+            }
+        }
+    }
+    // No value assignment — just show the flag type
+    if let Some(ref vt) = entry.value_type {
+        format!(" <{vt}>")
+    } else {
+        String::new()
+    }
 }
 
 /// Relevance score for a flag against task keywords.
