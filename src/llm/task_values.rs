@@ -300,6 +300,22 @@ pub fn rule_based_subcommand_match(
         "when", "where", "which", "what", "how", "can", "will",
         "use", "used", "using", "option", "optional", "default",
         "file", "path", "name", "value", "number", "list",
+        "also", "than", "been", "being", "have", "has", "had",
+        "not", "but", "are", "was", "were", "its", "our", "your",
+    ];
+
+    let action_verbs: &[&str] = &[
+        "sort", "index", "merge", "split", "filter", "convert", "extract",
+        "align", "map", "call", "count", "quantify", "annotate", "assemble",
+        "build", "search", "scan", "predict", "classify", "cluster", "compare",
+        "download", "view", "stats", "depth", "coverage", "dedup", "phase",
+        "correct", "polish", "consensus", "normalize", "validate", "concat",
+        "compress", "decompress", "format", "transform", "compute", "generate",
+        "plot", "visualize", "report", "summary", "inspect", "check", "test",
+        "clean", "fix", "repair", "rename", "replace", "remove", "delete",
+        "select", "sample", "subset", "trim", "mask", "intersect", "subtract",
+        "join", "combine", "union", "difference", "complement", "overlap",
+        "fetch", "import", "export", "parse", "print", "display", "list",
     ];
 
     let mut best_match: Option<String> = None;
@@ -314,10 +330,10 @@ pub fn rule_based_subcommand_match(
         }
 
         let sub_parts: Vec<&str> = sub_lower.split(|c: char| c == '_' || c == '-')
-            .filter(|p| p.len() >= 3)
+            .filter(|p| p.len() >= 2)
             .collect();
         for part in &sub_parts {
-            if task_lower.contains(part) {
+            if part.len() >= 3 && task_lower.contains(part) {
                 score += 15;
             }
         }
@@ -331,12 +347,41 @@ pub fn rule_based_subcommand_match(
         for (sub_desc, desc) in subcommand_descriptions {
             if sub.eq_ignore_ascii_case(sub_desc) {
                 let desc_lower = desc.to_ascii_lowercase();
+                let desc_words: std::collections::HashSet<&str> = desc_lower
+                    .split(|c: char| c.is_whitespace() || c == '_' || c == '-' || c == ',' || c == '.' || c == '(' || c == ')')
+                    .filter(|w| w.len() >= 3 && !desc_stop_words.contains(w))
+                    .collect();
+
+                let mut desc_match_score = 0i32;
+                let mut matched_action = false;
                 for word in &task_words {
                     if desc_stop_words.contains(word) { continue; }
-                    if desc_lower.split_whitespace().any(|dw| dw == *word) {
-                        score += if word.len() >= 6 { 4 } else if word.len() >= 4 { 3 } else { 2 };
+                    if desc_words.contains(word) {
+                        let word_score = if word.len() >= 7 { 6 } else if word.len() >= 5 { 4 } else { 3 };
+                        desc_match_score += word_score;
+                        if action_verbs.contains(word) {
+                            matched_action = true;
+                        }
                     } else if desc_lower.contains(word) {
-                        score += 1;
+                        desc_match_score += 1;
+                    }
+                }
+                if matched_action {
+                    desc_match_score += 10;
+                }
+                score += desc_match_score;
+
+                let task_key_words: Vec<&str> = task_words.iter()
+                    .filter(|w| !desc_stop_words.contains(w) && w.len() >= 4)
+                    .copied()
+                    .collect();
+                if !task_key_words.is_empty() && !desc_words.is_empty() {
+                    let matched_count = task_key_words.iter()
+                        .filter(|&w| desc_words.contains(w) || desc_lower.contains(w))
+                        .count();
+                    let coverage = matched_count as f64 / task_key_words.len() as f64;
+                    if coverage >= 0.5 {
+                        score += (coverage * 15.0) as i32;
                     }
                 }
                 break;
@@ -951,14 +996,18 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
             }
         }
         "delly" => {
-            if task_lower.contains("call") {
+            if task_lower.contains("call") && !task_lower.contains("filter") && !task_lower.contains("merge") && !task_lower.contains("lr") {
                 Some("call".to_string())
             } else if task_lower.contains("filter") {
                 Some("filter".to_string())
             } else if task_lower.contains("merge") {
                 Some("merge".to_string())
+            } else if task_lower.contains("lr") || task_lower.contains("long-read") || task_lower.contains("long read") || task_lower.contains("pacbio") || task_lower.contains("ont") || task_lower.contains("nanopore") {
+                Some("lr".to_string())
+            } else if task_lower.contains("genotype") {
+                Some("genotype".to_string())
             } else {
-                None
+                Some("call".to_string())
             }
         }
         "whatshap" => {
@@ -1212,6 +1261,35 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
         "angsd" => {
             None
         }
+        "agat" => {
+            if task_lower.contains("gff2gtf") || task_lower.contains("gff to gtf") || task_lower.contains("convert") && task_lower.contains("gtf") {
+                Some("agat_convert_sp_gff2gtf".to_string())
+            } else if task_lower.contains("gff2bed") || task_lower.contains("gff to bed") || task_lower.contains("convert") && task_lower.contains("bed") {
+                Some("agat_convert_sp_gff2bed".to_string())
+            } else if task_lower.contains("gxf2gxf") || task_lower.contains("gxf to gxf") || task_lower.contains("fix") && task_lower.contains("gff") {
+                Some("agat_convert_sp_gxf2gxf".to_string())
+            } else if task_lower.contains("statistics") || task_lower.contains("stats") {
+                Some("agat_sp_statistics".to_string())
+            } else if task_lower.contains("filter") && task_lower.contains("gene") && task_lower.contains("length") {
+                Some("agat_sp_filter_gene_by_length".to_string())
+            } else if task_lower.contains("extract") && task_lower.contains("sequence") {
+                Some("agat_sp_extract_sequences".to_string())
+            } else if task_lower.contains("keep") && task_lower.contains("longest") && task_lower.contains("isoform") {
+                Some("agat_sp_keep_longest_isoform".to_string())
+            } else if task_lower.contains("merge") && task_lower.contains("annotation") {
+                Some("agat_sp_merge_annotations".to_string())
+            } else if task_lower.contains("manage") && task_lower.contains("id") {
+                Some("agat_sp_manage_IDs".to_string())
+            } else if task_lower.contains("filter") && task_lower.contains("gene") {
+                Some("agat_sp_filter_gene_by_length".to_string())
+            } else if task_lower.contains("merge") {
+                Some("agat_sp_merge_annotations".to_string())
+            } else if task_lower.contains("convert") {
+                Some("agat_convert_sp_gff2gtf".to_string())
+            } else {
+                None
+            }
+        }
         "plink2" => {
             None
         }
@@ -1426,6 +1504,92 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
                 Some("index".to_string())
             } else {
                 Some("mem".to_string())
+            }
+        }
+        "gatk" => {
+            if task_lower.contains("haplotypecaller") || task_lower.contains("haplotype") || (task_lower.contains("germline") && task_lower.contains("variant")) {
+                Some("HaplotypeCaller".to_string())
+            } else if task_lower.contains("mutect2") || task_lower.contains("somatic") || task_lower.contains("tumor") {
+                Some("Mutect2".to_string())
+            } else if task_lower.contains("filtermutectcalls") || (task_lower.contains("filter") && task_lower.contains("mutect")) {
+                Some("FilterMutectCalls".to_string())
+            } else if task_lower.contains("baserecalibrator") || task_lower.contains("bqsr") || task_lower.contains("recalibrat") {
+                Some("BaseRecalibrator".to_string())
+            } else if task_lower.contains("applybqsr") || (task_lower.contains("apply") && task_lower.contains("bqsr")) {
+                Some("ApplyBQSR".to_string())
+            } else if task_lower.contains("markduplicates") || task_lower.contains("duplicate") || task_lower.contains("dedup") {
+                Some("MarkDuplicates".to_string())
+            } else if task_lower.contains("sortsam") || (task_lower.contains("sort") && task_lower.contains("bam")) {
+                Some("SortSam".to_string())
+            } else if task_lower.contains("addorreplacereadgroups") || task_lower.contains("read group") || task_lower.contains("rgid") || task_lower.contains("rgpl") {
+                Some("AddOrReplaceReadGroups".to_string())
+            } else if task_lower.contains("createsequencedictionary") || task_lower.contains("sequence dictionary") || task_lower.contains("dictionary") {
+                Some("CreateSequenceDictionary".to_string())
+            } else if task_lower.contains("selectvariants") || (task_lower.contains("select") && task_lower.contains("variant")) {
+                Some("SelectVariants".to_string())
+            } else if task_lower.contains("variantfiltration") || (task_lower.contains("filter") && task_lower.contains("variant") && !task_lower.contains("mutect")) {
+                Some("VariantFiltration".to_string())
+            } else if task_lower.contains("splitncigarreads") || (task_lower.contains("split") && task_lower.contains("cigar")) {
+                Some("SplitNCigarReads".to_string())
+            } else if task_lower.contains("combinegvcfs") || (task_lower.contains("combine") && task_lower.contains("gvcf")) {
+                Some("CombineGVCFs".to_string())
+            } else if task_lower.contains("genotypegvcfs") || (task_lower.contains("genotype") && task_lower.contains("gvcf")) {
+                Some("GenotypeGVCFs".to_string())
+            } else if task_lower.contains("genomicsdbimport") || (task_lower.contains("genomicsdb") || task_lower.contains("import")) && task_lower.contains("gvcf") {
+                Some("GenomicsDBImport".to_string())
+            } else if task_lower.contains("collectalignment") || task_lower.contains("alignment") && task_lower.contains("metric") {
+                Some("CollectAlignmentSummaryMetrics".to_string())
+            } else if task_lower.contains("collectinsert") || task_lower.contains("insert") && task_lower.contains("size") {
+                Some("CollectInsertSizeMetrics".to_string())
+            } else if task_lower.contains("depthofcoverage") || task_lower.contains("depth") && task_lower.contains("coverage") {
+                Some("DepthOfCoverage".to_string())
+            } else if task_lower.contains("validatesamfile") || (task_lower.contains("validate") && task_lower.contains("sam")) {
+                Some("ValidateSamFile".to_string())
+            } else if task_lower.contains("mergesamfiles") || (task_lower.contains("merge") && task_lower.contains("sam")) {
+                Some("MergeSamFiles".to_string())
+            } else if task_lower.contains("buildbamindex") || (task_lower.contains("build") && task_lower.contains("index")) {
+                Some("BuildBamIndex".to_string())
+            } else if task_lower.contains("indexfeaturefile") || (task_lower.contains("index") && (task_lower.contains("vcf") || task_lower.contains("feature"))) {
+                Some("IndexFeatureFile".to_string())
+            } else {
+                None
+            }
+        }
+        "picard" => {
+            if task_lower.contains("markduplicates") || task_lower.contains("duplicate") || task_lower.contains("dedup") {
+                Some("MarkDuplicates".to_string())
+            } else if task_lower.contains("sortsam") || (task_lower.contains("sort") && task_lower.contains("bam")) {
+                Some("SortSam".to_string())
+            } else if task_lower.contains("addorreplacereadgroups") || task_lower.contains("read group") || task_lower.contains("rgid") || task_lower.contains("rgpl") {
+                Some("AddOrReplaceReadGroups".to_string())
+            } else if task_lower.contains("createsequencedictionary") || task_lower.contains("sequence dictionary") || task_lower.contains("dictionary") {
+                Some("CreateSequenceDictionary".to_string())
+            } else if task_lower.contains("collectalignment") || task_lower.contains("alignment") && task_lower.contains("metric") {
+                Some("CollectAlignmentSummaryMetrics".to_string())
+            } else if task_lower.contains("collectinsert") || task_lower.contains("insert") && task_lower.contains("size") {
+                Some("CollectInsertSizeMetrics".to_string())
+            } else if task_lower.contains("collectgcbias") || task_lower.contains("gc") && task_lower.contains("bias") {
+                Some("CollectGcBiasMetrics".to_string())
+            } else if task_lower.contains("collectqualityyield") || task_lower.contains("quality") && task_lower.contains("yield") {
+                Some("CollectQualityYieldMetrics".to_string())
+            } else if task_lower.contains("collectrnaseq") || task_lower.contains("rna-seq") && task_lower.contains("metric") {
+                Some("CollectRnaSeqMetrics".to_string())
+            } else if task_lower.contains("mergesamfiles") || (task_lower.contains("merge") && task_lower.contains("sam")) {
+                Some("MergeSamFiles".to_string())
+            } else if task_lower.contains("validatesamfile") || (task_lower.contains("validate") && task_lower.contains("sam")) {
+                Some("ValidateSamFile".to_string())
+            } else if task_lower.contains("fastqtosam") || (task_lower.contains("fastq") && task_lower.contains("bam")) {
+                Some("FastqToSam".to_string())
+            } else if task_lower.contains("samtofastq") || (task_lower.contains("bam") && task_lower.contains("fastq")) {
+                Some("SamToFastq".to_string())
+            } else if task_lower.contains("buildbamindex") || (task_lower.contains("build") && task_lower.contains("index")) {
+                Some("BuildBamIndex".to_string())
+            } else if task_lower.contains("extractsequences") || (task_lower.contains("extract") && task_lower.contains("sequence")) {
+                Some("ExtractSequences".to_string())
+            } else if task_lower.contains("gathervcfs") || (task_lower.contains("gather") && task_lower.contains("vcf")) {
+                Some("GatherVcfs".to_string())
+            } else {
+                None
             }
         }
         "salmon" => {
@@ -1661,8 +1825,7 @@ pub fn is_no_subcommand_tool(tool: &str) -> bool {
         "pilon" | "busco" | "cutadapt" |
         "mash" | "eggnog-mapper" |
         "miniasm" | "wtdbg2" | "verkko" |
-        "bwa" | "bwa-mem2" |
-        "minimap2" | "salmon" | "kallisto" |
+        "minimap2" |
         "featurecounts" | "spades" | "flye" | "canu" |
         "trinity" | "prokka" |
         "fastq-screen" | "bbtools" |

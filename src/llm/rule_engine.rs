@@ -103,22 +103,49 @@ fn compute_semantic_bonus(desc_lower: &str, flag_lower: &str, task_lower: &str, 
     }
 
     let semantic_pairs: &[(&[&str], &[&str], i32)] = &[
-        (&["quality", "qual"], &["quality", "qual"], 8),
-        (&["region", "chrom", "window"], &["region", "chrom", "window"], 10),
-        (&["species"], &["species"], 10),
-        (&["seed"], &["seed"], 15),
-        (&["bootstrap", "replicat"], &["bootstrap", "replicat"], 15),
+        (&["quality", "qual"], &["quality", "qual", "trim", "filter"], 8),
+        (&["region", "chrom", "window"], &["region", "chrom", "window", "interval", "locus"], 10),
+        (&["species"], &["species", "organism", "taxon"], 10),
+        (&["seed"], &["seed", "random"], 15),
+        (&["bootstrap", "replicat"], &["bootstrap", "replicat", "resample"], 15),
         (&["evalue", "e-value", "expect"], &["evalue", "e-value", "significance"], 12),
-        (&["identity", "similarity"], &["identity", "similarity", "percent"], 10),
+        (&["identity", "similarity"], &["identity", "similarity", "percent", "match"], 10),
         (&["coverage", "depth"], &["coverage", "depth", "cov"], 10),
-        (&["preset"], &["preset"], 8),
-        (&["method"], &["method"], 8),
-        (&["strand"], &["strand"], 10),
-        (&["paired", "pair"], &["paired", "pair"], 10),
-        (&["cutoff", "threshold"], &["cutoff", "threshold"], 10),
+        (&["preset"], &["preset", "sensitivity", "sensitive", "fast"], 8),
+        (&["method"], &["method", "algorithm", "approach", "mode", "strategy"], 8),
+        (&["strand"], &["strand", "forward", "reverse", "sense"], 10),
+        (&["paired", "pair"], &["paired", "pair", "mate", "dual"], 10),
+        (&["cutoff", "threshold"], &["cutoff", "threshold", "minimum", "min", "maximum", "max"], 10),
         (&["pvalue", "p-value", "pval"], &["pvalue", "p-value", "pval", "significance"], 15),
-        (&["format"], &["format"], 8),
-        (&["length", "len"], &["length", "len", "size"], 5),
+        (&["format"], &["format", "output format", "type"], 8),
+        (&["length", "len"], &["length", "len", "size", "bp", "base"], 5),
+        (&["adapter", "barcode", "index"], &["adapter", "barcode", "index", "ligation"], 12),
+        (&["contig", "scaffold"], &["contig", "scaffold", "assembly", "assemble"], 10),
+        (&["variant", "snp", "genotype"], &["variant", "snp", "genotype", "call", "mutation"], 10),
+        (&["expression", "abundance", "count"], &["expression", "abundance", "count", "quantify", "tpm", "fpkm"], 10),
+        (&["annotation", "feature", "gene"], &["annotation", "feature", "gene", "transcript", "exon", "cds"], 10),
+        (&["taxonomic", "classify", "taxon"], &["taxonomic", "classify", "taxon", "taxonomy", "identify"], 10),
+        (&["read", "read1", "read2"], &["read", "read1", "read2", "mate", "pair-end", "single-end"], 8),
+        (&["bam", "sam", "alignment"], &["bam", "sam", "alignment", "mapped", "align"], 8),
+        (&["vcf", "variant", "genotype"], &["vcf", "variant", "genotype", "snp", "indel"], 8),
+        (&["fastq", "fq", "sequence"], &["fastq", "fq", "sequence", "read", "raw"], 8),
+        (&["bed", "interval", "peak"], &["bed", "interval", "peak", "region", "chip"], 8),
+        (&["fasta", "reference", "genome"], &["fasta", "reference", "genome", "assembly", "fna"], 8),
+        (&["gtf", "gff", "annotation"], &["gtf", "gff", "annotation", "transcript", "gene model"], 8),
+        (&["mem", "memory", "buffer"], &["mem", "memory", "buffer", "ram"], 3),
+        (&["compress", "decompress", "gzip", "zip"], &["compress", "decompress", "gzip", "zip", "gz", "archive"], 8),
+        (&["score", "bit", "bitscore"], &["score", "bit", "bitscore", "ranking"], 8),
+        (&["gap", "mismatch", "penalty"], &["gap", "mismatch", "penalty", "open", "extend"], 8),
+        (&["motif", "pattern", "domain"], &["motif", "pattern", "domain", "consensus", "pfam"], 10),
+        (&["tree", "phylogeny", "newick"], &["tree", "phylogeny", "newick", "phylogen", "branch"], 10),
+        (&["busco", "completeness", "lineage"], &["busco", "completeness", "lineage", "quality", "assessment"], 10),
+        (&["trim", "clip", "cut"], &["trim", "clip", "cut", "remove", "discard"], 10),
+        (&["merge", "combine", "join", "concat"], &["merge", "combine", "join", "concat", "union"], 8),
+        (&["split", "partition", "chunk"], &["split", "partition", "chunk", "divide"], 8),
+        (&["sort", "order", "arrange"], &["sort", "order", "arrange", "rank"], 8),
+        (&["dedup", "duplicate", "markdup"], &["dedup", "duplicate", "markdup", "remove duplicate"], 10),
+        (&["realignment", "recalibration", "base recal"], &["realignment", "recalibration", "base recal", "bqsr"], 10),
+        (&["contamination", "cross"], &["contamination", "cross", "pollut"], 10),
     ];
     for (desc_keywords, task_keywords, score) in semantic_pairs {
         let desc_matches = desc_keywords.iter().any(|k| desc_lower.contains(k));
@@ -135,7 +162,8 @@ fn compute_negative_score(desc_lower: &str, flag_lower: &str, task_lower: &str) 
     let mut neg = 0i32;
 
     if desc_lower.contains("help") || flag_lower.contains("version") { neg -= 50; }
-    if desc_lower.contains("verbose") || desc_lower.contains("debug") || desc_lower.contains("quiet") { neg -= 20; }
+    if desc_lower.contains("verbose") || desc_lower.contains("quiet") { neg -= 20; }
+    if desc_lower.contains("debug") && !task_lower.contains("debug") { neg -= 20; }
     if desc_lower.contains("test") && !task_lower.contains("test") { neg -= 10; }
     if desc_lower.contains("example") && !task_lower.contains("example") { neg -= 10; }
     if desc_lower.contains("log") && !task_lower.contains("log") { neg -= 5; }
@@ -147,6 +175,13 @@ fn compute_negative_score(desc_lower: &str, flag_lower: &str, task_lower: &str) 
     if desc_lower.contains("intermediate") { neg -= 8; }
     if desc_lower.contains("progress") && !task_lower.contains("progress") { neg -= 5; }
     if desc_lower.contains("statistics") && !task_lower.contains("stat") && !task_lower.contains("statistics") { neg -= 3; }
+    if (desc_lower.contains("report") || desc_lower.contains("summary")) && !task_lower.contains("report") && !task_lower.contains("summary") { neg -= 5; }
+    if desc_lower.contains("dry-run") || desc_lower.contains("dry_run") || desc_lower.contains("pretend") { neg -= 15; }
+    if (desc_lower.contains("force") || desc_lower.contains("overwrite")) && !task_lower.contains("force") && !task_lower.contains("overwrite") { neg -= 3; }
+    if desc_lower.contains("trace") && !task_lower.contains("trace") { neg -= 10; }
+    if (desc_lower.contains("benchmark") || desc_lower.contains("timing")) && !task_lower.contains("benchmark") { neg -= 8; }
+    if desc_lower.contains("citation") || desc_lower.contains("cite") { neg -= 10; }
+    if desc_lower.contains("warranty") || desc_lower.contains("license") { neg -= 15; }
 
     neg
 }
@@ -182,11 +217,19 @@ fn infer_output_from_input_for_rule(
     let stem = path.file_stem()
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_else(|| "output".to_string());
-    let stem = stem.trim_end_matches(".fastq").trim_end_matches(".fq")
+    let stem = stem.trim_end_matches(".fastq.gz").trim_end_matches(".fq.gz")
+        .trim_end_matches(".fasta.gz").trim_end_matches(".fa.gz")
+        .trim_end_matches(".vcf.gz").trim_end_matches(".bed.gz")
+        .trim_end_matches(".gtf.gz").trim_end_matches(".gff.gz")
+        .trim_end_matches(".sam.gz").trim_end_matches(".bam.gz")
+        .trim_end_matches(".fastq").trim_end_matches(".fq")
         .trim_end_matches(".fa").trim_end_matches(".fasta")
         .trim_end_matches(".bam").trim_end_matches(".sam")
         .trim_end_matches(".vcf").trim_end_matches(".gz")
-        .trim_end_matches(".bed").trim_end_matches(".txt");
+        .trim_end_matches(".bed").trim_end_matches(".txt")
+        .trim_end_matches(".gff").trim_end_matches(".gtf")
+        .trim_end_matches(".cram").trim_end_matches(".bai")
+        .trim_end_matches(".csi").trim_end_matches(".tbi");
     let parent = path.parent()
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_else(|| ".".to_string());
@@ -205,7 +248,7 @@ fn infer_output_from_input_for_rule(
     if desc_lower.contains(".bam") || flag_lower.contains("bam") {
         return Some(format!("{}.bam", stem_with_dir));
     }
-    if desc_lower.contains(".vcf") || flag_lower.contains("vcf") {
+    if desc_lower.contains(".vcf") || flag_lower.contains("vcf") || flag_lower.contains("variant") {
         return Some(format!("{}.vcf", stem_with_dir));
     }
     if desc_lower.contains(".sam") || flag_lower.contains("sam") {
@@ -225,6 +268,21 @@ fn infer_output_from_input_for_rule(
     }
     if desc_lower.contains(".json") || flag_lower.contains("json") {
         return Some(format!("{}.json", stem_with_dir));
+    }
+    if desc_lower.contains(".tsv") || flag_lower.contains("tsv") {
+        return Some(format!("{}.tsv", stem_with_dir));
+    }
+    if desc_lower.contains(".csv") || flag_lower.contains("csv") {
+        return Some(format!("{}.csv", stem_with_dir));
+    }
+    if desc_lower.contains(".gff") || flag_lower.contains("gff") {
+        return Some(format!("{}.gff", stem_with_dir));
+    }
+    if desc_lower.contains(".gtf") || flag_lower.contains("gtf") {
+        return Some(format!("{}.gtf", stem_with_dir));
+    }
+    if desc_lower.contains(".bed") || flag_lower.contains("bed") {
+        return Some(format!("{}.bed", stem_with_dir));
     }
     if desc_lower.contains("file") || desc_lower.contains("name") || desc_lower.contains("path") {
         return Some(format!("{}.out", stem_with_dir));
@@ -628,6 +686,32 @@ fn resolve_flag_value(
         return entry.default.clone();
     }
 
+    if !entry.enum_values.is_empty() {
+        if let Some(best) = entry.enum_values.iter().find(|v| {
+            let v_lower = v.to_ascii_lowercase();
+            let v_parts: Vec<&str> = v_lower.split(|c: char| c == '_' || c == '-' || c == ' ')
+                .filter(|p| p.len() >= 3)
+                .collect();
+            task_lower.contains(&v_lower)
+                || task_lower.contains(&v_lower.replace("_", " ").replace("-", " "))
+                || v_parts.iter().any(|p| task_lower.contains(p))
+        }) {
+            return Some(best.clone());
+        }
+        if let Some(best) = entry.enum_values.iter().find(|v| {
+            let v_lower = v.to_ascii_lowercase();
+            let v_parts: Vec<&str> = v_lower.split(|c: char| c == '_' || c == '-' || c == ' ')
+                .filter(|p| p.len() >= 3)
+                .collect();
+            task_lower.split_whitespace()
+                .filter(|w| w.len() >= 3)
+                .any(|w| v_lower.contains(w) || v_parts.iter().any(|p| *p == w))
+        }) {
+            return Some(best.clone());
+        }
+        return Some(entry.enum_values[0].clone());
+    }
+
     if let Some(ref vt) = entry.value_type {
         let vt_lower = vt.to_ascii_lowercase();
         if vt_lower.contains("file") || vt_lower.contains("path") || vt_lower.contains("dir") {
@@ -635,6 +719,7 @@ fn resolve_flag_value(
                 return task_values.output_files.iter()
                     .find(|f| !used_files.contains(&f.to_ascii_lowercase()))
                     .map(|f| { used_files.insert(f.to_ascii_lowercase()); f.clone() })
+                    .or_else(|| infer_output_from_input_for_rule(desc_lower, flag_lower, &task_values.input_files, used_files))
                     .or_else(|| entry.default.clone());
             }
             return find_any_unused_file(&task_values.input_files, used_files)
@@ -647,9 +732,6 @@ fn resolve_flag_value(
         }
         if vt_lower.contains("bool") {
             return Some("true".to_string());
-        }
-        if !entry.enum_values.is_empty() {
-            return Some(entry.enum_values[0].clone());
         }
     }
 
@@ -730,6 +812,22 @@ pub fn assemble_command_from_rules(
             if flag_lower.contains(word) { score += 3; }
         }
 
+        let flag_name_parts: Vec<&str> = flag_lower
+            .trim_start_matches('-')
+            .split(|c: char| c == '-' || c == '_')
+            .filter(|p| p.len() >= 3)
+            .collect();
+        for part in &flag_name_parts {
+            if task_lower.contains(part) {
+                score += 6;
+            }
+            for word in &task_words {
+                if word.contains(part) || part.contains(word) {
+                    score += 3;
+                }
+            }
+        }
+
         score += compute_semantic_bonus(&desc_lower, &flag_lower, &task_lower, task_values);
         score += compute_negative_score(&desc_lower, &flag_lower, &task_lower);
 
@@ -769,6 +867,18 @@ pub fn assemble_command_from_rules(
             || desc_lower.contains("genome") || flag_lower == "-x";
         let is_db_flag = desc_lower.contains("database") || flag_lower.contains("db");
         let is_annotation_flag = desc_lower.contains("annotation") || desc_lower.contains("gtf") || desc_lower.contains("gff");
+        let is_quality_flag = desc_lower.contains("quality") || desc_lower.contains("qual")
+            || flag_lower.contains("qual") || flag_lower.contains("minq")
+            || desc_lower.contains("min-quality") || desc_lower.contains("mapping quality");
+        let is_region_flag = desc_lower.contains("region") || desc_lower.contains("chrom")
+            || desc_lower.contains("interval") || flag_lower.contains("region")
+            || flag_lower == "-r" && desc_lower.contains("region");
+        let is_sample_flag = desc_lower.contains("sample") || flag_lower.contains("sample")
+            || desc_lower.contains("rg-id") || desc_lower.contains("read-group");
+        let is_format_flag = (desc_lower.contains("format") || flag_lower.contains("format"))
+            && !desc_lower.contains("stdout");
+        let is_index_flag = desc_lower.contains("index") || flag_lower.contains("index")
+            || desc_lower.contains("prefix") && desc_lower.contains("index");
 
         let should_auto_include = (is_output_flag && (task_has_output || task_values.input_files.iter().any(|f| {
             let fl = f.to_ascii_lowercase();
@@ -778,14 +888,21 @@ pub fn assemble_command_from_rules(
             || (is_input_flag && task_has_input)
             || (is_ref_flag && (!task_values.reference_files.is_empty() || !task_values.genome_dirs.is_empty()))
             || (is_db_flag && !task_values.database_files.is_empty())
-            || (is_annotation_flag && !task_values.annotation_files.is_empty());
+            || (is_annotation_flag && !task_values.annotation_files.is_empty())
+            || (is_quality_flag && task_lower.contains("quality"))
+            || (is_region_flag && (task_lower.contains("region") || task_lower.contains("chromosome")))
+            || (is_sample_flag && (task_lower.contains("sample") || task_lower.contains("read group")))
+            || (is_format_flag && (task_lower.contains("format") || task_lower.contains("bam") || task_lower.contains("vcf")))
+            || (is_index_flag && (task_lower.contains("index") || task_lower.contains("build")));
 
-        let should_include = entry.required || should_auto_include || score >= 8;
+        let should_include = entry.required || should_auto_include || score >= 5;
 
         if !should_include { continue; }
 
         if !entry.required && !is_output_flag && !is_input_flag && !is_ref_flag
-            && !is_db_flag && !is_annotation_flag && included_flags.len() >= 8 {
+            && !is_db_flag && !is_annotation_flag && !is_quality_flag
+            && !is_region_flag && !is_sample_flag && !is_format_flag
+            && !is_index_flag && included_flags.len() >= 12 {
             continue;
         }
 

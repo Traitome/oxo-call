@@ -2951,12 +2951,29 @@ pub fn merge_llm_into_template(
         })
         .collect();
 
-    let known_flags: std::collections::HashSet<String> = sdoc.flag_catalog.iter()
-        .flat_map(|e| {
-            let mut flags = vec![e.flag.to_ascii_lowercase()];
-            if let Some(ref alt) = e.alt_form { flags.push(alt.to_ascii_lowercase()); }
-            flags
-        })
+    let llm_flag_value_map: std::collections::HashMap<String, String> = {
+        let mut map = std::collections::HashMap::new();
+        let mut i = 0;
+        while i < llm_args.len() {
+            if llm_args[i].starts_with('-') {
+                let flag_lower = llm_args[i].split('=').next().unwrap_or(&llm_args[i]).to_ascii_lowercase();
+                if llm_args[i].contains('=') {
+                    if let Some(val) = llm_args[i].splitn(2, '=').nth(1) {
+                        map.insert(flag_lower, val.to_string());
+                    }
+                } else if i + 1 < llm_args.len() && !llm_args[i + 1].starts_with('-') {
+                    map.insert(flag_lower, llm_args[i + 1].clone());
+                    i += 1;
+                }
+            }
+            i += 1;
+        }
+        map
+    };
+
+    let result_flag_set: std::collections::HashSet<String> = result.iter()
+        .filter(|a| a.starts_with('-'))
+        .map(|a| a.split('=').next().unwrap_or(a).to_ascii_lowercase())
         .collect();
 
     let required_flags_missing: Vec<String> = sdoc.flag_catalog.iter()
@@ -2972,6 +2989,8 @@ pub fn merge_llm_into_template(
         })
         .map(|e| e.flag.clone())
         .collect();
+
+    let mut used_llm_files: std::collections::HashSet<usize> = std::collections::HashSet::new();
 
     for i in 0..result.len() {
         let is_placeholder = placeholder_values.iter().any(|pv| {
@@ -2997,41 +3016,71 @@ pub fn merge_llm_into_template(
                     let fl = e.flag.to_ascii_lowercase();
                     dl.contains("input") || fl.contains("in") || fl.contains("-i") || fl.contains("-I")
                 });
+                let is_ref_flag = entry.map_or(false, |e| {
+                    let dl = e.description.to_ascii_lowercase();
+                    let fl = e.flag.to_ascii_lowercase();
+                    dl.contains("reference") || fl.contains("ref") || dl.contains("genome") || fl == "-x"
+                });
 
-                let matching_llm_value = llm_args.iter().enumerate()
-                    .filter(|(_, a)| !a.starts_with('-'))
-                    .find(|(idx, a)| {
-                        if *idx > 0 && idx + 1 <= llm_args.len() {
-                            let prev = &llm_args[*idx - 1];
-                            if prev.starts_with('-') {
-                                let prev_lower = prev.split('=').next().unwrap_or(prev).to_ascii_lowercase();
-                                if is_output_flag && (prev_lower.contains("out") || prev_lower.contains("-o")) {
-                                    return a.contains('.') || a.contains('/');
+                if let Some(llm_val) = llm_flag_value_map.get(&flag_lower) {
+                    result[i] = llm_val.clone();
+                } else {
+                    let matching_llm_value = llm_args.iter().enumerate()
+                        .filter(|(_, a)| !a.starts_with('-'))
+                        .find(|(idx, a)| {
+                            if *idx > 0 && idx + 1 <= llm_args.len() {
+                                let prev = &llm_args[*idx - 1];
+                                if prev.starts_with('-') {
+                                    let prev_lower = prev.split('=').next().unwrap_or(prev).to_ascii_lowercase();
+                                    if is_output_flag && (prev_lower.contains("out") || prev_lower.contains("-o")) {
+                                        return a.contains('.') || a.contains('/');
+                                    }
+                                    if is_input_flag && (prev_lower.contains("in") || prev_lower.contains("-i") || prev_lower.contains("-I")) {
+                                        return a.contains('.') || a.contains('/');
+                                    }
+                                    return flag_lower == prev_lower;
                                 }
-                                if is_input_flag && (prev_lower.contains("in") || prev_lower.contains("-i") || prev_lower.contains("-I")) {
-                                    return a.contains('.') || a.contains('/');
-                                }
-                                return flag_lower == prev_lower;
                             }
-                        }
-                        false
-                    })
-                    .map(|(_, a)| a.clone());
+                            false
+                        })
+                        .map(|(_, a)| a.clone());
 
-                if let Some(llm_val) = matching_llm_value {
-                    result[i] = llm_val;
-                } else if is_output_flag {
-                    if let Some(f) = llm_files.first() {
-                        result[i] = (*f).clone();
-                    }
-                } else if is_input_flag {
-                    if let Some(f) = llm_files.first() {
-                        result[i] = (*f).clone();
+                    if let Some(llm_val) = matching_llm_value {
+                        result[i] = llm_val;
+                    } else {
+                        let ext_hint = if is_ref_flag { ".fa" }
+                            else if is_output_flag { "" }
+                            else if is_input_flag { "" }
+                            else { "" };
+
+                        let best_file = llm_files.iter().enumerate()
+                            .filter(|(fi, _)| !used_llm_files.contains(fi))
+                            .filter(|(_, f)| {
+                                if ext_hint.is_empty() { true }
+                                else { f.to_ascii_lowercase().ends_with(ext_hint) || f.to_ascii_lowercase().ends_with(&format!("{}.gz", ext_hint)) }
+                            })
+                            .find(|(_, f)| {
+                                let fl = f.to_ascii_lowercase();
+                                if is_ref_flag { fl.ends_with(".fa") || fl.ends_with(".fasta") || fl.ends_with(".fna") }
+                                else if is_output_flag { true }
+                                else if is_input_flag { true }
+                                else { true }
+                            })
+                            .map(|(fi, f)| { used_llm_files.insert(fi); (*f).clone() });
+
+                        if let Some(val) = best_file {
+                            result[i] = val;
+                        }
                     }
                 }
             } else {
-                if let Some(f) = llm_files.first() {
-                    result[i] = (*f).clone();
+                let best_file = llm_files.iter().enumerate()
+                    .filter(|(fi, _)| !used_llm_files.contains(fi))
+                    .next()
+                    .map(|(fi, f)| { used_llm_files.insert(fi); (*f).clone() });
+
+                if let Some(val) = best_file {
+                    result[i] = val;
                 }
             }
         }
@@ -3057,6 +3106,22 @@ pub fn merge_llm_into_template(
                 result.push(v);
             } else {
                 result.push(entry.flag.clone());
+            }
+        }
+    }
+
+    let llm_flag_set: std::collections::HashSet<String> = llm_flag_value_map.keys().cloned().collect();
+    for llm_flag in &llm_flag_set {
+        if !result_flag_set.contains(llm_flag) {
+            if let Some(entry) = sdoc.flag_catalog.iter().find(|e| {
+                e.flag.to_ascii_lowercase() == *llm_flag || e.alt_form.as_ref().map_or(false, |a| a.to_ascii_lowercase() == *llm_flag)
+            }) {
+                if entry.required {
+                    if let Some(val) = llm_flag_value_map.get(llm_flag) {
+                        result.push(entry.flag.clone());
+                        result.push(val.clone());
+                    }
+                }
             }
         }
     }

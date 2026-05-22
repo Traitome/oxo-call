@@ -1,2 +1,0 @@
-	-> angsd version: 0.940-dirty (htslib: 1.23.1) build(Dec 15 2024 09:11:59)
-	-> /data/home/wsx/.pixi/envs/angsd/bin/angsd -doFasta --help 

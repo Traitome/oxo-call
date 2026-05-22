@@ -24,7 +24,7 @@ use super::types::{
 use crate::streaming_display;
 use super::task_values::{extract_task_values, rule_based_subcommand_match, detect_subcommand_for_tool, is_no_subcommand_tool};
 use super::template_engine::{find_best_template, fill_template, generate_from_template, generate_from_template_with_score, merge_template_with_llm, merge_llm_into_template, remove_duplicate_flags_vec};
-use super::postprocess::{apply_corrections_to_args, apply_template_corrections, add_missing_required_flags, add_task_implied_flags, validate_flags_against_catalog, limit_flag_count, apply_tool_specific_corrections, fix_output_extensions, fill_missing_flag_values, replace_generic_values};
+use super::postprocess::{apply_corrections_to_args, apply_template_corrections, add_missing_required_flags, add_task_implied_flags, validate_flags_against_catalog, limit_flag_count, apply_tool_specific_corrections, fix_output_extensions, fill_missing_flag_values, replace_generic_values, filter_irrelevant_flags_for_small_model};
 use super::rule_engine::assemble_command_from_rules;
 
 fn find_best_example(
@@ -251,19 +251,19 @@ impl LlmClient {
                 None
             });
 
-        let rule_subcmd = if is_no_subcommand_tool(tool) {
+        let rule_subcmd = if tool_specific_subcmd.is_some() && !tool_specific_subcmd.as_deref().unwrap_or("").starts_with("_NO_SUB_") {
+            tool_specific_subcmd.clone()
+        } else if is_no_subcommand_tool(tool) {
             None
         } else if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
-            if tool_specific_subcmd.is_some() && !tool_specific_subcmd.as_deref().unwrap_or("").starts_with("_NO_SUB_") {
-                tool_specific_subcmd.clone()
-            } else {
-                rule_based_subcommand_match(task, &sdoc.subcommands, &sdoc.subcommand_descriptions)
-            }
+            rule_based_subcommand_match(task, &sdoc.subcommands, &sdoc.subcommand_descriptions)
         } else {
             None
         };
 
-        let llm_subcmd = if is_no_subcommand_tool(tool) {
+        let llm_subcmd = if tool_specific_subcmd.is_some() && !tool_specific_subcmd.as_deref().unwrap_or("").starts_with("_NO_SUB_") {
+            None
+        } else if is_no_subcommand_tool(tool) {
             None
         } else if sdoc.has_subcommands && !sdoc.subcommands.is_empty() && template_subcmd.is_none() && rule_subcmd.is_none() {
             self.llm_select_subcommand(tool, task, sdoc, temperature).await.ok().flatten()
@@ -271,7 +271,9 @@ impl LlmClient {
             None
         };
 
-        let selected_subcommand = if is_no_subcommand_tool(tool) {
+        let selected_subcommand = if tool_specific_subcmd.is_some() && !tool_specific_subcmd.as_deref().unwrap_or("").starts_with("_NO_SUB_") {
+            tool_specific_subcmd.clone()
+        } else if is_no_subcommand_tool(tool) {
             if tool_specific_subcmd.is_some() && !tool_specific_subcmd.as_deref().unwrap_or("").starts_with("_NO_SUB_") {
                 tool_specific_subcmd.clone()
             } else if let Some(ref tsub) = template_subcmd {
@@ -587,6 +589,12 @@ impl LlmClient {
                         || first_lower == "bash"
                         || first_lower == "java"
                         || first_lower == "julia"
+                        || first_lower == "mem"
+                        || first_lower == "index"
+                        || first_lower == "aln"
+                        || first_lower == "sampe"
+                        || first_lower == "samse"
+                        || first_lower == "bwasw"
                         || first_lower == "bowtie2-build"
                         || first_lower == "bowtie2-inspect"
                         || first_lower == "hisat2-build"
@@ -871,76 +879,69 @@ impl LlmClient {
 
                 if is_small_model {
                     let task_values = extract_task_values(task);
-                    let rule_subcmd = if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
+                    let effective_subcmd = if tool_specific_subcmd.is_some() && !tool_specific_subcmd.as_deref().unwrap_or("").starts_with("_NO_SUB_") {
+                        tool_specific_subcmd.clone()
+                    } else if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
                         rule_based_subcommand_match(task, &sdoc.subcommands, &sdoc.subcommand_descriptions)
                     } else {
                         None
                     };
-                    let rule_assembled = assemble_command_from_rules(tool, task, sdoc, rule_subcmd.as_deref(), &task_values);
+                    let rule_assembled = assemble_command_from_rules(tool, task, sdoc, effective_subcmd.as_deref(), &task_values);
 
                     let needs_llm_for_pattern = tool == "grep" || tool == "awk" || tool == "sed"
                         || tool == "perl" || tool == "python" || tool == "r" || tool == "bash"
                         || tool == "julia" || tool == "java" || tool == "find" || tool == "ssh";
 
-                    let rule_has_content = !rule_assembled.is_empty() && rule_assembled.len() >= 2;
-                    let rule_has_real_files = rule_assembled.iter().any(|a| {
-                        a.contains('.') && !a.starts_with('-')
-                            && a != "input.bam" && a != "output.bam"
-                            && a != "reads_1.fq" && a != "reads_2.fq"
-                            && a != "reference.fa" && a != "input2.bed"
-                            && a != "annotation.gtf" && a != "database"
-                            && a != "metrics.txt" && a != "tool.jar"
-                            && a != "*.bam" && a != "SRR123456"
-                            && !a.starts_with("/path/to/")
-                    });
-                    let rule_has_subcmd = sdoc.has_subcommands && !rule_assembled.is_empty()
-                        && !rule_assembled[0].starts_with('-')
-                        && sdoc.subcommands.iter().any(|s| s.to_ascii_lowercase() == rule_assembled[0].to_ascii_lowercase());
-                    let rule_has_flags = rule_assembled.iter().any(|a| a.starts_with('-'));
-
+                    let tmpl_match_score = tmpl_result.as_ref()
+                        .map(|(_, score, _)| *score)
+                        .unwrap_or(0);
                     let tmpl_is_high_quality = tmpl_result.as_ref()
                         .map(|(_, _, hq)| *hq)
                         .unwrap_or(false);
 
-                    if rule_has_content && !needs_llm_for_pattern {
-                        let rule_quality_score = {
-                            let mut qs = 0i32;
-                            if rule_has_subcmd { qs += 30; }
-                            if rule_has_flags { qs += 20; }
-                            if rule_has_real_files { qs += 25; }
-                            if !task_values.input_files.is_empty() { qs += 10; }
-                            if !task_values.output_files.is_empty() { qs += 10; }
-                            qs += (rule_assembled.len() as i32).min(15);
-                            qs
-                        };
+                    if tmpl_is_high_quality || tmpl_match_score >= 8 {
+                        if let Some((tmpl_args, _match_score, _hq)) = tmpl_result.as_ref() {
+                            if !tmpl_args.is_empty() {
+                                let tmpl_has_flags = tmpl_args.iter().any(|a| a.starts_with('-'));
+                                if tmpl_has_flags || tmpl_args.len() >= 2 {
+                                    let mut final_args = tmpl_args.clone();
+                                    final_args = remove_duplicate_flags_vec(&final_args);
+                                    final_args = apply_template_corrections(&final_args, tool, structured_doc, Some(task));
+                                    final_args = apply_tool_specific_corrections(&final_args, tool, Some(task));
+                                    final_args = fix_output_extensions(&final_args, tool, task);
+                                    trace.record("template_direct", task, &final_args.join(" "), crate::diagnostic::DecisionSource::Template, 0);
+                                    trace.set_final(&final_args.join(" "), overall_start.elapsed().as_millis() as u64);
+                                    trace.emit();
+                                    if std::env::var("OXO_CALL_VERBOSE").is_ok() {
+                                        eprintln!("[verbose] Template-direct path (small model, high quality, score={}): using template for {}", 
+                                            tmpl_match_score, tool);
+                                    }
+                                    return Ok(LlmCommandSuggestion {
+                                        args: final_args,
+                                        explanation: String::new(),
+                                        inference_ms: 0.0,
+                                    });
+                                }
+                            }
+                        }
+                    }
 
-                        let tmpl_quality_score = tmpl_result.as_ref()
-                            .map(|(args, match_score, hq)| {
-                                let mut qs = 0i32;
-                                if *hq { qs += 50; }
-                                let tmpl_has_sub = sdoc.has_subcommands && !args.is_empty()
-                                    && !args[0].starts_with('-')
-                                    && sdoc.subcommands.iter().any(|s| s.to_ascii_lowercase() == args[0].to_ascii_lowercase());
-                                if tmpl_has_sub { qs += 30; }
-                                let tmpl_has_flags = args.iter().any(|a| a.starts_with('-'));
-                                if tmpl_has_flags { qs += 20; }
-                                let tmpl_has_real = args.iter().any(|a| {
-                                    a.contains('.') && !a.starts_with('-')
-                                        && a != "input.bam" && a != "output.bam"
-                                        && a != "reads_1.fq" && a != "reads_2.fq"
-                                        && a != "reference.fa" && a != "input2.bed"
-                                        && a != "annotation.gtf" && a != "database"
-                                        && a != "metrics.txt" && a != "tool.jar"
-                                        && a != "*.bam" && a != "SRR123456"
-                                        && !a.starts_with("/path/to/")
-                                });
-                                if tmpl_has_real { qs += 25; }
-                                qs += (*match_score).min(20);
-                                qs
-                            })
-                            .unwrap_or(0);
+                    if !rule_assembled.is_empty() && !needs_llm_for_pattern && rule_assembled.len() >= 2 {
+                        let rule_has_subcmd = sdoc.has_subcommands && !rule_assembled[0].starts_with('-')
+                            && sdoc.subcommands.iter().any(|s| s.to_ascii_lowercase() == rule_assembled[0].to_ascii_lowercase());
+                        let rule_has_flags = rule_assembled.iter().any(|a| a.starts_with('-'));
+                        let rule_has_real_files = rule_assembled.iter().any(|a| {
+                            a.contains('.') && !a.starts_with('-')
+                                && a != "input.bam" && a != "output.bam"
+                                && a != "reads_1.fq" && a != "reads_2.fq"
+                                && a != "reference.fa" && a != "input2.bed"
+                                && a != "annotation.gtf" && a != "database"
+                                && a != "metrics.txt" && a != "tool.jar"
+                                && a != "*.bam" && a != "SRR123456"
+                                && !a.starts_with("/path/to/")
+                        });
 
-                        if rule_quality_score >= tmpl_quality_score || !tmpl_is_high_quality {
+                        if (rule_has_subcmd || !sdoc.has_subcommands) && (rule_has_flags || rule_has_real_files) {
                             let mut final_args = rule_assembled;
                             final_args = add_missing_required_flags(&final_args, sdoc, task);
                             final_args = add_task_implied_flags(&final_args, sdoc, task);
@@ -953,8 +954,8 @@ impl LlmClient {
                             trace.set_final(&final_args.join(" "), overall_start.elapsed().as_millis() as u64);
                             trace.emit();
                             if std::env::var("OXO_CALL_VERBOSE").is_ok() {
-                                eprintln!("[verbose] Rule-engine-direct path (small model, rule_score={}, tmpl_score={}): using rules for {}", 
-                                    rule_quality_score, tmpl_quality_score, tool);
+                                eprintln!("[verbose] Rule-engine-direct path (small model, low tmpl score={}): using rules for {}", 
+                                    tmpl_match_score, tool);
                             }
                             return Ok(LlmCommandSuggestion {
                                 args: final_args,
@@ -964,11 +965,11 @@ impl LlmClient {
                         }
                     }
 
-                    if let Some((tmpl_args, _match_score, _hq)) = tmpl_result {
+                    if let Some((tmpl_args, _match_score, _hq)) = tmpl_result.as_ref() {
                         if !tmpl_args.is_empty() {
                             let tmpl_has_flags = tmpl_args.iter().any(|a| a.starts_with('-'));
                             if tmpl_has_flags || tmpl_args.len() >= 2 {
-                                let mut final_args = tmpl_args;
+                                let mut final_args = tmpl_args.clone();
                                 final_args = remove_duplicate_flags_vec(&final_args);
                                 final_args = apply_template_corrections(&final_args, tool, structured_doc, Some(task));
                                 final_args = apply_tool_specific_corrections(&final_args, tool, Some(task));
@@ -977,7 +978,8 @@ impl LlmClient {
                                 trace.set_final(&final_args.join(" "), overall_start.elapsed().as_millis() as u64);
                                 trace.emit();
                                 if std::env::var("OXO_CALL_VERBOSE").is_ok() {
-                                    eprintln!("[verbose] Template-direct path (small model, high quality): using template for {}", tool);
+                                    eprintln!("[verbose] Template-direct path (small model, fallback, score={}): using template for {}", 
+                                        tmpl_match_score, tool);
                                 }
                                 return Ok(LlmCommandSuggestion {
                                     args: final_args,
@@ -992,7 +994,7 @@ impl LlmClient {
                         if !tmpl_args.is_empty() {
                             let tmpl_has_flags = tmpl_args.iter().any(|a| a.starts_with('-'));
                             if tmpl_has_flags || tmpl_args.len() >= 2 {
-                                let mut final_args = tmpl_args;
+                                let mut final_args = tmpl_args.clone();
                                 final_args = remove_duplicate_flags_vec(&final_args);
                                 final_args = apply_template_corrections(&final_args, tool, structured_doc, Some(task));
                                 final_args = apply_tool_specific_corrections(&final_args, tool, Some(task));
@@ -1251,6 +1253,13 @@ impl LlmClient {
                     }
                 }
 
+                let is_small_for_filter = crate::config::infer_model_parameter_count(&model)
+                    .map(|p| p <= 8.0)
+                    .unwrap_or(false);
+                if is_small_for_filter {
+                    suggestion.args = filter_irrelevant_flags_for_small_model(&suggestion.args, sdoc, task);
+                }
+
                 let args_str = suggestion.args.join(" ");
                 let corrected = correct_format(&args_str, sdoc);
                 if corrected != args_str {
@@ -1269,6 +1278,12 @@ impl LlmClient {
                         || first_lower == "bash"
                         || first_lower == "java"
                         || first_lower == "julia"
+                        || first_lower == "mem"
+                        || first_lower == "index"
+                        || first_lower == "aln"
+                        || first_lower == "sampe"
+                        || first_lower == "samse"
+                        || first_lower == "bwasw"
                         || first_lower == "bowtie2-build"
                         || first_lower == "bowtie2-inspect"
                         || first_lower == "hisat2-build"
@@ -1551,6 +1566,24 @@ impl LlmClient {
                     let args_str = suggestion.args.join(" ");
                     let corrected = validate_subcommand(&args_str, tool, sdoc);
                     suggestion.args = crate::llm::response::parse_shell_args(&corrected);
+
+                    let is_small = crate::config::infer_model_parameter_count(&model)
+                        .map(|p| p <= 8.0)
+                        .unwrap_or(false);
+
+                    if is_small {
+                        let tv = extract_task_values(task);
+                        let rsc = if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
+                            rule_based_subcommand_match(task, &sdoc.subcommands, &sdoc.subcommand_descriptions)
+                        } else {
+                            None
+                        };
+                        let rule_args = assemble_command_from_rules(tool, task, sdoc, rsc.as_deref(), &tv);
+                        if !rule_args.is_empty() && rule_args.len() >= 2 {
+                            suggestion.args = merge_llm_into_template(&rule_args, &suggestion.args, sdoc);
+                            suggestion.args = remove_duplicate_flags_vec(&suggestion.args);
+                        }
+                    }
 
                     suggestion.args = add_missing_required_flags(&suggestion.args, sdoc, task);
                     suggestion.args = add_task_implied_flags(&suggestion.args, sdoc, task);

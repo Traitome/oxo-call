@@ -36,18 +36,17 @@ pub fn system_prompt() -> &'static str {
 
 /// Medium-compression system prompt for 4k–16k context or 4B–7B models.
 pub fn system_prompt_medium() -> &'static str {
-    "You translate bioinformatics tasks into CLI arguments.\n\
+    "You translate tasks into CLI arguments.\n\
      Output JSON: {\"subcommand\":\"sort\",\"flags\":{\"-@\":\"4\",\"-o\":\"out.bam\"},\"positional_args\":[\"in.bam\"],\"explanation\":\"...\"}\n\
-     CRITICAL RULES:\n\
+     RULES:\n\
      1. subcommand in \"subcommand\" field. Never tool name.\n\
-     2. Use ONLY flags from <flag_catalog>. NEVER invent or guess flags.\n\
-     3. Include ONLY required flags + flags the task explicitly mentions. Do NOT add extra optional flags.\n\
+     2. Use ONLY flags from <flag_catalog> or the START command. NEVER invent flags.\n\
+     3. Include ONLY required flags + flags matching the task. Extra flags are WRONG.\n\
      4. Files go in \"positional_args\". Extract EXACT paths from task.\n\
      5. Boolean flags use true. Include output and thread flags when task implies them.\n\
-     6. FEWER FLAGS IS BETTER. Missing optional flags is OK. Wrong extra flags is BAD.\n\
-     7. Maximum 6 flags total. If you have more than 6, remove the least important ones.\n\
-     8. REQUIRED flags marked [REQUIRED] MUST appear. No exceptions.\n\
-     9. For file values, use the EXACT path from the task description."
+     6. REQUIRED flags MUST appear. Maximum 6 flags total.\n\
+     7. If a START command is given, KEEP its flags and REPLACE placeholder values.\n\
+     8. For file values, use the EXACT path from the task description."
 }
 
 /// Ultra-compact system prompt for mini models (≤ 3B parameters).
@@ -1240,11 +1239,10 @@ fn build_prompt_medium(
         let template_example = get_template_example(tool, task);
         if let Some(ref tmpl) = template_example {
             prompt.push_str(&format!("## START from this command (change values to match task)\n{}\n\n", tmpl));
-            prompt.push_str("RULES for modifying:\n");
-            prompt.push_str("1. KEEP all flags from the start command\n");
-            prompt.push_str("2. REPLACE placeholder values with EXACT values from the task\n");
-            prompt.push_str("3. ADD any flags from REQUIRED FLAGS below that are missing\n");
-            prompt.push_str("4. Do NOT remove flags unless they conflict with the task\n\n");
+            prompt.push_str("Modify rules:\n");
+            prompt.push_str("1. KEEP all flags from START command\n");
+            prompt.push_str("2. REPLACE placeholder values with EXACT values from task\n");
+            prompt.push_str("3. ADD any REQUIRED FLAGS below that are missing\n\n");
         }
 
         if !sdoc.flag_catalog.is_empty() {
@@ -1277,7 +1275,7 @@ fn build_prompt_medium(
             });
 
             prompt.push_str("<flag_catalog>\n");
-            for f in optional.iter().take(12) {
+            for f in optional.iter().take(8) {
                 let alt = f.alt_form.as_ref().map(|a| format!(" / {}", a)).unwrap_or_default();
                 let vt = f.value_type.as_ref().map(|t| format!(" <{}>", t)).unwrap_or_default();
                 let enums = if !f.enum_values.is_empty() {
@@ -2112,9 +2110,22 @@ fn score_flag_for_task(entry: &FlagEntry, task_keywords: &[&str], task_lower: &s
         if flag_lower.contains(kw) { score += 8; }
     }
 
-    if desc_lower.contains("output") || flag_lower.contains("out") { score += 15; }
+    let flag_name_parts: Vec<&str> = flag_lower
+        .trim_start_matches('-')
+        .split(|c: char| c == '-' || c == '_')
+        .filter(|p| p.len() >= 3)
+        .collect();
+    for part in &flag_name_parts {
+        if task_lower.contains(part) { score += 6; }
+        for kw in task_keywords {
+            if kw.contains(part) || part.contains(kw) { score += 3; }
+        }
+    }
+
+    if desc_lower.contains("output") && !desc_lower.contains("stdout") && !desc_lower.contains("format") { score += 15; }
     if desc_lower.contains("input") || flag_lower.contains("in") { score += 12; }
-    if desc_lower.contains("thread") || desc_lower.contains("cpu") || desc_lower.contains("nproc") { score += 10; }
+    if (desc_lower.contains("thread") || desc_lower.contains("cpu") || desc_lower.contains("nproc"))
+        && (task_lower.contains("thread") || task_lower.contains("cpu") || task_lower.contains("parallel") || task_lower.contains("core")) { score += 15; }
     if desc_lower.contains("reference") || flag_lower.contains("ref") { score += 12; }
     if desc_lower.contains("genome") { score += 8; }
     if desc_lower.contains("database") || flag_lower.contains("db") { score += 8; }
@@ -2125,6 +2136,10 @@ fn score_flag_for_task(entry: &FlagEntry, task_keywords: &[&str], task_lower: &s
     if desc_lower.contains("color") || desc_lower.contains("colour") { score -= 15; }
     if desc_lower.contains("log") && !task_lower.contains("log") { score -= 5; }
     if desc_lower.contains("test") && !task_lower.contains("test") { score -= 10; }
+    if desc_lower.contains("dry-run") || desc_lower.contains("dry_run") { score -= 15; }
+    if desc_lower.contains("citation") || desc_lower.contains("warranty") { score -= 15; }
+    if (desc_lower.contains("force") || desc_lower.contains("overwrite")) && !task_lower.contains("force") { score -= 5; }
+    if desc_lower.contains("progress") && !task_lower.contains("progress") { score -= 5; }
 
     score
 }
