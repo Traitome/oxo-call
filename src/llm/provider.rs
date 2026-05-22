@@ -1803,6 +1803,28 @@ impl LlmClient {
                     }
                 }
 
+                // Force best subcommand from pre-processor when LLM picks wrong one
+                if sdoc.has_subcommands
+                    && !sdoc.subcommands.is_empty()
+                    && !suggestion.args.is_empty()
+                {
+                    let best_sub = crate::llm::prompt::find_best_subcommand_for_task(task, sdoc);
+                    if let Some(ref forced) = best_sub {
+                        let first = &suggestion.args[0];
+                        let first_lower = first.to_ascii_lowercase();
+                        let forced_lower = forced.to_ascii_lowercase();
+                        if first_lower != forced_lower {
+                            let first_valid = sdoc
+                                .subcommands
+                                .iter()
+                                .any(|s| s.to_ascii_lowercase() == first_lower);
+                            if !first_valid || forced_lower.len() >= 3 {
+                                suggestion.args[0] = forced.clone();
+                            }
+                        }
+                    }
+                }
+
                 if let Some(ref tool_sub) = tool_specific_subcmd {
                     if !tool_sub.starts_with("_NO_SUB_") && !suggestion.args.is_empty() {
                         let sub_parts: Vec<&str> = tool_sub.split_whitespace().collect();

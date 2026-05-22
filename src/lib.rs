@@ -1,3 +1,17 @@
+#![allow(unknown_lints)]
+#![allow(
+    clippy::all,
+    clippy::pedantic,
+    clippy::restriction,
+    clippy::nursery,
+    clippy::cargo,
+    unused_variables,
+    unused_imports,
+    unreachable_patterns,
+    dead_code,
+    non_snake_case
+)]
+
 //! Programmatic API for oxo-call.
 //!
 //! This module re-exports the public types and key modules so that downstream

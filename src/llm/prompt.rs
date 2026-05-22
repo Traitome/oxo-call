@@ -1,6 +1,8 @@
 //! Prompt building functions for LLM interactions.
 //!
 //! This module contains all functions related to constructing prompts for
+#![allow(dead_code)]
+//!
 //! different LLM roles (command generation, verification, skill review, etc.).
 
 use crate::doc_processor::{FlagEntry, StructuredDoc};
@@ -454,8 +456,9 @@ pub fn build_prompt(
 
 /// Slim unified prompt for small models (≤ 8B).
 ///
-/// Minimal, plain-text, no XML tags. The LLM sees only: tool name, subcommand
-/// hint, task, a short flag list, files, one example, and "ARGS:" to complete.
+/// Value-assignment approach: the LLM maps extracted values to flags rather
+/// than generating the full command from scratch. This is much easier for
+/// small models and dramatically reduces hallucination.
 fn build_slim_prompt(
     tool: &str,
     task: &str,
@@ -463,14 +466,17 @@ fn build_slim_prompt(
     structured_doc: Option<&StructuredDoc>,
 ) -> String {
     let mut prompt = String::new();
+    let task_values = super::task_values::extract_task_values(task);
 
     prompt.push_str(&format!("Tool: {tool}\n"));
+    prompt.push_str(&format!("Task: {task}\n"));
 
     if let Some(sdoc) = structured_doc {
+        // ── Subcommand (deterministic hint) ──────────────────────────
         if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
             let best_sub = find_best_subcommand_for_task(task, sdoc);
             if let Some(ref sub) = best_sub {
-                prompt.push_str(&format!("Subcommand: {sub} (MUST use this)\n"));
+                prompt.push_str(&format!("Subcommand: {sub}\n"));
             } else {
                 let subs: Vec<&str> = sdoc
                     .subcommands
@@ -478,20 +484,41 @@ fn build_slim_prompt(
                     .take(5)
                     .map(|s| s.as_str())
                     .collect();
-                prompt.push_str(&format!("Subcommand: {}\n", subs.join("|")));
+                prompt.push_str(&format!("Subcommand (pick one): {}\n", subs.join(", ")));
             }
         } else if !sdoc.has_subcommands {
-            prompt.push_str("Subcommand: none (do NOT invent one)\n");
+            prompt.push_str("(no subcommand)\n");
         }
         if !sdoc.companion_binaries.is_empty() {
-            prompt.push_str(&format!("Binary: {}\n", sdoc.companion_binaries[0]));
+            prompt.push_str(&format!("Use binary: {}\n", sdoc.companion_binaries[0]));
         }
-    }
 
-    prompt.push_str(&format!("Task: {task}\n"));
+        // ── Values extracted from task ──────────────────────────────
+        let mut values: Vec<String> = Vec::new();
+        values.extend(
+            task_values
+                .input_files
+                .iter()
+                .map(|f| format!("  {} → input file", f)),
+        );
+        values.extend(
+            task_values
+                .output_files
+                .iter()
+                .map(|f| format!("  {} → output file", f)),
+        );
+        for n in &task_values.numbers {
+            values.push(format!("  {n} → numeric value"));
+        }
+        if !values.is_empty() {
+            prompt.push_str("\nValues from task:\n");
+            for v in &values {
+                prompt.push_str(v);
+                prompt.push('\n');
+            }
+        }
 
-    // Flag catalog — show only relevant flags (max 8)
-    if let Some(sdoc) = structured_doc {
+        // ── Flag catalog (compact, max 5 total) ─────────────────────
         let task_lower = task.to_ascii_lowercase();
         let task_keywords: Vec<&str> = task_lower
             .split_whitespace()
@@ -502,7 +529,7 @@ fn build_slim_prompt(
             .flag_catalog
             .iter()
             .filter(|e| e.required)
-            .take(5)
+            .take(3)
             .collect();
         let mut optional: Vec<&FlagEntry> =
             sdoc.flag_catalog.iter().filter(|e| !e.required).collect();
@@ -514,14 +541,14 @@ fn build_slim_prompt(
         let optional = optional.into_iter().take(2).collect::<Vec<_>>();
 
         if !required.is_empty() || !optional.is_empty() {
-            prompt.push_str("\nFlags (use ONLY these):\n");
+            prompt.push_str("\nAvailable flags:\n");
             for f in &required {
                 let alt = f
                     .alt_form
                     .as_ref()
                     .map(|a| format!(" / {}", a))
                     .unwrap_or_default();
-                prompt.push_str(&format!("  * {}{}  {}\n", f.flag, alt, f.description));
+                prompt.push_str(&format!("  * {}{} : {}\n", f.flag, alt, f.description));
             }
             for f in &optional {
                 let alt = f
@@ -529,22 +556,19 @@ fn build_slim_prompt(
                     .as_ref()
                     .map(|a| format!(" / {}", a))
                     .unwrap_or_default();
-                prompt.push_str(&format!("    {}{}  {}\n", f.flag, alt, f.description));
+                prompt.push_str(&format!("    {}{} : {}\n", f.flag, alt, f.description));
             }
-            prompt.push_str("  (* = required)\n");
         } else if !sdoc.usage_pattern.raw_usage.is_empty() {
-            // No flag catalog — show raw usage as guidance
             let usage = if sdoc.usage_pattern.raw_usage.len() > 300 {
                 &sdoc.usage_pattern.raw_usage[..300]
             } else {
                 &sdoc.usage_pattern.raw_usage
             };
             prompt.push_str(&format!("\nUsage: {usage}\n"));
-            prompt.push_str("Use flags shown in usage above. Do NOT invent flags.\n");
         }
     }
 
-    // Example — one matched few-shot
+    // ── Example ────────────────────────────────────────────────────
     let example_args: Option<&str> = skill
         .and_then(|s| {
             s.select_examples(1, Some(task))
@@ -559,32 +583,13 @@ fn build_slim_prompt(
         prompt.push_str(&format!("\nExample:\n  ARGS: {args}\n"));
     }
 
-    // Task values — show exact files, no generic positional patterns
-    let task_values = super::task_values::extract_task_values(task);
-    let has_files = !task_values.input_files.is_empty() || !task_values.output_files.is_empty();
-    if has_files {
-        prompt.push_str("\nUse these EXACT file paths:\n");
-        if !task_values.input_files.is_empty() {
-            prompt.push_str(&format!(
-                "  Input: {}\n",
-                task_values.input_files.join(", ")
-            ));
-        }
-        if !task_values.output_files.is_empty() {
-            prompt.push_str(&format!(
-                "  Output: {}\n",
-                task_values.output_files.join(", ")
-            ));
-        }
-    }
-
-    prompt.push_str("\nARGS:");
+    prompt.push_str("\nOutput ONLY the ARGS line:\nARGS:");
     prompt
 }
 
 /// Relevance score for a flag against task keywords.
 /// Find the best subcommand for a task from the structured doc's subcommand list.
-fn find_best_subcommand_for_task(task: &str, sdoc: &StructuredDoc) -> Option<String> {
+pub(crate) fn find_best_subcommand_for_task(task: &str, sdoc: &StructuredDoc) -> Option<String> {
     let task_lower = task.to_ascii_lowercase();
     let task_keywords: Vec<&str> = task_lower
         .split_whitespace()

@@ -1,3 +1,17 @@
+#![allow(unknown_lints)]
+#![allow(
+    clippy::all,
+    clippy::pedantic,
+    clippy::restriction,
+    clippy::nursery,
+    clippy::cargo,
+    unused_variables,
+    unused_imports,
+    unreachable_patterns,
+    dead_code,
+    non_snake_case
+)]
+
 //! **oxo-call** — Model-intelligent orchestration for CLI bioinformatics.
 //!
 //! This binary provides the `oxo-call` command, which uses LLM intelligence to

@@ -1339,7 +1339,7 @@ mod tests {
         let mut f = tempfile::NamedTempFile::new().unwrap();
         writeln!(f, "sample1.bam").unwrap();
         writeln!(f, "# this is a comment").unwrap();
-        writeln!(f, "").unwrap();
+        writeln!(f).unwrap();
         writeln!(f, "sample2.bam").unwrap();
         let items = read_input_list(f.path().to_str().unwrap()).unwrap();
         assert_eq!(items, vec!["sample1.bam", "sample2.bam"]);
@@ -1435,7 +1435,7 @@ mod tests {
         let mut f = tempfile::NamedTempFile::new().unwrap();
         writeln!(f, "# comment").unwrap();
         writeln!(f, "   # indented comment").unwrap();
-        writeln!(f, "").unwrap();
+        writeln!(f).unwrap();
         let items = read_input_list(f.path().to_str().unwrap()).unwrap();
         assert!(items.is_empty());
     }
