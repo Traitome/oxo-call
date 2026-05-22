@@ -133,7 +133,11 @@ impl ToolDocs {
                 .is_some_and(|c| deduplicate_check(c, help));
             if !already_present {
                 if has_subcommand_help {
-                    let brief: String = clean_help_output(help).lines().take(10).collect::<Vec<_>>().join("\n");
+                    let brief: String = clean_help_output(help)
+                        .lines()
+                        .take(10)
+                        .collect::<Vec<_>>()
+                        .join("\n");
                     if !brief.trim().is_empty() {
                         parts.push(brief);
                     }
@@ -344,7 +348,10 @@ impl DocsFetcher {
             .filter(|sc| sc.len() >= 2)
             .filter_map(|sc| {
                 let sc_lower = sc.to_ascii_lowercase();
-                let desc = subcmd_descs.get(&sc_lower).map(|s| s.as_str()).unwrap_or("");
+                let desc = subcmd_descs
+                    .get(&sc_lower)
+                    .map(|s| s.as_str())
+                    .unwrap_or("");
                 let desc_lower = desc.to_ascii_lowercase();
 
                 let mut score = 0i32;
@@ -358,8 +365,10 @@ impl DocsFetcher {
                 if is_exact {
                     // Penalize very short or very generic subcommand names that might
                     // match accidentally (e.g., "sample" matching filename "sample.bed")
-                    let generic_subs = ["sample", "list", "show", "get", "set", "run", "test",
-                                       "check", "info", "help", "status", "log", "print"];
+                    let generic_subs = [
+                        "sample", "list", "show", "get", "set", "run", "test", "check", "info",
+                        "help", "status", "log", "print",
+                    ];
                     if generic_subs.contains(&sc_lower.as_str()) {
                         score += 5; // Low score for generic matches
                     } else {
@@ -906,7 +915,7 @@ fn looks_like_version(s: &str) -> bool {
 ///
 /// The goal is to extract just the subcommand names (e.g., ["view", "sort", "index"])
 /// so we can match them against the user's task and fetch their detailed help.
-
+///
 /// Strip ANSI escape sequences from a string.
 fn strip_ansi_escapes(s: &str) -> String {
     let mut result = String::with_capacity(s.len());
@@ -948,8 +957,11 @@ pub fn extract_subcommand_list(help: &str) -> Vec<String> {
                 let brace_content = &trimmed[start + 1..start + end];
                 for token in brace_content.split(',') {
                     let token = token.trim();
-                    if token.len() >= 2 && token.len() <= 40
-                        && token.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+                    if token.len() >= 2
+                        && token.len() <= 40
+                        && token
+                            .chars()
+                            .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
                         && !is_common_non_subcommand(token)
                     {
                         subcommands.push(token.to_string());
@@ -983,15 +995,17 @@ pub fn extract_subcommand_list(help: &str) -> Vec<String> {
         // Handle bracketed section headers like "[ Tools for BAM ... ]"
         // These often appear in Python tools (deeptools, etc.) and bedtools
         if trimmed.starts_with('[') && trimmed.ends_with(']') {
-            let section_name = trimmed[1..trimmed.len()-1].trim().to_lowercase();
+            let section_name = trimmed[1..trimmed.len() - 1].trim().to_lowercase();
             // Check if this is a category header within the commands section
             // (e.g., "[ Genome arithmetic ]", "[ Format conversion ]")
             // These should NOT turn off the commands section
             if in_commands_section {
                 // Category headers within commands section - keep in_commands_section true
                 // Only turn off if it's clearly a non-command section
-                if section_name.contains("option") || section_name.contains("argument")
-                    || section_name.contains("parameter") || section_name.contains("general")
+                if section_name.contains("option")
+                    || section_name.contains("argument")
+                    || section_name.contains("parameter")
+                    || section_name.contains("general")
                 {
                     in_commands_section = false;
                 }
@@ -999,22 +1013,38 @@ pub fn extract_subcommand_list(help: &str) -> Vec<String> {
                 continue;
             }
             // Not in commands section yet - check if this header starts one
-            if section_name.contains("tool") || section_name.contains("command")
-                || section_name.contains("program") || section_name.contains("module")
-                || section_name.contains("analysis") || section_name.contains("processing")
-                || section_name.contains("qc") || section_name.contains("plot")
-                || section_name.contains("bam") || section_name.contains("bigwig")
-                || section_name.contains("coverage") || section_name.contains("matrix")
-                || section_name.contains("heatmap") || section_name.contains("filter")
-                || section_name.contains("quantification") || section_name.contains("mapping")
-                || section_name.contains("arithmetic") || section_name.contains("comparison")
-                || section_name.contains("manipulation") || section_name.contains("conversion")
-                || section_name.contains("fasta") || section_name.contains("statistical")
-                || section_name.contains("genomic") || section_name.contains("genome")
-                || section_name.contains("sequence") || section_name.contains("alignment")
-                || section_name.contains("variant") || section_name.contains("annotation")
-                || section_name.contains("utility") || section_name.contains("miscellaneous")
-                || section_name.contains("misc") || section_name.contains("other")
+            if section_name.contains("tool")
+                || section_name.contains("command")
+                || section_name.contains("program")
+                || section_name.contains("module")
+                || section_name.contains("analysis")
+                || section_name.contains("processing")
+                || section_name.contains("qc")
+                || section_name.contains("plot")
+                || section_name.contains("bam")
+                || section_name.contains("bigwig")
+                || section_name.contains("coverage")
+                || section_name.contains("matrix")
+                || section_name.contains("heatmap")
+                || section_name.contains("filter")
+                || section_name.contains("quantification")
+                || section_name.contains("mapping")
+                || section_name.contains("arithmetic")
+                || section_name.contains("comparison")
+                || section_name.contains("manipulation")
+                || section_name.contains("conversion")
+                || section_name.contains("fasta")
+                || section_name.contains("statistical")
+                || section_name.contains("genomic")
+                || section_name.contains("genome")
+                || section_name.contains("sequence")
+                || section_name.contains("alignment")
+                || section_name.contains("variant")
+                || section_name.contains("annotation")
+                || section_name.contains("utility")
+                || section_name.contains("miscellaneous")
+                || section_name.contains("misc")
+                || section_name.contains("other")
             {
                 in_commands_section = true;
                 continue;
@@ -1095,31 +1125,49 @@ pub fn extract_subcommand_descriptions(help: &str) -> std::collections::HashMap<
         }
 
         if trimmed.starts_with('[') && trimmed.ends_with(']') {
-            let section_name = trimmed[1..trimmed.len()-1].trim().to_lowercase();
+            let section_name = trimmed[1..trimmed.len() - 1].trim().to_lowercase();
             if in_commands_section {
-                if section_name.contains("option") || section_name.contains("argument")
-                    || section_name.contains("parameter") || section_name.contains("general")
+                if section_name.contains("option")
+                    || section_name.contains("argument")
+                    || section_name.contains("parameter")
+                    || section_name.contains("general")
                 {
                     in_commands_section = false;
                 }
                 continue;
             }
-            if section_name.contains("tool") || section_name.contains("command")
-                || section_name.contains("program") || section_name.contains("module")
-                || section_name.contains("analysis") || section_name.contains("processing")
-                || section_name.contains("qc") || section_name.contains("plot")
-                || section_name.contains("bam") || section_name.contains("bigwig")
-                || section_name.contains("coverage") || section_name.contains("matrix")
-                || section_name.contains("heatmap") || section_name.contains("filter")
-                || section_name.contains("quantification") || section_name.contains("mapping")
-                || section_name.contains("arithmetic") || section_name.contains("comparison")
-                || section_name.contains("manipulation") || section_name.contains("conversion")
-                || section_name.contains("fasta") || section_name.contains("statistical")
-                || section_name.contains("genomic") || section_name.contains("genome")
-                || section_name.contains("sequence") || section_name.contains("alignment")
-                || section_name.contains("variant") || section_name.contains("annotation")
-                || section_name.contains("utility") || section_name.contains("miscellaneous")
-                || section_name.contains("misc") || section_name.contains("other")
+            if section_name.contains("tool")
+                || section_name.contains("command")
+                || section_name.contains("program")
+                || section_name.contains("module")
+                || section_name.contains("analysis")
+                || section_name.contains("processing")
+                || section_name.contains("qc")
+                || section_name.contains("plot")
+                || section_name.contains("bam")
+                || section_name.contains("bigwig")
+                || section_name.contains("coverage")
+                || section_name.contains("matrix")
+                || section_name.contains("heatmap")
+                || section_name.contains("filter")
+                || section_name.contains("quantification")
+                || section_name.contains("mapping")
+                || section_name.contains("arithmetic")
+                || section_name.contains("comparison")
+                || section_name.contains("manipulation")
+                || section_name.contains("conversion")
+                || section_name.contains("fasta")
+                || section_name.contains("statistical")
+                || section_name.contains("genomic")
+                || section_name.contains("genome")
+                || section_name.contains("sequence")
+                || section_name.contains("alignment")
+                || section_name.contains("variant")
+                || section_name.contains("annotation")
+                || section_name.contains("utility")
+                || section_name.contains("miscellaneous")
+                || section_name.contains("misc")
+                || section_name.contains("other")
             {
                 in_commands_section = true;
             }
@@ -1159,14 +1207,19 @@ pub fn extract_subcommand_descriptions(help: &str) -> std::collections::HashMap<
             continue;
         }
 
-        let line = trimmed.trim_start_matches('-').trim_start_matches('*').trim();
+        let line = trimmed
+            .trim_start_matches('-')
+            .trim_start_matches('*')
+            .trim();
         if line.is_empty() || line.chars().all(|c| c == '-' || c == '=' || c == ' ') {
             continue;
         }
         if line.ends_with(':') && line.contains(' ') && !line.starts_with('-') {
             let before_colon = line.split(':').next().unwrap_or("");
             if before_colon.split_whitespace().count() == 1
-                && before_colon.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+                && before_colon
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
                 && before_colon.len() >= 2
             {
                 let name = before_colon.trim();
@@ -1183,7 +1236,9 @@ pub fn extract_subcommand_descriptions(help: &str) -> std::collections::HashMap<
                 continue;
             }
             let token_clean = token.trim_end_matches(':');
-            if token_clean.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.')
+            if token_clean
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.')
                 && token_clean.len() >= 2
                 && token_clean.len() <= 40
                 && !is_common_non_subcommand(token_clean)
@@ -1265,23 +1320,62 @@ pub fn synonym_exact_match_bonus(subcmd: &str, task_keywords: &[&str]) -> i32 {
 
 fn synonym_match_score(subcmd: &str, task_keywords: &[&str]) -> i32 {
     let synonyms: &[(&[&str], &[&str])] = &[
-        (&["intersect"], &["overlap", "overlapping", "overlaps", "find overlap", "common"]),
-        (&["subtract"], &["remove", "exclude", "subtract", "difference", "non-overlapping"]),
-        (&["merge"], &["combine", "join", "merge", "union", "collapse"]),
+        (
+            &["intersect"],
+            &[
+                "overlap",
+                "overlapping",
+                "overlaps",
+                "find overlap",
+                "common",
+            ],
+        ),
+        (
+            &["subtract"],
+            &[
+                "remove",
+                "exclude",
+                "subtract",
+                "difference",
+                "non-overlapping",
+            ],
+        ),
+        (
+            &["merge"],
+            &["combine", "join", "merge", "union", "collapse"],
+        ),
         (&["closest"], &["nearest", "closest", "nearby", "proximal"]),
-        (&["genomecov"], &["coverage", "depth", "genome-wide coverage"]),
+        (
+            &["genomecov"],
+            &["coverage", "depth", "genome-wide coverage"],
+        ),
         (&["coverage"], &["coverage", "depth", "covered"]),
-        (&["callpeak", "macs2_callpeak"], &["peak", "peaks", "call peak", "peak calling", "chip-seq"]),
+        (
+            &["callpeak", "macs2_callpeak"],
+            &["peak", "peaks", "call peak", "peak calling", "chip-seq"],
+        ),
         (&["sort"], &["sort", "order", "arrange"]),
         (&["index"], &["index", "indexing", "create index"]),
         (&["view"], &["view", "convert", "display", "extract"]),
-        (&["flagstat"], &["flagstat", "flag statistics", "alignment stats"]),
-        (&["mpileup"], &["pileup", "mpileup", "variant calling", "consensus"]),
+        (
+            &["flagstat"],
+            &["flagstat", "flag statistics", "alignment stats"],
+        ),
+        (
+            &["mpileup"],
+            &["pileup", "mpileup", "variant calling", "consensus"],
+        ),
         (&["depth"], &["depth", "coverage", "read depth"]),
-        (&["idxstats"], &["idxstats", "index stats", "chromosome stats"]),
+        (
+            &["idxstats"],
+            &["idxstats", "index stats", "chromosome stats"],
+        ),
         (&["cat"], &["concatenate", "cat", "combine", "merge bam"]),
         (&["calmd"], &["calmd", "calibrate", "fix md"]),
-        (&["bam2fq"], &["bam2fq", "bam to fastq", "convert bam", "extract fastq"]),
+        (
+            &["bam2fq"],
+            &["bam2fq", "bam to fastq", "convert bam", "extract fastq"],
+        ),
         (&["fastq-dump"], &["fastq", "dump", "download", "sra"]),
         (&["fasterq-dump"], &["fastq", "dump", "download", "sra"]),
         (&["prefetch"], &["prefetch", "download", "sra"]),
@@ -1297,36 +1391,87 @@ fn synonym_match_score(subcmd: &str, task_keywords: &[&str]) -> i32 {
         (&["haplotag"], &["haplotag", "tag", "assign haplotype"]),
         (&["discover"], &["discover", "find", "detect", "identify"]),
         (&["build"], &["build", "index", "create", "prepare"]),
-        (&["quant"], &["quantify", "quant", "quantification", "expression", "count"]),
+        (
+            &["quant"],
+            &["quantify", "quant", "quantification", "expression", "count"],
+        ),
         (&["map"], &["map", "mapping", "align"]),
         (&["assemble"], &["assemble", "assembly"]),
         (&["align"], &["align", "alignment", "map"]),
         (&["extract"], &["extract", "extract sequences", "get"]),
         (&["statistics"], &["statistics", "stats", "summary"]),
-        (&["stats"], &["statistics", "stats", "summary", "stat", "info", "report"]),
-        (&["seq"], &["sequence", "convert", "transform", "format", "seq"]),
+        (
+            &["stats"],
+            &["statistics", "stats", "summary", "stat", "info", "report"],
+        ),
+        (
+            &["seq"],
+            &["sequence", "convert", "transform", "format", "seq"],
+        ),
         (&["fx2tab"], &["table", "tab", "tsv", "csv", "convert"]),
         (&["tab2fx"], &["fasta", "fastq", "convert", "from table"]),
-        (&["grep"], &["search", "find", "filter", "grep", "match", "select"]),
-        (&["rmdup"], &["duplicate", "deduplicate", "remove duplicate", "unique"]),
+        (
+            &["grep"],
+            &["search", "find", "filter", "grep", "match", "select"],
+        ),
+        (
+            &["rmdup"],
+            &["duplicate", "deduplicate", "remove duplicate", "unique"],
+        ),
         (&["sample"], &["sample", "subsample", "random", "subset"]),
-        (&["subseq"], &["subsequence", "region", "extract", "subseq", "slice"]),
+        (
+            &["subseq"],
+            &["subsequence", "region", "extract", "subseq", "slice"],
+        ),
         (&["replace"], &["replace", "substitute", "rename", "modify"]),
-        (&["translate"], &["translate", "translation", "protein", "orf"]),
+        (
+            &["translate"],
+            &["translate", "translation", "protein", "orf"],
+        ),
         (&["concat"], &["concatenate", "merge", "combine", "join"]),
         (&["split2"], &["split", "divide", "separate"]),
         (&["fq2fa"], &["fastq to fasta", "convert to fasta"]),
-        (&["common"], &["common", "shared", "intersection", "overlap"]),
+        (
+            &["common"],
+            &["common", "shared", "intersection", "overlap"],
+        ),
         (&["head"], &["head", "first", "beginning", "preview"]),
-        (&["ann"], &["annotate", "annotation", "variant effect", "snp effect", "ann"]),
+        (
+            &["ann"],
+            &[
+                "annotate",
+                "annotation",
+                "variant effect",
+                "snp effect",
+                "ann",
+            ],
+        ),
         (&["bamqc"], &["bam qc", "bam quality", "quality control"]),
         (&["rnaseq"], &["rna-seq", "rnaseq", "rna seq"]),
-        (&["markduplicates"], &["duplicate", "deduplicate", "mark dup", "remove duplicate"]),
-        (&["haplotypecaller"], &["haplotype", "call variant", "variant calling", "snp"]),
-        (&["baserecalibrator"], &["recalibrate", "bqsr", "base quality"]),
-        (&["applybqsr"], &["apply bqsr", "recalibrate", "base quality"]),
-        (&["callpeak"], &["peak", "peaks", "call peak", "peak calling", "chip-seq"]),
-        (&["compare"], &["compare", "comparison", "diff", "difference"]),
+        (
+            &["markduplicates"],
+            &["duplicate", "deduplicate", "mark dup", "remove duplicate"],
+        ),
+        (
+            &["haplotypecaller"],
+            &["haplotype", "call variant", "variant calling", "snp"],
+        ),
+        (
+            &["baserecalibrator"],
+            &["recalibrate", "bqsr", "base quality"],
+        ),
+        (
+            &["applybqsr"],
+            &["apply bqsr", "recalibrate", "base quality"],
+        ),
+        (
+            &["callpeak"],
+            &["peak", "peaks", "call peak", "peak calling", "chip-seq"],
+        ),
+        (
+            &["compare"],
+            &["compare", "comparison", "diff", "difference"],
+        ),
         (&["plot"], &["plot", "visualize", "graph", "heatmap"]),
         (&["compute"], &["compute", "calculate", "matrix"]),
         (&["bus"], &["bus", "barcode"]),
@@ -1340,14 +1485,20 @@ fn synonym_match_score(subcmd: &str, task_keywords: &[&str]) -> i32 {
         (&["download"], &["download", "fetch", "get"]),
         (&["database"], &["database", "db", "download"]),
         (&["consensus"], &["consensus", "polish", "correct"]),
-        (&["correct"], &["correct", "correction", "polish", "consensus"]),
+        (
+            &["correct"],
+            &["correct", "correction", "polish", "consensus"],
+        ),
     ];
 
     let mut score = 0i32;
     for (subcmds, keywords) in synonyms {
         if subcmds.iter().any(|s| s.to_lowercase() == subcmd) {
             for keyword in task_keywords {
-                if keywords.iter().any(|k| k == keyword || k.contains(keyword) || keyword.contains(k)) {
+                if keywords
+                    .iter()
+                    .any(|k| k == keyword || k.contains(keyword) || keyword.contains(k))
+                {
                     score += 15;
                 }
             }
@@ -1375,7 +1526,9 @@ fn extract_subcmd_tokens(line: &str, subcommands: &mut Vec<String>) {
         // Check if this is a name:description pair (single word before colon)
         let before_colon = line.split(':').next().unwrap_or("");
         if before_colon.split_whitespace().count() == 1
-            && before_colon.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+            && before_colon
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
             && before_colon.len() >= 2
         {
             // This is a name:description pair, extract the name

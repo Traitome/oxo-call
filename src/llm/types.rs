@@ -102,13 +102,12 @@ pub struct LlmSkillVerification {
 /// Context budget tiers used to select prompt compression level.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PromptTier {
-    /// Full prompt — no compression (context window ≥ 16k or unknown)
+    /// Slim unified prompt — minimal, no XML, plain-text ARGS format.
+    /// Used for models ≤ 8B parameters. ~150-400 tokens.
+    Slim,
+    /// Full detailed prompt — rich context with flag catalog, examples, docs.
+    /// Used for large models (> 8B). Preserved for backward compatibility.
     Full,
-    /// Medium compression — trimmed docs, reduced skill examples (4k–16k)
-    Medium,
-    /// Aggressive compression — compact system prompt, top-3 examples only,
-    /// docs heavily truncated or omitted (≤ 4k)
-    Compact,
 }
 
 // ─── SSE streaming response types ────────────────────────────────────────────

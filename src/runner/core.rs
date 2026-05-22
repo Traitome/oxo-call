@@ -160,11 +160,20 @@ impl Runner {
         crate::llm::task_values::get_known_subcommands_for_tool(tool)
     }
 
-    fn extract_subcommand_help_section(raw_text: &str, marker: &str, marker_alt: &str) -> Option<String> {
-        let idx = raw_text.find(marker).or_else(|| raw_text.find(marker_alt))?;
+    fn extract_subcommand_help_section(
+        raw_text: &str,
+        marker: &str,
+        marker_alt: &str,
+    ) -> Option<String> {
+        let idx = raw_text
+            .find(marker)
+            .or_else(|| raw_text.find(marker_alt))?;
         let after_marker = &raw_text[idx..];
 
-        let content_start = after_marker.find("\n\n").map(|i| idx + i + 2).unwrap_or(idx + marker.len());
+        let content_start = after_marker
+            .find("\n\n")
+            .map(|i| idx + i + 2)
+            .unwrap_or(idx + marker.len());
 
         let content = &raw_text[content_start..];
 
@@ -439,7 +448,9 @@ impl Runner {
         // text has very few flags (meaning the real functionality is in companion
         // binaries). Skip for tools that already have a complete interface with
         // many flags (like hisat2, spades, prokka).
-        let help_flag_count = docs.help_output.as_ref()
+        let help_flag_count = docs
+            .help_output
+            .as_ref()
             .map(|h| h.lines().filter(|l| l.trim().starts_with('-')).count())
             .unwrap_or(0);
         let looks_like_dispatcher = help_flag_count < 15;
@@ -449,7 +460,8 @@ impl Runner {
             let tool_prefix = format!("{}_", tool.to_lowercase());
             let tool_prefix_hyphen = format!("{}-", tool.to_lowercase());
 
-            let best_match = path_companions.iter()
+            let best_match = path_companions
+                .iter()
                 .filter_map(|comp| {
                     let comp_lower = comp.to_ascii_lowercase();
                     let suffix = comp_lower
@@ -459,15 +471,22 @@ impl Runner {
 
                     let mut score = 0i32;
                     let mut matched_keywords = 0i32;
-                    for keyword in task_lower.split_whitespace().filter(|w| w.len() >= 3 && !w.contains('.')) {
+                    for keyword in task_lower
+                        .split_whitespace()
+                        .filter(|w| w.len() >= 3 && !w.contains('.'))
+                    {
                         // Exact suffix match (e.g., "convert" matches "convert_sp_gff2gtf")
-                        if suffix.starts_with(keyword) || suffix.contains(&format!("_{}", keyword)) || suffix.contains(&format!("-{}", keyword)) {
+                        if suffix.starts_with(keyword)
+                            || suffix.contains(&format!("_{}", keyword))
+                            || suffix.contains(&format!("-{}", keyword))
+                        {
                             score += 15;
                             matched_keywords += 1;
                         }
                         // Keyword contains suffix part (weaker signal)
                         for part in suffix.split(|c: char| c == '_' || c == '-') {
-                            if part.len() >= 4 && (keyword.contains(part) || part.contains(keyword)) {
+                            if part.len() >= 4 && (keyword.contains(part) || part.contains(keyword))
+                            {
                                 score += 8;
                                 matched_keywords += 1;
                             }
@@ -475,7 +494,11 @@ impl Runner {
                     }
 
                     // Require at least 2 keyword matches or a very high single-match score
-                    if matched_keywords >= 2 || score >= 20 { Some((comp, score)) } else { None }
+                    if matched_keywords >= 2 || score >= 20 {
+                        Some((comp, score))
+                    } else {
+                        None
+                    }
                 })
                 .max_by_key(|(_, s)| *s);
 
@@ -522,66 +545,245 @@ impl Runner {
         // in `gatk --help`), try to match subcommands directly from the task.
         if docs.subcommand_help.is_none() && top_subcommands.is_empty() {
             let known_tools: &[(&str, &[&str])] = &[
-                ("gatk", &["HaplotypeCaller", "Mutect2", "MarkDuplicates", "BaseRecalibrator",
-                          "ApplyBQSR", "AddOrReplaceReadGroups", "SelectVariants",
-                          "FilterMutectCalls", "CreateSequenceDictionary", "GatherVcfs",
-                          "GenomicsDBImport", "GenotypeGVCFs", "CombineGVCFs",
-                          "SplitNCigarReads", "VariantFiltration", "CollectAlignmentSummaryMetrics",
-                          "CollectInsertSizeMetrics", "ValidateSamFile", "SortSam",
-                          "RevertSam", "PrintReads", "FlagStat", "DepthOfCoverage"]),
-                ("picard", &["MarkDuplicates", "AddOrReplaceReadGroups", "SortSam",
-                            "CollectAlignmentSummaryMetrics", "CollectInsertSizeMetrics",
-                            "CreateSequenceDictionary", "ValidateSamFile", "GatherVcfs",
-                            "MergeBamAlignment", "MergeSamFiles", "RevertSam",
-                            "CollectGcBiasMetrics", "CollectQualityYieldMetrics",
-                            "CollectWgsMetrics", "CollectHsMetrics", "CollectRnaSeqMetrics",
-                            "CollectRrbsMetrics", "CollectSequencingArtifactMetrics",
-                            "CollectMultipleMetrics", "BuildBamIndex", "ExtractSequences"]),
-                ("deeptools", &["bamCoverage", "bamCompare", "bamPEFragmentSize",
-                               "computeMatrix", "plotHeatmap", "plotProfile",
-                               "plotFingerprint", "multiBamSummary", "multiBigwigSummary",
-                               "plotCoverage", "plotCorrelation", "plotPCA",
-                               "plotEnrichment", "estimateReadFiltering",
-                               "alignmentSieve", "bigwigCompare", "computeGCBias",
-                               "correctGCBias", "bamCoverage", "plotCoverage"]),
-                ("cnvkit", &["batch", "target", "access", "antitarget", "coverage",
-                           "reference", "fix", "segment", "call", "scatter",
-                           "diagram", "heatmap", "genemetrics", "breaks",
-                           "gainloss", "sex", "metrics", "segmetrics",
-                           "call", "import-picard", "import-seg", "import-theta",
-                           "export", "version"]),
+                (
+                    "gatk",
+                    &[
+                        "HaplotypeCaller",
+                        "Mutect2",
+                        "MarkDuplicates",
+                        "BaseRecalibrator",
+                        "ApplyBQSR",
+                        "AddOrReplaceReadGroups",
+                        "SelectVariants",
+                        "FilterMutectCalls",
+                        "CreateSequenceDictionary",
+                        "GatherVcfs",
+                        "GenomicsDBImport",
+                        "GenotypeGVCFs",
+                        "CombineGVCFs",
+                        "SplitNCigarReads",
+                        "VariantFiltration",
+                        "CollectAlignmentSummaryMetrics",
+                        "CollectInsertSizeMetrics",
+                        "ValidateSamFile",
+                        "SortSam",
+                        "RevertSam",
+                        "PrintReads",
+                        "FlagStat",
+                        "DepthOfCoverage",
+                    ],
+                ),
+                (
+                    "picard",
+                    &[
+                        "MarkDuplicates",
+                        "AddOrReplaceReadGroups",
+                        "SortSam",
+                        "CollectAlignmentSummaryMetrics",
+                        "CollectInsertSizeMetrics",
+                        "CreateSequenceDictionary",
+                        "ValidateSamFile",
+                        "GatherVcfs",
+                        "MergeBamAlignment",
+                        "MergeSamFiles",
+                        "RevertSam",
+                        "CollectGcBiasMetrics",
+                        "CollectQualityYieldMetrics",
+                        "CollectWgsMetrics",
+                        "CollectHsMetrics",
+                        "CollectRnaSeqMetrics",
+                        "CollectRrbsMetrics",
+                        "CollectSequencingArtifactMetrics",
+                        "CollectMultipleMetrics",
+                        "BuildBamIndex",
+                        "ExtractSequences",
+                    ],
+                ),
+                (
+                    "deeptools",
+                    &[
+                        "bamCoverage",
+                        "bamCompare",
+                        "bamPEFragmentSize",
+                        "computeMatrix",
+                        "plotHeatmap",
+                        "plotProfile",
+                        "plotFingerprint",
+                        "multiBamSummary",
+                        "multiBigwigSummary",
+                        "plotCoverage",
+                        "plotCorrelation",
+                        "plotPCA",
+                        "plotEnrichment",
+                        "estimateReadFiltering",
+                        "alignmentSieve",
+                        "bigwigCompare",
+                        "computeGCBias",
+                        "correctGCBias",
+                        "bamCoverage",
+                        "plotCoverage",
+                    ],
+                ),
+                (
+                    "cnvkit",
+                    &[
+                        "batch",
+                        "target",
+                        "access",
+                        "antitarget",
+                        "coverage",
+                        "reference",
+                        "fix",
+                        "segment",
+                        "call",
+                        "scatter",
+                        "diagram",
+                        "heatmap",
+                        "genemetrics",
+                        "breaks",
+                        "gainloss",
+                        "sex",
+                        "metrics",
+                        "segmetrics",
+                        "call",
+                        "import-picard",
+                        "import-seg",
+                        "import-theta",
+                        "export",
+                        "version",
+                    ],
+                ),
                 ("snakemake", &["run", "pull", "info", "list", "help"]),
                 ("nextflow", &["run", "pull", "info", "list", "help"]),
-                ("macs2", &["callpeak", "bdgpeakcall", "bdgbroadcall", "bdgcmp",
-                           "bdgopt", "cmbreps", "bdgdiff", "filterdup",
-                           "predictd", "pileup", "randsample", "refinepeak"]),
-                ("sourmash", &["compute", "compare", "plot", "gather", "search",
-                              "index", "sourmash", "categorize", "watch", "lca",
-                              "lca_summarize", "lca_gather", "lca_index",
-                              "lca_rankinfo", "lca_compare"]),
-                ("truvari", &["bench", "consistency", "anno", "collapse", "div",
-                             "stats", "validate"]),
-                ("whatshap", &["phase", "polyphase", "haplotag", "split", "stats",
-                              "compare"]),
-                ("mmseqs2", &["createdb", "search", "cluster", "linclust", "easy-search",
-                             "easy-cluster", "easy-linclust", "createtsv", "convert2fasta",
-                             "convertalis", "result2profile", "result2repseq",
-                             "taxonomy", "databases"]),
+                (
+                    "macs2",
+                    &[
+                        "callpeak",
+                        "bdgpeakcall",
+                        "bdgbroadcall",
+                        "bdgcmp",
+                        "bdgopt",
+                        "cmbreps",
+                        "bdgdiff",
+                        "filterdup",
+                        "predictd",
+                        "pileup",
+                        "randsample",
+                        "refinepeak",
+                    ],
+                ),
+                (
+                    "sourmash",
+                    &[
+                        "compute",
+                        "compare",
+                        "plot",
+                        "gather",
+                        "search",
+                        "index",
+                        "sourmash",
+                        "categorize",
+                        "watch",
+                        "lca",
+                        "lca_summarize",
+                        "lca_gather",
+                        "lca_index",
+                        "lca_rankinfo",
+                        "lca_compare",
+                    ],
+                ),
+                (
+                    "truvari",
+                    &[
+                        "bench",
+                        "consistency",
+                        "anno",
+                        "collapse",
+                        "div",
+                        "stats",
+                        "validate",
+                    ],
+                ),
+                (
+                    "whatshap",
+                    &[
+                        "phase",
+                        "polyphase",
+                        "haplotag",
+                        "split",
+                        "stats",
+                        "compare",
+                    ],
+                ),
+                (
+                    "mmseqs2",
+                    &[
+                        "createdb",
+                        "search",
+                        "cluster",
+                        "linclust",
+                        "easy-search",
+                        "easy-cluster",
+                        "easy-linclust",
+                        "createtsv",
+                        "convert2fasta",
+                        "convertalis",
+                        "result2profile",
+                        "result2repseq",
+                        "taxonomy",
+                        "databases",
+                    ],
+                ),
                 ("delly", &["call", "filter", "merge", "bcftools", "stats"]),
                 ("checkm2", &["predict", "plot", "database", "test"]),
-                ("git", &["clone", "init", "add", "commit", "push", "pull",
-                         "checkout", "branch", "merge", "rebase", "log",
-                         "diff", "status", "stash", "fetch", "remote"]),
-                ("kallisto", &["quant", "bus", "pseudo", "merge", "h5dump",
-                              "index", "inspect", "version"]),
-                ("kb", &["ref", "count", "matrix", "filter", "compile",
-                        "info", "download", "test"]),
-                ("meme", &["fimo", "meme", "dreme", "ame", "centrimo",
-                          "tomtom", "mast", "mcast", "glam2", "glam2scan",
-                          "moop", "spamo"]),
+                (
+                    "git",
+                    &[
+                        "clone", "init", "add", "commit", "push", "pull", "checkout", "branch",
+                        "merge", "rebase", "log", "diff", "status", "stash", "fetch", "remote",
+                    ],
+                ),
+                (
+                    "kallisto",
+                    &[
+                        "quant", "bus", "pseudo", "merge", "h5dump", "index", "inspect", "version",
+                    ],
+                ),
+                (
+                    "kb",
+                    &[
+                        "ref", "count", "matrix", "filter", "compile", "info", "download", "test",
+                    ],
+                ),
+                (
+                    "meme",
+                    &[
+                        "fimo",
+                        "meme",
+                        "dreme",
+                        "ame",
+                        "centrimo",
+                        "tomtom",
+                        "mast",
+                        "mcast",
+                        "glam2",
+                        "glam2scan",
+                        "moop",
+                        "spamo",
+                    ],
+                ),
                 ("pbsv", &["discover", "call", "annotate"]),
-                ("qualimap", &["bamqc", "rnaseq", "counts", "clustering",
-                              "multi-bamqc", "comp-counts"]),
+                (
+                    "qualimap",
+                    &[
+                        "bamqc",
+                        "rnaseq",
+                        "counts",
+                        "clustering",
+                        "multi-bamqc",
+                        "comp-counts",
+                    ],
+                ),
             ];
 
             let tool_lower = tool.to_lowercase();
@@ -589,31 +791,39 @@ impl Runner {
                 if tool_lower == *known_tool {
                     let task_lower = task.to_ascii_lowercase();
                     // Try exact match first, then fuzzy match
-                    let matched = subs.iter().find(|sc| {
-                        let sc_lower = sc.to_lowercase();
-                        task_lower.contains(&sc_lower)
-                            || task_lower.split_whitespace().any(|w| w == &sc_lower)
-                    }).or_else(|| {
-                        // Fuzzy: split subcommand name into words and check if
-                        // all significant parts appear in the task
-                        subs.iter().find(|sc| {
+                    let matched = subs
+                        .iter()
+                        .find(|sc| {
                             let sc_lower = sc.to_lowercase();
-                            let parts: Vec<&str> = sc_lower
-                                .split(|c: char| c.is_uppercase() || c == '_' || c == '-')
-                                .filter(|p| p.len() >= 3)
-                                .collect();
-                            if parts.is_empty() {
-                                return false;
-                            }
-                            parts.iter().all(|part| task_lower.contains(part))
+                            task_lower.contains(&sc_lower)
+                                || task_lower.split_whitespace().any(|w| w == &sc_lower)
                         })
-                    });
+                        .or_else(|| {
+                            // Fuzzy: split subcommand name into words and check if
+                            // all significant parts appear in the task
+                            subs.iter().find(|sc| {
+                                let sc_lower = sc.to_lowercase();
+                                let parts: Vec<&str> = sc_lower
+                                    .split(|c: char| c.is_uppercase() || c == '_' || c == '-')
+                                    .filter(|p| p.len() >= 3)
+                                    .collect();
+                                if parts.is_empty() {
+                                    return false;
+                                }
+                                parts.iter().all(|part| task_lower.contains(part))
+                            })
+                        });
                     if let Some(matched) = matched {
                         let synthetic_help = format!(
                             "Usage: {tool} <subcommand> [options]\n\nCommands:\n{}",
-                            subs.iter().map(|s| format!("  {s}")).collect::<Vec<_>>().join("\n")
+                            subs.iter()
+                                .map(|s| format!("  {s}"))
+                                .collect::<Vec<_>>()
+                                .join("\n")
                         );
-                        docs.subcommand_help = self.fetcher.fetch_subcommand_help(tool, &synthetic_help, task);
+                        docs.subcommand_help =
+                            self.fetcher
+                                .fetch_subcommand_help(tool, &synthetic_help, task);
                         if docs.subcommand_help.is_some() {
                             matched_subcommand = Some(matched.to_string());
                             top_subcommands = subs.iter().map(|s| s.to_string()).collect();
@@ -640,7 +850,10 @@ impl Runner {
                     "{} Subcommand help fetched: {} ({} chars)",
                     "[verbose]".dimmed(),
                     matched_subcommand.as_deref().unwrap_or("?"),
-                    docs.subcommand_help.as_deref().map(|h| h.len()).unwrap_or(0)
+                    docs.subcommand_help
+                        .as_deref()
+                        .map(|h| h.len())
+                        .unwrap_or(0)
                 );
             }
         }
@@ -749,17 +962,38 @@ impl Runner {
             let processor = DocProcessor::new();
             let raw_for_structure = &resolved.raw_text;
             if self.verbose {
-                eprintln!("{} Processing docs ({} chars raw, {} chars summarized) for StructuredDoc...", "[verbose]".dimmed(), raw_for_structure.len(), docs.len());
-                let preview_end = raw_for_structure.floor_char_boundary(200.min(raw_for_structure.len()));
-                eprintln!("{} Docs preview: {:?}", "[verbose]".dimmed(), &raw_for_structure[..preview_end]);
-                let has_subcmd_marker = raw_for_structure.contains("# agat_") || raw_for_structure.contains("--help\n\n");
-                eprintln!("{} Raw text contains subcommand marker: {}", "[verbose]".dimmed(), has_subcmd_marker);
+                eprintln!(
+                    "{} Processing docs ({} chars raw, {} chars summarized) for StructuredDoc...",
+                    "[verbose]".dimmed(),
+                    raw_for_structure.len(),
+                    docs.len()
+                );
+                let preview_end =
+                    raw_for_structure.floor_char_boundary(200.min(raw_for_structure.len()));
+                eprintln!(
+                    "{} Docs preview: {:?}",
+                    "[verbose]".dimmed(),
+                    &raw_for_structure[..preview_end]
+                );
+                let has_subcmd_marker = raw_for_structure.contains("# agat_")
+                    || raw_for_structure.contains("--help\n\n");
+                eprintln!(
+                    "{} Raw text contains subcommand marker: {}",
+                    "[verbose]".dimmed(),
+                    has_subcmd_marker
+                );
                 let options_count = raw_for_structure.matches("Options:").count();
-                eprintln!("{} Raw text 'Options:' occurrences: {}", "[verbose]".dimmed(), options_count);
+                eprintln!(
+                    "{} Raw text 'Options:' occurrences: {}",
+                    "[verbose]".dimmed(),
+                    options_count
+                );
             }
 
             let filtered_companions: Vec<String> = {
-                let help_flag_count = resolved.raw_text.lines()
+                let help_flag_count = resolved
+                    .raw_text
+                    .lines()
                     .filter(|l| l.trim().starts_with('-'))
                     .count();
                 let has_usage = resolved.raw_text.to_ascii_lowercase().contains("usage:");
@@ -769,7 +1003,8 @@ impl Runner {
                     || resolved.raw_text.contains("[options]")
                     || resolved.raw_text.contains("[arguments]");
                 let is_dispatcher = (help_flag_count < 15 || resolved.top_subcommands.len() > 3)
-                    && !has_usage && !has_positional;
+                    && !has_usage
+                    && !has_positional;
                 if is_dispatcher {
                     resolved.path_companions.clone()
                 } else {
@@ -777,11 +1012,15 @@ impl Runner {
                 }
             };
 
-            let (subcommand_hint, matched_subcommand) = if resolved.subcommands_from_help && !resolved.top_subcommands.is_empty() {
-                (Some(resolved.top_subcommands), resolved.matched_subcommand.as_deref())
-            } else {
-                (None, None)
-            };
+            let (subcommand_hint, matched_subcommand) =
+                if resolved.subcommands_from_help && !resolved.top_subcommands.is_empty() {
+                    (
+                        Some(resolved.top_subcommands),
+                        resolved.matched_subcommand.as_deref(),
+                    )
+                } else {
+                    (None, None)
+                };
 
             let mut sdoc = processor.clean_and_structure_with_hint(
                 raw_for_structure,
@@ -802,7 +1041,9 @@ impl Runner {
                     let subcmd_marker_alt = format!("# {} --help", subcmd_help);
 
                     if let Some(subcmd_section) = Self::extract_subcommand_help_section(
-                        raw_for_structure, &subcmd_marker, &subcmd_marker_alt
+                        raw_for_structure,
+                        &subcmd_marker,
+                        &subcmd_marker_alt,
                     ) {
                         let subcmd_sdoc = processor.clean_and_structure_with_hint(
                             &subcmd_section,
@@ -951,7 +1192,7 @@ impl Runner {
         // Two-step decomposes the task: first select subcommand (classification),
         // then generate arguments (simpler generation). This significantly
         // improves accuracy for 7B models by reducing cognitive load.
-        let model_category = self.config.model_size_category();
+        let _model_category = self.config.model_size_category();
         let use_two_step = false;
 
         let mut suggestion = if use_two_step {
@@ -978,8 +1219,13 @@ impl Runner {
                 .await?
         };
 
-        if suggestion.args.is_empty() && !use_two_step && skill.is_none() && structured_doc.is_some() {
-            suggestion = self.llm
+        if suggestion.args.is_empty()
+            && !use_two_step
+            && skill.is_none()
+            && structured_doc.is_some()
+        {
+            suggestion = self
+                .llm
                 .suggest_command_two_step(
                     tool,
                     &docs,
@@ -1048,6 +1294,13 @@ impl Runner {
 
         let result = self.prepare(tool, task).await?;
         let full_cmd = build_command_string(tool, &result.suggestion.args);
+
+        // Safety check
+        if let super::validation::SafetyResult::Dangerous(msg) =
+            super::validation::validate_command_safety(&full_cmd, tool)
+        {
+            eprintln!("  {} {}", "SAFETY:".red().bold(), msg.red());
+        }
 
         // Record in history before displaying, so the entry is always saved.
         {
@@ -1141,8 +1394,16 @@ impl Runner {
         let result = self.prepare(tool, task).await?;
         let full_cmd = build_command_string(tool, &result.suggestion.args);
 
+        // ── Safety check ──────────────────────────────────────────────────────
+        let safety = super::validation::validate_command_safety(&full_cmd, tool);
+        let effective_risk = match safety {
+            super::validation::SafetyResult::Dangerous(_) => RiskLevel::Dangerous,
+            super::validation::SafetyResult::Warning(_) => RiskLevel::Warning,
+            super::validation::SafetyResult::Safe => assess_command_risk(&result.suggestion.args),
+        };
+
         // ── Risk assessment ───────────────────────────────────────────────────
-        let risk = assess_command_risk(&result.suggestion.args);
+        let risk = effective_risk;
 
         if !json {
             println!();

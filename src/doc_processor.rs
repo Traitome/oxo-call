@@ -32,13 +32,11 @@ static NOISE_PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
     ]
 });
 
-static UNICODE_BOX_CLEANER: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"[╭╮╰╯│─┃━┏┓┗┛┎┒└┘┌┐└┘├┤┬┴┼]").expect("valid regex")
-});
+static UNICODE_BOX_CLEANER: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"[╭╮╰╯│─┃━┏┓┗┛┎┒└┘┌┐└┘├┤┬┴┼]").expect("valid regex"));
 
-static ANSI_ESCAPE_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"\x1b\[[0-9;]*[a-zA-Z]").expect("valid regex")
-});
+static ANSI_ESCAPE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\x1b\[[0-9;]*[a-zA-Z]").expect("valid regex"));
 
 /// Matches three or more consecutive newlines (for collapsing blank lines).
 static BLANK_LINE_RE: LazyLock<Regex> =
@@ -57,8 +55,7 @@ static FLAG_LINE_RE: LazyLock<Regex> = LazyLock::new(|| {
 
 /// Matches Picard-style KEY=VALUE parameter lines (e.g. `I=input.bam   Input BAM file`).
 static PICARD_PARAM_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^\s*([A-Z][A-Za-z0-9_]*(?:=\S+)?)\s{2,}(.+)")
-        .expect("valid regex")
+    Regex::new(r"^\s*([A-Z][A-Za-z0-9_]*(?:=\S+)?)\s{2,}(.+)").expect("valid regex")
 });
 
 /// Matches flag lines with tab or single-space separation (broader than FLAG_LINE_RE).
@@ -69,8 +66,7 @@ static FLAG_LINE_LOOSE_RE: LazyLock<Regex> = LazyLock::new(|| {
 
 /// Matches admixture-style flags: --seed=X     : description
 static FLAG_COLON_DESC_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^\s*(-{1,2}[a-zA-Z0-9@_-]+(?:[=\[][^,\s]*)?)\s*:\s*(.+)")
-        .expect("valid regex")
+    Regex::new(r"^\s*(-{1,2}[a-zA-Z0-9@_-]+(?:[=\[][^,\s]*)?)\s*:\s*(.+)").expect("valid regex")
 });
 
 /// Matches the value-type metavar in a flag line (e.g. `INT`, `FILE`, `STR`, `N`, `PATH`).
@@ -514,8 +510,10 @@ impl DocProcessor {
             } else if name_lower.contains("example") {
                 structured.examples.push_str(&content);
                 structured.examples.push('\n');
-            } else if name_lower.contains("option") || name_lower.contains("flag")
-                || name_lower.contains("argument") || name_lower.contains("parameter")
+            } else if name_lower.contains("option")
+                || name_lower.contains("flag")
+                || name_lower.contains("argument")
+                || name_lower.contains("parameter")
             {
                 structured
                     .options
@@ -589,8 +587,12 @@ impl DocProcessor {
         structured.extracted_examples = self.extract_command_examples(&cleaned);
 
         // Step 7: Detect format constraints (subcommand requirements, companion binaries)
-        let (has_subcommands, detected_subcommands, format_hint) =
-            self.detect_format_constraints(&structured.usage, &structured.commands, &cleaned, tool_name);
+        let (has_subcommands, detected_subcommands, format_hint) = self.detect_format_constraints(
+            &structured.usage,
+            &structured.commands,
+            &cleaned,
+            tool_name,
+        );
 
         // Merge PATH-discovered subcommands (subcommand_hint) with doc-detected ones
         if let Some(hint_subs) = subcommand_hint {
@@ -604,9 +606,8 @@ impl DocProcessor {
                 }
                 structured.subcommands = merged;
                 if structured.format_hint.is_none() {
-                    structured.format_hint = Some(
-                        "First token must be a subcommand or companion binary".to_string(),
-                    );
+                    structured.format_hint =
+                        Some("First token must be a subcommand or companion binary".to_string());
                 }
             } else {
                 structured.has_subcommands = has_subcommands;
@@ -620,9 +621,8 @@ impl DocProcessor {
         }
 
         // Extract subcommand descriptions from help text
-        structured.subcommand_descriptions = self.extract_subcommand_descs_from_help(
-            &structured.subcommands, &cleaned
-        );
+        structured.subcommand_descriptions =
+            self.extract_subcommand_descs_from_help(&structured.subcommands, &cleaned);
 
         // Step 8: Detect companion binaries from documentation
         structured.companion_binaries =
@@ -688,44 +688,93 @@ impl DocProcessor {
 
         // Step 14: Final override — known NO-subcommand tools must NEVER have subcommands
         // This check MUST come after all other subcommand detection to prevent overrides
-        let effective_tool_name = tool_name
-            .map(|n| n.to_lowercase())
-            .unwrap_or_default();
+        let effective_tool_name = tool_name.map(|n| n.to_lowercase()).unwrap_or_default();
         let known_no_subcommand_tools = [
-            "rm", "find", "wget", "curl", "ssh", "rsync", "tar", "r",
-            "cutadapt", "trim_galore", "fastp", "fastqc", "multiqc",
-            "mosdepth", "liftoff", "fastani", "pilon",
-            "shapeit4", "hifiasm", "vep", "arriba",
-            "pbfusion", "orthofinder",
+            "rm",
+            "find",
+            "wget",
+            "curl",
+            "ssh",
+            "rsync",
+            "tar",
+            "r",
+            "cutadapt",
+            "trim_galore",
+            "fastp",
+            "fastqc",
+            "multiqc",
+            "mosdepth",
+            "liftoff",
+            "fastani",
+            "pilon",
+            "shapeit4",
+            "hifiasm",
+            "vep",
+            "arriba",
+            "pbfusion",
+            "orthofinder",
             "minimap2",
-            "megahit", "busco",
+            "megahit",
+            "busco",
             "featurecounts",
-            "freebayes", "vcftools", "tabix",
-            "sniffles", "longshot",
-            "racon", "miniasm", "wtdbg2", "verkko",
-            "muscle", "mafft", "fasttree", "iqtree2",
-            "prodigal", "augustus",
-            "plink2", "admixture", "angsd",
+            "freebayes",
+            "vcftools",
+            "tabix",
+            "sniffles",
+            "longshot",
+            "racon",
+            "miniasm",
+            "wtdbg2",
+            "verkko",
+            "muscle",
+            "mafft",
+            "fasttree",
+            "iqtree2",
+            "prodigal",
+            "augustus",
+            "plink2",
+            "admixture",
+            "angsd",
             "chromap",
-            "java", "python", "perl", "bash", "julia",
-            "grep", "sed", "awk",
+            "java",
+            "python",
+            "perl",
+            "bash",
+            "julia",
+            "grep",
+            "sed",
+            "awk",
             "vcfanno",
-            "blastn", "blastp", "blastx", "tblastn", "tblastx",
-            "chopper", "cellsnp-lite",
-            "metaphlan", "pbccs",
-            "eggnog-mapper", "repeatmasker",
-            "nanoplot", "nanostat",
-            "metabat2", "fastq-screen",
-            "hisat2", "bowtie2", "kraken2", "star",
-            "stringtie", "canu", "snakemake",
-            "flye", "bakta",
+            "blastn",
+            "blastp",
+            "blastx",
+            "tblastn",
+            "tblastx",
+            "chopper",
+            "cellsnp-lite",
+            "metaphlan",
+            "pbccs",
+            "eggnog-mapper",
+            "repeatmasker",
+            "nanoplot",
+            "nanostat",
+            "metabat2",
+            "fastq-screen",
+            "hisat2",
+            "bowtie2",
+            "kraken2",
+            "star",
+            "stringtie",
+            "canu",
+            "snakemake",
+            "flye",
+            "bakta",
         ];
         if known_no_subcommand_tools.contains(&effective_tool_name.as_str()) {
             structured.has_subcommands = false;
             structured.subcommands.clear();
-            structured.format_hint = Some(
-                "First token is a flag or input file. NO subcommands exist.".to_string(),
-            );
+            structured.format_hint =
+                Some("First token is a flag or input file. NO subcommands exist.".to_string());
         }
 
         structured
@@ -873,7 +922,9 @@ impl DocProcessor {
                 .lines()
                 .find(|l| l.trim().to_lowercase().starts_with("usage:"))
                 .and_then(|l| {
-                    let after_usage = l.trim().trim_start_matches("usage:")
+                    let after_usage = l
+                        .trim()
+                        .trim_start_matches("usage:")
                         .trim_start_matches("Usage:")
                         .trim_start_matches("USAGE:")
                         .trim();
@@ -887,7 +938,9 @@ impl DocProcessor {
                     has_subcommands = true;
                     subcommands = prefixed;
                     if format_hint.is_none() {
-                        format_hint = Some("First token must be a subcommand or companion binary".to_string());
+                        format_hint = Some(
+                            "First token must be a subcommand or companion binary".to_string(),
+                        );
                     }
                 }
             }
@@ -897,108 +950,448 @@ impl DocProcessor {
         // These tools are known to require subcommands but their help text
         // may not clearly indicate this
         let known_subcommand_tools: &[(&str, &[&str])] = &[
-            ("sra-tools", &["prefetch", "fasterq-dump", "fastq-dump", "sam-dump",
-                           "sra-stat", "vdb-validate", "vdb-dump"]),
-            ("bismark", &["bismark", "bismark_genome_preparation", "bismark_methylation_extractor",
-                          "deduplicate_bismark", "bismark2report", "bismark2bedGraph",
-                          "bismark2coverage", "coverage2cytosine"]),
-            ("strelka2", &["configureStrelkaGermlineWorkflow.py", "configureStrelkaSomaticWorkflow.py"]),
-            ("mummer", &["nucmer", "promer", "delta-filter", "show-coords",
-                        "show-snps", "show-tiling", "mummerplot", "dnadiff"]),
-            ("homer", &["findPeaks", "findMotifsGenome.pl", "makeUCSCfile",
-                       "annotatePeaks.pl", "mergePeaks", "getDifferentialPeaks"]),
+            (
+                "sra-tools",
+                &[
+                    "prefetch",
+                    "fasterq-dump",
+                    "fastq-dump",
+                    "sam-dump",
+                    "sra-stat",
+                    "vdb-validate",
+                    "vdb-dump",
+                ],
+            ),
+            (
+                "bismark",
+                &[
+                    "bismark",
+                    "bismark_genome_preparation",
+                    "bismark_methylation_extractor",
+                    "deduplicate_bismark",
+                    "bismark2report",
+                    "bismark2bedGraph",
+                    "bismark2coverage",
+                    "coverage2cytosine",
+                ],
+            ),
+            (
+                "strelka2",
+                &[
+                    "configureStrelkaGermlineWorkflow.py",
+                    "configureStrelkaSomaticWorkflow.py",
+                ],
+            ),
+            (
+                "mummer",
+                &[
+                    "nucmer",
+                    "promer",
+                    "delta-filter",
+                    "show-coords",
+                    "show-snps",
+                    "show-tiling",
+                    "mummerplot",
+                    "dnadiff",
+                ],
+            ),
+            (
+                "homer",
+                &[
+                    "findPeaks",
+                    "findMotifsGenome.pl",
+                    "makeUCSCfile",
+                    "annotatePeaks.pl",
+                    "mergePeaks",
+                    "getDifferentialPeaks",
+                ],
+            ),
             ("igvtools", &["count", "index", "sort", "toTDF", "tile"]),
             ("nextflow", &["run", "pull", "info", "list", "help"]),
-            ("blast", &["blastn", "blastp", "blastx", "tblastn", "tblastx",
-                        "makeblastdb", "blastdbcmd", "blast_formatter",
-                        "dustmasker", "segmasker", "update_blastdb.pl"]),
-            ("hmmer", &["hmmsearch", "hmmscan", "hmmalign", "hmmbuild",
-                        "hmmemit", "hmmfetch", "hmmpress", "hmmconvert"]),
-            ("mmseqs2", &["easy-search", "easy-cluster", "search", "cluster",
-                         "index", "convert2fasta", "createdb", "convertalis"]),
-            ("gtdbtk", &["classify_wf", "ani_screen", "de_novo_wf", "infer",
-                        "root", "decorate", "export_msa", "identify",
-                        "align", "tree"]),
-            ("seqkit", &["seq", "fx2tab", "tab2fx", "grep", "rmdup", "sample",
-                         "subseq", "replace", "translate", "sort", "stats", "concat",
-                         "split2", "fq2fa", "genautocomplete", "common", "head"]),
-            ("qualimap", &["bamqc", "rnaseq", "counts", "clustering", "multi-bamqc"]),
-            ("varscan2", &["mpileup2cns", "mpileup2indel", "mpileup2snp",
-                          "somatic", "copynumber", "readcounts", "processSomatic"]),
+            (
+                "blast",
+                &[
+                    "blastn",
+                    "blastp",
+                    "blastx",
+                    "tblastn",
+                    "tblastx",
+                    "makeblastdb",
+                    "blastdbcmd",
+                    "blast_formatter",
+                    "dustmasker",
+                    "segmasker",
+                    "update_blastdb.pl",
+                ],
+            ),
+            (
+                "hmmer",
+                &[
+                    "hmmsearch",
+                    "hmmscan",
+                    "hmmalign",
+                    "hmmbuild",
+                    "hmmemit",
+                    "hmmfetch",
+                    "hmmpress",
+                    "hmmconvert",
+                ],
+            ),
+            (
+                "mmseqs2",
+                &[
+                    "easy-search",
+                    "easy-cluster",
+                    "search",
+                    "cluster",
+                    "index",
+                    "convert2fasta",
+                    "createdb",
+                    "convertalis",
+                ],
+            ),
+            (
+                "gtdbtk",
+                &[
+                    "classify_wf",
+                    "ani_screen",
+                    "de_novo_wf",
+                    "infer",
+                    "root",
+                    "decorate",
+                    "export_msa",
+                    "identify",
+                    "align",
+                    "tree",
+                ],
+            ),
+            (
+                "seqkit",
+                &[
+                    "seq",
+                    "fx2tab",
+                    "tab2fx",
+                    "grep",
+                    "rmdup",
+                    "sample",
+                    "subseq",
+                    "replace",
+                    "translate",
+                    "sort",
+                    "stats",
+                    "concat",
+                    "split2",
+                    "fq2fa",
+                    "genautocomplete",
+                    "common",
+                    "head",
+                ],
+            ),
+            (
+                "qualimap",
+                &["bamqc", "rnaseq", "counts", "clustering", "multi-bamqc"],
+            ),
+            (
+                "varscan2",
+                &[
+                    "mpileup2cns",
+                    "mpileup2indel",
+                    "mpileup2snp",
+                    "somatic",
+                    "copynumber",
+                    "readcounts",
+                    "processSomatic",
+                ],
+            ),
             ("survivor", &["simSV", "merge", "stats"]),
             ("snpeff", &["ann", "download", "build", "databases"]),
             ("trimmomatic", &["PE", "SE"]),
-            ("deeptools", &["bamCoverage", "computeMatrix", "plotHeatmap", "plotProfile",
-                           "multiBamSummary", "plotCorrelation", "bamCompare",
-                           "computeMatrixOperations", "plotPCA", "plotFingerprint",
-                           "alignSieve", "bamHandler"]),
-            ("agat", &["agat_convert_sp_gff2gtf", "agat_convert_sp_gff2zff",
-                      "agat_sp_statistics", "agat_sp_filter_record_by_attribute_value",
-                      "agat_sp_manage_IDs", "agat_sp_fix_features_locations_duplicated",
-                      "agat_sp_extract_sequences", "agat_sp_merge_annotations",
-                      "agat_sp_keep_longest_isoform", "agat_sp_filter_gene_by_length",
-                      "agat_sp_compare_two_annotations", "agat_convert_sp_gxf2gxf",
-                      "agat_sp_convert_to_bed", "agat_config", "agat_sp_add_attribute"]),
-            ("rsem", &["rsem-prepare-reference", "rsem-calculate-expression",
-                      "rsem-plot-model", "rsem-run-em", "rsem-run-gibbs"]),
+            (
+                "deeptools",
+                &[
+                    "bamCoverage",
+                    "computeMatrix",
+                    "plotHeatmap",
+                    "plotProfile",
+                    "multiBamSummary",
+                    "plotCorrelation",
+                    "bamCompare",
+                    "computeMatrixOperations",
+                    "plotPCA",
+                    "plotFingerprint",
+                    "alignSieve",
+                    "bamHandler",
+                ],
+            ),
+            (
+                "agat",
+                &[
+                    "agat_convert_sp_gff2gtf",
+                    "agat_convert_sp_gff2zff",
+                    "agat_sp_statistics",
+                    "agat_sp_filter_record_by_attribute_value",
+                    "agat_sp_manage_IDs",
+                    "agat_sp_fix_features_locations_duplicated",
+                    "agat_sp_extract_sequences",
+                    "agat_sp_merge_annotations",
+                    "agat_sp_keep_longest_isoform",
+                    "agat_sp_filter_gene_by_length",
+                    "agat_sp_compare_two_annotations",
+                    "agat_convert_sp_gxf2gxf",
+                    "agat_sp_convert_to_bed",
+                    "agat_config",
+                    "agat_sp_add_attribute",
+                ],
+            ),
+            (
+                "rsem",
+                &[
+                    "rsem-prepare-reference",
+                    "rsem-calculate-expression",
+                    "rsem-plot-model",
+                    "rsem-run-em",
+                    "rsem-run-gibbs",
+                ],
+            ),
             ("bakta", &["bakta", "bakta_db", "bakta_proteins"]),
             ("methyldackel", &["extract", "mbias", "summary"]),
-            ("modkit", &["pileup", "summary", "extract", "motif-bed",
-                        "sample-probs", "call-mods", "update-tags"]),
-            ("medaka", &["medaka_consensus", "medaka_variant", "medaka_haplotype",
-                        "medaka_snp_pipeline", "medaka_variant_pipeline"]),
+            (
+                "modkit",
+                &[
+                    "pileup",
+                    "summary",
+                    "extract",
+                    "motif-bed",
+                    "sample-probs",
+                    "call-mods",
+                    "update-tags",
+                ],
+            ),
+            (
+                "medaka",
+                &[
+                    "medaka_consensus",
+                    "medaka_variant",
+                    "medaka_haplotype",
+                    "medaka_snp_pipeline",
+                    "medaka_variant_pipeline",
+                ],
+            ),
             ("nanocomp", &["NanoComp", "NanoPlot", "NanoStat"]),
-            ("macs2", &["callpeak", "bdgcmp", "bdgdiff", "filterdup",
-                        "predictd", "pileup", "randsample", "refinepeak"]),
-            ("macs3", &["callpeak", "bdgcmp", "bdgdiff", "filterdup",
-                        "predictd", "pileup", "randsample", "refinepeak"]),
-            ("cnvkit", &["batch", "target", "access", "antitarget", "coverage",
-                        "reference", "fix", "segment", "call", "diagram",
-                        "scatter", "heatmap", "breaks", "genemetrics"]),
-            ("pairtools", &["parse", "sort", "merge", "dedup", "flip", "restrict",
-                           "select", "split", "stats", "scale"]),
+            (
+                "macs2",
+                &[
+                    "callpeak",
+                    "bdgcmp",
+                    "bdgdiff",
+                    "filterdup",
+                    "predictd",
+                    "pileup",
+                    "randsample",
+                    "refinepeak",
+                ],
+            ),
+            (
+                "macs3",
+                &[
+                    "callpeak",
+                    "bdgcmp",
+                    "bdgdiff",
+                    "filterdup",
+                    "predictd",
+                    "pileup",
+                    "randsample",
+                    "refinepeak",
+                ],
+            ),
+            (
+                "cnvkit",
+                &[
+                    "batch",
+                    "target",
+                    "access",
+                    "antitarget",
+                    "coverage",
+                    "reference",
+                    "fix",
+                    "segment",
+                    "call",
+                    "diagram",
+                    "scatter",
+                    "heatmap",
+                    "breaks",
+                    "genemetrics",
+                ],
+            ),
+            (
+                "pairtools",
+                &[
+                    "parse", "sort", "merge", "dedup", "flip", "restrict", "select", "split",
+                    "stats", "scale",
+                ],
+            ),
             ("delly", &["call", "filter", "merge", "lr", "genotype"]),
             ("checkm2", &["predict", "test", "database", "plot"]),
-            ("diamond", &["blastp", "blastx", "makedb", "view", "getseq",
-                         "dbinfo", "test", "merge-db", "prep-db"]),
-            ("sourmash", &["compute", "compare", "plot", "gather", "search",
-                          "index", "cat", "watch", "sigs"]),
-            ("meme", &["meme", "fimo", "dreme", "mcast", "glam2", "tomtom",
-                      "ama", "centrimo", "spamo"]),
-            ("truvari", &["bench", "collapse", "anno", "gap", "refine",
-                         "segment", "consistency", "hist"]),
-            ("whatshap", &["phase", "haplotag", "stats", "split", "compare"]),
+            (
+                "diamond",
+                &[
+                    "blastp", "blastx", "makedb", "view", "getseq", "dbinfo", "test", "merge-db",
+                    "prep-db",
+                ],
+            ),
+            (
+                "sourmash",
+                &[
+                    "compute", "compare", "plot", "gather", "search", "index", "cat", "watch",
+                    "sigs",
+                ],
+            ),
+            (
+                "meme",
+                &[
+                    "meme", "fimo", "dreme", "mcast", "glam2", "tomtom", "ama", "centrimo", "spamo",
+                ],
+            ),
+            (
+                "truvari",
+                &[
+                    "bench",
+                    "collapse",
+                    "anno",
+                    "gap",
+                    "refine",
+                    "segment",
+                    "consistency",
+                    "hist",
+                ],
+            ),
+            (
+                "whatshap",
+                &["phase", "haplotag", "stats", "split", "compare"],
+            ),
             ("pbsv", &["discover", "call"]),
             ("bwa", &["mem", "index", "aln", "samse", "sampe", "bwasw"]),
             ("bwa-mem2", &["mem", "index"]),
             ("salmon", &["quant", "index", "decoy", "validate", "swim"]),
-            ("kallisto", &["quant", "index", "bus", "merge", "h5dump", "pseudo"]),
-            ("seqtk", &["seq", "sample", "subseq", "trimfq", "hseq", "fqchk",
-                        "mergefa", "comp", "listhet"]),
-            ("pbmm2", &["align", "sort", "index", "circularize", "sag",
-                        "ccs", "unzip", "zip"]),
-            ("samtools", &["view", "sort", "index", "merge", "cat", "flagstat",
-                           "depth", "mpileup", "faidx", "dict", "fastq", "fasta",
-                           "markdup", "fixmate", "calmd", "reheader", "stats",
-                           "bedcov", "coverage"]),
-            ("bcftools", &["view", "filter", "call", "norm", "annotate", "concat",
-                           "merge", "isec", "index", "stats", "query", "sort",
-                           "reheader", "csq", "mpileup", "consensus", "convert"]),
-            ("bedtools", &["intersect", "subtract", "merge", "sort", "closest",
-                           "window", "coverage", "complement", "genome", "slop",
-                           "shift", "flank", "map", "cluster", "groupby",
-                           "bamtofastq", "fastafrombed", "getfasta", "makewindows",
-                           "shuffle", "random", "annotate", "multiinter", "unionbedg"]),
-            ("picard", &["MarkDuplicates", "SortSam", "AddOrReplaceReadGroups",
-                        "CreateSequenceDictionary", "CollectAlignmentSummaryMetrics",
-                        "CollectInsertSizeMetrics", "ValidateSamFile", "MergeSamFiles",
-                        "ReorderSam", "SamFormatConverter"]),
-            ("gatk", &["HaplotypeCaller", "MarkDuplicates", "BaseRecalibrator",
-                      "ApplyBQSR", "GenomicsDBImport", "GenotypeGVCFs",
-                      "SelectVariants", "VariantFiltration", "CombineGVCFs",
-                      "SplitNCigarReads", "Mutect2", "CalculateContamination",
-                      "LearnReadOrientationModel", "GetPileupSummaries",
-                      "FilterMutectCalls", "AnnotateIntervals"]),
+            (
+                "kallisto",
+                &["quant", "index", "bus", "merge", "h5dump", "pseudo"],
+            ),
+            (
+                "seqtk",
+                &[
+                    "seq", "sample", "subseq", "trimfq", "hseq", "fqchk", "mergefa", "comp",
+                    "listhet",
+                ],
+            ),
+            (
+                "pbmm2",
+                &[
+                    "align",
+                    "sort",
+                    "index",
+                    "circularize",
+                    "sag",
+                    "ccs",
+                    "unzip",
+                    "zip",
+                ],
+            ),
+            (
+                "samtools",
+                &[
+                    "view", "sort", "index", "merge", "cat", "flagstat", "depth", "mpileup",
+                    "faidx", "dict", "fastq", "fasta", "markdup", "fixmate", "calmd", "reheader",
+                    "stats", "bedcov", "coverage",
+                ],
+            ),
+            (
+                "bcftools",
+                &[
+                    "view",
+                    "filter",
+                    "call",
+                    "norm",
+                    "annotate",
+                    "concat",
+                    "merge",
+                    "isec",
+                    "index",
+                    "stats",
+                    "query",
+                    "sort",
+                    "reheader",
+                    "csq",
+                    "mpileup",
+                    "consensus",
+                    "convert",
+                ],
+            ),
+            (
+                "bedtools",
+                &[
+                    "intersect",
+                    "subtract",
+                    "merge",
+                    "sort",
+                    "closest",
+                    "window",
+                    "coverage",
+                    "complement",
+                    "genome",
+                    "slop",
+                    "shift",
+                    "flank",
+                    "map",
+                    "cluster",
+                    "groupby",
+                    "bamtofastq",
+                    "fastafrombed",
+                    "getfasta",
+                    "makewindows",
+                    "shuffle",
+                    "random",
+                    "annotate",
+                    "multiinter",
+                    "unionbedg",
+                ],
+            ),
+            (
+                "picard",
+                &[
+                    "MarkDuplicates",
+                    "SortSam",
+                    "AddOrReplaceReadGroups",
+                    "CreateSequenceDictionary",
+                    "CollectAlignmentSummaryMetrics",
+                    "CollectInsertSizeMetrics",
+                    "ValidateSamFile",
+                    "MergeSamFiles",
+                    "ReorderSam",
+                    "SamFormatConverter",
+                ],
+            ),
+            (
+                "gatk",
+                &[
+                    "HaplotypeCaller",
+                    "MarkDuplicates",
+                    "BaseRecalibrator",
+                    "ApplyBQSR",
+                    "GenomicsDBImport",
+                    "GenotypeGVCFs",
+                    "SelectVariants",
+                    "VariantFiltration",
+                    "CombineGVCFs",
+                    "SplitNCigarReads",
+                    "Mutect2",
+                    "CalculateContamination",
+                    "LearnReadOrientationModel",
+                    "GetPileupSummaries",
+                    "FilterMutectCalls",
+                    "AnnotateIntervals",
+                ],
+            ),
             ("porechop", &["porechop"]),
         ];
 
@@ -1007,7 +1400,9 @@ impl DocProcessor {
             .lines()
             .find(|l| l.trim().to_lowercase().starts_with("usage:"))
             .and_then(|l| {
-                let after_usage = l.trim().trim_start_matches("usage:")
+                let after_usage = l
+                    .trim()
+                    .trim_start_matches("usage:")
                     .trim_start_matches("Usage:")
                     .trim_start_matches("USAGE:")
                     .trim();
@@ -1038,39 +1433,92 @@ impl DocProcessor {
 
         // Known NO-subcommand tools: force has_subcommands = false
         let known_no_subcommand_tools = [
-            "rm", "find", "wget", "curl", "ssh", "rsync", "tar", "r",
-            "cutadapt", "trim_galore", "fastp", "fastqc", "multiqc",
-            "mosdepth", "liftoff", "fastani", "pilon",
-            "shapeit4", "hifiasm", "vep", "arriba",
-            "pbfusion", "orthofinder",
+            "rm",
+            "find",
+            "wget",
+            "curl",
+            "ssh",
+            "rsync",
+            "tar",
+            "r",
+            "cutadapt",
+            "trim_galore",
+            "fastp",
+            "fastqc",
+            "multiqc",
+            "mosdepth",
+            "liftoff",
+            "fastani",
+            "pilon",
+            "shapeit4",
+            "hifiasm",
+            "vep",
+            "arriba",
+            "pbfusion",
+            "orthofinder",
             "minimap2",
-            "megahit", "busco",
+            "megahit",
+            "busco",
             "featurecounts",
-            "freebayes", "vcftools", "tabix",
-            "sniffles", "longshot",
-            "racon", "miniasm", "wtdbg2", "verkko",
-            "muscle", "mafft", "fasttree", "iqtree2",
-            "prodigal", "augustus",
-            "plink2", "admixture", "angsd",
+            "freebayes",
+            "vcftools",
+            "tabix",
+            "sniffles",
+            "longshot",
+            "racon",
+            "miniasm",
+            "wtdbg2",
+            "verkko",
+            "muscle",
+            "mafft",
+            "fasttree",
+            "iqtree2",
+            "prodigal",
+            "augustus",
+            "plink2",
+            "admixture",
+            "angsd",
             "chromap",
-            "java", "python", "perl", "bash", "julia",
-            "grep", "sed", "awk",
+            "java",
+            "python",
+            "perl",
+            "bash",
+            "julia",
+            "grep",
+            "sed",
+            "awk",
             "vcfanno",
-            "blastn", "blastp", "blastx", "tblastn", "tblastx",
-            "chopper", "cellsnp-lite",
-            "metaphlan", "pbccs",
-            "eggnog-mapper", "repeatmasker",
-            "nanoplot", "nanostat",
-            "metabat2", "fastq-screen",
-            "hisat2", "bowtie2", "kraken2", "star",
-            "stringtie", "canu", "snakemake",
-            "flye", "bakta",
+            "blastn",
+            "blastp",
+            "blastx",
+            "tblastn",
+            "tblastx",
+            "chopper",
+            "cellsnp-lite",
+            "metaphlan",
+            "pbccs",
+            "eggnog-mapper",
+            "repeatmasker",
+            "nanoplot",
+            "nanostat",
+            "metabat2",
+            "fastq-screen",
+            "hisat2",
+            "bowtie2",
+            "kraken2",
+            "star",
+            "stringtie",
+            "canu",
+            "snakemake",
+            "flye",
+            "bakta",
         ];
         for no_sub_tool in &known_no_subcommand_tools {
             if effective_tool_name == *no_sub_tool || doc_tool_name.to_lowercase() == *no_sub_tool {
                 has_subcommands = false;
                 subcommands.clear();
-                format_hint = Some("First token is a flag or input file. NO subcommands exist.".to_string());
+                format_hint =
+                    Some("First token is a flag or input file. NO subcommands exist.".to_string());
                 break;
             }
         }
@@ -1140,22 +1588,76 @@ impl DocProcessor {
         let tool_with_hyphen = format!("{}-", tool_lower);
 
         let env_suffixes = [
-            "_DIR", "_INDEX", "_FILE", "_PATH", "_HOME", "_EDITOR",
-            "_PAGER", "_SHELL", "_USER", "_PORT", "_HOST", "_EXEC",
-            "_ALIAS", "_COMMIT", "_BRANCH", "_REMOTE", "_WORK",
-            "_DB", "_DATABASE", "_FOLDER", "_OUTPUT", "_INPUT",
-            "_ANALYSIS", "_SAMPLE", "_READ", "_REF", "_LOG",
-            "_COLOR", "_COLORS", "_OPTIONS", "_OPTS", "_ARGS",
-            "_ENV", "_VAR", "_VARIABLE", "_SETTING", "_CONFIG",
-            "_DEBUG", "_VERBOSE", "_QUIET", "_TRACE", "_LEVEL",
+            "_DIR",
+            "_INDEX",
+            "_FILE",
+            "_PATH",
+            "_HOME",
+            "_EDITOR",
+            "_PAGER",
+            "_SHELL",
+            "_USER",
+            "_PORT",
+            "_HOST",
+            "_EXEC",
+            "_ALIAS",
+            "_COMMIT",
+            "_BRANCH",
+            "_REMOTE",
+            "_WORK",
+            "_DB",
+            "_DATABASE",
+            "_FOLDER",
+            "_OUTPUT",
+            "_INPUT",
+            "_ANALYSIS",
+            "_SAMPLE",
+            "_READ",
+            "_REF",
+            "_LOG",
+            "_COLOR",
+            "_COLORS",
+            "_OPTIONS",
+            "_OPTS",
+            "_ARGS",
+            "_ENV",
+            "_VAR",
+            "_VARIABLE",
+            "_SETTING",
+            "_CONFIG",
+            "_DEBUG",
+            "_VERBOSE",
+            "_QUIET",
+            "_TRACE",
+            "_LEVEL",
         ];
 
         let false_positive_suffixes = [
-            "databases", "database", "analysis", "sample", "samples",
-            "output", "input", "reference", "references", "config",
-            "configurations", "data", "results", "logs", "tmp",
-            "color", "colors", "options", "opts", "args",
-            "env", "debug", "verbose", "quiet", "trace",
+            "databases",
+            "database",
+            "analysis",
+            "sample",
+            "samples",
+            "output",
+            "input",
+            "reference",
+            "references",
+            "config",
+            "configurations",
+            "data",
+            "results",
+            "logs",
+            "tmp",
+            "color",
+            "colors",
+            "options",
+            "opts",
+            "args",
+            "env",
+            "debug",
+            "verbose",
+            "quiet",
+            "trace",
         ];
 
         for line in docs.lines() {
@@ -1184,7 +1686,9 @@ impl DocProcessor {
                     || word_lower.starts_with(&tool_with_hyphen))
                     && word_clean.len() > tool.len() + 1
                 {
-                    let is_env = env_suffixes.iter().any(|s| word_clean.to_uppercase().ends_with(s));
+                    let is_env = env_suffixes
+                        .iter()
+                        .any(|s| word_clean.to_uppercase().ends_with(s));
                     let has_lowercase_after_prefix = word_lower[tool.len() + 1..]
                         .chars()
                         .any(|c| c.is_ascii_lowercase());
@@ -1222,18 +1726,18 @@ impl DocProcessor {
             if line_lower.contains(&format!("{}_", tool_lower))
                 || line_lower.contains(&format!("{}-", tool_lower))
             {
-                let pattern = format!(
-                    r"(?:^|\s|`|')({}[_-][a-z][a-zA-Z0-9_-]+)",
-                    tool_lower
-                );
+                let pattern = format!(r"(?:^|\s|`|')({}[_-][a-z][a-zA-Z0-9_-]+)", tool_lower);
                 if let Ok(re) = regex::Regex::new(&pattern) {
                     for cap in re.captures_iter(&line_lower) {
                         if let Some(m) = cap.get(1) {
                             let matched = m.as_str();
                             if matched.len() > tool.len() + 1 {
                                 let suffix = &matched[tool.len() + 1..];
-                                let is_env = env_suffixes.iter().any(|s| matched.to_uppercase().ends_with(s));
-                                let is_false_positive = false_positive_suffixes.iter().any(|fp| suffix == *fp);
+                                let is_env = env_suffixes
+                                    .iter()
+                                    .any(|s| matched.to_uppercase().ends_with(s));
+                                let is_false_positive =
+                                    false_positive_suffixes.iter().any(|fp| suffix == *fp);
                                 if !is_env && !is_false_positive {
                                     found.insert(matched.to_string());
                                 }
@@ -1251,16 +1755,61 @@ impl DocProcessor {
         // Also scan for known tool-specific subcommand patterns
         // These are tools where subcommands use the tool name as prefix
         let known_prefixed_tools: &[(&str, &[&str])] = &[
-            ("bismark", &["bismark_genome_preparation", "bismark_methylation_extractor",
-                          "deduplicate_bismark", "bismark2report", "bismark2bedGraph",
-                          "bismark2coverage", "coverage2cytosine"]),
-            ("strelka2", &["configureStrelkaGermlineWorkflow.py", "configureStrelkaSomaticWorkflow.py"]),
-            ("sra-tools", &["prefetch", "fasterq-dump", "fastq-dump", "sam-dump",
-                           "sra-stat", "vdb-validate", "vdb-dump"]),
-            ("mummer", &["nucmer", "promer", "delta-filter", "show-coords",
-                        "show-snps", "show-tiling", "mummerplot", "dnadiff"]),
-            ("homer", &["findPeaks", "findMotifsGenome.pl", "makeUCSCfile",
-                       "annotatePeaks.pl", "mergePeaks", "getDifferentialPeaks"]),
+            (
+                "bismark",
+                &[
+                    "bismark_genome_preparation",
+                    "bismark_methylation_extractor",
+                    "deduplicate_bismark",
+                    "bismark2report",
+                    "bismark2bedGraph",
+                    "bismark2coverage",
+                    "coverage2cytosine",
+                ],
+            ),
+            (
+                "strelka2",
+                &[
+                    "configureStrelkaGermlineWorkflow.py",
+                    "configureStrelkaSomaticWorkflow.py",
+                ],
+            ),
+            (
+                "sra-tools",
+                &[
+                    "prefetch",
+                    "fasterq-dump",
+                    "fastq-dump",
+                    "sam-dump",
+                    "sra-stat",
+                    "vdb-validate",
+                    "vdb-dump",
+                ],
+            ),
+            (
+                "mummer",
+                &[
+                    "nucmer",
+                    "promer",
+                    "delta-filter",
+                    "show-coords",
+                    "show-snps",
+                    "show-tiling",
+                    "mummerplot",
+                    "dnadiff",
+                ],
+            ),
+            (
+                "homer",
+                &[
+                    "findPeaks",
+                    "findMotifsGenome.pl",
+                    "makeUCSCfile",
+                    "annotatePeaks.pl",
+                    "mergePeaks",
+                    "getDifferentialPeaks",
+                ],
+            ),
             ("igvtools", &["count", "index", "sort", "toTDF", "tile"]),
         ];
 
@@ -1397,7 +1946,8 @@ impl DocProcessor {
                     && let Some(cap) = re.captures(&entry.description)
                     && let Some(m) = cap.get(1)
                 {
-                    let values: Vec<String> = m.as_str()
+                    let values: Vec<String> = m
+                        .as_str()
                         .split(|c: char| c == '|' || c == ',')
                         .map(|v| v.trim().to_string())
                         .filter(|v| !v.is_empty() && v.len() < 20)
@@ -1469,7 +2019,9 @@ impl DocProcessor {
                 continue;
             }
 
-            if (flag_lower.contains("--index") || flag_lower.contains("--db") || flag_lower.contains("--database"))
+            if (flag_lower.contains("--index")
+                || flag_lower.contains("--db")
+                || flag_lower.contains("--database"))
                 && (desc_lower.contains("database") || desc_lower.contains("index"))
             {
                 entry.required = true;
@@ -1479,8 +2031,10 @@ impl DocProcessor {
                 entry.required = true;
             }
 
-            if flag_lower.contains("-t") || flag_lower.contains("-@") || flag_lower.contains("--thread") || flag_lower.contains("--nproc")
-                && entry.default.is_none()
+            if flag_lower.contains("-t")
+                || flag_lower.contains("-@")
+                || flag_lower.contains("--thread")
+                || flag_lower.contains("--nproc") && entry.default.is_none()
             {
                 entry.default = Some("4".to_string());
             }
@@ -1493,7 +2047,12 @@ impl DocProcessor {
     /// - Pattern type (subcommand-required, flag-first, positional-args, etc.)
     /// - Argument order (subcommand, flags, files)
     /// - Positional argument patterns
-    fn extract_usage_pattern(&self, usage: &str, examples: &str, has_subcommands: bool) -> UsagePattern {
+    fn extract_usage_pattern(
+        &self,
+        usage: &str,
+        examples: &str,
+        has_subcommands: bool,
+    ) -> UsagePattern {
         let mut pattern = UsagePattern {
             raw_usage: usage.to_string(),
             pattern_type: UsagePatternType::Mixed,
@@ -1525,7 +2084,10 @@ impl DocProcessor {
         // Check for companion binaries in examples
         for line in examples.lines() {
             let trimmed = line.trim();
-            if trimmed.contains("-build") || trimmed.contains("-prepare") || trimmed.contains("-index") {
+            if trimmed.contains("-build")
+                || trimmed.contains("-prepare")
+                || trimmed.contains("-index")
+            {
                 if let Some(first_word) = trimmed.split_whitespace().next() {
                     if first_word.contains('-') && first_word.len() > 5 {
                         pattern.uses_companion_binaries = true;
@@ -1557,16 +2119,21 @@ impl DocProcessor {
     /// Analyzes example commands to map file extensions to the flags used with them.
     /// e.g., "-i input.fastq" -> FileTypeMapping { extension: "fastq", flags: ["-i"], io_type: Input }
     #[allow(dead_code)] // flag_catalog reserved for future semantic analysis
-    fn extract_file_type_mappings(&self, examples: &str, _flag_catalog: &[FlagEntry]) -> Vec<FileTypeMapping> {
-        let mut mappings: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
-        let mut output_mappings: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+    fn extract_file_type_mappings(
+        &self,
+        examples: &str,
+        _flag_catalog: &[FlagEntry],
+    ) -> Vec<FileTypeMapping> {
+        let mut mappings: std::collections::HashMap<String, Vec<String>> =
+            std::collections::HashMap::new();
+        let mut output_mappings: std::collections::HashMap<String, Vec<String>> =
+            std::collections::HashMap::new();
 
         // Common file extensions in bioinformatics
         let file_extensions = [
-            "fastq", "fq", "fasta", "fa", "fna", "bam", "sam", "cram",
-            "vcf", "bcf", "bed", "gtf", "gff", "bam.bai", "sam.gz",
-            "txt", "tsv", "csv", "json", "html", "pdf", "png",
-            "gz", "bgz", "zip", "tar", "tar.gz",
+            "fastq", "fq", "fasta", "fa", "fna", "bam", "sam", "cram", "vcf", "bcf", "bed", "gtf",
+            "gff", "bam.bai", "sam.gz", "txt", "tsv", "csv", "json", "html", "pdf", "png", "gz",
+            "bgz", "zip", "tar", "tar.gz",
         ];
 
         for line in examples.lines() {
@@ -1581,17 +2148,18 @@ impl DocProcessor {
 
                     // Check if next word is a file path with extension
                     for ext in &file_extensions {
-                        if next_word.ends_with(&format!(".{}", ext)) ||
-                           next_word.ends_with(&format!(".{}.{}", ext, "gz")) ||
-                           next_word.ends_with(&format!(".{}.{}", ext, "bgz")) {
+                        if next_word.ends_with(&format!(".{}", ext))
+                            || next_word.ends_with(&format!(".{}.{}", ext, "gz"))
+                            || next_word.ends_with(&format!(".{}.{}", ext, "bgz"))
+                        {
                             let flag = word.to_string();
                             let ext_key = ext.to_string();
 
                             // Determine if input or output based on flag semantics
-                            let is_output = flag.contains("-o") ||
-                                           flag.contains("--output") ||
-                                           flag.contains("--out") ||
-                                           flag.contains("-O");
+                            let is_output = flag.contains("-o")
+                                || flag.contains("--output")
+                                || flag.contains("--out")
+                                || flag.contains("-O");
 
                             if is_output {
                                 output_mappings.entry(ext_key).or_default().push(flag);
@@ -1609,7 +2177,11 @@ impl DocProcessor {
         let mut results = Vec::new();
 
         for (ext, flags) in mappings {
-            let unique_flags: Vec<String> = flags.into_iter().collect::<std::collections::HashSet<_>>().into_iter().collect();
+            let unique_flags: Vec<String> = flags
+                .into_iter()
+                .collect::<std::collections::HashSet<_>>()
+                .into_iter()
+                .collect();
             results.push(FileTypeMapping {
                 extension: ext,
                 flags: unique_flags,
@@ -1618,7 +2190,11 @@ impl DocProcessor {
         }
 
         for (ext, flags) in output_mappings {
-            let unique_flags: Vec<String> = flags.into_iter().collect::<std::collections::HashSet<_>>().into_iter().collect();
+            let unique_flags: Vec<String> = flags
+                .into_iter()
+                .collect::<std::collections::HashSet<_>>()
+                .into_iter()
+                .collect();
             results.push(FileTypeMapping {
                 extension: ext,
                 flags: unique_flags,
@@ -1768,18 +2344,42 @@ impl DocProcessor {
         }
 
         let header_prefixes = [
-            "USAGE:", "Usage:", "usage:",
-            "OPTIONS:", "Options:", "options:",
-            "ARGUMENTS:", "Arguments:", "arguments:",
-            "EXAMPLES:", "Examples:", "examples:",
-            "PARAMETERS:", "Parameters:", "parameters:",
-            "FLAGS:", "Flags:", "flags:",
-            "COMMAND:", "Command:", "command:",
-            "COMMANDS:", "Commands:", "commands:",
-            "SUBCOMMAND:", "Subcommand:", "subcommand:",
-            "SUBCOMMANDS:", "Subcommands:", "subcommands:",
-            "DESCRIPTION:", "Description:", "description:",
-            "SYNOPSIS:", "Synopsis:", "synopsis:",
+            "USAGE:",
+            "Usage:",
+            "usage:",
+            "OPTIONS:",
+            "Options:",
+            "options:",
+            "ARGUMENTS:",
+            "Arguments:",
+            "arguments:",
+            "EXAMPLES:",
+            "Examples:",
+            "examples:",
+            "PARAMETERS:",
+            "Parameters:",
+            "parameters:",
+            "FLAGS:",
+            "Flags:",
+            "flags:",
+            "COMMAND:",
+            "Command:",
+            "command:",
+            "COMMANDS:",
+            "Commands:",
+            "commands:",
+            "SUBCOMMAND:",
+            "Subcommand:",
+            "subcommand:",
+            "SUBCOMMANDS:",
+            "Subcommands:",
+            "subcommands:",
+            "DESCRIPTION:",
+            "Description:",
+            "description:",
+            "SYNOPSIS:",
+            "Synopsis:",
+            "synopsis:",
         ];
 
         if header_prefixes.iter().any(|p| line.starts_with(p)) {
@@ -1792,8 +2392,16 @@ impl DocProcessor {
             if word_count <= 3 {
                 let line_lower = line.to_lowercase();
                 let header_keywords = [
-                    "usage", "options", "arguments", "examples", "parameters",
-                    "flags", "commands", "subcommands", "description", "synopsis",
+                    "usage",
+                    "options",
+                    "arguments",
+                    "examples",
+                    "parameters",
+                    "flags",
+                    "commands",
+                    "subcommands",
+                    "description",
+                    "synopsis",
                 ];
                 for kw in &header_keywords {
                     if line_lower.contains(kw) {
@@ -1841,7 +2449,6 @@ impl DocProcessor {
     fn extract_subcommands(&self, content: &str) -> String {
         let mut commands = Vec::new();
 
-
         // Check for formatted subcommand list (e.g., "Subcommands: cmd1, cmd2, cmd3")
         for line in content.lines() {
             let trimmed = line.trim();
@@ -1879,10 +2486,15 @@ impl DocProcessor {
             // Skip the "Command:" header line itself (not the subcommands listed after it)
             if trimmed.to_lowercase().starts_with("command:") {
                 // Extract the subcommand from the same line if present (e.g., "Command: index")
-                if let Some(rest) = trimmed.strip_prefix("Command:").or_else(|| trimmed.strip_prefix("command:")) {
+                if let Some(rest) = trimmed
+                    .strip_prefix("Command:")
+                    .or_else(|| trimmed.strip_prefix("command:"))
+                {
                     let rest_trimmed = rest.trim();
                     if let Some(first_word) = rest_trimmed.split_whitespace().next() {
-                        if first_word.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '_') {
+                        if first_word.chars().all(|c| {
+                            c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '_'
+                        }) {
                             commands.push(first_word.to_string());
                         }
                     }
@@ -1912,22 +2524,129 @@ impl DocProcessor {
 
                 // Skip common non-subcommand words that might appear in descriptions
                 let non_command_words = [
-                    "and", "or", "the", "a", "an", "to", "of", "for", "in", "on", "with",
-                    "from", "by", "at", "as", "into", "through", "during", "before", "after",
-                    "above", "below", "between", "under", "again", "further", "then", "once",
-                    "here", "there", "when", "where", "why", "how", "all", "each", "few",
-                    "more", "most", "other", "some", "such", "only", "own", "same", "so",
-                    "than", "too", "very", "can", "will", "just", "should", "now", "use",
-                    "using", "used", "using", "see", "also", "e.g.", "i.e.", "etc.", "note",
-                    "this", "that", "these", "those", "am", "is", "are", "was", "were",
-                    "be", "been", "being", "have", "has", "had", "do", "does", "did",
-                    "but", "if", "because", "until", "while", "although", "though",
-                    "automatically", "available", "most", "not", "run", "detect", "even",
-                    "complete", "list", "collection", "programs", "manipulation", "analysis",
-                    "calling", "file", "files", "format", "formats", "same", "set",
-                    "sample", "samples", "non-overlapping", "overlapping", "streaming",
-                    "pipe", "indexed", "un-indexed", "streams", "situations",
-                    "plugins", "version", "license", "program",
+                    "and",
+                    "or",
+                    "the",
+                    "a",
+                    "an",
+                    "to",
+                    "of",
+                    "for",
+                    "in",
+                    "on",
+                    "with",
+                    "from",
+                    "by",
+                    "at",
+                    "as",
+                    "into",
+                    "through",
+                    "during",
+                    "before",
+                    "after",
+                    "above",
+                    "below",
+                    "between",
+                    "under",
+                    "again",
+                    "further",
+                    "then",
+                    "once",
+                    "here",
+                    "there",
+                    "when",
+                    "where",
+                    "why",
+                    "how",
+                    "all",
+                    "each",
+                    "few",
+                    "more",
+                    "most",
+                    "other",
+                    "some",
+                    "such",
+                    "only",
+                    "own",
+                    "same",
+                    "so",
+                    "than",
+                    "too",
+                    "very",
+                    "can",
+                    "will",
+                    "just",
+                    "should",
+                    "now",
+                    "use",
+                    "using",
+                    "used",
+                    "using",
+                    "see",
+                    "also",
+                    "e.g.",
+                    "i.e.",
+                    "etc.",
+                    "note",
+                    "this",
+                    "that",
+                    "these",
+                    "those",
+                    "am",
+                    "is",
+                    "are",
+                    "was",
+                    "were",
+                    "be",
+                    "been",
+                    "being",
+                    "have",
+                    "has",
+                    "had",
+                    "do",
+                    "does",
+                    "did",
+                    "but",
+                    "if",
+                    "because",
+                    "until",
+                    "while",
+                    "although",
+                    "though",
+                    "automatically",
+                    "available",
+                    "most",
+                    "not",
+                    "run",
+                    "detect",
+                    "even",
+                    "complete",
+                    "list",
+                    "collection",
+                    "programs",
+                    "manipulation",
+                    "analysis",
+                    "calling",
+                    "file",
+                    "files",
+                    "format",
+                    "formats",
+                    "same",
+                    "set",
+                    "sample",
+                    "samples",
+                    "non-overlapping",
+                    "overlapping",
+                    "streaming",
+                    "pipe",
+                    "indexed",
+                    "un-indexed",
+                    "streams",
+                    "situations",
+                    "plugins",
+                    "version",
+                    "license",
+                    "program",
                 ];
                 if non_command_words.contains(&first_word.to_lowercase().as_str()) {
                     continue;
@@ -1940,12 +2659,15 @@ impl DocProcessor {
 
                 // Valid subcommand names are typically lowercase alphanumeric with hyphens/underscores
                 // and don't contain sentence punctuation. Must start with a letter.
-                if first_word.chars().all(|c| {
-                    c.is_ascii_lowercase()
-                        || c.is_ascii_digit()
-                        || c == '-'
-                        || c == '_'
-                }) && first_word.chars().next().map(|c| c.is_ascii_lowercase()).unwrap_or(false) {
+                if first_word
+                    .chars()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '_')
+                    && first_word
+                        .chars()
+                        .next()
+                        .map(|c| c.is_ascii_lowercase())
+                        .unwrap_or(false)
+                {
                     commands.push(first_word.to_string());
                 }
             }
@@ -2000,7 +2722,13 @@ impl DocProcessor {
                         } else {
                             param
                         };
-                        if !seen_flags.contains(param_clean) && param_clean.chars().next().map(|c| c.is_ascii_uppercase()).unwrap_or(false) {
+                        if !seen_flags.contains(param_clean)
+                            && param_clean
+                                .chars()
+                                .next()
+                                .map(|c| c.is_ascii_uppercase())
+                                .unwrap_or(false)
+                        {
                             seen_flags.insert(param_clean.to_string());
                             let value_type = if param.contains('=') {
                                 Some("VALUE".to_string())
@@ -2037,7 +2765,10 @@ impl DocProcessor {
                 let d = caps.get(2).map(|m| m.as_str().trim()).unwrap_or("");
                 if !fm.is_empty() {
                     let mut full_desc = d.to_string();
-                    if full_desc.len() <= 15 && full_desc.chars().filter(|c| c.is_uppercase()).count() > full_desc.len() / 2 {
+                    if full_desc.len() <= 15
+                        && full_desc.chars().filter(|c| c.is_uppercase()).count()
+                            > full_desc.len() / 2
+                    {
                         let mut next_parts = Vec::new();
                         let mut j = i + 1;
                         while j < lines.len() {
@@ -2045,7 +2776,8 @@ impl DocProcessor {
                             if next_trimmed.is_empty() || next_trimmed.starts_with('-') {
                                 break;
                             }
-                            if next_trimmed.starts_with("See ") || next_trimmed.starts_with("http") {
+                            if next_trimmed.starts_with("See ") || next_trimmed.starts_with("http")
+                            {
                                 break;
                             }
                             next_parts.push(next_trimmed.to_string());
@@ -2077,55 +2809,62 @@ impl DocProcessor {
                 let mut desc_parts = Vec::new();
 
                 // Handle "or" separated flag forms like "--gff, --gtf or -i <file>"
-                let (flag_part, rest_after_flags) = if flag_line.contains(" or -") || flag_line.contains(" or --") {
-                    // Split at the last flag form
-                    let mut flag_forms = Vec::new();
-                    let mut remaining = flag_line;
-                    loop {
-                        let before = remaining.len();
-                        // Try to extract flag forms: --flag, -f, or --flag, or -f
-                        if let Some(idx) = remaining.find(" or -") {
-                            let (head, tail) = remaining.split_at(idx);
-                            flag_forms.push(head.trim().trim_end_matches(',').to_string());
-                            remaining = tail.strip_prefix(" or ").unwrap_or(tail);
-                        } else if let Some(idx) = remaining.find(", --") {
-                            let (head, tail) = remaining.split_at(idx);
-                            flag_forms.push(head.trim().trim_end_matches(',').to_string());
-                            remaining = tail.strip_prefix(", ").unwrap_or(tail);
-                        } else if let Some(idx) = remaining.find(", -") {
-                            let (head, tail) = remaining.split_at(idx);
-                            flag_forms.push(head.trim().trim_end_matches(',').to_string());
-                            remaining = tail.strip_prefix(", ").unwrap_or(tail);
-                        } else {
-                            // Last form - split flag from value type
-                            let parts: Vec<&str> = remaining.splitn(2, |c: char| c.is_whitespace()).collect();
-                            flag_forms.push(parts[0].trim_end_matches(',').to_string());
-                            remaining = parts.get(1).unwrap_or(&"").trim();
-                            break;
+                let (flag_part, rest_after_flags) =
+                    if flag_line.contains(" or -") || flag_line.contains(" or --") {
+                        // Split at the last flag form
+                        let mut flag_forms = Vec::new();
+                        let mut remaining = flag_line;
+                        loop {
+                            let before = remaining.len();
+                            // Try to extract flag forms: --flag, -f, or --flag, or -f
+                            if let Some(idx) = remaining.find(" or -") {
+                                let (head, tail) = remaining.split_at(idx);
+                                flag_forms.push(head.trim().trim_end_matches(',').to_string());
+                                remaining = tail.strip_prefix(" or ").unwrap_or(tail);
+                            } else if let Some(idx) = remaining.find(", --") {
+                                let (head, tail) = remaining.split_at(idx);
+                                flag_forms.push(head.trim().trim_end_matches(',').to_string());
+                                remaining = tail.strip_prefix(", ").unwrap_or(tail);
+                            } else if let Some(idx) = remaining.find(", -") {
+                                let (head, tail) = remaining.split_at(idx);
+                                flag_forms.push(head.trim().trim_end_matches(',').to_string());
+                                remaining = tail.strip_prefix(", ").unwrap_or(tail);
+                            } else {
+                                // Last form - split flag from value type
+                                let parts: Vec<&str> =
+                                    remaining.splitn(2, |c: char| c.is_whitespace()).collect();
+                                flag_forms.push(parts[0].trim_end_matches(',').to_string());
+                                remaining = parts.get(1).unwrap_or(&"").trim();
+                                break;
+                            }
+                            if remaining.len() >= before {
+                                break;
+                            }
                         }
-                        if remaining.len() >= before { break; }
-                    }
-                    let combined_flags = flag_forms.join(", ");
-                    (combined_flags, remaining.to_string())
-                } else {
-                    let parts: Vec<&str> = flag_line.splitn(2, |c: char| c.is_whitespace()).collect();
-                    if parts.is_empty() || !parts[0].starts_with('-') {
-                        i += 1;
-                        continue;
-                    }
-                    (parts[0].trim_end_matches(',').to_string(), parts.get(1).unwrap_or(&"").trim().to_string())
-                };
+                        let combined_flags = flag_forms.join(", ");
+                        (combined_flags, remaining.to_string())
+                    } else {
+                        let parts: Vec<&str> =
+                            flag_line.splitn(2, |c: char| c.is_whitespace()).collect();
+                        if parts.is_empty() || !parts[0].starts_with('-') {
+                            i += 1;
+                            continue;
+                        }
+                        (
+                            parts[0].trim_end_matches(',').to_string(),
+                            parts.get(1).unwrap_or(&"").trim().to_string(),
+                        )
+                    };
 
                 if !flag_part.starts_with('-') {
                     i += 1;
                     continue;
                 }
 
-                let (value_type_str, inline_desc) = if let Some(first_word) = rest_after_flags
-                    .split_whitespace()
-                    .next()
-                    .filter(|w| FLAG_TYPE_RE.is_match(w) || w.starts_with('<') || w.starts_with('['))
-                {
+                let (value_type_str, inline_desc) = if let Some(first_word) =
+                    rest_after_flags.split_whitespace().next().filter(|w| {
+                        FLAG_TYPE_RE.is_match(w) || w.starts_with('<') || w.starts_with('[')
+                    }) {
                     let d = rest_after_flags[first_word.len()..].trim();
                     (format!(" {}", first_word), d.to_string())
                 } else if !rest_after_flags.is_empty() {
@@ -2199,7 +2938,9 @@ impl DocProcessor {
     /// Extract flags from example commands in the EXAMPLES section.
     ///
     fn extract_subcommand_descs_from_help(
-        &self, subcommands: &[String], help_text: &str,
+        &self,
+        subcommands: &[String],
+        help_text: &str,
     ) -> Vec<(String, String)> {
         let mut descs = Vec::new();
         if subcommands.is_empty() {
@@ -2212,11 +2953,15 @@ impl DocProcessor {
 
             for line in help_text.lines() {
                 let trimmed = line.trim();
-                if trimmed.is_empty() { continue; }
+                if trimmed.is_empty() {
+                    continue;
+                }
 
                 let line_lower = trimmed.to_ascii_lowercase();
 
-                if line_lower.starts_with(&sub_lower) || line_lower.starts_with(&format!("  {}", sub_lower)) {
+                if line_lower.starts_with(&sub_lower)
+                    || line_lower.starts_with(&format!("  {}", sub_lower))
+                {
                     let desc_part = trimmed
                         .trim_start_matches(&sub_lower)
                         .trim_start_matches(|c: char| c == ' ' || c == '\t' || c == '-' || c == ':')
@@ -2261,7 +3006,8 @@ impl DocProcessor {
 
         for line in usage.lines() {
             let trimmed = line.trim();
-            if !trimmed.starts_with("Usage") && !trimmed.starts_with("usage")
+            if !trimmed.starts_with("Usage")
+                && !trimmed.starts_with("usage")
                 && !trimmed.contains("bedtools")
                 && !trimmed.contains("samtools")
                 && !trimmed.contains("bcftools")
@@ -2290,7 +3036,8 @@ impl DocProcessor {
                 });
             }
 
-            let long_re = regex::Regex::new(r"(--?[a-zA-Z][a-zA-Z0-9_-]+)\s*<([^>]+)>").expect("valid regex");
+            let long_re =
+                regex::Regex::new(r"(--?[a-zA-Z][a-zA-Z0-9_-]+)\s*<([^>]+)>").expect("valid regex");
             for cap in long_re.captures_iter(trimmed) {
                 let flag = cap.get(1).map(|m| m.as_str()).unwrap_or("");
                 let value_type = cap.get(2).map(|m| m.as_str()).unwrap_or("");
@@ -2814,18 +3561,42 @@ pub fn is_section_header(line: &str) -> bool {
     }
 
     let header_prefixes = [
-        "USAGE:", "Usage:", "usage:",
-        "OPTIONS:", "Options:", "options:",
-        "ARGUMENTS:", "Arguments:", "arguments:",
-        "EXAMPLES:", "Examples:", "examples:",
-        "PARAMETERS:", "Parameters:", "parameters:",
-        "FLAGS:", "Flags:", "flags:",
-        "COMMAND:", "Command:", "command:",
-        "COMMANDS:", "Commands:", "commands:",
-        "SUBCOMMAND:", "Subcommand:", "subcommand:",
-        "SUBCOMMANDS:", "Subcommands:", "subcommands:",
-        "DESCRIPTION:", "Description:", "description:",
-        "SYNOPSIS:", "Synopsis:", "synopsis:",
+        "USAGE:",
+        "Usage:",
+        "usage:",
+        "OPTIONS:",
+        "Options:",
+        "options:",
+        "ARGUMENTS:",
+        "Arguments:",
+        "arguments:",
+        "EXAMPLES:",
+        "Examples:",
+        "examples:",
+        "PARAMETERS:",
+        "Parameters:",
+        "parameters:",
+        "FLAGS:",
+        "Flags:",
+        "flags:",
+        "COMMAND:",
+        "Command:",
+        "command:",
+        "COMMANDS:",
+        "Commands:",
+        "commands:",
+        "SUBCOMMAND:",
+        "Subcommand:",
+        "subcommand:",
+        "SUBCOMMANDS:",
+        "Subcommands:",
+        "subcommands:",
+        "DESCRIPTION:",
+        "Description:",
+        "description:",
+        "SYNOPSIS:",
+        "Synopsis:",
+        "synopsis:",
     ];
 
     if header_prefixes.iter().any(|p| line.starts_with(p)) {
@@ -2838,8 +3609,16 @@ pub fn is_section_header(line: &str) -> bool {
         if word_count <= 3 {
             let line_lower = line.to_lowercase();
             let header_keywords = [
-                "usage", "options", "arguments", "examples", "parameters",
-                "flags", "commands", "subcommands", "description", "synopsis",
+                "usage",
+                "options",
+                "arguments",
+                "examples",
+                "parameters",
+                "flags",
+                "commands",
+                "subcommands",
+                "description",
+                "synopsis",
             ];
             for kw in &header_keywords {
                 if line_lower.contains(kw) {
@@ -3193,7 +3972,10 @@ Commands:
         // Check that subcommands were extracted
         println!("Subcommands: {:?}", structured.subcommands);
         println!("Has subcommands: {}", structured.has_subcommands);
-        println!("Usage pattern type: {:?}", structured.usage_pattern.pattern_type);
+        println!(
+            "Usage pattern type: {:?}",
+            structured.usage_pattern.pattern_type
+        );
 
         // Should NOT contain "--" (category headers)
         assert!(
@@ -3477,12 +4259,30 @@ Note: To use BWA, you need to first index the genome with `bwa index'.
         println!("Has subcommands: {}", structured.has_subcommands);
 
         // Should contain all major subcommands
-        assert!(structured.subcommands.iter().any(|s| s == "index"), "Should contain 'index'");
-        assert!(structured.subcommands.iter().any(|s| s == "mem"), "Should contain 'mem'");
-        assert!(structured.subcommands.iter().any(|s| s == "aln"), "Should contain 'aln'");
-        assert!(structured.subcommands.iter().any(|s| s == "samse"), "Should contain 'samse'");
-        assert!(structured.subcommands.iter().any(|s| s == "sampe"), "Should contain 'sampe'");
-        assert!(structured.subcommands.iter().any(|s| s == "bwasw"), "Should contain 'bwasw'");
+        assert!(
+            structured.subcommands.iter().any(|s| s == "index"),
+            "Should contain 'index'"
+        );
+        assert!(
+            structured.subcommands.iter().any(|s| s == "mem"),
+            "Should contain 'mem'"
+        );
+        assert!(
+            structured.subcommands.iter().any(|s| s == "aln"),
+            "Should contain 'aln'"
+        );
+        assert!(
+            structured.subcommands.iter().any(|s| s == "samse"),
+            "Should contain 'samse'"
+        );
+        assert!(
+            structured.subcommands.iter().any(|s| s == "sampe"),
+            "Should contain 'sampe'"
+        );
+        assert!(
+            structured.subcommands.iter().any(|s| s == "bwasw"),
+            "Should contain 'bwasw'"
+        );
     }
 
     #[test]
@@ -3525,14 +4325,37 @@ Use "bcftools <command>" to see command-specific help."#;
         println!("Commands field: '{}'", structured.commands);
 
         // Should detect subcommands are required
-        assert!(structured.has_subcommands, "Should detect that subcommands are required");
+        assert!(
+            structured.has_subcommands,
+            "Should detect that subcommands are required"
+        );
 
         // Should contain major subcommands
-        assert!(structured.subcommands.iter().any(|s| s == "view"), "Should contain 'view', got: {:?}", structured.subcommands);
-        assert!(structured.subcommands.iter().any(|s| s == "index"), "Should contain 'index', got: {:?}", structured.subcommands);
-        assert!(structured.subcommands.iter().any(|s| s == "sort"), "Should contain 'sort', got: {:?}", structured.subcommands);
-        assert!(structured.subcommands.iter().any(|s| s == "merge"), "Should contain 'merge', got: {:?}", structured.subcommands);
-        assert!(structured.subcommands.iter().any(|s| s == "call"), "Should contain 'call', got: {:?}", structured.subcommands);
+        assert!(
+            structured.subcommands.iter().any(|s| s == "view"),
+            "Should contain 'view', got: {:?}",
+            structured.subcommands
+        );
+        assert!(
+            structured.subcommands.iter().any(|s| s == "index"),
+            "Should contain 'index', got: {:?}",
+            structured.subcommands
+        );
+        assert!(
+            structured.subcommands.iter().any(|s| s == "sort"),
+            "Should contain 'sort', got: {:?}",
+            structured.subcommands
+        );
+        assert!(
+            structured.subcommands.iter().any(|s| s == "merge"),
+            "Should contain 'merge', got: {:?}",
+            structured.subcommands
+        );
+        assert!(
+            structured.subcommands.iter().any(|s| s == "call"),
+            "Should contain 'call', got: {:?}",
+            structured.subcommands
+        );
     }
 
     #[test]
@@ -3578,13 +4401,29 @@ Use "bcftools <command>" to see command-specific help."#;
         // Then process the summarized docs
         let structured = processor.clean_and_structure(&summarized);
 
-        println!("From summarized - Subcommands: {:?}", structured.subcommands);
-        println!("From summarized - Has subcommands: {}", structured.has_subcommands);
-        println!("From summarized - Commands field: '{}'", structured.commands);
+        println!(
+            "From summarized - Subcommands: {:?}",
+            structured.subcommands
+        );
+        println!(
+            "From summarized - Has subcommands: {}",
+            structured.has_subcommands
+        );
+        println!(
+            "From summarized - Commands field: '{}'",
+            structured.commands
+        );
 
         // Should still detect subcommands even after summarization
-        assert!(structured.has_subcommands, "Should detect subcommands after summarization");
-        assert!(!structured.subcommands.is_empty(), "Should have non-empty subcommands after summarization, got: {:?}", structured.subcommands);
+        assert!(
+            structured.has_subcommands,
+            "Should detect subcommands after summarization"
+        );
+        assert!(
+            !structured.subcommands.is_empty(),
+            "Should have non-empty subcommands after summarization, got: {:?}",
+            structured.subcommands
+        );
 
         // Test what happens when we format the structured doc and re-parse it
         // (this is what happens in the actual pipeline)
@@ -3593,7 +4432,11 @@ Use "bcftools <command>" to see command-specific help."#;
         println!("--- End formatted ---");
 
         let reparsed = processor.clean_and_structure(&formatted);
-        println!("From reparsed - Commands field: '{}' (len={})", reparsed.commands, reparsed.commands.len());
+        println!(
+            "From reparsed - Commands field: '{}' (len={})",
+            reparsed.commands,
+            reparsed.commands.len()
+        );
         println!("From reparsed - Subcommands: {:?}", reparsed.subcommands);
     }
 
@@ -3639,6 +4482,9 @@ EXAMPLES:
         // IMPORTANT: canu does NOT have subcommands - the "Commands:" section
         // describes pipeline stages that are selected via OPTIONS (-assemble, -correct, -trim)
         // NOT positional subcommands. First token is always a flag.
-        assert!(!structured.has_subcommands, "Canu should NOT have subcommands - first token is always a flag");
+        assert!(
+            !structured.has_subcommands,
+            "Canu should NOT have subcommands - first token is always a flag"
+        );
     }
 }

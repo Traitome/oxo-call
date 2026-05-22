@@ -11,7 +11,10 @@ pub struct TaskValues {
 }
 
 fn is_output_file_indicator(task_lower: &str, filename_lower: &str) -> bool {
-    if filename_lower.contains("output") || filename_lower.contains("out.") || filename_lower.contains("result") {
+    if filename_lower.contains("output")
+        || filename_lower.contains("out.")
+        || filename_lower.contains("result")
+    {
         return true;
     }
     if task_lower.contains(&format!("to {}", filename_lower)) {
@@ -44,12 +47,25 @@ fn is_output_file_indicator(task_lower: &str, filename_lower: &str) -> bool {
     if task_lower.contains(&format!("convert to {}", filename_lower)) {
         return true;
     }
-    let output_patterns = ["output", "save", "write", "generate", "produce", "create", "export", "store", "convert to", "result"];
+    let output_patterns = [
+        "output",
+        "save",
+        "write",
+        "generate",
+        "produce",
+        "create",
+        "export",
+        "store",
+        "convert to",
+        "result",
+    ];
     for pattern in &output_patterns {
         if let Some(pos) = task_lower.find(*pattern) {
             let after = &task_lower[pos + pattern.len()..];
             let after_trimmed = after.trim_start();
-            if after_trimmed.starts_with(filename_lower) || after_trimmed.starts_with(&filename_lower.replace('_', "-")) {
+            if after_trimmed.starts_with(filename_lower)
+                || after_trimmed.starts_with(&filename_lower.replace('_', "-"))
+            {
                 return true;
             }
         }
@@ -59,35 +75,81 @@ fn is_output_file_indicator(task_lower: &str, filename_lower: &str) -> bool {
 
 fn classify_file(filename: &str) -> FileClass {
     let fl = filename.to_ascii_lowercase();
-    if fl.ends_with(".fa") || fl.ends_with(".fasta") || fl.ends_with(".fna")
-        || fl.ends_with(".fa.gz") || fl.ends_with(".fasta.gz") || fl.ends_with(".fna.gz")
-        || fl.ends_with(".mfa") || fl.ends_with(".ffa") || fl.ends_with(".fa.bz2") {
+    if fl.ends_with(".fa")
+        || fl.ends_with(".fasta")
+        || fl.ends_with(".fna")
+        || fl.ends_with(".fa.gz")
+        || fl.ends_with(".fasta.gz")
+        || fl.ends_with(".fna.gz")
+        || fl.ends_with(".mfa")
+        || fl.ends_with(".ffa")
+        || fl.ends_with(".fa.bz2")
+    {
         return FileClass::Reference;
     }
-    if fl.ends_with(".fq") || fl.ends_with(".fastq") || fl.ends_with(".fq.gz") || fl.ends_with(".fastq.gz")
-        || fl.ends_with(".fq.bz2") || fl.ends_with(".fastq.bz2") {
+    if fl.ends_with(".fq")
+        || fl.ends_with(".fastq")
+        || fl.ends_with(".fq.gz")
+        || fl.ends_with(".fastq.gz")
+        || fl.ends_with(".fq.bz2")
+        || fl.ends_with(".fastq.bz2")
+    {
         return FileClass::Reads;
     }
-    if fl.ends_with(".gtf") || fl.ends_with(".gff") || fl.ends_with(".gff3")
-        || fl.ends_with(".gtf.gz") || fl.ends_with(".gff.gz") || fl.ends_with(".gff3.gz")
-        || fl.ends_with(".gff3.bz2") || fl.ends_with(".bed") || fl.ends_with(".bed.gz") {
+    if fl.ends_with(".gtf")
+        || fl.ends_with(".gff")
+        || fl.ends_with(".gff3")
+        || fl.ends_with(".gtf.gz")
+        || fl.ends_with(".gff.gz")
+        || fl.ends_with(".gff3.gz")
+        || fl.ends_with(".gff3.bz2")
+        || fl.ends_with(".bed")
+        || fl.ends_with(".bed.gz")
+    {
         return FileClass::Annotation;
     }
-    if fl.ends_with(".dmnd") || fl.ends_with(".ndb") || fl.ends_with(".msh")
-        || fl.ends_with(".k2d") || fl.ends_with(".hdr") || fl.ends_with(".bwt")
-        || fl.ends_with(".pac") || fl.ends_with(".sa") || fl.ends_with(".amb")
-        || fl.ends_with(".ann") || fl.ends_with(".fai") || fl.ends_with(".hmm")
-        || fl.ends_with(".sto") || fl.ends_with(".pin") || fl.ends_with(".psq")
-        || fl.ends_with(".phr") || fl.ends_with(".pog") || fl.ends_with(".pos")
-        || fl.ends_with(".psi") || fl.ends_with(".nsq") || fl.ends_with(".nin")
-        || fl.ends_with(".nhr") || fl.ends_with(".nog") || fl.ends_with(".nos")
-        || fl.ends_with(".nsi") || fl.ends_with(".00") || fl.ends_with(".idx") {
+    if fl.ends_with(".dmnd")
+        || fl.ends_with(".ndb")
+        || fl.ends_with(".msh")
+        || fl.ends_with(".k2d")
+        || fl.ends_with(".hdr")
+        || fl.ends_with(".bwt")
+        || fl.ends_with(".pac")
+        || fl.ends_with(".sa")
+        || fl.ends_with(".amb")
+        || fl.ends_with(".ann")
+        || fl.ends_with(".fai")
+        || fl.ends_with(".hmm")
+        || fl.ends_with(".sto")
+        || fl.ends_with(".pin")
+        || fl.ends_with(".psq")
+        || fl.ends_with(".phr")
+        || fl.ends_with(".pog")
+        || fl.ends_with(".pos")
+        || fl.ends_with(".psi")
+        || fl.ends_with(".nsq")
+        || fl.ends_with(".nin")
+        || fl.ends_with(".nhr")
+        || fl.ends_with(".nog")
+        || fl.ends_with(".nos")
+        || fl.ends_with(".nsi")
+        || fl.ends_with(".00")
+        || fl.ends_with(".idx")
+    {
         return FileClass::Database;
     }
-    if fl.contains("_index") || fl.contains("_dir") || fl.contains("genome_dir")
-        || fl.contains("genomedir") || fl.contains("star_index") || fl.contains("bowtie2_index")
-        || fl.contains("hisat2_index") || fl.contains("bismark_genome")
-        || fl.contains("index_dir") || fl.contains("db_dir") || fl.contains("ref_dir") {
+    if fl.contains("_index")
+        || fl.contains("_dir")
+        || fl.contains("genome_dir")
+        || fl.contains("genomedir")
+        || fl.contains("star_index")
+        || fl.contains("bowtie2_index")
+        || fl.contains("hisat2_index")
+        || fl.contains("bismark_genome")
+        || fl.contains("index_dir")
+        || fl.contains("db_dir")
+        || fl.contains("ref_dir")
+    {
         if !fl.contains('.') || fl.ends_with('/') {
             return FileClass::GenomeDir;
         }
@@ -127,27 +189,85 @@ pub fn extract_task_values(task: &str) -> TaskValues {
 
     let task_lower = task.to_ascii_lowercase();
     let bio_extensions = [
-        ".bam", ".sam", ".fq", ".fastq", ".fa", ".fasta", ".fna",
-        ".vcf", ".bcf", ".bed", ".gtf", ".gff", ".gff3",
-        ".gz", ".bz2", ".tar", ".zip",
-        ".txt", ".csv", ".tsv", ".log", ".out",
-        ".saf", ".sfs", ".idx", ".bam.bai",
-        ".pdb", ".pdbx", ".cif",
-        ".h5", ".hdf5", ".loom",
-        ".mtx", ".tsv.gz",
-        ".dmnd", ".ndb", ".msh", ".k2d",
-        ".fa.gz", ".fasta.gz", ".fna.gz",
-        ".fq.gz", ".fastq.gz",
-        ".gtf.gz", ".gff.gz", ".gff3.gz",
-        ".bai", ".csi", ".tbi",
-        ".cram", ".sam.gz",
-        ".bed.gz", ".vcf.gz", ".bcf.gz",
-        ".narrowpeak", ".broadpeak", ".bedgraph", ".bw", ".bigwig", ".wig",
-        ".sif", ".ped", ".map", ".bim", ".fam",
-        ".profile", ".motif", ".counts", ".tab",
-        ".hmm", ".sto", ".a2m", ".afa",
-        ".pheno", ".cov", ".cnt",
-        ".report", ".matrix", ".out",
+        ".bam",
+        ".sam",
+        ".fq",
+        ".fastq",
+        ".fa",
+        ".fasta",
+        ".fna",
+        ".vcf",
+        ".bcf",
+        ".bed",
+        ".gtf",
+        ".gff",
+        ".gff3",
+        ".gz",
+        ".bz2",
+        ".tar",
+        ".zip",
+        ".txt",
+        ".csv",
+        ".tsv",
+        ".log",
+        ".out",
+        ".saf",
+        ".sfs",
+        ".idx",
+        ".bam.bai",
+        ".pdb",
+        ".pdbx",
+        ".cif",
+        ".h5",
+        ".hdf5",
+        ".loom",
+        ".mtx",
+        ".tsv.gz",
+        ".dmnd",
+        ".ndb",
+        ".msh",
+        ".k2d",
+        ".fa.gz",
+        ".fasta.gz",
+        ".fna.gz",
+        ".fq.gz",
+        ".fastq.gz",
+        ".gtf.gz",
+        ".gff.gz",
+        ".gff3.gz",
+        ".bai",
+        ".csi",
+        ".tbi",
+        ".cram",
+        ".sam.gz",
+        ".bed.gz",
+        ".vcf.gz",
+        ".bcf.gz",
+        ".narrowpeak",
+        ".broadpeak",
+        ".bedgraph",
+        ".bw",
+        ".bigwig",
+        ".wig",
+        ".sif",
+        ".ped",
+        ".map",
+        ".bim",
+        ".fam",
+        ".profile",
+        ".motif",
+        ".counts",
+        ".tab",
+        ".hmm",
+        ".sto",
+        ".a2m",
+        ".afa",
+        ".pheno",
+        ".cov",
+        ".cnt",
+        ".report",
+        ".matrix",
+        ".out",
     ];
 
     let paren_pattern = regex::Regex::new(r"\(([^)]+)\)").ok();
@@ -156,7 +276,11 @@ pub fn extract_task_values(task: &str) -> TaskValues {
             let content = cap[1].to_string();
             for part in content.split(',') {
                 let part = part.trim();
-                if part.contains('.') || part.contains('/') || part.contains("_index") || part.contains("_dir") {
+                if part.contains('.')
+                    || part.contains('/')
+                    || part.contains("_index")
+                    || part.contains("_dir")
+                {
                     let pl = part.to_ascii_lowercase();
                     let is_output = is_output_file_indicator(&task_lower, &pl);
                     if is_output {
@@ -178,7 +302,9 @@ pub fn extract_task_values(task: &str) -> TaskValues {
     }
 
     for word in task.split_whitespace() {
-        let word_clean = word.trim_matches(|c: char| c == ',' || c == ';' || c == ':' || c == '(' || c == ')' || c == '"' || c == '\'');
+        let word_clean = word.trim_matches(|c: char| {
+            c == ',' || c == ';' || c == ':' || c == '(' || c == ')' || c == '"' || c == '\''
+        });
         let wl = word_clean.to_ascii_lowercase();
         if bio_extensions.iter().any(|ext| wl.ends_with(ext)) {
             let already_in = input_files.iter().any(|f| f.to_ascii_lowercase() == wl)
@@ -199,8 +325,12 @@ pub fn extract_task_values(task: &str) -> TaskValues {
                     FileClass::Other => {}
                 }
             }
-        } else if wl.contains("_index") || wl.contains("_dir") || wl.contains("genome_dir")
-            || wl.contains("genomedir") || wl.contains("star_index") {
+        } else if wl.contains("_index")
+            || wl.contains("_dir")
+            || wl.contains("genome_dir")
+            || wl.contains("genomedir")
+            || wl.contains("star_index")
+        {
             if !wl.starts_with('-') {
                 push_unique(&mut genome_dirs, word_clean);
                 push_unique(&mut input_files, word_clean);
@@ -209,7 +339,8 @@ pub fn extract_task_values(task: &str) -> TaskValues {
     }
 
     for word in task.split_whitespace() {
-        let word_clean = word.trim_matches(|c: char| c == ',' || c == ';' || c == ':' || c == '(' || c == ')');
+        let word_clean =
+            word.trim_matches(|c: char| c == ',' || c == ';' || c == ':' || c == '(' || c == ')');
         if word_clean.starts_with('-') || word_clean.contains('.') || word_clean.contains('/') {
             continue;
         }
@@ -217,7 +348,9 @@ pub fn extract_task_values(task: &str) -> TaskValues {
             if !numbers.contains(&word_clean.to_string()) {
                 numbers.push(word_clean.to_string());
             }
-        } else if let Some(val) = word_clean.strip_suffix(|c: char| c == 'k' || c == 'K' || c == 'm' || c == 'M' || c == 'g' || c == 'G') {
+        } else if let Some(val) = word_clean.strip_suffix(|c: char| {
+            c == 'k' || c == 'K' || c == 'm' || c == 'M' || c == 'g' || c == 'G'
+        }) {
             if val.chars().all(|c| c.is_ascii_digit() || c == '.') {
                 if !numbers.contains(&word_clean.to_string()) {
                     numbers.push(word_clean.to_string());
@@ -254,14 +387,16 @@ pub fn extract_task_values(task: &str) -> TaskValues {
     }
 
     let stop_words = [
-        "the", "and", "for", "with", "from", "into", "using", "input", "output",
-        "file", "files", "run", "based", "also", "then", "that", "this",
-        "which", "where", "when", "how", "can", "will", "has", "been", "was",
+        "the", "and", "for", "with", "from", "into", "using", "input", "output", "file", "files",
+        "run", "based", "also", "then", "that", "this", "which", "where", "when", "how", "can",
+        "will", "has", "been", "was",
     ];
     for word in task.split_whitespace() {
-        let word_clean = word.trim_matches(|c: char| c == ',' || c == ';' || c == ':' || c == '(' || c == ')');
+        let word_clean =
+            word.trim_matches(|c: char| c == ',' || c == ';' || c == ':' || c == '(' || c == ')');
         let wl = word_clean.to_ascii_lowercase();
-        if wl.len() >= 4 && !stop_words.contains(&wl.as_str())
+        if wl.len() >= 4
+            && !stop_words.contains(&wl.as_str())
             && !word_clean.starts_with('-')
             && !word_clean.contains('.')
             && !word_clean.chars().all(|c| c.is_ascii_digit())
@@ -291,31 +426,93 @@ pub fn rule_based_subcommand_match(
     subcommand_descriptions: &[(String, String)],
 ) -> Option<String> {
     let task_lower = task.to_ascii_lowercase();
-    let task_words: Vec<&str> = task_lower.split_whitespace()
+    let task_words: Vec<&str> = task_lower
+        .split_whitespace()
         .filter(|w| w.len() >= 3)
         .collect();
 
     let desc_stop_words: &[&str] = &[
-        "the", "and", "for", "with", "this", "that", "from", "into",
-        "when", "where", "which", "what", "how", "can", "will",
-        "use", "used", "using", "option", "optional", "default",
-        "file", "path", "name", "value", "number", "list",
-        "also", "than", "been", "being", "have", "has", "had",
-        "not", "but", "are", "was", "were", "its", "our", "your",
+        "the", "and", "for", "with", "this", "that", "from", "into", "when", "where", "which",
+        "what", "how", "can", "will", "use", "used", "using", "option", "optional", "default",
+        "file", "path", "name", "value", "number", "list", "also", "than", "been", "being", "have",
+        "has", "had", "not", "but", "are", "was", "were", "its", "our", "your",
     ];
 
     let action_verbs: &[&str] = &[
-        "sort", "index", "merge", "split", "filter", "convert", "extract",
-        "align", "map", "call", "count", "quantify", "annotate", "assemble",
-        "build", "search", "scan", "predict", "classify", "cluster", "compare",
-        "download", "view", "stats", "depth", "coverage", "dedup", "phase",
-        "correct", "polish", "consensus", "normalize", "validate", "concat",
-        "compress", "decompress", "format", "transform", "compute", "generate",
-        "plot", "visualize", "report", "summary", "inspect", "check", "test",
-        "clean", "fix", "repair", "rename", "replace", "remove", "delete",
-        "select", "sample", "subset", "trim", "mask", "intersect", "subtract",
-        "join", "combine", "union", "difference", "complement", "overlap",
-        "fetch", "import", "export", "parse", "print", "display", "list",
+        "sort",
+        "index",
+        "merge",
+        "split",
+        "filter",
+        "convert",
+        "extract",
+        "align",
+        "map",
+        "call",
+        "count",
+        "quantify",
+        "annotate",
+        "assemble",
+        "build",
+        "search",
+        "scan",
+        "predict",
+        "classify",
+        "cluster",
+        "compare",
+        "download",
+        "view",
+        "stats",
+        "depth",
+        "coverage",
+        "dedup",
+        "phase",
+        "correct",
+        "polish",
+        "consensus",
+        "normalize",
+        "validate",
+        "concat",
+        "compress",
+        "decompress",
+        "format",
+        "transform",
+        "compute",
+        "generate",
+        "plot",
+        "visualize",
+        "report",
+        "summary",
+        "inspect",
+        "check",
+        "test",
+        "clean",
+        "fix",
+        "repair",
+        "rename",
+        "replace",
+        "remove",
+        "delete",
+        "select",
+        "sample",
+        "subset",
+        "trim",
+        "mask",
+        "intersect",
+        "subtract",
+        "join",
+        "combine",
+        "union",
+        "difference",
+        "complement",
+        "overlap",
+        "fetch",
+        "import",
+        "export",
+        "parse",
+        "print",
+        "display",
+        "list",
     ];
 
     let mut best_match: Option<String> = None;
@@ -329,7 +526,8 @@ pub fn rule_based_subcommand_match(
             score += 50;
         }
 
-        let sub_parts: Vec<&str> = sub_lower.split(|c: char| c == '_' || c == '-')
+        let sub_parts: Vec<&str> = sub_lower
+            .split(|c: char| c == '_' || c == '-')
             .filter(|p| p.len() >= 2)
             .collect();
         for part in &sub_parts {
@@ -348,16 +546,32 @@ pub fn rule_based_subcommand_match(
             if sub.eq_ignore_ascii_case(sub_desc) {
                 let desc_lower = desc.to_ascii_lowercase();
                 let desc_words: std::collections::HashSet<&str> = desc_lower
-                    .split(|c: char| c.is_whitespace() || c == '_' || c == '-' || c == ',' || c == '.' || c == '(' || c == ')')
+                    .split(|c: char| {
+                        c.is_whitespace()
+                            || c == '_'
+                            || c == '-'
+                            || c == ','
+                            || c == '.'
+                            || c == '('
+                            || c == ')'
+                    })
                     .filter(|w| w.len() >= 3 && !desc_stop_words.contains(w))
                     .collect();
 
                 let mut desc_match_score = 0i32;
                 let mut matched_action = false;
                 for word in &task_words {
-                    if desc_stop_words.contains(word) { continue; }
+                    if desc_stop_words.contains(word) {
+                        continue;
+                    }
                     if desc_words.contains(word) {
-                        let word_score = if word.len() >= 7 { 6 } else if word.len() >= 5 { 4 } else { 3 };
+                        let word_score = if word.len() >= 7 {
+                            6
+                        } else if word.len() >= 5 {
+                            4
+                        } else {
+                            3
+                        };
                         desc_match_score += word_score;
                         if action_verbs.contains(word) {
                             matched_action = true;
@@ -371,12 +585,14 @@ pub fn rule_based_subcommand_match(
                 }
                 score += desc_match_score;
 
-                let task_key_words: Vec<&str> = task_words.iter()
+                let task_key_words: Vec<&str> = task_words
+                    .iter()
                     .filter(|w| !desc_stop_words.contains(w) && w.len() >= 4)
                     .copied()
                     .collect();
                 if !task_key_words.is_empty() && !desc_words.is_empty() {
-                    let matched_count = task_key_words.iter()
+                    let matched_count = task_key_words
+                        .iter()
                         .filter(|&w| desc_words.contains(w) || desc_lower.contains(w))
                         .count();
                     let coverage = matched_count as f64 / task_key_words.len() as f64;
@@ -403,24 +619,54 @@ pub fn rule_based_subcommand_match(
         (&["index", "indexing", "create index"], &["index", "faidx"]),
         (&["view", "convert", "extract", "display"], &["view"]),
         (&["merge", "combine", "join"], &["merge", "concat"]),
-        (&["call", "genotype", "variant call"], &["call", "mpileup2cns", "mpileup2snp"]),
+        (
+            &["call", "genotype", "variant call"],
+            &["call", "mpileup2cns", "mpileup2snp"],
+        ),
         (&["align", "mapping", "map"], &["mem", "align", "map"]),
         (&["quantify", "count", "expression"], &["count", "quant"]),
-        (&["peak", "callpeak", "chip-seq"], &["callpeak", "findPeaks"]),
+        (
+            &["peak", "callpeak", "chip-seq"],
+            &["callpeak", "findPeaks"],
+        ),
         (&["annotate", "annotation"], &["annotate", "ann"]),
-        (&["coverage", "depth"], &["depth", "coverage", "bamCoverage"]),
-        (&["duplicate", "dedup", "markdup"], &["MarkDuplicates", "markdup", "deduplicate_bismark", "rmdup"]),
+        (
+            &["coverage", "depth"],
+            &["depth", "coverage", "bamCoverage"],
+        ),
+        (
+            &["duplicate", "dedup", "markdup"],
+            &["MarkDuplicates", "markdup", "deduplicate_bismark", "rmdup"],
+        ),
         (&["fastq", "bam2fq"], &["bam2fq"]),
-        (&["stats", "statistics", "summary"], &["stats", "flagstat", "idxstats"]),
+        (
+            &["stats", "statistics", "summary"],
+            &["stats", "flagstat", "idxstats"],
+        ),
         (&["motif"], &["findMotifsGenome"]),
         (&["methylation"], &["bismark_methylation_extractor"]),
-        (&["genome", "prepare", "index"], &["bismark_genome_preparation", "genomeGenerate"]),
-        (&["download", "prefetch", "fetch"], &["prefetch", "fasterq-dump", "fastq-dump"]),
-        (&["build", "database"], &["build", "bakta_db", "hmmpress", "makeblastdb"]),
+        (
+            &["genome", "prepare", "index"],
+            &["bismark_genome_preparation", "genomeGenerate"],
+        ),
+        (
+            &["download", "prefetch", "fetch"],
+            &["prefetch", "fasterq-dump", "fastq-dump"],
+        ),
+        (
+            &["build", "database"],
+            &["build", "bakta_db", "hmmpress", "makeblastdb"],
+        ),
         (&["classify", "taxonomic"], &["classify_wf", "classify"]),
-        (&["plot", "heatmap", "visualize"], &["plotHeatmap", "plotProfile"]),
+        (
+            &["plot", "heatmap", "visualize"],
+            &["plotHeatmap", "plotProfile"],
+        ),
         (&["matrix", "compute"], &["computeMatrix"]),
-        (&["filter", "select", "subset"], &["filter", "SelectVariants", "VariantFiltration"]),
+        (
+            &["filter", "select", "subset"],
+            &["filter", "SelectVariants", "VariantFiltration"],
+        ),
         (&["somatic", "tumor"], &["Mutect2", "somatic"]),
         (&["haplotype", "germline"], &["HaplotypeCaller"]),
         (&["bamqc"], &["bamqc"]),
@@ -429,8 +675,14 @@ pub fn rule_based_subcommand_match(
         (&["computematrix"], &["computeMatrix"]),
         (&["plotheatmap"], &["plotHeatmap"]),
         (&["plotprofile"], &["plotProfile"]),
-        (&["prepare", "reference", "rsem"], &["rsem-prepare-reference"]),
-        (&["calculate", "expression", "rsem"], &["rsem-calculate-expression"]),
+        (
+            &["prepare", "reference", "rsem"],
+            &["rsem-prepare-reference"],
+        ),
+        (
+            &["calculate", "expression", "rsem"],
+            &["rsem-calculate-expression"],
+        ),
         (&["paired", "pe"], &["PE"]),
         (&["single", "se"], &["SE"]),
         (&["realSFS", "sfs"], &["realSFS"]),
@@ -457,9 +709,22 @@ pub fn rule_based_subcommand_match(
         (&["consensus", "polish", "correct"], &["consensus"]),
         (&["assemble", "assembly"], &["assemble"]),
         (&["predict", "gene predict"], &["predict"]),
-        (&["extract", "sequence"], &["extract", "agat_sp_extract_sequences"]),
-        (&["statistics", "stats", "gff stats"], &["agat_sp_statistics", "statistics", "stats"]),
-        (&["convert", "format"], &["agat_convert_sp_gff2gtf", "agat_convert_sp_gff2bed", "convert"]),
+        (
+            &["extract", "sequence"],
+            &["extract", "agat_sp_extract_sequences"],
+        ),
+        (
+            &["statistics", "stats", "gff stats"],
+            &["agat_sp_statistics", "statistics", "stats"],
+        ),
+        (
+            &["convert", "format"],
+            &[
+                "agat_convert_sp_gff2gtf",
+                "agat_convert_sp_gff2bed",
+                "convert",
+            ],
+        ),
         (&["makedb", "database build"], &["makedb"]),
         (&["easy-search", "search"], &["easy-search"]),
         (&["easy-cluster", "cluster"], &["easy-cluster"]),
@@ -499,7 +764,10 @@ pub fn rule_based_subcommand_match(
         (&["rnaseq"], &["rnaseq"]),
         (&["toTDF", "tdf", "count"], &["toTDF"]),
         (&["prefetch"], &["prefetch"]),
-        (&["fasterq-dump", "fastq-dump", "fastq", "dump"], &["fasterq-dump", "fastq-dump"]),
+        (
+            &["fasterq-dump", "fastq-dump", "fastq", "dump"],
+            &["fasterq-dump", "fastq-dump"],
+        ),
         (&["convert"], &["convert"]),
         (&["findpeaks"], &["findPeaks"]),
         (&["findMotifsGenome"], &["findMotifsGenome"]),
@@ -508,7 +776,10 @@ pub fn rule_based_subcommand_match(
         (&["bin", "binning"], &["bin"]),
         (&["ref", "reference", "index"], &["ref"]),
         (&["count", "quantify"], &["count"]),
-        (&["sketch", "compute", "signature", "minhash"], &["sketch", "compute"]),
+        (
+            &["sketch", "compute", "signature", "minhash"],
+            &["sketch", "compute"],
+        ),
         (&["gather", "metagenome", "containment"], &["gather"]),
         (&["compare", "distance", "similarity"], &["compare"]),
         (&["search", "find similar", "nearest"], &["search"]),
@@ -523,9 +794,22 @@ pub fn rule_based_subcommand_match(
         (&["discover"], &["discover"]),
         (&["consensus", "polish", "correct"], &["consensus"]),
         (&["assemble", "assembly"], &["assemble"]),
-        (&["extract", "sequence"], &["extract", "agat_sp_extract_sequences"]),
-        (&["statistics", "stats", "gff stats"], &["agat_sp_statistics", "statistics", "stats"]),
-        (&["convert", "format"], &["agat_convert_sp_gff2gtf", "agat_convert_sp_gff2bed", "convert"]),
+        (
+            &["extract", "sequence"],
+            &["extract", "agat_sp_extract_sequences"],
+        ),
+        (
+            &["statistics", "stats", "gff stats"],
+            &["agat_sp_statistics", "statistics", "stats"],
+        ),
+        (
+            &["convert", "format"],
+            &[
+                "agat_convert_sp_gff2gtf",
+                "agat_convert_sp_gff2bed",
+                "convert",
+            ],
+        ),
         (&["makedb", "database build"], &["makedb"]),
         (&["easy-search", "search"], &["easy-search"]),
         (&["easy-cluster", "cluster"], &["easy-cluster"]),
@@ -565,7 +849,10 @@ pub fn rule_based_subcommand_match(
         (&["rnaseq"], &["rnaseq"]),
         (&["toTDF", "tdf", "count"], &["toTDF"]),
         (&["prefetch"], &["prefetch"]),
-        (&["fasterq-dump", "fastq-dump", "fastq", "dump"], &["fasterq-dump", "fastq-dump"]),
+        (
+            &["fasterq-dump", "fastq-dump", "fastq", "dump"],
+            &["fasterq-dump", "fastq-dump"],
+        ),
         (&["convert"], &["convert"]),
         (&["findpeaks"], &["findPeaks"]),
         (&["findMotifsGenome"], &["findMotifsGenome"]),
@@ -576,16 +863,37 @@ pub fn rule_based_subcommand_match(
         (&["count", "quantify"], &["count"]),
         (&["mbias", "bias"], &["mbias"]),
         (&["extract", "methylation extract"], &["extract"]),
-        (&["prepare-reference", "prepare reference"], &["rsem-prepare-reference"]),
-        (&["calculate-expression", "calculate expression", "expression"], &["rsem-calculate-expression"]),
-        (&["generate-data-matrix", "data matrix"], &["rsem-generate-data-matrix"]),
-        (&["simulate-reads", "simulate reads"], &["rsem-simulate-reads"]),
-        (&["genome_generation", "genome generation", "generate genome"], &["genomeGenerate"]),
+        (
+            &["prepare-reference", "prepare reference"],
+            &["rsem-prepare-reference"],
+        ),
+        (
+            &["calculate-expression", "calculate expression", "expression"],
+            &["rsem-calculate-expression"],
+        ),
+        (
+            &["generate-data-matrix", "data matrix"],
+            &["rsem-generate-data-matrix"],
+        ),
+        (
+            &["simulate-reads", "simulate reads"],
+            &["rsem-simulate-reads"],
+        ),
+        (
+            &["genome_generation", "genome generation", "generate genome"],
+            &["genomeGenerate"],
+        ),
         (&["align_reads", "alignment"], &["alignReads"]),
         (&["prefetch", "download sra"], &["prefetch"]),
-        (&["fasterq-dump", "dump fastq", "convert sra"], &["fasterq-dump"]),
+        (
+            &["fasterq-dump", "dump fastq", "convert sra"],
+            &["fasterq-dump"],
+        ),
         (&["fastq-dump", "dump fastq old"], &["fastq-dump"]),
-        (&["bam2fq", "bam to fastq", "convert bam to fastq"], &["bam2fq"]),
+        (
+            &["bam2fq", "bam to fastq", "convert bam to fastq"],
+            &["bam2fq"],
+        ),
         (&["flagstat", "flag statistics"], &["flagstat"]),
         (&["idxstats", "index statistics"], &["idxstats"]),
         (&["quickcheck", "quick check"], &["quickcheck"]),
@@ -618,7 +926,10 @@ pub fn rule_based_subcommand_match(
         (&["convert2bed", "to bed"], &["convert2bed"]),
         (&["coverage", "compute coverage"], &["coverage"]),
         (&["genomecov", "genome coverage"], &["genomecov"]),
-        (&["intersect", "overlap", "intersect intervals"], &["intersect"]),
+        (
+            &["intersect", "overlap", "intersect intervals"],
+            &["intersect"],
+        ),
         (&["window", "window overlap"], &["window"]),
         (&["closest", "nearest"], &["closest"]),
         (&["merge", "merge intervals", "merge bed"], &["merge"]),
@@ -627,8 +938,14 @@ pub fn rule_based_subcommand_match(
         (&["shift", "shift intervals"], &["shift"]),
         (&["subtract", "remove intervals"], &["subtract"]),
         (&["complement", "complement intervals"], &["complement"]),
-        (&["getfasta", "extract sequences", "sequence from bed"], &["getfasta"]),
-        (&["makewindows", "create windows", "tile genome"], &["makewindows"]),
+        (
+            &["getfasta", "extract sequences", "sequence from bed"],
+            &["getfasta"],
+        ),
+        (
+            &["makewindows", "create windows", "tile genome"],
+            &["makewindows"],
+        ),
         (&["groupby", "group by"], &["groupby"]),
         (&["map", "apply function"], &["map"]),
         (&["multiinter", "multiple intersect"], &["multiinter"]),
@@ -658,7 +975,10 @@ pub fn rule_based_subcommand_match(
         if any_match {
             for sub in subcommands {
                 let sub_lower = sub.to_ascii_lowercase();
-                if sub_synonyms.iter().any(|syn| sub_lower == *syn || sub_lower.contains(syn)) {
+                if sub_synonyms
+                    .iter()
+                    .any(|syn| sub_lower == *syn || sub_lower.contains(syn))
+                {
                     return Some(sub.clone());
                 }
             }
@@ -677,20 +997,23 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
     let task_lower = task.to_ascii_lowercase();
 
     match tool_lower.as_str() {
-        "star" => {
-            Some("_NO_SUB_".to_string())
-        }
-        "porechop" => {
-            Some("_NO_SUB_".to_string())
-        }
-        "chopper" => {
-            Some("_NO_SUB_".to_string())
-        }
+        "star" => Some("_NO_SUB_".to_string()),
+        "porechop" => Some("_NO_SUB_".to_string()),
+        "chopper" => Some("_NO_SUB_".to_string()),
         "flye" => {
-            if args.iter().any(|a| a.starts_with("--nano-") || a.starts_with("--pacbio-")) {
-                let mode_flag = args.iter().find(|a| a.starts_with("--nano-") || a.starts_with("--pacbio-"));
+            if args
+                .iter()
+                .any(|a| a.starts_with("--nano-") || a.starts_with("--pacbio-"))
+            {
+                let mode_flag = args
+                    .iter()
+                    .find(|a| a.starts_with("--nano-") || a.starts_with("--pacbio-"));
                 mode_flag.map(|f| f.clone())
-            } else if task_lower.contains("pacbio") && (task_lower.contains("hifi") || task_lower.contains("hi-fi") || task_lower.contains("ccs")) {
+            } else if task_lower.contains("pacbio")
+                && (task_lower.contains("hifi")
+                    || task_lower.contains("hi-fi")
+                    || task_lower.contains("ccs"))
+            {
                 Some("--pacbio-hifi".to_string())
             } else if task_lower.contains("pacbio") {
                 Some("--pacbio-raw".to_string())
@@ -702,34 +1025,29 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
         }
         "chromap" => {
             if args.iter().any(|a| a == "--preset") {
-                args.iter().position(|a| a == "--preset")
+                args.iter()
+                    .position(|a| a == "--preset")
                     .and_then(|i| args.get(i + 1).map(|v| format!("--preset {}", v)))
             } else if task_lower.contains("hic") || task_lower.contains("hi-c") {
                 Some("--preset hic".to_string())
-            } else if task_lower.contains("chip") || task_lower.contains("chip-seq") || task_lower.contains("chipseq") {
+            } else if task_lower.contains("chip")
+                || task_lower.contains("chip-seq")
+                || task_lower.contains("chipseq")
+            {
                 Some("--preset chip".to_string())
             } else {
                 Some("--preset atac".to_string())
             }
         }
-        "trim_galore" => {
-            Some("_NO_SUB_".to_string())
-        }
-        "fastp" => {
-            Some("_NO_SUB_".to_string())
-        }
-        "fastqc" => {
-            Some("_NO_SUB_".to_string())
-        }
-        "multiqc" => {
-            Some("_NO_SUB_".to_string())
-        }
-        "mosdepth" => {
-            Some("_NO_SUB_".to_string())
-        }
+        "trim_galore" => Some("_NO_SUB_".to_string()),
+        "fastp" => Some("_NO_SUB_".to_string()),
+        "fastqc" => Some("_NO_SUB_".to_string()),
+        "multiqc" => Some("_NO_SUB_".to_string()),
+        "mosdepth" => Some("_NO_SUB_".to_string()),
         "minimap2" => {
             if args.iter().any(|a| a.starts_with("-x")) {
-                args.iter().position(|a| a == "-x")
+                args.iter()
+                    .position(|a| a == "-x")
                     .and_then(|i| args.get(i + 1).map(|v| format!("-x {}", v)))
             } else if task_lower.contains("ont") || task_lower.contains("nanopore") {
                 Some("-x map-ont".to_string())
@@ -761,15 +1079,9 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
                 Some("--seqType".to_string())
             }
         }
-        "megahit" => {
-            Some("_NO_SUB_".to_string())
-        }
-        "canu" => {
-            Some("_NO_SUB_".to_string())
-        }
-        "hifiasm" => {
-            Some("_NO_SUB_".to_string())
-        }
+        "megahit" => Some("_NO_SUB_".to_string()),
+        "canu" => Some("_NO_SUB_".to_string()),
+        "hifiasm" => Some("_NO_SUB_".to_string()),
         "bcftools" => {
             if task_lower.contains("mpileup") || task_lower.contains("pileup") {
                 Some("mpileup".to_string())
@@ -781,15 +1093,24 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
                 Some("merge".to_string())
             } else if task_lower.contains("concat") {
                 Some("concat".to_string())
-            } else if task_lower.contains("norm") || task_lower.contains("normalize") || task_lower.contains("split multi-allelic") {
+            } else if task_lower.contains("norm")
+                || task_lower.contains("normalize")
+                || task_lower.contains("split multi-allelic")
+            {
                 Some("norm".to_string())
             } else if task_lower.contains("annotate") || task_lower.contains("annotation") {
                 Some("annotate".to_string())
             } else if task_lower.contains("stats") || task_lower.contains("statistics") {
                 Some("stats".to_string())
-            } else if task_lower.contains("query") || task_lower.contains("extract field") || task_lower.contains("custom field") {
+            } else if task_lower.contains("query")
+                || task_lower.contains("extract field")
+                || task_lower.contains("custom field")
+            {
                 Some("query".to_string())
-            } else if task_lower.contains("isec") || task_lower.contains("intersection") || task_lower.contains("shared") {
+            } else if task_lower.contains("isec")
+                || task_lower.contains("intersection")
+                || task_lower.contains("shared")
+            {
                 Some("isec".to_string())
             } else if task_lower.contains("consensus") {
                 Some("consensus".to_string())
@@ -797,20 +1118,35 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
                 Some("index".to_string())
             } else if task_lower.contains("sort") {
                 Some("sort".to_string())
-            } else if task_lower.contains("view") || task_lower.contains("convert") || task_lower.contains("extract") || task_lower.contains("select") || task_lower.contains("snp") {
+            } else if task_lower.contains("view")
+                || task_lower.contains("convert")
+                || task_lower.contains("extract")
+                || task_lower.contains("select")
+                || task_lower.contains("snp")
+            {
                 Some("view".to_string())
             } else {
                 None
             }
         }
         "bismark" => {
-            if task_lower.contains("genome_preparation") || task_lower.contains("prepare") || task_lower.contains("index") || task_lower.contains("bisulfite genome") {
+            if task_lower.contains("genome_preparation")
+                || task_lower.contains("prepare")
+                || task_lower.contains("index")
+                || task_lower.contains("bisulfite genome")
+            {
                 Some("bismark_genome_preparation".to_string())
-            } else if task_lower.contains("methylation_extractor") || task_lower.contains("methylation") || task_lower.contains("extract methylation") {
+            } else if task_lower.contains("methylation_extractor")
+                || task_lower.contains("methylation")
+                || task_lower.contains("extract methylation")
+            {
                 Some("bismark_methylation_extractor".to_string())
             } else if task_lower.contains("deduplicate") || task_lower.contains("dedup") {
                 Some("deduplicate_bismark".to_string())
-            } else if task_lower.contains("bismark2report") || task_lower.contains("html report") || task_lower.contains("alignment report") {
+            } else if task_lower.contains("bismark2report")
+                || task_lower.contains("html report")
+                || task_lower.contains("alignment report")
+            {
                 Some("bismark2report".to_string())
             } else if task_lower.contains("coverage2cytosine") || task_lower.contains("cytosine") {
                 Some("coverage2cytosine".to_string())
@@ -819,7 +1155,10 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
             }
         }
         "bracken" => {
-            if task_lower.contains("bracken-build") || task_lower.contains("build") || task_lower.contains("database build") {
+            if task_lower.contains("bracken-build")
+                || task_lower.contains("build")
+                || task_lower.contains("database build")
+            {
                 Some("bracken-build".to_string())
             } else if task_lower.contains("combine") || task_lower.contains("merge") {
                 Some("combine_bracken_outputs".to_string())
@@ -828,27 +1167,45 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
             }
         }
         "centrifuge" => {
-            if task_lower.contains("centrifuge-build") || task_lower.contains("build") || task_lower.contains("index") || task_lower.contains("custom") && task_lower.contains("database") {
+            if task_lower.contains("centrifuge-build")
+                || task_lower.contains("build")
+                || task_lower.contains("index")
+                || task_lower.contains("custom") && task_lower.contains("database")
+            {
                 Some("centrifuge-build".to_string())
-            } else if task_lower.contains("kreport") || task_lower.contains("kraken") || task_lower.contains("convert") && task_lower.contains("report") {
+            } else if task_lower.contains("kreport")
+                || task_lower.contains("kraken")
+                || task_lower.contains("convert") && task_lower.contains("report")
+            {
                 Some("centrifuge-kreport".to_string())
             } else {
                 None
             }
         }
         "kraken2" => {
-            if task_lower.contains("kraken2-build") || task_lower.contains("build") || task_lower.contains("download") && task_lower.contains("database") || task_lower.contains("standard") && task_lower.contains("database") {
+            if task_lower.contains("kraken2-build")
+                || task_lower.contains("build")
+                || task_lower.contains("download") && task_lower.contains("database")
+                || task_lower.contains("standard") && task_lower.contains("database")
+            {
                 Some("kraken2-build".to_string())
             } else {
                 Some("_NO_SUB_".to_string())
             }
         }
         "diamond" => {
-            if task_lower.contains("makedb") || task_lower.contains("make database") || task_lower.contains("build database") {
+            if task_lower.contains("makedb")
+                || task_lower.contains("make database")
+                || task_lower.contains("build database")
+            {
                 Some("makedb".to_string())
-            } else if task_lower.contains("blastp") || (task_lower.contains("protein") && task_lower.contains("search")) {
+            } else if task_lower.contains("blastp")
+                || (task_lower.contains("protein") && task_lower.contains("search"))
+            {
                 Some("blastp".to_string())
-            } else if task_lower.contains("blastx") || (task_lower.contains("dna") && task_lower.contains("protein")) {
+            } else if task_lower.contains("blastx")
+                || (task_lower.contains("dna") && task_lower.contains("protein"))
+            {
                 Some("blastx".to_string())
             } else if task_lower.contains("cluster") && !task_lower.contains("linclust") {
                 Some("cluster".to_string())
@@ -859,7 +1216,10 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
             }
         }
         "medaka" => {
-            if task_lower.contains("consensus") || task_lower.contains("polish") || task_lower.contains("all-in-one") {
+            if task_lower.contains("consensus")
+                || task_lower.contains("polish")
+                || task_lower.contains("all-in-one")
+            {
                 Some("medaka_consensus".to_string())
             } else if task_lower.contains("haploid") && task_lower.contains("variant") {
                 Some("medaka_haploid_variant".to_string())
@@ -884,21 +1244,20 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
                 None
             }
         }
-        "prokka" => {
-            None
-        }
+        "prokka" => None,
         "bakta" => {
             if task_lower.contains("download") && task_lower.contains("database") {
                 Some("bakta_db download".to_string())
-            } else if task_lower.contains("protein") && (task_lower.contains("directly") || task_lower.contains("fasta")) && !task_lower.contains("trusted") {
+            } else if task_lower.contains("protein")
+                && (task_lower.contains("directly") || task_lower.contains("fasta"))
+                && !task_lower.contains("trusted")
+            {
                 Some("bakta_proteins".to_string())
             } else {
                 Some("_NO_SUB_".to_string())
             }
         }
-        "eggnog-mapper" => {
-            Some("_NO_SUB_".to_string())
-        }
+        "eggnog-mapper" => Some("_NO_SUB_".to_string()),
         "samtools" => {
             if task_lower.contains("sort") || task_lower.contains("sorted") {
                 Some("sort".to_string())
@@ -908,7 +1267,9 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
                 Some("flagstat".to_string())
             } else if task_lower.contains("idxstats") {
                 Some("idxstats".to_string())
-            } else if task_lower.contains("depth") || task_lower.contains("coverage") && !task_lower.contains("bamcoverage") {
+            } else if task_lower.contains("depth")
+                || task_lower.contains("coverage") && !task_lower.contains("bamcoverage")
+            {
                 Some("depth".to_string())
             } else if task_lower.contains("merge") || task_lower.contains("combine") {
                 Some("merge".to_string())
@@ -934,14 +1295,22 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
                 Some("cat".to_string())
             } else if task_lower.contains("reheader") {
                 Some("reheader".to_string())
-            } else if task_lower.contains("view") || task_lower.contains("convert") || task_lower.contains("extract") || task_lower.contains("filter") || task_lower.contains("select") {
+            } else if task_lower.contains("view")
+                || task_lower.contains("convert")
+                || task_lower.contains("extract")
+                || task_lower.contains("filter")
+                || task_lower.contains("select")
+            {
                 Some("view".to_string())
             } else {
                 None
             }
         }
         "bowtie2" => {
-            if task_lower.contains("bowtie2-build") || task_lower.contains("build") && (task_lower.contains("index") || task_lower.contains("genome")) {
+            if task_lower.contains("bowtie2-build")
+                || task_lower.contains("build")
+                    && (task_lower.contains("index") || task_lower.contains("genome"))
+            {
                 Some("bowtie2-build".to_string())
             } else if task_lower.contains("inspect") {
                 Some("bowtie2-inspect".to_string())
@@ -950,19 +1319,22 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
             }
         }
         "hisat2" => {
-            if task_lower.contains("hisat2-build") || task_lower.contains("build") && (task_lower.contains("index") || task_lower.contains("genome")) {
+            if task_lower.contains("hisat2-build")
+                || task_lower.contains("build")
+                    && (task_lower.contains("index") || task_lower.contains("genome"))
+            {
                 Some("hisat2-build".to_string())
             } else {
                 Some("_NO_SUB_".to_string())
             }
         }
-        "pilon" => {
-            Some("_NO_SUB_".to_string())
-        }
+        "pilon" => Some("_NO_SUB_".to_string()),
         "sra-tools" => {
             if task_lower.contains("prefetch") || task_lower.contains("download") {
                 Some("prefetch".to_string())
-            } else if task_lower.contains("fasterq-dump") || task_lower.contains("fastq") && task_lower.contains("dump") {
+            } else if task_lower.contains("fasterq-dump")
+                || task_lower.contains("fastq") && task_lower.contains("dump")
+            {
                 Some("fasterq-dump".to_string())
             } else if task_lower.contains("fastq-dump") {
                 Some("fastq-dump".to_string())
@@ -996,13 +1368,23 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
             }
         }
         "delly" => {
-            if task_lower.contains("call") && !task_lower.contains("filter") && !task_lower.contains("merge") && !task_lower.contains("lr") {
+            if task_lower.contains("call")
+                && !task_lower.contains("filter")
+                && !task_lower.contains("merge")
+                && !task_lower.contains("lr")
+            {
                 Some("call".to_string())
             } else if task_lower.contains("filter") {
                 Some("filter".to_string())
             } else if task_lower.contains("merge") {
                 Some("merge".to_string())
-            } else if task_lower.contains("lr") || task_lower.contains("long-read") || task_lower.contains("long read") || task_lower.contains("pacbio") || task_lower.contains("ont") || task_lower.contains("nanopore") {
+            } else if task_lower.contains("lr")
+                || task_lower.contains("long-read")
+                || task_lower.contains("long read")
+                || task_lower.contains("pacbio")
+                || task_lower.contains("ont")
+                || task_lower.contains("nanopore")
+            {
                 Some("lr".to_string())
             } else if task_lower.contains("genotype") {
                 Some("genotype".to_string())
@@ -1024,7 +1406,10 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
             }
         }
         "snpeff" => {
-            if task_lower.contains("ann") || task_lower.contains("annotate") || task_lower.contains("effect") {
+            if task_lower.contains("ann")
+                || task_lower.contains("annotate")
+                || task_lower.contains("effect")
+            {
                 Some("ann".to_string())
             } else if task_lower.contains("download") {
                 Some("download".to_string())
@@ -1074,20 +1459,26 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
             }
         }
         "homer" => {
-            if task_lower.contains("findpeak") || task_lower.contains("peak") && !task_lower.contains("annotate") {
+            if task_lower.contains("findpeak")
+                || task_lower.contains("peak") && !task_lower.contains("annotate")
+            {
                 Some("findPeaks".to_string())
             } else if task_lower.contains("findmotif") || task_lower.contains("motif") {
                 Some("findMotifsGenome.pl".to_string())
             } else if task_lower.contains("annotate") && task_lower.contains("peak") {
                 Some("annotatePeaks.pl".to_string())
-            } else if task_lower.contains("makeTagDirectory") || task_lower.contains("tag directory") {
+            } else if task_lower.contains("makeTagDirectory")
+                || task_lower.contains("tag directory")
+            {
                 Some("makeTagDirectory".to_string())
             } else {
                 None
             }
         }
         "deeptools" => {
-            if task_lower.contains("bamcoverage") || task_lower.contains("coverage") && task_lower.contains("bigwig") {
+            if task_lower.contains("bamcoverage")
+                || task_lower.contains("coverage") && task_lower.contains("bigwig")
+            {
                 Some("bamCoverage".to_string())
             } else if task_lower.contains("computematrix") || task_lower.contains("matrix") {
                 Some("computeMatrix".to_string())
@@ -1117,7 +1508,10 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
                 Some("stats".to_string())
             } else if task_lower.contains("seq") || task_lower.contains("convert") {
                 Some("seq".to_string())
-            } else if task_lower.contains("grep") || task_lower.contains("search") || task_lower.contains("filter") {
+            } else if task_lower.contains("grep")
+                || task_lower.contains("search")
+                || task_lower.contains("filter")
+            {
                 Some("grep".to_string())
             } else if task_lower.contains("rmdup") || task_lower.contains("deduplicate") {
                 Some("rmdup".to_string())
@@ -1219,15 +1613,28 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
             }
         }
         "meme" => {
-            if task_lower.contains("fimo") || (task_lower.contains("scan") && task_lower.contains("motif")) || (task_lower.contains("known") && task_lower.contains("tf")) {
+            if task_lower.contains("fimo")
+                || (task_lower.contains("scan") && task_lower.contains("motif"))
+                || (task_lower.contains("known") && task_lower.contains("tf"))
+            {
                 Some("fimo".to_string())
-            } else if task_lower.contains("tomtom") || (task_lower.contains("compare") && task_lower.contains("motif")) {
+            } else if task_lower.contains("tomtom")
+                || (task_lower.contains("compare") && task_lower.contains("motif"))
+            {
                 Some("tomtom".to_string())
-            } else if task_lower.contains("ame") || (task_lower.contains("enrichment") && task_lower.contains("motif")) {
+            } else if task_lower.contains("ame")
+                || (task_lower.contains("enrichment") && task_lower.contains("motif"))
+            {
                 Some("ame".to_string())
-            } else if task_lower.contains("streme") || (task_lower.contains("short") && task_lower.contains("motif")) {
+            } else if task_lower.contains("streme")
+                || (task_lower.contains("short") && task_lower.contains("motif"))
+            {
                 Some("streme".to_string())
-            } else if task_lower.contains("de novo") || task_lower.contains("denovo") || task_lower.contains("discover") && task_lower.contains("motif") || task_lower.contains("chip-seq") {
+            } else if task_lower.contains("de novo")
+                || task_lower.contains("denovo")
+                || task_lower.contains("discover") && task_lower.contains("motif")
+                || task_lower.contains("chip-seq")
+            {
                 Some("meme".to_string())
             } else if task_lower.contains("revcomp") || task_lower.contains("reverse complement") {
                 Some("meme".to_string())
@@ -1236,19 +1643,40 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
             }
         }
         "blast" => {
-            if task_lower.contains("makeblastdb") || (task_lower.contains("build") && task_lower.contains("database")) || (task_lower.contains("create") && task_lower.contains("database")) {
+            if task_lower.contains("makeblastdb")
+                || (task_lower.contains("build") && task_lower.contains("database"))
+                || (task_lower.contains("create") && task_lower.contains("database"))
+            {
                 Some("makeblastdb".to_string())
-            } else if task_lower.contains("blastdbcmd") || (task_lower.contains("retrieve") && task_lower.contains("sequence")) {
+            } else if task_lower.contains("blastdbcmd")
+                || (task_lower.contains("retrieve") && task_lower.contains("sequence"))
+            {
                 Some("blastdbcmd".to_string())
-            } else if task_lower.contains("blastp") || (task_lower.contains("protein") && task_lower.contains("protein") && task_lower.contains("search")) {
+            } else if task_lower.contains("blastp")
+                || (task_lower.contains("protein")
+                    && task_lower.contains("protein")
+                    && task_lower.contains("search"))
+            {
                 Some("blastp".to_string())
-            } else if task_lower.contains("blastx") || (task_lower.contains("nucleotide") && task_lower.contains("protein")) || (task_lower.contains("translate") && task_lower.contains("search")) {
+            } else if task_lower.contains("blastx")
+                || (task_lower.contains("nucleotide") && task_lower.contains("protein"))
+                || (task_lower.contains("translate") && task_lower.contains("search"))
+            {
                 Some("blastx".to_string())
-            } else if task_lower.contains("tblastn") || (task_lower.contains("protein") && task_lower.contains("nucleotide") && task_lower.contains("search")) {
+            } else if task_lower.contains("tblastn")
+                || (task_lower.contains("protein")
+                    && task_lower.contains("nucleotide")
+                    && task_lower.contains("search"))
+            {
                 Some("tblastn".to_string())
-            } else if task_lower.contains("blastn-short") || (task_lower.contains("short") && task_lower.contains("sequence")) {
+            } else if task_lower.contains("blastn-short")
+                || (task_lower.contains("short") && task_lower.contains("sequence"))
+            {
                 Some("blastn-short".to_string())
-            } else if task_lower.contains("blastn") || task_lower.contains("nucleotide") && task_lower.contains("search") || task_lower.contains("similar") && task_lower.contains("sequence") {
+            } else if task_lower.contains("blastn")
+                || task_lower.contains("nucleotide") && task_lower.contains("search")
+                || task_lower.contains("similar") && task_lower.contains("sequence")
+            {
                 Some("blastn".to_string())
             } else if task_lower.contains("remote") && task_lower.contains("blast") {
                 Some("blastn".to_string())
@@ -1258,23 +1686,36 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
                 None
             }
         }
-        "angsd" => {
-            None
-        }
+        "angsd" => None,
         "agat" => {
-            if task_lower.contains("gff2gtf") || task_lower.contains("gff to gtf") || task_lower.contains("convert") && task_lower.contains("gtf") {
+            if task_lower.contains("gff2gtf")
+                || task_lower.contains("gff to gtf")
+                || task_lower.contains("convert") && task_lower.contains("gtf")
+            {
                 Some("agat_convert_sp_gff2gtf".to_string())
-            } else if task_lower.contains("gff2bed") || task_lower.contains("gff to bed") || task_lower.contains("convert") && task_lower.contains("bed") {
+            } else if task_lower.contains("gff2bed")
+                || task_lower.contains("gff to bed")
+                || task_lower.contains("convert") && task_lower.contains("bed")
+            {
                 Some("agat_convert_sp_gff2bed".to_string())
-            } else if task_lower.contains("gxf2gxf") || task_lower.contains("gxf to gxf") || task_lower.contains("fix") && task_lower.contains("gff") {
+            } else if task_lower.contains("gxf2gxf")
+                || task_lower.contains("gxf to gxf")
+                || task_lower.contains("fix") && task_lower.contains("gff")
+            {
                 Some("agat_convert_sp_gxf2gxf".to_string())
             } else if task_lower.contains("statistics") || task_lower.contains("stats") {
                 Some("agat_sp_statistics".to_string())
-            } else if task_lower.contains("filter") && task_lower.contains("gene") && task_lower.contains("length") {
+            } else if task_lower.contains("filter")
+                && task_lower.contains("gene")
+                && task_lower.contains("length")
+            {
                 Some("agat_sp_filter_gene_by_length".to_string())
             } else if task_lower.contains("extract") && task_lower.contains("sequence") {
                 Some("agat_sp_extract_sequences".to_string())
-            } else if task_lower.contains("keep") && task_lower.contains("longest") && task_lower.contains("isoform") {
+            } else if task_lower.contains("keep")
+                && task_lower.contains("longest")
+                && task_lower.contains("isoform")
+            {
                 Some("agat_sp_keep_longest_isoform".to_string())
             } else if task_lower.contains("merge") && task_lower.contains("annotation") {
                 Some("agat_sp_merge_annotations".to_string())
@@ -1290,14 +1731,13 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
                 None
             }
         }
-        "plink2" => {
-            None
-        }
-        "stringtie" => {
-            Some("_NO_SUB_".to_string())
-        }
+        "plink2" => None,
+        "stringtie" => Some("_NO_SUB_".to_string()),
         "rsem" => {
-            if task_lower.contains("calculate-expression") || task_lower.contains("quantify") || task_lower.contains("expression") {
+            if task_lower.contains("calculate-expression")
+                || task_lower.contains("quantify")
+                || task_lower.contains("expression")
+            {
                 Some("rsem-calculate-expression".to_string())
             } else if task_lower.contains("prepare-reference") || task_lower.contains("index") {
                 Some("rsem-prepare-reference".to_string())
@@ -1306,7 +1746,10 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
             }
         }
         "igvtools" => {
-            if task_lower.contains("totdf") || task_lower.contains("tdf") || task_lower.contains("count") {
+            if task_lower.contains("totdf")
+                || task_lower.contains("tdf")
+                || task_lower.contains("count")
+            {
                 Some("toTDF".to_string())
             } else if task_lower.contains("index") {
                 Some("index".to_string())
@@ -1377,8 +1820,14 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
             }
         }
         "sourmash" => {
-            if task_lower.contains("sketch") || task_lower.contains("compute") || task_lower.contains("signature") {
-                if task_lower.contains("dna") || task_lower.contains("genome") || task_lower.contains("nucleotide") {
+            if task_lower.contains("sketch")
+                || task_lower.contains("compute")
+                || task_lower.contains("signature")
+            {
+                if task_lower.contains("dna")
+                    || task_lower.contains("genome")
+                    || task_lower.contains("nucleotide")
+                {
                     Some("sketch dna".to_string())
                 } else if task_lower.contains("protein") || task_lower.contains("translate") {
                     Some("sketch protein".to_string())
@@ -1393,7 +1842,11 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
                 Some("search".to_string())
             } else if task_lower.contains("index") {
                 Some("index".to_string())
-            } else if task_lower.contains("tax") || task_lower.contains("taxonomy") || task_lower.contains("classify") || task_lower.contains("annotate") {
+            } else if task_lower.contains("tax")
+                || task_lower.contains("taxonomy")
+                || task_lower.contains("classify")
+                || task_lower.contains("annotate")
+            {
                 Some("taxonomy annotate".to_string())
             } else {
                 None
@@ -1445,11 +1898,12 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
                 None
             }
         }
-        "vcftools" => {
-            None
-        }
+        "vcftools" => None,
         "pbmm2" => {
-            if task_lower.contains("align") || task_lower.contains("mapping") || task_lower.contains("map") {
+            if task_lower.contains("align")
+                || task_lower.contains("mapping")
+                || task_lower.contains("map")
+            {
                 Some("align".to_string())
             } else if task_lower.contains("index") {
                 Some("index".to_string())
@@ -1473,7 +1927,10 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
             }
         }
         "kb" => {
-            if task_lower.contains("ref") || task_lower.contains("reference") || task_lower.contains("index") {
+            if task_lower.contains("ref")
+                || task_lower.contains("reference")
+                || task_lower.contains("index")
+            {
                 Some("ref".to_string())
             } else if task_lower.contains("count") || task_lower.contains("quantify") {
                 Some("count".to_string())
@@ -1493,7 +1950,11 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
         "bwa" => {
             if task_lower.contains("index") || task_lower.contains("build") {
                 Some("index".to_string())
-            } else if task_lower.contains("mem") || task_lower.contains("align") || task_lower.contains("mapping") || task_lower.contains("map") {
+            } else if task_lower.contains("mem")
+                || task_lower.contains("align")
+                || task_lower.contains("mapping")
+                || task_lower.contains("map")
+            {
                 Some("mem".to_string())
             } else {
                 Some("mem".to_string())
@@ -1507,86 +1968,177 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
             }
         }
         "gatk" => {
-            if task_lower.contains("haplotypecaller") || task_lower.contains("haplotype") || (task_lower.contains("germline") && task_lower.contains("variant")) {
+            if task_lower.contains("haplotypecaller")
+                || task_lower.contains("haplotype")
+                || (task_lower.contains("germline") && task_lower.contains("variant"))
+            {
                 Some("HaplotypeCaller".to_string())
-            } else if task_lower.contains("mutect2") || task_lower.contains("somatic") || task_lower.contains("tumor") {
+            } else if task_lower.contains("mutect2")
+                || task_lower.contains("somatic")
+                || task_lower.contains("tumor")
+            {
                 Some("Mutect2".to_string())
-            } else if task_lower.contains("filtermutectcalls") || (task_lower.contains("filter") && task_lower.contains("mutect")) {
+            } else if task_lower.contains("filtermutectcalls")
+                || (task_lower.contains("filter") && task_lower.contains("mutect"))
+            {
                 Some("FilterMutectCalls".to_string())
-            } else if task_lower.contains("baserecalibrator") || task_lower.contains("bqsr") || task_lower.contains("recalibrat") {
+            } else if task_lower.contains("baserecalibrator")
+                || task_lower.contains("bqsr")
+                || task_lower.contains("recalibrat")
+            {
                 Some("BaseRecalibrator".to_string())
-            } else if task_lower.contains("applybqsr") || (task_lower.contains("apply") && task_lower.contains("bqsr")) {
+            } else if task_lower.contains("applybqsr")
+                || (task_lower.contains("apply") && task_lower.contains("bqsr"))
+            {
                 Some("ApplyBQSR".to_string())
-            } else if task_lower.contains("markduplicates") || task_lower.contains("duplicate") || task_lower.contains("dedup") {
+            } else if task_lower.contains("markduplicates")
+                || task_lower.contains("duplicate")
+                || task_lower.contains("dedup")
+            {
                 Some("MarkDuplicates".to_string())
-            } else if task_lower.contains("sortsam") || (task_lower.contains("sort") && task_lower.contains("bam")) {
+            } else if task_lower.contains("sortsam")
+                || (task_lower.contains("sort") && task_lower.contains("bam"))
+            {
                 Some("SortSam".to_string())
-            } else if task_lower.contains("addorreplacereadgroups") || task_lower.contains("read group") || task_lower.contains("rgid") || task_lower.contains("rgpl") {
+            } else if task_lower.contains("addorreplacereadgroups")
+                || task_lower.contains("read group")
+                || task_lower.contains("rgid")
+                || task_lower.contains("rgpl")
+            {
                 Some("AddOrReplaceReadGroups".to_string())
-            } else if task_lower.contains("createsequencedictionary") || task_lower.contains("sequence dictionary") || task_lower.contains("dictionary") {
+            } else if task_lower.contains("createsequencedictionary")
+                || task_lower.contains("sequence dictionary")
+                || task_lower.contains("dictionary")
+            {
                 Some("CreateSequenceDictionary".to_string())
-            } else if task_lower.contains("selectvariants") || (task_lower.contains("select") && task_lower.contains("variant")) {
+            } else if task_lower.contains("selectvariants")
+                || (task_lower.contains("select") && task_lower.contains("variant"))
+            {
                 Some("SelectVariants".to_string())
-            } else if task_lower.contains("variantfiltration") || (task_lower.contains("filter") && task_lower.contains("variant") && !task_lower.contains("mutect")) {
+            } else if task_lower.contains("variantfiltration")
+                || (task_lower.contains("filter")
+                    && task_lower.contains("variant")
+                    && !task_lower.contains("mutect"))
+            {
                 Some("VariantFiltration".to_string())
-            } else if task_lower.contains("splitncigarreads") || (task_lower.contains("split") && task_lower.contains("cigar")) {
+            } else if task_lower.contains("splitncigarreads")
+                || (task_lower.contains("split") && task_lower.contains("cigar"))
+            {
                 Some("SplitNCigarReads".to_string())
-            } else if task_lower.contains("combinegvcfs") || (task_lower.contains("combine") && task_lower.contains("gvcf")) {
+            } else if task_lower.contains("combinegvcfs")
+                || (task_lower.contains("combine") && task_lower.contains("gvcf"))
+            {
                 Some("CombineGVCFs".to_string())
-            } else if task_lower.contains("genotypegvcfs") || (task_lower.contains("genotype") && task_lower.contains("gvcf")) {
+            } else if task_lower.contains("genotypegvcfs")
+                || (task_lower.contains("genotype") && task_lower.contains("gvcf"))
+            {
                 Some("GenotypeGVCFs".to_string())
-            } else if task_lower.contains("genomicsdbimport") || (task_lower.contains("genomicsdb") || task_lower.contains("import")) && task_lower.contains("gvcf") {
+            } else if task_lower.contains("genomicsdbimport")
+                || (task_lower.contains("genomicsdb") || task_lower.contains("import"))
+                    && task_lower.contains("gvcf")
+            {
                 Some("GenomicsDBImport".to_string())
-            } else if task_lower.contains("collectalignment") || task_lower.contains("alignment") && task_lower.contains("metric") {
+            } else if task_lower.contains("collectalignment")
+                || task_lower.contains("alignment") && task_lower.contains("metric")
+            {
                 Some("CollectAlignmentSummaryMetrics".to_string())
-            } else if task_lower.contains("collectinsert") || task_lower.contains("insert") && task_lower.contains("size") {
+            } else if task_lower.contains("collectinsert")
+                || task_lower.contains("insert") && task_lower.contains("size")
+            {
                 Some("CollectInsertSizeMetrics".to_string())
-            } else if task_lower.contains("depthofcoverage") || task_lower.contains("depth") && task_lower.contains("coverage") {
+            } else if task_lower.contains("depthofcoverage")
+                || task_lower.contains("depth") && task_lower.contains("coverage")
+            {
                 Some("DepthOfCoverage".to_string())
-            } else if task_lower.contains("validatesamfile") || (task_lower.contains("validate") && task_lower.contains("sam")) {
+            } else if task_lower.contains("validatesamfile")
+                || (task_lower.contains("validate") && task_lower.contains("sam"))
+            {
                 Some("ValidateSamFile".to_string())
-            } else if task_lower.contains("mergesamfiles") || (task_lower.contains("merge") && task_lower.contains("sam")) {
+            } else if task_lower.contains("mergesamfiles")
+                || (task_lower.contains("merge") && task_lower.contains("sam"))
+            {
                 Some("MergeSamFiles".to_string())
-            } else if task_lower.contains("buildbamindex") || (task_lower.contains("build") && task_lower.contains("index")) {
+            } else if task_lower.contains("buildbamindex")
+                || (task_lower.contains("build") && task_lower.contains("index"))
+            {
                 Some("BuildBamIndex".to_string())
-            } else if task_lower.contains("indexfeaturefile") || (task_lower.contains("index") && (task_lower.contains("vcf") || task_lower.contains("feature"))) {
+            } else if task_lower.contains("indexfeaturefile")
+                || (task_lower.contains("index")
+                    && (task_lower.contains("vcf") || task_lower.contains("feature")))
+            {
                 Some("IndexFeatureFile".to_string())
             } else {
                 None
             }
         }
         "picard" => {
-            if task_lower.contains("markduplicates") || task_lower.contains("duplicate") || task_lower.contains("dedup") {
+            if task_lower.contains("markduplicates")
+                || task_lower.contains("duplicate")
+                || task_lower.contains("dedup")
+            {
                 Some("MarkDuplicates".to_string())
-            } else if task_lower.contains("sortsam") || (task_lower.contains("sort") && task_lower.contains("bam")) {
+            } else if task_lower.contains("sortsam")
+                || (task_lower.contains("sort") && task_lower.contains("bam"))
+            {
                 Some("SortSam".to_string())
-            } else if task_lower.contains("addorreplacereadgroups") || task_lower.contains("read group") || task_lower.contains("rgid") || task_lower.contains("rgpl") {
+            } else if task_lower.contains("addorreplacereadgroups")
+                || task_lower.contains("read group")
+                || task_lower.contains("rgid")
+                || task_lower.contains("rgpl")
+            {
                 Some("AddOrReplaceReadGroups".to_string())
-            } else if task_lower.contains("createsequencedictionary") || task_lower.contains("sequence dictionary") || task_lower.contains("dictionary") {
+            } else if task_lower.contains("createsequencedictionary")
+                || task_lower.contains("sequence dictionary")
+                || task_lower.contains("dictionary")
+            {
                 Some("CreateSequenceDictionary".to_string())
-            } else if task_lower.contains("collectalignment") || task_lower.contains("alignment") && task_lower.contains("metric") {
+            } else if task_lower.contains("collectalignment")
+                || task_lower.contains("alignment") && task_lower.contains("metric")
+            {
                 Some("CollectAlignmentSummaryMetrics".to_string())
-            } else if task_lower.contains("collectinsert") || task_lower.contains("insert") && task_lower.contains("size") {
+            } else if task_lower.contains("collectinsert")
+                || task_lower.contains("insert") && task_lower.contains("size")
+            {
                 Some("CollectInsertSizeMetrics".to_string())
-            } else if task_lower.contains("collectgcbias") || task_lower.contains("gc") && task_lower.contains("bias") {
+            } else if task_lower.contains("collectgcbias")
+                || task_lower.contains("gc") && task_lower.contains("bias")
+            {
                 Some("CollectGcBiasMetrics".to_string())
-            } else if task_lower.contains("collectqualityyield") || task_lower.contains("quality") && task_lower.contains("yield") {
+            } else if task_lower.contains("collectqualityyield")
+                || task_lower.contains("quality") && task_lower.contains("yield")
+            {
                 Some("CollectQualityYieldMetrics".to_string())
-            } else if task_lower.contains("collectrnaseq") || task_lower.contains("rna-seq") && task_lower.contains("metric") {
+            } else if task_lower.contains("collectrnaseq")
+                || task_lower.contains("rna-seq") && task_lower.contains("metric")
+            {
                 Some("CollectRnaSeqMetrics".to_string())
-            } else if task_lower.contains("mergesamfiles") || (task_lower.contains("merge") && task_lower.contains("sam")) {
+            } else if task_lower.contains("mergesamfiles")
+                || (task_lower.contains("merge") && task_lower.contains("sam"))
+            {
                 Some("MergeSamFiles".to_string())
-            } else if task_lower.contains("validatesamfile") || (task_lower.contains("validate") && task_lower.contains("sam")) {
+            } else if task_lower.contains("validatesamfile")
+                || (task_lower.contains("validate") && task_lower.contains("sam"))
+            {
                 Some("ValidateSamFile".to_string())
-            } else if task_lower.contains("fastqtosam") || (task_lower.contains("fastq") && task_lower.contains("bam")) {
+            } else if task_lower.contains("fastqtosam")
+                || (task_lower.contains("fastq") && task_lower.contains("bam"))
+            {
                 Some("FastqToSam".to_string())
-            } else if task_lower.contains("samtofastq") || (task_lower.contains("bam") && task_lower.contains("fastq")) {
+            } else if task_lower.contains("samtofastq")
+                || (task_lower.contains("bam") && task_lower.contains("fastq"))
+            {
                 Some("SamToFastq".to_string())
-            } else if task_lower.contains("buildbamindex") || (task_lower.contains("build") && task_lower.contains("index")) {
+            } else if task_lower.contains("buildbamindex")
+                || (task_lower.contains("build") && task_lower.contains("index"))
+            {
                 Some("BuildBamIndex".to_string())
-            } else if task_lower.contains("extractsequences") || (task_lower.contains("extract") && task_lower.contains("sequence")) {
+            } else if task_lower.contains("extractsequences")
+                || (task_lower.contains("extract") && task_lower.contains("sequence"))
+            {
                 Some("ExtractSequences".to_string())
-            } else if task_lower.contains("gathervcfs") || (task_lower.contains("gather") && task_lower.contains("vcf")) {
+            } else if task_lower.contains("gathervcfs")
+                || (task_lower.contains("gather") && task_lower.contains("vcf"))
+            {
                 Some("GatherVcfs".to_string())
             } else {
                 None
@@ -1595,7 +2147,10 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
         "salmon" => {
             if task_lower.contains("index") || task_lower.contains("build") {
                 Some("index".to_string())
-            } else if task_lower.contains("quant") || task_lower.contains("quantify") || task_lower.contains("expression") {
+            } else if task_lower.contains("quant")
+                || task_lower.contains("quantify")
+                || task_lower.contains("expression")
+            {
                 Some("quant".to_string())
             } else {
                 Some("quant".to_string())
@@ -1604,7 +2159,10 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
         "kallisto" => {
             if task_lower.contains("index") || task_lower.contains("build") {
                 Some("index".to_string())
-            } else if task_lower.contains("quant") || task_lower.contains("quantify") || task_lower.contains("expression") {
+            } else if task_lower.contains("quant")
+                || task_lower.contains("quantify")
+                || task_lower.contains("expression")
+            {
                 Some("quant".to_string())
             } else if task_lower.contains("bus") || task_lower.contains("pseudoalignment") {
                 Some("bus".to_string())
@@ -1634,48 +2192,57 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
                 Some("PE".to_string())
             }
         }
-        "nanocomp" => {
-            Some("NanoComp".to_string())
-        }
-        "nanoplot" => {
-            Some("_NO_SUB_".to_string())
-        }
-        "nanostat" => {
-            Some("_NO_SUB_".to_string())
-        }
-        "snakemake" => {
-            Some("_NO_SUB_".to_string())
-        }
+        "nanocomp" => Some("NanoComp".to_string()),
+        "nanoplot" => Some("_NO_SUB_".to_string()),
+        "nanostat" => Some("_NO_SUB_".to_string()),
+        "snakemake" => Some("_NO_SUB_".to_string()),
         "hmmer" => {
-            if task_lower.contains("hmmscan") || task_lower.contains("scan") && task_lower.contains("profile") {
+            if task_lower.contains("hmmscan")
+                || task_lower.contains("scan") && task_lower.contains("profile")
+            {
                 Some("hmmscan".to_string())
-            } else if task_lower.contains("hmmsearch") || task_lower.contains("search") && task_lower.contains("sequence") {
+            } else if task_lower.contains("hmmsearch")
+                || task_lower.contains("search") && task_lower.contains("sequence")
+            {
                 Some("hmmsearch".to_string())
-            } else if task_lower.contains("hmmbuild") || task_lower.contains("build") && task_lower.contains("profile") {
+            } else if task_lower.contains("hmmbuild")
+                || task_lower.contains("build") && task_lower.contains("profile")
+            {
                 Some("hmmbuild".to_string())
             } else if task_lower.contains("hmmalign") || task_lower.contains("align") {
                 Some("hmmalign".to_string())
-            } else if task_lower.contains("phmmer") || task_lower.contains("protein") && task_lower.contains("search") {
+            } else if task_lower.contains("phmmer")
+                || task_lower.contains("protein") && task_lower.contains("search")
+            {
                 Some("phmmer".to_string())
             } else if task_lower.contains("jackhmmer") || task_lower.contains("iterative") {
                 Some("jackhmmer".to_string())
-            } else if task_lower.contains("nhmmer") || task_lower.contains("dna") && task_lower.contains("search") {
+            } else if task_lower.contains("nhmmer")
+                || task_lower.contains("dna") && task_lower.contains("search")
+            {
                 Some("nhmmer".to_string())
-            } else if task_lower.contains("nhmmscan") || task_lower.contains("dna") && task_lower.contains("scan") {
+            } else if task_lower.contains("nhmmscan")
+                || task_lower.contains("dna") && task_lower.contains("scan")
+            {
                 Some("nhmmscan".to_string())
             } else {
                 None
             }
         }
-        "r" => {
-            Some("Rscript".to_string())
-        }
+        "r" => Some("Rscript".to_string()),
         "perl" => {
             if task_lower.contains("version") || task_lower.contains("-v") {
                 Some("-V".to_string())
-            } else if task_lower.contains("one-liner") || task_lower.contains("-e") || task_lower.contains("-ne") || task_lower.contains("-pe") {
+            } else if task_lower.contains("one-liner")
+                || task_lower.contains("-e")
+                || task_lower.contains("-ne")
+                || task_lower.contains("-pe")
+            {
                 None
-            } else if task_lower.contains("module") || task_lower.contains("install") || task_lower.contains("cpan") {
+            } else if task_lower.contains("module")
+                || task_lower.contains("install")
+                || task_lower.contains("cpan")
+            {
                 None
             } else {
                 None
@@ -1697,9 +2264,15 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
         "bash" => {
             if task_lower.contains("version") {
                 Some("--version".to_string())
-            } else if task_lower.contains("strict") || task_lower.contains("pipefail") || task_lower.contains("-c") {
+            } else if task_lower.contains("strict")
+                || task_lower.contains("pipefail")
+                || task_lower.contains("-c")
+            {
                 None
-            } else if task_lower.contains("debug") || task_lower.contains("trace") || task_lower.contains("-x") {
+            } else if task_lower.contains("debug")
+                || task_lower.contains("trace")
+                || task_lower.contains("-x")
+            {
                 None
             } else {
                 None
@@ -1729,9 +2302,7 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
                 None
             }
         }
-        "awk" | "sed" | "grep" => {
-            None
-        }
+        "awk" | "sed" | "grep" => None,
         "bowtie2" => {
             if task_lower.contains("build") || task_lower.contains("index") {
                 Some("build".to_string())
@@ -1746,24 +2317,12 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
                 None
             }
         }
-        "ssh" | "wget" | "curl" | "rsync" | "find" | "rm" | "tar" => {
-            None
-        }
-        "verkko" => {
-            Some("_NO_SUB_".to_string())
-        }
-        "longshot" => {
-            Some("_NO_SUB_".to_string())
-        }
-        "racon" => {
-            Some("_NO_SUB_".to_string())
-        }
-        "freebayes" => {
-            Some("_NO_SUB_".to_string())
-        }
-        "sniffles" => {
-            Some("_NO_SUB_".to_string())
-        }
+        "ssh" | "wget" | "curl" | "rsync" | "find" | "rm" | "tar" => None,
+        "verkko" => Some("_NO_SUB_".to_string()),
+        "longshot" => Some("_NO_SUB_".to_string()),
+        "racon" => Some("_NO_SUB_".to_string()),
+        "freebayes" => Some("_NO_SUB_".to_string()),
+        "sniffles" => Some("_NO_SUB_".to_string()),
         "gtdbtk" => {
             if task_lower.contains("classify") {
                 Some("classify_wf".to_string())
@@ -1780,7 +2339,10 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
             }
         }
         "rsem" => {
-            if task_lower.contains("calculate-expression") || task_lower.contains("quantify") || task_lower.contains("expression") {
+            if task_lower.contains("calculate-expression")
+                || task_lower.contains("quantify")
+                || task_lower.contains("expression")
+            {
                 Some("rsem-calculate-expression".to_string())
             } else if task_lower.contains("prepare-reference") || task_lower.contains("index") {
                 Some("rsem-prepare-reference".to_string())
@@ -1788,12 +2350,8 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
                 Some("rsem-calculate-expression".to_string())
             }
         }
-        "nanocomp" => {
-            Some("NanoComp".to_string())
-        }
-        "nanoplot" => {
-            Some("_NO_SUB_".to_string())
-        }
+        "nanocomp" => Some("NanoComp".to_string()),
+        "nanoplot" => Some("_NO_SUB_".to_string()),
         "bedops" => {
             if task_lower.contains("bedmap") || task_lower.contains("map") {
                 Some("bedmap".to_string())
@@ -1809,86 +2367,604 @@ pub fn detect_subcommand_for_tool(tool: &str, task: &str, args: &[String]) -> Op
                 None
             }
         }
-        _ => None
+        _ => None,
     }
 }
 
 pub fn is_no_subcommand_tool(tool: &str) -> bool {
     let tool_lower = tool.to_ascii_lowercase();
-    matches!(tool_lower.as_str(),
-        "porechop" | "chopper" | "trim_galore" | "fastp" | "fastqc" | "multiqc" |
-        "mosdepth" | "megahit" | "hifiasm" | "racon" | "freebayes" | "longshot" |
-        "sniffles" | "liftoff" | "prodigal" | "tabix" | "vcfanno" |
-        "fastani" | "orthofinder" | "iqtree2" | "mafft" | "fasttree" |
-        "admixture" | "shapeit4" | "pbccs" | "nanoplot" | "nanostat" |
-        "metabat2" | "metaphlan" | "repeatmasker" |
-        "pilon" | "busco" | "cutadapt" |
-        "mash" | "eggnog-mapper" |
-        "miniasm" | "wtdbg2" | "verkko" |
-        "minimap2" |
-        "featurecounts" | "spades" | "flye" | "canu" |
-        "trinity" | "prokka" |
-        "fastq-screen" | "bbtools" |
-        "cellsnp-lite" | "pbfusion" |
-        "trimmomatic" |
-        "star" | "stringtie" | "snakemake" |
-        "hisat2" | "bowtie2" | "kraken2" |
-        "bakta" |
-        "awk" | "sed" | "grep" | "perl" | "python" | "bash" | "java" | "julia" |
-        "ssh" | "wget" | "curl" | "rsync" | "find" | "rm" | "tar" |
-        "r"
+    matches!(
+        tool_lower.as_str(),
+        "porechop"
+            | "chopper"
+            | "trim_galore"
+            | "fastp"
+            | "fastqc"
+            | "multiqc"
+            | "mosdepth"
+            | "megahit"
+            | "hifiasm"
+            | "racon"
+            | "freebayes"
+            | "longshot"
+            | "sniffles"
+            | "liftoff"
+            | "prodigal"
+            | "tabix"
+            | "vcfanno"
+            | "fastani"
+            | "orthofinder"
+            | "iqtree2"
+            | "mafft"
+            | "fasttree"
+            | "admixture"
+            | "shapeit4"
+            | "pbccs"
+            | "nanoplot"
+            | "nanostat"
+            | "metabat2"
+            | "metaphlan"
+            | "repeatmasker"
+            | "pilon"
+            | "busco"
+            | "cutadapt"
+            | "mash"
+            | "eggnog-mapper"
+            | "miniasm"
+            | "wtdbg2"
+            | "verkko"
+            | "minimap2"
+            | "featurecounts"
+            | "spades"
+            | "flye"
+            | "canu"
+            | "trinity"
+            | "prokka"
+            | "fastq-screen"
+            | "bbtools"
+            | "cellsnp-lite"
+            | "pbfusion"
+            | "trimmomatic"
+            | "star"
+            | "stringtie"
+            | "snakemake"
+            | "hisat2"
+            | "bowtie2"
+            | "kraken2"
+            | "bakta"
+            | "awk"
+            | "sed"
+            | "grep"
+            | "perl"
+            | "python"
+            | "bash"
+            | "java"
+            | "julia"
+            | "ssh"
+            | "wget"
+            | "curl"
+            | "rsync"
+            | "find"
+            | "rm"
+            | "tar"
+            | "r"
     )
 }
 
 pub fn get_known_subcommands_for_tool(tool: &str) -> Vec<String> {
     let tool_lower = tool.to_ascii_lowercase();
     match tool_lower.as_str() {
-        "samtools" => vec!["view", "sort", "index", "flagstat", "idxstats", "depth", "merge", "faidx", "stats", "fastq", "calmd", "fixmate", "reheader", "rmdup", "collate", "bam2fq", "markdup", "cat", "dict", "mpileup"].iter().map(|s| s.to_string()).collect(),
-        "bcftools" => vec!["view", "filter", "merge", "call", "annotate", "concat", "norm", "sort", "index", "stats", "query", "isec", "mpileup", "consensus", "convert", "plugin", "gtcheck", "roh"].iter().map(|s| s.to_string()).collect(),
-        "bedtools" => vec!["intersect", "merge", "sort", "genomecov", "coverage", "getfasta", "slop", "flank", "closest", "subtract", "window", "cluster", "complement", "shift", "map", "groupby", "split", "bamtobed", "bedtobam", "unionbedg", "multiinter", "random", "sample", "jaccard", "reldist", "makewindows", "bamtofastq"].iter().map(|s| s.to_string()).collect(),
-        "gatk" => vec!["HaplotypeCaller", "Mutect2", "BaseRecalibrator", "ApplyBQSR", "MarkDuplicates", "SplitNCigarReads", "VariantFiltration", "SelectVariants", "CombineVariants", "GenotypeGVCFs", "GenomicsDBImport", "GatherVcfs", "GatherBqsrReports", "IndexFeatureFile", "PrintReads", "ValidateVariants", "ValidateSamFile", "CalculateGenotypePosteriors", "PhaseByTransmission", "ASEReadCounter", "CollectAlignmentSummaryMetrics", "CollectInsertSizeMetrics", "CollectQualityYieldMetrics", "SortSam", "AddOrReplaceReadGroups", "CreateSequenceDictionary", "DepthOfCoverage", "BuildBamIndex", "MergeSamFiles", "ExtractSequences", "FilterMutectCalls", "CombineGVCFs"].iter().map(|s| s.to_string()).collect(),
-        "picard" => vec!["MarkDuplicates", "SortSam", "AddOrReplaceReadGroups", "CreateSequenceDictionary", "CollectAlignmentSummaryMetrics", "CollectInsertSizeMetrics", "CollectGcBiasMetrics", "CollectQualityYieldMetrics", "CollectRnaSeqMetrics", "MergeSamFiles", "ValidateSamFile", "SamFormatConverter", "FastqToSam", "SamToFastq", "BuildBamIndex", "CreateSequenceDictionary", "ExtractSequences", "GatherVcfs"].iter().map(|s| s.to_string()).collect(),
-        "deeptools" => vec!["bamCoverage", "computeMatrix", "plotHeatmap", "plotProfile", "plotFingerprint", "bamCompare", "multiBamSummary", "plotCoverage", "computeGCBias", "correctGCBias", "alignmentSieve", "plotCorrelation", "plotPCA", "estimateReadFiltering", "estimateScaleFactor", "bamPEFragmentSize", "computeMatrixOperations", "plotEnrichment"].iter().map(|s| s.to_string()).collect(),
-        "snakemake" => vec!["run", "dryrun", "dag", "report", "archive", "cleanup", "cleanup_metadata", "conda"].iter().map(|s| s.to_string()).collect(),
+        "samtools" => vec![
+            "view", "sort", "index", "flagstat", "idxstats", "depth", "merge", "faidx", "stats",
+            "fastq", "calmd", "fixmate", "reheader", "rmdup", "collate", "bam2fq", "markdup",
+            "cat", "dict", "mpileup",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "bcftools" => vec![
+            "view",
+            "filter",
+            "merge",
+            "call",
+            "annotate",
+            "concat",
+            "norm",
+            "sort",
+            "index",
+            "stats",
+            "query",
+            "isec",
+            "mpileup",
+            "consensus",
+            "convert",
+            "plugin",
+            "gtcheck",
+            "roh",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "bedtools" => vec![
+            "intersect",
+            "merge",
+            "sort",
+            "genomecov",
+            "coverage",
+            "getfasta",
+            "slop",
+            "flank",
+            "closest",
+            "subtract",
+            "window",
+            "cluster",
+            "complement",
+            "shift",
+            "map",
+            "groupby",
+            "split",
+            "bamtobed",
+            "bedtobam",
+            "unionbedg",
+            "multiinter",
+            "random",
+            "sample",
+            "jaccard",
+            "reldist",
+            "makewindows",
+            "bamtofastq",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "gatk" => vec![
+            "HaplotypeCaller",
+            "Mutect2",
+            "BaseRecalibrator",
+            "ApplyBQSR",
+            "MarkDuplicates",
+            "SplitNCigarReads",
+            "VariantFiltration",
+            "SelectVariants",
+            "CombineVariants",
+            "GenotypeGVCFs",
+            "GenomicsDBImport",
+            "GatherVcfs",
+            "GatherBqsrReports",
+            "IndexFeatureFile",
+            "PrintReads",
+            "ValidateVariants",
+            "ValidateSamFile",
+            "CalculateGenotypePosteriors",
+            "PhaseByTransmission",
+            "ASEReadCounter",
+            "CollectAlignmentSummaryMetrics",
+            "CollectInsertSizeMetrics",
+            "CollectQualityYieldMetrics",
+            "SortSam",
+            "AddOrReplaceReadGroups",
+            "CreateSequenceDictionary",
+            "DepthOfCoverage",
+            "BuildBamIndex",
+            "MergeSamFiles",
+            "ExtractSequences",
+            "FilterMutectCalls",
+            "CombineGVCFs",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "picard" => vec![
+            "MarkDuplicates",
+            "SortSam",
+            "AddOrReplaceReadGroups",
+            "CreateSequenceDictionary",
+            "CollectAlignmentSummaryMetrics",
+            "CollectInsertSizeMetrics",
+            "CollectGcBiasMetrics",
+            "CollectQualityYieldMetrics",
+            "CollectRnaSeqMetrics",
+            "MergeSamFiles",
+            "ValidateSamFile",
+            "SamFormatConverter",
+            "FastqToSam",
+            "SamToFastq",
+            "BuildBamIndex",
+            "CreateSequenceDictionary",
+            "ExtractSequences",
+            "GatherVcfs",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "deeptools" => vec![
+            "bamCoverage",
+            "computeMatrix",
+            "plotHeatmap",
+            "plotProfile",
+            "plotFingerprint",
+            "bamCompare",
+            "multiBamSummary",
+            "plotCoverage",
+            "computeGCBias",
+            "correctGCBias",
+            "alignmentSieve",
+            "plotCorrelation",
+            "plotPCA",
+            "estimateReadFiltering",
+            "estimateScaleFactor",
+            "bamPEFragmentSize",
+            "computeMatrixOperations",
+            "plotEnrichment",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "snakemake" => vec![
+            "run",
+            "dryrun",
+            "dag",
+            "report",
+            "archive",
+            "cleanup",
+            "cleanup_metadata",
+            "conda",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
         "fastqc" => vec![],
         "multiqc" => vec![],
-        "bwa" => vec!["mem", "index", "aln", "sampe", "samse", "bwasw"].iter().map(|s| s.to_string()).collect(),
+        "bwa" => vec!["mem", "index", "aln", "sampe", "samse", "bwasw"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
         "bwa-mem2" => vec!["mem", "index"].iter().map(|s| s.to_string()).collect(),
-        "bowtie2" => vec!["build", "inspect", "align", "sam"].iter().map(|s| s.to_string()).collect(),
-        "hisat2" => vec!["build", "inspect", "align", "extract-splice-sites", "extract-exons"].iter().map(|s| s.to_string()).collect(),
+        "bowtie2" => vec!["build", "inspect", "align", "sam"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+        "hisat2" => vec![
+            "build",
+            "inspect",
+            "align",
+            "extract-splice-sites",
+            "extract-exons",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
         "minimap2" => vec![],
         "star" => vec![],
-        "salmon" => vec!["index", "quant", "alevin", "swim"].iter().map(|s| s.to_string()).collect(),
-        "kallisto" => vec!["index", "quant", "bus", "merge", "h5dump", "inspect", "version"].iter().map(|s| s.to_string()).collect(),
+        "salmon" => vec!["index", "quant", "alevin", "swim"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+        "kallisto" => vec![
+            "index", "quant", "bus", "merge", "h5dump", "inspect", "version",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
         "featurecounts" => vec![],
         "htseq" => vec!["count", "qa"].iter().map(|s| s.to_string()).collect(),
         "vcftools" => vec![],
-        "plink" => vec!["--vcf", "--bfile", "--make-bed", "--assoc", "--linear", "--logistic", "--freq", "--hardy", "--hwe", "--ld", "--recode", "--mind", "--geno", "--maf"].iter().map(|s| s.to_string()).collect(),
-        "plink2" => vec!["--pfile", "--bfile", "--vcf", "--make-pgen", "--make-bed", "--assoc", "--linear", "--logistic", "--freq", "--hardy", "--hwe", "--ld", "--recode", "--mind", "--geno", "--maf", "--pca"].iter().map(|s| s.to_string()).collect(),
-        "agat" => vec!["sp_sanity_check", "sp_statistics", "sp_filter_feature_from_fasta", "sp_fix_features_positions", "sp_merge_annotations", "sp_add_start_and_stop", "sp_extract_sequences", "sp_to_tab", "sp_gxf_to_gff3", "sp_gff2tsv", "sp_list_attributes", "sp_compare_two_BUSCOs", "sp_fix_fasta", "convert_sp_gff2gtf", "convert_sp_gff2bed", "convert_sp_gxf2gxf", "sp_filter_gene_by_length", "sp_keep_longest_isoform", "sp_manage_IDs"].iter().map(|s| s.to_string()).collect(),
-        "diamond" => vec!["blastp", "blastx", "makedb", "view", "getseq", "cluster", "realign", "merge-daa", "seed-index"].iter().map(|s| s.to_string()).collect(),
-        "hmmer" => vec!["hmmsearch", "hmmscan", "hmmbuild", "hmmalign", "hmmpress", "hmmemit", "hmmsim"].iter().map(|s| s.to_string()).collect(),
-        "blast" => vec!["blastn", "blastp", "blastx", "tblastn", "tblastx", "makeblastdb"].iter().map(|s| s.to_string()).collect(),
-        "kraken2" => vec!["classify", "build", "inspect", "translate", "report", "kmer2taxo"].iter().map(|s| s.to_string()).collect(),
-        "mmseqs2" => vec!["easy-search", "easy-cluster", "search", "cluster", "createdb", "index", "convert2fasta", "createtsv", "result2repseq", "result2profile", "mergeclusters"].iter().map(|s| s.to_string()).collect(),
-        "seqkit" => vec!["stats", "seq", "grep", "rmdup", "sample", "fx2tab", "replace", "sort", "concat", "split2", "common", "subseq", "translate", "head", "range", "bam", "fq2fa"].iter().map(|s| s.to_string()).collect(),
-        "pairtools" => vec!["parse", "sort", "merge", "dedup", "select", "split", "stats", "flip", "restrict", "scale"].iter().map(|s| s.to_string()).collect(),
-        "modkit" => vec!["pileup", "summary", "extract", "call-mods", "motif-bed", "sample-probs", "update-tags"].iter().map(|s| s.to_string()).collect(),
-        "bismark" => vec!["bismark", "bismark_genome_preparation", "bismark_methylation_extractor", "deduplicate_bismark", "bismark2report", "bismark2summary", "coverage2cytosine"].iter().map(|s| s.to_string()).collect(),
-        "cnvkit" => vec!["batch", "target", "antitarget", "coverage", "reference", "fix", "segment", "call", "diagram", "scatter", "heatmap", "breaks", "gainloss", "sex", "metrics", "segmetrics"].iter().map(|s| s.to_string()).collect(),
-        "mummer" => vec!["nucmer", "promer", "delta-filter", "show-coords", "show-snps", "show-tiling", "dnadiff", "run-mummer1", "run-mummer3"].iter().map(|s| s.to_string()).collect(),
-        "homer" => vec!["findPeaks", "findMotifsGenome.pl", "annotatePeaks.pl", "makeTagDirectory", "makeUCSCfile", "pos2bed.pl", "removeDupReads.pl", "makeMultiWigHub.pl"].iter().map(|s| s.to_string()).collect(),
-        "arriba" => vec!["run_arriba", "run_arriba_on_prealigned_bam", "draw_fusions.R", "convert_fusions_to_vcf"].iter().map(|s| s.to_string()).collect(),
-        "sra-tools" => vec!["prefetch", "fasterq-dump", "fastq-dump", "sam-dump", "sra-pileup", "vdb-config", "vdb-decrypt"].iter().map(|s| s.to_string()).collect(),
-        "meme" => vec!["meme", "fimo", "dreme", "ame", "mast", "mcast", "glam2", "glam2scan", "tomtom", "spamo"].iter().map(|s| s.to_string()).collect(),
-        "angsd" => vec!["-doSaf", "-doMaf", "-doGeno", "-doThetas", "-doAbbababa", "-doAsso", "-doFasta", "-doCounts"].iter().map(|s| s.to_string()).collect(),
-        "varscan2" => vec!["mpileup2snp", "mpileup2indel", "somatic", "copynumber", "readcounts", "mpileup2cns"].iter().map(|s| s.to_string()).collect(),
-        "delly" => vec!["call", "filter", "merge", "lr", "genotype"].iter().map(|s| s.to_string()).collect(),
-        "whatshap" => vec!["phase", "haplotag", "stats", "compare", "polyphase"].iter().map(|s| s.to_string()).collect(),
-        "snpeff" => vec!["ann", "download", "build", "databases", "dump", "count"].iter().map(|s| s.to_string()).collect(),
+        "plink" => vec![
+            "--vcf",
+            "--bfile",
+            "--make-bed",
+            "--assoc",
+            "--linear",
+            "--logistic",
+            "--freq",
+            "--hardy",
+            "--hwe",
+            "--ld",
+            "--recode",
+            "--mind",
+            "--geno",
+            "--maf",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "plink2" => vec![
+            "--pfile",
+            "--bfile",
+            "--vcf",
+            "--make-pgen",
+            "--make-bed",
+            "--assoc",
+            "--linear",
+            "--logistic",
+            "--freq",
+            "--hardy",
+            "--hwe",
+            "--ld",
+            "--recode",
+            "--mind",
+            "--geno",
+            "--maf",
+            "--pca",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "agat" => vec![
+            "sp_sanity_check",
+            "sp_statistics",
+            "sp_filter_feature_from_fasta",
+            "sp_fix_features_positions",
+            "sp_merge_annotations",
+            "sp_add_start_and_stop",
+            "sp_extract_sequences",
+            "sp_to_tab",
+            "sp_gxf_to_gff3",
+            "sp_gff2tsv",
+            "sp_list_attributes",
+            "sp_compare_two_BUSCOs",
+            "sp_fix_fasta",
+            "convert_sp_gff2gtf",
+            "convert_sp_gff2bed",
+            "convert_sp_gxf2gxf",
+            "sp_filter_gene_by_length",
+            "sp_keep_longest_isoform",
+            "sp_manage_IDs",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "diamond" => vec![
+            "blastp",
+            "blastx",
+            "makedb",
+            "view",
+            "getseq",
+            "cluster",
+            "realign",
+            "merge-daa",
+            "seed-index",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "hmmer" => vec![
+            "hmmsearch",
+            "hmmscan",
+            "hmmbuild",
+            "hmmalign",
+            "hmmpress",
+            "hmmemit",
+            "hmmsim",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "blast" => vec![
+            "blastn",
+            "blastp",
+            "blastx",
+            "tblastn",
+            "tblastx",
+            "makeblastdb",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "kraken2" => vec![
+            "classify",
+            "build",
+            "inspect",
+            "translate",
+            "report",
+            "kmer2taxo",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "mmseqs2" => vec![
+            "easy-search",
+            "easy-cluster",
+            "search",
+            "cluster",
+            "createdb",
+            "index",
+            "convert2fasta",
+            "createtsv",
+            "result2repseq",
+            "result2profile",
+            "mergeclusters",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "seqkit" => vec![
+            "stats",
+            "seq",
+            "grep",
+            "rmdup",
+            "sample",
+            "fx2tab",
+            "replace",
+            "sort",
+            "concat",
+            "split2",
+            "common",
+            "subseq",
+            "translate",
+            "head",
+            "range",
+            "bam",
+            "fq2fa",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "pairtools" => vec![
+            "parse", "sort", "merge", "dedup", "select", "split", "stats", "flip", "restrict",
+            "scale",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "modkit" => vec![
+            "pileup",
+            "summary",
+            "extract",
+            "call-mods",
+            "motif-bed",
+            "sample-probs",
+            "update-tags",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "bismark" => vec![
+            "bismark",
+            "bismark_genome_preparation",
+            "bismark_methylation_extractor",
+            "deduplicate_bismark",
+            "bismark2report",
+            "bismark2summary",
+            "coverage2cytosine",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "cnvkit" => vec![
+            "batch",
+            "target",
+            "antitarget",
+            "coverage",
+            "reference",
+            "fix",
+            "segment",
+            "call",
+            "diagram",
+            "scatter",
+            "heatmap",
+            "breaks",
+            "gainloss",
+            "sex",
+            "metrics",
+            "segmetrics",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "mummer" => vec![
+            "nucmer",
+            "promer",
+            "delta-filter",
+            "show-coords",
+            "show-snps",
+            "show-tiling",
+            "dnadiff",
+            "run-mummer1",
+            "run-mummer3",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "homer" => vec![
+            "findPeaks",
+            "findMotifsGenome.pl",
+            "annotatePeaks.pl",
+            "makeTagDirectory",
+            "makeUCSCfile",
+            "pos2bed.pl",
+            "removeDupReads.pl",
+            "makeMultiWigHub.pl",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "arriba" => vec![
+            "run_arriba",
+            "run_arriba_on_prealigned_bam",
+            "draw_fusions.R",
+            "convert_fusions_to_vcf",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "sra-tools" => vec![
+            "prefetch",
+            "fasterq-dump",
+            "fastq-dump",
+            "sam-dump",
+            "sra-pileup",
+            "vdb-config",
+            "vdb-decrypt",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "meme" => vec![
+            "meme",
+            "fimo",
+            "dreme",
+            "ame",
+            "mast",
+            "mcast",
+            "glam2",
+            "glam2scan",
+            "tomtom",
+            "spamo",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "angsd" => vec![
+            "-doSaf",
+            "-doMaf",
+            "-doGeno",
+            "-doThetas",
+            "-doAbbababa",
+            "-doAsso",
+            "-doFasta",
+            "-doCounts",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "varscan2" => vec![
+            "mpileup2snp",
+            "mpileup2indel",
+            "somatic",
+            "copynumber",
+            "readcounts",
+            "mpileup2cns",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "delly" => vec!["call", "filter", "merge", "lr", "genotype"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+        "whatshap" => vec!["phase", "haplotag", "stats", "compare", "polyphase"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+        "snpeff" => vec!["ann", "download", "build", "databases", "dump", "count"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
         "vep" => vec![],
-        "stringtie" => vec!["merge", "assemble", "estimate"].iter().map(|s| s.to_string()).collect(),
-        "rsem" => vec!["rsem-calculate-expression", "rsem-prepare-reference", "rsem-plot-model", "rsem-simulate-reads"].iter().map(|s| s.to_string()).collect(),
+        "stringtie" => vec!["merge", "assemble", "estimate"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+        "rsem" => vec![
+            "rsem-calculate-expression",
+            "rsem-prepare-reference",
+            "rsem-plot-model",
+            "rsem-simulate-reads",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
         "trinity" => vec![],
         "spades" => vec![],
         "megahit" => vec![],
@@ -1896,20 +2972,58 @@ pub fn get_known_subcommands_for_tool(tool: &str) -> Vec<String> {
         "canu" => vec![],
         "hifiasm" => vec![],
         "prokka" => vec![],
-        "bakta" => vec!["download", "annotate"].iter().map(|s| s.to_string()).collect(),
-        "checkm2" => vec!["predict", "plot"].iter().map(|s| s.to_string()).collect(),
-        "gtdbtk" => vec!["classify_wf", "infer", "de_novo_wf", "align", "trim_msa", "assign_taxonomy"].iter().map(|s| s.to_string()).collect(),
-        "sourmash" => vec!["compute", "compare", "gather", "search", "index", "categorize", "lca", "tax", "migrate"].iter().map(|s| s.to_string()).collect(),
-        "mash" => vec!["sketch", "dist", "screen"].iter().map(|s| s.to_string()).collect(),
+        "bakta" => vec!["download", "annotate"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+        "checkm2" => vec!["predict", "plot"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+        "gtdbtk" => vec![
+            "classify_wf",
+            "infer",
+            "de_novo_wf",
+            "align",
+            "trim_msa",
+            "assign_taxonomy",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "sourmash" => vec![
+            "compute",
+            "compare",
+            "gather",
+            "search",
+            "index",
+            "categorize",
+            "lca",
+            "tax",
+            "migrate",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "mash" => vec!["sketch", "dist", "screen"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
         "fastani" => vec![],
         "orthofinder" => vec![],
         "iqtree2" => vec![],
         "mafft" => vec![],
-        "muscle" => vec!["-align", "-cluster", "-refine"].iter().map(|s| s.to_string()).collect(),
+        "muscle" => vec!["-align", "-cluster", "-refine"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
         "fasttree" => vec![],
         "admixture" => vec![],
         "shapeit4" => vec![],
-        "pbmm2" => vec!["align", "index", "sort"].iter().map(|s| s.to_string()).collect(),
+        "pbmm2" => vec!["align", "index", "sort"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
         "pbccs" => vec![],
         "porechop" => vec![],
         "chopper" => vec![],
@@ -1921,14 +3035,48 @@ pub fn get_known_subcommands_for_tool(tool: &str) -> Vec<String> {
         "cutadapt" => vec![],
         "fastp" => vec![],
         "mosdepth" => vec![],
-        "qualimap" => vec!["bamqc", "rnaseq", "counts"].iter().map(|s| s.to_string()).collect(),
-        "seqtk" => vec!["sample", "seq", "subseq", "trimfq", "fqchk", "comp", "mergefa", "randbase", "cutN", "listhet"].iter().map(|s| s.to_string()).collect(),
-        "bamtools" => vec!["convert", "sort", "merge", "stats", "index", "split", "coverage", "filter", "random", "header", "count", "resolve"].iter().map(|s| s.to_string()).collect(),
+        "qualimap" => vec!["bamqc", "rnaseq", "counts"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+        "seqtk" => vec![
+            "sample", "seq", "subseq", "trimfq", "fqchk", "comp", "mergefa", "randbase", "cutN",
+            "listhet",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "bamtools" => vec![
+            "convert", "sort", "merge", "stats", "index", "split", "coverage", "filter", "random",
+            "header", "count", "resolve",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
         "tabix" => vec![],
         "vcfanno" => vec![],
-        "bedops" => vec!["convert2bed", "bedintersect", "starch", "unstarch", "sort-bed", "bedmap"].iter().map(|s| s.to_string()).collect(),
-        "sambamba" => vec!["sort", "view", "index", "merge", "markdup", "slice", "flagstat", "depth", "subsamp", "validate"].iter().map(|s| s.to_string()).collect(),
-        "igvtools" => vec!["toTDF", "index", "count", "tile"].iter().map(|s| s.to_string()).collect(),
+        "bedops" => vec![
+            "convert2bed",
+            "bedintersect",
+            "starch",
+            "unstarch",
+            "sort-bed",
+            "bedmap",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "sambamba" => vec![
+            "sort", "view", "index", "merge", "markdup", "slice", "flagstat", "depth", "subsamp",
+            "validate",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "igvtools" => vec!["toTDF", "index", "count", "tile"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
         "metabat2" => vec![],
         "centrifuge" => vec![],
         "metaphlan" => vec![],
@@ -1936,22 +3084,171 @@ pub fn get_known_subcommands_for_tool(tool: &str) -> Vec<String> {
         "repeatmasker" => vec![],
         "augustus" => vec![],
         "prodigal" => vec![],
-        "eggnog-mapper" => vec!["annotate", "download", "diamonddb", "mapper", "join"].iter().map(|s| s.to_string()).collect(),
-        "medaka" => vec!["medaka_consensus", "medaka_variant", "medaka_haploid_variant", "medaka_variant_phase"].iter().map(|s| s.to_string()).collect(),
+        "eggnog-mapper" => vec!["annotate", "download", "diamonddb", "mapper", "join"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+        "medaka" => vec![
+            "medaka_consensus",
+            "medaka_variant",
+            "medaka_haploid_variant",
+            "medaka_variant_phase",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
         "pilon" => vec![],
         "quast" => vec![],
         "busco" => vec![],
         "freebayes" => vec![],
         "longshot" => vec![],
-        "strelka2" => vec!["configureStrelkaGermlineWorkflow.py", "configureStrelkaSomaticWorkflow.py"].iter().map(|s| s.to_string()).collect(),
+        "strelka2" => vec![
+            "configureStrelkaGermlineWorkflow.py",
+            "configureStrelkaSomaticWorkflow.py",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
         "sniffles" => vec![],
-        "pbsv" => vec!["discover", "call"].iter().map(|s| s.to_string()).collect(),
-        "survivor" => vec!["merge", "simSV", "stats"].iter().map(|s| s.to_string()).collect(),
+        "pbsv" => vec!["discover", "call"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+        "survivor" => vec!["merge", "simSV", "stats"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
         "cellsnp-lite" => vec![],
-        "kb" => vec!["ref", "count", "matrix", "info", "test"].iter().map(|s| s.to_string()).collect(),
+        "kb" => vec!["ref", "count", "matrix", "info", "test"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
         "fastq-screen" => vec![],
-        "bbtools" => vec!["reformat.sh", "bbmap.sh", "bbduk.sh", "bbmerge.sh", "bbsplit.sh", "tadpole.sh", "clumpify.sh", "dedupe.sh", "sendsketch.sh", "comparesketch.sh"].iter().map(|s| s.to_string()).collect(),
-        "truvari" => vec!["bench", "compare", "collapse", "normalize", "anno"].iter().map(|s| s.to_string()).collect(),
+        "bbtools" => vec![
+            "reformat.sh",
+            "bbmap.sh",
+            "bbduk.sh",
+            "bbmerge.sh",
+            "bbsplit.sh",
+            "tadpole.sh",
+            "clumpify.sh",
+            "dedupe.sh",
+            "sendsketch.sh",
+            "comparesketch.sh",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
+        "truvari" => vec!["bench", "compare", "collapse", "normalize", "anno"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
         _ => vec![],
+    }
+}
+
+// ─── Deterministic Pre-Processor ───────────────────────────────────────────────
+
+use crate::doc_processor::{FlagEntry, StructuredDoc};
+
+/// Result of deterministic pre-processing — everything computed before the LLM call.
+pub struct PreProcessResult {
+    pub subcommand: Option<String>,
+    pub task_values: TaskValues,
+    pub relevant_flags: Vec<FlagEntry>,
+    pub best_example: Option<String>,
+}
+
+/// Run all deterministic pre-processing steps before the LLM call.
+///
+/// 1. Subcommand detection (rule-based)
+/// 2. Task value extraction (files, numbers)
+/// 3. Flag relevance scoring and selection (top N)
+/// 4. Best example matching
+pub fn pre_process(tool: &str, task: &str, sdoc: &StructuredDoc) -> PreProcessResult {
+    let task_values = extract_task_values(task);
+
+    // 1. Subcommand detection
+    let subcommand = if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
+        let tool_specific = detect_subcommand_for_tool(tool, task, &[]);
+        if tool_specific.is_some()
+            && !tool_specific
+                .as_deref()
+                .unwrap_or("")
+                .starts_with("_NO_SUB_")
+        {
+            tool_specific
+        } else if is_no_subcommand_tool(tool) {
+            None
+        } else {
+            rule_based_subcommand_match(task, &sdoc.subcommands, &sdoc.subcommand_descriptions)
+        }
+    } else {
+        None
+    };
+
+    // 2. Flag relevance scoring
+    let task_lower = task.to_ascii_lowercase();
+    let task_keywords: Vec<&str> = task_lower
+        .split_whitespace()
+        .filter(|w| w.len() >= 3 && !w.contains('.'))
+        .collect();
+
+    let mut scored_flags: Vec<(FlagEntry, i32)> = sdoc
+        .flag_catalog
+        .iter()
+        .map(|f| {
+            let score = if f.required {
+                1000 // Required flags always included
+            } else {
+                let mut s = 0i32;
+                let desc_lower = f.description.to_ascii_lowercase();
+                let flag_lower = f.flag.to_ascii_lowercase();
+                for kw in &task_keywords {
+                    if desc_lower.contains(kw) {
+                        s += 2;
+                    }
+                    if flag_lower.contains(kw) {
+                        s += 1;
+                    }
+                }
+                if desc_lower.contains("output")
+                    && (task_lower.contains("output")
+                        || task_lower.contains("save")
+                        || task_lower.contains("write"))
+                {
+                    s += 3;
+                }
+                if (desc_lower.contains("thread")
+                    || desc_lower.contains("proc")
+                    || desc_lower.contains("cpu"))
+                    && (task_lower.contains("thread")
+                        || task_lower.contains("cpu")
+                        || task_lower.contains("proc")
+                        || task_lower.contains("core"))
+                {
+                    s += 3;
+                }
+                if desc_lower.contains("input") && task_lower.contains("input") {
+                    s += 2;
+                }
+                s
+            };
+            (f.clone(), score)
+        })
+        .collect();
+
+    // Sort by score descending, take top 8
+    scored_flags.sort_by(|a, b| b.1.cmp(&a.1));
+    let relevant_flags: Vec<FlagEntry> = scored_flags.into_iter().take(8).map(|(f, _)| f).collect();
+
+    // 3. Best example — use doc-extracted examples
+    let best_example = sdoc.extracted_examples.first().cloned();
+
+    PreProcessResult {
+        subcommand,
+        task_values,
+        relevant_flags,
+        best_example,
     }
 }

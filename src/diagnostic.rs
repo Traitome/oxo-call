@@ -84,7 +84,14 @@ impl GenerationTrace {
         self.cache_hit = Some(hit);
     }
 
-    pub fn record(&mut self, step: &str, input: &str, output: &str, source: DecisionSource, duration_ms: u64) {
+    pub fn record(
+        &mut self,
+        step: &str,
+        input: &str,
+        output: &str,
+        source: DecisionSource,
+        duration_ms: u64,
+    ) {
         self.steps.push(DecisionStep {
             step: step.to_string(),
             input: input.chars().take(200).collect(),
@@ -119,23 +126,35 @@ impl GenerationTrace {
         self.total_duration_ms = total_ms;
         let tokens: Vec<&str> = args.split_whitespace().collect();
         self.flag_count = Some(tokens.iter().filter(|t| t.starts_with('-')).count());
-        let sub = tokens.first().map(|t| t.to_string()).filter(|t| !t.starts_with('-'));
+        let sub = tokens
+            .first()
+            .map(|t| t.to_string())
+            .filter(|t| !t.starts_with('-'));
         self.subcommand = sub;
     }
 
     pub fn emit(&self) {
         if std::env::var("OXO_CALL_TRACE").is_ok() {
             eprintln!("[trace] === GenerationTrace for {} ===", self.tool);
-            eprintln!("[trace] Task: {}", self.task.chars().take(100).collect::<String>());
+            eprintln!(
+                "[trace] Task: {}",
+                self.task.chars().take(100).collect::<String>()
+            );
             eprintln!("[trace] Model: {} | Tier: {}", self.model, self.prompt_tier);
             for s in &self.steps {
-                eprintln!("[trace]   {} ({:?}): {} -> {} [{}ms]",
-                    s.step, s.source,
+                eprintln!(
+                    "[trace]   {} ({:?}): {} -> {} [{}ms]",
+                    s.step,
+                    s.source,
                     s.input.chars().take(60).collect::<String>(),
                     s.output.chars().take(60).collect::<String>(),
-                    s.duration_ms);
+                    s.duration_ms
+                );
             }
-            eprintln!("[trace] Final: {} [{}ms total]", self.final_args, self.total_duration_ms);
+            eprintln!(
+                "[trace] Final: {} [{}ms total]",
+                self.final_args, self.total_duration_ms
+            );
         }
     }
 
@@ -149,9 +168,14 @@ impl GenerationTrace {
 
     pub fn save_to_file(&self) -> Option<PathBuf> {
         if std::env::var("OXO_CALL_TRACE_DIR").is_ok() {
-            let dir = std::env::var("OXO_CALL_TRACE_DIR").unwrap_or_else(|_| "/tmp/oxo-call-traces".to_string());
+            let dir = std::env::var("OXO_CALL_TRACE_DIR")
+                .unwrap_or_else(|_| "/tmp/oxo-call-traces".to_string());
             let _ = std::fs::create_dir_all(&dir);
-            let filename = format!("{}_{}.json", self.tool, chrono::Utc::now().format("%Y%m%d_%H%M%S"));
+            let filename = format!(
+                "{}_{}.json",
+                self.tool,
+                chrono::Utc::now().format("%Y%m%d_%H%M%S")
+            );
             let path = PathBuf::from(&dir).join(&filename);
             if let Ok(json) = serde_json::to_string_pretty(self) {
                 if std::fs::write(&path, json).is_ok() {
@@ -185,8 +209,20 @@ impl StepTimer {
         trace.record(&self.step, &self.input, output, self.source, duration_ms);
     }
 
-    pub fn finish_with_metadata(self, trace: &mut GenerationTrace, output: &str, metadata: serde_json::Value) {
+    pub fn finish_with_metadata(
+        self,
+        trace: &mut GenerationTrace,
+        output: &str,
+        metadata: serde_json::Value,
+    ) {
         let duration_ms = self.start.elapsed().as_millis() as u64;
-        trace.record_with_metadata(&self.step, &self.input, output, self.source, duration_ms, metadata);
+        trace.record_with_metadata(
+            &self.step,
+            &self.input,
+            output,
+            self.source,
+            duration_ms,
+            metadata,
+        );
     }
 }

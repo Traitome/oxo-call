@@ -88,7 +88,12 @@ pub fn validate_args(args: &[String], structured_doc: &StructuredDoc) -> Validat
                 result.warnings.push(format!(
                     "Subcommand '{}' not found in documentation. Known subcommands: {}",
                     first_positional,
-                    known_cmds.iter().take(10).cloned().collect::<Vec<_>>().join(", ")
+                    known_cmds
+                        .iter()
+                        .take(10)
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 ));
             }
         }
@@ -311,4 +316,50 @@ mod tests {
         // "---" starts with '-', should be skipped
         assert_eq!(cmds, vec!["sort"]);
     }
+}
+
+// ─── Command Safety ────────────────────────────────────────────────────────────
+
+/// Result of a command safety check.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SafetyResult {
+    Safe,
+    Warning(String),
+    Dangerous(String),
+}
+
+/// Validate a generated command string for safety issues before execution.
+pub fn validate_command_safety(full_cmd: &str, tool: &str) -> SafetyResult {
+    let cmd_lower = full_cmd.to_ascii_lowercase();
+
+    // Shell injection patterns
+    let injection_patterns = [";", "$(", "`", "&& rm ", "|| rm ", "| sh ", "| bash "];
+    for pat in &injection_patterns {
+        if cmd_lower.contains(pat) {
+            return SafetyResult::Dangerous(format!(
+                "command contains shell injection pattern: '{}'",
+                pat
+            ));
+        }
+    }
+
+    // Path traversal
+    let dangerous_paths = ["/dev/", "/proc/", "/sys/", "/etc/passwd", "/etc/shadow"];
+    for dp in &dangerous_paths {
+        if cmd_lower.contains(dp) {
+            return SafetyResult::Dangerous(format!("command accesses system path: '{}'", dp));
+        }
+    }
+
+    // Dangerous rm
+    if tool == "rm" && (cmd_lower.contains(" -rf /") || cmd_lower.contains(" -rf ~")) {
+        return SafetyResult::Dangerous("rm -rf on root or home directory".to_string());
+    }
+
+    // Length limit
+    if full_cmd.len() > 4096 {
+        return SafetyResult::Warning("command exceeds 4096 characters".to_string());
+    }
+
+    SafetyResult::Safe
 }

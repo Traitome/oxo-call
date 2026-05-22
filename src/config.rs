@@ -97,27 +97,22 @@ pub struct Config {
     pub server: ServerConfig,
 }
 
-/// Prompt compression tier — controls how aggressively the LLM prompt is
-/// compressed to fit within the model's context budget.
+/// Prompt compression tier — controls the prompt format used.
 ///
 /// - **auto** (default): automatically determine from model size and context window
-/// - **full**: no compression — full system prompt, all skill examples, all docs
-/// - **medium**: medium compression — reduced examples, truncated docs
-/// - **compact**: aggressive compression — compact system prompt, few examples,
-///   docs heavily truncated or omitted.  Uses few-shot assistant messages for
-///   maximum reliability with small models.
+/// - **slim**: unified minimal prompt — no XML, plain ARGS format, ~150-400 tokens.
+///   Optimized for models ≤ 8B.
+/// - **full**: rich detailed prompt — flag catalog, examples, docs (for large models > 8B).
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum PromptTierConfig {
     /// Automatically determine tier from model size and context window.
     #[default]
     Auto,
-    /// No compression — full system prompt, all skill examples, all docs.
+    /// Slim unified prompt — minimal, optimized for ≤ 8B models.
+    Slim,
+    /// Full detailed prompt — rich context for large models.
     Full,
-    /// Medium compression — reduced examples, truncated docs.
-    Medium,
-    /// Aggressive compression — compact system prompt, few examples.
-    Compact,
 }
 
 impl PromptTierConfig {
@@ -125,9 +120,10 @@ impl PromptTierConfig {
     pub fn from_str_loose(s: &str) -> Option<Self> {
         match s.to_ascii_lowercase().as_str() {
             "auto" => Some(Self::Auto),
+            "slim" => Some(Self::Slim),
             "full" => Some(Self::Full),
-            "medium" => Some(Self::Medium),
-            "compact" => Some(Self::Compact),
+            // Legacy aliases
+            "compact" | "medium" => Some(Self::Slim),
             _ => None,
         }
     }
@@ -333,21 +329,24 @@ impl Config {
                 })?
             }
             "llm.prompt_tier" => {
-                self.llm.prompt_tier =
-                    PromptTierConfig::from_str_loose(value).ok_or_else(|| {
-                        OxoError::ConfigError(format!(
-                            "Invalid prompt_tier value: {value}. Valid values: auto, full, medium, compact"
-                        ))
-                    })?
+                self.llm.prompt_tier = PromptTierConfig::from_str_loose(value).ok_or_else(|| {
+                    OxoError::ConfigError(format!(
+                        "Invalid prompt_tier value: {value}. Valid values: auto, slim, full"
+                    ))
+                })?
             }
             "llm.cache_enabled" => {
                 self.llm.cache_enabled = value.parse().map_err(|_| {
-                    OxoError::ConfigError(format!("Invalid cache_enabled value: {value}. Must be true or false"))
+                    OxoError::ConfigError(format!(
+                        "Invalid cache_enabled value: {value}. Must be true or false"
+                    ))
                 })?
             }
             "llm.stream" => {
                 self.llm.stream = value.parse().map_err(|_| {
-                    OxoError::ConfigError(format!("Invalid stream value: {value}. Must be true or false"))
+                    OxoError::ConfigError(format!(
+                        "Invalid stream value: {value}. Must be true or false"
+                    ))
                 })?
             }
             "docs.auto_update" => {
@@ -598,12 +597,10 @@ impl Config {
             "llm.context_window" => Ok(self.effective_context_window().to_string()),
             "llm.prompt_tier" => {
                 let tier = self.effective_prompt_tier();
-                // Show both the effective tier and the configured value
                 let configured = match &self.llm.prompt_tier {
                     PromptTierConfig::Auto => "auto".to_string(),
+                    PromptTierConfig::Slim => "slim".to_string(),
                     PromptTierConfig::Full => "full".to_string(),
-                    PromptTierConfig::Medium => "medium".to_string(),
-                    PromptTierConfig::Compact => "compact".to_string(),
                 };
                 Ok(format!("{configured} (effective: {tier:?})"))
             }
@@ -1028,9 +1025,8 @@ fn has_param_tag(model: &str, tags: &[&str]) -> bool {
 fn config_tier_to_llm_tier(tier: &PromptTierConfig) -> crate::llm::PromptTier {
     match tier {
         PromptTierConfig::Full => crate::llm::PromptTier::Full,
-        PromptTierConfig::Medium => crate::llm::PromptTier::Medium,
-        PromptTierConfig::Compact => crate::llm::PromptTier::Compact,
-        PromptTierConfig::Auto => crate::llm::PromptTier::Full, // fallback, shouldn't reach here
+        PromptTierConfig::Slim => crate::llm::PromptTier::Slim,
+        PromptTierConfig::Auto => crate::llm::PromptTier::Slim, // fallback for small/unknown models
     }
 }
 

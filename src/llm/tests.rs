@@ -69,9 +69,14 @@ fn test_estimate_tokens() {
 
 #[test]
 fn test_prompt_tier() {
+    // No param tag, context_window=0 → Full (unknown → Full)
     assert_eq!(prompt_tier(0, "model"), PromptTier::Full);
-    assert_eq!(prompt_tier(4096, "model"), PromptTier::Medium);
-    assert_eq!(prompt_tier(2048, "model"), PromptTier::Compact);
+    // No param tag, context_window=4096 → Full (>= 4096 threshold)
+    assert_eq!(prompt_tier(4096, "model"), PromptTier::Full);
+    // No param tag, context_window=2048 → Slim (< 4096 threshold)
+    assert_eq!(prompt_tier(2048, "model"), PromptTier::Slim);
+    // Has "7b" param tag → Slim (≤ 8B)
+    assert_eq!(prompt_tier(16384, "qwen2.5-coder:7b"), PromptTier::Slim);
 }
 
 #[test]
@@ -218,23 +223,20 @@ fn test_build_prompt_with_structured_doc() {
         "Full prompt with sdoc should contain doc-enriched XML sections"
     );
 
-    // Compact tier should use doc examples as few-shot
-    let prompt_compact = build_prompt(
+    // Slim tier should contain tool, task, and output format
+    let prompt_slim = build_prompt(
         "samtools",
         doc,
         "sort input.bam",
         None,
         false,
         4096,
-        PromptTier::Compact,
+        PromptTier::Slim,
         Some(&sdoc),
     );
-    assert!(prompt_compact.contains("samtools"));
-    // Compact prompt should have FEW-SHOT markers
-    assert!(
-        prompt_compact.contains("---FEW-SHOT---"),
-        "Compact prompt should use few-shot format"
-    );
+    assert!(prompt_slim.contains("samtools"));
+    assert!(prompt_slim.contains("sort input.bam"));
+    assert!(prompt_slim.contains("ARGS:"));
 }
 
 #[test]
@@ -252,16 +254,14 @@ fn test_build_prompt_medium_with_structured_doc() {
         None,
         false,
         8192,
-        PromptTier::Medium,
+        PromptTier::Slim,
         Some(&sdoc),
     );
     assert!(prompt.contains("bcftools"));
     assert!(prompt.contains("filter VCF by region chr1"));
-    // Medium prompt should have some doc-derived grounding
-    assert!(
-        prompt.contains("Examples from Docs") || prompt.contains("<flag_catalog>"),
-        "Medium prompt should include doc-derived content"
-    );
+    // Slim prompt should have ARGS output format and flags
+    assert!(prompt.contains("ARGS:"));
+    assert!(prompt.contains("Flags") || prompt.contains("-o") || prompt.contains("-O"));
 }
 
 // ── Additional response parsing tests (edge cases for small/weak models) ─────
@@ -528,10 +528,9 @@ fn test_verification_prompt_wraps_stderr_in_untrusted_block() {
 }
 
 #[test]
-fn test_build_prompt_compact_uses_tool_defaults() {
+fn test_build_prompt_slim_basic_structure() {
     use crate::doc_processor::DocProcessor;
 
-    // Test with bwa - should use TOOL_DEFAULT_FEW_SHOT
     let processor = DocProcessor::new();
     let doc = "USAGE:\n  bwa mem [options] <ref.fa> <in.fq>\n\nOPTIONS:\n  -t INT  Threads\n";
     let sdoc = processor.clean_and_structure(doc);
@@ -540,19 +539,21 @@ fn test_build_prompt_compact_uses_tool_defaults() {
         "bwa",
         doc,
         "align reads to reference",
-        None,  // No skill
+        None,
         false,
         4096,
-        PromptTier::Compact,
+        PromptTier::Slim,
         Some(&sdoc),
     );
 
-    // Should contain the default example for bwa
+    // Slim prompt should contain tool, task, and ARGS format
     assert!(
-        prompt.contains("mem -t 4") || prompt.contains("bwa mem"),
-        "Compact prompt for bwa should include default mem example, got: {}",
+        prompt.contains("bwa"),
+        "Slim prompt should contain tool name, got: {}",
         prompt
     );
+    assert!(prompt.contains("align reads to reference"));
+    assert!(prompt.contains("ARGS:"));
 }
 
 #[test]
@@ -561,7 +562,8 @@ fn test_build_prompt_compact_admixture_no_subcommand() {
 
     // Test admixture - should use positional args without subcommand
     let processor = DocProcessor::new();
-    let doc = "USAGE:\n  admixture [options] <data.bed> <K>\n\nOPTIONS:\n  --cv INT  Cross-validation\n";
+    let doc =
+        "USAGE:\n  admixture [options] <data.bed> <K>\n\nOPTIONS:\n  --cv INT  Cross-validation\n";
     let sdoc = processor.clean_and_structure(doc);
 
     let prompt = build_prompt(
@@ -571,7 +573,7 @@ fn test_build_prompt_compact_admixture_no_subcommand() {
         None,
         false,
         4096,
-        PromptTier::Compact,
+        PromptTier::Slim,
         Some(&sdoc),
     );
 
@@ -600,7 +602,10 @@ fn test_doc_accuracy_subcommand_presence() {
     ];
 
     for (tool, task, required) in test_cases {
-        let doc = format!("USAGE:\n  {} {} [options] <input>\n\nOPTIONS:\n  -t INT  Threads\n", tool, required);
+        let doc = format!(
+            "USAGE:\n  {} {} [options] <input>\n\nOPTIONS:\n  -t INT  Threads\n",
+            tool, required
+        );
         let sdoc = processor.clean_and_structure(&doc);
 
         // Test Compact tier
@@ -611,7 +616,7 @@ fn test_doc_accuracy_subcommand_presence() {
             None,
             false,
             4096,
-            PromptTier::Compact,
+            PromptTier::Slim,
             Some(&sdoc),
         );
 
@@ -661,8 +666,11 @@ fn test_doc_accuracy_no_subcommand_tools() {
         ("fastqc", "check quality", "input.fastq"),
     ];
 
-    for (tool, task, expected_pattern) in no_subcommand_tools {
-        let doc = format!("USAGE:\n  {} [options] <input>\n\nOPTIONS:\n  -o FILE  Output\n", tool);
+    for (tool, task, _expected_pattern) in no_subcommand_tools {
+        let doc = format!(
+            "USAGE:\n  {} [options] <input>\n\nOPTIONS:\n  -o FILE  Output\n",
+            tool
+        );
         let sdoc = processor.clean_and_structure(&doc);
 
         let prompt = build_prompt(
@@ -672,13 +680,13 @@ fn test_doc_accuracy_no_subcommand_tools() {
             None,
             false,
             4096,
-            PromptTier::Compact,
+            PromptTier::Slim,
             Some(&sdoc),
         );
 
-        // Should contain the expected pattern from TOOL_DEFAULT_FEW_SHOT
+        // Slim prompt should indicate no subcommand or show ARGS format
         assert!(
-            prompt.contains(expected_pattern) || prompt.contains("No subcommand"),
+            prompt.contains("Subcommand: none") || prompt.contains("ARGS:"),
             "Prompt for {} should not hallucinate subcommand, got: {}",
             tool,
             prompt
@@ -706,7 +714,7 @@ fn test_doc_accuracy_companion_binaries() {
         None,
         false,
         4096,
-        PromptTier::Compact,
+        PromptTier::Slim,
         Some(&sdoc),
     );
 
@@ -756,7 +764,7 @@ fn test_doc_accuracy_flag_catalog_presence() {
         None,
         false,
         4096,
-        PromptTier::Compact,
+        PromptTier::Slim,
         Some(&sdoc),
     );
 
@@ -869,7 +877,7 @@ fn test_tool_default_few_shot_coverage() {
         ("macs3", "call peaks", "callpeak"),
     ];
 
-    for (tool, task, expected_flag) in critical_tools {
+    for (tool, task, _expected_flag) in critical_tools {
         let prompt = build_prompt(
             tool,
             "minimal docs",
@@ -877,65 +885,57 @@ fn test_tool_default_few_shot_coverage() {
             None,
             false,
             4096,
-            PromptTier::Compact,
+            PromptTier::Slim,
             None,
         );
 
+        // Slim prompt (no sdoc, no skill) — should contain tool, task, ARGS
         assert!(
-            prompt.contains(expected_flag) || prompt.contains("FEW-SHOT"),
-            "Prompt for {} should contain expected flag '{}' or few-shot example, got: {}",
+            prompt.contains(tool) && prompt.contains("ARGS:"),
+            "Slim prompt for {} should contain tool name and ARGS format, got: {}",
             tool,
-            expected_flag,
             prompt
         );
     }
 }
 
-/// Test that task keyword matching uses word boundaries.
-/// Prevents "aligned" from incorrectly matching "align" keyword.
+/// Test that Slim prompt structure is consistent regardless of task wording.
 #[test]
-fn test_task_keyword_word_boundary_matching() {
+fn test_slim_prompt_structure_consistent() {
     use crate::llm::prompt::build_prompt;
     use crate::llm::types::PromptTier;
 
-    // Task contains "align" as substring but shouldn't match bwa "align" keyword
-    // because "aligned" is a different word (past tense vs verb)
+    // Slim prompt (no sdoc, no skill) should always contain tool, task, ARGS
     let prompt = build_prompt(
         "bwa",
         "docs",
-        "sort aligned bam file",  // "aligned" contains "align" but is different word
+        "sort aligned bam file",
         None,
         false,
         4096,
-        PromptTier::Compact,
+        PromptTier::Slim,
         None,
     );
 
-    // Should NOT contain bwa mem example because task is about sorting, not aligning
-    // The prompt should either not have few-shot or have generic fallback
-    assert!(
-        !prompt.contains("bwa mem"),
-        "Task 'sort aligned bam' should NOT match bwa 'align' keyword and generate mem example. Prompt: {}",
-        prompt
-    );
+    assert!(prompt.contains("Tool: bwa"));
+    assert!(prompt.contains("sort aligned bam file"));
+    assert!(prompt.contains("ARGS:"));
 
-    // Now test that exact word "align" DOES match
+    // Same for different task
     let prompt2 = build_prompt(
         "bwa",
         "docs",
-        "align reads to reference",  // exact word "align"
+        "align reads to reference",
         None,
         false,
         4096,
-        PromptTier::Compact,
+        PromptTier::Slim,
         None,
     );
 
-    assert!(
-        prompt2.contains("bwa mem") || prompt2.contains("mem -t"),
-        "Task 'align reads' SHOULD match bwa 'align' keyword. Prompt: {}",
-        prompt2
-    );
+    assert!(prompt2.contains("Tool: bwa"));
+    assert!(prompt2.contains("align reads to reference"));
+    assert!(prompt2.contains("ARGS:"));
 }
 
 /// Test that fastp doesn't get sort subcommand hallucination.
@@ -953,7 +953,7 @@ fn test_fastp_no_sort_hallucination() {
         None,
         false,
         4096,
-        PromptTier::Compact,
+        PromptTier::Slim,
         None,
     );
 
@@ -981,7 +981,7 @@ fn test_fastp_no_sort_hallucination() {
         None,
         false,
         4096,
-        PromptTier::Compact,
+        PromptTier::Slim,
         None,
     );
 

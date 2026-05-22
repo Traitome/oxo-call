@@ -104,7 +104,11 @@ fn ensure_valid_subcommand(args_str: &str, sdoc: &StructuredDoc, task: Option<&s
 
     // Case-insensitive subcommand match
     let first_lower = first.to_ascii_lowercase();
-    if let Some(matched) = sdoc.subcommands.iter().find(|s| s.eq_ignore_ascii_case(&first_lower)) {
+    if let Some(matched) = sdoc
+        .subcommands
+        .iter()
+        .find(|s| s.eq_ignore_ascii_case(&first_lower))
+    {
         let mut result = vec![matched.clone()];
         result.extend(tokens.into_iter().skip(1));
         return result.join(" ");
@@ -127,7 +131,11 @@ fn ensure_valid_subcommand(args_str: &str, sdoc: &StructuredDoc, task: Option<&s
     if working_tokens.is_empty() {
         // Only had a hallucinated token, try task-based subcommand selection
         if let Some(task_str) = task {
-            if let Some(sub) = find_best_subcommand_for_task(&sdoc.subcommands, &sdoc.subcommand_descriptions, task_str) {
+            if let Some(sub) = find_best_subcommand_for_task(
+                &sdoc.subcommands,
+                &sdoc.subcommand_descriptions,
+                task_str,
+            ) {
                 return sub;
             }
         }
@@ -144,7 +152,11 @@ fn ensure_valid_subcommand(args_str: &str, sdoc: &StructuredDoc, task: Option<&s
 
     // Case-insensitive check on working tokens
     let wt0_lower = working_tokens[0].to_ascii_lowercase();
-    if let Some(matched) = sdoc.subcommands.iter().find(|s| s.eq_ignore_ascii_case(&wt0_lower)) {
+    if let Some(matched) = sdoc
+        .subcommands
+        .iter()
+        .find(|s| s.eq_ignore_ascii_case(&wt0_lower))
+    {
         let mut result = vec![matched.clone()];
         result.extend(working_tokens.iter().skip(1).map(|s| s.to_string()));
         return result.join(" ");
@@ -152,7 +164,11 @@ fn ensure_valid_subcommand(args_str: &str, sdoc: &StructuredDoc, task: Option<&s
 
     // Need to prepend a subcommand - try task-based selection first
     if let Some(task_str) = task {
-        if let Some(sub) = find_best_subcommand_for_task(&sdoc.subcommands, &sdoc.subcommand_descriptions, task_str) {
+        if let Some(sub) = find_best_subcommand_for_task(
+            &sdoc.subcommands,
+            &sdoc.subcommand_descriptions,
+            task_str,
+        ) {
             let mut result = vec![sub];
             result.extend(working_tokens.iter().map(|s| s.to_string()));
             return result.join(" ");
@@ -207,24 +223,45 @@ fn find_best_subcommand(subcommands: &[String], tokens: &[&str]) -> Option<Strin
         (&["index", "indexing"], &["index"]),
         (&["view", "convert", "extract"], &["view"]),
         (&["merge", "combine", "join"], &["merge", "concat"]),
-        (&["call", "genotype"], &["call", "mpileup2cns", "mpileup2snp"]),
+        (
+            &["call", "genotype"],
+            &["call", "mpileup2cns", "mpileup2snp"],
+        ),
         (&["align", "mapping", "map"], &["mem", "align", "map"]),
         (&["quantify", "count"], &["count", "quant"]),
         (&["peak", "callpeak"], &["callpeak", "findPeaks"]),
         (&["annotate"], &["annotate", "ann"]),
-        (&["coverage", "depth"], &["depth", "coverage", "bamCoverage"]),
-        (&["duplicate", "dedup", "markdup"], &["MarkDuplicates", "markdup", "deduplicate_bismark", "rmdup"]),
+        (
+            &["coverage", "depth"],
+            &["depth", "coverage", "bamCoverage"],
+        ),
+        (
+            &["duplicate", "dedup", "markdup"],
+            &["MarkDuplicates", "markdup", "deduplicate_bismark", "rmdup"],
+        ),
         (&["fastq", "bam2fq"], &["bam2fq"]),
         (&["stats", "statistics"], &["stats", "flagstat", "idxstats"]),
         (&["motif"], &["findMotifsGenome"]),
         (&["methylation"], &["bismark_methylation_extractor"]),
-        (&["genome", "prepare"], &["bismark_genome_preparation", "genomeGenerate"]),
-        (&["download", "prefetch"], &["prefetch", "fasterq-dump", "fastq-dump"]),
-        (&["build", "database"], &["build", "bakta_db", "hmmpress", "makeblastdb"]),
+        (
+            &["genome", "prepare"],
+            &["bismark_genome_preparation", "genomeGenerate"],
+        ),
+        (
+            &["download", "prefetch"],
+            &["prefetch", "fasterq-dump", "fastq-dump"],
+        ),
+        (
+            &["build", "database"],
+            &["build", "bakta_db", "hmmpress", "makeblastdb"],
+        ),
         (&["classify"], &["classify_wf", "classify"]),
         (&["plot", "heatmap"], &["plotHeatmap", "plotProfile"]),
         (&["matrix"], &["computeMatrix"]),
-        (&["filter", "select"], &["filter", "SelectVariants", "VariantFiltration"]),
+        (
+            &["filter", "select"],
+            &["filter", "SelectVariants", "VariantFiltration"],
+        ),
         (&["somatic"], &["Mutect2", "somatic"]),
         (&["haplotype", "germline"], &["HaplotypeCaller"]),
         (&["bamqc"], &["bamqc"]),
@@ -233,8 +270,14 @@ fn find_best_subcommand(subcommands: &[String], tokens: &[&str]) -> Option<Strin
         (&["computematrix"], &["computeMatrix"]),
         (&["plotheatmap"], &["plotHeatmap"]),
         (&["plotprofile"], &["plotProfile"]),
-        (&["prepare", "reference", "rsem"], &["rsem-prepare-reference"]),
-        (&["calculate", "expression", "rsem"], &["rsem-calculate-expression"]),
+        (
+            &["prepare", "reference", "rsem"],
+            &["rsem-prepare-reference"],
+        ),
+        (
+            &["calculate", "expression", "rsem"],
+            &["rsem-calculate-expression"],
+        ),
         (&["PE", "paired"], &["PE"]),
         (&["SE", "single"], &["SE"]),
         (&["realSFS", "sfs"], &["realSFS"]),
@@ -258,11 +301,16 @@ fn find_best_subcommand(subcommands: &[String], tokens: &[&str]) -> Option<Strin
 
     let all_tokens_lower = token_lower.join(" ");
     for (task_synonyms, sub_synonyms) in synonym_map {
-        let any_match = task_synonyms.iter().any(|syn| all_tokens_lower.contains(syn));
+        let any_match = task_synonyms
+            .iter()
+            .any(|syn| all_tokens_lower.contains(syn));
         if any_match {
             for sub in subcommands {
                 let sub_lower = sub.to_ascii_lowercase();
-                if sub_synonyms.iter().any(|syn| sub_lower == *syn || sub_lower.contains(syn)) {
+                if sub_synonyms
+                    .iter()
+                    .any(|syn| sub_lower == *syn || sub_lower.contains(syn))
+                {
                     return Some(sub.clone());
                 }
             }
@@ -289,7 +337,8 @@ fn find_best_subcommand_for_task(
 
     for sub in subcommands {
         let sub_lower = sub.to_ascii_lowercase();
-        let sub_base: Vec<&str> = sub_lower.split(|c: char| c == '_' || c == '-')
+        let sub_base: Vec<&str> = sub_lower
+            .split(|c: char| c == '_' || c == '-')
             .filter(|p| p.len() >= 3)
             .collect();
         for part in &sub_base {
@@ -304,24 +353,45 @@ fn find_best_subcommand_for_task(
         (&["index", "indexing"], &["index"]),
         (&["view", "convert", "extract"], &["view"]),
         (&["merge", "combine", "join"], &["merge", "concat"]),
-        (&["call", "genotype"], &["call", "mpileup2cns", "mpileup2snp"]),
+        (
+            &["call", "genotype"],
+            &["call", "mpileup2cns", "mpileup2snp"],
+        ),
         (&["align", "mapping", "map"], &["mem", "align", "map"]),
         (&["quantify", "count"], &["count", "quant"]),
         (&["peak", "callpeak"], &["callpeak", "findPeaks"]),
         (&["annotate"], &["annotate", "ann"]),
-        (&["coverage", "depth"], &["depth", "coverage", "bamCoverage"]),
-        (&["duplicate", "dedup", "markdup"], &["MarkDuplicates", "markdup", "deduplicate_bismark", "rmdup"]),
+        (
+            &["coverage", "depth"],
+            &["depth", "coverage", "bamCoverage"],
+        ),
+        (
+            &["duplicate", "dedup", "markdup"],
+            &["MarkDuplicates", "markdup", "deduplicate_bismark", "rmdup"],
+        ),
         (&["fastq", "bam2fq"], &["bam2fq"]),
         (&["stats", "statistics"], &["stats", "flagstat", "idxstats"]),
         (&["motif"], &["findMotifsGenome"]),
         (&["methylation"], &["bismark_methylation_extractor"]),
-        (&["genome", "prepare"], &["bismark_genome_preparation", "genomeGenerate"]),
-        (&["download", "prefetch"], &["prefetch", "fasterq-dump", "fastq-dump"]),
-        (&["build", "database"], &["build", "bakta_db", "hmmpress", "makeblastdb"]),
+        (
+            &["genome", "prepare"],
+            &["bismark_genome_preparation", "genomeGenerate"],
+        ),
+        (
+            &["download", "prefetch"],
+            &["prefetch", "fasterq-dump", "fastq-dump"],
+        ),
+        (
+            &["build", "database"],
+            &["build", "bakta_db", "hmmpress", "makeblastdb"],
+        ),
         (&["classify"], &["classify_wf", "classify"]),
         (&["plot", "heatmap"], &["plotHeatmap", "plotProfile"]),
         (&["matrix"], &["computeMatrix"]),
-        (&["filter", "select"], &["filter", "SelectVariants", "VariantFiltration"]),
+        (
+            &["filter", "select"],
+            &["filter", "SelectVariants", "VariantFiltration"],
+        ),
         (&["somatic"], &["Mutect2", "somatic"]),
         (&["haplotype", "germline"], &["HaplotypeCaller"]),
         (&["bamqc"], &["bamqc"]),
@@ -330,8 +400,14 @@ fn find_best_subcommand_for_task(
         (&["computematrix"], &["computeMatrix"]),
         (&["plotheatmap"], &["plotHeatmap"]),
         (&["plotprofile"], &["plotProfile"]),
-        (&["prepare", "reference", "rsem"], &["rsem-prepare-reference"]),
-        (&["calculate", "expression", "rsem"], &["rsem-calculate-expression"]),
+        (
+            &["prepare", "reference", "rsem"],
+            &["rsem-prepare-reference"],
+        ),
+        (
+            &["calculate", "expression", "rsem"],
+            &["rsem-calculate-expression"],
+        ),
         (&["PE", "paired"], &["PE"]),
         (&["SE", "single"], &["SE"]),
         (&["realSFS", "sfs"], &["realSFS"]),
@@ -357,7 +433,10 @@ fn find_best_subcommand_for_task(
         if any_match {
             for sub in subcommands {
                 let sub_lower = sub.to_ascii_lowercase();
-                if sub_synonyms.iter().any(|syn| sub_lower == *syn || sub_lower.contains(syn)) {
+                if sub_synonyms
+                    .iter()
+                    .any(|syn| sub_lower == *syn || sub_lower.contains(syn))
+                {
                     return Some(sub.clone());
                 }
             }
@@ -372,11 +451,20 @@ fn find_best_subcommand_for_task(
 
         if let Some((_, desc)) = subcommand_descriptions.iter().find(|(s, _)| s == sub) {
             let desc_lower = desc.to_ascii_lowercase();
-            let desc_words: Vec<&str> = desc_lower.split_whitespace()
+            let desc_words: Vec<&str> = desc_lower
+                .split_whitespace()
                 .filter(|w| w.len() >= 3)
                 .collect();
-            let task_significant: Vec<&str> = task_words.iter()
-                .filter(|w| w.len() >= 3 && !["with", "from", "into", "using", "also", "then", "that", "this", "which", "where", "when", "for", "the", "and"].contains(w))
+            let task_significant: Vec<&str> = task_words
+                .iter()
+                .filter(|w| {
+                    w.len() >= 3
+                        && ![
+                            "with", "from", "into", "using", "also", "then", "that", "this",
+                            "which", "where", "when", "for", "the", "and",
+                        ]
+                        .contains(w)
+                })
                 .copied()
                 .collect();
             for tw in &task_significant {
@@ -418,23 +506,61 @@ fn remove_hallucinated_subcommands(args_str: &str, sdoc: &StructuredDoc) -> Stri
     }
 
     if !sdoc.flag_catalog.is_empty() {
-        let flag_known = sdoc.flag_catalog.iter().any(|e| {
-            e.flag == first_token || e.alt_form.as_deref() == Some(first_token)
-        });
+        let flag_known = sdoc
+            .flag_catalog
+            .iter()
+            .any(|e| e.flag == first_token || e.alt_form.as_deref() == Some(first_token));
         if flag_known {
             return args_str.to_string();
         }
     }
 
     const HALLUCINATED_SUBCOMMANDS: &[&str] = &[
-        "run", "process", "analyze", "analysis", "generate", "compute", "extract",
-        "convert", "report", "profile", "prepare", "quantify",
-        "assurance", "discover", "execute", "perform", "evaluate", "assess",
-        "check", "validate", "detect", "identify", "classify", "predict",
-        "assemble", "annotate", "visualize",
-        "download", "install", "update", "configure", "initialize", "setup",
-        "create", "delete", "remove", "modify", "export", "import",
-        "train", "test", "debug", "optimize", "benchmark", "simulate",
+        "run",
+        "process",
+        "analyze",
+        "analysis",
+        "generate",
+        "compute",
+        "extract",
+        "convert",
+        "report",
+        "profile",
+        "prepare",
+        "quantify",
+        "assurance",
+        "discover",
+        "execute",
+        "perform",
+        "evaluate",
+        "assess",
+        "check",
+        "validate",
+        "detect",
+        "identify",
+        "classify",
+        "predict",
+        "assemble",
+        "annotate",
+        "visualize",
+        "download",
+        "install",
+        "update",
+        "configure",
+        "initialize",
+        "setup",
+        "create",
+        "delete",
+        "remove",
+        "modify",
+        "export",
+        "import",
+        "train",
+        "test",
+        "debug",
+        "optimize",
+        "benchmark",
+        "simulate",
     ];
 
     if HALLUCINATED_SUBCOMMANDS.contains(&first_token.to_lowercase().as_str()) {
@@ -442,7 +568,8 @@ fn remove_hallucinated_subcommands(args_str: &str, sdoc: &StructuredDoc) -> Stri
     }
 
     if !first_token.starts_with('-') && !first_token.contains('.') && !first_token.contains('/') {
-        let looks_like_word = first_token.chars().all(|c| c.is_ascii_alphabetic()) && first_token.len() > 2;
+        let looks_like_word =
+            first_token.chars().all(|c| c.is_ascii_alphabetic()) && first_token.len() > 2;
         if looks_like_word {
             let has_matching_flag = sdoc.flag_catalog.iter().any(|e| {
                 let flag_lower = e.flag.to_lowercase();
@@ -486,9 +613,7 @@ fn is_valid_first_token_no_subcommand(token: &str, sdoc: &StructuredDoc) -> bool
     {
         return true;
     }
-    if !sdoc.companion_binaries.is_empty()
-        && sdoc.companion_binaries.iter().any(|cb| cb == token)
-    {
+    if !sdoc.companion_binaries.is_empty() && sdoc.companion_binaries.iter().any(|cb| cb == token) {
         return true;
     }
     false
@@ -507,24 +632,26 @@ fn add_missing_required_flags(args_str: &str, sdoc: &StructuredDoc) -> String {
             continue;
         }
 
-        let flag_present = args_str.split_whitespace().any(|t| {
-            t == entry.flag || t.starts_with(&format!("{}=", entry.flag))
-        });
+        let flag_present = args_str
+            .split_whitespace()
+            .any(|t| t == entry.flag || t.starts_with(&format!("{}=", entry.flag)));
 
         if flag_present {
             continue;
         }
 
         if let Some(ref alt) = entry.alt_form {
-            let alt_present = args_str.split_whitespace().any(|t| {
-                t == alt || t.starts_with(&format!("{}=", alt))
-            });
+            let alt_present = args_str
+                .split_whitespace()
+                .any(|t| t == alt || t.starts_with(&format!("{}=", alt)));
             if alt_present {
                 continue;
             }
         }
 
-        let default_val = entry.default.as_deref()
+        let default_val = entry
+            .default
+            .as_deref()
             .map(String::from)
             .unwrap_or_else(|| infer_default_value(entry));
 
@@ -544,22 +671,40 @@ fn infer_default_value(entry: &crate::doc_processor::FlagEntry) -> String {
     let flag_lower = entry.flag.to_lowercase();
     let desc_lower = entry.description.to_lowercase();
 
-    if flag_lower.contains("-t") || flag_lower.contains("--thread") || flag_lower.contains("-@") || desc_lower.contains("thread") || desc_lower.contains("number of threads") {
+    if flag_lower.contains("-t")
+        || flag_lower.contains("--thread")
+        || flag_lower.contains("-@")
+        || desc_lower.contains("thread")
+        || desc_lower.contains("number of threads")
+    {
         return "4".to_string();
     }
-    if flag_lower.contains("-d") || flag_lower.contains("--outdir") || flag_lower.contains("--output-dir") || flag_lower.contains("--output_dir") {
+    if flag_lower.contains("-d")
+        || flag_lower.contains("--outdir")
+        || flag_lower.contains("--output-dir")
+        || flag_lower.contains("--output_dir")
+    {
         return "output/".to_string();
     }
     if desc_lower.contains("memory") || desc_lower.contains("ram") {
         return "4G".to_string();
     }
-    if flag_lower.contains("--runmode") || flag_lower.contains("--run-mode") || desc_lower.contains("runmode") {
+    if flag_lower.contains("--runmode")
+        || flag_lower.contains("--run-mode")
+        || desc_lower.contains("runmode")
+    {
         return "alignReads".to_string();
     }
-    if flag_lower.contains("--outsamtype") || desc_lower.contains("outsamtype") || desc_lower.contains("output sam type") {
+    if flag_lower.contains("--outsamtype")
+        || desc_lower.contains("outsamtype")
+        || desc_lower.contains("output sam type")
+    {
         return "BAM SortedByCoordinate".to_string();
     }
-    if flag_lower.contains("--readfilescommand") || desc_lower.contains("readfilescommand") || desc_lower.contains("read files command") {
+    if flag_lower.contains("--readfilescommand")
+        || desc_lower.contains("readfilescommand")
+        || desc_lower.contains("read files command")
+    {
         return "zcat".to_string();
     }
     if flag_lower.contains("--species") || desc_lower.contains("species") {
@@ -568,10 +713,12 @@ fn infer_default_value(entry: &crate::doc_processor::FlagEntry) -> String {
     if flag_lower.contains("--kingdom") || desc_lower.contains("kingdom") {
         return "Bacteria".to_string();
     }
-    if flag_lower.contains("--preset") || flag_lower.contains("-x") || desc_lower.contains("preset") {
+    if flag_lower.contains("--preset") || flag_lower.contains("-x") || desc_lower.contains("preset")
+    {
         return "map-ont".to_string();
     }
-    if flag_lower.contains("--format") || flag_lower.contains("-f") && desc_lower.contains("format") {
+    if flag_lower.contains("--format") || flag_lower.contains("-f") && desc_lower.contains("format")
+    {
         if !entry.enum_values.is_empty() {
             return entry.enum_values[0].clone();
         }
@@ -581,7 +728,12 @@ fn infer_default_value(entry: &crate::doc_processor::FlagEntry) -> String {
     }
     if let Some(ref vt) = entry.value_type {
         let vt_lower = vt.to_lowercase();
-        if vt_lower == "int" || vt_lower == "integer" || vt_lower == "num" || vt_lower == "number" || vt_lower == "n" {
+        if vt_lower == "int"
+            || vt_lower == "integer"
+            || vt_lower == "num"
+            || vt_lower == "number"
+            || vt_lower == "n"
+        {
             return "1".to_string();
         }
         if vt_lower == "float" || vt_lower == "double" {
@@ -707,7 +859,7 @@ fn remove_duplicate_flags(args_str: &str) -> String {
 fn is_likely_subcommand(token: &str) -> bool {
     let sdoc = StructuredDoc {
         has_subcommands: false,
-            subcommand_descriptions: Vec::new(),
+        subcommand_descriptions: Vec::new(),
         ..Default::default()
     };
     !is_valid_first_token_no_subcommand(token, &sdoc)
@@ -750,10 +902,22 @@ mod tests {
             has_subcommands: false,
             ..Default::default()
         };
-        assert_eq!(remove_hallucinated_subcommands("-i data.bed", &sdoc), "-i data.bed");
-        assert_eq!(remove_hallucinated_subcommands("data.bed 5", &sdoc), "data.bed 5");
-        assert_eq!(remove_hallucinated_subcommands("5 data.bed", &sdoc), "5 data.bed");
-        assert_eq!(remove_hallucinated_subcommands("/path/to/file", &sdoc), "/path/to/file");
+        assert_eq!(
+            remove_hallucinated_subcommands("-i data.bed", &sdoc),
+            "-i data.bed"
+        );
+        assert_eq!(
+            remove_hallucinated_subcommands("data.bed 5", &sdoc),
+            "data.bed 5"
+        );
+        assert_eq!(
+            remove_hallucinated_subcommands("5 data.bed", &sdoc),
+            "5 data.bed"
+        );
+        assert_eq!(
+            remove_hallucinated_subcommands("/path/to/file", &sdoc),
+            "/path/to/file"
+        );
     }
 
     #[test]
@@ -763,7 +927,8 @@ mod tests {
             companion_binaries: vec!["rsem-prepare-reference".to_string()],
             ..Default::default()
         };
-        let result = remove_hallucinated_subcommands("rsem-prepare-reference --gtf a.gtf ref.fa idx", &sdoc);
+        let result =
+            remove_hallucinated_subcommands("rsem-prepare-reference --gtf a.gtf ref.fa idx", &sdoc);
         assert!(result.contains("rsem-prepare-reference"));
     }
 
@@ -808,7 +973,7 @@ mod tests {
             has_subcommands: false,
             subcommand_descriptions: Vec::new(),
             subcommands: vec![],
-            
+
             flag_catalog: vec![],
             ..Default::default()
         };

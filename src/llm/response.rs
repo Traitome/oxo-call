@@ -535,7 +535,15 @@ pub fn try_parse_json_response(raw: &str) -> Option<LlmCommandSuggestion> {
                     args.push(key.to_string());
                 } else if let Some(n) = val.as_f64() {
                     if key.contains('=') {
-                        args.push(format!("{}{}", key, if n == n.floor() { (n as i64).to_string() } else { n.to_string() }));
+                        args.push(format!(
+                            "{}{}",
+                            key,
+                            if n == n.floor() {
+                                (n as i64).to_string()
+                            } else {
+                                n.to_string()
+                            }
+                        ));
                     } else {
                         args.push(key.to_string());
                         args.push(if n == n.floor() {

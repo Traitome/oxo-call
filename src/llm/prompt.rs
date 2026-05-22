@@ -55,6 +55,11 @@ pub fn system_prompt_compact() -> &'static str {
      Rules: subcommand in \"subcommand\". Never tool name. Use ONLY flags from examples. Boolean flags use true. ONLY required flags. No extra flags."
 }
 
+/// Slim unified system prompt — minimal, all models ≤ 8B.
+pub fn system_prompt_slim() -> &'static str {
+    "You are a CLI expert. Convert tasks to exact command-line arguments. Output ONLY: ARGS: <arguments without tool name>"
+}
+
 /// Built-in few-shot examples for common bioinformatics tools.
 /// Used in Compact prompt tier for small models (≤3B parameters) when no skill is available.
 const TOOL_DEFAULT_FEW_SHOT: &[(&str, &str, &str)] = &[
@@ -76,7 +81,11 @@ const TOOL_DEFAULT_FEW_SHOT: &[(&str, &str, &str)] = &[
     ("bwa", "mem", "mem -t 4 reference.fa read1.fq read2.fq"),
     ("bwa", "index", "index reference.fa"),
     ("bwa", "aln", "aln -t 4 reference.fa reads.fq > reads.sai"),
-    ("bwa", "samse", "samse reference.fa reads.sai reads.fq > output.sam"),
+    (
+        "bwa",
+        "samse",
+        "samse reference.fa reads.sai reads.fq > output.sam",
+    ),
     ("bcftools", "call", "call -o output.vcf input.bcf"),
     (
         "bcftools",
@@ -157,73 +166,229 @@ const TOOL_DEFAULT_FEW_SHOT: &[(&str, &str, &str)] = &[
     // Tools without subcommands (positional arguments first)
     ("admixture", "ancestry", "data.bed 5 --cv=10"),
     ("admixture", "estimate", "data.bed 3"),
-    ("metaphlan", "profile", "--input_type fastq -o out.txt reads.fq"),
-    ("metaphlan", "taxonomic", "--input_type fastq reads.fq -o profile.txt"),
+    (
+        "metaphlan",
+        "profile",
+        "--input_type fastq -o out.txt reads.fq",
+    ),
+    (
+        "metaphlan",
+        "taxonomic",
+        "--input_type fastq reads.fq -o profile.txt",
+    ),
     // Additional alignment tools
-    ("minimap2", "align", "-t 4 -x map-ont reference.fa reads.fq > output.sam"),
-    ("minimap2", "map", "-t 4 reference.fa reads.fq -o output.sam"),
+    (
+        "minimap2",
+        "align",
+        "-t 4 -x map-ont reference.fa reads.fq > output.sam",
+    ),
+    (
+        "minimap2",
+        "map",
+        "-t 4 reference.fa reads.fq -o output.sam",
+    ),
     // Variant calling
-    ("freebayes", "call", "-f reference.fa -o output.vcf input.bam"),
+    (
+        "freebayes",
+        "call",
+        "-f reference.fa -o output.vcf input.bam",
+    ),
     ("varscan2", "snp", "input.bam output.vcf --min-coverage 10"),
     // RNA-seq
-    ("star", "align", "--runThreadN 4 --genomeDir genome --readFilesIn reads.fq"),
-    ("stringtie", "assemble", "-p 4 -G genes.gtf -o output.gtf input.bam"),
+    (
+        "star",
+        "align",
+        "--runThreadN 4 --genomeDir genome --readFilesIn reads.fq",
+    ),
+    (
+        "stringtie",
+        "assemble",
+        "-p 4 -G genes.gtf -o output.gtf input.bam",
+    ),
     // Assembly
-    ("spades", "assemble", "-t 4 -1 reads1.fq -2 reads2.fq -o output_dir"),
-    ("spades", "rna", "--rna -1 reads1.fq -2 reads2.fq -o output_dir"),
-    ("megahit", "assemble", "-t 4 -1 reads1.fq -2 reads2.fq -o output_dir"),
-    ("flye", "assemble", "--genome-size 5m --out-dir output reads.fq"),
+    (
+        "spades",
+        "assemble",
+        "-t 4 -1 reads1.fq -2 reads2.fq -o output_dir",
+    ),
+    (
+        "spades",
+        "rna",
+        "--rna -1 reads1.fq -2 reads2.fq -o output_dir",
+    ),
+    (
+        "megahit",
+        "assemble",
+        "-t 4 -1 reads1.fq -2 reads2.fq -o output_dir",
+    ),
+    (
+        "flye",
+        "assemble",
+        "--genome-size 5m --out-dir output reads.fq",
+    ),
     // Assembly QC
     ("quast", "qc", "-t 4 -o output_dir assembly.fa"),
-    ("busco", "assess", "-i assembly.fa -l bacteria -o output_dir -m genome"),
+    (
+        "busco",
+        "assess",
+        "-i assembly.fa -l bacteria -o output_dir -m genome",
+    ),
     // k-mer tools
     ("jellyfish", "count", "-t 4 -m 21 -o output.jf input.fq"),
     ("mash", "dist", "-p 4 reference.msh query.fasta"),
     ("mash", "sketch", "-p 4 -o output input.fasta"),
     // Metagenomics
-    ("kraken2", "classify", "--db kraken2_db --output output.txt --report report.txt reads.fq"),
-    ("bracken", "abundance", "-d kraken2_db -i report.txt -o output.txt"),
+    (
+        "kraken2",
+        "classify",
+        "--db kraken2_db --output output.txt --report report.txt reads.fq",
+    ),
+    (
+        "bracken",
+        "abundance",
+        "-d kraken2_db -i report.txt -o output.txt",
+    ),
     ("humann3", "profile", "--input reads.fq --output output_dir"),
-    ("diamond", "blastx", "-d nr -q reads.fq -o output.m8 --threads 4"),
+    (
+        "diamond",
+        "blastx",
+        "-d nr -q reads.fq -o output.m8 --threads 4",
+    ),
     // Genome annotation
-    ("prokka", "annotate", "--outdir output --prefix genome assembly.fa"),
-    ("bakta", "annotate", "--db db_path --output output_dir assembly.fa"),
-    ("checkm2", "check", "--input genomes_dir --output_dir output --threads 4"),
+    (
+        "prokka",
+        "annotate",
+        "--outdir output --prefix genome assembly.fa",
+    ),
+    (
+        "bakta",
+        "annotate",
+        "--db db_path --output output_dir assembly.fa",
+    ),
+    (
+        "checkm2",
+        "check",
+        "--input genomes_dir --output_dir output --threads 4",
+    ),
     // Additional QC and preprocessing tools
-    ("trimmomatic", "trim", "PE -threads 4 -phred33 input_R1.fq input_R2.fq output_R1.fq output_unpaired_R1.fq output_R2.fq output_unpaired_R2.fq ILLUMINACLIP:adapters.fa:2:30:10"),
-    ("trimgalore", "trim", "--paired --quality 20 --length 20 --output_dir output --cores 4 read1.fq read2.fq"),
+    (
+        "trimmomatic",
+        "trim",
+        "PE -threads 4 -phred33 input_R1.fq input_R2.fq output_R1.fq output_unpaired_R1.fq output_R2.fq output_unpaired_R2.fq ILLUMINACLIP:adapters.fa:2:30:10",
+    ),
+    (
+        "trimgalore",
+        "trim",
+        "--paired --quality 20 --length 20 --output_dir output --cores 4 read1.fq read2.fq",
+    ),
     ("seqkit", "stats", "stats -j 4 -a *.fastq.gz"),
-    ("seqtk", "sample", "sample -s 100 input.fq 10000 > output.fq"),
+    (
+        "seqtk",
+        "sample",
+        "sample -s 100 input.fq 10000 > output.fq",
+    ),
     ("seqtk", "seq", "seq -a input.fq > output.fa"),
     // Alignment tools
-    ("bwa-mem2", "align", "mem -t 4 reference.fa read1.fq read2.fq > output.sam"),
+    (
+        "bwa-mem2",
+        "align",
+        "mem -t 4 reference.fa read1.fq read2.fq > output.sam",
+    ),
     ("bwa-mem2", "index", "index reference.fa"),
-    ("bowtie2", "align", "-x index -1 read1.fq -2 read2.fq -S output.sam --threads 4"),
-    ("bowtie2", "build", "bowtie2-build reference.fa index_prefix"),
+    (
+        "bowtie2",
+        "align",
+        "-x index -1 read1.fq -2 read2.fq -S output.sam --threads 4",
+    ),
+    (
+        "bowtie2",
+        "build",
+        "bowtie2-build reference.fa index_prefix",
+    ),
     // Variant calling
-    ("gatk", "haplotypecaller", "HaplotypeCaller -R reference.fa -I input.bam -O output.vcf"),
-    ("gatk", "markduplicates", "MarkDuplicates -I input.bam -O output.bam -M metrics.txt"),
-    ("picard", "markduplicates", "MarkDuplicates -I input.bam -O output.bam -M metrics.txt"),
+    (
+        "gatk",
+        "haplotypecaller",
+        "HaplotypeCaller -R reference.fa -I input.bam -O output.vcf",
+    ),
+    (
+        "gatk",
+        "markduplicates",
+        "MarkDuplicates -I input.bam -O output.bam -M metrics.txt",
+    ),
+    (
+        "picard",
+        "markduplicates",
+        "MarkDuplicates -I input.bam -O output.bam -M metrics.txt",
+    ),
     // Peak calling
-    ("macs3", "callpeak", "callpeak -t treatment.bam -c control.bam -n output_prefix -g hs"),
-    ("macs2", "callpeak", "callpeak -t treatment.bam -c control.bam -n output_prefix -g hs"),
+    (
+        "macs3",
+        "callpeak",
+        "callpeak -t treatment.bam -c control.bam -n output_prefix -g hs",
+    ),
+    (
+        "macs2",
+        "callpeak",
+        "callpeak -t treatment.bam -c control.bam -n output_prefix -g hs",
+    ),
     // Metagenomics
-    ("kraken2", "classify", "--db kraken2_db --output output.txt --report report.txt --threads 4 reads.fq"),
-    ("bracken", "abundance", "-d kraken2_db -i report.txt -o output.txt -r 150 -l S"),
+    (
+        "kraken2",
+        "classify",
+        "--db kraken2_db --output output.txt --report report.txt --threads 4 reads.fq",
+    ),
+    (
+        "bracken",
+        "abundance",
+        "-d kraken2_db -i report.txt -o output.txt -r 150 -l S",
+    ),
     // Phylogenetics
     ("iqtree", "tree", "-s alignment.fa -m MFP -bb 1000 -nt 4"),
-    ("raxml-ng", "tree", "--msa alignment.fa --model GTR+G --threads 4 --bootstrap 100"),
+    (
+        "raxml-ng",
+        "tree",
+        "--msa alignment.fa --model GTR+G --threads 4 --bootstrap 100",
+    ),
     // Additional RNA-seq
-    ("featurecounts", "count", "-a annotation.gtf -o counts.txt -T 4 -p input.bam"),
-    ("salmon", "quant", "quant -i index -l A -1 reads1.fq -2 reads2.fq -o output_dir --threads 4"),
-    ("kallisto", "quant", "quant -i index -o output_dir --threads 4 reads1.fq reads2.fq"),
+    (
+        "featurecounts",
+        "count",
+        "-a annotation.gtf -o counts.txt -T 4 -p input.bam",
+    ),
+    (
+        "salmon",
+        "quant",
+        "quant -i index -l A -1 reads1.fq -2 reads2.fq -o output_dir --threads 4",
+    ),
+    (
+        "kallisto",
+        "quant",
+        "quant -i index -o output_dir --threads 4 reads1.fq reads2.fq",
+    ),
     // Additional utilities
-    ("bedops", "convert", "-c --delim '\t' < input.bed > output.bed"),
+    (
+        "bedops",
+        "convert",
+        "-c --delim '\t' < input.bed > output.bed",
+    ),
     ("tabix", "index", "-p vcf input.vcf.gz"),
     ("bgzip", "compress", "-c input.vcf > output.vcf.gz"),
-    ("vcftools", "filter", "--vcf input.vcf --minQ 30 --recode --out output"),
-    ("vcflib", "filter", "vcffilter -f \"QUAL > 30\" input.vcf > output.vcf"),
-    ("bamtools", "convert", "convert -in input.bam -out output.sam"),
+    (
+        "vcftools",
+        "filter",
+        "--vcf input.vcf --minQ 30 --recode --out output",
+    ),
+    (
+        "vcflib",
+        "filter",
+        "vcffilter -f \"QUAL > 30\" input.vcf > output.vcf",
+    ),
+    (
+        "bamtools",
+        "convert",
+        "convert -in input.bam -out output.sam",
+    ),
     ("sambamba", "sort", "sort -t 4 -o sorted.bam input.bam"),
     ("sambamba", "markdup", "markdup -t 4 input.bam output.bam"),
 ];
@@ -238,17 +403,15 @@ pub fn estimate_tokens(text: &str) -> usize {
 /// Determine the prompt tier from context window size (in tokens) and model name.
 pub fn prompt_tier(context_window: u32, model: &str) -> PromptTier {
     if let Some(param_count) = crate::config::infer_model_parameter_count(model)
-        && param_count <= 3.0
+        && param_count <= 8.0
     {
-        return PromptTier::Compact;
+        return PromptTier::Slim;
     }
 
-    if context_window == 0 || context_window >= 16384 {
-        PromptTier::Full
-    } else if context_window >= 4096 {
-        PromptTier::Medium
+    if context_window > 0 && context_window < 4096 {
+        PromptTier::Slim
     } else {
-        PromptTier::Compact
+        PromptTier::Full
     }
 }
 
@@ -266,7 +429,7 @@ pub fn build_prompt(
     task: &str,
     skill: Option<&Skill>,
     no_prompt: bool,
-    context_window: u32,
+    _context_window: u32,
     tier: PromptTier,
     structured_doc: Option<&StructuredDoc>,
 ) -> String {
@@ -282,18 +445,160 @@ pub fn build_prompt(
 
     match tier {
         PromptTier::Full => build_prompt_full(tool, documentation, task, skill, structured_doc),
-        PromptTier::Medium => build_prompt_medium(
-            tool,
-            documentation,
-            task,
-            skill,
-            context_window,
-            structured_doc,
-        ),
-        PromptTier::Compact => {
-            build_prompt_compact(tool, documentation, task, skill, structured_doc)
+        PromptTier::Slim => build_slim_prompt(tool, task, skill, structured_doc),
+    }
+}
+
+/// Slim unified prompt for small models (≤ 8B).
+///
+/// Minimal, plain-text, no XML tags. The LLM sees only: tool name, subcommand
+/// hint, task, a short flag list, files, one example, and "ARGS:" to complete.
+fn build_slim_prompt(
+    tool: &str,
+    task: &str,
+    skill: Option<&Skill>,
+    structured_doc: Option<&StructuredDoc>,
+) -> String {
+    let mut prompt = String::new();
+
+    prompt.push_str(&format!("Tool: {tool}\n"));
+
+    if let Some(sdoc) = structured_doc {
+        if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
+            let subs: Vec<&str> = sdoc
+                .subcommands
+                .iter()
+                .take(5)
+                .map(|s| s.as_str())
+                .collect();
+            prompt.push_str(&format!("Subcommand: {}\n", subs.join("|")));
+        } else if !sdoc.has_subcommands {
+            prompt.push_str("Subcommand: none\n");
+        }
+        if !sdoc.companion_binaries.is_empty() {
+            prompt.push_str(&format!("Binary: {}\n", sdoc.companion_binaries[0]));
         }
     }
+
+    prompt.push_str(&format!("Task: {task}\n"));
+
+    // Flag catalog — show only relevant flags (max 8)
+    if let Some(sdoc) = structured_doc {
+        let task_lower = task.to_ascii_lowercase();
+        let task_keywords: Vec<&str> = task_lower
+            .split_whitespace()
+            .filter(|w| w.len() >= 3 && !w.contains('.'))
+            .collect();
+
+        let required: Vec<&FlagEntry> = sdoc
+            .flag_catalog
+            .iter()
+            .filter(|e| e.required)
+            .take(5)
+            .collect();
+        let mut optional: Vec<&FlagEntry> =
+            sdoc.flag_catalog.iter().filter(|e| !e.required).collect();
+        optional.sort_by(|a, b| {
+            let sa = flag_relevance_score(a, &task_keywords, &task_lower);
+            let sb = flag_relevance_score(b, &task_keywords, &task_lower);
+            sb.cmp(&sa)
+        });
+        let optional = optional.into_iter().take(4).collect::<Vec<_>>();
+
+        if !required.is_empty() || !optional.is_empty() {
+            prompt.push_str("\nFlags (use ONLY these):\n");
+            for f in &required {
+                let alt = f
+                    .alt_form
+                    .as_ref()
+                    .map(|a| format!(" / {}", a))
+                    .unwrap_or_default();
+                prompt.push_str(&format!("  * {}{}  {}\n", f.flag, alt, f.description));
+            }
+            for f in &optional {
+                let alt = f
+                    .alt_form
+                    .as_ref()
+                    .map(|a| format!(" / {}", a))
+                    .unwrap_or_default();
+                prompt.push_str(&format!("    {}{}  {}\n", f.flag, alt, f.description));
+            }
+            prompt.push_str("  (* = required)\n");
+        }
+    }
+
+    // Example — one matched few-shot
+    let example_args: Option<&str> = skill
+        .and_then(|s| {
+            s.select_examples(1, Some(task))
+                .first()
+                .map(|ex| ex.args.as_str())
+        })
+        .or_else(|| {
+            structured_doc.and_then(|sdoc| sdoc.extracted_examples.first().map(|s| s.as_str()))
+        });
+
+    if let Some(args) = example_args {
+        prompt.push_str(&format!("\nExample:\n  ARGS: {args}\n"));
+    }
+
+    // Task values (files from task)
+    if let Some(sdoc) = structured_doc {
+        let task_values = super::task_values::extract_task_values(task);
+        if !task_values.input_files.is_empty() {
+            prompt.push_str(&format!(
+                "\nInput: {}\n",
+                task_values.input_files.join(", ")
+            ));
+        }
+        if !task_values.output_files.is_empty() {
+            prompt.push_str(&format!(
+                "Output: {}\n",
+                task_values.output_files.join(", ")
+            ));
+        }
+
+        if !sdoc.usage_pattern.positional_args.is_empty() {
+            prompt.push_str(&format!(
+                "Positional: {}\n",
+                sdoc.usage_pattern.positional_args.join(" ")
+            ));
+        }
+    }
+
+    prompt.push_str("\nARGS:");
+    prompt
+}
+
+/// Relevance score for a flag against task keywords.
+fn flag_relevance_score(entry: &FlagEntry, task_keywords: &[&str], task_lower: &str) -> i32 {
+    let desc_lower = entry.description.to_ascii_lowercase();
+    let flag_lower = entry.flag.to_ascii_lowercase();
+    let mut score = 0;
+    for kw in task_keywords {
+        if desc_lower.contains(kw) {
+            score += 2;
+        }
+        if flag_lower.contains(kw) {
+            score += 1;
+        }
+    }
+    if desc_lower.contains("output")
+        && (task_lower.contains("output")
+            || task_lower.contains("save")
+            || task_lower.contains("write"))
+    {
+        score += 3;
+    }
+    if (desc_lower.contains("thread") || desc_lower.contains("cpu"))
+        && (task_lower.contains("thread") || task_lower.contains("cpu"))
+    {
+        score += 3;
+    }
+    if desc_lower.contains("input") && task_lower.contains("input") {
+        score += 2;
+    }
+    score
 }
 
 /// Full prompt — no compression.  Used for large models (≥ 16k context).
@@ -319,7 +624,9 @@ fn build_prompt_full(
         if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
             // Build subcommand display with descriptions
             let subs_display = if !sdoc.subcommand_descriptions.is_empty() {
-                let desc_lines: Vec<String> = sdoc.subcommand_descriptions.iter()
+                let desc_lines: Vec<String> = sdoc
+                    .subcommand_descriptions
+                    .iter()
                     .take(20)
                     .map(|(sub, desc)| {
                         if desc.is_empty() {
@@ -331,7 +638,11 @@ fn build_prompt_full(
                     .collect();
                 let display = desc_lines.join(", ");
                 if sdoc.subcommand_descriptions.len() > 20 {
-                    format!("{}, ... ({} more)", display, sdoc.subcommand_descriptions.len() - 20)
+                    format!(
+                        "{}, ... ({} more)",
+                        display,
+                        sdoc.subcommand_descriptions.len() - 20
+                    )
                 } else {
                     display
                 }
@@ -339,7 +650,11 @@ fn build_prompt_full(
                 sdoc.subcommands.join(", ")
             } else {
                 let displayed: Vec<String> = sdoc.subcommands.iter().take(20).cloned().collect();
-                format!("{}, ... ({} more)", displayed.join(", "), sdoc.subcommands.len() - 20)
+                format!(
+                    "{}, ... ({} more)",
+                    displayed.join(", "),
+                    sdoc.subcommands.len() - 20
+                )
             };
             prompt.push_str(&format!(
                 "  SUBCOMMAND_REQUIRED: YES\n  Valid subcommands: {}\n  You MUST pick one of these as the first token. Do NOT use any other word as subcommand.\n",
@@ -353,7 +668,9 @@ fn build_prompt_full(
                 .filter(|w| w.len() >= 3 && !w.contains('.'))
                 .collect();
 
-            let matched_subs: Vec<(&String, i32)> = sdoc.subcommands.iter()
+            let matched_subs: Vec<(&String, i32)> = sdoc
+                .subcommands
+                .iter()
                 .filter_map(|s| {
                     let s_lower = s.to_ascii_lowercase();
                     let mut score = 0i32;
@@ -396,7 +713,11 @@ fn build_prompt_full(
                 }
                 prompt.push_str(&format!(
                     "  SUGGESTED subcommand(s) for this task: {}\n",
-                    top_subs.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
+                    top_subs
+                        .iter()
+                        .map(|s| s.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 ));
             }
         } else if !sdoc.has_subcommands {
@@ -420,9 +741,13 @@ fn build_prompt_full(
 
         // Anti-hallucination rules
         prompt.push_str("  RULES:\n");
-        prompt.push_str("    - NEVER use 'java -jar' form; use the tool's native subcommand instead.\n");
+        prompt.push_str(
+            "    - NEVER use 'java -jar' form; use the tool's native subcommand instead.\n",
+        );
         prompt.push_str("    - NEVER invent subcommands not listed above.\n");
-        prompt.push_str("    - NEVER fabricate flags not in <flag_catalog>. If unsure, omit the flag.\n");
+        prompt.push_str(
+            "    - NEVER fabricate flags not in <flag_catalog>. If unsure, omit the flag.\n",
+        );
         prompt.push_str("    - Use 'easy-search'/'easy-cluster' over low-level 'search'/'cluster' when available.\n");
         prompt.push_str("    - For tools with NO subcommands (SUBCOMMAND_REQUIRED=NO), start with a flag or input file directly.\n");
 
@@ -437,20 +762,30 @@ fn build_prompt_full(
             prompt.push_str("  WRONG (missing subcommand): bwa -t 4 ref.fa reads.fq\n");
 
             // Check for tool-prefixed subcommands (agat, bakta, rsem style)
-            let has_prefixed_subs = sdoc.subcommands.iter()
+            let has_prefixed_subs = sdoc
+                .subcommands
+                .iter()
                 .any(|s| s.contains('_') || s.contains('-'));
             if has_prefixed_subs {
                 prompt.push_str("  CORRECT (prefixed subcommand): agat_convert_sp_gff2gtf --gff input.gff -o output.gtf\n");
-                prompt.push_str("  WRONG (missing prefixed sub): agat --gff input.gff -o output.gtf\n");
+                prompt.push_str(
+                    "  WRONG (missing prefixed sub): agat --gff input.gff -o output.gtf\n",
+                );
                 prompt.push_str("  CORRECT (companion binary): rsem-prepare-reference --bowtie2 ref.fa ref_index\n");
-                prompt.push_str("  WRONG (wrong format): rsem prepare-reference --bowtie2 ref.fa ref_index\n");
+                prompt.push_str(
+                    "  WRONG (wrong format): rsem prepare-reference --bowtie2 ref.fa ref_index\n",
+                );
             }
 
             // Case sensitivity warning
-            let has_mixed_case_subs = sdoc.subcommands.iter()
+            let has_mixed_case_subs = sdoc
+                .subcommands
+                .iter()
                 .any(|s| s.chars().any(|c| c.is_uppercase()));
             if has_mixed_case_subs {
-                prompt.push_str("\n  IMPORTANT: Use the EXACT case for subcommands as listed above!\n");
+                prompt.push_str(
+                    "\n  IMPORTANT: Use the EXACT case for subcommands as listed above!\n",
+                );
                 prompt.push_str("  If subcommand is 'HaplotypeCaller', write 'HaplotypeCaller' NOT 'haplotypecaller' or 'Haplotypecaller'.\n");
                 prompt.push_str("  If subcommand is 'bamCoverage', write 'bamCoverage' NOT 'bamcoverage' or 'BAMCoverage'.\n");
             }
@@ -466,13 +801,16 @@ fn build_prompt_full(
             prompt.push_str("  CORRECT (no subcommand): rm -rf temp_dir/\n");
             prompt.push_str("  WRONG (hallucinated subcommand): rm assurance -rf temp_dir/\n");
             prompt.push_str("  CORRECT (no subcommand): multiqc /path/to/results/ -o output/\n");
-            prompt.push_str("  WRONG (hallucinated subcommand): multiqc run /path/to/results/ -o output/\n");
+            prompt.push_str(
+                "  WRONG (hallucinated subcommand): multiqc run /path/to/results/ -o output/\n",
+            );
         }
 
         // Programming language tools need quote wrapping
         let programming_tools = ["awk", "sed", "perl", "python", "bash", "r"];
         if programming_tools.contains(&tool.to_lowercase().as_str()) {
-            prompt.push_str("\n  IMPORTANT: Wrap program expressions in single or double quotes!\n");
+            prompt
+                .push_str("\n  IMPORTANT: Wrap program expressions in single or double quotes!\n");
             prompt.push_str("  CORRECT: awk -F ',' '{print $1,$3}' file.csv\n");
             prompt.push_str("  WRONG: awk -F, {print $1,$3} file.csv\n");
             prompt.push_str("  CORRECT: sed -i 's/old/new/g' file.txt\n");
@@ -488,14 +826,17 @@ fn build_prompt_full(
             prompt.push_str("  WRONG: install pkg\n");
             prompt.push_str("  CORRECT: Rscript -e \"library(ggplot2)\"\n");
             prompt.push_str("  WRONG: library ggplot2\n");
-            prompt.push_str("  NEVER use fabricated subcommands like 'build', 'check', 'word', 'config'.\n");
+            prompt.push_str(
+                "  NEVER use fabricated subcommands like 'build', 'check', 'word', 'config'.\n",
+            );
         }
 
         // Picard-style tools need KEY=VALUE format
         let picard_tools = ["picard", "gatk"];
         if picard_tools.contains(&tool.to_lowercase().as_str()) {
             prompt.push_str("\n  IMPORTANT: Use -FLAG VALUE format (not KEY=VALUE).\n");
-            prompt.push_str("  CORRECT: MarkDuplicates -I input.bam -O output.bam -M metrics.txt\n");
+            prompt
+                .push_str("  CORRECT: MarkDuplicates -I input.bam -O output.bam -M metrics.txt\n");
             prompt.push_str("  WRONG: MarkDuplicates I=input.bam O=output.bam M=metrics.txt\n");
         }
 
@@ -503,7 +844,9 @@ fn build_prompt_full(
         if tool.to_lowercase() == "star" {
             prompt.push_str("\n  IMPORTANT for STAR: ALWAYS include --runMode alignReads for alignment tasks.\n");
             prompt.push_str("  CORRECT: --runMode alignReads --genomeDir /path/to/index --readFilesIn reads.fq\n");
-            prompt.push_str("  WRONG: --genomeDir /path/to/index --readFilesIn reads.fq (missing --runMode)\n");
+            prompt.push_str(
+                "  WRONG: --genomeDir /path/to/index --readFilesIn reads.fq (missing --runMode)\n",
+            );
             prompt.push_str("  For genome indexing: --runMode genomeGenerate --genomeDir /path/to/index --genomeFastaFiles ref.fa\n");
         }
 
@@ -525,7 +868,8 @@ fn build_prompt_full(
 
         // Canu: specific flag format
         if tool.to_lowercase() == "canu" {
-            prompt.push_str("\n  IMPORTANT for Canu: Use -p for prefix, -d for output directory.\n");
+            prompt
+                .push_str("\n  IMPORTANT for Canu: Use -p for prefix, -d for output directory.\n");
             prompt.push_str("  Use -nanopore-raw, -nanopore-corr, -pacbio-raw, -pacbio-corr, -pacbio-hifi for technology.\n");
             prompt.push_str("  CORRECT: -p ecoli -d canu_out/ genomeSize=5m -nanopore-raw reads.fq maxMemory=16g maxThreads=8\n");
             prompt.push_str("  WRONG: -d output -p prefix -nanopore reads.fq genomeSize=5m\n");
@@ -542,7 +886,9 @@ fn build_prompt_full(
         if tool.to_lowercase() == "shapeit4" {
             prompt.push_str("\n  IMPORTANT for Shapeit4: Use --input, --output, --map, --region, --scaffold (NOT short flags).\n");
             prompt.push_str("  CORRECT: --input input.vcf.gz --map genetic_map.txt --region chr1 --output phased.vcf.gz\n");
-            prompt.push_str("  WRONG: -I input.vcf.gz -M map.txt -O output.vcf.gz (wrong short flags)\n");
+            prompt.push_str(
+                "  WRONG: -I input.vcf.gz -M map.txt -O output.vcf.gz (wrong short flags)\n",
+            );
         }
 
         // Bismark: distinguish between bismark and bismark_genome_preparation
@@ -556,14 +902,22 @@ fn build_prompt_full(
         // Liftoff: positional args first, then flags
         if tool.to_lowercase() == "liftoff" {
             prompt.push_str("\n  IMPORTANT for Liftoff: Positional arguments come FIRST: target.fasta reference.fasta, then flags.\n");
-            prompt.push_str("  Use -g for GFF, -o for output, -u for unplaced file, -p for threads.\n");
-            prompt.push_str("  CORRECT: target.fasta ref.fasta -g annot.gff3 -o output.gff3 -u unplaced.txt\n");
-            prompt.push_str("  WRONG: -g annot.gff3 -o output.gff3 target.fasta ref.fasta (wrong order)\n");
+            prompt.push_str(
+                "  Use -g for GFF, -o for output, -u for unplaced file, -p for threads.\n",
+            );
+            prompt.push_str(
+                "  CORRECT: target.fasta ref.fasta -g annot.gff3 -o output.gff3 -u unplaced.txt\n",
+            );
+            prompt.push_str(
+                "  WRONG: -g annot.gff3 -o output.gff3 target.fasta ref.fasta (wrong order)\n",
+            );
         }
 
         // RepeatMasker: -species is required
         if tool.to_lowercase() == "repeatmasker" {
-            prompt.push_str("\n  IMPORTANT for RepeatMasker: -species is REQUIRED. Always include it.\n");
+            prompt.push_str(
+                "\n  IMPORTANT for RepeatMasker: -species is REQUIRED. Always include it.\n",
+            );
             prompt.push_str("  CORRECT: -species human -xsmall -pa 8 -dir output/ input.fasta\n");
             prompt.push_str("  WRONG: -xsmall -pa 8 input.fasta (missing -species)\n");
         }
@@ -572,7 +926,9 @@ fn build_prompt_full(
         if tool.to_lowercase() == "multiqc" {
             prompt.push_str("\n  IMPORTANT for MultiQC: Use -o for output directory, -n for report name, -f for force overwrite.\n");
             prompt.push_str("  CORRECT: /path/to/results/ -o /path/to/output/ -n report_name -f\n");
-            prompt.push_str("  WRONG: /path/to/results/ --outdir /path/to/output/ (wrong flag name)\n");
+            prompt.push_str(
+                "  WRONG: /path/to/results/ --outdir /path/to/output/ (wrong flag name)\n",
+            );
         }
 
         // FastANI: use long flags
@@ -599,31 +955,45 @@ fn build_prompt_full(
 
         // Centrifuge: no centrifuge-class subcommand
         if tool.to_lowercase() == "centrifuge" {
-            prompt.push_str("\n  IMPORTANT for Centrifuge: Use centrifuge directly, NOT centrifuge-class.\n");
-            prompt.push_str("  Use -x for database, -1/-2 for paired reads, -U for unpaired, -S for output.\n");
+            prompt.push_str(
+                "\n  IMPORTANT for Centrifuge: Use centrifuge directly, NOT centrifuge-class.\n",
+            );
+            prompt.push_str(
+                "  Use -x for database, -1/-2 for paired reads, -U for unpaired, -S for output.\n",
+            );
             prompt.push_str("  CORRECT: -x /db/bacteria -1 r1.fq -2 r2.fq -S result.tsv\n");
         }
 
         // Bakta: no subcommands like skip-ori or format
         if tool.to_lowercase() == "bakta" {
             prompt.push_str("\n  IMPORTANT for Bakta: Use bakta directly with flags. Do NOT invent subcommands like 'skip-ori' or 'format'.\n");
-            prompt.push_str("  For database download: use bakta_db download --output /path/to/db/\n");
-            prompt.push_str("  For annotation: bakta --db /path/to/db/ --output dir/ input.fasta\n");
+            prompt
+                .push_str("  For database download: use bakta_db download --output /path/to/db/\n");
+            prompt
+                .push_str("  For annotation: bakta --db /path/to/db/ --output dir/ input.fasta\n");
         }
 
         // Modkit: correct subcommand names
         if tool.to_lowercase() == "modkit" {
             prompt.push_str("\n  IMPORTANT for Modkit: Valid subcommands are: pileup, summary, extract, motif-bed, sample-probs, call-mods, update-tags.\n");
-            prompt.push_str("  For pileup: pileup --ref ref.fa --mod-code m --cpg input.bam output.bedmethyl\n");
+            prompt.push_str(
+                "  For pileup: pileup --ref ref.fa --mod-code m --cpg input.bam output.bedmethyl\n",
+            );
             prompt.push_str("  For summary: summary input.bam\n");
             prompt.push_str("  For motif-bed: motif-bed input.fa CG 0\n");
-            prompt.push_str("  NEVER use subcommands like 'calls', 'motif', 'tobigwig' - they don't exist.\n");
+            prompt.push_str(
+                "  NEVER use subcommands like 'calls', 'motif', 'tobigwig' - they don't exist.\n",
+            );
         }
 
         // Arriba: specific flag format
         if tool.to_lowercase() == "arriba" {
-            prompt.push_str("\n  IMPORTANT for Arriba: Arriba is run with a specific command structure.\n");
-            prompt.push_str("  CORRECT: -x input.bam -o fusions.tsv -a assembly.fa -g annotation.gtf\n");
+            prompt.push_str(
+                "\n  IMPORTANT for Arriba: Arriba is run with a specific command structure.\n",
+            );
+            prompt.push_str(
+                "  CORRECT: -x input.bam -o fusions.tsv -a assembly.fa -g annotation.gtf\n",
+            );
         }
 
         // Canu: technology flags must include suffix
@@ -643,19 +1013,24 @@ fn build_prompt_full(
         if tool.to_lowercase() == "diamond" {
             prompt.push_str("\n  IMPORTANT for DIAMOND: First token MUST be a subcommand: blastp, blastx, makedb, view, getseq.\n");
             prompt.push_str("  For makedb: makedb --in proteins.fa -d db_name\n");
-            prompt.push_str("  For blastp: blastp -d db_name -q query.fa -o result.m8 --threads 8\n");
-            prompt.push_str("  For blastx: blastx -d db_name -q reads.fa -o result.m8 --threads 8\n");
+            prompt
+                .push_str("  For blastp: blastp -d db_name -q query.fa -o result.m8 --threads 8\n");
+            prompt
+                .push_str("  For blastx: blastx -d db_name -q reads.fa -o result.m8 --threads 8\n");
         }
 
         // Augustus: species required
         if tool.to_lowercase() == "augustus" {
-            prompt.push_str("\n  IMPORTANT for AUGUSTUS: --species is REQUIRED for gene prediction.\n");
+            prompt.push_str(
+                "\n  IMPORTANT for AUGUSTUS: --species is REQUIRED for gene prediction.\n",
+            );
             prompt.push_str("  CORRECT: --species human input.fa --outfile output.gff\n");
         }
 
         // Hifiasm: -o for output, -t for threads
         if tool.to_lowercase() == "hifiasm" {
-            prompt.push_str("\n  IMPORTANT for Hifiasm: Use -o for output prefix, -t for threads.\n");
+            prompt
+                .push_str("\n  IMPORTANT for Hifiasm: Use -o for output prefix, -t for threads.\n");
             prompt.push_str("  CORRECT: -o output -t 16 input.fq\n");
         }
 
@@ -670,7 +1045,9 @@ fn build_prompt_full(
         // Chopper: simple quality filter
         if tool.to_lowercase() == "chopper" {
             prompt.push_str("\n  IMPORTANT for Chopper: Use -i for input FASTQ, -o for output, --quality for min quality, --length for min length.\n");
-            prompt.push_str("  CORRECT: -i input.fq -o filtered.fq --quality 10 --length 1000 --threads 8\n");
+            prompt.push_str(
+                "  CORRECT: -i input.fq -o filtered.fq --quality 10 --length 1000 --threads 8\n",
+            );
         }
 
         // SRA-tools: prefer fasterq-dump
@@ -682,7 +1059,9 @@ fn build_prompt_full(
 
         // Plink2: use --pfile not --bfile
         if tool.to_lowercase() == "plink2" {
-            prompt.push_str("\n  IMPORTANT for PLINK2: Use --pfile for PGEN format, --bfile for BED format.\n");
+            prompt.push_str(
+                "\n  IMPORTANT for PLINK2: Use --pfile for PGEN format, --bfile for BED format.\n",
+            );
             prompt.push_str("  Include QC flags: --maf, --geno, --mind, --hwe when task mentions quality control.\n");
             prompt.push_str("  CORRECT: --pfile dataset --maf 0.01 --geno 0.05 --mind 0.1 --hwe 1e-6 --make-pgen --out output\n");
         }
@@ -701,13 +1080,17 @@ fn build_prompt_full(
 
         // Rsync: source and dest
         if tool.to_lowercase() == "rsync" {
-            prompt.push_str("\n  IMPORTANT for rsync: Use -a for archive, -v for verbose, -z for compress.\n");
+            prompt.push_str(
+                "\n  IMPORTANT for rsync: Use -a for archive, -v for verbose, -z for compress.\n",
+            );
             prompt.push_str("  CORRECT: -avz source/ user@server:/dest/\n");
         }
 
         // Medaka: needs model parameter
         if tool.to_lowercase() == "medaka" {
-            prompt.push_str("\n  IMPORTANT for Medaka: medaka_consensus requires -m model parameter.\n");
+            prompt.push_str(
+                "\n  IMPORTANT for Medaka: medaka_consensus requires -m model parameter.\n",
+            );
             prompt.push_str("  Common models: r941_min_hac_g507, r941_min_fast_g507, r1041_e82_400bps_sup_v4.0.0\n");
             prompt.push_str("  CORRECT: medaka_consensus -i reads.fq -d ref.fa -o output/ -m r941_min_hac_g507\n");
         }
@@ -761,13 +1144,17 @@ fn build_prompt_full(
 
         // Megahit: needs --num-cpu-threads
         if tool.to_lowercase() == "megahit" {
-            prompt.push_str("\n  IMPORTANT for MEGAHIT: Use --num-cpu-threads for threads (NOT -t).\n");
+            prompt.push_str(
+                "\n  IMPORTANT for MEGAHIT: Use --num-cpu-threads for threads (NOT -t).\n",
+            );
             prompt.push_str("  CORRECT: -1 r1.fq -2 r2.fq -o output/ --num-cpu-threads 16\n");
         }
 
         // Longshot: use -b -f -o short flags
         if tool.to_lowercase() == "longshot" {
-            prompt.push_str("\n  IMPORTANT for Longshot: Use -b for BAM, -f for reference, -o for output.\n");
+            prompt.push_str(
+                "\n  IMPORTANT for Longshot: Use -b for BAM, -f for reference, -o for output.\n",
+            );
             prompt.push_str("  CORRECT: -b input.bam -f ref.fa -o output.vcf\n");
         }
 
@@ -780,13 +1167,16 @@ fn build_prompt_full(
         // Kraken2: --db for database path
         if tool.to_lowercase() == "kraken2" {
             prompt.push_str("\n  IMPORTANT for Kraken2: --db for database path, --paired for paired-end, --output for results.\n");
-            prompt.push_str("  CORRECT: --db /path/to/db --paired --output result.txt r1.fq r2.fq\n");
+            prompt
+                .push_str("  CORRECT: --db /path/to/db --paired --output result.txt r1.fq r2.fq\n");
         }
 
         // Hmmer: use hmmscan not hmmsearch for profile search
         if tool.to_lowercase() == "hmmer" {
             prompt.push_str("\n  IMPORTANT for HMMER: hmmscan searches profiles against sequences, hmmsearch searches sequences against profiles.\n");
-            prompt.push_str("  Use --cpu for threads, --tblout for tabular output, -E for e-value cutoff.\n");
+            prompt.push_str(
+                "  Use --cpu for threads, --tblout for tabular output, -E for e-value cutoff.\n",
+            );
         }
 
         // VarScan2: needs many parameters
@@ -798,16 +1188,29 @@ fn build_prompt_full(
         // Bowtie2/HISAT2: build index uses different naming
         if tool.to_lowercase() == "bowtie2" || tool.to_lowercase() == "hisat2" {
             let name = tool.to_lowercase();
-            prompt.push_str(&format!("\n  IMPORTANT for {}: {}-build creates index. Use descriptive index name.\n", name, name));
-            prompt.push_str(&format!("  CORRECT: {}-build reference.fa genome_index\n", name));
-            prompt.push_str(&format!("  For alignment: {} -x genome_index -1 r1.fq -2 r2.fq -S output.sam\n", name));
+            prompt.push_str(&format!(
+                "\n  IMPORTANT for {}: {}-build creates index. Use descriptive index name.\n",
+                name, name
+            ));
+            prompt.push_str(&format!(
+                "  CORRECT: {}-build reference.fa genome_index\n",
+                name
+            ));
+            prompt.push_str(&format!(
+                "  For alignment: {} -x genome_index -1 r1.fq -2 r2.fq -S output.sam\n",
+                name
+            ));
         }
 
         // Salmon: index vs quant
         if tool.to_lowercase() == "salmon" {
-            prompt.push_str("\n  IMPORTANT for Salmon: 'index' builds index, 'quant' runs quantification.\n");
+            prompt.push_str(
+                "\n  IMPORTANT for Salmon: 'index' builds index, 'quant' runs quantification.\n",
+            );
             prompt.push_str("  For index: index -t ref.fa -i index_name\n");
-            prompt.push_str("  For quant: quant -i index_name -l A -1 r1.fq -2 r2.fq -p 8 -o output/\n");
+            prompt.push_str(
+                "  For quant: quant -i index_name -l A -1 r1.fq -2 r2.fq -p 8 -o output/\n",
+            );
         }
 
         // BWA: index vs mem
@@ -820,7 +1223,8 @@ fn build_prompt_full(
         // SPAdes: careful mode and memory
         if tool.to_lowercase() == "spades" {
             prompt.push_str("\n  IMPORTANT for SPAdes: Use --careful for error correction, --memory for RAM limit.\n");
-            prompt.push_str("  CORRECT: -1 r1.fq -2 r2.fq -o output/ --memory 32 --careful -t 16\n");
+            prompt
+                .push_str("  CORRECT: -1 r1.fq -2 r2.fq -o output/ --memory 32 --careful -t 16\n");
         }
 
         prompt.push_str("</format_examples>\n\n");
@@ -831,20 +1235,21 @@ fn build_prompt_full(
         && !sdoc.flag_catalog.is_empty()
     {
         // Separate required and optional flags for clarity
-        let required_flags: Vec<_> = sdoc.flag_catalog.iter()
+        let required_flags: Vec<_> = sdoc
+            .flag_catalog
+            .iter()
             .filter(|e| e.required)
             .take(20)
             .collect();
 
         // For optional flags, prioritize task-relevant ones
         let task_lower = task.to_ascii_lowercase();
-        let task_keywords: Vec<&str> = task_lower.split_whitespace()
+        let task_keywords: Vec<&str> = task_lower
+            .split_whitespace()
             .filter(|w| w.len() >= 3 && !w.contains('.'))
             .collect();
 
-        let mut optional_flags: Vec<_> = sdoc.flag_catalog.iter()
-            .filter(|e| !e.required)
-            .collect();
+        let mut optional_flags: Vec<_> = sdoc.flag_catalog.iter().filter(|e| !e.required).collect();
 
         // Sort optional flags by relevance to task
         optional_flags.sort_by(|a, b| {
@@ -855,18 +1260,26 @@ fn build_prompt_full(
 
         let optional_flags: Vec<_> = optional_flags.into_iter().take(30).collect();
         prompt.push_str("<flag_catalog>\n");
-        prompt.push_str("  # CRITICAL: Use EXACT flag names below. --queryList ≠ --query. --refList ≠ --ref.\n");
+        prompt.push_str(
+            "  # CRITICAL: Use EXACT flag names below. --queryList ≠ --query. --refList ≠ --ref.\n",
+        );
         prompt.push_str("  # If a flag is not listed here, it does NOT exist. Omit it entirely.\n");
-        prompt.push_str("  # When two forms shown (e.g., '--bam / -b'), use the FIRST form (primary).\n\n");
+        prompt.push_str(
+            "  # When two forms shown (e.g., '--bam / -b'), use the FIRST form (primary).\n\n",
+        );
 
         // Show required flags first with clear marking
         if !required_flags.is_empty() {
             prompt.push_str("  [REQUIRED FLAGS - must include these]:\n");
             for entry in &required_flags {
-                let default_info = entry.default.as_ref()
+                let default_info = entry
+                    .default
+                    .as_ref()
                     .map(|d| format!(" [default: {}]", d))
                     .unwrap_or_default();
-                let alt_info = entry.alt_form.as_ref()
+                let alt_info = entry
+                    .alt_form
+                    .as_ref()
                     .map(|a| format!(" / {}", a))
                     .unwrap_or_default();
                 let enum_info = if !entry.enum_values.is_empty() {
@@ -875,10 +1288,15 @@ fn build_prompt_full(
                     String::new()
                 };
                 if entry.description.is_empty() {
-                    prompt.push_str(&format!("    {}{}{}{}\n", entry.flag, alt_info, enum_info, default_info));
+                    prompt.push_str(&format!(
+                        "    {}{}{}{}\n",
+                        entry.flag, alt_info, enum_info, default_info
+                    ));
                 } else {
-                    prompt.push_str(&format!("    {}{}    {}{}{}\n",
-                        entry.flag, alt_info, entry.description, enum_info, default_info));
+                    prompt.push_str(&format!(
+                        "    {}{}    {}{}{}\n",
+                        entry.flag, alt_info, entry.description, enum_info, default_info
+                    ));
                 }
             }
             prompt.push_str("\n");
@@ -888,7 +1306,9 @@ fn build_prompt_full(
         if !optional_flags.is_empty() {
             prompt.push_str("  [OPTIONAL FLAGS]:\n");
             for entry in optional_flags {
-                let alt_info = entry.alt_form.as_ref()
+                let alt_info = entry
+                    .alt_form
+                    .as_ref()
                     .map(|a| format!(" / {}", a))
                     .unwrap_or_default();
                 let enum_info = if !entry.enum_values.is_empty() {
@@ -899,8 +1319,10 @@ fn build_prompt_full(
                 if entry.description.is_empty() {
                     prompt.push_str(&format!("    {}{}{}\n", entry.flag, alt_info, enum_info));
                 } else {
-                    prompt.push_str(&format!("    {}{}    {}{}\n",
-                        entry.flag, alt_info, entry.description, enum_info));
+                    prompt.push_str(&format!(
+                        "    {}{}    {}{}\n",
+                        entry.flag, alt_info, entry.description, enum_info
+                    ));
                 }
             }
         }
@@ -918,7 +1340,9 @@ fn build_prompt_full(
         prompt.push_str("    -o FILE      Output file (write to file instead of stdout)\n");
         prompt.push_str("    -b           Output BAM format (binary, compressed)\n");
         prompt.push_str("    -h           Show help for the subcommand\n");
-        prompt.push_str("  Use 'tool help <subcommand>' to see specific flags for each subcommand.\n");
+        prompt.push_str(
+            "  Use 'tool help <subcommand>' to see specific flags for each subcommand.\n",
+        );
         prompt.push_str("</flag_catalog>\n\n");
     }
 
@@ -944,7 +1368,8 @@ fn build_prompt_full(
         Vec::new()
     };
 
-    let has_examples = !skill_examples.is_empty() || !doc_examples.is_empty() || !synthetic_examples.is_empty();
+    let has_examples =
+        !skill_examples.is_empty() || !doc_examples.is_empty() || !synthetic_examples.is_empty();
     if has_examples {
         prompt.push_str("<examples>\n");
         for ex in &skill_examples {
@@ -956,7 +1381,9 @@ fn build_prompt_full(
         // Add warning for doc-extracted examples (not skill examples)
         if !doc_examples.is_empty() {
             prompt.push_str("  # NOTE: The following examples show flag FORMAT only.\n");
-            prompt.push_str("  # DO NOT copy the example values - use values from YOUR task above.\n\n");
+            prompt.push_str(
+                "  # DO NOT copy the example values - use values from YOUR task above.\n\n",
+            );
         }
         for ex in &doc_examples {
             // Strip leading tool name if present.
@@ -964,7 +1391,8 @@ fn build_prompt_full(
             prompt.push_str(&format!("  ARGS: {args_part}\n\n"));
         }
         for ex in &synthetic_examples {
-            prompt.push_str(&format!("  Task: {}\n  ARGS: {}\n  # {}\n\n",
+            prompt.push_str(&format!(
+                "  Task: {}\n  ARGS: {}\n  # {}\n\n",
                 ex.task, ex.args, ex.explanation
             ));
         }
@@ -1056,7 +1484,8 @@ pub fn build_example_driven_prompt(
         }
 
         let task_lower = task.to_ascii_lowercase();
-        let task_words: Vec<&str> = task_lower.split_whitespace()
+        let task_words: Vec<&str> = task_lower
+            .split_whitespace()
             .filter(|w| w.len() >= 3)
             .collect();
         for tw in &task_words {
@@ -1072,7 +1501,8 @@ pub fn build_example_driven_prompt(
 
         if score > best_score {
             best_score = score;
-            let cleaned = ex.trim()
+            let cleaned = ex
+                .trim()
                 .trim_start_matches(&format!("{} ", tool))
                 .trim_start_matches(&format!("{} ", tool.to_lowercase()))
                 .to_string();
@@ -1096,16 +1526,36 @@ pub fn build_example_driven_prompt(
         let flag_lower = entry.flag.to_ascii_lowercase();
         let mut score = 0;
         for word in &task_words {
-            if desc_lower.contains(word) { score += 2; }
-            if flag_lower.contains(word) { score += 1; }
+            if desc_lower.contains(word) {
+                score += 2;
+            }
+            if flag_lower.contains(word) {
+                score += 1;
+            }
         }
-        if desc_lower.contains("output") && (task_lower.contains("output") || task_lower.contains("save") || task_lower.contains("write") || task_lower.contains("to ")) {
+        if desc_lower.contains("output")
+            && (task_lower.contains("output")
+                || task_lower.contains("save")
+                || task_lower.contains("write")
+                || task_lower.contains("to "))
+        {
             score += 3;
         }
-        if (desc_lower.contains("thread") || desc_lower.contains("proc") || desc_lower.contains("cpu")) && (task_lower.contains("thread") || task_lower.contains("cpu") || task_lower.contains("proc") || task_lower.contains("core")) {
+        if (desc_lower.contains("thread")
+            || desc_lower.contains("proc")
+            || desc_lower.contains("cpu"))
+            && (task_lower.contains("thread")
+                || task_lower.contains("cpu")
+                || task_lower.contains("proc")
+                || task_lower.contains("core"))
+        {
             score += 3;
         }
-        if desc_lower.contains("input") && (task_lower.contains("input") || task_lower.contains("read") || task_lower.contains("file")) {
+        if desc_lower.contains("input")
+            && (task_lower.contains("input")
+                || task_lower.contains("read")
+                || task_lower.contains("file"))
+        {
             score += 2;
         }
         if entry.required {
@@ -1123,29 +1573,49 @@ pub fn build_example_driven_prompt(
         prompt.push_str("FLAGS:\n");
         for entry in &top_flags {
             let req_mark = if entry.required { "*" } else { " " };
-            let alt_info = entry.alt_form.as_ref()
+            let alt_info = entry
+                .alt_form
+                .as_ref()
                 .map(|a| format!("/{}", a))
                 .unwrap_or_default();
-            let type_info = entry.value_type.as_ref()
+            let type_info = entry
+                .value_type
+                .as_ref()
                 .map(|t| format!("<{}>", t))
                 .unwrap_or_default();
-            prompt.push_str(&format!("  {}{}{} {} - {}\n", req_mark, entry.flag, alt_info, type_info, entry.description.chars().take(50).collect::<String>()));
+            prompt.push_str(&format!(
+                "  {}{}{} {} - {}\n",
+                req_mark,
+                entry.flag,
+                alt_info,
+                type_info,
+                entry.description.chars().take(50).collect::<String>()
+            ));
         }
         prompt.push_str("  (* = required)\n\n");
     }
 
     if !task_values.input_files.is_empty() {
-        prompt.push_str(&format!("Input files: {}\n", task_values.input_files.join(", ")));
+        prompt.push_str(&format!(
+            "Input files: {}\n",
+            task_values.input_files.join(", ")
+        ));
     }
     if !task_values.output_files.is_empty() {
-        prompt.push_str(&format!("Output files: {}\n", task_values.output_files.join(", ")));
+        prompt.push_str(&format!(
+            "Output files: {}\n",
+            task_values.output_files.join(", ")
+        ));
     }
     if !task_values.numbers.is_empty() {
         prompt.push_str(&format!("Values: {}\n", task_values.numbers.join(", ")));
     }
 
     if !sdoc.usage_pattern.positional_args.is_empty() {
-        prompt.push_str(&format!("Positional args: {}\n", sdoc.usage_pattern.positional_args.join(", ")));
+        prompt.push_str(&format!(
+            "Positional args: {}\n",
+            sdoc.usage_pattern.positional_args.join(", ")
+        ));
     }
 
     prompt.push('\n');
@@ -1154,7 +1624,9 @@ pub fn build_example_driven_prompt(
         prompt.push_str(&format!("Start with: {} ", sub));
     }
     prompt.push_str("Do NOT include the tool name.\n");
-    prompt.push_str("Use ONLY flags from the list. Include required flags and output/thread flags.\n");
+    prompt.push_str(
+        "Use ONLY flags from the list. Include required flags and output/thread flags.\n",
+    );
     prompt.push_str("ARGS:");
 
     prompt
@@ -1176,7 +1648,9 @@ fn build_prompt_medium(
         if sdoc.has_subcommands && !sdoc.subcommands.is_empty() {
             prompt.push_str("First token MUST be subcommand:\n");
             for (i, sub) in sdoc.subcommands.iter().take(15).enumerate() {
-                let desc = sdoc.subcommand_descriptions.iter()
+                let desc = sdoc
+                    .subcommand_descriptions
+                    .iter()
                     .find(|(s, _)| s == sub)
                     .and_then(|(_, d)| if d.is_empty() { None } else { Some(d.as_str()) })
                     .unwrap_or("");
@@ -1212,10 +1686,13 @@ fn build_prompt_medium(
     } else if let Some(sdoc) = structured_doc {
         if !sdoc.extracted_examples.is_empty() {
             let task_lower = task.to_ascii_lowercase();
-            let relevant: Vec<&String> = sdoc.extracted_examples.iter()
+            let relevant: Vec<&String> = sdoc
+                .extracted_examples
+                .iter()
                 .filter(|ex| {
                     let ex_lower = ex.to_ascii_lowercase();
-                    task_lower.split_whitespace()
+                    task_lower
+                        .split_whitespace()
                         .filter(|w| w.len() > 3)
                         .any(|w| ex_lower.contains(w))
                 })
@@ -1228,7 +1705,8 @@ fn build_prompt_medium(
             };
             prompt.push_str("## Examples from Docs\n");
             for ex in &examples {
-                let cleaned = ex.trim()
+                let cleaned = ex
+                    .trim()
                     .trim_start_matches(&format!("{} ", tool))
                     .trim_start_matches(&format!("{} ", tool.to_lowercase()));
                 prompt.push_str(&format!("- `{}`\n", cleaned));
@@ -1238,7 +1716,10 @@ fn build_prompt_medium(
 
         let template_example = get_template_example(tool, task);
         if let Some(ref tmpl) = template_example {
-            prompt.push_str(&format!("## START from this command (change values to match task)\n{}\n\n", tmpl));
+            prompt.push_str(&format!(
+                "## START from this command (change values to match task)\n{}\n\n",
+                tmpl
+            ));
             prompt.push_str("Modify rules:\n");
             prompt.push_str("1. KEEP all flags from START command\n");
             prompt.push_str("2. REPLACE placeholder values with EXACT values from task\n");
@@ -1246,25 +1727,32 @@ fn build_prompt_medium(
         }
 
         if !sdoc.flag_catalog.is_empty() {
-            let required: Vec<&FlagEntry> = sdoc.flag_catalog.iter()
-                .filter(|e| e.required)
-                .collect();
-            let mut optional: Vec<&FlagEntry> = sdoc.flag_catalog.iter()
-                .filter(|e| !e.required)
-                .collect();
+            let required: Vec<&FlagEntry> =
+                sdoc.flag_catalog.iter().filter(|e| e.required).collect();
+            let mut optional: Vec<&FlagEntry> =
+                sdoc.flag_catalog.iter().filter(|e| !e.required).collect();
 
             if !required.is_empty() {
                 prompt.push_str("REQUIRED FLAGS:\n");
                 for f in &required {
-                    let alt = f.alt_form.as_ref().map(|a| format!(" / {}", a)).unwrap_or_default();
-                    let vt = f.value_type.as_ref().map(|t| format!(" <{}>", t)).unwrap_or_default();
+                    let alt = f
+                        .alt_form
+                        .as_ref()
+                        .map(|a| format!(" / {}", a))
+                        .unwrap_or_default();
+                    let vt = f
+                        .value_type
+                        .as_ref()
+                        .map(|t| format!(" <{}>", t))
+                        .unwrap_or_default();
                     prompt.push_str(&format!("  {}{}{}  {}\n", f.flag, alt, vt, f.description));
                 }
                 prompt.push('\n');
             }
 
             let task_lower = task.to_ascii_lowercase();
-            let task_keywords: Vec<&str> = task_lower.split_whitespace()
+            let task_keywords: Vec<&str> = task_lower
+                .split_whitespace()
                 .filter(|w| w.len() >= 3 && !w.contains('.'))
                 .collect();
 
@@ -1276,14 +1764,25 @@ fn build_prompt_medium(
 
             prompt.push_str("<flag_catalog>\n");
             for f in optional.iter().take(8) {
-                let alt = f.alt_form.as_ref().map(|a| format!(" / {}", a)).unwrap_or_default();
-                let vt = f.value_type.as_ref().map(|t| format!(" <{}>", t)).unwrap_or_default();
+                let alt = f
+                    .alt_form
+                    .as_ref()
+                    .map(|a| format!(" / {}", a))
+                    .unwrap_or_default();
+                let vt = f
+                    .value_type
+                    .as_ref()
+                    .map(|t| format!(" <{}>", t))
+                    .unwrap_or_default();
                 let enums = if !f.enum_values.is_empty() {
                     format!(" [{}]", f.enum_values.join("|"))
                 } else {
                     String::new()
                 };
-                prompt.push_str(&format!("  {}{}{}{}  {}\n", f.flag, alt, vt, enums, f.description));
+                prompt.push_str(&format!(
+                    "  {}{}{}{}  {}\n",
+                    f.flag, alt, vt, enums, f.description
+                ));
             }
             prompt.push_str("</flag_catalog>\n\n");
         }
@@ -1296,7 +1795,12 @@ fn build_prompt_medium(
                     crate::doc_processor::FileIOType::Output => "out",
                     crate::doc_processor::FileIOType::Both => "in/out",
                 };
-                prompt.push_str(&format!("  .{} -> {} ({})\n", ftm.extension, ftm.flags.join(","), io));
+                prompt.push_str(&format!(
+                    "  .{} -> {} ({})\n",
+                    ftm.extension,
+                    ftm.flags.join(","),
+                    io
+                ));
             }
             prompt.push('\n');
         }
@@ -1505,7 +2009,9 @@ fn build_prompt_compact(
 
     prompt.push_str(&format!("Tool: {tool}\n"));
     prompt.push_str(&format!("Task: {task}\n\n"));
-    prompt.push_str("JSON: {\"subcommand\":\"\",\"flags\":{},\"positional_args\":[],\"explanation\":\"\"}\n");
+    prompt.push_str(
+        "JSON: {\"subcommand\":\"\",\"flags\":{},\"positional_args\":[],\"explanation\":\"\"}\n",
+    );
     prompt
 }
 
@@ -1870,7 +2376,7 @@ pub fn build_retry_prompt_inner(
     tier: PromptTier,
     structured_doc: Option<&StructuredDoc>,
 ) -> String {
-    if tier == PromptTier::Compact {
+    if tier == PromptTier::Slim {
         let mut prompt = build_prompt(
             tool,
             documentation,
@@ -1906,41 +2412,95 @@ pub fn build_retry_prompt_inner(
 
 fn synonym_match_for_subcmd(subcmd: &str, task_keywords: &[&str]) -> i32 {
     let synonyms: &[(&[&str], &[&str])] = &[
-        (&["stats", "statistics"], &["statistics", "stats", "summary", "info", "report"]),
+        (
+            &["stats", "statistics"],
+            &["statistics", "stats", "summary", "info", "report"],
+        ),
         (&["seq"], &["sequence", "convert", "transform", "format"]),
         (&["fx2tab"], &["table", "tab", "tsv", "csv", "convert"]),
         (&["tab2fx"], &["fasta", "fastq", "convert", "from table"]),
-        (&["grep"], &["search", "find", "filter", "grep", "match", "select"]),
-        (&["rmdup"], &["duplicate", "deduplicate", "remove duplicate", "unique"]),
+        (
+            &["grep"],
+            &["search", "find", "filter", "grep", "match", "select"],
+        ),
+        (
+            &["rmdup"],
+            &["duplicate", "deduplicate", "remove duplicate", "unique"],
+        ),
         (&["sample"], &["sample", "subsample", "random", "subset"]),
-        (&["subseq"], &["subsequence", "region", "extract", "subseq", "slice"]),
+        (
+            &["subseq"],
+            &["subsequence", "region", "extract", "subseq", "slice"],
+        ),
         (&["replace"], &["replace", "substitute", "rename", "modify"]),
-        (&["translate"], &["translate", "translation", "protein", "orf"]),
+        (
+            &["translate"],
+            &["translate", "translation", "protein", "orf"],
+        ),
         (&["sort"], &["sort", "order", "arrange"]),
         (&["concat"], &["concatenate", "merge", "combine", "join"]),
         (&["split2"], &["split", "divide", "separate"]),
         (&["fq2fa"], &["fastq to fasta", "convert to fasta"]),
-        (&["common"], &["common", "shared", "intersection", "overlap"]),
+        (
+            &["common"],
+            &["common", "shared", "intersection", "overlap"],
+        ),
         (&["head"], &["head", "first", "beginning", "preview"]),
-        (&["intersect"], &["overlap", "overlapping", "overlaps", "find overlap", "common"]),
-        (&["subtract"], &["remove", "exclude", "subtract", "difference"]),
-        (&["merge"], &["combine", "join", "merge", "union", "collapse"]),
-        (&["callpeak"], &["peak", "peaks", "call peak", "peak calling", "chip-seq"]),
+        (
+            &["intersect"],
+            &[
+                "overlap",
+                "overlapping",
+                "overlaps",
+                "find overlap",
+                "common",
+            ],
+        ),
+        (
+            &["subtract"],
+            &["remove", "exclude", "subtract", "difference"],
+        ),
+        (
+            &["merge"],
+            &["combine", "join", "merge", "union", "collapse"],
+        ),
+        (
+            &["callpeak"],
+            &["peak", "peaks", "call peak", "peak calling", "chip-seq"],
+        ),
         (&["index"], &["index", "indexing", "create index"]),
         (&["view"], &["view", "convert", "display", "extract"]),
-        (&["flagstat"], &["flagstat", "flag statistics", "alignment stats"]),
-        (&["mpileup"], &["pileup", "mpileup", "variant calling", "consensus"]),
+        (
+            &["flagstat"],
+            &["flagstat", "flag statistics", "alignment stats"],
+        ),
+        (
+            &["mpileup"],
+            &["pileup", "mpileup", "variant calling", "consensus"],
+        ),
         (&["depth"], &["depth", "coverage", "read depth"]),
         (&["call"], &["call", "variant", "calling", "detect"]),
         (&["filter"], &["filter", "select", "subset", "exclude"]),
         (&["annotate"], &["annotate", "annotation", "add info"]),
-        (&["quant"], &["quantify", "quant", "quantification", "expression", "count"]),
+        (
+            &["quant"],
+            &["quantify", "quant", "quantification", "expression", "count"],
+        ),
         (&["map"], &["map", "mapping", "align"]),
         (&["align"], &["align", "alignment", "map"]),
         (&["phase"], &["phase", "phasing", "haplotype"]),
         (&["discover"], &["discover", "find", "detect", "identify"]),
         (&["build"], &["build", "index", "create", "prepare"]),
-        (&["ann"], &["annotate", "annotation", "variant effect", "snp effect", "ann"]),
+        (
+            &["ann"],
+            &[
+                "annotate",
+                "annotation",
+                "variant effect",
+                "snp effect",
+                "ann",
+            ],
+        ),
         (&["bamqc"], &["bam qc", "bam quality", "quality control"]),
         (&["rnaseq"], &["rna-seq", "rnaseq", "rna seq"]),
         (&["predict"], &["predict", "prediction", "classify"]),
@@ -1954,17 +2514,32 @@ fn synonym_match_for_subcmd(subcmd: &str, task_keywords: &[&str]) -> i32 {
         (&["database"], &["database", "db", "download"]),
         (&["consensus"], &["consensus", "polish", "correct"]),
         (&["haplotag"], &["haplotag", "tag", "assign haplotype"]),
-        (&["markduplicates"], &["duplicate", "deduplicate", "mark dup", "remove duplicate"]),
-        (&["haplotypecaller"], &["haplotype", "call variant", "variant calling", "snp"]),
-        (&["baserecalibrator"], &["recalibrate", "bqsr", "base quality"]),
-        (&["applybqsr"], &["apply bqsr", "recalibrate", "base quality"]),
+        (
+            &["markduplicates"],
+            &["duplicate", "deduplicate", "mark dup", "remove duplicate"],
+        ),
+        (
+            &["haplotypecaller"],
+            &["haplotype", "call variant", "variant calling", "snp"],
+        ),
+        (
+            &["baserecalibrator"],
+            &["recalibrate", "bqsr", "base quality"],
+        ),
+        (
+            &["applybqsr"],
+            &["apply bqsr", "recalibrate", "base quality"],
+        ),
     ];
 
     let mut score = 0i32;
     for (subcmds, keywords) in synonyms {
         if subcmds.iter().any(|s| s.to_lowercase() == subcmd) {
             for keyword in task_keywords {
-                if keywords.iter().any(|k| k == keyword || k.contains(keyword) || keyword.contains(k)) {
+                if keywords
+                    .iter()
+                    .any(|k| k == keyword || k.contains(keyword) || keyword.contains(k))
+                {
                     score += 15;
                 }
             }
@@ -1979,10 +2554,30 @@ fn task_relevance_score(flag: &str, description: &str, task_keywords: &[&str]) -
     let desc_lower = description.to_ascii_lowercase();
 
     // Common important flags that should always be prioritized
-    let important_flags = ["-o", "--output", "--outdir", "-t", "--threads", "-@", "--nproc",
-                           "-i", "--input", "--bam", "--vcf", "--fasta", "--fastq",
-                           "-1", "-2", "--read1", "--read2", "-r", "--reference",
-                           "--genome", "--db", "--index"];
+    let important_flags = [
+        "-o",
+        "--output",
+        "--outdir",
+        "-t",
+        "--threads",
+        "-@",
+        "--nproc",
+        "-i",
+        "--input",
+        "--bam",
+        "--vcf",
+        "--fasta",
+        "--fastq",
+        "-1",
+        "-2",
+        "--read1",
+        "--read2",
+        "-r",
+        "--reference",
+        "--genome",
+        "--db",
+        "--index",
+    ];
     if important_flags.iter().any(|f| flag_lower == *f) {
         score += 20;
     }
@@ -2005,19 +2600,57 @@ fn is_commonly_used_flag(flag: &str, description: &str) -> bool {
     let desc_lower = description.to_ascii_lowercase();
 
     let common_flags = [
-        "-o", "--output", "--outdir", "--output-dir", "--output_dir",
-        "-t", "--threads", "-@", "--nproc", "--cpu", "--cpus",
-        "-i", "--input", "--input-file", "--bam", "--vcf", "--fasta", "--fastq",
-        "-1", "-2", "--read1", "--read2", "-r", "--reference", "--ref",
-        "--genome", "--genome-dir", "--db", "--index",
-        "-f", "--format", "--species", "--kingdom",
-        "-p", "--prefix", "--output-prefix",
-        "-q", "--quality", "--min-quality",
-        "-l", "--length", "--min-length",
-        "-e", "--evalue", "-E",
-        "--paired", "--single-end",
-        "--gzip", "--bgzip",
-        "-h", "--help",
+        "-o",
+        "--output",
+        "--outdir",
+        "--output-dir",
+        "--output_dir",
+        "-t",
+        "--threads",
+        "-@",
+        "--nproc",
+        "--cpu",
+        "--cpus",
+        "-i",
+        "--input",
+        "--input-file",
+        "--bam",
+        "--vcf",
+        "--fasta",
+        "--fastq",
+        "-1",
+        "-2",
+        "--read1",
+        "--read2",
+        "-r",
+        "--reference",
+        "--ref",
+        "--genome",
+        "--genome-dir",
+        "--db",
+        "--index",
+        "-f",
+        "--format",
+        "--species",
+        "--kingdom",
+        "-p",
+        "--prefix",
+        "--output-prefix",
+        "-q",
+        "--quality",
+        "--min-quality",
+        "-l",
+        "--length",
+        "--min-length",
+        "-e",
+        "--evalue",
+        "-E",
+        "--paired",
+        "--single-end",
+        "--gzip",
+        "--bgzip",
+        "-h",
+        "--help",
     ];
 
     if common_flags.iter().any(|f| flag_lower == *f) {
@@ -2025,9 +2658,19 @@ fn is_commonly_used_flag(flag: &str, description: &str) -> bool {
     }
 
     let common_desc_keywords = [
-        "output", "input", "thread", "reference", "genome",
-        "database", "index", "format", "prefix", "quality",
-        "paired", "single", "compress",
+        "output",
+        "input",
+        "thread",
+        "reference",
+        "genome",
+        "database",
+        "index",
+        "format",
+        "prefix",
+        "quality",
+        "paired",
+        "single",
+        "compress",
     ];
 
     common_desc_keywords.iter().any(|k| desc_lower.contains(k))
@@ -2037,22 +2680,73 @@ fn extract_task_values(task: &str) -> Vec<(String, String)> {
     let mut values = Vec::new();
 
     for word in task.split_whitespace() {
-        let w = word.trim_matches(|c: char| c == ',' || c == '.' || c == ';' || c == ':' || c == '(' || c == ')');
+        let w = word.trim_matches(|c: char| {
+            c == ',' || c == '.' || c == ';' || c == ':' || c == '(' || c == ')'
+        });
 
         if w.is_empty() || w.len() < 2 {
             continue;
         }
 
         // File paths (contain dots with known extensions)
-        let bio_extensions = [".bam", ".sam", ".vcf", ".bed", ".gtf", ".gff", ".fa", ".fasta",
-            ".fq", ".fastq", ".txt", ".csv", ".tsv", ".cram", ".bai", ".tbi", ".fai",
-            ".dict", ".h5", ".sra", ".json", ".html", ".log", ".gz", ".bed.gz",
-            ".vcf.gz", ".fastq.gz", ".fq.gz", ".fa.gz", ".fasta.gz", ".gff3",
-            ".profile", ".motif", ".narrowPeak", ".broadPeak", ".bedgraph", ".bw",
-            ".bigWig", ".wig", ".sif", ".ped", ".map", ".bim", ".fam", ".pheno",
-            ".cov", ".cnt", ".tab", ".out", ".report", ".matrix", ".counts"];
+        let bio_extensions = [
+            ".bam",
+            ".sam",
+            ".vcf",
+            ".bed",
+            ".gtf",
+            ".gff",
+            ".fa",
+            ".fasta",
+            ".fq",
+            ".fastq",
+            ".txt",
+            ".csv",
+            ".tsv",
+            ".cram",
+            ".bai",
+            ".tbi",
+            ".fai",
+            ".dict",
+            ".h5",
+            ".sra",
+            ".json",
+            ".html",
+            ".log",
+            ".gz",
+            ".bed.gz",
+            ".vcf.gz",
+            ".fastq.gz",
+            ".fq.gz",
+            ".fa.gz",
+            ".fasta.gz",
+            ".gff3",
+            ".profile",
+            ".motif",
+            ".narrowPeak",
+            ".broadPeak",
+            ".bedgraph",
+            ".bw",
+            ".bigWig",
+            ".wig",
+            ".sif",
+            ".ped",
+            ".map",
+            ".bim",
+            ".fam",
+            ".pheno",
+            ".cov",
+            ".cnt",
+            ".tab",
+            ".out",
+            ".report",
+            ".matrix",
+            ".counts",
+        ];
 
-        let is_file = bio_extensions.iter().any(|ext| w.to_lowercase().ends_with(ext));
+        let is_file = bio_extensions
+            .iter()
+            .any(|ext| w.to_lowercase().ends_with(ext));
         if is_file {
             values.push((w.to_string(), "file path".to_string()));
             continue;
@@ -2106,8 +2800,12 @@ fn score_flag_for_task(entry: &FlagEntry, task_keywords: &[&str], task_lower: &s
     let mut score = 0;
 
     for kw in task_keywords {
-        if desc_lower.contains(kw) { score += 10; }
-        if flag_lower.contains(kw) { score += 8; }
+        if desc_lower.contains(kw) {
+            score += 10;
+        }
+        if flag_lower.contains(kw) {
+            score += 8;
+        }
     }
 
     let flag_name_parts: Vec<&str> = flag_lower
@@ -2116,30 +2814,75 @@ fn score_flag_for_task(entry: &FlagEntry, task_keywords: &[&str], task_lower: &s
         .filter(|p| p.len() >= 3)
         .collect();
     for part in &flag_name_parts {
-        if task_lower.contains(part) { score += 6; }
+        if task_lower.contains(part) {
+            score += 6;
+        }
         for kw in task_keywords {
-            if kw.contains(part) || part.contains(kw) { score += 3; }
+            if kw.contains(part) || part.contains(kw) {
+                score += 3;
+            }
         }
     }
 
-    if desc_lower.contains("output") && !desc_lower.contains("stdout") && !desc_lower.contains("format") { score += 15; }
-    if desc_lower.contains("input") || flag_lower.contains("in") { score += 12; }
+    if desc_lower.contains("output")
+        && !desc_lower.contains("stdout")
+        && !desc_lower.contains("format")
+    {
+        score += 15;
+    }
+    if desc_lower.contains("input") || flag_lower.contains("in") {
+        score += 12;
+    }
     if (desc_lower.contains("thread") || desc_lower.contains("cpu") || desc_lower.contains("nproc"))
-        && (task_lower.contains("thread") || task_lower.contains("cpu") || task_lower.contains("parallel") || task_lower.contains("core")) { score += 15; }
-    if desc_lower.contains("reference") || flag_lower.contains("ref") { score += 12; }
-    if desc_lower.contains("genome") { score += 8; }
-    if desc_lower.contains("database") || flag_lower.contains("db") { score += 8; }
+        && (task_lower.contains("thread")
+            || task_lower.contains("cpu")
+            || task_lower.contains("parallel")
+            || task_lower.contains("core"))
+    {
+        score += 15;
+    }
+    if desc_lower.contains("reference") || flag_lower.contains("ref") {
+        score += 12;
+    }
+    if desc_lower.contains("genome") {
+        score += 8;
+    }
+    if desc_lower.contains("database") || flag_lower.contains("db") {
+        score += 8;
+    }
 
-    if desc_lower.contains("verbose") || desc_lower.contains("debug") { score -= 20; }
-    if desc_lower.contains("quiet") || desc_lower.contains("silent") { score -= 20; }
-    if desc_lower.contains("help") || desc_lower.contains("version") { score -= 30; }
-    if desc_lower.contains("color") || desc_lower.contains("colour") { score -= 15; }
-    if desc_lower.contains("log") && !task_lower.contains("log") { score -= 5; }
-    if desc_lower.contains("test") && !task_lower.contains("test") { score -= 10; }
-    if desc_lower.contains("dry-run") || desc_lower.contains("dry_run") { score -= 15; }
-    if desc_lower.contains("citation") || desc_lower.contains("warranty") { score -= 15; }
-    if (desc_lower.contains("force") || desc_lower.contains("overwrite")) && !task_lower.contains("force") { score -= 5; }
-    if desc_lower.contains("progress") && !task_lower.contains("progress") { score -= 5; }
+    if desc_lower.contains("verbose") || desc_lower.contains("debug") {
+        score -= 20;
+    }
+    if desc_lower.contains("quiet") || desc_lower.contains("silent") {
+        score -= 20;
+    }
+    if desc_lower.contains("help") || desc_lower.contains("version") {
+        score -= 30;
+    }
+    if desc_lower.contains("color") || desc_lower.contains("colour") {
+        score -= 15;
+    }
+    if desc_lower.contains("log") && !task_lower.contains("log") {
+        score -= 5;
+    }
+    if desc_lower.contains("test") && !task_lower.contains("test") {
+        score -= 10;
+    }
+    if desc_lower.contains("dry-run") || desc_lower.contains("dry_run") {
+        score -= 15;
+    }
+    if desc_lower.contains("citation") || desc_lower.contains("warranty") {
+        score -= 15;
+    }
+    if (desc_lower.contains("force") || desc_lower.contains("overwrite"))
+        && !task_lower.contains("force")
+    {
+        score -= 5;
+    }
+    if desc_lower.contains("progress") && !task_lower.contains("progress") {
+        score -= 5;
+    }
 
     score
 }
@@ -2260,7 +3003,10 @@ fn generate_synthetic_examples(
             "fasta"
         } else {
             // Default to first subcommand if nothing matches
-            sdoc.subcommands.first().map(|s| s.as_str()).unwrap_or("help")
+            sdoc.subcommands
+                .first()
+                .map(|s| s.as_str())
+                .unwrap_or("help")
         }
     });
 
@@ -2331,11 +3077,7 @@ fn generate_synthetic_examples(
 
 /// Step 1 of two-step generation: select the correct subcommand.
 /// This is a simple classification task that small models handle well.
-pub fn build_subcommand_selection_prompt(
-    tool: &str,
-    task: &str,
-    sdoc: &StructuredDoc,
-) -> String {
+pub fn build_subcommand_selection_prompt(tool: &str, task: &str, sdoc: &StructuredDoc) -> String {
     let mut prompt = String::new();
 
     prompt.push_str(&format!("Tool: {}\n", tool));
@@ -2345,7 +3087,9 @@ pub fn build_subcommand_selection_prompt(
         prompt.push_str("Select the BEST subcommand for this task.\n");
         prompt.push_str("Available subcommands:\n");
         for (i, sub) in sdoc.subcommands.iter().take(20).enumerate() {
-            let desc = sdoc.subcommand_descriptions.iter()
+            let desc = sdoc
+                .subcommand_descriptions
+                .iter()
                 .find(|(s, _)| s == sub)
                 .and_then(|(_, d)| if d.is_empty() { None } else { Some(d.as_str()) })
                 .unwrap_or("");
@@ -2398,7 +3142,10 @@ pub fn build_args_generation_prompt(
     }
 
     if !sdoc.usage_pattern.positional_args.is_empty() {
-        prompt.push_str(&format!("Positional args (no flag needed): {}\n", sdoc.usage_pattern.positional_args.join(", ")));
+        prompt.push_str(&format!(
+            "Positional args (no flag needed): {}\n",
+            sdoc.usage_pattern.positional_args.join(", ")
+        ));
     }
 
     if let Some(ref hint) = sdoc.format_hint {
@@ -2418,102 +3165,221 @@ pub fn build_args_generation_prompt(
         let desc_lower = entry.description.to_ascii_lowercase();
         let flag_lower = entry.flag.to_ascii_lowercase();
         let mut score = 0;
-        if entry.required { score += 100; }
+        if entry.required {
+            score += 100;
+        }
         for word in &task_words {
-            if desc_lower.contains(word) { score += 5; }
-            if flag_lower.contains(word) { score += 3; }
+            if desc_lower.contains(word) {
+                score += 5;
+            }
+            if flag_lower.contains(word) {
+                score += 3;
+            }
         }
-        if desc_lower.contains("output") && (task_lower.contains("output") || task_lower.contains("save") || task_lower.contains("write") || task_lower.contains("to ") || task_lower.contains("export") || task_lower.contains("generate") || task_lower.contains("produce") || task_lower.contains("create") || task_lower.contains("result")) {
+        if desc_lower.contains("output")
+            && (task_lower.contains("output")
+                || task_lower.contains("save")
+                || task_lower.contains("write")
+                || task_lower.contains("to ")
+                || task_lower.contains("export")
+                || task_lower.contains("generate")
+                || task_lower.contains("produce")
+                || task_lower.contains("create")
+                || task_lower.contains("result"))
+        {
             score += 20;
         }
-        if (desc_lower.contains("thread") || desc_lower.contains("proc") || desc_lower.contains("cpu")) && (task_lower.contains("thread") || task_lower.contains("cpu") || task_lower.contains("proc") || task_lower.contains("core") || task_lower.contains("parallel")) {
+        if (desc_lower.contains("thread")
+            || desc_lower.contains("proc")
+            || desc_lower.contains("cpu"))
+            && (task_lower.contains("thread")
+                || task_lower.contains("cpu")
+                || task_lower.contains("proc")
+                || task_lower.contains("core")
+                || task_lower.contains("parallel"))
+        {
             score += 20;
         }
-        if desc_lower.contains("input") && (task_lower.contains("input") || task_lower.contains("read") || task_lower.contains("file") || task_lower.contains("bam") || task_lower.contains("fastq") || task_lower.contains("vcf") || task_lower.contains("from")) {
+        if desc_lower.contains("input")
+            && (task_lower.contains("input")
+                || task_lower.contains("read")
+                || task_lower.contains("file")
+                || task_lower.contains("bam")
+                || task_lower.contains("fastq")
+                || task_lower.contains("vcf")
+                || task_lower.contains("from"))
+        {
             score += 15;
         }
-        if desc_lower.contains("reference") && (task_lower.contains("reference") || task_lower.contains("genome") || task_lower.contains("ref") || task_lower.contains("fasta") || task_lower.contains("index")) {
+        if desc_lower.contains("reference")
+            && (task_lower.contains("reference")
+                || task_lower.contains("genome")
+                || task_lower.contains("ref")
+                || task_lower.contains("fasta")
+                || task_lower.contains("index"))
+        {
             score += 15;
         }
-        if (desc_lower.contains("bam") || desc_lower.contains("sam")) && (task_lower.contains("bam") || task_lower.contains("sam")) {
+        if (desc_lower.contains("bam") || desc_lower.contains("sam"))
+            && (task_lower.contains("bam") || task_lower.contains("sam"))
+        {
             score += 10;
         }
-        if (desc_lower.contains("fastq") || desc_lower.contains("fq") || desc_lower.contains("read")) && (task_lower.contains("fastq") || task_lower.contains("fq") || task_lower.contains("read")) {
+        if (desc_lower.contains("fastq")
+            || desc_lower.contains("fq")
+            || desc_lower.contains("read"))
+            && (task_lower.contains("fastq")
+                || task_lower.contains("fq")
+                || task_lower.contains("read"))
+        {
             score += 10;
         }
-        if (desc_lower.contains("vcf") || desc_lower.contains("variant")) && (task_lower.contains("vcf") || task_lower.contains("variant") || task_lower.contains("snp")) {
+        if (desc_lower.contains("vcf") || desc_lower.contains("variant"))
+            && (task_lower.contains("vcf")
+                || task_lower.contains("variant")
+                || task_lower.contains("snp"))
+        {
             score += 10;
         }
-        if (desc_lower.contains("gtf") || desc_lower.contains("gff") || desc_lower.contains("annotation")) && (task_lower.contains("gtf") || task_lower.contains("gff") || task_lower.contains("annotation")) {
+        if (desc_lower.contains("gtf")
+            || desc_lower.contains("gff")
+            || desc_lower.contains("annotation"))
+            && (task_lower.contains("gtf")
+                || task_lower.contains("gff")
+                || task_lower.contains("annotation"))
+        {
             score += 10;
         }
         if desc_lower.contains("species") && task_lower.contains("species") {
             score += 12;
         }
-        if desc_lower.contains("kingdom") && (task_lower.contains("kingdom") || task_lower.contains("bacteria") || task_lower.contains("archaea")) {
+        if desc_lower.contains("kingdom")
+            && (task_lower.contains("kingdom")
+                || task_lower.contains("bacteria")
+                || task_lower.contains("archaea"))
+        {
             score += 12;
         }
-        if desc_lower.contains("quality") && (task_lower.contains("quality") || task_lower.contains("qual") || task_lower.contains("qc") || task_lower.contains("filter")) {
+        if desc_lower.contains("quality")
+            && (task_lower.contains("quality")
+                || task_lower.contains("qual")
+                || task_lower.contains("qc")
+                || task_lower.contains("filter"))
+        {
             score += 10;
         }
-        if desc_lower.contains("region") && (task_lower.contains("region") || task_lower.contains("chrom") || task_lower.contains("window")) {
+        if desc_lower.contains("region")
+            && (task_lower.contains("region")
+                || task_lower.contains("chrom")
+                || task_lower.contains("window"))
+        {
             score += 10;
         }
-        if desc_lower.contains("database") && (task_lower.contains("database") || task_lower.contains("db") || task_lower.contains("index")) {
+        if desc_lower.contains("database")
+            && (task_lower.contains("database")
+                || task_lower.contains("db")
+                || task_lower.contains("index"))
+        {
             score += 10;
         }
-        if desc_lower.contains("prefix") && (task_lower.contains("prefix") || task_lower.contains("name") || task_lower.contains("output")) {
+        if desc_lower.contains("prefix")
+            && (task_lower.contains("prefix")
+                || task_lower.contains("name")
+                || task_lower.contains("output"))
+        {
             score += 8;
         }
-        if desc_lower.contains("directory") && (task_lower.contains("directory") || task_lower.contains("dir") || task_lower.contains("folder")) {
+        if desc_lower.contains("directory")
+            && (task_lower.contains("directory")
+                || task_lower.contains("dir")
+                || task_lower.contains("folder"))
+        {
             score += 8;
         }
-        if desc_lower.contains("coverage") && (task_lower.contains("coverage") || task_lower.contains("depth") || task_lower.contains("cov")) {
+        if desc_lower.contains("coverage")
+            && (task_lower.contains("coverage")
+                || task_lower.contains("depth")
+                || task_lower.contains("cov"))
+        {
             score += 10;
         }
-        if desc_lower.contains("assembly") && (task_lower.contains("assembly") || task_lower.contains("assemble")) {
+        if desc_lower.contains("assembly")
+            && (task_lower.contains("assembly") || task_lower.contains("assemble"))
+        {
             score += 10;
         }
-        if desc_lower.contains("index") && (task_lower.contains("index") || task_lower.contains("build")) {
+        if desc_lower.contains("index")
+            && (task_lower.contains("index") || task_lower.contains("build"))
+        {
             score += 8;
         }
-        if desc_lower.contains("compress") && (task_lower.contains("compress") || task_lower.contains("gzip") || task_lower.contains("zip")) {
+        if desc_lower.contains("compress")
+            && (task_lower.contains("compress")
+                || task_lower.contains("gzip")
+                || task_lower.contains("zip"))
+        {
             score += 10;
         }
-        if (desc_lower.contains("adapter") || desc_lower.contains("trim")) && (task_lower.contains("adapter") || task_lower.contains("trim")) {
+        if (desc_lower.contains("adapter") || desc_lower.contains("trim"))
+            && (task_lower.contains("adapter") || task_lower.contains("trim"))
+        {
             score += 10;
         }
-        if desc_lower.contains("evalue") && (task_lower.contains("evalue") || task_lower.contains("e-value")) {
+        if desc_lower.contains("evalue")
+            && (task_lower.contains("evalue") || task_lower.contains("e-value"))
+        {
             score += 15;
         }
-        if desc_lower.contains("model") && (task_lower.contains("model") || task_lower.contains("preset")) {
+        if desc_lower.contains("model")
+            && (task_lower.contains("model") || task_lower.contains("preset"))
+        {
             score += 8;
         }
-        if desc_lower.contains("memory") && (task_lower.contains("memory") || task_lower.contains("ram") || task_lower.contains("mem")) {
+        if desc_lower.contains("memory")
+            && (task_lower.contains("memory")
+                || task_lower.contains("ram")
+                || task_lower.contains("mem"))
+        {
             score += 10;
         }
-        if desc_lower.contains("length") && (task_lower.contains("length") || task_lower.contains("size") || task_lower.contains("minlen")) {
+        if desc_lower.contains("length")
+            && (task_lower.contains("length")
+                || task_lower.contains("size")
+                || task_lower.contains("minlen"))
+        {
             score += 5;
         }
-        if desc_lower.contains("format") && (task_lower.contains("format") || task_lower.contains("convert")) {
+        if desc_lower.contains("format")
+            && (task_lower.contains("format") || task_lower.contains("convert"))
+        {
             score += 8;
         }
-        if desc_lower.contains("paired") && (task_lower.contains("paired") || task_lower.contains("pair")) {
+        if desc_lower.contains("paired")
+            && (task_lower.contains("paired") || task_lower.contains("pair"))
+        {
             score += 10;
         }
-        if desc_lower.contains("genome") && (task_lower.contains("genome") || task_lower.contains("genomic")) {
+        if desc_lower.contains("genome")
+            && (task_lower.contains("genome") || task_lower.contains("genomic"))
+        {
             score += 8;
         }
         if desc_lower.contains("runmode") || flag_lower.contains("runmode") {
             score += 15;
         }
         if desc_lower.contains("genomedir") || flag_lower.contains("genomedir") {
-            if task_lower.contains("genome") || task_lower.contains("index") || task_lower.contains("align") {
+            if task_lower.contains("genome")
+                || task_lower.contains("index")
+                || task_lower.contains("align")
+            {
                 score += 15;
             }
         }
         if desc_lower.contains("readfilesin") || flag_lower.contains("readfilesin") {
-            if task_lower.contains("read") || task_lower.contains("fastq") || task_lower.contains("align") {
+            if task_lower.contains("read")
+                || task_lower.contains("fastq")
+                || task_lower.contains("align")
+            {
                 score += 15;
             }
         }
@@ -2526,7 +3392,10 @@ pub fn build_args_generation_prompt(
         if desc_lower.contains("help") || flag_lower.contains("version") {
             score -= 50;
         }
-        if desc_lower.contains("verbose") || desc_lower.contains("debug") || desc_lower.contains("quiet") {
+        if desc_lower.contains("verbose")
+            || desc_lower.contains("debug")
+            || desc_lower.contains("quiet")
+        {
             score -= 20;
         }
         if desc_lower.contains("test") && !task_lower.contains("test") {
@@ -2541,22 +3410,22 @@ pub fn build_args_generation_prompt(
         score
     };
 
-    let required_flags: Vec<_> = sdoc.flag_catalog.iter()
-        .filter(|e| e.required)
-        .collect();
-    let mut optional_flags: Vec<_> = sdoc.flag_catalog.iter()
-        .filter(|e| !e.required)
-        .collect();
+    let required_flags: Vec<_> = sdoc.flag_catalog.iter().filter(|e| e.required).collect();
+    let mut optional_flags: Vec<_> = sdoc.flag_catalog.iter().filter(|e| !e.required).collect();
 
     optional_flags.sort_by(|a, b| score_relevance(b).cmp(&score_relevance(a)));
 
     if !required_flags.is_empty() {
         prompt.push_str("REQUIRED FLAGS (must include):\n");
         for entry in &required_flags {
-            let alt_info = entry.alt_form.as_ref()
+            let alt_info = entry
+                .alt_form
+                .as_ref()
                 .map(|a| format!(" / {}", a))
                 .unwrap_or_default();
-            let type_info = entry.value_type.as_ref()
+            let type_info = entry
+                .value_type
+                .as_ref()
                 .map(|t| format!(" <{}>", t))
                 .unwrap_or_default();
             let enum_info = if !entry.enum_values.is_empty() {
@@ -2564,7 +3433,10 @@ pub fn build_args_generation_prompt(
             } else {
                 String::new()
             };
-            prompt.push_str(&format!("  {}{}{}    {}{}\n", entry.flag, alt_info, type_info, entry.description, enum_info));
+            prompt.push_str(&format!(
+                "  {}{}{}    {}{}\n",
+                entry.flag, alt_info, type_info, entry.description, enum_info
+            ));
         }
         prompt.push('\n');
     }
@@ -2572,10 +3444,14 @@ pub fn build_args_generation_prompt(
     if !optional_flags.is_empty() {
         prompt.push_str("AVAILABLE FLAGS (pick relevant ones only):\n");
         for entry in optional_flags.iter().take(15) {
-            let alt_info = entry.alt_form.as_ref()
+            let alt_info = entry
+                .alt_form
+                .as_ref()
                 .map(|a| format!(" / {}", a))
                 .unwrap_or_default();
-            let type_info = entry.value_type.as_ref()
+            let type_info = entry
+                .value_type
+                .as_ref()
                 .map(|t| format!(" <{}>", t))
                 .unwrap_or_default();
             let enum_info = if !entry.enum_values.is_empty() {
@@ -2583,7 +3459,10 @@ pub fn build_args_generation_prompt(
             } else {
                 String::new()
             };
-            prompt.push_str(&format!("  {}{}{}    {}{}\n", entry.flag, alt_info, type_info, entry.description, enum_info));
+            prompt.push_str(&format!(
+                "  {}{}{}    {}{}\n",
+                entry.flag, alt_info, type_info, entry.description, enum_info
+            ));
         }
         prompt.push('\n');
     }
@@ -2596,14 +3475,21 @@ pub fn build_args_generation_prompt(
                 crate::doc_processor::FileIOType::Output => "output",
                 crate::doc_processor::FileIOType::Both => "input/output",
             };
-            prompt.push_str(&format!("  .{} -> {} ({})\n", ftm.extension, ftm.flags.join(","), io));
+            prompt.push_str(&format!(
+                "  .{} -> {} ({})\n",
+                ftm.extension,
+                ftm.flags.join(","),
+                io
+            ));
         }
         prompt.push('\n');
     }
 
     if !sdoc.extracted_examples.is_empty() {
         let sub_lower = selected_subcommand.map(|s| s.to_ascii_lowercase());
-        let mut relevant_examples: Vec<&String> = sdoc.extracted_examples.iter()
+        let mut relevant_examples: Vec<&String> = sdoc
+            .extracted_examples
+            .iter()
             .filter(|ex| {
                 if let Some(ref sub) = sub_lower {
                     let ex_lower = ex.to_ascii_lowercase();
@@ -2619,7 +3505,8 @@ pub fn build_args_generation_prompt(
         if !relevant_examples.is_empty() {
             prompt.push_str("REFERENCE EXAMPLE (modify for the task):\n");
             for ex in relevant_examples.iter().take(2) {
-                let cleaned = ex.trim()
+                let cleaned = ex
+                    .trim()
                     .trim_start_matches(&format!("{} ", tool))
                     .trim_start_matches(&format!("{} ", tool.to_lowercase()));
                 prompt.push_str(&format!("  {}\n", cleaned));
@@ -2628,31 +3515,58 @@ pub fn build_args_generation_prompt(
         }
     }
 
-    if !task_values.input_files.is_empty() || !task_values.output_files.is_empty() || !task_values.numbers.is_empty() {
+    if !task_values.input_files.is_empty()
+        || !task_values.output_files.is_empty()
+        || !task_values.numbers.is_empty()
+    {
         prompt.push_str("TASK VALUES (each MUST appear in the command):\n");
         if !task_values.input_files.is_empty() {
-            prompt.push_str(&format!("  Input files: {}\n", task_values.input_files.join(", ")));
+            prompt.push_str(&format!(
+                "  Input files: {}\n",
+                task_values.input_files.join(", ")
+            ));
         }
         if !task_values.output_files.is_empty() {
-            prompt.push_str(&format!("  Output files: {}\n", task_values.output_files.join(", ")));
+            prompt.push_str(&format!(
+                "  Output files: {}\n",
+                task_values.output_files.join(", ")
+            ));
         }
         if !task_values.reference_files.is_empty() {
-            prompt.push_str(&format!("  Reference files: {}\n", task_values.reference_files.join(", ")));
+            prompt.push_str(&format!(
+                "  Reference files: {}\n",
+                task_values.reference_files.join(", ")
+            ));
         }
         if !task_values.read_files.is_empty() {
-            prompt.push_str(&format!("  Read files: {}\n", task_values.read_files.join(", ")));
+            prompt.push_str(&format!(
+                "  Read files: {}\n",
+                task_values.read_files.join(", ")
+            ));
         }
         if !task_values.annotation_files.is_empty() {
-            prompt.push_str(&format!("  Annotation files: {}\n", task_values.annotation_files.join(", ")));
+            prompt.push_str(&format!(
+                "  Annotation files: {}\n",
+                task_values.annotation_files.join(", ")
+            ));
         }
         if !task_values.genome_dirs.is_empty() {
-            prompt.push_str(&format!("  Genome dirs: {}\n", task_values.genome_dirs.join(", ")));
+            prompt.push_str(&format!(
+                "  Genome dirs: {}\n",
+                task_values.genome_dirs.join(", ")
+            ));
         }
         if !task_values.database_files.is_empty() {
-            prompt.push_str(&format!("  Database files: {}\n", task_values.database_files.join(", ")));
+            prompt.push_str(&format!(
+                "  Database files: {}\n",
+                task_values.database_files.join(", ")
+            ));
         }
         if !task_values.numbers.is_empty() {
-            prompt.push_str(&format!("  Numeric values: {}\n", task_values.numbers.join(", ")));
+            prompt.push_str(&format!(
+                "  Numeric values: {}\n",
+                task_values.numbers.join(", ")
+            ));
         }
         prompt.push('\n');
     }
@@ -2665,7 +3579,8 @@ pub fn build_args_generation_prompt(
     prompt.push_str("Do NOT include the tool name.\n");
     prompt.push_str("Rules:\n");
     prompt.push_str("1. Use ONLY flags from the list above. Any flag not listed is WRONG.\n");
-    prompt.push_str("2. Place file paths as positional args when shown above, NOT with -f/-i/-b.\n");
+    prompt
+        .push_str("2. Place file paths as positional args when shown above, NOT with -f/-i/-b.\n");
     prompt.push_str("3. Extract EXACT file paths and values from the task.\n");
     prompt.push_str("4. Include -o/--output and -t/--threads when task implies them.\n");
     prompt.push_str("5. EVERY file from TASK VALUES must appear in the command.\n");
