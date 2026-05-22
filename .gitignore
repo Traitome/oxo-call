@@ -58,3 +58,4 @@ output.txt
 
 # Random test outputs
 meme_out/
+.nextflow.log*

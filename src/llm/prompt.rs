@@ -35,6 +35,7 @@ pub fn system_prompt() -> &'static str {
 }
 
 /// Medium-compression system prompt for 4k–16k context or 4B–7B models.
+#[allow(dead_code)]
 pub fn system_prompt_medium() -> &'static str {
     "You translate tasks into CLI arguments.\n\
      Output JSON: {\"subcommand\":\"sort\",\"flags\":{\"-@\":\"4\",\"-o\":\"out.bam\"},\"positional_args\":[\"in.bam\"],\"explanation\":\"...\"}\n\
@@ -62,6 +63,7 @@ pub fn system_prompt_slim() -> &'static str {
 
 /// Built-in few-shot examples for common bioinformatics tools.
 /// Used in Compact prompt tier for small models (≤3B parameters) when no skill is available.
+#[allow(dead_code)]
 const TOOL_DEFAULT_FEW_SHOT: &[(&str, &str, &str)] = &[
     // (tool, task_keyword, args)
     ("samtools", "sort", "sort -@ 4 -o sorted.bam input.bam"),
@@ -396,6 +398,7 @@ const TOOL_DEFAULT_FEW_SHOT: &[(&str, &str, &str)] = &[
 // ── Token estimation ─────────────────────────────────────────────────────────
 
 /// Rough token count estimate for prompt budgeting.
+#[allow(dead_code)]
 pub fn estimate_tokens(text: &str) -> usize {
     text.len().div_ceil(4)
 }
@@ -529,6 +532,15 @@ fn build_slim_prompt(
                 prompt.push_str(&format!("    {}{}  {}\n", f.flag, alt, f.description));
             }
             prompt.push_str("  (* = required)\n");
+        } else if !sdoc.usage_pattern.raw_usage.is_empty() {
+            // No flag catalog — show raw usage as guidance
+            let usage = if sdoc.usage_pattern.raw_usage.len() > 300 {
+                &sdoc.usage_pattern.raw_usage[..300]
+            } else {
+                &sdoc.usage_pattern.raw_usage
+            };
+            prompt.push_str(&format!("\nUsage: {usage}\n"));
+            prompt.push_str("Use flags shown in usage above. Do NOT invent flags.\n");
         }
     }
 
@@ -547,26 +559,21 @@ fn build_slim_prompt(
         prompt.push_str(&format!("\nExample:\n  ARGS: {args}\n"));
     }
 
-    // Task values (files from task)
-    if let Some(sdoc) = structured_doc {
-        let task_values = super::task_values::extract_task_values(task);
+    // Task values — show exact files, no generic positional patterns
+    let task_values = super::task_values::extract_task_values(task);
+    let has_files = !task_values.input_files.is_empty() || !task_values.output_files.is_empty();
+    if has_files {
+        prompt.push_str("\nUse these EXACT file paths:\n");
         if !task_values.input_files.is_empty() {
             prompt.push_str(&format!(
-                "\nInput: {}\n",
+                "  Input: {}\n",
                 task_values.input_files.join(", ")
             ));
         }
         if !task_values.output_files.is_empty() {
             prompt.push_str(&format!(
-                "Output: {}\n",
+                "  Output: {}\n",
                 task_values.output_files.join(", ")
-            ));
-        }
-
-        if !sdoc.usage_pattern.positional_args.is_empty() {
-            prompt.push_str(&format!(
-                "Positional: {}\n",
-                sdoc.usage_pattern.positional_args.join(" ")
             ));
         }
     }
@@ -607,7 +614,11 @@ fn find_best_subcommand_for_task(task: &str, sdoc: &StructuredDoc) -> Option<Str
                     }
                 }
             }
-            if score > 0 { Some((sub.clone(), score)) } else { None }
+            if score > 0 {
+                Some((sub.clone(), score))
+            } else {
+                None
+            }
         })
         .max_by_key(|(_, s)| *s)
         .map(|(sub, _)| sub)
