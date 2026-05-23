@@ -69,6 +69,10 @@ pub struct CompareResult {
     pub positional_order_match: f64,
     /// Whether the first token (subcommand) matches.
     pub subcommand_match: bool,
+    /// ROUGE-L F1 score (longest common subsequence of tokens).
+    pub rouge_l: f64,
+    /// Fraction of flags in generated output not found in reference.
+    pub hallucination_rate: f64,
 }
 
 impl CompareResult {
@@ -199,6 +203,13 @@ pub fn compare_commands(generated: &str, reference: &str) -> CompareResult {
     // ── Positional-order match ────────────────────────────────────────────────
     let positional_order_match = positional_order_match(generated, reference);
 
+    let rouge_l = compute_rouge_l(generated, reference);
+    let hallucination_rate = if gen_set.is_empty() {
+        0.0
+    } else {
+        gen_set.difference(&ref_set).count() as f64 / gen_set.len() as f64
+    };
+
     CompareResult {
         exact_match,
         token_jaccard,
@@ -209,6 +220,8 @@ pub fn compare_commands(generated: &str, reference: &str) -> CompareResult {
         flag_group_jaccard,
         positional_order_match,
         subcommand_match,
+        rouge_l,
+        hallucination_rate,
     }
 }
 
@@ -872,6 +885,8 @@ pub fn compare_commands_semantic(generated: &str, reference: &str) -> CompareRes
     let raw_result = compare_commands(generated, reference);
 
     CompareResult {
+        rouge_l: compute_rouge_l(generated, reference),
+        hallucination_rate: 0.0,
         // Use normalised metrics for the important ones
         exact_match: norm_result.exact_match,
         flag_group_recall: norm_result.flag_group_recall,
@@ -1302,5 +1317,36 @@ mod tests {
             "cmd input.bam"
         );
         assert_eq!(strip_redirects_and_pipes("cmd input.bam"), "cmd input.bam");
+    }
+}
+
+/// ROUGE-L F1 score: longest common subsequence of tokens.
+/// Rewards partial structural correctness.
+fn compute_rouge_l(a: &str, b: &str) -> f64 {
+    let a_tokens: Vec<&str> = a.split_whitespace().collect();
+    let b_tokens: Vec<&str> = b.split_whitespace().collect();
+    let n = a_tokens.len();
+    let m = b_tokens.len();
+    if n == 0 || m == 0 {
+        return if n == m { 1.0 } else { 0.0 };
+    }
+
+    let mut dp = vec![vec![0usize; m + 1]; n + 1];
+    for i in 1..=n {
+        for j in 1..=m {
+            if a_tokens[i - 1] == b_tokens[j - 1] {
+                dp[i][j] = dp[i - 1][j - 1] + 1;
+            } else {
+                dp[i][j] = dp[i - 1][j].max(dp[i][j - 1]);
+            }
+        }
+    }
+    let lcs = dp[n][m] as f64;
+    let recall = lcs / n as f64;
+    let precision = lcs / m as f64;
+    if recall + precision == 0.0 {
+        0.0
+    } else {
+        2.0 * recall * precision / (recall + precision)
     }
 }
