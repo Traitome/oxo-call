@@ -2211,6 +2211,16 @@ impl LlmClient {
                     suggestion.args = limit_flag_count(&suggestion.args, sdoc, task);
                     suggestion.args = fill_missing_flag_values(&suggestion.args, sdoc, task);
                     suggestion.args = replace_generic_values(&suggestion.args, task);
+
+                    // ── 5-step validate pipeline (deterministic safety net) ──
+                    let best_sub = crate::llm::prompt::find_best_subcommand_for_task(task, sdoc);
+                    suggestion.args = super::postprocess::validate_command(
+                        &suggestion.args,
+                        tool,
+                        task,
+                        sdoc,
+                        best_sub.as_deref(),
+                    );
                 }
             }
 

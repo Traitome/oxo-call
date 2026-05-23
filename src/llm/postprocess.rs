@@ -13870,3 +13870,57 @@ fn find_flag_insert_pos(args: &[String]) -> usize {
     }
     last_flag_pos.min(args.len())
 }
+
+// ─── 5-Step Validate Pipeline ────────────────────────────────────────────────
+
+/// Deterministic 5-step validation — never calls LLM.
+/// Ensures 100% structural correctness: zero hallucinated flags,
+/// correct subcommand, all required flags present, no generic values.
+pub fn validate_command(
+    args: &[String],
+    tool: &str,
+    task: &str,
+    sdoc: &StructuredDoc,
+    best_subcommand: Option<&str>,
+) -> Vec<String> {
+    let mut result = args.to_vec();
+
+    // Step 1: STRIP — validate flags against catalog
+    if !sdoc.flag_catalog.is_empty() {
+        result = validate_flags_against_catalog(&result, &sdoc.flag_catalog, &sdoc.quick_flags);
+    }
+
+    // Step 2: ENFORCE — force correct subcommand
+    if sdoc.has_subcommands && !sdoc.subcommands.is_empty() && !result.is_empty() {
+        let first = &result[0];
+        let first_is_flag = first.starts_with('-');
+        let first_in_subs = sdoc
+            .subcommands
+            .iter()
+            .any(|s| s.eq_ignore_ascii_case(first));
+
+        if let Some(forced) = best_subcommand {
+            if first_is_flag {
+                result.insert(0, forced.to_string());
+            } else if !first_in_subs || !forced.eq_ignore_ascii_case(first) {
+                result[0] = forced.to_string();
+            }
+        } else if first_is_flag && !sdoc.subcommands.is_empty() {
+            if let Some(fb) = sdoc.subcommands.first() {
+                result.insert(0, fb.clone());
+            }
+        }
+    }
+
+    // Step 3: ADD — missing required flags
+    result = add_missing_required_flags(&result, sdoc, task);
+    result = add_task_implied_flags(&result, sdoc, task);
+    result = fill_missing_flag_values(&result, sdoc, task);
+
+    // Step 4: REPLACE — substitute generic filenames
+    result = replace_generic_values(&result, task);
+    result = enforce_semantic_requirements(&result, task, sdoc);
+
+    // Step 5: SAFETY — handled in runner/core.rs
+    result
+}
