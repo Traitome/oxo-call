@@ -1,3 +1,4 @@
+use super::prompt::find_best_subcommand_for_task;
 use super::task_values::{TaskValues, extract_task_values};
 use crate::doc_processor::{FlagEntry, StructuredDoc};
 
@@ -76,6 +77,25 @@ pub fn apply_corrections_to_args(
         let args_str = args.join(" ");
         let corrected = crate::validator::validate_subcommand(&args_str, tool, sdoc);
         args = crate::llm::response::parse_shell_args(&corrected);
+
+        // Force best subcommand from task — catch LLM/rule-engine errors
+        if let Some(t) = task {
+            if sdoc.has_subcommands && !sdoc.subcommands.is_empty() && !args.is_empty() {
+                if let Some(best) = find_best_subcommand_for_task(t, sdoc) {
+                    let first = &args[0];
+                    if first.starts_with('-') {
+                        args.insert(0, best);
+                    } else if !sdoc
+                        .subcommands
+                        .iter()
+                        .any(|s| s.eq_ignore_ascii_case(first))
+                        || !best.eq_ignore_ascii_case(first)
+                    {
+                        args[0] = best;
+                    }
+                }
+            }
+        }
 
         args = apply_tool_specific_corrections(&args, tool, task);
 
