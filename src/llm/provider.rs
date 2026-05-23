@@ -16,7 +16,7 @@ use super::postprocess::{
 use super::prompt::{
     build_prompt, build_retry_prompt, build_skill_generate_prompt, build_skill_polish_prompt,
     build_skill_verify_prompt, build_verification_prompt, skill_reviewer_system_prompt,
-    system_prompt, system_prompt_slim, verification_system_prompt,
+    system_prompt, system_prompt_unified, verification_system_prompt,
 };
 use super::response::{
     is_valid_suggestion, parse_response, parse_skill_verify_response, parse_verification_response,
@@ -273,8 +273,6 @@ impl LlmClient {
         no_prompt: bool,
         structured_doc: Option<&StructuredDoc>,
     ) -> Result<LlmCommandSuggestion> {
-        use super::prompt::build_args_generation_prompt;
-
         let model = self.config.effective_model();
         let profile = crate::config::get_model_profile(&model);
         let temperature = Some(profile.optimal_temperature);
@@ -693,11 +691,7 @@ impl LlmClient {
             String::new()
         };
 
-        let step2_prompt = format!(
-            "{}{}",
-            build_args_generation_prompt(tool, task, sdoc, selected_subcommand.as_deref()),
-            rule_hint
-        );
+        let step2_prompt = rule_hint.clone();
 
         let step2_system = if selected_subcommand.is_some() {
             "Generate CLI arguments. Respond with exactly:\nARGS: <complete arguments>\nEXPLANATION: <brief>\n\nRules:\n1. Start with the subcommand.\n2. Use ONLY flags from the list above.\n3. Include ALL required flags. Skip optional flags not mentioned in task.\n4. Extract EXACT file paths and values from the task.\n5. Include positional arguments (file paths, patterns, targets) after flags.\n6. Maximum 8 flags. Fewer is better.\n7. Do NOT include the tool name."
@@ -1579,7 +1573,7 @@ impl LlmClient {
                 eprintln!(
                     "[DEBUG PROMPT] === System Prompt ===\n{}",
                     match tier {
-                        PromptTier::Slim => system_prompt_slim(),
+                        PromptTier::Slim => system_prompt_unified(),
                         PromptTier::Full => system_prompt(),
                     }
                 );
@@ -1666,7 +1660,7 @@ impl LlmClient {
                         );
                         match self
                             .request_with_system(
-                                system_prompt_slim(),
+                                system_prompt_unified(),
                                 &correction_prompt,
                                 Some(512),
                                 temperature,
@@ -2346,7 +2340,7 @@ impl LlmClient {
             ""
         } else {
             match tier {
-                PromptTier::Slim => system_prompt_slim(),
+                PromptTier::Slim => system_prompt_unified(),
                 PromptTier::Full => system_prompt(),
             }
         };
