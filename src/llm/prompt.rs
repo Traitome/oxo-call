@@ -617,7 +617,7 @@ pub(crate) fn find_best_subcommand_for_task(task: &str, sdoc: &StructuredDoc) ->
         if task_lower.contains(&sub_lower) {
             score += 20;
         }
-        // Subcommand parts match task keywords
+        // Subcommand parts match task keywords (with stem/plural handling)
         for part in sub_lower.split(|c: char| c == '_' || c == '-') {
             if part.len() >= 2 {
                 for kw in &task_keywords {
@@ -632,6 +632,29 @@ pub(crate) fn find_best_subcommand_for_task(task: &str, sdoc: &StructuredDoc) ->
                         && (kw.starts_with(part) || part.starts_with(kw))
                     {
                         score += 5;
+                    }
+                    // Stem/plural matching: "snps" vs "snp", "reads" vs "read"
+                    if let Some(kw_stem) = kw.strip_suffix('s') {
+                        if kw_stem.len() >= 2 {
+                            if kw_stem == part {
+                                score += 12;
+                            } else if part.contains(kw_stem) {
+                                score += 6;
+                            } else if kw_stem.contains(part) {
+                                score += 6;
+                            }
+                        }
+                    }
+                    if let Some(part_stem) = part.strip_suffix('s') {
+                        if part_stem.len() >= 2 {
+                            if *kw == part_stem {
+                                score += 12;
+                            } else if kw.contains(part_stem) {
+                                score += 6;
+                            } else if part_stem.contains(kw) {
+                                score += 6;
+                            }
+                        }
                     }
                 }
             }
