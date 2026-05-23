@@ -1715,6 +1715,40 @@ impl LlmClient {
                 }
                 suggestion.args = crate::llm::response::parse_shell_args(&corrected);
 
+                // ── 100% subcommand enforcement ────────────────────────
+                // When the tool requires a subcommand, force the best match
+                // from the pre-processor, overriding any LLM error.
+                if sdoc.has_subcommands
+                    && !sdoc.subcommands.is_empty()
+                    && !suggestion.args.is_empty()
+                {
+                    let best_sub = crate::llm::prompt::find_best_subcommand_for_task(task, sdoc);
+                    let first = &suggestion.args[0];
+                    let first_is_flag = first.starts_with('-');
+                    let first_in_subs = sdoc
+                        .subcommands
+                        .iter()
+                        .any(|s| s.eq_ignore_ascii_case(first));
+
+                    if let Some(ref forced) = best_sub {
+                        if first_is_flag {
+                            // LLM skipped subcommand — insert it
+                            suggestion.args.insert(0, forced.clone());
+                        } else if !first_in_subs {
+                            // LLM hallucinated subcommand — replace it
+                            suggestion.args[0] = forced.clone();
+                        } else if !forced.eq_ignore_ascii_case(first) {
+                            // LLM picked wrong valid subcommand — force best
+                            suggestion.args[0] = forced.clone();
+                        }
+                    } else if first_is_flag {
+                        // No match found but tool needs subcommand — use first available
+                        if let Some(fallback) = sdoc.subcommands.first() {
+                            suggestion.args.insert(0, fallback.clone());
+                        }
+                    }
+                }
+
                 if is_no_subcommand_tool(tool) && !suggestion.args.is_empty() {
                     let first = &suggestion.args[0];
                     let first_lower = first.to_ascii_lowercase();

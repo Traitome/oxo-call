@@ -600,40 +600,77 @@ pub(crate) fn find_best_subcommand_for_task(task: &str, sdoc: &StructuredDoc) ->
     let task_lower = task.to_ascii_lowercase();
     let task_keywords: Vec<&str> = task_lower
         .split_whitespace()
-        .filter(|w| w.len() >= 3 && !w.contains('.'))
+        .filter(|w| w.len() >= 2 && !w.contains('.') && !w.starts_with('('))
         .collect();
 
-    sdoc.subcommands
-        .iter()
-        .filter_map(|sub| {
-            let sub_lower = sub.to_ascii_lowercase();
-            let mut score = 0i32;
-            // Exact match
-            if task_keywords.iter().any(|w| *w == sub_lower) {
-                score += 20;
-            }
-            // Task contains subcommand
-            if task_lower.contains(&sub_lower) {
-                score += 15;
-            }
-            // Subcommand parts match task keywords
-            for part in sub_lower.split(|c: char| c == '_' || c == '-') {
-                if part.len() >= 3 {
-                    for kw in &task_keywords {
-                        if kw.contains(part) || part.contains(kw) {
-                            score += 8;
-                        }
+    let mut best: Option<(String, i32)> = None;
+
+    for sub in &sdoc.subcommands {
+        let sub_lower = sub.to_ascii_lowercase();
+        let mut score = 0i32;
+
+        // Exact keyword match (e.g., "sort" in "sort input.bam")
+        if task_keywords.iter().any(|w| *w == sub_lower) {
+            score += 25;
+        }
+        // Task contains full subcommand name
+        if task_lower.contains(&sub_lower) {
+            score += 20;
+        }
+        // Subcommand parts match task keywords
+        for part in sub_lower.split(|c: char| c == '_' || c == '-') {
+            if part.len() >= 2 {
+                for kw in &task_keywords {
+                    if *kw == part {
+                        score += 15;
+                    } else if kw.contains(part) && part.len() >= 3 {
+                        score += 8;
+                    } else if part.contains(kw) && kw.len() >= 3 {
+                        score += 8;
+                    } else if kw.len() >= 4
+                        && part.len() >= 4
+                        && (kw.starts_with(part) || part.starts_with(kw))
+                    {
+                        score += 5;
                     }
                 }
             }
-            if score > 0 {
-                Some((sub.clone(), score))
-            } else {
-                None
+        }
+        // Also match against subcommand descriptions
+        for (desc_sub, desc) in &sdoc.subcommand_descriptions {
+            if desc_sub == sub && !desc.is_empty() {
+                let desc_lower = desc.to_ascii_lowercase();
+                for kw in &task_keywords {
+                    if kw.len() >= 3 && desc_lower.contains(kw) {
+                        score += 10;
+                    }
+                }
             }
-        })
-        .max_by_key(|(_, s)| *s)
-        .map(|(sub, _)| sub)
+        }
+
+        if score > 0 {
+            match &best {
+                Some((_, s)) if score <= *s => {}
+                _ => best = Some((sub.clone(), score)),
+            }
+        }
+    }
+
+    // Fallback: try known subcommands from task_values
+    if best.is_none() {
+        let known_subs = super::task_values::get_known_subcommands_for_tool("");
+        // Try matching against tool-specific known list via the sdoc
+        if sdoc.subcommands.is_empty() {
+            // No subcommands in doc — try to find from task
+            for kw in &task_keywords {
+                if kw.len() >= 3 {
+                    return Some(kw.to_string());
+                }
+            }
+        }
+    }
+
+    best.map(|(sub, _)| sub)
 }
 
 fn flag_relevance_score(entry: &FlagEntry, task_keywords: &[&str], task_lower: &str) -> i32 {
