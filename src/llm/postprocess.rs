@@ -13782,16 +13782,23 @@ pub fn enforce_semantic_requirements(
     let args_str = result.join(" ").to_ascii_lowercase();
     let has_output_flag = args_str.contains(" -o ")
         || args_str.contains("--out")
-        || args_str.contains("output")
-        || args_str.starts_with("-o ");
+        || result.iter().any(|a| {
+            a.to_ascii_lowercase().starts_with("-o")
+                || a.to_ascii_lowercase().starts_with("--out")
+                || a.to_ascii_lowercase().starts_with("--output")
+        });
     let has_thread_flag = args_str.contains(" -@ ")
-        || args_str.contains(" -t ")
         || args_str.contains("--thread")
-        || args_str.contains("-p ")
-        || args_str.contains("--cpu");
+        || result.iter().any(|a| {
+            a == "-@"
+                || a.starts_with("--thread")
+                || a.starts_with("--cpu")
+                || a.starts_with("--nproc")
+        });
     let has_input_file = result.iter().any(|a| {
         let al = a.to_ascii_lowercase();
         al.contains('.')
+            && !al.starts_with('-')
             && (al.ends_with(".bam")
                 || al.ends_with(".fq")
                 || al.ends_with(".fastq")

@@ -2711,6 +2711,59 @@ impl DocProcessor {
             let line = lines[i];
             let trimmed = line.trim();
 
+            // ── NEW: --flag=VALUE format (common in many tools like augustus, varscan) ──
+            // e.g., "--species=SPECIES", "--gff3=on/off", "--strand=both"
+            if trimmed.starts_with("--") && trimmed.contains('=') {
+                let flag_part = if let Some(eq_pos) = trimmed.find('=') {
+                    let flag = &trimmed[..eq_pos];
+                    // Check for comma-separated alternatives: --strand=both, --strand=forward
+                    if let Some(comma_pos) = trimmed.find(',') {
+                        &trimmed[..comma_pos]
+                    } else {
+                        flag
+                    }
+                } else {
+                    trimmed
+                };
+                let flag_clean =
+                    flag_part.trim_end_matches(|c: char| !c.is_alphanumeric() && c != '-');
+                if flag_clean.starts_with("--")
+                    && flag_clean.len() > 3
+                    && !seen_flags.contains(flag_clean)
+                {
+                    seen_flags.insert(flag_clean.to_string());
+                    // Try to find description on next line(s)
+                    let mut desc = String::new();
+                    let mut j = i + 1;
+                    while j < lines.len() && j < i + 4 {
+                        let next = lines[j].trim();
+                        if next.starts_with("--") || next.is_empty() {
+                            break;
+                        }
+                        if !desc.is_empty() {
+                            desc.push(' ');
+                        }
+                        desc.push_str(next);
+                        j += 1;
+                    }
+                    catalog.push(FlagEntry {
+                        flag: flag_clean.to_string(),
+                        value_type: Some("VALUE".to_string()),
+                        description: if desc.is_empty() {
+                            format!("{} parameter", &flag_clean[2..])
+                        } else {
+                            desc
+                        },
+                        required: flag_clean.contains("species") || flag_clean.contains("output"),
+                        default: None,
+                        alt_form: None,
+                        enum_values: Vec::new(),
+                    });
+                }
+                i += 1;
+                continue;
+            }
+
             // Try Picard-style KEY=VALUE parameter detection first
             if !trimmed.starts_with('-') && !trimmed.starts_with("      --") {
                 if let Some(caps) = PICARD_PARAM_RE.captures(line) {
