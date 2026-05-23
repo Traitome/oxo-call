@@ -91,6 +91,7 @@ pub fn apply_corrections_to_args(
             args = add_task_implied_flags(&args, sdoc, task);
             args = fill_missing_flag_values(&args, sdoc, task);
             args = replace_generic_values(&args, task);
+            args = enforce_semantic_requirements(&args, task, sdoc);
             args = enforce_mandatory_positional_args(&args, tool, task, sdoc);
         }
 
@@ -13742,4 +13743,130 @@ pub fn limit_flag_count(args: &[String], sdoc: &StructuredDoc, task: &str) -> Ve
     }
 
     result
+}
+
+// ─── Semantic Safety Net ───────────────────────────────────────────────────────
+
+/// Enforce basic command structure requirements based on task semantics,
+/// independent of flag catalog quality. This is a universal safety net
+/// that works for ANY CLI tool, not just bioinformatics ones.
+pub fn enforce_semantic_requirements(
+    args: &[String],
+    task: &str,
+    sdoc: &StructuredDoc,
+) -> Vec<String> {
+    let mut result = args.to_vec();
+    let task_values = extract_task_values(task);
+    let task_lower = task.to_ascii_lowercase();
+
+    let args_str = result.join(" ").to_ascii_lowercase();
+    let has_output_flag = args_str.contains(" -o ")
+        || args_str.contains("--out")
+        || args_str.contains("output")
+        || args_str.starts_with("-o ");
+    let has_thread_flag = args_str.contains(" -@ ")
+        || args_str.contains(" -t ")
+        || args_str.contains("--thread")
+        || args_str.contains("-p ")
+        || args_str.contains("--cpu");
+    let has_input_file = result.iter().any(|a| {
+        let al = a.to_ascii_lowercase();
+        al.contains('.')
+            && (al.ends_with(".bam")
+                || al.ends_with(".fq")
+                || al.ends_with(".fastq")
+                || al.ends_with(".fa")
+                || al.ends_with(".fasta")
+                || al.ends_with(".vcf")
+                || al.ends_with(".bed")
+                || al.ends_with(".gtf")
+                || al.ends_with(".txt")
+                || al.ends_with(".csv")
+                || al.ends_with(".gz")
+                || al.ends_with(".sam"))
+    });
+
+    // 1. Ensure output file when task implies output
+    let task_implies_output = task_lower.contains("save")
+        || task_lower.contains("output")
+        || task_lower.contains("write")
+        || task_lower.contains("generate")
+        || task_lower.contains("create")
+        || task_lower.contains("convert")
+        || !task_values.output_files.is_empty();
+    if task_implies_output && !has_output_flag && !task_values.output_files.is_empty() {
+        if let Some(out_file) = task_values.output_files.first() {
+            // Find the best output flag from catalog
+            let output_flag = find_output_flag(sdoc);
+            let insert_pos = find_flag_insert_pos(&result);
+            result.insert(insert_pos, out_file.clone());
+            result.insert(insert_pos, output_flag.to_string());
+        }
+    }
+
+    // 2. Ensure thread flag when task mentions threads
+    let task_mentions_threads = task_lower.contains("thread")
+        || task_lower.contains("cpu")
+        || task_lower.contains("core")
+        || task_lower.contains("parallel");
+    if task_mentions_threads && !has_thread_flag {
+        for n in &task_values.numbers {
+            if let Ok(v) = n.parse::<u32>() {
+                if v <= 128 && v > 0 {
+                    let thread_flag = find_thread_flag(sdoc);
+                    let insert_pos = find_flag_insert_pos(&result);
+                    result.insert(insert_pos, n.clone());
+                    result.insert(insert_pos, thread_flag.to_string());
+                    break;
+                }
+            }
+        }
+    }
+
+    // 3. Ensure input files are present
+    if !has_input_file && !task_values.input_files.is_empty() {
+        for input_file in &task_values.input_files {
+            if !result.iter().any(|a| a == input_file) {
+                result.push(input_file.clone());
+            }
+        }
+    }
+
+    result
+}
+
+fn find_output_flag(sdoc: &StructuredDoc) -> &str {
+    for entry in &sdoc.flag_catalog {
+        let dl = entry.flag.to_ascii_lowercase();
+        if dl.contains("-o") || dl.contains("out") {
+            return &entry.flag;
+        }
+    }
+    "-o"
+}
+
+fn find_thread_flag(sdoc: &StructuredDoc) -> &str {
+    for entry in &sdoc.flag_catalog {
+        let dl = entry.flag.to_ascii_lowercase();
+        let desc = entry.description.to_ascii_lowercase();
+        if dl.contains("thread") || dl.contains("-@") || desc.contains("thread") {
+            return &entry.flag;
+        }
+    }
+    "-@"
+}
+
+fn find_flag_insert_pos(args: &[String]) -> usize {
+    // Insert after the last flag-value pair, before positional args
+    let mut last_flag_pos = 0usize;
+    for (i, arg) in args.iter().enumerate() {
+        if arg.starts_with('-') {
+            last_flag_pos = i + 1;
+            // Skip the value that follows
+            if i + 1 < args.len() && !args[i + 1].starts_with('-') {
+                last_flag_pos = i + 2;
+            }
+        }
+    }
+    last_flag_pos.min(args.len())
 }
