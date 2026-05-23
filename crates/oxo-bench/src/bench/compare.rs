@@ -134,8 +134,21 @@ pub fn compare_commands(generated: &str, reference: &str) -> CompareResult {
     // to get wrong — the comparison is handled by flag-level metrics.
     let gen_sub = extract_subcommand(&gen_tokens);
     let ref_sub = extract_subcommand(&ref_tokens);
-    let subcommand_match = if ref_sub.is_empty() {
-        // No reference subcommand → vacuously correct
+
+    // Pattern tools (awk, sed, grep, etc.) use code snippets not subcommands.
+    // When the reference starts with a quoted script or brace pattern,
+    // subcommand comparison is vacuously true.
+    let ref_is_pattern = ref_sub.starts_with('\'')
+        || ref_sub.starts_with('"')
+        || ref_sub.starts_with('{')
+        || (ref_sub.starts_with('/') && !ref_sub.starts_with("//"));
+    let gen_is_pattern = gen_sub.starts_with('\'')
+        || gen_sub.starts_with('"')
+        || gen_sub.starts_with('{')
+        || (gen_sub.starts_with('/') && !gen_sub.starts_with("//"));
+
+    let subcommand_match = if ref_sub.is_empty() || ref_is_pattern || gen_is_pattern {
+        // No reference subcommand or pattern tool → vacuously correct
         true
     } else if gen_sub.starts_with('-') && ref_sub.starts_with('-') {
         // Both first tokens are flags. Two sub-cases:
