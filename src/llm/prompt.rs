@@ -455,3 +455,95 @@ pub fn split_into_sections(docs: &str) -> Vec<&str> {
 pub fn estimate_tokens(text: &str) -> usize {
     text.len().div_ceil(4)
 }
+
+// ─── Skill-to-Schema Extraction ──────────────────────────────────────────────
+
+/// Build a minimal StructuredDoc from skill file content when --help output
+/// is unavailable. Extracts flags from skill examples and concepts.
+pub fn build_schema_from_skill(skill: &Skill) -> StructuredDoc {
+    let mut flags: Vec<FlagEntry> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+
+    // Extract flags from skill examples
+    for ex in &skill.examples {
+        let parts: Vec<&str> = ex.args.split_whitespace().collect();
+        let mut i = 0;
+        while i < parts.len() {
+            let part = parts[i];
+            if part.starts_with('-') {
+                let flag = part.split('=').next().unwrap_or(part).to_string();
+                if seen.insert(flag.clone()) {
+                    let value_type = if part.contains('=')
+                        || (i + 1 < parts.len() && !parts[i + 1].starts_with('-'))
+                    {
+                        Some("VALUE".to_string())
+                    } else {
+                        None
+                    };
+                    let mut desc = String::new();
+                    if !ex.explanation.is_empty() {
+                        let expl_lower = ex.explanation.to_ascii_lowercase();
+                        if let Some(pos) = expl_lower.find(&flag.to_ascii_lowercase()) {
+                            let end = expl_lower[pos..]
+                                .find('.')
+                                .unwrap_or(expl_lower.len() - pos);
+                            desc = expl_lower[pos..pos + end.min(80)].to_string();
+                        }
+                    }
+                    flags.push(FlagEntry {
+                        flag,
+                        value_type,
+                        description: desc,
+                        required: false,
+                        default: None,
+                        alt_form: None,
+                        enum_values: Vec::new(),
+                    });
+                }
+            }
+            i += 1;
+        }
+    }
+
+    // Extract subcommands from skill pitfalls (first line mentions subcommands)
+    let mut subcommands = Vec::new();
+    let mut has_subcommands = false;
+    for pitfall in &skill.context.pitfalls {
+        if pitfall.contains("must start with a subcommand")
+            || pitfall.contains("ALWAYS comes first")
+        {
+            has_subcommands = true;
+            // Try to extract subcommand list from parentheses
+            if let Some(start) = pitfall.find('(') {
+                if let Some(end) = pitfall[start..].find(')') {
+                    let subs_str = &pitfall[start + 1..start + end];
+                    for sub in subs_str.split([',', ' ']) {
+                        let sub = sub.trim();
+                        if !sub.is_empty() && sub.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                            subcommands.push(sub.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Mark common required flags
+    for f in &mut flags {
+        let fl = f.flag.to_ascii_lowercase();
+        if fl == "-o" || fl.contains("output") || fl == "-@" || fl.contains("thread") {
+            f.required = true;
+        }
+    }
+
+    StructuredDoc {
+        has_subcommands,
+        subcommands,
+        flag_catalog: flags,
+        usage_pattern: Default::default(),
+        format_hint: None,
+        companion_binaries: Vec::new(),
+        extracted_examples: skill.examples.iter().map(|e| e.args.clone()).collect(),
+        ..Default::default()
+    }
+}

@@ -1,5 +1,5 @@
 pub mod postprocess;
-mod prompt;
+pub(crate) mod prompt;
 pub mod provider;
 mod response;
 pub mod rule_engine;

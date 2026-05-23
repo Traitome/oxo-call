@@ -1086,6 +1086,9 @@ impl Runner {
                 );
             }
             Some(sdoc)
+        } else if let Some(ref s) = skill {
+            // Build StructuredDoc from skill when docs unavailable
+            Some(crate::llm::prompt::build_schema_from_skill(s))
         } else {
             None
         };
