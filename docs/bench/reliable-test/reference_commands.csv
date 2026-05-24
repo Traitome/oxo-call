@@ -1,301 +1,1001 @@
 tool,scenario_id,reference_args,task_description,category
-vcftools,vcftools_03,-o output_03.vcf --out output_03,merge multiple VCF files and output to output_03.vcf,variant-calling
-multiqc,multiqc_06,. -o output_06/ -f,check read quality and generate report to output_06.fastq,qc
-mv,mv_06,-t 4 -u,move all log files to archive directory,filesystem
-curl,curl_05,-T input.bam https://example.com,upload results to remote server efficiently,networking
-busco,busco_05,-f - --skip_bbtools --list-datasets --opt-out-run-stats -l bacteria_odb10 -m genome,perform de novo assembly of sequencing data,assembly
-megahit,megahit_06,-1 reads_1.fastq -2 reads_2.fastq -o output_dir/ --num-cpu-threads 16 --min-contig-len 500 -t 16,perform de novo assembly of sequencing data,assembly
-porechop,porechop_09,-i input.bam -o output.fastq.gz --min_split_read_size 200 --threads 8 -t 4,run quality control analysis with 4 threads,qc
-freebayes,freebayes_06,-@ output_06.vcf --gvcf --gvcf-chunk -& -v all) --no-partial-observations output_06.vcf ~unbounded 4,merge multiple VCF files and output to output_06.vcf,variant-calling
-tar,tar_07,-czf output.tar.gz input.bam,compress sequencing data files to save space,compression
-flye,flye_01,--meta --nano-raw input.bam --out-dir output_dir/ -g 5m --threads 16,assemble metagenomic reads with 16 threads,assembly
-gzip,gzip_08,-f -c --synchronous -k -S,compress sequencing data files to save space,compression
-wget,wget_01,-O output.bam https://example.com,download multiple files in parallel,networking
-bowtie2,bowtie2_04,-x reference_index -U input_reads.fastq --very-sensitive -p 8,align single-end reads with 8 threads and write to output_04.bam,alignment
-salmon,salmon_01,quant -i genome_index -l A -1 reads_1.fq -2 reads_2.fq -d input2.bed -o output_dir/,estimate gene abundance from RNA-seq reads,rna-seq
-gzip,gzip_06,-f -c --synchronous -k -S,compress sequencing data files to save space,compression
-mosdepth,mosdepth_06,--by 500 --prefix output input.bam,filter reads by minimum quality score 20,qc
-stringtie,stringtie_07,-e -G reference.gtf -o output.gtf -p 4 input.bam input_R1.fastq input_R2.fastq,quantify expression levels with paired-end reads,rna-seq
-find,find_08,. -maxdepth 1 -type d,synchronize two directories efficiently,filesystem
-grep,grep_01,-c -E matching regex input.bam filename,find lines matching regex and count occurrences,text-processing
-liftoff,liftoff_09,-g annotation.gtf -o output.gtf reference.fa -u unmapped.txt,lift annotations between genome assemblies,annotation
-find,find_03,. -perm,copy directory recursively preserving permissions,filesystem
-flye,flye_10,--nano-raw input_reads.fastq --genome-size 5m --out-dir output_10/ -o output_10 -g 5m --threads 16,assemble contigs from long reads and output to output_10.fasta,assembly
-salmon,salmon_06,quant -i genome_index -l A -1 reads_1.fq -2 reads_2.fq -d input2.bed -o output_dir/,assemble transcripts from aligned RNA-seq data,rna-seq
-curl,curl_10,https://example.com/ /path/to/local/mirror,mirror entire website recursively,networking
-mosdepth,mosdepth_09,-Q 20 -F 1796 --prefix output -t 4 input.bam /path/to/reads/*.fastq.gz --by 10000,assess sequencing quality metrics for all samples,qc
-stringtie,stringtie_01,-p 4 -G reference.gtf -o output_transcripts.gtf input.bam input.bam,assemble transcripts from aligned RNA-seq data,rna-seq
-salmon,salmon_08,quant -i genome_index -l A -1 reads_1.fq -2 reads_2.fq -d input2.bed -o output_dir/,assemble transcripts from aligned RNA-seq data,rna-seq
-vcftools,vcftools_05,--vcf input.bam --filter QUAL>30 --out output,call variants from alignment file with minimum quality 30,variant-calling
-samtools,samtools_07,view fastq -1 output_07.bam -2 input2.bed -0 /dev/null -s /dev/null -n input.bam,align paired-end reads to reference genome using 16 threads and save as output_07.bam,alignment
-multiqc,multiqc_05,. -o output_dir/ -f,filter reads by minimum quality score 20,qc
-minimap2,minimap2_09,-ax map-ont reference.fa input.bam -o output_09.bam,align paired-end reads to reference genome using 8 threads and save as output_09.bam,alignment
-quast,quast_08,-r reference.fa -g input2.bed -o output_dir/ -t 4 input.bam input.fastq,perform de novo assembly of sequencing data,assembly
-megahit,megahit_02,-1 input_reads_R1.fastq -2 input_reads_R2.fastq -o output_02/ --num-cpu-threads 16 --min-contig-len 500 -t 16,assemble contigs from long reads and output to output_02.fasta,assembly
-tabix,tabix_08,-p vcf input.bam input.vcf.gz,compress and index variant file for fast access,utilities
-rsync,rsync_05,-avz --info=progress2 --progress user@remote_host:/path/to/remote/file input.bam output.bam /path/to/local/directory,download file from remote server with progress,networking
-multiqc,multiqc_04,. -o output_dir/ -f,assess sequencing quality metrics for all samples,qc
-tar,tar_02,-czf output.tar.gz input.bam,compress sequencing data files to save space,compression
-chopper,chopper_04,-q 10 -l 1000,assess sequencing quality metrics for all samples,qc
-flye,flye_04,--nano-raw <reads_file> --genome-size 5m --out-dir output_dir/ --polish-target true -g 5m --threads 16,run genome assembly with polishing step,assembly
-multiqc,multiqc_01,. -o output_dir/ -f,trim low-quality bases and adapters from sequencing reads,qc
-mosdepth,mosdepth_08,-x --prefix output_08 -t 4 -m 10 input.bam output_08.fastq --by 10000,check read quality and generate report to output_08.fastq,qc
-bedtools,bedtools_09,merge -i input.bed -o merged_output.bed,merge adjacent genomic intervals,genomic-intervals
-bowtie2,bowtie2_02,--threads 16 -x reference_genome -U input_reads.fastq reference.fa genome_index --very-sensitive,"map long reads to reference with 16 threads, output to output_02.bam",alignment
-mv,mv_08,-t 4,copy directory recursively preserving permissions,filesystem
-macs2,macs2_01,bdgcmp,identify enriched regions comparing treatment to control,epigenomics
-megahit,megahit_03,-1 reads_1.fastq -2 reads_2.fastq -o output_dir/ --num-cpu-threads 16 --min-contig-len 500 -t 16,perform de novo assembly of sequencing data,assembly
-bcftools,bcftools_05,merge -O z,merge multiple VCF files and output to output_05.vcf,variant-calling
-tar,tar_08,-czf output.tar.gz input.bam,create tarball of analysis results,compression
-kallisto,kallisto_09,quant bus reference_transcripts.fa -b 100,assemble transcripts from aligned RNA-seq data,rna-seq
-tabix,tabix_04,-R <region> input.bam <indexed_file>,query indexed file by genomic region,utilities
-tar,tar_09,-czf output.tar.gz input.bam,create tarball of analysis results,compression
-flye,flye_03,--nano-raw <path_to_raw_nanopore_reads> --genome-size 5m --out-dir output_dir/ --polish-target true -g 5m --threads 16,run genome assembly with polishing step,assembly
-fastqc,fastqc_05,-o output_05/ input.bam input_05.fastq -t 8,check read quality and generate report to output_05.fastq,qc
-gzip,gzip_01,-c --synchronous -f,create tarball of analysis results,compression
-mosdepth,mosdepth_07,-Q 20 -F 1796 --prefix output -t 4 input.bam /path/to/reads/*.fastq.gz --by 10000,assess sequencing quality metrics for all samples,qc
-mosdepth,mosdepth_05,-x --prefix output_05 -t 4 -m 10 input.bam fastq_file.fastq.gz --by 10000,check read quality and generate report to output_05.fastq,qc
-seqkit,seqkit_07,seq -s *seq input.bam,compute statistics for all sequence files,sequence-utilities
-multiqc,multiqc_08,. -o output_dir/ -f,assess sequencing quality metrics for all samples,qc
-samtools,samtools_02,view addreplacerg -r @RG\tID:s1\tSM:s1\tLB:lib1\tPL:ILLUMINA -o output_02.bam input.bam,"map long reads to reference with 4 threads, output to output_02.bam",alignment
-curl,curl_04,-o output.bam https://example.com,download multiple files in parallel,networking
-mv,mv_02,,synchronize two directories efficiently,filesystem
-grep,grep_05,"-f input2.bed input.bam ""from """,extract specific columns from tab-delimited file,text-processing
-tabix,tabix_07,-R <region> input.bam <indexed_file>,query indexed file by genomic region,utilities
-samtools,samtools_06,view flagstat input.bam /path/to/reference.fa /path/to/reads.fastq > aligned.bam,perform sensitive alignment of reads to reference genome,alignment
-minimap2,minimap2_08,-ax map-ont reference.fa input.bam -o output_08.bam,align single-end reads with 16 threads and write to output_08.bam,alignment
-macs2,macs2_10,bdgcmp,identify enriched regions comparing treatment to control,epigenomics
-macs2,macs2_08,callpeak -t chipseq -c input2.bed -n output -g hs -f BAM,call peaks from ChIP-seq alignment data,epigenomics
-grep,grep_07,-r -rn pattern recursively --include=input.bam .,search for pattern recursively in all text files,text-processing
-chopper,chopper_05,-q 10 -l 1000,assess sequencing quality metrics for all samples,qc
-sort,sort_03,--files0-from -c --sort -V,search for pattern recursively in all text files,text-processing
-chopper,chopper_07,--trim-approach trim-by-quality --cutoff 10 -q 10 -l 1000,trim low-quality bases and adapters from sequencing reads,qc
-freebayes,freebayes_08,-f reference.fa -p 1 -v output.bam -q 30 input.bam input.bam > variants.vcf,call variants from alignment file with minimum quality 30,variant-calling
-cutadapt,cutadapt_02,-a AGATCGGAAGAGC -q 20 --minimum-length 36 -o trimmed_{sample}.fastq -p input2.bed reads_1.fq reads_2.fq {input_file},assess sequencing quality metrics for all samples,qc
-sort,sort_01,--files0-from -c,extract specific columns from tab-delimited file,text-processing
-spades,spades_06,--meta -1 reads_1.fq -2 reads_2.fq -o output_dir/ -t 4 --memory 32,assemble metagenomic reads with 4 threads,assembly
-spades,spades_03,-t 4 -1 reads_1.fastq -2 reads_2.fastq -o output_dir/ --memory 32,perform de novo assembly of sequencing data,assembly
-minimap2,minimap2_04,-t 4 -x sr -o output.paf reference.fa reads_1.fq reads_2.fq reference.fa reads.fastq,perform sensitive alignment of reads to reference genome,alignment
-find,find_01,. -maxdepth 1 -type d,synchronize two directories efficiently,filesystem
-vcftools,vcftools_04,--vcf input.bam --filter QUAL>30 --out output_04,"filter variants by quality score, output to output_04.vcf",variant-calling
-curl,curl_08,-L --progress-bar -o output.bam https://example.com,download file from remote server with progress,networking
-mosdepth,mosdepth_04,-n --prefix output -t 4 -f 0.5 input.bam /path/to/reads.fastq.gz --by 10000,trim low-quality bases and adapters from sequencing reads,qc
-fastp,fastp_03,-i input.bam -o output.bam -w 16,run quality control analysis with 16 threads,qc
-curl,curl_06,-L --progress-bar -o output.bam https://example.com,download file from remote server with progress,networking
-diamond,diamond_04,makedb --in input.bam -d database,build database index for fast searching,metagenomics
-cutadapt,cutadapt_06,-a AGATCGGAAGAGC -q 20 --minimum-length 36 -o output.bam -p input2.bed reads_1.fq reads_2.fq,filter reads by minimum quality score 20,qc
-busco,busco_08,-f -c 4 -o --limit 3 --scaffold_composition -c 4 -l bacteria_odb10 -m genome,assemble metagenomic reads with 4 threads,assembly
-porechop,porechop_06,"--scoring_scheme 3,-6,-5,-2 --min_trim_size 4 -i input.fastq.gz -o output.fastq.gz",assess sequencing quality metrics for all samples,qc
-spades,spades_07,--meta -1 reads_1.fq -2 reads_2.fq -o output_dir/ -t 16 --memory 32,assemble metagenomic reads with 16 threads,assembly
-chopper,chopper_08,-q 10 -l 1000,filter reads by minimum quality score 20,qc
-bowtie2,bowtie2_06,--threads 8 -x reference -U input_reads.fastq reference.fa genome_index --very-sensitive,"map long reads to reference with 8 threads, output to output_06.bam",alignment
-rsync,rsync_06,-avz input.bam --progress source/ output.bam destination/,download multiple files in parallel,networking
-macs2,macs2_03,callpeak -t input.bam -c control.bam -n output --broad -g hs -f BAM,find broad peaks in histone modification data,epigenomics
-liftoff,liftoff_07,reference.fa -g annotation.gtf -o output.gff3 -u unmapped.txt,validate annotation file structure,annotation
-mosdepth,mosdepth_02,--by 500 --prefix output input.bam,filter reads by minimum quality score 20,qc
-fastqc,fastqc_04,input.bam -o output_dir/ -t 8,filter reads by minimum quality score 20,qc
-liftoff,liftoff_08,reference.fa -g annotation.gtf -o output.gff3 -u unmapped.txt,lift annotations between genome assemblies,annotation
-bowtie2,bowtie2_07,--threads 4 -x reference -U input_reads.fastq reference.fa genome_index --very-sensitive,"map long reads to reference with 4 threads, output to output_07.bam",alignment
-chopper,chopper_03,-q 10 -l 1000,filter reads by minimum quality score 20,qc
-rsync,rsync_09,-avz --info=progress2 --progress user@remote_host:/path/to/remote/file input.bam output.bam /path/to/local/directory,download file from remote server with progress,networking
-porechop,porechop_07,-i input.bam -o output.fastq.gz --min_split_read_size 1000,filter reads by minimum quality score 20,qc
-bedtools,bedtools_01,intersect -a file1.bed -b file2.bed -wa,find overlapping intervals between two BED files,genomic-intervals
-freebayes,freebayes_03,-f reference.fa -o output.bam input.bam input.bam > variants.vcf,genotype variants from pileup with 16 threads,variant-calling
-bedtools,bedtools_04,merge -i input.bed -o merged_output.bed,merge adjacent genomic intervals,genomic-intervals
-quast,quast_05,-r reference.fa -g input2.bed -o output_dir/ -t 16 input.bam,assemble genome from reads using 16 threads,assembly
-liftoff,liftoff_05,-g annotation.gtf -o merged_annotations.txt reference.fa file2.txt file3.txt -u unmapped.txt,merge multiple annotation files,annotation
-flye,flye_08,--nano-raw <path_to_raw_nanopore_reads> --genome-size 5m --out-dir output_dir/ --polish-target true -g 5m --threads 16,run genome assembly with polishing step,assembly
-busco,busco_09,-f - --skip_bbtools --list-datasets --opt-out-run-stats -l bacteria_odb10 -m genome,perform de novo assembly of sequencing data,assembly
-rsync,rsync_08,-avz input.bam --from0 /path/to/api/data -o /path/to/save/file.txt output.bam,fetch data from API endpoint and save to file,networking
-seqkit,seqkit_05,seq -o output.fasta -m <minimum_length> input.bam,filter sequences by minimum length,sequence-utilities
-tar,tar_01,-czf output.tar.gz input.bam,compress file while keeping original,compression
-mosdepth,mosdepth_01,--by 500 --prefix output input.bam,filter reads by minimum quality score 20,qc
-quast,quast_06,-r reference.fa -g input2.bed -o output_dir/ -t 4 input.bam input.fastq,perform de novo assembly of sequencing data,assembly
-gzip,gzip_04,-f -c --synchronous -l -S,create compressed archive of project directory,compression
-freebayes,freebayes_04,-f reference.fa -p 1 -v output.bam -q 30 input.bam input.bam > variants.vcf,call variants from alignment file with minimum quality 30,variant-calling
-bcftools,bcftools_03,"sort view -i QUAL>30 && INFO/DP>10 && TYPE=""snp"" -O z -f reference.fa input.bam input.bam | bcftools call",call SNPs and small indels from sorted BAM,variant-calling
-sort,sort_04,"1% of memory, b 1, K 1024 (default), and so on for M, G, T, P, E, Z, Y.",find lines matching regex and count occurrences,text-processing
-sort,sort_07,--parallel -o -c --debug --files0-from,sort lines numerically by second column,text-processing
-curl,curl_07,-o output.bam https://example.com,download multiple files in parallel,networking
-tar,tar_03,-czf output.tar.gz -C . input.bam,create compressed archive of project directory,compression
-tabix,tabix_05,-R <region> input.bam <indexed_file>,query indexed file by genomic region,utilities
-kallisto,kallisto_06,index -i index.idx -o output_dir/ -t 16 reads_1.fq reads_2.fq reads.fastq,quantify transcript expression using index and 16 threads,rna-seq
-fastp,fastp_09,-i reads_1.fq -o output_1.fq -q 20 -l 36 -w 8 -h output.html -j output.json,trim low-quality bases and adapters from sequencing reads,qc
-stringtie,stringtie_04,-p 4 -G reference.gtf -o transcriptome_index.idx input.bam input_reads.fastq,build transcriptome index for quantification,rna-seq
-mv,mv_05,-t 4 -u,move all log files to archive directory,filesystem
-tabix,tabix_03,-p vcf input.bam input.vcf.gz,create index for sorted data file,utilities
-busco,busco_10,-f - --skip_bbtools --list-datasets --opt-out-run-stats -l bacteria_odb10 -m genome,perform de novo assembly of sequencing data,assembly
-flye,flye_06,--meta --nano-raw input.bam --out-dir output_dir/ -g 5m --threads 16,assemble metagenomic reads with 4 threads,assembly
-wget,wget_05,-O output.bam https://example.com,fetch data from API endpoint and save to file,networking
-wget,wget_02,-r -l 2 -np -P output_dir/ https://example.com,mirror entire website recursively,networking
-bcftools,bcftools_06,call -vm -o variants.vcf.gz input.bam input.bam,call variants from alignment file with minimum quality 30,variant-calling
-fastp,fastp_08,-i reads_1.fq -o output.bam -q 20 -l 36 -w 20 -h output.html -j output.json,filter reads by minimum quality score 20,qc
-minimap2,minimap2_02,-ax map-ont reference.fa input.bam -o output_02.bam,align reads and output sorted results to output_02.bam,alignment
-multiqc,multiqc_03,. -o output_dir/ -f,run quality control analysis with 16 threads,qc
-freebayes,freebayes_07,-f reference.fa -o output.bam input.bam input.bam > variants.vcf,genotype variants from pileup with 16 threads,variant-calling
-salmon,salmon_04,index -i /path/to/index -l A -1 reads_1.fq -2 reads_2.fq -p 4 -o output_dir/,quantify transcript expression using index and 8 threads,rna-seq
-vcftools,vcftools_08,--site-pi --vcf input.bam --max-missing 0.9 --out output,genotype variants from pileup with 4 threads,variant-calling
-samtools,samtools_01,view addreplacerg -r @RG\tID:s1\tSM:s1\tLB:lib1\tPL:ILLUMINA -o output_01.bam input.bam,align single-end reads with 8 threads and write to output_01.bam,alignment
-fastp,fastp_06,-i reads_1.fq -o output_1.fq -q 20 -l 36 -w 8 -h output.html -j output.json,trim low-quality bases and adapters from sequencing reads,qc
-liftoff,liftoff_04,-g annotation.gtf -o merged_annotations.txt reference.fa file2.txt file3.txt -u unmapped.txt,merge multiple annotation files,annotation
-bcftools,bcftools_08,"filter view -i QUAL>30 && INFO/DP>10 && TYPE=""snp"" -O z input.bam","filter variants by quality score, output to output_08.vcf",variant-calling
-sort,sort_06,"1% of memory, b 1, K 1024 (default), and so on for M, G, T, P, E, Z, Y.",find lines matching regex and count occurrences,text-processing
-freebayes,freebayes_10,-f reference.fa -o output.bam input.bam input.bam > variants.vcf,genotype variants from pileup with 16 threads,variant-calling
-curl,curl_02,https://example.com/,mirror entire website recursively,networking
-bedtools,bedtools_08,intersect -a file1.bed -b file2.bed -wa,find overlapping intervals between two BED files,genomic-intervals
-mv,mv_04,-t 4 -u,move all log files to archive directory,filesystem
-grep,grep_02,-r -rn pattern recursively --include=input.bam .,search for pattern recursively in all text files,text-processing
-tabix,tabix_01,-p vcf input.bam input.vcf.gz,compress and index variant file for fast access,utilities
-mv,mv_07,-t 4 -u,move all log files to archive directory,filesystem
-find,find_07,. -maxdepth 1 -type d,move all log files to archive directory,filesystem
-find,find_05,. -perm,copy directory recursively preserving permissions,filesystem
-canu,canu_03,-p myAssembly -d output_dir/ -nanopore-raw input.bam genomeSize=5m maxThreads=8,assemble metagenomic reads with 16 threads,assembly
-seqkit,seqkit_03,seq -s *seq input.bam,compute statistics for all sequence files,sequence-utilities
-kallisto,kallisto_07,quant bus -b 100,estimate gene abundance from RNA-seq reads,rna-seq
-porechop,porechop_01,-i input.fastq -o output.fastq.gz --threads 8,trim low-quality bases and adapters from sequencing reads,qc
-find,find_04,. -perm,copy directory recursively preserving permissions,filesystem
-stringtie,stringtie_05,-p 4 -G reference.gtf -o transcriptome_index.idx input.bam input_reads.fastq.gz,build transcriptome index for quantification,rna-seq
-cutadapt,cutadapt_07,-a AGATCGGAAGAGC -q 20 --minimum-length 36 -o output_07.fastq -p input2.bed output_07.fastq reads_2.fq,check read quality and generate report to output_07.fastq,qc
-cp,cp_04,--copy-contents -R -t 4 --parents -u,copy directory recursively preserving permissions,filesystem
-busco,busco_07,-f long_reads.fastq -o --opt-out-run-stats --out_path  -c 3 -l bacteria_odb10 -m genome,assemble contigs from long reads and output to output_07.fasta,assembly
-grep,grep_08,-n pattern input.bam,sort lines numerically by second column,text-processing
-bedtools,bedtools_03,sort merge -i input.bed -g genome.chrom.sizes,sort genomic intervals by coordinate,genomic-intervals
-fastqc,fastqc_08,input.bam -o output_dir/ -t 8,filter reads by minimum quality score 20,qc
-quast,quast_04,-r reference.fa -o output_dir/ -t 8 metaquast.py input.bam,assemble metagenomic reads with 8 threads,assembly
-samtools,samtools_03,view flagstat input.bam reads.fastq,perform sensitive alignment of reads to reference genome,alignment
-rsync,rsync_07,-avz input.bam output.bam,upload results to remote server efficiently,networking
-fastp,fastp_05,-i reads_1.fq -o output_1.fq -q 20 -l 36 -w 8 -h output.html -j output.json,trim low-quality bases and adapters from sequencing reads,qc
-quast,quast_07,-r reference.fa -g input2.bed -o output_dir/ -t 16 input.bam,assemble genome from reads using 16 threads,assembly
-chopper,chopper_06,--trim-approach trim-by-quality --cutoff 10 -q 10 -l 1000 input_reads.fastq,trim low-quality bases and adapters from sequencing reads,qc
-fastp,fastp_01,-i reads_1.fq -o output.bam -q 20 -l 36 -w 20 -h output.html -j output.json,filter reads by minimum quality score 20,qc
-seqkit,seqkit_01,seq -o <output_format> -i <input_format> input.bam <input_file>,convert between sequence formats,sequence-utilities
-bowtie2,bowtie2_08,-x reference_index -1 reads_1.fq -2 reads_2.fq --rg-id sample1 --rg SM:sample1 -U input_reads.fastq && bowtie2 samtools sort -p 8 --very-sensitive,align reads and output sorted results to output_08.bam,alignment
-grep,grep_10,"-f input2.bed input.bam ""from """,extract specific columns from tab-delimited file,text-processing
-diamond,diamond_01,blastp makedb --in input.bam -d database,search sequences against reference database,metagenomics
-freebayes,freebayes_09,-f reference.fa -p 1 -v output.bam -q 30 input.bam input.bam > variants.vcf,call variants from alignment file with minimum quality 30,variant-calling
-mv,mv_10,-t 4 -u,move all log files to archive directory,filesystem
-fastp,fastp_04,-i output_04.fastq -o output_04_1.fq -q 20 -l 36 -w 8 -h output_04.html -j output_04.json,check read quality and generate report to output_04.fastq,qc
-macs2,macs2_07,callpeak -t narrowPeak -c input2.bed -n output -g hs -p fdr input.bam control.bam -f BAM,call narrow peaks with FDR threshold,epigenomics
-megahit,megahit_07,-1 input_reads_R1.fastq -2 input_reads_R2.fastq -o output_07/ --num-cpu-threads 16 --min-contig-len 500 -t 16,assemble contigs from long reads and output to output_07.fasta,assembly
-diamond,diamond_08,blastp makedb --in input.bam -d database,search sequences against reference database,metagenomics
-minimap2,minimap2_05,-ax map-ont reference.fa input.bam -o output_05.bam,align single-end reads with 4 threads and write to output_05.bam,alignment
-find,find_06,. -perm,copy directory recursively preserving permissions,filesystem
-freebayes,freebayes_01,-f reference.fa -o output.bam input.bam input.bam > variants.vcf,call SNPs and small indels from sorted BAM,variant-calling
-kallisto,kallisto_05,quant bus -b 100,estimate gene abundance from RNA-seq reads,rna-seq
-samtools,samtools_08,view fastq -1 output_08.bam -2 input2.bed -0 /dev/null -s /dev/null -n input.bam,align paired-end reads to reference genome using 4 threads and save as output_08.bam,alignment
-mosdepth,mosdepth_10,-Q 20 -F 1796 --prefix output -t 4 input.bam /path/to/reads/*.fastq.gz --by 10000,assess sequencing quality metrics for all samples,qc
-busco,busco_03,-f -c 8 -o - --limit 3 -c 8 -l bacteria_odb10 -m genome,assemble genome from reads using 8 threads,assembly
-busco,busco_06,-f -c 16 -o - --limit 3 -c 16 -l bacteria_odb10 -m genome,assemble genome from reads using 16 threads,assembly
-gzip,gzip_02,-d -l --rsyncable -S -f,decompress and extract archive contents,compression
-canu,canu_02,-p myAssembly -d output_dir/ -nanopore-raw input.bam genomeSize=5m maxThreads=8,perform de novo assembly of sequencing data,assembly
-bcftools,bcftools_07,view mpileup -f reference.fa -Ou input.bam,genotype variants from pileup with 4 threads,variant-calling
-fastqc,fastqc_02,-o output_dir/ -t 4 input.bam,run quality control analysis with 4 threads,qc
-vcftools,vcftools_07,--vcf input.bam --remove-indels --maf 0.05 --max-missing 0.9 --recode --recode-INFO-all --out output,call SNPs and small indels from sorted BAM,variant-calling
-cp,cp_06,-r --update source_directory destination_directory,synchronize two directories efficiently,filesystem
-spades,spades_02,-t 4 -1 reads_1.fastq -2 reads_2.fastq -o output_dir/ --memory 32,perform de novo assembly of sequencing data,assembly
-curl,curl_01,-L --progress-bar -o output.bam https://example.com,download file from remote server with progress,networking
-porechop,porechop_03,-i input.fastq -o output.fastq.gz --threads 8,trim low-quality bases and adapters from sequencing reads,qc
-bcftools,bcftools_01,"filter view -i QUAL>30 && INFO/DP>10 && TYPE=""snp"" -O z input.bam","filter variants by quality score, output to output_01.vcf",variant-calling
-minimap2,minimap2_06,-ax map-ont reference.fa input.bam -o output_06.bam,align single-end reads with 4 threads and write to output_06.bam,alignment
-mv,mv_03,,synchronize two directories efficiently,filesystem
-cp,cp_01,--copy-contents -l 7,find files modified in the last 7 days,filesystem
-cp,cp_07,--copy-contents -l 7,find files modified in the last 7 days,filesystem
-megahit,megahit_04,-1 reads_1.fastq -2 reads_2.fastq -o output_dir/ --num-cpu-threads 16 --min-contig-len 500 -t 16,perform de novo assembly of sequencing data,assembly
-seqkit,seqkit_02,seq -o output.fasta -i <input.fasta> -n <id_list.txt> input.bam <output.fasta>,extract sequences by ID from FASTA file,sequence-utilities
-canu,canu_06,-p myAssembly -d output_dir/ -nanopore-raw input.bam genomeSize=5m maxThreads=8,run genome assembly with polishing step,assembly
-quast,quast_02,-r output_02.fasta -o output_02/ --min-contig 1000 -t 4 input.bam /path/to/long_reads.fastq.gz,assemble contigs from long reads and output to output_02.fasta,assembly
-grep,grep_06,"-f input2.bed input.bam ""from """,extract specific columns from tab-delimited file,text-processing
-curl,curl_09,-o output.bam https://example.com,fetch data from API endpoint and save to file,networking
-find,find_02,. -type f -size +,search for large files exceeding 100MB,filesystem
-flye,flye_05,--nano-raw input_reads.fastq --genome-size 5m --out-dir output_05/ -o output_05 -g 5m --threads 16,assemble contigs from long reads and output to output_05.fasta,assembly
-spades,spades_01,--meta -1 reads_1.fq -2 reads_2.fq -o output_dir/ -t 16 --memory 32,assemble metagenomic reads with 16 threads,assembly
-salmon,salmon_07,quant -i genome_index -l A -1 reads_1.fq -2 reads_2.fq -p 4 -o output_dir/,quantify expression levels with paired-end reads,rna-seq
-cutadapt,cutadapt_08,-a AGATCGGAAGAGC -q 20 --minimum-length 36 -o output.bam -p input2.bed -j 4 reads_1.fq reads_2.fq,run quality control analysis with 4 threads,qc
-tabix,tabix_09,-p vcf input.bam input.vcf.gz,index compressed genomic data file,utilities
-mv,mv_01,-t 4,copy directory recursively preserving permissions,filesystem
-vcftools,vcftools_06,--vcf input.bam --remove-indels --maf 0.05 --max-missing 0.9 --recode --recode-INFO-all --out output,call SNPs and small indels from sorted BAM,variant-calling
-sort,sort_08,--files0-from -c --sort -V,search for pattern recursively in all text files,text-processing
-multiqc,multiqc_02,. -o output_dir/ -f,trim low-quality bases and adapters from sequencing reads,qc
-bowtie2,bowtie2_05,-x reference_genome -U input_reads --very-sensitive -p 8,perform sensitive alignment of reads to reference genome,alignment
-macs2,macs2_06,callpeak -t SE -c input2.bed -n output -g hs -f BAMPE --shift 75 --extsize 150 input.bam,call narrow peaks with FDR threshold,epigenomics
-flye,flye_07,--nano-raw input_reads.fastq --genome-size 5m --out-dir output_07/ -o output_07 -g 5m --threads 16,assemble contigs from long reads and output to output_07.fasta,assembly
-rsync,rsync_03,-avz input.bam --progress source/ output.bam destination/,download multiple files in parallel,networking
-wget,wget_08,-O output.bam https://example.com,download multiple files in parallel,networking
-seqkit,seqkit_08,seq -o output.fasta -i <input.fasta> -n <id_list.txt> input.bam <output.fasta>,extract sequences by ID from FASTA file,sequence-utilities
-minimap2,minimap2_03,-ax map-ont reference.fa input.bam -o output_03.bam,"map long reads to reference with 8 threads, output to output_03.bam",alignment
-canu,canu_09,-p myAssembly -d output_dir/ -nanopore-raw input.bam genomeSize=5m maxThreads=8,assemble metagenomic reads with 4 threads,assembly
-bcftools,bcftools_09,view mpileup -f reference.fa -Ou input.bam input.pileup,genotype variants from pileup with 16 threads,variant-calling
-macs2,macs2_04,callpeak -f BAM -g hs -n sample,generate coverage track from alignment file,epigenomics
-cp,cp_08,-r --update source_directory destination_directory,synchronize two directories efficiently,filesystem
-samtools,samtools_05,view fastq -1 output_05.bam -2 input2.bed -0 /dev/null -s /dev/null -n input.bam,align paired-end reads to reference genome using 4 threads and save as output_05.bam,alignment
-megahit,megahit_08,-1 input_reads_R1.fastq -2 input_reads_R2.fastq -o output_08/ --num-cpu-threads 16 --min-contig-len 500 -t 16,assemble contigs from long reads and output to output_08.fasta,assembly
-multiqc,multiqc_09,. -o output_dir/ -f,trim low-quality bases and adapters from sequencing reads,qc
-macs2,macs2_05,callpeak -f BAM -g hs -n sample,generate coverage track from alignment file,epigenomics
-fastqc,fastqc_03,-o output_dir/ -t 16 input.bam,run quality control analysis with 16 threads,qc
-bcftools,bcftools_02,"sort view -i QUAL>30 && INFO/DP>10 && TYPE=""snp"" -O z -f reference.fa input.bam input.bam | bcftools call",call SNPs and small indels from sorted BAM,variant-calling
-kallisto,kallisto_02,quant bus -b 100,estimate gene abundance from RNA-seq reads,rna-seq
-bedtools,bedtools_06,sort merge -i input.bed -g genome.chrom.sizes,sort genomic intervals by coordinate,genomic-intervals
-grep,grep_03,-c -E matching regex input.bam filename,find lines matching regex and count occurrences,text-processing
-stringtie,stringtie_02,-p 4 -G reference.gtf -o transcriptome_index.idx input.bam input_reads.fastq,build transcriptome index for quantification,rna-seq
-fastqc,fastqc_07,-o output_07/ input.bam input_07.fastq -t 8,check read quality and generate report to output_07.fastq,qc
-cp,cp_05,--copy-contents -l,search for large files exceeding 100MB,filesystem
-macs2,macs2_02,callpeak -t treatment.bam -c control.bam -n output --broad -g hs -f BAM,find broad peaks in histone modification data,epigenomics
-salmon,salmon_05,index -i genome_index -l A -1 reads_1.fq -2 reads_2.fq -p 4 -o output_dir/,build transcriptome index for quantification,rna-seq
-bowtie2,bowtie2_01,--threads 16 -x reference_genome -U input_reads.fastq reference.fa genome_index --very-sensitive,"map long reads to reference with 16 threads, output to output_01.bam",alignment
-bowtie2,bowtie2_03,-x reference_index -U input_reads.fastq --very-sensitive -p 8,align single-end reads with 8 threads and write to output_03.bam,alignment
-wget,wget_03,-r -l 2 -np -P output_dir/ https://example.com,mirror entire website recursively,networking
-tar,tar_06,-czf output.tar.gz input.bam,compress file while keeping original,compression
-canu,canu_08,-p myAssembly -d output_dir/ -nanopore-raw input.bam -nanopore reads.fastq.gz genomeSize=5m maxMemory=16g maxThreads=8,assemble genome from reads using 8 threads,assembly
-grep,grep_04,"-n pattern input.bam awk {print $2, $0} | sort cut",sort lines numerically by second column,text-processing
-cp,cp_02,--copy-contents -R -t 4 --parents -u,copy directory recursively preserving permissions,filesystem
-porechop,porechop_05,-i input.bam -o output_05.fastq --min_split_read_size 200 --threads 8,check read quality and generate report to output_05.fastq,qc
-busco,busco_02,-f - --opt-out-run-stats --skip_bbtools -l bacteria_odb10 -m genome,run genome assembly with polishing step,assembly
-vcftools,vcftools_02,--vcf input.bam --filter QUAL>30 --out output_02,"filter variants by quality score, output to output_02.vcf",variant-calling
-kallisto,kallisto_01,index -i index.idx -o output_dir/ -b 1000 -t 8 reads_1.fq reads_2.fq reads.fastq.gz,quantify transcript expression using index and 8 threads,rna-seq
-fastp,fastp_07,-i reads_1.fq -o output_1.fq -q 20 -l 36 -w 8 -h output.html -j output.json,trim low-quality bases and adapters from sequencing reads,qc
-wget,wget_07,-O output.bam https://example.com,download multiple files in parallel,networking
-fastqc,fastqc_01,-o output_01/ input.bam input_01.fastq -t 8,check read quality and generate report to output_01.fastq,qc
-fastp,fastp_02,-i reads_1.fq -o output_1.fq -q 20 -l 36 -w 8 -h output.html -j output.json,assess sequencing quality metrics for all samples,qc
-chopper,chopper_01,-q 10 -l 1000,assess sequencing quality metrics for all samples,qc
-diamond,diamond_02,blastp blastx -q input.bam -d database -o output.bam --outfmt 6 --evalue 1e-5 --max-target-seqs 1,align query sequences to protein database,metagenomics
-quast,quast_01,-r reference.fa -o output_dir/ -t 16 metaquast.py input.bam,assemble metagenomic reads with 16 threads,assembly
-gzip,gzip_05,-d -l --rsyncable -S -f,decompress and extract archive contents,compression
-megahit,megahit_05,-1 reads_1.fq -2 reads_2.fq --presets meta-sensitive -o output_dir/ -t 8,assemble metagenomic reads with 8 threads,assembly
-freebayes,freebayes_02,-f reference.fa -o output.bam input.bam input.bam > variants.vcf,call SNPs and small indels from sorted BAM,variant-calling
-flye,flye_09,--nano-raw input_reads.fastq --genome-size 5m --out-dir output_09/ -o output_09 -g 5m --threads 16,assemble contigs from long reads and output to output_09.fasta,assembly
-cutadapt,cutadapt_05,-a -o output.bam -q 20 --discard-untrimmed input.fastq.gz input.bam > output.fastq.gz,trim low-quality bases and adapters from sequencing reads,qc
-spades,spades_05,-t 4 -1 reads_1.fastq -2 reads_2.fastq -o output_dir/ --memory 32,run genome assembly with polishing step,assembly
-quast,quast_09,-r reference.fa -g input2.bed -o output_dir/ -t 4 input.bam input.fastq,perform de novo assembly of sequencing data,assembly
-curl,curl_03,-o output.bam https://example.com,download multiple files in parallel,networking
-quast,quast_03,-r reference.fa -g input2.bed -o output_dir/ -t 8 input.bam,assemble genome from reads using 8 threads,assembly
-tar,tar_05,-czf output.tar.gz input.bam,compress file while keeping original,compression
-canu,canu_04,-p myAssembly -d output_dir/ -nanopore-raw input.bam genomeSize=5m maxThreads=8,perform de novo assembly of sequencing data,assembly
-diamond,diamond_05,makedb --in input.bam -d database,build database index for fast searching,metagenomics
-seqkit,seqkit_06,seq -o output.fasta -r s/old_pattern/new_pattern/ input.bam input.fasta > output.fasta,rename sequence headers in batch,sequence-utilities
-tabix,tabix_06,-p vcf input.bam file1.vcf.gz file2.vcf.gz > merged.vcf.gz,merge multiple indexed files efficiently,utilities
-kallisto,kallisto_04,quant bus reference_transcripts.fa -b 100,assemble transcripts from aligned RNA-seq data,rna-seq
-sort,sort_02,--parallel -o -c --files0-from -k,filter unique entries and sort alphabetically,text-processing
-busco,busco_01,-f . -o --opt-out-run-stats --out_path  -c 3 -l bacteria_odb10 -m genome,assemble contigs from long reads and output to output_01.fasta,assembly
-kallisto,kallisto_08,quant bus reference_transcripts.fa -b 100,assemble transcripts from aligned RNA-seq data,rna-seq
-multiqc,multiqc_07,. -o output_dir/ -f,assess sequencing quality metrics for all samples,qc
-fastqc,fastqc_06,input.bam -o output_dir/ -t 8,filter reads by minimum quality score 20,qc
-minimap2,minimap2_01,-ax map-ont reference.fa input.bam -o output_01.bam,align paired-end reads to reference genome using 16 threads and save as output_01.bam,alignment
-salmon,salmon_03,quant -i genome_index -l A -1 reads_1.fq -2 reads_2.fq -d input2.bed -o output_dir/,estimate gene abundance from RNA-seq reads,rna-seq
-rsync,rsync_01,-avz input.bam --progress source/ output.bam destination/,download multiple files in parallel,networking
-canu,canu_05,-p myAssembly -d output_dir/ -nanopore-raw input.bam genomeSize=5m maxThreads=8,run genome assembly with polishing step,assembly
-freebayes,freebayes_05,-f reference.fa -p 1 -v output.bam -q 30 input.bam input.bam > variants.vcf,call variants from alignment file with minimum quality 30,variant-calling
-mv,mv_09,/path/to/search,search for large files exceeding 100MB,filesystem
-stringtie,stringtie_08,-e -G reference.gtf -o output.gtf -p 4 input.bam input_R1.fastq input_R2.fastq,quantify expression levels with paired-end reads,rna-seq
-porechop,porechop_02,-i input.fastq -o output.fastq.gz --threads 8,trim low-quality bases and adapters from sequencing reads,qc
-bcftools,bcftools_10,view mpileup -f reference.fa -Ou input.bam,genotype variants from pileup with 4 threads,variant-calling
-megahit,megahit_01,-1 input_reads_R1.fastq -2 input_reads_R2.fastq -o output_01/ --num-cpu-threads 16 --min-contig-len 500 -t 16,assemble contigs from long reads and output to output_01.fasta,assembly
-bedtools,bedtools_07,intersect -a file1.bed -b file2.bed -wa,find overlapping intervals between two BED files,genomic-intervals
-diamond,diamond_03,makedb --in input.bam -d database,build database index for fast searching,metagenomics
-tabix,tabix_02,-p vcf input.bam file1.vcf.gz file2.vcf.gz > merged.vcf.gz,merge multiple indexed files efficiently,utilities
-cutadapt,cutadapt_04,-a AGATCGGAAGAGC -q 20 --minimum-length 36 -o trimmed_{sample}.fastq -p input2.bed reads_1.fq reads_2.fq {input_file},assess sequencing quality metrics for all samples,qc
-liftoff,liftoff_01,reference.fa -g annotation.gtf -o output.gff3 -u unmapped.txt,lift annotations between genome assemblies,annotation
-salmon,salmon_02,quant -i genome_index -l A -1 reads_1.fq -2 reads_2.fq -d input2.bed -o output_dir/,assemble transcripts from aligned RNA-seq data,rna-seq
-spades,spades_04,-t 4 -1 reads_1.fastq -2 reads_2.fastq -o output_dir/ --memory 32,run genome assembly with polishing step,assembly
-mosdepth,mosdepth_03,--by 500 --prefix output input.bam,filter reads by minimum quality score 20,qc
-stringtie,stringtie_09,-e -B -G reference.gtf -o output.gtf input.bam input.bam,estimate gene abundance from RNA-seq reads,rna-seq
-wget,wget_04,-r -l 2 -np -P output_dir/ https://example.com,mirror entire website recursively,networking
+grep,grep_47,--with-filename input_47.txt --word-regexp value_47 --basic-regexp 8,run grep and specify --with-filename input_47.txt and with --word-regexp value_47 and set --basic-regexp to 8,text-processing
+flye,flye_18,--trestle value_18 --extra-params value_18,run flye and with --trestle value_18 and with --extra-params value_18,assembly
+cp,cp_08,--symbolic-link value_08 --copy-contents input_08.txt --parents input_08.txt,run cp and with --symbolic-link value_08 and specify --copy-contents input_08.txt and specify --parents input_08.txt,filesystem
+fastp,fastp_37,--overlapped_out output_37.txt,run fastp and specify --overlapped_out output_37.txt,qc
+tabix,tabix_25,--regions input_25.txt --comment value_25 --cache 8,run tabix and specify --regions input_25.txt and with --comment value_25 and set --cache to 8,utilities
+fastp,fastp_03,--cut_by_quality3 value_03 --correction,run fastp and with --cut_by_quality3 value_03 and enable --correction,qc
+porechop,porechop_03,-o input_03.txt,run porechop and specify -o input_03.txt,qc
+cutadapt,cutadapt_17,--rename value_17 --length 4 --suffix value_17,run cutadapt and with --rename value_17 and set --length to 4 and with --suffix value_17,qc
+freebayes,freebayes_10,--bam input_10.txt --gvcf-dont-use-chunk value_10 --report-monomorphic value_10,run freebayes and specify --bam input_10.txt and with --gvcf-dont-use-chunk value_10 and with --report-monomorphic value_10,variant-calling
+tabix,tabix_07,--list-chroms value_07 --verbosity 16,run tabix and with --list-chroms value_07 and set --verbosity to 16,utilities
+busco,busco_40,--out_path output_40.txt,run busco and specify --out_path output_40.txt,assembly
+kraken2,kraken2_55,--report input_55.txt --paired input_55.txt,run kraken2 and specify --report input_55.txt and specify --paired input_55.txt,metagenomics
+kraken2,kraken2_47,--memory-mapping value_47,run kraken2 and with --memory-mapping value_47,metagenomics
+cp,cp_45,--interactive value_45 --update value_45 --strip-trailing-slashes value_45,run cp and with --interactive value_45 and with --update value_45 and with --strip-trailing-slashes value_45,filesystem
+cutadapt,cutadapt_60,--front value_60 --rename value_60,run cutadapt and with --front value_60 and with --rename value_60,qc
+tabix,tabix_17,--regions input_17.txt --end 4,run tabix and specify --regions input_17.txt and set --end to 4,utilities
+cutadapt,cutadapt_56,--strip-suffix sample_56 --cut 16,run cutadapt and with --strip-suffix sample_56 and set --cut to 16,qc
+tabix,tabix_38,--reheader input_38.txt --sequence 4 --skip-lines 8,run tabix and specify --reheader input_38.txt and set --sequence to 4 and set --skip-lines to 8,utilities
+porechop,porechop_41,--end_size 16,run porechop and set --end_size to 16,qc
+mv,mv_30,--interactive value_30 --force value_30,run mv and with --interactive value_30 and with --force value_30,filesystem
+grep,grep_28,--line-number input_28.txt --line-regexp value_28,run grep and specify --line-number input_28.txt and with --line-regexp value_28,text-processing
+freebayes,freebayes_37,--stdin input_37.txt,run freebayes and specify --stdin input_37.txt,variant-calling
+grep,grep_38,--count input_38.txt --byte-offset input_38.txt --null-data value_38,run grep and specify --count input_38.txt and specify --byte-offset input_38.txt and with --null-data value_38,text-processing
+tabix,tabix_34,--verbosity 4 --comment value_34,run tabix and set --verbosity to 4 and with --comment value_34,utilities
+tabix,tabix_05,--end 4,run tabix and set --end to 4,utilities
+rsync,rsync_49,--no-OPTION value_49 --inplace input_49.txt --copy-unsafe-links value_49,run rsync and with --no-OPTION value_49 and specify --inplace input_49.txt and with --copy-unsafe-links value_49,networking
+freebayes,freebayes_42,--samples input_42.txt --populations input_42.txt --only-use-input-alleles value_42,run freebayes and specify --samples input_42.txt and specify --populations input_42.txt and with --only-use-input-alleles value_42,variant-calling
+wget,wget_05,--show-progress value_05,run wget and with --show-progress value_05,networking
+kraken2,kraken2_11,--threads 4,run kraken2 and set --threads to 4,metagenomics
+freebayes,freebayes_28,--report-monomorphic value_28,run freebayes and with --report-monomorphic value_28,variant-calling
+mv,mv_56,-t input_56.txt,run mv and specify -t input_56.txt,filesystem
+porechop,porechop_29,--check_reads value_29 --output output_29.txt --min_trim_size 16,run porechop and with --check_reads value_29 and specify --output output_29.txt and set --min_trim_size to 16,qc
+wget,wget_03,--inet6-only --verbose value_03,run wget and enable --inet6-only and with --verbose value_03,networking
+find,find_52,-o value_52,run find and with -o value_52,filesystem
+fastp,fastp_46,--merged_out output_46.txt --correction --cut_by_quality3 value_46,run fastp and specify --merged_out output_46.txt and enable --correction and with --cut_by_quality3 value_46,qc
+fastp,fastp_48,--merge input_48.txt,run fastp and specify --merge input_48.txt,qc
+kraken2,kraken2_10,--minimum-hit-groups 4 --gzip-compressed input_10.txt --output output_10.txt,run kraken2 and set --minimum-hit-groups to 4 and specify --gzip-compressed input_10.txt and specify --output output_10.txt,metagenomics
+grep,grep_18,--files-without-match output_18.txt --basic-regexp 4 --binary,run grep and specify --files-without-match output_18.txt and set --basic-regexp to 4 and enable --binary,text-processing
+multiqc,multiqc_01,--sample-filters value_01 --module value_01,run multiqc and with --sample-filters value_01 and with --module value_01,qc
+mosdepth,mosdepth_18,--no-per-base input_18.txt --fast-mode value_18,run mosdepth and specify --no-per-base input_18.txt and with --fast-mode value_18,qc
+kraken2,kraken2_17,--use-names value_17 --use-mpa-style input_17.txt,run kraken2 and with --use-names value_17 and specify --use-mpa-style input_17.txt,metagenomics
+mv,mv_42,--update value_42 --interactive value_42,run mv and with --update value_42 and with --interactive value_42,filesystem
+wget,wget_43,--continue input_43.txt --force-html value_43,run wget and specify --continue input_43.txt and with --force-html value_43,networking
+mosdepth,mosdepth_39,--include-flag value_39,run mosdepth and with --include-flag value_39,qc
+flye,flye_38,--stop-after 4,run flye and set --stop-after to 4,assembly
+grep,grep_34,--no-messages value_34,run grep and with --no-messages value_34,text-processing
+grep,grep_13,--invert-match value_13 --byte-offset input_13.txt --line-regexp value_13,run grep and with --invert-match value_13 and specify --byte-offset input_13.txt and with --line-regexp value_13,text-processing
+find,find_29,-a value_29,run find and with -a value_29,filesystem
+flye,flye_50,--resume value_50 --scaffold value_50 --debug input_50.txt,run flye and with --resume value_50 and with --scaffold value_50 and specify --debug input_50.txt,assembly
+busco,busco_05,--plot input_05.txt --augustus_species value_05,run busco and specify --plot input_05.txt and with --augustus_species value_05,assembly
+chopper,chopper_34,--threads 4 --maxqual 1e-5,run chopper and set --threads to 4 and with --maxqual 1e-5,qc
+fastp,fastp_10,--unpaired2 input_10.txt --merged_out output_10.txt,run fastp and specify --unpaired2 input_10.txt and specify --merged_out output_10.txt,qc
+sort,sort_10,--ignore-nonprinting value_10,run sort and with --ignore-nonprinting value_10,text-processing
+flye,flye_39,--plasmids value_39 --resume value_39 --deterministic value_39,run flye and with --plasmids value_39 and with --resume value_39 and with --deterministic value_39,assembly
+porechop,porechop_35,--end_size 16,run porechop and set --end_size to 16,qc
+find,find_10,-o value_10,run find and with -o value_10,filesystem
+sort,sort_21,--ignore-case value_21 --month-sort 16 --debug value_21,run sort and with --ignore-case value_21 and set --month-sort to 16 and with --debug value_21,text-processing
+kraken2,kraken2_30,--report input_30.txt,run kraken2 and specify --report input_30.txt,metagenomics
+chopper,chopper_14,--inverse input_14.txt --tailcrop value_14,run chopper and specify --inverse input_14.txt and with --tailcrop value_14,qc
+kraken2,kraken2_15,--output output_15.txt --report input_15.txt --use-mpa-style input_15.txt,run kraken2 and specify --output output_15.txt and specify --report input_15.txt and specify --use-mpa-style input_15.txt,metagenomics
+sort,sort_54,--version-sort value_54 --ignore-case value_54 --reverse value_54,run sort and with --version-sort value_54 and with --ignore-case value_54 and with --reverse value_54,text-processing
+chopper,chopper_40,--contam 4 --quality 4 --threads 4,run chopper and set --contam to 4 and set --quality to 4 and set --threads to 4,qc
+cutadapt,cutadapt_53,--rename value_53,run cutadapt and with --rename value_53,qc
+rsync,rsync_57,--no-motd value_57 --copy-devices input_57.txt --old-d input_57.txt,run rsync and with --no-motd value_57 and specify --copy-devices input_57.txt and specify --old-d input_57.txt,networking
+grep,grep_05,--files-without-match output_05.txt --line-buffered input_05.txt --ignore-case value_05,run grep and specify --files-without-match output_05.txt and specify --line-buffered input_05.txt and with --ignore-case value_05,text-processing
+sort,sort_61,--merge input_61.txt --stable value_61 --numeric-sort value_61,run sort and specify --merge input_61.txt and with --stable value_61 and with --numeric-sort value_61,text-processing
+find,find_50,-o value_50 -a value_50,run find and with -o value_50 and with -a value_50,filesystem
+freebayes,freebayes_19,--bam input_19.txt,run freebayes and specify --bam input_19.txt,variant-calling
+rsync,rsync_44,--write-devices input_44.txt --append input_44.txt --munge-links value_44,run rsync and specify --write-devices input_44.txt and specify --append input_44.txt and with --munge-links value_44,networking
+freebayes,freebayes_48,--vcf input_48.txt --only-use-input-alleles value_48 --observation-bias input_48.txt,run freebayes and specify --vcf input_48.txt and with --only-use-input-alleles value_48 and specify --observation-bias input_48.txt,variant-calling
+tar,tar_52,--ignore-failed-read input_52.txt --read-full-records value_52 --get input_52.txt,run tar and specify --ignore-failed-read input_52.txt and with --read-full-records value_52 and specify --get input_52.txt,compression
+sort,sort_47,--random-sort value_47,run sort and with --random-sort value_47,text-processing
+mv,mv_24,--verbose value_24,run mv and with --verbose value_24,filesystem
+cutadapt,cutadapt_51,--overlap 4 --suffix value_51,run cutadapt and set --overlap to 4 and with --suffix value_51,qc
+cp,cp_51,--no-clobber input_51.txt --link input_51.txt --update value_51,run cp and specify --no-clobber input_51.txt and specify --link input_51.txt and with --update value_51,filesystem
+sort,sort_14,--numeric-sort value_14 --month-sort 4,run sort and with --numeric-sort value_14 and set --month-sort to 4,text-processing
+find,find_22,-a value_22 -o value_22,run find and with -a value_22 and with -o value_22,filesystem
+chopper,chopper_26,--input input_26.txt --quality 8,run chopper and specify --input input_26.txt and set --quality to 8,qc
+kraken2,kraken2_21,--minimum-hit-groups 16 --report input_21.txt --output output_21.txt,run kraken2 and set --minimum-hit-groups to 16 and specify --report input_21.txt and specify --output output_21.txt,metagenomics
+find,find_34,-a value_34 -o value_34,run find and with -a value_34 and with -o value_34,filesystem
+sort,sort_25,--general-numeric-sort value_25,run sort and with --general-numeric-sort value_25,text-processing
+grep,grep_24,--no-ignore-case value_24 --word-regexp value_24 --line-number input_24.txt,run grep and with --no-ignore-case value_24 and with --word-regexp value_24 and specify --line-number input_24.txt,text-processing
+fastp,fastp_36,--unpaired2 input_36.txt --cut_by_quality5 value_36,run fastp and specify --unpaired2 input_36.txt and with --cut_by_quality5 value_36,qc
+find,find_38,-a value_38,run find and with -a value_38,filesystem
+mv,mv_05,--force value_05 --interactive value_05 --update value_05,run mv and with --force value_05 and with --interactive value_05 and with --update value_05,filesystem
+grep,grep_67,--line-regexp value_67 --extended-regexp 16 --fixed-strings 8,run grep and with --line-regexp value_67 and set --extended-regexp to 16 and set --fixed-strings to 8,text-processing
+kraken2,kraken2_44,--paired input_44.txt,run kraken2 and specify --paired input_44.txt,metagenomics
+grep,grep_23,--line-regexp value_23,run grep and with --line-regexp value_23,text-processing
+sort,sort_09,--dictionary-order value_09,run sort and with --dictionary-order value_09,text-processing
+tar,tar_65,--test-label value_65,run tar and with --test-label value_65,compression
+mv,mv_13,--strip-trailing-slashes value_13,run mv and with --strip-trailing-slashes value_13,filesystem
+mv,mv_50,--verbose value_50 -t input_50.txt,run mv and with --verbose value_50 and specify -t input_50.txt,filesystem
+kraken2,kraken2_41,--unclassified-out output_41.txt --quick value_41,run kraken2 and specify --unclassified-out output_41.txt and with --quick value_41,metagenomics
+freebayes,freebayes_32,--populations input_32.txt --cnv-map input_32.txt --bam-list input_32.txt,run freebayes and specify --populations input_32.txt and specify --cnv-map input_32.txt and specify --bam-list input_32.txt,variant-calling
+tar,tar_02,--list value_02 --ignore-zeros value_02 --get input_02.txt,run tar and with --list value_02 and with --ignore-zeros value_02 and specify --get input_02.txt,compression
+cutadapt,cutadapt_23,--cut 4 --rename value_23 --strip-suffix sample_23,run cutadapt and set --cut to 4 and with --rename value_23 and with --strip-suffix sample_23,qc
+tar,tar_22,--update input_22.txt,run tar and specify --update input_22.txt,compression
+freebayes,freebayes_04,--gvcf-dont-use-chunk value_04,run freebayes and with --gvcf-dont-use-chunk value_04,variant-calling
+chopper,chopper_35,--mingc 8 --contam 8 --minlength 4,run chopper and set --mingc to 8 and set --contam to 8 and set --minlength to 4,qc
+tar,tar_01,--exclude-backups input_01.txt --delete value_01,run tar and specify --exclude-backups input_01.txt and with --delete value_01,compression
+fastp,fastp_16,--adapter_sequence --detect_adapter_for_pe --out1 output_16.txt,run fastp and enable --adapter_sequence and enable --detect_adapter_for_pe and specify --out1 output_16.txt,qc
+mv,mv_36,--no-clobber input_36.txt --strip-trailing-slashes value_36,run mv and specify --no-clobber input_36.txt and with --strip-trailing-slashes value_36,filesystem
+flye,flye_16,--keep-haplotypes value_16 --deterministic value_16,run flye and with --keep-haplotypes value_16 and with --deterministic value_16,assembly
+busco,busco_39,--long value_39,run busco and with --long value_39,assembly
+porechop,porechop_30,--middle_threshold value_30 --verbosity value_30,run porechop and with --middle_threshold value_30 and with --verbosity value_30,qc
+tar,tar_54,--delete value_54,run tar and with --delete value_54,compression
+mosdepth,mosdepth_32,--no-per-base input_32.txt,run mosdepth and specify --no-per-base input_32.txt,qc
+wget,wget_56,--verbose value_56,run wget and with --verbose value_56,networking
+tar,tar_47,--list value_47 --ignore-failed-read input_47.txt,run tar and with --list value_47 and specify --ignore-failed-read input_47.txt,compression
+fastp,fastp_45,--merged_out output_45.txt --detect_adapter_for_pe,run fastp and specify --merged_out output_45.txt and enable --detect_adapter_for_pe,qc
+wget,wget_55,--debug value_55,run wget and with --debug value_55,networking
+grep,grep_35,--fixed-strings 16,run grep and set --fixed-strings to 16,text-processing
+rsync,rsync_54,--no-OPTION value_54 --super value_54 --copy-unsafe-links value_54,run rsync and with --no-OPTION value_54 and with --super value_54 and with --copy-unsafe-links value_54,networking
+find,find_20,-a value_20 -o value_20,run find and with -a value_20 and with -o value_20,filesystem
+multiqc,multiqc_34,--module value_34 --exclude value_34 --fullnames input_34.txt,run multiqc and with --module value_34 and with --exclude value_34 and specify --fullnames input_34.txt,qc
+mosdepth,mosdepth_14,--include-flag value_14 --fragment-mode value_14 --flag value_14,run mosdepth and with --include-flag value_14 and with --fragment-mode value_14 and with --flag value_14,qc
+freebayes,freebayes_03,--observation-bias input_03.txt --samples input_03.txt,run freebayes and specify --observation-bias input_03.txt and specify --samples input_03.txt,variant-calling
+busco,busco_11,--auto-lineage-euk input_11.txt --lineage_dataset 4,run busco and specify --auto-lineage-euk input_11.txt and set --lineage_dataset to 4,assembly
+grep,grep_57,--files-with-matches input_57.txt,run grep and specify --files-with-matches input_57.txt,text-processing
+chopper,chopper_46,--maxqual 30 --inverse input_46.txt --quality 16,run chopper and with --maxqual 30 and specify --inverse input_46.txt and set --quality to 16,qc
+tabix,tabix_15,--skip-lines 4 --min-shift 16 --reheader input_15.txt,run tabix and set --skip-lines to 4 and set --min-shift to 16 and specify --reheader input_15.txt,utilities
+porechop,porechop_10,--end_threshold 16 --barcode_diff value_10 --extra_end_trim 8,run porechop and set --end_threshold to 16 and with --barcode_diff value_10 and set --extra_end_trim to 8,qc
+cutadapt,cutadapt_25,--prefix sample_25 --rename value_25 --max-n 8,run cutadapt and with --prefix sample_25 and with --rename value_25 and set --max-n to 8,qc
+cutadapt,cutadapt_19,--suffix value_19 --cores value_19,run cutadapt and with --suffix value_19 and with --cores value_19,qc
+tabix,tabix_09,--force value_09,run tabix and with --force value_09,utilities
+rsync,rsync_08,--open-noatime input_08.txt --append input_08.txt --specials input_08.txt,run rsync and specify --open-noatime input_08.txt and specify --append input_08.txt and specify --specials input_08.txt,networking
+cp,cp_56,--verbose value_56 --copy-contents input_56.txt,run cp and with --verbose value_56 and specify --copy-contents input_56.txt,filesystem
+cutadapt,cutadapt_05,--max-aer value_05,run cutadapt and with --max-aer value_05,qc
+rsync,rsync_43,--preallocate input_43.txt,run rsync and specify --preallocate input_43.txt,networking
+wget,wget_15,--page-requisites value_15,run wget and with --page-requisites value_15,networking
+multiqc,multiqc_17,--ignore-symlinks input_17.txt,run multiqc and specify --ignore-symlinks input_17.txt,qc
+rsync,rsync_50,--fake-super value_50 --no-implied-dirs input_50.txt --preallocate input_50.txt,run rsync and with --fake-super value_50 and specify --no-implied-dirs input_50.txt and specify --preallocate input_50.txt,networking
+rsync,rsync_45,--existing input_45.txt --append input_45.txt --inplace input_45.txt,run rsync and specify --existing input_45.txt and specify --append input_45.txt and specify --inplace input_45.txt,networking
+flye,flye_44,--scaffold value_44,run flye and with --scaffold value_44,assembly
+busco,busco_46,-o input_46.txt -i 4,run busco and specify -o input_46.txt and set -i to 4,assembly
+fastp,fastp_25,--in2 input_25.txt --include_unmerged input_25.txt --umi value_25,run fastp and specify --in2 input_25.txt and specify --include_unmerged input_25.txt and with --umi value_25,qc
+grep,grep_51,--with-filename input_51.txt --binary --files-without-match output_51.txt,run grep and specify --with-filename input_51.txt and enable --binary and specify --files-without-match output_51.txt,text-processing
+sort,sort_18,--reverse value_18 --human-numeric-sort value_18,run sort and with --reverse value_18 and with --human-numeric-sort value_18,text-processing
+cp,cp_02,--archive value_02 --no-target-directory value_02,run cp and with --archive value_02 and with --no-target-directory value_02,filesystem
+busco,busco_14,--auto-lineage-prok input_14.txt --plot input_14.txt,run busco and specify --auto-lineage-prok input_14.txt and specify --plot input_14.txt,assembly
+find,find_47,-o value_47,run find and with -o value_47,filesystem
+fastp,fastp_28,--overlapped_out output_28.txt,run fastp and specify --overlapped_out output_28.txt,qc
+find,find_04,-a value_04 -o value_04,run find and with -a value_04 and with -o value_04,filesystem
+multiqc,multiqc_42,--force value_42 --config input_42.txt --exclude value_42,run multiqc and with --force value_42 and specify --config input_42.txt and with --exclude value_42,qc
+multiqc,multiqc_28,--replace-names value_28 --cl-config value_28 --sample-filters value_28,run multiqc and with --replace-names value_28 and with --cl-config value_28 and with --sample-filters value_28,qc
+wget,wget_44,--no-clobber value_44 --continue input_44.txt,run wget and with --no-clobber value_44 and specify --continue input_44.txt,networking
+sort,sort_63,--numeric-sort value_63 --debug value_63,run sort and with --numeric-sort value_63 and with --debug value_63,text-processing
+kraken2,kraken2_50,--report input_50.txt --use-mpa-style input_50.txt --output output_50.txt,run kraken2 and specify --report input_50.txt and specify --use-mpa-style input_50.txt and specify --output output_50.txt,metagenomics
+find,find_35,-o value_35 -a value_35,run find and with -o value_35 and with -a value_35,filesystem
+kraken2,kraken2_22,--use-mpa-style input_22.txt --bzip2-compressed input_22.txt --minimum-hit-groups 4,run kraken2 and specify --use-mpa-style input_22.txt and specify --bzip2-compressed input_22.txt and set --minimum-hit-groups to 4,metagenomics
+tar,tar_32,--get input_32.txt --exclude-caches input_32.txt --compare input_32.txt,run tar and specify --get input_32.txt and specify --exclude-caches input_32.txt and specify --compare input_32.txt,compression
+busco,busco_21,--download_base_url 4,run busco and set --download_base_url to 4,assembly
+fastp,fastp_38,--discard_unmerged value_38 --unpaired2 input_38.txt --merged_out output_38.txt,run fastp and with --discard_unmerged value_38 and specify --unpaired2 input_38.txt and specify --merged_out output_38.txt,qc
+cp,cp_19,--parents input_19.txt,run cp and specify --parents input_19.txt,filesystem
+cp,cp_48,--dereference value_48 --archive value_48 --one-file-system input_48.txt,run cp and with --dereference value_48 and with --archive value_48 and specify --one-file-system input_48.txt,filesystem
+multiqc,multiqc_07,--fullnames input_07.txt --file-list input_07.txt --fn_as_s_name input_07.txt,run multiqc and specify --fullnames input_07.txt and specify --file-list input_07.txt and specify --fn_as_s_name input_07.txt,qc
+chopper,chopper_43,--trim-approach value_43 --tailcrop value_43 --maxgc value_43,run chopper and with --trim-approach value_43 and with --tailcrop value_43 and with --maxgc value_43,qc
+grep,grep_68,--null input_68.txt,run grep and specify --null input_68.txt,text-processing
+busco,busco_15,-l 16,run busco and set -l to 16,assembly
+grep,grep_54,--null input_54.txt,run grep and specify --null input_54.txt,text-processing
+kraken2,kraken2_16,--minimum-hit-groups 16 --bzip2-compressed input_16.txt --unclassified-out output_16.txt,run kraken2 and set --minimum-hit-groups to 16 and specify --bzip2-compressed input_16.txt and specify --unclassified-out output_16.txt,metagenomics
+tar,tar_53,--check-device value_53 --list value_53 --ignore-failed-read input_53.txt,run tar and with --check-device value_53 and with --list value_53 and specify --ignore-failed-read input_53.txt,compression
+mv,mv_25,--context value_25 --interactive value_25,run mv and with --context value_25 and with --interactive value_25,filesystem
+cp,cp_03,--no-target-directory value_03 --link input_03.txt,run cp and with --no-target-directory value_03 and specify --link input_03.txt,filesystem
+sort,sort_06,--ignore-nonprinting value_06 --numeric-sort value_06 --month-sort 4,run sort and with --ignore-nonprinting value_06 and with --numeric-sort value_06 and set --month-sort to 4,text-processing
+rsync,rsync_18,--existing input_18.txt --safe-links value_18,run rsync and specify --existing input_18.txt and with --safe-links value_18,networking
+wget,wget_51,--quiet input_51.txt,run wget and specify --quiet input_51.txt,networking
+rsync,rsync_51,--open-noatime input_51.txt,run rsync and specify --open-noatime input_51.txt,networking
+find,find_07,-a value_07,run find and with -a value_07,filesystem
+tar,tar_56,--get input_56.txt --append input_56.txt --exclude-caches input_56.txt,run tar and specify --get input_56.txt and specify --append input_56.txt and specify --exclude-caches input_56.txt,compression
+find,find_46,-o value_46 -a value_46,run find and with -o value_46 and with -a value_46,filesystem
+tabix,tabix_04,--reheader input_04.txt --verbosity 4 --preset sample_04,run tabix and specify --reheader input_04.txt and set --verbosity to 4 and with --preset sample_04,utilities
+porechop,porechop_34,--barcode_threshold value_34,run porechop and with --barcode_threshold value_34,qc
+grep,grep_58,--line-number input_58.txt --with-filename input_58.txt --null input_58.txt,run grep and specify --line-number input_58.txt and specify --with-filename input_58.txt and specify --null input_58.txt,text-processing
+fastp,fastp_54,--umi value_54 --in1 input_54.txt,run fastp and with --umi value_54 and specify --in1 input_54.txt,qc
+busco,busco_02,--long value_02 -o input_02.txt --augustus value_02,run busco and with --long value_02 and specify -o input_02.txt and with --augustus value_02,assembly
+sort,sort_16,--version-sort value_16 --random-sort value_16 --dictionary-order value_16,run sort and with --version-sort value_16 and with --random-sort value_16 and with --dictionary-order value_16,text-processing
+freebayes,freebayes_01,--samples input_01.txt --only-use-input-alleles value_01,run freebayes and specify --samples input_01.txt and with --only-use-input-alleles value_01,variant-calling
+cp,cp_18,--copy-contents input_18.txt --attributes-only input_18.txt --force input_18.txt,run cp and specify --copy-contents input_18.txt and specify --attributes-only input_18.txt and specify --force input_18.txt,filesystem
+busco,busco_12,--force input_12.txt --mode value_12,run busco and specify --force input_12.txt and with --mode value_12,assembly
+grep,grep_64,--word-regexp value_64 --no-messages value_64 --basic-regexp 4,run grep and with --word-regexp value_64 and with --no-messages value_64 and set --basic-regexp to 4,text-processing
+cp,cp_46,--one-file-system input_46.txt,run cp and specify --one-file-system input_46.txt,filesystem
+kraken2,kraken2_48,--output output_48.txt --report-zero-counts value_48 --memory-mapping value_48,run kraken2 and specify --output output_48.txt and with --report-zero-counts value_48 and with --memory-mapping value_48,metagenomics
+sort,sort_05,--unique value_05 --version-sort value_05 --random-sort value_05,run sort and with --unique value_05 and with --version-sort value_05 and with --random-sort value_05,text-processing
+chopper,chopper_09,--contam 16 --mingc 4 --quality 8,run chopper and set --contam to 16 and set --mingc to 4 and set --quality to 8,qc
+multiqc,multiqc_14,--title value_14,run multiqc and with --title value_14,qc
+kraken2,kraken2_07,--memory-mapping value_07 --minimum-base-quality 4,run kraken2 and with --memory-mapping value_07 and set --minimum-base-quality to 4,metagenomics
+sort,sort_36,--general-numeric-sort value_36 --ignore-case value_36 --unique value_36,run sort and with --general-numeric-sort value_36 and with --ignore-case value_36 and with --unique value_36,text-processing
+freebayes,freebayes_13,--cnv-map input_13.txt --output-mode value_13 --contamination-estimates input_13.txt,run freebayes and specify --cnv-map input_13.txt and with --output-mode value_13 and specify --contamination-estimates input_13.txt,variant-calling
+sort,sort_08,--month-sort 4,run sort and set --month-sort to 4,text-processing
+grep,grep_19,--ignore-case value_19 --with-filename input_19.txt,run grep and with --ignore-case value_19 and specify --with-filename input_19.txt,text-processing
+freebayes,freebayes_05,--report-all-haplotype-alleles value_05 --bam-list input_05.txt --populations input_05.txt,run freebayes and with --report-all-haplotype-alleles value_05 and specify --bam-list input_05.txt and specify --populations input_05.txt,variant-calling
+freebayes,freebayes_27,--populations input_27.txt,run freebayes and specify --populations input_27.txt,variant-calling
+grep,grep_17,--basic-regexp 4 --files-without-match output_17.txt --line-number input_17.txt,run grep and set --basic-regexp to 4 and specify --files-without-match output_17.txt and specify --line-number input_17.txt,text-processing
+grep,grep_30,--perl-regexp 8,run grep and set --perl-regexp to 8,text-processing
+rsync,rsync_15,--no-OPTION value_15 --open-noatime input_15.txt,run rsync and with --no-OPTION value_15 and specify --open-noatime input_15.txt,networking
+freebayes,freebayes_55,--bam-list input_55.txt --only-use-input-alleles value_55,run freebayes and specify --bam-list input_55.txt and with --only-use-input-alleles value_55,variant-calling
+chopper,chopper_04,--mingc 16 --cutoff value_04,run chopper and set --mingc to 16 and with --cutoff value_04,qc
+mv,mv_35,--no-clobber input_35.txt,run mv and specify --no-clobber input_35.txt,filesystem
+busco,busco_08,--augustus value_08 --mode value_08,run busco and with --augustus value_08 and with --mode value_08,assembly
+freebayes,freebayes_11,--bam input_11.txt --gvcf input_11.txt --vcf input_11.txt,run freebayes and specify --bam input_11.txt and specify --gvcf input_11.txt and specify --vcf input_11.txt,variant-calling
+fastp,fastp_35,--failed_out output_35.txt,run fastp and specify --failed_out output_35.txt,qc
+rsync,rsync_31,--fake-super value_31 --specials input_31.txt --open-noatime input_31.txt,run rsync and with --fake-super value_31 and specify --specials input_31.txt and specify --open-noatime input_31.txt,networking
+flye,flye_36,--keep-haplotypes value_36 --debug input_36.txt,run flye and with --keep-haplotypes value_36 and specify --debug input_36.txt,assembly
+kraken2,kraken2_38,--use-mpa-style input_38.txt --output output_38.txt --classified-out output_38.txt,run kraken2 and specify --use-mpa-style input_38.txt and specify --output output_38.txt and specify --classified-out output_38.txt,metagenomics
+tar,tar_11,--update input_11.txt --create value_11,run tar and specify --update input_11.txt and with --create value_11,compression
+busco,busco_19,--augustus_species value_19 --plot input_19.txt --download_base_url 4,run busco and with --augustus_species value_19 and specify --plot input_19.txt and set --download_base_url to 4,assembly
+wget,wget_37,--verbose value_37 --timestamping input_37.txt --inet4-only,run wget and with --verbose value_37 and specify --timestamping input_37.txt and enable --inet4-only,networking
+cp,cp_58,--no-clobber input_58.txt --one-file-system input_58.txt,run cp and specify --no-clobber input_58.txt and specify --one-file-system input_58.txt,filesystem
+rsync,rsync_02,--fake-super value_02 --write-devices input_02.txt --inplace input_02.txt,run rsync and with --fake-super value_02 and specify --write-devices input_02.txt and specify --inplace input_02.txt,networking
+rsync,rsync_34,--mkpath input_34.txt,run rsync and specify --mkpath input_34.txt,networking
+multiqc,multiqc_29,--outdir output_29.txt --ignore-symlinks input_29.txt --replace-names value_29,run multiqc and specify --outdir output_29.txt and specify --ignore-symlinks input_29.txt and with --replace-names value_29,qc
+cutadapt,cutadapt_09,--prefix sample_09,run cutadapt and with --prefix sample_09,qc
+rsync,rsync_30,--old-d input_30.txt --super value_30 --copy-devices input_30.txt,run rsync and specify --old-d input_30.txt and with --super value_30 and specify --copy-devices input_30.txt,networking
+tabix,tabix_14,--force value_14,run tabix and with --force value_14,utilities
+tabix,tabix_18,--zero-based value_18,run tabix and with --zero-based value_18,utilities
+cutadapt,cutadapt_35,--adapter value_35,run cutadapt and with --adapter value_35,qc
+flye,flye_33,--stop-after 8 --read-error value_33 --deterministic value_33,run flye and set --stop-after to 8 and with --read-error value_33 and with --deterministic value_33,assembly
+find,find_67,-o value_67,run find and with -o value_67,filesystem
+cp,cp_05,--copy-contents input_05.txt --archive value_05,run cp and specify --copy-contents input_05.txt and with --archive value_05,filesystem
+tabix,tabix_19,--only-header value_19,run tabix and with --only-header value_19,utilities
+rsync,rsync_35,--open-noatime input_35.txt --mkpath input_35.txt --fake-super value_35,run rsync and specify --open-noatime input_35.txt and specify --mkpath input_35.txt and with --fake-super value_35,networking
+fastp,fastp_02,--adapter_sequence --out2 output_02.txt,run fastp and enable --adapter_sequence and specify --out2 output_02.txt,qc
+find,find_23,-a value_23,run find and with -a value_23,filesystem
+mv,mv_06,-t input_06.txt,run mv and specify -t input_06.txt,filesystem
+kraken2,kraken2_35,--gzip-compressed input_35.txt,run kraken2 and specify --gzip-compressed input_35.txt,metagenomics
+wget,wget_04,--continue input_04.txt,run wget and specify --continue input_04.txt,networking
+tar,tar_04,--test-label value_04 --get input_04.txt --ignore-zeros value_04,run tar and with --test-label value_04 and specify --get input_04.txt and with --ignore-zeros value_04,compression
+mv,mv_48,--interactive value_48 --context value_48 --verbose value_48,run mv and with --interactive value_48 and with --context value_48 and with --verbose value_48,filesystem
+chopper,chopper_05,--minlength 4 --maxqual 30,run chopper and set --minlength to 4 and with --maxqual 30,qc
+wget,wget_28,--method value_28 --verbose value_28 --show-progress value_28,run wget and with --method value_28 and with --verbose value_28 and with --show-progress value_28,networking
+freebayes,freebayes_36,--report-all-haplotype-alleles value_36 --report-monomorphic value_36 --only-use-input-alleles value_36,run freebayes and with --report-all-haplotype-alleles value_36 and with --report-monomorphic value_36 and with --only-use-input-alleles value_36,variant-calling
+kraken2,kraken2_37,--threads 8 --paired input_37.txt,run kraken2 and set --threads to 8 and specify --paired input_37.txt,metagenomics
+porechop,porechop_08,-o input_08.txt,run porechop and specify -o input_08.txt,qc
+busco,busco_24,--config input_24.txt -l 4,run busco and specify --config input_24.txt and set -l to 4,assembly
+rsync,rsync_01,--fake-super value_01,run rsync and with --fake-super value_01,networking
+freebayes,freebayes_31,--samples input_31.txt,run freebayes and specify --samples input_31.txt,variant-calling
+rsync,rsync_36,--fake-super value_36 --specials input_36.txt --no-OPTION value_36,run rsync and with --fake-super value_36 and specify --specials input_36.txt and with --no-OPTION value_36,networking
+porechop,porechop_05,--extra_middle_trim_bad_side value_05,run porechop and with --extra_middle_trim_bad_side value_05,qc
+multiqc,multiqc_25,--file-list input_25.txt --ignore input_25.txt --require-logs value_25,run multiqc and specify --file-list input_25.txt and specify --ignore input_25.txt and with --require-logs value_25,qc
+cp,cp_49,--interactive value_49 --force input_49.txt,run cp and with --interactive value_49 and specify --force input_49.txt,filesystem
+chopper,chopper_33,--maxgc value_33,run chopper and with --maxgc value_33,qc
+sort,sort_56,--general-numeric-sort value_56,run sort and with --general-numeric-sort value_56,text-processing
+tabix,tabix_41,--separate-regions input_41.txt,run tabix and specify --separate-regions input_41.txt,utilities
+cp,cp_22,--link input_22.txt,run cp and specify --link input_22.txt,filesystem
+kraken2,kraken2_23,--output output_23.txt --threads 16 --unclassified-out output_23.txt,run kraken2 and specify --output output_23.txt and set --threads to 16 and specify --unclassified-out output_23.txt,metagenomics
+wget,wget_01,--no-verbose value_01 --verbose value_01 --no-netrc value_01,run wget and with --no-verbose value_01 and with --verbose value_01 and with --no-netrc value_01,networking
+busco,busco_09,--datasets_version 4,run busco and set --datasets_version to 4,assembly
+grep,grep_50,--with-filename input_50.txt --files-without-match output_50.txt,run grep and specify --with-filename input_50.txt and specify --files-without-match output_50.txt,text-processing
+sort,sort_45,--reverse value_45 --general-numeric-sort value_45 --random-sort value_45,run sort and with --reverse value_45 and with --general-numeric-sort value_45 and with --random-sort value_45,text-processing
+grep,grep_31,--line-regexp value_31 --fixed-strings 16,run grep and with --line-regexp value_31 and set --fixed-strings to 16,text-processing
+kraken2,kraken2_25,--classified-out output_25.txt --unclassified-out output_25.txt,run kraken2 and specify --classified-out output_25.txt and specify --unclassified-out output_25.txt,metagenomics
+freebayes,freebayes_18,--gvcf input_18.txt,run freebayes and specify --gvcf input_18.txt,variant-calling
+chopper,chopper_21,--mingc 4,run chopper and set --mingc to 4,qc
+tabix,tabix_26,--regions input_26.txt --end 16,run tabix and specify --regions input_26.txt and set --end to 16,utilities
+fastp,fastp_50,--detect_adapter_for_pe --overlapped_out output_50.txt,run fastp and enable --detect_adapter_for_pe and specify --overlapped_out output_50.txt,qc
+wget,wget_29,--no-netrc value_29 --no-config input_29.txt,run wget and with --no-netrc value_29 and specify --no-config input_29.txt,networking
+busco,busco_10,--auto-lineage input_10.txt,run busco and specify --auto-lineage input_10.txt,assembly
+flye,flye_17,--keep-haplotypes value_17 --stop-after 8 --extra-params value_17,run flye and with --keep-haplotypes value_17 and set --stop-after to 8 and with --extra-params value_17,assembly
+sort,sort_37,--human-numeric-sort value_37,run sort and with --human-numeric-sort value_37,text-processing
+flye,flye_20,--meta value_20,run flye and with --meta value_20,assembly
+mv,mv_10,--no-target-directory value_10 --force value_10 --context value_10,run mv and with --no-target-directory value_10 and with --force value_10 and with --context value_10,filesystem
+busco,busco_32,--augustus value_32 -o input_32.txt --out_path output_32.txt,run busco and with --augustus value_32 and specify -o input_32.txt and specify --out_path output_32.txt,assembly
+cp,cp_16,--one-file-system input_16.txt,run cp and specify --one-file-system input_16.txt,filesystem
+wget,wget_07,--convert-links value_07,run wget and with --convert-links value_07,networking
+find,find_44,-o value_44 -a value_44,run find and with -o value_44 and with -a value_44,filesystem
+cutadapt,cutadapt_14,--cut 8 --length-tag value_14 --max-expected-errors value_14,run cutadapt and set --cut to 8 and with --length-tag value_14 and with --max-expected-errors value_14,qc
+cutadapt,cutadapt_12,--times 16 --maximum-length 16,run cutadapt and set --times to 16 and set --maximum-length to 16,qc
+freebayes,freebayes_06,--gvcf-dont-use-chunk value_06 --observation-bias input_06.txt,run freebayes and with --gvcf-dont-use-chunk value_06 and specify --observation-bias input_06.txt,variant-calling
+tar,tar_20,--read-full-records value_20,run tar and with --read-full-records value_20,compression
+tar,tar_42,--create value_42 --ignore-failed-read input_42.txt --read-full-records value_42,run tar and with --create value_42 and specify --ignore-failed-read input_42.txt and with --read-full-records value_42,compression
+rsync,rsync_24,--no-motd value_24 --no-OPTION value_24 --existing input_24.txt,run rsync and with --no-motd value_24 and with --no-OPTION value_24 and specify --existing input_24.txt,networking
+busco,busco_38,--long value_38 --augustus_species value_38 --force input_38.txt,run busco and with --long value_38 and with --augustus_species value_38 and specify --force input_38.txt,assembly
+multiqc,multiqc_09,--exclude value_09 --fn_as_s_name input_09.txt --ignore input_09.txt,run multiqc and with --exclude value_09 and specify --fn_as_s_name input_09.txt and specify --ignore input_09.txt,qc
+mosdepth,mosdepth_38,--use-median input_38.txt --flag value_38 --fragment-mode value_38,run mosdepth and specify --use-median input_38.txt and with --flag value_38 and with --fragment-mode value_38,qc
+chopper,chopper_25,--maxqual 30 --minlength 4 --trim-approach value_25,run chopper and with --maxqual 30 and set --minlength to 4 and with --trim-approach value_25,qc
+grep,grep_44,--no-messages value_44 --line-buffered input_44.txt --binary,run grep and with --no-messages value_44 and specify --line-buffered input_44.txt and enable --binary,text-processing
+find,find_28,-a value_28 -o value_28,run find and with -a value_28 and with -o value_28,filesystem
+tar,tar_55,--check-device value_55 --get input_55.txt --delete value_55,run tar and with --check-device value_55 and specify --get input_55.txt and with --delete value_55,compression
+cutadapt,cutadapt_49,--times 16 --cores value_49 --maximum-length 4,run cutadapt and set --times to 16 and with --cores value_49 and set --maximum-length to 4,qc
+mosdepth,mosdepth_09,--fast-mode value_09 --flag value_09 --include-flag value_09,run mosdepth and with --fast-mode value_09 and with --flag value_09 and with --include-flag value_09,qc
+tabix,tabix_32,--comment value_32 --threads 16 --end 4,run tabix and with --comment value_32 and set --threads to 16 and set --end to 4,utilities
+mv,mv_21,--no-clobber input_21.txt,run mv and specify --no-clobber input_21.txt,filesystem
+fastp,fastp_39,--merge input_39.txt --cut_by_quality3 value_39 --failed_out output_39.txt,run fastp and specify --merge input_39.txt and with --cut_by_quality3 value_39 and specify --failed_out output_39.txt,qc
+fastp,fastp_51,--merged_out output_51.txt,run fastp and specify --merged_out output_51.txt,qc
+mv,mv_44,--interactive value_44,run mv and with --interactive value_44,filesystem
+porechop,porechop_46,--scoring_scheme 16 --input input_46.txt --min_trim_size 16,run porechop and set --scoring_scheme to 16 and specify --input input_46.txt and set --min_trim_size to 16,qc
+cutadapt,cutadapt_40,--max-ee value_40,run cutadapt and with --max-ee value_40,qc
+fastp,fastp_52,--phred64 input_52.txt,run fastp and specify --phred64 input_52.txt,qc
+chopper,chopper_24,--minlength 8,run chopper and set --minlength to 8,qc
+wget,wget_12,--page-requisites value_12,run wget and with --page-requisites value_12,networking
+rsync,rsync_26,--append input_26.txt,run rsync and specify --append input_26.txt,networking
+mv,mv_40,--interactive value_40,run mv and with --interactive value_40,filesystem
+freebayes,freebayes_14,--output-mode value_14 --contamination-estimates input_14.txt,run freebayes and with --output-mode value_14 and specify --contamination-estimates input_14.txt,variant-calling
+rsync,rsync_48,--specials input_48.txt --mkpath input_48.txt --open-noatime input_48.txt,run rsync and specify --specials input_48.txt and specify --mkpath input_48.txt and specify --open-noatime input_48.txt,networking
+busco,busco_23,-i 8 --mode value_23 --auto-lineage-euk input_23.txt,run busco and set -i to 8 and with --mode value_23 and specify --auto-lineage-euk input_23.txt,assembly
+rsync,rsync_23,--copy-unsafe-links value_23 --inplace input_23.txt,run rsync and with --copy-unsafe-links value_23 and specify --inplace input_23.txt,networking
+multiqc,multiqc_16,--force value_16,run multiqc and with --force value_16,qc
+grep,grep_45,--line-buffered input_45.txt,run grep and specify --line-buffered input_45.txt,text-processing
+find,find_56,-a value_56 -o value_56,run find and with -a value_56 and with -o value_56,filesystem
+porechop,porechop_24,--extra_end_trim 4 --verbosity value_24 --output output_24.txt,run porechop and set --extra_end_trim to 4 and with --verbosity value_24 and specify --output output_24.txt,qc
+porechop,porechop_26,--min_trim_size 4 --adapter_threshold value_26,run porechop and set --min_trim_size to 4 and with --adapter_threshold value_26,qc
+chopper,chopper_37,--quality 8 --inverse input_37.txt,run chopper and set --quality to 8 and specify --inverse input_37.txt,qc
+tabix,tabix_13,--targets input_13.txt --force value_13,run tabix and specify --targets input_13.txt and with --force value_13,utilities
+tar,tar_38,--list value_38 --seek value_38,run tar and with --list value_38 and with --seek value_38,compression
+wget,wget_24,--show-progress value_24 --debug value_24 --adjust-extension value_24,run wget and with --show-progress value_24 and with --debug value_24 and with --adjust-extension value_24,networking
+find,find_69,-o value_69 -a value_69,run find and with -o value_69 and with -a value_69,filesystem
+multiqc,multiqc_36,--outdir output_36.txt --ignore-symlinks input_36.txt,run multiqc and specify --outdir output_36.txt and specify --ignore-symlinks input_36.txt,qc
+find,find_21,-o value_21 -a value_21,run find and with -o value_21 and with -a value_21,filesystem
+kraken2,kraken2_26,--minimum-hit-groups 4,run kraken2 and set --minimum-hit-groups to 4,metagenomics
+fastp,fastp_24,--detect_adapter_for_pe --cut_by_quality_aggressive value_24 --out2 output_24.txt,run fastp and enable --detect_adapter_for_pe and with --cut_by_quality_aggressive value_24 and specify --out2 output_24.txt,qc
+chopper,chopper_17,--contam 16 --maxlength 8 --headcrop value_17,run chopper and set --contam to 16 and set --maxlength to 8 and with --headcrop value_17,qc
+sort,sort_46,--reverse value_46 --debug value_46 --stable value_46,run sort and with --reverse value_46 and with --debug value_46 and with --stable value_46,text-processing
+tar,tar_12,--no-check-device value_12,run tar and with --no-check-device value_12,compression
+mosdepth,mosdepth_35,--flag value_35 --fragment-mode value_35,run mosdepth and with --flag value_35 and with --fragment-mode value_35,qc
+cutadapt,cutadapt_11,--suffix value_11 --minimum-length 16,run cutadapt and with --suffix value_11 and set --minimum-length to 16,qc
+mv,mv_38,--force value_38,run mv and with --force value_38,filesystem
+grep,grep_07,--byte-offset input_07.txt,run grep and specify --byte-offset input_07.txt,text-processing
+sort,sort_35,--dictionary-order value_35,run sort and with --dictionary-order value_35,text-processing
+tar,tar_50,--exclude-caches input_50.txt,run tar and specify --exclude-caches input_50.txt,compression
+mv,mv_28,--force value_28 --context value_28 --interactive value_28,run mv and with --force value_28 and with --context value_28 and with --interactive value_28,filesystem
+mosdepth,mosdepth_20,--fragment-mode value_20 --include-flag value_20,run mosdepth and with --fragment-mode value_20 and with --include-flag value_20,qc
+freebayes,freebayes_08,--fasta-reference input_08.txt --cnv-map input_08.txt,run freebayes and specify --fasta-reference input_08.txt and specify --cnv-map input_08.txt,variant-calling
+tar,tar_63,--compare input_63.txt,run tar and specify --compare input_63.txt,compression
+sort,sort_38,--ignore-case value_38 --human-numeric-sort value_38,run sort and with --ignore-case value_38 and with --human-numeric-sort value_38,text-processing
+chopper,chopper_20,--trim-approach value_20 --mingc 8,run chopper and with --trim-approach value_20 and set --mingc to 8,qc
+cp,cp_10,--dereference value_10 --remove-destination input_10.txt -t input_10.txt,run cp and with --dereference value_10 and specify --remove-destination input_10.txt and specify -t input_10.txt,filesystem
+mosdepth,mosdepth_40,--fragment-mode value_40 --use-median input_40.txt,run mosdepth and with --fragment-mode value_40 and specify --use-median input_40.txt,qc
+mosdepth,mosdepth_36,--fragment-mode value_36 --include-flag value_36,run mosdepth and with --fragment-mode value_36 and with --include-flag value_36,qc
+sort,sort_15,--general-numeric-sort value_15 --debug value_15 --zero-terminated 4,run sort and with --general-numeric-sort value_15 and with --debug value_15 and set --zero-terminated to 4,text-processing
+multiqc,multiqc_38,--config input_38.txt --replace-names value_38,run multiqc and specify --config input_38.txt and with --replace-names value_38,qc
+flye,flye_15,--stop-after 4,run flye and set --stop-after to 4,assembly
+cutadapt,cutadapt_52,--rename value_52 --prefix sample_52,run cutadapt and with --rename value_52 and with --prefix sample_52,qc
+mv,mv_58,--verbose value_58,run mv and with --verbose value_58,filesystem
+grep,grep_39,--invert-match value_39 --files-with-matches input_39.txt --line-regexp value_39,run grep and with --invert-match value_39 and specify --files-with-matches input_39.txt and with --line-regexp value_39,text-processing
+find,find_32,-a value_32 -o value_32,run find and with -a value_32 and with -o value_32,filesystem
+cutadapt,cutadapt_15,--anywhere value_15,run cutadapt and with --anywhere value_15,qc
+sort,sort_53,--ignore-leading-blanks value_53 --human-numeric-sort value_53,run sort and with --ignore-leading-blanks value_53 and with --human-numeric-sort value_53,text-processing
+porechop,porechop_11,--min_split_read_size 8 -i input_11.txt --barcode_threshold value_11,run porechop and set --min_split_read_size to 8 and specify -i input_11.txt and with --barcode_threshold value_11,qc
+cutadapt,cutadapt_20,--rename value_20 --max-n 4,run cutadapt and with --rename value_20 and set --max-n to 4,qc
+flye,flye_11,--read-error value_11,run flye and with --read-error value_11,assembly
+cp,cp_17,--verbose value_17 -t input_17.txt --attributes-only input_17.txt,run cp and with --verbose value_17 and specify -t input_17.txt and specify --attributes-only input_17.txt,filesystem
+porechop,porechop_39,--barcode_threshold value_39 --extra_middle_trim_bad_side value_39 --extra_end_trim 16,run porechop and with --barcode_threshold value_39 and with --extra_middle_trim_bad_side value_39 and set --extra_end_trim to 16,qc
+multiqc,multiqc_50,--exclude value_50,run multiqc and with --exclude value_50,qc
+busco,busco_50,--auto-lineage input_50.txt,run busco and specify --auto-lineage input_50.txt,assembly
+mv,mv_15,--strip-trailing-slashes value_15,run mv and with --strip-trailing-slashes value_15,filesystem
+mosdepth,mosdepth_34,--fragment-mode value_34 --fast-mode value_34,run mosdepth and with --fragment-mode value_34 and with --fast-mode value_34,qc
+cp,cp_31,--verbose value_31 --no-dereference value_31,run cp and with --verbose value_31 and with --no-dereference value_31,filesystem
+find,find_16,-o value_16,run find and with -o value_16,filesystem
+sort,sort_49,--merge input_49.txt --reverse value_49,run sort and specify --merge input_49.txt and with --reverse value_49,text-processing
+chopper,chopper_49,--maxqual 30 --tailcrop value_49 --minlength 16,run chopper and with --maxqual 30 and with --tailcrop value_49 and set --minlength to 16,qc
+porechop,porechop_44,--verbosity value_44,run porechop and with --verbosity value_44,qc
+fastp,fastp_12,--in2 input_12.txt --include_unmerged input_12.txt,run fastp and specify --in2 input_12.txt and specify --include_unmerged input_12.txt,qc
+mv,mv_57,--force value_57 --context value_57,run mv and with --force value_57 and with --context value_57,filesystem
+kraken2,kraken2_12,--paired input_12.txt --classified-out output_12.txt --unclassified-out output_12.txt,run kraken2 and specify --paired input_12.txt and specify --classified-out output_12.txt and specify --unclassified-out output_12.txt,metagenomics
+freebayes,freebayes_53,--gvcf-chunk 8 --gvcf-dont-use-chunk value_53,run freebayes and set --gvcf-chunk to 8 and with --gvcf-dont-use-chunk value_53,variant-calling
+fastp,fastp_53,--merge input_53.txt --correction,run fastp and specify --merge input_53.txt and enable --correction,qc
+grep,grep_65,--files-with-matches input_65.txt --word-regexp value_65 --binary,run grep and specify --files-with-matches input_65.txt and with --word-regexp value_65 and enable --binary,text-processing
+rsync,rsync_11,--append input_11.txt --devices input_11.txt --open-noatime input_11.txt,run rsync and specify --append input_11.txt and specify --devices input_11.txt and specify --open-noatime input_11.txt,networking
+cutadapt,cutadapt_28,--max-aer value_28 --maximum-length 8,run cutadapt and with --max-aer value_28 and set --maximum-length to 8,qc
+wget,wget_02,--force-html value_02 --method value_02,run wget and with --force-html value_02 and with --method value_02,networking
+wget,wget_35,--show-progress value_35 --quiet input_35.txt,run wget and with --show-progress value_35 and specify --quiet input_35.txt,networking
+freebayes,freebayes_25,--only-use-input-alleles value_25,run freebayes and with --only-use-input-alleles value_25,variant-calling
+tabix,tabix_24,--regions input_24.txt,run tabix and specify --regions input_24.txt,utilities
+kraken2,kraken2_54,--confidence 1e-5,run kraken2 and with --confidence 1e-5,metagenomics
+grep,grep_21,--count input_21.txt --byte-offset input_21.txt,run grep and specify --count input_21.txt and specify --byte-offset input_21.txt,text-processing
+flye,flye_45,--plasmids value_45,run flye and with --plasmids value_45,assembly
+grep,grep_36,--line-regexp value_36 --fixed-strings 8,run grep and with --line-regexp value_36 and set --fixed-strings to 8,text-processing
+cp,cp_53,--copy-contents input_53.txt --dereference value_53,run cp and specify --copy-contents input_53.txt and with --dereference value_53,filesystem
+multiqc,multiqc_21,--ignore-samples value_21 --replace-names value_21 --dirs-depth input_21.txt,run multiqc and with --ignore-samples value_21 and with --replace-names value_21 and specify --dirs-depth input_21.txt,qc
+sort,sort_40,--month-sort 8 --ignore-case value_40,run sort and set --month-sort to 8 and with --ignore-case value_40,text-processing
+grep,grep_27,--with-filename input_27.txt,run grep and specify --with-filename input_27.txt,text-processing
+rsync,rsync_28,--no-implied-dirs input_28.txt --inplace input_28.txt,run rsync and specify --no-implied-dirs input_28.txt and specify --inplace input_28.txt,networking
+tabix,tabix_08,--begin 8,run tabix and set --begin to 8,utilities
+cutadapt,cutadapt_18,--times 16,run cutadapt and set --times to 16,qc
+wget,wget_59,--force-html value_59,run wget and with --force-html value_59,networking
+find,find_60,-a value_60 -o value_60,run find and with -a value_60 and with -o value_60,filesystem
+wget,wget_40,--inet6-only --quiet input_40.txt,run wget and enable --inet6-only and specify --quiet input_40.txt,networking
+flye,flye_07,--genome-size 4 --min-overlap 4,run flye and set --genome-size to 4 and set --min-overlap to 4,assembly
+cutadapt,cutadapt_58,--suffix value_58 --times 16 --prefix sample_58,run cutadapt and with --suffix value_58 and set --times to 16 and with --prefix sample_58,qc
+wget,wget_20,--no-netrc value_20 --quiet input_20.txt,run wget and with --no-netrc value_20 and specify --quiet input_20.txt,networking
+rsync,rsync_21,--preallocate input_21.txt,run rsync and specify --preallocate input_21.txt,networking
+tar,tar_23,--create value_23 --concatenate input_23.txt --ignore-failed-read input_23.txt,run tar and with --create value_23 and specify --concatenate input_23.txt and specify --ignore-failed-read input_23.txt,compression
+mosdepth,mosdepth_13,--flag value_13,run mosdepth and with --flag value_13,qc
+sort,sort_28,--merge input_28.txt,run sort and specify --merge input_28.txt,text-processing
+wget,wget_32,--no-if-modified-since value_32,run wget and with --no-if-modified-since value_32,networking
+flye,flye_32,--stop-after 8 --min-overlap 16 --keep-haplotypes value_32,run flye and set --stop-after to 8 and set --min-overlap to 16 and with --keep-haplotypes value_32,assembly
+mosdepth,mosdepth_11,--no-per-base input_11.txt --include-flag value_11,run mosdepth and specify --no-per-base input_11.txt and with --include-flag value_11,qc
+tabix,tabix_40,--regions input_40.txt,run tabix and specify --regions input_40.txt,utilities
+tar,tar_27,--check-device value_27 --exclude-backups input_27.txt --create value_27,run tar and with --check-device value_27 and specify --exclude-backups input_27.txt and with --create value_27,compression
+kraken2,kraken2_06,--bzip2-compressed input_06.txt --classified-out output_06.txt --output output_06.txt,run kraken2 and specify --bzip2-compressed input_06.txt and specify --classified-out output_06.txt and specify --output output_06.txt,metagenomics
+porechop,porechop_49,--middle_threshold value_49,run porechop and with --middle_threshold value_49,qc
+freebayes,freebayes_23,--output-mode value_23 --haplotype-basis-alleles input_23.txt,run freebayes and with --output-mode value_23 and specify --haplotype-basis-alleles input_23.txt,variant-calling
+multiqc,multiqc_10,--ignore-samples value_10 --replace-names value_10 --fullnames input_10.txt,run multiqc and with --ignore-samples value_10 and with --replace-names value_10 and specify --fullnames input_10.txt,qc
+busco,busco_01,--force input_01.txt --long value_01,run busco and specify --force input_01.txt and with --long value_01,assembly
+fastp,fastp_20,--adapter_sequence --cut_by_quality3 value_20 --umi value_20,run fastp and enable --adapter_sequence and with --cut_by_quality3 value_20 and with --umi value_20,qc
+multiqc,multiqc_48,--sample-filters value_48,run multiqc and with --sample-filters value_48,qc
+kraken2,kraken2_52,--confidence 1e-5 --minimum-hit-groups 8 --report-zero-counts value_52,run kraken2 and with --confidence 1e-5 and set --minimum-hit-groups to 8 and with --report-zero-counts value_52,metagenomics
+freebayes,freebayes_26,--bam-list input_26.txt --gvcf-dont-use-chunk value_26,run freebayes and specify --bam-list input_26.txt and with --gvcf-dont-use-chunk value_26,variant-calling
+mosdepth,mosdepth_29,--fast-mode value_29 --no-per-base input_29.txt,run mosdepth and with --fast-mode value_29 and specify --no-per-base input_29.txt,qc
+busco,busco_34,--mode value_34,run busco and with --mode value_34,assembly
+mosdepth,mosdepth_24,--fragment-mode value_24 --fast-mode value_24 --no-per-base input_24.txt,run mosdepth and with --fragment-mode value_24 and with --fast-mode value_24 and specify --no-per-base input_24.txt,qc
+chopper,chopper_22,--tailcrop value_22 --input input_22.txt --cutoff value_22,run chopper and with --tailcrop value_22 and specify --input input_22.txt and with --cutoff value_22,qc
+tar,tar_30,--sparse input_30.txt --no-check-device value_30 --ignore-zeros value_30,run tar and specify --sparse input_30.txt and with --no-check-device value_30 and with --ignore-zeros value_30,compression
+find,find_15,-a value_15,run find and with -a value_15,filesystem
+tabix,tabix_45,--zero-based value_45 --only-header value_45 --sequence 8,run tabix and with --zero-based value_45 and with --only-header value_45 and set --sequence to 8,utilities
+sort,sort_68,--month-sort 8,run sort and set --month-sort to 8,text-processing
+porechop,porechop_19,--adapter_threshold value_19,run porechop and with --adapter_threshold value_19,qc
+mv,mv_03,-t input_03.txt --verbose value_03,run mv and specify -t input_03.txt and with --verbose value_03,filesystem
+sort,sort_33,--dictionary-order value_33 --numeric-sort value_33 --debug value_33,run sort and with --dictionary-order value_33 and with --numeric-sort value_33 and with --debug value_33,text-processing
+rsync,rsync_32,--devices input_32.txt,run rsync and specify --devices input_32.txt,networking
+grep,grep_15,--fixed-strings 4 --extended-regexp 16,run grep and set --fixed-strings to 4 and set --extended-regexp to 16,text-processing
+rsync,rsync_13,--preallocate input_13.txt,run rsync and specify --preallocate input_13.txt,networking
+tar,tar_14,--incremental 4 --sparse input_14.txt,run tar and set --incremental to 4 and specify --sparse input_14.txt,compression
+rsync,rsync_04,--specials input_04.txt,run rsync and specify --specials input_04.txt,networking
+rsync,rsync_37,--safe-links value_37 --no-OPTION value_37 --mkpath input_37.txt,run rsync and with --safe-links value_37 and with --no-OPTION value_37 and specify --mkpath input_37.txt,networking
+mosdepth,mosdepth_27,--fragment-mode value_27 --flag value_27 --no-per-base input_27.txt,run mosdepth and with --fragment-mode value_27 and with --flag value_27 and specify --no-per-base input_27.txt,qc
+tabix,tabix_36,--comment value_36 --regions input_36.txt,run tabix and with --comment value_36 and specify --regions input_36.txt,utilities
+cutadapt,cutadapt_38,--max-n 16 --max-ee value_38 --strip-suffix sample_38,run cutadapt and set --max-n to 16 and with --max-ee value_38 and with --strip-suffix sample_38,qc
+cutadapt,cutadapt_03,--suffix value_03 --times 8,run cutadapt and with --suffix value_03 and set --times to 8,qc
+tar,tar_70,--exclude-caches input_70.txt --read-full-records value_70,run tar and specify --exclude-caches input_70.txt and with --read-full-records value_70,compression
+mv,mv_37,--no-clobber input_37.txt -t input_37.txt --strip-trailing-slashes value_37,run mv and specify --no-clobber input_37.txt and specify -t input_37.txt and with --strip-trailing-slashes value_37,filesystem
+chopper,chopper_29,--trim-approach value_29 --maxgc value_29,run chopper and with --trim-approach value_29 and with --maxgc value_29,qc
+tar,tar_66,--read-full-records value_66 --sparse input_66.txt --append input_66.txt,run tar and with --read-full-records value_66 and specify --sparse input_66.txt and specify --append input_66.txt,compression
+tar,tar_05,--append input_05.txt --no-seek value_05 --delete value_05,run tar and specify --append input_05.txt and with --no-seek value_05 and with --delete value_05,compression
+tabix,tabix_49,--regions input_49.txt --comment value_49 --only-header value_49,run tabix and specify --regions input_49.txt and with --comment value_49 and with --only-header value_49,utilities
+mv,mv_46,--update value_46 --interactive value_46 --force value_46,run mv and with --update value_46 and with --interactive value_46 and with --force value_46,filesystem
+multiqc,multiqc_19,--module value_19 --ignore-samples value_19 --file-list input_19.txt,run multiqc and with --module value_19 and with --ignore-samples value_19 and specify --file-list input_19.txt,qc
+rsync,rsync_56,--write-devices input_56.txt --fake-super value_56,run rsync and specify --write-devices input_56.txt and with --fake-super value_56,networking
+multiqc,multiqc_32,--dirs input_32.txt --dirs-depth input_32.txt,run multiqc and specify --dirs input_32.txt and specify --dirs-depth input_32.txt,qc
+freebayes,freebayes_39,--populations input_39.txt,run freebayes and specify --populations input_39.txt,variant-calling
+porechop,porechop_20,-o input_20.txt,run porechop and specify -o input_20.txt,qc
+cp,cp_15,--interactive value_15,run cp and with --interactive value_15,filesystem
+fastp,fastp_41,--overlapped_out output_41.txt,run fastp and specify --overlapped_out output_41.txt,qc
+grep,grep_11,--files-without-match output_11.txt --extended-regexp 8 --word-regexp value_11,run grep and specify --files-without-match output_11.txt and set --extended-regexp to 8 and with --word-regexp value_11,text-processing
+mv,mv_17,--strip-trailing-slashes value_17 --force value_17 -t input_17.txt,run mv and with --strip-trailing-slashes value_17 and with --force value_17 and specify -t input_17.txt,filesystem
+cp,cp_20,--dereference value_20,run cp and with --dereference value_20,filesystem
+porechop,porechop_45,--extra_middle_trim_bad_side value_45 --output output_45.txt,run porechop and with --extra_middle_trim_bad_side value_45 and specify --output output_45.txt,qc
+cutadapt,cutadapt_06,--max-average-error-rate value_06 --suffix value_06,run cutadapt and with --max-average-error-rate value_06 and with --suffix value_06,qc
+porechop,porechop_48,--middle_threshold value_48 --verbosity value_48,run porechop and with --middle_threshold value_48 and with --verbosity value_48,qc
+wget,wget_27,--continue input_27.txt,run wget and specify --continue input_27.txt,networking
+multiqc,multiqc_03,--config input_03.txt --sample-names value_03,run multiqc and specify --config input_03.txt and with --sample-names value_03,qc
+grep,grep_32,--line-number input_32.txt --basic-regexp 4,run grep and specify --line-number input_32.txt and set --basic-regexp to 4,text-processing
+freebayes,freebayes_12,--report-all-haplotype-alleles value_12,run freebayes and with --report-all-haplotype-alleles value_12,variant-calling
+tar,tar_29,--exclude-caches input_29.txt --seek value_29,run tar and specify --exclude-caches input_29.txt and with --seek value_29,compression
+tar,tar_68,--update input_68.txt,run tar and specify --update input_68.txt,compression
+chopper,chopper_45,--cutoff value_45,run chopper and with --cutoff value_45,qc
+multiqc,multiqc_44,--config input_44.txt --cl-config value_44 --require-logs value_44,run multiqc and specify --config input_44.txt and with --cl-config value_44 and with --require-logs value_44,qc
+tar,tar_03,--read-full-records value_03,run tar and with --read-full-records value_03,compression
+chopper,chopper_07,--headcrop value_07,run chopper and with --headcrop value_07,qc
+freebayes,freebayes_21,--stdin input_21.txt --targets input_21.txt,run freebayes and specify --stdin input_21.txt and specify --targets input_21.txt,variant-calling
+mv,mv_22,--no-target-directory value_22 --verbose value_22,run mv and with --no-target-directory value_22 and with --verbose value_22,filesystem
+find,find_09,-o value_09 -a value_09,run find and with -o value_09 and with -a value_09,filesystem
+mv,mv_16,--no-target-directory value_16 --context value_16,run mv and with --no-target-directory value_16 and with --context value_16,filesystem
+cutadapt,cutadapt_42,--length-tag value_42,run cutadapt and with --length-tag value_42,qc
+fastp,fastp_06,--adapter_sequence,run fastp and enable --adapter_sequence,qc
+flye,flye_23,--debug input_23.txt --resume value_23,run flye and specify --debug input_23.txt and with --resume value_23,assembly
+chopper,chopper_36,--quality 4 --maxgc value_36 --trim-approach value_36,run chopper and set --quality to 4 and with --maxgc value_36 and with --trim-approach value_36,qc
+grep,grep_42,--line-regexp value_42,run grep and with --line-regexp value_42,text-processing
+tar,tar_67,--compare input_67.txt,run tar and specify --compare input_67.txt,compression
+mosdepth,mosdepth_46,--include-flag value_46 --no-per-base input_46.txt,run mosdepth and with --include-flag value_46 and specify --no-per-base input_46.txt,qc
+fastp,fastp_43,--overlapped_out output_43.txt --detect_adapter_for_pe,run fastp and specify --overlapped_out output_43.txt and enable --detect_adapter_for_pe,qc
+sort,sort_32,--ignore-leading-blanks value_32 --dictionary-order value_32 --random-sort value_32,run sort and with --ignore-leading-blanks value_32 and with --dictionary-order value_32 and with --random-sort value_32,text-processing
+find,find_70,-a value_70 -o value_70,run find and with -a value_70 and with -o value_70,filesystem
+find,find_51,-a value_51,run find and with -a value_51,filesystem
+flye,flye_09,--trestle value_09 --extra-params value_09,run flye and with --trestle value_09 and with --extra-params value_09,assembly
+mv,mv_26,--interactive value_26 --verbose value_26,run mv and with --interactive value_26 and with --verbose value_26,filesystem
+freebayes,freebayes_54,--samples input_54.txt --bam-list input_54.txt,run freebayes and specify --samples input_54.txt and specify --bam-list input_54.txt,variant-calling
+mosdepth,mosdepth_42,--no-per-base input_42.txt,run mosdepth and specify --no-per-base input_42.txt,qc
+sort,sort_01,--zero-terminated 16 --ignore-case value_01,run sort and set --zero-terminated to 16 and with --ignore-case value_01,text-processing
+porechop,porechop_28,--barcode_dir input_28.txt --barcode_threshold value_28,run porechop and specify --barcode_dir input_28.txt and with --barcode_threshold value_28,qc
+cp,cp_41,--one-file-system input_41.txt --verbose value_41,run cp and specify --one-file-system input_41.txt and with --verbose value_41,filesystem
+porechop,porechop_42,--min_trim_size 8 --verbosity value_42,run porechop and set --min_trim_size to 8 and with --verbosity value_42,qc
+tar,tar_57,--delete value_57,run tar and with --delete value_57,compression
+mv,mv_59,--strip-trailing-slashes value_59,run mv and with --strip-trailing-slashes value_59,filesystem
+mv,mv_53,--verbose value_53,run mv and with --verbose value_53,filesystem
+tabix,tabix_43,--end 4 --preset sample_43,run tabix and set --end to 4 and with --preset sample_43,utilities
+mosdepth,mosdepth_28,--use-median input_28.txt --include-flag value_28,run mosdepth and specify --use-median input_28.txt and with --include-flag value_28,qc
+cutadapt,cutadapt_41,--maximum-length 16 --max-n 16 --front value_41,run cutadapt and set --maximum-length to 16 and set --max-n to 16 and with --front value_41,qc
+find,find_57,-a value_57,run find and with -a value_57,filesystem
+mv,mv_45,--interactive value_45 --verbose value_45 -t input_45.txt,run mv and with --interactive value_45 and with --verbose value_45 and specify -t input_45.txt,filesystem
+find,find_63,-a value_63,run find and with -a value_63,filesystem
+freebayes,freebayes_45,--targets input_45.txt --observation-bias input_45.txt,run freebayes and specify --targets input_45.txt and specify --observation-bias input_45.txt,variant-calling
+chopper,chopper_03,--minlength 16,run chopper and set --minlength to 16,qc
+multiqc,multiqc_23,--exclude value_23,run multiqc and with --exclude value_23,qc
+mv,mv_41,--no-target-directory value_41 --update value_41 --verbose value_41,run mv and with --no-target-directory value_41 and with --update value_41 and with --verbose value_41,filesystem
+find,find_12,-a value_12,run find and with -a value_12,filesystem
+porechop,porechop_13,--threads 8 -i input_13.txt,run porechop and set --threads to 8 and specify -i input_13.txt,qc
+fastp,fastp_32,--cut_by_quality3 value_32,run fastp and with --cut_by_quality3 value_32,qc
+cp,cp_01,--verbose value_01 --no-clobber input_01.txt,run cp and with --verbose value_01 and specify --no-clobber input_01.txt,filesystem
+tabix,tabix_02,--begin 8 --verbosity 16,run tabix and set --begin to 8 and set --verbosity to 16,utilities
+wget,wget_26,--timestamping input_26.txt,run wget and specify --timestamping input_26.txt,networking
+flye,flye_41,--genome-size 16,run flye and set --genome-size to 16,assembly
+tar,tar_49,--concatenate input_49.txt --seek value_49 --append input_49.txt,run tar and specify --concatenate input_49.txt and with --seek value_49 and specify --append input_49.txt,compression
+rsync,rsync_40,--preallocate input_40.txt --no-implied-dirs input_40.txt,run rsync and specify --preallocate input_40.txt and specify --no-implied-dirs input_40.txt,networking
+mv,mv_29,--force value_29,run mv and with --force value_29,filesystem
+wget,wget_18,--force-html value_18 --debug value_18 --show-progress value_18,run wget and with --force-html value_18 and with --debug value_18 and with --show-progress value_18,networking
+cp,cp_34,--no-target-directory value_34 --force input_34.txt --no-dereference value_34,run cp and with --no-target-directory value_34 and specify --force input_34.txt and with --no-dereference value_34,filesystem
+tar,tar_17,--compare input_17.txt,run tar and specify --compare input_17.txt,compression
+wget,wget_57,--page-requisites value_57,run wget and with --page-requisites value_57,networking
+mv,mv_47,--context value_47,run mv and with --context value_47,filesystem
+chopper,chopper_27,--cutoff value_27,run chopper and with --cutoff value_27,qc
+sort,sort_23,--ignore-leading-blanks value_23 --zero-terminated 4,run sort and with --ignore-leading-blanks value_23 and set --zero-terminated to 4,text-processing
+cp,cp_25,--recursive input_25.txt --verbose value_25,run cp and specify --recursive input_25.txt and with --verbose value_25,filesystem
+cp,cp_07,--one-file-system input_07.txt --remove-destination input_07.txt,run cp and specify --one-file-system input_07.txt and specify --remove-destination input_07.txt,filesystem
+tabix,tabix_11,--regions input_11.txt --reheader input_11.txt --separate-regions input_11.txt,run tabix and specify --regions input_11.txt and specify --reheader input_11.txt and specify --separate-regions input_11.txt,utilities
+chopper,chopper_30,--cutoff value_30 --mingc 16,run chopper and with --cutoff value_30 and set --mingc to 16,qc
+tar,tar_28,--read-full-records value_28,run tar and with --read-full-records value_28,compression
+kraken2,kraken2_45,--gzip-compressed input_45.txt,run kraken2 and specify --gzip-compressed input_45.txt,metagenomics
+grep,grep_69,--line-regexp value_69 --fixed-strings 16 --null input_69.txt,run grep and with --line-regexp value_69 and set --fixed-strings to 16 and specify --null input_69.txt,text-processing
+fastp,fastp_33,--phred64 input_33.txt,run fastp and specify --phred64 input_33.txt,qc
+find,find_55,-a value_55 -o value_55,run find and with -a value_55 and with -o value_55,filesystem
+multiqc,multiqc_04,--ignore-symlinks input_04.txt --sample-filters value_04,run multiqc and specify --ignore-symlinks input_04.txt and with --sample-filters value_04,qc
+flye,flye_05,--read-error value_05 --resume value_05 --scaffold value_05,run flye and with --read-error value_05 and with --resume value_05 and with --scaffold value_05,assembly
+rsync,rsync_16,--no-motd value_16 --copy-devices input_16.txt,run rsync and with --no-motd value_16 and specify --copy-devices input_16.txt,networking
+sort,sort_41,--ignore-case value_41 --human-numeric-sort value_41,run sort and with --ignore-case value_41 and with --human-numeric-sort value_41,text-processing
+tabix,tabix_44,--verbosity 16 --reheader input_44.txt --begin 4,run tabix and set --verbosity to 16 and specify --reheader input_44.txt and set --begin to 4,utilities
+wget,wget_36,--debug value_36,run wget and with --debug value_36,networking
+multiqc,multiqc_52,--fullnames input_52.txt --file-list input_52.txt,run multiqc and specify --fullnames input_52.txt and specify --file-list input_52.txt,qc
+grep,grep_06,--extended-regexp 8 --with-filename input_06.txt,run grep and set --extended-regexp to 8 and specify --with-filename input_06.txt,text-processing
+multiqc,multiqc_13,--config input_13.txt --exclude value_13,run multiqc and specify --config input_13.txt and with --exclude value_13,qc
+tar,tar_40,--sparse input_40.txt --seek value_40 --no-seek value_40,run tar and specify --sparse input_40.txt and with --seek value_40 and with --no-seek value_40,compression
+fastp,fastp_22,--include_unmerged input_22.txt --cut_by_quality3 value_22,run fastp and specify --include_unmerged input_22.txt and with --cut_by_quality3 value_22,qc
+rsync,rsync_47,--specials input_47.txt,run rsync and specify --specials input_47.txt,networking
+mosdepth,mosdepth_07,--fragment-mode value_07,run mosdepth and with --fragment-mode value_07,qc
+sort,sort_60,--random-sort value_60,run sort and with --random-sort value_60,text-processing
+wget,wget_25,--no-verbose value_25 --force-html value_25 --background value_25,run wget and with --no-verbose value_25 and with --force-html value_25 and with --background value_25,networking
+mosdepth,mosdepth_04,--fragment-mode value_04,run mosdepth and with --fragment-mode value_04,qc
+freebayes,freebayes_30,--bam-list input_30.txt --contamination-estimates input_30.txt,run freebayes and specify --bam-list input_30.txt and specify --contamination-estimates input_30.txt,variant-calling
+busco,busco_49,--auto-lineage-prok input_49.txt --config input_49.txt --augustus value_49,run busco and specify --auto-lineage-prok input_49.txt and specify --config input_49.txt and with --augustus value_49,assembly
+freebayes,freebayes_16,--vcf input_16.txt --contamination-estimates input_16.txt,run freebayes and specify --vcf input_16.txt and specify --contamination-estimates input_16.txt,variant-calling
+grep,grep_48,--fixed-strings 16 --null input_48.txt --invert-match value_48,run grep and set --fixed-strings to 16 and specify --null input_48.txt and with --invert-match value_48,text-processing
+fastp,fastp_49,--adapter_sequence --unpaired1 input_49.txt --include_unmerged input_49.txt,run fastp and enable --adapter_sequence and specify --unpaired1 input_49.txt and specify --include_unmerged input_49.txt,qc
+sort,sort_11,--version-sort value_11 --debug value_11,run sort and with --version-sort value_11 and with --debug value_11,text-processing
+busco,busco_33,--datasets_version 4 --long value_33,run busco and set --datasets_version to 4 and with --long value_33,assembly
+chopper,chopper_23,--cutoff value_23,run chopper and with --cutoff value_23,qc
+cp,cp_38,--strip-trailing-slashes value_38 --symbolic-link value_38,run cp and with --strip-trailing-slashes value_38 and with --symbolic-link value_38,filesystem
+busco,busco_03,--datasets_version 4 --augustus value_03,run busco and set --datasets_version to 4 and with --augustus value_03,assembly
+busco,busco_27,--out output_27.txt -l 16 --download_base_url 16,run busco and specify --out output_27.txt and set -l to 16 and set --download_base_url to 16,assembly
+mv,mv_04,--verbose value_04,run mv and with --verbose value_04,filesystem
+cutadapt,cutadapt_08,--rename value_08,run cutadapt and with --rename value_08,qc
+cp,cp_11,--no-target-directory value_11 --force input_11.txt -t input_11.txt,run cp and with --no-target-directory value_11 and specify --force input_11.txt and specify -t input_11.txt,filesystem
+find,find_17,-o value_17 -a value_17,run find and with -o value_17 and with -a value_17,filesystem
+sort,sort_34,--month-sort 4 --general-numeric-sort value_34,run sort and set --month-sort to 4 and with --general-numeric-sort value_34,text-processing
+porechop,porechop_40,-i input_40.txt --extra_middle_trim_bad_side value_40,run porechop and specify -i input_40.txt and with --extra_middle_trim_bad_side value_40,qc
+fastp,fastp_07,--include_unmerged input_07.txt --merge input_07.txt,run fastp and specify --include_unmerged input_07.txt and specify --merge input_07.txt,qc
+freebayes,freebayes_22,--fasta-reference input_22.txt --haplotype-basis-alleles input_22.txt --report-monomorphic value_22,run freebayes and specify --fasta-reference input_22.txt and specify --haplotype-basis-alleles input_22.txt and with --report-monomorphic value_22,variant-calling
+flye,flye_26,--resume value_26,run flye and with --resume value_26,assembly
+freebayes,freebayes_34,--bam input_34.txt,run freebayes and specify --bam input_34.txt,variant-calling
+mosdepth,mosdepth_01,--fast-mode value_01,run mosdepth and with --fast-mode value_01,qc
+cp,cp_50,--interactive value_50 --attributes-only input_50.txt,run cp and with --interactive value_50 and specify --attributes-only input_50.txt,filesystem
+chopper,chopper_11,--quality 8 --tailcrop value_11,run chopper and set --quality to 8 and with --tailcrop value_11,qc
+multiqc,multiqc_05,--cl-config value_05 --file-list input_05.txt,run multiqc and with --cl-config value_05 and specify --file-list input_05.txt,qc
+cp,cp_14,--no-clobber input_14.txt --update value_14,run cp and specify --no-clobber input_14.txt and with --update value_14,filesystem
+cp,cp_32,--no-target-directory value_32 --attributes-only input_32.txt,run cp and with --no-target-directory value_32 and specify --attributes-only input_32.txt,filesystem
+busco,busco_25,--out output_25.txt,run busco and specify --out output_25.txt,assembly
+wget,wget_16,--no-clobber value_16 --debug value_16 --no-config input_16.txt,run wget and with --no-clobber value_16 and with --debug value_16 and specify --no-config input_16.txt,networking
+cp,cp_29,--one-file-system input_29.txt --recursive input_29.txt --no-dereference value_29,run cp and specify --one-file-system input_29.txt and specify --recursive input_29.txt and with --no-dereference value_29,filesystem
+mosdepth,mosdepth_43,--flag value_43,run mosdepth and with --flag value_43,qc
+kraken2,kraken2_42,--minimum-hit-groups 16 --quick value_42 --bzip2-compressed input_42.txt,run kraken2 and set --minimum-hit-groups to 16 and with --quick value_42 and specify --bzip2-compressed input_42.txt,metagenomics
+wget,wget_31,--show-progress value_31 --retry-connrefused value_31,run wget and with --show-progress value_31 and with --retry-connrefused value_31,networking
+porechop,porechop_16,--adapter_threshold value_16 --output output_16.txt,run porechop and with --adapter_threshold value_16 and specify --output output_16.txt,qc
+multiqc,multiqc_11,--outdir output_11.txt --require-logs value_11 --ignore input_11.txt,run multiqc and specify --outdir output_11.txt and with --require-logs value_11 and specify --ignore input_11.txt,qc
+cp,cp_23,--recursive input_23.txt,run cp and specify --recursive input_23.txt,filesystem
+porechop,porechop_21,--barcode_threshold value_21 --end_threshold 16 --extra_middle_trim_bad_side value_21,run porechop and with --barcode_threshold value_21 and set --end_threshold to 16 and with --extra_middle_trim_bad_side value_21,qc
+flye,flye_37,--deterministic value_37 --min-overlap 8 --genome-size 16,run flye and with --deterministic value_37 and set --min-overlap to 8 and set --genome-size to 16,assembly
+wget,wget_19,--show-progress value_19 --page-requisites value_19 --no-clobber value_19,run wget and with --show-progress value_19 and with --page-requisites value_19 and with --no-clobber value_19,networking
+cp,cp_37,--update value_37 --force input_37.txt,run cp and with --update value_37 and specify --force input_37.txt,filesystem
+busco,busco_42,--download_path input_42.txt,run busco and specify --download_path input_42.txt,assembly
+freebayes,freebayes_33,--samples input_33.txt --targets input_33.txt --variant-input input_33.txt,run freebayes and specify --samples input_33.txt and specify --targets input_33.txt and specify --variant-input input_33.txt,variant-calling
+find,find_58,-a value_58,run find and with -a value_58,filesystem
+fastp,fastp_09,--correction --discard_unmerged value_09,run fastp and enable --correction and with --discard_unmerged value_09,qc
+chopper,chopper_06,--quality 4 --mingc 16,run chopper and set --quality to 4 and set --mingc to 16,qc
+fastp,fastp_26,--adapter_sequence,run fastp and enable --adapter_sequence,qc
+porechop,porechop_33,--threads 8,run porechop and set --threads to 8,qc
+mv,mv_33,--force value_33 --context value_33 -t input_33.txt,run mv and with --force value_33 and with --context value_33 and specify -t input_33.txt,filesystem
+sort,sort_62,--version-sort value_62 --debug value_62,run sort and with --version-sort value_62 and with --debug value_62,text-processing
+flye,flye_03,--read-error value_03 --plasmids value_03 --debug input_03.txt,run flye and with --read-error value_03 and with --plasmids value_03 and specify --debug input_03.txt,assembly
+cutadapt,cutadapt_13,--max-average-error-rate value_13 --max-n 16,run cutadapt and with --max-average-error-rate value_13 and set --max-n to 16,qc
+grep,grep_02,--invert-match value_02,run grep and with --invert-match value_02,text-processing
+fastp,fastp_08,--merge input_08.txt --in1 input_08.txt --cut_by_quality5 value_08,run fastp and specify --merge input_08.txt and specify --in1 input_08.txt and with --cut_by_quality5 value_08,qc
+porechop,porechop_01,--middle_threshold value_01 --barcode_diff value_01 --threads 8,run porechop and with --middle_threshold value_01 and with --barcode_diff value_01 and set --threads to 8,qc
+tar,tar_51,--ignore-zeros value_51,run tar and with --ignore-zeros value_51,compression
+kraken2,kraken2_28,--unclassified-out output_28.txt --quick value_28,run kraken2 and specify --unclassified-out output_28.txt and with --quick value_28,metagenomics
+tabix,tabix_27,--end 16,run tabix and set --end to 16,utilities
+busco,busco_48,--plot input_48.txt,run busco and specify --plot input_48.txt,assembly
+cutadapt,cutadapt_04,--max-n 16 --strip-suffix sample_04 --max-aer value_04,run cutadapt and set --max-n to 16 and with --strip-suffix sample_04 and with --max-aer value_04,qc
+wget,wget_47,--page-requisites value_47,run wget and with --page-requisites value_47,networking
+freebayes,freebayes_40,--contamination-estimates input_40.txt,run freebayes and specify --contamination-estimates input_40.txt,variant-calling
+mv,mv_14,--update value_14 --interactive value_14,run mv and with --update value_14 and with --interactive value_14,filesystem
+wget,wget_45,--force-html value_45 --timestamping input_45.txt,run wget and with --force-html value_45 and specify --timestamping input_45.txt,networking
+porechop,porechop_18,--extra_middle_trim_good_side value_18,run porechop and with --extra_middle_trim_good_side value_18,qc
+multiqc,multiqc_47,--replace-names value_47 --sample-filters value_47,run multiqc and with --replace-names value_47 and with --sample-filters value_47,qc
+freebayes,freebayes_20,--fasta-reference input_20.txt --gvcf input_20.txt,run freebayes and specify --fasta-reference input_20.txt and specify --gvcf input_20.txt,variant-calling
+fastp,fastp_15,--unpaired2 input_15.txt --overlapped_out output_15.txt,run fastp and specify --unpaired2 input_15.txt and specify --overlapped_out output_15.txt,qc
+busco,busco_44,--download_base_url 16 --config input_44.txt -i 4,run busco and set --download_base_url to 16 and specify --config input_44.txt and set -i to 4,assembly
+freebayes,freebayes_43,--report-all-haplotype-alleles value_43 --targets input_43.txt,run freebayes and with --report-all-haplotype-alleles value_43 and specify --targets input_43.txt,variant-calling
+flye,flye_12,--plasmids value_12 --read-error value_12 --min-overlap 16,run flye and with --plasmids value_12 and with --read-error value_12 and set --min-overlap to 16,assembly
+grep,grep_29,--basic-regexp 16 --no-ignore-case value_29 --count input_29.txt,run grep and set --basic-regexp to 16 and with --no-ignore-case value_29 and specify --count input_29.txt,text-processing
+cp,cp_60,--interactive value_60,run cp and with --interactive value_60,filesystem
+porechop,porechop_14,--min_split_read_size 16 --extra_end_trim 16,run porechop and set --min_split_read_size to 16 and set --extra_end_trim to 16,qc
+wget,wget_10,--method value_10 --background value_10 --adjust-extension value_10,run wget and with --method value_10 and with --background value_10 and with --adjust-extension value_10,networking
+tabix,tabix_42,--reheader input_42.txt --print-header value_42,run tabix and specify --reheader input_42.txt and with --print-header value_42,utilities
+mv,mv_20,--context value_20 --strip-trailing-slashes value_20 --interactive value_20,run mv and with --context value_20 and with --strip-trailing-slashes value_20 and with --interactive value_20,filesystem
+fastp,fastp_27,--unpaired2 input_27.txt,run fastp and specify --unpaired2 input_27.txt,qc
+find,find_02,-o value_02 -a value_02,run find and with -o value_02 and with -a value_02,filesystem
+porechop,porechop_09,--end_threshold 8 --barcode_dir input_09.txt --barcode_threshold value_09,run porechop and set --end_threshold to 8 and specify --barcode_dir input_09.txt and with --barcode_threshold value_09,qc
+cp,cp_57,--attributes-only input_57.txt,run cp and specify --attributes-only input_57.txt,filesystem
+tabix,tabix_20,--force value_20,run tabix and with --force value_20,utilities
+sort,sort_58,--month-sort 4,run sort and set --month-sort to 4,text-processing
+grep,grep_25,--line-number input_25.txt,run grep and specify --line-number input_25.txt,text-processing
+mosdepth,mosdepth_50,--include-flag value_50,run mosdepth and with --include-flag value_50,qc
+tar,tar_24,--exclude-caches input_24.txt --append input_24.txt --test-label value_24,run tar and specify --exclude-caches input_24.txt and specify --append input_24.txt and with --test-label value_24,compression
+cp,cp_33,--strip-trailing-slashes value_33 --dereference value_33 --interactive value_33,run cp and with --strip-trailing-slashes value_33 and with --dereference value_33 and with --interactive value_33,filesystem
+mv,mv_19,--strip-trailing-slashes value_19,run mv and with --strip-trailing-slashes value_19,filesystem
+rsync,rsync_12,--safe-links value_12 --no-OPTION value_12,run rsync and with --safe-links value_12 and with --no-OPTION value_12,networking
+sort,sort_65,--merge input_65.txt,run sort and specify --merge input_65.txt,text-processing
+tar,tar_18,--no-check-device value_18,run tar and with --no-check-device value_18,compression
+rsync,rsync_22,--append-verify input_22.txt --copy-devices input_22.txt,run rsync and specify --append-verify input_22.txt and specify --copy-devices input_22.txt,networking
+grep,grep_40,--extended-regexp 4 --line-regexp value_40,run grep and set --extended-regexp to 4 and with --line-regexp value_40,text-processing
+mv,mv_52,--update value_52 --force value_52 --strip-trailing-slashes value_52,run mv and with --update value_52 and with --force value_52 and with --strip-trailing-slashes value_52,filesystem
+find,find_41,-o value_41,run find and with -o value_41,filesystem
+tabix,tabix_33,--preset sample_33,run tabix and with --preset sample_33,utilities
+tabix,tabix_10,--verbosity 4 --sequence 8,run tabix and set --verbosity to 4 and set --sequence to 8,utilities
+porechop,porechop_17,--adapter_threshold value_17 --min_split_read_size 16,run porechop and with --adapter_threshold value_17 and set --min_split_read_size to 16,qc
+wget,wget_22,--timestamping input_22.txt,run wget and specify --timestamping input_22.txt,networking
+mv,mv_01,--update value_01,run mv and with --update value_01,filesystem
+sort,sort_44,--ignore-case value_44,run sort and with --ignore-case value_44,text-processing
+grep,grep_26,--files-without-match output_26.txt --fixed-strings 8,run grep and specify --files-without-match output_26.txt and set --fixed-strings to 8,text-processing
+wget,wget_23,--method value_23,run wget and with --method value_23,networking
+sort,sort_42,--merge input_42.txt,run sort and specify --merge input_42.txt,text-processing
+sort,sort_27,--zero-terminated 4 --debug value_27,run sort and set --zero-terminated to 4 and with --debug value_27,text-processing
+kraken2,kraken2_51,--confidence 1e-5 --output output_51.txt --classified-out output_51.txt,run kraken2 and with --confidence 1e-5 and specify --output output_51.txt and specify --classified-out output_51.txt,metagenomics
+chopper,chopper_38,--tailcrop value_38 --cutoff value_38 --inverse input_38.txt,run chopper and with --tailcrop value_38 and with --cutoff value_38 and specify --inverse input_38.txt,qc
+kraken2,kraken2_49,--confidence 30 --minimum-hit-groups 4 --paired input_49.txt,run kraken2 and with --confidence 30 and set --minimum-hit-groups to 4 and specify --paired input_49.txt,metagenomics
+cutadapt,cutadapt_54,--max-expected-errors value_54 --rename value_54,run cutadapt and with --max-expected-errors value_54 and with --rename value_54,qc
+porechop,porechop_32,--barcode_threshold value_32,run porechop and with --barcode_threshold value_32,qc
+find,find_36,-o value_36,run find and with -o value_36,filesystem
+porechop,porechop_07,--middle_threshold value_07,run porechop and with --middle_threshold value_07,qc
+multiqc,multiqc_46,--replace-names value_46 --exclude value_46,run multiqc and with --replace-names value_46 and with --exclude value_46,qc
+mv,mv_27,--no-clobber input_27.txt --force value_27,run mv and specify --no-clobber input_27.txt and with --force value_27,filesystem
+freebayes,freebayes_52,--fasta-reference input_52.txt --variant-input input_52.txt --haplotype-basis-alleles input_52.txt,run freebayes and specify --fasta-reference input_52.txt and specify --variant-input input_52.txt and specify --haplotype-basis-alleles input_52.txt,variant-calling
+mv,mv_34,--no-target-directory value_34 --update value_34 --context value_34,run mv and with --no-target-directory value_34 and with --update value_34 and with --context value_34,filesystem
+cp,cp_36,--copy-contents input_36.txt --no-clobber input_36.txt --parents input_36.txt,run cp and specify --copy-contents input_36.txt and specify --no-clobber input_36.txt and specify --parents input_36.txt,filesystem
+grep,grep_43,--no-ignore-case value_43 --line-regexp value_43,run grep and with --no-ignore-case value_43 and with --line-regexp value_43,text-processing
+find,find_61,-a value_61 -o value_61,run find and with -a value_61 and with -o value_61,filesystem
+mosdepth,mosdepth_23,--use-median input_23.txt,run mosdepth and specify --use-median input_23.txt,qc
+sort,sort_12,--reverse value_12,run sort and with --reverse value_12,text-processing
+cutadapt,cutadapt_46,--rename value_46 --length 4 --max-expected-errors value_46,run cutadapt and with --rename value_46 and set --length to 4 and with --max-expected-errors value_46,qc
+fastp,fastp_17,--in1 input_17.txt,run fastp and specify --in1 input_17.txt,qc
+mosdepth,mosdepth_16,--include-flag value_16 --use-median input_16.txt --fragment-mode value_16,run mosdepth and with --include-flag value_16 and specify --use-median input_16.txt and with --fragment-mode value_16,qc
+grep,grep_37,--word-regexp value_37 --binary --line-regexp value_37,run grep and with --word-regexp value_37 and enable --binary and with --line-regexp value_37,text-processing
+cutadapt,cutadapt_39,--rename value_39,run cutadapt and with --rename value_39,qc
+sort,sort_13,--month-sort 4 --dictionary-order value_13 --zero-terminated 16,run sort and set --month-sort to 4 and with --dictionary-order value_13 and set --zero-terminated to 16,text-processing
+porechop,porechop_06,--extra_middle_trim_bad_side value_06 -i input_06.txt --min_trim_size 4,run porechop and with --extra_middle_trim_bad_side value_06 and specify -i input_06.txt and set --min_trim_size to 4,qc
+tabix,tabix_48,--zero-based value_48 --targets input_48.txt --regions input_48.txt,run tabix and with --zero-based value_48 and specify --targets input_48.txt and specify --regions input_48.txt,utilities
+freebayes,freebayes_29,--gvcf-dont-use-chunk value_29 --output-mode value_29,run freebayes and with --gvcf-dont-use-chunk value_29 and with --output-mode value_29,variant-calling
+flye,flye_04,--debug input_04.txt,run flye and specify --debug input_04.txt,assembly
+wget,wget_38,--continue input_38.txt --retry-connrefused value_38,run wget and specify --continue input_38.txt and with --retry-connrefused value_38,networking
+cutadapt,cutadapt_45,--minimum-length 16 --cores value_45,run cutadapt and set --minimum-length to 16 and with --cores value_45,qc
+wget,wget_53,--no-if-modified-since value_53 --quiet input_53.txt,run wget and with --no-if-modified-since value_53 and specify --quiet input_53.txt,networking
+flye,flye_47,--extra-params value_47 --genome-size 4 --meta value_47,run flye and with --extra-params value_47 and set --genome-size to 4 and with --meta value_47,assembly
+tar,tar_59,--exclude-backups input_59.txt --exclude-caches input_59.txt,run tar and specify --exclude-backups input_59.txt and specify --exclude-caches input_59.txt,compression
+multiqc,multiqc_18,--cl-config value_18 --sample-filters value_18 --filename input_18.txt,run multiqc and with --cl-config value_18 and with --sample-filters value_18 and specify --filename input_18.txt,qc
+find,find_64,-o value_64 -a value_64,run find and with -o value_64 and with -a value_64,filesystem
+mv,mv_02,-t input_02.txt --strip-trailing-slashes value_02 --force value_02,run mv and specify -t input_02.txt and with --strip-trailing-slashes value_02 and with --force value_02,filesystem
+tabix,tabix_01,--only-header value_01 --regions input_01.txt --sequence 16,run tabix and with --only-header value_01 and specify --regions input_01.txt and set --sequence to 16,utilities
+grep,grep_46,--invert-match value_46,run grep and with --invert-match value_46,text-processing
+cp,cp_04,--verbose value_04 --link input_04.txt --attributes-only input_04.txt,run cp and with --verbose value_04 and specify --link input_04.txt and specify --attributes-only input_04.txt,filesystem
+busco,busco_30,-l 8 -o input_30.txt,run busco and set -l to 8 and specify -o input_30.txt,assembly
+kraken2,kraken2_32,--minimum-hit-groups 8,run kraken2 and set --minimum-hit-groups to 8,metagenomics
+find,find_25,-a value_25 -o value_25,run find and with -a value_25 and with -o value_25,filesystem
+grep,grep_53,--null-data value_53 --count input_53.txt --basic-regexp 8,run grep and with --null-data value_53 and specify --count input_53.txt and set --basic-regexp to 8,text-processing
+tabix,tabix_22,--zero-based value_22 --cache 16,run tabix and with --zero-based value_22 and set --cache to 16,utilities
+busco,busco_22,--long value_22 --download_base_url 4,run busco and with --long value_22 and set --download_base_url to 4,assembly
+rsync,rsync_58,--open-noatime input_58.txt --append input_58.txt --no-implied-dirs input_58.txt,run rsync and specify --open-noatime input_58.txt and specify --append input_58.txt and specify --no-implied-dirs input_58.txt,networking
+multiqc,multiqc_54,--ignore-symlinks input_54.txt --sample-filters value_54 --dirs-depth input_54.txt,run multiqc and specify --ignore-symlinks input_54.txt and with --sample-filters value_54 and specify --dirs-depth input_54.txt,qc
+multiqc,multiqc_15,--ignore input_15.txt --config input_15.txt,run multiqc and specify --ignore input_15.txt and specify --config input_15.txt,qc
+sort,sort_69,--ignore-leading-blanks value_69 --unique value_69,run sort and with --ignore-leading-blanks value_69 and with --unique value_69,text-processing
+mv,mv_12,--force value_12 --update value_12 --context value_12,run mv and with --force value_12 and with --update value_12 and with --context value_12,filesystem
+tar,tar_06,--ignore-zeros value_06,run tar and with --ignore-zeros value_06,compression
+fastp,fastp_40,--correction,run fastp and enable --correction,qc
+cp,cp_09,--no-clobber input_09.txt,run cp and specify --no-clobber input_09.txt,filesystem
+tar,tar_69,--get input_69.txt,run tar and specify --get input_69.txt,compression
+sort,sort_20,--ignore-nonprinting value_20 --random-sort value_20,run sort and with --ignore-nonprinting value_20 and with --random-sort value_20,text-processing
+tabix,tabix_21,--preset sample_21,run tabix and with --preset sample_21,utilities
+find,find_40,-o value_40,run find and with -o value_40,filesystem
+find,find_49,-a value_49,run find and with -a value_49,filesystem
+tar,tar_61,--incremental 8,run tar and set --incremental to 8,compression
+find,find_68,-a value_68,run find and with -a value_68,filesystem
+find,find_37,-a value_37,run find and with -a value_37,filesystem
+multiqc,multiqc_45,--sample-names value_45,run multiqc and with --sample-names value_45,qc
+cp,cp_27,--symbolic-link value_27,run cp and with --symbolic-link value_27,filesystem
+chopper,chopper_18,--input input_18.txt,run chopper and specify --input input_18.txt,qc
+multiqc,multiqc_49,--filename input_49.txt,run multiqc and specify --filename input_49.txt,qc
+grep,grep_09,--byte-offset input_09.txt,run grep and specify --byte-offset input_09.txt,text-processing
+tabix,tabix_23,--targets input_23.txt --begin 8 --zero-based value_23,run tabix and specify --targets input_23.txt and set --begin to 8 and with --zero-based value_23,utilities
+porechop,porechop_25,--min_split_read_size 8,run porechop and set --min_split_read_size to 8,qc
+fastp,fastp_47,--phred64 input_47.txt --merged_out output_47.txt --detect_adapter_for_pe,run fastp and specify --phred64 input_47.txt and specify --merged_out output_47.txt and enable --detect_adapter_for_pe,qc
+cp,cp_30,--strip-trailing-slashes value_30 --interactive value_30,run cp and with --strip-trailing-slashes value_30 and with --interactive value_30,filesystem
+cutadapt,cutadapt_37,--adapter value_37 --maximum-length 16,run cutadapt and with --adapter value_37 and set --maximum-length to 16,qc
+chopper,chopper_28,--headcrop value_28,run chopper and with --headcrop value_28,qc
+kraken2,kraken2_13,--classified-out output_13.txt --minimum-base-quality 8,run kraken2 and specify --classified-out output_13.txt and set --minimum-base-quality to 8,metagenomics
+cp,cp_12,--symbolic-link value_12,run cp and with --symbolic-link value_12,filesystem
+mv,mv_39,--update value_39 --interactive value_39,run mv and with --update value_39 and with --interactive value_39,filesystem
+tar,tar_41,--delete value_41 --read-full-records value_41 --incremental 8,run tar and with --delete value_41 and with --read-full-records value_41 and set --incremental to 8,compression
+kraken2,kraken2_08,--paired input_08.txt,run kraken2 and specify --paired input_08.txt,metagenomics
+mv,mv_18,--verbose value_18 --force value_18 --update value_18,run mv and with --verbose value_18 and with --force value_18 and with --update value_18,filesystem
+porechop,porechop_47,--input input_47.txt,run porechop and specify --input input_47.txt,qc
+flye,flye_43,--no-alt-contigs input_43.txt --scaffold value_43 --keep-haplotypes value_43,run flye and specify --no-alt-contigs input_43.txt and with --scaffold value_43 and with --keep-haplotypes value_43,assembly
+rsync,rsync_59,--old-d input_59.txt --preallocate input_59.txt --super value_59,run rsync and specify --old-d input_59.txt and specify --preallocate input_59.txt and with --super value_59,networking
+kraken2,kraken2_46,--use-names value_46 --use-mpa-style input_46.txt,run kraken2 and with --use-names value_46 and specify --use-mpa-style input_46.txt,metagenomics
+cutadapt,cutadapt_31,--times 8 --prefix sample_31,run cutadapt and set --times to 8 and with --prefix sample_31,qc
+find,find_06,-a value_06,run find and with -a value_06,filesystem
+find,find_33,-a value_33,run find and with -a value_33,filesystem
+cutadapt,cutadapt_57,--cut 8 --length-tag value_57 --minimum-length 8,run cutadapt and set --cut to 8 and with --length-tag value_57 and set --minimum-length to 8,qc
+multiqc,multiqc_02,--cl-config value_02 --file-list input_02.txt --fn_as_s_name input_02.txt,run multiqc and with --cl-config value_02 and specify --file-list input_02.txt and specify --fn_as_s_name input_02.txt,qc
+flye,flye_10,--no-alt-contigs input_10.txt --meta value_10,run flye and specify --no-alt-contigs input_10.txt and with --meta value_10,assembly
+grep,grep_10,--null-data value_10 --files-without-match output_10.txt,run grep and with --null-data value_10 and specify --files-without-match output_10.txt,text-processing
+find,find_05,-a value_05,run find and with -a value_05,filesystem
+freebayes,freebayes_44,--samples input_44.txt,run freebayes and specify --samples input_44.txt,variant-calling
+rsync,rsync_09,--append-verify input_09.txt --mkpath input_09.txt,run rsync and specify --append-verify input_09.txt and specify --mkpath input_09.txt,networking
+cp,cp_28,--interactive value_28 --parents input_28.txt --link input_28.txt,run cp and with --interactive value_28 and specify --parents input_28.txt and specify --link input_28.txt,filesystem
+multiqc,multiqc_26,--title value_26,run multiqc and with --title value_26,qc
+chopper,chopper_31,--quality 16 --threads 4 --minlength 4,run chopper and set --quality to 16 and set --threads to 4 and set --minlength to 4,qc
+find,find_65,-a value_65 -o value_65,run find and with -a value_65 and with -o value_65,filesystem
+flye,flye_14,--trestle value_14 --plasmids value_14 --resume value_14,run flye and with --trestle value_14 and with --plasmids value_14 and with --resume value_14,assembly
+kraken2,kraken2_39,--threads 16 --classified-out output_39.txt --quick value_39,run kraken2 and set --threads to 16 and specify --classified-out output_39.txt and with --quick value_39,metagenomics
+tar,tar_35,--concatenate input_35.txt --incremental 4,run tar and specify --concatenate input_35.txt and set --incremental to 4,compression
+flye,flye_01,--min-overlap 8,run flye and set --min-overlap to 8,assembly
+chopper,chopper_01,--headcrop value_01,run chopper and with --headcrop value_01,qc
+mosdepth,mosdepth_21,--use-median input_21.txt --no-per-base input_21.txt --fast-mode value_21,run mosdepth and specify --use-median input_21.txt and specify --no-per-base input_21.txt and with --fast-mode value_21,qc
+tar,tar_58,--list value_58 --check-device value_58,run tar and with --list value_58 and with --check-device value_58,compression
+cp,cp_44,--force input_44.txt --no-target-directory value_44,run cp and specify --force input_44.txt and with --no-target-directory value_44,filesystem
+cutadapt,cutadapt_16,--max-n 4 --cores value_16,run cutadapt and set --max-n to 4 and with --cores value_16,qc
+cutadapt,cutadapt_59,--times 16 --max-average-error-rate value_59 --cores value_59,run cutadapt and set --times to 16 and with --max-average-error-rate value_59 and with --cores value_59,qc
+tabix,tabix_47,--force value_47 --print-header value_47,run tabix and with --force value_47 and with --print-header value_47,utilities
+multiqc,multiqc_39,--ignore-symlinks input_39.txt --outdir output_39.txt,run multiqc and specify --ignore-symlinks input_39.txt and specify --outdir output_39.txt,qc
+flye,flye_42,--no-alt-contigs input_42.txt --scaffold value_42 --genome-size 4,run flye and specify --no-alt-contigs input_42.txt and with --scaffold value_42 and set --genome-size to 4,assembly
+find,find_14,-o value_14,run find and with -o value_14,filesystem
+fastp,fastp_55,--adapter_sequence --phred64 input_55.txt --merged_out output_55.txt,run fastp and enable --adapter_sequence and specify --phred64 input_55.txt and specify --merged_out output_55.txt,qc
+grep,grep_41,--byte-offset input_41.txt --with-filename input_41.txt --ignore-case value_41,run grep and specify --byte-offset input_41.txt and specify --with-filename input_41.txt and with --ignore-case value_41,text-processing
+fastp,fastp_29,--discard_unmerged value_29 --in1 input_29.txt --overlapped_out output_29.txt,run fastp and with --discard_unmerged value_29 and specify --in1 input_29.txt and specify --overlapped_out output_29.txt,qc
+mosdepth,mosdepth_03,--fragment-mode value_03 --use-median input_03.txt,run mosdepth and with --fragment-mode value_03 and specify --use-median input_03.txt,qc
+flye,flye_06,--genome-size 4 --read-error value_06 --no-alt-contigs input_06.txt,run flye and set --genome-size to 4 and with --read-error value_06 and specify --no-alt-contigs input_06.txt,assembly
+fastp,fastp_04,--unpaired2 input_04.txt,run fastp and specify --unpaired2 input_04.txt,qc
+find,find_53,-o value_53 -a value_53,run find and with -o value_53 and with -a value_53,filesystem
+wget,wget_14,--adjust-extension value_14 --inet6-only --no-clobber value_14,run wget and with --adjust-extension value_14 and enable --inet6-only and with --no-clobber value_14,networking
+tar,tar_31,--exclude-caches input_31.txt --no-seek value_31,run tar and specify --exclude-caches input_31.txt and with --no-seek value_31,compression
+freebayes,freebayes_02,--populations input_02.txt --haplotype-basis-alleles input_02.txt,run freebayes and specify --populations input_02.txt and specify --haplotype-basis-alleles input_02.txt,variant-calling
+chopper,chopper_08,--minlength 4 --trim-approach value_08 --maxlength 4,run chopper and set --minlength to 4 and with --trim-approach value_08 and set --maxlength to 4,qc
+fastp,fastp_30,--merged_out output_30.txt --cut_by_quality5 value_30,run fastp and specify --merged_out output_30.txt and with --cut_by_quality5 value_30,qc
+busco,busco_04,-m value_04 --auto-lineage-prok input_04.txt -o input_04.txt,run busco and with -m value_04 and specify --auto-lineage-prok input_04.txt and specify -o input_04.txt,assembly
+sort,sort_51,--numeric-sort value_51,run sort and with --numeric-sort value_51,text-processing
+find,find_13,-a value_13,run find and with -a value_13,filesystem
+cutadapt,cutadapt_01,--maximum-length 4 --suffix value_01,run cutadapt and set --maximum-length to 4 and with --suffix value_01,qc
+kraken2,kraken2_19,--threads 4 --unclassified-out output_19.txt --minimum-base-quality 16,run kraken2 and set --threads to 4 and specify --unclassified-out output_19.txt and set --minimum-base-quality to 16,metagenomics
+tabix,tabix_03,--skip-lines 16 --list-chroms value_03 --only-header value_03,run tabix and set --skip-lines to 16 and with --list-chroms value_03 and with --only-header value_03,utilities
+busco,busco_26,--long value_26 -i 16 --datasets_version 4,run busco and with --long value_26 and set -i to 16 and set --datasets_version to 4,assembly
+rsync,rsync_55,--copy-unsafe-links value_55 --specials input_55.txt --inplace input_55.txt,run rsync and with --copy-unsafe-links value_55 and specify --specials input_55.txt and specify --inplace input_55.txt,networking
+rsync,rsync_29,--no-OPTION value_29,run rsync and with --no-OPTION value_29,networking
+tabix,tabix_50,--begin 16 --reheader input_50.txt --end 8,run tabix and set --begin to 16 and specify --reheader input_50.txt and set --end to 8,utilities
+porechop,porechop_02,-i input_02.txt --end_size 16,run porechop and specify -i input_02.txt and set --end_size to 16,qc
+grep,grep_59,--ignore-case value_59 --files-with-matches input_59.txt --with-filename input_59.txt,run grep and with --ignore-case value_59 and specify --files-with-matches input_59.txt and specify --with-filename input_59.txt,text-processing
+cp,cp_42,--update value_42 --copy-contents input_42.txt,run cp and with --update value_42 and specify --copy-contents input_42.txt,filesystem
+flye,flye_27,--genome-size 4 --keep-haplotypes value_27 --plasmids value_27,run flye and set --genome-size to 4 and with --keep-haplotypes value_27 and with --plasmids value_27,assembly
+cutadapt,cutadapt_36,--adapter value_36 --times 16,run cutadapt and with --adapter value_36 and set --times to 16,qc
+kraken2,kraken2_09,--report input_09.txt --paired input_09.txt --classified-out output_09.txt,run kraken2 and specify --report input_09.txt and specify --paired input_09.txt and specify --classified-out output_09.txt,metagenomics
+fastp,fastp_14,--adapter_sequence --discard_unmerged value_14 --detect_adapter_for_pe,run fastp and enable --adapter_sequence and with --discard_unmerged value_14 and enable --detect_adapter_for_pe,qc
+busco,busco_13,--force input_13.txt -o input_13.txt,run busco and specify --force input_13.txt and specify -o input_13.txt,assembly
+tar,tar_13,--sparse input_13.txt --seek value_13 --no-seek value_13,run tar and specify --sparse input_13.txt and with --seek value_13 and with --no-seek value_13,compression
+cp,cp_24,--strip-trailing-slashes value_24 --interactive value_24,run cp and with --strip-trailing-slashes value_24 and with --interactive value_24,filesystem
+porechop,porechop_15,--barcode_diff value_15 --min_trim_size 16 -i input_15.txt,run porechop and with --barcode_diff value_15 and set --min_trim_size to 16 and specify -i input_15.txt,qc
+sort,sort_19,--reverse value_19,run sort and with --reverse value_19,text-processing
+rsync,rsync_39,--fake-super value_39,run rsync and with --fake-super value_39,networking
+flye,flye_19,--genome-size 16,run flye and set --genome-size to 16,assembly
+multiqc,multiqc_43,--fullnames input_43.txt,run multiqc and specify --fullnames input_43.txt,qc
+flye,flye_48,--genome-size 8 --trestle value_48 --keep-haplotypes value_48,run flye and set --genome-size to 8 and with --trestle value_48 and with --keep-haplotypes value_48,assembly
+kraken2,kraken2_04,--classified-out output_04.txt --unclassified-out output_04.txt --memory-mapping value_04,run kraken2 and specify --classified-out output_04.txt and specify --unclassified-out output_04.txt and with --memory-mapping value_04,metagenomics
+freebayes,freebayes_24,--only-use-input-alleles value_24,run freebayes and with --only-use-input-alleles value_24,variant-calling
+porechop,porechop_31,--output output_31.txt -o input_31.txt,run porechop and specify --output output_31.txt and specify -o input_31.txt,qc
+cp,cp_13,--force input_13.txt,run cp and specify --force input_13.txt,filesystem
+rsync,rsync_06,--preallocate input_06.txt --append input_06.txt --copy-unsafe-links value_06,run rsync and specify --preallocate input_06.txt and specify --append input_06.txt and with --copy-unsafe-links value_06,networking
+chopper,chopper_44,--maxlength 8,run chopper and set --maxlength to 8,qc
+mv,mv_60,--verbose value_60,run mv and with --verbose value_60,filesystem
+grep,grep_03,--null-data value_03,run grep and with --null-data value_03,text-processing
+mv,mv_49,--update value_49 --context value_49,run mv and with --update value_49 and with --context value_49,filesystem
+sort,sort_29,--month-sort 4 --version-sort value_29 --zero-terminated 16,run sort and set --month-sort to 4 and with --version-sort value_29 and set --zero-terminated to 16,text-processing
+mosdepth,mosdepth_33,--fragment-mode value_33,run mosdepth and with --fragment-mode value_33,qc
+wget,wget_11,--continue input_11.txt --timestamping input_11.txt --convert-links value_11,run wget and specify --continue input_11.txt and specify --timestamping input_11.txt and with --convert-links value_11,networking
+tar,tar_09,--delete value_09 --update input_09.txt,run tar and with --delete value_09 and specify --update input_09.txt,compression
+rsync,rsync_33,--no-motd value_33 --devices input_33.txt,run rsync and with --no-motd value_33 and specify --devices input_33.txt,networking
+porechop,porechop_50,--extra_middle_trim_good_side value_50,run porechop and with --extra_middle_trim_good_side value_50,qc
+porechop,porechop_38,--extra_middle_trim_good_side value_38,run porechop and with --extra_middle_trim_good_side value_38,qc
+sort,sort_31,--stable value_31,run sort and with --stable value_31,text-processing
+tar,tar_33,--compare input_33.txt,run tar and specify --compare input_33.txt,compression
+kraken2,kraken2_27,--classified-out output_27.txt --quick value_27,run kraken2 and specify --classified-out output_27.txt and with --quick value_27,metagenomics
+find,find_26,-a value_26,run find and with -a value_26,filesystem
+grep,grep_16,--line-number input_16.txt,run grep and specify --line-number input_16.txt,text-processing
+cutadapt,cutadapt_34,--cut 8 --length 8,run cutadapt and set --cut to 8 and set --length to 8,qc
+multiqc,multiqc_33,--filename input_33.txt --dirs-depth input_33.txt --config input_33.txt,run multiqc and specify --filename input_33.txt and specify --dirs-depth input_33.txt and specify --config input_33.txt,qc
+mosdepth,mosdepth_49,--no-per-base input_49.txt,run mosdepth and specify --no-per-base input_49.txt,qc
+porechop,porechop_23,--min_trim_size 16 --threads 16,run porechop and set --min_trim_size to 16 and set --threads to 16,qc
+mosdepth,mosdepth_48,--fast-mode value_48 --use-median input_48.txt,run mosdepth and with --fast-mode value_48 and specify --use-median input_48.txt,qc
+wget,wget_54,--verbose value_54,run wget and with --verbose value_54,networking
+find,find_08,-o value_08 -a value_08,run find and with -o value_08 and with -a value_08,filesystem
+mosdepth,mosdepth_12,--fast-mode value_12,run mosdepth and with --fast-mode value_12,qc
+rsync,rsync_14,--no-implied-dirs input_14.txt --no-motd value_14 --append input_14.txt,run rsync and specify --no-implied-dirs input_14.txt and with --no-motd value_14 and specify --append input_14.txt,networking
+busco,busco_17,--auto-lineage-prok input_17.txt,run busco and specify --auto-lineage-prok input_17.txt,assembly
+sort,sort_48,--reverse value_48 --unique value_48 --month-sort 4,run sort and with --reverse value_48 and with --unique value_48 and set --month-sort to 4,text-processing
+tabix,tabix_30,--zero-based value_30 --threads 8 --min-shift 4,run tabix and with --zero-based value_30 and set --threads to 8 and set --min-shift to 4,utilities
+sort,sort_04,--zero-terminated 16 --merge input_04.txt --ignore-nonprinting value_04,run sort and set --zero-terminated to 16 and specify --merge input_04.txt and with --ignore-nonprinting value_04,text-processing
+wget,wget_60,--method value_60 --no-netrc value_60,run wget and with --method value_60 and with --no-netrc value_60,networking
+tabix,tabix_12,--force value_12 --regions input_12.txt --comment value_12,run tabix and with --force value_12 and specify --regions input_12.txt and with --comment value_12,utilities
+porechop,porechop_37,--min_trim_size 4 --extra_end_trim 16 -o input_37.txt,run porechop and set --min_trim_size to 4 and set --extra_end_trim to 16 and specify -o input_37.txt,qc
+sort,sort_57,--ignore-nonprinting value_57 --merge input_57.txt --unique value_57,run sort and with --ignore-nonprinting value_57 and specify --merge input_57.txt and with --unique value_57,text-processing
+tar,tar_45,--ignore-zeros value_45 --delete value_45 --incremental 8,run tar and with --ignore-zeros value_45 and with --delete value_45 and set --incremental to 8,compression
+find,find_42,-a value_42 -o value_42,run find and with -a value_42 and with -o value_42,filesystem
+mv,mv_08,--force value_08 -t input_08.txt --strip-trailing-slashes value_08,run mv and with --force value_08 and specify -t input_08.txt and with --strip-trailing-slashes value_08,filesystem
+kraken2,kraken2_01,--memory-mapping value_01,run kraken2 and with --memory-mapping value_01,metagenomics
+wget,wget_13,--retry-connrefused value_13,run wget and with --retry-connrefused value_13,networking
+grep,grep_63,--word-regexp value_63,run grep and with --word-regexp value_63,text-processing
+find,find_31,-a value_31 -o value_31,run find and with -a value_31 and with -o value_31,filesystem
+multiqc,multiqc_27,--fullnames input_27.txt --force value_27 --module value_27,run multiqc and specify --fullnames input_27.txt and with --force value_27 and with --module value_27,qc
+multiqc,multiqc_35,--require-logs value_35,run multiqc and with --require-logs value_35,qc
+mosdepth,mosdepth_22,--no-per-base input_22.txt --use-median input_22.txt,run mosdepth and specify --no-per-base input_22.txt and specify --use-median input_22.txt,qc
+grep,grep_56,--files-without-match output_56.txt --no-messages value_56 --null-data value_56,run grep and specify --files-without-match output_56.txt and with --no-messages value_56 and with --null-data value_56,text-processing
+kraken2,kraken2_02,--unclassified-out output_02.txt --classified-out output_02.txt --minimum-hit-groups 4,run kraken2 and specify --unclassified-out output_02.txt and specify --classified-out output_02.txt and set --minimum-hit-groups to 4,metagenomics
+rsync,rsync_19,--preallocate input_19.txt,run rsync and specify --preallocate input_19.txt,networking
+wget,wget_21,--convert-links value_21,run wget and with --convert-links value_21,networking
+chopper,chopper_41,--threads 16 --mingc 4,run chopper and set --threads to 16 and set --mingc to 4,qc
+mv,mv_23,--strip-trailing-slashes value_23 -t input_23.txt,run mv and with --strip-trailing-slashes value_23 and specify -t input_23.txt,filesystem
+wget,wget_42,--inet4-only --method value_42,run wget and enable --inet4-only and with --method value_42,networking
+multiqc,multiqc_40,--dirs-depth input_40.txt,run multiqc and specify --dirs-depth input_40.txt,qc
+find,find_30,-o value_30 -a value_30,run find and with -o value_30 and with -a value_30,filesystem
+find,find_27,-a value_27 -o value_27,run find and with -a value_27 and with -o value_27,filesystem
+sort,sort_55,--unique value_55 --debug value_55 --merge input_55.txt,run sort and with --unique value_55 and with --debug value_55 and specify --merge input_55.txt,text-processing
+wget,wget_17,--no-config input_17.txt,run wget and specify --no-config input_17.txt,networking
+busco,busco_16,--config input_16.txt --augustus_species value_16 --long value_16,run busco and specify --config input_16.txt and with --augustus_species value_16 and with --long value_16,assembly
+porechop,porechop_43,--extra_end_trim 4,run porechop and set --extra_end_trim to 4,qc
+porechop,porechop_04,--middle_threshold value_04,run porechop and with --middle_threshold value_04,qc
+tar,tar_39,--read-full-records value_39 --get input_39.txt,run tar and with --read-full-records value_39 and specify --get input_39.txt,compression
+rsync,rsync_25,--old-d input_25.txt,run rsync and specify --old-d input_25.txt,networking
+fastp,fastp_11,--in1 input_11.txt --failed_out output_11.txt,run fastp and specify --in1 input_11.txt and specify --failed_out output_11.txt,qc
+fastp,fastp_05,--adapter_sequence --in1 input_05.txt --out2 output_05.txt,run fastp and enable --adapter_sequence and specify --in1 input_05.txt and specify --out2 output_05.txt,qc
+mosdepth,mosdepth_08,--no-per-base input_08.txt,run mosdepth and specify --no-per-base input_08.txt,qc
+flye,flye_25,--debug input_25.txt --min-overlap 8 --genome-size 16,run flye and specify --debug input_25.txt and set --min-overlap to 8 and set --genome-size to 16,assembly
+chopper,chopper_39,--cutoff value_39 --maxgc value_39 --inverse input_39.txt,run chopper and with --cutoff value_39 and with --maxgc value_39 and specify --inverse input_39.txt,qc
+tar,tar_10,--exclude-backups input_10.txt,run tar and specify --exclude-backups input_10.txt,compression
+flye,flye_13,--keep-haplotypes value_13,run flye and with --keep-haplotypes value_13,assembly
+multiqc,multiqc_51,--dirs-depth input_51.txt,run multiqc and specify --dirs-depth input_51.txt,qc
+mosdepth,mosdepth_45,--fast-mode value_45 --no-per-base input_45.txt,run mosdepth and with --fast-mode value_45 and specify --no-per-base input_45.txt,qc
+tar,tar_34,--ignore-failed-read input_34.txt --test-label value_34 --compare input_34.txt,run tar and specify --ignore-failed-read input_34.txt and with --test-label value_34 and specify --compare input_34.txt,compression
+cutadapt,cutadapt_07,--max-average-error-rate value_07,run cutadapt and with --max-average-error-rate value_07,qc
+chopper,chopper_13,--minlength 8 --input input_13.txt,run chopper and set --minlength to 8 and specify --input input_13.txt,qc
+cp,cp_59,--archive value_59,run cp and with --archive value_59,filesystem
+grep,grep_33,--count input_33.txt,run grep and specify --count input_33.txt,text-processing
+grep,grep_70,--null-data value_70 --perl-regexp 4 --no-ignore-case value_70,run grep and with --null-data value_70 and set --perl-regexp to 4 and with --no-ignore-case value_70,text-processing
+tar,tar_25,--compare input_25.txt --test-label value_25,run tar and specify --compare input_25.txt and with --test-label value_25,compression
+grep,grep_61,--no-messages value_61,run grep and with --no-messages value_61,text-processing
+flye,flye_28,--resume-from 4,run flye and set --resume-from to 4,assembly
+freebayes,freebayes_35,--samples input_35.txt --output-mode value_35 --report-all-haplotype-alleles value_35,run freebayes and specify --samples input_35.txt and with --output-mode value_35 and with --report-all-haplotype-alleles value_35,variant-calling
+find,find_03,-a value_03,run find and with -a value_03,filesystem
+grep,grep_08,--no-messages value_08 --line-buffered input_08.txt,run grep and with --no-messages value_08 and specify --line-buffered input_08.txt,text-processing
+tar,tar_16,--append input_16.txt --get input_16.txt --seek value_16,run tar and specify --append input_16.txt and specify --get input_16.txt and with --seek value_16,compression
+chopper,chopper_19,--tailcrop value_19,run chopper and with --tailcrop value_19,qc
+tar,tar_26,--incremental 16 --update input_26.txt --ignore-failed-read input_26.txt,run tar and set --incremental to 16 and specify --update input_26.txt and specify --ignore-failed-read input_26.txt,compression
+cutadapt,cutadapt_48,--max-n 16 --prefix sample_48 --times 16,run cutadapt and set --max-n to 16 and with --prefix sample_48 and set --times to 16,qc
+fastp,fastp_23,--correction --discard_unmerged value_23 --cut_by_quality3 value_23,run fastp and enable --correction and with --discard_unmerged value_23 and with --cut_by_quality3 value_23,qc
+grep,grep_22,--word-regexp value_22 --extended-regexp 8,run grep and with --word-regexp value_22 and set --extended-regexp to 8,text-processing
+mv,mv_07,--strip-trailing-slashes value_07 --force value_07 -t input_07.txt,run mv and with --strip-trailing-slashes value_07 and with --force value_07 and specify -t input_07.txt,filesystem
+tabix,tabix_28,--verbosity 16,run tabix and set --verbosity to 16,utilities
+tar,tar_21,--seek value_21 --read-full-records value_21,run tar and with --seek value_21 and with --read-full-records value_21,compression
+tar,tar_44,--incremental 4 --append input_44.txt --test-label value_44,run tar and set --incremental to 4 and specify --append input_44.txt and with --test-label value_44,compression
+find,find_54,-o value_54,run find and with -o value_54,filesystem
+rsync,rsync_03,--append-verify input_03.txt --inplace input_03.txt --no-implied-dirs input_03.txt,run rsync and specify --append-verify input_03.txt and specify --inplace input_03.txt and specify --no-implied-dirs input_03.txt,networking
+cutadapt,cutadapt_10,--cores value_10 --maximum-length 16,run cutadapt and with --cores value_10 and set --maximum-length to 16,qc
+wget,wget_49,--method value_49 --debug value_49 --inet4-only,run wget and with --method value_49 and with --debug value_49 and enable --inet4-only,networking
+busco,busco_31,--long value_31 -o input_31.txt -m value_31,run busco and with --long value_31 and specify -o input_31.txt and with -m value_31,assembly
+multiqc,multiqc_31,--sample-names value_31,run multiqc and with --sample-names value_31,qc
+multiqc,multiqc_53,--outdir output_53.txt,run multiqc and specify --outdir output_53.txt,qc
+tabix,tabix_46,--end 16,run tabix and set --end to 16,utilities
+cp,cp_40,--force input_40.txt --interactive value_40 --no-dereference value_40,run cp and specify --force input_40.txt and with --interactive value_40 and with --no-dereference value_40,filesystem
+freebayes,freebayes_41,--haplotype-basis-alleles input_41.txt --vcf input_41.txt --bam-list input_41.txt,run freebayes and specify --haplotype-basis-alleles input_41.txt and specify --vcf input_41.txt and specify --bam-list input_41.txt,variant-calling
+sort,sort_66,--general-numeric-sort value_66 --merge input_66.txt,run sort and with --general-numeric-sort value_66 and specify --merge input_66.txt,text-processing
+freebayes,freebayes_17,--samples input_17.txt,run freebayes and specify --samples input_17.txt,variant-calling
+flye,flye_46,--debug input_46.txt --genome-size 4 --meta value_46,run flye and specify --debug input_46.txt and set --genome-size to 4 and with --meta value_46,assembly
+tabix,tabix_39,--only-header value_39 --zero-based value_39,run tabix and with --only-header value_39 and with --zero-based value_39,utilities
+busco,busco_28,--augustus_species value_28,run busco and with --augustus_species value_28,assembly
+tar,tar_07,--delete value_07 --get input_07.txt,run tar and with --delete value_07 and specify --get input_07.txt,compression
+wget,wget_34,--timestamping input_34.txt,run wget and specify --timestamping input_34.txt,networking
+fastp,fastp_42,--cut_by_quality5 value_42,run fastp and with --cut_by_quality5 value_42,qc
+cutadapt,cutadapt_21,--rename value_21 --max-ee value_21,run cutadapt and with --rename value_21 and with --max-ee value_21,qc
+flye,flye_08,--keep-haplotypes value_08 --resume value_08 --plasmids value_08,run flye and with --keep-haplotypes value_08 and with --resume value_08 and with --plasmids value_08,assembly
+sort,sort_30,--stable value_30,run sort and with --stable value_30,text-processing
+cutadapt,cutadapt_43,--minimum-length 8 --max-average-error-rate value_43,run cutadapt and set --minimum-length to 8 and with --max-average-error-rate value_43,qc
+rsync,rsync_27,--devices input_27.txt --inplace input_27.txt,run rsync and specify --devices input_27.txt and specify --inplace input_27.txt,networking
+multiqc,multiqc_41,--dirs input_41.txt,run multiqc and specify --dirs input_41.txt,qc
+find,find_62,-a value_62,run find and with -a value_62,filesystem
+find,find_59,-o value_59,run find and with -o value_59,filesystem
+kraken2,kraken2_40,--paired input_40.txt --classified-out output_40.txt,run kraken2 and specify --paired input_40.txt and specify --classified-out output_40.txt,metagenomics
+cutadapt,cutadapt_26,--front value_26 --length-tag value_26 --adapter value_26,run cutadapt and with --front value_26 and with --length-tag value_26 and with --adapter value_26,qc
+flye,flye_49,--no-alt-contigs input_49.txt --read-error value_49 --plasmids value_49,run flye and specify --no-alt-contigs input_49.txt and with --read-error value_49 and with --plasmids value_49,assembly
+find,find_01,-o value_01,run find and with -o value_01,filesystem
+porechop,porechop_36,--end_threshold 16,run porechop and set --end_threshold to 16,qc
+rsync,rsync_38,--munge-links value_38 --super value_38,run rsync and with --munge-links value_38 and with --super value_38,networking
+kraken2,kraken2_05,--memory-mapping value_05,run kraken2 and with --memory-mapping value_05,metagenomics
+find,find_18,-o value_18,run find and with -o value_18,filesystem
+find,find_11,-o value_11,run find and with -o value_11,filesystem
+flye,flye_21,--out-dir output_21.txt,run flye and specify --out-dir output_21.txt,assembly
+busco,busco_18,--datasets_version 4,run busco and set --datasets_version to 4,assembly
+tar,tar_37,--incremental 4 --append input_37.txt,run tar and set --incremental to 4 and specify --append input_37.txt,compression
+grep,grep_60,--ignore-case value_60,run grep and with --ignore-case value_60,text-processing
+tar,tar_36,--sparse input_36.txt --delete value_36,run tar and specify --sparse input_36.txt and with --delete value_36,compression
+cp,cp_35,--force input_35.txt,run cp and specify --force input_35.txt,filesystem
+porechop,porechop_27,--adapter_threshold value_27,run porechop and with --adapter_threshold value_27,qc
+chopper,chopper_02,--maxlength 8 --tailcrop value_02,run chopper and set --maxlength to 8 and with --tailcrop value_02,qc
+chopper,chopper_50,--tailcrop value_50,run chopper and with --tailcrop value_50,qc
+mv,mv_32,--update value_32,run mv and with --update value_32,filesystem
+tabix,tabix_06,--preset sample_06 --only-header value_06 --regions input_06.txt,run tabix and with --preset sample_06 and with --only-header value_06 and specify --regions input_06.txt,utilities
+grep,grep_20,--extended-regexp 4 --binary,run grep and set --extended-regexp to 4 and enable --binary,text-processing
+rsync,rsync_41,--mkpath input_41.txt --devices input_41.txt,run rsync and specify --mkpath input_41.txt and specify --devices input_41.txt,networking
+cp,cp_52,--recursive input_52.txt --no-clobber input_52.txt --verbose value_52,run cp and specify --recursive input_52.txt and specify --no-clobber input_52.txt and with --verbose value_52,filesystem
+fastp,fastp_34,--in1 input_34.txt --include_unmerged input_34.txt,run fastp and specify --in1 input_34.txt and specify --include_unmerged input_34.txt,qc
+grep,grep_01,--no-messages value_01,run grep and with --no-messages value_01,text-processing
+cutadapt,cutadapt_24,--front value_24 --suffix value_24 --times 16,run cutadapt and with --front value_24 and with --suffix value_24 and set --times to 16,qc
+kraken2,kraken2_53,--minimum-base-quality 8 --classified-out output_53.txt,run kraken2 and set --minimum-base-quality to 8 and specify --classified-out output_53.txt,metagenomics
+flye,flye_34,--genome-size 16,run flye and set --genome-size to 16,assembly
+sort,sort_26,--ignore-nonprinting value_26,run sort and with --ignore-nonprinting value_26,text-processing
+busco,busco_45,--out output_45.txt --out_path output_45.txt,run busco and specify --out output_45.txt and specify --out_path output_45.txt,assembly
+mv,mv_43,-t input_43.txt,run mv and specify -t input_43.txt,filesystem
+tabix,tabix_35,--cache 8 --end 8 --only-header value_35,run tabix and set --cache to 8 and set --end to 8 and with --only-header value_35,utilities
+sort,sort_64,--merge input_64.txt --numeric-sort value_64,run sort and specify --merge input_64.txt and with --numeric-sort value_64,text-processing
+fastp,fastp_44,--out2 output_44.txt,run fastp and specify --out2 output_44.txt,qc
+busco,busco_43,--auto-lineage input_43.txt,run busco and specify --auto-lineage input_43.txt,assembly
+multiqc,multiqc_20,--ignore-samples value_20,run multiqc and with --ignore-samples value_20,qc
+chopper,chopper_12,--headcrop value_12 --maxqual 30 --cutoff value_12,run chopper and with --headcrop value_12 and with --maxqual 30 and with --cutoff value_12,qc
+cp,cp_26,--attributes-only input_26.txt,run cp and specify --attributes-only input_26.txt,filesystem
+multiqc,multiqc_06,--config input_06.txt --fn_as_s_name input_06.txt,run multiqc and specify --config input_06.txt and specify --fn_as_s_name input_06.txt,qc
+chopper,chopper_42,--quality 16,run chopper and set --quality to 16,qc
+find,find_39,-a value_39 -o value_39,run find and with -a value_39 and with -o value_39,filesystem
+busco,busco_35,--mode value_35 -i 4 --auto-lineage-prok input_35.txt,run busco and with --mode value_35 and set -i to 4 and specify --auto-lineage-prok input_35.txt,assembly
+rsync,rsync_60,--super value_60 --write-devices input_60.txt,run rsync and with --super value_60 and specify --write-devices input_60.txt,networking
+sort,sort_43,--unique value_43,run sort and with --unique value_43,text-processing
+kraken2,kraken2_36,--minimum-hit-groups 8 --bzip2-compressed input_36.txt --minimum-base-quality 8,run kraken2 and set --minimum-hit-groups to 8 and specify --bzip2-compressed input_36.txt and set --minimum-base-quality to 8,metagenomics
+rsync,rsync_53,--safe-links value_53,run rsync and with --safe-links value_53,networking
+flye,flye_02,--out-dir output_02.txt,run flye and specify --out-dir output_02.txt,assembly
+freebayes,freebayes_47,--contamination-estimates input_47.txt,run freebayes and specify --contamination-estimates input_47.txt,variant-calling
+chopper,chopper_47,--mingc 8 --maxqual 20 --trim-approach value_47,run chopper and set --mingc to 8 and with --maxqual 20 and with --trim-approach value_47,qc
+freebayes,freebayes_50,--stdin input_50.txt --bam input_50.txt --report-all-haplotype-alleles value_50,run freebayes and specify --stdin input_50.txt and specify --bam input_50.txt and with --report-all-haplotype-alleles value_50,variant-calling
+grep,grep_04,--line-number input_04.txt --no-messages value_04,run grep and specify --line-number input_04.txt and with --no-messages value_04,text-processing
+rsync,rsync_05,--super value_05 --old-d input_05.txt,run rsync and with --super value_05 and specify --old-d input_05.txt,networking
+mosdepth,mosdepth_10,--fragment-mode value_10 --use-median input_10.txt,run mosdepth and with --fragment-mode value_10 and specify --use-median input_10.txt,qc
+wget,wget_46,--no-clobber value_46,run wget and with --no-clobber value_46,networking
+cp,cp_21,--force input_21.txt,run cp and specify --force input_21.txt,filesystem
+flye,flye_31,--read-error value_31,run flye and with --read-error value_31,assembly
+mv,mv_09,--no-clobber input_09.txt,run mv and specify --no-clobber input_09.txt,filesystem
+multiqc,multiqc_22,--exclude value_22 --file-list input_22.txt --dirs-depth input_22.txt,run multiqc and with --exclude value_22 and specify --file-list input_22.txt and specify --dirs-depth input_22.txt,qc
+kraken2,kraken2_43,--report-zero-counts value_43 --use-mpa-style input_43.txt,run kraken2 and with --report-zero-counts value_43 and specify --use-mpa-style input_43.txt,metagenomics
+tar,tar_64,--list value_64,run tar and with --list value_64,compression
+kraken2,kraken2_24,--use-mpa-style input_24.txt --gzip-compressed input_24.txt,run kraken2 and specify --use-mpa-style input_24.txt and specify --gzip-compressed input_24.txt,metagenomics
+cutadapt,cutadapt_30,--overlap 8,run cutadapt and set --overlap to 8,qc
+busco,busco_07,--lineage_dataset 4 --mode value_07 --out_path output_07.txt,run busco and set --lineage_dataset to 4 and with --mode value_07 and specify --out_path output_07.txt,assembly
+freebayes,freebayes_09,--contamination-estimates input_09.txt --gvcf-chunk 4 --samples input_09.txt,run freebayes and specify --contamination-estimates input_09.txt and set --gvcf-chunk to 4 and specify --samples input_09.txt,variant-calling
+find,find_48,-o value_48 -a value_48,run find and with -o value_48 and with -a value_48,filesystem
+freebayes,freebayes_49,--gvcf-dont-use-chunk value_49 --report-all-haplotype-alleles value_49,run freebayes and with --gvcf-dont-use-chunk value_49 and with --report-all-haplotype-alleles value_49,variant-calling
+tabix,tabix_31,--targets input_31.txt --begin 4,run tabix and specify --targets input_31.txt and set --begin to 4,utilities
+grep,grep_12,--no-ignore-case value_12 --perl-regexp 8,run grep and with --no-ignore-case value_12 and set --perl-regexp to 8,text-processing
+flye,flye_22,--meta value_22 --deterministic value_22 --extra-params value_22,run flye and with --meta value_22 and with --deterministic value_22 and with --extra-params value_22,assembly
+tabix,tabix_37,--force value_37 --begin 4 --list-chroms value_37,run tabix and with --force value_37 and set --begin to 4 and with --list-chroms value_37,utilities
+cutadapt,cutadapt_47,--length 16 --max-average-error-rate value_47 --cores value_47,run cutadapt and set --length to 16 and with --max-average-error-rate value_47 and with --cores value_47,qc
+tar,tar_48,--test-label value_48 --compare input_48.txt --append input_48.txt,run tar and with --test-label value_48 and specify --compare input_48.txt and specify --append input_48.txt,compression
+mosdepth,mosdepth_15,--include-flag value_15,run mosdepth and with --include-flag value_15,qc
+rsync,rsync_20,--safe-links value_20 --mkpath input_20.txt,run rsync and with --safe-links value_20 and specify --mkpath input_20.txt,networking
+tabix,tabix_29,--separate-regions input_29.txt --regions input_29.txt --comment value_29,run tabix and specify --separate-regions input_29.txt and specify --regions input_29.txt and with --comment value_29,utilities
+mv,mv_51,--context value_51 -t input_51.txt --update value_51,run mv and with --context value_51 and specify -t input_51.txt and with --update value_51,filesystem
+mv,mv_55,--strip-trailing-slashes value_55,run mv and with --strip-trailing-slashes value_55,filesystem
+flye,flye_29,--scaffold value_29,run flye and with --scaffold value_29,assembly
+fastp,fastp_31,--unpaired1 input_31.txt --phred64 input_31.txt,run fastp and specify --unpaired1 input_31.txt and specify --phred64 input_31.txt,qc
+flye,flye_24,--min-overlap 16 --read-error value_24 --stop-after 8,run flye and set --min-overlap to 16 and with --read-error value_24 and set --stop-after to 8,assembly
+mosdepth,mosdepth_26,--no-per-base input_26.txt --include-flag value_26 --use-median input_26.txt,run mosdepth and specify --no-per-base input_26.txt and with --include-flag value_26 and specify --use-median input_26.txt,qc
+porechop,porechop_12,--min_split_read_size 4 --check_reads value_12 --output output_12.txt,run porechop and set --min_split_read_size to 4 and with --check_reads value_12 and specify --output output_12.txt,qc
+mosdepth,mosdepth_02,--fast-mode value_02,run mosdepth and with --fast-mode value_02,qc
+multiqc,multiqc_08,--require-logs value_08,run multiqc and with --require-logs value_08,qc
+sort,sort_17,--reverse value_17 --ignore-nonprinting value_17,run sort and with --reverse value_17 and with --ignore-nonprinting value_17,text-processing
+find,find_43,-o value_43,run find and with -o value_43,filesystem
+chopper,chopper_32,--threads 4 --minlength 8,run chopper and set --threads to 4 and set --minlength to 8,qc
+grep,grep_49,--binary --with-filename input_49.txt,run grep and enable --binary and specify --with-filename input_49.txt,text-processing
+kraken2,kraken2_29,--paired input_29.txt --quick value_29 --memory-mapping value_29,run kraken2 and specify --paired input_29.txt and with --quick value_29 and with --memory-mapping value_29,metagenomics
+mosdepth,mosdepth_05,--fragment-mode value_05 --use-median input_05.txt --include-flag value_05,run mosdepth and with --fragment-mode value_05 and specify --use-median input_05.txt and with --include-flag value_05,qc
+rsync,rsync_46,--mkpath input_46.txt,run rsync and specify --mkpath input_46.txt,networking
+cutadapt,cutadapt_02,--overlap 16,run cutadapt and set --overlap to 16,qc
+sort,sort_02,--debug value_02,run sort and with --debug value_02,text-processing
+tar,tar_15,--incremental 4 --seek value_15,run tar and set --incremental to 4 and with --seek value_15,compression
+mv,mv_31,--strip-trailing-slashes value_31 -t input_31.txt --no-target-directory value_31,run mv and with --strip-trailing-slashes value_31 and specify -t input_31.txt and with --no-target-directory value_31,filesystem
+wget,wget_09,--no-clobber value_09,run wget and with --no-clobber value_09,networking
+fastp,fastp_18,--unpaired1 input_18.txt --adapter_sequence,run fastp and specify --unpaired1 input_18.txt and enable --adapter_sequence,qc
+mosdepth,mosdepth_31,--include-flag value_31 --no-per-base input_31.txt --flag value_31,run mosdepth and with --include-flag value_31 and specify --no-per-base input_31.txt and with --flag value_31,qc
+wget,wget_39,--continue input_39.txt,run wget and specify --continue input_39.txt,networking
+fastp,fastp_19,--adapter_sequence --in1 input_19.txt,run fastp and enable --adapter_sequence and specify --in1 input_19.txt,qc
