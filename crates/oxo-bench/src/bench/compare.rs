@@ -76,31 +76,44 @@ pub struct CompareResult {
 }
 
 impl CompareResult {
-    /// A composite accuracy score in \[0, 1\].
+    /// Composite accuracy score in \[0, 1\] — scientifically weighted.
     ///
-    /// The score uses a **subcommand veto factor** instead of a small bonus:
+    /// ## Formula (v2)
     ///
-    /// 1. Base score = weighted combination of flag-group metrics:
-    ///    - 35% `flag_group_recall`
-    ///    - 25% `flag_group_precision`
-    ///    - 25% `flag_group_jaccard`
-    ///    - 15% `positional_order_match`
+    /// ```
+    /// base = 0.30 × flag_group_recall
+    ///      + 0.20 × flag_group_precision
+    ///      + 0.20 × flag_group_jaccard
+    ///      + 0.10 × positional_order_match
+    ///      + 0.10 × rouge_l
+    ///      + 0.10 × (1.0 - hallucination_rate)
     ///
-    /// 2. Subcommand veto: when the subcommand is wrong, the base score is
-    ///    multiplied by 0.3 (capped at 0.3 max). This reflects the reality
-    ///    that a wrong subcommand means the wrong operation entirely (e.g.,
-    ///    `sort` vs `view` is not "partially correct" — it's fundamentally
-    ///    wrong). A correct subcommand keeps the full base score.
+    /// subcommand_penalty = subcommand_match ? 1.0 : 0.4
+    ///
+    /// accuracy = base × subcommand_penalty
+    /// ```
+    ///
+    /// ## Design rationale
+    ///
+    /// - **flag_group_recall (30%)**: Most important — did we find the right flags?
+    /// - **flag_group_precision (20%)**: Are generated flags relevant?
+    /// - **flag_group_jaccard (20%)**: Balanced overlap measure
+    /// - **positional_order_match (10%)**: Argument ordering matters less
+    /// - **rouge_l (10%)**: Rewards partial structural similarity
+    /// - **anti-hallucination (10%)**: Penalizes invented flags not in reference
+    ///
+    /// Subcommand penalty reduced from 0.3 to 0.4 — wrong subcommand
+    /// is still a major error but shouldn't zero out the score entirely
+    /// when flags and values are otherwise correct.
     pub fn accuracy_score(&self) -> f64 {
-        let base = 0.35 * self.flag_group_recall
-            + 0.25 * self.flag_group_precision
-            + 0.25 * self.flag_group_jaccard
-            + 0.15 * self.positional_order_match;
-        if self.subcommand_match {
-            base
-        } else {
-            base * 0.3
-        }
+        let base = 0.30 * self.flag_group_recall
+            + 0.20 * self.flag_group_precision
+            + 0.20 * self.flag_group_jaccard
+            + 0.10 * self.positional_order_match
+            + 0.10 * self.rouge_l
+            + 0.10 * (1.0 - self.hallucination_rate).max(0.0);
+        let subcommand_penalty = if self.subcommand_match { 1.0 } else { 0.4 };
+        (base * subcommand_penalty).clamp(0.0, 1.0)
     }
 }
 
