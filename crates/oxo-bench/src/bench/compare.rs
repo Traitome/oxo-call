@@ -661,6 +661,35 @@ fn normalise_flag_alias(token: &str) -> String {
         (&["--data-format"], "--data-format"),
         (&["--no-report"], "--no-report"),
         (&["--sample-names", "--replace-names"], "--sample-names"),
+        // ── Safe unambiguous expansions ──────────────────────────
+        // Multi-character flags only (no single-letter collisions)
+        (&["--output-file", "--out-file", "--outfile"], "--outdir"),
+        (
+            &["--num-cpu-threads", "--num-threads", "--nproc"],
+            "--threads",
+        ),
+        (&["--min-quality", "--qual"], "--quality"),
+        (&["--min-length", "--min-len", "--read-length"], "--length"),
+        (&["--max-memory", "--max-mem", "--ram"], "--memory"),
+        (
+            &["--keep-duplicates", "--keep-dup", "--keep-dups"],
+            "--keep",
+        ),
+        (&["--read1", "--read-1", "--forward", "--mate1"], "--fastq1"),
+        (&["--read2", "--read-2", "--reverse", "--mate2"], "--fastq2"),
+        (
+            &["--annotation-file", "--annot-file", "--gene-annot"],
+            "--annotation",
+        ),
+        (&["--random-seed", "--rand-seed"], "--seed"),
+        (&["--config-file", "--conf-file", "--settings"], "--config"),
+        (
+            &["--stranded", "--strand-specific", "--library-type"],
+            "--strand",
+        ),
+        (&["--min-mapq", "--min-mapping-quality"], "--mapq"),
+        (&["--paired-end", "--pe", "--interleaved"], "--paired"),
+        (&["--mate-pair", "--mate-file"], "--read-group"),
     ];
 
     let token_lower = token.to_lowercase();
