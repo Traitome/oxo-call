@@ -1,0 +1,301 @@
+tool,scenario_id,reference_args,task_description,category
+vcftools,vcftools_03,-o output_03.vcf --out output_03,merge multiple VCF files and output to output_03.vcf,variant-calling
+multiqc,multiqc_06,. -o output_06/ -f,check read quality and generate report to output_06.fastq,qc
+mv,mv_06,-t 4 -u,move all log files to archive directory,filesystem
+curl,curl_05,-T input.bam https://example.com,upload results to remote server efficiently,networking
+busco,busco_05,-f - --skip_bbtools --list-datasets --opt-out-run-stats -l bacteria_odb10 -m genome,perform de novo assembly of sequencing data,assembly
+megahit,megahit_06,-1 reads_1.fastq -2 reads_2.fastq -o output_dir/ --num-cpu-threads 16 --min-contig-len 500 -t 16,perform de novo assembly of sequencing data,assembly
+porechop,porechop_09,-i input.bam -o output.fastq.gz --min_split_read_size 200 --threads 8 -t 4,run quality control analysis with 4 threads,qc
+freebayes,freebayes_06,-@ output_06.vcf --gvcf --gvcf-chunk -& -v all) --no-partial-observations output_06.vcf ~unbounded 4,merge multiple VCF files and output to output_06.vcf,variant-calling
+tar,tar_07,-czf output.tar.gz input.bam,compress sequencing data files to save space,compression
+flye,flye_01,--meta --nano-raw input.bam --out-dir output_dir/ -g 5m --threads 16,assemble metagenomic reads with 16 threads,assembly
+gzip,gzip_08,-f -c --synchronous -k -S,compress sequencing data files to save space,compression
+wget,wget_01,-O output.bam https://example.com,download multiple files in parallel,networking
+bowtie2,bowtie2_04,-x reference_index -U input_reads.fastq --very-sensitive -p 8,align single-end reads with 8 threads and write to output_04.bam,alignment
+salmon,salmon_01,quant -i genome_index -l A -1 reads_1.fq -2 reads_2.fq -d input2.bed -o output_dir/,estimate gene abundance from RNA-seq reads,rna-seq
+gzip,gzip_06,-f -c --synchronous -k -S,compress sequencing data files to save space,compression
+mosdepth,mosdepth_06,--by 500 --prefix output input.bam,filter reads by minimum quality score 20,qc
+stringtie,stringtie_07,-e -G reference.gtf -o output.gtf -p 4 input.bam input_R1.fastq input_R2.fastq,quantify expression levels with paired-end reads,rna-seq
+find,find_08,. -maxdepth 1 -type d,synchronize two directories efficiently,filesystem
+grep,grep_01,-c -E matching regex input.bam filename,find lines matching regex and count occurrences,text-processing
+liftoff,liftoff_09,-g annotation.gtf -o output.gtf reference.fa -u unmapped.txt,lift annotations between genome assemblies,annotation
+find,find_03,. -perm,copy directory recursively preserving permissions,filesystem
+flye,flye_10,--nano-raw input_reads.fastq --genome-size 5m --out-dir output_10/ -o output_10 -g 5m --threads 16,assemble contigs from long reads and output to output_10.fasta,assembly
+salmon,salmon_06,quant -i genome_index -l A -1 reads_1.fq -2 reads_2.fq -d input2.bed -o output_dir/,assemble transcripts from aligned RNA-seq data,rna-seq
+curl,curl_10,https://example.com/ /path/to/local/mirror,mirror entire website recursively,networking
+mosdepth,mosdepth_09,-Q 20 -F 1796 --prefix output -t 4 input.bam /path/to/reads/*.fastq.gz --by 10000,assess sequencing quality metrics for all samples,qc
+stringtie,stringtie_01,-p 4 -G reference.gtf -o output_transcripts.gtf input.bam input.bam,assemble transcripts from aligned RNA-seq data,rna-seq
+salmon,salmon_08,quant -i genome_index -l A -1 reads_1.fq -2 reads_2.fq -d input2.bed -o output_dir/,assemble transcripts from aligned RNA-seq data,rna-seq
+vcftools,vcftools_05,--vcf input.bam --filter QUAL>30 --out output,call variants from alignment file with minimum quality 30,variant-calling
+samtools,samtools_07,view fastq -1 output_07.bam -2 input2.bed -0 /dev/null -s /dev/null -n input.bam,align paired-end reads to reference genome using 16 threads and save as output_07.bam,alignment
+multiqc,multiqc_05,. -o output_dir/ -f,filter reads by minimum quality score 20,qc
+minimap2,minimap2_09,-ax map-ont reference.fa input.bam -o output_09.bam,align paired-end reads to reference genome using 8 threads and save as output_09.bam,alignment
+quast,quast_08,-r reference.fa -g input2.bed -o output_dir/ -t 4 input.bam input.fastq,perform de novo assembly of sequencing data,assembly
+megahit,megahit_02,-1 input_reads_R1.fastq -2 input_reads_R2.fastq -o output_02/ --num-cpu-threads 16 --min-contig-len 500 -t 16,assemble contigs from long reads and output to output_02.fasta,assembly
+tabix,tabix_08,-p vcf input.bam input.vcf.gz,compress and index variant file for fast access,utilities
+rsync,rsync_05,-avz --info=progress2 --progress user@remote_host:/path/to/remote/file input.bam output.bam /path/to/local/directory,download file from remote server with progress,networking
+multiqc,multiqc_04,. -o output_dir/ -f,assess sequencing quality metrics for all samples,qc
+tar,tar_02,-czf output.tar.gz input.bam,compress sequencing data files to save space,compression
+chopper,chopper_04,-q 10 -l 1000,assess sequencing quality metrics for all samples,qc
+flye,flye_04,--nano-raw <reads_file> --genome-size 5m --out-dir output_dir/ --polish-target true -g 5m --threads 16,run genome assembly with polishing step,assembly
+multiqc,multiqc_01,. -o output_dir/ -f,trim low-quality bases and adapters from sequencing reads,qc
+mosdepth,mosdepth_08,-x --prefix output_08 -t 4 -m 10 input.bam output_08.fastq --by 10000,check read quality and generate report to output_08.fastq,qc
+bedtools,bedtools_09,merge -i input.bed -o merged_output.bed,merge adjacent genomic intervals,genomic-intervals
+bowtie2,bowtie2_02,--threads 16 -x reference_genome -U input_reads.fastq reference.fa genome_index --very-sensitive,"map long reads to reference with 16 threads, output to output_02.bam",alignment
+mv,mv_08,-t 4,copy directory recursively preserving permissions,filesystem
+macs2,macs2_01,bdgcmp,identify enriched regions comparing treatment to control,epigenomics
+megahit,megahit_03,-1 reads_1.fastq -2 reads_2.fastq -o output_dir/ --num-cpu-threads 16 --min-contig-len 500 -t 16,perform de novo assembly of sequencing data,assembly
+bcftools,bcftools_05,merge -O z,merge multiple VCF files and output to output_05.vcf,variant-calling
+tar,tar_08,-czf output.tar.gz input.bam,create tarball of analysis results,compression
+kallisto,kallisto_09,quant bus reference_transcripts.fa -b 100,assemble transcripts from aligned RNA-seq data,rna-seq
+tabix,tabix_04,-R <region> input.bam <indexed_file>,query indexed file by genomic region,utilities
+tar,tar_09,-czf output.tar.gz input.bam,create tarball of analysis results,compression
+flye,flye_03,--nano-raw <path_to_raw_nanopore_reads> --genome-size 5m --out-dir output_dir/ --polish-target true -g 5m --threads 16,run genome assembly with polishing step,assembly
+fastqc,fastqc_05,-o output_05/ input.bam input_05.fastq -t 8,check read quality and generate report to output_05.fastq,qc
+gzip,gzip_01,-c --synchronous -f,create tarball of analysis results,compression
+mosdepth,mosdepth_07,-Q 20 -F 1796 --prefix output -t 4 input.bam /path/to/reads/*.fastq.gz --by 10000,assess sequencing quality metrics for all samples,qc
+mosdepth,mosdepth_05,-x --prefix output_05 -t 4 -m 10 input.bam fastq_file.fastq.gz --by 10000,check read quality and generate report to output_05.fastq,qc
+seqkit,seqkit_07,seq -s *seq input.bam,compute statistics for all sequence files,sequence-utilities
+multiqc,multiqc_08,. -o output_dir/ -f,assess sequencing quality metrics for all samples,qc
+samtools,samtools_02,view addreplacerg -r @RG\tID:s1\tSM:s1\tLB:lib1\tPL:ILLUMINA -o output_02.bam input.bam,"map long reads to reference with 4 threads, output to output_02.bam",alignment
+curl,curl_04,-o output.bam https://example.com,download multiple files in parallel,networking
+mv,mv_02,,synchronize two directories efficiently,filesystem
+grep,grep_05,"-f input2.bed input.bam ""from """,extract specific columns from tab-delimited file,text-processing
+tabix,tabix_07,-R <region> input.bam <indexed_file>,query indexed file by genomic region,utilities
+samtools,samtools_06,view flagstat input.bam /path/to/reference.fa /path/to/reads.fastq > aligned.bam,perform sensitive alignment of reads to reference genome,alignment
+minimap2,minimap2_08,-ax map-ont reference.fa input.bam -o output_08.bam,align single-end reads with 16 threads and write to output_08.bam,alignment
+macs2,macs2_10,bdgcmp,identify enriched regions comparing treatment to control,epigenomics
+macs2,macs2_08,callpeak -t chipseq -c input2.bed -n output -g hs -f BAM,call peaks from ChIP-seq alignment data,epigenomics
+grep,grep_07,-r -rn pattern recursively --include=input.bam .,search for pattern recursively in all text files,text-processing
+chopper,chopper_05,-q 10 -l 1000,assess sequencing quality metrics for all samples,qc
+sort,sort_03,--files0-from -c --sort -V,search for pattern recursively in all text files,text-processing
+chopper,chopper_07,--trim-approach trim-by-quality --cutoff 10 -q 10 -l 1000,trim low-quality bases and adapters from sequencing reads,qc
+freebayes,freebayes_08,-f reference.fa -p 1 -v output.bam -q 30 input.bam input.bam > variants.vcf,call variants from alignment file with minimum quality 30,variant-calling
+cutadapt,cutadapt_02,-a AGATCGGAAGAGC -q 20 --minimum-length 36 -o trimmed_{sample}.fastq -p input2.bed reads_1.fq reads_2.fq {input_file},assess sequencing quality metrics for all samples,qc
+sort,sort_01,--files0-from -c,extract specific columns from tab-delimited file,text-processing
+spades,spades_06,--meta -1 reads_1.fq -2 reads_2.fq -o output_dir/ -t 4 --memory 32,assemble metagenomic reads with 4 threads,assembly
+spades,spades_03,-t 4 -1 reads_1.fastq -2 reads_2.fastq -o output_dir/ --memory 32,perform de novo assembly of sequencing data,assembly
+minimap2,minimap2_04,-t 4 -x sr -o output.paf reference.fa reads_1.fq reads_2.fq reference.fa reads.fastq,perform sensitive alignment of reads to reference genome,alignment
+find,find_01,. -maxdepth 1 -type d,synchronize two directories efficiently,filesystem
+vcftools,vcftools_04,--vcf input.bam --filter QUAL>30 --out output_04,"filter variants by quality score, output to output_04.vcf",variant-calling
+curl,curl_08,-L --progress-bar -o output.bam https://example.com,download file from remote server with progress,networking
+mosdepth,mosdepth_04,-n --prefix output -t 4 -f 0.5 input.bam /path/to/reads.fastq.gz --by 10000,trim low-quality bases and adapters from sequencing reads,qc
+fastp,fastp_03,-i input.bam -o output.bam -w 16,run quality control analysis with 16 threads,qc
+curl,curl_06,-L --progress-bar -o output.bam https://example.com,download file from remote server with progress,networking
+diamond,diamond_04,makedb --in input.bam -d database,build database index for fast searching,metagenomics
+cutadapt,cutadapt_06,-a AGATCGGAAGAGC -q 20 --minimum-length 36 -o output.bam -p input2.bed reads_1.fq reads_2.fq,filter reads by minimum quality score 20,qc
+busco,busco_08,-f -c 4 -o --limit 3 --scaffold_composition -c 4 -l bacteria_odb10 -m genome,assemble metagenomic reads with 4 threads,assembly
+porechop,porechop_06,"--scoring_scheme 3,-6,-5,-2 --min_trim_size 4 -i input.fastq.gz -o output.fastq.gz",assess sequencing quality metrics for all samples,qc
+spades,spades_07,--meta -1 reads_1.fq -2 reads_2.fq -o output_dir/ -t 16 --memory 32,assemble metagenomic reads with 16 threads,assembly
+chopper,chopper_08,-q 10 -l 1000,filter reads by minimum quality score 20,qc
+bowtie2,bowtie2_06,--threads 8 -x reference -U input_reads.fastq reference.fa genome_index --very-sensitive,"map long reads to reference with 8 threads, output to output_06.bam",alignment
+rsync,rsync_06,-avz input.bam --progress source/ output.bam destination/,download multiple files in parallel,networking
+macs2,macs2_03,callpeak -t input.bam -c control.bam -n output --broad -g hs -f BAM,find broad peaks in histone modification data,epigenomics
+liftoff,liftoff_07,reference.fa -g annotation.gtf -o output.gff3 -u unmapped.txt,validate annotation file structure,annotation
+mosdepth,mosdepth_02,--by 500 --prefix output input.bam,filter reads by minimum quality score 20,qc
+fastqc,fastqc_04,input.bam -o output_dir/ -t 8,filter reads by minimum quality score 20,qc
+liftoff,liftoff_08,reference.fa -g annotation.gtf -o output.gff3 -u unmapped.txt,lift annotations between genome assemblies,annotation
+bowtie2,bowtie2_07,--threads 4 -x reference -U input_reads.fastq reference.fa genome_index --very-sensitive,"map long reads to reference with 4 threads, output to output_07.bam",alignment
+chopper,chopper_03,-q 10 -l 1000,filter reads by minimum quality score 20,qc
+rsync,rsync_09,-avz --info=progress2 --progress user@remote_host:/path/to/remote/file input.bam output.bam /path/to/local/directory,download file from remote server with progress,networking
+porechop,porechop_07,-i input.bam -o output.fastq.gz --min_split_read_size 1000,filter reads by minimum quality score 20,qc
+bedtools,bedtools_01,intersect -a file1.bed -b file2.bed -wa,find overlapping intervals between two BED files,genomic-intervals
+freebayes,freebayes_03,-f reference.fa -o output.bam input.bam input.bam > variants.vcf,genotype variants from pileup with 16 threads,variant-calling
+bedtools,bedtools_04,merge -i input.bed -o merged_output.bed,merge adjacent genomic intervals,genomic-intervals
+quast,quast_05,-r reference.fa -g input2.bed -o output_dir/ -t 16 input.bam,assemble genome from reads using 16 threads,assembly
+liftoff,liftoff_05,-g annotation.gtf -o merged_annotations.txt reference.fa file2.txt file3.txt -u unmapped.txt,merge multiple annotation files,annotation
+flye,flye_08,--nano-raw <path_to_raw_nanopore_reads> --genome-size 5m --out-dir output_dir/ --polish-target true -g 5m --threads 16,run genome assembly with polishing step,assembly
+busco,busco_09,-f - --skip_bbtools --list-datasets --opt-out-run-stats -l bacteria_odb10 -m genome,perform de novo assembly of sequencing data,assembly
+rsync,rsync_08,-avz input.bam --from0 /path/to/api/data -o /path/to/save/file.txt output.bam,fetch data from API endpoint and save to file,networking
+seqkit,seqkit_05,seq -o output.fasta -m <minimum_length> input.bam,filter sequences by minimum length,sequence-utilities
+tar,tar_01,-czf output.tar.gz input.bam,compress file while keeping original,compression
+mosdepth,mosdepth_01,--by 500 --prefix output input.bam,filter reads by minimum quality score 20,qc
+quast,quast_06,-r reference.fa -g input2.bed -o output_dir/ -t 4 input.bam input.fastq,perform de novo assembly of sequencing data,assembly
+gzip,gzip_04,-f -c --synchronous -l -S,create compressed archive of project directory,compression
+freebayes,freebayes_04,-f reference.fa -p 1 -v output.bam -q 30 input.bam input.bam > variants.vcf,call variants from alignment file with minimum quality 30,variant-calling
+bcftools,bcftools_03,"sort view -i QUAL>30 && INFO/DP>10 && TYPE=""snp"" -O z -f reference.fa input.bam input.bam | bcftools call",call SNPs and small indels from sorted BAM,variant-calling
+sort,sort_04,"1% of memory, b 1, K 1024 (default), and so on for M, G, T, P, E, Z, Y.",find lines matching regex and count occurrences,text-processing
+sort,sort_07,--parallel -o -c --debug --files0-from,sort lines numerically by second column,text-processing
+curl,curl_07,-o output.bam https://example.com,download multiple files in parallel,networking
+tar,tar_03,-czf output.tar.gz -C . input.bam,create compressed archive of project directory,compression
+tabix,tabix_05,-R <region> input.bam <indexed_file>,query indexed file by genomic region,utilities
+kallisto,kallisto_06,index -i index.idx -o output_dir/ -t 16 reads_1.fq reads_2.fq reads.fastq,quantify transcript expression using index and 16 threads,rna-seq
+fastp,fastp_09,-i reads_1.fq -o output_1.fq -q 20 -l 36 -w 8 -h output.html -j output.json,trim low-quality bases and adapters from sequencing reads,qc
+stringtie,stringtie_04,-p 4 -G reference.gtf -o transcriptome_index.idx input.bam input_reads.fastq,build transcriptome index for quantification,rna-seq
+mv,mv_05,-t 4 -u,move all log files to archive directory,filesystem
+tabix,tabix_03,-p vcf input.bam input.vcf.gz,create index for sorted data file,utilities
+busco,busco_10,-f - --skip_bbtools --list-datasets --opt-out-run-stats -l bacteria_odb10 -m genome,perform de novo assembly of sequencing data,assembly
+flye,flye_06,--meta --nano-raw input.bam --out-dir output_dir/ -g 5m --threads 16,assemble metagenomic reads with 4 threads,assembly
+wget,wget_05,-O output.bam https://example.com,fetch data from API endpoint and save to file,networking
+wget,wget_02,-r -l 2 -np -P output_dir/ https://example.com,mirror entire website recursively,networking
+bcftools,bcftools_06,call -vm -o variants.vcf.gz input.bam input.bam,call variants from alignment file with minimum quality 30,variant-calling
+fastp,fastp_08,-i reads_1.fq -o output.bam -q 20 -l 36 -w 20 -h output.html -j output.json,filter reads by minimum quality score 20,qc
+minimap2,minimap2_02,-ax map-ont reference.fa input.bam -o output_02.bam,align reads and output sorted results to output_02.bam,alignment
+multiqc,multiqc_03,. -o output_dir/ -f,run quality control analysis with 16 threads,qc
+freebayes,freebayes_07,-f reference.fa -o output.bam input.bam input.bam > variants.vcf,genotype variants from pileup with 16 threads,variant-calling
+salmon,salmon_04,index -i /path/to/index -l A -1 reads_1.fq -2 reads_2.fq -p 4 -o output_dir/,quantify transcript expression using index and 8 threads,rna-seq
+vcftools,vcftools_08,--site-pi --vcf input.bam --max-missing 0.9 --out output,genotype variants from pileup with 4 threads,variant-calling
+samtools,samtools_01,view addreplacerg -r @RG\tID:s1\tSM:s1\tLB:lib1\tPL:ILLUMINA -o output_01.bam input.bam,align single-end reads with 8 threads and write to output_01.bam,alignment
+fastp,fastp_06,-i reads_1.fq -o output_1.fq -q 20 -l 36 -w 8 -h output.html -j output.json,trim low-quality bases and adapters from sequencing reads,qc
+liftoff,liftoff_04,-g annotation.gtf -o merged_annotations.txt reference.fa file2.txt file3.txt -u unmapped.txt,merge multiple annotation files,annotation
+bcftools,bcftools_08,"filter view -i QUAL>30 && INFO/DP>10 && TYPE=""snp"" -O z input.bam","filter variants by quality score, output to output_08.vcf",variant-calling
+sort,sort_06,"1% of memory, b 1, K 1024 (default), and so on for M, G, T, P, E, Z, Y.",find lines matching regex and count occurrences,text-processing
+freebayes,freebayes_10,-f reference.fa -o output.bam input.bam input.bam > variants.vcf,genotype variants from pileup with 16 threads,variant-calling
+curl,curl_02,https://example.com/,mirror entire website recursively,networking
+bedtools,bedtools_08,intersect -a file1.bed -b file2.bed -wa,find overlapping intervals between two BED files,genomic-intervals
+mv,mv_04,-t 4 -u,move all log files to archive directory,filesystem
+grep,grep_02,-r -rn pattern recursively --include=input.bam .,search for pattern recursively in all text files,text-processing
+tabix,tabix_01,-p vcf input.bam input.vcf.gz,compress and index variant file for fast access,utilities
+mv,mv_07,-t 4 -u,move all log files to archive directory,filesystem
+find,find_07,. -maxdepth 1 -type d,move all log files to archive directory,filesystem
+find,find_05,. -perm,copy directory recursively preserving permissions,filesystem
+canu,canu_03,-p myAssembly -d output_dir/ -nanopore-raw input.bam genomeSize=5m maxThreads=8,assemble metagenomic reads with 16 threads,assembly
+seqkit,seqkit_03,seq -s *seq input.bam,compute statistics for all sequence files,sequence-utilities
+kallisto,kallisto_07,quant bus -b 100,estimate gene abundance from RNA-seq reads,rna-seq
+porechop,porechop_01,-i input.fastq -o output.fastq.gz --threads 8,trim low-quality bases and adapters from sequencing reads,qc
+find,find_04,. -perm,copy directory recursively preserving permissions,filesystem
+stringtie,stringtie_05,-p 4 -G reference.gtf -o transcriptome_index.idx input.bam input_reads.fastq.gz,build transcriptome index for quantification,rna-seq
+cutadapt,cutadapt_07,-a AGATCGGAAGAGC -q 20 --minimum-length 36 -o output_07.fastq -p input2.bed output_07.fastq reads_2.fq,check read quality and generate report to output_07.fastq,qc
+cp,cp_04,--copy-contents -R -t 4 --parents -u,copy directory recursively preserving permissions,filesystem
+busco,busco_07,-f long_reads.fastq -o --opt-out-run-stats --out_path  -c 3 -l bacteria_odb10 -m genome,assemble contigs from long reads and output to output_07.fasta,assembly
+grep,grep_08,-n pattern input.bam,sort lines numerically by second column,text-processing
+bedtools,bedtools_03,sort merge -i input.bed -g genome.chrom.sizes,sort genomic intervals by coordinate,genomic-intervals
+fastqc,fastqc_08,input.bam -o output_dir/ -t 8,filter reads by minimum quality score 20,qc
+quast,quast_04,-r reference.fa -o output_dir/ -t 8 metaquast.py input.bam,assemble metagenomic reads with 8 threads,assembly
+samtools,samtools_03,view flagstat input.bam reads.fastq,perform sensitive alignment of reads to reference genome,alignment
+rsync,rsync_07,-avz input.bam output.bam,upload results to remote server efficiently,networking
+fastp,fastp_05,-i reads_1.fq -o output_1.fq -q 20 -l 36 -w 8 -h output.html -j output.json,trim low-quality bases and adapters from sequencing reads,qc
+quast,quast_07,-r reference.fa -g input2.bed -o output_dir/ -t 16 input.bam,assemble genome from reads using 16 threads,assembly
+chopper,chopper_06,--trim-approach trim-by-quality --cutoff 10 -q 10 -l 1000 input_reads.fastq,trim low-quality bases and adapters from sequencing reads,qc
+fastp,fastp_01,-i reads_1.fq -o output.bam -q 20 -l 36 -w 20 -h output.html -j output.json,filter reads by minimum quality score 20,qc
+seqkit,seqkit_01,seq -o <output_format> -i <input_format> input.bam <input_file>,convert between sequence formats,sequence-utilities
+bowtie2,bowtie2_08,-x reference_index -1 reads_1.fq -2 reads_2.fq --rg-id sample1 --rg SM:sample1 -U input_reads.fastq && bowtie2 samtools sort -p 8 --very-sensitive,align reads and output sorted results to output_08.bam,alignment
+grep,grep_10,"-f input2.bed input.bam ""from """,extract specific columns from tab-delimited file,text-processing
+diamond,diamond_01,blastp makedb --in input.bam -d database,search sequences against reference database,metagenomics
+freebayes,freebayes_09,-f reference.fa -p 1 -v output.bam -q 30 input.bam input.bam > variants.vcf,call variants from alignment file with minimum quality 30,variant-calling
+mv,mv_10,-t 4 -u,move all log files to archive directory,filesystem
+fastp,fastp_04,-i output_04.fastq -o output_04_1.fq -q 20 -l 36 -w 8 -h output_04.html -j output_04.json,check read quality and generate report to output_04.fastq,qc
+macs2,macs2_07,callpeak -t narrowPeak -c input2.bed -n output -g hs -p fdr input.bam control.bam -f BAM,call narrow peaks with FDR threshold,epigenomics
+megahit,megahit_07,-1 input_reads_R1.fastq -2 input_reads_R2.fastq -o output_07/ --num-cpu-threads 16 --min-contig-len 500 -t 16,assemble contigs from long reads and output to output_07.fasta,assembly
+diamond,diamond_08,blastp makedb --in input.bam -d database,search sequences against reference database,metagenomics
+minimap2,minimap2_05,-ax map-ont reference.fa input.bam -o output_05.bam,align single-end reads with 4 threads and write to output_05.bam,alignment
+find,find_06,. -perm,copy directory recursively preserving permissions,filesystem
+freebayes,freebayes_01,-f reference.fa -o output.bam input.bam input.bam > variants.vcf,call SNPs and small indels from sorted BAM,variant-calling
+kallisto,kallisto_05,quant bus -b 100,estimate gene abundance from RNA-seq reads,rna-seq
+samtools,samtools_08,view fastq -1 output_08.bam -2 input2.bed -0 /dev/null -s /dev/null -n input.bam,align paired-end reads to reference genome using 4 threads and save as output_08.bam,alignment
+mosdepth,mosdepth_10,-Q 20 -F 1796 --prefix output -t 4 input.bam /path/to/reads/*.fastq.gz --by 10000,assess sequencing quality metrics for all samples,qc
+busco,busco_03,-f -c 8 -o - --limit 3 -c 8 -l bacteria_odb10 -m genome,assemble genome from reads using 8 threads,assembly
+busco,busco_06,-f -c 16 -o - --limit 3 -c 16 -l bacteria_odb10 -m genome,assemble genome from reads using 16 threads,assembly
+gzip,gzip_02,-d -l --rsyncable -S -f,decompress and extract archive contents,compression
+canu,canu_02,-p myAssembly -d output_dir/ -nanopore-raw input.bam genomeSize=5m maxThreads=8,perform de novo assembly of sequencing data,assembly
+bcftools,bcftools_07,view mpileup -f reference.fa -Ou input.bam,genotype variants from pileup with 4 threads,variant-calling
+fastqc,fastqc_02,-o output_dir/ -t 4 input.bam,run quality control analysis with 4 threads,qc
+vcftools,vcftools_07,--vcf input.bam --remove-indels --maf 0.05 --max-missing 0.9 --recode --recode-INFO-all --out output,call SNPs and small indels from sorted BAM,variant-calling
+cp,cp_06,-r --update source_directory destination_directory,synchronize two directories efficiently,filesystem
+spades,spades_02,-t 4 -1 reads_1.fastq -2 reads_2.fastq -o output_dir/ --memory 32,perform de novo assembly of sequencing data,assembly
+curl,curl_01,-L --progress-bar -o output.bam https://example.com,download file from remote server with progress,networking
+porechop,porechop_03,-i input.fastq -o output.fastq.gz --threads 8,trim low-quality bases and adapters from sequencing reads,qc
+bcftools,bcftools_01,"filter view -i QUAL>30 && INFO/DP>10 && TYPE=""snp"" -O z input.bam","filter variants by quality score, output to output_01.vcf",variant-calling
+minimap2,minimap2_06,-ax map-ont reference.fa input.bam -o output_06.bam,align single-end reads with 4 threads and write to output_06.bam,alignment
+mv,mv_03,,synchronize two directories efficiently,filesystem
+cp,cp_01,--copy-contents -l 7,find files modified in the last 7 days,filesystem
+cp,cp_07,--copy-contents -l 7,find files modified in the last 7 days,filesystem
+megahit,megahit_04,-1 reads_1.fastq -2 reads_2.fastq -o output_dir/ --num-cpu-threads 16 --min-contig-len 500 -t 16,perform de novo assembly of sequencing data,assembly
+seqkit,seqkit_02,seq -o output.fasta -i <input.fasta> -n <id_list.txt> input.bam <output.fasta>,extract sequences by ID from FASTA file,sequence-utilities
+canu,canu_06,-p myAssembly -d output_dir/ -nanopore-raw input.bam genomeSize=5m maxThreads=8,run genome assembly with polishing step,assembly
+quast,quast_02,-r output_02.fasta -o output_02/ --min-contig 1000 -t 4 input.bam /path/to/long_reads.fastq.gz,assemble contigs from long reads and output to output_02.fasta,assembly
+grep,grep_06,"-f input2.bed input.bam ""from """,extract specific columns from tab-delimited file,text-processing
+curl,curl_09,-o output.bam https://example.com,fetch data from API endpoint and save to file,networking
+find,find_02,. -type f -size +,search for large files exceeding 100MB,filesystem
+flye,flye_05,--nano-raw input_reads.fastq --genome-size 5m --out-dir output_05/ -o output_05 -g 5m --threads 16,assemble contigs from long reads and output to output_05.fasta,assembly
+spades,spades_01,--meta -1 reads_1.fq -2 reads_2.fq -o output_dir/ -t 16 --memory 32,assemble metagenomic reads with 16 threads,assembly
+salmon,salmon_07,quant -i genome_index -l A -1 reads_1.fq -2 reads_2.fq -p 4 -o output_dir/,quantify expression levels with paired-end reads,rna-seq
+cutadapt,cutadapt_08,-a AGATCGGAAGAGC -q 20 --minimum-length 36 -o output.bam -p input2.bed -j 4 reads_1.fq reads_2.fq,run quality control analysis with 4 threads,qc
+tabix,tabix_09,-p vcf input.bam input.vcf.gz,index compressed genomic data file,utilities
+mv,mv_01,-t 4,copy directory recursively preserving permissions,filesystem
+vcftools,vcftools_06,--vcf input.bam --remove-indels --maf 0.05 --max-missing 0.9 --recode --recode-INFO-all --out output,call SNPs and small indels from sorted BAM,variant-calling
+sort,sort_08,--files0-from -c --sort -V,search for pattern recursively in all text files,text-processing
+multiqc,multiqc_02,. -o output_dir/ -f,trim low-quality bases and adapters from sequencing reads,qc
+bowtie2,bowtie2_05,-x reference_genome -U input_reads --very-sensitive -p 8,perform sensitive alignment of reads to reference genome,alignment
+macs2,macs2_06,callpeak -t SE -c input2.bed -n output -g hs -f BAMPE --shift 75 --extsize 150 input.bam,call narrow peaks with FDR threshold,epigenomics
+flye,flye_07,--nano-raw input_reads.fastq --genome-size 5m --out-dir output_07/ -o output_07 -g 5m --threads 16,assemble contigs from long reads and output to output_07.fasta,assembly
+rsync,rsync_03,-avz input.bam --progress source/ output.bam destination/,download multiple files in parallel,networking
+wget,wget_08,-O output.bam https://example.com,download multiple files in parallel,networking
+seqkit,seqkit_08,seq -o output.fasta -i <input.fasta> -n <id_list.txt> input.bam <output.fasta>,extract sequences by ID from FASTA file,sequence-utilities
+minimap2,minimap2_03,-ax map-ont reference.fa input.bam -o output_03.bam,"map long reads to reference with 8 threads, output to output_03.bam",alignment
+canu,canu_09,-p myAssembly -d output_dir/ -nanopore-raw input.bam genomeSize=5m maxThreads=8,assemble metagenomic reads with 4 threads,assembly
+bcftools,bcftools_09,view mpileup -f reference.fa -Ou input.bam input.pileup,genotype variants from pileup with 16 threads,variant-calling
+macs2,macs2_04,callpeak -f BAM -g hs -n sample,generate coverage track from alignment file,epigenomics
+cp,cp_08,-r --update source_directory destination_directory,synchronize two directories efficiently,filesystem
+samtools,samtools_05,view fastq -1 output_05.bam -2 input2.bed -0 /dev/null -s /dev/null -n input.bam,align paired-end reads to reference genome using 4 threads and save as output_05.bam,alignment
+megahit,megahit_08,-1 input_reads_R1.fastq -2 input_reads_R2.fastq -o output_08/ --num-cpu-threads 16 --min-contig-len 500 -t 16,assemble contigs from long reads and output to output_08.fasta,assembly
+multiqc,multiqc_09,. -o output_dir/ -f,trim low-quality bases and adapters from sequencing reads,qc
+macs2,macs2_05,callpeak -f BAM -g hs -n sample,generate coverage track from alignment file,epigenomics
+fastqc,fastqc_03,-o output_dir/ -t 16 input.bam,run quality control analysis with 16 threads,qc
+bcftools,bcftools_02,"sort view -i QUAL>30 && INFO/DP>10 && TYPE=""snp"" -O z -f reference.fa input.bam input.bam | bcftools call",call SNPs and small indels from sorted BAM,variant-calling
+kallisto,kallisto_02,quant bus -b 100,estimate gene abundance from RNA-seq reads,rna-seq
+bedtools,bedtools_06,sort merge -i input.bed -g genome.chrom.sizes,sort genomic intervals by coordinate,genomic-intervals
+grep,grep_03,-c -E matching regex input.bam filename,find lines matching regex and count occurrences,text-processing
+stringtie,stringtie_02,-p 4 -G reference.gtf -o transcriptome_index.idx input.bam input_reads.fastq,build transcriptome index for quantification,rna-seq
+fastqc,fastqc_07,-o output_07/ input.bam input_07.fastq -t 8,check read quality and generate report to output_07.fastq,qc
+cp,cp_05,--copy-contents -l,search for large files exceeding 100MB,filesystem
+macs2,macs2_02,callpeak -t treatment.bam -c control.bam -n output --broad -g hs -f BAM,find broad peaks in histone modification data,epigenomics
+salmon,salmon_05,index -i genome_index -l A -1 reads_1.fq -2 reads_2.fq -p 4 -o output_dir/,build transcriptome index for quantification,rna-seq
+bowtie2,bowtie2_01,--threads 16 -x reference_genome -U input_reads.fastq reference.fa genome_index --very-sensitive,"map long reads to reference with 16 threads, output to output_01.bam",alignment
+bowtie2,bowtie2_03,-x reference_index -U input_reads.fastq --very-sensitive -p 8,align single-end reads with 8 threads and write to output_03.bam,alignment
+wget,wget_03,-r -l 2 -np -P output_dir/ https://example.com,mirror entire website recursively,networking
+tar,tar_06,-czf output.tar.gz input.bam,compress file while keeping original,compression
+canu,canu_08,-p myAssembly -d output_dir/ -nanopore-raw input.bam -nanopore reads.fastq.gz genomeSize=5m maxMemory=16g maxThreads=8,assemble genome from reads using 8 threads,assembly
+grep,grep_04,"-n pattern input.bam awk {print $2, $0} | sort cut",sort lines numerically by second column,text-processing
+cp,cp_02,--copy-contents -R -t 4 --parents -u,copy directory recursively preserving permissions,filesystem
+porechop,porechop_05,-i input.bam -o output_05.fastq --min_split_read_size 200 --threads 8,check read quality and generate report to output_05.fastq,qc
+busco,busco_02,-f - --opt-out-run-stats --skip_bbtools -l bacteria_odb10 -m genome,run genome assembly with polishing step,assembly
+vcftools,vcftools_02,--vcf input.bam --filter QUAL>30 --out output_02,"filter variants by quality score, output to output_02.vcf",variant-calling
+kallisto,kallisto_01,index -i index.idx -o output_dir/ -b 1000 -t 8 reads_1.fq reads_2.fq reads.fastq.gz,quantify transcript expression using index and 8 threads,rna-seq
+fastp,fastp_07,-i reads_1.fq -o output_1.fq -q 20 -l 36 -w 8 -h output.html -j output.json,trim low-quality bases and adapters from sequencing reads,qc
+wget,wget_07,-O output.bam https://example.com,download multiple files in parallel,networking
+fastqc,fastqc_01,-o output_01/ input.bam input_01.fastq -t 8,check read quality and generate report to output_01.fastq,qc
+fastp,fastp_02,-i reads_1.fq -o output_1.fq -q 20 -l 36 -w 8 -h output.html -j output.json,assess sequencing quality metrics for all samples,qc
+chopper,chopper_01,-q 10 -l 1000,assess sequencing quality metrics for all samples,qc
+diamond,diamond_02,blastp blastx -q input.bam -d database -o output.bam --outfmt 6 --evalue 1e-5 --max-target-seqs 1,align query sequences to protein database,metagenomics
+quast,quast_01,-r reference.fa -o output_dir/ -t 16 metaquast.py input.bam,assemble metagenomic reads with 16 threads,assembly
+gzip,gzip_05,-d -l --rsyncable -S -f,decompress and extract archive contents,compression
+megahit,megahit_05,-1 reads_1.fq -2 reads_2.fq --presets meta-sensitive -o output_dir/ -t 8,assemble metagenomic reads with 8 threads,assembly
+freebayes,freebayes_02,-f reference.fa -o output.bam input.bam input.bam > variants.vcf,call SNPs and small indels from sorted BAM,variant-calling
+flye,flye_09,--nano-raw input_reads.fastq --genome-size 5m --out-dir output_09/ -o output_09 -g 5m --threads 16,assemble contigs from long reads and output to output_09.fasta,assembly
+cutadapt,cutadapt_05,-a -o output.bam -q 20 --discard-untrimmed input.fastq.gz input.bam > output.fastq.gz,trim low-quality bases and adapters from sequencing reads,qc
+spades,spades_05,-t 4 -1 reads_1.fastq -2 reads_2.fastq -o output_dir/ --memory 32,run genome assembly with polishing step,assembly
+quast,quast_09,-r reference.fa -g input2.bed -o output_dir/ -t 4 input.bam input.fastq,perform de novo assembly of sequencing data,assembly
+curl,curl_03,-o output.bam https://example.com,download multiple files in parallel,networking
+quast,quast_03,-r reference.fa -g input2.bed -o output_dir/ -t 8 input.bam,assemble genome from reads using 8 threads,assembly
+tar,tar_05,-czf output.tar.gz input.bam,compress file while keeping original,compression
+canu,canu_04,-p myAssembly -d output_dir/ -nanopore-raw input.bam genomeSize=5m maxThreads=8,perform de novo assembly of sequencing data,assembly
+diamond,diamond_05,makedb --in input.bam -d database,build database index for fast searching,metagenomics
+seqkit,seqkit_06,seq -o output.fasta -r s/old_pattern/new_pattern/ input.bam input.fasta > output.fasta,rename sequence headers in batch,sequence-utilities
+tabix,tabix_06,-p vcf input.bam file1.vcf.gz file2.vcf.gz > merged.vcf.gz,merge multiple indexed files efficiently,utilities
+kallisto,kallisto_04,quant bus reference_transcripts.fa -b 100,assemble transcripts from aligned RNA-seq data,rna-seq
+sort,sort_02,--parallel -o -c --files0-from -k,filter unique entries and sort alphabetically,text-processing
+busco,busco_01,-f . -o --opt-out-run-stats --out_path  -c 3 -l bacteria_odb10 -m genome,assemble contigs from long reads and output to output_01.fasta,assembly
+kallisto,kallisto_08,quant bus reference_transcripts.fa -b 100,assemble transcripts from aligned RNA-seq data,rna-seq
+multiqc,multiqc_07,. -o output_dir/ -f,assess sequencing quality metrics for all samples,qc
+fastqc,fastqc_06,input.bam -o output_dir/ -t 8,filter reads by minimum quality score 20,qc
+minimap2,minimap2_01,-ax map-ont reference.fa input.bam -o output_01.bam,align paired-end reads to reference genome using 16 threads and save as output_01.bam,alignment
+salmon,salmon_03,quant -i genome_index -l A -1 reads_1.fq -2 reads_2.fq -d input2.bed -o output_dir/,estimate gene abundance from RNA-seq reads,rna-seq
+rsync,rsync_01,-avz input.bam --progress source/ output.bam destination/,download multiple files in parallel,networking
+canu,canu_05,-p myAssembly -d output_dir/ -nanopore-raw input.bam genomeSize=5m maxThreads=8,run genome assembly with polishing step,assembly
+freebayes,freebayes_05,-f reference.fa -p 1 -v output.bam -q 30 input.bam input.bam > variants.vcf,call variants from alignment file with minimum quality 30,variant-calling
+mv,mv_09,/path/to/search,search for large files exceeding 100MB,filesystem
+stringtie,stringtie_08,-e -G reference.gtf -o output.gtf -p 4 input.bam input_R1.fastq input_R2.fastq,quantify expression levels with paired-end reads,rna-seq
+porechop,porechop_02,-i input.fastq -o output.fastq.gz --threads 8,trim low-quality bases and adapters from sequencing reads,qc
+bcftools,bcftools_10,view mpileup -f reference.fa -Ou input.bam,genotype variants from pileup with 4 threads,variant-calling
+megahit,megahit_01,-1 input_reads_R1.fastq -2 input_reads_R2.fastq -o output_01/ --num-cpu-threads 16 --min-contig-len 500 -t 16,assemble contigs from long reads and output to output_01.fasta,assembly
+bedtools,bedtools_07,intersect -a file1.bed -b file2.bed -wa,find overlapping intervals between two BED files,genomic-intervals
+diamond,diamond_03,makedb --in input.bam -d database,build database index for fast searching,metagenomics
+tabix,tabix_02,-p vcf input.bam file1.vcf.gz file2.vcf.gz > merged.vcf.gz,merge multiple indexed files efficiently,utilities
+cutadapt,cutadapt_04,-a AGATCGGAAGAGC -q 20 --minimum-length 36 -o trimmed_{sample}.fastq -p input2.bed reads_1.fq reads_2.fq {input_file},assess sequencing quality metrics for all samples,qc
+liftoff,liftoff_01,reference.fa -g annotation.gtf -o output.gff3 -u unmapped.txt,lift annotations between genome assemblies,annotation
+salmon,salmon_02,quant -i genome_index -l A -1 reads_1.fq -2 reads_2.fq -d input2.bed -o output_dir/,assemble transcripts from aligned RNA-seq data,rna-seq
+spades,spades_04,-t 4 -1 reads_1.fastq -2 reads_2.fastq -o output_dir/ --memory 32,run genome assembly with polishing step,assembly
+mosdepth,mosdepth_03,--by 500 --prefix output input.bam,filter reads by minimum quality score 20,qc
+stringtie,stringtie_09,-e -B -G reference.gtf -o output.gtf input.bam input.bam,estimate gene abundance from RNA-seq reads,rna-seq
+wget,wget_04,-r -l 2 -np -P output_dir/ https://example.com,mirror entire website recursively,networking
