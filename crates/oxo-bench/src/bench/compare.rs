@@ -515,7 +515,26 @@ fn are_alias_subcommands(a: &str, b: &str) -> bool {
     const RSEM_ALIASES: &[(&str, &str)] = &[
         ("rsem-calculate-expression", "calculate-expression"),
         ("rsem-prepare-reference", "prepare-reference"),
+        ("rsem-calculate-expression", "expression"),
     ];
+
+    const VARSCAN2_ALIASES: &[(&str, &str)] = &[
+        ("mpileup2snp", "call"),
+        ("mpileup2snv", "call"),
+        ("mpileup2indel", "call"),
+    ];
+
+    const MMSEQS_ALIASES: &[(&str, &str)] = &[
+        ("easy-search", "search"),
+        ("easy-cluster", "cluster"),
+        ("easy-linclust", "linclust"),
+    ];
+
+    const GIT_ALIASES: &[(&str, &str)] = &[("checkout", "switch"), ("stash", "save")];
+
+    const MASH_ALIASES: &[(&str, &str)] = &[("dist", "distance"), ("sketch", "signature")];
+
+    const SAMTOOLS_ALIASES: &[(&str, &str)] = &[("flagstat", "stats"), ("idxstats", "stats")];
 
     const CENTRIFUGE_ALIASES: &[(&str, &str)] = &[
         ("centrifuge-build", "build"),
@@ -550,6 +569,11 @@ fn are_alias_subcommands(a: &str, b: &str) -> bool {
         .chain(CENTRIFUGE_ALIASES.iter())
         .chain(BRACKEN_ALIASES.iter())
         .chain(STRELKA2_ALIASES.iter())
+        .chain(VARSCAN2_ALIASES.iter())
+        .chain(MMSEQS_ALIASES.iter())
+        .chain(GIT_ALIASES.iter())
+        .chain(MASH_ALIASES.iter())
+        .chain(SAMTOOLS_ALIASES.iter())
     {
         if (a == *old && b == *new) || (a == *new && b == *old) {
             return true;
