@@ -1020,7 +1020,7 @@ impl LlmClient {
         no_prompt: bool,
         structured_doc: Option<&StructuredDoc>,
     ) -> Result<LlmCommandSuggestion> {
-        const MAX_RETRIES: usize = 2;
+        const MAX_RETRIES: usize = 0; // Single call, validate handles rest
         let overall_start = std::time::Instant::now();
         let mut trace = crate::diagnostic::GenerationTrace::new(tool, task);
 
