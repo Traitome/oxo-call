@@ -1,0 +1,28 @@
+[benchmark]
+repeats = 1
+parallel = true
+parallel_threads = 3
+skills_dir = "/data/home/wsx/Projects/oxo/oxo-call/skills"
+output_dir = "/data/home/wsx/Projects/oxo/oxo-call-test/bench/20260525"
+scenarios = ["bare", "prompt", "doc", "skill", "full"]
+
+[[models]]
+name = "qwen2.5-coder:7b"
+provider = "ollama"
+api_base = "http://localhost:11434/v1"
+
+[[models]]
+name = "deepseek-coder-v2:16b"
+provider = "ollama"
+api_base = "http://localhost:11434/v1"
+
+[[models]]
+name = "ministral-3:3b"
+provider = "ollama"
+api_base = "http://localhost:11434/v1"
+
+[[models]]
+name = "DeepSeek-V4-Flash"
+provider = "openai"
+api_base = "https://api.chat.csu.edu.cn/v1"
+api_key = "sk-IXtVxLYVCXOZhFzQQqa0OaJGvQ7CKmJcYslakxAF7IKl04uk"
