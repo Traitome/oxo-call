@@ -1139,7 +1139,11 @@ impl LlmClient {
             );
         }
 
-        if skill.is_none() {
+        // Phase B bypass DISABLED — LLM must be called in ALL modes.
+        // The 5-step validate pipeline (strip→enforce→add→replace→safety)
+        // provides deterministic correctness, no bypass needed.
+        #[allow(unreachable_code)]
+        if false {
             if let Some(sdoc) = structured_doc {
                 let is_small_model = crate::config::infer_model_parameter_count(&model)
                     .map(|p| p <= 8.0)

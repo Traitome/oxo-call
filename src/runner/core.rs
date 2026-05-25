@@ -892,34 +892,25 @@ impl Runner {
         })
     }
 
-    /// Core pipeline:
+    /// 5-mode unified pipeline:
     ///
-    /// 1. Fetch tool documentation (always — docs ground the flag catalog).
-    /// 2. Load skill (optional enhancement; does not replace docs).
-    /// 3. Extract `StructuredDoc` (flag catalog + examples for anti-hallucination).
-    /// 4. Single LLM call with enriched, structured prompt.
+    ///   bare:    no doc, no skill, no system prompt
+    ///   prompt:  no doc, no skill, with system prompt
+    ///   doc:     doc, no skill, with system prompt
+    ///   skill:   no doc, skill, with system prompt
+    ///   full:    doc, skill, with system prompt
+    ///
+    /// Flow: fetch_docs? → load_skill? → build_schema → build_prompt → LLM → validate
     pub(crate) async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
-        let spinner = if !self.no_doc {
-            make_spinner(&format!("Fetching documentation for '{tool}'..."))
-        } else {
-            make_spinner("Loading skill...")
-        };
-
-        // ── Step 1: Fetch docs (always, regardless of skill availability) ───────
+        // Step 1: Fetch documentation (skip in bare/prompt/skill modes)
         let resolved = if self.no_doc {
-            if self.verbose {
-                eprintln!(
-                    "{} [Ablation] Skipping documentation (--no-doc)",
-                    "[verbose]".dimmed()
-                );
-            }
             ResolvedDocs {
                 text: String::new(),
                 raw_text: String::new(),
                 has_subcommand_help: false,
-                top_subcommands: Vec::new(),
+                top_subcommands: vec![],
                 matched_subcommand: None,
-                path_companions: Vec::new(),
+                path_companions: vec![],
                 subcommands_from_help: false,
             }
         } else {
@@ -927,37 +918,14 @@ impl Runner {
         };
         let docs = resolved.text.clone();
 
-        spinner.finish_and_clear();
-
-        // ── Step 2: Load skill (enhancement, not replacement) ────────────────
+        // Step 2: Load skill (skip in bare/prompt/doc modes)
         let skill = if self.no_skill {
-            if self.verbose {
-                eprintln!(
-                    "{} [Ablation] Skipping skill (--no-skill)",
-                    "[verbose]".dimmed()
-                );
-            }
             None
         } else {
             self.skill_manager.load_async(tool).await
         };
 
-        if self.verbose {
-            if let Some(ref s) = skill {
-                eprintln!(
-                    "{} Skill loaded: {} ({} concepts, {} pitfalls, {} examples)",
-                    "[verbose]".dimmed(),
-                    s.meta.name,
-                    s.context.concepts.len(),
-                    s.context.pitfalls.len(),
-                    s.examples.len()
-                );
-            } else if !self.no_skill {
-                eprintln!("{} No skill found for '{}'", "[verbose]".dimmed(), tool);
-            }
-        }
-
-        // ── Step 3: Build StructuredDoc (flag catalog + anti-hallucination) ───
+        // Step 3: Build StructuredDoc from docs or skill
         let structured_doc = if !resolved.raw_text.is_empty() {
             let processor = DocProcessor::new();
             let raw_for_structure = &resolved.raw_text;
@@ -1195,50 +1163,17 @@ impl Runner {
         // Two-step decomposes the task: first select subcommand (classification),
         // then generate arguments (simpler generation). This significantly
         // improves accuracy for 7B models by reducing cognitive load.
-        let _model_category = self.config.model_size_category();
-        let use_two_step = false;
-
-        let mut suggestion = if use_two_step {
-            self.llm
-                .suggest_command_two_step(
-                    tool,
-                    &docs,
-                    &enriched_task,
-                    skill.as_ref(),
-                    self.no_prompt,
-                    structured_doc.as_ref(),
-                )
-                .await?
-        } else {
-            self.llm
-                .suggest_command(
-                    tool,
-                    &docs,
-                    &enriched_task,
-                    skill.as_ref(),
-                    self.no_prompt,
-                    structured_doc.as_ref(),
-                )
-                .await?
-        };
-
-        if suggestion.args.is_empty()
-            && !use_two_step
-            && skill.is_none()
-            && structured_doc.is_some()
-        {
-            suggestion = self
-                .llm
-                .suggest_command_two_step(
-                    tool,
-                    &docs,
-                    &enriched_task,
-                    skill.as_ref(),
-                    self.no_prompt,
-                    structured_doc.as_ref(),
-                )
-                .await?;
-        }
+        let suggestion = self
+            .llm
+            .suggest_command(
+                tool,
+                &docs,
+                &enriched_task,
+                skill.as_ref(),
+                self.no_prompt,
+                structured_doc.as_ref(),
+            )
+            .await?;
 
         spinner.finish_and_clear();
 
