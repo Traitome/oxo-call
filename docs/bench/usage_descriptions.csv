@@ -1,404 +1,304 @@
 toolset,tool,scenario_id,desc_id,user_level,description
-angsd,angsd,angsd_01,angsd_01_01,original,compute genotype likelihoods and allele frequencies for a set of BAMs (mapping.txt)
-angsd,angsd,angsd_01,angsd_01_02,beginner,How do I compute genotype likelihoods and allele frequencies for a set of BAMs (mapping.txt)?
-angsd,angsd,angsd_01,angsd_01_03,student,I need to compute genotype likelihoods and allele frequencies for a set of BAMs (mapping.txt)
-angsd,angsd,angsd_01,angsd_01_04,polite,Please compute genotype likelihoods and allele frequencies for a set of BAMs (mapping.txt)
-angsd,angsd,angsd_01,angsd_01_05,sysadmin,Use angsd to compute genotype likelihoods and allele frequencies for a set of BAMs (mapping.txt)
-angsd,angsd,angsd_01,angsd_01_06,goal_oriented,I want to compute genotype likelihoods and allele frequencies for a set of BAMs (mapping.txt)
-angsd,angsd,angsd_01,angsd_01_07,expert,compute genotype likelihoods allele frequencies set of BAMs (mapping.txt)
-angsd,angsd,angsd_01,angsd_01_08,detailed,I have data that I need to process: compute genotype likelihoods and allele frequencies for a set of BAMs (mapping.txt)
-angsd,angsd,angsd_01,angsd_01_09,informal,"Hey, can you help me compute genotype likelihoods and allele frequencies for a set of BAMs (mapping.txt)?"
-angsd,angsd,angsd_01,angsd_01_10,alternative,estimate genotype likelihoods and allele frequencies for a set of BAMs (mapping.txt)
-angsd,angsd,angsd_02,angsd_02_01,original,"compute per-site allele frequency spectrum for a single population (filtered.txt, sorted.fasta)"
-angsd,angsd,angsd_02,angsd_02_02,beginner,"How do I compute per-site allele frequency spectrum for a single population (filtered.txt, sorted.fasta)?"
-angsd,angsd,angsd_02,angsd_02_03,student,"I need to compute per-site allele frequency spectrum for a single population (filtered.txt, sorted.fasta)"
-angsd,angsd,angsd_02,angsd_02_04,polite,"Please compute per-site allele frequency spectrum for a single population (filtered.txt, sorted.fasta)"
-angsd,angsd,angsd_02,angsd_02_05,sysadmin,"Use angsd to compute per-site allele frequency spectrum for a single population (filtered.txt, sorted.fasta)"
-angsd,angsd,angsd_02,angsd_02_06,goal_oriented,"I want to compute per-site allele frequency spectrum for a single population (filtered.txt, sorted.fasta)"
-angsd,angsd,angsd_02,angsd_02_07,expert,"compute per-site allele frequency spectrum single population (filtered.txt, sorted.fasta)"
-angsd,angsd,angsd_02,angsd_02_08,detailed,"I have data that I need to process: compute per-site allele frequency spectrum for a single population (filtered.txt, sorted.fasta)"
-angsd,angsd,angsd_02,angsd_02_09,informal,"Hey, can you help me compute per-site allele frequency spectrum for a single population (filtered.txt, sorted.fasta)?"
-angsd,angsd,angsd_02,angsd_02_10,alternative,"calculate per-site allele frequency spectrum for a single population (filtered.txt, sorted.fasta)"
-angsd,angsd,angsd_03,angsd_03_01,original,estimate 1D site frequency spectrum from doSaf output (sorted.saf.idx)
-angsd,angsd,angsd_03,angsd_03_02,beginner,How do I estimate 1D site frequency spectrum from doSaf output (sorted.saf.idx)?
-angsd,angsd,angsd_03,angsd_03_03,student,I need to estimate 1D site frequency spectrum from doSaf output (sorted.saf.idx)
-angsd,angsd,angsd_03,angsd_03_04,polite,Please estimate 1D site frequency spectrum from doSaf output (sorted.saf.idx)
-angsd,angsd,angsd_03,angsd_03_05,sysadmin,Use angsd to estimate 1D site frequency spectrum from doSaf output (sorted.saf.idx)
-angsd,angsd,angsd_03,angsd_03_06,goal_oriented,I want to estimate 1D site frequency spectrum from doSaf output (sorted.saf.idx)
-angsd,angsd,angsd_03,angsd_03_07,expert,estimate 1D site frequency spectrum doSaf output (sorted.saf.idx)
-angsd,angsd,angsd_03,angsd_03_08,detailed,I have data that I need to process: estimate 1D site frequency spectrum from doSaf output (sorted.saf.idx)
-angsd,angsd,angsd_03,angsd_03_09,informal,"Hey, can you help me estimate 1D site frequency spectrum from doSaf output (sorted.saf.idx)?"
-angsd,angsd,angsd_03,angsd_03_10,alternative,The desired outcome is: estimate 1D site frequency spectrum from doSaf output (sorted.saf.idx)
-angsd,angsd,angsd_04,angsd_04_01,original,"estimate Watterson's theta and Tajima's D in sliding windows (results.txt, results.sfs, analysis.fasta)"
-angsd,angsd,angsd_04,angsd_04_02,beginner,"How do I estimate Watterson's theta and Tajima's D in sliding windows (results.txt, results.sfs, analysis.fasta)?"
-angsd,angsd,angsd_04,angsd_04_03,student,"I need to estimate Watterson's theta and Tajima's D in sliding windows (results.txt, results.sfs, analysis.fasta)"
-angsd,angsd,angsd_04,angsd_04_04,polite,"Please estimate Watterson's theta and Tajima's D in sliding windows (results.txt, results.sfs, analysis.fasta)"
-angsd,angsd,angsd_04,angsd_04_05,sysadmin,"Use angsd to estimate Watterson's theta and Tajima's D in sliding windows (results.txt, results.sfs, analysis.fasta)"
-angsd,angsd,angsd_04,angsd_04_06,goal_oriented,"I want to estimate Watterson's theta and Tajima's D in sliding windows (results.txt, results.sfs, analysis.fasta)"
-angsd,angsd,angsd_04,angsd_04_07,expert,"estimate Watterson's theta Tajima's D sliding windows (results.txt, results.sfs, analysis.fasta)"
-angsd,angsd,angsd_04,angsd_04_08,detailed,"I have data that I need to process: estimate Watterson's theta and Tajima's D in sliding windows (results.txt, results.sfs, analysis.fasta)"
-angsd,angsd,angsd_04,angsd_04_09,informal,"Hey, can you help me estimate Watterson's theta and Tajima's D in sliding windows (results.txt, results.sfs, analysis.fasta)?"
-angsd,angsd,angsd_04,angsd_04_10,alternative,"Tajima's D in sliding windows (results.txt, results.sfs, analysis.fasta) after estimate Watterson's theta"
-angsd,angsd,angsd_05,angsd_05_01,original,"compute Fst between two populations using 2D SFS (analysis.saf.idx, merged.saf.idx, annotated.2dsfs)"
-angsd,angsd,angsd_05,angsd_05_02,beginner,"How do I compute Fst between two populations using 2D SFS (analysis.saf.idx, merged.saf.idx, annotated.2dsfs)?"
-angsd,angsd,angsd_05,angsd_05_03,student,"I need to compute Fst between two populations using 2D SFS (analysis.saf.idx, merged.saf.idx, annotated.2dsfs)"
-angsd,angsd,angsd_05,angsd_05_04,polite,"Please compute Fst between two populations using 2D SFS (analysis.saf.idx, merged.saf.idx, annotated.2dsfs)"
-angsd,angsd,angsd_05,angsd_05_05,sysadmin,"Use angsd to compute Fst between two populations using 2D SFS (analysis.saf.idx, merged.saf.idx, annotated.2dsfs)"
-angsd,angsd,angsd_05,angsd_05_06,goal_oriented,"I want to compute Fst between two populations using 2D SFS (analysis.saf.idx, merged.saf.idx, annotated.2dsfs)"
-angsd,angsd,angsd_05,angsd_05_07,expert,"compute Fst between two populations 2D SFS (analysis.saf.idx, merged.saf.idx, annotated.2dsfs)"
-angsd,angsd,angsd_05,angsd_05_08,detailed,"I have data that I need to process: compute Fst between two populations using 2D SFS (analysis.saf.idx, merged.saf.idx, annotated.2dsfs)"
-angsd,angsd,angsd_05,angsd_05_09,informal,"Hey, can you help me compute Fst between two populations using 2D SFS (analysis.saf.idx, merged.saf.idx, annotated.2dsfs)?"
-angsd,angsd,angsd_05,angsd_05_10,alternative,"calculate Fst between two populations using 2D SFS (analysis.saf.idx, merged.saf.idx, annotated.2dsfs)"
-angsd,angsd,angsd_06,angsd_06_01,original,call genotypes with posterior probabilities (counts.txt)
-angsd,angsd,angsd_06,angsd_06_02,beginner,How do I call genotypes with posterior probabilities (counts.txt)?
-angsd,angsd,angsd_06,angsd_06_03,student,I need to call genotypes with posterior probabilities (counts.txt)
-angsd,angsd,angsd_06,angsd_06_04,polite,Please call genotypes with posterior probabilities (counts.txt)
-angsd,angsd,angsd_06,angsd_06_05,sysadmin,Use angsd to call genotypes with posterior probabilities (counts.txt)
-angsd,angsd,angsd_06,angsd_06_06,goal_oriented,I want to call genotypes with posterior probabilities (counts.txt)
-angsd,angsd,angsd_06,angsd_06_07,expert,call genotypes posterior probabilities (counts.txt)
-angsd,angsd,angsd_06,angsd_06_08,detailed,I have data that I need to process: call genotypes with posterior probabilities (counts.txt)
-angsd,angsd,angsd_06,angsd_06_09,informal,"Hey, can you help me call genotypes with posterior probabilities (counts.txt)?"
-angsd,angsd,angsd_06,angsd_06_10,alternative,detect genotypes with posterior probabilities (counts.txt)
-angsd,angsd,angsd_07,angsd_07_01,original,"perform ABBA-BABA D-statistics test for introgression (filtered.txt, reference.fasta)"
-angsd,angsd,angsd_07,angsd_07_02,beginner,"How do I perform ABBA-BABA D-statistics test for introgression (filtered.txt, reference.fasta)?"
-angsd,angsd,angsd_07,angsd_07_03,student,"I need to perform ABBA-BABA D-statistics test for introgression (filtered.txt, reference.fasta)"
-angsd,angsd,angsd_07,angsd_07_04,polite,"Please perform ABBA-BABA D-statistics test for introgression (filtered.txt, reference.fasta)"
-angsd,angsd,angsd_07,angsd_07_05,sysadmin,"Use angsd to perform ABBA-BABA D-statistics test for introgression (filtered.txt, reference.fasta)"
-angsd,angsd,angsd_07,angsd_07_06,goal_oriented,"I want to perform ABBA-BABA D-statistics test for introgression (filtered.txt, reference.fasta)"
-angsd,angsd,angsd_07,angsd_07_07,expert,"perform ABBA-BABA D-statistics test introgression (filtered.txt, reference.fasta)"
-angsd,angsd,angsd_07,angsd_07_08,detailed,"I have data that I need to process: perform ABBA-BABA D-statistics test for introgression (filtered.txt, reference.fasta)"
-angsd,angsd,angsd_07,angsd_07_09,informal,"Hey, can you help me perform ABBA-BABA D-statistics test for introgression (filtered.txt, reference.fasta)?"
-angsd,angsd,angsd_07,angsd_07_10,alternative,"The desired outcome is: perform ABBA-BABA D-statistics test for introgression (filtered.txt, reference.fasta)"
-angsd,angsd,angsd_08,angsd_08_01,original,"run association study using Score Test (reference.txt, assembly.txt)"
-angsd,angsd,angsd_08,angsd_08_02,beginner,"How do I run association study using Score Test (reference.txt, assembly.txt)?"
-angsd,angsd,angsd_08,angsd_08_03,student,"I need to run association study using Score Test (reference.txt, assembly.txt)"
-angsd,angsd,angsd_08,angsd_08_04,polite,"Please run association study using Score Test (reference.txt, assembly.txt)"
-angsd,angsd,angsd_08,angsd_08_05,sysadmin,"Use angsd to run association study using Score Test (reference.txt, assembly.txt)"
-angsd,angsd,angsd_08,angsd_08_06,goal_oriented,"I want to run association study using Score Test (reference.txt, assembly.txt)"
-angsd,angsd,angsd_08,angsd_08_07,expert,"run association study Score Test (reference.txt, assembly.txt)"
-angsd,angsd,angsd_08,angsd_08_08,detailed,"I have data that I need to process: run association study using Score Test (reference.txt, assembly.txt)"
-angsd,angsd,angsd_08,angsd_08_09,informal,"Hey, can you help me run association study using Score Test (reference.txt, assembly.txt)?"
-angsd,angsd,angsd_08,angsd_08_10,alternative,"execute association study using Score Test (reference.txt, assembly.txt)"
-angsd,angsd,angsd_09,angsd_09_01,original,generate consensus FASTA from BAM alignment (counts.bam)
-angsd,angsd,angsd_09,angsd_09_02,beginner,How do I generate consensus FASTA from BAM alignment (counts.bam)?
-angsd,angsd,angsd_09,angsd_09_03,student,I need to generate consensus FASTA from BAM alignment (counts.bam)
-angsd,angsd,angsd_09,angsd_09_04,polite,Please generate consensus FASTA from BAM alignment (counts.bam)
-angsd,angsd,angsd_09,angsd_09_05,sysadmin,Use angsd to generate consensus FASTA from BAM alignment (counts.bam)
-angsd,angsd,angsd_09,angsd_09_06,goal_oriented,I want to generate consensus FASTA from BAM alignment (counts.bam)
-angsd,angsd,angsd_09,angsd_09_07,expert,generate consensus FASTA BAM alignment (counts.bam)
-angsd,angsd,angsd_09,angsd_09_08,detailed,I have data that I need to process: generate consensus FASTA from BAM alignment (counts.bam)
-angsd,angsd,angsd_09,angsd_09_09,informal,"Hey, can you help me generate consensus FASTA from BAM alignment (counts.bam)?"
-angsd,angsd,angsd_09,angsd_09_10,alternative,produce consensus FASTA from BAM alignment (counts.bam)
-angsd,angsd,angsd_10,angsd_10_01,original,compute genotype likelihoods for NGSadmix admixture analysis (sorted.txt)
-angsd,angsd,angsd_10,angsd_10_02,beginner,How do I compute genotype likelihoods for NGSadmix admixture analysis (sorted.txt)?
-angsd,angsd,angsd_10,angsd_10_03,student,I need to compute genotype likelihoods for NGSadmix admixture analysis (sorted.txt)
-angsd,angsd,angsd_10,angsd_10_04,polite,Please compute genotype likelihoods for NGSadmix admixture analysis (sorted.txt)
-angsd,angsd,angsd_10,angsd_10_05,sysadmin,Use angsd to compute genotype likelihoods for NGSadmix admixture analysis (sorted.txt)
-angsd,angsd,angsd_10,angsd_10_06,goal_oriented,I want to compute genotype likelihoods for NGSadmix admixture analysis (sorted.txt)
-angsd,angsd,angsd_10,angsd_10_07,expert,compute genotype likelihoods NGSadmix admixture analysis (sorted.txt)
-angsd,angsd,angsd_10,angsd_10_08,detailed,I have data that I need to process: compute genotype likelihoods for NGSadmix admixture analysis (sorted.txt)
-angsd,angsd,angsd_10,angsd_10_09,informal,"Hey, can you help me compute genotype likelihoods for NGSadmix admixture analysis (sorted.txt)?"
-angsd,angsd,angsd_10,angsd_10_10,alternative,estimate genotype likelihoods for NGSadmix admixture analysis (sorted.txt)
-arriba,arriba,arriba_01,arriba_01_01,original,"run STAR with chimeric output for Arriba fusion detection (assembly.fastq.gz, counts.fastq.gz)"
-arriba,arriba,arriba_01,arriba_01_02,beginner,"How do I run STAR with chimeric output for Arriba fusion detection (assembly.fastq.gz, counts.fastq.gz)?"
-arriba,arriba,arriba_01,arriba_01_03,student,"I need to run STAR with chimeric output for Arriba fusion detection (assembly.fastq.gz, counts.fastq.gz)"
-arriba,arriba,arriba_01,arriba_01_04,polite,"Please run STAR with chimeric output for Arriba fusion detection (assembly.fastq.gz, counts.fastq.gz)"
-arriba,arriba,arriba_01,arriba_01_05,sysadmin,"Use arriba to run STAR with chimeric output for Arriba fusion detection (assembly.fastq.gz, counts.fastq.gz)"
-arriba,arriba,arriba_01,arriba_01_06,goal_oriented,"I want to run STAR with chimeric output for Arriba fusion detection (assembly.fastq.gz, counts.fastq.gz)"
-arriba,arriba,arriba_01,arriba_01_07,expert,"run STAR chimeric output Arriba fusion detection (assembly.fastq.gz, counts.fastq.gz)"
-arriba,arriba,arriba_01,arriba_01_08,detailed,"I have RNA-seq data that I need to process: run STAR with chimeric output for Arriba fusion detection (assembly.fastq.gz, counts.fastq.gz)"
-arriba,arriba,arriba_01,arriba_01_09,informal,"Hey, can you help me run STAR with chimeric output for Arriba fusion detection (assembly.fastq.gz, counts.fastq.gz)?"
-arriba,arriba,arriba_01,arriba_01_10,alternative,"perform STAR with chimeric output for Arriba fusion detection (assembly.fastq.gz, counts.fastq.gz)"
-arriba,arriba,arriba_02,arriba_02_01,original,"detect gene fusions with Arriba using blacklist and known fusions (sample/results.bam, matrix.tsv, results.tsv, variants.fa, processed.gtf, aligned.tsv.gz, report.tsv)"
-arriba,arriba,arriba_02,arriba_02_02,beginner,"How do I detect gene fusions with Arriba using blacklist and known fusions (sample/results.bam, matrix.tsv, results.tsv, variants.fa, processed.gtf, aligned.tsv.gz, report.tsv)?"
-arriba,arriba,arriba_02,arriba_02_03,student,"I need to detect gene fusions with Arriba using blacklist and known fusions (sample/results.bam, matrix.tsv, results.tsv, variants.fa, processed.gtf, aligned.tsv.gz, report.tsv)"
-arriba,arriba,arriba_02,arriba_02_04,polite,"Please detect gene fusions with Arriba using blacklist and known fusions (sample/results.bam, matrix.tsv, results.tsv, variants.fa, processed.gtf, aligned.tsv.gz, report.tsv)"
-arriba,arriba,arriba_02,arriba_02_05,sysadmin,"Use arriba to detect gene fusions with Arriba using blacklist and known fusions (sample/results.bam, matrix.tsv, results.tsv, variants.fa, processed.gtf, aligned.tsv.gz, report.tsv)"
-arriba,arriba,arriba_02,arriba_02_06,goal_oriented,"I want to detect gene fusions with Arriba using blacklist and known fusions (sample/results.bam, matrix.tsv, results.tsv, variants.fa, processed.gtf, aligned.tsv.gz, report.tsv)"
-arriba,arriba,arriba_02,arriba_02_07,expert,"detect gene fusions Arriba blacklist known fusions (sample/results.bam, matrix.tsv, results.tsv, variants.fa, processed.gtf, aligned.tsv.gz, report.tsv)"
-arriba,arriba,arriba_02,arriba_02_08,detailed,"I have data that I need to process: detect gene fusions with Arriba using blacklist and known fusions (sample/results.bam, matrix.tsv, results.tsv, variants.fa, processed.gtf, aligned.tsv.gz, report.tsv), saving the result to a specified output file"
-arriba,arriba,arriba_02,arriba_02_09,informal,"Hey, can you help me detect gene fusions with Arriba using blacklist and known fusions (sample/results.bam, matrix.tsv, results.tsv, variants.fa, processed.gtf, aligned.tsv.gz, report.tsv)?"
-arriba,arriba,arriba_02,arriba_02_10,alternative,"Known fusions (sample/results.bam, matrix.tsv, results.tsv, variants.fa, processed.gtf, aligned.tsv.gz, report.tsv) after detect gene fusions with Arriba using blacklist"
-arriba,arriba,arriba_03,arriba_03_01,original,"detect fusions with protein domain annotation and WGS structural variant support (sample/genome.bam, genome.tsv, processed.tsv, trimmed.fa, assembly.gtf, raw.tsv, assembly.gff3, reference.tsv)"
-arriba,arriba,arriba_03,arriba_03_02,beginner,"How do I detect fusions with protein domain annotation and WGS structural variant support (sample/genome.bam, genome.tsv, processed.tsv, trimmed.fa, assembly.gtf, raw.tsv, assembly.gff3, reference.tsv)?"
-arriba,arriba,arriba_03,arriba_03_03,student,"I need to detect fusions with protein domain annotation and WGS structural variant support (sample/genome.bam, genome.tsv, processed.tsv, trimmed.fa, assembly.gtf, raw.tsv, assembly.gff3, reference.tsv)"
-arriba,arriba,arriba_03,arriba_03_04,polite,"Please detect fusions with protein domain annotation and WGS structural variant support (sample/genome.bam, genome.tsv, processed.tsv, trimmed.fa, assembly.gtf, raw.tsv, assembly.gff3, reference.tsv)"
-arriba,arriba,arriba_03,arriba_03_05,sysadmin,"Use arriba to detect fusions with protein domain annotation and WGS structural variant support (sample/genome.bam, genome.tsv, processed.tsv, trimmed.fa, assembly.gtf, raw.tsv, assembly.gff3, reference.tsv)"
-arriba,arriba,arriba_03,arriba_03_06,goal_oriented,"I want to detect fusions with protein domain annotation and WGS structural variant support (sample/genome.bam, genome.tsv, processed.tsv, trimmed.fa, assembly.gtf, raw.tsv, assembly.gff3, reference.tsv)"
-arriba,arriba,arriba_03,arriba_03_07,expert,"detect fusions protein domain annotation WGS structural variant support (sample/genome.bam, genome.tsv, processed.tsv, trimmed.fa, assembly.gtf, raw.tsv, assembly.gff3, reference.tsv)"
-arriba,arriba,arriba_03,arriba_03_08,detailed,"I have data that I need to process: detect fusions with protein domain annotation and WGS structural variant support (sample/genome.bam, genome.tsv, processed.tsv, trimmed.fa, assembly.gtf, raw.tsv, assembly.gff3, reference.tsv), utilizing multiple CPU threads for speed, saving the result to a specified output file"
-arriba,arriba,arriba_03,arriba_03_09,informal,"Hey, can you help me detect fusions with protein domain annotation and WGS structural variant support (sample/genome.bam, genome.tsv, processed.tsv, trimmed.fa, assembly.gtf, raw.tsv, assembly.gff3, reference.tsv)?"
-arriba,arriba,arriba_03,arriba_03_10,alternative,"WGS structural variant support (sample/genome.bam, genome.tsv, processed.tsv, trimmed.fa, assembly.gtf, raw.tsv, assembly.gff3, reference.tsv) after detect fusions with protein domain annotation"
-arriba,arriba,arriba_04,arriba_04_01,original,"run Arriba with strand-specific library protocol (sample/filtered.bam, mapping.tsv, reads.tsv, raw.fa, reference.gtf, raw.tsv)"
-arriba,arriba,arriba_04,arriba_04_02,beginner,"How do I run Arriba with strand-specific library protocol (sample/filtered.bam, mapping.tsv, reads.tsv, raw.fa, reference.gtf, raw.tsv)?"
-arriba,arriba,arriba_04,arriba_04_03,student,"I need to run Arriba with strand-specific library protocol (sample/filtered.bam, mapping.tsv, reads.tsv, raw.fa, reference.gtf, raw.tsv)"
-arriba,arriba,arriba_04,arriba_04_04,polite,"Please run Arriba with strand-specific library protocol (sample/filtered.bam, mapping.tsv, reads.tsv, raw.fa, reference.gtf, raw.tsv)"
-arriba,arriba,arriba_04,arriba_04_05,sysadmin,"Use arriba to run Arriba with strand-specific library protocol (sample/filtered.bam, mapping.tsv, reads.tsv, raw.fa, reference.gtf, raw.tsv)"
-arriba,arriba,arriba_04,arriba_04_06,goal_oriented,"I want to run Arriba with strand-specific library protocol (sample/filtered.bam, mapping.tsv, reads.tsv, raw.fa, reference.gtf, raw.tsv)"
-arriba,arriba,arriba_04,arriba_04_07,expert,"run Arriba strand-specific library protocol (sample/filtered.bam, mapping.tsv, reads.tsv, raw.fa, reference.gtf, raw.tsv)"
-arriba,arriba,arriba_04,arriba_04_08,detailed,"I have data that I need to process: run Arriba with strand-specific library protocol (sample/filtered.bam, mapping.tsv, reads.tsv, raw.fa, reference.gtf, raw.tsv), saving the result to a specified output file"
-arriba,arriba,arriba_04,arriba_04_09,informal,"Hey, can you help me run Arriba with strand-specific library protocol (sample/filtered.bam, mapping.tsv, reads.tsv, raw.fa, reference.gtf, raw.tsv)?"
-arriba,arriba,arriba_04,arriba_04_10,alternative,"perform Arriba with strand-specific library protocol (sample/filtered.bam, mapping.tsv, reads.tsv, raw.fa, reference.gtf, raw.tsv)"
-arriba,arriba,arriba_05,arriba_05_01,original,"run Arriba with relaxed filters for higher sensitivity (sample/trimmed.bam, sample.tsv, merged.tsv, merged.fa, sorted.gtf, variants.tsv)"
-arriba,arriba,arriba_05,arriba_05_02,beginner,"How do I run Arriba with relaxed filters for higher sensitivity (sample/trimmed.bam, sample.tsv, merged.tsv, merged.fa, sorted.gtf, variants.tsv)?"
-arriba,arriba,arriba_05,arriba_05_03,student,"I need to run Arriba with relaxed filters for higher sensitivity (sample/trimmed.bam, sample.tsv, merged.tsv, merged.fa, sorted.gtf, variants.tsv)"
-arriba,arriba,arriba_05,arriba_05_04,polite,"Please run Arriba with relaxed filters for higher sensitivity (sample/trimmed.bam, sample.tsv, merged.tsv, merged.fa, sorted.gtf, variants.tsv)"
-arriba,arriba,arriba_05,arriba_05_05,sysadmin,"Use arriba to run Arriba with relaxed filters for higher sensitivity (sample/trimmed.bam, sample.tsv, merged.tsv, merged.fa, sorted.gtf, variants.tsv)"
-arriba,arriba,arriba_05,arriba_05_06,goal_oriented,"I want to run Arriba with relaxed filters for higher sensitivity (sample/trimmed.bam, sample.tsv, merged.tsv, merged.fa, sorted.gtf, variants.tsv)"
-arriba,arriba,arriba_05,arriba_05_07,expert,"run Arriba relaxed filters higher sensitivity (sample/trimmed.bam, sample.tsv, merged.tsv, merged.fa, sorted.gtf, variants.tsv)"
-arriba,arriba,arriba_05,arriba_05_08,detailed,"I have data that I need to process: run Arriba with relaxed filters for higher sensitivity (sample/trimmed.bam, sample.tsv, merged.tsv, merged.fa, sorted.gtf, variants.tsv), saving the result to a specified output file"
-arriba,arriba,arriba_05,arriba_05_09,informal,"Hey, can you help me run Arriba with relaxed filters for higher sensitivity (sample/trimmed.bam, sample.tsv, merged.tsv, merged.fa, sorted.gtf, variants.tsv)?"
-arriba,arriba,arriba_05,arriba_05_10,alternative,"execute Arriba with relaxed filters for higher sensitivity (sample/trimmed.bam, sample.tsv, merged.tsv, merged.fa, sorted.gtf, variants.tsv)"
-arriba,arriba,arriba_06,arriba_06_01,original,"detect fusions from pre-aligned BAM using the wrapper script (sample.gtf, analysis.fa, assembly.tsv, reads.tsv, genome.gff3, matrix.bam)"
-arriba,arriba,arriba_06,arriba_06_02,beginner,"How do I detect fusions from pre-aligned BAM using the wrapper script (sample.gtf, analysis.fa, assembly.tsv, reads.tsv, genome.gff3, matrix.bam)?"
-arriba,arriba,arriba_06,arriba_06_03,student,"I need to detect fusions from pre-aligned BAM using the wrapper script (sample.gtf, analysis.fa, assembly.tsv, reads.tsv, genome.gff3, matrix.bam)"
-arriba,arriba,arriba_06,arriba_06_04,polite,"Please detect fusions from pre-aligned BAM using the wrapper script (sample.gtf, analysis.fa, assembly.tsv, reads.tsv, genome.gff3, matrix.bam)"
-arriba,arriba,arriba_06,arriba_06_05,sysadmin,"Use arriba to detect fusions from pre-aligned BAM using the wrapper script (sample.gtf, analysis.fa, assembly.tsv, reads.tsv, genome.gff3, matrix.bam)"
-arriba,arriba,arriba_06,arriba_06_06,goal_oriented,"I want to detect fusions from pre-aligned BAM using the wrapper script (sample.gtf, analysis.fa, assembly.tsv, reads.tsv, genome.gff3, matrix.bam)"
-arriba,arriba,arriba_06,arriba_06_07,expert,"detect fusions pre-aligned BAM wrapper script (sample.gtf, analysis.fa, assembly.tsv, reads.tsv, genome.gff3, matrix.bam)"
-arriba,arriba,arriba_06,arriba_06_08,detailed,"I have data that I need to process: detect fusions from pre-aligned BAM using the wrapper script (sample.gtf, analysis.fa, assembly.tsv, reads.tsv, genome.gff3, matrix.bam)"
-arriba,arriba,arriba_06,arriba_06_09,informal,"Hey, can you help me detect fusions from pre-aligned BAM using the wrapper script (sample.gtf, analysis.fa, assembly.tsv, reads.tsv, genome.gff3, matrix.bam)?"
-arriba,arriba,arriba_06,arriba_06_10,alternative,"The desired outcome is: detect fusions from pre-aligned BAM using the wrapper script (sample.gtf, analysis.fa, assembly.tsv, reads.tsv, genome.gff3, matrix.bam)"
-arriba,arriba,arriba_07,arriba_07_01,original,"run the full Arriba pipeline (STAR alignment + fusion detection) (assembly.gtf, counts.fa, processed.tsv, report.tsv, variants.gff3, sorted.fastq.gz, counts.fastq.gz)"
-arriba,arriba,arriba_07,arriba_07_02,beginner,"How do I run the full Arriba pipeline (STAR alignment + fusion detection) (assembly.gtf, counts.fa, processed.tsv, report.tsv, variants.gff3, sorted.fastq.gz, counts.fastq.gz)?"
-arriba,arriba,arriba_07,arriba_07_03,student,"I need to run the full Arriba pipeline (STAR alignment + fusion detection) (assembly.gtf, counts.fa, processed.tsv, report.tsv, variants.gff3, sorted.fastq.gz, counts.fastq.gz)"
-arriba,arriba,arriba_07,arriba_07_04,polite,"Please run the full Arriba pipeline (STAR alignment + fusion detection) (assembly.gtf, counts.fa, processed.tsv, report.tsv, variants.gff3, sorted.fastq.gz, counts.fastq.gz)"
-arriba,arriba,arriba_07,arriba_07_05,sysadmin,"Use arriba to run the full Arriba pipeline (STAR alignment + fusion detection) (assembly.gtf, counts.fa, processed.tsv, report.tsv, variants.gff3, sorted.fastq.gz, counts.fastq.gz)"
-arriba,arriba,arriba_07,arriba_07_06,goal_oriented,"I want to run the full Arriba pipeline (STAR alignment + fusion detection) (assembly.gtf, counts.fa, processed.tsv, report.tsv, variants.gff3, sorted.fastq.gz, counts.fastq.gz)"
-arriba,arriba,arriba_07,arriba_07_07,expert,"run full Arriba pipeline (STAR alignment + fusion detection) (assembly.gtf, counts.fa, processed.tsv, report.tsv, variants.gff3, sorted.fastq.gz, counts.fastq.gz)"
-arriba,arriba,arriba_07,arriba_07_08,detailed,"I have data that I need to process: run the full Arriba pipeline (STAR alignment + fusion detection) (assembly.gtf, counts.fa, processed.tsv, report.tsv, variants.gff3, sorted.fastq.gz, counts.fastq.gz)"
-arriba,arriba,arriba_07,arriba_07_09,informal,"Hey, can you help me run the full Arriba pipeline (STAR alignment + fusion detection) (assembly.gtf, counts.fa, processed.tsv, report.tsv, variants.gff3, sorted.fastq.gz, counts.fastq.gz)?"
-arriba,arriba,arriba_07,arriba_07_10,alternative,"perform the full Arriba pipeline (STAR alignment + fusion detection) (assembly.gtf, counts.fa, processed.tsv, report.tsv, variants.gff3, sorted.fastq.gz, counts.fastq.gz)"
-arriba,arriba,arriba_08,arriba_08_01,original,"visualize detected fusions with Arriba draw_fusions (draw_fusions.R, analysis.tsv, sample/filtered.bam, reads.fa, merged.gtf, aligned.pdf)"
-arriba,arriba,arriba_08,arriba_08_02,beginner,"How do I visualize detected fusions with Arriba draw_fusions (draw_fusions.R, analysis.tsv, sample/filtered.bam, reads.fa, merged.gtf, aligned.pdf)?"
-arriba,arriba,arriba_08,arriba_08_03,student,"I need to visualize detected fusions with Arriba draw_fusions (draw_fusions.R, analysis.tsv, sample/filtered.bam, reads.fa, merged.gtf, aligned.pdf)"
-arriba,arriba,arriba_08,arriba_08_04,polite,"Please visualize detected fusions with Arriba draw_fusions (draw_fusions.R, analysis.tsv, sample/filtered.bam, reads.fa, merged.gtf, aligned.pdf)"
-arriba,arriba,arriba_08,arriba_08_05,sysadmin,"Use arriba to visualize detected fusions with Arriba draw_fusions (draw_fusions.R, analysis.tsv, sample/filtered.bam, reads.fa, merged.gtf, aligned.pdf)"
-arriba,arriba,arriba_08,arriba_08_06,goal_oriented,"I want to visualize detected fusions with Arriba draw_fusions (draw_fusions.R, analysis.tsv, sample/filtered.bam, reads.fa, merged.gtf, aligned.pdf)"
-arriba,arriba,arriba_08,arriba_08_07,expert,"visualize detected fusions Arriba draw_fusions (draw_fusions.R, analysis.tsv, sample/filtered.bam, reads.fa, merged.gtf, aligned.pdf)"
-arriba,arriba,arriba_08,arriba_08_08,detailed,"I have data that I need to process: visualize detected fusions with Arriba draw_fusions (draw_fusions.R, analysis.tsv, sample/filtered.bam, reads.fa, merged.gtf, aligned.pdf), saving the result to a specified output file"
-arriba,arriba,arriba_08,arriba_08_09,informal,"Hey, can you help me visualize detected fusions with Arriba draw_fusions (draw_fusions.R, analysis.tsv, sample/filtered.bam, reads.fa, merged.gtf, aligned.pdf)?"
-arriba,arriba,arriba_08,arriba_08_10,alternative,"With Arriba draw_fusions (draw_fusions.R, analysis.tsv, sample/filtered.bam, reads.fa, merged.gtf, aligned.pdf), visualize detected fusions"
-arriba,arriba,arriba_09,arriba_09_01,original,convert Arriba fusions output to VCF format (trimmed.tsv)
-arriba,arriba,arriba_09,arriba_09_02,beginner,How do I convert Arriba fusions output to VCF format (trimmed.tsv)?
-arriba,arriba,arriba_09,arriba_09_03,student,I need to convert Arriba fusions output to VCF format (trimmed.tsv)
-arriba,arriba,arriba_09,arriba_09_04,polite,Please convert Arriba fusions output to VCF format (trimmed.tsv)
-arriba,arriba,arriba_09,arriba_09_05,sysadmin,Use arriba to convert Arriba fusions output to VCF format (trimmed.tsv)
-arriba,arriba,arriba_09,arriba_09_06,goal_oriented,I want to convert Arriba fusions output to VCF format (trimmed.tsv)
-arriba,arriba,arriba_09,arriba_09_07,expert,convert Arriba fusions output VCF format (trimmed.tsv)
-arriba,arriba,arriba_09,arriba_09_08,detailed,I have data that I need to process: convert Arriba fusions output to VCF format (trimmed.tsv)
-arriba,arriba,arriba_09,arriba_09_09,informal,"Hey, can you help me convert Arriba fusions output to VCF format (trimmed.tsv)?"
-arriba,arriba,arriba_09,arriba_09_10,alternative,transform Arriba fusions output to VCF format (trimmed.tsv)
-arriba,arriba,arriba_10,arriba_10_01,original,"In my analysis, I need to run STAR with chimeric output for Arriba fusion detection (raw.fastq.gz, annotated.fastq.gz)"
-arriba,arriba,arriba_10,arriba_10_02,beginner,"How do I in my analysis, I need to run STAR with chimeric output for Arriba fusion detection (raw.fastq.gz, annotated.fastq.gz)?"
-arriba,arriba,arriba_10,arriba_10_03,student,"I need to in my analysis, I need to run STAR with chimeric output for Arriba fusion detection (raw.fastq.gz, annotated.fastq.gz)"
-arriba,arriba,arriba_10,arriba_10_04,polite,"Please in my analysis, I need to run STAR with chimeric output for Arriba fusion detection (raw.fastq.gz, annotated.fastq.gz)"
-arriba,arriba,arriba_10,arriba_10_05,sysadmin,"Use arriba to in my analysis, I need to run STAR with chimeric output for Arriba fusion detection (raw.fastq.gz, annotated.fastq.gz)"
-arriba,arriba,arriba_10,arriba_10_06,goal_oriented,"I want to in my analysis, I need to run STAR with chimeric output for Arriba fusion detection (raw.fastq.gz, annotated.fastq.gz)"
-arriba,arriba,arriba_10,arriba_10_07,expert,"my analysis, I need run STAR chimeric output Arriba fusion detection (raw.fastq.gz, annotated.fastq.gz)"
-arriba,arriba,arriba_10,arriba_10_08,detailed,"I have RNA-seq data that I need to process: in my analysis, I need to run STAR with chimeric output for Arriba fusion detection (raw.fastq.gz, annotated.fastq.gz)"
-arriba,arriba,arriba_10,arriba_10_09,informal,"Hey, can you help me in my analysis, I need to run STAR with chimeric output for Arriba fusion detection (raw.fastq.gz, annotated.fastq.gz)?"
-arriba,arriba,arriba_10,arriba_10_10,alternative,"In my analysis, I need to execute STAR with chimeric output for Arriba fusion detection (raw.fastq.gz, annotated.fastq.gz)"
-augustus,augustus,augustus_01,augustus_01_01,original,"predict genes in a eukaryotic genome using human parameters (merged.fasta, genome.gff3)"
-augustus,augustus,augustus_01,augustus_01_02,beginner,"How do I predict genes in a eukaryotic genome using human parameters (merged.fasta, genome.gff3)?"
-augustus,augustus,augustus_01,augustus_01_03,student,"I need to predict genes in a eukaryotic genome using human parameters (merged.fasta, genome.gff3)"
-augustus,augustus,augustus_01,augustus_01_04,polite,"Please predict genes in a eukaryotic genome using human parameters (merged.fasta, genome.gff3)"
-augustus,augustus,augustus_01,augustus_01_05,sysadmin,"Use augustus to predict genes in a eukaryotic genome using human parameters (merged.fasta, genome.gff3)"
-augustus,augustus,augustus_01,augustus_01_06,goal_oriented,"I want to predict genes in a eukaryotic genome using human parameters (merged.fasta, genome.gff3)"
-augustus,augustus,augustus_01,augustus_01_07,expert,"predict genes eukaryotic genome human parameters (merged.fasta, genome.gff3)"
-augustus,augustus,augustus_01,augustus_01_08,detailed,"I have data that I need to process: predict genes in a eukaryotic genome using human parameters (merged.fasta, genome.gff3)"
-augustus,augustus,augustus_01,augustus_01_09,informal,"Hey, can you help me predict genes in a eukaryotic genome using human parameters (merged.fasta, genome.gff3)?"
-augustus,augustus,augustus_01,augustus_01_10,alternative,"The desired outcome is: predict genes in a eukaryotic genome using human parameters (merged.fasta, genome.gff3)"
-augustus,augustus,augustus_02,augustus_02_01,original,"predict genes with RNA-seq hints for improved accuracy (variants.gff, sample.cfg, reads.fasta)"
-augustus,augustus,augustus_02,augustus_02_02,beginner,"How do I predict genes with RNA-seq hints for improved accuracy (variants.gff, sample.cfg, reads.fasta)?"
-augustus,augustus,augustus_02,augustus_02_03,student,"I need to predict genes with RNA-seq hints for improved accuracy (variants.gff, sample.cfg, reads.fasta)"
-augustus,augustus,augustus_02,augustus_02_04,polite,"Please predict genes with RNA-seq hints for improved accuracy (variants.gff, sample.cfg, reads.fasta)"
-augustus,augustus,augustus_02,augustus_02_05,sysadmin,"Use augustus to predict genes with RNA-seq hints for improved accuracy (variants.gff, sample.cfg, reads.fasta)"
-augustus,augustus,augustus_02,augustus_02_06,goal_oriented,"I want to predict genes with RNA-seq hints for improved accuracy (variants.gff, sample.cfg, reads.fasta)"
-augustus,augustus,augustus_02,augustus_02_07,expert,"predict genes RNA-seq hints improved accuracy (variants.gff, sample.cfg, reads.fasta)"
-augustus,augustus,augustus_02,augustus_02_08,detailed,"I have data that I need to process: predict genes with RNA-seq hints for improved accuracy (variants.gff, sample.cfg, reads.fasta)"
-augustus,augustus,augustus_02,augustus_02_09,informal,"Hey, can you help me predict genes with RNA-seq hints for improved accuracy (variants.gff, sample.cfg, reads.fasta)?"
-augustus,augustus,augustus_02,augustus_02_10,alternative,"With RNA-seq hints for improved accuracy (variants.gff, sample.cfg, reads.fasta), predict genes"
-augustus,augustus,augustus_03,augustus_03_01,original,"generate hint file from RNA-seq BAM alignments (variants.bam, annotated.gff)"
-augustus,augustus,augustus_03,augustus_03_02,beginner,"How do I generate hint file from RNA-seq BAM alignments (variants.bam, annotated.gff)?"
-augustus,augustus,augustus_03,augustus_03_03,student,"I need to generate hint file from RNA-seq BAM alignments (variants.bam, annotated.gff)"
-augustus,augustus,augustus_03,augustus_03_04,polite,"Please generate hint file from RNA-seq BAM alignments (variants.bam, annotated.gff)"
-augustus,augustus,augustus_03,augustus_03_05,sysadmin,"Use augustus to generate hint file from RNA-seq BAM alignments (variants.bam, annotated.gff)"
-augustus,augustus,augustus_03,augustus_03_06,goal_oriented,"I want to generate hint file from RNA-seq BAM alignments (variants.bam, annotated.gff)"
-augustus,augustus,augustus_03,augustus_03_07,expert,"generate hint file RNA-seq BAM alignments (variants.bam, annotated.gff)"
-augustus,augustus,augustus_03,augustus_03_08,detailed,"I have data that I need to process: generate hint file from RNA-seq BAM alignments (variants.bam, annotated.gff)"
-augustus,augustus,augustus_03,augustus_03_09,informal,"Hey, can you help me generate hint file from RNA-seq BAM alignments (variants.bam, annotated.gff)?"
-augustus,augustus,augustus_03,augustus_03_10,alternative,"produce hint file from RNA-seq BAM alignments (variants.bam, annotated.gff)"
-augustus,augustus,augustus_04,augustus_04_01,original,predict genes and output protein sequences (assembly.fasta)
-augustus,augustus,augustus_04,augustus_04_02,beginner,How do I predict genes and output protein sequences (assembly.fasta)?
-augustus,augustus,augustus_04,augustus_04_03,student,I need to predict genes and output protein sequences (assembly.fasta)
-augustus,augustus,augustus_04,augustus_04_04,polite,Please predict genes and output protein sequences (assembly.fasta)
-augustus,augustus,augustus_04,augustus_04_05,sysadmin,Use augustus to predict genes and output protein sequences (assembly.fasta)
-augustus,augustus,augustus_04,augustus_04_06,goal_oriented,I want to predict genes and output protein sequences (assembly.fasta)
-augustus,augustus,augustus_04,augustus_04_07,expert,predict genes output protein sequences (assembly.fasta)
-augustus,augustus,augustus_04,augustus_04_08,detailed,I have data that I need to process: predict genes and output protein sequences (assembly.fasta)
-augustus,augustus,augustus_04,augustus_04_09,informal,"Hey, can you help me predict genes and output protein sequences (assembly.fasta)?"
-augustus,augustus,augustus_04,augustus_04_10,alternative,Output protein sequences (assembly.fasta) after predict genes
-augustus,augustus,augustus_05,augustus_05_01,original,predict only complete genes on the forward strand (annotated.fasta)
-augustus,augustus,augustus_05,augustus_05_02,beginner,How do I predict only complete genes on the forward strand (annotated.fasta)?
-augustus,augustus,augustus_05,augustus_05_03,student,I need to predict only complete genes on the forward strand (annotated.fasta)
-augustus,augustus,augustus_05,augustus_05_04,polite,Please predict only complete genes on the forward strand (annotated.fasta)
-augustus,augustus,augustus_05,augustus_05_05,sysadmin,Use augustus to predict only complete genes on the forward strand (annotated.fasta)
-augustus,augustus,augustus_05,augustus_05_06,goal_oriented,I want to predict only complete genes on the forward strand (annotated.fasta)
-augustus,augustus,augustus_05,augustus_05_07,expert,predict only complete genes on forward strand (annotated.fasta)
-augustus,augustus,augustus_05,augustus_05_08,detailed,I have data that I need to process: predict only complete genes on the forward strand (annotated.fasta)
-augustus,augustus,augustus_05,augustus_05_09,informal,"Hey, can you help me predict only complete genes on the forward strand (annotated.fasta)?"
-augustus,augustus,augustus_05,augustus_05_10,alternative,The desired outcome is: predict only complete genes on the forward strand (annotated.fasta)
-augustus,augustus,augustus_06,augustus_06_01,original,run Augustus on a repeat-masked genome with UTR prediction (variants.fasta)
-augustus,augustus,augustus_06,augustus_06_02,beginner,How do I run Augustus on a repeat-masked genome with UTR prediction (variants.fasta)?
-augustus,augustus,augustus_06,augustus_06_03,student,I need to run Augustus on a repeat-masked genome with UTR prediction (variants.fasta)
-augustus,augustus,augustus_06,augustus_06_04,polite,Please run Augustus on a repeat-masked genome with UTR prediction (variants.fasta)
-augustus,augustus,augustus_06,augustus_06_05,sysadmin,Use augustus to run Augustus on a repeat-masked genome with UTR prediction (variants.fasta)
-augustus,augustus,augustus_06,augustus_06_06,goal_oriented,I want to run Augustus on a repeat-masked genome with UTR prediction (variants.fasta)
-augustus,augustus,augustus_06,augustus_06_07,expert,run Augustus on repeat-masked genome UTR prediction (variants.fasta)
-augustus,augustus,augustus_06,augustus_06_08,detailed,I have data that I need to process: run Augustus on a repeat-masked genome with UTR prediction (variants.fasta)
-augustus,augustus,augustus_06,augustus_06_09,informal,"Hey, can you help me run Augustus on a repeat-masked genome with UTR prediction (variants.fasta)?"
-augustus,augustus,augustus_06,augustus_06_10,alternative,perform Augustus on a repeat-masked genome with UTR prediction (variants.fasta)
-augustus,augustus,augustus_07,augustus_07_01,original,"predict genes with alternative splicing from evidence (analysis.gff, aligned.fasta)"
-augustus,augustus,augustus_07,augustus_07_02,beginner,"How do I predict genes with alternative splicing from evidence (analysis.gff, aligned.fasta)?"
-augustus,augustus,augustus_07,augustus_07_03,student,"I need to predict genes with alternative splicing from evidence (analysis.gff, aligned.fasta)"
-augustus,augustus,augustus_07,augustus_07_04,polite,"Please predict genes with alternative splicing from evidence (analysis.gff, aligned.fasta)"
-augustus,augustus,augustus_07,augustus_07_05,sysadmin,"Use augustus to predict genes with alternative splicing from evidence (analysis.gff, aligned.fasta)"
-augustus,augustus,augustus_07,augustus_07_06,goal_oriented,"I want to predict genes with alternative splicing from evidence (analysis.gff, aligned.fasta)"
-augustus,augustus,augustus_07,augustus_07_07,expert,"predict genes alternative splicing evidence (analysis.gff, aligned.fasta)"
-augustus,augustus,augustus_07,augustus_07_08,detailed,"I have data that I need to process: predict genes with alternative splicing from evidence (analysis.gff, aligned.fasta)"
-augustus,augustus,augustus_07,augustus_07_09,informal,"Hey, can you help me predict genes with alternative splicing from evidence (analysis.gff, aligned.fasta)?"
-augustus,augustus,augustus_07,augustus_07_10,alternative,"With alternative splicing from evidence (analysis.gff, aligned.fasta), predict genes"
-augustus,augustus,augustus_08,augustus_08_01,original,predict genes on a specific region of a chromosome (sample.fasta)
-augustus,augustus,augustus_08,augustus_08_02,beginner,How do I predict genes on a specific region of a chromosome (sample.fasta)?
-augustus,augustus,augustus_08,augustus_08_03,student,I need to predict genes on a specific region of a chromosome (sample.fasta)
-augustus,augustus,augustus_08,augustus_08_04,polite,Please predict genes on a specific region of a chromosome (sample.fasta)
-augustus,augustus,augustus_08,augustus_08_05,sysadmin,Use augustus to predict genes on a specific region of a chromosome (sample.fasta)
-augustus,augustus,augustus_08,augustus_08_06,goal_oriented,I want to predict genes on a specific region of a chromosome (sample.fasta)
-augustus,augustus,augustus_08,augustus_08_07,expert,predict genes on specific region of chromosome (sample.fasta)
-augustus,augustus,augustus_08,augustus_08_08,detailed,I have data that I need to process: predict genes on a specific region of a chromosome (sample.fasta)
-augustus,augustus,augustus_08,augustus_08_09,informal,"Hey, can you help me predict genes on a specific region of a chromosome (sample.fasta)?"
-augustus,augustus,augustus_08,augustus_08_10,alternative,The desired outcome is: predict genes on a specific region of a chromosome (sample.fasta)
-augustus,augustus,augustus_09,augustus_09_01,original,predict genes using protein profile for a specific gene family (reference.fasta)
-augustus,augustus,augustus_09,augustus_09_02,beginner,How do I predict genes using protein profile for a specific gene family (reference.fasta)?
-augustus,augustus,augustus_09,augustus_09_03,student,I need to predict genes using protein profile for a specific gene family (reference.fasta)
-augustus,augustus,augustus_09,augustus_09_04,polite,Please predict genes using protein profile for a specific gene family (reference.fasta)
-augustus,augustus,augustus_09,augustus_09_05,sysadmin,Use augustus to predict genes using protein profile for a specific gene family (reference.fasta)
-augustus,augustus,augustus_09,augustus_09_06,goal_oriented,I want to predict genes using protein profile for a specific gene family (reference.fasta)
-augustus,augustus,augustus_09,augustus_09_07,expert,predict genes protein profile specific gene family (reference.fasta)
-augustus,augustus,augustus_09,augustus_09_08,detailed,I have data that I need to process: predict genes using protein profile for a specific gene family (reference.fasta)
-augustus,augustus,augustus_09,augustus_09_09,informal,"Hey, can you help me predict genes using protein profile for a specific gene family (reference.fasta)?"
-augustus,augustus,augustus_09,augustus_09_10,alternative,The desired outcome is: predict genes using protein profile for a specific gene family (reference.fasta)
-augustus,augustus,augustus_10,augustus_10_01,original,"In my analysis, I need to predict genes in a eukaryotic genome using human parameters (counts.fasta, aligned.gff3)"
-augustus,augustus,augustus_10,augustus_10_02,beginner,"How do I in my analysis, I need to predict genes in a eukaryotic genome using human parameters (counts.fasta, aligned.gff3)?"
-augustus,augustus,augustus_10,augustus_10_03,student,"I need to in my analysis, I need to predict genes in a eukaryotic genome using human parameters (counts.fasta, aligned.gff3)"
-augustus,augustus,augustus_10,augustus_10_04,polite,"Please in my analysis, I need to predict genes in a eukaryotic genome using human parameters (counts.fasta, aligned.gff3)"
-augustus,augustus,augustus_10,augustus_10_05,sysadmin,"Use augustus to in my analysis, I need to predict genes in a eukaryotic genome using human parameters (counts.fasta, aligned.gff3)"
-augustus,augustus,augustus_10,augustus_10_06,goal_oriented,"I want to in my analysis, I need to predict genes in a eukaryotic genome using human parameters (counts.fasta, aligned.gff3)"
-augustus,augustus,augustus_10,augustus_10_07,expert,"my analysis, I need predict genes eukaryotic genome human parameters (counts.fasta, aligned.gff3)"
-augustus,augustus,augustus_10,augustus_10_08,detailed,"I have data that I need to process: In my analysis, I need to predict genes in a eukaryotic genome using human parameters (counts.fasta, aligned.gff3)"
-augustus,augustus,augustus_10,augustus_10_09,informal,"Hey, can you help me in my analysis, I need to predict genes in a eukaryotic genome using human parameters (counts.fasta, aligned.gff3)?"
-augustus,augustus,augustus_10,augustus_10_10,alternative,"Output predict genes in a eukaryotic genome using human parameters (counts.fasta, aligned.gff3) by performing: in my analysis, I need"
-awk,awk,awk_01,awk_01_01,original,print specific columns from a CSV file (genome.csv)
-awk,awk,awk_01,awk_01_02,beginner,How do I print specific columns from a CSV file (genome.csv)?
-awk,awk,awk_01,awk_01_03,student,I need to print specific columns from a CSV file (genome.csv)
-awk,awk,awk_01,awk_01_04,polite,Please print specific columns from a CSV file (genome.csv)
-awk,awk,awk_01,awk_01_05,sysadmin,Use awk to print specific columns from a CSV file (genome.csv)
-awk,awk,awk_01,awk_01_06,goal_oriented,I want to print specific columns from a CSV file (genome.csv)
-awk,awk,awk_01,awk_01_07,expert,print specific columns CSV file (genome.csv)
-awk,awk,awk_01,awk_01_08,detailed,I have data that I need to process: print specific columns from a CSV file (genome.csv)
-awk,awk,awk_01,awk_01_09,informal,"Hey, can you help me print specific columns from a CSV file (genome.csv)?"
-awk,awk,awk_01,awk_01_10,alternative,The desired outcome is: print specific columns from a CSV file (genome.csv)
-awk,awk,awk_02,awk_02_01,original,sum values in a column and print the total (mapping.txt)
-awk,awk,awk_02,awk_02_02,beginner,How do I sum values in a column and print the total (mapping.txt)?
-awk,awk,awk_02,awk_02_03,student,I need to sum values in a column and print the total (mapping.txt)
-awk,awk,awk_02,awk_02_04,polite,Please sum values in a column and print the total (mapping.txt)
-awk,awk,awk_02,awk_02_05,sysadmin,Use awk to sum values in a column and print the total (mapping.txt)
-awk,awk,awk_02,awk_02_06,goal_oriented,I want to sum values in a column and print the total (mapping.txt)
-awk,awk,awk_02,awk_02_07,expert,sum values column print total (mapping.txt)
-awk,awk,awk_02,awk_02_08,detailed,I have data that I need to process: sum values in a column and print the total (mapping.txt)
-awk,awk,awk_02,awk_02_09,informal,"Hey, can you help me sum values in a column and print the total (mapping.txt)?"
-awk,awk,awk_02,awk_02_10,alternative,Print the total (mapping.txt) after sum values in a column
-awk,awk,awk_03,awk_03_01,original,filter and print lines where a column exceeds a threshold (analysis.tsv)
-awk,awk,awk_03,awk_03_02,beginner,How do I filter and print lines where a column exceeds a threshold (analysis.tsv)?
-awk,awk,awk_03,awk_03_03,student,I need to filter and print lines where a column exceeds a threshold (analysis.tsv)
-awk,awk,awk_03,awk_03_04,polite,Please filter and print lines where a column exceeds a threshold (analysis.tsv)
-awk,awk,awk_03,awk_03_05,sysadmin,Use awk to filter and print lines where a column exceeds a threshold (analysis.tsv)
-awk,awk,awk_03,awk_03_06,goal_oriented,I want to filter and print lines where a column exceeds a threshold (analysis.tsv)
-awk,awk,awk_03,awk_03_07,expert,filter print lines where column exceeds threshold (analysis.tsv)
-awk,awk,awk_03,awk_03_08,detailed,I have data that I need to process: filter and print lines where a column exceeds a threshold (analysis.tsv)
-awk,awk,awk_03,awk_03_09,informal,"Hey, can you help me filter and print lines where a column exceeds a threshold (analysis.tsv)?"
-awk,awk,awk_03,awk_03_10,alternative,subset and print lines where a column exceeds a threshold (analysis.tsv)
-awk,awk,awk_04,awk_04_01,original,count occurrences of each unique value in a column (raw.txt)
-awk,awk,awk_04,awk_04_02,beginner,How do I count occurrences of each unique value in a column (raw.txt)?
-awk,awk,awk_04,awk_04_03,student,I need to count occurrences of each unique value in a column (raw.txt)
-awk,awk,awk_04,awk_04_04,polite,Please count occurrences of each unique value in a column (raw.txt)
-awk,awk,awk_04,awk_04_05,sysadmin,Use awk to count occurrences of each unique value in a column (raw.txt)
-awk,awk,awk_04,awk_04_06,goal_oriented,I want to count occurrences of each unique value in a column (raw.txt)
-awk,awk,awk_04,awk_04_07,expert,count occurrences of each unique value column (raw.txt)
-awk,awk,awk_04,awk_04_08,detailed,I have data that I need to process: count occurrences of each unique value in a column (raw.txt)
-awk,awk,awk_04,awk_04_09,informal,"Hey, can you help me count occurrences of each unique value in a column (raw.txt)?"
-awk,awk,awk_04,awk_04_10,alternative,enumerate occurrences of each unique value in a column (raw.txt)
-awk,awk,awk_05,awk_05_01,original,print lines between two patterns (inclusive) (merged.txt)
-awk,awk,awk_05,awk_05_02,beginner,How do I print lines between two patterns (inclusive) (merged.txt)?
-awk,awk,awk_05,awk_05_03,student,I need to print lines between two patterns (inclusive) (merged.txt)
-awk,awk,awk_05,awk_05_04,polite,Please print lines between two patterns (inclusive) (merged.txt)
-awk,awk,awk_05,awk_05_05,sysadmin,Use awk to print lines between two patterns (inclusive) (merged.txt)
-awk,awk,awk_05,awk_05_06,goal_oriented,I want to print lines between two patterns (inclusive) (merged.txt)
-awk,awk,awk_05,awk_05_07,expert,print lines between two patterns (inclusive) (merged.txt)
-awk,awk,awk_05,awk_05_08,detailed,I have data that I need to process: print lines between two patterns (inclusive) (merged.txt)
-awk,awk,awk_05,awk_05_09,informal,"Hey, can you help me print lines between two patterns (inclusive) (merged.txt)?"
-awk,awk,awk_05,awk_05_10,alternative,The desired outcome is: print lines between two patterns (inclusive) (merged.txt)
-awk,awk,awk_06,awk_06_01,original,remove duplicate consecutive lines (raw.txt)
-awk,awk,awk_06,awk_06_02,beginner,How do I remove duplicate consecutive lines (raw.txt)?
-awk,awk,awk_06,awk_06_03,student,I need to remove duplicate consecutive lines (raw.txt)
-awk,awk,awk_06,awk_06_04,polite,Please remove duplicate consecutive lines (raw.txt)
-awk,awk,awk_06,awk_06_05,sysadmin,Use awk to remove duplicate consecutive lines (raw.txt)
-awk,awk,awk_06,awk_06_06,goal_oriented,I want to remove duplicate consecutive lines (raw.txt)
-awk,awk,awk_06,awk_06_07,expert,remove duplicate consecutive lines (raw.txt)
-awk,awk,awk_06,awk_06_08,detailed,I have data that I need to process: remove duplicate consecutive lines (raw.txt)
-awk,awk,awk_06,awk_06_09,informal,"Hey, can you help me remove duplicate consecutive lines (raw.txt)?"
-awk,awk,awk_06,awk_06_10,alternative,eliminate duplicate consecutive lines (raw.txt)
-awk,awk,awk_07,awk_07_01,original,add line numbers to output (trimmed.txt)
-awk,awk,awk_07,awk_07_02,beginner,How do I add line numbers to output (trimmed.txt)?
-awk,awk,awk_07,awk_07_03,student,I need to add line numbers to output (trimmed.txt)
-awk,awk,awk_07,awk_07_04,polite,Please add line numbers to output (trimmed.txt)
-awk,awk,awk_07,awk_07_05,sysadmin,Use awk to add line numbers to output (trimmed.txt)
-awk,awk,awk_07,awk_07_06,goal_oriented,I want to add line numbers to output (trimmed.txt)
-awk,awk,awk_07,awk_07_07,expert,add line numbers output (trimmed.txt)
-awk,awk,awk_07,awk_07_08,detailed,I have data that I need to process: add line numbers to output (trimmed.txt)
-awk,awk,awk_07,awk_07_09,informal,"Hey, can you help me add line numbers to output (trimmed.txt)?"
-awk,awk,awk_07,awk_07_10,alternative,Output output (trimmed.txt) by performing: add line numbers
-awk,awk,awk_08,awk_08_01,original,convert tab-separated to comma-separated (reference.tsv)
-awk,awk,awk_08,awk_08_02,beginner,How do I convert tab-separated to comma-separated (reference.tsv)?
-awk,awk,awk_08,awk_08_03,student,I need to convert tab-separated to comma-separated (reference.tsv)
-awk,awk,awk_08,awk_08_04,polite,Please convert tab-separated to comma-separated (reference.tsv)
-awk,awk,awk_08,awk_08_05,sysadmin,Use awk to convert tab-separated to comma-separated (reference.tsv)
-awk,awk,awk_08,awk_08_06,goal_oriented,I want to convert tab-separated to comma-separated (reference.tsv)
-awk,awk,awk_08,awk_08_07,expert,convert tab-separated comma-separated (reference.tsv)
-awk,awk,awk_08,awk_08_08,detailed,I have data that I need to process: convert tab-separated to comma-separated (reference.tsv)
-awk,awk,awk_08,awk_08_09,informal,"Hey, can you help me convert tab-separated to comma-separated (reference.tsv)?"
-awk,awk,awk_08,awk_08_10,alternative,transform tab-separated to comma-separated (reference.tsv)
-awk,awk,awk_09,awk_09_01,original,calculate average of a column (annotated.txt)
-awk,awk,awk_09,awk_09_02,beginner,How do I calculate average of a column (annotated.txt)?
-awk,awk,awk_09,awk_09_03,student,I need to calculate average of a column (annotated.txt)
-awk,awk,awk_09,awk_09_04,polite,Please calculate average of a column (annotated.txt)
-awk,awk,awk_09,awk_09_05,sysadmin,Use awk to calculate average of a column (annotated.txt)
-awk,awk,awk_09,awk_09_06,goal_oriented,I want to calculate average of a column (annotated.txt)
-awk,awk,awk_09,awk_09_07,expert,calculate average of column (annotated.txt)
-awk,awk,awk_09,awk_09_08,detailed,I have data that I need to process: calculate average of a column (annotated.txt)
-awk,awk,awk_09,awk_09_09,informal,"Hey, can you help me calculate average of a column (annotated.txt)?"
-awk,awk,awk_09,awk_09_10,alternative,The desired outcome is: calculate average of a column (annotated.txt)
-awk,awk,awk_10,awk_10_01,original,print the last field of each line regardless of column count (counts.txt)
-awk,awk,awk_10,awk_10_02,beginner,How do I print the last field of each line regardless of column count (counts.txt)?
-awk,awk,awk_10,awk_10_03,student,I need to print the last field of each line regardless of column count (counts.txt)
-awk,awk,awk_10,awk_10_04,polite,Please print the last field of each line regardless of column count (counts.txt)
-awk,awk,awk_10,awk_10_05,sysadmin,Use awk to print the last field of each line regardless of column count (counts.txt)
-awk,awk,awk_10,awk_10_06,goal_oriented,I want to print the last field of each line regardless of column count (counts.txt)
-awk,awk,awk_10,awk_10_07,expert,print last field of each line regardless of column count (counts.txt)
-awk,awk,awk_10,awk_10_08,detailed,I have data that I need to process: print the last field of each line regardless of column count (counts.txt)
-awk,awk,awk_10,awk_10_09,informal,"Hey, can you help me print the last field of each line regardless of column count (counts.txt)?"
-awk,awk,awk_10,awk_10_10,alternative,print the last field of each line regardless of column tally (counts.txt)
+admixture,admixture,admixture_01,admixture_01_or,original,estimate ancestry proportions from genotypes.bed with K=5 ancestral populations using default 5-fold cross-validation for model selection
+admixture,admixture,admixture_01,admixture_01_be,beginner,How do I estimate ancestry proportions from genotypes.bed with K=5 ancestral populations using default 5-fold cross-validation for model selection?
+admixture,admixture,admixture_01,admixture_01_st,student,I need to estimate ancestry proportions from genotypes.bed with K=5 ancestral populations using default 5-fold cross-validation for model selection
+admixture,admixture,admixture_01,admixture_01_po,polite,Please estimate ancestry proportions from genotypes.bed with K=5 ancestral populations using default 5-fold cross-validation for model selection
+admixture,admixture,admixture_01,admixture_01_sy,sysadmin,Use admixture to estimate ancestry proportions from genotypes.bed with K=5 ancestral populations using default 5-fold cross-validation for model selection
+admixture,admixture,admixture_02,admixture_02_or,original,estimate ancestry proportions from genotypes.bed with K=4 using a fixed random seed for reproducible convergence testing and 10-fold cross-validation
+admixture,admixture,admixture_02,admixture_02_be,beginner,How do I estimate ancestry proportions from genotypes.bed with K=4 using a fixed random seed for reproducible convergence testing and 10-fold cross-validation?
+admixture,admixture,admixture_02,admixture_02_st,student,I need to estimate ancestry proportions from genotypes.bed with K=4 using a fixed random seed for reproducible convergence testing and 10-fold cross-validation
+admixture,admixture,admixture_02,admixture_02_po,polite,Please estimate ancestry proportions from genotypes.bed with K=4 using a fixed random seed for reproducible convergence testing and 10-fold cross-validation
+admixture,admixture,admixture_02,admixture_02_sy,sysadmin,Use admixture to estimate ancestry proportions from genotypes.bed with K=4 using a fixed random seed for reproducible convergence testing and 10-fold cross-validation
+admixture,admixture,admixture_03,admixture_03_or,original,estimate ancestry proportions from genotypes.bed with K=3 in supervised mode using known reference population labels to classify unlabeled individuals
+admixture,admixture,admixture_03,admixture_03_be,beginner,How do I estimate ancestry proportions from genotypes.bed with K=3 in supervised mode using known reference population labels to classify unlabeled individuals?
+admixture,admixture,admixture_03,admixture_03_st,student,I need to estimate ancestry proportions from genotypes.bed with K=3 in supervised mode using known reference population labels to classify unlabeled individuals
+admixture,admixture,admixture_03,admixture_03_po,polite,Please estimate ancestry proportions from genotypes.bed with K=3 in supervised mode using known reference population labels to classify unlabeled individuals
+admixture,admixture,admixture_03,admixture_03_sy,sysadmin,Use admixture to estimate ancestry proportions from genotypes.bed with K=3 in supervised mode using known reference population labels to classify unlabeled individuals
+admixture,admixture,admixture_04,admixture_04_or,original,estimate standard errors of ancestry proportions and allele frequencies from genotypes.bed with K=5 and 100 bootstrap replicates
+admixture,admixture,admixture_04,admixture_04_be,beginner,How do I estimate standard errors of ancestry proportions and allele frequencies from genotypes.bed with K=5 and 100 bootstrap replicates?
+admixture,admixture,admixture_04,admixture_04_st,student,I need to estimate standard errors of ancestry proportions and allele frequencies from genotypes.bed with K=5 and 100 bootstrap replicates
+admixture,admixture,admixture_04,admixture_04_po,polite,Please estimate standard errors of ancestry proportions and allele frequencies from genotypes.bed with K=5 and 100 bootstrap replicates
+admixture,admixture,admixture_04,admixture_04_sy,sysadmin,Use admixture to estimate standard errors of ancestry proportions and allele frequencies from genotypes.bed with K=5 and 100 bootstrap replicates
+admixture,admixture,admixture_05,admixture_05_or,original,estimate ancestry proportions from genotypes.bed with K=5 using the EM algorithm instead of default block relaxation when the latter fails to converge
+admixture,admixture,admixture_05,admixture_05_be,beginner,How do I estimate ancestry proportions from genotypes.bed with K=5 using the EM algorithm instead of default block relaxation when the latter fails to converge?
+admixture,admixture,admixture_05,admixture_05_st,student,I need to estimate ancestry proportions from genotypes.bed with K=5 using the EM algorithm instead of default block relaxation when the latter fails to converge
+admixture,admixture,admixture_05,admixture_05_po,polite,Please estimate ancestry proportions from genotypes.bed with K=5 using the EM algorithm instead of default block relaxation when the latter fails to converge
+admixture,admixture,admixture_05,admixture_05_sy,sysadmin,Use admixture to estimate ancestry proportions from genotypes.bed with K=5 using the EM algorithm instead of default block relaxation when the latter fails to converge
+admixture,admixture,admixture_06,admixture_06_or,original,estimate ancestry proportions from genotypes.bed with K=5 accelerating convergence with quasi-Newton acceleration using lookahead 5 and cross-validation
+admixture,admixture,admixture_06,admixture_06_be,beginner,How do I estimate ancestry proportions from genotypes.bed with K=5 accelerating convergence with quasi-Newton acceleration using lookahead 5 and cross-validation?
+admixture,admixture,admixture_06,admixture_06_st,student,I need to estimate ancestry proportions from genotypes.bed with K=5 accelerating convergence with quasi-Newton acceleration using lookahead 5 and cross-validation
+admixture,admixture,admixture_06,admixture_06_po,polite,Please estimate ancestry proportions from genotypes.bed with K=5 accelerating convergence with quasi-Newton acceleration using lookahead 5 and cross-validation
+admixture,admixture,admixture_06,admixture_06_sy,sysadmin,Use admixture to estimate ancestry proportions from genotypes.bed with K=5 accelerating convergence with quasi-Newton acceleration using lookahead 5 and cross-validation
+admixture,admixture,admixture_07,admixture_07_or,original,project new individuals from genotypes.bed onto fixed allele frequency estimates from a previous run without re-estimating the allele frequency matrix at K=5
+admixture,admixture,admixture_07,admixture_07_be,beginner,How do I project new individuals from genotypes.bed onto fixed allele frequency estimates from a previous run without re-estimating the allele frequency matrix at K=5?
+admixture,admixture,admixture_07,admixture_07_st,student,I need to project new individuals from genotypes.bed onto fixed allele frequency estimates from a previous run without re-estimating the allele frequency matrix at K=5
+admixture,admixture,admixture_07,admixture_07_po,polite,Please project new individuals from genotypes.bed onto fixed allele frequency estimates from a previous run without re-estimating the allele frequency matrix at K=5
+admixture,admixture,admixture_07,admixture_07_sy,sysadmin,Use admixture to project new individuals from genotypes.bed onto fixed allele frequency estimates from a previous run without re-estimating the allele frequency matrix at K=5
+admixture,admixture,admixture_08,admixture_08_or,original,estimate ancestry proportions from genotypes.bed with K=5 using a tighter major convergence criterion of 1e-5 for high-precision results
+admixture,admixture,admixture_08,admixture_08_be,beginner,How do I estimate ancestry proportions from genotypes.bed with K=5 using a tighter major convergence criterion of 1e-5 for high-precision results?
+admixture,admixture,admixture_08,admixture_08_st,student,I need to estimate ancestry proportions from genotypes.bed with K=5 using a tighter major convergence criterion of 1e-5 for high-precision results
+admixture,admixture,admixture_08,admixture_08_po,polite,Please estimate ancestry proportions from genotypes.bed with K=5 using a tighter major convergence criterion of 1e-5 for high-precision results
+admixture,admixture,admixture_08,admixture_08_sy,sysadmin,Use admixture to estimate ancestry proportions from genotypes.bed with K=5 using a tighter major convergence criterion of 1e-5 for high-precision results
+admixture,admixture,admixture_09,admixture_09_or,original,estimate ancestry proportions from genotypes.bed with K=5 excluding SNPs with minor allele frequency below 5 percent at runtime
+admixture,admixture,admixture_09,admixture_09_be,beginner,How do I estimate ancestry proportions from genotypes.bed with K=5 excluding SNPs with minor allele frequency below 5 percent at runtime?
+admixture,admixture,admixture_09,admixture_09_st,student,I need to estimate ancestry proportions from genotypes.bed with K=5 excluding SNPs with minor allele frequency below 5 percent at runtime
+admixture,admixture,admixture_09,admixture_09_po,polite,Please estimate ancestry proportions from genotypes.bed with K=5 excluding SNPs with minor allele frequency below 5 percent at runtime
+admixture,admixture,admixture_09,admixture_09_sy,sysadmin,Use admixture to estimate ancestry proportions from genotypes.bed with K=5 excluding SNPs with minor allele frequency below 5 percent at runtime
+admixture,admixture,admixture_10,admixture_10_or,original,estimate ancestry proportions from genotypes.bed with K=6 and 10-fold cross-validation using 8 threads for comparing cross-validation error across K values
+admixture,admixture,admixture_10,admixture_10_be,beginner,How do I estimate ancestry proportions from genotypes.bed with K=6 and 10-fold cross-validation using 8 threads for comparing cross-validation error across K values?
+admixture,admixture,admixture_10,admixture_10_st,student,I need to estimate ancestry proportions from genotypes.bed with K=6 and 10-fold cross-validation using 8 threads for comparing cross-validation error across K values
+admixture,admixture,admixture_10,admixture_10_po,polite,Please estimate ancestry proportions from genotypes.bed with K=6 and 10-fold cross-validation using 8 threads for comparing cross-validation error across K values
+admixture,admixture,admixture_10,admixture_10_sy,sysadmin,Use admixture to estimate ancestry proportions from genotypes.bed with K=6 and 10-fold cross-validation using 8 threads for comparing cross-validation error across K values
+agat,agat,agat_01,agat_01_or,original,convert genes.gff3 from GFF3 to GTF format and write the output to genes.gtf for use with splice-aware aligners
+agat,agat,agat_01,agat_01_be,beginner,How do I convert genes.gff3 from GFF3 to GTF format and write the output to genes.gtf for use with splice-aware aligners?
+agat,agat,agat_01,agat_01_st,student,I need to convert genes.gff3 from GFF3 to GTF format and write the output to genes.gtf for use with splice-aware aligners
+agat,agat,agat_01,agat_01_po,polite,Please convert genes.gff3 from GFF3 to GTF format and write the output to genes.gtf for use with splice-aware aligners
+agat,agat,agat_01,agat_01_sy,sysadmin,Use agat to convert genes.gff3 from GFF3 to GTF format and write the output to genes.gtf for use with splice-aware aligners
+agat,agat,agat_02,agat_02_or,original,generate comprehensive annotation statistics from genes.gff3 including gene count mRNA count exon count and intron size distribution and write to stats_report.txt
+agat,agat,agat_02,agat_02_be,beginner,How do I generate comprehensive annotation statistics from genes.gff3 including gene count mRNA count exon count and intron size distribution and write to stats_report.txt?
+agat,agat,agat_02,agat_02_st,student,I need to generate comprehensive annotation statistics from genes.gff3 including gene count mRNA count exon count and intron size distribution and write to stats_report.txt
+agat,agat,agat_02,agat_02_po,polite,Please generate comprehensive annotation statistics from genes.gff3 including gene count mRNA count exon count and intron size distribution and write to stats_report.txt
+agat,agat,agat_02,agat_02_sy,sysadmin,Use agat to generate comprehensive annotation statistics from genes.gff3 including gene count mRNA count exon count and intron size distribution and write to stats_report.txt
+agat,agat,agat_03,agat_03_or,original,filter genes.gff3 to keep only genes whose concatenated exon length is at least 300 base pairs and write to genes_min300bp.gff3
+agat,agat,agat_03,agat_03_be,beginner,How do I filter genes.gff3 to keep only genes whose concatenated exon length is at least 300 base pairs and write to genes_min300bp.gff3?
+agat,agat,agat_03,agat_03_st,student,I need to filter genes.gff3 to keep only genes whose concatenated exon length is at least 300 base pairs and write to genes_min300bp.gff3
+agat,agat,agat_03,agat_03_po,polite,Please filter genes.gff3 to keep only genes whose concatenated exon length is at least 300 base pairs and write to genes_min300bp.gff3
+agat,agat,agat_03,agat_03_sy,sysadmin,Use agat to filter genes.gff3 to keep only genes whose concatenated exon length is at least 300 base pairs and write to genes_min300bp.gff3
+agat,agat,agat_04,agat_04_or,original,repair the malformed draft.gff3 by removing duplicates fixing IDs adding missing Parent attributes and sorting features and write to fixed.gff3
+agat,agat,agat_04,agat_04_be,beginner,How do I repair the malformed draft.gff3 by removing duplicates fixing IDs adding missing Parent attributes and sorting features and write to fixed.gff3?
+agat,agat,agat_04,agat_04_st,student,I need to repair the malformed draft.gff3 by removing duplicates fixing IDs adding missing Parent attributes and sorting features and write to fixed.gff3
+agat,agat,agat_04,agat_04_po,polite,Please repair the malformed draft.gff3 by removing duplicates fixing IDs adding missing Parent attributes and sorting features and write to fixed.gff3
+agat,agat,agat_04,agat_04_sy,sysadmin,Use agat to repair the malformed draft.gff3 by removing duplicates fixing IDs adding missing Parent attributes and sorting features and write to fixed.gff3
+agat,agat,agat_05,agat_05_or,original,extract coding sequences from genes.gff3 using the reference genome ref.fa and write CDS sequences to cds.fa
+agat,agat,agat_05,agat_05_be,beginner,How do I extract coding sequences from genes.gff3 using the reference genome ref.fa and write CDS sequences to cds.fa?
+agat,agat,agat_05,agat_05_st,student,I need to extract coding sequences from genes.gff3 using the reference genome ref.fa and write CDS sequences to cds.fa
+agat,agat,agat_05,agat_05_po,polite,Please extract coding sequences from genes.gff3 using the reference genome ref.fa and write CDS sequences to cds.fa
+agat,agat,agat_05,agat_05_sy,sysadmin,Use agat to extract coding sequences from genes.gff3 using the reference genome ref.fa and write CDS sequences to cds.fa
+agat,agat,agat_06,agat_06_or,original,reduce genes.gff3 to the single longest isoform per gene locus and write to primary_isoforms.gff3
+agat,agat,agat_06,agat_06_be,beginner,How do I reduce genes.gff3 to the single longest isoform per gene locus and write to primary_isoforms.gff3?
+agat,agat,agat_06,agat_06_st,student,I need to reduce genes.gff3 to the single longest isoform per gene locus and write to primary_isoforms.gff3
+agat,agat,agat_06,agat_06_po,polite,Please reduce genes.gff3 to the single longest isoform per gene locus and write to primary_isoforms.gff3
+agat,agat,agat_06,agat_06_sy,sysadmin,Use agat to reduce genes.gff3 to the single longest isoform per gene locus and write to primary_isoforms.gff3
+agat,agat,agat_07,agat_07_or,original,merge two GFF3 annotation sets set1.gff3 and set2.gff3 into one non-redundant file merged.gff3 resolving duplicated features and IDs
+agat,agat,agat_07,agat_07_be,beginner,How do I merge two GFF3 annotation sets set1.gff3 and set2.gff3 into one non-redundant file merged.gff3 resolving duplicated features and IDs?
+agat,agat,agat_07,agat_07_st,student,I need to merge two GFF3 annotation sets set1.gff3 and set2.gff3 into one non-redundant file merged.gff3 resolving duplicated features and IDs
+agat,agat,agat_07,agat_07_po,polite,Please merge two GFF3 annotation sets set1.gff3 and set2.gff3 into one non-redundant file merged.gff3 resolving duplicated features and IDs
+agat,agat,agat_07,agat_07_sy,sysadmin,Use agat to merge two GFF3 annotation sets set1.gff3 and set2.gff3 into one non-redundant file merged.gff3 resolving duplicated features and IDs
+agat,agat,agat_08,agat_08_or,original,standardize feature identifiers in genes.gff3 by assigning the prefix LOC to all gene and transcript IDs and write to renamed.gff3
+agat,agat,agat_08,agat_08_be,beginner,How do I standardize feature identifiers in genes.gff3 by assigning the prefix LOC to all gene and transcript IDs and write to renamed.gff3?
+agat,agat,agat_08,agat_08_st,student,I need to standardize feature identifiers in genes.gff3 by assigning the prefix LOC to all gene and transcript IDs and write to renamed.gff3
+agat,agat,agat_08,agat_08_po,polite,Please standardize feature identifiers in genes.gff3 by assigning the prefix LOC to all gene and transcript IDs and write to renamed.gff3
+agat,agat,agat_08,agat_08_sy,sysadmin,Use agat to standardize feature identifiers in genes.gff3 by assigning the prefix LOC to all gene and transcript IDs and write to renamed.gff3
+agat,agat,agat_09,agat_09_or,original,convert genes.gff3 from GFF3 1-based closed coordinates to BED 0-based half-open format and write to genes.bed
+agat,agat,agat_09,agat_09_be,beginner,How do I convert genes.gff3 from GFF3 1-based closed coordinates to BED 0-based half-open format and write to genes.bed?
+agat,agat,agat_09,agat_09_st,student,I need to convert genes.gff3 from GFF3 1-based closed coordinates to BED 0-based half-open format and write to genes.bed
+agat,agat,agat_09,agat_09_po,polite,Please convert genes.gff3 from GFF3 1-based closed coordinates to BED 0-based half-open format and write to genes.bed
+agat,agat,agat_09,agat_09_sy,sysadmin,Use agat to convert genes.gff3 from GFF3 1-based closed coordinates to BED 0-based half-open format and write to genes.bed
+agat,agat,agat_10,agat_10_or,original,generate an editable AGAT configuration YAML file in the current working directory using config --expose to customize output format and parser behavior
+agat,agat,agat_10,agat_10_be,beginner,How do I generate an editable AGAT configuration YAML file in the current working directory using config --expose to customize output format and parser behavior?
+agat,agat,agat_10,agat_10_st,student,I need to generate an editable AGAT configuration YAML file in the current working directory using config --expose to customize output format and parser behavior
+agat,agat,agat_10,agat_10_po,polite,Please generate an editable AGAT configuration YAML file in the current working directory using config --expose to customize output format and parser behavior
+agat,agat,agat_10,agat_10_sy,sysadmin,Use agat to generate an editable AGAT configuration YAML file in the current working directory using config --expose to customize output format and parser behavior
+angsd,angsd,angsd_01,angsd_01_or,original,compute genotype likelihoods in BEAGLE format and allele frequencies from BAM files listed in samples.txt writing output with the genotypes prefix for downstream PCA and admixture analysis
+angsd,angsd,angsd_01,angsd_01_be,beginner,How do I compute genotype likelihoods in BEAGLE format and allele frequencies from BAM files listed in samples.txt writing output with the genotypes prefix for downstream PCA and admixture analysis?
+angsd,angsd,angsd_01,angsd_01_st,student,I need to compute genotype likelihoods in BEAGLE format and allele frequencies from BAM files listed in samples.txt writing output with the genotypes prefix for downstream PCA and admixture analysis
+angsd,angsd,angsd_01,angsd_01_po,polite,Please compute genotype likelihoods in BEAGLE format and allele frequencies from BAM files listed in samples.txt writing output with the genotypes prefix for downstream PCA and admixture analysis
+angsd,angsd,angsd_01,angsd_01_sy,sysadmin,Use angsd to compute genotype likelihoods in BEAGLE format and allele frequencies from BAM files listed in samples.txt writing output with the genotypes prefix for downstream PCA and admixture analysis
+angsd,angsd,angsd_02,angsd_02_or,original,compute per-site allele frequency likelihoods for a single population from BAM files listed in pop1.txt using the ancestral reference ancestor.fa for unfolded site frequency spectrum writing output with the pop1 prefix
+angsd,angsd,angsd_02,angsd_02_be,beginner,How do I compute per-site allele frequency likelihoods for a single population from BAM files listed in pop1.txt using the ancestral reference ancestor.fa for unfolded site frequency spectrum writing output with the pop1 prefix?
+angsd,angsd,angsd_02,angsd_02_st,student,I need to compute per-site allele frequency likelihoods for a single population from BAM files listed in pop1.txt using the ancestral reference ancestor.fa for unfolded site frequency spectrum writing output with the pop1 prefix
+angsd,angsd,angsd_02,angsd_02_po,polite,Please compute per-site allele frequency likelihoods for a single population from BAM files listed in pop1.txt using the ancestral reference ancestor.fa for unfolded site frequency spectrum writing output with the pop1 prefix
+angsd,angsd,angsd_02,angsd_02_sy,sysadmin,Use angsd to compute per-site allele frequency likelihoods for a single population from BAM files listed in pop1.txt using the ancestral reference ancestor.fa for unfolded site frequency spectrum writing output with the pop1 prefix
+angsd,angsd,angsd_03,angsd_03_or,original,estimate the 1D site frequency spectrum from the SAF likelihood file pop1.saf.idx using the EM algorithm with 16 threads
+angsd,angsd,angsd_03,angsd_03_be,beginner,How do I estimate the 1D site frequency spectrum from the SAF likelihood file pop1.saf.idx using the EM algorithm with 16 threads?
+angsd,angsd,angsd_03,angsd_03_st,student,I need to estimate the 1D site frequency spectrum from the SAF likelihood file pop1.saf.idx using the EM algorithm with 16 threads
+angsd,angsd,angsd_03,angsd_03_po,polite,Please estimate the 1D site frequency spectrum from the SAF likelihood file pop1.saf.idx using the EM algorithm with 16 threads
+angsd,angsd,angsd_03,angsd_03_sy,sysadmin,Use angsd to estimate the 1D site frequency spectrum from the SAF likelihood file pop1.saf.idx using the EM algorithm with 16 threads
+angsd,angsd,angsd_04,angsd_04_or,original,estimate Watterson theta and Tajima D from BAM files listed in pop1.txt using the prior site frequency spectrum pop1.sfs and ancestral reference ancestor.fa writing output with the pop1_thetas prefix
+angsd,angsd,angsd_04,angsd_04_be,beginner,How do I estimate Watterson theta and Tajima D from BAM files listed in pop1.txt using the prior site frequency spectrum pop1.sfs and ancestral reference ancestor.fa writing output with the pop1_thetas prefix?
+angsd,angsd,angsd_04,angsd_04_st,student,I need to estimate Watterson theta and Tajima D from BAM files listed in pop1.txt using the prior site frequency spectrum pop1.sfs and ancestral reference ancestor.fa writing output with the pop1_thetas prefix
+angsd,angsd,angsd_04,angsd_04_po,polite,Please estimate Watterson theta and Tajima D from BAM files listed in pop1.txt using the prior site frequency spectrum pop1.sfs and ancestral reference ancestor.fa writing output with the pop1_thetas prefix
+angsd,angsd,angsd_04,angsd_04_sy,sysadmin,Use angsd to estimate Watterson theta and Tajima D from BAM files listed in pop1.txt using the prior site frequency spectrum pop1.sfs and ancestral reference ancestor.fa writing output with the pop1_thetas prefix
+angsd,angsd,angsd_05,angsd_05_or,original,compute the joint 2D site frequency spectrum for two populations from their per-population SAF likelihood files pop1.saf.idx and pop2.saf.idx
+angsd,angsd,angsd_05,angsd_05_be,beginner,How do I compute the joint 2D site frequency spectrum for two populations from their per-population SAF likelihood files pop1.saf.idx and pop2.saf.idx?
+angsd,angsd,angsd_05,angsd_05_st,student,I need to compute the joint 2D site frequency spectrum for two populations from their per-population SAF likelihood files pop1.saf.idx and pop2.saf.idx
+angsd,angsd,angsd_05,angsd_05_po,polite,Please compute the joint 2D site frequency spectrum for two populations from their per-population SAF likelihood files pop1.saf.idx and pop2.saf.idx
+angsd,angsd,angsd_05,angsd_05_sy,sysadmin,Use angsd to compute the joint 2D site frequency spectrum for two populations from their per-population SAF likelihood files pop1.saf.idx and pop2.saf.idx
+angsd,angsd,angsd_06,angsd_06_or,original,call genotypes as nucleotide codes with posterior probabilities from BAM files listed in samples.txt using allele frequencies as prior writing output with the genotypes prefix
+angsd,angsd,angsd_06,angsd_06_be,beginner,How do I call genotypes as nucleotide codes with posterior probabilities from BAM files listed in samples.txt using allele frequencies as prior writing output with the genotypes prefix?
+angsd,angsd,angsd_06,angsd_06_st,student,I need to call genotypes as nucleotide codes with posterior probabilities from BAM files listed in samples.txt using allele frequencies as prior writing output with the genotypes prefix
+angsd,angsd,angsd_06,angsd_06_po,polite,Please call genotypes as nucleotide codes with posterior probabilities from BAM files listed in samples.txt using allele frequencies as prior writing output with the genotypes prefix
+angsd,angsd,angsd_06,angsd_06_sy,sysadmin,Use angsd to call genotypes as nucleotide codes with posterior probabilities from BAM files listed in samples.txt using allele frequencies as prior writing output with the genotypes prefix
+angsd,angsd,angsd_07,angsd_07_or,original,perform ABBA-BABA D-statistics test for gene flow and introgression from BAM files listed in samples.txt using ancestor.fa as the ancestral reference removing transition SNPs to reduce CpG bias writing output with the dstat prefix
+angsd,angsd,angsd_07,angsd_07_be,beginner,How do I perform ABBA-BABA D-statistics test for gene flow and introgression from BAM files listed in samples.txt using ancestor.fa as the ancestral reference removing transition SNPs to reduce CpG bias writing output with the dstat prefix?
+angsd,angsd,angsd_07,angsd_07_st,student,I need to perform ABBA-BABA D-statistics test for gene flow and introgression from BAM files listed in samples.txt using ancestor.fa as the ancestral reference removing transition SNPs to reduce CpG bias writing output with the dstat prefix
+angsd,angsd,angsd_07,angsd_07_po,polite,Please perform ABBA-BABA D-statistics test for gene flow and introgression from BAM files listed in samples.txt using ancestor.fa as the ancestral reference removing transition SNPs to reduce CpG bias writing output with the dstat prefix
+angsd,angsd,angsd_07,angsd_07_sy,sysadmin,Use angsd to perform ABBA-BABA D-statistics test for gene flow and introgression from BAM files listed in samples.txt using ancestor.fa as the ancestral reference removing transition SNPs to reduce CpG bias writing output with the dstat prefix
+angsd,angsd,angsd_08,angsd_08_or,original,run a genotype-phenotype association study using the Score Test from BAM files listed in samples.txt with phenotype data in traits.txt writing output with the association prefix
+angsd,angsd,angsd_08,angsd_08_be,beginner,How do I run a genotype-phenotype association study using the Score Test from BAM files listed in samples.txt with phenotype data in traits.txt writing output with the association prefix?
+angsd,angsd,angsd_08,angsd_08_st,student,I need to run a genotype-phenotype association study using the Score Test from BAM files listed in samples.txt with phenotype data in traits.txt writing output with the association prefix
+angsd,angsd,angsd_08,angsd_08_po,polite,Please run a genotype-phenotype association study using the Score Test from BAM files listed in samples.txt with phenotype data in traits.txt writing output with the association prefix
+angsd,angsd,angsd_08,angsd_08_sy,sysadmin,Use angsd to run a genotype-phenotype association study using the Score Test from BAM files listed in samples.txt with phenotype data in traits.txt writing output with the association prefix
+angsd,angsd,angsd_09,angsd_09_or,original,generate a consensus FASTA sequence from the single BAM alignment alignment.bam using the most common base at each position writing output with the consensus prefix
+angsd,angsd,angsd_09,angsd_09_be,beginner,How do I generate a consensus FASTA sequence from the single BAM alignment alignment.bam using the most common base at each position writing output with the consensus prefix?
+angsd,angsd,angsd_09,angsd_09_st,student,I need to generate a consensus FASTA sequence from the single BAM alignment alignment.bam using the most common base at each position writing output with the consensus prefix
+angsd,angsd,angsd_09,angsd_09_po,polite,Please generate a consensus FASTA sequence from the single BAM alignment alignment.bam using the most common base at each position writing output with the consensus prefix
+angsd,angsd,angsd_09,angsd_09_sy,sysadmin,Use angsd to generate a consensus FASTA sequence from the single BAM alignment alignment.bam using the most common base at each position writing output with the consensus prefix
+angsd,angsd,angsd_10,angsd_10_or,original,compute genotype likelihoods in BEAGLE format from BAM files listed in samples.txt requiring data in at least 40 individuals per site writing output with the admix_input prefix for NGSadmix admixture analysis
+angsd,angsd,angsd_10,angsd_10_be,beginner,How do I compute genotype likelihoods in BEAGLE format from BAM files listed in samples.txt requiring data in at least 40 individuals per site writing output with the admix_input prefix for NGSadmix admixture analysis?
+angsd,angsd,angsd_10,angsd_10_st,student,I need to compute genotype likelihoods in BEAGLE format from BAM files listed in samples.txt requiring data in at least 40 individuals per site writing output with the admix_input prefix for NGSadmix admixture analysis
+angsd,angsd,angsd_10,angsd_10_po,polite,Please compute genotype likelihoods in BEAGLE format from BAM files listed in samples.txt requiring data in at least 40 individuals per site writing output with the admix_input prefix for NGSadmix admixture analysis
+angsd,angsd,angsd_10,angsd_10_sy,sysadmin,Use angsd to compute genotype likelihoods in BEAGLE format from BAM files listed in samples.txt requiring data in at least 40 individuals per site writing output with the admix_input prefix for NGSadmix admixture analysis
+arriba,arriba,arriba_01,arriba_01_or,original,detect gene fusions from the RNA-seq alignment aligned.bam using annotation.gtf and reference ref.fa with a blacklist to filter common sequencing artifacts and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_01,arriba_01_be,beginner,How do I detect gene fusions from the RNA-seq alignment aligned.bam using annotation.gtf and reference ref.fa with a blacklist to filter common sequencing artifacts and write fusions to fusions.tsv and discarded calls to discarded.tsv?
+arriba,arriba,arriba_01,arriba_01_st,student,I need to detect gene fusions from the RNA-seq alignment aligned.bam using annotation.gtf and reference ref.fa with a blacklist to filter common sequencing artifacts and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_01,arriba_01_po,polite,Please detect gene fusions from the RNA-seq alignment aligned.bam using annotation.gtf and reference ref.fa with a blacklist to filter common sequencing artifacts and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_01,arriba_01_sy,sysadmin,Use arriba to detect gene fusions from the RNA-seq alignment aligned.bam using annotation.gtf and reference ref.fa with a blacklist to filter common sequencing artifacts and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_02,arriba_02_or,original,detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa boosting sensitivity for known recurrent fusions listed in known_fusions.tsv with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_02,arriba_02_be,beginner,How do I detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa boosting sensitivity for known recurrent fusions listed in known_fusions.tsv with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv?
+arriba,arriba,arriba_02,arriba_02_st,student,I need to detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa boosting sensitivity for known recurrent fusions listed in known_fusions.tsv with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_02,arriba_02_po,polite,Please detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa boosting sensitivity for known recurrent fusions listed in known_fusions.tsv with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_02,arriba_02_sy,sysadmin,Use arriba to detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa boosting sensitivity for known recurrent fusions listed in known_fusions.tsv with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_03,arriba_03_or,original,detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa from a strand-specific reverse-stranded RNA-seq library with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_03,arriba_03_be,beginner,How do I detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa from a strand-specific reverse-stranded RNA-seq library with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv?
+arriba,arriba,arriba_03,arriba_03_st,student,I need to detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa from a strand-specific reverse-stranded RNA-seq library with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_03,arriba_03_po,polite,Please detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa from a strand-specific reverse-stranded RNA-seq library with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_03,arriba_03_sy,sysadmin,Use arriba to detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa from a strand-specific reverse-stranded RNA-seq library with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_04,arriba_04_or,original,detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa annotating retained protein domains from domains.gff3 with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_04,arriba_04_be,beginner,How do I detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa annotating retained protein domains from domains.gff3 with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv?
+arriba,arriba,arriba_04,arriba_04_st,student,I need to detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa annotating retained protein domains from domains.gff3 with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_04,arriba_04_po,polite,Please detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa annotating retained protein domains from domains.gff3 with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_04,arriba_04_sy,sysadmin,Use arriba to detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa annotating retained protein domains from domains.gff3 with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_05,arriba_05_or,original,detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa integrating whole-genome sequencing structural variant breakpoints from sv_breakpoints.tsv within 100 kb distance with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_05,arriba_05_be,beginner,How do I detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa integrating whole-genome sequencing structural variant breakpoints from sv_breakpoints.tsv within 100 kb distance with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv?
+arriba,arriba,arriba_05,arriba_05_st,student,I need to detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa integrating whole-genome sequencing structural variant breakpoints from sv_breakpoints.tsv within 100 kb distance with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_05,arriba_05_po,polite,Please detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa integrating whole-genome sequencing structural variant breakpoints from sv_breakpoints.tsv within 100 kb distance with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_05,arriba_05_sy,sysadmin,Use arriba to detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa integrating whole-genome sequencing structural variant breakpoints from sv_breakpoints.tsv within 100 kb distance with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_06,arriba_06_or,original,detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa with high stringency requiring at least 5 supporting reads and a strict e-value threshold of 0.01 with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_06,arriba_06_be,beginner,How do I detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa with high stringency requiring at least 5 supporting reads and a strict e-value threshold of 0.01 with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv?
+arriba,arriba,arriba_06,arriba_06_st,student,I need to detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa with high stringency requiring at least 5 supporting reads and a strict e-value threshold of 0.01 with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_06,arriba_06_po,polite,Please detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa with high stringency requiring at least 5 supporting reads and a strict e-value threshold of 0.01 with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_06,arriba_06_sy,sysadmin,Use arriba to detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa with high stringency requiring at least 5 supporting reads and a strict e-value threshold of 0.01 with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_07,arriba_07_or,original,detect gene fusions from single-end RNA-seq alignment aligned.bam using annotation.gtf and reference ref.fa providing a mean fragment length of 200 bp for hairpin artifact filtering with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_07,arriba_07_be,beginner,How do I detect gene fusions from single-end RNA-seq alignment aligned.bam using annotation.gtf and reference ref.fa providing a mean fragment length of 200 bp for hairpin artifact filtering with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv?
+arriba,arriba,arriba_07,arriba_07_st,student,I need to detect gene fusions from single-end RNA-seq alignment aligned.bam using annotation.gtf and reference ref.fa providing a mean fragment length of 200 bp for hairpin artifact filtering with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_07,arriba_07_po,polite,Please detect gene fusions from single-end RNA-seq alignment aligned.bam using annotation.gtf and reference ref.fa providing a mean fragment length of 200 bp for hairpin artifact filtering with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_07,arriba_07_sy,sysadmin,Use arriba to detect gene fusions from single-end RNA-seq alignment aligned.bam using annotation.gtf and reference ref.fa providing a mean fragment length of 200 bp for hairpin artifact filtering with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_08,arriba_08_or,original,detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa tagging known clinically actionable fusion pairs from actionable_tags.tsv with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_08,arriba_08_be,beginner,How do I detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa tagging known clinically actionable fusion pairs from actionable_tags.tsv with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv?
+arriba,arriba,arriba_08,arriba_08_st,student,I need to detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa tagging known clinically actionable fusion pairs from actionable_tags.tsv with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_08,arriba_08_po,polite,Please detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa tagging known clinically actionable fusion pairs from actionable_tags.tsv with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_08,arriba_08_sy,sysadmin,Use arriba to detect gene fusions from aligned.bam using annotation.gtf and reference ref.fa tagging known clinically actionable fusion pairs from actionable_tags.tsv with blacklist filtering and write fusions to fusions.tsv and discarded calls to discarded.tsv
+arriba,arriba,arriba_09,arriba_09_or,original,run the complete gene fusion detection pipeline from raw paired-end RNA-seq reads reads_1.fastq.gz and reads_2.fastq.gz through STAR alignment with index at /star_index and Arriba fusion calling using annotation.gtf ref.fa blacklist.tsv.gz known_fusions.tsv and domains.gff3 with 8 threads
+arriba,arriba,arriba_09,arriba_09_be,beginner,How do I run the complete gene fusion detection pipeline from raw paired-end RNA-seq reads reads_1.fastq.gz and reads_2.fastq.gz through STAR alignment with index at /star_index and Arriba fusion calling using annotation.gtf ref.fa blacklist.tsv.gz known_fusions.tsv and domains.gff3 with 8 threads?
+arriba,arriba,arriba_09,arriba_09_st,student,I need to run the complete gene fusion detection pipeline from raw paired-end RNA-seq reads reads_1.fastq.gz and reads_2.fastq.gz through STAR alignment with index at /star_index and Arriba fusion calling using annotation.gtf ref.fa blacklist.tsv.gz known_fusions.tsv and domains.gff3 with 8 threads
+arriba,arriba,arriba_09,arriba_09_po,polite,Please run the complete gene fusion detection pipeline from raw paired-end RNA-seq reads reads_1.fastq.gz and reads_2.fastq.gz through STAR alignment with index at /star_index and Arriba fusion calling using annotation.gtf ref.fa blacklist.tsv.gz known_fusions.tsv and domains.gff3 with 8 threads
+arriba,arriba,arriba_09,arriba_09_sy,sysadmin,Use arriba to run the complete gene fusion detection pipeline from raw paired-end RNA-seq reads reads_1.fastq.gz and reads_2.fastq.gz through STAR alignment with index at /star_index and Arriba fusion calling using annotation.gtf ref.fa blacklist.tsv.gz known_fusions.tsv and domains.gff3 with 8 threads
+arriba,arriba,arriba_10,arriba_10_or,original,generate structural diagrams of detected gene fusions listed in fusions.tsv using the alignment aligned.bam reference ref.fa and annotation annotation.gtf and save the plots to fusion_plots.pdf
+arriba,arriba,arriba_10,arriba_10_be,beginner,How do I generate structural diagrams of detected gene fusions listed in fusions.tsv using the alignment aligned.bam reference ref.fa and annotation annotation.gtf and save the plots to fusion_plots.pdf?
+arriba,arriba,arriba_10,arriba_10_st,student,I need to generate structural diagrams of detected gene fusions listed in fusions.tsv using the alignment aligned.bam reference ref.fa and annotation annotation.gtf and save the plots to fusion_plots.pdf
+arriba,arriba,arriba_10,arriba_10_po,polite,Please generate structural diagrams of detected gene fusions listed in fusions.tsv using the alignment aligned.bam reference ref.fa and annotation annotation.gtf and save the plots to fusion_plots.pdf
+arriba,arriba,arriba_10,arriba_10_sy,sysadmin,Use arriba to generate structural diagrams of detected gene fusions listed in fusions.tsv using the alignment aligned.bam reference ref.fa and annotation annotation.gtf and save the plots to fusion_plots.pdf
+augustus,augustus,augustus_01,augustus_01_or,original,predict protein-coding genes in the genome sequence genes.fa using a pre-trained human species model and output GFF3 format
+augustus,augustus,augustus_01,augustus_01_be,beginner,How do I predict protein-coding genes in the genome sequence genes.fa using a pre-trained human species model and output GFF3 format?
+augustus,augustus,augustus_01,augustus_01_st,student,I need to predict protein-coding genes in the genome sequence genes.fa using a pre-trained human species model and output GFF3 format
+augustus,augustus,augustus_01,augustus_01_po,polite,Please predict protein-coding genes in the genome sequence genes.fa using a pre-trained human species model and output GFF3 format
+augustus,augustus,augustus_01,augustus_01_sy,sysadmin,Use augustus to predict protein-coding genes in the genome sequence genes.fa using a pre-trained human species model and output GFF3 format
+augustus,augustus,augustus_02,augustus_02_or,original,predict genes in genes.fa guided by RNA-seq intron and exon hints from hints.gff with custom hint weighting from weights.cfg using the human species model and output GFF3 format
+augustus,augustus,augustus_02,augustus_02_be,beginner,How do I predict genes in genes.fa guided by RNA-seq intron and exon hints from hints.gff with custom hint weighting from weights.cfg using the human species model and output GFF3 format?
+augustus,augustus,augustus_02,augustus_02_st,student,I need to predict genes in genes.fa guided by RNA-seq intron and exon hints from hints.gff with custom hint weighting from weights.cfg using the human species model and output GFF3 format
+augustus,augustus,augustus_02,augustus_02_po,polite,Please predict genes in genes.fa guided by RNA-seq intron and exon hints from hints.gff with custom hint weighting from weights.cfg using the human species model and output GFF3 format
+augustus,augustus,augustus_02,augustus_02_sy,sysadmin,Use augustus to predict genes in genes.fa guided by RNA-seq intron and exon hints from hints.gff with custom hint weighting from weights.cfg using the human species model and output GFF3 format
+augustus,augustus,augustus_03,augustus_03_or,original,generate intron hints in GFF format from spliced RNA-seq alignments in alignments.bam and write them to hints.gff for use as gene prediction evidence
+augustus,augustus,augustus_03,augustus_03_be,beginner,How do I generate intron hints in GFF format from spliced RNA-seq alignments in alignments.bam and write them to hints.gff for use as gene prediction evidence?
+augustus,augustus,augustus_03,augustus_03_st,student,I need to generate intron hints in GFF format from spliced RNA-seq alignments in alignments.bam and write them to hints.gff for use as gene prediction evidence
+augustus,augustus,augustus_03,augustus_03_po,polite,Please generate intron hints in GFF format from spliced RNA-seq alignments in alignments.bam and write them to hints.gff for use as gene prediction evidence
+augustus,augustus,augustus_03,augustus_03_sy,sysadmin,Use augustus to generate intron hints in GFF format from spliced RNA-seq alignments in alignments.bam and write them to hints.gff for use as gene prediction evidence
+augustus,augustus,augustus_04,augustus_04_or,original,predict genes in genes.fa using the human species model and output both protein sequences and coding sequences embedded in the GFF3 for functional annotation
+augustus,augustus,augustus_04,augustus_04_be,beginner,How do I predict genes in genes.fa using the human species model and output both protein sequences and coding sequences embedded in the GFF3 for functional annotation?
+augustus,augustus,augustus_04,augustus_04_st,student,I need to predict genes in genes.fa using the human species model and output both protein sequences and coding sequences embedded in the GFF3 for functional annotation
+augustus,augustus,augustus_04,augustus_04_po,polite,Please predict genes in genes.fa using the human species model and output both protein sequences and coding sequences embedded in the GFF3 for functional annotation
+augustus,augustus,augustus_04,augustus_04_sy,sysadmin,Use augustus to predict genes in genes.fa using the human species model and output both protein sequences and coding sequences embedded in the GFF3 for functional annotation
+augustus,augustus,augustus_05,augustus_05_or,original,predict only complete genes with start and stop codons on the forward strand of genes.fa using the human species model and output GFF3 format
+augustus,augustus,augustus_05,augustus_05_be,beginner,How do I predict only complete genes with start and stop codons on the forward strand of genes.fa using the human species model and output GFF3 format?
+augustus,augustus,augustus_05,augustus_05_st,student,I need to predict only complete genes with start and stop codons on the forward strand of genes.fa using the human species model and output GFF3 format
+augustus,augustus,augustus_05,augustus_05_po,polite,Please predict only complete genes with start and stop codons on the forward strand of genes.fa using the human species model and output GFF3 format
+augustus,augustus,augustus_05,augustus_05_sy,sysadmin,Use augustus to predict only complete genes with start and stop codons on the forward strand of genes.fa using the human species model and output GFF3 format
+augustus,augustus,augustus_06,augustus_06_or,original,predict genes on the repeat-soft-masked genome masked.fa including untranslated regions using lowercase masking with the human species model and output GFF3 format
+augustus,augustus,augustus_06,augustus_06_be,beginner,How do I predict genes on the repeat-soft-masked genome masked.fa including untranslated regions using lowercase masking with the human species model and output GFF3 format?
+augustus,augustus,augustus_06,augustus_06_st,student,I need to predict genes on the repeat-soft-masked genome masked.fa including untranslated regions using lowercase masking with the human species model and output GFF3 format
+augustus,augustus,augustus_06,augustus_06_po,polite,Please predict genes on the repeat-soft-masked genome masked.fa including untranslated regions using lowercase masking with the human species model and output GFF3 format
+augustus,augustus,augustus_06,augustus_06_sy,sysadmin,Use augustus to predict genes on the repeat-soft-masked genome masked.fa including untranslated regions using lowercase masking with the human species model and output GFF3 format
+augustus,augustus,augustus_07,augustus_07_or,original,predict single-exon protein-coding genes in the yeast genome genes.fa using Saccharomyces cerevisiae parameters with the intronless gene model and output GFF3 format
+augustus,augustus,augustus_07,augustus_07_be,beginner,How do I predict single-exon protein-coding genes in the yeast genome genes.fa using Saccharomyces cerevisiae parameters with the intronless gene model and output GFF3 format?
+augustus,augustus,augustus_07,augustus_07_st,student,I need to predict single-exon protein-coding genes in the yeast genome genes.fa using Saccharomyces cerevisiae parameters with the intronless gene model and output GFF3 format
+augustus,augustus,augustus_07,augustus_07_po,polite,Please predict single-exon protein-coding genes in the yeast genome genes.fa using Saccharomyces cerevisiae parameters with the intronless gene model and output GFF3 format
+augustus,augustus,augustus_07,augustus_07_sy,sysadmin,Use augustus to predict single-exon protein-coding genes in the yeast genome genes.fa using Saccharomyces cerevisiae parameters with the intronless gene model and output GFF3 format
+augustus,augustus,augustus_08,augustus_08_or,original,predict genes in genes.fa using the human species model and report alternative transcript isoforms when RNA-seq hints from hints.gff support multiple splicing patterns with up to 4 tracks per locus and output GFF3 format
+augustus,augustus,augustus_08,augustus_08_be,beginner,How do I predict genes in genes.fa using the human species model and report alternative transcript isoforms when RNA-seq hints from hints.gff support multiple splicing patterns with up to 4 tracks per locus and output GFF3 format?
+augustus,augustus,augustus_08,augustus_08_st,student,I need to predict genes in genes.fa using the human species model and report alternative transcript isoforms when RNA-seq hints from hints.gff support multiple splicing patterns with up to 4 tracks per locus and output GFF3 format
+augustus,augustus,augustus_08,augustus_08_po,polite,Please predict genes in genes.fa using the human species model and report alternative transcript isoforms when RNA-seq hints from hints.gff support multiple splicing patterns with up to 4 tracks per locus and output GFF3 format
+augustus,augustus,augustus_08,augustus_08_sy,sysadmin,Use augustus to predict genes in genes.fa using the human species model and report alternative transcript isoforms when RNA-seq hints from hints.gff support multiple splicing patterns with up to 4 tracks per locus and output GFF3 format
+augustus,augustus,augustus_09,augustus_09_or,original,predict genes in genes.fa restricted to the coordinate range 100000 to 500000 using the human species model for targeted analysis and output GFF3 format
+augustus,augustus,augustus_09,augustus_09_be,beginner,How do I predict genes in genes.fa restricted to the coordinate range 100000 to 500000 using the human species model for targeted analysis and output GFF3 format?
+augustus,augustus,augustus_09,augustus_09_st,student,I need to predict genes in genes.fa restricted to the coordinate range 100000 to 500000 using the human species model for targeted analysis and output GFF3 format
+augustus,augustus,augustus_09,augustus_09_po,polite,Please predict genes in genes.fa restricted to the coordinate range 100000 to 500000 using the human species model for targeted analysis and output GFF3 format
+augustus,augustus,augustus_09,augustus_09_sy,sysadmin,Use augustus to predict genes in genes.fa restricted to the coordinate range 100000 to 500000 using the human species model for targeted analysis and output GFF3 format
+augustus,augustus,augustus_10,augustus_10_or,original,predict genes in genes.fa using the human species model with a protein family conservation profile from profile.txt to improve detection of a specific gene family and output GFF3 format
+augustus,augustus,augustus_10,augustus_10_be,beginner,How do I predict genes in genes.fa using the human species model with a protein family conservation profile from profile.txt to improve detection of a specific gene family and output GFF3 format?
+augustus,augustus,augustus_10,augustus_10_st,student,I need to predict genes in genes.fa using the human species model with a protein family conservation profile from profile.txt to improve detection of a specific gene family and output GFF3 format
+augustus,augustus,augustus_10,augustus_10_po,polite,Please predict genes in genes.fa using the human species model with a protein family conservation profile from profile.txt to improve detection of a specific gene family and output GFF3 format
+augustus,augustus,augustus_10,augustus_10_sy,sysadmin,Use augustus to predict genes in genes.fa using the human species model with a protein family conservation profile from profile.txt to improve detection of a specific gene family and output GFF3 format
+awk,awk,awk_01,awk_01_or,original,count reads per reference chromosome from the SAM alignment file alignments.sam using the RNAME field in column 3
+awk,awk,awk_01,awk_01_be,beginner,How do I count reads per reference chromosome from the SAM alignment file alignments.sam using the RNAME field in column 3?
+awk,awk,awk_01,awk_01_st,student,I need to count reads per reference chromosome from the SAM alignment file alignments.sam using the RNAME field in column 3
+awk,awk,awk_01,awk_01_po,polite,Please count reads per reference chromosome from the SAM alignment file alignments.sam using the RNAME field in column 3
+awk,awk,awk_01,awk_01_sy,sysadmin,Use awk to count reads per reference chromosome from the SAM alignment file alignments.sam using the RNAME field in column 3
+awk,awk,awk_02,awk_02_or,original,count the number of alignments in alignments.sam with mapping quality of at least 60 in column 5
+awk,awk,awk_02,awk_02_be,beginner,How do I count the number of alignments in alignments.sam with mapping quality of at least 60 in column 5?
+awk,awk,awk_02,awk_02_st,student,I need to count the number of alignments in alignments.sam with mapping quality of at least 60 in column 5
+awk,awk,awk_02,awk_02_po,polite,Please count the number of alignments in alignments.sam with mapping quality of at least 60 in column 5
+awk,awk,awk_02,awk_02_sy,sysadmin,Use awk to count the number of alignments in alignments.sam with mapping quality of at least 60 in column 5
+awk,awk,awk_03,awk_03_or,original,extract chromosome position and REF to ALT alleles of PASS-filtered variants from variants.vcf
+awk,awk,awk_03,awk_03_be,beginner,How do I extract chromosome position and REF to ALT alleles of PASS-filtered variants from variants.vcf?
+awk,awk,awk_03,awk_03_st,student,I need to extract chromosome position and REF to ALT alleles of PASS-filtered variants from variants.vcf
+awk,awk,awk_03,awk_03_po,polite,Please extract chromosome position and REF to ALT alleles of PASS-filtered variants from variants.vcf
+awk,awk,awk_03,awk_03_sy,sysadmin,Use awk to extract chromosome position and REF to ALT alleles of PASS-filtered variants from variants.vcf
+awk,awk,awk_04,awk_04_or,original,convert VCF records in variants.vcf to 0-based half-open BED intervals for genome arithmetic tools
+awk,awk,awk_04,awk_04_be,beginner,How do I convert VCF records in variants.vcf to 0-based half-open BED intervals for genome arithmetic tools?
+awk,awk,awk_04,awk_04_st,student,I need to convert VCF records in variants.vcf to 0-based half-open BED intervals for genome arithmetic tools
+awk,awk,awk_04,awk_04_po,polite,Please convert VCF records in variants.vcf to 0-based half-open BED intervals for genome arithmetic tools
+awk,awk,awk_04,awk_04_sy,sysadmin,Use awk to convert VCF records in variants.vcf to 0-based half-open BED intervals for genome arithmetic tools
+awk,awk,awk_05,awk_05_or,original,compute the sequence length of every contig in the FASTA file reference.fa
+awk,awk,awk_05,awk_05_be,beginner,How do I compute the sequence length of every contig in the FASTA file reference.fa?
+awk,awk,awk_05,awk_05_st,student,I need to compute the sequence length of every contig in the FASTA file reference.fa
+awk,awk,awk_05,awk_05_po,polite,Please compute the sequence length of every contig in the FASTA file reference.fa
+awk,awk,awk_05,awk_05_sy,sysadmin,Use awk to compute the sequence length of every contig in the FASTA file reference.fa
+awk,awk,awk_06,awk_06_or,original,print read names of alignments in alignments.sam meeting a mapping quality threshold of 60 passed as a variable minq
+awk,awk,awk_06,awk_06_be,beginner,How do I print read names of alignments in alignments.sam meeting a mapping quality threshold of 60 passed as a variable minq?
+awk,awk,awk_06,awk_06_st,student,I need to print read names of alignments in alignments.sam meeting a mapping quality threshold of 60 passed as a variable minq
+awk,awk,awk_06,awk_06_po,polite,Please print read names of alignments in alignments.sam meeting a mapping quality threshold of 60 passed as a variable minq
+awk,awk,awk_06,awk_06_sy,sysadmin,Use awk to print read names of alignments in alignments.sam meeting a mapping quality threshold of 60 passed as a variable minq
+awk,awk,awk_07,awk_07_or,original,sum values in the third column of the tab-delimited file depth.tsv and print the total
+awk,awk,awk_07,awk_07_be,beginner,How do I sum values in the third column of the tab-delimited file depth.tsv and print the total?
+awk,awk,awk_07,awk_07_st,student,I need to sum values in the third column of the tab-delimited file depth.tsv and print the total
+awk,awk,awk_07,awk_07_po,polite,Please sum values in the third column of the tab-delimited file depth.tsv and print the total
+awk,awk,awk_07,awk_07_sy,sysadmin,Use awk to sum values in the third column of the tab-delimited file depth.tsv and print the total
+awk,awk,awk_08,awk_08_or,original,print all lines from the tab-delimited file expression.tsv where the fourth column value exceeds 100
+awk,awk,awk_08,awk_08_be,beginner,How do I print all lines from the tab-delimited file expression.tsv where the fourth column value exceeds 100?
+awk,awk,awk_08,awk_08_st,student,I need to print all lines from the tab-delimited file expression.tsv where the fourth column value exceeds 100
+awk,awk,awk_08,awk_08_po,polite,Please print all lines from the tab-delimited file expression.tsv where the fourth column value exceeds 100
+awk,awk,awk_08,awk_08_sy,sysadmin,Use awk to print all lines from the tab-delimited file expression.tsv where the fourth column value exceeds 100
+awk,awk,awk_09,awk_09_or,original,print the first and third columns from the comma-separated file data.csv with comma output separator
+awk,awk,awk_09,awk_09_be,beginner,How do I print the first and third columns from the comma-separated file data.csv with comma output separator?
+awk,awk,awk_09,awk_09_st,student,I need to print the first and third columns from the comma-separated file data.csv with comma output separator
+awk,awk,awk_09,awk_09_po,polite,Please print the first and third columns from the comma-separated file data.csv with comma output separator
+awk,awk,awk_09,awk_09_sy,sysadmin,Use awk to print the first and third columns from the comma-separated file data.csv with comma output separator
+awk,awk,awk_10,awk_10_or,original,count occurrences of each unique value in the second column of the tab-delimited file data.tsv
+awk,awk,awk_10,awk_10_be,beginner,How do I count occurrences of each unique value in the second column of the tab-delimited file data.tsv?
+awk,awk,awk_10,awk_10_st,student,I need to count occurrences of each unique value in the second column of the tab-delimited file data.tsv
+awk,awk,awk_10,awk_10_po,polite,Please count occurrences of each unique value in the second column of the tab-delimited file data.tsv
+awk,awk,awk_10,awk_10_sy,sysadmin,Use awk to count occurrences of each unique value in the second column of the tab-delimited file data.tsv
 bakta,bakta,bakta_01,bakta_01_01,original,annotate a bacterial genome with Bakta (sample.fasta)
 bakta,bakta,bakta_01,bakta_01_02,beginner,How do I annotate a bacterial genome with Bakta (sample.fasta)?
 bakta,bakta,bakta_01,bakta_01_03,student,I need to annotate a bacterial genome with Bakta (sample.fasta)
@@ -13099,103 +12999,3 @@ wtdbg2,wtdbg2,wtdbg2_10,wtdbg2_10_07,expert,"my analysis, I need assemble genome
 wtdbg2,wtdbg2,wtdbg2_10,wtdbg2_10_08,detailed,"I have data that I need to process: In my analysis, I need to assemble genome from Oxford Nanopore reads (report.fastq.gz, counts.gz, sample.fa), utilizing multiple CPU threads for speed"
 wtdbg2,wtdbg2,wtdbg2_10,wtdbg2_10_09,informal,"Hey, can you help me in my analysis, I need to assemble genome from Oxford Nanopore reads (report.fastq.gz, counts.gz, sample.fa)?"
 wtdbg2,wtdbg2,wtdbg2_10,wtdbg2_10_10,alternative,"In my analysis, I need to build genome from Oxford Nanopore reads (report.fastq.gz, counts.gz, sample.fa)"
-admixture,admixture,admixture_01,admixture_01_be,beginner,How do I estimate ancestry proportions with K=5 ancestral populations using default 5-fold cross-validation?
-admixture,admixture,admixture_01,admixture_01_or,original,estimate ancestry proportions with K=5 ancestral populations using default 5-fold cross-validation
-admixture,admixture,admixture_01,admixture_01_po,polite,Please estimate ancestry proportions with K=5 ancestral populations using default 5-fold cross-validation
-admixture,admixture,admixture_01,admixture_01_st,student,I need to estimate ancestry proportions with K=5 ancestral populations using default 5-fold cross-validation
-admixture,admixture,admixture_01,admixture_01_sy,sysadmin,Use admixture to estimate ancestry proportions with K=5 ancestral populations using default 5-fold cross-validation
-admixture,admixture,admixture_02,admixture_02_be,beginner,How do I run ADMIXTURE for K=4 with a fixed random seed for reproducible initialization and 10-fold cross-validation?
-admixture,admixture,admixture_02,admixture_02_or,original,run ADMIXTURE for K=4 with a fixed random seed for reproducible initialization and 10-fold cross-validation
-admixture,admixture,admixture_02,admixture_02_po,polite,Please run ADMIXTURE for K=4 with a fixed random seed for reproducible initialization and 10-fold cross-validation
-admixture,admixture,admixture_02,admixture_02_st,student,I need to run ADMIXTURE for K=4 with a fixed random seed for reproducible initialization and 10-fold cross-validation
-admixture,admixture,admixture_02,admixture_02_sy,sysadmin,Use admixture to run ADMIXTURE for K=4 with a fixed random seed for reproducible initialization and 10-fold cross-validation
-admixture,admixture,admixture_03,admixture_03_be,beginner,How do I run supervised ADMIXTURE with K=3 using known population labels to train ancestry proportions and infer unlabeled individuals?
-admixture,admixture,admixture_03,admixture_03_or,original,run supervised ADMIXTURE with K=3 using known population labels to train ancestry proportions and infer unlabeled individuals
-admixture,admixture,admixture_03,admixture_03_po,polite,Please run supervised ADMIXTURE with K=3 using known population labels to train ancestry proportions and infer unlabeled individuals
-admixture,admixture,admixture_03,admixture_03_st,student,I need to run supervised ADMIXTURE with K=3 using known population labels to train ancestry proportions and infer unlabeled individuals
-admixture,admixture,admixture_03,admixture_03_sy,sysadmin,Use admixture to run supervised ADMIXTURE with K=3 using known population labels to train ancestry proportions and infer unlabeled individuals
-admixture,admixture,admixture_04,admixture_04_be,beginner,How do I estimate standard errors of ancestry proportions and allele frequencies with 100 bootstrap replicates?
-admixture,admixture,admixture_04,admixture_04_or,original,estimate standard errors of ancestry proportions and allele frequencies with 100 bootstrap replicates
-admixture,admixture,admixture_04,admixture_04_po,polite,Please estimate standard errors of ancestry proportions and allele frequencies with 100 bootstrap replicates
-admixture,admixture,admixture_04,admixture_04_st,student,I need to estimate standard errors of ancestry proportions and allele frequencies with 100 bootstrap replicates
-admixture,admixture,admixture_04,admixture_04_sy,sysadmin,Use admixture to estimate standard errors of ancestry proportions and allele frequencies with 100 bootstrap replicates
-admixture,admixture,admixture_05,admixture_05_be,beginner,How do I use the EM algorithm instead of default block relaxation when the latter fails to converge for K=5?
-admixture,admixture,admixture_05,admixture_05_or,original,use the EM algorithm instead of default block relaxation when the latter fails to converge for K=5
-admixture,admixture,admixture_05,admixture_05_po,polite,Please use the EM algorithm instead of default block relaxation when the latter fails to converge for K=5
-admixture,admixture,admixture_05,admixture_05_st,student,I need to use the EM algorithm instead of default block relaxation when the latter fails to converge for K=5
-admixture,admixture,admixture_05,admixture_05_sy,sysadmin,Use admixture to use the EM algorithm instead of default block relaxation when the latter fails to converge for K=5
-admixture,admixture,admixture_06,admixture_06_be,beginner,How do I accelerate convergence with quasi-Newton acceleration using lookahead 5 and cross-validation for K=5?
-admixture,admixture,admixture_06,admixture_06_or,original,accelerate convergence with quasi-Newton acceleration using lookahead 5 and cross-validation for K=5
-admixture,admixture,admixture_06,admixture_06_po,polite,Please accelerate convergence with quasi-Newton acceleration using lookahead 5 and cross-validation for K=5
-admixture,admixture,admixture_06,admixture_06_st,student,I need to accelerate convergence with quasi-Newton acceleration using lookahead 5 and cross-validation for K=5
-admixture,admixture,admixture_06,admixture_06_sy,sysadmin,Use admixture to accelerate convergence with quasi-Newton acceleration using lookahead 5 and cross-validation for K=5
-admixture,admixture,admixture_07,admixture_07_be,beginner,How do I project new individuals onto fixed allele frequency estimates from a previous ADMIXTURE run without re-estimating the P-matrix?
-admixture,admixture,admixture_07,admixture_07_or,original,project new individuals onto fixed allele frequency estimates from a previous ADMIXTURE run without re-estimating the P-matrix
-admixture,admixture,admixture_07,admixture_07_po,polite,Please project new individuals onto fixed allele frequency estimates from a previous ADMIXTURE run without re-estimating the P-matrix
-admixture,admixture,admixture_07,admixture_07_st,student,I need to project new individuals onto fixed allele frequency estimates from a previous ADMIXTURE run without re-estimating the P-matrix
-admixture,admixture,admixture_07,admixture_07_sy,sysadmin,Use admixture to project new individuals onto fixed allele frequency estimates from a previous ADMIXTURE run without re-estimating the P-matrix
-admixture,admixture,admixture_08,admixture_08_be,beginner,How do I tighten the major convergence criterion to 1e-5 for high-precision ancestry estimation at K=5?
-admixture,admixture,admixture_08,admixture_08_or,original,tighten the major convergence criterion to 1e-5 for high-precision ancestry estimation at K=5
-admixture,admixture,admixture_08,admixture_08_po,polite,Please tighten the major convergence criterion to 1e-5 for high-precision ancestry estimation at K=5
-admixture,admixture,admixture_08,admixture_08_st,student,I need to tighten the major convergence criterion to 1e-5 for high-precision ancestry estimation at K=5
-admixture,admixture,admixture_08,admixture_08_sy,sysadmin,Use admixture to tighten the major convergence criterion to 1e-5 for high-precision ancestry estimation at K=5
-admixture,admixture,admixture_09,admixture_09_be,beginner,How do I filter SNPs with minor allele frequency below 5 percent at runtime before ancestry estimation at K=5?
-admixture,admixture,admixture_09,admixture_09_or,original,filter SNPs with minor allele frequency below 5 percent at runtime before ancestry estimation at K=5
-admixture,admixture,admixture_09,admixture_09_po,polite,Please filter SNPs with minor allele frequency below 5 percent at runtime before ancestry estimation at K=5
-admixture,admixture,admixture_09,admixture_09_st,student,I need to filter SNPs with minor allele frequency below 5 percent at runtime before ancestry estimation at K=5
-admixture,admixture,admixture_09,admixture_09_sy,sysadmin,Use admixture to filter SNPs with minor allele frequency below 5 percent at runtime before ancestry estimation at K=5
-admixture,admixture,admixture_10,admixture_10_be,beginner,How do I run ADMIXTURE for K=6 with 10-fold cross-validation using 8 threads to compare CV error across values of K?
-admixture,admixture,admixture_10,admixture_10_or,original,run ADMIXTURE for K=6 with 10-fold cross-validation using 8 threads to compare CV error across values of K
-admixture,admixture,admixture_10,admixture_10_po,polite,Please run ADMIXTURE for K=6 with 10-fold cross-validation using 8 threads to compare CV error across values of K
-admixture,admixture,admixture_10,admixture_10_st,student,I need to run ADMIXTURE for K=6 with 10-fold cross-validation using 8 threads to compare CV error across values of K
-admixture,admixture,admixture_10,admixture_10_sy,sysadmin,Use admixture to run ADMIXTURE for K=6 with 10-fold cross-validation using 8 threads to compare CV error across values of K
-agat,agat_convert_sp_gff2gtf,agat_01,agat_01_be,beginner,How do I convert gene annotation from GFF3 to GTF format for use with splice-aware aligners using agat_convert_sp_gff2gtf?
-agat,agat_convert_sp_gff2gtf,agat_01,agat_01_or,original,convert gene annotation from GFF3 to GTF format for use with splice-aware aligners using agat_convert_sp_gff2gtf
-agat,agat_convert_sp_gff2gtf,agat_01,agat_01_po,polite,Please convert gene annotation from GFF3 to GTF format for use with splice-aware aligners using agat_convert_sp_gff2gtf
-agat,agat_convert_sp_gff2gtf,agat_01,agat_01_st,student,I need to convert gene annotation from GFF3 to GTF format for use with splice-aware aligners using agat_convert_sp_gff2gtf
-agat,agat_convert_sp_gff2gtf,agat_01,agat_01_sy,sysadmin,Use agat to convert gene annotation from GFF3 to GTF format for use with splice-aware aligners using agat_convert_sp_gff2gtf
-agat,agat_sp_statistics,agat_02,agat_02_be,beginner,How do I generate comprehensive annotation statistics using agat_sp_statistics including gene count mRNA count exon count and intron size distribution?
-agat,agat_sp_statistics,agat_02,agat_02_or,original,generate comprehensive annotation statistics using agat_sp_statistics including gene count mRNA count exon count and intron size distribution
-agat,agat_sp_statistics,agat_02,agat_02_po,polite,Please generate comprehensive annotation statistics using agat_sp_statistics including gene count mRNA count exon count and intron size distribution
-agat,agat_sp_statistics,agat_02,agat_02_st,student,I need to generate comprehensive annotation statistics using agat_sp_statistics including gene count mRNA count exon count and intron size distribution
-agat,agat_sp_statistics,agat_02,agat_02_sy,sysadmin,Use agat to generate comprehensive annotation statistics using agat_sp_statistics including gene count mRNA count exon count and intron size distribution
-agat,agat_sp_filter_gene_by_length,agat_03,agat_03_be,beginner,How do I filter genes by minimum concatenated exon length of 300 base pairs using agat_sp_filter_gene_by_length?
-agat,agat_sp_filter_gene_by_length,agat_03,agat_03_or,original,filter genes by minimum concatenated exon length of 300 base pairs using agat_sp_filter_gene_by_length
-agat,agat_sp_filter_gene_by_length,agat_03,agat_03_po,polite,Please filter genes by minimum concatenated exon length of 300 base pairs using agat_sp_filter_gene_by_length
-agat,agat_sp_filter_gene_by_length,agat_03,agat_03_st,student,I need to filter genes by minimum concatenated exon length of 300 base pairs using agat_sp_filter_gene_by_length
-agat,agat_sp_filter_gene_by_length,agat_03,agat_03_sy,sysadmin,Use agat to filter genes by minimum concatenated exon length of 300 base pairs using agat_sp_filter_gene_by_length
-agat,agat_convert_sp_gxf2gxf,agat_04,agat_04_be,beginner,How do I repair a malformed GFF3 file using agat_convert_sp_gxf2gxf by removing duplicates fixing IDs adding missing Parent attributes and sorting features?
-agat,agat_convert_sp_gxf2gxf,agat_04,agat_04_or,original,repair a malformed GFF3 file using agat_convert_sp_gxf2gxf by removing duplicates fixing IDs adding missing Parent attributes and sorting features
-agat,agat_convert_sp_gxf2gxf,agat_04,agat_04_po,polite,Please repair a malformed GFF3 file using agat_convert_sp_gxf2gxf by removing duplicates fixing IDs adding missing Parent attributes and sorting features
-agat,agat_convert_sp_gxf2gxf,agat_04,agat_04_st,student,I need to repair a malformed GFF3 file using agat_convert_sp_gxf2gxf by removing duplicates fixing IDs adding missing Parent attributes and sorting features
-agat,agat_convert_sp_gxf2gxf,agat_04,agat_04_sy,sysadmin,Use agat to repair a malformed GFF3 file using agat_convert_sp_gxf2gxf by removing duplicates fixing IDs adding missing Parent attributes and sorting features
-agat,agat_sp_extract_sequences,agat_05,agat_05_be,beginner,How do I extract CDS sequences from a genome using agat_sp_extract_sequences with GFF3 gene annotations?
-agat,agat_sp_extract_sequences,agat_05,agat_05_or,original,extract CDS sequences from a genome using agat_sp_extract_sequences with GFF3 gene annotations
-agat,agat_sp_extract_sequences,agat_05,agat_05_po,polite,Please extract CDS sequences from a genome using agat_sp_extract_sequences with GFF3 gene annotations
-agat,agat_sp_extract_sequences,agat_05,agat_05_st,student,I need to extract CDS sequences from a genome using agat_sp_extract_sequences with GFF3 gene annotations
-agat,agat_sp_extract_sequences,agat_05,agat_05_sy,sysadmin,Use agat to extract CDS sequences from a genome using agat_sp_extract_sequences with GFF3 gene annotations
-agat,agat_sp_keep_longest_isoform,agat_06,agat_06_be,beginner,How do I reduce annotation to the single longest isoform per gene locus using agat_sp_keep_longest_isoform?
-agat,agat_sp_keep_longest_isoform,agat_06,agat_06_or,original,reduce annotation to the single longest isoform per gene locus using agat_sp_keep_longest_isoform
-agat,agat_sp_keep_longest_isoform,agat_06,agat_06_po,polite,Please reduce annotation to the single longest isoform per gene locus using agat_sp_keep_longest_isoform
-agat,agat_sp_keep_longest_isoform,agat_06,agat_06_st,student,I need to reduce annotation to the single longest isoform per gene locus using agat_sp_keep_longest_isoform
-agat,agat_sp_keep_longest_isoform,agat_06,agat_06_sy,sysadmin,Use agat to reduce annotation to the single longest isoform per gene locus using agat_sp_keep_longest_isoform
-agat,agat_sp_merge_annotations,agat_07,agat_07_be,beginner,How do I merge two GFF3 annotation sets into one non-redundant file using agat_sp_merge_annotations resolving duplicated features and IDs?
-agat,agat_sp_merge_annotations,agat_07,agat_07_or,original,merge two GFF3 annotation sets into one non-redundant file using agat_sp_merge_annotations resolving duplicated features and IDs
-agat,agat_sp_merge_annotations,agat_07,agat_07_po,polite,Please merge two GFF3 annotation sets into one non-redundant file using agat_sp_merge_annotations resolving duplicated features and IDs
-agat,agat_sp_merge_annotations,agat_07,agat_07_st,student,I need to merge two GFF3 annotation sets into one non-redundant file using agat_sp_merge_annotations resolving duplicated features and IDs
-agat,agat_sp_merge_annotations,agat_07,agat_07_sy,sysadmin,Use agat to merge two GFF3 annotation sets into one non-redundant file using agat_sp_merge_annotations resolving duplicated features and IDs
-agat,agat_sp_manage_IDs,agat_08,agat_08_be,beginner,How do I standardize feature identifiers with a uniform prefix using agat_sp_manage_IDs?
-agat,agat_sp_manage_IDs,agat_08,agat_08_or,original,standardize feature identifiers with a uniform prefix using agat_sp_manage_IDs
-agat,agat_sp_manage_IDs,agat_08,agat_08_po,polite,Please standardize feature identifiers with a uniform prefix using agat_sp_manage_IDs
-agat,agat_sp_manage_IDs,agat_08,agat_08_st,student,I need to standardize feature identifiers with a uniform prefix using agat_sp_manage_IDs
-agat,agat_sp_manage_IDs,agat_08,agat_08_sy,sysadmin,Use agat to standardize feature identifiers with a uniform prefix using agat_sp_manage_IDs
-agat,agat_convert_sp_gff2bed,agat_09,agat_09_be,beginner,How do I convert gene annotation from GFF3 to BED format using agat_convert_sp_gff2bed with automatic 1-based to 0-based coordinate adjustment?
-agat,agat_convert_sp_gff2bed,agat_09,agat_09_or,original,convert gene annotation from GFF3 to BED format using agat_convert_sp_gff2bed with automatic 1-based to 0-based coordinate adjustment
-agat,agat_convert_sp_gff2bed,agat_09,agat_09_po,polite,Please convert gene annotation from GFF3 to BED format using agat_convert_sp_gff2bed with automatic 1-based to 0-based coordinate adjustment
-agat,agat_convert_sp_gff2bed,agat_09,agat_09_st,student,I need to convert gene annotation from GFF3 to BED format using agat_convert_sp_gff2bed with automatic 1-based to 0-based coordinate adjustment
-agat,agat_convert_sp_gff2bed,agat_09,agat_09_sy,sysadmin,Use agat to convert gene annotation from GFF3 to BED format using agat_convert_sp_gff2bed with automatic 1-based to 0-based coordinate adjustment
-agat,agat,agat_10,agat_10_be,beginner,How do I generate an editable AGAT configuration YAML file using agat config --expose to customize output format and parser behavior?
-agat,agat,agat_10,agat_10_or,original,generate an editable AGAT configuration YAML file using agat config --expose to customize output format and parser behavior
-agat,agat,agat_10,agat_10_po,polite,Please generate an editable AGAT configuration YAML file using agat config --expose to customize output format and parser behavior
-agat,agat,agat_10,agat_10_st,student,I need to generate an editable AGAT configuration YAML file using agat config --expose to customize output format and parser behavior
-agat,agat,agat_10,agat_10_sy,sysadmin,Use agat to generate an editable AGAT configuration YAML file using agat config --expose to customize output format and parser behavior
