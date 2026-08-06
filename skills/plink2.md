@@ -71,12 +71,8 @@ source_url: "https://www.cog-genomics.org/plink/2.0/"
 **Explanation:** --glm for linear regression with quantitative trait; cols=+a1freq adds allele frequency to output
 
 ### compute IBD sharing for relatedness detection
-**Args:** `--pfile plink_dataset --extract ld_prune.prune.in --genome --out ibd_results`
-**Explanation:** --genome computes IBD sharing (PI_HAT); identifies duplicate samples and close relatives; use LD-pruned variants
 
 ### filter by Hardy-Weinberg equilibrium with stratified analysis
-**Args:** `--pfile plink_dataset --hwe 1e-6 --hwe-all --make-pgen --out hwe_filtered`
-**Explanation:** --hwe-all applies HWE filter to all samples; default applies only to founders; important for case-control studies
 
 ### export dosage data instead of hard calls
 **Args:** `--pfile plink_dataset --export A --out dosage_matrix`

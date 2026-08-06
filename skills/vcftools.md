@@ -42,7 +42,7 @@ source_url: "https://vcftools.github.io/"
 **Explanation:** --maf 0.05 keeps variants with ≥5% minor allele frequency; --max-missing 0.9 requires 90% genotype completeness
 
 ### calculate per-site nucleotide diversity and Tajima's D statistics
-**Args:** `--vcf variants.vcf --site-pi --TajimaD 10000 --out popgen_stats`
+**Args:** `--vcf variants.vcf run --site-pi and --TajimaD separately (only one output function per call) --out popgen_stats`
 **Explanation:** --site-pi per-site nucleotide diversity; --TajimaD 10000 calculates Tajima's D in 10kb windows
 
 ### filter VCF to biallelic SNPs with minimum depth

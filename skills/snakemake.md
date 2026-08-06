@@ -86,5 +86,3 @@ source_url: "https://snakemake.readthedocs.io/"
 **Explanation:** specifies target files to generate; Snakemake only runs rules needed for these targets
 
 ### print the execution plan without running
-**Args:** `--dry-run --reason --cores all`
-**Explanation:** --reason explains why each rule would be executed; useful for debugging workflow logic

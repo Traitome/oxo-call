@@ -35,51 +35,51 @@ source_url: "https://github.com/PacificBiosciences/pbfusion"
 ## Examples
 
 ### detect gene fusions from PacBio IsoSeq aligned data
-**Args:** `--bam isoseq_aligned.bam --gtf genes.gtf --output-dir fusion_output/ --threads 8`
-**Explanation:** --bam aligned IsoSeq BAM; --gtf gene annotation; --output-dir for results
+**Args:** `positional BAM (no --bam flag) isoseq_aligned.bam --gtf genes.gtf -o (--output-prefix) fusion_output/ --threads 8`
+**Explanation:** positional BAM (no --bam flag) aligned IsoSeq BAM; --gtf gene annotation; -o (--output-prefix) for results
 
 ### detect fusions with minimum supporting reads
-**Args:** `--bam isoseq_aligned.bam --gtf genes.gtf --output-dir fusion_output/ --min-support 3 --threads 8`
-**Explanation:** --min-support 3 requires at least 3 reads supporting each fusion; reduces false positives
+**Args:** `positional BAM (no --bam flag) isoseq_aligned.bam --gtf genes.gtf -o (--output-prefix) fusion_output/ --min-coverage 3 --threads 8`
+**Explanation:** --min-coverage 3 requires at least 3 reads supporting each fusion; reduces false positives
 
 ### cache GTF annotation for faster analysis
 **Args:** `gff-cache --gtf genes.gtf --output genes.gtf.bin`
 **Explanation:** gff-cache creates binary GTF; speeds up repeated pbfusion discover runs
 
 ### detect fusions with cached GTF
-**Args:** `discover --bam isoseq_aligned.bam --gtf genes.gtf.bin --output-prefix fusion_out --threads 8`
+**Args:** `discover positional BAM (no --bam flag) isoseq_aligned.bam --gtf genes.gtf.bin --output-prefix fusion_out --threads 8`
 **Explanation:** use cached .bin GTF; much faster than parsing raw GTF each time
 
 ### high-confidence fusion detection with strict filters
-**Args:** `discover --bam isoseq_aligned.bam --gtf genes.gtf --output-prefix strict --min-coverage 5 --min-mean-identity 0.95 --min-mean-mapq 20 --threads 8`
+**Args:** `discover positional BAM (no --bam flag) isoseq_aligned.bam --gtf genes.gtf --output-prefix strict --min-coverage 5 --min-mean-identity 0.95 --min-mean-mapq 20 --threads 8`
 **Explanation:** strict filters: 5+ reads, 95% identity, MAPQ 20; high-confidence calls only
 
 ### include immunological gene fusions
-**Args:** `discover --bam isoseq_aligned.bam --gtf genes.gtf --output-prefix immune --allow-immune --threads 8`
+**Args:** `discover positional BAM (no --bam flag) isoseq_aligned.bam --gtf genes.gtf --output-prefix immune --allow-immune --threads 8`
 **Explanation:** --allow-immune permits fusions involving immunological genes (disabled by default)
 
 ### reduce readthrough transcript detection
-**Args:** `discover --bam isoseq_aligned.bam --gtf genes.gtf --output-prefix strict_rt --max-readthrough 10000 --threads 8`
+**Args:** `discover positional BAM (no --bam flag) isoseq_aligned.bam --gtf genes.gtf --output-prefix strict_rt --max-readthrough 10000 --threads 8`
 **Explanation:** --max-readthrough 10000 filters readthrough transcripts within 10kb; stricter fusion detection
 
 ### include all fusion quality levels
-**Args:** `discover --bam isoseq_aligned.bam --gtf genes.gtf --output-prefix all --min-fusion-quality LOW --threads 8`
+**Args:** `discover positional BAM (no --bam flag) isoseq_aligned.bam --gtf genes.gtf --output-prefix all --min-fusion-quality LOW --threads 8`
 **Explanation:** --min-fusion-quality LOW includes LOW quality calls; for sensitive detection
 
 ### filter complex fusion events
-**Args:** `discover --bam isoseq_aligned.bam --gtf genes.gtf --output-prefix simple --max-genes-in-event 2 --threads 8`
+**Args:** `discover positional BAM (no --bam flag) isoseq_aligned.bam --gtf genes.gtf --output-prefix simple --max-genes-in-event 2 --threads 8`
 **Explanation:** --max-genes-in-event 2 marks multi-gene events as low quality; reduces false positives
 
 ### detect fusions from multiple IsoSeq samples
-**Args:** `discover --bam sample1.bam,sample2.bam,sample3.bam --gtf genes.gtf --output-prefix multi_sample --threads 8`
+**Args:** `discover positional BAM (no --bam flag) sample1.bam,sample2.bam,sample3.bam --gtf genes.gtf --output-prefix multi_sample --threads 8`
 **Explanation:** comma-separated BAM files for multi-sample fusion detection; identifies recurrent fusions across samples
 
 ### include mitochondrial gene fusions
-**Args:** `discover --bam isoseq_aligned.bam --gtf genes.gtf --output-prefix mito --allow-mito --threads 8`
+**Args:** `discover positional BAM (no --bam flag) isoseq_aligned.bam --gtf genes.gtf --output-prefix mito --allow-mito --threads 8`
 **Explanation:** --allow-mito permits fusions involving mitochondrial genes; disabled by default as often false positives
 
 ### detect fusions with custom minimum fusion quality
-**Args:** `discover --bam isoseq_aligned.bam --gtf genes.gtf --output-prefix medium --min-fusion-quality MEDIUM --threads 8`
+**Args:** `discover positional BAM (no --bam flag) isoseq_aligned.bam --gtf genes.gtf --output-prefix medium --min-fusion-quality MEDIUM --threads 8`
 **Explanation:** --min-fusion-quality MEDIUM (default) balances sensitivity and specificity; LOW for sensitive, HIGH for specific
 
 ### analyze fusion output TSV file
@@ -87,5 +87,5 @@ source_url: "https://github.com/PacificBiosciences/pbfusion"
 **Explanation:** parse fusions.tsv output; filter by read support (column 6); count fusion occurrences; useful for downstream analysis
 
 ### detect fusions with relaxed identity threshold for noisy data
-**Args:** `discover --bam isoseq_aligned.bam --gtf genes.gtf --output-prefix relaxed --min-mean-identity 0.90 --threads 8`
+**Args:** `discover positional BAM (no --bam flag) isoseq_aligned.bam --gtf genes.gtf --output-prefix relaxed --min-mean-identity 0.90 --threads 8`
 **Explanation:** --min-mean-identity 0.90 lowers identity threshold; useful for lower-quality IsoSeq data or early chemistry versions

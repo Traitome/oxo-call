@@ -45,7 +45,7 @@ source_url: "https://github.com/PacificBiosciences/pbmm2"
 
 ### index reference genome for repeated pbmm2 use
 **Args:** `index reference.fa reference.mmi`
-**Explanation:** creates minimap2 index for faster repeated alignment; pass .mmi to align -d option
+**Explanation:** creates minimap2 index for faster repeated alignment; pass .mmi to align --preset option
 
 ### align CLR (subread) PacBio reads
 **Args:** `align --preset SUBREAD --sort -j 16 reference.fa subreads.bam clr_aligned.bam`
@@ -76,5 +76,5 @@ source_url: "https://github.com/PacificBiosciences/pbmm2"
 **Explanation:** --sample adds sample name to read groups; for FASTQ input without existing RG info
 
 ### use pre-built index for faster alignment
-**Args:** `align -d reference.mmi --preset HIFI --sort -j 16 reads.bam aligned.bam`
+**Args:** `align --preset reference.mmi --preset HIFI --sort -j 16 reads.bam aligned.bam`
 **Explanation:** -d reference.mmi uses pre-built index; faster for repeated alignments to same reference

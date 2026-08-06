@@ -27,7 +27,7 @@ source_url: "https://github.com/pezmaster31/bamtools"
 - bamtools ARGS must start with a subcommand (convert, count, coverage, filter, header, index, merge, random, resolve, revert, sort, split, stats) — never with flags like -in, -out, -region. The subcommand ALWAYS comes first.
 - bamtools and samtools have overlapping functionality — samtools is more commonly used and actively maintained. Prefer samtools for most operations.
 - bamtools filter flags use string names (`isDuplicate`, `isMapped`) not numeric values like samtools (`-F 4`). This is a key difference.
-- The `-region` format is `chromosome:start-end`. Note: bamtools uses 0-based half-open coordinates for region queries.
+- The `-region` format is `chromosome:start-end`. Note: bamtools uses 1-based closed coordinates for region queries (bamtools uses start only, ignores end).
 - bamtools index creates a .bai index; compatible with samtools index output.
 - For large files, samtools is typically faster than bamtools. Use bamtools primarily for its JSON filter script and split functionality.
 - bamtools subcommands do not have detailed `--help` output — the tool prints minimal usage errors when arguments are missing.

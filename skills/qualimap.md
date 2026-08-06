@@ -65,7 +65,7 @@ source_url: "http://qualimap.conesalab.org/"
 **Explanation:** --paint-chromosome-limits adds chromosome boundary lines in coverage plot; -nt 16 for WGS parallelism; 16G heap for whole-genome BAMs
 
 ### count QC for differential expression count matrices
-**Args:** `counts -d counts.txt -c 2 -s C -outdir counts_qc/`
+**Args:** `counts -d counts.txt -c 2 (conditions) -s HUMAN (species) -outdir counts_qc/`
 **Explanation:** counts module assesses quality of count data; -c specifies the column index of count values; -s C for condition column; outputs distribution plots
 
 ### run BAM QC excluding duplicates

@@ -1,5 +1,5 @@
 ---
-name: iqtree2
+name: iqtree
 category: phylogenetics
 description: Fast and versatile maximum-likelihood phylogenetic tree inference with model selection
 tags: [phylogenetics, maximum-likelihood, tree, evolution, bootstrap, substitution-model]

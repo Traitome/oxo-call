@@ -15,7 +15,6 @@ source_url: "https://odelaneau.github.io/shapeit4/"
 - Use --scaffold for a reference haplotype panel (improves accuracy in cosmopolitan populations).
 - Chromosome-by-chromosome phasing is standard — run separately for each chromosome.
 - SHAPEIT4 output is a phased VCF with phased genotypes (| separator).
-- Use --sequencing for sequencing data; --genotyping for array genotype data.
 - --pbwt-modulo controls PBWT index storage frequency (default 0.02 cM); lower values increase memory.
 - --pbwt-depth sets number of conditioning haplotypes (default 4); increase for better accuracy.
 - --effective-size sets population effective size (default 15000); adjust for your population.

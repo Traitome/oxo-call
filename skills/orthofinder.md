@@ -11,7 +11,7 @@ source_url: "https://github.com/davidemms/OrthoFinder"
 
 - OrthoFinder infers orthogroups, orthologs, gene duplication events, and species trees from a set of proteome FASTA files.
 - Input is a directory of protein FASTA files, one per species; file names become species identifiers in the output.
-- OrthoFinder uses DIAMOND for all-vs-all protein search by default; -S blast or -S mmseqs2 can substitute other search tools.
+- OrthoFinder uses DIAMOND for all-vs-all protein search by default; -S blast or -S mmseqs can substitute other search tools.
 - Results are written to a timestamped OrthoFinder/Results_* directory inside the input FASTA directory by default.
 - -og reports orthogroups only (faster, no gene trees); -M msa builds multiple sequence alignments for each orthogroup.
 - The Orthogroups/Orthogroups.tsv output maps each orthogroup to member genes per species; Orthogroup_Statistics.tsv provides counts.
@@ -38,8 +38,8 @@ source_url: "https://github.com/davidemms/OrthoFinder"
 **Explanation:** -f points to directory of protein FASTAs; -t 32 threads for DIAMOND search; -a 8 threads for orthogroup analysis
 
 ### run OrthoFinder with MSA-based gene trees using MAFFT and IQ-TREE
-**Args:** `-f proteomes/ -M msa -S diamond -A mafft -T iqtree -t 32 -a 8`
-**Explanation:** -M msa builds gene trees from MSA; -A mafft for alignment; -T iqtree for tree inference; more accurate but slower
+**Args:** `-f proteomes/ -M msa -S diamond -A mafft -T iqtree3 -t 32 -a 8`
+**Explanation:** -M msa builds gene trees from MSA; -A mafft for alignment; -T iqtree3 for tree inference; more accurate but slower
 
 ### infer orthogroups only without gene trees for fast proteome comparison
 **Args:** `-f proteomes/ -og -t 32`
@@ -50,8 +50,8 @@ source_url: "https://github.com/davidemms/OrthoFinder"
 **Explanation:** -b provides existing results; -f provides new species FASTA directory; OrthoFinder re-runs only new comparisons
 
 ### use MMseqs2 instead of DIAMOND for faster all-vs-all search
-**Args:** `-f proteomes/ -S mmseqs2 -t 32 -a 8`
-**Explanation:** -S mmseqs2 substitutes MMseqs2 for the all-vs-all search step; faster for very large proteome sets
+**Args:** `-f proteomes/ -S mmseqs -t 32 -a 8`
+**Explanation:** -S mmseqs substitutes MMseqs2 for the all-vs-all search step; faster for very large proteome sets
 
 ### run OrthoFinder with a fixed output directory name
 **Args:** `-f proteomes/ -o results/orthofinder_run -t 32 -a 8`

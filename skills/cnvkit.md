@@ -68,7 +68,7 @@ source_url: "https://cnvkit.readthedocs.io/"
 
 ### identify genes with copy number alterations
 **Args:** `genemetrics tumor.cns -t -m 0.3 -o gainloss_genes.txt`
-**Explanation:** genemetrics identifies genes with significant CNAs; -t for targets only; -m 0.3 sets minimum log2 threshold
+**Explanation:** genemetrics identifies genes with significant CNAs; -t for targets only; -t 0.3 sets log2 threshold (default 0.2); -m sets minimum number threshold
 
 ### run WGS analysis without target BED
 **Args:** `batch tumor.bam --normal normal.bam --fasta reference.fa --method wgs --output-dir cnvkit_wgs/ -p 8`

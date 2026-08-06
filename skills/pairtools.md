@@ -61,7 +61,7 @@ source_url: "https://pairtools.readthedocs.io/"
 **Explanation:** stats generates QC metrics: pair types, cis/trans ratios, distance distributions
 
 ### phase pairs for diploid genome analysis
-**Args:** `phase --vcf phased_variants.vcf.gz sample.pairs.gz > sample_phased.pairs.gz`
+**Args:** `phase --phase-suffixes phased_variants.vcf.gz sample.pairs.gz > sample_phased.pairs.gz`
 **Explanation:** phase assigns pairs to parental haplotypes; requires phased VCF
 
 ### assign restriction fragments to pairs
@@ -77,5 +77,5 @@ source_url: "https://pairtools.readthedocs.io/"
 **Explanation:** merge combines multiple samples; useful for biological replicates
 
 ### sample random subset of pairs
-**Args:** `sample --number 1000000 sample.pairs.gz > subset.pairs.gz`
+**Args:** `sample (fraction, positional) 1000000 sample.pairs.gz > subset.pairs.gz`
 **Explanation:** sample selects random pairs; useful for downsampling large datasets

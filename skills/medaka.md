@@ -9,19 +9,15 @@ source_url: "https://github.com/nanoporetech/medaka"
 
 ## Concepts
 - Medaka polishes Oxford Nanopore assemblies and calls variants using neural network models trained by Oxford Nanopore.
-- Use 'medaka consensus' for per-read consensus; 'medaka stitch' to merge; or use 'medaka_consensus' pipeline.
-- The medaka_consensus pipeline (all-in-one) is easiest: medaka_consensus -i reads.fastq -d draft.fasta -o output/ -t N.
-- Model selection is critical: match the model to the basecalling model used (e.g., r941_min_hac_g507).
-- Use 'medaka tools list_models' to see available models; models are named by flow cell, chemistry, and basecaller version.
+- The main binary `medaka` has subcommands: compress_bam, features, train, inference, smolecule, tandem, consensus_from_features, fastrle, sequence, vcf, tools.
+- Standalone wrapper binaries: `medaka_consensus` (all-in-one polishing pipeline, easiest to use), `medaka_variant` (diploid variant calling).
+- `medaka_consensus -i reads.fastq -d draft.fasta -o output/ -t N -m MODEL` is the recommended polishing workflow.
+- Model selection is critical: match the model to the basecalling model used. Use `medaka tools list_models` to see available models; models are named by flow cell, chemistry, and basecaller version.
 - Medaka requires minimap2 for alignment; the medaka_consensus pipeline handles alignment automatically.
-- For variant calling: medaka_haploid_variant (haploid) or medaka_variant (diploid) pipelines.
-- GPU acceleration is supported with CUDA — dramatically speeds up medaka.
-- medaka features generates training data from aligned reads; medaka inference runs the neural network on features.
-- Chunking parameters (--chunk_len, --chunk_ovlp) control memory usage; reduce for low-memory systems.
-- --regions allows targeted analysis of specific genomic regions or BED file input.
-- --save_features preserves intermediate HDF5 files for debugging or re-running inference with different models.
-- --check_output validates output file integrity after inference completion.
-- medaka sequence stitches consensus from inference output; medaka vcf creates variant calls from diploid inference.
+- GPU is auto-detected; use `--cpu` to force CPU-only mode. No separate `--gpu` flag exists.
+- `medaka inference` supports --chunk_len, --chunk_ovlp, --regions, --save_features, --check_output for fine-grained control.
+- `medaka sequence inputs... draft output` stitches consensus from inference output (draft FASTA is required positional).
+- `medaka vcf inputs... ref_fasta output` creates variant calls (ref FASTA is positional, output is last).
 
 ## Pitfalls
 - medaka ARGS must start with a subcommand (consensus_from_features, compress_bam, features, train, inference, smolecule, tandem, consensus_from_features, fastrle, sequence, vcf, tools) — never with flags like -i, -d, -o. The subcommand ALWAYS comes first. Note: medaka_consensus, medaka_haploid_variant, medaka_variant are separate binary wrappers, not subcommands.

@@ -17,7 +17,7 @@ source_url: "https://github.com/PacificBiosciences/pbsv"
 - Use --tandem-repeats for a repeat annotation BED file to improve SV breakpoint accuracy in STRs.
 - pbsv call --ccs is required for CCS/HiFi reads; omit for CLR/subreads.
 - --min-sv-length sets minimum SV size (default 20bp); increase to filter small variants.
-- --max-sv-length sets maximum SV size; default 100kb for deletions, 10kb for insertions.
+- --max-ins-length sets maximum SV size; default 100kb for deletions, 10kb for insertions.
 - --region allows per-chromosome processing for parallelization.
 - .svsig.gz can be indexed with tabix for random access during pbsv call -r.
 
@@ -29,7 +29,7 @@ source_url: "https://github.com/PacificBiosciences/pbsv"
 - pbsv call requires all samples' .svsig.gz files at once for joint genotyping across a cohort.
 - pbsv call --ccs is required for HiFi reads; omitting causes incorrect SV calls.
 - --min-sv-length 20 (default) includes small indels; increase to 50+ for true SVs only.
-- --max-sv-length limits insertion size (default 15kb); increase for large insertions.
+- --max-ins-length limits insertion size (default 15kb); increase for large insertions.
 - Deletions >100kb are called as translocations; adjust expectations for large deletions.
 - Index .svsig.gz with tabix for efficient random access with pbsv call -r.
 
@@ -72,8 +72,8 @@ source_url: "https://github.com/PacificBiosciences/pbsv"
 **Explanation:** --min-sv-length 50 filters variants <50bp; for true SVs only
 
 ### increase maximum insertion size for large insertions
-**Args:** `call --ccs --hifi --max-sv-length 50k reference.fa sample.svsig.gz output.vcf`
-**Explanation:** --max-sv-length 50k increases insertion limit from 15kb to 50kb
+**Args:** `call --ccs --hifi --max-ins-length 50k reference.fa sample.svsig.gz output.vcf`
+**Explanation:** --max-ins-length 50k increases insertion limit from 15kb to 50kb
 
 ### call SVs with multiple threads
 **Args:** `call --ccs --hifi -j 8 reference.fa sample.svsig.gz output.vcf`

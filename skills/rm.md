@@ -18,7 +18,7 @@ source_url: "https://www.gnu.org/software/coreutils/manual/html_node/rm-invocati
 - --one-file-system prevents crossing filesystem boundaries during recursive deletion.
 
 ## Pitfalls
-- Never run 'rm -rf /' or 'rm -rf /*' — this destroys the entire filesystem and renders the system unbootable. Most modern systems have --no-preserve-root as a safety guard, but do not rely on it.
+- Never run 'rm -rf /' or 'rm -rf /*' — this destroys the entire filesystem and renders the system unbootable. Most modern systems have --no-preserve-root disables the safety guard (use with caution), but do not rely on it.
 - 'rm -rf .' or 'rm -rf ./' deletes the current directory and everything inside it. Confirm your working directory with 'pwd' before running recursive rm.
 - A space between a path and a wildcard can cause catastrophic deletion: 'rm -rf /data/ *.bak' deletes /data/ AND all *.bak files in the current directory. Quote or brace expansions carefully.
 - 'rm -rf <variable>' where the variable is empty or unset becomes 'rm -rf ' or 'rm -rf /' in some shells. Always check that path variables are non-empty before using them in rm.

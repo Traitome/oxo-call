@@ -65,11 +65,11 @@ source_url: "https://github.com/ACEnglish/truvari/wiki"
 **Explanation:** compares multiple VCF files for consistency; vcf_list.txt contains paths to VCFs
 
 ### convert VCF to pandas DataFrame for analysis
-**Args:** `vcf2df -i calls.vcf.gz -o calls.df.pkl`
+**Args:** `vcf2df VCF JL (positional) calls.vcf.gz -o calls.df.pkl`
 **Explanation:** converts VCF to pandas DataFrame; useful for custom analysis and plotting
 
 ### divide VCF into independent shards for parallel processing
-**Args:** `divide -i calls.vcf.gz -o shards/ --shard-size 1000`
+**Args:** `divide VCF DIR (positional, no -i) calls.vcf.gz -o shards/ --shard-size 1000`
 **Explanation:** splits VCF into smaller shards; useful for parallel processing large call sets
 
 ### perform phasing-aware SV harmonization
