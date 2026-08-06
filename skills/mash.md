@@ -62,7 +62,7 @@ source_url: "https://mash.readthedocs.io/en/latest/"
 **Explanation:** outputs lower-triangular distance matrix suitable for clustering tools like mashtree or R
 
 ### combine multiple sketch files into a single database
-**Args:** `paste -o combined_db.msh genome1.msh genome2.msh genome3.msh`
+**Args:** `paste combined_db.msh genome1.msh genome2.msh genome3.msh`
 **Explanation:** mash paste merges existing sketches without re-sketching; useful for incrementally building reference databases
 
 ### display information about a sketch file

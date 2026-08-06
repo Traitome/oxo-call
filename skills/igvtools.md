@@ -56,7 +56,7 @@ source_url: "https://software.broadinstitute.org/software/igv/igvtools"
 **Explanation:** -e 200 extends reads by 200bp (fragment length); useful for ChIP-seq coverage; -w 50 window size
 
 ### format expression file with log2 normalization
-**Args:** `formatexp -c input.gct output.gct`
+**Args:** `formatexp input.gct output.gct`
 **Explanation:** -c centers data; applies log2 transformation and scaling; for gene expression visualization
 
 ### output coverage as WIG instead of TDF

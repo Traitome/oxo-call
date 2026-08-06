@@ -10,7 +10,7 @@ source_url: "https://github.com/marbl/verkko"
 ## Concepts
 
 - Verkko builds a consensus De Bruijn graph from HiFi reads, then uses long ONT reads to resolve tangles and phase haplotypes.
-- Both --hifi and --ont inputs are optional individually, but combining them yields the most complete assemblies.
+- Both --hifi and --nano inputs are optional individually, but combining them yields the most complete assemblies.
 - Haplotype-resolved (phased) assembly requires trio binning data (--hap-kmers maternal.meryl paternal.meryl) or Hi-C reads.
 - Verkko is a Snakemake workflow internally; use --snakeopts to pass Snakemake flags like --cores or cluster submission options.
 - Output is written to the directory specified with -d; key outputs are assembly.fasta (unphased) or haplotype1.fasta / haplotype2.fasta (phased).
@@ -32,23 +32,23 @@ source_url: "https://github.com/marbl/verkko"
 **Explanation:** HiFi-only assembly; -d sets output directory; --threads should match available CPUs
 
 ### assemble a genome with both HiFi and ONT reads for maximum continuity
-**Args:** `--hifi hifi_reads.fastq.gz --ont ont_reads.fastq.gz -d hybrid_assembly --threads 64`
+**Args:** `--hifi hifi_reads.fastq.gz --nano ont_reads.fastq.gz -d hybrid_assembly --threads 64`
 **Explanation:** combined HiFi+ONT mode; ONT reads resolve complex repeats and improve contig length
 
 ### perform haplotype-resolved assembly with trio binning
-**Args:** `--hifi hifi_reads.fastq.gz --ont ont_reads.fastq.gz --hap-kmers maternal.meryl paternal.meryl -d trio_assembly --threads 64`
+**Args:** `--hifi hifi_reads.fastq.gz --nano ont_reads.fastq.gz --hap-kmers maternal.meryl paternal.meryl -d trio_assembly --threads 64`
 **Explanation:** --hap-kmers takes Meryl databases built from parental short reads for phasing into hap1/hap2
 
 ### run Verkko on a cluster using Slurm via Snakemake
-**Args:** `--hifi hifi_reads.fastq.gz --ont ont_reads.fastq.gz -d assembly_out --threads 4 --snakeopts "--cluster 'sbatch -c {threads} --mem {resources.mem_gb}G' --jobs 50"`
+**Args:** `--hifi hifi_reads.fastq.gz --nano ont_reads.fastq.gz -d assembly_out --threads 4 --snakeopts "--cluster 'sbatch -c {threads} --mem {resources.mem_gb}G' --jobs 50"`
 **Explanation:** --snakeopts passes Snakemake arguments for cluster execution; --threads here sets the local thread count
 
 ### resume an interrupted Verkko assembly
-**Args:** `--hifi hifi_reads.fastq.gz --ont ont_reads.fastq.gz -d assembly_out --threads 64 --resume`
+**Args:** `--hifi hifi_reads.fastq.gz --nano ont_reads.fastq.gz -d assembly_out --threads 64 --resume`
 **Explanation:** --resume continues from the last completed Snakemake checkpoint; reuses existing intermediate files
 
 ### assemble with ONT reads only (no HiFi)
-**Args:** `--ont ont_reads.fastq.gz -d ont_assembly --threads 64`
+**Args:** `--nano ont_reads.fastq.gz -d ont_assembly --threads 64`
 **Explanation:** ONT-only mode uses a longer k-mer graph; quality is lower than HiFi+ONT but works without PacBio data
 
 ### run Verkko with Hi-C data for phasing

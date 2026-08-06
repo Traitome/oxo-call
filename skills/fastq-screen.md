@@ -28,7 +28,7 @@ source_url: "https://www.bioinformatics.babraham.ac.uk/projects/fastq_screen/"
 - Config file paths to bowtie2 indexes must be absolute or resolvable from the working directory; relative paths often break.
 - The --subset default of 100000 reads may miss rare contaminants; use --subset 0 for comprehensive screening.
 - FastQ Screen does not trim reads before screening; adapter-heavy reads will falsely show up as unmapped, reducing sensitivity.
-- Using paired-end input with --paired requires both R1 and R2; providing only R1 with --paired enabled causes an error.
+- Using paired-end input with  requires both R1 and R2; providing only R1 with  enabled causes an error.
 - Running on CRAM input requires samtools in PATH; FastQ Screen calls samtools view internally for CRAM support.
 - --filter requires understanding binary codes: 0=unmapped, 1=unique, 2=multi; number of digits must match number of genomes in config.
 - --tag processes the entire file by default; use --subset to limit processing time when tagging is not needed for all reads.
@@ -46,12 +46,10 @@ source_url: "https://www.bioinformatics.babraham.ac.uk/projects/fastq_screen/"
 **Explanation:** --subset 0 disables subsampling and screens every read; slower but detects rare contaminants
 
 ### screen paired-end reads and report bisulfite alignment stats
-**Args:** `--conf fastq_screen.conf --aligner bismark --paired --outdir results/ --threads 8 R1.fastq.gz R2.fastq.gz`
-**Explanation:** --aligner bismark for bisulfite-treated libraries; --paired enables paired-end mode
+**Args:** `--conf fastq_screen.conf --aligner bismark  --outdir results/ --threads 8 R1.fastq.gz R2.fastq.gz`
+**Explanation:** --aligner bismark for bisulfite-treated libraries;  enables paired-end mode
 
 ### screen reads and get only the table output without generating plots
-**Args:** `--conf fastq_screen.conf --no_html --outdir results/ --threads 8 sample.fastq.gz`
-**Explanation:** --no_html suppresses HTML/PNG generation; faster when only the TXT table is needed
 
 ### add a custom database to the config and screen for mycoplasma contamination
 **Args:** `--conf custom_screen.conf --outdir results/ --threads 8 sample_R1.fastq.gz`
@@ -86,5 +84,5 @@ source_url: "https://www.bioinformatics.babraham.ac.uk/projects/fastq_screen/"
 **Explanation:** downloads pre-indexed Bowtie2 genomes for common species; run once to set up screening databases
 
 ### screen bisulfite-converted libraries with Bismark
-**Args:** `--conf bisulfite_screen.conf --bisulfite --paired --outdir results/ --threads 8 R1.fastq.gz R2.fastq.gz`
+**Args:** `--conf bisulfite_screen.conf --bisulfite  --outdir results/ --threads 8 R1.fastq.gz R2.fastq.gz`
 **Explanation:** --bisulfite uses Bismark aligner for bisulfite libraries; requires Bismark-indexed databases in config

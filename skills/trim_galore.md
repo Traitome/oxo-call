@@ -13,7 +13,6 @@ source_url: "https://github.com/FelixKrueger/TrimGalore"
 - Trim Galore auto-detects adapter sequences by default; use --adapter to specify manually.
 - Use --quality N (default: 20) for quality trimming threshold; --length N for minimum length.
 - For RRBS data, use --rrbs flag (trims 2 extra bp to compensate for MspI filling reaction).
-- For bisulfite sequencing: use --bisulfite for non-RRBS WGBS data.
 - Use --cores N for multi-threading; --gzip for gzipped output.
 - Output goes to current directory by default; use -o for custom output directory.
 - --clip_R1/--clip_R2 trim fixed bases from 5' end; --three_prime_clip_R1/--three_prime_clip_R2 trim from 3' end.
@@ -83,5 +82,3 @@ source_url: "https://github.com/FelixKrueger/TrimGalore"
 **Explanation:** --max_n 0.1 removes reads where >10% of bases are N (ambiguous)
 
 ### trim WGBS (whole genome bisulfite) data
-**Args:** `--paired --bisulfite --quality 20 --cores 4 --gzip -o wgbs_trimmed/ R1.fastq.gz R2.fastq.gz`
-**Explanation:** --bisulfite for WGBS data (different from --rrbs which is for RRBS only)

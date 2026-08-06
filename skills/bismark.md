@@ -2,7 +2,6 @@
 name: bismark
 category: epigenomics
 description: Bisulfite sequencing alignment and methylation extraction tool for WGBS, RRBS, and SLAM-seq data
-tags: [methylation, bisulfite, wgbs, rrbs, epigenomics, cpg, dna-methylation, slam-seq, minimap2]
 author: oxo-call built-in
 source_url: "https://github.com/FelixKrueger/Bismark"
 ---
@@ -28,7 +27,6 @@ source_url: "https://github.com/FelixKrueger/Bismark"
 - Bismark is a multi-binary suite. The main alignment command is just 'bismark' — ARGS starts with flags like --genome, -1, -2, NOT with a subcommand. The companion tools are separate binaries: bismark_genome_preparation, bismark_methylation_extractor, deduplicate_bismark, bismark2bedGraph, bismark2report, bismark2summary, coverage2cytosine, bam2nuc. Use the correct binary name for each step.
 - Bismark genome index must be in a directory, not pointing to the FASTA file directly.
 - Index building uses companion binary 'bismark_genome_preparation <genome_dir>'; provide the directory path, not the FASTA file.
-- RRBS data requires '--rrbs' flag during alignment and extraction to handle MspI restriction site bias.
 - Deduplication (deduplicate_bismark) is NOT recommended for RRBS data — RRBS naturally produces duplicated positions.
 - For WGBS, deduplicate_bismark MUST be run before methylation extraction.
 - For paired-end deduplication, the BAM must be sorted by read name (samtools sort -n), NOT by position — position-sorted BAMs will produce incorrect deduplication.
@@ -56,8 +54,6 @@ source_url: "https://github.com/FelixKrueger/Bismark"
 **Explanation:** bismark_methylation_extractor companion binary; --comprehensive extracts all contexts; outputs bedGraph and coverage files
 
 ### align RRBS data with MspI site handling
-**Args:** `--genome /path/to/genome_dir/ --rrbs -1 R1.fastq.gz -2 R2.fastq.gz --output_dir rrbs_output/ -p 4`
-**Explanation:** --rrbs adjusts for MspI-digested RRBS libraries; trims methylation-invariant positions; do NOT deduplicate RRBS data
 
 ### align single-end WGBS reads with HISAT2 aligner
 **Args:** `--genome /path/to/genome_dir/ --hisat2 reads.fastq.gz --output_dir bismark_output/ -p 4`

@@ -27,7 +27,7 @@ source_url: "https://deeptools.readthedocs.io/"
 
 - deeptools ARGS must start with a subcommand (bamCoverage, bamCompare, bigwigCompare, bigwigAverage, computeMatrix, computeMatrixOperations, plotHeatmap, plotProfile, plotEnrichment, multiBamSummary, multiBigwigSummary, plotCorrelation, plotPCA, plotFingerprint, bamPEFragmentSize, computeGCBias, correctGCBias, plotCoverage, estimateReadFiltering, alignmentSieve) — never with flags like -b, -o, -p. The subcommand ALWAYS comes first.
 - BAM files must be sorted and indexed before any deeptools command.
-- For ATAC-seq, use --ATACshift to correct for the +4/-5 Tn5 transposase insertion offset in bamCoverage.
+- For ATAC-seq, use --shift to correct for the +4/-5 Tn5 transposase insertion offset in bamCoverage.
 - computeMatrix scale-regions and reference-point have different required arguments — check mode-specific parameters.
 - plotHeatmap and plotProfile require the matrix.gz output from computeMatrix as input.
 - Without --effectiveGenomeSize, RPGC normalization in bamCoverage will fail.
@@ -60,8 +60,8 @@ source_url: "https://deeptools.readthedocs.io/"
 **Explanation:** bins mode computes genome-wide 10kb bin counts; output .npz matrix for plotCorrelation and plotPCA
 
 ### generate ATAC-seq normalized bigWig with bamCoverage
-**Args:** `bamCoverage -b atac_sorted.bam -o atac_signal.bw --ATACshift --normalizeUsing RPGC --effectiveGenomeSize 2913022398 --binSize 10 -p 8`
-**Explanation:** --ATACshift corrects for Tn5 insertion offset; --RPGC normalization with hg38 effective genome size
+**Args:** `bamCoverage -b atac_sorted.bam -o atac_signal.bw --shift --normalizeUsing RPGC --effectiveGenomeSize 2913022398 --binSize 10 -p 8`
+**Explanation:** --shift corrects for Tn5 insertion offset; --RPGC normalization with hg38 effective genome size
 
 ### generate smoothed coverage track for ChIP-seq
 **Args:** `bamCoverage -b chip.bam -o chip_smooth.bw --extendReads --smoothLength 150 --binSize 10 -p 8`

@@ -41,19 +41,19 @@ source_url: "https://github.com/suhrig/arriba"
 **Explanation:** required STAR chimeric parameters; --chimSegmentMin 10 enables chimeric detection; --chimOutType WithinBAM embeds chimeric reads in the main BAM
 
 ### detect gene fusions with Arriba using blacklist and known fusions
-**Args:** `-x sample/Aligned.sortedByCoord.out.bam -o fusions.tsv -O discarded.tsv -g genome.fa -a genes.gtf -b blacklist_hg38_GRCh38_v2.5.1.tsv.gz -k known_fusions.tsv`
+**Args:** `-x sample/Aligned.sortedByCoord.out.bam -o fusions.tsv -O discarded.tsv -a genome.fa -g genes.gtf -b blacklist_hg38_GRCh38_v2.5.1.tsv.gz -k known_fusions.tsv`
 **Explanation:** -x STAR BAM with chimeric reads; -b blacklist filters artifacts; -k known_fusions boosts sensitivity for recurrent cancer fusions
 
 ### detect fusions with protein domain annotation and WGS structural variant support
-**Args:** `-x sample/Aligned.sortedByCoord.out.bam -o fusions.tsv -O discarded.tsv -g genome.fa -a genes.gtf -b blacklist.tsv -p protein_domains.gff3 -d wgs_structural_variants.tsv`
+**Args:** `-x sample/Aligned.sortedByCoord.out.bam -o fusions.tsv -O discarded.tsv -a genome.fa -g genes.gtf -b blacklist.tsv -p protein_domains.gff3 -d wgs_structural_variants.tsv`
 **Explanation:** -p reports retained protein domains in fusions; -d integrates WGS breakpoints to increase sensitivity for weakly expressed fusions
 
 ### run Arriba with strand-specific library protocol
-**Args:** `-x sample/Aligned.sortedByCoord.out.bam -o fusions.tsv -O discarded.tsv -g genome.fa -a genes.gtf -b blacklist.tsv -s reverse`
+**Args:** `-x sample/Aligned.sortedByCoord.out.bam -o fusions.tsv -O discarded.tsv -a genome.fa -g genes.gtf -b blacklist.tsv -s reverse`
 **Explanation:** -s reverse for reverse-strand library protocol; helps resolve ambiguous fusion strand orientation; default is auto-detection
 
 ### run Arriba with relaxed filters for higher sensitivity
-**Args:** `-x sample/Aligned.sortedByCoord.out.bam -o fusions.tsv -O discarded.tsv -g genome.fa -a genes.gtf -b blacklist.tsv -E 1.0 -S 1`
+**Args:** `-x sample/Aligned.sortedByCoord.out.bam -o fusions.tsv -O discarded.tsv -a genome.fa -g genes.gtf -b blacklist.tsv -E 1.0 -S 1`
 **Explanation:** -E 1.0 relaxes e-value threshold to allow more candidates; -S 1 requires only 1 supporting read; use for low-input or cell-free RNA
 
 ### detect fusions from pre-aligned BAM using the wrapper script

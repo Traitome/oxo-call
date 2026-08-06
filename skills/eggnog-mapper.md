@@ -9,7 +9,7 @@ source_url: "https://github.com/eggnogdb/eggnog-mapper/wiki"
 
 ## Concepts
 
-- emapper.py assigns functional annotations (GO terms, KEGG pathways, COG categories, EC numbers) by mapping sequences to eggNOG orthologous groups.
+- emapper assigns functional annotations (GO terms, KEGG pathways, COG categories, EC numbers) by mapping sequences to eggNOG orthologous groups.
 - The default search mode uses diamond for protein queries (-m diamond); mmseqs2 (-m mmseqs) is faster for very large datasets; hmmer (-m hmmer) is most sensitive.
 - Input can be protein FASTA (-i with default --itype proteins) or nucleotide FASTA (--itype CDS or --itype genome for gene prediction first).
 - eggNOG databases must be pre-downloaded to a data directory; use download_eggnog_data.py to install them.

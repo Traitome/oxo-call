@@ -30,7 +30,7 @@ source_url: "https://github.com/haowenz/chromap"
 - For ATAC-seq, use --preset atac to handle fragment length distribution properly.
 - Chromap output is fragments/BED by default, not BAM — convert if BAM is required.
 - For scATAC-seq, the barcode FASTQ (-b) must be correctly specified with position.
-- Chromap deduplicates by default — use --no-remove-pcr-duplicates to disable.
+- Chromap deduplicates by default — use .
 - --Tn5-shift only works with BED/TagAlign output, NOT with --SAM output format.
 - --barcode-whitelist file should be uncompressed or use process substitution <(zcat file.gz).
 - Default MAPQ threshold is 30; lower with -q if you need more sensitive alignments.

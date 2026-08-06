@@ -69,7 +69,7 @@ source_url: "https://salmon.readthedocs.io/"
 **Explanation:** -k 23 sets shorter k-mer length for short or noisy reads (e.g., 50bp); increases sensitivity but may reduce specificity compared to default k=31
 
 ### quantify with GENCODE transcriptome and gene name splitting
-**Args:** `quant -i salmon_index -l A -1 R1.fq.gz -2 R2.fq.gz -p 8 --gcBias --gencode -o gencode_quant`
+**Args:** `quant ...] (note: --gencode is index-only, not valid in quant)
 **Explanation:** --gencode splits transcript names at first '|' for GENCODE-formatted FASTA; simplifies downstream gene-level aggregation
 
 ### quantify with multiple bias corrections

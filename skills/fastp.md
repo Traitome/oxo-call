@@ -49,8 +49,8 @@ source_url: "https://github.com/OpenGene/fastp"
 **Explanation:** -q 20 sets minimum base quality; -l 36 minimum read length after trimming
 
 ### run fastp on paired-end RNA-seq data with polyA trimming
-**Args:** `-i R1.fq.gz -I R2.fq.gz -o out_R1.fq.gz -O out_R2.fq.gz --trim_poly_a -w 8 -h rna_qc.html -j rna_qc.json`
-**Explanation:** --trim_poly_a removes polyA tails common in RNA-seq data
+**Args:** `-i R1.fq.gz -I R2.fq.gz -o out_R1.fq.gz -O out_R2.fq.gz --trim_poly_g -w 8 -h rna_qc.html -j rna_qc.json`
+**Explanation:** --trim_poly_g removes polyA tails common in RNA-seq data
 
 ### quality control only (no trimming, just generate the QC report)
 **Args:** `-i R1.fq.gz -I R2.fq.gz -o /dev/null -O /dev/null --disable_adapter_trimming --disable_quality_filtering -h qc_report.html -j qc_report.json`

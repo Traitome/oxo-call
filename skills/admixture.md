@@ -30,7 +30,7 @@ source_url: "https://dalexander.github.io/admixture/"
 - ADMIXTURE requires LD-pruned data — high LD inflates estimated K and distorts ancestry proportions. Use PLINK `--indep-pairwise 50 5 2` or similar before running.
 - Run multiple replicates per K (with different seeds) — different runs may give different local optima. Compare log-likelihood values across replicates.
 - The Q-matrix columns are not labeled with population names — interpretation requires external knowledge (e.g., matching to known reference populations).
-- Rare variants (MAF < 0.01) should be filtered before running ADMIXTURE. Use PLINK `--maf` for pre-filtering, or ADMIXTURE's `--maf=N` for runtime filtering.
+- Rare variants (MAF < 0.01) should be filtered before running ADMIXTURE using PLINK `--maf` pre-filtering. ADMIXTURE itself has no runtime MAF filter.
 - Without `--cv`, cross-validation error is not computed — always use `--cv` (at least `--cv=5`, preferably `--cv=10`) for model selection.
 - ADMIXTURE does not handle related individuals well — remove close relatives (IBD pi-hat > 0.2) before analysis.
 - Input file MUST include the full extension (e.g., `data.bed`, NOT `data`). Omitting the extension causes ADMIXTURE to fail or misinterpret the format.
@@ -80,9 +80,9 @@ source_url: "https://dalexander.github.io/admixture/"
 **Args:** `data.bed 5 -C=0.00001 --cv=10 -j8`
 **Explanation:** -C=0.00001 tightens the major convergence threshold from default 0.0001; useful for high-precision results but increases runtime
 
-### run ADMIXTURE with runtime MAF filtering
-**Args:** `data.bed 5 --maf=0.05 --cv=10 -j8`
-**Explanation:** --maf=0.05 filters SNPs with minor allele frequency below 5% at runtime; reduces noise from rare variants without pre-filtering with PLINK
+### run ADMIXTURE on MAF-filtered data prepared with PLINK
+**Args:** `data.bed 5 --cv=10 -j8`
+**Explanation:** input data was pre-filtered with PLINK --maf 0.05 to remove rare variants; ADMIXTURE itself has no --maf option
 
 ### run ADMIXTURE using PLINK PED format input
 **Args:** `data.ped 5 --cv=10 -j8`

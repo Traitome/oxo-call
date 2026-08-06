@@ -58,8 +58,8 @@ source_url: "https://whatshap.readthedocs.io/"
 **Explanation:** --distrust-genotypes allows genotype corrections; may leave variants unphased
 
 ### phase with increased coverage limit
-**Args:** `phase --output phased.vcf.gz --reference reference.fa --max-coverage 50 variants.vcf.gz reads.bam`
-**Explanation:** --max-coverage 50 uses up to 50x coverage; increases runtime but may improve phasing
+**Args:** `phase --output phased.vcf.gz --reference reference.fa  variants.vcf.gz reads.bam`
+**Explanation:**  uses up to 50x coverage; increases runtime but may improve phasing
 
 ### phase with lower mapping quality threshold
 **Args:** `phase --output phased.vcf.gz --reference reference.fa --mapping-quality 10 variants.vcf.gz reads.bam`

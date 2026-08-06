@@ -35,7 +35,6 @@ source_url: "https://github.com/dellytools/delly"
 - delly cnv requires a mappability map; without it, CNV calling will fail.
 - Germline filter requires at least 20 unrelated samples for reliable filtering.
 - PRECISE variants are more reliable than IMPRECISE variants; consider filtering for PRECISE only.
-- For PacBio long reads, use delly lr with --norealign_reads --vsc_min_fraction_indels 0.12 flags.
 - BND type represents inter-chromosomal translocations; use INFO/CHR2 for the second chromosome.
 
 ## Examples
