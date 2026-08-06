@@ -1,0 +1,33 @@
+pbsv - PacBio structural variant (SV) calling and analysis tools
+
+Usage:
+  pbsv <tool>
+
+  -h,--help    Show this help and exit.
+  --version    Show application version and exit.
+
+Tools:
+  discover   Find structural variant (SV) signatures in read alignments (BAM to SVSIG).
+  call       Call structural variants from SV signatures and assign genotypes (SVSIG to VCF).
+
+Typical workflow:
+  1. Align PacBio reads to a reference genome, per movie.
+     Subreads BAM input:
+     $ pbmm2 align ref.fa movie1.subreads.bam ref.movie1.bam --sort --median-filter --sample sample1
+
+     CCS BAM input:
+     $ pbmm2 align ref.fa movie1.ccs.bam ref.movie1.bam --sort --preset CCS --sample sample1
+
+     CCS FASTQ input:
+     $ pbmm2 align ref.fa movie1.Q20.fastq ref.movie1.bam --sort --preset CCS --sample sample1 --rg '@RG\tID:movie1'
+
+  2. Discover signatures of structural variation (per movie or per sample):
+     $ pbsv discover ref.movie1.bam ref.sample1.svsig.gz
+     $ pbsv discover ref.movie2.bam ref.sample2.svsig.gz
+
+  3. Call structural variants and assign genotypes (all samples), for CCS input append "--ccs":
+     $ pbsv call ref.fa ref.sample1.svsig.gz ref.sample2.svsig.gz ref.var.vcf
+
+Copyright (C) 2004-2024     Pacific Biosciences of California, Inc.
+This program comes with ABSOLUTELY NO WARRANTY; it is intended for
+Research Use Only and not for use in diagnostic procedures.

@@ -1,0 +1,17 @@
+
+=============================================
+vcfanno version 0.3.7 [built with go1.24.6]
+
+see: https://github.com/brentp/vcfanno
+=============================================
+Usage of /data/home/wsx/.pixi/envs/vcfanno/bin/vcfanno:
+  -base-path string
+    	optional base-path to prepend to annotation files in the config
+  -ends
+    	annotate the start and end as well as the interval itself.
+  -lua string
+    	optional path to a file containing custom lua functions to be used as ops
+  -p int
+    	number of processes to use. (default 2)
+  -permissive-overlap
+    	annotate with an overlapping variant even it doesn't share the same ref and alt alleles. Default is to require exact match between variants.

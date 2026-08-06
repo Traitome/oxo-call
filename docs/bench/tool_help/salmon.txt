@@ -1,0 +1,13 @@
+salmon v1.11.4
+
+Usage:  salmon -h|--help or 
+        salmon -v|--version or 
+        salmon -c|--cite or 
+        salmon [--no-version-check] <COMMAND> [-h | options]
+
+Commands:
+     index      : create a salmon index
+     quant      : quantify a sample
+     alevin     : removed; use alevin-fry for single-cell analysis
+     swim       : perform super-secret operation
+     quantmerge : merge multiple quantifications into a single file

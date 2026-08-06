@@ -1,0 +1,11 @@
+/data/home/wsx/.pixi/envs/bracken/bin/bracken: illegal option -- -
+Usage: bracken -v -d MY_DB -i INPUT -o OUTPUT -w OUTREPORT -r READ_LEN -l LEVEL -t THRESHOLD
+  -v             Echoes the current software version and exits
+  MY_DB          location of Kraken database
+  INPUT          Kraken REPORT file to use for abundance estimation
+  OUTPUT         file name for Bracken default output
+  OUTREPORT      New Kraken REPORT output file with Bracken read estimates
+  READ_LEN       read length to get all classifications for (default: 100)
+  LEVEL          level to estimate abundance at [options: D,P,C,O,F,G,S,S1,etc] (default: S)
+  THRESHOLD      number of reads required PRIOR to abundance estimation to perform reestimation (default: 0)
+

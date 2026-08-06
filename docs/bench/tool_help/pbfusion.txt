@@ -1,0 +1,16 @@
+A tool for detecting fusion genes in aligned PacBio RNA data
+
+Usage: pbfusion <COMMAND>
+
+Commands:
+  discover   Identify fusion genes in aligned PacBio Iso-Seq data
+  gff-cache  Cache exonic information from a gtf/gff file in binary format for faster `pbfusion discover` invocations.
+  help       Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help information
+  -V, --version  Print version information
+
+Copyright (C) 2004-2026     Pacific Biosciences of California, Inc.
+This program comes with ABSOLUTELY NO WARRANTY; it is intended for
+Research Use Only and not for use in diagnostic procedures.

@@ -1,0 +1,1 @@
+timeout: failed to run command ‘bbduk.sh’: No such file or directory

@@ -10,11 +10,11 @@ source_url: "https://github.com/google/deepvariant"
 ## Concepts
 
 - DeepVariant uses a deep convolutional neural network to call SNPs and indels from aligned reads.
-- Run as a Docker/Singularity container or via the run_deepvariant.py script (recommended for ease of use).
-- Use --model_type to specify data type: WGS, WES, PACBIO, ONT, HYBRID_PACBIO_ILLUMINA.
-- Input: --input_bam (sorted, indexed BAM/CRAM); --ref (reference FASTA with .fai index).
-- Output: --output_vcf for VCF, --output_gvcf for GVCF (for joint genotyping with GLnexus).
-- Use --num_shards N to parallelize across CPU cores (N = number of CPUs available).
+- Run as a Docker/Singularity container via `run_deepvariant` (one-step wrapper, Docker only) or via the three-step CLI tools: `dv_make_examples` → `dv_call_variants` → `dv_postprocess_variants` (installed via bioconda/pixi).
+- **Docker wrapper** (`run_deepvariant`): Use `--model_type` (WGS, WES, PACBIO, ONT_R104, HYBRID_PACBIO_ILLUMINA), `--reads`, `--ref`, `--output_vcf`, `--output_gvcf`, `--num_shards`.
+- **Local CLI** (`dv_make_examples`): Use `--sample`, `--ref`, `--reads`, `--examples`, `--gvcf`, `--regions`, `--cores`.
+- **Local CLI** (`dv_call_variants`): Use `--model` (wgs, wes, pacbio, hybrid), `--examples`, `--sample`, `--outfile`, `--cores`.
+- **Local CLI** (`dv_postprocess_variants`): Use `--ref`, `--infile`, `--outfile`, `--gvcf_infile`, `--gvcf_outfile`.
 - DeepVariant outputs PASS-filtered variants in the VCF FILTER column — use bcftools filter -f PASS.
 - For joint genotyping of multiple samples, use GLnexus to merge per-sample gVCFs.
 - Three internal steps: make_examples (create pileup images), call_variants (DNN inference), postprocess_variants (format VCF).
@@ -41,37 +41,37 @@ source_url: "https://github.com/google/deepvariant"
 ## Examples
 
 ### call variants from Illumina WGS data using DeepVariant
-**Args:** `run_deepvariant --model_type WGS --ref reference.fa --input_bam sorted.bam --output_vcf output.vcf --output_gvcf output.g.vcf --num_shards 16`
+**Args:** `run_deepvariant --model_type WGS --ref reference.fa --reads sorted.bam --output_vcf output.vcf --output_gvcf output.g.vcf --num_shards 16`
 **Explanation:** --model_type WGS for Illumina whole-genome; --num_shards 16 parallel CPU shards
 
 ### call variants from PacBio HiFi data
-**Args:** `run_deepvariant --model_type PACBIO --ref reference.fa --input_bam hifi_sorted.bam --output_vcf pacbio_variants.vcf --output_gvcf pacbio.g.vcf --num_shards 16`
+**Args:** `run_deepvariant --model_type PACBIO --ref reference.fa --reads hifi_sorted.bam --output_vcf pacbio_variants.vcf --output_gvcf pacbio.g.vcf --num_shards 16`
 **Explanation:** --model_type PACBIO for CCS/HiFi reads; dedicated model for long high-accuracy reads
 
 ### call variants from Oxford Nanopore reads
-**Args:** `run_deepvariant --model_type ONT --ref reference.fa --input_bam ont_sorted.bam --output_vcf ont_variants.vcf --output_gvcf ont.g.vcf --num_shards 16`
-**Explanation:** --model_type ONT for Nanopore reads; trained on ONT-specific error profiles
+**Args:** `run_deepvariant --model_type ONT_R104 --ref reference.fa --reads ont_sorted.bam --output_vcf ont_variants.vcf --output_gvcf ont.g.vcf --num_shards 16`
+**Explanation:** --model_type ONT_R104 for Nanopore reads; trained on ONT-specific error profiles
 
 ### call variants from WES data
-**Args:** `run_deepvariant --model_type WES --ref reference.fa --input_bam wes_sorted.bam --regions targets.bed --output_vcf wes_variants.vcf --output_gvcf wes.g.vcf --num_shards 8`
+**Args:** `run_deepvariant --model_type WES --ref reference.fa --reads wes_sorted.bam --regions targets.bed --output_vcf wes_variants.vcf --output_gvcf wes.g.vcf --num_shards 8`
 **Explanation:** --model_type WES for whole-exome; --regions restricts calling to target BED regions
 
 ### run with intermediate results for debugging
-**Args:** `run_deepvariant --model_type WGS --ref reference.fa --input_bam sorted.bam --output_vcf output.vcf --output_gvcf output.g.vcf --intermediate_results_dir /tmp/intermediate --num_shards 16`
+**Args:** `run_deepvariant --model_type WGS --ref reference.fa --reads sorted.bam --output_vcf output.vcf --output_gvcf output.g.vcf --intermediate_results_dir /tmp/intermediate --num_shards 16`
 **Explanation:** --intermediate_results_dir saves make_examples and call_variants outputs; useful for debugging or resuming
 
 ### dry run to preview commands
-**Args:** `run_deepvariant --model_type WGS --ref reference.fa --input_bam sorted.bam --output_vcf output.vcf --dry_run=true`
+**Args:** `run_deepvariant --model_type WGS --ref reference.fa --reads sorted.bam --output_vcf output.vcf --dry_run=true`
 **Explanation:** --dry_run prints all commands without executing; useful for workflow validation and debugging
 
 ### hybrid PacBio-Illumina data
-**Args:** `run_deepvariant --model_type HYBRID_PACBIO_ILLUMINA --ref reference.fa --input_bam hybrid.bam --output_vcf hybrid.vcf --output_gvcf hybrid.g.vcf --num_shards 16`
+**Args:** `run_deepvariant --model_type HYBRID_PACBIO_ILLUMINA --ref reference.fa --reads hybrid.bam --output_vcf hybrid.vcf --output_gvcf hybrid.g.vcf --num_shards 16`
 **Explanation:** HYBRID_PACBIO_ILLUMINA model for combined long and short read data
 
 ### run with specific region
-**Args:** `run_deepvariant --model_type WGS --ref reference.fa --input_bam sorted.bam --regions chr20:10,000,000-10,100,000 --output_vcf region.vcf --output_gvcf region.g.vcf --num_shards 4`
+**Args:** `run_deepvariant --model_type WGS --ref reference.fa --reads sorted.bam --regions chr20:10,000,000-10,100,000 --output_vcf region.vcf --output_gvcf region.g.vcf --num_shards 4`
 **Explanation:** --regions limits calling to specific genomic region; useful for testing or targeted analysis
 
 ### GPU-accelerated variant calling
-**Args:** `run_deepvariant --model_type WGS --ref reference.fa --input_bam sorted.bam --output_vcf output.vcf --output_gvcf output.g.vcf --num_shards 1 --writer_threads=6`
+**Args:** `run_deepvariant --model_type WGS --ref reference.fa --reads sorted.bam --output_vcf output.vcf --output_gvcf output.g.vcf --num_shards 1 --writer_threads=6`
 **Explanation:** For GPU runs, use --num_shards 1 (one GPU); --writer_threads limits CPU threads for output writing

@@ -1,0 +1,41 @@
+	-> angsd version: 0.940-dirty (htslib: 1.23.1) build(Dec 15 2024 09:11:59)
+	-> /data/home/wsx/.pixi/envs/angsd/bin/angsd --help 
+
+	-> angsd version: 0.940-dirty (htslib: 1.23.1) build(Dec 15 2024 09:11:58)
+	-> Please use the website "http://www.popgen.dk/angsd" as reference
+	-> Use -nThreads or -P for number of threads allocated to the program
+Overview of methods:
+	-GL		Estimate genotype likelihoods
+	-doCounts	Calculate various counts statistics
+	-doAsso		Perform association study
+	-doMaf		Estimate allele frequencies
+	-doError	Estimate the type specific error rates
+	-doAncError	Estimate the errorrate based on perfect fastas
+	-HWE_pval	Est inbreedning per site or use as filter
+	-doGeno		Call genotypes
+	-doFasta	Generate a fasta for a BAM file
+	-doAbbababa	Perform an ABBA-BABA test
+	-sites		Analyse specific sites (can force major/minor)
+	-doSaf		Estimate the SFS and/or neutrality tests genotype calling
+	-doHetPlas	Estimate hetplasmy by calculating a pooled haploid frequency
+
+	Below are options that can be usefull
+	-bam		Options relating to bam reading
+	-doMajorMinor	Infer the major/minor using different approaches
+	-ref/-anc	Read reference or ancestral genome
+	-doSNPstat	Calculate various SNPstat
+	-cigstat	Printout CIGAR stat across readlength
+	many others
+
+Output files:
+	 In general the specific analysis outputs specific files, but we support basic bcf output
+	-doBcf		Wrapper around -dopost -domajorminor -dofreq -gl -dovcf docounts
+For information of specific options type: 
+	./angsd METHODNAME eg 
+		./angsd -GL
+		./angsd -doMaf
+		./angsd -doAsso etc
+		./angsd sites for information about indexing -sites files
+Examples:
+	Estimate MAF for bam files in 'list'
+		'./angsd -bam list -GL 2 -doMaf 2 -out RES -doMajorMinor 1'

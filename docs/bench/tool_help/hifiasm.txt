@@ -1,0 +1,2 @@
+[ERROR] unknown option in "--help"
+timeout: the monitored command dumped core

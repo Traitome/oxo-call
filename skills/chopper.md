@@ -46,8 +46,8 @@ source_url: "https://github.com/wdecoster/chopper"
 **Explanation:** Q15 ≈ 97% accuracy; -l 500 minimum length; pipe input from gunzip and output to gzip
 
 ### filter reads and remove low-quality ends
-**Args:** `-q 10 -l 1000 --headcrop 30 --tailcrop 30 --threads 8`
-**Explanation:** --headcrop 30 removes first 30 bases (often lower quality); --tailcrop 30 removes last 30 bases
+**Args:** `--trim-approach fixed-crop --headcrop 30 --tailcrop 30 -q 10 -l 1000 --threads 8`
+**Explanation:** --trim-approach fixed-crop is required for --headcrop/--tailcrop to take effect; removes first 30 and last 30 bases from each read before quality/length filtering
 
 ### filter reads with maximum length cutoff for specific applications
 **Args:** `-q 8 -l 200 --maxlength 50000 --threads 4`

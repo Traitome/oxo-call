@@ -1,0 +1,159 @@
+[1m[31mUSAGE: PicardCommandLine [32m<program name>[1m[31m [-h]
+
+[0m[1m[31mAvailable Programs:
+[0m[37m--------------------------------------------------------------------------------------
+[0m[31mBase Calling:                                    Tools that process sequencing machine data, e.g. Illumina base calls, and detect sequencing level attributes, e.g. adapters[0m
+[32m    CheckIlluminaDirectory                       [31m[36mAsserts the validity for specified Illumina basecalling data.  [0m
+[32m    CollectIlluminaBasecallingMetrics            [31m[36mCollects Illumina Basecalling metrics for a sequencing run.  [0m
+[32m    CollectIlluminaLaneMetrics                   [31m[36mCollects Illumina lane metrics for the given BaseCalling analysis directory.[0m
+[32m    ExtractIlluminaBarcodes                      [31m[36mTool determines the barcode for each read in an Illumina lane.  [0m
+[32m    IlluminaBasecallsToFastq                     [31m[36mGenerate FASTQ file(s) from Illumina basecall read data.  [0m
+[32m    IlluminaBasecallsToSam                       [31m[36mTransforms raw Illumina sequencing data into an unmapped SAM, BAM or CRAM file.[0m
+[32m    MarkIlluminaAdapters                         [31m[36mReads a SAM/BAM/CRAM file and rewrites it with new adapter-trimming tags.  [0m
+
+[37m--------------------------------------------------------------------------------------
+[0m[31mDiagnostics and Quality Control:                 Tools that collect sequencing quality related and comparative metrics[0m
+[32m    AccumulateQualityYieldMetrics                [31m[36mCombines multiple QualityYieldMetrics files into a single file.[0m
+[32m    AccumulateVariantCallingMetrics              [31m[36mCombines multiple Variant Calling Metrics files into a single file[0m
+[32m    BamIndexStats                                [31m[36mGenerate index statistics from a BAM file[0m
+[32m    CalculateFingerprintMetrics                  [31m[36mCalculate statistics on fingerprints, checking their viability[0m
+[32m    CalculateReadGroupChecksum                   [31m[36mCreates a hash code based on the read groups (RG).  [0m
+[32m    CheckDuplicateMarking                        [31m[36mChecks the consistency of duplicate markings.[0m
+[32m    CheckFingerprint                             [31m[36mComputes a fingerprint from the supplied input (SAM/BAM/CRAM or VCF) file and compares it to the provided genotypes[0m
+[32m    CheckTerminatorBlock                         [31m[36mAsserts the provided gzip file's (e.g., BAM) last block is well-formed; RC 100 otherwise[0m
+[32m    ClusterCrosscheckMetrics                     [31m[36mClusters the results of a CrosscheckFingerprints run by LOD score[0m
+[32m    CollectAlignmentSummaryMetrics               [31m[36m<b>Produces a summary of alignment metrics from a SAM or BAM file.</b>  [0m
+[32m    CollectArraysVariantCallingMetrics           [31m[36mCollects summary and per-sample from the provided arrays VCF file[0m
+[32m    CollectBaseDistributionByCycle               [31m[36mChart the nucleotide distribution per cycle in a SAM or BAM file[0m
+[32m    CollectGcBiasMetrics                         [31m[36mCollect metrics regarding GC bias. [0m
+[32m    CollectHiSeqXPfFailMetrics                   [31m[36mClassify PF-Failing reads in a HiSeqX Illumina Basecalling directory into various categories.[0m
+[32m    CollectHsMetrics                             [31m[36mCollects hybrid-selection (HS) metrics for a SAM or BAM file.  [0m
+[32m    CollectIndependentReplicateMetrics           [31m**EXPERIMENTAL - USE AT YOUR OWN RISK** [36mEstimates the rate of independent replication rate of reads within a bam. 
+[0m
+[32m    CollectInsertSizeMetrics                     [31m[36mCollect metrics about the insert size distribution of a paired-end library. [0m
+[32m    CollectJumpingLibraryMetrics                 [31m[36mCollect jumping library metrics. [0m
+[32m    CollectMultipleMetrics                       [31m[36mCollect multiple classes of metrics. [0m
+[32m    CollectOxoGMetrics                           [31m[36mCollect metrics to assess oxidative artifacts.[0m
+[32m    CollectQualityYieldMetrics                   [31m[36mCollect metrics about reads that pass quality thresholds and Illumina-specific filters.  [0m
+[32m    CollectQualityYieldMetricsFlow               [31m**EXPERIMENTAL - USE AT YOUR OWN RISK** [36mCollect metrics about reads that pass quality thresholds from flow based read files.  [0m
+[32m    CollectQualityYieldMetricsSNVQ               [31m[36mCollect SNVQ metrics about reads that pass quality thresholds and other filters (such as vendor fail, etc).  [0m
+[32m    CollectRawWgsMetrics                         [31m[36mCollect whole genome sequencing-related metrics.  [0m
+[32m    CollectRnaSeqMetrics                         [31m[36mProduces RNA alignment metrics for a SAM or BAM file.  [0m
+[32m    CollectRrbsMetrics                           [31m[36m<b>Collects metrics from reduced representation bisulfite sequencing (Rrbs) data.</b>  [0m
+[32m    CollectSamErrorMetrics                       [31m[36mProgram to collect error metrics on bases stratified in various ways.[0m
+[32m    CollectSequencingArtifactMetrics             [31m[36mCollect metrics to quantify single-base sequencing artifacts.  [0m
+[32m    CollectTargetedPcrMetrics                    [31m[36mCalculate PCR-related metrics from targeted sequencing data. [0m
+[32m    CollectUmiPrevalenceMetrics                  [31m**EXPERIMENTAL - USE AT YOUR OWN RISK** [36mTally the counts of UMIs in duplicate sets within a bam. 
+[0m
+[32m    CollectVariantCallingMetrics                 [31m[36mCollects per-sample and aggregate (spanning all samples) metrics from the provided VCF file[0m
+[32m    CollectWgsMetrics                            [31m[36mCollect metrics about coverage and performance of whole genome sequencing (WGS) experiments.[0m
+[32m    CollectWgsMetricsWithNonZeroCoverage         [31m**EXPERIMENTAL - USE AT YOUR OWN RISK** [36mCollect metrics about coverage and performance of whole genome sequencing (WGS) experiments.  [0m
+[32m    CompareMetrics                               [31m[36mCompare two metrics files.[0m
+[32m    CompareSAMs                                  [31m[36mCompare two input SAM/BAM/CRAM files.  [0m
+[32m    ConvertHaplotypeDatabaseToVcf                [31m[36mConvert Haplotype database file to vcf[0m
+[32m    ConvertSequencingArtifactToOxoG              [31m[36mExtract OxoG metrics from generalized artifacts metrics.  [0m
+[32m    CrosscheckFingerprints                       [31m[36mChecks that all data in the input files appear to have come from the same individual[0m
+[32m    CrosscheckReadGroupFingerprints              [31m[36mDEPRECATED: USE CrosscheckFingerprints. [0m
+[32m    EstimateLibraryComplexity                    [31m[36mEstimates the numbers of unique molecules in a sequencing library.  [0m
+[32m    ExtractFingerprint                           [31m[36mComputes a fingerprint from the input file.[0m
+[32m    IdentifyContaminant                          [31m[36mComputes a fingerprint from the supplied SAM/BAM file, given a contamination estimate.[0m
+[32m    LiftOverHaplotypeMap                         [31m[36mLifts over a haplotype database from one reference to another[0m
+[32m    MeanQualityByCycle                           [31m[36mCollect mean quality by cycle.[0m
+[32m    QualityScoreDistribution                     [31m[36mChart the distribution of quality scores.  [0m
+[32m    ValidateSamFile                              [31m[36mValidates a SAM/BAM/CRAM file.[0m
+[32m    ViewSam                                      [31m[36mPrints a SAM or BAM file to the screen[0m
+
+[37m--------------------------------------------------------------------------------------
+[0m[31mGenotyping Arrays Manipulation:                  Tools that manipulate data generated by Genotyping arrays[0m
+[32m    BpmToNormalizationManifestCsv                [31m[36mProgram to convert an Illumina bpm file into a bpm.csv file.[0m
+[32m    CombineGenotypingArrayVcfs                   [31m[36mProgram to combine multiple genotyping array VCF files into one VCF.[0m
+[32m    CompareGtcFiles                              [31m[36mCompares two GTC files.[0m
+[32m    CreateBafRegressMetricsFile                  [31m[36mProgram to generate a picard metrics file from the output of the bafRegress tool.[0m
+[32m    CreateExtendedIlluminaManifest               [31m[36mCreate an Extended Illumina Manifest for usage by the Picard tool GtcToVcf[0m
+[32m    CreateVerifyIDIntensityContaminationMetricsFile    [31m[36mProgram to generate a picard metrics file from the output of the VerifyIDIntensity tool.[0m
+[32m    GtcToVcf                                     [31m[36mProgram to convert an Illumina GTC file to a VCF[0m
+[32m    MergePedIntoVcf                              [31m[36mProgram to merge a single-sample ped file from zCall into a single-sample VCF.[0m
+[32m    VcfToAdpc                                    [31m[36mProgram to convert an Arrays VCF to an ADPC file.[0m
+
+[37m--------------------------------------------------------------------------------------
+[0m[31mIntervals Manipulation:                          Tools that process genomic intervals in various formats[0m
+[32m    BedToIntervalList                            [31m[36mConverts a BED file to a Picard Interval List.  [0m
+[32m    IntervalListToBed                            [31m[36mConverts an Picard IntervalList file to a BED file.[0m
+[32m    IntervalListTools                            [31m[36mA tool for performing various IntervalList manipulations[0m
+[32m    LiftOverIntervalList                         [31m[36mLifts over an interval list from one reference build to another. [0m
+
+[37m--------------------------------------------------------------------------------------
+[0m[31mOther:                                           Miscellaneous tools, e.g. those that aid in data streaming[0m
+[32m    FifoBuffer                                   [31m[36mProvides a large, FIFO buffer that can be used to buffer input and output streams between programs.[0m
+[32m    SortGff                                      [31m[36mSorts a gff3 file, and adds flush directives[0m
+
+[37m--------------------------------------------------------------------------------------
+[0m[31mRead Data Manipulation:                          Tools that manipulate read data in SAM, BAM or CRAM format[0m
+[32m    AddCommentsToBam                             [31m[36mAdds comments to the header of a BAM file.[0m
+[32m    AddOATag                                     [31m[36mRecord current alignment information to OA tag.[0m
+[32m    AddOrReplaceReadGroups                       [31m[36mAssigns all the reads in a file to a single new read-group.[0m
+[32m    BamToBfq                                     [31m[36mConverts a BAM file into a BFQ (binary fastq formatted) file[0m
+[32m    BuildBamIndex                                [31m[36mGenerates a BAM index ".bai" file.  [0m
+[32m    CleanSam                                     [31m[36mCleans a SAM/BAM/CRAM files, soft-clipping beyond-end-of-reference alignments and setting MAPQ to 0 for unmapped reads[0m
+[32m    CollectDuplicateMetrics                      [31m[36mCollect Duplicate metrics from marked file.[0m
+[32m    DownsampleSam                                [31m[36mDownsample a SAM or BAM file.[0m
+[32m    FastqToSam                                   [31m[36mConverts a FASTQ file to an unaligned BAM or SAM file[0m
+[32m    FilterSamReads                               [31m[36mSubsets reads from a SAM/BAM/CRAM file by applying one of several filters.[0m
+[32m    FixMateInformation                           [31m[36mVerify mate-pair information between mates and fix if needed.[0m
+[32m    GatherBamFiles                               [31m[36mConcatenate efficiently BAM files that resulted from a scattered parallel analysis[0m
+[32m    MarkDuplicates                               [31m[36mIdentifies duplicate reads.  [0m
+[32m    MarkDuplicatesWithMateCigar                  [31m[36mIdentifies duplicate reads, accounting for mate CIGAR.  [0m
+[32m    MergeBamAlignment                            [31m[36mMerge alignment data from a SAM or BAM with data in an unmapped BAM file.  [0m
+[32m    MergeSamFiles                                [31m[36mMerges multiple SAM/BAM/CRAM (and/or) files into a single file.  [0m
+[32m    PositionBasedDownsampleSam                   [31m[36mDownsample a SAM or BAM file to retain a subset of the reads based on the reads location in each tile in the flowcell.[0m
+[32m    ReorderSam                                   [31m[36mReorders reads in a SAM or BAM file to match ordering in a second reference file.[0m
+[32m    ReplaceSamHeader                             [31m[36mReplaces the SAMFileHeader in a SAM/BAM/CRAM file.  [0m
+[32m    RevertOriginalBaseQualitiesAndAddMateCigar   [31m[36mReverts the original base qualities and adds the mate cigar tag to read-group files[0m
+[32m    RevertSam                                    [31m[36mReverts SAM/BAM/CRAM files to a previous state.  [0m
+[32m    SamFormatConverter                           [31m[36mConvert a BAM file to a SAM file, or a SAM to a BAM[0m
+[32m    SamToFastq                                   [31m[36mConverts a SAM/BAM/CRAM file to FASTQ.[0m
+[32m    SamToFastqWithTags                           [31m[36mConverts a SAM or BAM file to FASTQ alongside FASTQs created from tags.[0m
+[32m    SetNmAndUqTags                               [31m[36mDEPRECATED: Use SetNmMdAndUqTags instead.[0m
+[32m    SetNmMdAndUqTags                             [31m[36mFixes the NM, MD, and UQ tags in a SAM/BAM/CRAM file [0m
+[32m    SimpleMarkDuplicatesWithMateCigar            [31m**EXPERIMENTAL - USE AT YOUR OWN RISK** [36mExamines aligned records in the supplied SAM or BAM file to locate duplicate molecules.[0m
+[32m    SortSam                                      [31m[36mSorts a SAM, BAM or CRAM file.  [0m
+[32m    SplitSamByLibrary                            [31m[36mSplits a SAM/BAM/CRAM file into individual files by library[0m
+[32m    SplitSamByNumberOfReads                      [31m[36mSplits a SAM/BAM/CRAM file to multiple files.[0m
+[32m    UmiAwareMarkDuplicatesWithMateCigar          [31m**EXPERIMENTAL - USE AT YOUR OWN RISK** [36mIdentifies duplicate reads using information from read positions and UMIs. [0m
+
+[37m--------------------------------------------------------------------------------------
+[0m[31mReference:                                       Tools that analyze and manipulate FASTA format references[0m
+[32m    BaitDesigner                                 [31m[36mDesigns oligonucleotide baits for hybrid selection reactions.[0m
+[32m    CreateSequenceDictionary                     [31m[36mCreates a sequence dictionary for a reference sequence.  [0m
+[32m    ExtractSequences                             [31m[36mSubsets intervals from a reference sequence to a new FASTA file.[0m
+[32m    NonNFastaSize                                [31m[36mCounts the number of non-N bases in a fasta file.[0m
+[32m    NormalizeFasta                               [31m[36mNormalizes lines of sequence in a FASTA file to be of the same length.[0m
+[32m    ScatterIntervalsByNs                         [31m[36mWrites an interval list created by splitting a reference at Ns.[0m
+
+[37m--------------------------------------------------------------------------------------
+[0m[31mVariant Evaluation and Refinement:               Tools that evaluate and refine variant calls, e.g. with annotations not offered by the engine[0m
+[32m    FindMendelianViolations                      [31m[36mFinds mendelian violations of all types within a VCF[0m
+[32m    GenotypeConcordance                          [31m[36mCalculates the concordance between genotype data of one sample in each of two VCFs - truth (or reference) vs. calls.[0m
+
+[37m--------------------------------------------------------------------------------------
+[0m[31mVariant Filtering:                               Tools that filter variants by annotating the FILTER column[0m
+[32m    FilterVcf                                    [31m[36mHard filters a VCF.[0m
+
+[37m--------------------------------------------------------------------------------------
+[0m[31mVariant Manipulation:                            Tools that manipulate variant call format (VCF) data[0m
+[32m    FixVcfHeader                                 [31m[36mReplaces or fixes a VCF header.[0m
+[32m    GatherVcfs                                   [31m[36mGathers multiple VCF files from a scatter operation into a single VCF file[0m
+[32m    LiftoverVcf                                  [31m[36mLifts over a VCF file from one reference build to another.  [0m
+[32m    MakeSitesOnlyVcf                             [31m[36mCreates a VCF that contains all the site-level information for all records in the input VCF but no genotype information.[0m
+[32m    MakeVcfSampleNameMap                         [31m[36mCreates a TSV from sample name to VCF/GVCF path, with one line per input.[0m
+[32m    MergeVcfs                                    [31m[36mCombines multiple variant files into a single variant file[0m
+[32m    RenameSampleInVcf                            [31m[36mRenames a sample within a VCF or BCF.[0m
+[32m    SortVcf                                      [31m[36mSorts one or more VCF files.  [0m
+[32m    SplitVcfs                                    [31m[36mSplits SNPs and INDELs into separate files.  [0m
+[32m    UpdateVcfSequenceDictionary                  [31m[36mTakes a VCF and a second file that contains a sequence dictionary and updates the VCF with the new sequence dictionary.[0m
+[32m    VcfFormatConverter                           [31m[36mConverts VCF to BCF or BCF to VCF.  [0m
+[32m    VcfToIntervalList                            [31m[36mConverts a VCF or BCF file to a Picard Interval List[0m
+
+[37m--------------------------------------------------------------------------------------
+
+[0m'--help' is not a valid command. See PicardCommandLine -h for more information.

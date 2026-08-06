@@ -1,0 +1,69 @@
+Centrifuge version 1.0.4 by the Centrifuge developer team (centrifuge.metagenomics@gmail.com)
+Usage: 
+  centrifuge [options]* -x <cf-idx> {-1 <m1> -2 <m2> | -U <r> | --sample-sheet <s> } [-S <filename>] [--report-file <report>]
+
+  <cf-idx>   Index filename prefix (minus trailing .X.cf).
+  <m1>       Files with #1 mates, paired with files in <m2>.
+             Could be gzip'ed (extension: .gz) or bzip2'ed (extension: .bz2).
+  <m2>       Files with #2 mates, paired with files in <m1>.
+             Could be gzip'ed (extension: .gz) or bzip2'ed (extension: .bz2).
+  <r>        Files with unpaired reads.
+             Could be gzip'ed (extension: .gz) or bzip2'ed (extension: .bz2).
+  <s>        A TSV file where each line represents a sample.
+  <filename>      File for classification output (default: stdout)
+  <report>   File for tabular report output (default: centrifuge_report.tsv)
+
+  <m1>, <m2>, <r> can be comma-separated lists (no whitespace) and can be
+  specified many times.  E.g. '-U file1.fq,file2.fq -U file3.fq'.
+
+Options (defaults in parentheses):
+
+ Input:
+  -q                 query input files are FASTQ .fq/.fastq (default)
+  --qseq             query input files are in Illumina's qseq format
+  -f                 query input files are (multi-)FASTA .fa/.mfa
+  -r                 query input files are raw one-sequence-per-line
+  -c                 <m1>, <m2>, <r> are sequences themselves, not files
+  -s/--skip <int>    skip the first <int> reads/pairs in the input (none)
+  -u/--upto <int>    stop after first <int> reads/pairs (no limit)
+  -5/--trim5 <int>   trim <int> bases from 5'/left end of reads (0)
+  -3/--trim3 <int>   trim <int> bases from 3'/right end of reads (0)
+  --phred33          qualities are Phred+33 (default)
+  --phred64          qualities are Phred+64
+  --int-quals        qualities encoded as space-delimited integers
+  --ignore-quals     treat all quality values as 30 on Phred scale (off)
+  --nofw             do not align forward (original) version of read (off)
+  --norc             do not align reverse-complement version of read (off)
+
+Classification:
+  --min-hitlen <int>    minimum length of partial hits (default 22, must be greater than 15)
+  -k <int>              report upto <int> distinct, primary assignments for each read or pair
+  --host-taxids <taxids> comma-separated list of taxonomic IDs that will be preferred in classification
+  --exclude-taxids <taxids> comma-separated list of taxonomic IDs that will be excluded in classification
+
+ Output:
+  --out-fmt <str>       define output format, either 'tab' or 'sam' (tab)
+  --tab-fmt-cols <str>  columns in tabular format, comma separated 
+                          default: readID,seqID,taxID,score,2ndBestScore,hitLength,queryLength,numMatches
+  -t/--time             print wall-clock time taken by search phases
+  --un <path>           write unpaired reads that didn't align to <path>
+  --al <path>           write unpaired reads that aligned at least once to <path>
+  --un-conc <path>      write pairs that didn't align concordantly to <path>
+  --al-conc <path>      write pairs that aligned concordantly at least once to <path>
+  (Note: for --un, --al, --un-conc, or --al-conc, add '-gz' to the option name, e.g.
+  --un-gz <path>, to gzip compress output, or add '-bz2' to bzip2 compress output.)
+  --quiet               print nothing to stderr except serious errors
+  --met-file <path>     send metrics to file at <path> (off)
+  --met-stderr          send metrics to stderr (off)
+  --met <int>           report internal counters & metrics every <int> secs (1)
+
+ Performance:
+  -p/--threads <int> number of alignment threads to launch (1)
+  --mm               use memory-mapped I/O for index; many instances can share
+
+ Other:
+  --qc-filter        filter out reads that are bad according to QSEQ filter
+  --seed <int>       seed for random number generator (0)
+  --non-deterministic seed rand. gen. arbitrarily instead of using read attributes
+  --version          print version information and quit
+  -h/--help          print this usage message

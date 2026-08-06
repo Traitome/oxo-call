@@ -1,0 +1,15 @@
+
+VCFtools (0.1.17)
+© Adam Auton and Anthony Marcketta 2009
+
+Process Variant Call Format files
+
+For a list of options, please go to:
+	https://vcftools.github.io/man_latest.html
+
+Alternatively, a man page is available, type:
+	man vcftools
+
+Questions, comments, and suggestions should be emailed to:
+	vcftools-help@lists.sourceforge.net
+

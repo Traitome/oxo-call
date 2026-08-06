@@ -1,0 +1,131 @@
+usage: /data/home/wsx/.pixi/envs/verkko/bin/verkko -d <output-directory> --hifi <hifi-reads ...> --nano <nanopore-reads ...>
+  MANDATORY PARAMETERS:
+    -d <output-directory>    Directory to use for verkko intermediate and final results.
+                             Will be created if needed.
+    --hifi <files ...>       List of files containing PacBio HiFi reads.
+                             Input reads can be any combination of FASTA/FASTQ,
+                             uncompressed or gzip/bzip2/xz compressed.  Any
+                             number of files can be supplied; *.gz works.
+    --nano <files ...>       List of files containing Oxford Nanopore reads.
+
+                             Input reads can be any combination of FASTA/FASTQ/SAM/BAM,
+                             uncompressed or gzip/bzip2/xz compressed.  Any
+                             number of files can be supplied; *.gz works.
+
+  ALGORITHM PARAMETERS:
+    --no-correction          Do not perform Canu correction on the HiFi reads.
+    --no-nano                Assemble without ONT data.
+
+    --hap-kmers h1 h2 type   Use rukki to assign paths to haplotypes.  'h1' and 'h2
+                             must be Meryl databases of homopolymer-compressed parental
+                             kmers.  'type' must be 'trio', 'hic' or 'strandseq'.
+
+    --hic1 <files ...>       List of files containing left hic reads.
+    --hic2 <files ...>       List of files containing right hic reads.
+                             Order of left and right files should be same, no interlaced files allowed.
+                             Input reads can be any combination of FASTA/FASTQ/SAM/BAM,
+                             uncompressed or gzip/bzip2/xz compressed.  Any
+                             number of files can be supplied; *.gz works.
+
+    --porec <files>          List of files containing Pore-C reads.
+                             Input reads can be any combination of FASTA/FASTQ/SAM/BAM,
+                             uncompressed or gzip/bzip2/xz compressed.  Any
+                             number of files can be supplied; *.gz works.
+
+    --no-rdna-tangle         Switch off option that helps to proceed large rDNA tangles which may connect multiple chromosomes.
+    --telomere-motif         Switch to user-supplied telomere motif, automatically searched in fwd/revcomp version.
+                             By default, the cannonical vertebrate 'CCCTAA' motif is used during Hi-C scaffolding.
+    --ref <path>             Path to optional reference. It is used only as a guidance during scaffolding.
+    --uneven-depth           Disable coverage-based heuristics in homozygous nodes detection for Hi-C/PoreC phasing.
+    --haplo-divergence       Estimation on maximum divergence between haplotypes, is used only with Hi-C/PoreC data.
+                             Should be increased for species with divergence significantly higher than in human. Default: 0.05, min 0, max 0.2
+
+    --screen <contaminant_name> </full/path/to/contaminant.fasta>
+                             Screens contaminant from provided file. Multiple screen commands are allowed and are additive.
+                             To screen typical contaminants of human assemblies one can use --screen-human-contaminants option with no parameters, which removes rDNA, mitochondria and EBV.
+
+    --paths <paths.gaf>      Option required to generate fasta file from user-provided paths through assembly graph.
+                             Requires an existing assembly specified by '--assembly <path_to_assembly>' and input reads.
+                             Output is specified as '-d <output_dir>' (<output_dir> should  not be equal to <path_to_assembly>).
+                             The gaf file must be formatted as follows: 'name >utig4-1<utig4-2 HAPLOTYPE1' with one path per line,
+                             where utig4-1 is in fwd orientation and utig4-2 is in reverse complement.
+
+  COMPUTATIONAL PARAMETERS:
+    --python <interpreter>   Path or name of a python interpreter.  Default: 'python'.
+    --perl <interpreter>     Path of name of a perl interpreter.  Default: 'perl'.
+    --mbg <path>             Path to MBG.             Default for all three
+    --graphaligner <path>    Path to GraphAligner.    one packaged with verkko.
+    --mashmap <path>         Path to MashMap.
+    --seqtk <path>           Path to seqtk.
+    --winnowmap <path>       Path to Winnowmap.
+    --minimap   <path>       Path to minimap2.
+    --bwa <path>             Path to BWA.
+    --samtools <path>        Path to Samtools.
+
+    --cleanup                Remove intermediate results.
+    --no-cleanup             Retain intermediate results (default).
+
+    --local                  Run on the local machine (default).
+    --local-memory           Specify the upper limit on memory to use, in GB, default 64
+    --local-cpus             Specify the number of CPUs to use, default 'all'
+
+    --grid                   Enable Grid support (SGE, Slurm, PBS, and LSF are supported).
+
+    --snakeopts <string>     Append snakemake options in "string" to the
+                             snakemake command.  Options MUST be quoted.
+
+    --sto-run                Set resource limits for various stages.
+    --ovb-run                Format: number-of-cpus memory-in-gb time-in-hours
+    --ovs-run                  --cns-run 8 32 2
+    --red-run
+    --mbg-run
+    --utg-run
+    --spl-run
+    --ali-run
+    --pop-run
+    --utp-run
+    --lay-run
+    --sub-run
+    --par-run
+    --cns-run
+    --ahc-run
+    --fhc-run
+    --shc-run
+
+ADVANCED MODULE PARAMETERS (expert users):
+HiFi read correction:
+    --correct-k-mer-size           Set the k-mer size to use for finding overlaps (425)
+    --correct-k-mer-window         Set the window size for sketching reads when finding overlaps (19)
+    --correct-k-mer-coverage       Set the maximum count of kmer to use for finding overlaps (1000)
+    --correct-min-read-length      Set the overall minimum read length (4000)
+    --correct-min-overlap-length   Set the minimum overlap length (1000)
+    --correct-batch-size           Set the RED batch size, in Mbp (30000)
+                                   (might also need to adjust --red-run)
+    
+MBG:
+    --base-k
+    --max-k
+    --window
+    --threads
+    --unitig-abundance
+    --hifi-coverage
+    
+ONT splitting:
+    --split-bases
+    --split-reads
+    
+    
+GraphAligner:
+    --seed-min-length
+    --seed-max-length
+    --align-bandwidth
+    --score-fraction
+    --min-identity
+    --min-score
+    --end-clipping
+    --incompatible-cutoff
+    --max-trace
+    --haploid                      Better ONT alignment for haploid genomes
+
+  Verkko module path: /data/home/wsx/.pixi/envs/verkko/lib/verkko/
+

@@ -1,0 +1,40 @@
+Modkit is a bioinformatics tool for working with modified bases from Oxford
+Nanopore
+
+Usage: modkit <COMMAND>
+
+Commands:
+  pileup          Tabulates base modification calls across genomic positions.
+                  This command produces a bedMethyl formatted file. Schema and
+                  description of fields can be found in the README
+  extract         Extract read-level base modification information from a modBAM
+                  into a tab-separated values table
+  dmr             Perform DMR test on a set of regions. Output a BED file of
+                  regions with the score column indicating the magnitude of the
+                  difference. Find the schema and description of fields can in
+                  the README as well as a description of the model and method.
+                  See subcommand help for additional details
+  pileup-hemi     Tabulates double-stranded base modification patters (such as
+                  hemi-methylation) across genomic motif positions. This command
+                  produces a bedMethyl file, the schema can be found in the
+                  online documentation
+  validate        Validate results from a set of mod-BAM files and associated
+                  BED files containing the ground truth modified base status at
+                  reference positions
+  motif           Various commands to search for, evaluate, or further regine
+                  sequence motifs enriched for base modification. Also can
+                  generate BED files of motif locations
+  entropy         Use a mod-BAM to calculate methylation entropy over genomic
+                  windows
+  localize        Investigate patterns of base modifications, by aggregating
+                  pileup counts "localized" around genomic features of interest
+  stats           Calculate base modification levels over regions
+  bedmethyl       Utilities to work with bedMethyl files
+  modbam          Utilities to work with modBAM files
+  open-chromatin  Identify regions of open chromatin based on exogenous 6mA
+                  signal
+  help            Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version

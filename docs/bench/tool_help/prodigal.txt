@@ -1,0 +1,9 @@
+
+Unknown option.
+
+Usage:  prodigal [-a trans_file] [-c] [-d nuc_file] [-f output_type]
+                 [-g tr_table] [-h] [-i input_file] [-m] [-n] [-o output_file]
+                 [-p mode] [-q] [-s start_file] [-t training_file] [-v]
+
+Do 'prodigal -h' for more information.
+
