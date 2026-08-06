@@ -82,14 +82,6 @@ impl ToolKnowledgeBase {
         self.tools.is_empty()
     }
 
-    /// Look up a tool by exact name (case-insensitive).
-    pub fn lookup(&self, name: &str) -> Option<&ToolEntry> {
-        let name_lower = name.to_lowercase();
-        self.tools
-            .iter()
-            .find(|t| t.name.to_lowercase() == name_lower)
-    }
-
     /// Search for tools matching a natural-language query.
     /// Returns up to `limit` results sorted by relevance score.
     #[allow(dead_code)]
@@ -120,21 +112,6 @@ impl ToolKnowledgeBase {
                 entry: self.tools[idx].clone(),
                 score,
             })
-            .collect()
-    }
-
-    /// Find tools in the same category as the given tool.
-    pub fn related_tools(&self, tool_name: &str, limit: usize) -> Vec<&ToolEntry> {
-        let category = match self.lookup(tool_name) {
-            Some(entry) => &entry.category,
-            None => return vec![],
-        };
-
-        let tool_lower = tool_name.to_lowercase();
-        self.tools
-            .iter()
-            .filter(|t| t.category == *category && t.name.to_lowercase() != tool_lower)
-            .take(limit)
             .collect()
     }
 
@@ -433,21 +410,6 @@ mod tests {
     }
 
     #[test]
-    fn test_lookup_samtools() {
-        let kb = ToolKnowledgeBase::new();
-        let entry = kb.lookup("samtools").expect("samtools should exist");
-        assert_eq!(entry.name, "samtools");
-        assert_eq!(entry.category, "alignment");
-    }
-
-    #[test]
-    fn test_lookup_case_insensitive() {
-        let kb = ToolKnowledgeBase::new();
-        assert!(kb.lookup("SAMTOOLS").is_some());
-        assert!(kb.lookup("Samtools").is_some());
-    }
-
-    #[test]
     fn test_search_alignment() {
         let kb = ToolKnowledgeBase::new();
         let results = kb.search("alignment read aligner bwa", 10);
@@ -494,35 +456,9 @@ mod tests {
     }
 
     #[test]
-    fn test_related_tools() {
-        let kb = ToolKnowledgeBase::new();
-        let related = kb.related_tools("samtools", 5);
-        assert!(!related.is_empty());
-        for tool in &related {
-            assert_eq!(tool.category, "alignment");
-            assert_ne!(tool.name, "samtools");
-        }
-    }
-
-    #[test]
-    fn test_categories() {
-        let kb = ToolKnowledgeBase::new();
-        let cats = kb.categories();
-        assert!(cats.contains(&"alignment".to_string()));
-        assert!(cats.contains(&"variant-calling".to_string()));
-        assert!(cats.contains(&"rna-seq".to_string()));
-    }
-
-    #[test]
     fn test_search_empty_query() {
         let kb = ToolKnowledgeBase::new();
         let results = kb.search("", 5);
         assert!(results.is_empty());
-    }
-
-    #[test]
-    fn test_lookup_nonexistent() {
-        let kb = ToolKnowledgeBase::new();
-        assert!(kb.lookup("nonexistent_tool_xyz").is_none());
     }
 }

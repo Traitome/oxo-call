@@ -37,7 +37,6 @@ pub mod license;
 pub mod llm;
 pub mod mcp;
 pub mod mini_skill_cache;
-pub mod orchestrator;
 pub mod runner;
 pub mod sanitize;
 pub mod server;

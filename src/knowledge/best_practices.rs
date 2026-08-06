@@ -87,20 +87,6 @@ impl BestPracticesDb {
             .unwrap_or_default()
     }
 
-    /// Format relevant best practices as a prompt injection string.
-    pub fn to_prompt_hint(&self, tool: &str) -> String {
-        let practices = self.for_tool(tool);
-        if practices.is_empty() {
-            return String::new();
-        }
-
-        let mut lines = vec!["[Best Practices]".to_string()];
-        for p in practices.iter().take(5) {
-            lines.push(format!("• {}: {}", p.title, p.recommendation));
-        }
-        lines.join("\n")
-    }
-
     /// Total number of practices.
     #[allow(dead_code)]
     pub fn len(&self) -> usize {
@@ -240,21 +226,5 @@ mod tests {
         let db = BestPracticesDb::new();
         let alignment = db.for_category("alignment");
         assert!(!alignment.is_empty());
-    }
-
-    #[test]
-    fn test_prompt_hint_format() {
-        let db = BestPracticesDb::new();
-        let hint = db.to_prompt_hint("samtools");
-        assert!(hint.contains("[Best Practices]"));
-        assert!(hint.contains("•"));
-    }
-
-    #[test]
-    fn test_prompt_hint_unknown_tool() {
-        let db = BestPracticesDb::new();
-        let hint = db.to_prompt_hint("unknown_tool");
-        // No universal practices exist now, so unknown tools get no hint.
-        assert!(hint.is_empty(), "unknown tool should get no hint");
     }
 }

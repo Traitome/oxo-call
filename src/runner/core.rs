@@ -10,15 +10,14 @@ use crate::doc_processor::{DocProcessor, StructuredDoc};
 use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
 use crate::execution::feedback::{FeedbackCollector, FeedbackEntry};
-use crate::execution::result_analyzer::ResultAnalyzer;
 use crate::history::{CommandProvenance, HistoryEntry, HistoryStore};
 use crate::job;
+use crate::knowledge::best_practices::BestPracticesDb;
 use crate::knowledge::error_db::ErrorKnowledgeDb;
 use crate::llm::{LlmClient, LlmCommandSuggestion};
-use crate::orchestrator::executor::ExecutorAgent;
-use crate::orchestrator::supervisor::SupervisorAgent;
-use crate::orchestrator::validator::ValidatorAgent;
 use crate::skill::SkillManager;
+use crate::task_complexity::{GenerationMode, TaskComplexityEstimator};
+use crate::task_normalizer::TaskNormalizer;
 use chrono::Utc;
 use colored::Colorize;
 use std::collections::HashMap;
@@ -87,15 +86,13 @@ pub struct Runner {
     pub(crate) force_context_scenario: Option<ContextScenario>,
     /// When true, disable SSE streaming for LLM responses.
     pub(crate) no_stream: bool,
-    // ── Command-generation preparation ───────────────────────────────────────
-    /// Supervisor agent for generation-strategy decisions.
-    supervisor: SupervisorAgent,
-    /// Executor agent for task enrichment.
-    executor_agent: ExecutorAgent,
-    /// Validator agent for result verification.
-    validator_agent: ValidatorAgent,
-    /// Result analyzer for post-execution insights.
-    result_analyzer: ResultAnalyzer,
+    // ── Command-generation helpers ───────────────────────────────────────────
+    /// Task complexity estimator for Fast vs Quality mode selection.
+    complexity_estimator: TaskComplexityEstimator,
+    /// Task normalizer for enriching vague/multilingual task descriptions.
+    task_normalizer: TaskNormalizer,
+    /// Best practices database for domain-specific hints.
+    best_practices: BestPracticesDb,
 }
 
 impl Runner {
@@ -106,7 +103,7 @@ impl Runner {
         let fetcher = DocsFetcher::new(config.clone());
         let llm = LlmClient::new(config.clone());
         let skill_manager = SkillManager::new(config.clone());
-        let executor_agent = ExecutorAgent::new_with_config(config.clone());
+        let task_normalizer = TaskNormalizer::new_with_llm(config.clone());
         Runner {
             fetcher,
             llm,
@@ -125,10 +122,9 @@ impl Runner {
             auto_retry: false,
             force_context_scenario: None,
             no_stream: false,
-            supervisor: SupervisorAgent::new(),
-            executor_agent,
-            validator_agent: ValidatorAgent::new(),
-            result_analyzer: ResultAnalyzer::new(),
+            complexity_estimator: TaskComplexityEstimator::new(),
+            task_normalizer,
+            best_practices: BestPracticesDb::new(),
         }
     }
 
@@ -438,30 +434,66 @@ impl Runner {
         };
 
         // ── Generation strategy selection ───────────────────────────────────
+        // Inline mode selection (previously handled by SupervisorAgent):
+        // - Skill available → Fast (skill already provides grounding)
+        // - No skill + complex task + low doc quality → Quality (multi-stage)
+        // - Otherwise → Fast
         let doc_quality = structured_doc
             .as_ref()
             .map(|sd| sd.quality_score)
             .unwrap_or(0.0);
-        let supervisor_decision =
-            self.supervisor
-                .decide(tool, task, skill.is_some(), doc_quality, None);
+        let complexity =
+            self.complexity_estimator
+                .estimate(task, tool, skill.is_some(), doc_quality);
+        let mode = if skill.is_some() {
+            GenerationMode::Fast
+        } else if complexity.score.is_complex() {
+            GenerationMode::Quality
+        } else {
+            GenerationMode::Fast
+        };
 
         if self.verbose {
             eprintln!(
-                "{} Generation strategy: mode={}, domain={}, reasons=[{}]",
+                "{} Generation strategy: mode={:?}, score={:.2}",
                 "[verbose]".dimmed(),
-                supervisor_decision.mode,
-                supervisor_decision.domain.as_deref().unwrap_or("unknown"),
-                supervisor_decision.reasons.join(", "),
+                mode,
+                complexity.score.0,
             );
         }
 
         // ── Task enrichment ──────────────────────────────────────────────────
-        let executor_ctx = self.executor_agent.prepare(tool, task).await.ok();
-        let enrichment_from_executor = executor_ctx
+        let normalized = self.task_normalizer.normalize(task, tool).await.ok();
+        let enrichment_from_executor = normalized
             .as_ref()
-            .map(|ctx| self.executor_agent.enrich_task(ctx))
+            .map(|n| {
+                let mut parts = vec![n.description.clone()];
+                let intent = &n.intent;
+                parts.push(format!("[Intent: {intent}]"));
+                if !n.parameters.is_empty() {
+                    let params: Vec<String> = n
+                        .parameters
+                        .iter()
+                        .map(|(k, v)| format!("{k}={v}"))
+                        .collect();
+                    parts.push(format!("[Params: {}]", params.join(", ")));
+                }
+                if !n.constraints.is_empty() {
+                    parts.push(format!("[Constraints: {}]", n.constraints.join(", ")));
+                }
+                parts.join("\n")
+            })
             .unwrap_or_default();
+
+        // Gather best practice hints directly.
+        let best_practice_hints: Vec<String> = {
+            let practices = self.best_practices.for_tool(tool);
+            practices
+                .iter()
+                .take(3)
+                .map(|p| format!("{}: {}", p.title, p.recommendation))
+                .collect()
+        };
 
         // Build enriched task with all sources: context, preferences,
         // supervisor hints, and executor enrichment.
@@ -483,16 +515,11 @@ impl Runner {
             if !preferences_hint.is_empty() {
                 parts.push(format!("<hints>\n{preferences_hint}\n</hints>"));
             }
-            // Add supervisor enrichment hints (best practices, related tools).
-            let supervisor_hints: Vec<_> = supervisor_decision
-                .enrichment_hints
-                .iter()
-                .map(String::as_str)
-                .collect();
-            if !supervisor_hints.is_empty() {
+            // Add best practice hints.
+            if !best_practice_hints.is_empty() {
                 parts.push(format!(
                     "<best_practices>\n{}\n</best_practices>",
-                    supervisor_hints.join("\n")
+                    best_practice_hints.join("\n")
                 ));
             }
             // Add executor enrichment (normalized task, params, constraints).
@@ -525,7 +552,7 @@ impl Runner {
         let effective_mode = if let Some(sc) = self.force_context_scenario {
             sc.default_generation_mode()
         } else {
-            supervisor_decision.mode.to_generation_mode()
+            mode
         };
 
         if self.verbose {
@@ -954,32 +981,19 @@ impl Runner {
             .await;
         }
 
-        // ── Orchestration: Validator Agent (always runs) ─────────────────
-        let validation =
-            self.validator_agent
-                .validate(tool, task, &full_cmd, exit_code, &captured_stderr);
-
-        if self.verbose && !validation.success {
-            eprintln!(
-                "{} Validator: {} — {:?}",
-                "[verbose]".dimmed(),
-                validation.summary,
-                validation.error_category,
+        // ── Post-execution validation ────────────────────────────────────
+        if self.verbose && exit_code != 0 {
+            let error_category =
+                crate::knowledge::error_db::ErrorCategory::classify(&captured_stderr);
+            let recovery = crate::knowledge::error_db::ErrorKnowledgeDb::suggest_recovery(
+                tool,
+                &captured_stderr,
             );
-            for suggestion in &validation.suggestions {
-                eprintln!("{} → {}", "[verbose]".dimmed(), suggestion);
-            }
-        }
-
-        // ── Execution: Result Analyzer ──────────────────────────────────
-        let analysis = self
-            .result_analyzer
-            .analyze(tool, exit_code, "", &captured_stderr);
-
-        if self.verbose && !analysis.improvements.is_empty() {
-            for improvement in &analysis.improvements {
-                eprintln!("{} Improvement: {}", "[verbose]".dimmed(), improvement);
-            }
+            eprintln!(
+                "{} Command failed (exit {exit_code}, category: {error_category:?})",
+                "[verbose]".dimmed(),
+            );
+            eprintln!("{} → {recovery}", "[verbose]".dimmed());
         }
 
         // ── Execution: Feedback Collector ────────────────────────────────

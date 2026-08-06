@@ -509,7 +509,7 @@ impl ChatSession {
             ChatScenario::Bare => String::new(),
             ChatScenario::Prompt | ChatScenario::Skill | ChatScenario::Doc | ChatScenario::Full => {
                 "You are a helpful bioinformatics assistant. Answer questions about bioinformatics tools, \
-                 workflows, and concepts clearly and accurately. When discussing specific tools, \
+                 command patterns, and concepts clearly and accurately. When discussing specific tools, \
                  reference their documentation and common usage patterns. Be concise but thorough."
                     .to_string()
             }
@@ -524,7 +524,7 @@ impl ChatSession {
                  computational biology, programming, shell scripting, and general research. \
                  You are running inside the oxo-call CLI environment and have broad knowledge of \
                  operating system resources, shell commands (bash, zsh, etc.), file operations, \
-                 and command-line workflows. \
+                 and command-line operations. \
                  Answer questions clearly and practically. When the question involves shell or \
                  file operations, provide concrete, runnable examples. \
                  Be concise but thorough. Understand any language and respond in the language of \

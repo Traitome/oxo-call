@@ -55,7 +55,6 @@ mod license;
 mod llm;
 mod mcp;
 mod mini_skill_cache;
-mod orchestrator;
 mod runner;
 mod sanitize;
 mod server;
