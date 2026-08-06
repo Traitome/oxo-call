@@ -30,11 +30,11 @@ impl std::fmt::Display for OrchestrationMode {
 }
 
 impl OrchestrationMode {
-    /// Convert to the corresponding `WorkflowMode` used by the LLM pipeline.
-    pub fn to_workflow_mode(self) -> crate::llm_workflow::WorkflowMode {
+    /// Convert to the corresponding generation mode used by the LLM pipeline.
+    pub fn to_generation_mode(self) -> crate::task_complexity::GenerationMode {
         match self {
-            Self::SingleCall => crate::llm_workflow::WorkflowMode::Fast,
-            Self::MultiStage => crate::llm_workflow::WorkflowMode::Quality,
+            Self::SingleCall => crate::task_complexity::GenerationMode::Fast,
+            Self::MultiStage => crate::task_complexity::GenerationMode::Quality,
         }
     }
 }

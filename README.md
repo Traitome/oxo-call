@@ -2,7 +2,7 @@
 
 # oxo-call
 
-**Reliable natural-language orchestration for CLI bioinformatics**
+**Reliable natural-language command generation for CLI bioinformatics**
 
 [![CI](https://github.com/Traitome/oxo-call/actions/workflows/ci.yml/badge.svg)](https://github.com/Traitome/oxo-call/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/oxo-call.svg)](https://crates.io/crates/oxo-call)
@@ -36,11 +36,21 @@ oxo-call is an AI-powered CLI assistant for bioinformatics. Instead of memorizin
 - 🧠 **LLM-powered** — GitHub Copilot, OpenAI, Anthropic, or local Ollama
 - 📚 **Docs-grounded** — tool `--help` output is cached and injected before every LLM call
 - 🎯 **Skill system** — built-in expert knowledge for 150+ bioinformatics tools across 40+ domains
-- 🔄 **Workflow engine** — native DAG-based pipelines with Snakemake/Nextflow export
+- 🔗 **Unix-first boundary** — generate one inspectable command; use [oxo-flow](https://github.com/Traitome/oxo-flow) for DAG orchestration
 - 🔍 **Dry-run mode** — preview every command before it runs
 - 📜 **History** — every execution is logged with provenance metadata
 - 📋 **Job library** — save named command shortcuts with scheduling, history, and LLM generation (`oxo-call job`)
 - 📊 **Benchmarked** — [Systematic evaluation framework](docs/bench/BENCHMARK.md) across 133 bioinformatics tools with 13,300 descriptions; run `oxo-bench eval` with your own API key to measure real LLM accuracy
+
+## Scope: one command, composed well
+
+oxo-call intentionally does **not** create or execute multi-step DAG workflows. It
+grounds, explains, previews, records, and optionally runs one tool-focused command;
+the resulting text can be reviewed and composed with standard Unix tools.
+
+For dependency graphs, environment isolation, resume, resource scheduling, or pipeline
+reports, use [oxo-flow](https://github.com/Traitome/oxo-flow). The migration boundary
+and long-term reliability plan are documented in [ROADMAP.md](ROADMAP.md).
 
 ## Why teams adopt oxo-call
 
@@ -48,7 +58,7 @@ oxo-call is an AI-powered CLI assistant for bioinformatics. Instead of memorizin
 - **Safer than prompt-only command generation** — oxo-call grounds every request in real docs plus tool-specific pitfalls and examples
 - **Easy to learn from** — dry-run output and explanations help students and new lab members understand unfamiliar tools
 - **Built for reproducible science** — history records the generated command, model, tool version, and docs provenance
-- **Engineered for real labs** — supports local models, HPC environments, workflow export, and a growing cross-domain skill library
+- **Engineered for real labs** — supports local models, HPC command execution, and a growing cross-domain skill library
 
 ---
 
@@ -127,8 +137,8 @@ oxo-call dry-run samtools "sort input.bam by coordinate and output to sorted.bam
 # Execute a command
 oxo-call run bwa "align reads.fastq to reference.fa using 8 threads"
 
-# Run a built-in workflow pipeline
-oxo-call workflow dry-run rnaseq
+# For dependency-aware DAGs, move to oxo-flow
+# https://github.com/Traitome/oxo-flow
 ```
 
 For OpenAI, Anthropic, Ollama, and full configuration details, see the [Configuration guide](https://traitome.github.io/oxo-call/documentation/tutorials/configuration/).
@@ -137,13 +147,13 @@ For OpenAI, Anthropic, Ollama, and full configuration details, see the [Configur
 
 ## Documentation
 
-The full documentation is organized so new users can get value quickly while advanced users can dig into architecture and workflow automation:
+The full documentation is organized so new users can get value quickly while advanced users can inspect architecture and command reliability:
 
 | Section | What you'll learn |
 |---------|-------------------|
 | [Getting Started](https://traitome.github.io/oxo-call/documentation/tutorials/installation/) | Install quickly, configure once, and reach your first useful command fast |
-| [Tutorials](https://traitome.github.io/oxo-call/documentation/tutorials/first-command/) | Learn by doing: command preview, BAM processing, RNA-seq, workflows |
-| [How-to Guides](https://traitome.github.io/oxo-call/documentation/how-to/add-tool-docs/) | Solve targeted problems such as adding docs, switching providers, or building pipelines |
+| [Tutorials](https://traitome.github.io/oxo-call/documentation/tutorials/first-command/) | Learn by doing: command preview, BAM processing, and RNA-seq commands |
+| [How-to Guides](https://traitome.github.io/oxo-call/documentation/how-to/add-tool-docs/) | Solve targeted problems such as adding docs, switching providers, or creating skills |
 | [Command Reference](https://traitome.github.io/oxo-call/documentation/commands/run/) | Look up exact flags, options, and command behavior |
 | [Architecture](https://traitome.github.io/oxo-call/documentation/reference/architecture/) | Understand the engineering decisions behind reliability, provenance, and extensibility |
 

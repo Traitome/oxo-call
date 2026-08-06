@@ -2,7 +2,7 @@
 
 Thank you for your interest in improving **oxo-call**! This guide covers
 everything you need to get started: setting up a development environment,
-understanding the codebase, adding skills and workflows, and submitting
+understanding the codebase, adding skills, and submitting
 high-quality pull requests.
 
 ---
@@ -23,7 +23,7 @@ high-quality pull requests.
     - [1. Create the Markdown file](#1-create-the-markdown-file)
     - [2. Register the skill in `src/skill.rs`](#2-register-the-skill-in-srcskillrs)
     - [3. Verify](#3-verify)
-  - [Adding workflow templates](#adding-workflow-templates)
+  - [Orchestration boundary](#orchestration-boundary)
   - [Code style](#code-style)
   - [Testing](#testing)
     - [Integration tests](#integration-tests)
@@ -113,10 +113,6 @@ oxo-call/
 │   ├── history.rs           # JSONL command history
 │   └── license.rs           # Offline Ed25519 license verification
 ├── skills/                  # 158 built-in skill Markdown files (.md)
-├── workflows/
-│   ├── native/              # .oxo.toml workflow format
-│   ├── snakemake/           # Snakemake (.smk) templates
-│   └── nextflow/            # Nextflow (.nf) templates
 ├── crates/
 │   ├── license-issuer/      # Maintainer-only license signing tool
 │   └── oxo-bench/           # Benchmarking crate
@@ -215,23 +211,13 @@ Ensure the new skill appears in `oxo-call skill list` and that
 
 ---
 
-## Adding workflow templates
+## Orchestration boundary
 
-Workflow templates live under `workflows/` in three formats:
-
-| Directory | Format | Extension |
-|-----------|--------|-----------|
-| `workflows/native/` | oxo-call native | `.oxo.toml` |
-| `workflows/snakemake/` | Snakemake | `.smk` |
-| `workflows/nextflow/` | Nextflow | `.nf` |
-
-To add a new template:
-
-1. Create the workflow file in the appropriate subdirectory.
-2. Include a header comment describing the analysis, required inputs, and
-   expected outputs.
-3. Reference only tools that have corresponding skill files in `skills/`.
-4. Test locally with `oxo-call workflow show <name>` if applicable.
+oxo-call generates, previews, executes, and records one tool invocation at a
+time. Do not add a native workflow format, dependency graph, scheduler, or
+workflow template to this repository. Contributions that need DAG dependencies,
+resumption, environments, or resource scheduling belong in
+[oxo-flow](https://github.com/Traitome/oxo-flow).
 
 ---
 
@@ -307,7 +293,9 @@ mkdocs build          # Static output in docs/guide/site/
 
 - Adding a new subcommand → update the relevant guide page.
 - Changing config options → update the configuration reference.
-- Adding a skill or workflow → mention it in the tools/skills section.
+- Adding a skill → mention it in the tools/skills section.
+- Changing the command-generation boundary → update the relevant guide page and
+  `ROADMAP.md`.
 
 CI automatically deploys the guide to GitHub Pages on pushes to `main`.
 

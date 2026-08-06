@@ -1,252 +1,113 @@
 # System Architecture
 
-## Overview
+## Purpose and boundary
 
-oxo-call is a Rust workspace with three crates:
+oxo-call is a Rust command-line tool that turns a natural-language request into
+**one reviewable tool invocation**. It grounds generation in the target tool's
+documentation and skills, can preview or execute that invocation, and records
+its provenance.
+
+oxo-call deliberately does not own dependency graphs, multi-step workflow
+state, scheduler integration, resumability, or pipeline reporting. Those
+concerns belong to [oxo-flow](https://github.com/Traitome/oxo-flow). A shell
+pipeline, redirection, or `--input-list` fan-out is text the user can inspect;
+it is not an oxo-call workflow graph.
+
+## Workspace
 
 | Crate | Purpose | Published |
 |-------|---------|-----------|
-| `oxo-call` (root) | End-user CLI | Yes (crates.io) |
-| `crates/license-issuer` | Maintainer-only license signing tool | No |
-| `crates/oxo-bench` | Benchmarking and evaluation suite | No |
+| `oxo-call` (root) | End-user command-generation CLI and Rust API | Yes |
+| `crates/license-issuer` | Maintainer-only license-signing utility | No |
+| `crates/oxo-bench` | Command-generation evaluation suite | No |
 
-The architecture is designed around a layered system that makes command generation usable in production science and engineering workflows. The core idea: **Describe your task in plain language — oxo-call fetches the tool's documentation, asks your LLM backend to generate the exact flags you need.**
-
-## Layered Architecture
+## Command path
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          User Interface Layer                           │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
-│  │  CLI Client  │  │  Chat Mode   │  │  Web API     │  │  SDK/API   │ │
-│  │  (cli.rs)    │  │  (chat.rs)   │  │  (server.rs) │  │  (lib.rs)  │ │
-│  └──────────────┘  └──────────────┘  └──────────────┘  └────────────┘ │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     Language Processing Layer                           │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  Universal Task Translator (Any Language → Optimized English)   │  │
-│  │  • task_normalizer.rs  • task_complexity.rs  • sanitize.rs      │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     AI Orchestration Layer                              │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  Runner Pipeline (runner/)                                      │  │
-│  │  • core.rs (orchestration)  • batch.rs (parallel execution)     │  │
-│  │  • retry.rs (error recovery)  • utils.rs (tool detection)       │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-│                                                                         │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  LLM Integration (llm/)                                         │  │
-│  │  • provider.rs (multi-provider support)  • types.rs (traits)    │  │
-│  │  • Copilot / OpenAI / Anthropic / Ollama / DeepSeek / etc.      │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-│                                                                         │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  Command Generation (generator.rs)                              │  │
-│  │  • LLM-based  • Rule-based  • Composite strategies              │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     Knowledge Enhancement Layer                        │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  Documentation System                                           │  │
-│  │  • docs.rs (resolver + caching)  • doc_processor.rs (extraction)│  │
-│  │  • doc_summarizer.rs (compression)  • index.rs (search index)   │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-│                                                                         │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  Knowledge Module (knowledge/)                                  │  │
-│  │  • tool_knowledge.rs (6000+ bioconda tools, TF-IDF search)     │  │
-│  │  • error_db.rs (error recovery)  • best_practices.rs            │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-│                                                                         │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
-│  │  Skill       │  │  MCP Skill   │  │  Mini Skill  │  │  Context   │ │
-│  │  Manager     │  │  Provider    │  │  Cache       │  │  Builder   │ │
-│  │  (skill.rs)  │  │  (mcp.rs)    │  │              │  │ (context.rs│ │
-│  └──────────────┘  └──────────────┘  └──────────────┘  └────────────┘ │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     Execution & Monitoring Layer                        │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
-│  │  Workflow     │  │  DAG         │  │  History     │  │  Job       │ │
-│  │  Templates    │  │  Engine      │  │  Tracker     │  │  Manager   │ │
-│  │ (workflow.rs) │  │ (engine.rs)  │  │ (history.rs) │  │  (job.rs)  │ │
-│  └──────────────┘  └──────────────┘  └──────────────┘  └────────────┘ │
-│                                                                         │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  Workflow Graph Visualization (workflow_graph.rs)                │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     Infrastructure Layer                                │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
-│  │  LLM Backend │  │  Cache Layer │  │  Config      │  │  Remote    │ │
-│  │  (Multiple   │  │  (cache.rs)  │  │  Management  │  │  Execution │ │
-│  │   Providers) │  │              │  │ (config.rs)  │  │ (server.rs)│ │
-│  └──────────────┘  └──────────────┘  └──────────────┘  └────────────┘ │
-│                                                                         │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                  │
-│  │  License     │  │  Error       │  │  Copilot     │                  │
-│  │  Verifier    │  │  Handling    │  │  Auth        │                  │
-│  │ (license.rs) │  │ (error.rs)   │  │(copilot_auth)│                  │
-│  └──────────────┘  └──────────────┘  └──────────────┘                  │
-└─────────────────────────────────────────────────────────────────────────┘
+CLI request
+    │
+    ├── License gate
+    ├── Documentation resolution and structured extraction
+    ├── Skill resolution (user → community → MCP → built-in)
+    ├── Context assembly and command-generation mode selection
+    ├── LLM generation and response validation
+    ├── Command preview or execution
+    ├── Optional retry / advisory verification
+    └── JSONL provenance history
 ```
 
-### Layer Descriptions
+Documentation is resolved before skills and LLM generation. This
+docs-first ordering supplies real flags and examples to the model, reducing
+unsupported-flag generation.
 
-**User Interface Layer** — Multiple entry points for interacting with oxo-call:
-- **CLI Client** (`cli.rs`, `main.rs`): Primary command-line interface with Clap-based argument parsing
-- **Chat Mode** (`chat.rs`): Interactive conversational AI for bioinformatics tool guidance
-- **Web API** (`server.rs`): Remote server management for SSH/HPC execution
-- **SDK/API** (`lib.rs`): Programmatic Rust API for downstream crates and integrations
+### Generation modes
 
-**Language Processing Layer** — Normalizes and analyzes user input before LLM processing:
-- **Task Normalizer** (`task_normalizer.rs`): Translates natural-language tasks into optimized prompts. Supports multilingual input (Chinese, Japanese, Korean, Spanish, French, German, Portuguese, Russian) via rule-based fast path, with LLM fallback for complex cases
-- **Task Complexity** (`task_complexity.rs`): Estimates task complexity for adaptive prompt tier selection
-- **Sanitizer** (`sanitize.rs`): Anonymizes sensitive data before sending to LLM
+The internal command-generation pipeline can choose a fast or quality mode.
+Quality mode may make several internal LLM calls—for task normalization or
+documentation-derived context—but it still produces one command invocation.
+This is a quality mechanism, not workflow orchestration.
 
-**AI Orchestration Layer** — Core intelligence pipeline:
-- **Runner Pipeline** (`runner/`): Orchestrates the full docs→skill→LLM→execute flow
-- **LLM Integration** (`llm/`): Multi-provider abstraction (GitHub Copilot, OpenAI, Anthropic, Ollama, Kimi/Moonshot, GLM/ZhipuAI, and more via OpenAI-compatible API)
-- **Command Generator** (`generator.rs`): Extensible generation strategies via the `CommandGenerator` trait
+`--scenario` selects a named grounding context (`bare`, `prompt`, `doc`,
+`skill`, or `full`) for one generation request.
 
-**Knowledge Enhancement Layer** — Grounds LLM calls in real documentation and domain expertise:
-- **Documentation System** (`docs.rs`, `doc_processor.rs`, `doc_summarizer.rs`): Fetches, parses, and caches tool documentation
-- **Tool Knowledge Base** (`knowledge/tool_knowledge.rs`): Embedded catalog of 6000+ bioconda tools with TF-IDF keyword search, loaded from JSONL at compile time via `include_str!`. Provides offline tool discovery, category inference, and related-tool recommendations
-- **Error Knowledge Base** (`knowledge/error_db.rs`): Learning from failures for error recovery
-- **Best Practices** (`knowledge/best_practices.rs`): Domain-specific bioinformatics best practices
-- **Skill System** (`skill.rs`): Domain-specific knowledge injection (user → community → MCP → built-in)
-- **MCP Provider** (`mcp.rs`): Model Context Protocol for external skill servers
-- **Context Builder** (`context.rs`): Assembles enriched context for LLM prompts
+### Preview, execution, and batch fan-out
 
-**Execution & Monitoring Layer** — Runs commands and tracks results:
-- **Workflow Engine** (`engine.rs`): DAG-based parallel workflow execution with tokio
-- **Workflow Templates** (`workflow.rs`): Pre-built bioinformatics pipelines (RNA-seq, WGS, etc.)
-- **History Tracker** (`history.rs`): JSONL command history with full provenance (UUID, model, exit code)
-- **Job Manager** (`job.rs`): Background job tracking and management
+`dry-run` renders the generated command without starting a process. `run`
+starts it after risk checks and optional confirmation. With `--input-list` or
+`--input-items`, oxo-call generates one command template and applies it
+independently to each supplied item. It does not infer dependencies among
+items; users must make ordering and downstream semantics explicit in their
+own scripts or use oxo-flow.
 
-**Infrastructure Layer** — Platform services and configuration:
-- **LLM Backend**: Multi-provider support with adaptive prompt tiers
-- **Cache Layer** (`cache.rs`): Semantic hash-based response caching to reduce API costs
-- **Config Management** (`config.rs`): TOML-based configuration with environment variable overrides
-- **License Verifier** (`license.rs`): Ed25519 offline license verification
-
-## Module Structure
+## Main modules
 
 ```text
-main.rs             — Command dispatcher & license gate
-  ├─→ cli.rs        — Command definitions (Clap)
-  ├─→ handlers.rs   — Extracted command-handler helpers (formatting, suggestions)
-  ├─→ license.rs    — Ed25519 offline verification
-  ├─→ runner/       — Core orchestration pipeline + provenance tracking
-  │     ├─→ core.rs            — Main runner logic
-  │     ├─→ batch.rs           — Batch/parallel execution
-  │     ├─→ retry.rs           — Auto-retry with error recovery
-  │     └─→ utils.rs           — Tool detection & spinner utilities
-  ├─→ docs.rs                  — Documentation resolver
-  ├─→ doc_processor.rs         — Structured doc extraction (flag catalog, examples)
-  ├─→ doc_summarizer.rs        — Documentation compression
-  ├─→ skill.rs                 — Skill loading system + depth validation
-  │     └─→ mcp.rs             — MCP skill provider (JSON-RPC / HTTP)
-  ├─→ llm/                     — LLM integration
-  │     ├─→ provider.rs        — Multi-provider client
-  │     └─→ types.rs           — LlmProvider trait & types
-  ├─→ llm_workflow.rs          — Fast/Quality workflow executor
-  ├─→ generator.rs             — CommandGenerator trait (extensible strategies)
-  ├─→ cache.rs                 — LLM response cache with semantic hash
-  ├─→ history.rs               — Command history tracker with provenance
-  ├─→ chat.rs                  — Interactive AI chat mode
-  ├─→ sanitize.rs              — Data anonymization for LLM contexts
-  ├─→ server.rs                — Remote server management (SSH / HPC)
-  ├─→ workflow.rs              — Templates & registry
-  │     └─→ engine.rs          — DAG execution engine
-  ├─→ workflow_graph.rs        — DAG visualization
-  ├─→ task_normalizer.rs       — Task normalization
-  ├─→ task_complexity.rs       — Complexity estimation
-  ├─→ context.rs               — Context assembly
-  ├─→ config.rs                — Configuration management
-  ├─→ index.rs                 — Documentation index
-  ├─→ job.rs                   — Job management
-  ├─→ format.rs                — Output formatting
-  ├─→ mini_skill_cache.rs      — Lightweight skill caching
-  ├─→ copilot_auth.rs          — GitHub Copilot authentication
-  └─→ error.rs                 — Error type definitions
-lib.rs              — Programmatic API surface (re-exports all modules)
+main.rs                    command dispatch and license gate
+cli.rs                     Clap command definitions
+runner/
+  core.rs                  docs → skill → LLM → preview/execute orchestration
+  batch.rs                 independent input-item fan-out
+  retry.rs                 bounded command retry
+  utils.rs                 tool detection and runner support
+command_pipeline.rs        fast/quality command-generation pipeline
+context_scenario.rs        named command-generation context scenarios
+docs.rs                    documentation resolution and caching
+doc_processor.rs           flag and example extraction
+skill.rs, mcp.rs           built-in, user, community, and MCP skills
+context.rs                 LLM prompt-context assembly
+llm/                       provider abstraction and response types
+history.rs                 JSONL command provenance
+sanitize.rs                sensitive-data handling for LLM contexts
+config.rs                  TOML configuration and environment overrides
+license.rs                 Ed25519 offline license verification
 ```
 
-## Execution Flow
+Other modules provide interactive chat, remote-server and job support,
+formatting, cache management, tool discovery, and error handling. They support
+the command-generation interface; none establishes a DAG execution model.
 
-### Command Generation (run/dry-run)
+## Design invariants
 
-```text
-1. License verification (Ed25519 signature check)
-2. Parallel fetch:
-   a. Skill loading (user → community → MCP → built-in)
-   b. Documentation fetch (cache → --help → local files → remote URLs)
-      [skipped if high-quality skill is already available]
-3. Structured doc extraction (flag catalog + command examples, deterministic)
-4. Supervisor decision (orchestrator/supervisor.rs):
-   - has_skill=true  → Fast mode (single-call), regardless of task complexity
-   - has_skill=false AND complexity ≥ 0.5 → Quality mode (multi-stage)
-   - has_skill=false AND complexity < 0.5  → Fast mode
-5. Prompt enrichment (context, user preferences, best practices, executor hints)
-6a. Fast mode (single LLM call):
-   - Doc-enriched prompt: flag catalog + doc-extracted examples + skill knowledge
-   - One LLM call → ARGS: / EXPLANATION: response
-6b. Quality mode (parallel LLM calls via tokio::join!):
-   - Stage 1 (concurrent): task standardization (if vague/short/non-ASCII)
-   - Stage 2 (concurrent): mini-skill generation from doc (tool-keyed cache)
-   - Stage 3: command generation with mini-skill + structured doc
-7. Response parsing (extract ARGS: and EXPLANATION: lines, retry on invalid)
-8. Flag validation against doc catalog (post-processing)
-9. Command execution (run) or display (dry-run)
-10. History recording (JSONL with UUID, exit code, timestamp)
-```
+1. **One generated invocation:** one `run` or `dry-run` request has one target
+   tool invocation to preview or execute.
+2. **Docs before model:** tool documentation is collected before loading skills
+   or asking the LLM for arguments.
+3. **Human-reviewable execution:** generated shell text is shown or available
+   before execution; dangerous commands require confirmation.
+4. **Portable provenance:** command history records the request, generated
+   command, model context, timestamps, and execution result.
+5. **Explicit orchestration boundary:** DAGs, retries across dependent steps,
+   scheduling, environments, and resume semantics are delegated to oxo-flow.
 
-### Workflow Execution
+## Extensibility
 
-```text
-1. Parse .oxo.toml workflow definition
-2. Expand wildcards ({sample}, {params.*})
-3. Build dependency DAG
-4. Topological sort for execution order
-5. Execute with tokio parallelism (JoinSet)
-6. Skip steps with fresh outputs (output-freshness caching)
-```
+- **Providers:** `llm/` provides a common interface for supported LLM backends.
+- **Skills:** `SkillManager` preserves the precedence order user → community →
+  MCP → built-in.
+- **Documentation:** the resolver caches local and remote help material for
+  reproducible grounding.
+- **Rust API:** `lib.rs` exports the components intended for programmatic
+  integrations.
 
-## Design Principles
-
-1. **License-first**: Core commands require valid Ed25519 signature
-2. **Docs-first grounding**: Documentation fetched before LLM call to prevent hallucination
-3. **Offline-first**: Cached docs, no license server, optional remote fetching
-4. **Skill-augmented prompting**: Domain knowledge injected without code changes
-5. **Native performance**: Direct native compilation for all major platforms (Linux, macOS, Windows)
-6. **Strict LLM contract**: ARGS:/EXPLANATION: format with retry on invalid response
-7. **Adaptive prompt compression**: Three prompt tiers (Full/Medium/Compact) auto-selected by model size and context window, ensuring reliable output from 0.5B to 200B+ parameter models
-8. **Extensible generation**: CommandGenerator trait enables multiple generation strategies (LLM, rule-based, composite) with chain-of-responsibility pattern
-9. **Response caching**: Optional LLM cache reduces API costs for repeated tasks via semantic hash (tool + task + docs + skill + model)
-10. **Smart model classification**: Cloud API models (GPT, Claude, Gemini) are always classified as "large" regardless of marketing name (e.g., "gpt-5-mini"); local models use parameter-size tags for classification
-11. **Skill-aware orchestration**: When a skill is available, the orchestrator always uses Fast (single-call) mode — the skill already provides the grounding that Quality mode would generate
-12. **Parallel LLM pipeline**: In Quality mode, independent stages (task standardization + mini-skill generation) run concurrently via `tokio::join!`
-13. **Tool-level mini-skill cache**: Mini-skills are cached by `(tool, doc_hash)`, not by task — a single cache entry serves all tasks for the same tool
-
-## Why This Matters In Practice
-
-- **Usability**: users can stay in natural language longer and only inspect flags when it matters
-- **Reliability**: docs-first grounding and a strict response contract reduce free-form model drift
-- **Scientific reproducibility**: provenance-rich history preserves the command, model, and context that produced each result
-- **Engineering extensibility**: skills, MCP providers, and workflow export let teams expand capability without rewriting the core pipeline
+For release direction, compatibility commitments, and the oxo-flow handoff,
+see the repository [Roadmap](https://github.com/Traitome/oxo-call/blob/main/ROADMAP.md).

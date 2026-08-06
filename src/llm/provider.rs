@@ -244,26 +244,38 @@ impl LlmClient {
     ///
     /// Returns the refined task text on success, or falls back to the original task
     /// if the LLM response is not parseable.  Errors from the API are propagated.
+    #[allow(dead_code)]
     pub async fn optimize_task(&self, tool: &str, raw_task: &str) -> Result<String> {
+        Ok(self.optimize_task_with_timing(tool, raw_task).await?.0)
+    }
+
+    /// Optimize a task and report the time spent making the LLM request.
+    pub(crate) async fn optimize_task_with_timing(
+        &self,
+        tool: &str,
+        raw_task: &str,
+    ) -> Result<(String, f64)> {
         let prompt = build_task_optimization_prompt(tool, raw_task);
+        let api_start = std::time::Instant::now();
         let raw = self.request_text(&prompt, Some(256), Some(0.2)).await?;
+        let inference_ms = api_start.elapsed().as_secs_f64() * 1000.0;
 
         // Extract the TASK: line.
         for line in raw.lines() {
             if let Some(rest) = line.strip_prefix("TASK:") {
                 let refined = rest.trim().to_string();
                 if !refined.is_empty() {
-                    return Ok(refined);
+                    return Ok((refined, inference_ms));
                 }
             }
         }
         // Fall back to original task if parsing fails.
-        Ok(raw_task.to_string())
+        Ok((raw_task.to_string(), inference_ms))
     }
 
     /// Make a raw chat completion call with custom system prompt.
     ///
-    /// This is a low-level API for specialized workflows (e.g., mini-skill generation).
+    /// This is a low-level API for specialized generation tasks (e.g., mini-skill generation).
     pub async fn chat_completion(
         &self,
         system: &str,
@@ -271,8 +283,26 @@ impl LlmClient {
         max_tokens: Option<u32>,
         temperature: Option<f32>,
     ) -> Result<String> {
-        self.request_with_system(system, user_prompt, max_tokens, temperature)
-            .await
+        Ok(self
+            .chat_completion_with_timing(system, user_prompt, max_tokens, temperature)
+            .await?
+            .0)
+    }
+
+    /// Make a raw chat completion call and report the time spent making the LLM request.
+    pub(crate) async fn chat_completion_with_timing(
+        &self,
+        system: &str,
+        user_prompt: &str,
+        max_tokens: Option<u32>,
+        temperature: Option<f32>,
+    ) -> Result<(String, f64)> {
+        let api_start = std::time::Instant::now();
+        let response = self
+            .request_with_system(system, user_prompt, max_tokens, temperature)
+            .await?;
+        let inference_ms = api_start.elapsed().as_secs_f64() * 1000.0;
+        Ok((response, inference_ms))
     }
 
     /// Ask the LLM to verify the result of a completed command execution.

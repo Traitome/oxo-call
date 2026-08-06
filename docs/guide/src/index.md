@@ -1,6 +1,6 @@
 # Introduction
 
-**oxo-call** is an AI-powered command orchestration tool for bioinformatics. Instead of memorizing hundreds of flags across dozens of tools, you describe what you want to accomplish — and oxo-call translates that into a grounded command you can preview, explain, audit, and reproduce.
+**oxo-call** is an AI-powered command-generation tool for bioinformatics. Instead of memorizing hundreds of flags across dozens of tools, you describe what you want to accomplish — and oxo-call translates that into a grounded command you can preview, explain, audit, and reproduce.
 
 ```bash
 # You write:
@@ -29,7 +29,7 @@ The docs answer *"what flags exist?"* The skill answers *"which flags should I u
 | **158 built-in skills** | Start from domain-aware guidance for samtools, STAR, BWA, GATK, bcftools, fastp, and 150+ more tools |
 | **Auto documentation** | Reuse real `--help` text automatically instead of hunting through man pages before every task |
 | **Dry-run mode** | Inspect commands safely before they touch data or consume compute time |
-| **Workflow engine** | Move from one-off commands to reusable DAG pipelines with Snakemake/Nextflow export |
+| **Unix-first command boundary** | Generate one inspectable command; use [oxo-flow](https://github.com/Traitome/oxo-flow) for dependency-aware DAGs |
 | **History with provenance** | Keep auditable records of the generated command, tool version, model, and docs context |
 | **Local LLM support** | Run with Ollama when data governance, offline work, or latency matter |
 | **Job library** | Turn recurring commands into named, schedulable assets with history and LLM-assisted generation |
@@ -41,7 +41,7 @@ The docs answer *"what flags exist?"* The skill answers *"which flags should I u
 - **Plain-language in, exact flags out** — describe the biology or data task instead of remembering syntax
 - **Preview before execution** — use `dry-run` to learn and verify before spending cluster time
 - **Explanations included** — generated commands come with reasoning, which helps onboarding and review
-- **Consistent from laptop to cluster** — the same interface works for local tools, remote docs, workflows, and HPC targets
+- **Consistent from laptop to cluster** — the same interface works for local tools, remote docs, and HPC command targets
 - **Evidence-backed** — the docs-first + skill-first design is benchmarked at scale, not just marketed as a prompt trick
 
 ---
@@ -55,6 +55,19 @@ The docs answer *"what flags exist?"* The skill answers *"which flags should I u
 **Core facility staff** supporting multiple assay types — a single tool covers NGS, single-cell, metagenomics, and more.
 
 **Students** learning bioinformatics for the first time — describe tasks in plain language and learn by reading the generated explanations.
+
+---
+
+## Scope Boundary
+
+oxo-call generates, explains, previews, records, and optionally runs one
+tool-focused command. It deliberately does not create or execute multi-step DAGs,
+manage pipeline state, or export workflow definitions.
+
+For dependency graphs, environment isolation, resource scheduling, resume, and
+pipeline reports, use [oxo-flow](https://github.com/Traitome/oxo-flow). See the
+[project roadmap](https://github.com/Traitome/oxo-call/blob/main/ROADMAP.md) for
+the compatibility boundary and long-term reliability plan.
 
 ---
 
@@ -73,9 +86,8 @@ Start with **Getting Started**:
 ### If you want hands-on practice
 Work through the **Tutorials** in order:
 
-- [SAM/BAM Processing](./tutorials/bam-workflow.md) — complete BAM pipeline
+- [SAM/BAM Processing](./tutorials/bam-processing.md) — complete BAM command sequence
 - [RNA-seq Walkthrough](./tutorials/rnaseq-walkthrough.md) — end-to-end analysis
-- [Workflow Builder](./tutorials/workflow-builder.md) — automate multi-sample runs
 
 ### If you need to accomplish a specific task
 Jump to **How-to Guides**:
@@ -83,7 +95,6 @@ Jump to **How-to Guides**:
 - [Add docs for a new tool](./how-to/add-tool-docs.md)
 - [Switch LLM provider](./how-to/change-llm-provider.md)
 - [Create a custom skill](./how-to/create-custom-skill.md)
-- [Build a production pipeline](./how-to/build-pipeline.md)
 
 ### If you need the full details
 See **Command Reference** and **Architecture & Design** for complete specifications.
@@ -125,7 +136,7 @@ Ready to begin? → [Installation](./tutorials/installation.md)
 
 oxo-call is a **user-driven, feedback-driven project**. Every bug report, feature request, and real-world use case you share directly influences what gets built next.
 
-We actively welcome early adopters and testers — from students running their first RNA-seq pipeline to seasoned bioinformaticians automating complex workflows.
+We actively welcome early adopters and testers — from students running their first RNA-seq command to seasoned bioinformaticians maintaining scientific tooling.
 
 | How to contribute | Link |
 |-------------------|------|

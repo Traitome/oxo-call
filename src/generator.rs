@@ -81,7 +81,7 @@ impl CommandSource {
 /// Implementations can use different approaches:
 /// - LLM-based generation (primary)
 /// - Rule-based matching (fast path)
-/// - Template instantiation (standard workflows)
+/// - Template instantiation (standard invocations)
 #[async_trait]
 #[allow(dead_code)]
 pub trait CommandGenerator: Send + Sync {

@@ -47,7 +47,7 @@ variant used for large models.
 2. NEVER start ARGS with the tool name (auto-prepended by system).
 3. First token = subcommand (sort, view, mem, index, etc), NEVER a flag.
 4. Companion binaries (e.g. `bowtie2-build`) or scripts (e.g. `bbduk.sh`) go as first token when skill docs say so.
-5. Multi-step: join with `&&`. Tool name auto-prepended ONLY to first segment — later commands MUST include their full binary name.
+5. Generate one target-tool invocation. Do not invent dependent steps or a DAG; preserve shell composition only when the task explicitly requests it.
 
 **Accuracy Rules (6–7)**
 
@@ -147,7 +147,7 @@ oxo-call uses a doc-enriched prompting strategy that works in a single LLM call 
    catalog prevents hallucinated flags and doc-extracted examples serve as few-shot
    demonstrations — critical for small models (≤3B).
 
-3. **Quality mode** (via `--scenario full`): Multi-stage pipeline with optional task
+3. **Quality mode** (via `--scenario full`): Multi-stage command generation with optional task
    normalization, mini-skill generation, and doc cleaning. Activated only when explicitly
    requested or when the orchestrator determines high complexity **and** no skill is
    available. When a skill is available, the orchestrator always selects Fast mode
@@ -223,7 +223,7 @@ A deterministic 0.0–1.0 score computed from doc completeness:
 
 ## Result Verification (`--verify`)
 
-When `--verify` is set on `run` or `workflow run`, an extra LLM call is made **after** execution. The LLM acts as a bioinformatics QC analyst and analyses:
+When `--verify` is set on `run`, an extra LLM call is made **after** execution. The LLM acts as a bioinformatics QC analyst and analyses:
 
 - The exit code (with awareness that some tools use non-zero for warnings, exit 137 = OOM, exit 139 = segfault)
 - Error signals in stderr (ERROR, FATAL, Exception, Traceback, Segmentation fault, OOM, Permission denied, etc.)
@@ -472,7 +472,6 @@ Streaming can be disabled in two ways:
 oxo-call run --no-stream samtools "sort bam by coordinate"
 oxo-call dry-run --no-stream bwa "align reads"
 oxo-call chat --no-stream samtools "how to sort"
-oxo-call workflow generate --no-stream "RNA-seq pipeline"
 oxo-call server run --no-stream mycluster samtools "sort bam"
 ```
 

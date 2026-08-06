@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>oxo-call — Model-intelligent orchestration for CLI bioinformatics</title>
+  <title>oxo-call — Documentation-grounded command generation for CLI bioinformatics</title>
   <meta name="description" content="Describe your bioinformatics task in plain language. oxo-call fetches tool documentation, grounds it with a built-in skill, and asks your LLM backend to generate the exact flags you need." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -858,7 +858,6 @@
     <li><a href="#demo">Demos</a></li>
     <li><a href="#tools">Skills</a></li>
     <li><a href="#job">Jobs</a></li>
-    <li><a href="#workflow">Workflows</a></li>
     <li><a href="#benchmarks">Benchmarks</a></li>
     <li><a href="#community">Community</a></li>
     <li><a href="#install">Install</a></li>
@@ -878,7 +877,7 @@
       <span class="badge">🧬 Bioinformatics</span>
       <span class="badge">🤖 LLM-powered</span>
     </div>
-    <h1>Model-intelligent<br/>orchestration for<br/><em>CLI bioinformatics</em></h1>
+    <h1>Documentation-grounded<br/><em>command generation</em><br/>for bioinformatics</h1>
     <p>
       Describe your task in plain language —&nbsp;oxo-call fetches the tool's
       documentation, grounds the request with a built-in skill, and asks your
@@ -947,7 +946,7 @@
   <div class="section-label">// features</div>
   <h2 class="section-title">Everything you need to stop<br/>remembering flags</h2>
   <p class="section-body">
-    oxo-call wraps the full command-generation workflow — from fetching live
+    oxo-call turns a request into one reviewable tool invocation — from fetching live
     documentation to grounding the LLM with expert skills — into a single
     two-word command.
   </p>
@@ -974,8 +973,8 @@
     </div>
     <div class="feature-card">
       <div class="feature-icon">🔗</div>
-      <h3>Native workflow engine</h3>
-      <p>Run <code>.oxo.toml</code> pipelines natively — DAG parallelism, wildcard expansion, output caching. Export to <strong>Snakemake</strong> or <strong>Nextflow</strong> for HPC compatibility.</p>
+      <h3>Unix-composable commands</h3>
+      <p>Preview or run one inspectable command at a time. Use shell composition deliberately, and move dependency-aware DAGs to <a href="https://github.com/Traitome/oxo-flow" target="_blank" rel="noopener">oxo-flow</a>.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🔧</div>
@@ -1169,90 +1168,6 @@
 
 <hr class="divider" />
 
-<!-- ── Workflow Generation ──────────────────────────────────────────────────── -->
-<section id="workflow">
-  <div class="section-label">// workflow engine</div>
-  <h2 class="section-title">Native Rust pipeline execution —<br/>Snakemake &amp; Nextflow as export formats</h2>
-  <p class="section-body">
-    <code>oxo-call workflow</code> runs bioinformatics pipelines directly with a
-    lightweight built-in engine.  No Snakemake, Nextflow, or Conda needed.
-    Export to either format for HPC environments that require them.
-  </p>
-
-  <div class="features-grid" style="margin-top:2rem">
-    <div class="feature-card">
-      <div class="feature-icon">⚙️</div>
-      <h3>Native Rust engine</h3>
-      <p>Run <code>.oxo.toml</code> workflows directly — no Snakemake or Nextflow required. DAG-based parallelism, wildcard expansion, output caching.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🔬</div>
-      <h3>RNA-seq</h3>
-      <p>fastp QC → STAR alignment → featureCounts quantification → MultiQC report. Run natively or export to Snakemake/Nextflow DSL2.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🧬</div>
-      <h3>Whole-Genome Sequencing</h3>
-      <p>fastp → BWA-MEM2 → GATK MarkDuplicates → BQSR → HaplotypeCaller GVCF. GATK best-practices out of the box.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🔓</div>
-      <h3>ATAC-seq</h3>
-      <p>fastp → Bowtie2 → Picard deduplication → blacklist filtering → MACS3 peak calling. Ready for downstream footprinting.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🌍</div>
-      <h3>Shotgun Metagenomics</h3>
-      <p>fastp → host read removal (Bowtie2) → Kraken2 classification → Bracken species abundance estimation.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">✨</div>
-      <h3>LLM-generated custom workflows</h3>
-      <p>Describe any pipeline in plain language and get a complete, runnable <code>.oxo.toml</code>. One prompt → one deployable workflow.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🔄</div>
-      <h3>Snakemake &amp; Nextflow export</h3>
-      <p>Every template can be exported with <code>workflow export --to snakemake</code> or <code>--to nextflow</code> for HPC environments.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">📊</div>
-      <h3>Output freshness caching</h3>
-      <p>Automatically skip steps whose outputs exist and are newer than inputs. Re-run only what changed — perfect for iterative pipeline development.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🎯</div>
-      <h3>Gather steps aggregation</h3>
-      <p>Steps with <code>gather = true</code> run once after all wildcard instances complete. Ideal for MultiQC reports and downstream aggregation tasks.</p>
-    </div>
-  </div>
-
-  <div class="code-block" style="margin-top:2.5rem">
-    <div class="code-block-header">
-      <span style="color:var(--muted);font-size:0.8rem">// workflow commands</span>
-    </div>
-    <pre class="code-block-body"><span class="c"># List all built-in templates</span>
-<span class="prompt">$</span> oxo-call workflow list
-
-<span class="c"># Preview the RNA-seq pipeline (no execution)</span>
-<span class="prompt">$</span> oxo-call workflow dry-run rnaseq
-
-<span class="c"># Run a workflow (native engine — no Snakemake/Nextflow needed)</span>
-<span class="prompt">$</span> oxo-call workflow run my_rnaseq.toml
-
-<span class="c"># Export to Snakemake for HPC submission</span>
-<span class="prompt">$</span> oxo-call workflow export wgs.toml --to snakemake -o Snakefile
-
-<span class="c"># Generate a custom ChIP-seq workflow with LLM</span>
-<span class="prompt">$</span> oxo-call workflow generate \
-    "ChIP-seq H3K27ac: QC → Bowtie2 → MACS3 peaks vs input control" \
-    -o chipseq.toml</pre>
-  </div>
-</section>
-
-
-<hr class="divider" />
-
 <!-- ── Benchmarks ───────────────────────────────────────────────────────── -->
 <section id="benchmarks">
   <div class="section-label">// benchmarks</div>
@@ -1266,38 +1181,12 @@
 
   <!-- Tabs -->
   <div class="bench-tabs">
-    <button class="bench-tab active" data-panel="wf">⚙️ Workflow engine</button>
-    <button class="bench-tab"        data-panel="sim">🧬 Simulation scenarios</button>
+    <button class="bench-tab active" data-panel="sim">🧬 Simulation scenarios</button>
     <button class="bench-tab"        data-panel="eval">🤖 LLM eval tasks</button>
   </div>
 
-  <!-- Panel 1: workflow benchmark -->
-  <div class="bench-panel active" id="bench-panel-wf">
-    <div class="bench-table-wrap">
-      <table class="bench-table" id="wf-table">
-        <thead>
-          <tr>
-            <th>Workflow</th>
-            <th class="bench-num">Tasks (expanded)</th>
-            <th class="bench-num">Parse (µs)</th>
-            <th class="bench-num">Expand (µs)</th>
-            <th>Cycle-free?</th>
-          </tr>
-        </thead>
-        <tbody id="wf-tbody">
-          <tr><td colspan="5" class="bench-loading">Loading bench_workflow.csv…</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="bench-note">
-      Parse and expand timings are averaged over 500 runs on a single-core.
-      Source: <code>docs/bench_workflow.csv</code> · generated by
-      <code>cargo run -p oxo-bench -- export-csv</code>
-    </p>
-  </div>
-
-  <!-- Panel 2: simulation scenarios -->
-  <div class="bench-panel" id="bench-panel-sim">
+  <!-- Panel 1: simulation scenarios -->
+  <div class="bench-panel active" id="bench-panel-sim">
     <div class="bench-table-wrap">
       <table class="bench-table" id="sim-table">
         <thead>
@@ -1323,7 +1212,7 @@
     </p>
   </div>
 
-  <!-- Panel 3: LLM eval task catalog -->
+  <!-- Panel 2: LLM eval task catalog -->
   <div class="bench-panel" id="bench-panel-eval">
     <div class="bench-table-wrap">
       <table class="bench-table" id="eval-table">
@@ -1959,30 +1848,6 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
   function escH(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
-
-  // Load workflow CSV
-  fetch('bench_workflow.csv')
-    .then(r => r.text())
-    .then(txt => {
-      const rows = parseCsv(txt);
-      const tbody = document.getElementById('wf-tbody');
-      tbody.innerHTML = '';
-      rows.slice(1).forEach(([wf, tasks, parseUs, expandUs, cycleFree]) => {
-        const ok = cycleFree === 'true';
-        tbody.insertAdjacentHTML('beforeend', `
-          <tr>
-            <td><span class="tool">${escH(wf)}</span></td>
-            <td class="bench-num">${escH(tasks)}</td>
-            <td class="bench-num">${escH(parseUs)}</td>
-            <td class="bench-num">${escH(expandUs)}</td>
-            <td><span class="${ok ? 'bench-ok' : 'warn'}">${ok ? '✓ yes' : '⚠ cycle!'}</span></td>
-          </tr>`);
-      });
-    })
-    .catch(() => {
-      document.getElementById('wf-tbody').innerHTML =
-        '<tr><td colspan="5" class="bench-loading">Could not load bench_workflow.csv</td></tr>';
-    });
 
   // Load scenarios CSV
   fetch('bench_scenarios.csv')

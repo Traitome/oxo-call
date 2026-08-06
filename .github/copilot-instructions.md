@@ -41,7 +41,7 @@ Integration tests live in `tests/cli_tests.rs` and execute the compiled binary. 
 | `src/main.rs` | Command dispatcher + license gate |
 | `src/runner.rs` | Core orchestration: docs → skill → LLM → execute → (verify) |
 | `src/llm.rs` | LLM client: command generation, task optimization, result verification |
-| `src/engine.rs` | DAG workflow engine for `.oxo.toml` files |
+| `src/command_pipeline.rs` | Fast/quality generation for one command |
 | `src/docs.rs` | Documentation resolver + caching |
 | `src/skill.rs` | Built-in and user skill loading |
 | `src/history.rs` | JSONL command history with provenance |
@@ -79,11 +79,14 @@ Integration tests live in `tests/cli_tests.rs` and execute the compiled binary. 
 1. `skills/<tool>.md` — YAML front-matter (`name`, `category`, `description`, `tags`, `author`, `source_url`) + `## Concepts` + `## Pitfalls` + `## Examples` sections (≥3 concepts, ≥3 pitfalls, ≥5 examples). Each example: `### task` → `**Args:** \`flags\`` → `**Explanation:** text`
 2. `src/skill.rs` — add to `BUILTIN_SKILLS` array with `include_str!`
 
-**New workflow template:**
-1. `workflows/native/<name>.oxo.toml`
-2. Optionally `workflows/snakemake/<name>.smk` and `workflows/nextflow/<name>.nf`
-3. `src/workflow.rs` — add to `BUILTIN_TEMPLATES`
-4. `tests/cli_tests.rs` — add parse + expand test
+**Orchestration boundary:**
+- Do not add a native workflow format, workflow templates, a DAG engine, or
+  scheduler behavior to oxo-call.
+- Keep `run` and `dry-run` focused on one reviewable tool invocation. Internal
+  fast/quality generation may use several LLM calls, but must not become
+  multi-step execution.
+- Send dependency-aware workflows, environments, resume behavior, and resource
+  scheduling to [oxo-flow](https://github.com/Traitome/oxo-flow).
 
 ## Documentation
 

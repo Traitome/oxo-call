@@ -21,8 +21,8 @@ pub fn system_prompt() -> &'static str {
      1. NEVER start ARGS with the tool name (auto-prepended by system).\n\
      2. First token = subcommand (sort, view, mem, index, etc), NEVER a flag.\n\
      3. Companion binaries (e.g. bowtie2-build) or scripts (e.g. bbduk.sh) go as first token when skill docs say so.\n\
-     4. Multi-step: join with &&. Tool name auto-prepended ONLY to first segment — later commands MUST include their full binary name.\n\
-     5. Pipes (|) and redirects (>) go directly in ARGS.\n\
+     4. Generate arguments for one target-tool invocation. Do not invent dependent steps or a DAG.\n\
+     5. Preserve pipes (|) and redirects (>) in ARGS only when the task explicitly requests shell composition.\n\
      6. Use ONLY flags from docs or skill examples — never invent flags.\n\
      7. Include every file/path from the task. Prefer skill example flags. Include thread flags and output flags when applicable (use the exact flag form from docs/examples, never combine short and long forms like -o/--output).\n\
      8. Default conventions: paired-end, coordinate-sorted BAM, hg38, gzipped FASTQ, Phred+33.\n\
@@ -37,8 +37,8 @@ pub fn system_prompt_medium() -> &'static str {
      ARGS: <subcommand then flags, NO tool name>\n\
      EXPLANATION: <one sentence>\n\
      Rules: subcommand first (sort/view/mem), never tool name. Use only documented flags. \
-     Include paths from task. Multi-step uses && (tool name only on first segment). \
-     Pipes allowed. Include threads and output flags when applicable."
+     Include paths from task. Generate one target-tool invocation; do not invent dependent steps. \
+     Preserve explicitly requested pipes or redirects. Include threads and output flags when applicable."
 }
 
 /// Ultra-compact system prompt for mini models (≤ 3B parameters).
@@ -48,7 +48,7 @@ pub fn system_prompt_compact() -> &'static str {
      ARGS: sort -@ 4 -o out.bam in.bam\n\
      EXPLANATION: Sort BAM by coordinate.\n\
      Rules: first token = subcommand (sort, view, mem, etc), never tool name. \
-     Use flags from examples only. Pipes and chains allowed."
+     Use flags from examples only. Generate one target-tool invocation; preserve only explicitly requested pipes or redirects."
 }
 
 // ── Token estimation ─────────────────────────────────────────────────────────

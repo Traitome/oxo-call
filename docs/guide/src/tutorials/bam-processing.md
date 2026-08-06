@@ -1,16 +1,16 @@
 # SAM/BAM Processing Tutorial
 
-This tutorial walks through a complete SAM/BAM processing pipeline using `samtools`. By the end, you will have sorted, indexed, filtered, and summarized a BAM file — all with natural-language commands.
+This tutorial walks through a complete SAM/BAM processing sequence using `samtools`. By the end, you will have sorted, indexed, filtered, and summarized a BAM file — one natural-language command at a time.
 
 **Time to complete:** 20–30 minutes
 **Prerequisites:** oxo-call configured, `samtools` installed
-**You will learn:** multi-step BAM workflows, dry-run validation, docs enrichment
+**You will learn:** command-by-command BAM processing, dry-run validation, docs enrichment
 
 ---
 
-## Overview: The BAM Processing Pipeline
+## Overview: The BAM Processing Sequence
 
-A typical BAM processing workflow looks like this:
+A typical BAM processing sequence looks like this:
 
 ```
 raw alignment (.bam)
@@ -118,13 +118,13 @@ Remove secondary alignments, supplementary alignments, and unmapped reads:
 
 ```bash
 oxo-call dry-run samtools \
-  "extract only primary mapped reads from sorted.bam into filtered.bam, then index filtered.bam"
+  "extract only primary mapped reads from sorted.bam into filtered.bam"
 ```
 
 Expected:
 
 ```
-Command: samtools view -F 0x904 -b -o filtered.bam sorted.bam && samtools index filtered.bam
+Command: samtools view -F 0x904 -b -o filtered.bam sorted.bam
 Explanation: -F 0x904 excludes unmapped (0x4), secondary (0x100), and supplementary (0x800) reads; -b writes BAM format.
 ```
 
@@ -132,11 +132,17 @@ Run it:
 
 ```bash
 oxo-call run samtools \
-  "extract only primary mapped reads from sorted.bam into filtered.bam, then index filtered.bam"
+  "extract only primary mapped reads from sorted.bam into filtered.bam"
 ```
 
 > **Understanding `-F 0x904`:**  
 > `0x904 = 0x4 | 0x100 | 0x800` — this bitmask excludes unmapped, secondary, and supplementary alignments. The samtools skill includes this as a common pitfall: *"Use -F 0x904 to keep only primary mapped reads."* Without the skill, the LLM might use a less complete flag set.
+
+Create the index as its own reviewable invocation:
+
+```bash
+oxo-call run samtools "create a BAI index for filtered.bam"
+```
 
 ---
 
@@ -183,7 +189,7 @@ oxo-call run samtools "show per-chromosome read counts for filtered.bam and save
 
 ## Step 5: Mark Duplicates (Optional)
 
-For most variant-calling pipelines, duplicate reads should be marked:
+For most variant-calling analyses, duplicate reads should be marked:
 
 ```bash
 oxo-call dry-run picard \
@@ -198,11 +204,11 @@ Explanation: I/O are input/output; M writes duplication metrics; duplicates are 
 ```
 
 > **Picard vs samtools markdup?**  
-> Ask oxo-call to explain: `oxo-call dry-run samtools "mark duplicate reads in filtered.bam"` will generate `samtools markdup`. Both approaches are valid; the choice depends on your pipeline. Try both dry-runs to compare.
+> Ask oxo-call to explain: `oxo-call dry-run samtools "mark duplicate reads in filtered.bam"` will generate `samtools markdup`. Both approaches are valid; the choice depends on the analysis. Try both dry-runs to compare.
 
 ---
 
-## Reviewing the Full Pipeline
+## Reviewing the Full Sequence
 
 Look at everything that ran:
 
@@ -214,15 +220,17 @@ You will see each command with its exit code and provenance metadata, giving you
 
 ---
 
-## Putting It Together with a Workflow
+## When You Need a DAG
 
-All these steps can be automated with the native workflow engine. See the [Workflow Builder tutorial](./workflow-builder.md) to learn how to turn this pipeline into a reproducible `.oxo.toml` file.
+For dependency-aware, multi-sample orchestration, move these reviewed commands into
+[oxo-flow](https://github.com/Traitome/oxo-flow). oxo-call deliberately stays at the
+single-command boundary so each invocation remains inspectable and composable.
 
 ---
 
 ## What You Learned
 
-- How to run a multi-step BAM processing pipeline with oxo-call
+- How to run a BAM processing sequence with oxo-call
 - Why skills matter — `samtools` skill provides `sort-before-index` and bitmask guidance
 - How to enrich documentation with remote URLs
 - How to review full execution history with provenance

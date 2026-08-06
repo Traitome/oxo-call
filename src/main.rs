@@ -1,4 +1,4 @@
-//! **oxo-call** — Model-intelligent orchestration for CLI bioinformatics.
+//! **oxo-call** — Documentation-grounded command generation for CLI bioinformatics.
 //!
 //! This binary provides the `oxo-call` command, which uses LLM intelligence to
 //! generate, verify, and execute bioinformatics tool invocations.
@@ -24,7 +24,6 @@
 //! - `run` / `dry-run` — Generate and (optionally) execute tool commands
 //! - `docs` — Fetch and manage tool documentation
 //! - `skill` — Manage built-in, community, and MCP skills
-//! - `workflow` — Manage multi-step DAG workflows (`.oxo.toml`)
 //! - `job` — Define and run batch job templates
 //! - `history` — Browse command history with provenance
 //! - `chat` — Interactive LLM chat mode
@@ -35,13 +34,14 @@
 mod cache;
 mod chat;
 mod cli;
+mod command_pipeline;
 mod config;
 mod context;
+mod context_scenario;
 mod copilot_auth;
 mod doc_processor;
 mod doc_summarizer;
 mod docs;
-mod engine;
 mod error;
 mod execution;
 mod format;
@@ -53,7 +53,6 @@ mod job;
 mod knowledge;
 mod license;
 mod llm;
-mod llm_workflow;
 mod mcp;
 mod mini_skill_cache;
 mod orchestrator;
@@ -64,8 +63,6 @@ mod skill;
 mod streaming_display;
 mod task_complexity;
 mod task_normalizer;
-mod workflow;
-mod workflow_graph;
 
 /// A single crate-wide mutex that **all** test modules must acquire before
 /// reading or writing `OXO_CALL_DATA_DIR` (or any other process-global
@@ -76,8 +73,7 @@ pub(crate) static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 use clap::{CommandFactory, Parser};
 use cli::{
     Cli, Commands, ConfigCommands, DocsCommands, HistoryCommands, IndexCommands, JobCommands,
-    LicenseCommands, ModelCommands, RunScenario, ServerCommands, ShellType, SkillCommands,
-    SkillMcpCommands, WorkflowCommands,
+    LicenseCommands, ModelCommands, ServerCommands, ShellType, SkillCommands, SkillMcpCommands,
 };
 use colored::Colorize;
 use handlers::{config_verify_suggestions, print_index_table, with_source};
@@ -172,17 +168,6 @@ const COPILOT_MODELS: &[(&str, &str, bool)] = &[
     ),
 ];
 
-/// Convert a CLI [`RunScenario`] into its corresponding [`WorkflowScenario`].
-fn run_scenario_to_workflow(rs: RunScenario) -> workflow_graph::WorkflowScenario {
-    match rs {
-        RunScenario::Bare => workflow_graph::WorkflowScenario::Bare,
-        RunScenario::Prompt => workflow_graph::WorkflowScenario::Prompt,
-        RunScenario::Doc => workflow_graph::WorkflowScenario::Doc,
-        RunScenario::Skill => workflow_graph::WorkflowScenario::Skill,
-        RunScenario::Full => workflow_graph::WorkflowScenario::Full,
-    }
-}
-
 async fn run(cli: Cli) -> error::Result<()> {
     // Commands that are permitted without a valid license file.
     // `--help` and `--version` are handled by clap before reaching this function.
@@ -269,9 +254,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                 cfg.llm.model = Some(m.clone());
             }
 
-            // Convert validated scenario enum to workflow scenario
-            let force_scenario = scenario.map(run_scenario_to_workflow);
-
             // Collect input items from --input-list / --input-items.
             let all_items = {
                 let mut v: Vec<String> = Vec::new();
@@ -305,8 +287,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_verify(verify)
                 .with_auto_retry(auto_retry)
                 .with_no_stream(no_stream);
-            let runner = if let Some(sc) = force_scenario {
-                runner.with_scenario(sc)
+            let runner = if let Some(sc) = scenario {
+                runner.with_context_scenario(sc)
             } else {
                 runner
             };
@@ -337,9 +319,6 @@ async fn run(cli: Cli) -> error::Result<()> {
             if let Some(ref m) = model {
                 cfg.llm.model = Some(m.clone());
             }
-
-            // Convert validated scenario enum to workflow scenario
-            let force_scenario = scenario.map(run_scenario_to_workflow);
 
             let all_items = {
                 let mut v: Vec<String> = Vec::new();
@@ -373,8 +352,8 @@ async fn run(cli: Cli) -> error::Result<()> {
                 .with_no_doc(no_doc)
                 .with_no_prompt(no_prompt)
                 .with_no_stream(no_stream);
-            let runner = if let Some(sc) = force_scenario {
-                runner.with_scenario(sc)
+            let runner = if let Some(sc) = scenario {
+                runner.with_context_scenario(sc)
             } else {
                 runner
             };
@@ -1674,382 +1653,6 @@ async fn run(cli: Cli) -> error::Result<()> {
                 }
             }
         }
-
-        Commands::Workflow { command } => match command {
-            WorkflowCommands::List => {
-                workflow::print_template_list();
-            }
-
-            WorkflowCommands::Show { name, engine } => {
-                // Check if `name` is a file path first, then fall back to built-in name.
-                let content = if std::path::Path::new(&name).exists() {
-                    let def = engine::WorkflowDef::from_file(std::path::Path::new(&name))?;
-                    match engine.as_str() {
-                        "snakemake" => engine::to_snakemake(&def),
-                        "nextflow" => engine::to_nextflow(&def),
-                        _ => std::fs::read_to_string(&name)?,
-                    }
-                } else {
-                    match workflow::find_template(&name) {
-                        Some(tpl) => match engine.as_str() {
-                            "snakemake" => tpl.snakemake.to_string(),
-                            "nextflow" => tpl.nextflow.to_string(),
-                            _ => tpl.native.to_string(),
-                        },
-                        None => {
-                            eprintln!(
-                                "{} Unknown workflow template '{}'. Run 'oxo-call workflow list'.",
-                                "error:".red().bold(),
-                                name
-                            );
-                            std::process::exit(1);
-                        }
-                    }
-                };
-                println!("{content}");
-            }
-
-            WorkflowCommands::RunWorkflow { file, verify } => {
-                let path = std::path::Path::new(&file);
-                let source = if path.exists() {
-                    std::fs::read_to_string(path)?
-                } else {
-                    // Try as built-in template name.
-                    match workflow::find_template(&file) {
-                        Some(tpl) => tpl.native.to_string(),
-                        None => {
-                            eprintln!(
-                                "{} '{}' is not a file or a known built-in template.",
-                                "error:".red().bold(),
-                                file
-                            );
-                            std::process::exit(1);
-                        }
-                    }
-                };
-                let def = engine::WorkflowDef::from_str_content(&source)?;
-                let tasks = engine::expand(&def)?;
-                engine::execute(tasks, false).await?;
-                if verify {
-                    let cfg = config::Config::load()?;
-                    engine::verify_workflow_results(&def, &cfg).await;
-                }
-            }
-
-            WorkflowCommands::DryRunWorkflow { file } => {
-                let path = std::path::Path::new(&file);
-                let source = if path.exists() {
-                    std::fs::read_to_string(path)?
-                } else {
-                    match workflow::find_template(&file) {
-                        Some(tpl) => tpl.native.to_string(),
-                        None => {
-                            eprintln!(
-                                "{} '{}' is not a file or a known built-in template.",
-                                "error:".red().bold(),
-                                file
-                            );
-                            std::process::exit(1);
-                        }
-                    }
-                };
-                let def = engine::WorkflowDef::from_str_content(&source)?;
-                let tasks = engine::expand(&def)?;
-                engine::execute(tasks, true).await?;
-            }
-
-            WorkflowCommands::Export { file, to, output } => {
-                let path = std::path::Path::new(&file);
-                let def = if path.exists() {
-                    engine::WorkflowDef::from_file(path)?
-                } else {
-                    match workflow::find_template(&file) {
-                        Some(tpl) => engine::WorkflowDef::from_str_content(tpl.native)?,
-                        None => {
-                            eprintln!(
-                                "{} '{}' is not a file or a known built-in template.",
-                                "error:".red().bold(),
-                                file
-                            );
-                            std::process::exit(1);
-                        }
-                    }
-                };
-                let content = match to.as_str() {
-                    "nextflow" => engine::to_nextflow(&def),
-                    _ => engine::to_snakemake(&def),
-                };
-                match output {
-                    Some(out_path) => {
-                        std::fs::write(&out_path, &content)?;
-                        println!(
-                            "{} Exported to {}",
-                            "✓".green().bold(),
-                            out_path.display().to_string().cyan()
-                        );
-                    }
-                    None => println!("{content}"),
-                }
-            }
-
-            WorkflowCommands::Generate {
-                task,
-                engine: engine_name,
-                output,
-                no_stream,
-            } => {
-                let mut cfg = config::Config::load()?;
-                if no_stream {
-                    cfg.llm.stream = false;
-                }
-                let label = match engine_name.as_str() {
-                    "snakemake" => "Snakemake",
-                    "nextflow" => "Nextflow DSL2",
-                    _ => "native (.oxo.toml)",
-                };
-
-                // Only show spinner for non-streaming mode.
-                // Streaming mode uses StreamingDisplay internally.
-                let spinner = if !cfg.llm.stream {
-                    Some(runner::make_spinner(&format!(
-                        "Generating {label} workflow with LLM..."
-                    )))
-                } else {
-                    None
-                };
-
-                let wf = match workflow::generate_workflow(&cfg, &task, &engine_name).await {
-                    Ok(w) => {
-                        if let Some(sp) = spinner {
-                            sp.finish_and_clear();
-                        }
-                        w
-                    }
-                    Err(e) => {
-                        if let Some(sp) = spinner {
-                            sp.finish_and_clear();
-                        }
-                        return Err(e);
-                    }
-                };
-
-                match output {
-                    Some(path) => {
-                        std::fs::write(&path, &wf.content)?;
-                        println!(
-                            "{} Workflow written to {}",
-                            "✓".green().bold(),
-                            path.display().to_string().cyan()
-                        );
-                        if !wf.explanation.is_empty() {
-                            println!();
-                            println!("  {}", "Pipeline explanation:".bold());
-                            println!("  {}", wf.explanation);
-                        }
-                    }
-                    None => {
-                        workflow::print_generated_workflow(&wf);
-                    }
-                }
-            }
-
-            WorkflowCommands::Infer {
-                task,
-                data,
-                engine: engine_name,
-                output,
-                run,
-                no_stream,
-            } => {
-                let mut cfg = config::Config::load()?;
-                if no_stream {
-                    cfg.llm.stream = false;
-                }
-
-                if !data.exists() || !data.is_dir() {
-                    eprintln!(
-                        "{} Data directory '{}' does not exist or is not a directory.",
-                        "error:".red().bold(),
-                        data.display()
-                    );
-                    std::process::exit(1);
-                }
-
-                // Print discovered data context to the user.
-                let ctx = workflow::scan_data_directory(&data);
-                println!(
-                    "{} Scanning data directory: {}",
-                    "→".cyan().bold(),
-                    data.display().to_string().cyan()
-                );
-                println!("  {} {}", "Data type:".bold(), ctx.data_type_hint);
-                if ctx.samples.is_empty() {
-                    println!(
-                        "  {} {}",
-                        "Samples:".bold(),
-                        "(none detected — LLM will use placeholder names)".dimmed()
-                    );
-                } else {
-                    println!(
-                        "  {} {} detected: {}",
-                        "Samples:".bold(),
-                        ctx.samples.len(),
-                        ctx.samples.join(", ").cyan()
-                    );
-                }
-                println!();
-
-                let label = match engine_name.as_str() {
-                    "snakemake" => "Snakemake",
-                    "nextflow" => "Nextflow DSL2",
-                    _ => "native (.oxo.toml)",
-                };
-
-                // Only show spinner for non-streaming mode.
-                // Streaming mode uses StreamingDisplay internally.
-                let spinner = if !cfg.llm.stream {
-                    Some(runner::make_spinner(&format!(
-                        "Generating {label} workflow from data context with LLM..."
-                    )))
-                } else {
-                    None
-                };
-
-                let wf = match workflow::infer_workflow(&cfg, &task, &data, &engine_name).await {
-                    Ok(w) => {
-                        if let Some(sp) = spinner {
-                            sp.finish_and_clear();
-                        }
-                        w
-                    }
-                    Err(e) => {
-                        if let Some(sp) = spinner {
-                            sp.finish_and_clear();
-                        }
-                        return Err(e);
-                    }
-                };
-
-                match output {
-                    Some(ref path) => {
-                        std::fs::write(path, &wf.content)?;
-                        println!(
-                            "{} Workflow written to {}",
-                            "✓".green().bold(),
-                            path.display().to_string().cyan()
-                        );
-                        if !wf.explanation.is_empty() {
-                            println!();
-                            println!("  {}", "Pipeline explanation:".bold());
-                            println!("  {}", wf.explanation);
-                        }
-
-                        if run {
-                            if engine_name != "native" {
-                                eprintln!(
-                                    "{} --run is only supported for native (.oxo.toml) workflows.",
-                                    "error:".red().bold()
-                                );
-                                std::process::exit(1);
-                            }
-                            println!();
-                            println!(
-                                "{} Running generated workflow: {}",
-                                "→".cyan().bold(),
-                                path.display().to_string().cyan()
-                            );
-                            let def = engine::WorkflowDef::from_file(path)?;
-                            let tasks = engine::expand(&def)?;
-                            engine::execute(tasks, false).await?;
-                        }
-                    }
-                    None => {
-                        if run {
-                            eprintln!(
-                                "{} --run requires --output <file> to save the workflow first.",
-                                "error:".red().bold()
-                            );
-                            std::process::exit(1);
-                        }
-                        workflow::print_generated_workflow(&wf);
-                    }
-                }
-            }
-
-            WorkflowCommands::Verify { file } => {
-                let path = std::path::Path::new(&file);
-                let def = if path.exists() {
-                    engine::WorkflowDef::from_file(path)?
-                } else {
-                    match workflow::find_template(&file) {
-                        Some(tpl) => engine::WorkflowDef::from_str_content(tpl.native)?,
-                        None => {
-                            eprintln!(
-                                "{} '{}' is not a file or a known built-in template.",
-                                "error:".red().bold(),
-                                file
-                            );
-                            std::process::exit(1);
-                        }
-                    }
-                };
-                let diags = engine::verify(&def);
-                let has_errors = engine::print_verify_report(&def, &diags);
-                if has_errors {
-                    std::process::exit(1);
-                }
-            }
-
-            WorkflowCommands::Format { file, stdout } => {
-                let path = std::path::Path::new(&file);
-                let def = if path.exists() {
-                    engine::WorkflowDef::from_file(path)?
-                } else {
-                    match workflow::find_template(&file) {
-                        Some(tpl) => engine::WorkflowDef::from_str_content(tpl.native)?,
-                        None => {
-                            eprintln!(
-                                "{} '{}' is not a file or a known built-in template.",
-                                "error:".red().bold(),
-                                file
-                            );
-                            std::process::exit(1);
-                        }
-                    }
-                };
-                let formatted = engine::format_toml(&def);
-                if stdout || !path.exists() {
-                    println!("{formatted}");
-                } else {
-                    std::fs::write(path, &formatted)?;
-                    println!(
-                        "{} Formatted {}",
-                        "✓".green().bold(),
-                        path.display().to_string().cyan()
-                    );
-                }
-            }
-
-            WorkflowCommands::Vis { file } => {
-                let path = std::path::Path::new(&file);
-                let def = if path.exists() {
-                    engine::WorkflowDef::from_file(path)?
-                } else {
-                    match workflow::find_template(&file) {
-                        Some(tpl) => engine::WorkflowDef::from_str_content(tpl.native)?,
-                        None => {
-                            eprintln!(
-                                "{} '{}' is not a file or a known built-in template.",
-                                "error:".red().bold(),
-                                file
-                            );
-                            std::process::exit(1);
-                        }
-                    }
-                };
-                engine::visualize_workflow(&def)?;
-            }
-        },
 
         Commands::Server { command } => {
             match command {

@@ -24,7 +24,7 @@ oxo-call r   [OPTIONS] <TOOL> <TASK>
 | `-j`, `--jobs <N>` | Maximum parallel jobs when using `--input-list` / `--input-items` (default: 1) |
 | `-x`, `--stop-on-error` | Abort remaining items after the first failure |
 | `--auto-retry` | On failure, ask the LLM to analyze stderr and re-run with a corrected command (up to 2 retries) |
-| `--scenario <SCENARIO>` | Force a workflow scenario: `basic`, `prompt`, `doc`, `skill`, or `full` (auto-detected by default). Invalid values are rejected with a non-zero exit code |
+| `--scenario <SCENARIO>` | Force a command-generation context scenario: `bare`, `prompt`, `doc`, `skill`, or `full` (auto-detected by default). This selects grounding for one command, not a workflow. |
 | `--no-stream` | Disable streaming (SSE) output from the LLM; the full response is shown after generation completes |
 | `-v`, `--verbose` | Show docs source, skill info, and LLM details (global) |
 | `--license <PATH>` | Path to license file (global option) |
@@ -62,6 +62,9 @@ Step 2 is the key innovation: the flag catalog prevents hallucinated flags and
 doc-extracted examples serve as few-shot demonstrations — enabling reliable
 command generation even with small models (≤3B) and no skill files.
 
+`run` does not create a dependency graph or retain multi-step execution state. For
+dependency-aware orchestration, use [oxo-flow](https://github.com/Traitome/oxo-flow).
+
 ## Examples
 
 ```bash
@@ -78,7 +81,7 @@ oxo-call run --verify samtools "sort input.bam by coordinate, output sorted.bam"
 oxo-call run --auto-retry samtools "sort input.bam with 8 threads"
 
 # Maximum reliability: auto-retry and verify
-oxo-call run --auto-retry --verify samtools "sort and index"
+oxo-call run --auto-retry --verify samtools "sort input.bam by coordinate and output sorted.bam"
 
 # Override LLM model for a single invocation
 oxo-call run --model gpt-4 samtools "index sorted.bam"
@@ -149,8 +152,7 @@ The default is 1 (sequential). Exit codes are collected after all items finish;
 any failure causes the overall command to exit non-zero.
 
 **Stop-on-error** (`-x` / `--stop-on-error`): abort after the first item
-failure — useful in pipelines where continuing on error would produce incorrect
-downstream results.
+failure — useful when later script actions depend on every item succeeding.
 
 **JSON output** (`--json`) in batch mode returns an array of per-item results:
 
@@ -196,10 +198,11 @@ Verification is advisory — it never changes the process exit code. Use `--json
 oxo-call uses a two-step process for task normalization:
 
 1. **Quality mode selection**: When there is no static skill file for the tool and
-   documentation is available, oxo-call selects Quality mode (multi-stage pipeline).
-   If `--scenario` is set, the scenario's default mode takes precedence.
+   documentation is available, oxo-call selects Quality mode (a multi-stage
+   command-generation process). If `--scenario` is set, the context scenario's
+   default mode takes precedence.
 
-2. **Optional normalization within Quality mode**: Within the Quality pipeline, an extra
+2. **Optional normalization within Quality mode**: Within the Quality generation process, an extra
    LLM call normalizes the task **only if** it is considered vague or ambiguous:
 
 - Input: `"sort bam"`

@@ -1,41 +1,12 @@
 //! Benchmark report generation.
 //!
-//! Formats results from workflow and LLM benchmarks into human-readable
+//! Formats command-generation benchmark results into human-readable
 //! tables, machine-readable JSON, and CSV files for integration with
 //! CI/reporting pipelines and the docs/ landing page.
 
 use crate::bench::llm::{EvalTask, ModelBenchResult};
-use crate::bench::workflow::BenchWorkflowResult;
 use crate::sim::omics::OmicsScenario;
 use std::io::Write;
-
-/// Print a Markdown table of workflow benchmark results.
-pub fn print_workflow_report<W: Write>(
-    writer: &mut W,
-    results: &[BenchWorkflowResult],
-) -> std::io::Result<()> {
-    writeln!(writer, "## Workflow benchmark results\n")?;
-    writeln!(
-        writer,
-        "| Workflow | Tasks | Parse (µs) | Expand (µs) | Cycle? |"
-    )?;
-    writeln!(
-        writer,
-        "|----------|-------|------------|-------------|--------|"
-    )?;
-    for r in results {
-        writeln!(
-            writer,
-            "| {} | {} | {:.1} | {:.1} | {} |",
-            r.workflow_name,
-            r.expanded_tasks,
-            r.parse_ns as f64 / 1_000.0,
-            r.expand_ns as f64 / 1_000.0,
-            if r.has_cycle { "⚠ YES" } else { "✓ no" },
-        )?;
-    }
-    Ok(())
-}
 
 /// Print a Markdown table of LLM model benchmark results.
 pub fn print_model_report<W: Write>(
@@ -189,31 +160,6 @@ pub fn print_model_summary<W: Write>(
 
 // ── CSV export ────────────────────────────────────────────────────────────────
 
-/// Write workflow benchmark results as a CSV file.
-///
-/// Columns: `workflow,expanded_tasks,parse_us,expand_us,cycle_free`
-pub fn write_workflow_csv<W: Write>(
-    writer: &mut W,
-    results: &[BenchWorkflowResult],
-) -> std::io::Result<()> {
-    writeln!(
-        writer,
-        "workflow,expanded_tasks,parse_us,expand_us,cycle_free"
-    )?;
-    for r in results {
-        writeln!(
-            writer,
-            "{},{},{:.1},{:.1},{}",
-            r.workflow_name,
-            r.expanded_tasks,
-            r.parse_ns as f64 / 1_000.0,
-            r.expand_ns as f64 / 1_000.0,
-            !r.has_cycle,
-        )?;
-    }
-    Ok(())
-}
-
 /// Write omics simulation scenario statistics as a CSV file.
 ///
 /// Columns: `scenario_id,assay,n_samples,read_len_bp,reads_per_sample,error_rate,total_reads`
@@ -264,38 +210,7 @@ pub fn write_eval_tasks_csv<W: Write>(writer: &mut W, tasks: &[EvalTask]) -> std
 mod tests {
     use super::*;
     use crate::bench::llm::canonical_eval_tasks;
-    use crate::bench::workflow::bench_workflow_expand;
     use crate::sim::omics::canonical_scenarios;
-
-    #[test]
-    fn test_print_workflow_report() {
-        let results = bench_workflow_expand(1);
-        let mut buf = Vec::new();
-        print_workflow_report(&mut buf, &results).unwrap();
-        let text = String::from_utf8(buf).unwrap();
-        assert!(text.contains("Workflow benchmark results"));
-        assert!(text.contains("rnaseq"));
-    }
-
-    #[test]
-    fn test_write_workflow_csv_header_and_rows() {
-        let results = bench_workflow_expand(1);
-        let mut buf = Vec::new();
-        write_workflow_csv(&mut buf, &results).unwrap();
-        let text = String::from_utf8(buf).unwrap();
-        // Header
-        assert!(text.starts_with("workflow,expanded_tasks,parse_us,expand_us,cycle_free"));
-        // One row per workflow
-        let data_lines: Vec<&str> = text.lines().skip(1).filter(|l| !l.is_empty()).collect();
-        assert_eq!(data_lines.len(), results.len());
-        // Each row has 5 comma-separated fields
-        for line in &data_lines {
-            assert_eq!(line.split(',').count(), 5, "bad CSV row: {line}");
-        }
-        // rnaseq row should contain "true" for cycle_free
-        assert!(text.contains("rnaseq,"), "rnaseq missing from workflow CSV");
-        assert!(text.contains(",true"), "all workflows should be cycle-free");
-    }
 
     #[test]
     fn test_write_scenarios_csv_header_and_rows() {

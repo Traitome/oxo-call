@@ -19,7 +19,7 @@ oxo-call d       [OPTIONS] <TOOL> <TASK>
 | `-V`, `--var KEY=VALUE` | Substitute `{KEY}` in the task description before the LLM call (repeatable) |
 | `-i`, `--input-list <FILE>` | Read input items from a file; shows the command for each item |
 | `--input-items <ITEMS>` | Comma-separated input items; shows the command for each item |
-| `--scenario <SCENARIO>` | Force a workflow scenario: `basic`, `prompt`, `doc`, `skill`, or `full` (auto-detected by default). Invalid values are rejected with a non-zero exit code |
+| `--scenario <SCENARIO>` | Force a command-generation context scenario: `bare`, `prompt`, `doc`, `skill`, or `full` (auto-detected by default). This selects grounding for one command, not a workflow. |
 | `--no-stream` | Disable streaming (SSE) output from the LLM; the full response is shown after generation completes |
 | `-v`, `--verbose` | Show docs source, skill info, and LLM details (global) |
 | `--license <PATH>` | Path to license file (global option) |
@@ -42,13 +42,13 @@ Use `--verbose` to see which tier was selected for a given invocation.
 
 ## Description
 
-`dry-run` follows the same pipeline as `run` (documentation fetch → skill loading → LLM generation) but prints the resulting command instead of executing it. Use this to:
+`dry-run` follows the same command-generation path as `run` (documentation fetch → skill loading → LLM generation) but prints the resulting command instead of executing it. Use this to:
 
 - Preview commands before running them
 - Verify oxo-call understands your intent
 - Generate commands to copy into scripts
 - Test with tools that aren't installed locally
-- Produce JSON output for pipeline integration
+- Produce JSON output for script integration
 - Preview batch command expansions before a real run
 
 ## Examples
@@ -154,5 +154,4 @@ For batch dry-run (`--input-list` / `--input-items`) with `--json`:
   "model": "gpt-4o"
 }
 ```
-
 

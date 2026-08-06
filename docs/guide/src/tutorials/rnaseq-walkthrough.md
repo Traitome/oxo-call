@@ -1,14 +1,14 @@
 # RNA-seq Analysis Walkthrough
 
-This tutorial walks through a complete bulk RNA-seq analysis pipeline — from raw FASTQ reads to a count matrix — using oxo-call to generate every command. This mirrors a real-world analysis workflow.
+This tutorial walks through a bulk RNA-seq analysis sequence — from raw FASTQ reads to a count matrix — using oxo-call to generate every command.
 
 **Time to complete:** 30–45 minutes (reading) + compute time
 **Prerequisites:** oxo-call configured, tools installed: `fastp`, `STAR`, `featureCounts` (or `salmon`)
-**You will learn:** end-to-end pipeline construction, workflow integration, skill-driven accuracy
+**You will learn:** end-to-end command generation, single-command review, skill-driven accuracy
 
 ---
 
-## RNA-seq Pipeline Overview
+## RNA-seq Analysis Overview
 
 ```
 Raw FASTQ reads
@@ -244,19 +244,21 @@ oxo-call run featureCounts \
 
 ---
 
-## Step 5: Running Multiple Samples
+## Step 5: Running Independent Commands for Multiple Samples
 
-For a real experiment you will have many samples. Instead of repeating commands manually, use the workflow engine:
+For independent operations that use the same command template, use `--input-list`.
+For example, index a list of already-generated BAM files:
 
 ```bash
-# View the built-in RNA-seq template
-oxo-call workflow show rnaseq
-
-# Dry-run the complete pipeline
-oxo-call workflow dry-run rnaseq
+printf '%s\n' aligned/sample1/Aligned.sortedByCoord.out.bam \
+  aligned/sample2/Aligned.sortedByCoord.out.bam > bam-files.txt
+oxo-call dry-run --input-list bam-files.txt samtools "index {item}"
+oxo-call run --input-list bam-files.txt samtools "index {item}"
 ```
 
-To customize for your samples and paths, see the [Workflow Builder tutorial](./workflow-builder.md).
+This fan-out does not define dependencies between commands. For a reproducible
+multi-sample DAG with dependency tracking, environments, retries, and scheduling,
+use [oxo-flow](https://github.com/Traitome/oxo-flow).
 
 ---
 
@@ -272,13 +274,13 @@ This shows every command in the order it was executed, with exit codes, timestam
 
 ## What You Learned
 
-- How to run a complete RNA-seq pipeline step-by-step with oxo-call
+- How to run an RNA-seq analysis sequence command by command with oxo-call
 - How built-in skills prevent common mistakes (`--readFilesCommand zcat`, `-p` for paired-end)
 - How to add remote documentation for richer LLM context
-- How MultiQC integrates naturally into the oxo-call workflow
-- Where to go next: the workflow engine for multi-sample automation
+- How MultiQC fits into an inspectable command sequence
+- When to move a dependency-aware analysis to oxo-flow
 
 **Next steps:**
-- [Workflow Builder tutorial](./workflow-builder.md) — automate this for multiple samples
+- [oxo-flow](https://github.com/Traitome/oxo-flow) — orchestrate multi-sample DAGs
 - [featureCounts command reference](../commands/run.md) — full options
 - [Skill System reference](../reference/skill-system.md) — how skills improve accuracy

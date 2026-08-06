@@ -58,6 +58,8 @@ fn test_system_prompt_not_empty() {
     let p = system_prompt();
     assert!(!p.is_empty());
     assert!(p.contains("ARGS"));
+    assert!(p.contains("one target-tool invocation"));
+    assert!(!p.contains("Multi-step"));
 }
 
 #[test]

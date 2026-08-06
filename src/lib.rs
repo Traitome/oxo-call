@@ -8,7 +8,7 @@
 //!
 //! ```rust,ignore
 //! use oxo_call::skill::{Skill, SkillManager, validate_skill_depth};
-//! use oxo_call::history::{HistoryEntry, CommandProvenance, WorkflowSuggestion};
+//! use oxo_call::history::{CommandProvenance, HistoryEntry};
 //! use oxo_call::mcp::McpClient;
 //! ```
 //!
@@ -16,13 +16,14 @@
 //! library interface.
 
 pub mod cache;
+pub mod command_pipeline;
 pub mod config;
 pub mod context;
+pub mod context_scenario;
 pub mod copilot_auth;
 pub mod doc_processor;
 pub mod doc_summarizer;
 pub mod docs;
-pub mod engine;
 pub mod error;
 pub mod execution;
 pub mod format;
@@ -34,7 +35,6 @@ pub mod job;
 pub mod knowledge;
 pub mod license;
 pub mod llm;
-pub mod llm_workflow;
 pub mod mcp;
 pub mod mini_skill_cache;
 pub mod orchestrator;
@@ -45,11 +45,9 @@ pub mod skill;
 pub mod streaming_display;
 pub mod task_complexity;
 pub mod task_normalizer;
-pub mod workflow;
-pub mod workflow_graph;
 
 // Re-export commonly used types for convenience
-pub use history::{ArgCombo, CommandProvenance, HistoryEntry, WorkflowSuggestion};
+pub use history::{ArgCombo, CommandProvenance, HistoryEntry};
 
 /// A single crate-wide mutex that **all** test modules must acquire before
 /// reading or writing `OXO_CALL_DATA_DIR` (or any other process-global
