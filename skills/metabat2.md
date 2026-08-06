@@ -48,8 +48,8 @@ source_url: "https://bitbucket.org/berkeleylab/metabat"
 **Explanation:** without -a coverage file, MetaBAT2 uses only tetranucleotide frequency; less accurate but usable
 
 ### bin with custom sensitivity settings
-**Args:** `-i assembly.fasta -a contig_depths.txt -o bins/bin --sensitive -m 2000 -t 8`
-**Explanation:** --sensitive mode for more permissive binning; may produce more bins with lower purity
+**Args:** `-i assembly.fasta -a contig_depths.txt -o bins/bin Sensitivity controlled via --maxP (higher=more sensitive) and --minS (lower=more sensitive) -m 2000 -t 8`
+**Explanation:** Sensitivity controlled via --maxP (higher=more sensitive) and --minS (lower=more sensitive) mode for more permissive binning; may produce more bins with lower purity
 
 ### bin with high specificity for pure genomes
 **Args:** `-i assembly.fasta -a contig_depths.txt -o bins/bin -m 2500 -t 8 --minS 80 --maxEdges 100`
