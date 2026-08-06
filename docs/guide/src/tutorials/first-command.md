@@ -169,4 +169,4 @@ Each of these uses the same pattern: describe what you want in plain English and
 - `oxo-call run --ask <tool> "<task>"` — confirm before executing
 - `oxo-call history list` — review all past commands with provenance
 
-**Next:** try the [SAM/BAM processing tutorial](./bam-workflow.md) for a complete multi-step workflow, or jump to [RNA-seq walkthrough](./rnaseq-walkthrough.md) for a full analysis pipeline.
+**Next:** try the [SAM/BAM processing tutorial](./bam-processing.md) for a complete command sequence, or jump to the [RNA-seq walkthrough](./rnaseq-walkthrough.md) for a full analysis.

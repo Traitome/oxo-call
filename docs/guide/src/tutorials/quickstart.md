@@ -155,4 +155,4 @@ oxo-call history list
 - Learn about [Configuration](./configuration.md) options
 - Explore the [Command Reference](../commands/run.md)
 - Understand the [Skill System](../reference/skill-system.md)
-- Try the [Workflow Engine](../commands/workflow.md) for pipeline automation
+- Use [oxo-flow](https://github.com/Traitome/oxo-flow) when your analysis needs a dependency-aware DAG

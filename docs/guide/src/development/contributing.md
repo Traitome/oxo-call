@@ -30,10 +30,6 @@ oxo-call/
 ├── crates/
 │   ├── license-issuer/   # Maintainer license signing tool
 │   └── oxo-bench/        # Benchmarking suite
-├── workflows/        # Built-in workflow templates
-│   ├── native/       # .oxo.toml templates
-│   ├── snakemake/    # Exported .smk files
-│   └── nextflow/     # Exported .nf files
 └── docs/             # Documentation and website
 ```
 
@@ -112,7 +108,7 @@ cargo run -p oxo-bench -- evaluate --tool mytool
 cargo run -p oxo-bench -- evaluate --tool mytool
 ```
 
-Results are exported to `docs/bench_eval_tasks.csv`, `docs/bench_scenarios.csv`, and `docs/bench_workflow.csv`.
+Results are exported to `docs/bench_eval_tasks.csv` and `docs/bench_scenarios.csv`.
 
 ## Changelog
 
@@ -127,7 +123,7 @@ Use Conventional Commits in your PR titles and squash-merge messages:
 <type>(<optional scope>): <description>
 
 feat(skill): add kallisto built-in skill with 7 examples
-fix(engine): correct MultiQC dependency to fastp-only
+fix(runner): preserve command provenance after retry
 docs: add air-gapped mode guide to LLM provider how-to
 ci: add git-cliff changelog generation to release workflow
 chore: bump clap to 4.5

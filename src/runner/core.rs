@@ -3,7 +3,9 @@
 //! Contains the `Runner` struct and its primary methods for command generation
 //! and execution.
 
+use crate::command_pipeline::CommandGenerationPipeline;
 use crate::config::Config;
+use crate::context_scenario::ContextScenario;
 use crate::doc_processor::{DocProcessor, StructuredDoc};
 use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
@@ -13,9 +15,7 @@ use crate::history::{CommandProvenance, HistoryEntry, HistoryStore};
 use crate::job;
 use crate::knowledge::error_db::ErrorKnowledgeDb;
 use crate::llm::{LlmClient, LlmCommandSuggestion};
-use crate::llm_workflow::LlmWorkflowExecutor;
 use crate::orchestrator::executor::ExecutorAgent;
-use crate::orchestrator::planner::PlannerAgent;
 use crate::orchestrator::supervisor::SupervisorAgent;
 use crate::orchestrator::validator::ValidatorAgent;
 use crate::skill::SkillManager;
@@ -83,15 +83,13 @@ pub struct Runner {
     pub(crate) stop_on_error: bool,
     /// When true, automatically retry failed commands with LLM-corrected arguments.
     pub(crate) auto_retry: bool,
-    /// Force a specific workflow scenario (auto-detected by default)
-    pub(crate) force_scenario: Option<crate::workflow_graph::WorkflowScenario>,
+    /// Force a specific command-generation context scenario.
+    pub(crate) force_context_scenario: Option<ContextScenario>,
     /// When true, disable SSE streaming for LLM responses.
     pub(crate) no_stream: bool,
-    // ── Orchestration layer ──────────────────────────────────────────────────
-    /// Supervisor agent for orchestration decisions.
+    // ── Command-generation preparation ───────────────────────────────────────
+    /// Supervisor agent for generation-strategy decisions.
     supervisor: SupervisorAgent,
-    /// Planner agent for task decomposition.
-    planner: PlannerAgent,
     /// Executor agent for task enrichment.
     executor_agent: ExecutorAgent,
     /// Validator agent for result verification.
@@ -125,10 +123,9 @@ impl Runner {
             jobs: 1,
             stop_on_error: false,
             auto_retry: false,
-            force_scenario: None,
+            force_context_scenario: None,
             no_stream: false,
             supervisor: SupervisorAgent::new(),
-            planner: PlannerAgent::new(),
             executor_agent,
             validator_agent: ValidatorAgent::new(),
             result_analyzer: ResultAnalyzer::new(),
@@ -159,9 +156,9 @@ impl Runner {
         self
     }
 
-    /// Force a specific workflow scenario.
-    pub fn with_scenario(mut self, scenario: crate::workflow_graph::WorkflowScenario) -> Self {
-        self.force_scenario = Some(scenario);
+    /// Force a specific command-generation context scenario.
+    pub fn with_context_scenario(mut self, scenario: ContextScenario) -> Self {
+        self.force_context_scenario = Some(scenario);
         self
     }
 
@@ -266,10 +263,10 @@ impl Runner {
         Ok(summarized)
     }
 
-    /// Core logic: fetch docs + load skill → select workflow mode → run LlmWorkflowExecutor.
+    /// Core logic: fetch docs + load skill → select a generation mode → generate one command.
     ///
     /// Mode selection rules (in priority order):
-    /// 1. `--scenario` flag set → use scenario's default mode.
+    /// 1. `--scenario` flag set → use the context scenario's default mode.
     /// 2. No static skill + docs available → Quality (generates mini-skill from doc, cached).
     /// 3. Static skill available or no docs → Fast (skill already provides grounding).
     ///
@@ -277,73 +274,37 @@ impl Runner {
     /// generates a mini-skill from the documentation (result cached to disk), and uses it
     /// for command generation.
     pub(crate) async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
-        // ── Parallel fetch: docs + skill ──────────────────────────────────────
+        // ── Docs-first grounding ─────────────────────────────────────────────
         let spinner = if !self.no_doc {
             make_spinner(&format!("Fetching documentation for '{tool}'..."))
         } else {
             make_spinner("Loading skill...")
         };
 
-        // Load skill first to determine if doc is needed
-        let skill_future = async {
-            if self.no_skill {
-                if self.verbose {
-                    eprintln!(
-                        "{} [Ablation] Skipping skill (--no-skill)",
-                        "[verbose]".dimmed()
-                    );
-                }
-                None
-            } else {
-                self.skill_manager.load_async(tool).await
-            }
-        };
-
-        // Run skill loading first
-        let skill = skill_future.await;
-
-        // Determine if we need documentation based on skill quality
-        let should_fetch_doc = if self.no_doc {
-            false
-        } else if skill.is_none() {
-            // No skill available → need doc
-            true
+        let docs = if self.no_doc {
+            String::new()
         } else {
-            // Skill available → check quality
-            if let Some(ref s) = skill {
-                // Skill quality heuristics:
-                // - Low quality: <3 examples OR <3 pitfalls
-                // - Medium quality: 3-5 examples
-                // - High quality: >5 examples
-                let example_count = s.examples.len();
-                let pitfall_count = s.context.pitfalls.len();
-
-                // Only fetch doc if skill quality is low
-                example_count < 3 || pitfall_count < 3
-            } else {
-                false
-            }
-        };
-
-        let docs_future = async {
-            if !should_fetch_doc {
-                if self.verbose && !self.no_doc {
-                    eprintln!(
-                        "{} Skipping documentation (high-quality skill available)",
-                        "[verbose]".dimmed()
-                    );
+            match self.resolve_docs(tool, task).await {
+                Ok(docs) => docs,
+                Err(error) => {
+                    spinner.finish_and_clear();
+                    return Err(error);
                 }
-                Ok(String::new())
-            } else {
-                self.resolve_docs(tool, task).await
             }
         };
 
-        // Run doc fetching if needed
-        let docs_result = docs_future.await;
+        let skill = if self.no_skill {
+            if self.verbose {
+                eprintln!(
+                    "{} [Ablation] Skipping skill (--no-skill)",
+                    "[verbose]".dimmed()
+                );
+            }
+            None
+        } else {
+            self.skill_manager.load_async(tool).await
+        };
         spinner.finish_and_clear();
-
-        let docs = docs_result?;
 
         // ── Build StructuredDoc for flag catalog + doc-extracted examples ──
         // This is the key innovation: deterministic extraction of flags and
@@ -476,7 +437,7 @@ impl Runner {
             prefs.to_prompt_hint()
         };
 
-        // ── Orchestration: Supervisor decision ───────────────────────────────
+        // ── Generation strategy selection ───────────────────────────────────
         let doc_quality = structured_doc
             .as_ref()
             .map(|sd| sd.quality_score)
@@ -487,7 +448,7 @@ impl Runner {
 
         if self.verbose {
             eprintln!(
-                "{} Orchestrator: mode={}, domain={}, reasons=[{}]",
+                "{} Generation strategy: mode={}, domain={}, reasons=[{}]",
                 "[verbose]".dimmed(),
                 supervisor_decision.mode,
                 supervisor_decision.domain.as_deref().unwrap_or("unknown"),
@@ -495,18 +456,7 @@ impl Runner {
             );
         }
 
-        // ── Orchestration: Planner → step decomposition ──────────────────────
-        let plan = self.planner.plan(tool, task);
-        if self.verbose && plan.is_multi_step() {
-            eprintln!(
-                "{} Planner: {} steps, strategy='{}'",
-                "[verbose]".dimmed(),
-                plan.steps.len(),
-                plan.strategy,
-            );
-        }
-
-        // ── Orchestration: Executor Agent → task enrichment ──────────────────
+        // ── Task enrichment ──────────────────────────────────────────────────
         let executor_ctx = self.executor_agent.prepare(tool, task).await.ok();
         let enrichment_from_executor = executor_ctx
             .as_ref()
@@ -569,18 +519,18 @@ impl Runner {
             "Asking LLM to generate command arguments{skill_label}..."
         ));
 
-        // Select workflow mode based on orchestrator decision:
-        // - Supervisor decision maps directly to workflow mode
+        // Select the generation mode:
+        // - Supervisor decision maps directly to the generation mode
         // - --scenario override takes priority
-        let effective_mode = if let Some(sc) = self.force_scenario {
-            sc.default_mode()
+        let effective_mode = if let Some(sc) = self.force_context_scenario {
+            sc.default_generation_mode()
         } else {
-            supervisor_decision.mode.to_workflow_mode()
+            supervisor_decision.mode.to_generation_mode()
         };
 
         if self.verbose {
             let has_sdoc = structured_doc.is_some();
-            let reason = if self.force_scenario.is_some() {
+            let reason = if self.force_context_scenario.is_some() {
                 "forced by --scenario"
             } else if has_sdoc {
                 "doc-enriched single-call (flag catalog + doc examples)"
@@ -590,7 +540,7 @@ impl Runner {
                 "single-call (no docs/skill)"
             };
             eprintln!(
-                "{} Workflow mode: {:?} ({})",
+                "{} Generation mode: {:?} ({})",
                 "[verbose]".dimmed(),
                 effective_mode,
                 reason
@@ -599,8 +549,8 @@ impl Runner {
 
         spinner.finish_and_clear();
 
-        let executor = LlmWorkflowExecutor::new(self.config.clone(), effective_mode)?;
-        let wf_result = executor
+        let pipeline = CommandGenerationPipeline::new(self.config.clone(), effective_mode)?;
+        let generation_result = pipeline
             .execute(
                 tool,
                 &docs,
@@ -613,18 +563,18 @@ impl Runner {
 
         if self.verbose {
             eprintln!(
-                "{} Workflow complete: {} LLM call(s), {:.1}ms{}{}",
+                "{} Command generation complete: {} LLM call(s), {:.1}ms{}{}",
                 "[verbose]".dimmed(),
-                wf_result.llm_calls,
-                wf_result.total_inference_ms,
-                if wf_result.mini_skill_generated {
+                generation_result.llm_calls,
+                generation_result.total_inference_ms,
+                if generation_result.mini_skill_generated {
                     ", mini-skill generated"
-                } else if wf_result.cache_hit {
+                } else if generation_result.cache_hit {
                     ", mini-skill from cache"
                 } else {
                     ""
                 },
-                if wf_result.was_normalized {
+                if generation_result.was_normalized {
                     ", task normalized"
                 } else {
                     ""
@@ -632,14 +582,14 @@ impl Runner {
             );
         }
 
-        let suggestion = wf_result.suggestion;
+        let suggestion = generation_result.suggestion;
 
         Ok(PrepareResult {
             suggestion,
             docs_hash,
             skill_name,
-            effective_task: if wf_result.was_normalized {
-                wf_result.effective_task
+            effective_task: if generation_result.was_normalized {
+                generation_result.effective_task
             } else {
                 task.to_string()
             },

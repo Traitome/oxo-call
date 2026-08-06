@@ -3,7 +3,7 @@ authors = ["Traitome"]
 language = "en"
 src = "src"
 title = "oxo-call Documentation"
-description = "Comprehensive documentation for oxo-call — model-intelligent orchestration for CLI bioinformatics"
+description = "Comprehensive documentation for oxo-call — documentation-grounded command generation for CLI bioinformatics"
 
 [build]
 build-dir = "book"

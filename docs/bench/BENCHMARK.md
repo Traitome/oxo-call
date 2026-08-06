@@ -13,9 +13,9 @@ analytical domains.
 >
 > This document does not present benchmark results derived from mock/simulated
 > evaluation. The mock mode (`--mock`) exists solely for **CI regression testing**
-> of the evaluation pipeline itself (see §4.2 and §13.1). All accuracy numbers
+> of the evaluation pipeline itself (see §4.2 and §12.1). All accuracy numbers
 > reported in production should come from real LLM API evaluations (`oxo-bench
-> eval --config bench_config.toml`). See §12 for instructions.
+> eval --config bench_config.toml`). See §11 for instructions.
 
 ### 1.1 Scope and Scale
 
@@ -71,7 +71,7 @@ allows CI-integrated regression testing to verify that metric computation,
 CSV output, and aggregation logic are all correct.
 
 **Mock mode is NOT for producing benchmark results.** It simulates LLM behavior
-with hard-coded perturbation rates, not real model inference. See §13.1 for
+with hard-coded perturbation rates, not real model inference. See §12.1 for
 the full list of limitations.
 
 ### 2.5 Multi-Provider Support
@@ -387,34 +387,13 @@ documentation or skill examples, isolating the model's parametric knowledge.
 ## 6. Results
 
 *Real benchmark results will be populated here after running `oxo-bench eval`
-with real LLM API calls. See §12 for instructions.*
+with real LLM API calls. See §11 for instructions.*
 
 ---
 
-## 7. Workflow Engine Performance
+## 7. Ablation Analysis
 
-The DAG-based workflow engine (`src/engine.rs`) was profiled across 7 standard
-bioinformatics workflows (from `bench_workflow.csv`):
-
-| Workflow | Tasks | Parse (μs) | Expand (μs) | Cycle-Free |
-|----------|-------|-----------|------------|------------|
-| RNA-seq | 13 | 398.3 | 17.9 | ✓ |
-| WGS | 13 | 446.8 | 22.6 | ✓ |
-| ATAC-seq | 11 | 408.1 | 20.0 | ✓ |
-| Metagenomics | 9 | 362.9 | 17.6 | ✓ |
-| ChIP-seq | 19 | 516.8 | 22.7 | ✓ |
-| scRNA-seq | 9 | 448.4 | 17.6 | ✓ |
-| Long-reads | 11 | 391.0 | 19.3 | ✓ |
-
-All workflows parse in <520 μs and expand in <23 μs, confirming negligible
-overhead for DAG scheduling. These numbers are from real measurements of the
-Rust workflow engine (not mock-generated).
-
----
-
-## 8. Ablation Analysis
-
-### 8.1 Component Contributions
+### 7.1 Component Contributions
 
 The comparison framework isolates the contribution of oxo-call's two primary
 augmentation components:
@@ -426,7 +405,7 @@ augmentation components:
 
 *Observed component contribution figures will be reported after real API evaluation.*
 
-### 8.2 Adaptive Prompt Compression
+### 7.2 Adaptive Prompt Compression
 
 For models with limited context windows (e.g. Ollama mini models), oxo-call
 automatically compresses prompts to fit the available budget:
@@ -442,9 +421,9 @@ from model name patterns (e.g. `:0.5b` → 2,048, `:16b` → 8,192).
 
 ---
 
-## 9. Error Analysis
+## 8. Error Analysis
 
-### 9.1 Error Taxonomy
+### 8.1 Error Taxonomy
 
 Errors are classified into seven mutually exclusive categories:
 
@@ -462,9 +441,9 @@ Errors are classified into seven mutually exclusive categories:
 
 ---
 
-## 10. Statistical Analysis
+## 9. Statistical Analysis
 
-### 10.1 Confidence Interval Method
+### 9.1 Confidence Interval Method
 
 Per-category 95% confidence intervals are computed using the **Wilson score
 interval**, which is more robust than the Wald normal approximation when
@@ -480,7 +459,7 @@ lower bounds and has better coverage properties for extreme proportions
 These are reported in the `accuracy_ci95` and `exact_match_ci95` columns of
 `model_summary_by_category.csv`.
 
-### 10.2 Effect Size Method
+### 9.2 Effect Size Method
 
 The enhanced-vs-baseline comparison reports Cohen's *h* using the arcsine
 transformation of two proportions:
@@ -501,7 +480,7 @@ $$h = 2\arcsin(\sqrt{p_1}) - 2\arcsin(\sqrt{p_2})$$
 
 ---
 
-## 11. Companion Binary Dispatch
+## 10. Companion Binary Dispatch
 
 Many bioinformatics tools ship companion binaries (e.g., `bowtie2-build` for
 `bowtie2`, `hisat2-build` for `hisat2`, `rsem-prepare-reference` for `rsem`,
@@ -531,9 +510,9 @@ oxo-call run bowtie2 "build index from reference.fa"  # uses bowtie2-build autom
 
 ---
 
-## 12. Reproducibility
+## 11. Reproducibility
 
-### 12.1 Generating Reference Data
+### 11.1 Generating Reference Data
 
 The reference commands and usage descriptions are deterministically generated
 from skill files:
@@ -543,7 +522,7 @@ from skill files:
 ./target/debug/oxo-bench generate --skills-dir skills/ --output docs/bench/
 ```
 
-### 12.2 Running Real Evaluation
+### 11.2 Running Real Evaluation
 
 To obtain real benchmark results, run evaluation against live LLM APIs:
 
@@ -565,7 +544,7 @@ To obtain real benchmark results, run evaluation against live LLM APIs:
                               --output bench_results/
 ```
 
-### 12.3 CI Pipeline Validation (Mock Mode)
+### 11.3 CI Pipeline Validation (Mock Mode)
 
 Mock mode is provided **exclusively** for validating the evaluation pipeline
 itself in CI, without requiring API keys or incurring costs:
@@ -580,7 +559,7 @@ aggregation logic are working correctly. **Do not use mock output as benchmark
 results.** The perturbation rates are arbitrary and the results have no
 relationship to real LLM behavior.
 
-### 12.4 Adding New Benchmarks
+### 11.4 Adding New Benchmarks
 
 1. **New tool**: Add a `skills/<tool>.md` with ≥5 examples following the
    standard YAML front-matter format, then run `oxo-bench generate` to
@@ -594,9 +573,9 @@ relationship to real LLM behavior.
 
 ---
 
-## 13. Limitations
+## 12. Limitations
 
-### 13.1 Mock Mode is Not Real Evaluation
+### 12.1 Mock Mode is Not Real Evaluation
 
 Mock mode (`--mock`) simulates LLM behavior through deterministic perturbation
 of reference commands. It is designed exclusively for:
@@ -624,7 +603,7 @@ Mock mode results **cannot** be used as accuracy claims because:
    from the same skill files that are injected into the LLM prompt. Even in
    real evaluation, enhanced results represent an upper bound.
 
-### 13.2 Skill File Overlap
+### 12.2 Skill File Overlap
 
 In the enhanced condition, the LLM prompt contains the exact skill file from
 which benchmark scenarios are derived. This represents a best-case scenario
@@ -632,14 +611,14 @@ where the documentation perfectly matches the user's intent. In production
 usage, the skill file may not contain an example matching every possible user
 request, and performance is expected to be lower than the enhanced benchmark.
 
-### 13.3 Generalizability
+### 12.3 Generalizability
 
 The benchmark covers 133 tools across 40 domains, which represents broad but
 not exhaustive coverage of the bioinformatics ecosystem. Tools not represented
 in the skill library rely solely on `--help` documentation grounding, and their
 accuracy is expected to lie between the baseline and enhanced performance levels.
 
-### 13.4 Shell Metacharacter Stripping
+### 12.4 Shell Metacharacter Stripping
 
 Reference commands are automatically cleaned of shell pipes (`|`), output
 redirections (`>`, `>>`, `2>`), and input redirections (`<`).  This is correct
@@ -648,7 +627,7 @@ However, some skill-file examples intentionally demonstrate piped workflows
 (e.g. `bcftools mpileup | bcftools call`); in these cases only the first
 command in the pipeline is benchmarked.
 
-### 13.5 Flag-Group Metric Limitations
+### 12.5 Flag-Group Metric Limitations
 
 The flag-group parser uses a simple heuristic: a flag token (starting with `-`)
 followed by a non-flag token is treated as a flag–value pair. This heuristic
@@ -664,7 +643,7 @@ most reliable evaluation criterion.
 
 ---
 
-## 14. Benchmark Data Files
+## 13. Benchmark Data Files
 
 | File | Rows | Description |
 |------|------|-------------|
@@ -672,7 +651,6 @@ most reliable evaluation criterion.
 | `usage_descriptions.csv` | 13,300 | 10 natural-language phrasings per scenario |
 | `bench_scenarios.csv` | 9 | Simulated omics experimental scenarios |
 | `bench_eval_tasks.csv` | 74 | Curated LLM evaluation task catalog with required flag patterns |
-| `bench_workflow.csv` | 7 | Workflow parsing/expansion timing (real measurements) |
 
 **Aggregate result CSVs** (`model_summary.csv`, `baseline_summary.csv`,
 `baseline_comparison.csv`, `error_analysis.csv`, `baseline_error_analysis.csv`,

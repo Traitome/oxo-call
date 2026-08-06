@@ -6,8 +6,7 @@
 //!    benchmarking without requiring real experimental data.
 //!
 //! 2. **Benchmark harnesses** (`bench`) — measure accuracy, reproducibility, and
-//!    performance of core oxo-call operations (workflow parsing, LLM command
-//!    generation, etc.).
+//!    performance of command-generation operations.
 //!
 //! 3. **Scenario & description generation** (`bench::scenario`) — parse built-in
 //!    skill files and produce reference commands (10 per tool) plus diverse
@@ -38,8 +37,6 @@
 //! # View cross-model comparison summary
 //! oxo-bench summary --results-dir bench_results/
 //!
-//! # Run all criterion micro-benchmarks
-//! cargo bench --package oxo-bench
 //! ```
 
 pub mod bench;

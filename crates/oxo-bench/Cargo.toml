@@ -2,7 +2,7 @@
 name = "oxo-bench"
 version = "0.1.0"
 edition = "2024"
-description = "Systematic benchmark suite for oxo-call — evaluates accuracy, reproducibility, and LLM model performance across bioinformatics workflows"
+description = "Systematic benchmark suite for oxo-call command generation"
 authors = ["Traitome <https://github.com/Traitome>"]
 license-file = "../../LICENSE"
 repository = "https://github.com/Traitome/oxo-call"
@@ -29,13 +29,4 @@ rayon = "1.10"
 regex = "1.12"
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
 tempfile = "3"
-
-[[bench]]
-name = "workflow_expand"
-harness = false
-
-[[bench]]
-name = "template_parse"
-harness = false

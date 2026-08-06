@@ -5,7 +5,6 @@
 //! and analysis stage from the task text and (optionally) input file extensions.
 //! This context is then used to:
 //!
-//! - Recommend appropriate workflow templates
 //! - Provide sensible default parameters (threads, reference paths)
 //! - Enrich the LLM prompt with domain-specific context
 //!
@@ -100,24 +99,6 @@ impl ExperimentContext {
             library_type: infer_library_type(&lower, input_files),
             analysis_stage: infer_stage(&lower),
         }
-    }
-
-    /// Suggest a built-in workflow template name based on the inferred context.
-    #[allow(dead_code)]
-    pub fn recommended_workflow(&self) -> Option<&'static str> {
-        self.assay_type.map(|a| match a {
-            AssayType::RnaSeq => "rnaseq",
-            AssayType::Wgs => "wgs",
-            AssayType::Wes => "wes",
-            AssayType::ChipSeq => "chipseq",
-            AssayType::AtacSeq => "atacseq",
-            AssayType::HiC => "hic",
-            AssayType::Bisulfite => "methylseq",
-            AssayType::ScRnaSeq => "scrnaseq",
-            AssayType::LongReads => "longreads",
-            AssayType::Metagenomics => "metagenomics",
-            AssayType::Amplicon => "amplicon",
-        })
     }
 
     /// Generate recommended default parameters based on the inferred context.
@@ -497,18 +478,6 @@ mod tests {
     fn test_infer_variant_calling_stage() {
         let ctx = ExperimentContext::infer("call variants with GATK HaplotypeCaller", &[]);
         assert_eq!(ctx.analysis_stage, Stage::VariantCalling);
-    }
-
-    #[test]
-    fn test_recommended_workflow_rnaseq() {
-        let ctx = ExperimentContext::infer("RNA-seq analysis", &[]);
-        assert_eq!(ctx.recommended_workflow(), Some("rnaseq"));
-    }
-
-    #[test]
-    fn test_recommended_workflow_none_for_generic() {
-        let ctx = ExperimentContext::infer("process some files", &[]);
-        assert_eq!(ctx.recommended_workflow(), None);
     }
 
     #[test]

@@ -95,8 +95,8 @@ oxo-call completion <TAB> # shows shell types
 
 ## What Gets Completed
 
-- **All commands and subcommands** — `run`, `dry-run`, `docs`, `config`, `job`, `skill`, `workflow`, `server`, `history`, `completion`, etc.
-- **Command aliases** — `r` for `run`, `d` for `dry-run`, `j` for `job`, `wf` for `workflow`, `srv` for `server`, etc.
+- **All commands and subcommands** — `run`, `dry-run`, `docs`, `config`, `job`, `skill`, `server`, `history`, `completion`, etc.
+- **Command aliases** — `r` for `run`, `d` for `dry-run`, `j` for `job`, `srv` for `server`, etc.
 - **Job subcommands** — `add`, `list`, `show`, `run`, `edit`, `rename`, `status`, `history`, `schedule`, `generate`, `import`
 - **All flags and options** — `--ask`, `--model`, `--json`, `--no-cache`, `--verify`, `--scenario`, `--server`, `--dry-run`, `--tag`, `--builtin`, etc.
 - **Shell type values** for the `completion` command itself (`bash`, `zsh`, `fish`, `powershell`, `elvish`)

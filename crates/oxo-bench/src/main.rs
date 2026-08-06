@@ -1,7 +1,6 @@
 //! oxo-bench — systematic benchmark CLI for oxo-call.
 //!
 //! Usage:
-//!   oxo-bench workflow         # Benchmark workflow parsing/expansion
 //!   oxo-bench simulate         # Simulate omics data for testing
 //!   oxo-bench eval-models      # Evaluate LLM models (requires API token)
 //!   oxo-bench report <json>    # Render a saved JSON report to Markdown
@@ -25,12 +24,11 @@ use oxo_bench::{
             Scenario, UsageDescription, generate_descriptions, generate_scenarios,
             load_skills_for_bench, write_descriptions_csv, write_scenarios_csv,
         },
-        workflow::bench_workflow_expand,
     },
     config::BenchConfig,
     report::{
-        print_model_summary, print_workflow_report, summarise_by_model, write_eval_tasks_csv,
-        write_scenarios_csv as write_simulation_scenarios_csv, write_workflow_csv,
+        print_model_summary, summarise_by_model, write_eval_tasks_csv,
+        write_scenarios_csv as write_simulation_scenarios_csv,
     },
     sim::omics::{canonical_scenarios, simulate_scenario},
 };
@@ -53,9 +51,6 @@ Quick start:
   # View cross-model comparison summary
   oxo-bench summary --results-dir bench_results/
 
-  # Benchmark workflow parsing and expansion performance
-  oxo-bench workflow
-
   # Generate synthetic omics data for all canonical scenarios
   oxo-bench simulate --output /tmp/oxo_bench_data
 
@@ -70,16 +65,6 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// Benchmark workflow TOML parsing and DAG expansion for all built-in templates
-    Workflow {
-        /// Number of benchmark runs to average (default: 100)
-        #[arg(short, long, default_value = "100")]
-        runs: usize,
-        /// Write results to a JSON file instead of stdout
-        #[arg(short, long)]
-        output: Option<PathBuf>,
-    },
-
     /// Simulate synthetic omics datasets for all canonical benchmark scenarios
     Simulate {
         /// Output directory for generated data
@@ -116,10 +101,9 @@ enum Commands {
         json: PathBuf,
     },
 
-    /// Generate all benchmark CSV files (workflow stats, simulation scenarios, eval tasks)
+    /// Generate benchmark CSV files for simulation scenarios and evaluation tasks.
     ///
-    /// Writes three CSV files into the specified output directory:
-    ///   bench_workflow.csv   — workflow template parse/expand timings and task counts
+    /// Writes two CSV files into the specified output directory:
     ///   bench_scenarios.csv  — canonical omics simulation scenario metadata
     ///   bench_eval_tasks.csv — LLM evaluation task catalog
     #[command(name = "export-csv")]
@@ -127,9 +111,6 @@ enum Commands {
         /// Output directory for CSV files (default: docs/)
         #[arg(short, long, default_value = "docs")]
         output: PathBuf,
-        /// Number of benchmark runs to average for workflow timings (default: 200)
-        #[arg(short, long, default_value = "200")]
-        runs: usize,
     },
 
     // ── New commands ─────────────────────────────────────────────────────────
@@ -244,30 +225,6 @@ fn main() {
 
 fn run(cli: Cli) -> anyhow::Result<()> {
     match cli.command {
-        Commands::Workflow { runs, output } => {
-            println!(
-                "{} Benchmarking workflow parsing & expansion ({runs} runs per template)...",
-                "→".cyan().bold()
-            );
-
-            let results = bench_workflow_expand(runs);
-
-            println!();
-            let mut buf = Vec::new();
-            print_workflow_report(&mut buf, &results)?;
-            print!("{}", String::from_utf8(buf)?);
-
-            if let Some(path) = output {
-                let json = serde_json::to_string_pretty(&results)?;
-                std::fs::write(&path, json)?;
-                println!(
-                    "\n{} Results written to {}",
-                    "✓".green().bold(),
-                    path.display().to_string().cyan()
-                );
-            }
-        }
-
         Commands::Simulate {
             output,
             scenario,
@@ -432,15 +389,6 @@ fn run(cli: Cli) -> anyhow::Result<()> {
         Commands::Report { json } => {
             let content = std::fs::read_to_string(&json)?;
 
-            // Try to parse as workflow results first.
-            if let Ok(wf_results) = serde_json::from_str::<
-                Vec<oxo_bench::bench::workflow::BenchWorkflowResult>,
-            >(&content)
-            {
-                print_workflow_report(&mut std::io::stdout(), &wf_results)?;
-                return Ok(());
-            }
-
             // Try as model results.
             if let Ok(model_results) =
                 serde_json::from_str::<Vec<oxo_bench::bench::llm::ModelBenchResult>>(&content)
@@ -452,40 +400,15 @@ fn run(cli: Cli) -> anyhow::Result<()> {
             }
 
             anyhow::bail!(
-                "Could not parse '{}' as a workflow or model benchmark report.",
+                "Could not parse '{}' as a model benchmark report.",
                 json.display()
             );
         }
 
-        Commands::ExportCsv { output, runs } => {
+        Commands::ExportCsv { output } => {
             std::fs::create_dir_all(&output)?;
 
-            // ── 1. Workflow benchmark CSV ─────────────────────────────────
-            let wf_csv_path = output.join("bench_workflow.csv");
-            println!(
-                "{} Benchmarking {} workflow templates ({runs} runs each)...",
-                "→".cyan().bold(),
-                oxo_bench::bench::workflow::ALL_BENCH_WORKFLOWS.len()
-            );
-            let wf_results = bench_workflow_expand(runs);
-            {
-                let mut f = std::fs::File::create(&wf_csv_path)?;
-                write_workflow_csv(&mut f, &wf_results)?;
-            }
-            println!(
-                "{} {}",
-                "✓".green().bold(),
-                wf_csv_path.display().to_string().cyan()
-            );
-
-            // Print a quick summary to stdout.
-            println!();
-            let mut buf = Vec::new();
-            print_workflow_report(&mut buf, &wf_results)?;
-            print!("{}", String::from_utf8(buf)?);
-            println!();
-
-            // ── 2. Simulation scenarios CSV ───────────────────────────────
+            // ── 1. Simulation scenarios CSV ───────────────────────────────
             let sc_csv_path = output.join("bench_scenarios.csv");
             let scenarios = canonical_scenarios();
             {
@@ -499,7 +422,7 @@ fn run(cli: Cli) -> anyhow::Result<()> {
                 scenarios.len()
             );
 
-            // ── 3. Eval tasks CSV ─────────────────────────────────────────
+            // ── 2. Eval tasks CSV ─────────────────────────────────────────
             let tasks_csv_path = output.join("bench_eval_tasks.csv");
             let tasks = canonical_eval_tasks();
             {

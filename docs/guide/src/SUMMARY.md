@@ -12,16 +12,14 @@
 # Tutorials
 
 - [Your First Command](./tutorials/first-command.md)
-- [SAM/BAM Processing](./tutorials/bam-workflow.md)
+- [SAM/BAM Processing](./tutorials/bam-processing.md)
 - [RNA-seq Walkthrough](./tutorials/rnaseq-walkthrough.md)
-- [Workflow Builder](./tutorials/workflow-builder.md)
 
 # How-to Guides
 
 - [Add Documentation for a Tool](./how-to/add-tool-docs.md)
 - [Switch LLM Provider](./how-to/change-llm-provider.md)
 - [Create a Custom Skill](./how-to/create-custom-skill.md)
-- [Build a Production Pipeline](./how-to/build-pipeline.md)
 
 # Command Reference
 
@@ -32,7 +30,6 @@
 - [config](./commands/config.md)
 - [history](./commands/history.md)
 - [skill](./commands/skill.md)
-- [workflow](./commands/workflow.md)
 - [server](./commands/server.md)
 - [job](./commands/job.md)
 - [license](./commands/license.md)
@@ -45,11 +42,9 @@
 - [Skill System](./reference/skill-system.md)
 - [MCP Skill Provider](./reference/mcp-skill-provider.md)
 - [LLM Integration](./reference/llm-integration.md)
-- [Workflow Engine](./reference/workflow-engine.md)
 - [License System](./reference/license-system.md)
 - [Security Considerations](./reference/security-considerations.md)
 
 # Development
 
 - [Contributing](./development/contributing.md)
-- [Expert Evaluation Reports](./development/evaluation-reports.md)

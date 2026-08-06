@@ -1,3 +1,4 @@
+use crate::context_scenario::ContextScenario;
 use clap::{Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
@@ -5,7 +6,7 @@ use std::path::PathBuf;
 #[command(
     name = "oxo-call",
     version,
-    about = "Model-intelligent orchestration for CLI bioinformatics",
+    about = "Documentation-grounded command generation for CLI bioinformatics",
     long_about = r#"oxo-call uses LLM intelligence + expert Skills to help you call bioinformatics
 tools without memorizing every flag and parameter.
 
@@ -116,9 +117,9 @@ EXAMPLES:\n  \
         /// and retry with a corrected command (up to 2 retries)
         #[arg(long)]
         auto_retry: bool,
-        /// Force a specific workflow scenario (auto-detected by default)
+        /// Force a command-generation context scenario (auto-detected by default)
         #[arg(long, value_enum, value_name = "SCENARIO")]
-        scenario: Option<RunScenario>,
+        scenario: Option<ContextScenario>,
         /// Disable streaming (SSE) output from the LLM. Tokens will not be
         /// printed incrementally; the full response is shown after generation
         /// completes. Useful for benchmarking or non-interactive pipelines.
@@ -175,9 +176,9 @@ EXAMPLES:\n  \
         /// Comma-separated input items; previews the command for each item
         #[arg(long = "input-items", value_name = "ITEMS")]
         input_items: Option<String>,
-        /// Force a specific workflow scenario (auto-detected by default)
+        /// Force a command-generation context scenario (auto-detected by default)
         #[arg(long, value_enum, value_name = "SCENARIO")]
-        scenario: Option<RunScenario>,
+        scenario: Option<ContextScenario>,
         /// Disable streaming (SSE) output from the LLM
         #[arg(long)]
         no_stream: bool,
@@ -223,13 +224,6 @@ EXAMPLES:\n  \
     License {
         #[command(subcommand)]
         command: Option<LicenseCommands>,
-    },
-
-    /// Generate bioinformatics workflow files (Snakemake / Nextflow)
-    #[command(visible_alias = "wf")]
-    Workflow {
-        #[command(subcommand)]
-        command: WorkflowCommands,
     },
 
     /// Manage remote servers for SSH-based execution on workstations and HPC clusters
@@ -808,24 +802,6 @@ pub enum JobCommands {
     },
 }
 
-/// Scenario modes for `run` and `dry-run` commands.
-///
-/// Controls how much context (documentation, skills, prompt) is injected
-/// into the LLM call when generating tool commands.
-#[derive(Clone, Debug, ValueEnum)]
-pub enum RunScenario {
-    /// Bare: Tool + Task only (no additional context)
-    Bare,
-    /// Prompt: Bare + custom prompt
-    Prompt,
-    /// Doc: Bare + documentation + mini-skill generation
-    Doc,
-    /// Skill: Bare + skill file
-    Skill,
-    /// Full: Doc + skill combined (most accurate)
-    Full,
-}
-
 /// Chat scenario modes for controlling context injection
 #[derive(Clone, Debug, ValueEnum)]
 pub enum ChatScenario {
@@ -860,114 +836,6 @@ pub enum ShellType {
 pub enum LicenseCommands {
     /// Verify the license file and display its details
     Verify,
-}
-
-#[derive(Subcommand, Debug)]
-pub enum WorkflowCommands {
-    /// Run a workflow file with the oxo-call native engine
-    #[command(name = "run", visible_alias = "r")]
-    RunWorkflow {
-        /// Path to an .oxo.toml workflow file (or a built-in template name)
-        file: String,
-        /// After all steps complete, ask the LLM to verify outputs: checks
-        /// expected output files and provides feedback and suggestions
-        #[arg(long)]
-        verify: bool,
-    },
-
-    /// Preview a workflow without executing any steps (dry-run)
-    #[command(name = "dry-run", visible_alias = "d")]
-    DryRunWorkflow {
-        /// Path to an .oxo.toml workflow file (or a built-in template name)
-        file: String,
-    },
-
-    /// Export a native .oxo.toml workflow to Snakemake or Nextflow format
-    Export {
-        /// Path to an .oxo.toml workflow file (or a built-in template name)
-        file: String,
-        /// Target format: snakemake or nextflow
-        #[arg(long, default_value = "snakemake", value_parser = ["snakemake", "nextflow"])]
-        to: String,
-        /// Write output to this file (defaults to stdout)
-        #[arg(short, long)]
-        output: Option<std::path::PathBuf>,
-    },
-
-    /// Generate a workflow with LLM from a natural-language description
-    Generate {
-        /// Plain-English description of the bioinformatics workflow
-        task: String,
-        /// Output format: native (default), snakemake, or nextflow
-        #[arg(short, long, default_value = "native", value_parser = ["native", "snakemake", "nextflow"])]
-        engine: String,
-        /// Write the generated workflow to this file (defaults to stdout)
-        #[arg(short, long)]
-        output: Option<std::path::PathBuf>,
-        /// Disable streaming (SSE) output from the LLM
-        #[arg(long)]
-        no_stream: bool,
-    },
-
-    /// Infer and generate a workflow from a task description and input data directory
-    ///
-    /// Scans the data directory to discover sample names and file patterns, then
-    /// uses the LLM to generate a workflow with real paths and sample names already filled in.
-    Infer {
-        /// Plain-English description of the analysis task
-        task: String,
-        /// Path to the directory containing input data files (FASTQ, BAM, etc.)
-        #[arg(short, long, value_name = "DIR")]
-        data: std::path::PathBuf,
-        /// Output format: native (default), snakemake, or nextflow
-        #[arg(short, long, default_value = "native", value_parser = ["native", "snakemake", "nextflow"])]
-        engine: String,
-        /// Write the generated workflow to this file (defaults to stdout)
-        #[arg(short, long)]
-        output: Option<std::path::PathBuf>,
-        /// After generating, immediately run the workflow (only with --output)
-        #[arg(long)]
-        run: bool,
-        /// Disable streaming (SSE) output from the LLM
-        #[arg(long)]
-        no_stream: bool,
-    },
-
-    /// List built-in workflow templates
-    List,
-
-    /// Show a built-in workflow template
-    Show {
-        /// Template name (see 'workflow list')
-        name: String,
-        /// Format to show: native (default), snakemake, or nextflow
-        #[arg(short, long, default_value = "native", value_parser = ["native", "snakemake", "nextflow"])]
-        engine: String,
-    },
-
-    /// Verify a .oxo.toml workflow file for correctness (parse, dependency, cycle checks)
-    #[command(visible_alias = "check")]
-    Verify {
-        /// Path to an .oxo.toml workflow file (or a built-in template name)
-        file: String,
-    },
-
-    /// Auto-format a .oxo.toml workflow file to canonical style
-    #[command(name = "fmt", visible_alias = "format")]
-    Format {
-        /// Path to an .oxo.toml workflow file (or a built-in template name)
-        file: String,
-        /// Write formatted output to stdout instead of overwriting the file
-        #[arg(long)]
-        stdout: bool,
-    },
-
-    /// Visualize the workflow DAG as a phase diagram
-    #[command(visible_alias = "dag")]
-    Vis {
-        /// Path to an .oxo.toml workflow file (or a built-in template name)
-        file: String,
-    },
 }
 
 #[derive(Subcommand, Debug)]

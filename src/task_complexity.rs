@@ -7,7 +7,7 @@
 //! - Task description length and ambiguity
 //! - Availability of a matching skill file
 //! - Documentation quality for the target tool
-//! - Presence of complex keywords (pipeline, parallel, batch, …)
+//! - Presence of complex keywords (parallel, batch, multi-action, …)
 //! - Non-English input (adds translation complexity)
 //! - Number of explicit CLI parameters
 //!
@@ -45,9 +45,9 @@ impl ComplexityScore {
     }
 }
 
-/// Workflow mode recommendation
+/// Command-generation mode recommendation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub enum WorkflowMode {
+pub enum GenerationMode {
     #[default]
     Fast,
     Quality,
@@ -57,7 +57,7 @@ pub enum WorkflowMode {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComplexityResult {
     pub score: ComplexityScore,
-    pub recommended_mode: WorkflowMode,
+    pub recommended_mode: GenerationMode,
     pub confidence: f32,
     pub reasons: Vec<String>,
 }
@@ -66,7 +66,7 @@ impl Default for ComplexityResult {
     fn default() -> Self {
         Self {
             score: ComplexityScore::default(),
-            recommended_mode: WorkflowMode::default(),
+            recommended_mode: GenerationMode::default(),
             confidence: 0.5,
             reasons: vec![],
         }
@@ -144,7 +144,7 @@ impl TaskComplexityEstimator {
                     evaluator: |task, _, _, _| {
                         let complex_keywords = [
                             "pipeline",
-                            "workflow",
+                            "staged",
                             "multiple",
                             "complex",
                             "optimize",
@@ -240,9 +240,9 @@ impl TaskComplexityEstimator {
         let score = ComplexityScore(total_score.min(1.0));
 
         let recommended_mode = if score.is_complex() {
-            WorkflowMode::Quality
+            GenerationMode::Quality
         } else {
-            WorkflowMode::Fast
+            GenerationMode::Fast
         };
 
         let confidence = self.calculate_confidence(total_score);
@@ -286,7 +286,7 @@ mod tests {
         );
 
         assert!(result.score.is_simple());
-        assert_eq!(result.recommended_mode, WorkflowMode::Fast);
+        assert_eq!(result.recommended_mode, GenerationMode::Fast);
         assert!(result.confidence > 0.5);
     }
 
@@ -302,7 +302,7 @@ mod tests {
         );
 
         assert!(result.score.is_complex());
-        assert_eq!(result.recommended_mode, WorkflowMode::Quality);
+        assert_eq!(result.recommended_mode, GenerationMode::Quality);
         assert!(result.reasons.len() > 2);
     }
 

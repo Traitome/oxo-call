@@ -1,7 +1,7 @@
 //! Shared SSE streaming utilities for LLM API responses.
 //!
 //! This module provides the core SSE (Server-Sent Events) stream reader used by
-//! `LlmClient`, `ChatSession`, and the workflow generator.  Keeping it in one
+//! `LlmClient`, `ChatSession`, and command generation. Keeping it in one
 //! place avoids duplicating the parsing and output logic.
 
 use crate::error::{OxoError, Result};
@@ -124,7 +124,7 @@ pub async fn read_sse_stream_to(
 
 /// Apply provider-specific authentication headers to a request builder.
 ///
-/// This is shared between `LlmClient`, `ChatSession`, and the workflow generator.
+/// This is shared between `LlmClient`, `ChatSession`, and command generation.
 pub fn apply_provider_auth_headers(
     req_builder: reqwest::RequestBuilder,
     provider: &str,

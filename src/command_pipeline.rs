@@ -1,6 +1,6 @@
-//! Multi-stage LLM workflow executor for command generation.
+//! Multi-stage command-generation pipeline.
 //!
-//! This module implements a LangGraph-inspired workflow with two modes:
+//! This module selects one of two generation strategies:
 //! - Fast mode: Single LLM call (existing behavior)
 //! - Quality mode: Multi-stage pipeline (task standardization → doc cleaning → mini-skill generation → command generation)
 
@@ -12,16 +12,15 @@ use crate::llm::{
 };
 use crate::mini_skill_cache::{CacheConfig, MiniSkill, MiniSkillCache};
 use crate::skill::Skill;
-// Re-export WorkflowMode from task_complexity for unified type
-pub use crate::task_complexity::WorkflowMode;
+pub use crate::task_complexity::GenerationMode;
 use serde::Deserialize;
 use sha2::Digest;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-/// Result of a workflow execution
+/// Result of a command-generation pipeline run.
 #[derive(Debug)]
-pub struct WorkflowResult {
+pub struct CommandGenerationResult {
     /// Generated command suggestion
     pub suggestion: LlmCommandSuggestion,
     /// Whether mini-skill was generated in this run
@@ -38,17 +37,17 @@ pub struct WorkflowResult {
     pub was_normalized: bool,
 }
 
-/// Multi-stage LLM workflow executor
-pub struct LlmWorkflowExecutor {
+/// Multi-stage command-generation pipeline.
+pub struct CommandGenerationPipeline {
     llm_client: Arc<LlmClient>,
     mini_skill_cache: Arc<RwLock<MiniSkillCache>>,
     doc_processor: DocProcessor,
-    mode: WorkflowMode,
+    mode: GenerationMode,
 }
 
-impl LlmWorkflowExecutor {
-    /// Create a new workflow executor
-    pub fn new(config: Config, mode: WorkflowMode) -> Result<Self> {
+impl CommandGenerationPipeline {
+    /// Create a new command-generation pipeline.
+    pub fn new(config: Config, mode: GenerationMode) -> Result<Self> {
         let llm_client = Arc::new(LlmClient::new(config.clone()));
 
         // Setup mini-skill cache
@@ -67,7 +66,7 @@ impl LlmWorkflowExecutor {
         })
     }
 
-    /// Execute the workflow to generate a command.
+    /// Generate one command.
     ///
     /// When `structured_doc` is provided, it is passed through to the LLM prompt
     /// builder, enabling doc-extracted few-shot examples and flag catalog injection.
@@ -79,13 +78,13 @@ impl LlmWorkflowExecutor {
         skill: Option<&Skill>,
         no_prompt: bool,
         structured_doc: Option<&StructuredDoc>,
-    ) -> Result<WorkflowResult> {
+    ) -> Result<CommandGenerationResult> {
         match self.mode {
-            WorkflowMode::Fast => {
+            GenerationMode::Fast => {
                 self.execute_fast(tool, documentation, task, skill, no_prompt, structured_doc)
                     .await
             }
-            WorkflowMode::Quality => {
+            GenerationMode::Quality => {
                 self.execute_quality(tool, documentation, task, skill, no_prompt, structured_doc)
                     .await
             }
@@ -105,14 +104,14 @@ impl LlmWorkflowExecutor {
         skill: Option<&Skill>,
         no_prompt: bool,
         structured_doc: Option<&StructuredDoc>,
-    ) -> Result<WorkflowResult> {
+    ) -> Result<CommandGenerationResult> {
         let suggestion = self
             .llm_client
             .suggest_command(tool, documentation, task, skill, no_prompt, structured_doc)
             .await?;
 
         let inference_ms = suggestion.inference_ms;
-        Ok(WorkflowResult {
+        Ok(CommandGenerationResult {
             suggestion,
             mini_skill_generated: false,
             cache_hit: false,
@@ -136,7 +135,7 @@ impl LlmWorkflowExecutor {
         skill: Option<&Skill>,
         no_prompt: bool,
         structured_doc: Option<&StructuredDoc>,
-    ) -> Result<WorkflowResult> {
+    ) -> Result<CommandGenerationResult> {
         let mut llm_calls = 0;
         let mut total_inference_ms = 0.0;
         let mut mini_skill_generated = false;
@@ -170,44 +169,48 @@ impl LlmWorkflowExecutor {
         let needs_mini_skill = cached_mini_skill.is_none() && skill.is_none();
 
         // ── Run task standardization and mini-skill generation concurrently ──
-        let (standardized_task, generated_mini_skill) = match (needs_standardize, needs_mini_skill)
-        {
-            (true, true) => {
-                // Both needed — run in parallel
-                let (std_result, ms_result) = tokio::join!(
-                    self.llm_client.optimize_task(tool, task),
-                    self.generate_mini_skill(tool, &cleaned_doc, &doc_hash)
-                );
-                llm_calls += 2;
-                total_inference_ms += 50.0; // Rough estimate for standardization
-                (std_result?, Some(ms_result?))
-            }
-            (true, false) => {
-                // Only standardization needed
-                llm_calls += 1;
-                total_inference_ms += 50.0;
-                let result = self.llm_client.optimize_task(tool, task).await?;
-                (result, None)
-            }
-            (false, true) => {
-                // Only mini-skill generation needed
-                llm_calls += 1;
-                let generated = self
-                    .generate_mini_skill(tool, &cleaned_doc, &doc_hash)
-                    .await?;
-                (task.to_string(), Some(generated))
-            }
-            (false, false) => {
-                // Neither needed
-                (task.to_string(), None)
-            }
-        };
+        let (standardized_task, standardization_inference_ms, generated_mini_skill) =
+            match (needs_standardize, needs_mini_skill) {
+                (true, true) => {
+                    // Both needed — run in parallel
+                    let (std_result, ms_result) = tokio::join!(
+                        self.llm_client.optimize_task_with_timing(tool, task),
+                        self.generate_mini_skill(tool, &cleaned_doc, &doc_hash)
+                    );
+                    llm_calls += 2;
+                    let (standardized_task, inference_ms) = std_result?;
+                    (standardized_task, inference_ms, Some(ms_result?))
+                }
+                (true, false) => {
+                    // Only standardization needed
+                    llm_calls += 1;
+                    let (standardized_task, inference_ms) = self
+                        .llm_client
+                        .optimize_task_with_timing(tool, task)
+                        .await?;
+                    (standardized_task, inference_ms, None)
+                }
+                (false, true) => {
+                    // Only mini-skill generation needed
+                    llm_calls += 1;
+                    let generated = self
+                        .generate_mini_skill(tool, &cleaned_doc, &doc_hash)
+                        .await?;
+                    (task.to_string(), 0.0, Some(generated))
+                }
+                (false, false) => {
+                    // Neither needed
+                    (task.to_string(), 0.0, None)
+                }
+            };
+        total_inference_ms += standardization_inference_ms;
 
         // Insert generated mini-skill into cache
-        let mini_skill = if let Some(generated) = generated_mini_skill {
+        let mini_skill = if let Some((generated, inference_ms)) = generated_mini_skill {
             let mut cache = self.mini_skill_cache.write().await;
             cache.insert(generated.clone());
             mini_skill_generated = true;
+            total_inference_ms += inference_ms;
             Some(generated)
         } else {
             cached_mini_skill
@@ -232,15 +235,16 @@ impl LlmWorkflowExecutor {
         llm_calls += 1;
         let inference_ms = suggestion.inference_ms;
         total_inference_ms += inference_ms;
+        let was_normalized = standardized_task != task;
 
-        Ok(WorkflowResult {
+        Ok(CommandGenerationResult {
             suggestion,
             mini_skill_generated,
             cache_hit,
             llm_calls,
             total_inference_ms,
             effective_task: standardized_task,
-            was_normalized: needs_standardize,
+            was_normalized,
         })
     }
 
@@ -273,13 +277,13 @@ impl LlmWorkflowExecutor {
         tool: &str,
         documentation: &str,
         doc_hash: &str,
-    ) -> Result<MiniSkill> {
+    ) -> Result<(MiniSkill, f64)> {
         let system = mini_skill_generation_system_prompt();
         let user_prompt = build_mini_skill_prompt(tool, documentation);
 
-        let raw_response = self
+        let (raw_response, inference_ms) = self
             .llm_client
-            .chat_completion(system, &user_prompt, Some(1024), Some(0.3))
+            .chat_completion_with_timing(system, &user_prompt, Some(1024), Some(0.3))
             .await?;
 
         // Parse JSON response
@@ -305,24 +309,27 @@ impl LlmWorkflowExecutor {
             .unwrap_or("");
         let task_hash = hex::encode(sha2::Sha256::digest(task_pattern.as_bytes()));
 
-        Ok(MiniSkill {
-            tool: tool.to_string(),
-            task_hash,
-            doc_hash: doc_hash.to_string(),
-            concepts: parsed.concepts,
-            pitfalls: parsed.pitfalls,
-            examples: parsed
-                .examples
-                .into_iter()
-                .map(|ex| crate::mini_skill_cache::MiniSkillExample {
-                    task: ex.task,
-                    args: ex.args,
-                    explanation: ex.explanation,
-                })
-                .collect(),
-            created_at: chrono::Utc::now(),
-            hit_count: 0,
-        })
+        Ok((
+            MiniSkill {
+                tool: tool.to_string(),
+                task_hash,
+                doc_hash: doc_hash.to_string(),
+                concepts: parsed.concepts,
+                pitfalls: parsed.pitfalls,
+                examples: parsed
+                    .examples
+                    .into_iter()
+                    .map(|ex| crate::mini_skill_cache::MiniSkillExample {
+                        task: ex.task,
+                        args: ex.args,
+                        explanation: ex.explanation,
+                    })
+                    .collect(),
+                created_at: chrono::Utc::now(),
+                hit_count: 0,
+            },
+            inference_ms,
+        ))
     }
 }
 
@@ -347,7 +354,8 @@ mod tests {
 
     #[test]
     fn test_should_standardize_task() {
-        let executor = LlmWorkflowExecutor::new(Config::default(), WorkflowMode::Fast).unwrap();
+        let executor =
+            CommandGenerationPipeline::new(Config::default(), GenerationMode::Fast).unwrap();
 
         // Should standardize
         assert!(executor.should_standardize_task("sort"));
