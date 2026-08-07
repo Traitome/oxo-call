@@ -1,0 +1,748 @@
+# oxo-call Tool Manifest
+# Auto-generated from reference_commands.csv + install audit
+# 138 toolsets
+
+[manifest]
+version = "1.0"
+tool_count = 138
+
+[tools.admixture]
+binary = "admixture"
+category = "population-genomics"
+cli_type = "flags"
+
+[tools.agat]
+binary = "agat"
+companions = ["agat_convert_sp_gff2bed", "agat_convert_sp_gff2gtf", "agat_convert_sp_gxf2gxf", "agat_sp_extract_sequences", "agat_sp_filter_gene_by_length", "agat_sp_keep_longest_isoform", "agat_sp_manage_IDs", "agat_sp_merge_annotations", "agat_sp_statistics"]
+aliases = ["agat_sp_add_attribute.pl", "agat_convert_sp_gff2gtf.pl", "agat_sp_statistics.pl"]
+category = "annotation"
+cli_type = "subcommands"
+
+[tools.angsd]
+binary = "angsd"
+companions = ["realSFS"]
+category = "population-genomics"
+cli_type = "flags"
+
+[tools.arriba]
+binary = "arriba"
+companions = ["draw_fusions.R", "run_arriba"]
+category = "rna-seq"
+cli_type = "flags"
+
+[tools.augustus]
+binary = "augustus"
+companions = ["bam2hints"]
+category = "annotation"
+cli_type = "flags"
+
+[tools.awk]
+binary = "awk"
+category = "system-tools"
+cli_type = "flags"
+
+[tools.bakta]
+binary = "bakta"
+companions = ["bakta_db", "bakta_proteins"]
+category = "functional-annotation"
+cli_type = "flags"
+
+[tools.bamtools]
+binary = "bamtools"
+category = "sequence-utilities"
+cli_type = "flags"
+
+[tools.bash]
+binary = "bash"
+category = "system-tools"
+cli_type = "flags"
+
+[tools.bbtools]
+binary = "bbduk.sh"
+companions = ["bbmap.sh", "bbmerge.sh", "bbsplit.sh", "dedupe.sh", "reformat.sh", "stats.sh"]
+category = "preprocessing"
+cli_type = "subcommands"
+
+[tools.bcftools]
+binary = "bcftools"
+category = "variant-calling"
+cli_type = "subcommands"
+
+[tools.bedops]
+binary = "bedops"
+companions = ["sort-bed"]
+category = "genomic-intervals"
+cli_type = "flags"
+
+[tools.bedtools]
+binary = "bedtools"
+category = "genomic-intervals"
+cli_type = "subcommands"
+
+[tools.bismark]
+binary = "bam2nuc"
+companions = ["bismark", "bismark2bedGraph", "bismark2report", "bismark_genome_preparation", "bismark_methylation_extractor", "coverage2cytosine", "deduplicate_bismark"]
+category = "epigenomics"
+cli_type = "subcommands"
+
+[tools.blast]
+binary = "blastdbcmd"
+companions = ["blastn", "blastp", "blastx", "makeblastdb", "tblastn"]
+category = "sequence-utilities"
+cli_type = "subcommands"
+
+[tools.bowtie2]
+binary = "bowtie2"
+companions = ["bowtie2-build"]
+category = "alignment"
+cli_type = "flags"
+
+[tools.bracken]
+binary = "bracken"
+companions = ["bracken-build", "combine_bracken_outputs"]
+category = "metagenomics"
+cli_type = "flags"
+
+[tools.busco]
+binary = "busco"
+category = "genome-evaluation"
+cli_type = "flags"
+
+[tools.bwa]
+binary = "bwa"
+category = "alignment"
+cli_type = "flags"
+
+[tools.bwa-mem2]
+binary = "bwa-mem2"
+category = "alignment"
+cli_type = "flags"
+
+[tools.canu]
+binary = "canu"
+category = "assembly"
+cli_type = "flags"
+
+[tools.cellsnp-lite]
+binary = "cellsnp-lite"
+category = "single-cell"
+cli_type = "flags"
+
+[tools.centrifuge]
+binary = "centrifuge"
+companions = ["centrifuge-build", "centrifuge-inspect", "centrifuge-kreport"]
+category = "metagenomics"
+cli_type = "flags"
+
+[tools.checkm2]
+binary = "checkm2"
+category = "genome-evaluation"
+cli_type = "flags"
+
+[tools.chopper]
+binary = "chopper"
+category = "preprocessing"
+cli_type = "flags"
+
+[tools.chromap]
+binary = "chromap"
+category = "epigenomics"
+cli_type = "flags"
+
+[tools.cnvkit]
+binary = "cnvkit"
+category = "variant-calling"
+cli_type = "flags"
+
+[tools.crossmap]
+binary = "CrossMap"
+aliases = ["CrossMap"]
+category = "sequence-utilities"
+cli_type = "flags"
+
+[tools.curl]
+binary = "curl"
+category = "data-download"
+cli_type = "flags"
+
+[tools.cutadapt]
+binary = "cutadapt"
+category = "preprocessing"
+cli_type = "flags"
+
+[tools.deeptools]
+binary = "bamCompare"
+companions = ["bamCoverage", "computeMatrix", "multiBigwigSummary", "plotFingerprint", "plotHeatmap", "plotProfile"]
+category = "epigenomics"
+cli_type = "subcommands"
+
+[tools.deepvariant]
+binary = "dv_call_variants"
+companions = ["dv_make_examples", "dv_postprocess_variants"]
+category = "variant-calling"
+cli_type = "subcommands"
+
+[tools.delly]
+binary = "delly"
+category = "structural-variants"
+cli_type = "flags"
+
+[tools.diamond]
+binary = "diamond"
+category = "sequence-utilities"
+cli_type = "flags"
+
+[tools.eggnog-mapper]
+binary = "emapper"
+aliases = ["emapper.py", "eggnog_mapper"]
+category = "functional-annotation"
+cli_type = "flags"
+
+[tools.fastani]
+binary = "fastANI"
+aliases = ["fastANI"]
+category = "comparative-genomics"
+cli_type = "flags"
+
+[tools.fastp]
+binary = "fastp"
+category = "preprocessing"
+cli_type = "flags"
+
+[tools.fastq-screen]
+binary = "fastq_screen"
+aliases = ["fastq_screen"]
+category = "qc"
+cli_type = "flags"
+
+[tools.fastqc]
+binary = "fastqc"
+category = "qc"
+cli_type = "flags"
+
+[tools.fasttree]
+binary = "FastTree"
+aliases = ["FastTree"]
+category = "phylogenetics"
+cli_type = "flags"
+
+[tools.featurecounts]
+binary = "featureCounts"
+aliases = ["featureCounts"]
+category = "rna-seq"
+cli_type = "flags"
+
+[tools.find]
+binary = "find"
+category = "system-tools"
+cli_type = "flags"
+
+[tools.flye]
+binary = "flye"
+category = "assembly"
+cli_type = "flags"
+
+[tools.freebayes]
+binary = "freebayes"
+category = "variant-calling"
+cli_type = "flags"
+
+[tools.gatk]
+binary = "gatk"
+category = "variant-calling"
+cli_type = "subcommands"
+
+[tools.git]
+binary = "git"
+category = "system-tools"
+cli_type = "subcommands"
+
+[tools.grep]
+binary = "grep"
+category = "system-tools"
+cli_type = "flags"
+
+[tools.gtdbtk]
+binary = "gtdbtk"
+category = "phylogenetics"
+cli_type = "flags"
+
+[tools.hifiasm]
+binary = "hifiasm"
+category = "assembly"
+cli_type = "flags"
+
+[tools.hisat2]
+binary = "hisat2"
+companions = ["hisat2-build"]
+category = "alignment"
+cli_type = "flags"
+
+[tools.hmmer]
+binary = "hmmalign"
+companions = ["hmmbuild", "hmmscan", "hmmsearch", "jackhmmer"]
+category = "phylogenetics"
+cli_type = "subcommands"
+
+[tools.homer]
+binary = "annotatePeaks"
+companions = ["findMotifs", "findMotifsGenome", "getDiffExpression", "makeTagDirectory"]
+category = "epigenomics"
+cli_type = "subcommands"
+
+[tools.humann3]
+binary = "humann"
+companions = ["humann_barplot", "humann_join_tables", "humann_rename_table"]
+aliases = ["humann", "humann2"]
+category = "functional-annotation"
+cli_type = "subcommands"
+
+[tools.igvtools]
+binary = "igvtools"
+category = "sequence-utilities"
+cli_type = "flags"
+
+[tools.iqtree2]
+binary = "iqtree"
+aliases = ["iqtree3"]
+category = "phylogenetics"
+cli_type = "flags"
+
+[tools.java]
+binary = "java"
+category = "system-tools"
+cli_type = "flags"
+
+[tools.julia]
+binary = "julia"
+category = "system-tools"
+cli_type = "flags"
+
+[tools.kallisto]
+binary = "kallisto"
+category = "rna-seq"
+cli_type = "flags"
+
+[tools.kb]
+binary = "kb"
+category = "single-cell"
+cli_type = "flags"
+
+[tools.kraken2]
+binary = "kraken2"
+category = "metagenomics"
+cli_type = "flags"
+
+[tools.liftoff]
+binary = "liftoff"
+category = "annotation"
+cli_type = "flags"
+
+[tools.longshot]
+binary = "longshot"
+category = "variant-calling"
+cli_type = "flags"
+
+[tools.macs2]
+binary = "macs2"
+category = "epigenomics"
+cli_type = "flags"
+
+[tools.mafft]
+binary = "mafft"
+category = "phylogenetics"
+cli_type = "flags"
+
+[tools.manta]
+binary = "configManta"
+companions = ["denovo_scoring", "runMantaWorkflowDemo"]
+category = "structural-variants"
+cli_type = "flags"
+
+[tools.mash]
+binary = "mash"
+category = "metagenomics"
+cli_type = "flags"
+
+[tools.medaka]
+binary = "medaka_consensus"
+category = "assembly"
+cli_type = "flags"
+
+[tools.megahit]
+binary = "megahit"
+category = "assembly"
+cli_type = "flags"
+
+[tools.meme]
+binary = "fimo"
+companions = ["meme", "streme", "tomtom"]
+category = "epigenomics"
+cli_type = "subcommands"
+
+[tools.metabat2]
+binary = "metabat2"
+category = "metagenomics"
+cli_type = "flags"
+
+[tools.metaphlan]
+binary = "metaphlan"
+category = "metagenomics"
+cli_type = "flags"
+
+[tools.methyldackel]
+binary = "MethylDackel"
+aliases = ["MethylDackel"]
+category = "epigenomics"
+cli_type = "flags"
+
+[tools.miniasm]
+binary = "miniasm"
+category = "assembly"
+cli_type = "flags"
+
+[tools.minimap2]
+binary = "minimap2"
+category = "alignment"
+cli_type = "flags"
+
+[tools.mmseqs2]
+binary = "mmseqs"
+aliases = ["mmseqs"]
+category = "sequence-utilities"
+cli_type = "subcommands"
+
+[tools.modkit]
+binary = "modkit"
+category = "epigenomics"
+cli_type = "subcommands"
+
+[tools.mosdepth]
+binary = "mosdepth"
+category = "qc"
+cli_type = "flags"
+
+[tools.multiqc]
+binary = "multiqc"
+category = "qc"
+cli_type = "flags"
+
+[tools.mummer]
+binary = "delta-filter"
+companions = ["nucmer", "show-coords", "show-snps"]
+category = "alignment"
+cli_type = "subcommands"
+
+[tools.muscle]
+binary = "muscle"
+category = "phylogenetics"
+cli_type = "flags"
+
+[tools.nanocomp]
+binary = "NanoComp"
+aliases = ["NanoComp"]
+category = "long-reads"
+cli_type = "flags"
+
+[tools.nanoplot]
+binary = "NanoPlot"
+aliases = ["NanoPlot"]
+category = "long-reads"
+cli_type = "flags"
+
+[tools.nanostat]
+binary = "NanoStat"
+aliases = ["NanoStat"]
+category = "long-reads"
+cli_type = "flags"
+
+[tools.nextflow]
+binary = "nextflow"
+category = "workflow"
+cli_type = "subcommands"
+
+[tools.orthofinder]
+binary = "orthofinder"
+category = "comparative-genomics"
+cli_type = "subcommands"
+
+[tools.pairtools]
+binary = "pairtools"
+category = "epigenomics"
+cli_type = "flags"
+
+[tools.pbccs]
+binary = "ccs"
+aliases = ["ccs"]
+category = "long-reads"
+cli_type = "flags"
+
+[tools.pbfusion]
+binary = "pbfusion"
+category = "rna-seq"
+cli_type = "flags"
+
+[tools.pbmm2]
+binary = "pbmm2"
+category = "alignment"
+cli_type = "flags"
+
+[tools.pbsv]
+binary = "pbsv"
+category = "structural-variants"
+cli_type = "flags"
+
+[tools.perl]
+binary = "perl"
+category = "system-tools"
+cli_type = "flags"
+
+[tools.picard]
+binary = "picard"
+category = "sequence-utilities"
+cli_type = "subcommands"
+
+[tools.pilon]
+binary = "pilon"
+category = "assembly"
+cli_type = "flags"
+
+[tools.plink2]
+binary = "plink2"
+category = "population-genomics"
+cli_type = "flags"
+
+[tools.porechop]
+binary = "porechop"
+category = "preprocessing"
+cli_type = "flags"
+
+[tools.prodigal]
+binary = "prodigal"
+category = "annotation"
+cli_type = "flags"
+
+[tools.prokka]
+binary = "prokka"
+category = "functional-annotation"
+cli_type = "flags"
+
+[tools.python]
+binary = "python"
+category = "system-tools"
+cli_type = "flags"
+
+[tools.qualimap]
+binary = "qualimap"
+category = "alignment"
+cli_type = "flags"
+
+[tools.quast]
+binary = "quast"
+category = "genome-evaluation"
+cli_type = "flags"
+
+[tools.r]
+binary = "R"
+companions = ["Rscript"]
+aliases = ["R", "Rscript"]
+category = "system-tools"
+cli_type = "flags"
+
+[tools.racon]
+binary = "racon"
+category = "assembly"
+cli_type = "flags"
+
+[tools.repeatmasker]
+binary = "RepeatMasker"
+aliases = []
+category = "annotation"
+cli_type = "flags"
+
+[tools.rm]
+binary = "rm"
+category = "system-tools"
+cli_type = "flags"
+
+[tools.rsem]
+binary = "rsem-calculate-expression"
+companions = ["rsem-prepare-reference"]
+category = "rna-seq"
+cli_type = "flags"
+
+[tools.rseqc]
+binary = "bam2wig"
+companions = ["geneBody_coverage", "inner_distance", "read_distribution"]
+category = "rna-seq"
+cli_type = "flags"
+
+[tools.rsync]
+binary = "rsync"
+category = "data-download"
+cli_type = "flags"
+
+[tools.salmon]
+binary = "salmon"
+category = "rna-seq"
+cli_type = "flags"
+
+[tools.samtools]
+binary = "samtools"
+category = "alignment"
+cli_type = "subcommands"
+
+[tools.sed]
+binary = "sed"
+category = "system-tools"
+cli_type = "flags"
+
+[tools.seqkit]
+binary = "seqkit"
+category = "sequence-utilities"
+cli_type = "flags"
+
+[tools.seqtk]
+binary = "seqtk"
+category = "sequence-utilities"
+cli_type = "flags"
+
+[tools.shapeit4]
+binary = "shapeit4"
+category = "population-genomics"
+cli_type = "flags"
+
+[tools.snakemake]
+binary = "snakemake"
+category = "workflow"
+cli_type = "subcommands"
+
+[tools.sniffles]
+binary = "sniffles"
+category = "structural-variants"
+cli_type = "flags"
+
+[tools.snpeff]
+binary = "snpEff"
+aliases = ["snpEff"]
+category = "variant-annotation"
+cli_type = "flags"
+
+[tools.sourmash]
+binary = "sourmash"
+category = "metagenomics"
+cli_type = "flags"
+
+[tools.spades]
+binary = "spades"
+category = "assembly"
+cli_type = "flags"
+
+[tools.sra-tools]
+binary = "fasterq-dump"
+companions = ["fastq-dump", "prefetch"]
+aliases = ["fastq-dump", "fasterq-dump", "prefetch"]
+category = "data-download"
+cli_type = "subcommands"
+
+[tools.ssh]
+binary = "ssh"
+category = "system-tools"
+cli_type = "flags"
+
+[tools.star]
+binary = "STAR"
+aliases = ["STAR"]
+category = "alignment"
+cli_type = "flags"
+
+[tools.strelka2]
+binary = "configureStrelkaGermlineWorkflow"
+companions = ["configureStrelkaSomaticWorkflow", "runStrelkaGermlineWorkflowDemo", "runStrelkaSomaticWorkflowDemo"]
+category = "variant-calling"
+cli_type = "subcommands"
+
+[tools.stringtie]
+binary = "stringtie"
+category = "rna-seq"
+cli_type = "flags"
+
+[tools.survivor]
+binary = "SURVIVOR"
+aliases = ["SURVIVOR"]
+category = "structural-variants"
+cli_type = "flags"
+
+[tools.tabix]
+binary = "bgzip"
+companions = ["tabix"]
+category = "sequence-utilities"
+cli_type = "flags"
+
+[tools.tar]
+binary = "tar"
+category = "system-tools"
+cli_type = "flags"
+
+[tools.trim_galore]
+binary = "trim_galore"
+category = "preprocessing"
+cli_type = "flags"
+
+[tools.trimmomatic]
+binary = "trimmomatic"
+category = "preprocessing"
+cli_type = "flags"
+
+[tools.trinity]
+binary = "Trinity"
+aliases = ["Trinity"]
+category = "rna-seq"
+cli_type = "flags"
+
+[tools.truvari]
+binary = "truvari"
+category = "structural-variants"
+cli_type = "subcommands"
+
+[tools.varscan2]
+binary = "varscan"
+aliases = ["varscan"]
+category = "variant-calling"
+cli_type = "subcommands"
+
+[tools.vcfanno]
+binary = "vcfanno"
+category = "variant-annotation"
+cli_type = "flags"
+
+[tools.vcftools]
+binary = "vcftools"
+category = "population-genomics"
+cli_type = "subcommands"
+
+[tools.vep]
+binary = "vep"
+category = "variant-annotation"
+cli_type = "flags"
+
+[tools.verkko]
+binary = "verkko"
+category = "assembly"
+cli_type = "flags"
+
+[tools.wget]
+binary = "wget"
+category = "data-download"
+cli_type = "flags"
+
+[tools.whatshap]
+binary = "whatshap"
+category = "variant-calling"
+cli_type = "subcommands"
+
+[tools.wtdbg2]
+binary = "wtdbg2"
+companions = ["wtpoa-cns"]
+category = "assembly"
+cli_type = "flags"
