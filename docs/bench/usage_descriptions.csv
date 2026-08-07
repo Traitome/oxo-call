@@ -1449,56 +1449,56 @@ curl,curl,curl_10,curl_10_be,beginner,download large_file.tar.gz from https://ex
 curl,curl,curl_10,curl_10_st,student,download large_file.tar.gz from https://example.org/large_file.tar.gz with a 30 second connection timeout and a 300 second maximum transfer time
 curl,curl,curl_10,curl_10_po,polite,download large_file.tar.gz from https://example.org/large_file.tar.gz with a 30 second connection timeout and a 300 second maximum transfer time
 curl,curl,curl_10,curl_10_sy,sysadmin,download large_file.tar.gz from https://example.org/large_file.tar.gz with a 30 second connection timeout and a 300 second maximum transfer time
-cutadapt,cutadapt,cutadapt_01,cutadapt_01_or,original,remove Illumina TruSeq 3-prime adapters from both mates of paired-end reads reads_1.fastq.gz and reads_2.fastq.gz and write trimmed output to trimmed_1.fastq.gz and trimmed_2.fastq.gz to analysis.fastq.gz and matrix.fastq.gz and reference.fastq.gz and report.fastq.gz
-cutadapt,cutadapt,cutadapt_01,cutadapt_01_be,beginner,remove Illumina TruSeq 3-prime adapters from both mates of paired-end reads reads_1.fastq.gz and reads_2.fastq.gz and write trimmed output to trimmed_1.fastq.gz and trimmed_2.fastq.gz to analysis.fastq.gz and matrix.fastq.gz and reference.fastq.gz and report.fastq.gz
-cutadapt,cutadapt,cutadapt_01,cutadapt_01_st,student,remove Illumina TruSeq 3-prime adapters from both mates of paired-end reads reads_1.fastq.gz and reads_2.fastq.gz and write trimmed output to trimmed_1.fastq.gz and trimmed_2.fastq.gz to analysis.fastq.gz and matrix.fastq.gz and reference.fastq.gz and report.fastq.gz
-cutadapt,cutadapt,cutadapt_01,cutadapt_01_po,polite,remove Illumina TruSeq 3-prime adapters from both mates of paired-end reads reads_1.fastq.gz and reads_2.fastq.gz and write trimmed output to trimmed_1.fastq.gz and trimmed_2.fastq.gz to analysis.fastq.gz and matrix.fastq.gz and reference.fastq.gz and report.fastq.gz
-cutadapt,cutadapt,cutadapt_01,cutadapt_01_sy,sysadmin,remove Illumina TruSeq 3-prime adapters from both mates of paired-end reads reads_1.fastq.gz and reads_2.fastq.gz and write trimmed output to trimmed_1.fastq.gz and trimmed_2.fastq.gz to analysis.fastq.gz and matrix.fastq.gz and reference.fastq.gz and report.fastq.gz
-cutadapt,cutadapt,cutadapt_02,cutadapt_02_or,original,trim TruSeq adapters and quality-filter paired-end reads reads_1.fastq.gz and reads_2.fastq.gz discarding reads below Q20 quality and shorter than 36 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz to analysis.fastq.gz and assembly.fastq.gz and sample.fastq.gz and trimmed.fastq.gz
-cutadapt,cutadapt,cutadapt_02,cutadapt_02_be,beginner,trim TruSeq adapters and quality-filter paired-end reads reads_1.fastq.gz and reads_2.fastq.gz discarding reads below Q20 quality and shorter than 36 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz to analysis.fastq.gz and assembly.fastq.gz and sample.fastq.gz and trimmed.fastq.gz
-cutadapt,cutadapt,cutadapt_02,cutadapt_02_st,student,trim TruSeq adapters and quality-filter paired-end reads reads_1.fastq.gz and reads_2.fastq.gz discarding reads below Q20 quality and shorter than 36 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz to analysis.fastq.gz and assembly.fastq.gz and sample.fastq.gz and trimmed.fastq.gz
-cutadapt,cutadapt,cutadapt_02,cutadapt_02_po,polite,trim TruSeq adapters and quality-filter paired-end reads reads_1.fastq.gz and reads_2.fastq.gz discarding reads below Q20 quality and shorter than 36 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz to analysis.fastq.gz and assembly.fastq.gz and sample.fastq.gz and trimmed.fastq.gz
-cutadapt,cutadapt,cutadapt_02,cutadapt_02_sy,sysadmin,trim TruSeq adapters and quality-filter paired-end reads reads_1.fastq.gz and reads_2.fastq.gz discarding reads below Q20 quality and shorter than 36 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz to analysis.fastq.gz and assembly.fastq.gz and sample.fastq.gz and trimmed.fastq.gz
-cutadapt,cutadapt,cutadapt_03,cutadapt_03_or,original,remove polyA tails from single-end RNA-seq reads reads.fastq.gz using a 20-mer polyA adapter and discard reads shorter than 30 bp writing to trimmed.fastq.gz to analysis.fastq.gz and genome.fastq.gz
-cutadapt,cutadapt,cutadapt_03,cutadapt_03_be,beginner,remove polyA tails from single-end RNA-seq reads reads.fastq.gz using a 20-mer polyA adapter and discard reads shorter than 30 bp writing to trimmed.fastq.gz to analysis.fastq.gz and genome.fastq.gz
-cutadapt,cutadapt,cutadapt_03,cutadapt_03_st,student,remove polyA tails from single-end RNA-seq reads reads.fastq.gz using a 20-mer polyA adapter and discard reads shorter than 30 bp writing to trimmed.fastq.gz to analysis.fastq.gz and genome.fastq.gz
-cutadapt,cutadapt,cutadapt_03,cutadapt_03_po,polite,remove polyA tails from single-end RNA-seq reads reads.fastq.gz using a 20-mer polyA adapter and discard reads shorter than 30 bp writing to trimmed.fastq.gz to analysis.fastq.gz and genome.fastq.gz
-cutadapt,cutadapt,cutadapt_03,cutadapt_03_sy,sysadmin,remove polyA tails from single-end RNA-seq reads reads.fastq.gz using a 20-mer polyA adapter and discard reads shorter than 30 bp writing to trimmed.fastq.gz to analysis.fastq.gz and genome.fastq.gz
-cutadapt,cutadapt,cutadapt_04,cutadapt_04_or,original,trim Nextera transposase adapters from paired-end ATAC-seq reads reads_1.fastq.gz and reads_2.fastq.gz and discard reads shorter than 20 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz to genome.fastq.gz and raw.fastq.gz and report.fastq.gz and sorted.fastq.gz
-cutadapt,cutadapt,cutadapt_04,cutadapt_04_be,beginner,trim Nextera transposase adapters from paired-end ATAC-seq reads reads_1.fastq.gz and reads_2.fastq.gz and discard reads shorter than 20 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz to genome.fastq.gz and raw.fastq.gz and report.fastq.gz and sorted.fastq.gz
-cutadapt,cutadapt,cutadapt_04,cutadapt_04_st,student,trim Nextera transposase adapters from paired-end ATAC-seq reads reads_1.fastq.gz and reads_2.fastq.gz and discard reads shorter than 20 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz to genome.fastq.gz and raw.fastq.gz and report.fastq.gz and sorted.fastq.gz
-cutadapt,cutadapt,cutadapt_04,cutadapt_04_po,polite,trim Nextera transposase adapters from paired-end ATAC-seq reads reads_1.fastq.gz and reads_2.fastq.gz and discard reads shorter than 20 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz to genome.fastq.gz and raw.fastq.gz and report.fastq.gz and sorted.fastq.gz
-cutadapt,cutadapt,cutadapt_04,cutadapt_04_sy,sysadmin,trim Nextera transposase adapters from paired-end ATAC-seq reads reads_1.fastq.gz and reads_2.fastq.gz and discard reads shorter than 20 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz to genome.fastq.gz and raw.fastq.gz and report.fastq.gz and sorted.fastq.gz
-cutadapt,cutadapt,cutadapt_05,cutadapt_05_or,original,remove an anchored 5-prime primer from single-end amplicon reads reads.fastq.gz and discard reads where the primer was not found writing to trimmed.fastq.gz to raw.fastq.gz and sample.fastq.gz
-cutadapt,cutadapt,cutadapt_05,cutadapt_05_be,beginner,remove an anchored 5-prime primer from single-end amplicon reads reads.fastq.gz and discard reads where the primer was not found writing to trimmed.fastq.gz to raw.fastq.gz and sample.fastq.gz
-cutadapt,cutadapt,cutadapt_05,cutadapt_05_st,student,remove an anchored 5-prime primer from single-end amplicon reads reads.fastq.gz and discard reads where the primer was not found writing to trimmed.fastq.gz to raw.fastq.gz and sample.fastq.gz
-cutadapt,cutadapt,cutadapt_05,cutadapt_05_po,polite,remove an anchored 5-prime primer from single-end amplicon reads reads.fastq.gz and discard reads where the primer was not found writing to trimmed.fastq.gz to raw.fastq.gz and sample.fastq.gz
-cutadapt,cutadapt,cutadapt_05,cutadapt_05_sy,sysadmin,remove an anchored 5-prime primer from single-end amplicon reads reads.fastq.gz and discard reads where the primer was not found writing to trimmed.fastq.gz to raw.fastq.gz and sample.fastq.gz
-cutadapt,cutadapt,cutadapt_06,cutadapt_06_or,original,use linked adapters spanning both 5-prime and 3-prime primers to trim the full amplicon insert from paired-end reads reads_1.fastq.gz and reads_2.fastq.gz discarding untrimmed reads to annotated.fastq.gz and filtered.fastq.gz and report.fastq.gz and sorted.fastq.gz
-cutadapt,cutadapt,cutadapt_06,cutadapt_06_be,beginner,use linked adapters spanning both 5-prime and 3-prime primers to trim the full amplicon insert from paired-end reads reads_1.fastq.gz and reads_2.fastq.gz discarding untrimmed reads to annotated.fastq.gz and filtered.fastq.gz and report.fastq.gz and sorted.fastq.gz
-cutadapt,cutadapt,cutadapt_06,cutadapt_06_st,student,use linked adapters spanning both 5-prime and 3-prime primers to trim the full amplicon insert from paired-end reads reads_1.fastq.gz and reads_2.fastq.gz discarding untrimmed reads to annotated.fastq.gz and filtered.fastq.gz and report.fastq.gz and sorted.fastq.gz
-cutadapt,cutadapt,cutadapt_06,cutadapt_06_po,polite,use linked adapters spanning both 5-prime and 3-prime primers to trim the full amplicon insert from paired-end reads reads_1.fastq.gz and reads_2.fastq.gz discarding untrimmed reads to annotated.fastq.gz and filtered.fastq.gz and report.fastq.gz and sorted.fastq.gz
-cutadapt,cutadapt,cutadapt_06,cutadapt_06_sy,sysadmin,use linked adapters spanning both 5-prime and 3-prime primers to trim the full amplicon insert from paired-end reads reads_1.fastq.gz and reads_2.fastq.gz discarding untrimmed reads to annotated.fastq.gz and filtered.fastq.gz and report.fastq.gz and sorted.fastq.gz
-cutadapt,cutadapt,cutadapt_07,cutadapt_07_or,original,trim TruSeq adapters from single-end reads reads.fastq.gz and apply NextSeq-specific quality trimming to remove dark-cycle high-quality G bases writing to trimmed.fastq.gz to annotated.fastq.gz and assembly.fastq.gz
-cutadapt,cutadapt,cutadapt_07,cutadapt_07_be,beginner,trim TruSeq adapters from single-end reads reads.fastq.gz and apply NextSeq-specific quality trimming to remove dark-cycle high-quality G bases writing to trimmed.fastq.gz to annotated.fastq.gz and assembly.fastq.gz
-cutadapt,cutadapt,cutadapt_07,cutadapt_07_st,student,trim TruSeq adapters from single-end reads reads.fastq.gz and apply NextSeq-specific quality trimming to remove dark-cycle high-quality G bases writing to trimmed.fastq.gz to annotated.fastq.gz and assembly.fastq.gz
-cutadapt,cutadapt,cutadapt_07,cutadapt_07_po,polite,trim TruSeq adapters from single-end reads reads.fastq.gz and apply NextSeq-specific quality trimming to remove dark-cycle high-quality G bases writing to trimmed.fastq.gz to annotated.fastq.gz and assembly.fastq.gz
-cutadapt,cutadapt,cutadapt_07,cutadapt_07_sy,sysadmin,trim TruSeq adapters from single-end reads reads.fastq.gz and apply NextSeq-specific quality trimming to remove dark-cycle high-quality G bases writing to trimmed.fastq.gz to annotated.fastq.gz and assembly.fastq.gz
-cutadapt,cutadapt,cutadapt_08,cutadapt_08_or,original,mask TruSeq adapter sequences with N characters instead of trimming them from reads reads.fastq.gz and write masked output to masked.fastq.gz to genome.fastq.gz and raw.fastq.gz
-cutadapt,cutadapt,cutadapt_08,cutadapt_08_be,beginner,mask TruSeq adapter sequences with N characters instead of trimming them from reads reads.fastq.gz and write masked output to masked.fastq.gz to genome.fastq.gz and raw.fastq.gz
-cutadapt,cutadapt,cutadapt_08,cutadapt_08_st,student,mask TruSeq adapter sequences with N characters instead of trimming them from reads reads.fastq.gz and write masked output to masked.fastq.gz to genome.fastq.gz and raw.fastq.gz
-cutadapt,cutadapt,cutadapt_08,cutadapt_08_po,polite,mask TruSeq adapter sequences with N characters instead of trimming them from reads reads.fastq.gz and write masked output to masked.fastq.gz to genome.fastq.gz and raw.fastq.gz
-cutadapt,cutadapt,cutadapt_08,cutadapt_08_sy,sysadmin,mask TruSeq adapter sequences with N characters instead of trimming them from reads reads.fastq.gz and write masked output to masked.fastq.gz to genome.fastq.gz and raw.fastq.gz
-cutadapt,cutadapt,cutadapt_09,cutadapt_09_or,original,remove a polyA tail and two different 5-prime adapters from reads reads.fastq.gz in up to two rounds of adapter finding and write to trimmed.fastq.gz to assembly.fastq and counts.fastq
-cutadapt,cutadapt,cutadapt_09,cutadapt_09_be,beginner,remove a polyA tail and two different 5-prime adapters from reads reads.fastq.gz in up to two rounds of adapter finding and write to trimmed.fastq.gz to assembly.fastq and counts.fastq
-cutadapt,cutadapt,cutadapt_09,cutadapt_09_st,student,remove a polyA tail and two different 5-prime adapters from reads reads.fastq.gz in up to two rounds of adapter finding and write to trimmed.fastq.gz to assembly.fastq and counts.fastq
-cutadapt,cutadapt,cutadapt_09,cutadapt_09_po,polite,remove a polyA tail and two different 5-prime adapters from reads reads.fastq.gz in up to two rounds of adapter finding and write to trimmed.fastq.gz to assembly.fastq and counts.fastq
-cutadapt,cutadapt,cutadapt_09,cutadapt_09_sy,sysadmin,remove a polyA tail and two different 5-prime adapters from reads reads.fastq.gz in up to two rounds of adapter finding and write to trimmed.fastq.gz to assembly.fastq and counts.fastq
-cutadapt,cutadapt,cutadapt_10,cutadapt_10_or,original,trim TruSeq adapters from reads reads.fastq.gz checking both the read and its reverse complement for adapter matches and write to trimmed.fastq.gz to analysis.fastq.gz and report.fastq.gz
-cutadapt,cutadapt,cutadapt_10,cutadapt_10_be,beginner,trim TruSeq adapters from reads reads.fastq.gz checking both the read and its reverse complement for adapter matches and write to trimmed.fastq.gz to analysis.fastq.gz and report.fastq.gz
-cutadapt,cutadapt,cutadapt_10,cutadapt_10_st,student,trim TruSeq adapters from reads reads.fastq.gz checking both the read and its reverse complement for adapter matches and write to trimmed.fastq.gz to analysis.fastq.gz and report.fastq.gz
-cutadapt,cutadapt,cutadapt_10,cutadapt_10_po,polite,trim TruSeq adapters from reads reads.fastq.gz checking both the read and its reverse complement for adapter matches and write to trimmed.fastq.gz to analysis.fastq.gz and report.fastq.gz
-cutadapt,cutadapt,cutadapt_10,cutadapt_10_sy,sysadmin,trim TruSeq adapters from reads reads.fastq.gz checking both the read and its reverse complement for adapter matches and write to trimmed.fastq.gz to analysis.fastq.gz and report.fastq.gz
+cutadapt,cutadapt,cutadapt_01,cutadapt_01_or,original,trim Illumina TruSeq adapters from paired-end reads input_1.fastq.gz and input_2.fastq.gz writing trimmed reads to trimmed_1.fastq.gz and trimmed_2.fastq.gz
+cutadapt,cutadapt,cutadapt_01,cutadapt_01_be,beginner,How do I trim Illumina TruSeq adapters from paired-end reads input_1.fastq.gz and input_2.fastq.gz writing trimmed reads to trimmed_1.fastq.gz and trimmed_2.fastq.gz?
+cutadapt,cutadapt,cutadapt_01,cutadapt_01_st,student,I need to trim Illumina TruSeq adapters from paired-end reads input_1.fastq.gz and input_2.fastq.gz writing trimmed reads to trimmed_1.fastq.gz and trimmed_2.fastq.gz
+cutadapt,cutadapt,cutadapt_01,cutadapt_01_po,polite,Please trim Illumina TruSeq adapters from paired-end reads input_1.fastq.gz and input_2.fastq.gz writing trimmed reads to trimmed_1.fastq.gz and trimmed_2.fastq.gz
+cutadapt,cutadapt,cutadapt_01,cutadapt_01_sy,sysadmin,Use cutadapt to trim Illumina TruSeq adapters from paired-end reads input_1.fastq.gz and input_2.fastq.gz writing trimmed reads to trimmed_1.fastq.gz and trimmed_2.fastq.gz
+cutadapt,cutadapt,cutadapt_02,cutadapt_02_or,original,trim TruSeq adapters from paired-end reads input_1.fastq.gz and input_2.fastq.gz quality-trimming to Q20 and discarding reads shorter than 36 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz
+cutadapt,cutadapt,cutadapt_02,cutadapt_02_be,beginner,How do I trim TruSeq adapters from paired-end reads input_1.fastq.gz and input_2.fastq.gz quality-trimming to Q20 and discarding reads shorter than 36 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz?
+cutadapt,cutadapt,cutadapt_02,cutadapt_02_st,student,I need to trim TruSeq adapters from paired-end reads input_1.fastq.gz and input_2.fastq.gz quality-trimming to Q20 and discarding reads shorter than 36 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz
+cutadapt,cutadapt,cutadapt_02,cutadapt_02_po,polite,Please trim TruSeq adapters from paired-end reads input_1.fastq.gz and input_2.fastq.gz quality-trimming to Q20 and discarding reads shorter than 36 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz
+cutadapt,cutadapt,cutadapt_02,cutadapt_02_sy,sysadmin,Use cutadapt to trim TruSeq adapters from paired-end reads input_1.fastq.gz and input_2.fastq.gz quality-trimming to Q20 and discarding reads shorter than 36 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz
+cutadapt,cutadapt,cutadapt_03,cutadapt_03_or,original,remove polyA tails from single-end reads sample.fastq.gz using a 20-mer polyA adapter discarding reads shorter than 30 bp writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_03,cutadapt_03_be,beginner,How do I remove polyA tails from single-end reads sample.fastq.gz using a 20-mer polyA adapter discarding reads shorter than 30 bp writing to output.fastq.gz?
+cutadapt,cutadapt,cutadapt_03,cutadapt_03_st,student,I need to remove polyA tails from single-end reads sample.fastq.gz using a 20-mer polyA adapter discarding reads shorter than 30 bp writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_03,cutadapt_03_po,polite,Please remove polyA tails from single-end reads sample.fastq.gz using a 20-mer polyA adapter discarding reads shorter than 30 bp writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_03,cutadapt_03_sy,sysadmin,Use cutadapt to remove polyA tails from single-end reads sample.fastq.gz using a 20-mer polyA adapter discarding reads shorter than 30 bp writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_04,cutadapt_04_or,original,trim Nextera transposase adapters from paired-end reads input_1.fastq.gz and input_2.fastq.gz discarding reads shorter than 20 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz
+cutadapt,cutadapt,cutadapt_04,cutadapt_04_be,beginner,How do I trim Nextera transposase adapters from paired-end reads input_1.fastq.gz and input_2.fastq.gz discarding reads shorter than 20 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz?
+cutadapt,cutadapt,cutadapt_04,cutadapt_04_st,student,I need to trim Nextera transposase adapters from paired-end reads input_1.fastq.gz and input_2.fastq.gz discarding reads shorter than 20 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz
+cutadapt,cutadapt,cutadapt_04,cutadapt_04_po,polite,Please trim Nextera transposase adapters from paired-end reads input_1.fastq.gz and input_2.fastq.gz discarding reads shorter than 20 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz
+cutadapt,cutadapt,cutadapt_04,cutadapt_04_sy,sysadmin,Use cutadapt to trim Nextera transposase adapters from paired-end reads input_1.fastq.gz and input_2.fastq.gz discarding reads shorter than 20 bp writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz
+cutadapt,cutadapt,cutadapt_05,cutadapt_05_or,original,remove an anchored 5-prime primer from single-end reads sample.fastq.gz discarding reads where the primer was not found writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_05,cutadapt_05_be,beginner,How do I remove an anchored 5-prime primer from single-end reads sample.fastq.gz discarding reads where the primer was not found writing to output.fastq.gz?
+cutadapt,cutadapt,cutadapt_05,cutadapt_05_st,student,I need to remove an anchored 5-prime primer from single-end reads sample.fastq.gz discarding reads where the primer was not found writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_05,cutadapt_05_po,polite,Please remove an anchored 5-prime primer from single-end reads sample.fastq.gz discarding reads where the primer was not found writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_05,cutadapt_05_sy,sysadmin,Use cutadapt to remove an anchored 5-prime primer from single-end reads sample.fastq.gz discarding reads where the primer was not found writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_06,cutadapt_06_or,original,use linked adapters to trim the full amplicon insert from paired-end reads input_1.fastq.gz and input_2.fastq.gz discarding untrimmed reads writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz
+cutadapt,cutadapt,cutadapt_06,cutadapt_06_be,beginner,How do I use linked adapters to trim the full amplicon insert from paired-end reads input_1.fastq.gz and input_2.fastq.gz discarding untrimmed reads writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz?
+cutadapt,cutadapt,cutadapt_06,cutadapt_06_st,student,I need to use linked adapters to trim the full amplicon insert from paired-end reads input_1.fastq.gz and input_2.fastq.gz discarding untrimmed reads writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz
+cutadapt,cutadapt,cutadapt_06,cutadapt_06_po,polite,Please use linked adapters to trim the full amplicon insert from paired-end reads input_1.fastq.gz and input_2.fastq.gz discarding untrimmed reads writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz
+cutadapt,cutadapt,cutadapt_06,cutadapt_06_sy,sysadmin,Use cutadapt to use linked adapters to trim the full amplicon insert from paired-end reads input_1.fastq.gz and input_2.fastq.gz discarding untrimmed reads writing to trimmed_1.fastq.gz and trimmed_2.fastq.gz
+cutadapt,cutadapt,cutadapt_07,cutadapt_07_or,original,trim TruSeq adapters from single-end reads sample.fastq.gz applying NextSeq-specific quality trimming for two-color chemistry writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_07,cutadapt_07_be,beginner,How do I trim TruSeq adapters from single-end reads sample.fastq.gz applying NextSeq-specific quality trimming for two-color chemistry writing to output.fastq.gz?
+cutadapt,cutadapt,cutadapt_07,cutadapt_07_st,student,I need to trim TruSeq adapters from single-end reads sample.fastq.gz applying NextSeq-specific quality trimming for two-color chemistry writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_07,cutadapt_07_po,polite,Please trim TruSeq adapters from single-end reads sample.fastq.gz applying NextSeq-specific quality trimming for two-color chemistry writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_07,cutadapt_07_sy,sysadmin,Use cutadapt to trim TruSeq adapters from single-end reads sample.fastq.gz applying NextSeq-specific quality trimming for two-color chemistry writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_08,cutadapt_08_or,original,mask TruSeq adapter sequences with N characters instead of trimming them from single-end reads sample.fastq.gz writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_08,cutadapt_08_be,beginner,How do I mask TruSeq adapter sequences with N characters instead of trimming them from single-end reads sample.fastq.gz writing to output.fastq.gz?
+cutadapt,cutadapt,cutadapt_08,cutadapt_08_st,student,I need to mask TruSeq adapter sequences with N characters instead of trimming them from single-end reads sample.fastq.gz writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_08,cutadapt_08_po,polite,Please mask TruSeq adapter sequences with N characters instead of trimming them from single-end reads sample.fastq.gz writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_08,cutadapt_08_sy,sysadmin,Use cutadapt to mask TruSeq adapter sequences with N characters instead of trimming them from single-end reads sample.fastq.gz writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_09,cutadapt_09_or,original,remove two different 5-prime adapters and a 3-prime adapter from single-end reads sample.fastq.gz in up to two rounds of adapter finding writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_09,cutadapt_09_be,beginner,How do I remove two different 5-prime adapters and a 3-prime adapter from single-end reads sample.fastq.gz in up to two rounds of adapter finding writing to output.fastq.gz?
+cutadapt,cutadapt,cutadapt_09,cutadapt_09_st,student,I need to remove two different 5-prime adapters and a 3-prime adapter from single-end reads sample.fastq.gz in up to two rounds of adapter finding writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_09,cutadapt_09_po,polite,Please remove two different 5-prime adapters and a 3-prime adapter from single-end reads sample.fastq.gz in up to two rounds of adapter finding writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_09,cutadapt_09_sy,sysadmin,Use cutadapt to remove two different 5-prime adapters and a 3-prime adapter from single-end reads sample.fastq.gz in up to two rounds of adapter finding writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_10,cutadapt_10_or,original,trim TruSeq adapters from single-end reads sample.fastq.gz checking both the read and its reverse complement for adapter matches writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_10,cutadapt_10_be,beginner,How do I trim TruSeq adapters from single-end reads sample.fastq.gz checking both the read and its reverse complement for adapter matches writing to output.fastq.gz?
+cutadapt,cutadapt,cutadapt_10,cutadapt_10_st,student,I need to trim TruSeq adapters from single-end reads sample.fastq.gz checking both the read and its reverse complement for adapter matches writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_10,cutadapt_10_po,polite,Please trim TruSeq adapters from single-end reads sample.fastq.gz checking both the read and its reverse complement for adapter matches writing to output.fastq.gz
+cutadapt,cutadapt,cutadapt_10,cutadapt_10_sy,sysadmin,Use cutadapt to trim TruSeq adapters from single-end reads sample.fastq.gz checking both the read and its reverse complement for adapter matches writing to output.fastq.gz
 deeptools,deeptools,deeptools_01,deeptools_01_or,original,generate an RPKM-normalized coverage bigWig track from chip_sample.bam with 25 bp bins using 8 threads to chip_sample.bw
 deeptools,deeptools,deeptools_01,deeptools_01_be,beginner,generate an RPKM-normalized coverage bigWig track from chip_sample.bam with 25 bp bins using 8 threads to chip_sample.bw
 deeptools,deeptools,deeptools_01,deeptools_01_st,student,generate an RPKM-normalized coverage bigWig track from chip_sample.bam with 25 bp bins using 8 threads to chip_sample.bw
@@ -2699,106 +2699,106 @@ igvtools,igvtools,igvtools_10,igvtools_10_be,beginner,How do I compute coverage 
 igvtools,igvtools,igvtools_10,igvtools_10_st,student,I need to compute coverage from alignments.bam for hg38 with 25 bp windows filtering reads below mapping quality 30 and writing to filtered_coverage.tdf
 igvtools,igvtools,igvtools_10,igvtools_10_po,polite,Please compute coverage from alignments.bam for hg38 with 25 bp windows filtering reads below mapping quality 30 and writing to filtered_coverage.tdf
 igvtools,igvtools,igvtools_10,igvtools_10_sy,sysadmin,Use igvtools to compute coverage from alignments.bam for hg38 with 25 bp windows filtering reads below mapping quality 30 and writing to filtered_coverage.tdf
-iqtree2,iqtree,iqtree2_01,iqtree2_01_01,original,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
-iqtree2,iqtree,iqtree2_01,iqtree2_01_02,beginner,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
-iqtree2,iqtree,iqtree2_01,iqtree2_01_03,student,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
-iqtree2,iqtree,iqtree2_01,iqtree2_01_04,polite,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
-iqtree2,iqtree,iqtree2_01,iqtree2_01_05,sysadmin,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
-iqtree2,iqtree,iqtree2_01,iqtree2_01_06,goal_oriented,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
-iqtree2,iqtree,iqtree2_01,iqtree2_01_07,expert,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
-iqtree2,iqtree,iqtree2_01,iqtree2_01_08,detailed,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
-iqtree2,iqtree,iqtree2_01,iqtree2_01_09,informal,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
-iqtree2,iqtree,iqtree2_01,iqtree2_01_10,alternative,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
-iqtree2,iqtree,iqtree2_02,iqtree2_02_01,original,"\""Infer a 16S rRNA tree with standard model testing"
-iqtree2,iqtree,iqtree2_02,iqtree2_02_02,beginner,"\""Infer a 16S rRNA tree with standard model testing"
-iqtree2,iqtree,iqtree2_02,iqtree2_02_03,student,"\""Infer a 16S rRNA tree with standard model testing"
-iqtree2,iqtree,iqtree2_02,iqtree2_02_04,polite,"\""Infer a 16S rRNA tree with standard model testing"
-iqtree2,iqtree,iqtree2_02,iqtree2_02_05,sysadmin,"\""Infer a 16S rRNA tree with standard model testing"
-iqtree2,iqtree,iqtree2_02,iqtree2_02_06,goal_oriented,"\""Infer a 16S rRNA tree with standard model testing"
-iqtree2,iqtree,iqtree2_02,iqtree2_02_07,expert,"\""Infer a 16S rRNA tree with standard model testing"
-iqtree2,iqtree,iqtree2_02,iqtree2_02_08,detailed,"\""Infer a 16S rRNA tree with standard model testing"
-iqtree2,iqtree,iqtree2_02,iqtree2_02_09,informal,"\""Infer a 16S rRNA tree with standard model testing"
-iqtree2,iqtree,iqtree2_02,iqtree2_02_10,alternative,"\""Infer a 16S rRNA tree with standard model testing"
-iqtree2,iqtree,iqtree2_03,iqtree2_03_01,original,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
-iqtree2,iqtree,iqtree2_03,iqtree2_03_02,beginner,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
-iqtree2,iqtree,iqtree2_03,iqtree2_03_03,student,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
-iqtree2,iqtree,iqtree2_03,iqtree2_03_04,polite,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
-iqtree2,iqtree,iqtree2_03,iqtree2_03_05,sysadmin,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
-iqtree2,iqtree,iqtree2_03,iqtree2_03_06,goal_oriented,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
-iqtree2,iqtree,iqtree2_03,iqtree2_03_07,expert,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
-iqtree2,iqtree,iqtree2_03,iqtree2_03_08,detailed,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
-iqtree2,iqtree,iqtree2_03,iqtree2_03_09,informal,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
-iqtree2,iqtree,iqtree2_03,iqtree2_03_10,alternative,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
-iqtree2,iqtree,iqtree2_04,iqtree2_04_01,original,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
-iqtree2,iqtree,iqtree2_04,iqtree2_04_02,beginner,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
-iqtree2,iqtree,iqtree2_04,iqtree2_04_03,student,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
-iqtree2,iqtree,iqtree2_04,iqtree2_04_04,polite,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
-iqtree2,iqtree,iqtree2_04,iqtree2_04_05,sysadmin,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
-iqtree2,iqtree,iqtree2_04,iqtree2_04_06,goal_oriented,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
-iqtree2,iqtree,iqtree2_04,iqtree2_04_07,expert,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
-iqtree2,iqtree,iqtree2_04,iqtree2_04_08,detailed,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
-iqtree2,iqtree,iqtree2_04,iqtree2_04_09,informal,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
-iqtree2,iqtree,iqtree2_04,iqtree2_04_10,alternative,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
-iqtree2,iqtree,iqtree2_05,iqtree2_05_01,original,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_05,iqtree2_05_02,beginner,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_05,iqtree2_05_03,student,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_05,iqtree2_05_04,polite,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_05,iqtree2_05_05,sysadmin,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_05,iqtree2_05_06,goal_oriented,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_05,iqtree2_05_07,expert,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_05,iqtree2_05_08,detailed,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_05,iqtree2_05_09,informal,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_05,iqtree2_05_10,alternative,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_06,iqtree2_06_01,original,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
-iqtree2,iqtree,iqtree2_06,iqtree2_06_02,beginner,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
-iqtree2,iqtree,iqtree2_06,iqtree2_06_03,student,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
-iqtree2,iqtree,iqtree2_06,iqtree2_06_04,polite,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
-iqtree2,iqtree,iqtree2_06,iqtree2_06_05,sysadmin,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
-iqtree2,iqtree,iqtree2_06,iqtree2_06_06,goal_oriented,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
-iqtree2,iqtree,iqtree2_06,iqtree2_06_07,expert,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
-iqtree2,iqtree,iqtree2_06,iqtree2_06_08,detailed,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
-iqtree2,iqtree,iqtree2_06,iqtree2_06_09,informal,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
-iqtree2,iqtree,iqtree2_06,iqtree2_06_10,alternative,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
-iqtree2,iqtree,iqtree2_07,iqtree2_07_01,original,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_07,iqtree2_07_02,beginner,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_07,iqtree2_07_03,student,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_07,iqtree2_07_04,polite,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_07,iqtree2_07_05,sysadmin,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_07,iqtree2_07_06,goal_oriented,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_07,iqtree2_07_07,expert,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_07,iqtree2_07_08,detailed,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_07,iqtree2_07_09,informal,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_07,iqtree2_07_10,alternative,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
-iqtree2,iqtree,iqtree2_08,iqtree2_08_01,original,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
-iqtree2,iqtree,iqtree2_08,iqtree2_08_02,beginner,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
-iqtree2,iqtree,iqtree2_08,iqtree2_08_03,student,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
-iqtree2,iqtree,iqtree2_08,iqtree2_08_04,polite,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
-iqtree2,iqtree,iqtree2_08,iqtree2_08_05,sysadmin,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
-iqtree2,iqtree,iqtree2_08,iqtree2_08_06,goal_oriented,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
-iqtree2,iqtree,iqtree2_08,iqtree2_08_07,expert,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
-iqtree2,iqtree,iqtree2_08,iqtree2_08_08,detailed,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
-iqtree2,iqtree,iqtree2_08,iqtree2_08_09,informal,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
-iqtree2,iqtree,iqtree2_08,iqtree2_08_10,alternative,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
-iqtree2,iqtree,iqtree2_09,iqtree2_09_01,original,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
-iqtree2,iqtree,iqtree2_09,iqtree2_09_02,beginner,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
-iqtree2,iqtree,iqtree2_09,iqtree2_09_03,student,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
-iqtree2,iqtree,iqtree2_09,iqtree2_09_04,polite,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
-iqtree2,iqtree,iqtree2_09,iqtree2_09_05,sysadmin,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
-iqtree2,iqtree,iqtree2_09,iqtree2_09_06,goal_oriented,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
-iqtree2,iqtree,iqtree2_09,iqtree2_09_07,expert,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
-iqtree2,iqtree,iqtree2_09,iqtree2_09_08,detailed,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
-iqtree2,iqtree,iqtree2_09,iqtree2_09_09,informal,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
-iqtree2,iqtree,iqtree2_09,iqtree2_09_10,alternative,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
-iqtree2,iqtree,iqtree2_10,iqtree2_10_01,original,resume interrupted analysis from checkpoint (matrix.fasta)
-iqtree2,iqtree,iqtree2_10,iqtree2_10_02,beginner,resume interrupted analysis from checkpoint (matrix.fasta)
-iqtree2,iqtree,iqtree2_10,iqtree2_10_03,student,resume interrupted analysis from checkpoint (matrix.fasta)
-iqtree2,iqtree,iqtree2_10,iqtree2_10_04,polite,resume interrupted analysis from checkpoint (matrix.fasta)
-iqtree2,iqtree,iqtree2_10,iqtree2_10_05,sysadmin,resume interrupted analysis from checkpoint (matrix.fasta)
-iqtree2,iqtree,iqtree2_10,iqtree2_10_06,goal_oriented,resume interrupted analysis from checkpoint (matrix.fasta)
-iqtree2,iqtree,iqtree2_10,iqtree2_10_07,expert,resume interrupted analysis from checkpoint (matrix.fasta)
-iqtree2,iqtree,iqtree2_10,iqtree2_10_08,detailed,resume interrupted analysis from checkpoint (matrix.fasta)
-iqtree2,iqtree,iqtree2_10,iqtree2_10_09,informal,resume interrupted analysis from checkpoint (matrix.fasta)
-iqtree2,iqtree,iqtree2_10,iqtree2_10_10,alternative,resume interrupted analysis from checkpoint (matrix.fasta)
+iqtree2,iqtree2,iqtree2_01,iqtree2_01_01,original,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
+iqtree2,iqtree2,iqtree2_01,iqtree2_01_02,beginner,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
+iqtree2,iqtree2,iqtree2_01,iqtree2_01_03,student,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
+iqtree2,iqtree2,iqtree2_01,iqtree2_01_04,polite,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
+iqtree2,iqtree2,iqtree2_01,iqtree2_01_05,sysadmin,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
+iqtree2,iqtree2,iqtree2_01,iqtree2_01_06,goal_oriented,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
+iqtree2,iqtree2,iqtree2_01,iqtree2_01_07,expert,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
+iqtree2,iqtree2,iqtree2_01,iqtree2_01_08,detailed,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
+iqtree2,iqtree2,iqtree2_01,iqtree2_01_09,informal,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
+iqtree2,iqtree2,iqtree2_01,iqtree2_01_10,alternative,"\""Infer a maximum-likelihood tree for the CO1 alignment with ModelFinder Plus model selection and 1000 ultrafast bootstrap replicates\"""
+iqtree2,iqtree2,iqtree2_02,iqtree2_02_01,original,"\""Infer a 16S rRNA tree with standard model testing"
+iqtree2,iqtree2,iqtree2_02,iqtree2_02_02,beginner,"\""Infer a 16S rRNA tree with standard model testing"
+iqtree2,iqtree2,iqtree2_02,iqtree2_02_03,student,"\""Infer a 16S rRNA tree with standard model testing"
+iqtree2,iqtree2,iqtree2_02,iqtree2_02_04,polite,"\""Infer a 16S rRNA tree with standard model testing"
+iqtree2,iqtree2,iqtree2_02,iqtree2_02_05,sysadmin,"\""Infer a 16S rRNA tree with standard model testing"
+iqtree2,iqtree2,iqtree2_02,iqtree2_02_06,goal_oriented,"\""Infer a 16S rRNA tree with standard model testing"
+iqtree2,iqtree2,iqtree2_02,iqtree2_02_07,expert,"\""Infer a 16S rRNA tree with standard model testing"
+iqtree2,iqtree2,iqtree2_02,iqtree2_02_08,detailed,"\""Infer a 16S rRNA tree with standard model testing"
+iqtree2,iqtree2,iqtree2_02,iqtree2_02_09,informal,"\""Infer a 16S rRNA tree with standard model testing"
+iqtree2,iqtree2,iqtree2_02,iqtree2_02_10,alternative,"\""Infer a 16S rRNA tree with standard model testing"
+iqtree2,iqtree2,iqtree2_03,iqtree2_03_01,original,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
+iqtree2,iqtree2,iqtree2_03,iqtree2_03_02,beginner,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
+iqtree2,iqtree2,iqtree2_03,iqtree2_03_03,student,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
+iqtree2,iqtree2,iqtree2_03,iqtree2_03_04,polite,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
+iqtree2,iqtree2,iqtree2_03,iqtree2_03_05,sysadmin,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
+iqtree2,iqtree2,iqtree2_03,iqtree2_03_06,goal_oriented,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
+iqtree2,iqtree2,iqtree2_03,iqtree2_03_07,expert,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
+iqtree2,iqtree2,iqtree2_03,iqtree2_03_08,detailed,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
+iqtree2,iqtree2,iqtree2_03,iqtree2_03_09,informal,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
+iqtree2,iqtree2,iqtree2_03,iqtree2_03_10,alternative,"\""Infer a mitochondrial genome tree under the GTR+F+I+G4 model with SH-aLRT support\"""
+iqtree2,iqtree2,iqtree2_04,iqtree2_04_01,original,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
+iqtree2,iqtree2,iqtree2_04,iqtree2_04_02,beginner,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
+iqtree2,iqtree2,iqtree2_04,iqtree2_04_03,student,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
+iqtree2,iqtree2,iqtree2_04,iqtree2_04_04,polite,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
+iqtree2,iqtree2,iqtree2_04,iqtree2_04_05,sysadmin,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
+iqtree2,iqtree2,iqtree2_04,iqtree2_04_06,goal_oriented,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
+iqtree2,iqtree2,iqtree2_04,iqtree2_04_07,expert,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
+iqtree2,iqtree2,iqtree2_04,iqtree2_04_08,detailed,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
+iqtree2,iqtree2,iqtree2_04,iqtree2_04_09,informal,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
+iqtree2,iqtree2,iqtree2_04,iqtree2_04_10,alternative,"\""Infer a CO1 tree with Gallus gallus specified as the outgroup for rooting\"""
+iqtree2,iqtree2,iqtree2_05,iqtree2_05_01,original,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_05,iqtree2_05_02,beginner,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_05,iqtree2_05_03,student,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_05,iqtree2_05_04,polite,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_05,iqtree2_05_05,sysadmin,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_05,iqtree2_05_06,goal_oriented,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_05,iqtree2_05_07,expert,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_05,iqtree2_05_08,detailed,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_05,iqtree2_05_09,informal,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_05,iqtree2_05_10,alternative,"\""Infer a protein tree from an amino acid alignment with automatic model selection and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_06,iqtree2_06_01,original,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
+iqtree2,iqtree2,iqtree2_06,iqtree2_06_02,beginner,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
+iqtree2,iqtree2,iqtree2_06,iqtree2_06_03,student,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
+iqtree2,iqtree2,iqtree2_06,iqtree2_06_04,polite,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
+iqtree2,iqtree2,iqtree2_06,iqtree2_06_05,sysadmin,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
+iqtree2,iqtree2,iqtree2_06,iqtree2_06_06,goal_oriented,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
+iqtree2,iqtree2,iqtree2_06,iqtree2_06_07,expert,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
+iqtree2,iqtree2,iqtree2_06,iqtree2_06_08,detailed,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
+iqtree2,iqtree2,iqtree2_06,iqtree2_06_09,informal,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
+iqtree2,iqtree2,iqtree2_06,iqtree2_06_10,alternative,"\""Infer a CO1 tree with 100 standard (non-ultrafast) bootstrap replicates for comparison with UFBoot\"""
+iqtree2,iqtree2,iqtree2_07,iqtree2_07_01,original,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_07,iqtree2_07_02,beginner,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_07,iqtree2_07_03,student,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_07,iqtree2_07_04,polite,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_07,iqtree2_07_05,sysadmin,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_07,iqtree2_07_06,goal_oriented,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_07,iqtree2_07_07,expert,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_07,iqtree2_07_08,detailed,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_07,iqtree2_07_09,informal,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_07,iqtree2_07_10,alternative,"\""Infer a partitioned tree with ModelFinder merging of partition schemes and ultrafast bootstrap\"""
+iqtree2,iqtree2,iqtree2_08,iqtree2_08_01,original,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
+iqtree2,iqtree2,iqtree2_08,iqtree2_08_02,beginner,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
+iqtree2,iqtree2,iqtree2_08,iqtree2_08_03,student,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
+iqtree2,iqtree2,iqtree2_08,iqtree2_08_04,polite,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
+iqtree2,iqtree2,iqtree2_08,iqtree2_08_05,sysadmin,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
+iqtree2,iqtree2,iqtree2_08,iqtree2_08_06,goal_oriented,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
+iqtree2,iqtree2,iqtree2_08,iqtree2_08_07,expert,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
+iqtree2,iqtree2,iqtree2_08,iqtree2_08_08,detailed,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
+iqtree2,iqtree2,iqtree2_08,iqtree2_08_09,informal,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
+iqtree2,iqtree2,iqtree2_08,iqtree2_08_10,alternative,"\""Re-run the CO1 tree inference from scratch with a fixed random seed for reproducibility\"""
+iqtree2,iqtree2,iqtree2_09,iqtree2_09_01,original,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
+iqtree2,iqtree2,iqtree2_09,iqtree2_09_02,beginner,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
+iqtree2,iqtree2,iqtree2_09,iqtree2_09_03,student,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
+iqtree2,iqtree2,iqtree2_09,iqtree2_09_04,polite,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
+iqtree2,iqtree2,iqtree2_09,iqtree2_09_05,sysadmin,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
+iqtree2,iqtree2,iqtree2_09,iqtree2_09_06,goal_oriented,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
+iqtree2,iqtree2,iqtree2_09,iqtree2_09_07,expert,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
+iqtree2,iqtree2,iqtree2_09,iqtree2_09_08,detailed,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
+iqtree2,iqtree2,iqtree2_09,iqtree2_09_09,informal,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
+iqtree2,iqtree2,iqtree2_09,iqtree2_09_10,alternative,infer tree with both SH-aLRT and ultrafast bootstrap (results.fasta)
+iqtree2,iqtree2,iqtree2_10,iqtree2_10_01,original,resume interrupted analysis from checkpoint (matrix.fasta)
+iqtree2,iqtree2,iqtree2_10,iqtree2_10_02,beginner,resume interrupted analysis from checkpoint (matrix.fasta)
+iqtree2,iqtree2,iqtree2_10,iqtree2_10_03,student,resume interrupted analysis from checkpoint (matrix.fasta)
+iqtree2,iqtree2,iqtree2_10,iqtree2_10_04,polite,resume interrupted analysis from checkpoint (matrix.fasta)
+iqtree2,iqtree2,iqtree2_10,iqtree2_10_05,sysadmin,resume interrupted analysis from checkpoint (matrix.fasta)
+iqtree2,iqtree2,iqtree2_10,iqtree2_10_06,goal_oriented,resume interrupted analysis from checkpoint (matrix.fasta)
+iqtree2,iqtree2,iqtree2_10,iqtree2_10_07,expert,resume interrupted analysis from checkpoint (matrix.fasta)
+iqtree2,iqtree2,iqtree2_10,iqtree2_10_08,detailed,resume interrupted analysis from checkpoint (matrix.fasta)
+iqtree2,iqtree2,iqtree2_10,iqtree2_10_09,informal,resume interrupted analysis from checkpoint (matrix.fasta)
+iqtree2,iqtree2,iqtree2_10,iqtree2_10_10,alternative,resume interrupted analysis from checkpoint (matrix.fasta)
 java,java,java_01,java_01_or,original,run Picard MarkDuplicates with a maximum Java heap of 8 GB on alignments.bam writing marked duplicates to marked.bam and metrics to dup_metrics.txt
 java,java,java_01,java_01_be,beginner,How do I run Picard MarkDuplicates with a maximum Java heap of 8 GB on alignments.bam writing marked duplicates to marked.bam and metrics to dup_metrics.txt?
 java,java,java_01,java_01_st,student,I need to run Picard MarkDuplicates with a maximum Java heap of 8 GB on alignments.bam writing marked duplicates to marked.bam and metrics to dup_metrics.txt
@@ -3049,21 +3049,21 @@ kraken2,kraken2,kraken2_10,kraken2_10_be,beginner,How do I classify paired-end r
 kraken2,kraken2,kraken2_10,kraken2_10_st,student,I need to classify paired-end reads reads_1.fq.gz and reads_2.fq.gz against the standard database using memory-mapped I/O for reduced RAM usage with 16 threads
 kraken2,kraken2,kraken2_10,kraken2_10_po,polite,Please classify paired-end reads reads_1.fq.gz and reads_2.fq.gz against the standard database using memory-mapped I/O for reduced RAM usage with 16 threads
 kraken2,kraken2,kraken2_10,kraken2_10_sy,sysadmin,Use kraken2 to classify paired-end reads reads_1.fq.gz and reads_2.fq.gz against the standard database using memory-mapped I/O for reduced RAM usage with 16 threads
-liftoff,liftoff,liftoff_01,liftoff_01_or,original,lift the gene annotation in annotation.gff3 from the reference assembly reference.fa to the target assembly target.fa writing lifted annotations to lifted.gff3 and unmapped features to unmapped.txt
-liftoff,liftoff,liftoff_01,liftoff_01_be,beginner,How do I lift the gene annotation in annotation.gff3 from the reference assembly reference.fa to the target assembly target.fa writing lifted annotations to lifted.gff3 and unmapped features to unmapped.txt?
-liftoff,liftoff,liftoff_01,liftoff_01_st,student,I need to lift the gene annotation in annotation.gff3 from the reference assembly reference.fa to the target assembly target.fa writing lifted annotations to lifted.gff3 and unmapped features to unmapped.txt
-liftoff,liftoff,liftoff_01,liftoff_01_po,polite,Please lift the gene annotation in annotation.gff3 from the reference assembly reference.fa to the target assembly target.fa writing lifted annotations to lifted.gff3 and unmapped features to unmapped.txt
-liftoff,liftoff,liftoff_01,liftoff_01_sy,sysadmin,Use liftoff to lift the gene annotation in annotation.gff3 from the reference assembly reference.fa to the target assembly target.fa writing lifted annotations to lifted.gff3 and unmapped features to unmapped.txt
-liftoff,liftoff,liftoff_02,liftoff_02_or,original,lift the annotation in annotation.gff3 from reference.fa to target.fa using 8 parallel alignment processes and write to lifted.gff3
-liftoff,liftoff,liftoff_02,liftoff_02_be,beginner,How do I lift the annotation in annotation.gff3 from reference.fa to target.fa using 8 parallel alignment processes and write to lifted.gff3?
-liftoff,liftoff,liftoff_02,liftoff_02_st,student,I need to lift the annotation in annotation.gff3 from reference.fa to target.fa using 8 parallel alignment processes and write to lifted.gff3
-liftoff,liftoff,liftoff_02,liftoff_02_po,polite,Please lift the annotation in annotation.gff3 from reference.fa to target.fa using 8 parallel alignment processes and write to lifted.gff3
-liftoff,liftoff,liftoff_02,liftoff_02_sy,sysadmin,Use liftoff to lift the annotation in annotation.gff3 from reference.fa to target.fa using 8 parallel alignment processes and write to lifted.gff3
-liftoff,liftoff,liftoff_03,liftoff_03_or,original,lift annotation in annotation.gff3 from reference.fa to target.fa excluding partial or low-identity mappings from the output and writing unmapped to unmapped.txt
-liftoff,liftoff,liftoff_03,liftoff_03_be,beginner,How do I lift annotation in annotation.gff3 from reference.fa to target.fa excluding partial or low-identity mappings from the output and writing unmapped to unmapped.txt?
-liftoff,liftoff,liftoff_03,liftoff_03_st,student,I need to lift annotation in annotation.gff3 from reference.fa to target.fa excluding partial or low-identity mappings from the output and writing unmapped to unmapped.txt
-liftoff,liftoff,liftoff_03,liftoff_03_po,polite,Please lift annotation in annotation.gff3 from reference.fa to target.fa excluding partial or low-identity mappings from the output and writing unmapped to unmapped.txt
-liftoff,liftoff,liftoff_03,liftoff_03_sy,sysadmin,Use liftoff to lift annotation in annotation.gff3 from reference.fa to target.fa excluding partial or low-identity mappings from the output and writing unmapped to unmapped.txt
+liftoff,liftoff,liftoff_01,liftoff_01_or,original,lift the gene annotation in annotation.gff3 from the reference assembly reference.fa to the target assembly target.fa writing lifted annotations to lifted_out.gff3 and unmapped features to failed.txt
+liftoff,liftoff,liftoff_01,liftoff_01_be,beginner,How do I lift the gene annotation in annotation.gff3 from the reference assembly reference.fa to the target assembly target.fa writing lifted annotations to lifted_out.gff3 and unmapped features to failed.txt?
+liftoff,liftoff,liftoff_01,liftoff_01_st,student,I need to lift the gene annotation in annotation.gff3 from the reference assembly reference.fa to the target assembly target.fa writing lifted annotations to lifted_out.gff3 and unmapped features to failed.txt
+liftoff,liftoff,liftoff_01,liftoff_01_po,polite,Please lift the gene annotation in annotation.gff3 from the reference assembly reference.fa to the target assembly target.fa writing lifted annotations to lifted_out.gff3 and unmapped features to failed.txt
+liftoff,liftoff,liftoff_01,liftoff_01_sy,sysadmin,Use liftoff to lift the gene annotation in annotation.gff3 from the reference assembly reference.fa to the target assembly target.fa writing lifted annotations to lifted_out.gff3 and unmapped features to failed.txt
+liftoff,liftoff,liftoff_02,liftoff_02_or,original,lift the annotation in annotation.gff3 from reference.fa to target.fa using 8 parallel processes writing lifted annotations to lifted_out.gff3 and unmapped features to failed.txt
+liftoff,liftoff,liftoff_02,liftoff_02_be,beginner,How do I lift the annotation in annotation.gff3 from reference.fa to target.fa using 8 parallel processes writing lifted annotations to lifted_out.gff3 and unmapped features to failed.txt?
+liftoff,liftoff,liftoff_02,liftoff_02_st,student,I need to lift the annotation in annotation.gff3 from reference.fa to target.fa using 8 parallel processes writing lifted annotations to lifted_out.gff3 and unmapped features to failed.txt
+liftoff,liftoff,liftoff_02,liftoff_02_po,polite,Please lift the annotation in annotation.gff3 from reference.fa to target.fa using 8 parallel processes writing lifted annotations to lifted_out.gff3 and unmapped features to failed.txt
+liftoff,liftoff,liftoff_02,liftoff_02_sy,sysadmin,Use liftoff to lift the annotation in annotation.gff3 from reference.fa to target.fa using 8 parallel processes writing lifted annotations to lifted_out.gff3 and unmapped features to failed.txt
+liftoff,liftoff,liftoff_03,liftoff_03_or,original,lift annotation in annotation.gff3 from reference.fa to target.fa excluding partial or low-identity mappings writing unmapped features to failed.txt
+liftoff,liftoff,liftoff_03,liftoff_03_be,beginner,How do I lift annotation in annotation.gff3 from reference.fa to target.fa excluding partial or low-identity mappings writing unmapped features to failed.txt?
+liftoff,liftoff,liftoff_03,liftoff_03_st,student,I need to lift annotation in annotation.gff3 from reference.fa to target.fa excluding partial or low-identity mappings writing unmapped features to failed.txt
+liftoff,liftoff,liftoff_03,liftoff_03_po,polite,Please lift annotation in annotation.gff3 from reference.fa to target.fa excluding partial or low-identity mappings writing unmapped features to failed.txt
+liftoff,liftoff,liftoff_03,liftoff_03_sy,sysadmin,Use liftoff to lift annotation in annotation.gff3 from reference.fa to target.fa excluding partial or low-identity mappings writing unmapped features to failed.txt
 liftoff,liftoff,liftoff_04,liftoff_04_or,original,lift annotation in annotation.gff3 from reference.fa to target.fa requiring at least 90 percent feature coverage and 90 percent child-feature sequence identity
 liftoff,liftoff,liftoff_04,liftoff_04_be,beginner,How do I lift annotation in annotation.gff3 from reference.fa to target.fa requiring at least 90 percent feature coverage and 90 percent child-feature sequence identity?
 liftoff,liftoff,liftoff_04,liftoff_04_st,student,I need to lift annotation in annotation.gff3 from reference.fa to target.fa requiring at least 90 percent feature coverage and 90 percent child-feature sequence identity
@@ -3074,31 +3074,31 @@ liftoff,liftoff,liftoff_05,liftoff_05_be,beginner,How do I lift annotation in an
 liftoff,liftoff,liftoff_05,liftoff_05_st,student,I need to lift annotation in annotation.gff3 from reference.fa to target.fa searching for extra gene copies with at least 95 percent exon sequence identity
 liftoff,liftoff,liftoff_05,liftoff_05_po,polite,Please lift annotation in annotation.gff3 from reference.fa to target.fa searching for extra gene copies with at least 95 percent exon sequence identity
 liftoff,liftoff,liftoff_05,liftoff_05_sy,sysadmin,Use liftoff to lift annotation in annotation.gff3 from reference.fa to target.fa searching for extra gene copies with at least 95 percent exon sequence identity
-liftoff,liftoff,liftoff_06,liftoff_06_or,original,lift the GTF annotation in annotation.gtf from reference.fa to target.fa and annotate the status partial or missing start or stop of each CDS
-liftoff,liftoff,liftoff_06,liftoff_06_be,beginner,How do I lift the GTF annotation in annotation.gtf from reference.fa to target.fa and annotate the status partial or missing start or stop of each CDS?
-liftoff,liftoff,liftoff_06,liftoff_06_st,student,I need to lift the GTF annotation in annotation.gtf from reference.fa to target.fa and annotate the status partial or missing start or stop of each CDS
-liftoff,liftoff,liftoff_06,liftoff_06_po,polite,Please lift the GTF annotation in annotation.gtf from reference.fa to target.fa and annotate the status partial or missing start or stop of each CDS
-liftoff,liftoff,liftoff_06,liftoff_06_sy,sysadmin,Use liftoff to lift the GTF annotation in annotation.gtf from reference.fa to target.fa and annotate the status partial or missing start or stop of each CDS
-liftoff,liftoff,liftoff_07,liftoff_07_or,original,lift annotation in annotation.gff3 from reference.fa to target.fa with a flank fraction of 0.5 to include upstream and downstream intergenic regions
-liftoff,liftoff,liftoff_07,liftoff_07_be,beginner,How do I lift annotation in annotation.gff3 from reference.fa to target.fa with a flank fraction of 0.5 to include upstream and downstream intergenic regions?
-liftoff,liftoff,liftoff_07,liftoff_07_st,student,I need to lift annotation in annotation.gff3 from reference.fa to target.fa with a flank fraction of 0.5 to include upstream and downstream intergenic regions
-liftoff,liftoff,liftoff_07,liftoff_07_po,polite,Please lift annotation in annotation.gff3 from reference.fa to target.fa with a flank fraction of 0.5 to include upstream and downstream intergenic regions
-liftoff,liftoff,liftoff_07,liftoff_07_sy,sysadmin,Use liftoff to lift annotation in annotation.gff3 from reference.fa to target.fa with a flank fraction of 0.5 to include upstream and downstream intergenic regions
-liftoff,liftoff,liftoff_08,liftoff_08_or,original,lift the annotation in annotation.gff3 from reference.fa to target.fa using 16 parallel processes for faster processing of large genomes
-liftoff,liftoff,liftoff_08,liftoff_08_be,beginner,How do I lift the annotation in annotation.gff3 from reference.fa to target.fa using 16 parallel processes for faster processing of large genomes?
-liftoff,liftoff,liftoff_08,liftoff_08_st,student,I need to lift the annotation in annotation.gff3 from reference.fa to target.fa using 16 parallel processes for faster processing of large genomes
-liftoff,liftoff,liftoff_08,liftoff_08_po,polite,Please lift the annotation in annotation.gff3 from reference.fa to target.fa using 16 parallel processes for faster processing of large genomes
-liftoff,liftoff,liftoff_08,liftoff_08_sy,sysadmin,Use liftoff to lift the annotation in annotation.gff3 from reference.fa to target.fa using 16 parallel processes for faster processing of large genomes
-liftoff,liftoff,liftoff_09,liftoff_09_or,original,lift annotation in annotation.gff3 from reference.fa to target.fa using a distance scaling factor of 2.0 to extend the search radius for gene placement
-liftoff,liftoff,liftoff_09,liftoff_09_be,beginner,How do I lift annotation in annotation.gff3 from reference.fa to target.fa using a distance scaling factor of 2.0 to extend the search radius for gene placement?
-liftoff,liftoff,liftoff_09,liftoff_09_st,student,I need to lift annotation in annotation.gff3 from reference.fa to target.fa using a distance scaling factor of 2.0 to extend the search radius for gene placement
-liftoff,liftoff,liftoff_09,liftoff_09_po,polite,Please lift annotation in annotation.gff3 from reference.fa to target.fa using a distance scaling factor of 2.0 to extend the search radius for gene placement
-liftoff,liftoff,liftoff_09,liftoff_09_sy,sysadmin,Use liftoff to lift annotation in annotation.gff3 from reference.fa to target.fa using a distance scaling factor of 2.0 to extend the search radius for gene placement
-liftoff,liftoff,liftoff_10,liftoff_10_or,original,lift annotation in annotation.gff3 from reference.fa to target.fa specifying a custom child feature type gene and exon for refined mapping
-liftoff,liftoff,liftoff_10,liftoff_10_be,beginner,How do I lift annotation in annotation.gff3 from reference.fa to target.fa specifying a custom child feature type gene and exon for refined mapping?
-liftoff,liftoff,liftoff_10,liftoff_10_st,student,I need to lift annotation in annotation.gff3 from reference.fa to target.fa specifying a custom child feature type gene and exon for refined mapping
-liftoff,liftoff,liftoff_10,liftoff_10_po,polite,Please lift annotation in annotation.gff3 from reference.fa to target.fa specifying a custom child feature type gene and exon for refined mapping
-liftoff,liftoff,liftoff_10,liftoff_10_sy,sysadmin,Use liftoff to lift annotation in annotation.gff3 from reference.fa to target.fa specifying a custom child feature type gene and exon for refined mapping
+liftoff,liftoff,liftoff_06,liftoff_06_or,original,lift the GTF annotation in annotation.gtf from reference.fa to target.fa and annotate the CDS status of each feature writing to lifted_out.gtf
+liftoff,liftoff,liftoff_06,liftoff_06_be,beginner,How do I lift the GTF annotation in annotation.gtf from reference.fa to target.fa and annotate the CDS status of each feature writing to lifted_out.gtf?
+liftoff,liftoff,liftoff_06,liftoff_06_st,student,I need to lift the GTF annotation in annotation.gtf from reference.fa to target.fa and annotate the CDS status of each feature writing to lifted_out.gtf
+liftoff,liftoff,liftoff_06,liftoff_06_po,polite,Please lift the GTF annotation in annotation.gtf from reference.fa to target.fa and annotate the CDS status of each feature writing to lifted_out.gtf
+liftoff,liftoff,liftoff_06,liftoff_06_sy,sysadmin,Use liftoff to lift the GTF annotation in annotation.gtf from reference.fa to target.fa and annotate the CDS status of each feature writing to lifted_out.gtf
+liftoff,liftoff,liftoff_07,liftoff_07_or,original,lift annotation in annotation.gff3 from reference.fa to target.fa with a flank fraction of 0.5 to include upstream and downstream intergenic regions writing unmapped features to failed.txt
+liftoff,liftoff,liftoff_07,liftoff_07_be,beginner,How do I lift annotation in annotation.gff3 from reference.fa to target.fa with a flank fraction of 0.5 to include upstream and downstream intergenic regions writing unmapped features to failed.txt?
+liftoff,liftoff,liftoff_07,liftoff_07_st,student,I need to lift annotation in annotation.gff3 from reference.fa to target.fa with a flank fraction of 0.5 to include upstream and downstream intergenic regions writing unmapped features to failed.txt
+liftoff,liftoff,liftoff_07,liftoff_07_po,polite,Please lift annotation in annotation.gff3 from reference.fa to target.fa with a flank fraction of 0.5 to include upstream and downstream intergenic regions writing unmapped features to failed.txt
+liftoff,liftoff,liftoff_07,liftoff_07_sy,sysadmin,Use liftoff to lift annotation in annotation.gff3 from reference.fa to target.fa with a flank fraction of 0.5 to include upstream and downstream intergenic regions writing unmapped features to failed.txt
+liftoff,liftoff,liftoff_08,liftoff_08_or,original,lift the annotation in annotation.gff3 from reference.fa to target.fa using 16 parallel processes for faster processing writing unmapped features to failed.txt
+liftoff,liftoff,liftoff_08,liftoff_08_be,beginner,How do I lift the annotation in annotation.gff3 from reference.fa to target.fa using 16 parallel processes for faster processing writing unmapped features to failed.txt?
+liftoff,liftoff,liftoff_08,liftoff_08_st,student,I need to lift the annotation in annotation.gff3 from reference.fa to target.fa using 16 parallel processes for faster processing writing unmapped features to failed.txt
+liftoff,liftoff,liftoff_08,liftoff_08_po,polite,Please lift the annotation in annotation.gff3 from reference.fa to target.fa using 16 parallel processes for faster processing writing unmapped features to failed.txt
+liftoff,liftoff,liftoff_08,liftoff_08_sy,sysadmin,Use liftoff to lift the annotation in annotation.gff3 from reference.fa to target.fa using 16 parallel processes for faster processing writing unmapped features to failed.txt
+liftoff,liftoff,liftoff_09,liftoff_09_or,original,lift annotation in annotation.gff3 from reference.fa to target.fa using a distance scaling factor of 2.0 to extend the search radius for gene placement writing unmapped features to failed.txt
+liftoff,liftoff,liftoff_09,liftoff_09_be,beginner,How do I lift annotation in annotation.gff3 from reference.fa to target.fa using a distance scaling factor of 2.0 to extend the search radius for gene placement writing unmapped features to failed.txt?
+liftoff,liftoff,liftoff_09,liftoff_09_st,student,I need to lift annotation in annotation.gff3 from reference.fa to target.fa using a distance scaling factor of 2.0 to extend the search radius for gene placement writing unmapped features to failed.txt
+liftoff,liftoff,liftoff_09,liftoff_09_po,polite,Please lift annotation in annotation.gff3 from reference.fa to target.fa using a distance scaling factor of 2.0 to extend the search radius for gene placement writing unmapped features to failed.txt
+liftoff,liftoff,liftoff_09,liftoff_09_sy,sysadmin,Use liftoff to lift annotation in annotation.gff3 from reference.fa to target.fa using a distance scaling factor of 2.0 to extend the search radius for gene placement writing unmapped features to failed.txt
+liftoff,liftoff,liftoff_10,liftoff_10_or,original,lift annotation in annotation.gff3 from reference.fa to target.fa specifying custom child feature type gene and exon for refined mapping
+liftoff,liftoff,liftoff_10,liftoff_10_be,beginner,How do I lift annotation in annotation.gff3 from reference.fa to target.fa specifying custom child feature type gene and exon for refined mapping?
+liftoff,liftoff,liftoff_10,liftoff_10_st,student,I need to lift annotation in annotation.gff3 from reference.fa to target.fa specifying custom child feature type gene and exon for refined mapping
+liftoff,liftoff,liftoff_10,liftoff_10_po,polite,Please lift annotation in annotation.gff3 from reference.fa to target.fa specifying custom child feature type gene and exon for refined mapping
+liftoff,liftoff,liftoff_10,liftoff_10_sy,sysadmin,Use liftoff to lift annotation in annotation.gff3 from reference.fa to target.fa specifying custom child feature type gene and exon for refined mapping
 longshot,longshot,longshot_01,longshot_01_or,original,call SNVs from long-read alignments in alignments.bam against reference.fa and write VCF output to variants.vcf
 longshot,longshot,longshot_01,longshot_01_be,beginner,How do I call SNVs from long-read alignments in alignments.bam against reference.fa and write VCF output to variants.vcf?
 longshot,longshot,longshot_01,longshot_01_st,student,I need to call SNVs from long-read alignments in alignments.bam against reference.fa and write VCF output to variants.vcf
@@ -3644,11 +3644,11 @@ methyldackel,methyldackel,methyldackel_09,methyldackel_09_be,beginner,How do I g
 methyldackel,methyldackel,methyldackel_09,methyldackel_09_st,student,I need to generate per-read methylation summaries from alignments.bam against reference.fa using the extracted methylation file methylation.tsv and write to per_read
 methyldackel,methyldackel,methyldackel_09,methyldackel_09_po,polite,Please generate per-read methylation summaries from alignments.bam against reference.fa using the extracted methylation file methylation.tsv and write to per_read
 methyldackel,methyldackel,methyldackel_09,methyldackel_09_sy,sysadmin,Use methyldackel to generate per-read methylation summaries from alignments.bam against reference.fa using the extracted methylation file methylation.tsv and write to per_read
-methyldackel,methyldackel,methyldackel_10,methyldackel_10_or,original,merge single cytosine methylation metrics from methylation_CpG.txt into per-CpG or per-CHG combined metrics and write to merged
-methyldackel,methyldackel,methyldackel_10,methyldackel_10_be,beginner,How do I merge single cytosine methylation metrics from methylation_CpG.txt into per-CpG or per-CHG combined metrics and write to merged?
-methyldackel,methyldackel,methyldackel_10,methyldackel_10_st,student,I need to merge single cytosine methylation metrics from methylation_CpG.txt into per-CpG or per-CHG combined metrics and write to merged
-methyldackel,methyldackel,methyldackel_10,methyldackel_10_po,polite,Please merge single cytosine methylation metrics from methylation_CpG.txt into per-CpG or per-CHG combined metrics and write to merged
-methyldackel,methyldackel,methyldackel_10,methyldackel_10_sy,sysadmin,Use methyldackel to merge single cytosine methylation metrics from methylation_CpG.txt into per-CpG or per-CHG combined metrics and write to merged
+methyldackel,methyldackel,methyldackel_10,methyldackel_10_or,original,merge single cytosine methylation metrics from methylation_CpG.txt into per-CpG or per-CHG combined metrics using genome.fa as reference and write to merged
+methyldackel,methyldackel,methyldackel_10,methyldackel_10_be,beginner,How do I merge single cytosine methylation metrics from methylation_CpG.txt into per-CpG or per-CHG combined metrics using genome.fa as reference and write to merged?
+methyldackel,methyldackel,methyldackel_10,methyldackel_10_st,student,I need to merge single cytosine methylation metrics from methylation_CpG.txt into per-CpG or per-CHG combined metrics using genome.fa as reference and write to merged
+methyldackel,methyldackel,methyldackel_10,methyldackel_10_po,polite,Please merge single cytosine methylation metrics from methylation_CpG.txt into per-CpG or per-CHG combined metrics using genome.fa as reference and write to merged
+methyldackel,methyldackel,methyldackel_10,methyldackel_10_sy,sysadmin,Use methyldackel to merge single cytosine methylation metrics from methylation_CpG.txt into per-CpG or per-CHG combined metrics using genome.fa as reference and write to merged
 miniasm,miniasm,miniasm_01,miniasm_01_or,original,assemble a genome from reads in reads.fa using minimap2 overlaps in overlaps.paf and write assembly to stdout in GFA format
 miniasm,miniasm,miniasm_01,miniasm_01_be,beginner,How do I assemble a genome from reads in reads.fa using minimap2 overlaps in overlaps.paf and write assembly to stdout in GFA format?
 miniasm,miniasm,miniasm_01,miniasm_01_st,student,I need to assemble a genome from reads in reads.fa using minimap2 overlaps in overlaps.paf and write assembly to stdout in GFA format
