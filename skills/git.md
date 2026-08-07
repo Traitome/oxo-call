@@ -1,6 +1,6 @@
 ---
 name: git
-category: version-control
+category: system-tools
 description: Distributed version control system for tracking changes in source code
 tags: [version-control, vcs, repository, commit, branch, merge, clone, rebase, cherry-pick]
 author: oxo-call built-in

@@ -1,6 +1,6 @@
 ---
 name: grep
-category: text-processing
+category: system-tools
 description: Print lines matching a pattern — search plain-text data using regular expressions
 tags: [search, pattern, regex, text, filter, lines, files]
 author: oxo-call built-in

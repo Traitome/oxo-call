@@ -1,6 +1,6 @@
 ---
 name: sed
-category: text-processing
+category: system-tools
 description: Stream editor for filtering and transforming text — substitution, deletion, insertion
 tags: [sed, text, replace, edit, stream, regex, transform]
 author: oxo-call built-in

@@ -1,6 +1,6 @@
 ---
 name: nanostat
-category: qc
+category: long-reads
 description: Calculates statistics for long-read sequencing datasets from Oxford Nanopore and PacBio
 tags: [nanopore, pacbio, long-read, qc, statistics, quality-control, ont]
 author: oxo-call built-in

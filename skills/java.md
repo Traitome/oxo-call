@@ -1,6 +1,6 @@
 ---
 name: java
-category: programming
+category: system-tools
 description: Java runtime and compiler; executes JAR-based bioinformatics tools (GATK, Picard, FastQC, Trimmomatic) and manages JVM memory
 tags: [java, jvm, jar, gatk, picard, fastqc, trimmomatic, xmx, classpath, openjdk]
 author: oxo-call built-in

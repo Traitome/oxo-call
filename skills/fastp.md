@@ -1,6 +1,6 @@
 ---
 name: fastp
-category: qc
+category: preprocessing
 description: Ultra-fast FASTQ preprocessor with quality control, adapter trimming, and filtering
 tags: [qc, trimming, adapter, fastq, quality-control, ngs, illumina, paired-end, dedup, umi]
 author: oxo-call built-in

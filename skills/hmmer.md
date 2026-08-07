@@ -1,6 +1,6 @@
 ---
 name: hmmer
-category: sequence-utilities
+category: phylogenetics
 description: Profile hidden Markov model-based search for protein families and functional domain annotation
 tags: [protein, hmm, domain, annotation, pfam, homology, protein-family, database-search]
 author: oxo-call built-in

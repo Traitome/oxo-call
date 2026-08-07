@@ -1,6 +1,6 @@
 ---
 name: awk
-category: text-processing
+category: system-tools
 description: Pattern scanning and text processing language for structured text and data extraction
 tags: [awk, gawk, text, columns, csv, tsv, pattern, processing, data, one-liner]
 author: oxo-call built-in

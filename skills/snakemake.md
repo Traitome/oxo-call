@@ -1,6 +1,6 @@
 ---
 name: snakemake
-category: workflow-manager
+category: workflow
 description: Snakemake Python-based workflow manager; rule-based pipelines for bioinformatics with support for conda, singularity, and HPC clusters
 tags: [snakemake, workflow, pipeline, rules, wildcards, conda, singularity, slurm, bioinformatics]
 author: oxo-call built-in

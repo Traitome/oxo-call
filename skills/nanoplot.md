@@ -1,6 +1,6 @@
 ---
 name: nanoplot
-category: qc
+category: long-reads
 description: Visualization and statistics for long-read sequencing data from Oxford Nanopore and PacBio
 tags: [nanopore, long-read, qc, visualization, pacbio, quality-control, statistics]
 author: oxo-call built-in

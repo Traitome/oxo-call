@@ -1,6 +1,6 @@
 ---
 name: find
-category: filesystem
+category: system-tools
 description: Search for files in a directory hierarchy by name, type, size, time, and permissions
 tags: [search, filesystem, files, filter, locate, directories, regex, gnu]
 author: oxo-call built-in

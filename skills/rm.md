@@ -1,6 +1,6 @@
 ---
 name: rm
-category: filesystem
+category: system-tools
 description: Remove files and directories from the filesystem (irreversible without backup)
 tags: [delete, remove, filesystem, cleanup, files, directories]
 author: oxo-call built-in

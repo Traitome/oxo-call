@@ -1,6 +1,6 @@
 ---
 name: python
-category: programming
+category: system-tools
 description: Python interpreter — run scripts, one-liners, and interactive REPL for data science and scripting
 tags: [python, scripting, data-science, programming, repl, jupyter]
 author: oxo-call built-in

@@ -1,6 +1,6 @@
 ---
 name: mash
-category: sequence-utilities
+category: metagenomics
 description: MinHash-based rapid genome distance estimation and sketching
 tags: [minhash, genome-distance, sketching, ANI, metagenomics, clustering]
 author: oxo-call built-in

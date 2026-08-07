@@ -1,6 +1,6 @@
 ---
 name: r
-category: programming
+category: system-tools
 description: R language interpreter and Rscript command; statistical computing, data analysis, and bioinformatics scripting
 tags: [r, rscript, statistics, bioconductor, ggplot2, tidyverse, cran, scripting, data-analysis]
 author: oxo-call built-in

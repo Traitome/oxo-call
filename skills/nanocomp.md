@@ -1,6 +1,6 @@
 ---
 name: nanocomp
-category: qc
+category: long-reads
 description: Comparison and visualization of multiple Oxford Nanopore sequencing runs or samples
 tags: [ont, nanopore, qc, comparison, visualization, reads, nanostat]
 author: oxo-call built-in

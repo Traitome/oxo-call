@@ -1,6 +1,6 @@
 ---
 name: tar
-category: filesystem
+category: system-tools
 description: Archive files together and optionally compress with gzip, bzip2, or xz
 tags: [archive, compress, tar, gzip, bzip2, xz, backup, extract]
 author: oxo-call built-in

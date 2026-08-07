@@ -1,6 +1,6 @@
 ---
 name: nextflow
-category: workflow-manager
+category: workflow
 description: Nextflow dataflow workflow manager; DSL2 pipeline language for bioinformatics, supports HPC schedulers, cloud, and containers
 tags: [nextflow, dsl2, pipeline, nf-core, workflow, slurm, aws, docker, singularity, work-dir]
 author: oxo-call built-in

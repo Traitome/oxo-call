@@ -1,6 +1,6 @@
 ---
 name: ssh
-category: networking
+category: system-tools
 description: OpenSSH secure shell client for encrypted remote login and command execution
 tags: [ssh, remote, networking, security, tunnel, key, sftp]
 author: oxo-call built-in
