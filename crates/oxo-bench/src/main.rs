@@ -1226,8 +1226,19 @@ fn load_scenarios_csv(path: &std::path::Path) -> anyhow::Result<Vec<Scenario>> {
             continue;
         }
         let fields = parse_csv_line(line);
-        if fields.len() >= 5 {
+        if fields.len() >= 6 {
             scenarios.push(Scenario {
+                toolset: fields[0].clone(),
+                tool: fields[1].clone(),
+                scenario_id: fields[2].clone(),
+                reference_args: fields[3].clone(),
+                task_description: fields[4].clone(),
+                category: fields[5].clone(),
+            });
+        } else if fields.len() == 5 {
+            // Legacy 5-column format (backward compat)
+            scenarios.push(Scenario {
+                toolset: fields[0].clone(),
                 tool: fields[0].clone(),
                 scenario_id: fields[1].clone(),
                 reference_args: fields[2].clone(),
@@ -1248,8 +1259,18 @@ fn load_descriptions_csv(path: &std::path::Path) -> anyhow::Result<Vec<UsageDesc
             continue;
         }
         let fields = parse_csv_line(line);
-        if fields.len() >= 5 {
+        if fields.len() >= 6 {
             descriptions.push(UsageDescription {
+                toolset: fields[0].clone(),
+                tool: fields[1].clone(),
+                scenario_id: fields[2].clone(),
+                desc_id: fields[3].clone(),
+                user_level: fields[4].clone(),
+                description: fields[5].clone(),
+            });
+        } else if fields.len() == 5 {
+            descriptions.push(UsageDescription {
+                toolset: fields[0].clone(),
                 tool: fields[0].clone(),
                 scenario_id: fields[1].clone(),
                 desc_id: fields[2].clone(),

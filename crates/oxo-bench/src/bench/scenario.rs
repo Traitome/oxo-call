@@ -38,6 +38,8 @@ pub struct SkillExample {
 /// known-good reference command.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Scenario {
+    #[serde(default)]
+    pub toolset: String,
     pub tool: String,
     pub scenario_id: String,
     pub reference_args: String,
@@ -45,15 +47,39 @@ pub struct Scenario {
     pub category: String,
 }
 
-/// A single usage description — one of 10 paraphrases for a given scenario,
+impl Scenario {
+    pub fn new(tool: impl Into<String>, scenario_id: impl Into<String>,
+               reference_args: impl Into<String>, task_description: impl Into<String>,
+               category: impl Into<String>) -> Self {
+        let tool = tool.into();
+        Self { toolset: tool.clone(), tool, scenario_id: scenario_id.into(),
+               reference_args: reference_args.into(), task_description: task_description.into(),
+               category: category.into() }
+    }
+}
+
+/// A single usage description — one of 5 paraphrases for a given scenario,
 /// written at a particular user-experience level.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct UsageDescription {
+    #[serde(default)]
+    pub toolset: String,
     pub tool: String,
     pub scenario_id: String,
     pub desc_id: String,
     pub user_level: String,
     pub description: String,
+}
+
+impl UsageDescription {
+    pub fn new(tool: impl Into<String>, scenario_id: impl Into<String>,
+               desc_id: impl Into<String>, user_level: impl Into<String>,
+               description: impl Into<String>) -> Self {
+        let tool = tool.into();
+        Self { toolset: tool.clone(), tool, scenario_id: scenario_id.into(),
+               desc_id: desc_id.into(), user_level: user_level.into(),
+               description: description.into() }
+    }
 }
 
 // ── Skill file parsing ───────────────────────────────────────────────────────
@@ -1121,7 +1147,7 @@ pub fn generate_scenarios(skill: &SkillFile) -> Vec<Scenario> {
             let cleaned = strip_shell_metacharacters(&ex.args);
             let cleaned = strip_boilerplate_flags(&skill.name, &cleaned, &ex.task);
             Scenario {
-                tool: skill.name.clone(),
+                toolset: skill.name.clone().clone(), tool: skill.name.clone(),
                 scenario_id: format!("{}_{:02}", skill.name, i + 1),
                 reference_args: cleaned,
                 task_description: ex.task.clone(),
@@ -1480,7 +1506,7 @@ fn synthesise_variant(base: &Scenario, idx: usize) -> Scenario {
     };
 
     Scenario {
-        tool: base.tool.clone(),
+        toolset: base.tool.clone().clone(), tool: base.tool.clone(),
         scenario_id: format!("{}_{:02}", base.tool, idx + 1),
         reference_args: base.reference_args.clone(),
         task_description: new_task,
@@ -1658,7 +1684,7 @@ pub fn generate_descriptions(scenario: &Scenario) -> Vec<UsageDescription> {
         .into_iter()
         .enumerate()
         .map(|(i, desc)| UsageDescription {
-            tool: tool.clone(),
+            toolset: tool.clone().clone(), tool: tool.clone(),
             scenario_id: scenario.scenario_id.clone(),
             desc_id: format!("{}_{:02}", scenario.scenario_id, i + 1),
             user_level: USER_LEVELS[i].to_string(),
@@ -2017,7 +2043,7 @@ source_url: "https://example.com"
     #[test]
     fn test_generate_descriptions_count() {
         let scenario = Scenario {
-            tool: "testtool".to_string(),
+            toolset: "testtool".to_string().clone(), tool: "testtool".to_string(),
             scenario_id: "testtool_01".to_string(),
             reference_args: "analyze -i input.txt -o output.txt".to_string(),
             task_description: "run basic analysis on input.txt".to_string(),
@@ -2034,7 +2060,7 @@ source_url: "https://example.com"
     #[test]
     fn test_generate_descriptions_user_levels() {
         let scenario = Scenario {
-            tool: "testtool".to_string(),
+            toolset: "testtool".to_string().clone(), tool: "testtool".to_string(),
             scenario_id: "testtool_01".to_string(),
             reference_args: "analyze -i input.txt".to_string(),
             task_description: "run basic analysis on input.txt".to_string(),
@@ -2048,7 +2074,7 @@ source_url: "https://example.com"
     #[test]
     fn test_generate_descriptions_diversity() {
         let scenario = Scenario {
-            tool: "samtools".to_string(),
+            toolset: "samtools".to_string().clone(), tool: "samtools".to_string(),
             scenario_id: "samtools_01".to_string(),
             reference_args: "sort -@ 4 -o sorted.bam input.bam".to_string(),
             task_description: "sort a BAM file by genomic coordinates".to_string(),
@@ -2072,7 +2098,7 @@ source_url: "https://example.com"
     #[test]
     fn test_write_scenarios_csv() {
         let scenarios = vec![Scenario {
-            tool: "testtool".to_string(),
+            toolset: "testtool".to_string().clone(), tool: "testtool".to_string(),
             scenario_id: "testtool_01".to_string(),
             reference_args: "analyze -i input.txt".to_string(),
             task_description: "run analysis".to_string(),
@@ -2088,7 +2114,7 @@ source_url: "https://example.com"
     #[test]
     fn test_write_descriptions_csv() {
         let descs = vec![UsageDescription {
-            tool: "testtool".to_string(),
+            toolset: "testtool".to_string().clone(), tool: "testtool".to_string(),
             scenario_id: "testtool_01".to_string(),
             desc_id: "testtool_01_01".to_string(),
             user_level: "beginner".to_string(),
@@ -2208,7 +2234,7 @@ source_url: "https://example.com"
     #[test]
     fn test_synthesise_variant_never_modifies_args() {
         let base = Scenario {
-            tool: "bcftools".to_string(),
+            toolset: "bcftools".to_string().clone(), tool: "bcftools".to_string(),
             scenario_id: "bcftools_01".to_string(),
             reference_args: "mpileup -f ref.fa input.bam | bcftools call -mv -o out.vcf"
                 .to_string(),
@@ -2228,7 +2254,7 @@ source_url: "https://example.com"
     #[test]
     fn test_synthesise_variant_rephrases_task() {
         let base = Scenario {
-            tool: "samtools".to_string(),
+            toolset: "samtools".to_string().clone(), tool: "samtools".to_string(),
             scenario_id: "samtools_01".to_string(),
             reference_args: "sort -@ 4 -o sorted.bam input.bam".to_string(),
             task_description: "sort BAM".to_string(),
@@ -2698,7 +2724,7 @@ source_url: "https://example.com"
     #[test]
     fn test_substitute_file_tokens_changes_filenames() {
         let mut scenario = Scenario {
-            tool: "samtools".to_string(),
+            toolset: "samtools".to_string().clone(), tool: "samtools".to_string(),
             scenario_id: "samtools_01".to_string(),
             reference_args: "sort -o sorted.bam input.bam".to_string(),
             task_description: "sort input.bam by genomic coordinates".to_string(),
@@ -2726,7 +2752,7 @@ source_url: "https://example.com"
     #[test]
     fn test_substitute_file_tokens_updates_task_description() {
         let mut scenario = Scenario {
-            tool: "samtools".to_string(),
+            toolset: "samtools".to_string().clone(), tool: "samtools".to_string(),
             scenario_id: "samtools_02".to_string(),
             reference_args: "sort -o sorted.bam input.bam".to_string(),
             task_description: "sort input.bam by coordinate".to_string(),
@@ -2744,7 +2770,7 @@ source_url: "https://example.com"
     #[test]
     fn test_substitute_preserves_args_without_files() {
         let mut scenario = Scenario {
-            tool: "date".to_string(),
+            toolset: "date".to_string().clone(), tool: "date".to_string(),
             scenario_id: "date_01".to_string(),
             reference_args: "+%Y-%m-%d".to_string(),
             task_description: "show current date".to_string(),
@@ -2778,7 +2804,7 @@ source_url: "https://example.com"
     fn test_substitute_preserves_script_names() {
         // AGAT-style scenario where the first token is a script executable.
         let mut scenario = Scenario {
-            tool: "agat".to_string(),
+            toolset: "agat".to_string().clone(), tool: "agat".to_string(),
             scenario_id: "agat_01".to_string(),
             reference_args: "agat_convert_sp_gff2gtf.pl --gff annotation.gff3 -o annotation.gtf"
                 .to_string(),
@@ -2831,7 +2857,7 @@ source_url: "https://example.com"
     fn test_synthesise_variant_never_adds_invalid_flags() {
         // Ensure no variant ever adds --verbose, -t, -o, or --quiet to args.
         let base = Scenario {
-            tool: "fastqc".to_string(),
+            toolset: "fastqc".to_string().clone(), tool: "fastqc".to_string(),
             scenario_id: "fastqc_01".to_string(),
             reference_args: "sample.fastq.gz -o qc_results/".to_string(),
             task_description: "run quality control".to_string(),

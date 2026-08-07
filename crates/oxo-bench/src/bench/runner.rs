@@ -1575,14 +1575,14 @@ mod tests {
 
     fn sample_scenarios() -> Vec<Scenario> {
         vec![
-            Scenario {
+            Scenario { toolset: "samtools".to_string(),
                 tool: "samtools".to_string(),
                 scenario_id: "samtools_01".to_string(),
                 reference_args: "sort -@ 4 -o sorted.bam input.bam".to_string(),
                 task_description: "sort a BAM file".to_string(),
                 category: "alignment".to_string(),
             },
-            Scenario {
+            Scenario { toolset: "samtools".to_string(),
                 tool: "samtools".to_string(),
                 scenario_id: "samtools_02".to_string(),
                 reference_args: "index sorted.bam".to_string(),
@@ -1595,14 +1595,14 @@ mod tests {
     fn sample_descriptions() -> Vec<UsageDescription> {
         vec![
             UsageDescription {
-                tool: "samtools".to_string(),
+                toolset: "samtools".to_string().clone(), tool: "samtools".to_string(),
                 scenario_id: "samtools_01".to_string(),
                 desc_id: "samtools_01_01".to_string(),
                 user_level: "beginner".to_string(),
                 description: "sort a BAM file".to_string(),
             },
             UsageDescription {
-                tool: "samtools".to_string(),
+                toolset: "samtools".to_string().clone(), tool: "samtools".to_string(),
                 scenario_id: "samtools_02".to_string(),
                 desc_id: "samtools_02_01".to_string(),
                 user_level: "beginner".to_string(),
