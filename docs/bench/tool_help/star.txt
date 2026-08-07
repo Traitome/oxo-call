@@ -1,1 +1,0 @@
-timeout: failed to run command ‘star’: No such file or directory

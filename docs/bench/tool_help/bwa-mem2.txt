@@ -1,3 +1,0 @@
-Looking to launch executable "/data/home/wsx/.pixi/envs/bwa-mem2/bin/bwa-mem2.avx512bw", simd = .avx512bw
-Launching executable "/data/home/wsx/.pixi/envs/bwa-mem2/bin/bwa-mem2.avx512bw"
-ERROR: unknown command '--help'

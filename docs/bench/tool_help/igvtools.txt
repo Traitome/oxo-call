@@ -1,3 +1,0 @@
-Unknown option '--help'
-Enter igvtools help --help for help on this command
-Done

@@ -1,1 +1,0 @@
-/data/home/wsx/.pixi/envs/mummer/bin/mummer: illegal option "--help"

@@ -1,2 +1,0 @@
-[2026-08-06T05:43:16] Launching Arriba 2.5.1
-ERROR: unknown option: --

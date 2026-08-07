@@ -1,1 +1,0 @@
-Unknown option: --help=true -- Check the available commands and options and syntax with 'help'
