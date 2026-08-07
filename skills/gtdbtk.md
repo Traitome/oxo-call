@@ -1,6 +1,6 @@
 ---
 name: gtdbtk
-category: taxonomy
+category: phylogenetics
 description: GTDB-Tk — taxonomic classification of prokaryotic genomes using the Genome Taxonomy Database
 tags: [taxonomy, gtdb, phylogenomics, bacteria, archaea, mag, classification, metagenomics]
 author: oxo-call built-in
