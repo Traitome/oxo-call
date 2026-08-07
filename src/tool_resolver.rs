@@ -54,15 +54,13 @@ struct SkillMeta {
 /// Extract name and category from a skill markdown string.
 fn parse_skill_meta(md: &str) -> Option<SkillMeta> {
     let name = md.lines()
-        .skip_while(|l| !l.starts_with("name:"))
-        .next()?
-        .strip_prefix("name:")?
+        .find(|l| l.starts_with("name:"))?
+        .trim_start_matches("name:")
         .trim()
         .to_string();
     let category = md.lines()
-        .skip_while(|l| !l.starts_with("category:"))
-        .next()
-        .map(|l| l.strip_prefix("category:").unwrap_or("unknown").trim().to_string())
+        .find(|l| l.starts_with("category:"))
+        .map(|l| l.trim_start_matches("category:").trim().to_string())
         .unwrap_or_else(|| "unknown".to_string());
     Some(SkillMeta { name, category })
 }

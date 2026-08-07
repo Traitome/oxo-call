@@ -46,12 +46,10 @@ pub fn extract_flags(help: &str) -> FlagCatalog {
         let t = l.trim();
         if t.is_empty() || t.starts_with('#') || t.starts_with("---") || t.starts_with("==") { continue; }
         if !t.starts_with('-') { continue; }
-        let flag = parse_one(t);
-        if let Some(f) = flag {
-            if !cat.flags.iter().any(|x| x.long == f.long && x.short == f.short) {
+        if let Some(f) = parse_one(t)
+            && !cat.flags.iter().any(|x| x.long == f.long && x.short == f.short) {
                 cat.flags.push(f);
             }
-        }
     }
     cat
 }
@@ -104,15 +102,14 @@ fn type_and_desc(s: &str) -> (String, String) {
     let s = s.trim();
     for kw in &["INT", "int", "STRING", "STR", "string", "FILE", "file",
         "FLOAT", "float", "DIR", "directory", "PATH", "path", "NUMBER"] {
-        if s.starts_with(kw) && (s.len() == kw.len() || s[kw.len()..].starts_with(|c: char| c.is_whitespace())) {
-            let desc = s[kw.len()..].trim().to_string();
-            return (kw.to_string(), desc);
-        }
+        if let Some(rest) = s.strip_prefix(kw)
+            && (rest.is_empty() || rest.starts_with(|c: char| c.is_whitespace())) {
+                return (kw.to_string(), rest.trim().to_string());
+            }
     }
     for kw in &["<int>", "<string>", "<float>", "<file>", "<dir>", "<path>"] {
-        if s.starts_with(kw) {
-            let desc = s[kw.len()..].trim().to_string();
-            return (kw.to_string(), desc);
+        if let Some(rest) = s.strip_prefix(kw) {
+            return (kw.to_string(), rest.trim().to_string());
         }
     }
     ("bool".into(), s.to_string())
