@@ -1,6 +1,6 @@
 ---
 name: sra-tools
-category: utilities
+category: data-download
 description: NCBI SRA toolkit for downloading and converting sequencing data from the Sequence Read Archive
 tags: [sra, ncbi, download, fastq, sequencing-data, public-data, accession]
 author: oxo-call built-in

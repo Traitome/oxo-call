@@ -1,6 +1,6 @@
 ---
 name: chopper
-category: qc
+category: preprocessing
 description: Quality filtering and trimming of Oxford Nanopore reads based on quality score and length
 tags: [nanopore, long-read, qc, filtering, trimming, quality-control, ont, rust, nanofilt]
 author: oxo-call built-in

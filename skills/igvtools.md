@@ -1,6 +1,6 @@
 ---
 name: igvtools
-category: utilities
+category: sequence-utilities
 description: IGV tools for preprocessing genomic data files for visualization in the Integrative Genomics Viewer
 tags: [visualization, igv, bam, vcf, bigwig, tdf, genome-browser, coverage]
 author: oxo-call built-in

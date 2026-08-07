@@ -1,6 +1,6 @@
 ---
 name: quast
-category: assembly
+category: genome-evaluation
 description: Quality assessment tool for genome assemblies with reference-based and reference-free metrics
 tags: [assembly, quality-assessment, genome, n50, contigs, benchmarking, metagenome]
 author: oxo-call built-in

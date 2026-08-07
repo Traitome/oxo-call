@@ -1,6 +1,6 @@
 ---
 name: picard
-category: alignment
+category: sequence-utilities
 description: "Java toolkit for NGS data manipulation: duplicate marking, metrics collection, format conversion, and more"
 tags: [bam, sam, duplicates, metrics, illumina, ngs, gatk, markduplicates]
 author: oxo-call built-in

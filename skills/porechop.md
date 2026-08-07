@@ -1,6 +1,6 @@
 ---
 name: porechop
-category: qc
+category: preprocessing
 description: Adapter finder and trimmer for Oxford Nanopore reads with chimera detection
 tags: [nanopore, long-read, adapter-trimming, qc, ont, chimera]
 author: oxo-call built-in

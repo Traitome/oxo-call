@@ -1,6 +1,6 @@
 ---
 name: checkm2
-category: metagenomics
+category: genome-evaluation
 description: Assessment of metagenome-assembled genome (MAG) and isolate genome quality using machine learning
 tags: [metagenomics, mag, quality, completeness, contamination, genome, binning, MIMAG, diamond, prodigal]
 author: oxo-call built-in

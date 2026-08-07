@@ -1,6 +1,6 @@
 ---
 name: trimmomatic
-category: qc
+category: preprocessing
 description: Flexible read trimming tool for Illumina NGS data with adapter removal and quality filtering
 tags: [trimming, adapter, quality-control, illumina, paired-end, ngs]
 author: oxo-call built-in

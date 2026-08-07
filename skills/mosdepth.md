@@ -1,6 +1,6 @@
 ---
 name: mosdepth
-category: utilities
+category: qc
 description: Fast BAM/CRAM depth calculation per base, region, and window for coverage analysis
 tags: [coverage, depth, bam, wgs, wes, qc, statistics, regions]
 author: oxo-call built-in

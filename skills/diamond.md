@@ -1,6 +1,6 @@
 ---
 name: diamond
-category: metagenomics
+category: sequence-utilities
 description: Ultra-fast protein and translated DNA database search tool — 500-20000x faster than BLAST with comparable sensitivity
 tags: [blast, protein, database-search, metagenomics, annotation, alignment, nr, uniprot, blastp, blastx, clustering, linclust]
 author: oxo-call built-in

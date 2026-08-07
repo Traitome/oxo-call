@@ -1,6 +1,6 @@
 ---
 name: busco
-category: assembly
+category: genome-evaluation
 description: Benchmarking Universal Single-Copy Orthologs — genome and proteome completeness assessment using OrthoDB lineages
 tags: [assembly, completeness, annotation, ortholog, genome, quality-assessment, eukaryote, bacteria, miniprot, odb12]
 author: oxo-call built-in

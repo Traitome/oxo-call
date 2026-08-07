@@ -1,6 +1,6 @@
 ---
 name: curl
-category: networking
+category: data-download
 description: Transfer data to/from servers supporting HTTP, HTTPS, FTP, and many other protocols
 tags: [curl, http, https, download, api, rest, networking, upload, request, ftp, sftp, wget]
 author: oxo-call built-in

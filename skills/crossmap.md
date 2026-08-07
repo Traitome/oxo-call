@@ -1,6 +1,6 @@
 ---
 name: crossmap
-category: utilities
+category: sequence-utilities
 description: Genomic coordinate conversion between genome assemblies (e.g., hg19 to hg38) for various file formats
 tags: [coordinates, liftover, assembly, vcf, bed, bam, genome, conversion, chain, UCSC]
 author: oxo-call built-in

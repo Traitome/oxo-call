@@ -1,6 +1,6 @@
 ---
 name: medaka
-category: variant-calling
+category: assembly
 description: Sequence correction and variant calling for Oxford Nanopore sequencing using neural network models
 tags: [nanopore, long-read, polishing, variant-calling, consensus, ont, neural-network]
 author: oxo-call built-in

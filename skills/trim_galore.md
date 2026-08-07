@@ -1,6 +1,6 @@
 ---
 name: trim_galore
-category: qc
+category: preprocessing
 description: Wrapper around Cutadapt and FastQC for quality and adapter trimming with automatic quality control
 tags: [trimming, adapter, quality-control, illumina, bisulfite, rrbs, fastqc]
 author: oxo-call built-in

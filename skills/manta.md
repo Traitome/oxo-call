@@ -1,6 +1,6 @@
 ---
 name: manta
-category: variant-calling
+category: structural-variants
 description: Structural variant and indel caller for short-read sequencing data
 tags: [structural-variant, sv, indel, cnv, deletion, insertion, translocation, vcf]
 author: oxo-call built-in

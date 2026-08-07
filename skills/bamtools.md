@@ -1,6 +1,6 @@
 ---
 name: bamtools
-category: utilities
+category: sequence-utilities
 description: Command-line toolkit for reading, writing, and manipulating BAM format alignment files
 tags: [bam, alignment, statistics, filtering, merging, splitting, ngs, utility, convert]
 author: oxo-call built-in

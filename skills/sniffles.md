@@ -1,6 +1,6 @@
 ---
 name: sniffles
-category: variant-calling
+category: structural-variants
 description: Structural variant caller for long-read sequencing data from Oxford Nanopore and PacBio platforms
 tags: [structural-variant, sv, long-read, nanopore, pacbio, deletion, insertion, vcf]
 author: oxo-call built-in

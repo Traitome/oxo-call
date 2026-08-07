@@ -1,6 +1,6 @@
 ---
 name: truvari
-category: utilities
+category: structural-variants
 description: Structural variant benchmarking, merging, and comparison against truth sets
 tags: [sv, structural-variants, benchmarking, vcf, comparison, long-read]
 author: oxo-call built-in

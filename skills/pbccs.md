@@ -1,6 +1,6 @@
 ---
 name: pbccs
-category: long-read
+category: long-reads
 description: PacBio CCS (Circular Consensus Sequencing) for generating high-fidelity HiFi reads from SMRT sequencing
 tags: [pacbio, hifi, ccs, long-read, basecalling, consensus, smrt]
 author: oxo-call built-in

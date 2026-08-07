@@ -1,6 +1,6 @@
 ---
 name: prokka
-category: metagenomics
+category: functional-annotation
 description: Rapid prokaryotic genome annotation pipeline for bacteria, archaea, and viruses
 tags: [annotation, genome, prokaryote, bacteria, gff, genbank, metagenomics, assembly]
 author: oxo-call built-in

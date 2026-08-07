@@ -1,6 +1,6 @@
 ---
 name: humann3
-category: metagenomics
+category: functional-annotation
 description: HUMAnN3 — functional profiling of metagenomes for pathway and gene family abundance
 tags: [metagenomics, functional-profiling, pathway, gene-family, microbiome, uniref, metacyc]
 author: oxo-call built-in

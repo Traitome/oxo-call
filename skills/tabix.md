@@ -1,6 +1,6 @@
 ---
 name: tabix
-category: utilities
+category: sequence-utilities
 description: Index and query position-sorted genomic files (VCF, BED, GFF, GTF) for fast random-access lookups
 tags: [indexing, vcf, bed, gff, compression, bgzip, tabular, utility]
 author: oxo-call built-in

@@ -1,6 +1,6 @@
 ---
 name: delly
-category: variant-calling
+category: structural-variants
 description: Integrated structural variant prediction at single-nucleotide resolution using short-read and long-read sequencing
 tags: [structural-variant, sv, deletion, inversion, duplication, translocation, vcf, bcf, cnv, long-read, pacbio, nanopore]
 author: oxo-call built-in

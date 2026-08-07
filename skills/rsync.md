@@ -1,6 +1,6 @@
 ---
 name: rsync
-category: networking
+category: data-download
 description: Fast, versatile file copying and synchronization tool with delta-transfer algorithm
 tags: [rsync, sync, copy, backup, remote, transfer, mirror]
 author: oxo-call built-in

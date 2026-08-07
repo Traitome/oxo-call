@@ -1,6 +1,6 @@
 ---
 name: pbsv
-category: variant-calling
+category: structural-variants
 description: PacBio structural variant caller for HiFi and CLR reads
 tags: [structural-variant, sv, pacbio, hifi, long-read, vcf, deletion, insertion]
 author: oxo-call built-in

@@ -1,6 +1,6 @@
 ---
 name: vcftools
-category: variant-calling
+category: population-genomics
 description: Tool for working with VCF and BCF files — filtering, statistics, format conversion, and population genetics
 tags: [vcf, filtering, population-genetics, statistics, format-conversion, snp, ngs]
 author: oxo-call built-in

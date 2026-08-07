@@ -1,6 +1,6 @@
 ---
 name: bakta
-category: annotation
+category: functional-annotation
 description: Fast and standardized annotation of bacterial genomes and plasmids in GFF3 and GenBank format
 tags: [annotation, bacteria, genome, gff, genbank, plasmid, ncbi, insdc, prokaryote, mag]
 author: oxo-call built-in

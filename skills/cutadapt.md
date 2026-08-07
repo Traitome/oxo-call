@@ -1,6 +1,6 @@
 ---
 name: cutadapt
-category: qc
+category: preprocessing
 description: Finds and removes adapter sequences, primers, poly-A tails and other unwanted sequences from sequencing reads
 tags: [trimming, adapter, quality-control, fastq, ngs, illumina, single-cell, linked-adapters, demultiplexing]
 author: oxo-call built-in

@@ -1,6 +1,6 @@
 ---
 name: wget
-category: networking
+category: data-download
 description: Non-interactive network downloader for HTTP, HTTPS, and FTP with resume and recursion support
 tags: [wget, download, http, ftp, networking, mirror, recursive]
 author: oxo-call built-in
