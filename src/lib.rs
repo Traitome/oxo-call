@@ -27,7 +27,6 @@ pub mod docs;
 pub mod error;
 pub mod execution;
 pub mod format;
-pub mod generator;
 pub mod handlers;
 pub mod history;
 pub mod index;

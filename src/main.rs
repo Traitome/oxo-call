@@ -45,7 +45,6 @@ mod docs;
 mod error;
 mod execution;
 mod format;
-mod generator;
 mod handlers;
 mod history;
 mod index;
