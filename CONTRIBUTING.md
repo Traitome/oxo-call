@@ -104,11 +104,18 @@ oxo-call/
 ├── src/
 │   ├── main.rs             # Entry point; license gate + command dispatch
 │   ├── cli.rs              # Clap command tree (run, dry-run, docs, config, …)
-│   ├── runner.rs            # Core orchestration: docs → skill → LLM → execute
+│   ├── runner/             # Command generation: docs → skill → LLM → execute
+│   │   ├── core.rs         #   Primary orchestration and execution
+│   │   ├── batch.rs        #   Input-item fan-out with --input-list / --input-items
+│   │   ├── retry.rs        #   Bounded command retry logic
+│   │   └── validation.rs   #   Generated command validation
 │   ├── docs.rs              # Documentation resolver (cache, help, remote)
 │   ├── index.rs             # Persistent documentation index
 │   ├── skill.rs             # Skill system: built-in, community, user skills
-│   ├── llm.rs               # Prompt building and ARGS:/EXPLANATION: parsing
+│   ├── llm/                 # LLM client and prompt assembly
+│   │   ├── provider.rs     #   Multi-provider HTTP client
+│   │   ├── prompt.rs       #   System prompt templates
+│   │   └── types.rs        #   Request/response types
 │   ├── config.rs            # Platform-aware configuration
 │   ├── history.rs           # JSONL command history
 │   └── license.rs           # Offline Ed25519 license verification

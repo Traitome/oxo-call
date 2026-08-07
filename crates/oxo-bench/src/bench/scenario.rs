@@ -1891,15 +1891,15 @@ pub fn write_scenarios_csv<W: Write>(
 ) -> std::io::Result<()> {
     writeln!(
         writer,
-        "tool,scenario_id,reference_args,task_description,category"
+        "toolset,tool,scenario_id,reference_args,task_description,category"
     )?;
     for s in scenarios {
         let args_esc = csv_escape(&s.reference_args);
         let task_esc = csv_escape(&s.task_description);
         writeln!(
             writer,
-            "{},{},{},{},{}",
-            s.tool, s.scenario_id, args_esc, task_esc, s.category
+            "{},{},{},{},{},{}",
+            s.toolset, s.tool, s.scenario_id, args_esc, task_esc, s.category
         )?;
     }
     Ok(())
@@ -1907,18 +1907,18 @@ pub fn write_scenarios_csv<W: Write>(
 
 /// Write usage descriptions to CSV.
 ///
-/// Columns: `tool,scenario_id,desc_id,user_level,description`
+/// Columns: `toolset,tool,scenario_id,desc_id,user_level,description`
 pub fn write_descriptions_csv<W: Write>(
     writer: &mut W,
     descriptions: &[UsageDescription],
 ) -> std::io::Result<()> {
-    writeln!(writer, "tool,scenario_id,desc_id,user_level,description")?;
+    writeln!(writer, "toolset,tool,scenario_id,desc_id,user_level,description")?;
     for d in descriptions {
         let desc_esc = csv_escape(&d.description);
         writeln!(
             writer,
-            "{},{},{},{},{}",
-            d.tool, d.scenario_id, d.desc_id, d.user_level, desc_esc
+            "{},{},{},{},{},{}",
+            d.toolset, d.tool, d.scenario_id, d.desc_id, d.user_level, desc_esc
         )?;
     }
     Ok(())
@@ -2107,7 +2107,7 @@ source_url: "https://example.com"
         let mut buf = Vec::new();
         write_scenarios_csv(&mut buf, &scenarios).unwrap();
         let text = String::from_utf8(buf).unwrap();
-        assert!(text.starts_with("tool,scenario_id,reference_args,task_description,category"));
+        assert!(text.starts_with("toolset,tool,scenario_id,reference_args,task_description,category"));
         assert!(text.contains("testtool,testtool_01"));
     }
 
@@ -2123,7 +2123,7 @@ source_url: "https://example.com"
         let mut buf = Vec::new();
         write_descriptions_csv(&mut buf, &descs).unwrap();
         let text = String::from_utf8(buf).unwrap();
-        assert!(text.starts_with("tool,scenario_id,desc_id,user_level,description"));
+        assert!(text.starts_with("toolset,tool,scenario_id,desc_id,user_level,description"));
         assert!(text.contains("testtool_01_01"));
     }
 

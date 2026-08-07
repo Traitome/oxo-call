@@ -73,6 +73,8 @@ command_pipeline.rs        fast/quality command-generation pipeline
 context_scenario.rs        named command-generation context scenarios
 docs.rs                    documentation resolution and caching
 doc_processor.rs           flag and example extraction
+flag_extractor.rs          pattern-based flag extraction from --help
+tool_resolver.rs           dynamic tool resolution with alias mapping
 skill.rs, mcp.rs           built-in, user, community, and MCP skills
 context.rs                 LLM prompt-context assembly
 llm/                       provider abstraction and response types
@@ -82,8 +84,10 @@ config.rs                  TOML configuration and environment overrides
 license.rs                 Ed25519 offline license verification
 ```
 
-Other modules provide interactive chat, remote-server and job support,
-formatting, cache management, tool discovery, and error handling. They support
+Other modules include `chat.rs` (interactive chat), `server.rs` (remote server
+management), `job.rs` (job library), `cache.rs` (documentation cache),
+`task_complexity.rs` (task analysis), `streaming_display.rs` (SSE rendering),
+and `format.rs`/`error.rs` (output and error handling). They support
 the command-generation interface; none establishes a DAG execution model.
 
 ## Design invariants

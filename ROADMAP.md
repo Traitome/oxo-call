@@ -46,7 +46,7 @@ These invariants take precedence over feature work. Every proposal must state ho
 
 Milestones are ordered by **acceptance evidence**, not dates. Marketing must not substitute for a missed gate.
 
-### M0 — Scope reset (this change)
+### M0 — Scope reset ✅ (completed 2026-08)
 
 - Remove the public DAG CLI, native format, templates, executor, graph visualization, exports, and associated benchmarks.
 - Rename internal single-command `Fast`/`Quality` inference to `GenerationMode`/`CommandGenerationPipeline`, so multiple LLM calls are not misrepresented as a workflow.

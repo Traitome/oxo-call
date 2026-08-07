@@ -35,12 +35,12 @@ oxo-call is an AI-powered CLI assistant for bioinformatics. Instead of memorizin
 
 - 🧠 **LLM-powered** — GitHub Copilot, OpenAI, Anthropic, or local Ollama
 - 📚 **Docs-grounded** — tool `--help` output is cached and injected before every LLM call
-- 🎯 **Skill system** — built-in expert knowledge for 150+ bioinformatics tools across 40+ domains
+- 🎯 **Skill system** — built-in expert knowledge for 158 bioinformatics tools across 40+ domains
 - 🔗 **Unix-first boundary** — generate one inspectable command; use [oxo-flow](https://github.com/Traitome/oxo-flow) for DAG orchestration
 - 🔍 **Dry-run mode** — preview every command before it runs
 - 📜 **History** — every execution is logged with provenance metadata
 - 📋 **Job library** — save named command shortcuts with scheduling, history, and LLM generation (`oxo-call job`)
-- 📊 **Benchmarked** — [Systematic evaluation framework](docs/bench/BENCHMARK.md) across 133 bioinformatics tools with 13,300 descriptions; run `oxo-bench eval` with your own API key to measure real LLM accuracy
+- 📊 **Benchmarked** — [Systematic evaluation framework](docs/bench/BENCHMARK.md) across 138 bioinformatics tools with 6,900 descriptions; run `oxo-bench eval` with your own API key to measure real LLM accuracy
 
 ## Scope: one command, composed well
 

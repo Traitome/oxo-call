@@ -39,11 +39,13 @@ Integration tests live in `tests/cli_tests.rs` and execute the compiled binary. 
 |------|---------|
 | `src/cli.rs` | Clap command definitions |
 | `src/main.rs` | Command dispatcher + license gate |
-| `src/runner.rs` | Core orchestration: docs → skill → LLM → execute → (verify) |
-| `src/llm.rs` | LLM client: command generation, task optimization, result verification |
-| `src/command_pipeline.rs` | Fast/quality generation for one command |
+| `src/runner/` | Command generation: docs → skill → LLM → execute → verify |
+| `src/llm/` | LLM client: provider abstraction, prompt templates, streaming |
+| `src/command_pipeline.rs` | Single/multi-stage command generation pipeline |
 | `src/docs.rs` | Documentation resolver + caching |
 | `src/skill.rs` | Built-in and user skill loading |
+| `src/flag_extractor.rs` | Pattern-based flag extraction from --help |
+| `src/tool_resolver.rs` | Dynamic tool resolution with alias mapping |
 | `src/history.rs` | JSONL command history with provenance |
 | `src/license.rs` | Ed25519 offline license verification |
 
@@ -53,7 +55,7 @@ Integration tests live in `tests/cli_tests.rs` and execute the compiled binary. 
 
 **Docs-first grounding** — `Runner::prepare()` fetches tool docs *before* loading a skill or calling the LLM. Preserve this order.
 
-**LLM response format** — `src/llm.rs` expects `ARGS:` and `EXPLANATION:` lines and retries on invalid format. The three LLM roles (command generation, `--optimize-task`, `--verify`) each use a dedicated system prompt.
+**LLM response format** — `src/llm/` expects `ARGS:` and `EXPLANATION:` lines and retries on invalid format. The LLM roles (command generation, task optimization, result verification) each use a dedicated system prompt.
 
 **Skill precedence** — `user > community > mcp > built-in`. Reuse `SkillManager`; do not add ad-hoc skill loading. Use `load_async()` in async contexts (runner, CLI commands) and `load()` only where sync is unavoidable.
 
@@ -68,7 +70,7 @@ Integration tests live in `tests/cli_tests.rs` and execute the compiled binary. 
 **New flag on `run` or `dry-run`:**
 1. `src/cli.rs` — add the field to `Commands::Run` / `Commands::DryRun`
 2. `src/main.rs` — destructure and pass to `Runner`
-3. `src/runner.rs` — add field + builder method, wire into `run()` / `dry_run()`
+3. `src/runner/core.rs` — add field + builder method, wire into `run()` / `dry_run()`
 4. `tests/cli_tests.rs` — add a parse test and/or help-text test
 5. `docs/guide/src/commands/run.md` or `dry-run.md` — update options table and examples
 
@@ -79,12 +81,12 @@ Integration tests live in `tests/cli_tests.rs` and execute the compiled binary. 
 1. `skills/<tool>.md` — YAML front-matter (`name`, `category`, `description`, `tags`, `author`, `source_url`) + `## Concepts` + `## Pitfalls` + `## Examples` sections (≥3 concepts, ≥3 pitfalls, ≥5 examples). Each example: `### task` → `**Args:** \`flags\`` → `**Explanation:** text`
 2. `src/skill.rs` — add to `BUILTIN_SKILLS` array with `include_str!`
 
-**Orchestration boundary:**
+**Scope boundary:**
 - Do not add a native workflow format, workflow templates, a DAG engine, or
   scheduler behavior to oxo-call.
-- Keep `run` and `dry-run` focused on one reviewable tool invocation. Internal
-  fast/quality generation may use several LLM calls, but must not become
-  multi-step execution.
+- Keep `run` and `dry-run` focused on one reviewable tool invocation. The
+  command-generation pipeline may use several LLM calls internally (e.g., task
+  normalization + generation), but must not become multi-step execution.
 - Send dependency-aware workflows, environments, resume behavior, and resource
   scheduling to [oxo-flow](https://github.com/Traitome/oxo-flow).
 

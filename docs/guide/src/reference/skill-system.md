@@ -75,7 +75,7 @@ Skills are loaded with the following precedence (highest wins):
 
 Both `.md` and `.toml` extensions are checked for user and community skills.
 
-## Built-in Coverage (150+ Tools)
+## Built-in Coverage (158 Tools)
 
 | Domain | Tools |
 |--------|-------|

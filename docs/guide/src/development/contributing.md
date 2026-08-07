@@ -108,7 +108,7 @@ cargo run -p oxo-bench -- evaluate --tool mytool
 cargo run -p oxo-bench -- evaluate --tool mytool
 ```
 
-Results are exported to `docs/bench_eval_tasks.csv` and `docs/bench_scenarios.csv`.
+Results are exported to `docs/bench/bench_eval_tasks.csv` and `docs/bench/bench_scenarios.csv`.
 
 ## Changelog
 

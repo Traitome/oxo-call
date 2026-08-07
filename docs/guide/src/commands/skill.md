@@ -26,7 +26,7 @@ Skills can come from four sources (highest priority first):
 1. **User-defined** files in `~/.config/oxo-call/skills/`
 2. **Community-installed** files in `~/.local/share/oxo-call/skills/`
 3. **MCP servers** — remote skill providers using the Model Context Protocol
-4. **Built-in** — compiled into the binary (159 tools)
+4. **Built-in** — compiled into the binary (158 tools)
 
 ## Subcommands
 

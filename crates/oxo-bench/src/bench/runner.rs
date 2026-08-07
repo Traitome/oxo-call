@@ -549,29 +549,20 @@ pub struct OxoCallGenerator {
 
 impl CommandGenerator for OxoCallGenerator {
     fn generate(&self, tool: &str, task: &str, model: &str) -> GeneratedCommand {
-        let mut cmd = std::process::Command::new(&self.binary_path);
+        // Wrap with system timeout (120s) to prevent hung LLM calls from
+        // blocking the benchmark forever.
+        let mut cmd = std::process::Command::new("timeout");
+        cmd.args(["--signal=KILL", "120", &self.binary_path]);
         cmd.args(["dry-run", "--json", "-m", model]);
 
-        // Ablation flags.
-        if !self.scenario.use_skill() {
-            cmd.arg("--no-skill");
-        }
-        if !self.scenario.use_doc() {
-            cmd.arg("--no-doc");
-        }
-        if !self.scenario.use_prompt() {
-            cmd.arg("--no-prompt");
-        }
+        if !self.scenario.use_skill() { cmd.arg("--no-skill"); }
+        if !self.scenario.use_doc() { cmd.arg("--no-doc"); }
+        if !self.scenario.use_prompt() { cmd.arg("--no-prompt"); }
 
         cmd.args([tool, task]);
 
-        // Pass provider configuration via environment.
-        if let Some(ref base) = self.api_base {
-            cmd.env("OXO_CALL_API_BASE", base);
-        }
-        if let Some(ref key) = self.api_key {
-            cmd.env("OXO_CALL_API_KEY", key);
-        }
+        if let Some(ref base) = self.api_base { cmd.env("OXO_CALL_API_BASE", base); }
+        if let Some(ref key) = self.api_key { cmd.env("OXO_CALL_API_KEY", key); }
 
         let output = cmd.output();
 
@@ -759,7 +750,7 @@ pub fn run_benchmark_with_callback(
             let cmp = compare_commands_semantic(&resp.args, &scenario.reference_args);
 
             let overhead_ms = (latency_ms - resp.inference_ms).max(0.0);
-            let required_patterns_met = true; // No eval tasks in standard benchmark mode
+            let required_patterns_met = !resp.args.trim().is_empty(); // Fail empty args
             let trial = TrialResult {
                 tool: desc.tool.clone(),
                 category: scenario.category.clone(),
@@ -886,7 +877,7 @@ pub fn run_benchmark_parallel(
                     let cmp = compare_commands_semantic(&resp.args, &scenario.reference_args);
 
                     let overhead_ms = (latency_ms - resp.inference_ms).max(0.0);
-                    let required_patterns_met = true; // No eval tasks in standard benchmark mode
+                    let required_patterns_met = !resp.args.trim().is_empty(); // Fail empty args
                     let trial = TrialResult {
                         tool: desc.tool.clone(),
                         category: scenario.category.clone(),
