@@ -131,7 +131,10 @@ pub fn compare_commands(generated: &str, reference: &str) -> CompareResult {
     let gen_sub = extract_subcommand(&gen_tokens);
     let ref_sub = extract_subcommand(&ref_tokens);
     let subcommand_match = if ref_sub.is_empty() {
-        // No reference subcommand → vacuously correct
+        true // vacuously correct
+    } else if is_likely_positional(&ref_sub) {
+        // ref starts with a filename, URL, number, or key=value pair
+        // — not a subcommand. No subcommand to get wrong.
         true
     } else if gen_sub.starts_with('-') && ref_sub.starts_with('-') {
         // Both first tokens are flags. Two sub-cases:
@@ -360,6 +363,35 @@ fn extract_subcommand(tokens: &[String]) -> String {
     }
 
     first.to_string()
+}
+
+/// Check if a token looks like a positional argument (filename, URL, number,
+/// key=value) rather than a subcommand. Used to avoid false subcommand
+/// vetoes for tools that don't use subcommands (admixture, find, wget, etc.).
+fn is_likely_positional(token: &str) -> bool {
+    // URLs
+    if token.starts_with("http://") || token.starts_with("https://") || token.starts_with("ftp://") {
+        return true;
+    }
+    // File paths with extensions
+    if token.contains('.') && token.rsplit('.').next().map_or(false, |ext| {
+        ext.len() >= 2 && ext.len() <= 6 && ext.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+    }) {
+        return true;
+    }
+    // Directory paths
+    if token.ends_with('/') || token.starts_with("./") || token.starts_with("../") || token.starts_with('/') {
+        return true;
+    }
+    // Numbers (K values, thread counts that appear as first positional)
+    if token.parse::<f64>().is_ok() {
+        return true;
+    }
+    // Key=value pairs (bbtools style)
+    if token.contains('=') && !token.starts_with("--") && !token.starts_with('-') {
+        return true;
+    }
+    false
 }
 
 /// Check whether two subcommand names are semantically equivalent aliases.

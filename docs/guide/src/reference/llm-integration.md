@@ -149,8 +149,8 @@ oxo-call uses a doc-enriched prompting strategy that works in a single LLM call 
 
 3. **Quality mode** (via `--scenario full`): Multi-stage command generation with optional task
    normalization, mini-skill generation, and doc cleaning. Activated only when explicitly
-   requested or when the orchestrator determines high complexity **and** no skill is
-   available. When a skill is available, the orchestrator always selects Fast mode
+   requested or when the generation pipeline determines high complexity **and** no skill is
+   available. When a skill is available, the pipeline always selects Fast mode
    since the skill already provides the grounding that Quality mode would generate.
 
 When Quality mode is active:

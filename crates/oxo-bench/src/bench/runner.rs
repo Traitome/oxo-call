@@ -2482,7 +2482,7 @@ impl IncrementalCsvWriter {
             trial.format_valid,
             csv_escape(&trial.error_message),
         )?;
-        file.sync_all()?;
+        file.flush()?; // flush to OS buffer (sync_all was excessive per-trial)
         Ok(())
     }
 
@@ -2523,7 +2523,7 @@ impl IncrementalCsvWriter {
                 a.format_valid_rate,
             )?;
         }
-        file.sync_all()?;
+        file.flush()?; // flush to OS buffer (sync_all was excessive per-trial)
         Ok(())
     }
 

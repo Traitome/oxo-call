@@ -23,7 +23,7 @@ high-quality pull requests.
     - [1. Create the Markdown file](#1-create-the-markdown-file)
     - [2. Register the skill in `src/skill.rs`](#2-register-the-skill-in-srcskillrs)
     - [3. Verify](#3-verify)
-  - [Orchestration boundary](#orchestration-boundary)
+  - [Scope boundary](#scope-boundary)
   - [Code style](#code-style)
   - [Testing](#testing)
     - [Integration tests](#integration-tests)
@@ -136,10 +136,10 @@ oxo-call/
 
 1. `main.rs` — Parses CLI args, enforces the license gate (all commands
    except `license`, `--help`, `--version` require a valid license).
-2. `runner.rs` — For `run`/`dry-run`: fetches tool documentation **first**,
+2. `runner/core.rs` — For `run`/`dry-run`: fetches tool documentation **first**,
    loads any matching skill, builds the LLM prompt, optionally executes the
    tool, and records history.
-3. `llm.rs` — Sends the prompt and expects a strict response containing
+3. `llm/provider.rs` — Sends the prompt and expects a strict response containing
    `ARGS:` and `EXPLANATION:` lines (retries on format errors).
 
 ---
@@ -218,12 +218,14 @@ Ensure the new skill appears in `oxo-call skill list` and that
 
 ---
 
-## Orchestration boundary
+## Scope boundary
 
 oxo-call generates, previews, executes, and records one tool invocation at a
 time. Do not add a native workflow format, dependency graph, scheduler, or
-workflow template to this repository. Contributions that need DAG dependencies,
-resumption, environments, or resource scheduling belong in
+workflow template to this repository. The command-generation pipeline may use
+several LLM calls internally, but this is a quality mechanism, not multi-step
+execution. Contributions that need DAG dependencies, resumption, environments,
+or resource scheduling belong in
 [oxo-flow](https://github.com/Traitome/oxo-flow).
 
 ---
