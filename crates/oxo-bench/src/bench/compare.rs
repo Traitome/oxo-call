@@ -88,15 +88,15 @@ impl CompareResult {
     ///    `sort` vs `view` is not "partially correct" — it's fundamentally
     ///    wrong). A correct subcommand keeps the full base score.
     pub fn accuracy_score(&self) -> f64 {
+        // Weighted composite: flag structure (85%) + positional (15%)
+        // Subcommand mismatch applies a penalty (×0.3) since it means
+        // the wrong operation entirely.
         let base = 0.35 * self.flag_group_recall
             + 0.25 * self.flag_group_precision
             + 0.25 * self.flag_group_jaccard
             + 0.15 * self.positional_order_match;
-        if self.subcommand_match {
-            base
-        } else {
-            base * 0.3
-        }
+        let base = if self.exact_match { base + (1.0 - base) * 0.1 } else { base };
+        if self.subcommand_match { base.min(1.0) } else { (base * 0.3).min(0.3) }
     }
 }
 
@@ -333,8 +333,6 @@ fn extract_subcommand(tokens: &[String]) -> String {
     let first = tokens[0].as_str();
 
     // STAR-style: --runMode <value> is the effective subcommand.
-    // We must include the value to distinguish --runMode alignReads from
-    // --runMode genomeGenerate.
     if first == "--runMode" || first == "--genomeDir" || first == "--readFilesIn" {
         if tokens.len() > 1 {
             return format!("{} {}", first, tokens[1]);
@@ -342,20 +340,25 @@ fn extract_subcommand(tokens: &[String]) -> String {
         return first.to_string();
     }
 
-    // Standard case: first token is the subcommand (not a short flag)
-    // Short flags like "-t", "-x" indicate the model omitted the subcommand
-    // — return the first token as-is (it will fail the match check).
-    // Long options like "--runMode" are handled above.
-    if first.starts_with("--") {
-        // Other long options as first token — treat as subcommand attempt
+    // GATK/Picard style: first token is the subcommand (e.g., "HaplotypeCaller",
+    // "CollectWgsMetrics"). Script tools (agat_sp_add_attribute.pl, bbduk.sh):
+    // the script name IS the subcommand. Return it directly.
+    if !first.starts_with('-') {
+        // Check if second token is a script name (common in bioinformatics tools)
+        if tokens.len() > 1 {
+            let second = tokens[1].as_str();
+            if second.contains(".pl") || second.contains(".py") || second.contains(".sh") || second.contains(".R") {
+                return second.to_string();
+            }
+        }
         return first.to_string();
     }
 
-    // For the standard case, the first token should be the subcommand
-    // If it starts with a single `-`, it's a flag, not a subcommand —
-    // but we still return it because it IS what the model generated as
-    // the first token and it will correctly fail the subcommand match
-    // against a proper subcommand like "mem" or "sort".
+    // Long option as first token — treat as subcommand attempt
+    if first.starts_with("--") {
+        return first.to_string();
+    }
+
     first.to_string()
 }
 
