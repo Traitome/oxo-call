@@ -647,8 +647,8 @@ most reliable evaluation criterion.
 
 | File | Rows | Description |
 |------|------|-------------|
-| `reference_commands.csv` | 1,330 | Ground-truth ARGS for 133 tools × 10 scenarios (file tokens substituted to prevent leakage) |
-| `usage_descriptions.csv` | 13,300 | 10 natural-language phrasings per scenario |
+| `reference_commands.csv` | 1,380 | Ground-truth ARGS for 138 tools × 10 scenarios (6-column format: toolset, tool, scenario_id, reference_args, task_description, category) |
+| `usage_descriptions.csv` | 6,900 | 5 natural-language phrasings per scenario (or/be/st/po/sy personas) |
 | `bench_scenarios.csv` | 9 | Simulated omics experimental scenarios |
 | `bench_eval_tasks.csv` | 74 | Curated LLM evaluation task catalog with required flag patterns |
 

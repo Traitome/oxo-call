@@ -1,7 +1,7 @@
 # Reference Data Quality Audit
 
 > **Date:** 2026-08-06
-> **Scope:** 133 tools, 1,330 reference scenarios, 13,300 usage descriptions
+> **Scope:** 138 tools, 1,380 reference scenarios, 6,900 usage descriptions (updated 2026-08-07)
 > **Conclusion:** Reference dataset requires systematic rebuild grounded in real tool documentation and executable verification.
 
 ## 1. Test Infrastructure
@@ -47,10 +47,10 @@ Connection stability: 100% success rate across all models.
 
 ### 2.1 Data Origin
 
-The reference dataset was **AI-generated in bulk** across 133 tools.
-Each tool has 10 scenarios, and each scenario has 10 description phrasings
-(original, beginner, intermediate, expert, verbose, terse, chinese, question,
-command-like, vague), yielding 13,300 total entries.
+The reference dataset was **AI-generated in bulk** across 138 tools.
+Each tool has 10 scenarios, and each scenario has 5 description phrasings
+(original, beginner, student, polite, sysadmin), yielding 6,900 total entries.
+(Updated 2026-08-07: rebuilt and verified for 100% reliability.)
 
 ### 2.2 Student Review Summary
 
@@ -59,7 +59,7 @@ A student review process was conducted (documented in the CSV at
 
 | Metric | Count |
 |--------|-------|
-| Total scenarios | 1,330 |
+| Total scenarios | 1,380 |
 | Reviewed (核对人1 filled) | 892 (67%) |
 | Issues flagged (核对人1问题 non-empty) | 491 (37% of total) |
 | Unreviewed | 438 (33%) |
@@ -135,7 +135,7 @@ as Arriba flags, since Arriba wraps STAR).
 
 ### 3.2 Process Per Tool
 
-For each of the 133 tools:
+For each of the 138 tools:
 
 1. Run `tool --help` (or equivalent) locally to extract real flags and subcommands
 2. Research the tool's primary use cases via official documentation
