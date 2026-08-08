@@ -111,7 +111,11 @@ impl CompareResult {
             + 0.20 * self.flag_group_jaccard
             + 0.10 * self.positional_order_match;
         // Subcommand gate: wrong subcommand → score capped at 0.30
-        if self.subcommand_match { base.min(1.0) } else { (base * 0.3).min(0.30) }
+        if self.subcommand_match {
+            base.min(1.0)
+        } else {
+            (base * 0.3).min(0.30)
+        }
     }
 }
 
@@ -365,7 +369,11 @@ fn extract_subcommand(tokens: &[String]) -> String {
         // Check if second token is a script name (common in bioinformatics tools)
         if tokens.len() > 1 {
             let second = tokens[1].as_str();
-            if second.contains(".pl") || second.contains(".py") || second.contains(".sh") || second.contains(".R") {
+            if second.contains(".pl")
+                || second.contains(".py")
+                || second.contains(".sh")
+                || second.contains(".R")
+            {
                 return second.to_string();
             }
         }
@@ -385,17 +393,28 @@ fn extract_subcommand(tokens: &[String]) -> String {
 /// vetoes for tools that don't use subcommands (admixture, find, wget, etc.).
 fn is_likely_positional(token: &str) -> bool {
     // URLs
-    if token.starts_with("http://") || token.starts_with("https://") || token.starts_with("ftp://") {
+    if token.starts_with("http://") || token.starts_with("https://") || token.starts_with("ftp://")
+    {
         return true;
     }
     // File paths with extensions
-    if token.contains('.') && token.rsplit('.').next().map_or(false, |ext| {
-        ext.len() >= 2 && ext.len() <= 6 && ext.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
-    }) {
+    if token.contains('.')
+        && token.rsplit('.').next().map_or(false, |ext| {
+            ext.len() >= 2
+                && ext.len() <= 6
+                && ext
+                    .chars()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+        })
+    {
         return true;
     }
     // Directory paths
-    if token.ends_with('/') || token.starts_with("./") || token.starts_with("../") || token.starts_with('/') {
+    if token.ends_with('/')
+        || token.starts_with("./")
+        || token.starts_with("../")
+        || token.starts_with('/')
+    {
         return true;
     }
     // Numbers (K values, thread counts that appear as first positional)

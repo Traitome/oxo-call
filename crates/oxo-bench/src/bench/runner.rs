@@ -555,14 +555,24 @@ impl CommandGenerator for OxoCallGenerator {
         cmd.args(["--signal=KILL", "120", &self.binary_path]);
         cmd.args(["dry-run", "--json", "-m", model]);
 
-        if !self.scenario.use_skill() { cmd.arg("--no-skill"); }
-        if !self.scenario.use_doc() { cmd.arg("--no-doc"); }
-        if !self.scenario.use_prompt() { cmd.arg("--no-prompt"); }
+        if !self.scenario.use_skill() {
+            cmd.arg("--no-skill");
+        }
+        if !self.scenario.use_doc() {
+            cmd.arg("--no-doc");
+        }
+        if !self.scenario.use_prompt() {
+            cmd.arg("--no-prompt");
+        }
 
         cmd.args([tool, task]);
 
-        if let Some(ref base) = self.api_base { cmd.env("OXO_CALL_API_BASE", base); }
-        if let Some(ref key) = self.api_key { cmd.env("OXO_CALL_API_KEY", key); }
+        if let Some(ref base) = self.api_base {
+            cmd.env("OXO_CALL_API_BASE", base);
+        }
+        if let Some(ref key) = self.api_key {
+            cmd.env("OXO_CALL_API_KEY", key);
+        }
 
         let output = cmd.output();
 
@@ -1566,14 +1576,16 @@ mod tests {
 
     fn sample_scenarios() -> Vec<Scenario> {
         vec![
-            Scenario { toolset: "samtools".to_string(),
+            Scenario {
+                toolset: "samtools".to_string(),
                 tool: "samtools".to_string(),
                 scenario_id: "samtools_01".to_string(),
                 reference_args: "sort -@ 4 -o sorted.bam input.bam".to_string(),
                 task_description: "sort a BAM file".to_string(),
                 category: "alignment".to_string(),
             },
-            Scenario { toolset: "samtools".to_string(),
+            Scenario {
+                toolset: "samtools".to_string(),
                 tool: "samtools".to_string(),
                 scenario_id: "samtools_02".to_string(),
                 reference_args: "index sorted.bam".to_string(),
@@ -1586,14 +1598,16 @@ mod tests {
     fn sample_descriptions() -> Vec<UsageDescription> {
         vec![
             UsageDescription {
-                toolset: "samtools".to_string().clone(), tool: "samtools".to_string(),
+                toolset: "samtools".to_string().clone(),
+                tool: "samtools".to_string(),
                 scenario_id: "samtools_01".to_string(),
                 desc_id: "samtools_01_01".to_string(),
                 user_level: "beginner".to_string(),
                 description: "sort a BAM file".to_string(),
             },
             UsageDescription {
-                toolset: "samtools".to_string().clone(), tool: "samtools".to_string(),
+                toolset: "samtools".to_string().clone(),
+                tool: "samtools".to_string(),
                 scenario_id: "samtools_02".to_string(),
                 desc_id: "samtools_02_01".to_string(),
                 user_level: "beginner".to_string(),

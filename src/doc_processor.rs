@@ -162,11 +162,6 @@ impl DocProcessor {
         DocProcessor { _priv: () }
     }
 
-    /// Process documentation (alias for clean_and_structure)
-    pub fn process(&self, docs: &str) -> StructuredDoc {
-        self.clean_and_structure(docs)
-    }
-
     /// Clean and structure documentation for LLM consumption
     ///
     /// This is the main entry point for lossless documentation processing:

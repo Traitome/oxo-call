@@ -72,8 +72,6 @@ use cli::{
 };
 use colored::Colorize;
 use handlers::{config_verify_suggestions, print_index_table, with_source};
-use std::sync::atomic::{AtomicBool, Ordering};
-
 #[tokio::main]
 async fn main() {
     // Install color-eyre for enhanced error reporting (backtraces, color output)

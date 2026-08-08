@@ -14,7 +14,6 @@ use std::sync::Arc;
 pub struct CommandGenerationResult {
     pub suggestion: LlmCommandSuggestion,
     pub total_inference_ms: f64,
-    pub effective_task: String,
 }
 
 /// Simple single-call pipeline — one LLM invocation with evidence-graded context.
@@ -24,7 +23,9 @@ pub struct CommandGenerationPipeline {
 
 impl CommandGenerationPipeline {
     pub fn new(config: Config) -> Result<Self> {
-        Ok(Self { llm_client: Arc::new(LlmClient::new(config)) })
+        Ok(Self {
+            llm_client: Arc::new(LlmClient::new(config)),
+        })
     }
 
     /// Generate a command: one LLM call with docs + skill as evidence.
@@ -36,12 +37,12 @@ impl CommandGenerationPipeline {
         skill: Option<&Skill>,
         no_prompt: bool,
     ) -> Result<CommandGenerationResult> {
-        let suggestion = self.llm_client
+        let suggestion = self
+            .llm_client
             .suggest_command(tool, docs, task, skill, no_prompt, None)
             .await?;
         Ok(CommandGenerationResult {
             total_inference_ms: suggestion.inference_ms,
-            effective_task: task.to_string(),
             suggestion,
         })
     }

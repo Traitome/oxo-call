@@ -425,16 +425,9 @@ impl Runner {
         };
 
         // ── Generation strategy selection ───────────────────────────────────
-        // Inline mode selection (previously handled by SupervisorAgent):
-        // - Skill available → Fast (skill already provides grounding)
         // 0.20.0: Always single-call evidence-graded mode.
 
-        if self.verbose {
-        }
-
         // ── Task enrichment ──────────────────────────────────────────────────
-        let enrichment_from_executor: Option<String> = None;
-
         // Gather best practice hints directly.
         let best_practice_hints: Vec<String> = {
             let practices = self.best_practices.for_tool(tool);
@@ -502,24 +495,14 @@ impl Runner {
             } else {
                 "bare (LLM only)"
             };
-            eprintln!(
-                "{} Mode: {}",
-                "[verbose]".dimmed(),
-                reason
-            );
+            eprintln!("{} Mode: {}", "[verbose]".dimmed(), reason);
         }
 
         spinner.finish_and_clear();
 
         let pipeline = CommandGenerationPipeline::new(self.config.clone())?;
         let generation_result = pipeline
-            .generate(
-                tool,
-                &enriched_task,
-                &docs,
-                skill.as_ref(),
-                self.no_prompt,
-            )
+            .generate(tool, &enriched_task, &docs, skill.as_ref(), self.no_prompt)
             .await?;
 
         if self.verbose {

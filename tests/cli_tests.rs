@@ -869,8 +869,9 @@ fn test_license_verify_no_file() {
 // ─── License enforcement tests ────────────────────────────────────────────────
 
 #[test]
-fn test_core_command_blocked_without_license() {
-    // Run a core command (config show) without any license file — should fail.
+fn test_core_command_succeeds_without_license() {
+    // In 0.20.0, license is a warning, not a block.
+    // Core commands should succeed without a license file.
     let output = oxo_call_no_license()
         .env(
             "OXO_CALL_LICENSE",
@@ -880,13 +881,15 @@ fn test_core_command_blocked_without_license() {
         .output()
         .expect("failed to run oxo-call");
     assert!(
-        !output.status.success(),
-        "Expected failure without license, but command succeeded"
+        output.status.success(),
+        "Expected command to succeed without license, got exit code: {:?}",
+        output.status.code()
     );
-    let stderr = String::from_utf8_lossy(&output.stderr);
+    // Verify license info is included in the output
+    let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stderr.contains("license") || stderr.contains("No license"),
-        "Expected license error message, got: {stderr}"
+        stdout.contains("oxo-call configuration"),
+        "Expected config output, got: {stdout}"
     );
 }
 

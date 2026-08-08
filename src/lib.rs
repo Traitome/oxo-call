@@ -25,9 +25,12 @@ pub mod doc_processor;
 pub mod doc_summarizer;
 pub mod docs;
 pub mod error;
+pub mod evidence;
 pub mod execution;
+pub mod flag_extractor;
 pub mod format;
 pub mod handlers;
+pub mod help_cache;
 pub mod history;
 pub mod index;
 pub mod job;
@@ -40,7 +43,6 @@ pub mod sanitize;
 pub mod server;
 pub mod skill;
 pub mod streaming_display;
-pub mod flag_extractor;
 pub mod tool_resolver;
 
 // Re-export commonly used types for convenience

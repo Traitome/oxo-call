@@ -24,6 +24,6 @@ pub(crate) mod types;
 mod tests;
 
 // Re-export public types used by other modules
-pub use prompt::{build_mini_skill_prompt, mini_skill_generation_system_prompt, prompt_tier};
+pub use prompt::prompt_tier;
 pub use provider::LlmClient;
 pub use types::{LlmCommandSuggestion, PromptTier};

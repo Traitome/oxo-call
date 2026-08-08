@@ -26,17 +26,28 @@ pub fn extract_flags(help: &str) -> FlagCatalog {
     for l in &lines {
         let t = l.trim().to_lowercase();
         if t.starts_with("usage:") || t.starts_with("usage ") {
-            cat.usage_line = l.to_string(); break;
+            cat.usage_line = l.to_string();
+            break;
         }
     }
     let mut in_cmds = false;
     for l in &lines {
         let t = l.trim();
-        if t.starts_with("Commands:") || t.starts_with("COMMANDS:") || t == "Subcommands:" { in_cmds = true; continue; }
+        if t.starts_with("Commands:") || t.starts_with("COMMANDS:") || t == "Subcommands:" {
+            in_cmds = true;
+            continue;
+        }
         if in_cmds {
-            if t.is_empty() || t.starts_with("Options:") || t.starts_with("Positional") { in_cmds = false; continue; }
+            if t.is_empty() || t.starts_with("Options:") || t.starts_with("Positional") {
+                in_cmds = false;
+                continue;
+            }
             let w = t.split_whitespace().next().unwrap_or("");
-            if !w.is_empty() && !w.starts_with('-') && w.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-') {
+            if !w.is_empty()
+                && !w.starts_with('-')
+                && w.chars()
+                    .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+            {
                 cat.subcommands.push(w.to_string());
             }
         }
@@ -44,12 +55,20 @@ pub fn extract_flags(help: &str) -> FlagCatalog {
 
     for l in &lines {
         let t = l.trim();
-        if t.is_empty() || t.starts_with('#') || t.starts_with("---") || t.starts_with("==") { continue; }
-        if !t.starts_with('-') { continue; }
+        if t.is_empty() || t.starts_with('#') || t.starts_with("---") || t.starts_with("==") {
+            continue;
+        }
+        if !t.starts_with('-') {
+            continue;
+        }
         if let Some(f) = parse_one(t)
-            && !cat.flags.iter().any(|x| x.long == f.long && x.short == f.short) {
-                cat.flags.push(f);
-            }
+            && !cat
+                .flags
+                .iter()
+                .any(|x| x.long == f.long && x.short == f.short)
+        {
+            cat.flags.push(f);
+        }
     }
     cat
 }
@@ -60,39 +79,75 @@ fn parse_one(line: &str) -> Option<FlagInfo> {
 
     // --long-name ... (no short form)
     if is_double {
-        let end = stripped.find(|c: char| c.is_whitespace() || c == '=').unwrap_or(stripped.len());
+        let end = stripped
+            .find(|c: char| c.is_whitespace() || c == '=')
+            .unwrap_or(stripped.len());
         let long = stripped[..end].to_string();
-        if long.len() < 2 { return None; }
+        if long.len() < 2 {
+            return None;
+        }
         let after = stripped[end..].trim();
         let (vt, desc) = type_and_desc(after);
-        return Some(FlagInfo { short: None, long: Some(long), value_type: vt, required: false, description: desc });
+        return Some(FlagInfo {
+            short: None,
+            long: Some(long),
+            value_type: vt,
+            required: false,
+            description: desc,
+        });
     }
 
     // -x, --long-name ... or -x ...
     let first = stripped.chars().next()?;
-    if first == '-' { return None; }
+    if first == '-' {
+        return None;
+    }
     let short = first.to_string();
     let rest = &stripped[first.len_utf8()..];
 
     // Check for ", --" indicating a long form follows
     if rest.starts_with(", --") || rest.starts_with(",--") {
-        let after = rest.trim_start_matches(',').trim().trim_start_matches('-').trim_start_matches('-');
-        let end = after.find(|c: char| c.is_whitespace() || c == '=').unwrap_or(after.len());
+        let after = rest
+            .trim_start_matches(',')
+            .trim()
+            .trim_start_matches('-')
+            .trim_start_matches('-');
+        let end = after
+            .find(|c: char| c.is_whitespace() || c == '=')
+            .unwrap_or(after.len());
         let long = after[..end].to_string();
         let after = after[end..].trim();
         let (vt, desc) = type_and_desc(after);
-        return Some(FlagInfo { short: Some(short), long: Some(long), value_type: vt, required: false, description: desc });
+        return Some(FlagInfo {
+            short: Some(short),
+            long: Some(long),
+            value_type: vt,
+            required: false,
+            description: desc,
+        });
     }
 
     // -x ... (short only)
     if rest.starts_with(' ') || rest.starts_with('\t') {
         let (vt, desc) = type_and_desc(rest.trim());
-        return Some(FlagInfo { short: Some(short), long: None, value_type: vt, required: false, description: desc });
+        return Some(FlagInfo {
+            short: Some(short),
+            long: None,
+            value_type: vt,
+            required: false,
+            description: desc,
+        });
     }
 
     // -x (boolean, no space after — but description might follow)
     if rest.is_empty() || rest.starts_with(',') || rest.starts_with('.') || rest.starts_with(';') {
-        return Some(FlagInfo { short: Some(short), long: None, value_type: "bool".into(), required: false, description: rest.to_string() });
+        return Some(FlagInfo {
+            short: Some(short),
+            long: None,
+            value_type: "bool".into(),
+            required: false,
+            description: rest.to_string(),
+        });
     }
 
     None
@@ -100,12 +155,27 @@ fn parse_one(line: &str) -> Option<FlagInfo> {
 
 fn type_and_desc(s: &str) -> (String, String) {
     let s = s.trim();
-    for kw in &["INT", "int", "STRING", "STR", "string", "FILE", "file",
-        "FLOAT", "float", "DIR", "directory", "PATH", "path", "NUMBER"] {
+    for kw in &[
+        "INT",
+        "int",
+        "STRING",
+        "STR",
+        "string",
+        "FILE",
+        "file",
+        "FLOAT",
+        "float",
+        "DIR",
+        "directory",
+        "PATH",
+        "path",
+        "NUMBER",
+    ] {
         if let Some(rest) = s.strip_prefix(kw)
-            && (rest.is_empty() || rest.starts_with(|c: char| c.is_whitespace())) {
-                return (kw.to_string(), rest.trim().to_string());
-            }
+            && (rest.is_empty() || rest.starts_with(|c: char| c.is_whitespace()))
+        {
+            return (kw.to_string(), rest.trim().to_string());
+        }
     }
     for kw in &["<int>", "<string>", "<float>", "<file>", "<dir>", "<path>"] {
         if let Some(rest) = s.strip_prefix(kw) {
@@ -117,12 +187,16 @@ fn type_and_desc(s: &str) -> (String, String) {
 
 pub fn validate_args(args: &str, catalog: &FlagCatalog) -> Vec<String> {
     let mut issues = vec![];
-    let known: Vec<&str> = catalog.flags.iter()
+    let known: Vec<&str> = catalog
+        .flags
+        .iter()
         .filter_map(|f| f.long.as_deref().or(f.short.as_deref()))
         .collect();
     for word in args.split_whitespace() {
         let flag = word.trim_start_matches('-').split('=').next().unwrap_or("");
-        if word.starts_with('-') && flag.len() > 1 && !flag.chars().all(|c| c.is_ascii_digit())
+        if word.starts_with('-')
+            && flag.len() > 1
+            && !flag.chars().all(|c| c.is_ascii_digit())
             && !known.contains(&flag)
         {
             issues.push(format!("Flag --{} not found in --help", flag));

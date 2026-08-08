@@ -276,6 +276,7 @@ impl LlmClient {
     /// Make a raw chat completion call with custom system prompt.
     ///
     /// This is a low-level API for specialized generation tasks (e.g., mini-skill generation).
+    #[allow(dead_code)]
     pub async fn chat_completion(
         &self,
         system: &str,
@@ -290,6 +291,7 @@ impl LlmClient {
     }
 
     /// Make a raw chat completion call and report the time spent making the LLM request.
+    #[allow(dead_code)]
     pub(crate) async fn chat_completion_with_timing(
         &self,
         system: &str,

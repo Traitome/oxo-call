@@ -19,6 +19,7 @@ pub enum ContextScenario {
 
 impl ContextScenario {
     /// All scenarios use single-call evidence-graded mode in 0.20.0.
+    #[allow(dead_code)]
     pub fn describe(&self) -> &'static str {
         match self {
             Self::Bare => "tool + task only",
