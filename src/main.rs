@@ -53,14 +53,11 @@ mod knowledge;
 mod license;
 mod llm;
 mod mcp;
-mod mini_skill_cache;
 mod runner;
 mod sanitize;
 mod server;
 mod skill;
 mod streaming_display;
-mod task_complexity;
-mod task_normalizer;
 
 /// A single crate-wide mutex that **all** test modules must acquire before
 /// reading or writing `OXO_CALL_DATA_DIR` (or any other process-global
@@ -75,6 +72,7 @@ use cli::{
 };
 use colored::Colorize;
 use handlers::{config_verify_suggestions, print_index_table, with_source};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 #[tokio::main]
 async fn main() {
@@ -174,11 +172,16 @@ async fn run(cli: Cli) -> error::Result<()> {
         Commands::License { .. } | Commands::Completion { .. }
     );
 
+    // License check: warn if missing, but don't block.
+    // oxo-call is free for academic use; commercial use requires a license.
     if !license_exempt {
         let license_path = cli.license.as_deref();
-        if let Err(e) = license::load_and_verify(license_path) {
-            eprintln!("{} {}", "license error:".bold().red(), e);
-            std::process::exit(2);
+        if let Err(_e) = license::load_and_verify(license_path) {
+            // Notify once per session, then continue.
+            static SHOWN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+            if !SHOWN.swap(true, std::sync::atomic::Ordering::Relaxed) {
+                eprintln!("{} {}", "ℹ".dimmed(), "oxo-call is free for academic use. Commercial use requires a license. See 'oxo-call license'.".dimmed());
+            }
         }
     }
 

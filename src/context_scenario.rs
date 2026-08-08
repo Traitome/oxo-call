@@ -1,6 +1,5 @@
 //! Context presets for one command-generation invocation.
 
-use crate::task_complexity::GenerationMode;
 use clap::ValueEnum;
 
 /// Sources of context to prioritize for a command-generation request.
@@ -19,28 +18,14 @@ pub enum ContextScenario {
 }
 
 impl ContextScenario {
-    /// Select the generation strategy appropriate for this context preset.
-    pub const fn default_generation_mode(self) -> GenerationMode {
+    /// All scenarios use single-call evidence-graded mode in 0.20.0.
+    pub fn describe(&self) -> &'static str {
         match self {
-            Self::Bare | Self::Prompt | Self::Skill => GenerationMode::Fast,
-            Self::Doc | Self::Full => GenerationMode::Quality,
+            Self::Bare => "tool + task only",
+            Self::Prompt => "tool + task + system prompt",
+            Self::Skill => "tool + task + skill",
+            Self::Doc => "tool + task + docs",
+            Self::Full => "tool + task + docs + skill",
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn context_scenarios_select_expected_generation_modes() {
-        assert_eq!(
-            ContextScenario::Bare.default_generation_mode(),
-            GenerationMode::Fast
-        );
-        assert_eq!(
-            ContextScenario::Doc.default_generation_mode(),
-            GenerationMode::Quality
-        );
     }
 }

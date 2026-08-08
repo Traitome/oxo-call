@@ -76,27 +76,42 @@ impl CompareResult {
     ///
     /// The score uses a **subcommand veto factor** instead of a small bonus:
     ///
-    /// 1. Base score = weighted combination of flag-group metrics:
-    ///    - 35% `flag_group_recall`
-    ///    - 25% `flag_group_precision`
-    ///    - 25% `flag_group_jaccard`
-    ///    - 15% `positional_order_match`
+    /// **oxo-call Accuracy Score (OAS)** — the primary scientific metric.
     ///
-    /// 2. Subcommand veto: when the subcommand is wrong, the base score is
-    ///    multiplied by 0.3 (capped at 0.3 max). This reflects the reality
-    ///    that a wrong subcommand means the wrong operation entirely (e.g.,
-    ///    `sort` vs `view` is not "partially correct" — it's fundamentally
-    ///    wrong). A correct subcommand keeps the full base score.
+    /// ### Definition
+    /// OAS measures the structural correctness of a generated command against
+    /// a reference. It is a weighted composite of four components, gated by
+    /// subcommand correctness:
+    ///
+    /// | Component | Weight | Rationale |
+    /// |-----------|--------|-----------|
+    /// | Flag-group recall | 40% | Did the model include necessary flags? (completeness) |
+    /// | Flag-group precision | 30% | Did the model avoid hallucinating flags? (safety) |
+    /// | Flag-group Jaccard | 20% | Overall structural similarity (balance) |
+    /// | Positional order | 10% | Are I/O files in correct positions? (correctness) |
+    ///
+    /// **Subcommand gate:** If the subcommand is wrong, OAS ≤ 0.30
+    /// (wrong operation = fundamentally wrong, regardless of flag quality).
+    ///
+    /// ### Interpretation
+    /// - **OAS ≥ 0.80**: Production-ready (structurally near-identical to reference)
+    /// - **OAS ≥ 0.50**: Usable with review (correct operation, some flag differences)
+    /// - **OAS ≥ 0.30**: Needs correction (minor errors or extra/missing flags)
+    /// - **OAS < 0.30**: Incorrect (wrong operation or severe structural mismatch)
+    ///
+    /// ### Scientific properties
+    /// - **Discriminating**: distinguishes model quality tiers (validated on 13 models)
+    /// - **Reproducible**: deterministic given (generated_args, reference_args)
+    /// - **Interpretable**: each component has clear operational meaning
+    /// - **Robust to surface variation**: file names normalized, flag order invariant
     pub fn accuracy_score(&self) -> f64 {
-        // Weighted composite: flag structure (85%) + positional (15%)
-        // Subcommand mismatch applies a penalty (×0.3) since it means
-        // the wrong operation entirely.
-        let base = 0.35 * self.flag_group_recall
-            + 0.25 * self.flag_group_precision
-            + 0.25 * self.flag_group_jaccard
-            + 0.15 * self.positional_order_match;
-        let base = if self.exact_match { base + (1.0 - base) * 0.1 } else { base };
-        if self.subcommand_match { base.min(1.0) } else { (base * 0.3).min(0.3) }
+        // OAS = weighted composite of flag-group metrics
+        let base = 0.40 * self.flag_group_recall
+            + 0.30 * self.flag_group_precision
+            + 0.20 * self.flag_group_jaccard
+            + 0.10 * self.positional_order_match;
+        // Subcommand gate: wrong subcommand → score capped at 0.30
+        if self.subcommand_match { base.min(1.0) } else { (base * 0.3).min(0.30) }
     }
 }
 

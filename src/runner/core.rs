@@ -16,8 +16,6 @@ use crate::knowledge::best_practices::BestPracticesDb;
 use crate::knowledge::error_db::ErrorKnowledgeDb;
 use crate::llm::{LlmClient, LlmCommandSuggestion};
 use crate::skill::SkillManager;
-use crate::task_complexity::{GenerationMode, TaskComplexityEstimator};
-use crate::task_normalizer::TaskNormalizer;
 use chrono::Utc;
 use colored::Colorize;
 use std::collections::HashMap;
@@ -38,7 +36,6 @@ pub struct GeneratedCommand {
     /// Human-readable explanation from the LLM.
     pub explanation: String,
     /// The task description actually used (may differ from user input when
-    /// automatic normalization is active).
     pub effective_task: String,
 }
 
@@ -51,7 +48,6 @@ pub(crate) struct PrepareResult {
     /// Name of the matched skill, if one was loaded.
     pub(crate) skill_name: Option<String>,
     /// The task description that was actually used (may differ from the user-supplied
-    /// task when automatic normalization is applied).
     pub(crate) effective_task: String,
     /// Structured documentation used for flag/subcommand validation, if available.
     pub(crate) structured_doc: Option<StructuredDoc>,
@@ -88,9 +84,7 @@ pub struct Runner {
     pub(crate) no_stream: bool,
     // ── Command-generation helpers ───────────────────────────────────────────
     /// Task complexity estimator for Fast vs Quality mode selection.
-    complexity_estimator: TaskComplexityEstimator,
     /// Task normalizer for enriching vague/multilingual task descriptions.
-    task_normalizer: TaskNormalizer,
     /// Best practices database for domain-specific hints.
     best_practices: BestPracticesDb,
 }
@@ -103,7 +97,6 @@ impl Runner {
         let fetcher = DocsFetcher::new(config.clone());
         let llm = LlmClient::new(config.clone());
         let skill_manager = SkillManager::new(config.clone());
-        let task_normalizer = TaskNormalizer::new_with_llm(config.clone());
         Runner {
             fetcher,
             llm,
@@ -122,8 +115,6 @@ impl Runner {
             auto_retry: false,
             force_context_scenario: None,
             no_stream: false,
-            complexity_estimator: TaskComplexityEstimator::new(),
-            task_normalizer,
             best_practices: BestPracticesDb::new(),
         }
     }
@@ -436,54 +427,13 @@ impl Runner {
         // ── Generation strategy selection ───────────────────────────────────
         // Inline mode selection (previously handled by SupervisorAgent):
         // - Skill available → Fast (skill already provides grounding)
-        // - No skill + complex task + low doc quality → Quality (multi-stage)
-        // - Otherwise → Fast
-        let doc_quality = structured_doc
-            .as_ref()
-            .map(|sd| sd.quality_score)
-            .unwrap_or(0.0);
-        let complexity =
-            self.complexity_estimator
-                .estimate(task, tool, skill.is_some(), doc_quality);
-        let mode = if skill.is_some() {
-            GenerationMode::Fast
-        } else if complexity.score.is_complex() {
-            GenerationMode::Quality
-        } else {
-            GenerationMode::Fast
-        };
+        // 0.20.0: Always single-call evidence-graded mode.
 
         if self.verbose {
-            eprintln!(
-                "{} Generation strategy: mode={:?}, score={:.2}",
-                "[verbose]".dimmed(),
-                mode,
-                complexity.score.0,
-            );
         }
 
         // ── Task enrichment ──────────────────────────────────────────────────
-        let normalized = self.task_normalizer.normalize(task, tool).await.ok();
-        let enrichment_from_executor = normalized
-            .as_ref()
-            .map(|n| {
-                let mut parts = vec![n.description.clone()];
-                let intent = &n.intent;
-                parts.push(format!("[Intent: {intent}]"));
-                if !n.parameters.is_empty() {
-                    let params: Vec<String> = n
-                        .parameters
-                        .iter()
-                        .map(|(k, v)| format!("{k}={v}"))
-                        .collect();
-                    parts.push(format!("[Params: {}]", params.join(", ")));
-                }
-                if !n.constraints.is_empty() {
-                    parts.push(format!("[Constraints: {}]", n.constraints.join(", ")));
-                }
-                parts.join("\n")
-            })
-            .unwrap_or_default();
+        let enrichment_from_executor: Option<String> = None;
 
         // Gather best practice hints directly.
         let best_practice_hints: Vec<String> = {
@@ -522,12 +472,7 @@ impl Runner {
                     best_practice_hints.join("\n")
                 ));
             }
-            // Add executor enrichment (normalized task, params, constraints).
-            if !enrichment_from_executor.is_empty() && enrichment_from_executor != effective_task {
-                parts.push(format!(
-                    "<enrichment>\n{enrichment_from_executor}\n</enrichment>"
-                ));
-            }
+            // 0.20.0: No executor enrichment in single-call mode.
             if parts.len() == 1 {
                 effective_task.clone()
             } else {
@@ -546,66 +491,42 @@ impl Runner {
             "Asking LLM to generate command arguments{skill_label}..."
         ));
 
-        // Select the generation mode:
-        // - Supervisor decision maps directly to the generation mode
-        // - --scenario override takes priority
-        let effective_mode = if let Some(sc) = self.force_context_scenario {
-            sc.default_generation_mode()
-        } else {
-            mode
-        };
-
+        // 0.20.0: Always single-call mode with evidence-graded prompting.
         if self.verbose {
-            let has_sdoc = structured_doc.is_some();
-            let reason = if self.force_context_scenario.is_some() {
-                "forced by --scenario"
-            } else if has_sdoc {
-                "doc-enriched single-call (flag catalog + doc examples)"
+            let reason = if skill.is_some() && !docs.is_empty() {
+                "evidence-graded (docs + skill)"
             } else if skill.is_some() {
-                "skill-grounded single-call"
+                "skill-grounded"
+            } else if !docs.is_empty() {
+                "doc-enriched"
             } else {
-                "single-call (no docs/skill)"
+                "bare (LLM only)"
             };
             eprintln!(
-                "{} Generation mode: {:?} ({})",
+                "{} Mode: {}",
                 "[verbose]".dimmed(),
-                effective_mode,
                 reason
             );
         }
 
         spinner.finish_and_clear();
 
-        let pipeline = CommandGenerationPipeline::new(self.config.clone(), effective_mode)?;
+        let pipeline = CommandGenerationPipeline::new(self.config.clone())?;
         let generation_result = pipeline
-            .execute(
+            .generate(
                 tool,
-                &docs,
                 &enriched_task,
+                &docs,
                 skill.as_ref(),
                 self.no_prompt,
-                structured_doc.as_ref(),
             )
             .await?;
 
         if self.verbose {
             eprintln!(
-                "{} Command generation complete: {} LLM call(s), {:.1}ms{}{}",
+                "{} Command generated in {:.1}ms (1 LLM call)",
                 "[verbose]".dimmed(),
-                generation_result.llm_calls,
                 generation_result.total_inference_ms,
-                if generation_result.mini_skill_generated {
-                    ", mini-skill generated"
-                } else if generation_result.cache_hit {
-                    ", mini-skill from cache"
-                } else {
-                    ""
-                },
-                if generation_result.was_normalized {
-                    ", task normalized"
-                } else {
-                    ""
-                }
             );
         }
 
@@ -615,11 +536,7 @@ impl Runner {
             suggestion,
             docs_hash,
             skill_name,
-            effective_task: if generation_result.was_normalized {
-                generation_result.effective_task
-            } else {
-                task.to_string()
-            },
+            effective_task: task.to_string(),
             structured_doc,
         })
     }

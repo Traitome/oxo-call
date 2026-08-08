@@ -35,14 +35,11 @@ pub mod knowledge;
 pub mod license;
 pub mod llm;
 pub mod mcp;
-pub mod mini_skill_cache;
 pub mod runner;
 pub mod sanitize;
 pub mod server;
 pub mod skill;
 pub mod streaming_display;
-pub mod task_complexity;
-pub mod task_normalizer;
 pub mod flag_extractor;
 pub mod tool_resolver;
 
