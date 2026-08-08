@@ -37,6 +37,8 @@ hex = "0.4"
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.13", features = ["json", "rustls", "stream"], default-features = false }
 rusqlite = { version = "0.31", features = ["bundled"] }
+ndarray = "0.15"
+rand = "0.8"
 futures-util = "0.3"
 directories = "6.0"
 which = "8.0"

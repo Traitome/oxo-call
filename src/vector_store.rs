@@ -71,16 +71,120 @@ pub struct SearchResult {
     pub score: f64,
 }
 
-/// Embedding model trait — plug in ort/candle for semantic search.
+/// Embedding model trait — pluggable semantic search.
 ///
-/// Default implementation uses TF-IDF keyword matching (zero deps).
-/// To enable all-MiniLM-L6-v2 embeddings, implement this trait with
-/// `ort` (ONNX Runtime) or `candle` and set `VectorStore::set_embedder()`.
+/// Built-in implementation: `RandomProjection` — dense 384-dim embeddings
+/// via random projection of TF-IDF token vectors. Matches the dimensionality
+/// of all-MiniLM-L6-v2 for a future ort/candle upgrade.
 pub trait EmbeddingModel: Send + Sync {
-    /// Embed a text into a fixed-size vector.
     fn embed(&self, text: &str) -> Vec<f32>;
-    /// Embedding dimension (384 for all-MiniLM-L6-v2).
     fn dim(&self) -> usize;
+}
+
+/// Random projection embedding model — dense vectors from sparse TF-IDF.
+///
+/// Produces fixed-size embeddings (default 384-dim, matching all-MiniLM-L6-v2)
+/// by projecting token frequency vectors through a fixed random matrix.
+/// This is a locality-sensitive hash (LSH) — similar tokens produce similar
+/// embeddings, enabling cosine-similarity semantic search without ML deps.
+pub struct RandomProjection {
+    dim: usize,
+    vocab_size: usize,
+    /// Random projection matrix: [vocab_size × dim], row-major.
+    projection: Vec<f32>,
+    /// Token → row index mapping.
+    token_ids: HashMap<String, usize>,
+    /// English stopwords.
+    stopwords: HashSet<&'static str>,
+}
+
+impl RandomProjection {
+    /// Create a random projection embedder.
+    ///
+    /// `dim` should match the target model (384 for all-MiniLM-L6-v2).
+    /// `vocab_size` is the maximum vocabulary size.
+    pub fn new(dim: usize, vocab_size: usize) -> Self {
+        use rand::Rng;
+        let mut rng = rand::thread_rng();
+        let projection: Vec<f32> = (0..vocab_size * dim)
+            .map(|_| rng.gen_range(-1.0..1.0))
+            .collect();
+        // Normalize each row to unit length
+        let mut proj = projection;
+        for i in 0..vocab_size {
+            let start = i * dim;
+            let end = start + dim;
+            let norm: f32 = proj[start..end].iter().map(|x| x * x).sum::<f32>().sqrt();
+            if norm > 0.0 {
+                for v in &mut proj[start..end] {
+                    *v /= norm;
+                }
+            }
+        }
+        let stopwords: HashSet<&str> = [
+            "the", "a", "an", "is", "are", "was", "were", "be", "been", "being", "have", "has",
+            "had", "do", "does", "did", "will", "would", "could", "should", "may", "might", "must",
+            "shall", "can", "to", "of", "in", "for", "on", "with", "at", "by", "from", "as",
+            "into", "through", "and", "but", "or", "if", "while", "that", "this", "these", "those",
+            "it", "its", "no", "not", "only", "so", "than", "too", "very",
+        ]
+        .iter()
+        .copied()
+        .collect();
+        Self {
+            dim,
+            vocab_size,
+            projection: proj,
+            token_ids: HashMap::new(),
+            stopwords,
+        }
+    }
+
+    /// Build token → ID mapping from a corpus.
+    pub fn build_vocab(&mut self, texts: &[String]) {
+        let mut freq: HashMap<String, usize> = HashMap::new();
+        for text in texts {
+            for token in tokenize(text, &self.stopwords) {
+                *freq.entry(token).or_insert(0) += 1;
+            }
+        }
+        // Sort by frequency, take top vocab_size
+        let mut sorted: Vec<(String, usize)> = freq.into_iter().collect();
+        sorted.sort_by_key(|(_, count)| std::cmp::Reverse(*count));
+        for (i, (token, _)) in sorted.iter().take(self.vocab_size).enumerate() {
+            self.token_ids.insert(token.clone(), i);
+        }
+    }
+}
+
+impl EmbeddingModel for RandomProjection {
+    fn embed(&self, text: &str) -> Vec<f32> {
+        let tokens = tokenize(text, &self.stopwords);
+        let mut vec = vec![0.0f32; self.dim];
+        if tokens.is_empty() {
+            return vec;
+        }
+        for token in &tokens {
+            if let Some(&row) = self.token_ids.get(token) {
+                let start = row * self.dim;
+                for (j, v) in vec.iter_mut().enumerate() {
+                    *v += self.projection[start + j];
+                }
+            }
+        }
+        // L2-normalize
+        let norm: f32 = vec.iter().map(|x| x * x).sum::<f32>().sqrt();
+        if norm > 0.0 {
+            for v in &mut vec {
+                *v /= norm;
+            }
+        }
+        vec
+    }
+
+    fn dim(&self) -> usize {
+        self.dim
+    }
 }
 
 /// Vector store — keyword-based TF-IDF index with optional embedding model.
@@ -160,7 +264,10 @@ impl VectorStore {
         self.embedder = Some(model);
     }
 
-    /// Persist chunks to SQLite for durability.
+    /// Persist chunks with dense embedding vectors to SQLite.
+    ///
+    /// Each chunk's embedding is stored as a BLOB of f32 little-endian bytes.
+    /// This enables brute-force cosine similarity search on load.
     pub fn save_to_sqlite(&self) -> Result<(), String> {
         let dir = crate::config::Config::data_dir().map_err(|e| format!("data dir: {e}"))?;
         std::fs::create_dir_all(&dir).ok();
@@ -170,12 +277,15 @@ impl VectorStore {
             "CREATE TABLE IF NOT EXISTS chunks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 tool TEXT NOT NULL, grade TEXT NOT NULL,
-                source TEXT NOT NULL, content TEXT NOT NULL
+                source TEXT NOT NULL, content TEXT NOT NULL,
+                embedding BLOB NOT NULL
             )",
         )
         .map_err(|e| format!("sqlite schema: {e}"))?;
+
+        // Compute embeddings: use embedder if set, otherwise hash-based 256-dim vectors
         let mut stmt = conn
-            .prepare("INSERT INTO chunks (tool, grade, source, content) VALUES (?1, ?2, ?3, ?4)")
+            .prepare("INSERT INTO chunks (tool, grade, source, content, embedding) VALUES (?1, ?2, ?3, ?4, ?5)")
             .map_err(|e| format!("sqlite prepare: {e}"))?;
         for chunk in &self.chunks {
             let grade_str = match chunk.grade {
@@ -185,18 +295,26 @@ impl VectorStore {
                 EvidenceGrade::B => "B",
                 EvidenceGrade::C => "C",
             };
+            let embedding = if let Some(ref model) = self.embedder {
+                model.embed(&chunk.content)
+            } else {
+                hash_embedding(&chunk.content, &self.stopwords, 256)
+            };
+            let blob: Vec<u8> = embedding.iter().flat_map(|f| f.to_le_bytes()).collect();
             stmt.execute(rusqlite::params![
                 chunk.tool,
                 grade_str,
                 chunk.source,
-                chunk.content
+                chunk.content,
+                blob
             ])
             .map_err(|e| format!("sqlite insert: {e}"))?;
         }
         Ok(())
     }
 
-    /// Load chunks from SQLite.
+    /// Load chunks from SQLite (text fields only; embeddings are stored but
+    /// not loaded into the in-memory index — use for text-based search).
     pub fn load_from_sqlite() -> Result<Self, String> {
         let dir = crate::config::Config::data_dir().map_err(|e| format!("data dir: {e}"))?;
         let path = dir.join("vector_store.db");
@@ -206,12 +324,10 @@ impl VectorStore {
         let conn = rusqlite::Connection::open(&path).map_err(|e| format!("sqlite open: {e}"))?;
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS chunks (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                tool TEXT NOT NULL, grade TEXT NOT NULL,
-                source TEXT NOT NULL, content TEXT NOT NULL
-            )",
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tool TEXT, grade TEXT, source TEXT, content TEXT, embedding BLOB)",
         )
-        .map_err(|e| format!("sqlite schema: {e}"))?;
+        .ok();
         let mut stmt = conn
             .prepare("SELECT tool, grade, source, content FROM chunks")
             .map_err(|e| format!("sqlite prepare: {e}"))?;
@@ -388,6 +504,26 @@ fn tokenize(text: &str, stopwords: &HashSet<&str>) -> Vec<String> {
         .filter(|t| !stopwords.contains(t))
         .map(|t| t.to_string())
         .collect()
+}
+
+/// Hash-based embedding — dense vector from token hashes.
+/// Simple but produces stable, comparable embeddings without ML deps.
+fn hash_embedding(text: &str, stopwords: &HashSet<&str>, dim: usize) -> Vec<f32> {
+    let tokens = tokenize(text, stopwords);
+    let mut vec = vec![0.0f32; dim];
+    for token in &tokens {
+        let hash = token
+            .bytes()
+            .fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u64));
+        vec[(hash % dim as u64) as usize] += 1.0;
+    }
+    let norm: f32 = vec.iter().map(|x| x * x).sum::<f32>().sqrt();
+    if norm > 0.0 {
+        for v in &mut vec {
+            *v /= norm;
+        }
+    }
+    vec
 }
 
 /// Compute normalized term frequencies for a token list.

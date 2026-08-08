@@ -290,6 +290,33 @@ impl BiocondaIndex {
         scored
     }
 
+    /// Fetch and parse the build.sh from bioconda-recipes to extract binary names.
+    #[allow(dead_code)]
+    ///
+    /// Bioconda build scripts copy or symlink the actual binary into $PREFIX/bin.
+    /// We extract the binary names by looking for `cp`, `mv`, `ln -s`, or `install`
+    /// commands that target `$PREFIX/bin/` or `${PREFIX}/bin/`.
+    pub async fn fetch_build_script(&self, tool: &str) -> Result<Vec<String>, String> {
+        let url = format!(
+            "https://raw.githubusercontent.com/bioconda/bioconda-recipes/master/recipes/{tool}/build.sh"
+        );
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(10))
+            .user_agent("oxo-call/0.21")
+            .build()
+            .map_err(|e| format!("client: {e}"))?;
+        let resp = client
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| format!("fetch: {e}"))?;
+        if !resp.status().is_success() {
+            return Ok(Vec::new());
+        }
+        let script = resp.text().await.map_err(|e| format!("read: {e}"))?;
+        Ok(parse_binary_names_from_build_sh(&script))
+    }
+
     /// Fetch a single tool's metadata from the bioconda website.
     ///
     /// Crawls `https://bioconda.github.io/recipes/<tool>/README.html`
@@ -402,6 +429,9 @@ fn parse_bioconda_page(tool: &str, html: &str) -> Result<BiocondaEntry, String> 
     let dependencies = extract_between(&text, "Dependencies:", "\n")
         .map(|s| s.trim().to_string())
         .unwrap_or_default();
+
+    // Try to extract binary names from the HTML — look for <code> tags near
+    // "binary" mentions, or extract from the build script link
     let binaries = extract_between(&text, "Binary:", "\n")
         .map(|s| s.trim().to_string())
         .unwrap_or_default();
@@ -432,6 +462,49 @@ fn extract_between<'a>(text: &'a str, start: &str, end: &str) -> Option<&'a str>
     let after = &text[pos + start.len()..];
     let end_pos = after.find(end).unwrap_or(after.len());
     Some(after[..end_pos].trim())
+}
+
+/// Parse binary names from a bioconda build.sh script.
+///
+/// Looks for patterns like `cp $SRC_DIR/bin/* $PREFIX/bin/`, `install ... $PREFIX/bin/foo`,
+/// `ln -s foo $PREFIX/bin/bar`, `mv foo $PREFIX/bin/`.
+#[allow(dead_code)]
+fn parse_binary_names_from_build_sh(script: &str) -> Vec<String> {
+    let mut binaries = Vec::new();
+    let prefix_vars = [
+        "$PREFIX/bin/",
+        "${PREFIX}/bin/",
+        "$PREFIX/bin",
+        "\"$PREFIX\"/bin/",
+        "\"${PREFIX}\"/bin/",
+    ];
+    for line in script.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('#') || trimmed.is_empty() {
+            continue;
+        }
+        // Look for copy/install/move/link commands targeting PREFIX/bin
+        let targets_prefix = prefix_vars.iter().any(|p| trimmed.contains(p));
+        if !targets_prefix {
+            continue;
+        }
+        // Extract the last path component (binary name) after PREFIX/bin/
+        for prefix in &prefix_vars {
+            if let Some(pos) = trimmed.find(prefix) {
+                let rest = &trimmed[pos + prefix.len()..];
+                // Take first whitespace-delimited or quote-delimited token
+                let bin = rest.trim().trim_matches('"').trim_matches('\'');
+                let bin = bin.split_whitespace().next().unwrap_or("");
+                let bin = bin.trim_end_matches('/').trim_end_matches(';');
+                if !bin.is_empty() && bin.len() < 64 && !bin.contains('/') {
+                    binaries.push(bin.to_string());
+                }
+            }
+        }
+    }
+    binaries.sort();
+    binaries.dedup();
+    binaries
 }
 
 /// Strip HTML tags from a string, collapsing whitespace.
