@@ -58,6 +58,8 @@ mod sanitize;
 mod server;
 mod skill;
 mod streaming_display;
+#[allow(dead_code, clippy::all)]
+mod tool_resolver;
 
 /// A single crate-wide mutex that **all** test modules must acquire before
 /// reading or writing `OXO_CALL_DATA_DIR` (or any other process-global

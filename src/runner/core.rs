@@ -15,7 +15,8 @@ use crate::job;
 use crate::knowledge::best_practices::BestPracticesDb;
 use crate::knowledge::error_db::ErrorKnowledgeDb;
 use crate::llm::{LlmClient, LlmCommandSuggestion};
-use crate::skill::SkillManager;
+use crate::skill::{self, SkillManager};
+use crate::tool_resolver::ToolResolver;
 use chrono::Utc;
 use colored::Colorize;
 use std::collections::HashMap;
@@ -58,6 +59,9 @@ pub struct Runner {
     fetcher: DocsFetcher,
     pub(crate) llm: LlmClient,
     skill_manager: SkillManager,
+    /// Dynamic tool resolver — resolves ANY CLI tool (known or unknown)
+    /// using the built-in skill list + live PATH discovery.
+    tool_resolver: ToolResolver,
     pub(crate) verbose: bool,
     pub(crate) no_cache: bool,
     /// When true, use LLM to verify the result after execution.
@@ -97,10 +101,12 @@ impl Runner {
         let fetcher = DocsFetcher::new(config.clone());
         let llm = LlmClient::new(config.clone());
         let skill_manager = SkillManager::new(config.clone());
+        let tool_resolver = ToolResolver::from_builtin_skills(skill::BUILTIN_SKILLS);
         Runner {
             fetcher,
             llm,
             skill_manager,
+            tool_resolver,
             config,
             verbose: false,
             no_cache: false,
@@ -205,6 +211,33 @@ impl Runner {
         self
     }
 
+    /// Resolve a user-supplied tool name to (binary, toolset).
+    ///
+    /// Uses the ToolResolver's alias table first, then falls back to PATH
+    /// discovery via `which`.  This means ANY binary on PATH is supported,
+    /// not just the 138 tools with skill files.
+    fn resolve_tool_name(&self, name: &str) -> (String, String) {
+        // 1. Check alias table (iqtree→iqtree2, humann→humann3, etc.)
+        if let Some(info) = self.tool_resolver.resolve(name) {
+            return (info.binary, info.toolset);
+        }
+        // 2. Find the binary on PATH
+        if let Ok(path) = std::process::Command::new("which")
+            .arg(name)
+            .output()
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+            && !path.is_empty()
+        {
+            let binary = std::path::Path::new(&path)
+                .file_name()
+                .map(|f| f.to_string_lossy().to_string())
+                .unwrap_or_else(|| name.to_string());
+            return (binary, name.to_string());
+        }
+        // 3. Fallback: use the name as-is (docs fetch will error if not on PATH)
+        (name.to_string(), name.to_string())
+    }
+
     /// Resolve documentation for the tool, showing a spinner while fetching.
     /// Also attempts to fetch help for the specific subcommand matching the user's task.
     ///
@@ -261,9 +294,29 @@ impl Runner {
     /// generates a mini-skill from the documentation (result cached to disk), and uses it
     /// for command generation.
     pub(crate) async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
-        // ── Docs-first grounding ─────────────────────────────────────────────
+        // ── L0: Tool resolution — alias → binary → PATH discovery ──────────
+        // Resolve the user-supplied name through the alias table and PATH.
+        // This is the single entry point: ANY tool on PATH is supported,
+        // not just the 138 with skill files.
+        let resolved = self.resolve_tool_name(tool);
+        let resolved_binary = &resolved.0;
+        let resolved_toolset = &resolved.1;
+
+        if self.verbose && resolved_binary != tool {
+            eprintln!(
+                "{} Tool resolved: '{}' → binary={}, toolset={}",
+                "[verbose]".dimmed(),
+                tool,
+                resolved_binary.cyan(),
+                resolved_toolset.dimmed(),
+            );
+        }
+
+        // ── L0: Live --help (authoritative ground truth) ───────────────────
         let spinner = if !self.no_doc {
-            make_spinner(&format!("Fetching documentation for '{tool}'..."))
+            make_spinner(&format!(
+                "Fetching documentation for '{resolved_binary}'..."
+            ))
         } else {
             make_spinner("Loading skill...")
         };
@@ -271,7 +324,7 @@ impl Runner {
         let docs = if self.no_doc {
             String::new()
         } else {
-            match self.resolve_docs(tool, task).await {
+            match self.resolve_docs(resolved_binary, task).await {
                 Ok(docs) => docs,
                 Err(error) => {
                     spinner.finish_and_clear();
@@ -280,6 +333,8 @@ impl Runner {
             }
         };
 
+        // ── L1: Curated skill (optional accelerator) ───────────────────────
+        // Try both the resolved toolset name and the user's original tool name
         let skill = if self.no_skill {
             if self.verbose {
                 eprintln!(
@@ -289,9 +344,25 @@ impl Runner {
             }
             None
         } else {
-            self.skill_manager.load_async(tool).await
+            let s = self.skill_manager.load_async(resolved_toolset).await;
+            if s.is_none() && resolved_toolset != tool {
+                // Also try the user's original name as fallback
+                self.skill_manager.load_async(tool).await
+            } else {
+                s
+            }
         };
         spinner.finish_and_clear();
+
+        if self.verbose && skill.is_none() && !self.no_skill {
+            eprintln!(
+                "{} No skill for '{}' — using L0 (--help) + L3 (LLM knowledge). \
+                 Run 'oxo-call skill create {}' to contribute one.",
+                "[verbose]".dimmed(),
+                resolved_binary,
+                resolved_binary,
+            );
+        }
 
         // ── Build StructuredDoc for flag catalog + doc-extracted examples ──
         // This is the key innovation: deterministic extraction of flags and

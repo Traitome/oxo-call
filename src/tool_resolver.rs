@@ -273,17 +273,18 @@ impl ToolResolver {
         Ok(info)
     }
 
-    /// Check if a tool is installed.
-    pub fn is_installed(&self, name: &str) -> bool {
-        let binary = self
-            .resolve(name)
-            .map(|ti| ti.binary)
-            .unwrap_or_else(|| name.to_string());
-        Command::new("which")
-            .arg(&binary)
-            .output()
-            .map(|o| o.status.success())
-            .unwrap_or(false)
+    /// Check if a tool is installed (works for ANY binary, known or unknown).
+    pub fn is_installed(&mut self, name: &str) -> bool {
+        // Try known-tool path first (fast, no which call)
+        if let Some(info) = self.resolve(name) {
+            return Command::new("which")
+                .arg(&info.binary)
+                .output()
+                .map(|o| o.status.success())
+                .unwrap_or(false);
+        }
+        // Fall back to discovery for unknown tools
+        self.discover(name).is_ok()
     }
 
     /// Get --help text (cached).
