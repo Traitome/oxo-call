@@ -576,6 +576,26 @@ async fn run(cli: Cli) -> error::Result<()> {
                 let path = fetcher.cache_path(&tool)?;
                 println!("{}", path.display());
             }
+            DocsCommands::FetchNew {
+                from_bioconda,
+                all,
+                tool,
+            } => {
+                if from_bioconda {
+                    cmd_docs_fetch_new(all, tool.as_deref()).await?;
+                } else {
+                    eprintln!(
+                        "{} Use --from-bioconda to fetch from bioconda.",
+                        "error:".bold().red()
+                    );
+                    println!(
+                        "  oxo-call docs fetch-new --from-bioconda       # fetch all new tools"
+                    );
+                    println!(
+                        "  oxo-call docs fetch-new --from-bioconda --tool samtools  # single tool"
+                    );
+                }
+            }
         },
 
         Commands::Config { command } => match command {
@@ -3185,6 +3205,95 @@ async fn run(cli: Cli) -> error::Result<()> {
             use std::io::Write as _;
             let _ = std::io::stdout().write_all(&buf);
         }
+    }
+
+    Ok(())
+}
+
+/// Handler for `oxo-call docs fetch-new --from-bioconda`.
+///
+/// Fetches tool metadata from bioconda.github.io and indexes it locally.
+/// With `--all`, refreshes metadata for all known tools. With `--tool`,
+/// fetches only the specified tool.
+async fn cmd_docs_fetch_new(all: bool, tool: Option<&str>) -> error::Result<()> {
+    use crate::indexer::BiocondaIndex;
+
+    let mut index = BiocondaIndex::load().unwrap_or_else(|_| {
+        // Create an empty index if the file doesn't exist yet
+        BiocondaIndex::empty()
+    });
+
+    if let Some(tool_name) = tool {
+        // Fetch a single tool
+        let spinner =
+            runner::make_spinner(&format!("Fetching bioconda metadata for '{tool_name}'..."));
+        match index.fetch_from_bioconda(tool_name).await {
+            Ok(Some(entry)) => {
+                spinner.finish_and_clear();
+                println!(
+                    "{} {} v{} — {}",
+                    "✓".green().bold(),
+                    entry.name.cyan(),
+                    entry.version,
+                    entry.summary
+                );
+            }
+            Ok(None) => {
+                spinner.finish_and_clear();
+                println!(
+                    "{} Tool '{}' not found on bioconda.",
+                    "ℹ".blue().bold(),
+                    tool_name.cyan()
+                );
+            }
+            Err(e) => {
+                spinner.finish_and_clear();
+                eprintln!("{} Failed: {e}", "✗".red().bold());
+            }
+        }
+    } else if all {
+        // Fetch all — crawl bioconda for every tool in the index
+        println!(
+            "{} Fetching bioconda metadata for all {} tools...",
+            "→".cyan().bold(),
+            index.len()
+        );
+        println!(
+            "{}",
+            "  This may take a while. Use --tool <name> for a single tool.".dimmed()
+        );
+
+        let tools: Vec<String> = index.tool_names();
+        let mut fetched = 0usize;
+        let mut failed = 0usize;
+
+        for tool_name in &tools {
+            match index.fetch_from_bioconda(tool_name).await {
+                Ok(Some(_)) => {
+                    fetched += 1;
+                    if fetched.is_multiple_of(50) {
+                        eprintln!("  ... {fetched}/{total} fetched", total = tools.len());
+                    }
+                }
+                Ok(None) => {
+                    // Not found on bioconda — skip
+                }
+                Err(_) => {
+                    failed += 1;
+                }
+            }
+        }
+
+        println!();
+        println!(
+            "{} Fetched {fetched}, {failed} failed, {} total.",
+            "→".cyan().bold(),
+            tools.len()
+        );
+    } else {
+        println!("{}", "Usage:".bold());
+        println!("  oxo-call docs fetch-new --from-bioconda --all       # fetch all tools");
+        println!("  oxo-call docs fetch-new --from-bioconda --tool <name>  # fetch single tool");
     }
 
     Ok(())

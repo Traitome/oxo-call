@@ -45,6 +45,7 @@ pub mod server;
 pub mod skill;
 pub mod streaming_display;
 pub mod tool_resolver;
+pub mod vector_store;
 
 // Re-export commonly used types for convenience
 pub use history::{ArgCombo, CommandProvenance, HistoryEntry};

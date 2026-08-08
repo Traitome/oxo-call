@@ -410,6 +410,21 @@ pub enum DocsCommands {
         /// Tool name
         tool: String,
     },
+    /// Fetch new tool metadata and docs from bioconda.
+    ///
+    /// Downloads the latest recipe data from bioconda and indexes
+    /// all newly discovered tools. Use --all for a full refresh.
+    FetchNew {
+        /// Refresh from bioconda (downloads recipe index)
+        #[arg(long)]
+        from_bioconda: bool,
+        /// Refresh all tools (fetches new metadata for every tool)
+        #[arg(long)]
+        all: bool,
+        /// Limit to a single tool
+        #[arg(long)]
+        tool: Option<String>,
+    },
 }
 
 /// Deprecated index subcommands — these now mirror the 'docs' equivalents.

@@ -1,10 +1,10 @@
 //! Local document indexing for L2 evidence.
 //!
-//! Provides bioconda metadata lookup and a keyword-based document store
-//! that retrieves relevant documentation chunks for any bioinformatics tool.
-//! Zero ML dependencies — uses TF-IDF weighted keyword matching.
+//! Provides bioconda metadata lookup, web document fetching,
+//! and a keyword-based document store for L2 evidence retrieval.
 
 pub mod bioconda;
+pub mod fetcher;
 pub mod store;
 
 pub use bioconda::BiocondaIndex;

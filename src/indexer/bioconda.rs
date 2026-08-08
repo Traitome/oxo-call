@@ -192,6 +192,70 @@ impl BiocondaIndex {
         scored
     }
 
+    /// Fetch a single tool's metadata from the bioconda website.
+    ///
+    /// Crawls `https://bioconda.github.io/recipes/<tool>/README.html`
+    /// and extracts description, version, dependencies, and home URL.
+    /// Results are merged into the in-memory index.
+    pub async fn fetch_from_bioconda(
+        &mut self,
+        tool: &str,
+    ) -> Result<Option<BiocondaEntry>, String> {
+        let url = format!("https://bioconda.github.io/recipes/{tool}/README.html");
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(15))
+            .user_agent("oxo-call/0.21 (+https://github.com/oxo/oxo-call)")
+            .build()
+            .map_err(|e| format!("Failed to build HTTP client: {e}"))?;
+
+        let response = client
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| format!("Failed to fetch {url}: {e}"))?;
+
+        if !response.status().is_success() {
+            if response.status().as_u16() == 404 {
+                return Ok(None);
+            }
+            return Err(format!("HTTP {} from {url}", response.status()));
+        }
+
+        let html = response
+            .text()
+            .await
+            .map_err(|e| format!("Failed to read response from {url}: {e}"))?;
+
+        // Extract metadata from the bioconda recipe page
+        let entry = parse_bioconda_page(tool, &html)?;
+
+        // Merge into index
+        let lower = entry.name.to_lowercase();
+        self.aliases
+            .entry(lower.clone())
+            .or_insert_with(|| entry.name.clone());
+        self.entries
+            .entry(entry.name.clone())
+            .or_insert_with(|| entry.clone());
+
+        Ok(Some(entry))
+    }
+
+    /// Create an empty index (for progressive building).
+    pub fn empty() -> Self {
+        Self {
+            entries: HashMap::new(),
+            aliases: HashMap::new(),
+        }
+    }
+
+    /// Return all tool names in the index.
+    pub fn tool_names(&self) -> Vec<String> {
+        let mut names: Vec<String> = self.entries.keys().cloned().collect();
+        names.sort();
+        names
+    }
+
     /// Number of indexed tools.
     pub fn len(&self) -> usize {
         self.entries.len()
@@ -202,6 +266,85 @@ impl BiocondaIndex {
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
+}
+
+/// Parse a bioconda recipe page into a BiocondaEntry.
+///
+/// Extracts: package name, version, summary, home URL, description, license
+/// from the HTML of `https://bioconda.github.io/recipes/<tool>/README.html`.
+fn parse_bioconda_page(tool: &str, html: &str) -> Result<BiocondaEntry, String> {
+    // Simple extraction from known bioconda page structure
+    let text = strip_html_tags(html);
+
+    let name = extract_between(&text, "Package:", "\n")
+        .map(|s| s.trim().to_string())
+        .unwrap_or_else(|| tool.to_string());
+
+    let version = extract_between(&text, "Version:", "\n")
+        .map(|s| s.trim().to_string())
+        .unwrap_or_else(|| "unknown".to_string());
+
+    let summary = extract_between(&text, "Summary:", "\n")
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default();
+
+    let home = extract_between(&text, "Home:", "\n")
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default();
+
+    let license = extract_between(&text, "License:", "\n")
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default();
+
+    let doc_url = extract_between(&text, "Documentation:", "\n")
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default();
+
+    // Build description from the page content
+    let description = if text.len() > 2000 {
+        text[..2000].to_string()
+    } else {
+        text
+    };
+
+    Ok(BiocondaEntry {
+        name,
+        version,
+        summary,
+        home,
+        doc_url,
+        description,
+        license,
+    })
+}
+
+/// Extract text between two markers.
+fn extract_between<'a>(text: &'a str, start: &str, end: &str) -> Option<&'a str> {
+    let pos = text.find(start)?;
+    let after = &text[pos + start.len()..];
+    let end_pos = after.find(end).unwrap_or(after.len());
+    Some(after[..end_pos].trim())
+}
+
+/// Strip HTML tags from a string, collapsing whitespace.
+fn strip_html_tags(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let mut in_tag = false;
+    for ch in html.chars() {
+        match ch {
+            '<' => in_tag = true,
+            '>' => in_tag = false,
+            _ if !in_tag => result.push(ch),
+            _ => {}
+        }
+    }
+    // Collapse whitespace
+    result
+        .lines()
+        .map(|l| l.trim())
+        .filter(|l| !l.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 #[cfg(test)]
