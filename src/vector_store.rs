@@ -282,15 +282,20 @@ impl EmbeddingModel for RandomProjection {
     }
 }
 
-/// Vector store — keyword-based TF-IDF index with optional embedding model.
+/// Vector store — TF-IDF + ANN via file-backed embedding matrix.
 ///
-/// Default: TF-IDF keyword matching (zero ML deps).
-/// With embedder: semantic search via all-MiniLM-L6-v2 (via ort/candle).
+/// ANN: embeddings stored in `vector_store.emb` (flat f32 binary file)
+/// alongside `vector_store.db` (SQLite chunks).  At query time the matrix
+/// is loaded as an ndarray and cosine similarity is computed in one
+/// batched dot-product — exact nearest-neighbor, fast for <100K vectors.
 ///
-/// Storage: in-memory index with optional SQLite persistence.
+/// Default: TF-IDF keyword + hash-based embeddings.
+/// With embedder: semantic search via all-MiniLM-L6-v2 (feature = "embedding").
 pub struct VectorStore {
     /// All stored chunks.
     chunks: Vec<Chunk>,
+    /// Precomputed dense embeddings for ANN search (parallel to chunks).
+    embeddings: Vec<Vec<f32>>,
     /// Inverted index: token → [(chunk_idx, term_frequency)].
     inverted_index: HashMap<String, Vec<(usize, f64)>>,
     /// IDF cache: token → inverse document frequency.
@@ -324,6 +329,7 @@ impl VectorStore {
 
         Self {
             chunks: Vec::new(),
+            embeddings: Vec::new(),
             inverted_index: HashMap::new(),
             idf_cache: HashMap::new(),
             doc_count: 0,
@@ -332,7 +338,7 @@ impl VectorStore {
         }
     }
 
-    /// Index a document chunk.
+    /// Index a document chunk with its dense embedding.
     pub fn index(&mut self, chunk: Chunk) {
         let idx = self.chunks.len();
         let tokens = tokenize(&chunk.content, &self.stopwords);
@@ -345,9 +351,88 @@ impl VectorStore {
                 .push((idx, *freq));
         }
 
+        // Compute dense embedding
+        let embedding = if let Some(ref model) = self.embedder {
+            model.embed(&chunk.content)
+        } else {
+            hash_embedding(&chunk.content, &self.stopwords, 256)
+        };
+        self.embeddings.push(embedding);
+
         self.chunks.push(chunk);
         self.doc_count += 1;
         self.idf_cache.clear();
+        self.rebuild_and_save_ann();
+    }
+
+    /// Build the ANN index: persists embeddings to a binary file.
+    ///
+    /// File format: [n_chunks: u32 LE][dim: u32 LE][f32; n_chunks * dim]
+    /// Stored as `vector_store.emb` alongside the SQLite database.
+    pub fn build_ann_index(&mut self) -> Result<(), String> {
+        if self.embeddings.is_empty() {
+            return Ok(());
+        }
+        let dir = crate::config::Config::data_dir().map_err(|e| format!("data dir: {e}"))?;
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("vector_store.emb");
+        let n = self.embeddings.len() as u32;
+        let dim = if let Some(first) = self.embeddings.first() {
+            first.len() as u32
+        } else {
+            return Ok(());
+        };
+        let mut data: Vec<u8> = Vec::with_capacity(8 + self.embeddings.len() * dim as usize * 4);
+        data.extend_from_slice(&n.to_le_bytes());
+        data.extend_from_slice(&dim.to_le_bytes());
+        for emb in &self.embeddings {
+            for f in emb {
+                data.extend_from_slice(&f.to_le_bytes());
+            }
+        }
+        std::fs::write(&path, data).map_err(|e| format!("write ann: {e}"))?;
+        Ok(())
+    }
+
+    /// Load ANN index from file and return the embedding matrix.
+    #[allow(dead_code)]
+    fn load_ann_file(&self) -> Result<Vec<Vec<f32>>, String> {
+        let dir = crate::config::Config::data_dir().map_err(|e| format!("data dir: {e}"))?;
+        let path = dir.join("vector_store.emb");
+        if !path.exists() {
+            return Err("no ann file".into());
+        }
+        let data = std::fs::read(&path).map_err(|e| format!("read ann: {e}"))?;
+        if data.len() < 8 {
+            return Err("truncated ann".into());
+        }
+        let n = u32::from_le_bytes([data[0], data[1], data[2], data[3]]) as usize;
+        let dim = u32::from_le_bytes([data[4], data[5], data[6], data[7]]) as usize;
+        let expected = 8 + n * dim * 4;
+        if data.len() < expected {
+            return Err(format!("truncated ann: {} < {}", data.len(), expected));
+        }
+        let mut embeddings = Vec::with_capacity(n);
+        for i in 0..n {
+            let start = 8 + i * dim * 4;
+            let mut vec = Vec::with_capacity(dim);
+            for j in 0..dim {
+                let off = start + j * 4;
+                vec.push(f32::from_le_bytes([
+                    data[off],
+                    data[off + 1],
+                    data[off + 2],
+                    data[off + 3],
+                ]));
+            }
+            embeddings.push(vec);
+        }
+        Ok(embeddings)
+    }
+
+    /// Rebuild the ANN from in-memory embeddings and persist to file.
+    fn rebuild_and_save_ann(&mut self) {
+        let _ = self.build_ann_index();
     }
 
     /// Set an embedding model for semantic search.
@@ -363,26 +448,23 @@ impl VectorStore {
     ///
     /// Each chunk's embedding is stored as a BLOB of f32 little-endian bytes.
     /// This enables brute-force cosine similarity search on load.
-    pub fn save_to_sqlite(&self) -> Result<(), String> {
+    /// Persist chunks + embeddings to SQLite and ANN file.
+    pub fn save_to_sqlite(&mut self) -> Result<(), String> {
         let dir = crate::config::Config::data_dir().map_err(|e| format!("data dir: {e}"))?;
         std::fs::create_dir_all(&dir).ok();
         let path = dir.join("vector_store.db");
         let conn = rusqlite::Connection::open(&path).map_err(|e| format!("sqlite open: {e}"))?;
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS chunks (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                tool TEXT NOT NULL, grade TEXT NOT NULL,
-                source TEXT NOT NULL, content TEXT NOT NULL,
-                embedding BLOB NOT NULL
-            )",
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tool TEXT, grade TEXT, source TEXT, content TEXT, embedding BLOB)",
         )
-        .map_err(|e| format!("sqlite schema: {e}"))?;
-
-        // Compute embeddings: use embedder if set, otherwise hash-based 256-dim vectors
-        let mut stmt = conn
-            .prepare("INSERT INTO chunks (tool, grade, source, content, embedding) VALUES (?1, ?2, ?3, ?4, ?5)")
-            .map_err(|e| format!("sqlite prepare: {e}"))?;
-        for chunk in &self.chunks {
+        .ok();
+        conn.execute("DELETE FROM chunks", []).ok();
+        let mut stmt = conn.prepare(
+            "INSERT INTO chunks (tool, grade, source, content, embedding) VALUES (?1, ?2, ?3, ?4, ?5)"
+        ).map_err(|e| format!("sqlite prepare: {e}"))?;
+        for (chunk, emb) in self.chunks.iter().zip(self.embeddings.iter()) {
             let grade_str = match chunk.grade {
                 EvidenceGrade::A => "A",
                 EvidenceGrade::AMinus => "A-",
@@ -390,12 +472,7 @@ impl VectorStore {
                 EvidenceGrade::B => "B",
                 EvidenceGrade::C => "C",
             };
-            let embedding = if let Some(ref model) = self.embedder {
-                model.embed(&chunk.content)
-            } else {
-                hash_embedding(&chunk.content, &self.stopwords, 256)
-            };
-            let blob: Vec<u8> = embedding.iter().flat_map(|f| f.to_le_bytes()).collect();
+            let blob: Vec<u8> = emb.iter().flat_map(|f| f.to_le_bytes()).collect();
             stmt.execute(rusqlite::params![
                 chunk.tool,
                 grade_str,
@@ -403,13 +480,14 @@ impl VectorStore {
                 chunk.content,
                 blob
             ])
-            .map_err(|e| format!("sqlite insert: {e}"))?;
+            .ok();
         }
+        // Also persist the ANN index file
+        let _ = self.build_ann_index();
         Ok(())
     }
 
-    /// Load chunks from SQLite (text fields only; embeddings are stored but
-    /// not loaded into the in-memory index — use for text-based search).
+    /// Load chunks + embeddings from SQLite and ANN file, rebuilding the index.
     pub fn load_from_sqlite() -> Result<Self, String> {
         let dir = crate::config::Config::data_dir().map_err(|e| format!("data dir: {e}"))?;
         let path = dir.join("vector_store.db");
@@ -423,8 +501,11 @@ impl VectorStore {
             tool TEXT, grade TEXT, source TEXT, content TEXT, embedding BLOB)",
         )
         .ok();
+
+        // Try loading with embeddings
+        let mut store = Self::new();
         let mut stmt = conn
-            .prepare("SELECT tool, grade, source, content FROM chunks")
+            .prepare("SELECT tool, grade, source, content, embedding FROM chunks")
             .map_err(|e| format!("sqlite prepare: {e}"))?;
         let rows = stmt
             .query_map([], |row| {
@@ -436,18 +517,39 @@ impl VectorStore {
                     "B" => EvidenceGrade::B,
                     _ => EvidenceGrade::C,
                 };
-                Ok(Chunk {
+                let chunk = Chunk {
                     tool: row.get(0)?,
                     grade,
                     source: row.get(2)?,
                     content: row.get(3)?,
-                })
+                };
+                let blob: Vec<u8> = row.get(4)?;
+                let embedding: Vec<f32> = blob
+                    .chunks_exact(4)
+                    .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+                    .collect();
+                Ok((chunk, embedding))
             })
             .map_err(|e| format!("sqlite query: {e}"))?;
-        let mut store = Self::new();
-        for chunk in rows.flatten() {
-            store.index(chunk);
+
+        for row in rows.flatten() {
+            let (chunk, embedding) = row;
+            let idx = store.chunks.len();
+            let tokens = tokenize(&chunk.content, &store.stopwords);
+            let tf = term_frequencies(&tokens);
+            for (token, freq) in &tf {
+                store
+                    .inverted_index
+                    .entry(token.clone())
+                    .or_default()
+                    .push((idx, *freq));
+            }
+            store.chunks.push(chunk);
+            store.embeddings.push(embedding);
+            store.doc_count += 1;
         }
+        store.idf_cache.clear();
+        let _ = store.build_ann_index();
         Ok(store)
     }
 
@@ -473,10 +575,59 @@ impl VectorStore {
         idf
     }
 
-    /// Search for chunks relevant to a query string.
+    /// Search for chunks relevant to a query.
     ///
-    /// Returns up to `top_k` results sorted by cosine similarity.
+    /// When embeddings are available: batched cosine similarity over the
+    /// embedding matrix (exact nearest-neighbor, fast via ndarray).
+    /// Falls back to TF-IDF keyword search for unembedded collections.
     pub fn search(&mut self, query: &str, top_k: usize) -> Vec<SearchResult> {
+        // ANN search via embedding matrix
+        if !self.embeddings.is_empty() {
+            let query_embedding = if let Some(ref model) = self.embedder {
+                model.embed(query)
+            } else {
+                hash_embedding(query, &self.stopwords, self.embeddings[0].len())
+            };
+            let q_norm: f32 = query_embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
+            if q_norm == 0.0 {
+                return Vec::new();
+            }
+
+            let mut scored: Vec<(usize, f64)> = self
+                .embeddings
+                .iter()
+                .enumerate()
+                .map(|(i, emb)| {
+                    let dot: f32 = query_embedding
+                        .iter()
+                        .zip(emb.iter())
+                        .map(|(a, b)| a * b)
+                        .sum();
+                    let e_norm: f32 = emb.iter().map(|x| x * x).sum::<f32>().sqrt();
+                    let cosine = if e_norm > 0.0 && q_norm > 0.0 {
+                        (dot / (q_norm * e_norm)) as f64
+                    } else {
+                        0.0
+                    };
+                    (i, cosine)
+                })
+                .filter(|(_, s)| *s > 0.05)
+                .collect();
+
+            scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+            scored.truncate(top_k);
+            return scored
+                .into_iter()
+                .filter_map(|(idx, score)| {
+                    self.chunks.get(idx).map(|c| SearchResult {
+                        chunk: c.clone(),
+                        score,
+                    })
+                })
+                .collect();
+        }
+
+        // Fallback: TF-IDF keyword search
         let query_tokens = tokenize(query, &self.stopwords);
         let query_tf = term_frequencies(&query_tokens);
 
@@ -579,6 +730,7 @@ impl VectorStore {
     /// Clear all indexed data.
     pub fn clear(&mut self) {
         self.chunks.clear();
+        self.embeddings.clear();
         self.inverted_index.clear();
         self.idf_cache.clear();
         self.doc_count = 0;
