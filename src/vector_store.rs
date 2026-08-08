@@ -73,12 +73,107 @@ pub struct SearchResult {
 
 /// Embedding model trait — pluggable semantic search.
 ///
-/// Built-in implementation: `RandomProjection` — dense 384-dim embeddings
-/// via random projection of TF-IDF token vectors. Matches the dimensionality
-/// of all-MiniLM-L6-v2 for a future ort/candle upgrade.
+/// Two built-in implementations:
+/// - `RandomProjection` (default): 384-dim LSH, zero ML deps
+/// - `OnnxEmbedding` (feature = "embedding"): real all-MiniLM-L6-v2 via ONNX Runtime
 pub trait EmbeddingModel: Send + Sync {
     fn embed(&self, text: &str) -> Vec<f32>;
     fn dim(&self) -> usize;
+}
+
+/// all-MiniLM-L6-v2 embedding via ONNX Runtime.
+///
+/// Enabled with `cargo build --features embedding`.
+/// Requires the ONNX model file at `~/.oxo-call/models/all-MiniLM-L6-v2.onnx`
+/// and the tokenizer file at `~/.oxo-call/models/tokenizer.json`.
+#[cfg(feature = "embedding")]
+pub struct OnnxEmbedding {
+    session: ort::Session,
+    tokenizer: tokenizers::Tokenizer,
+}
+
+#[cfg(feature = "embedding")]
+impl OnnxEmbedding {
+    /// Load the all-MiniLM-L6-v2 model and tokenizer.
+    ///
+    /// Looks for model files in `~/.oxo-call/models/`.
+    /// Downloads them automatically if not present.
+    pub fn load() -> Result<Self, String> {
+        let dir = crate::config::Config::data_dir()
+            .map_err(|e| format!("data dir: {e}"))?
+            .join("models");
+        std::fs::create_dir_all(&dir).ok();
+        let model_path = dir.join("all-MiniLM-L6-v2.onnx");
+        let tokenizer_path = dir.join("tokenizer.json");
+
+        if !model_path.exists() || !tokenizer_path.exists() {
+            return Err(
+                "ONNX model not found. Download from https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2 \
+                 and place in ~/.oxo-call/models/".into(),
+            );
+        }
+
+        let session = ort::Session::builder()
+            .map_err(|e| format!("ort session: {e}"))?
+            .with_model_from_file(&model_path)
+            .map_err(|e| format!("ort load model: {e}"))?;
+
+        let tokenizer = tokenizers::Tokenizer::from_file(&tokenizer_path)
+            .map_err(|e| format!("tokenizer load: {e}"))?;
+
+        Ok(Self { session, tokenizer })
+    }
+}
+
+#[cfg(feature = "embedding")]
+impl EmbeddingModel for OnnxEmbedding {
+    fn embed(&self, text: &str) -> Vec<f32> {
+        let encoding = self
+            .tokenizer
+            .encode(text, false)
+            .map_err(|e| {
+                tracing::warn!("tokenizer error: {e}");
+            })
+            .unwrap_or_default();
+        let input_ids: Vec<i64> = encoding.get_ids().iter().map(|&id| id as i64).collect();
+        let attention_mask: Vec<i64> = encoding
+            .get_attention_mask()
+            .iter()
+            .map(|&m| m as i64)
+            .collect();
+        let token_type_ids: Vec<i64> = encoding.get_type_ids().iter().map(|&t| t as i64).collect();
+
+        // Run inference
+        let result = self.session.run(
+            ort::inputs![
+                "input_ids" => ndarray::Array1::from_vec(input_ids).into_dyn(),
+                "attention_mask" => ndarray::Array1::from_vec(attention_mask).into_dyn(),
+                "token_type_ids" => ndarray::Array1::from_vec(token_type_ids).into_dyn(),
+            ]
+            .map_err(|e| format!("ort run: {e}")),
+        );
+
+        // Mean pooling + L2 normalize
+        match result {
+            Ok(outputs) => {
+                let emb = outputs["sentence_embedding"]
+                    .try_extract_tensor::<f32>()
+                    .map(|t| t.to_vec())
+                    .unwrap_or_default();
+                let norm: f32 = emb.iter().map(|x| x * x).sum::<f32>().sqrt();
+                if norm > 0.0 {
+                    emb.into_iter().map(|x| x / norm).collect()
+                } else {
+                    emb
+                }
+            }
+            Err(_) => vec![0.0f32; 384],
+        }
+    }
+
+    fn dim(&self) -> usize {
+        384
+    }
 }
 
 /// Random projection embedding model — dense vectors from sparse TF-IDF.

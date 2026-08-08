@@ -39,12 +39,20 @@ reqwest = { version = "0.13", features = ["json", "rustls", "stream"], default-f
 rusqlite = { version = "0.31", features = ["bundled"] }
 ndarray = "0.15"
 rand = "0.8"
+ort = { version = "2.0.0-rc.9", optional = true }
+tokenizers = { version = "0.21", optional = true }
 futures-util = "0.3"
 directories = "6.0"
 which = "8.0"
 indicatif = "0.18"
 termimad = "0.34"
 unicode-width = "0.2"
+
+[features]
+default = []
+# Enable all-MiniLM-L6-v2 embeddings via ONNX Runtime.
+# Requires: libonnxruntime.so on the system or set ORT_LIB_LOCATION.
+embedding = ["ort", "tokenizers"]
 
 [dev-dependencies]
 tempfile = "3"

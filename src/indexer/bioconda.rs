@@ -352,7 +352,14 @@ impl BiocondaIndex {
             .map_err(|e| format!("Failed to read response from {url}: {e}"))?;
 
         // Extract metadata from the bioconda recipe page
-        let entry = parse_bioconda_page(tool, &html)?;
+        let mut entry = parse_bioconda_page(tool, &html)?;
+
+        // Also fetch build.sh to extract binary names
+        if let Ok(binaries) = fetch_build_script_url(tool).await
+            && !binaries.is_empty()
+        {
+            entry.binaries = binaries.join(", ");
+        }
 
         // Merge into index
         let lower = entry.name.to_lowercase();
@@ -373,7 +380,31 @@ impl BiocondaIndex {
             aliases: HashMap::new(),
         }
     }
+}
 
+/// Fetch build.sh from bioconda-recipes and extract binary names (standalone, no &self needed).
+async fn fetch_build_script_url(tool: &str) -> Result<Vec<String>, String> {
+    let url = format!(
+        "https://raw.githubusercontent.com/bioconda/bioconda-recipes/master/recipes/{tool}/build.sh"
+    );
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .user_agent("oxo-call/0.21")
+        .build()
+        .map_err(|e| format!("client: {e}"))?;
+    let resp = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("fetch: {e}"))?;
+    if !resp.status().is_success() {
+        return Ok(Vec::new());
+    }
+    let script = resp.text().await.map_err(|e| format!("read: {e}"))?;
+    Ok(parse_binary_names_from_build_sh(&script))
+}
+
+impl BiocondaIndex {
     /// Return all tool names in the index.
     pub fn tool_names(&self) -> Vec<String> {
         let mut names: Vec<String> = self.entries.keys().cloned().collect();
@@ -468,7 +499,6 @@ fn extract_between<'a>(text: &'a str, start: &str, end: &str) -> Option<&'a str>
 ///
 /// Looks for patterns like `cp $SRC_DIR/bin/* $PREFIX/bin/`, `install ... $PREFIX/bin/foo`,
 /// `ln -s foo $PREFIX/bin/bar`, `mv foo $PREFIX/bin/`.
-#[allow(dead_code)]
 fn parse_binary_names_from_build_sh(script: &str) -> Vec<String> {
     let mut binaries = Vec::new();
     let prefix_vars = [
