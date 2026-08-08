@@ -11,6 +11,7 @@ use crate::docs::DocsFetcher;
 use crate::error::{OxoError, Result};
 use crate::execution::feedback::{FeedbackCollector, FeedbackEntry};
 use crate::history::{CommandProvenance, HistoryEntry, HistoryStore};
+use crate::indexer::BiocondaIndex;
 use crate::job;
 use crate::knowledge::best_practices::BestPracticesDb;
 use crate::knowledge::error_db::ErrorKnowledgeDb;
@@ -62,6 +63,9 @@ pub struct Runner {
     /// Dynamic tool resolver — resolves ANY CLI tool (known or unknown)
     /// using the built-in skill list + live PATH discovery.
     tool_resolver: ToolResolver,
+    /// Bioconda metadata index for L2 evidence.
+    /// Loaded lazily — None if the data file is not found.
+    bioconda_index: Option<BiocondaIndex>,
     pub(crate) verbose: bool,
     pub(crate) no_cache: bool,
     /// When true, use LLM to verify the result after execution.
@@ -102,11 +106,20 @@ impl Runner {
         let llm = LlmClient::new(config.clone());
         let skill_manager = SkillManager::new(config.clone());
         let tool_resolver = ToolResolver::from_builtin_skills(skill::BUILTIN_SKILLS);
+        let bioconda_index = BiocondaIndex::load().ok();
+        if let Some(ref idx) = bioconda_index {
+            eprintln!(
+                "{} L2 index loaded: {} bioconda tools",
+                "ℹ".dimmed(),
+                idx.len()
+            );
+        }
         Runner {
             fetcher,
             llm,
             skill_manager,
             tool_resolver,
+            bioconda_index,
             config,
             verbose: false,
             no_cache: false,
@@ -364,6 +377,24 @@ impl Runner {
             );
         }
 
+        // ── L2: Bioconda metadata (indexed documentation) ───────────────────
+        // When a skill is not available, enrich the prompt with bioconda
+        // metadata as L2 evidence.  This gives the LLM context about the
+        // tool's purpose, version, and documentation.
+        let l2_docs = if skill.is_none() || self.no_skill {
+            self.bioconda_index
+                .as_ref()
+                .and_then(|idx| idx.to_doc_string(resolved_toolset))
+                .or_else(|| {
+                    self.bioconda_index
+                        .as_ref()
+                        .and_then(|idx| idx.to_doc_string(resolved_binary))
+                })
+                .unwrap_or_default()
+        } else {
+            String::new()
+        };
+
         // ── Build StructuredDoc for flag catalog + doc-extracted examples ──
         // This is the key innovation: deterministic extraction of flags and
         // examples from --help output, injected into the LLM prompt to ground
@@ -571,9 +602,29 @@ impl Runner {
 
         spinner.finish_and_clear();
 
+        // ── Evidence-graded documentation assembly ──────────────────────────
+        // Build the final documentation string with L0 (--help) + L2 (bioconda)
+        // marked explicitly so the LLM knows which is authoritative.
+        let evidence_docs = if !l2_docs.is_empty() {
+            format!(
+                "<!-- L0: AUTHORITATIVE — live --help output -->\n\
+                 {docs}\n\n\
+                 <!-- L2: REFERENCE — bioconda metadata (may be outdated) -->\n\
+                 {l2_docs}"
+            )
+        } else {
+            docs
+        };
+
         let pipeline = CommandGenerationPipeline::new(self.config.clone())?;
         let generation_result = pipeline
-            .generate(tool, &enriched_task, &docs, skill.as_ref(), self.no_prompt)
+            .generate(
+                tool,
+                &enriched_task,
+                &evidence_docs,
+                skill.as_ref(),
+                self.no_prompt,
+            )
             .await?;
 
         if self.verbose {

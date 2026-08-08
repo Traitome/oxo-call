@@ -48,6 +48,7 @@ mod format;
 mod handlers;
 mod history;
 mod index;
+mod indexer;
 mod job;
 mod knowledge;
 mod license;

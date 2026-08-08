@@ -33,6 +33,7 @@ pub mod handlers;
 pub mod help_cache;
 pub mod history;
 pub mod index;
+pub mod indexer;
 pub mod job;
 pub mod knowledge;
 pub mod license;
