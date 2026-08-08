@@ -482,10 +482,11 @@ async fn run(cli: Cli) -> error::Result<()> {
                     tool.cyan()
                 );
             }
-            DocsCommands::Update { tool, url } => {
+            DocsCommands::Update { tool, all, url } => {
                 let cfg = config::Config::load()?;
                 let mgr = index::IndexManager::new(cfg);
-                match tool {
+                let effective_tool = if all { None } else { tool };
+                match effective_tool {
                     Some(t) => {
                         let entry = mgr.add(&t, url.as_deref(), None, None).await?;
                         println!(

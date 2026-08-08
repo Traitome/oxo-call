@@ -36,6 +36,7 @@ lru = "0.17"
 hex = "0.4"
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.13", features = ["json", "rustls", "stream"], default-features = false }
+rusqlite = { version = "0.31", features = ["bundled"] }
 futures-util = "0.3"
 directories = "6.0"
 which = "8.0"

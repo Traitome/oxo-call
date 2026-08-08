@@ -385,8 +385,11 @@ pub enum DocsCommands {
     },
     /// Update (re-index) documentation for a tool or all indexed tools
     Update {
-        /// Tool name to update, or omit to update all indexed tools
+        /// Tool name to update
         tool: Option<String>,
+        /// Update ALL indexed tools
+        #[arg(long, short = 'a')]
+        all: bool,
         /// Optional remote documentation URL
         #[arg(long)]
         url: Option<String>,

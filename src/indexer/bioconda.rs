@@ -5,7 +5,7 @@
 
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// A single bioconda recipe entry.
 #[derive(Debug, Clone, Deserialize)]
@@ -20,6 +20,10 @@ pub struct BiocondaEntry {
     pub description: String,
     #[serde(default)]
     pub license: String,
+    #[serde(default)]
+    pub dependencies: String,
+    #[serde(default)]
+    pub binaries: String,
 }
 
 /// In-memory index mapping tool names to bioconda metadata.
@@ -34,9 +38,72 @@ pub struct BiocondaIndex {
 }
 
 impl BiocondaIndex {
-    /// Load the index from the bundled JSONL file.
+    /// Load from SQLite, falling back to JSONL, falling back to empty.
     pub fn load() -> Result<Self, String> {
-        // Search for the data file: cwd, ../data, ../../data
+        if let Ok(idx) = Self::load_from_sqlite()
+            && !idx.is_empty()
+        {
+            return Ok(idx);
+        }
+        // Fallback to JSONL, then persist to SQLite
+        if let Ok(idx) = Self::load_from_jsonl()
+            && !idx.is_empty()
+        {
+            let _ = idx.save_to_sqlite();
+            return Ok(idx);
+        }
+        Ok(Self::empty())
+    }
+
+    /// SQLite-backed persistence.
+    fn db_path() -> Result<PathBuf, String> {
+        let dir = crate::config::Config::data_dir().map_err(|e| format!("data dir: {e}"))?;
+        std::fs::create_dir_all(&dir).ok();
+        Ok(dir.join("bioconda_index.db"))
+    }
+
+    fn load_from_sqlite() -> Result<Self, String> {
+        let path = Self::db_path()?;
+        if !path.exists() {
+            return Err("no sqlite db".into());
+        }
+        let conn = rusqlite::Connection::open(&path).map_err(|e| format!("sqlite open: {e}"))?;
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS bioconda (
+                name TEXT PRIMARY KEY, version TEXT, summary TEXT, home TEXT,
+                doc_url TEXT, description TEXT, license TEXT,
+                dependencies TEXT DEFAULT '', binaries TEXT DEFAULT ''
+            )",
+        )
+        .map_err(|e| format!("sqlite schema: {e}"))?;
+
+        let mut entries = HashMap::new();
+        let mut aliases = HashMap::new();
+        let mut stmt = conn
+            .prepare("SELECT name, version, summary, home, doc_url, description, license, dependencies, binaries FROM bioconda")
+            .map_err(|e| format!("sqlite prepare: {e}"))?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(BiocondaEntry {
+                    name: row.get(0)?,
+                    version: row.get(1)?,
+                    summary: row.get(2)?,
+                    home: row.get(3)?,
+                    doc_url: row.get(4)?,
+                    description: row.get(5)?,
+                    license: row.get(6)?,
+                    dependencies: row.get::<_, String>(7).unwrap_or_default(),
+                    binaries: row.get::<_, String>(8).unwrap_or_default(),
+                })
+            })
+            .map_err(|e| format!("sqlite query: {e}"))?;
+        for entry in rows.flatten() {
+            Self::index_entry(&mut entries, &mut aliases, entry);
+        }
+        Ok(Self { entries, aliases })
+    }
+
+    fn load_from_jsonl() -> Result<Self, String> {
         let candidates = &[
             "data/bioconda_tools_metadata.jsonl",
             "../data/bioconda_tools_metadata.jsonl",
@@ -45,45 +112,76 @@ impl BiocondaIndex {
         let path = candidates
             .iter()
             .find(|p| Path::new(p).exists())
-            .ok_or_else(|| {
-                "bioconda_tools_metadata.jsonl not found. \
-                 Run 'oxo-call docs fetch-new --from-bioconda' to download it."
-                    .to_string()
-            })?;
-
-        let content =
-            std::fs::read_to_string(path).map_err(|e| format!("Failed to read {path}: {e}"))?;
-
-        let mut entries: HashMap<String, BiocondaEntry> = HashMap::new();
-        let mut aliases: HashMap<String, String> = HashMap::new();
-
+            .ok_or_else(|| "JSONL not found".to_string())?;
+        let content = std::fs::read_to_string(path).map_err(|e| format!("read: {e}"))?;
+        let mut entries = HashMap::new();
+        let mut aliases = HashMap::new();
         for line in content.lines() {
-            let trimmed = line.trim();
-            if trimmed.is_empty() {
+            if line.trim().is_empty() {
                 continue;
             }
-            if let Ok(entry) = serde_json::from_str::<BiocondaEntry>(trimmed) {
-                // Build alias map: lowercased name → canonical name
-                let lower = entry.name.to_lowercase();
-                aliases
-                    .entry(lower.clone())
-                    .or_insert_with(|| entry.name.clone());
-                // Also add hyphen/underscore variants
-                if entry.name.contains('-') {
-                    aliases
-                        .entry(entry.name.replace('-', "_"))
-                        .or_insert_with(|| entry.name.clone());
-                }
-                if entry.name.contains('_') {
-                    aliases
-                        .entry(entry.name.replace('_', "-"))
-                        .or_insert_with(|| entry.name.clone());
-                }
-                entries.entry(entry.name.clone()).or_insert_with(|| entry);
+            if let Ok(entry) = serde_json::from_str::<BiocondaEntry>(line) {
+                Self::index_entry(&mut entries, &mut aliases, entry);
             }
         }
-
         Ok(Self { entries, aliases })
+    }
+
+    fn index_entry(
+        entries: &mut HashMap<String, BiocondaEntry>,
+        aliases: &mut HashMap<String, String>,
+        entry: BiocondaEntry,
+    ) {
+        let lower = entry.name.to_lowercase();
+        aliases
+            .entry(lower.clone())
+            .or_insert_with(|| entry.name.clone());
+        if entry.name.contains('-') {
+            aliases
+                .entry(entry.name.replace('-', "_"))
+                .or_insert_with(|| entry.name.clone());
+        }
+        if entry.name.contains('_') {
+            aliases
+                .entry(entry.name.replace('_', "-"))
+                .or_insert_with(|| entry.name.clone());
+        }
+        entries.entry(entry.name.clone()).or_insert_with(|| entry);
+    }
+
+    /// Persist the in-memory index to SQLite for durability.
+    pub fn save_to_sqlite(&self) -> Result<(), String> {
+        let path = Self::db_path()?;
+        let conn = rusqlite::Connection::open(&path).map_err(|e| format!("sqlite open: {e}"))?;
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS bioconda (
+                name TEXT PRIMARY KEY, version TEXT, summary TEXT, home TEXT,
+                doc_url TEXT, description TEXT, license TEXT,
+                dependencies TEXT DEFAULT '', binaries TEXT DEFAULT ''
+            )",
+        )
+        .map_err(|e| format!("sqlite schema: {e}"))?;
+        let mut stmt = conn
+            .prepare(
+                "INSERT OR REPLACE INTO bioconda (name, version, summary, home, doc_url, description, license, dependencies, binaries)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            )
+            .map_err(|e| format!("sqlite prepare: {e}"))?;
+        for entry in self.entries.values() {
+            stmt.execute(rusqlite::params![
+                entry.name,
+                entry.version,
+                entry.summary,
+                entry.home,
+                entry.doc_url,
+                entry.description,
+                entry.license,
+                entry.dependencies,
+                entry.binaries,
+            ])
+            .map_err(|e| format!("sqlite insert: {e}"))?;
+        }
+        Ok(())
     }
 
     /// Look up a tool by name or alias. Returns None if not in bioconda.
@@ -300,6 +398,14 @@ fn parse_bioconda_page(tool: &str, html: &str) -> Result<BiocondaEntry, String> 
         .map(|s| s.trim().to_string())
         .unwrap_or_default();
 
+    // Extract dependencies from the page content (before moving text)
+    let dependencies = extract_between(&text, "Dependencies:", "\n")
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default();
+    let binaries = extract_between(&text, "Binary:", "\n")
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default();
+
     // Build description from the page content
     let description = if text.len() > 2000 {
         text[..2000].to_string()
@@ -315,6 +421,8 @@ fn parse_bioconda_page(tool: &str, html: &str) -> Result<BiocondaEntry, String> 
         doc_url,
         description,
         license,
+        dependencies,
+        binaries,
     })
 }
 

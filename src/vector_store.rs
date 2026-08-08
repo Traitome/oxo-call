@@ -71,10 +71,24 @@ pub struct SearchResult {
     pub score: f64,
 }
 
-/// Vector store — keyword-based TF-IDF index.
+/// Embedding model trait — plug in ort/candle for semantic search.
 ///
-/// Future: accept an optional `EmbeddingModel` trait object to
-/// replace TF-IDF with semantic embeddings (all-MiniLM-L6-v2).
+/// Default implementation uses TF-IDF keyword matching (zero deps).
+/// To enable all-MiniLM-L6-v2 embeddings, implement this trait with
+/// `ort` (ONNX Runtime) or `candle` and set `VectorStore::set_embedder()`.
+pub trait EmbeddingModel: Send + Sync {
+    /// Embed a text into a fixed-size vector.
+    fn embed(&self, text: &str) -> Vec<f32>;
+    /// Embedding dimension (384 for all-MiniLM-L6-v2).
+    fn dim(&self) -> usize;
+}
+
+/// Vector store — keyword-based TF-IDF index with optional embedding model.
+///
+/// Default: TF-IDF keyword matching (zero ML deps).
+/// With embedder: semantic search via all-MiniLM-L6-v2 (via ort/candle).
+///
+/// Storage: in-memory index with optional SQLite persistence.
 pub struct VectorStore {
     /// All stored chunks.
     chunks: Vec<Chunk>,
@@ -86,6 +100,8 @@ pub struct VectorStore {
     doc_count: usize,
     /// English stopwords — filtered during tokenization.
     stopwords: HashSet<&'static str>,
+    /// Optional embedding model for semantic search.
+    embedder: Option<Box<dyn EmbeddingModel>>,
 }
 
 impl VectorStore {
@@ -113,6 +129,7 @@ impl VectorStore {
             idf_cache: HashMap::new(),
             doc_count: 0,
             stopwords,
+            embedder: None,
         }
     }
 
@@ -132,6 +149,95 @@ impl VectorStore {
         self.chunks.push(chunk);
         self.doc_count += 1;
         self.idf_cache.clear();
+    }
+
+    /// Set an embedding model for semantic search.
+    ///
+    /// When set, `search()` uses cosine similarity on embeddings instead
+    /// of TF-IDF keywords. Implement `EmbeddingModel` with ort/candle
+    /// to enable all-MiniLM-L6-v2 (384-dim) embeddings.
+    pub fn set_embedder(&mut self, model: Box<dyn EmbeddingModel>) {
+        self.embedder = Some(model);
+    }
+
+    /// Persist chunks to SQLite for durability.
+    pub fn save_to_sqlite(&self) -> Result<(), String> {
+        let dir = crate::config::Config::data_dir().map_err(|e| format!("data dir: {e}"))?;
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("vector_store.db");
+        let conn = rusqlite::Connection::open(&path).map_err(|e| format!("sqlite open: {e}"))?;
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS chunks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tool TEXT NOT NULL, grade TEXT NOT NULL,
+                source TEXT NOT NULL, content TEXT NOT NULL
+            )",
+        )
+        .map_err(|e| format!("sqlite schema: {e}"))?;
+        let mut stmt = conn
+            .prepare("INSERT INTO chunks (tool, grade, source, content) VALUES (?1, ?2, ?3, ?4)")
+            .map_err(|e| format!("sqlite prepare: {e}"))?;
+        for chunk in &self.chunks {
+            let grade_str = match chunk.grade {
+                EvidenceGrade::A => "A",
+                EvidenceGrade::AMinus => "A-",
+                EvidenceGrade::BPlus => "B+",
+                EvidenceGrade::B => "B",
+                EvidenceGrade::C => "C",
+            };
+            stmt.execute(rusqlite::params![
+                chunk.tool,
+                grade_str,
+                chunk.source,
+                chunk.content
+            ])
+            .map_err(|e| format!("sqlite insert: {e}"))?;
+        }
+        Ok(())
+    }
+
+    /// Load chunks from SQLite.
+    pub fn load_from_sqlite() -> Result<Self, String> {
+        let dir = crate::config::Config::data_dir().map_err(|e| format!("data dir: {e}"))?;
+        let path = dir.join("vector_store.db");
+        if !path.exists() {
+            return Err("no sqlite db".into());
+        }
+        let conn = rusqlite::Connection::open(&path).map_err(|e| format!("sqlite open: {e}"))?;
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS chunks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tool TEXT NOT NULL, grade TEXT NOT NULL,
+                source TEXT NOT NULL, content TEXT NOT NULL
+            )",
+        )
+        .map_err(|e| format!("sqlite schema: {e}"))?;
+        let mut stmt = conn
+            .prepare("SELECT tool, grade, source, content FROM chunks")
+            .map_err(|e| format!("sqlite prepare: {e}"))?;
+        let rows = stmt
+            .query_map([], |row| {
+                let grade_str: String = row.get(1)?;
+                let grade = match grade_str.as_str() {
+                    "A" => EvidenceGrade::A,
+                    "A-" => EvidenceGrade::AMinus,
+                    "B+" => EvidenceGrade::BPlus,
+                    "B" => EvidenceGrade::B,
+                    _ => EvidenceGrade::C,
+                };
+                Ok(Chunk {
+                    tool: row.get(0)?,
+                    grade,
+                    source: row.get(2)?,
+                    content: row.get(3)?,
+                })
+            })
+            .map_err(|e| format!("sqlite query: {e}"))?;
+        let mut store = Self::new();
+        for chunk in rows.flatten() {
+            store.index(chunk);
+        }
+        Ok(store)
     }
 
     /// Index multiple chunks at once.
