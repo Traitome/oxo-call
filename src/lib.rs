@@ -36,6 +36,7 @@ pub mod index;
 pub mod indexer;
 pub mod job;
 pub mod knowledge;
+pub mod knowledge_graph;
 pub mod license;
 pub mod llm;
 pub mod mcp;

@@ -51,6 +51,7 @@ mod index;
 mod indexer;
 mod job;
 mod knowledge;
+mod knowledge_graph;
 mod license;
 mod llm;
 mod mcp;

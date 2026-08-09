@@ -15,6 +15,7 @@ use crate::indexer::BiocondaIndex;
 use crate::job;
 use crate::knowledge::best_practices::BestPracticesDb;
 use crate::knowledge::error_db::ErrorKnowledgeDb;
+use crate::knowledge_graph::KnowledgeGraph;
 use crate::llm::{LlmClient, LlmCommandSuggestion};
 use crate::skill::{self, SkillManager};
 use crate::tool_resolver::ToolResolver;
@@ -66,6 +67,8 @@ pub struct Runner {
     /// Bioconda metadata index for L2 evidence.
     /// Loaded lazily — None if the data file is not found.
     bioconda_index: Option<BiocondaIndex>,
+    /// Knowledge graph for L4 context (tool relationships, pipelines).
+    knowledge_graph: KnowledgeGraph,
     pub(crate) verbose: bool,
     pub(crate) no_cache: bool,
     /// When true, use LLM to verify the result after execution.
@@ -114,12 +117,21 @@ impl Runner {
                 idx.len()
             );
         }
+        let knowledge_graph =
+            KnowledgeGraph::load().unwrap_or_else(|_| KnowledgeGraph::build_curated_graph());
+        eprintln!(
+            "{} Knowledge graph: {} nodes, {} edges",
+            "ℹ".dimmed(),
+            knowledge_graph.node_count(),
+            knowledge_graph.edge_count(),
+        );
         Runner {
             fetcher,
             llm,
             skill_manager,
             tool_resolver,
             bioconda_index,
+            knowledge_graph,
             config,
             verbose: false,
             no_cache: false,
@@ -395,6 +407,16 @@ impl Runner {
             String::new()
         };
 
+        // ── L4: Knowledge graph context (tool relationships) ──────────────────
+        // Provides alternatives, pipeline predecessors/successors, and
+        // version break warnings. Helps the LLM understand the broader
+        // tool ecosystem.
+        let l4_context = self.knowledge_graph.to_prompt_hint(resolved_binary);
+        // Also index the tool into the graph for future use
+        if self.knowledge_graph.get_node(resolved_binary).is_none() {
+            // Would need &mut self — defer indexing to background
+        }
+
         // ── Build StructuredDoc for flag catalog + doc-extracted examples ──
         // This is the key innovation: deterministic extraction of flags and
         // examples from --help output, injected into the LLM prompt to ground
@@ -604,16 +626,20 @@ impl Runner {
 
         // ── Evidence-graded documentation assembly ──────────────────────────
         // Build the final documentation string with L0 (--help) + L2 (bioconda)
-        // marked explicitly so the LLM knows which is authoritative.
-        let evidence_docs = if !l2_docs.is_empty() {
-            format!(
-                "<!-- L0: AUTHORITATIVE — live --help output -->\n\
-                 {docs}\n\n\
-                 <!-- L2: REFERENCE — bioconda metadata (may be outdated) -->\n\
-                 {l2_docs}"
-            )
-        } else {
-            docs
+        // + L4 (knowledge graph) marked explicitly so the LLM knows the authority.
+        let evidence_docs = {
+            let mut parts = vec![format!(
+                "<!-- L0: AUTHORITATIVE — live --help output -->\n{docs}"
+            )];
+            if !l2_docs.is_empty() {
+                parts.push(format!(
+                    "<!-- L2: REFERENCE — bioconda metadata -->\n{l2_docs}"
+                ));
+            }
+            if !l4_context.is_empty() {
+                parts.push(l4_context);
+            }
+            parts.join("\n\n")
         };
 
         let pipeline = CommandGenerationPipeline::new(self.config.clone())?;
