@@ -83,12 +83,17 @@ impl KnowledgeGraph {
         Ok(kg)
     }
 
-    /// Build the curated graph from embedded domain knowledge.
+    /// Build the curated graph from embedded domain knowledge + all 138 skill-defined tools.
     pub fn build_curated_graph() -> Self {
         let mut kg = Self {
             nodes: HashMap::new(),
             edges: HashMap::new(),
         };
+
+        // ── Index ALL verified tools from BUILTIN_SKILLS ────────────────
+        // This expands the graph from 53 curated nodes to 138+ tools,
+        // inferring categories and I/O types from skill file content.
+        kg.index_from_skills();
 
         // ── Alignment tools ────────────────────────────────────────────
         kg.add_node(
@@ -892,13 +897,57 @@ impl KnowledgeGraph {
         self.edges.values().map(|v| v.len()).sum()
     }
 
-    /// Index a new tool into the graph via inference.
+    /// Index ALL verified tools from BUILTIN_SKILLS — expands graph to 138+ nodes.
+    fn index_from_skills(&mut self) {
+        let skills: &[(&str, &str)] = crate::skill::BUILTIN_SKILLS;
+        for (_toolset, md) in skills {
+            let name = md
+                .lines()
+                .find(|l| l.starts_with("name:"))
+                .map(|l| l.trim_start_matches("name:").trim().to_string());
+            let category = md
+                .lines()
+                .find(|l| l.starts_with("category:"))
+                .map(|l| l.trim_start_matches("category:").trim().to_string())
+                .unwrap_or_else(|| "unknown".to_string());
+            if let Some(name) = name {
+                if self.nodes.contains_key(&name) {
+                    continue;
+                }
+                let (inputs, outputs) = self.infer_io_types(md);
+                let cli_type = if md.contains("Commands:") || md.contains("subcommands") {
+                    "subcommands"
+                } else {
+                    "flags"
+                };
+                let desc = md
+                    .lines()
+                    .find(|l| l.starts_with("description:"))
+                    .map(|l| l.trim_start_matches("description:").trim().to_string())
+                    .unwrap_or_default();
+                self.nodes.insert(
+                    name.clone(),
+                    ToolNode {
+                        name,
+                        category,
+                        cli_type: cli_type.to_string(),
+                        input_types: inputs,
+                        output_types: outputs,
+                        description: desc,
+                    },
+                );
+            }
+        }
+    }
+
+    /// Index a new tool into the graph via inference, then persist.
     pub fn index_tool(&mut self, name: &str, help_text: &str, bioconda_summary: Option<&str>) {
         if self.nodes.contains_key(name) {
             return;
         }
         let node = self.infer_tool_info(name, help_text, bioconda_summary);
         self.nodes.insert(name.to_string(), node);
+        let _ = self.save_to_sqlite();
     }
 
     // ── SQLite persistence ───────────────────────────────────────────

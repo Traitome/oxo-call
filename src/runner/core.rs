@@ -318,7 +318,7 @@ impl Runner {
     /// In Quality mode the executor optionally normalizes the task (if vague/short/non-ASCII),
     /// generates a mini-skill from the documentation (result cached to disk), and uses it
     /// for command generation.
-    pub(crate) async fn prepare(&self, tool: &str, task: &str) -> Result<PrepareResult> {
+    pub(crate) async fn prepare(&mut self, tool: &str, task: &str) -> Result<PrepareResult> {
         // ── L0: Tool resolution — alias → binary → PATH discovery ──────────
         // Resolve the user-supplied name through the alias table and PATH.
         // This is the single entry point: ANY tool on PATH is supported,
@@ -412,9 +412,16 @@ impl Runner {
         // version break warnings. Helps the LLM understand the broader
         // tool ecosystem.
         let l4_context = self.knowledge_graph.to_prompt_hint(resolved_binary);
-        // Also index the tool into the graph for future use
+        // Auto-index unknown tools into the graph for future use
         if self.knowledge_graph.get_node(resolved_binary).is_none() {
-            // Would need &mut self — defer indexing to background
+            self.knowledge_graph.index_tool(
+                resolved_binary,
+                &docs,
+                self.bioconda_index
+                    .as_ref()
+                    .and_then(|idx| idx.lookup(resolved_binary))
+                    .map(|e| e.summary.as_str()),
+            );
         }
 
         // ── Build StructuredDoc for flag catalog + doc-extracted examples ──
@@ -676,7 +683,7 @@ impl Runner {
     ///
     /// Used by the `server run` handler to obtain the command string that will
     /// be sent over SSH, while keeping display logic in the caller.
-    pub async fn generate_command(&self, tool: &str, task: &str) -> Result<GeneratedCommand> {
+    pub async fn generate_command(&mut self, tool: &str, task: &str) -> Result<GeneratedCommand> {
         let result = self.prepare(tool, task).await?;
         let full_cmd = build_command_string(tool, &result.suggestion.args);
         Ok(GeneratedCommand {
@@ -690,7 +697,7 @@ impl Runner {
     /// Records the generated command in history with `dry_run = true`.
     /// Pass `server` to tag the history entry with the remote server name.
     pub async fn dry_run(
-        &self,
+        &mut self,
         tool: &str,
         task: &str,
         json: bool,
@@ -794,7 +801,7 @@ impl Runner {
     }
 
     /// run: execute the command for real
-    pub async fn run(&self, tool: &str, task: &str, ask: bool, json: bool) -> Result<()> {
+    pub async fn run(&mut self, tool: &str, task: &str, ask: bool, json: bool) -> Result<()> {
         // ── Apply vars + batch dispatch ──────────────────────────
         let _task_buf;
         let task: &str = if self.vars.is_empty() {

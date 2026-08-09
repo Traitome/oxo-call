@@ -295,7 +295,7 @@ async fn run(cli: Cli) -> error::Result<()> {
             } else {
                 runner
             };
-            let runner = runner
+            let mut runner = runner
                 .with_vars(var_map)
                 .with_input_items(all_items)
                 .with_jobs(jobs)
@@ -360,7 +360,7 @@ async fn run(cli: Cli) -> error::Result<()> {
             } else {
                 runner
             };
-            let runner = runner.with_vars(var_map).with_input_items(all_items);
+            let mut runner = runner.with_vars(var_map).with_input_items(all_items);
             runner.dry_run(&tool, &task, json, None).await?;
         }
 
@@ -2083,7 +2083,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                     if let Some(ref m) = model {
                         run_cfg.llm.model = Some(m.clone());
                     }
-                    let runner_inst = runner::Runner::new(run_cfg)
+                    let mut runner_inst = runner::Runner::new(run_cfg)
                         .with_verbose(verbose)
                         .with_no_cache(no_cache)
                         .with_verify(verify)
@@ -2230,7 +2230,7 @@ async fn run(cli: Cli) -> error::Result<()> {
                     if let Some(ref m) = model {
                         run_cfg.llm.model = Some(m.clone());
                     }
-                    let runner_inst = runner::Runner::new(run_cfg)
+                    let mut runner_inst = runner::Runner::new(run_cfg)
                         .with_verbose(verbose)
                         .with_no_cache(no_cache)
                         .with_no_stream(no_stream);

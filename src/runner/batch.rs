@@ -16,8 +16,8 @@ use super::utils::{build_command_string, detect_tool_version};
 
 /// Trait for batch execution methods.
 pub(crate) trait BatchRunner {
-    async fn run_batch(&self, tool: &str, task: &str, json: bool) -> Result<()>;
-    async fn dry_run_batch(&self, tool: &str, task: &str, json: bool) -> Result<()>;
+    async fn run_batch(&mut self, tool: &str, task: &str, json: bool) -> Result<()>;
+    async fn dry_run_batch(&mut self, tool: &str, task: &str, json: bool) -> Result<()>;
 }
 
 impl BatchRunner for Runner {
@@ -29,7 +29,7 @@ impl BatchRunner for Runner {
     ///
     /// When `self.stop_on_error` is true, remaining handles are aborted after
     /// the first failure, and the batch exits immediately with an error.
-    async fn run_batch(&self, tool: &str, task: &str, json: bool) -> Result<()> {
+    async fn run_batch(&mut self, tool: &str, task: &str, json: bool) -> Result<()> {
         let result = self.prepare(tool, task).await?;
         let cmd_template = build_command_string(tool, &result.suggestion.args);
         // Clone provenance fields before result is consumed.
@@ -232,7 +232,7 @@ impl BatchRunner for Runner {
     }
 
     /// Show the interpolated command for every input item without executing.
-    async fn dry_run_batch(&self, tool: &str, task: &str, json: bool) -> Result<()> {
+    async fn dry_run_batch(&mut self, tool: &str, task: &str, json: bool) -> Result<()> {
         let result = self.prepare(tool, task).await?;
         let cmd_template = build_command_string(tool, &result.suggestion.args);
 
