@@ -257,7 +257,7 @@ mod tests {
 
     #[test]
     fn test_put_and_get() {
-        let _lock = crate::ENV_LOCK.lock().unwrap();
+        let _lock = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         let tmp = tempfile::tempdir().unwrap();
         unsafe { std::env::set_var("OXO_CALL_DATA_DIR", tmp.path().to_string_lossy().as_ref()) };
 

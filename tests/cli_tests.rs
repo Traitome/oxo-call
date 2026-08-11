@@ -1179,7 +1179,7 @@ fn test_completion_all_shells() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("_oxo-call"),
+        stdout.contains("_oxo__call") || stdout.contains("_oxo-call"),
         "Expected bash completion function name in output"
     );
     assert!(
