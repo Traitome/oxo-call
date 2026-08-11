@@ -223,10 +223,10 @@ mod tests {
 
     #[test]
     fn test_feedback_record_and_load() {
+        let _guard = crate::ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
         // Use a temporary data dir to avoid clobbering real data.
         let tmp = tempfile::tempdir().unwrap();
-        // SAFETY: This test is single-threaded within its own tempdir and
-        // the env var is restored at the end.
+        // SAFETY: single-threaded access guaranteed by ENV_LOCK
         unsafe { std::env::set_var("OXO_CALL_DATA_DIR", tmp.path()) };
 
         let entry = FeedbackEntry {
